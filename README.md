@@ -72,8 +72,8 @@ declaration and reads `.yarnrc.yml` to distinguish node-modules/classic from
 PnP and other modes. A Yarn v1 lockfile can identify the classic layout, but
 without a declared Yarn version `init` does not create a runnable config:
 Corepack can select a different version and edit `package.json`. Conflicting
-or unsupported package managers are reported without pretending that
-installation coverage is known. When npm is not pinned in `package.json`,
+package managers are reported without pretending that installation coverage
+is known. When npm is not pinned in `package.json`,
 `init` reads the local npm executable's package manifest if available; it
 leaves the version unknown rather than guessing if that inspection fails.
 
@@ -107,6 +107,31 @@ separately justified explicit contract is provided.
 In particular, test caches and build-generated inputs are not excluded to
 make evidence green.
 
+Pinned pnpm 12 projects are read from `packageManager`, `pnpm-workspace.yaml`,
+the lockfile, and the installed `node_modules/.modules.yaml` metadata. The
+supported local layouts are pnpm's standard isolated and hoisted
+`node_modules` with a project-local `.pnpm` virtual store. `init` can discover
+root and workspace scripts. For a standalone `tsc --noEmit` or `tsc -p ...`
+script in the narrow TypeScript contract, it records the exact installed
+compiler invocation directly. This avoids pnpm 12's task-run bookkeeping
+writes during `pnpm run`; it does not alter the project's script. Test, lint,
+build, and ambiguous TypeScript scripts still execute through `pnpm run` and
+start recording-only. The generated `@typescript-bin:WORKSPACE` token resolves
+the local compiler when the check runs; it is not an absolute machine path.
+
+The pnpm contract indexes consumed installed package contents inside the
+project, selected workspace source, linked workspace declaration outputs,
+relevant manifests, configuration, and installation metadata. The global pnpm
+store is neither watched nor deleted. PnP, custom modules/virtual-store roots,
+global virtual stores, injected workspace dependencies, and external links
+without an observed boundary remain recording-only with a reason. Installed
+files with hard-linked aliases outside the checkout also remain recording-only:
+their contents are indexed, but writes through an unseen alias cannot support
+CURRENT. An absent optional package remains unqualified when Node could later
+resolve it from an unobserved ancestor `node_modules`; project-local candidate
+locations are still tracked for plan changes. No configuration assertion is
+generated to hide either gap.
+
 An unobservable source symlink or missing Git checkout is reported by `init`
 before writing a config. A local explicit configuration can grant a narrow
 external observation root after review; `init` will not add machine-specific
@@ -117,7 +142,8 @@ receipts live separately. `packageManager`, `checks[].script`, `kind`,
 `inputs`, optional `workspace`, and optional `qualification` are the generated
 public fields. The
 CLI also accepts `checks[].command` as exact argv for arbitrary checks;
-`@node`, `@project`, and `@which:NAME` are resolved at invocation. A command
+`@node`, `@project`, `@which:NAME`, and the narrow
+`@typescript-bin:WORKSPACE` token are resolved at invocation. A command
 or input-declaration change invalidates previous evidence.
 
 ## JSON for integrations
@@ -141,6 +167,8 @@ establish CURRENT. Never infer project correctness from an aggregate state.
 - `src/yarn-workspace-inputs.mjs` derives the narrow Yarn workspace typecheck
   input plan; `src/yarn-workspace-typecheck-probe.mjs` checks its effective
   TypeScript file list without running the check.
+- `src/pnpm-inputs.mjs` derives pnpm installation and TypeScript input plans;
+  `src/pnpm-typecheck-probe.mjs` checks the effective compiler input list.
 - `src/daemon.mjs` owns one checkout observer, reconciliation and applicability.
 - `src/cli.mjs` executes checks against before/after checkpoints and records
   results; `src/run-lock.mjs` protects a single writer.
