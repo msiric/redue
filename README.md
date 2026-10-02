@@ -89,10 +89,21 @@ contents, npm/Node identity, and relevant caller context. Unsupported plugins,
 preloads, config graphs, or outside-root inputs leave the check UNVERIFIED with
 an explanation. A discovered script can still be run and recorded in that
 state. Root and package-level npm/Yarn workspace scripts are discovered from
-`package.json` workspace declarations; package-level commands start
-recording-only because the complete shared/installed input closure is not
-inferred. Yarn typechecks, Vitest/Jest, ESLint, and builds also start
-recording-only unless a separately justified explicit contract is provided.
+`package.json` workspace declarations. Pinned Yarn 4 `node-modules`/classic
+workspaces with a standalone `tsc -p .` script, local TypeScript, a conventional
+`src` include, and Node module resolution can qualify automatically. For one
+workspace, use `vstate init --workspace NAME --check typecheck`; it writes only
+that check and keeps derived relationships out of project configuration. The
+contract observes selected `src` membership, root/package TypeScript config,
+built declarations of internal workspace dependencies, and physical installed
+files. It rechecks TypeScript's effective input list with a read-only probe.
+A sibling workspace is not an input merely because it shares the repository.
+When an internal dependency is consumed through built declarations, changing
+only its source does not stale the selected check until the consumed output
+changes. Unsupported custom resolution, project references, outside-root
+source links, and installation modes remain recording-only. Other Yarn
+typechecks, Vitest/Jest, ESLint, and builds start recording-only unless a
+separately justified explicit contract is provided.
 In particular, test caches and build-generated inputs are not excluded to
 make evidence green.
 
@@ -103,7 +114,8 @@ paths to a project config automatically.
 
 The generated config is project-relative and versioned. Runtime state and
 receipts live separately. `packageManager`, `checks[].script`, `kind`,
-`inputs`, and optional `qualification` are the generated public fields. The
+`inputs`, optional `workspace`, and optional `qualification` are the generated
+public fields. The
 CLI also accepts `checks[].command` as exact argv for arbitrary checks;
 `@node`, `@project`, and `@which:NAME` are resolved at invocation. A command
 or input-declaration change invalidates previous evidence.
@@ -126,6 +138,9 @@ establish CURRENT. Never infer project correctness from an aggregate state.
 - `src/declared-plan.mjs` resolves explicit check input plans.
 - `src/installed-inputs.mjs` resolves permitted linked installed paths;
   `src/index.mjs` hashes file contents and membership.
+- `src/yarn-workspace-inputs.mjs` derives the narrow Yarn workspace typecheck
+  input plan; `src/yarn-workspace-typecheck-probe.mjs` checks its effective
+  TypeScript file list without running the check.
 - `src/daemon.mjs` owns one checkout observer, reconciliation and applicability.
 - `src/cli.mjs` executes checks against before/after checkpoints and records
   results; `src/run-lock.mjs` protects a single writer.

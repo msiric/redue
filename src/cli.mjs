@@ -227,7 +227,17 @@ async function main(){
     try {await call({action:'metrics'},1000);
       const data=cached();console.log(JSON.stringify({pid:child.pid,state:data.state,
         health:data.observation,ready:false}));return;}
-    catch {throw Error('observer control did not become available; inspect owned observer.log');}
+    catch {
+      let live=false;
+      try{process.kill(child.pid,0);live=true;
+        if(fs.existsSync(path.join(observerLock,'pid')))
+          live=Number(fs.readFileSync(path.join(observerLock,'pid')))==child.pid;
+      }catch{}
+      if(live){console.log(JSON.stringify({pid:child.pid,state:'unverified',ready:false,
+        health:{healthy:false,reason:'observer initialization pending; query status before relying on evidence'}}));
+        return;}
+      throw Error('observer control did not become available; inspect owned observer.log');
+    }
   }
   if(action==='run-lock-status'){
     console.log(JSON.stringify(inspectRunLock(state)));return;

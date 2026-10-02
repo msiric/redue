@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import micromatch from 'micromatch';
+import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
 
 const exists=file=>{try{fs.accessSync(file);return true;}catch{return false;}};
 const readJson=file=>JSON.parse(fs.readFileSync(file,'utf8'));
@@ -193,8 +194,19 @@ export function discoverNodeProject(root) {
         const check={name:`${name}:${kind}`,kind,command,
           inputs:['package.json',...(pm.lockfiles||[]),`${dir}/**`,
             `!${dir}/node_modules/**`]};
-        checks.push({config:check,level:pm.issue?'unsupported':'recording',
-          reason:pm.issue||'workspace script found; shared configuration and installed inputs need review'});
+        let level=pm.issue?'unsupported':'recording';
+        let reason=pm.issue||'workspace script found; shared configuration and installed inputs need review';
+        if(!pm.issue&&pm.name==='yarn'&&pm.layout==='node-modules/classic'&&
+          kind==='typecheck'&&(member.scripts||{})[selected.script]?.trim()==='tsc -p .'&&
+          !member.scripts?.['pre'+selected.script]&&!member.scripts?.['post'+selected.script]){
+          try{
+            yarnWorkspaceTypecheckInputs(root,name,selected.script);
+            check.workspace=name;check.qualification='yarn-workspace-tsc-v1';
+            check.inputs=['package.json','yarn.lock','.yarnrc.yml',file,`${dir}/src/**`];
+            level='ready';reason='pinned Yarn workspace tsc and installed inputs; checked again before reuse';
+          }catch(e){reason=`workspace TypeScript contract needs review: ${e.message}`;}
+        }
+        checks.push({config:check,level,reason});
       }
     }
   }

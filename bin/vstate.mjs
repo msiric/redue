@@ -13,7 +13,8 @@ const help=`vstate 0.1.0-alpha
 Usage: vstate [--config FILE] [--state-dir DIR] COMMAND [OPTIONS]
 
 Commands:
-  init [--dry-run]     Discover existing npm/Yarn scripts and propose a config
+  init [--dry-run] [--workspace NAME] [--check KIND]
+                       Discover existing scripts; optionally select one workspace/check
   start                Start the local observer
   stop                 Stop this observer
   status [--json]      Read conservative cached status
@@ -42,6 +43,14 @@ if(!['init','start','stop','status','detail','explain','run','remove-state'].inc
 const json=args.includes('--json');
 const sync=args.includes('--sync');
 const dryRun=args.includes('--dry-run');
+let workspaceSelection=null,checkSelection=null;
+if(command==='init')for(let i=0;i<args.length;){
+  if(args[i]==='--workspace'||args[i]==='--check'){
+    const flag=args[i],value=args[i+1];if(!value||value.startsWith('--'))error(`${flag} requires a name`);
+    if(flag==='--workspace')workspaceSelection=value;else checkSelection=value;
+    args.splice(i,2);
+  }else i++;
+}
 const check=command==='run'?args.shift():null;
 if(command==='run'&&!check)error('run requires a check name');
 if(args.some(value=>!['--json','--sync','--dry-run'].includes(value)))error('unknown option; use --help');
@@ -51,6 +60,14 @@ if(dryRun&&command!=='init')error('--dry-run is for init');
 if(command==='init'){
   let discovery;try{discovery=discoverNodeProject(process.cwd());}
   catch(e){error(e.message);}
+  if(workspaceSelection||checkSelection){
+    const chosen=discovery.checks.filter(row=>
+      (!workspaceSelection||row.config.workspace===workspaceSelection||
+        row.config.command?.[2]===workspaceSelection)&&
+      (!checkSelection||row.config.kind===checkSelection));
+    if(!chosen.length)error('no discovered check matches the selected workspace and kind');
+    discovery.checks=chosen;discovery.config.checks=chosen.map(row=>row.config);
+  }
   const configured=fs.existsSync(configFile),unsupported=Boolean(discovery.observationIssue||
     discovery.manager.issue&&!['npm','yarn'].includes(discovery.manager.name)||
     discovery.manager.name==='yarn'&&!discovery.manager.version);
@@ -61,7 +78,8 @@ if(command==='init'){
     issue:discovery.observationIssue||discovery.manager.issue,workspaces:discovery.workspaces,
     ambiguous:discovery.ambiguous,
     checks:discovery.checks.map(({config:check,level,reason})=>({name:check.name,
-      script:check.script||null,command:check.command||null,level,reason})),config:configFile,
+      script:check.script||null,command:check.command||null,
+      workspace:check.workspace||null,level,reason})),config:configFile,
     written:willWrite,existing:configured};
   if(!json) {
     console.log(`Node ${summary.node}; ${summary.package_manager||'unknown package manager'}`+
@@ -109,6 +127,7 @@ function token(value){
   if(value==='@project')return root;
   if(value==='@vstate/npm-typecheck-probe')return path.join(productRoot,'src','npm-typecheck-probe.mjs');
   if(value==='@vstate/typescript-contract-probe')return path.join(productRoot,'src','typescript-contract-probe.mjs');
+  if(value==='@vstate/yarn-workspace-typecheck-probe')return path.join(productRoot,'src','yarn-workspace-typecheck-probe.mjs');
   if(value==='@vstate/toolchain-probe')return path.join(productRoot,'src','toolchain-probe.mjs');
   if(value.startsWith('@which:'))return which(value.slice(7));
   return value;
@@ -123,7 +142,7 @@ const categories=['source','generated','installedDependencies','environment','to
 const checks=publicConfig.checks.map(check=>{
   const allowed=['name','command','cwd','inputs','generatedInputs','installedInputs',
     'allowedExternalRoots','probes','environment','coverage','coverageReview','coverageReasons',
-    'script','kind','qualification'];
+    'script','kind','qualification','workspace'];
   for(const key of Object.keys(check))if(!allowed.includes(key))
     error(`unsupported check field ${check.name}.${key}`);
   for(const category of categories)if(check.coverage?.[category]&&
@@ -134,23 +153,35 @@ const checks=publicConfig.checks.map(check=>{
   if(check.script&&!['npm','yarn'].includes(manager))
     error(`${check.name}: script checks need supported npm or Yarn packageManager`);
   const scriptCommand=check.script?[`@which:${manager}`,'run',check.script]:null;
-  const automatic=check.qualification==='typescript-noemit-v1';
-  if(check.qualification&&!automatic)error(`${check.name}: unknown qualification contract`);
-  if(automatic&&(manager!=='npm'||check.cwd&&check.cwd!=='.'))
+  const npmAutomatic=check.qualification==='typescript-noemit-v1';
+  const yarnWorkspace=check.qualification==='yarn-workspace-tsc-v1';
+  if(check.qualification&&!npmAutomatic&&!yarnWorkspace)
+    error(`${check.name}: unknown qualification contract`);
+  if(npmAutomatic&&(manager!=='npm'||check.cwd&&check.cwd!=='.'))
     error(`${check.name}: automatic TypeScript qualification currently needs root npm script`);
+  if(yarnWorkspace&&(manager!=='yarn'||!check.workspace||check.cwd&&check.cwd!=='.'||
+    check.command?.length!==5||check.command[0]!=='@which:yarn'||
+    check.command[1]!=='workspace'||check.command[2]!==check.workspace||
+    check.command[3]!=='run'))
+    error(`${check.name}: Yarn workspace qualification needs its discovered workspace command`);
   const reason=check.kind==='test'?'test runtime, transforms and cache inputs need review':
     check.kind==='lint'?'lint plugins, config and resolver inputs need review':
     check.kind==='build'?'build environment and generated inputs need review':
     'check inputs need review';
-  const autoProbes=automatic?[['@node','@vstate/typescript-contract-probe',
-    '@project',check.script,'@which:npm']]:[];
-  const autoEnvironment=automatic?{variables:['NODE_OPTIONS','NODE_PATH','CI','HOME',
+  const autoProbes=npmAutomatic?[['@node','@vstate/typescript-contract-probe',
+    '@project',check.script,'@which:npm']]:yarnWorkspace?
+    [['@node','@vstate/yarn-workspace-typecheck-probe','@project',
+      check.workspace,check.command[4],'@which:yarn']]:[];
+  const autoEnvironment=npmAutomatic?{variables:['NODE_OPTIONS','NODE_PATH','CI','HOME',
     'NODE_ENV','BASH_ENV','ENV'],prefixes:['npm_config_','DYLD_','TSGO_'],
-    pathExecutables:['node','npm'],executableIdentity:true}:{};
+    pathExecutables:['node','npm'],executableIdentity:true}:yarnWorkspace?
+    {variables:['NODE_OPTIONS','NODE_PATH','CI','HOME','NODE_ENV','BASH_ENV','ENV'],
+      prefixes:['YARN_','COREPACK_','npm_config_','DYLD_','TSGO_'],
+      pathExecutables:['node','yarn'],executableIdentity:true}:{};
   return {name:check.name,command:argv(scriptCommand||check.command,`${check.name}.command`),
     cwd:check.cwd,inputs:check.inputs||[],generatedInputs:check.generatedInputs||[],
     installedInputs:check.installedInputs||(
-      automatic?['node_modules/**']:[]),
+      npmAutomatic?['node_modules/**']:[]),
     allowedExternalRoots:check.allowedExternalRoots||[],
     probes:[...(check.probes||[]),...autoProbes]
       .map((p,i)=>argv(p,`${check.name}.probes[${i}]`)),
@@ -158,7 +189,8 @@ const checks=publicConfig.checks.map(check=>{
     coverageReview:check.coverageReview||{},
     coverageReasons:check.coverageReasons||Object.fromEntries(
       categories.map(category=>[category,reason])),
-    qualification:check.qualification||null,script:check.script||null,kind:check.kind||null};
+    qualification:check.qualification||null,script:check.script||null,
+    workspace:check.workspace||null,kind:check.kind||null};
 });
 const runtime={schema:1,provider:'declared-project@1',root,state,checks};
 const serialized=JSON.stringify(runtime,null,2)+'\n';
@@ -202,7 +234,7 @@ if(result.stdout){
   } else {
     const lines=result.stdout.trimEnd().split('\n');
     for(const line of lines){
-      const match=/^([^:]+): (CURRENT|STALE|UNVERIFIED)\/(PASS|FAIL|NO RESULT) — (.*)$/.exec(line);
+      const match=/^(.+): (CURRENT|STALE|UNVERIFIED)\/(PASS|FAIL|NO RESULT) — (.*)$/.exec(line);
       if(!match){console.log(line);continue;}
       const [,name,freshness,outcome,reason]=match;
       const label=outcome==='NO RESULT'?'not run':`${outcome} recorded`;

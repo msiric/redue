@@ -94,7 +94,8 @@ function probe(row) {
     if(out.error||out.signal||out.status!==0) {
       if(!row.probeError){row.revision++;row.lastReason='declared state probe became unavailable';}
       row.probeHash=null;row.probeAt=0;
-      const code=row.plan.qualification==='typescript-noemit-v1'?
+      const code=['typescript-noemit-v1','yarn-workspace-tsc-v1']
+        .includes(row.plan.qualification)?
         /VSTATE_REASON:([a-z-]+)/.exec(out.stderr?.toString()||'')?.[1]:null;
       const explanations={
         'typecheck-script-changed':'typecheck script or lifecycle changed; rerun init or review it',
@@ -110,7 +111,12 @@ function probe(row) {
         'npm-installation-layout-unsupported':'npm executable or installation layout is unsupported',
         'npm-installation-unobservable':'npm installation contains unobservable entries',
         'npm-configuration-unsupported':'npm script configuration needs review',
-        'typescript-contract-unavailable':'TypeScript applicability probe could not establish inputs'
+        'typescript-contract-unavailable':'TypeScript applicability probe could not establish inputs',
+        'workspace-execution-environment-unsupported':'Yarn/Node launcher environment override needs review',
+        'yarn-toolchain-unavailable':'pinned Yarn version or executable is unavailable',
+        'yarn-distribution-unobservable':'Corepack Yarn distribution cannot be inspected',
+        'typescript-input-outside-workspace-contract':'TypeScript reads outside the selected workspace, declared dependency outputs, or installed roots',
+        'workspace-typecheck-contract-unavailable':'workspace TypeScript applicability probe could not establish inputs'
       };
       row.probeError=code?explanations[code]||`TypeScript applicability unavailable (${code})`:
         `probe unavailable: ${argv[0]} (${out.error?.code||out.signal||out.status})`;return;
@@ -141,7 +147,8 @@ function describeChangedInput(plan,file) {
   const physical=boundary?path.join(boundary,file.slice(`external:${boundary}:`.length)):
     path.join(root,file);
   const matches=[...(plan.installedInstances||[]),...(plan.installedMappings||[])]
-    .filter(mapping=>physical===mapping.physical||physical.startsWith(mapping.physical+path.sep))
+    .filter(mapping=>!mapping.logical?.startsWith('!')&&
+      (physical===mapping.physical||physical.startsWith(mapping.physical+path.sep)))
     .map(mapping=>mapping.logical).slice(0,2);
   return file+' changed'+(matches.length?` (installed via ${matches.join(', ')})`:'');
 }
@@ -209,7 +216,8 @@ function rows(contextHashes) {
             if(r.files[f]!==current[f]){changed=describeChangedInput(row.plan,f);break;}
         }
         row.staleReason=changed||
-          (row.plan.qualification==='typescript-noemit-v1'?
+          (['typescript-noemit-v1','yarn-workspace-tsc-v1']
+            .includes(row.plan.qualification)?
             'TypeScript input set, generated file, or toolchain context changed':
             'declared input content or membership changed');
         row.staleReasonKey=key;

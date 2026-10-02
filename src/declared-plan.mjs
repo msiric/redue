@@ -5,6 +5,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {permittedRoots,resolveDeclaredInstalled} from './installed-inputs.mjs';
 import {qualifyTypeScript} from './typescript-qualification.mjs';
+import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
 
 const identity=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const safePattern=value=>{
@@ -16,7 +17,8 @@ const safePattern=value=>{
 };
 
 export function discoverDeclared(config) {
-  const root=fs.realpathSync(config.root),plans={};
+  const root=fs.realpathSync(config.root),plans={},configurationInputs=new Set(),
+    workspaceManifests=new Set();
   if(!Array.isArray(config.checks)||!config.checks.length)throw Error('selected checks required');
   for(const selected of config.checks){
     if(typeof selected.name!=='string'||!selected.name||plans[selected.name])
@@ -47,12 +49,23 @@ export function discoverDeclared(config) {
         typeof value==='string'&&/^[A-Za-z_][A-Za-z0-9_-]*$/.test(value)))
       throw Error('PATH executables must be simple command names');
     const allowedRoots=permittedRoots(root,selected.allowedExternalRoots||[]);
-    const installed=resolveDeclaredInstalled(root,selected.installedInputs||[],allowedRoots);
+    let workspace=null,workspaceIssue=null;
+    if(selected.qualification==='yarn-workspace-tsc-v1'){
+      try{workspace=yarnWorkspaceTypecheckInputs(root,selected.workspace,
+        selected.command[4]);}
+      catch(e){workspaceIssue=e.message;}
+    }
+    const installed=resolveDeclaredInstalled(root,
+      [...(selected.installedInputs||[]),...(workspace?.installed||[])],allowedRoots);
     const automatic=qualifyTypeScript(root,selected);
-    const sourcePatterns=[...new Set(selected.inputs)].sort();
+    const sourcePatterns=[...new Set([...selected.inputs,...(workspace?.source||[]),
+      ...(workspace?.generated||[])])].sort();
     const additivePatterns=[...new Set([...(selected.generatedInputs||[]),
       ...installed.internalPatterns])].sort();
-    const unresolved=[...installed.unresolved,...(automatic?.issues||[])];
+    const unresolved=[...installed.unresolved,...(automatic?.issues||[]),
+      ...(workspaceIssue?[workspaceIssue]:[])];
+    for(const item of workspace?.configurationInputs||[])configurationInputs.add(item);
+    for(const item of workspace?.closure||[])workspaceManifests.add(item.manifest);
     if(!automatic)for(const category of ['source','generated','installedDependencies',
       'environment','toolchain','runtime'])if(!selected.coverage?.[category])
       unresolved.push(selected.coverageReasons?.[category]||
@@ -68,12 +81,16 @@ export function discoverDeclared(config) {
       target:selected.name,taskCommand:null,taskGraph:[],
       patterns:[...new Set([...sourcePatterns,...additivePatterns])].sort(),
       sourcePatterns,additivePatterns,generated:[],
-      declaredGeneratedInputs:[...new Set(selected.generatedInputs||[])].sort(),
-      declaredInstalledInputs:[...new Set(selected.installedInputs||[])].sort(),
+      declaredGeneratedInputs:[...new Set([...(selected.generatedInputs||[]),
+        ...(workspace?.generated||[])])].sort(),
+      declaredInstalledInputs:[...new Set([...(selected.installedInputs||[]),
+        ...(workspace?.installed||[])])].sort(),
       installation:null,installedInstances:[],resolutionCandidates:[],resolutionFindings:[],
       installedPhysicalRoots,externalPatterns,
       externalObservationRoots:Object.keys(externalPatterns).sort(),
-      resolutionLinks:installed.links,resolutionTriggers:installed.triggers,
+      resolutionLinks:installed.links,
+      resolutionTriggers:[...new Set([...installed.triggers,
+        ...(workspace?.linkTriggers||[])])],
       installedMappings:installed.mappings,effectiveEnvironmentGlobs:{},
       probes:selected.probes||[],environment:selected.environment||{},
       qualification:selected.qualification||null,
@@ -82,5 +99,7 @@ export function discoverDeclared(config) {
     plan.id=identity(plan);plans[selected.name]=plan;
   }
   return {schema:1,provider:'declared-project@1',root,plans,discoveredAt:Date.now(),
-    workspaceCount:1,workspacePatterns:[],configurationInputs:[],workspaceManifests:[]};
+    workspaceCount:1,workspacePatterns:[],
+    configurationInputs:[...configurationInputs].sort(),
+    workspaceManifests:[...workspaceManifests].sort()};
 }

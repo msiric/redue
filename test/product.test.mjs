@@ -61,6 +61,15 @@ async function until(f,predicate,limitMs=10000){const started=Date.now();
     '\nrecent events: '+JSON.stringify(events(f).slice(-20)));}
 function oracle(file){return createHash('sha256').update(fs.readFileSync(file)).digest('hex');}
 
+test('short startup wait reports owned initialization instead of a false launch failure',async t=>{
+  const f=withFixture(t);f.env.VSTATE_START_READY_WAIT_MS='100';
+  const started=JSON.parse(ok(f,'start').stdout);
+  assert.equal(typeof started.ready,'boolean');
+  if(!started.ready)assert.equal(started.health.healthy,false);
+  const usable=await until(f,value=>value.observation.healthy);
+  assert.equal(usable.checks[0].freshness,'UNVERIFIED');
+});
+
 test('receipt survives unrelated changes; source, generated, installed and absence changes stale it',t=>{
   const f=withFixture(t,{absent:true});ok(f,'start');ok(f,'run','check');
   const first=row(f);assert.equal(first.freshness,'CURRENT');

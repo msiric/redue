@@ -62,6 +62,10 @@ export function resolveDeclaredInstalled(root,patterns,allowed=[]) {
   const internal=new Set(),external=new Map(),links=new Map(),triggers=new Set(),roots=new Set();
   for(const pattern of patterns||[]) {
     const negative=pattern.startsWith('!'),raw=negative?pattern.slice(1):pattern;
+    // Exclusions must also apply at the logical link location. The mapped
+    // physical exclusion alone cannot stop a broad installed-tree scan from
+    // trying to hash a workspace directory symlink as a file.
+    if(negative)internal.add(pattern);
     const parts=raw.split('/'),fixed=[];
     for(const part of parts){if(/[?*[{(]/.test(part))break;fixed.push(part);}
     if(!fixed.length){internal.add(pattern);continue;}
@@ -97,4 +101,3 @@ export function resolveDeclaredInstalled(root,patterns,allowed=[]) {
   result.triggers=[...triggers].sort();result.physicalRoots=[...roots].sort();
   return result;
 }
-
