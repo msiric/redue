@@ -166,3 +166,12 @@ test('configuration change cannot reuse old plan; stop remains available',t=>{
   assert.equal(row(f).freshness,'STALE');
   assert.match(row(f).reason,/input plan changed/);
 });
+
+test('change while observer is stopped is reconciled before CURRENT returns',t=>{
+  const f=withFixture(t);ok(f,'start');ok(f,'run','check');
+  assert.equal(row(f).freshness,'CURRENT');
+  ok(f,'stop');put(path.join(f.root,'src/input.txt'),'PASS after downtime\n');
+  ok(f,'start');const item=row(f);
+  assert.equal(item.result,'PASS');assert.equal(item.freshness,'STALE');
+  assert.match(item.reason,/src\/input.txt changed/);
+});
