@@ -94,7 +94,26 @@ function probe(row) {
     if(out.error||out.signal||out.status!==0) {
       if(!row.probeError){row.revision++;row.lastReason='declared state probe became unavailable';}
       row.probeHash=null;row.probeAt=0;
-      row.probeError=`probe unavailable: ${argv[0]} (${out.error?.code||out.signal||out.status})`;return;
+      const code=row.plan.qualification==='typescript-noemit-v1'?
+        /VSTATE_REASON:([a-z-]+)/.exec(out.stderr?.toString()||'')?.[1]:null;
+      const explanations={
+        'typecheck-script-changed':'typecheck script or lifecycle changed; rerun init or review it',
+        'execution-environment-unsupported':'Node/npm preload or configuration environment is unsupported',
+        'typescript-executable-changed':'local TypeScript executable changed or is missing',
+        'typescript-config-unavailable':'TypeScript configuration cannot be resolved',
+        'typescript-config-graph-unsupported':'TypeScript configuration extends, references, or uses compiler features outside this contract',
+        'typescript-incremental-unsupported':'TypeScript incremental or composite compilation needs explicit review',
+        'typescript-config-outside-repository':'TypeScript configuration extends outside the observed repository',
+        'typescript-plugin-unsupported':'TypeScript compiler plugin needs explicit review',
+        'typescript-input-list-unavailable':'TypeScript input listing did not complete',
+        'typescript-input-outside-repository':'TypeScript consumes files outside the observed repository',
+        'npm-installation-layout-unsupported':'npm executable or installation layout is unsupported',
+        'npm-installation-unobservable':'npm installation contains unobservable entries',
+        'npm-configuration-unsupported':'npm script configuration needs review',
+        'typescript-contract-unavailable':'TypeScript applicability probe could not establish inputs'
+      };
+      row.probeError=code?explanations[code]||`TypeScript applicability unavailable (${code})`:
+        `probe unavailable: ${argv[0]} (${out.error?.code||out.signal||out.status})`;return;
     }
     values.push([argv,out.status,sha(out.stdout),sha(out.stderr)]);
   }
@@ -189,7 +208,10 @@ function rows(contextHashes) {
           if(r.files)for(const f of new Set([...Object.keys(r.files),...Object.keys(current)]))
             if(r.files[f]!==current[f]){changed=describeChangedInput(row.plan,f);break;}
         }
-        row.staleReason=changed||'declared input content or membership changed';
+        row.staleReason=changed||
+          (row.plan.qualification==='typescript-noemit-v1'?
+            'TypeScript input set, generated file, or toolchain context changed':
+            'declared input content or membership changed');
         row.staleReasonKey=key;
       }
       item.reason=row.staleReason;

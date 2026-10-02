@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {permittedRoots,resolveDeclaredInstalled} from './installed-inputs.mjs';
+import {qualifyTypeScript} from './typescript-qualification.mjs';
 
 const identity=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const safePattern=value=>{
@@ -47,15 +48,16 @@ export function discoverDeclared(config) {
       throw Error('PATH executables must be simple command names');
     const allowedRoots=permittedRoots(root,selected.allowedExternalRoots||[]);
     const installed=resolveDeclaredInstalled(root,selected.installedInputs||[],allowedRoots);
+    const automatic=qualifyTypeScript(root,selected);
     const sourcePatterns=[...new Set(selected.inputs)].sort();
     const additivePatterns=[...new Set([...(selected.generatedInputs||[]),
       ...installed.internalPatterns])].sort();
-    const unresolved=[...installed.unresolved];
-    for(const category of ['source','generated','installedDependencies','environment',
-      'toolchain','runtime'])if(!selected.coverage?.[category])
+    const unresolved=[...installed.unresolved,...(automatic?.issues||[])];
+    if(!automatic)for(const category of ['source','generated','installedDependencies',
+      'environment','toolchain','runtime'])if(!selected.coverage?.[category])
       unresolved.push(selected.coverageReasons?.[category]||
         `${category} coverage not reviewed for this command`);
-    if((selected.probes||[]).length&&!selected.coverage?.probeContinuity)
+    if((selected.probes||[]).length&&!automatic&&!selected.coverage?.probeContinuity)
       unresolved.push('probe state continuity during execution not established');
     const installedPhysicalRoots=[...new Set(installed.physicalRoots
       .filter(file=>file.startsWith(root+path.sep))
@@ -74,6 +76,7 @@ export function discoverDeclared(config) {
       resolutionLinks:installed.links,resolutionTriggers:installed.triggers,
       installedMappings:installed.mappings,effectiveEnvironmentGlobs:{},
       probes:selected.probes||[],environment:selected.environment||{},
+      qualification:selected.qualification||null,
       executionProvenance:'declared-command',
       unresolved:[...new Set(unresolved)].sort()};
     plan.id=identity(plan);plans[selected.name]=plan;

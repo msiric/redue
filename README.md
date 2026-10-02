@@ -15,18 +15,33 @@ node bin/vstate.mjs --help
 node bin/vstate.mjs init
 ```
 
-`init` writes a deliberately empty `vstate.config.json` if none exists. Add
-checks and their input declarations before `start`; it does not infer coverage.
-See [the example](examples/vstate.config.json). A successful command remains
-recording-only until every relevant coverage category has a documented review
-and any required probes are configured. A `coverage` flag is a reviewer claim,
-not automatic dependency discovery.
+`init --dry-run` previews existing `package.json` verification scripts without
+writing or running them. `init` prints its findings, then creates a small
+`vstate.config.json` if none exists. It does not edit application or package
+manager files. Review the generated config before starting the observer.
+See [the manual example](examples/vstate.config.json) for arbitrary commands.
+For example, an unsupported check can still record its outcome:
+
+```json
+{
+  "schema": 1,
+  "checks": [{
+    "name": "migration",
+    "command": ["@node", "tools/check-migrations.mjs"],
+    "inputs": ["migrations/**", "tools/check-migrations.mjs"]
+  }]
+}
+```
+
+This check remains recording-only until its complete applicability boundary is
+reviewed. A successful command alone does not qualify it for CURRENT.
 
 ```sh
 node bin/vstate.mjs start
 node bin/vstate.mjs status --json
 node bin/vstate.mjs status --sync --json
 node bin/vstate.mjs detail
+node bin/vstate.mjs detail --json
 node bin/vstate.mjs run typecheck
 node bin/vstate.mjs stop
 node bin/vstate.mjs remove-state
@@ -49,6 +64,63 @@ observation gap withholds CURRENT. Neither read is an atomic snapshot against
 another process editing concurrently. Checks execute only with `run`; direct
 commands outside vstate create no receipts.
 
+## Node onboarding boundary
+
+`init` detects npm from `package-lock.json`/`npm-shrinkwrap.json` or an npm
+`packageManager` declaration. It detects Yarn from `yarn.lock` or its
+declaration and reads `.yarnrc.yml` to distinguish node-modules/classic from
+PnP and other modes. A Yarn v1 lockfile can identify the classic layout, but
+without a declared Yarn version `init` does not create a runnable config:
+Corepack can select a different version and edit `package.json`. Conflicting
+or unsupported package managers are reported without pretending that
+installation coverage is known. When npm is not pinned in `package.json`,
+`init` reads the local npm executable's package manifest if available; it
+leaves the version unknown rather than guessing if that inspection fails.
+
+At the repository root, `init` looks for existing typecheck, test, lint, and
+build scripts. It prefers familiar script names, then unique recognizable
+`tsc`, Vitest/Jest, ESLint, or Vite commands under other names. Multiple
+matches are reported as ambiguous rather than guessed. It never creates a new
+project script. It recognizes canonical
+`tsc --noEmit` on local npm installations as a candidate for automatic
+qualification. Before CURRENT is possible, a read-only probe checks the
+TypeScript configuration and effective file list, local compiler, installed
+contents, npm/Node identity, and relevant caller context. Unsupported plugins,
+preloads, config graphs, or outside-root inputs leave the check UNVERIFIED with
+an explanation. A discovered script can still be run and recorded in that
+state. Root and package-level npm/Yarn workspace scripts are discovered from
+`package.json` workspace declarations; package-level commands start
+recording-only because the complete shared/installed input closure is not
+inferred. Yarn typechecks, Vitest/Jest, ESLint, and builds also start
+recording-only unless a separately justified explicit contract is provided.
+In particular, test caches and build-generated inputs are not excluded to
+make evidence green.
+
+An unobservable source symlink or missing Git checkout is reported by `init`
+before writing a config. A local explicit configuration can grant a narrow
+external observation root after review; `init` will not add machine-specific
+paths to a project config automatically.
+
+The generated config is project-relative and versioned. Runtime state and
+receipts live separately. `packageManager`, `checks[].script`, `kind`,
+`inputs`, and optional `qualification` are the generated public fields. The
+CLI also accepts `checks[].command` as exact argv for arbitrary checks;
+`@node`, `@project`, and `@which:NAME` are resolved at invocation. A command
+or input-declaration change invalidates previous evidence.
+
+## JSON for integrations
+
+`status --json` is a cached, conservative read. `status --sync --json` and
+`detail --json` reconcile observation and evaluate caller context and read-only
+state probes. All return schema `1` with `state`, counts (`current`, `stale`,
+`failed`, `unverified`), `checks`, and `observation`. A check contains `name`,
+historical `result` (`PASS`, `FAIL`, or null), `freshness` (`CURRENT`, `STALE`,
+`UNVERIFIED`), `reason`, and `reuse_eligible`. The observation object includes
+`healthy` and a reason when unavailable. Consumers should use these fields;
+additional diagnostic fields may change during alpha. Cached reads may be
+UNVERIFIED when caller context is required even if synchronized reads can
+establish CURRENT. Never infer project correctness from an aggregate state.
+
 ## Source boundaries
 
 - `src/declared-plan.mjs` resolves explicit check input plans.
@@ -60,8 +132,7 @@ commands outside vstate create no receipts.
 - `bin/vstate.mjs` owns public CLI parsing, readable output and config/state
   placement. No presentation surface owns verification semantics.
 
-The current supported path is explicit local checks with declared files,
-installed inputs and read-only probes. There is no automatic discovery,
-background check rerunning, CI evidence ingestion, or passive capture of direct
-commands. The included npm TypeScript probe is a narrow reviewed-contract tool,
-not a general proof of JavaScript dependency completeness.
+The supported path is local named checks with declared files, installed inputs,
+and read-only probes. There is no background check rerunning, CI evidence
+ingestion, or passive capture of direct commands. The npm TypeScript contract
+is intentionally narrow, not a proof of arbitrary JavaScript dependencies.
