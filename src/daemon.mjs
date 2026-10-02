@@ -12,12 +12,13 @@ import {InputIndex} from './index.mjs';
 import {permittedRoots} from './installed-inputs.mjs';
 import {assertOwnedStatePlacement} from './owned-state.mjs';
 import {atomicJson,readReceipts} from './state-store.mjs';
+import {history} from './observation.mjs';
 
 const configFile=path.resolve(process.argv[2]);
 const config=JSON.parse(fs.readFileSync(configFile));
 const root=fs.realpathSync(config.root), state=path.resolve(config.state);
 assertOwnedStatePlacement(config);
-const rootIdentity=fs.statSync(root,{bigint:true});
+let rootIdentity=fs.statSync(root,{bigint:true});
 if(state===root||state.startsWith(root+path.sep))throw Error('state must be outside checkout');
 fs.mkdirSync(state,{recursive:true,mode:0o700});
 const socket=path.join(state,'observer.sock'), lock=path.join(state,'observer.lock');
@@ -34,9 +35,7 @@ for(const check of config.checks)for(const boundary of permittedRoots(root,check
     snapshot:path.join(state,`external-${sha(boundary).slice(0,16)}.snapshot`)});
 let pending=new Set(), pendingChecks=new Set(), flushTimer, planDirty=false, planning=false, lastObservation=0;
 let synchronizing=null;
-let historyTimedOut=false;
-let historyTimeoutPhase=null,historyRecoveryAttempted=false,historyRecoveryTimer=null;
-let recoveryTimer=null,recoveryDelay=1000;
+let historyDisabled=false,recoveryTimer=null,recovering=false,recoveryAttempts=0;
 let identityChanged=false;
 let triggerHashes=new Map();
 let candidateDescendants=new Map();
@@ -47,23 +46,18 @@ let gapDuringPlan=false;
 const backend=process.platform==='darwin'?'fs-events':'inotify';
 const snapshotPath=path.join(state,'fs-events.snapshot');
 const metrics={notifications:0,flushes:0,reconciliations:0,planRebuilds:0,gaps:0,
-  maxQueue:0,historyTimeouts:0,startupAt:startedAt};
+  maxQueue:0,historyQueries:0,historyTimeouts:0,startupAt:startedAt};
 const historyDeadlineMs=Math.max(100,Number(process.env.VSTATE_HISTORY_TIMEOUT_MS||5000));
-async function boundedHistory(phase,operation) {
-  let timer;
-  try{return await Promise.race([Promise.resolve().then(operation),new Promise((_,reject)=>{
-    timer=setTimeout(()=>{
-      historyTimedOut=true;metrics.historyTimeouts++;
-      historyTimeoutPhase=phase;
-      event('history_timeout',{phase,deadline_ms:historyDeadlineMs});
-      const error=Error(`${phase} did not settle within ${historyDeadlineMs} ms`);
-      error.code='ETIMEDOUT';reject(error);
-    },historyDeadlineMs);
-  })]);}
-  finally{clearTimeout(timer);}
-}
-function historicalEvents(observedRoot,snapshot) {
-  return parcelWatcher.getEventsSince(observedRoot,snapshot,{backend});
+const reconciliationDeadlineMs=Math.max(1000,
+  Number(process.env.VSTATE_RECONCILE_TIMEOUT_MS||120000));
+async function queryHistory(observedRoot,snapshot,phase) {
+  try{const changes=await history(observedRoot,snapshot,backend,historyDeadlineMs,
+    process.env.VSTATE_TEST_HISTORY_FAULT_FILE);
+    metrics.historyQueries++;event('history_query_completed',{phase,events:changes.length});
+    return changes;}
+  catch(e){if(e.code==='ETIMEDOUT'){metrics.historyTimeouts++;
+      event('history_timeout',{phase,deadline_ms:historyDeadlineMs});}
+    throw e;}
 }
 const atomic=atomicJson;
 function event(kind,fields={}) {
@@ -258,7 +252,8 @@ function dehydrate(value) {
     rehashedBytes:value.rehashedBytes,profile:value.profile};
 }
 function retainIndex() {
-  if(!index||!healthy||planning||pending.size||planDirty||!fs.existsSync(snapshotPath))return;
+  if(!index||!healthy||planning||pending.size||planDirty||historyDisabled||
+    !fs.existsSync(snapshotPath))return;
   const outside={};
   for(const entry of external.values()){
     if(!entry.index||!entry.healthy||entry.pending.size||!fs.existsSync(entry.snapshot))return;
@@ -271,12 +266,18 @@ function retainIndex() {
     planIds:Object.fromEntries([...index.checks].map(([name,row])=>[name,row.plan.id])),
     cursor:sha(fs.readFileSync(snapshotPath)),external:outside,index:dehydrate(index)});
 }
-function buildInWorker() {
+function buildInWorker(forceCold=false) {
   return new Promise((resolve,reject)=>{
     const workerStarted=performance.now();
     const file=path.join(path.dirname(fileURLToPath(import.meta.url)),'plan-worker.mjs');
-    const worker=new Worker(file,{workerData:{config:configFile,state}});
+    const worker=new Worker(file,{workerData:{config:configFile,state,forceCold,
+      reconcileFaultFile:process.env.VSTATE_TEST_RECONCILE_FAULT_FILE}});
     planningWorker=worker;let settled=false;
+    const deadline=setTimeout(()=>{
+      if(settled)return;settled=true;planningWorker=null;
+      worker.terminate().catch(()=>{});
+      reject(Error(`deterministic reconciliation exceeded ${reconciliationDeadlineMs} ms`));
+    },reconciliationDeadlineMs);
     worker.on('message',value=>{
       if(value.kind==='progress') {
         if(stopping||identityChanged||gapDuringPlan)return;
@@ -285,21 +286,22 @@ function buildInWorker() {
         if(value.discoveryMs!=null)metrics.lastDiscoveryMs=value.discoveryMs;
         reason='input plan indexing';publish();return;
       }
-      if(settled)return;settled=true;planningWorker=null;
+      if(settled)return;settled=true;clearTimeout(deadline);planningWorker=null;
       if(value.ok){value.workerRoundTripMs=performance.now()-workerStarted;
         resolve(value);}else reject(Error(value.error));});
-    worker.once('error',error=>{if(!settled){settled=true;planningWorker=null;reject(error);}});
-    worker.once('exit',code=>{if(!settled){settled=true;planningWorker=null;
+    worker.once('error',error=>{if(!settled){settled=true;clearTimeout(deadline);
+      planningWorker=null;reject(error);}});
+    worker.once('exit',code=>{if(!settled){settled=true;clearTimeout(deadline);planningWorker=null;
       reject(Error(`input-plan worker exited ${code}`));}});
   });
 }
-async function refreshPlan() {
-  if(planning||identityChanged||stopping)return;
+async function refreshPlan({forceCold=false}={}) {
+  if(planning||stopping)return;
   planning=true;planDirty=false;gapDuringPlan=false;pending.clear();pendingChecks.clear();
-  for(const entry of external.values())entry.gap=!(entry.watcher&&fs.existsSync(entry.snapshot));
+  for(const entry of external.values())entry.gap=!entry.watcher;
   metrics.planPhase='discovery';metrics.planScannedFiles=0;metrics.planTotalFiles=null;
   healthy=false;reason='input plan rebuilding';publish();
-  try {const built=await buildInWorker();
+  try {const built=await buildInWorker(forceCold);
     if(stopping)return;
     if(!verifyRoot()) {planning=false;metrics.planPhase='unavailable';publish();return;}
     if(gapDuringPlan){planning=false;observationGap('plan_gap');return;}
@@ -345,7 +347,7 @@ async function refreshPlan() {
     lastObservation=Date.now();
     event('plan_rebuilt',{checks:Object.keys(bundle.plans),workspace_count:bundle.workspaceCount});
     const catchUpStarted=performance.now();
-    if(watcher)try{await catchUp();}
+    if(watcher&&!historyDisabled)try{await catchUp();}
       catch(e){planning=false;observationGap('historical_query',e);return;}
     metrics.lastCatchUpMs=performance.now()-catchUpStarted;
     if(gapDuringPlan){planning=false;observationGap('plan_gap');return;}
@@ -357,7 +359,7 @@ async function refreshPlan() {
     if(!index.unavailable&&watcher&&!reason?.startsWith('input inspection unavailable')){
       healthy=true;reason=null;lastObservation=Date.now();}
     for(const entry of external.values())if(entry.index&&entry.watcher&&!entry.gap&&
-      !entry.index.unavailable&&fs.existsSync(entry.snapshot)){
+      !entry.index.unavailable){
       entry.healthy=true;entry.reason=null;}
     metrics.planPhase=healthy?'ready':'unavailable';
   } catch(e) {if(!stopping){reason=`plan unavailable: ${e.message}`;
@@ -415,7 +417,8 @@ function flush() {
       if(entry.index?.unavailable){entry.healthy=false;entry.reason=entry.index.unavailable;
         externalGap(entry,'input_inspection');}}
     if(index.unavailable)throw Error(index.unavailable);
-    pendingChecks.clear();healthy=wasHealthy&&Boolean(watcher)&&fs.existsSync(snapshotPath);
+    pendingChecks.clear();healthy=wasHealthy&&Boolean(watcher)&&
+      (historyDisabled||fs.existsSync(snapshotPath));
     if(healthy)reason=null;
     lastObservation=Date.now();
   } catch(e) {healthy=false;reason=`input inspection unavailable: ${e.message}`;
@@ -478,128 +481,105 @@ function externalNotification(entry,type,filename) {
   publish();clearTimeout(flushTimer);flushTimer=setTimeout(flush,60);
 }
 function externalGap(entry,classification,error) {
-  if(entry.gap&&entry.recovery&&!entry.watcher)return;
   entry.healthy=false;entry.gap=true;
   entry.reason=`external observation unavailable: ${classification}`;
   entry.watcher?.unsubscribe().catch(()=>{});entry.watcher=null;
   metrics.gaps++;event('observation_gap',{classification,external_root:entry.root,
     error_code:error?.code||null});publish();
-  if(!stopping&&!entry.recovery){
-    const delay=entry.recoveryDelay;
-    entry.recoveryDelay=Math.min(delay*2,30000);
-    entry.recovery=setTimeout(async()=>{
-      entry.recovery=null;
-      try{if(!entry.watcher)await attachExternal(entry);
-        if(!entry.watcher)throw Error('external subscription unavailable');
-        await parcelWatcher.writeSnapshot(entry.root,entry.snapshot,{backend});
-        entry.recoveryDelay=1000;
-        refreshPlan();}
-      catch(e){externalGap(entry,'recovery_failed',e);}
-    },delay);
-  }
+  observationGap(`external_${classification}`,error);
 }
 function observationGap(classification,error) {
-  if(identityChanged){healthy=false;publish();return;}
-  if(historyTimedOut&&!healthy&&reason?.includes('history query timed out'))return;
   if(planning)gapDuringPlan=true;
-  healthy=false;reason=historyTimedOut?'history query timed out; restart observer':
-    `observation unavailable: ${classification}`;metrics.gaps++;
+  // Once continuity is uncertain, a cursor is no longer authority. Do not
+  // retry native history in this observer generation after reconciliation.
+  historyDisabled=true;
+  healthy=false;reason=`observation unavailable: ${classification}; deterministic reconciliation pending`;
+  metrics.gaps++;
   event('observation_gap',{classification,error_code:error?.code||null});publish();
-  if(historyTimedOut){
-    if(!historyRecoveryAttempted&&historyTimeoutPhase?.endsWith('replay')){
-      historyRecoveryAttempted=true;
-      historyRecoveryTimer=setTimeout(()=>recoverTimedOutHistory(),1000);
-    }
-    return;
-  }
-  if(!stopping&&!identityChanged&&!recoveryTimer)recoveryTimer=setTimeout(async()=>{
-    recoveryTimer=null;
-    try{
-      if(!watcher)await attachWatch();
-      if(!watcher)throw Error('subscription unavailable');
-      await parcelWatcher.writeSnapshot(root,snapshotPath,{backend});
-      refreshPlan();recoveryDelay=1000;
-      event('observation_recovery_started',{classification});
-    }catch(e){recoveryDelay=Math.min(recoveryDelay*2,30000);
-      observationGap('recovery_failed',e);}
-  },recoveryDelay);
+  // One bounded attempt per gap; a later independent gap may try again.
+  if(!stopping&&!recovering&&!recoveryTimer&&recoveryAttempts<2)
+    recoveryTimer=setTimeout(()=>recoverObservation(classification),100);
 }
-async function recoverTimedOutHistory() {
-  historyRecoveryTimer=null;
-  if(stopping||identityChanged)return;
-  event('history_recovery_started',{phase:historyTimeoutPhase,attempt:1});
+async function recoverObservation(classification) {
+  recoveryTimer=null;if(stopping||recovering)return;
+  recovering=true;recoveryAttempts++;
+  event('reconciliation_started',{classification,attempt:recoveryAttempts});
   try {
-    if(!watcher||!verifyRoot())throw Error('root subscription unavailable');
-    // The hung replay is read-only. Start a new cursor before a full content
-    // reconciliation; replay from that cursor catches changes during indexing.
-    const fresh=path.join(state,`recovery-${generation}.snapshot`);
-    try{await boundedHistory('recovery root snapshot',()=>
-      parcelWatcher.writeSnapshot(root,fresh,{backend}));
-      fs.renameSync(fresh,snapshotPath);
-    }finally{try{fs.unlinkSync(fresh);}catch{}}
-    for(const entry of external.values())if(entry.index){
-      if(!entry.watcher)throw Error('external subscription unavailable');
-      const next=path.join(state,`recovery-${sha(entry.root).slice(0,16)}.snapshot`);
-      try{await boundedHistory('recovery external snapshot',()=>
-        parcelWatcher.writeSnapshot(entry.root,next,{backend}));
-        fs.renameSync(next,entry.snapshot);
-      }finally{try{fs.unlinkSync(next);}catch{}}
+    const waitStarted=Date.now();
+    while(planning&&!stopping&&Date.now()-waitStarted<reconciliationDeadlineMs)
+      await new Promise(resolve=>setTimeout(resolve,50));
+    if(stopping)return;
+    if(planning)throw Error('prior indexing did not settle before reconciliation deadline');
+    const current=fs.statSync(root,{bigint:true});
+    if(current.dev!==rootIdentity.dev||current.ino!==rootIdentity.ino){
+      watcher?.unsubscribe().catch(()=>{});watcher=null;
+      rootIdentity=current;identityChanged=true;
+      event('observation_root_replaced');
     }
-    try{fs.unlinkSync(path.join(state,'index-v1.json'));}catch(e){if(e.code!=='ENOENT')throw e;}
-    historyTimedOut=false;
-    await refreshPlan();
-    if(!healthy)throw Error(reason||'reconciliation unavailable');
-    event('history_recovery_completed',{attempt:1});
-  }catch(e){historyTimedOut=true;healthy=false;
-    reason='history recovery failed; run stop then start';
-    event('history_recovery_failed',{attempt:1,classification:e.code||e.name||'Error'});
-    publish();}
+    if(!watcher)await attachWatch();
+    if(!watcher)throw Error('root subscription unavailable');
+    for(const entry of external.values()){
+      const identity=fs.statSync(entry.root,{bigint:true});
+      if(entry.watcher&&(identity.dev!==entry.identity?.dev||
+        identity.ino!==entry.identity?.ino)){
+        entry.watcher.unsubscribe().catch(()=>{});entry.watcher=null;
+        event('external_observation_root_replaced',{external_root:entry.root});
+      }
+      if(!entry.watcher)await attachExternal(entry);
+      if(!entry.watcher)throw Error(`external subscription unavailable: ${entry.root}`);
+    }
+    // The live subscriptions are attached before the fresh scan. Changes
+    // delivered during indexing are queued and rechecked before health returns.
+    await refreshPlan({forceCold:true});
+    if(!healthy||[...external.values()].some(entry=>entry.index&&!entry.healthy))
+      throw Error(reason||'deterministic reconciliation unavailable');
+    rootIdentity=fs.statSync(root,{bigint:true});identityChanged=false;
+    recoveryAttempts=0;
+    event('reconciliation_completed',{classification});
+  }catch(e){healthy=false;reason=`deterministic reconciliation failed: ${e.message}; restart observer`;
+    event('reconciliation_failed',{classification,error_code:e.code||e.name||'Error'});
+    publish();
+  }finally{recovering=false;
+    if(!healthy&&!stopping&&recoveryAttempts<2&&!recoveryTimer)
+      recoveryTimer=setTimeout(()=>recoverObservation(classification),500);
+  }
 }
 function verifyRoot() {
   try {const current=fs.statSync(root,{bigint:true});
     if(current.dev===rootIdentity.dev&&current.ino===rootIdentity.ino)return true;
   }catch{}
   if(!identityChanged){identityChanged=true;healthy=false;
-    reason='checkout identity changed or unavailable; restart required';
-    event('observation_gap',{classification:'checkout_identity_changed'});publish();}
+    watcher?.unsubscribe().catch(()=>{});watcher=null;
+    observationGap('checkout_identity_changed');}
   return false;
 }
 async function catchUp() {
-  if(historyTimedOut)throw Error('history query timed out; restart observer');
+  if(historyDisabled)return;
   if(synchronizing)return synchronizing;
   synchronizing=(async()=>{
     if(!verifyRoot())throw Error('checkout identity changed');
     if(!watcher)throw Error('subscription unavailable');
-    const next=snapshotPath+'.next';
-    await boundedHistory('root snapshot',()=>parcelWatcher.writeSnapshot(root,next,{backend}));
-    try {
-      if(!fs.existsSync(snapshotPath))throw Error('historical cursor missing');
-      const changes=await boundedHistory('root replay',()=>historicalEvents(root,snapshotPath));
+    if(!fs.existsSync(snapshotPath))throw Error('historical cursor missing');
+    {
+      const changes=await queryHistory(root,snapshotPath,'root replay');
       for(const change of changes)notification(change.type,path.relative(root,change.path));
       if(!planning&&(flushTimer||pending.size||planDirty))flush();
-      fs.renameSync(next,snapshotPath);
       for(const entry of external.values())if(entry.index) {
-        const nextExternal=entry.snapshot+'.next';
         try{
           const identity=fs.statSync(entry.root,{bigint:true});
           if(identity.dev!==entry.identity?.dev||identity.ino!==entry.identity?.ino)
             throw Error('external observation root identity changed');
           if(!entry.watcher||!fs.existsSync(entry.snapshot))throw Error('external cursor unavailable');
-          await boundedHistory('external snapshot',()=>parcelWatcher.writeSnapshot(
-            entry.root,nextExternal,{backend}));
-          const changes=await boundedHistory('external replay',()=>historicalEvents(
-            entry.root,entry.snapshot));
+          const changes=await queryHistory(entry.root,entry.snapshot,'external replay');
           for(const change of changes)externalNotification(entry,change.type,
             path.relative(entry.root,change.path));
-          fs.renameSync(nextExternal,entry.snapshot);
         }catch(e){if(e.code==='ETIMEDOUT')throw e;
           externalGap(entry,'historical_replay_failed',e);}
-        finally{try{fs.unlinkSync(nextExternal);}catch{}}
       }
       if(!planning&&(flushTimer||pending.size||planDirty||
         [...external.values()].some(e=>e.pending.size)))flush();
       lastObservation=Date.now();
-    } finally {try{fs.unlinkSync(next);}catch(e){if(e.code!=='ENOENT')throw e;}}
+    }
   })();
   try{return await synchronizing;}finally{synchronizing=null;}
 }
@@ -621,8 +601,8 @@ async function request(message) {
     healthy,reason,planning};
   if(message.action==='reload'){loadReceipts();publish();return {ok:true};}
   if(message.action==='sync'||message.action==='snapshot') {
-    if(planning)return status();
-    try{await catchUp();}catch(e){observationGap('historical_query',e);}
+    if(planning||recovering)return status();
+    if(healthy)try{await catchUp();}catch(e){observationGap('historical_query',e);}
     if(flushTimer||pending.size||planDirty||[...external.values()].some(e=>e.pending.size))flush();
     if(index&&healthy)for(const row of index.checks.values())probe(row);
     lastObservation=Date.now();publish();
@@ -641,7 +621,7 @@ async function request(message) {
 }
 async function shutdown() {
   if(stopping)return;
-  const retainEligible=healthy&&!index?.unavailable&&!planDirty;
+  const retainEligible=healthy&&!historyDisabled&&!index?.unavailable&&!planDirty;
   stopping=true;healthy=false;reason='observer stopping';publish();
   event('observer_stopped',{pid:process.pid});clearTimeout(flushTimer);
   if(retainEligible&&index&&!planning&&watcher){
@@ -656,12 +636,14 @@ async function shutdown() {
   }
   planningWorker?.terminate().catch(()=>{});
   clearInterval(heartbeat);clearInterval(probeTimer);clearTimeout(recoveryTimer);
-  clearTimeout(historyRecoveryTimer);
   watcher?.unsubscribe().catch(()=>{});server.close();
   for(const entry of external.values()){
     clearTimeout(entry.recovery);entry.watcher?.unsubscribe().catch(()=>{});}
   try{fs.unlinkSync(socket);}catch{}
   fs.rmSync(lock,{recursive:true,force:true});
+  // A native watcher handle may remain wedged even after unsubscribe. State
+  // and control ownership are already released; bound process shutdown.
+  setTimeout(()=>process.exit(0),1000).unref();
 }
 const server=net.createServer(client=>{
   let text='',handled=false;
@@ -682,6 +664,8 @@ async function attachWatch(){
   try {watcher=await parcelWatcher.subscribe(root,(error,changes)=>{
     if(error){observationGap('subscription_error',error);watcher?.unsubscribe().catch(()=>{});watcher=null;
       return;}
+    if(process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_DROP_EVENTS_FILE&&
+      fs.existsSync(process.env.VSTATE_TEST_DROP_EVENTS_FILE))return;
     for(const change of changes)notification(change.type,path.relative(root,change.path));
   },{backend});
   } catch(e){watcher=null;observationGap('subscription_start',e);}
@@ -691,6 +675,8 @@ async function attachExternal(entry) {
     entry.watcher=await parcelWatcher.subscribe(entry.root,(error,changes)=>{
     if(error){entry.watcher?.unsubscribe().catch(()=>{});entry.watcher=null;
       externalGap(entry,'subscription_error',error);return;}
+    if(process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_DROP_EVENTS_FILE&&
+      fs.existsSync(process.env.VSTATE_TEST_DROP_EVENTS_FILE))return;
     for(const change of changes)externalNotification(entry,change.type,
       path.relative(entry.root,change.path));
   },{backend});}
@@ -700,19 +686,30 @@ server.listen(socket,async()=>{
   const setupStarted=performance.now();
   fs.chmodSync(socket,0o600);loadReceipts();await attachWatch();
   if(watcher&&!fs.existsSync(snapshotPath))try{
-    await parcelWatcher.writeSnapshot(root,snapshotPath,{backend});}
-    catch(e){observationGap('initial_snapshot',e);}
+    await queryHistory(root,snapshotPath,'initial snapshot');}
+    catch(e){historyDisabled=true;event('history_unavailable',{phase:'initial snapshot',
+      error_code:e.code||e.name});}
   for(const entry of external.values()){
     await attachExternal(entry);
-    if(entry.watcher&&!fs.existsSync(entry.snapshot))try{
-      await parcelWatcher.writeSnapshot(entry.root,entry.snapshot,{backend});}
-      catch(e){externalGap(entry,'initial_snapshot',e);}
+    if(!historyDisabled&&entry.watcher&&!fs.existsSync(entry.snapshot))try{
+      await queryHistory(entry.root,entry.snapshot,'external initial snapshot');}
+      catch(e){historyDisabled=true;event('history_unavailable',
+        {phase:'external initial snapshot',error_code:e.code||e.name});}
   }
   metrics.initialObservationSetupMs=performance.now()-setupStarted;
-  refreshPlan();
+  refreshPlan({forceCold:historyDisabled});
   event('observer_started',{pid:process.pid});publish();
 });
-const heartbeat=setInterval(()=>{verifyRoot();publish();},1000);
+const heartbeat=setInterval(()=>{
+  verifyRoot();
+  for(const entry of external.values())if(entry.watcher){
+    try{const identity=fs.statSync(entry.root,{bigint:true});
+      if(identity.dev!==entry.identity?.dev||identity.ino!==entry.identity?.ino)
+        externalGap(entry,'root_identity_changed');}
+    catch(e){externalGap(entry,'root_unavailable',e);}
+  }
+  publish();
+},1000);
 const probeTimer=setInterval(async()=>{if(healthy&&index){
   try{await catchUp();for(const row of index.checks.values())probe(row);publish();}
   catch(e){observationGap('periodic_query',e);}

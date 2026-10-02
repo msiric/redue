@@ -12,7 +12,7 @@ try {
   parentPort.postMessage({kind:'progress',phase:'indexing',discoveryMs,scanned:0,total:null});
   const digest=file=>createHash('sha256').update(fs.readFileSync(file)).digest('hex');
   let retained=null;
-  try {
+  try {if(workerData.forceCold)throw Error('fresh reconciliation required');
     retained=JSON.parse(fs.readFileSync(path.join(workerData.state,'index-v1.json')));
     const identity=fs.statSync(bundle.root,{bigint:true});
     if(retained.schema!==1||retained.root!==bundle.root||
@@ -34,6 +34,8 @@ try {
       external:Object.fromEntries(Object.entries(retained.external||{})
         .map(([root,value])=>[root,value.index]))});
   } else {
+  if(workerData.reconcileFaultFile&&fs.existsSync(workerData.reconcileFaultFile))
+    throw Error('injected reconciliation failure');
   const indexingStarted=performance.now(), index=new InputIndex(bundle);
   index.coldScan(progress=>parentPort.postMessage({kind:'progress',phase:'indexing',
     discoveryMs,...progress}));

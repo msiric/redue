@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import {spawnSync,execFileSync} from 'node:child_process';
+import {spawn,spawnSync,execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {acquireRunLock,inspectRunLock,recoverRunLock} from '../src/run-lock.mjs';
 
 const bin=path.resolve('bin/vstate.mjs');
@@ -33,16 +34,32 @@ function fixture(options={}){
   if(options.absent)check.installedInputs.push('node_modules/optional/**');
   put(path.join(root,'vstate.config.json'),JSON.stringify({schema:1,checks:[check]},null,2));
   return {base,root,state,config:path.join(root,'vstate.config.json'),
+    env:{...process.env,VSTATE_HISTORY_TIMEOUT_MS:'1000',VSTATE_TEST_FAULTS:'1',
+      VSTATE_START_READY_WAIT_MS:'10000',
+      VSTATE_TEST_HISTORY_FAULT_FILE:path.join(state,'history-fault'),
+      VSTATE_TEST_RECONCILE_FAULT_FILE:path.join(state,'reconcile-fault'),
+      VSTATE_TEST_DROP_EVENTS_FILE:path.join(state,'drop-events')},
     cleanup(){fs.rmSync(base,{recursive:true,force:true});}};
 }
 function call(f,...args){return spawnSync(process.execPath,[bin,'--config',f.config,
-  '--state-dir',f.state,...args],{encoding:'utf8',cwd:f.root,timeout:30000});}
+  '--state-dir',f.state,...args],{encoding:'utf8',cwd:f.root,timeout:30000,env:f.env});}
 function ok(f,...args){const out=call(f,...args);
-  assert.equal(out.status,0,`${args.join(' ')}: ${out.stderr}\n${out.stdout}`);return out;}
+  const log=fs.existsSync(path.join(f.state,'observer.log'))?
+    fs.readFileSync(path.join(f.state,'observer.log'),'utf8').slice(-2000):'';
+  assert.equal(out.status,0,`${args.join(' ')}: ${out.stderr}\n${out.stdout}\n${log}`);return out;}
 function status(f){return JSON.parse(ok(f,'status','--sync','--json').stdout);}
 function row(f){return status(f).checks[0];}
 function withFixture(t,options){const f=fixture(options);t.after(()=>{
   try{call(f,'stop');}catch{}try{call(f,'remove-state');}catch{}f.cleanup();});return f;}
+const events=f=>fs.readFileSync(path.join(f.state,'events.jsonl'),'utf8').trim()
+  .split('\n').filter(Boolean).map(line=>JSON.parse(line));
+async function until(f,predicate,limitMs=10000){const started=Date.now();
+  while(Date.now()-started<limitMs){const value=status(f);
+    if(predicate(value))return value;
+    await new Promise(resolve=>setTimeout(resolve,80));}
+  assert.fail('status did not converge: '+JSON.stringify(status(f))+
+    '\nrecent events: '+JSON.stringify(events(f).slice(-20)));}
+function oracle(file){return createHash('sha256').update(fs.readFileSync(file)).digest('hex');}
 
 test('receipt survives unrelated changes; source, generated, installed and absence changes stale it',t=>{
   const f=withFixture(t,{absent:true});ok(f,'start');ok(f,'run','check');
@@ -174,4 +191,157 @@ test('change while observer is stopped is reconciled before CURRENT returns',t=>
   ok(f,'start');const item=row(f);
   assert.equal(item.result,'PASS');assert.equal(item.freshness,'STALE');
   assert.match(item.reason,/src\/input.txt changed/);
+});
+
+test('healthy history fast path preserves evidence after unrelated edit',t=>{
+  const f=withFixture(t);ok(f,'start');ok(f,'run','check');
+  const first=row(f).invocation.runId;
+  const before=events(f).filter(e=>e.kind==='history_query_completed').length;
+  put(path.join(f.root,'notes.md'),'unrelated\n');
+  const after=status(f);
+  assert.equal(after.checks[0].freshness,'CURRENT');
+  assert.equal(after.checks[0].invocation.runId,first);
+  assert(events(f).filter(e=>e.kind==='history_query_completed').length>before);
+});
+
+for(const fault of ['hang','fail'])test(`history ${fault} falls back to deterministic reconciliation`,async t=>{
+  const f=withFixture(t,{absent:true});ok(f,'start');ok(f,'run','check');
+  const original=row(f).invocation.runId;
+  put(path.join(f.state,'history-fault'),fault);
+  const uncertain=status(f);
+  assert.equal(uncertain.checks[0].freshness,'UNVERIFIED');
+  assert.equal(uncertain.checks[0].result,'PASS');
+  // Suppress test notifications to model a missed edit during the gap. The
+  // independent file oracle, rather than the old index, establishes change.
+  put(path.join(f.state,'drop-events'),'1');
+  const source=path.join(f.root,'src/input.txt');
+  const before=oracle(source);put(source,'PASS after missed edit\n');
+  assert.notEqual(oracle(source),before);
+  const recovered=await until(f,s=>s.checks[0].freshness==='STALE');
+  assert.equal(recovered.checks[0].invocation.runId,original);
+  assert.match(recovered.checks[0].reason,/src\/input.txt changed/);
+  assert(events(f).some(e=>e.kind==='reconciliation_completed'));
+  const count=events(f).filter(e=>e.kind==='history_timeout').length;
+  for(let n=0;n<3;n++)status(f);
+  assert.equal(events(f).filter(e=>e.kind==='history_timeout').length,count);
+});
+
+test('reconciliation preserves unchanged and unrelated inputs, then detects installed and absent inputs',async t=>{
+  const f=withFixture(t,{absent:true});ok(f,'start');ok(f,'run','check');
+  const runId=row(f).invocation.runId;
+  put(path.join(f.state,'history-fault'),'fail');
+  assert.equal(row(f).freshness,'UNVERIFIED');
+  assert.equal((await until(f,s=>s.checks[0].freshness==='CURRENT')).checks[0].invocation.runId,runId);
+  put(path.join(f.root,'notes.md'),'outside contract');assert.equal(row(f).freshness,'CURRENT');
+  const installed=path.join(f.root,'node_modules/pkg/index.js');
+  const old=oracle(installed);put(installed,'module.exports=9;\n');
+  assert.notEqual(oracle(installed),old);
+  assert.equal(row(f).freshness,'STALE');ok(f,'run','check');
+  assert.equal(row(f).freshness,'CURRENT',JSON.stringify(status(f).checks[0]));
+  put(path.join(f.root,'node_modules/optional/index.js'),'module.exports=1;\n');
+  assert.equal(row(f).freshness,'STALE');
+});
+
+test('fresh reconciliation detects membership and linked installed-target replacement',async t=>{
+  const f=withFixture(t,{absent:true});
+  put(path.join(f.root,'workspace/a/index.js'),'module.exports=1;\n');
+  put(path.join(f.root,'workspace/b/index.js'),'module.exports=2;\n');
+  fs.rmSync(path.join(f.root,'node_modules/pkg'),{recursive:true});
+  fs.symlinkSync('../workspace/a',path.join(f.root,'node_modules/pkg'));
+  const config=JSON.parse(fs.readFileSync(f.config));
+  config.checks[0].installedInputs=['node_modules/pkg/**','node_modules/optional/**'];
+  put(f.config,JSON.stringify(config));
+  ok(f,'start');ok(f,'run','check');assert.equal(row(f).freshness,'CURRENT');
+  put(path.join(f.state,'drop-events'),'1');
+  put(path.join(f.root,'generated/new.txt'),'new member\n');
+  fs.rmSync(path.join(f.root,'node_modules/pkg'));
+  fs.symlinkSync('../workspace/b',path.join(f.root,'node_modules/pkg'));
+  put(path.join(f.root,'node_modules/optional/index.js'),'now present\n');
+  put(path.join(f.state,'history-fault'),'fail');
+  assert.equal(row(f).freshness,'UNVERIFIED');
+  const result=await until(f,s=>s.checks[0].freshness==='STALE');
+  assert.equal(result.checks[0].result,'PASS');
+  assert(fs.existsSync(path.join(f.root,'generated/new.txt')));
+  assert.equal(fs.readlinkSync(path.join(f.root,'node_modules/pkg')),'../workspace/b');
+  assert(fs.existsSync(path.join(f.root,'node_modules/optional/index.js')));
+});
+
+test('missed deletion is found by independent fresh reconciliation',async t=>{
+  const f=withFixture(t);ok(f,'start');ok(f,'run','check');
+  const generated=path.join(f.root,'generated/data.txt');
+  assert(fs.existsSync(generated));
+  put(path.join(f.state,'drop-events'),'1');
+  fs.unlinkSync(generated);assert(!fs.existsSync(generated));
+  put(path.join(f.state,'history-fault'),'fail');
+  assert.equal(row(f).freshness,'UNVERIFIED');
+  const item=(await until(f,s=>s.checks[0].freshness==='STALE')).checks[0];
+  assert.equal(item.result,'PASS');
+  assert.match(item.reason,/generated\/data.txt changed/);
+});
+
+test('failed reconciliation stays UNVERIFIED, preserves PASS, and restart repairs it',async t=>{
+  const f=withFixture(t);ok(f,'start');ok(f,'run','check');
+  const runId=row(f).invocation.runId;
+  put(path.join(f.state,'reconcile-fault'),'1');
+  put(path.join(f.state,'history-fault'),'fail');
+  assert.equal(row(f).freshness,'UNVERIFIED');
+  const failedAt=Date.now();
+  while(!events(f).some(e=>e.kind==='reconciliation_failed')&&Date.now()-failedAt<5000)
+    await new Promise(resolve=>setTimeout(resolve,50));
+  assert(events(f).some(e=>e.kind==='reconciliation_failed'));
+  const item=row(f);assert.equal(item.freshness,'UNVERIFIED');
+  assert.equal(item.result,'PASS');assert.equal(item.invocation.runId,runId);
+  assert.match(item.reason,/deterministic reconciliation failed/);
+  await new Promise(resolve=>setTimeout(resolve,900));
+  assert.equal(events(f).filter(e=>e.kind==='reconciliation_started').length,2);
+  fs.unlinkSync(path.join(f.state,'reconcile-fault'));
+  fs.unlinkSync(path.join(f.state,'history-fault'));
+  ok(f,'stop');ok(f,'start');
+  assert.equal(row(f).freshness,'CURRENT',JSON.stringify(status(f).checks[0]));
+  assert.equal(row(f).invocation.runId,runId);
+});
+
+test('hung history does not block cached status or stop',async t=>{
+  const f=withFixture(t);ok(f,'start');ok(f,'run','check');
+  put(path.join(f.state,'history-fault'),'hang');
+  const child=spawn(process.execPath,[bin,'--config',f.config,'--state-dir',f.state,
+    'status','--sync','--json'],{cwd:f.root,env:f.env,stdio:'ignore'});
+  await new Promise(resolve=>setTimeout(resolve,60));
+  const began=performance.now();
+  assert.equal(JSON.parse(ok(f,'status','--json').stdout).checks[0].result,'PASS');
+  ok(f,'stop');
+  assert(performance.now()-began<2500,'stop/status blocked by native history');
+  await new Promise(resolve=>child.once('exit',resolve));
+  assert.equal(JSON.parse(ok(f,'status','--json').stdout).checks[0].freshness,'UNVERIFIED');
+});
+
+test('checkout root replacement reattaches and reconciles before retaining CURRENT',async t=>{
+  const f=withFixture(t);ok(f,'start');ok(f,'run','check');
+  const runId=row(f).invocation.runId;
+  const moved=path.join(f.base,'old-project');
+  fs.renameSync(f.root,moved);fs.cpSync(moved,f.root,{recursive:true});
+  const result=await until(f,s=>s.checks[0].freshness==='CURRENT'&&
+    events(f).some(e=>e.kind==='reconciliation_completed'),10000);
+  assert.equal(result.checks[0].invocation.runId,runId);
+  assert(events(f).some(e=>e.kind==='observation_root_replaced'));
+});
+
+test('external installed-input root replacement is reconciled',async t=>{
+  const f=withFixture(t),external=path.join(f.base,'external');
+  put(path.join(external,'pkg/index.js'),'module.exports=1;\n');
+  fs.rmSync(path.join(f.root,'node_modules/pkg'),{recursive:true});
+  fs.symlinkSync('../../external/pkg',path.join(f.root,'node_modules/pkg'));
+  const config=JSON.parse(fs.readFileSync(f.config));
+  config.checks[0].installedInputs=['node_modules/pkg/**'];
+  config.checks[0].allowedExternalRoots=[external];
+  put(f.config,JSON.stringify(config));
+  ok(f,'start');ok(f,'run','check');assert.equal(row(f).freshness,'CURRENT');
+  const moved=path.join(f.base,'old-external');
+  fs.renameSync(external,moved);fs.cpSync(moved,external,{recursive:true});
+  const item=(await until(f,s=>s.checks[0].freshness==='CURRENT'&&
+    events(f).some(e=>e.kind==='reconciliation_completed'),10000)).checks[0];
+  assert.equal(item.result,'PASS');
+  assert(events(f).some(e=>e.kind==='external_observation_root_replaced'||
+    e.kind==='observation_gap'));
+  assert(fs.existsSync(path.join(external,'pkg/index.js')));
 });
