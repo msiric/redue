@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "checks": [
+    {
+      "name": "typecheck",
+      "command": ["@which:npm", "run", "typecheck"],
+      "inputs": ["src/**", "package.json", "package-lock.json", "tsconfig.json"],
+      "installedInputs": ["node_modules/**"],
+      "environment": {
+        "pathExecutables": ["node"],
+        "executableIdentity": true
+      }
+    }
+  ]
+}

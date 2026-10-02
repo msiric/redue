@@ -1,0 +1,10 @@
+{
+  "name": "vstate",
+  "private": true,
+  "version": "0.1.0-alpha.0",
+  "type": "module",
+  "bin": {"vstate": "./bin/vstate.mjs"},
+  "scripts": {"test": "node --test test/*.test.mjs"},
+  "dependencies": {"@parcel/watcher": "2.5.6", "micromatch": "4.0.8"},
+  "engines": {"node": ">=22"}
+}
