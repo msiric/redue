@@ -43,25 +43,26 @@ function fileHash(root, rel,installed=false,before=fs.lstatSync(path.join(root,r
     if(!resolution.physical)throw Error(`symlink input target observation unavailable: ${rel}: ${resolution.reason}`);
     const target=fs.statSync(resolution.physical,{bigint:true});
     if(!target.isFile())throw Error(`directory input symlink unsupported: ${rel}`);
-    if(installed&&target.nlink>1n)throw Error(`shared hardlink storage not observed: ${rel}`);
     value='link:'+JSON.stringify(resolution.links)+':'+target.mode+':'+
+      (installed&&target.nlink>1?target.nlink+':':'')+
       hashRegular(resolution.physical).hash;
     references=[...new Set([...resolution.links.map(link=>path.relative(root,link.path)
       .split(path.sep).join('/')),path.relative(root,resolution.physical)
       .split(path.sep).join('/')])];
     bytes=Number(target.size);
     const targetAfter=fs.statSync(resolution.physical,{bigint:true});
-    for(const key of ['dev','ino','mode','size','mtimeNs','ctimeNs'])
+    for(const key of ['dev','ino','mode','nlink','size','mtimeNs','ctimeNs'])
       if(target[key]!==targetAfter[key])throw Error(`input changed during inspection: ${rel}`);
     const resolutionAfter=resolveLinks(file,root,[],true);
     if(resolutionAfter.physical!==resolution.physical||
       JSON.stringify(resolutionAfter.links)!==JSON.stringify(resolution.links))
       throw Error(`input link changed during inspection: ${rel}`);
   }
-  else if(before.isFile()) value='file:'+before.mode+':'+hashRegular(file).hash;
+  else if(before.isFile()) value='file:'+before.mode+':'+
+    (installed&&before.nlink>1?before.nlink+':':'')+hashRegular(file).hash;
   else throw Error(`non-file input: ${rel}`);
   const after=fs.lstatSync(file,{bigint:true});
-  for(const key of ['dev','ino','mode','size','mtimeNs','ctimeNs'])
+  for(const key of ['dev','ino','mode','nlink','size','mtimeNs','ctimeNs'])
     if(before[key]!==after[key]) throw Error(`input changed during inspection: ${rel}`);
   return {hash:sha(value),references,bytes};
 }
@@ -147,8 +148,6 @@ export class InputIndex {
     catch(e){if(e.code!=='ENOENT'){this.unavailable=String(e);return false;}}
     if(stat&&(stat.isFile()||stat.isSymbolicLink())) {
       const installed=this.installedPath(rel);
-      if(stat.nlink>1n&&installed){
-        this.unavailable=`shared hardlink storage not observed: ${rel}`;return false;}
       try{const started=performance.now();inspection=fileHash(this.root,rel,installed,stat);
         fresh=inspection.hash;
         this.profile.hashingMs+=performance.now()-started;

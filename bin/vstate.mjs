@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
+import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {discoverNodeProject} from '../src/node-onboarding.mjs';
 
@@ -69,7 +70,7 @@ if(command==='init'){
     discovery.checks=chosen;discovery.config.checks=chosen.map(row=>row.config);
   }
   const configured=fs.existsSync(configFile),unsupported=Boolean(discovery.observationIssue||
-    discovery.manager.issue&&!['npm','yarn'].includes(discovery.manager.name)||
+    discovery.manager.issue&&!['npm','yarn','pnpm'].includes(discovery.manager.name)||
     discovery.manager.name==='yarn'&&!discovery.manager.version);
   const willWrite=!dryRun&&!configured&&!unsupported&&discovery.checks.length>0;
   const summary={schema:1,repository:discovery.root,node:discovery.node,
@@ -125,9 +126,22 @@ function which(name){
 function token(value){
   if(value==='@node')return process.execPath;
   if(value==='@project')return root;
+  if(value.startsWith('@typescript-bin:')){
+    const dir=value.slice('@typescript-bin:'.length);
+    if(!dir||path.isAbsolute(dir)||dir.split('/').includes('..'))
+      error('TypeScript executable workspace path is unsafe');
+    const manifest=path.join(root,dir,'package.json');
+    let resolved;try{resolved=createRequire(manifest).resolve('typescript/package.json');}
+    catch{error('installed TypeScript compiler cannot be resolved');}
+    const compiler=path.join(path.dirname(fs.realpathSync(resolved)),'bin','tsc');
+    if(!compiler.startsWith(root+path.sep)||!fs.existsSync(compiler))
+      error('TypeScript executable is outside the observed project');
+    return compiler;
+  }
   if(value==='@vstate/npm-typecheck-probe')return path.join(productRoot,'src','npm-typecheck-probe.mjs');
   if(value==='@vstate/typescript-contract-probe')return path.join(productRoot,'src','typescript-contract-probe.mjs');
   if(value==='@vstate/yarn-workspace-typecheck-probe')return path.join(productRoot,'src','yarn-workspace-typecheck-probe.mjs');
+  if(value==='@vstate/pnpm-typecheck-probe')return path.join(productRoot,'src','pnpm-typecheck-probe.mjs');
   if(value==='@vstate/toolchain-probe')return path.join(productRoot,'src','toolchain-probe.mjs');
   if(value.startsWith('@which:'))return which(value.slice(7));
   return value;
@@ -148,14 +162,17 @@ const checks=publicConfig.checks.map(check=>{
   for(const category of categories)if(check.coverage?.[category]&&
     typeof check.coverageReview?.[category]!=='string')
     error(`${check.name}: reviewed coverage ${category} needs a rationale`);
-  if(check.script&&check.command)error(`${check.name}: choose script or command, not both`);
+  const pnpmTypecheck=check.qualification==='pnpm-tsc-v1';
+  if(check.script&&check.command&&!pnpmTypecheck)
+    error(`${check.name}: choose script or command, not both`);
   const manager=publicConfig.packageManager;
-  if(check.script&&!['npm','yarn'].includes(manager))
-    error(`${check.name}: script checks need supported npm or Yarn packageManager`);
-  const scriptCommand=check.script?[`@which:${manager}`,'run',check.script]:null;
+  if(check.script&&!['npm','yarn','pnpm'].includes(manager))
+    error(`${check.name}: script checks need supported npm, Yarn or pnpm packageManager`);
+  const scriptCommand=check.script&&!check.command?
+    [`@which:${manager}`,'run',check.script]:null;
   const npmAutomatic=check.qualification==='typescript-noemit-v1';
   const yarnWorkspace=check.qualification==='yarn-workspace-tsc-v1';
-  if(check.qualification&&!npmAutomatic&&!yarnWorkspace)
+  if(check.qualification&&!npmAutomatic&&!yarnWorkspace&&!pnpmTypecheck)
     error(`${check.name}: unknown qualification contract`);
   if(npmAutomatic&&(manager!=='npm'||check.cwd&&check.cwd!=='.'))
     error(`${check.name}: automatic TypeScript qualification currently needs root npm script`);
@@ -164,6 +181,12 @@ const checks=publicConfig.checks.map(check=>{
     check.command[1]!=='workspace'||check.command[2]!==check.workspace||
     check.command[3]!=='run'))
     error(`${check.name}: Yarn workspace qualification needs its discovered workspace command`);
+  if(pnpmTypecheck&&(manager!=='pnpm'||!check.script||!check.command||
+    check.command[0]!=='@node'||
+    check.command[1]!==`@typescript-bin:${check.cwd||'.'}`||
+    check.workspace&&check.cwd==='.'||
+    !check.command.slice(2).every(value=>typeof value==='string'&&value)))
+    error(`${check.name}: pnpm qualification needs its discovered standalone TypeScript command`);
   const reason=check.kind==='test'?'test runtime, transforms and cache inputs need review':
     check.kind==='lint'?'lint plugins, config and resolver inputs need review':
     check.kind==='build'?'build environment and generated inputs need review':
@@ -171,13 +194,18 @@ const checks=publicConfig.checks.map(check=>{
   const autoProbes=npmAutomatic?[['@node','@vstate/typescript-contract-probe',
     '@project',check.script,'@which:npm']]:yarnWorkspace?
     [['@node','@vstate/yarn-workspace-typecheck-probe','@project',
-      check.workspace,check.command[4],'@which:yarn']]:[];
+      check.workspace,check.command[4],'@which:yarn']]:pnpmTypecheck?
+    [['@node','@vstate/pnpm-typecheck-probe','@project',
+      check.workspace||'.',check.script]]:[];
   const autoEnvironment=npmAutomatic?{variables:['NODE_OPTIONS','NODE_PATH','CI','HOME',
     'NODE_ENV','BASH_ENV','ENV'],prefixes:['npm_config_','DYLD_','TSGO_'],
     pathExecutables:['node','npm'],executableIdentity:true}:yarnWorkspace?
     {variables:['NODE_OPTIONS','NODE_PATH','CI','HOME','NODE_ENV','BASH_ENV','ENV'],
       prefixes:['YARN_','COREPACK_','npm_config_','DYLD_','TSGO_'],
-      pathExecutables:['node','yarn'],executableIdentity:true}:{};
+      pathExecutables:['node','yarn'],executableIdentity:true}:pnpmTypecheck?
+    {variables:['NODE_OPTIONS','NODE_PATH','CI','HOME','NODE_ENV','BASH_ENV','ENV'],
+      prefixes:['PNPM_','COREPACK_','npm_config_','DYLD_','TSGO_'],
+      pathExecutables:['node'],executableIdentity:true}:{};
   return {name:check.name,command:argv(scriptCommand||check.command,`${check.name}.command`),
     cwd:check.cwd,inputs:check.inputs||[],generatedInputs:check.generatedInputs||[],
     installedInputs:check.installedInputs||(

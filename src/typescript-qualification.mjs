@@ -1,11 +1,35 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
+import {pnpmTypecheckInputs} from './pnpm-inputs.mjs';
 
 // This is a machine-enforced contract, not a claim inferred from a script name.
 // The read-only runtime probe separately checks the effective TypeScript file
 // list, config graph, npm toolchain and caller context on every sync/run.
 export function qualifyTypeScript(root,selected) {
+  if(selected.qualification==='pnpm-tsc-v1'){
+    const issues=[];
+    const workspace=selected.workspace||'.';
+    const script=selected.script||selected.command?.at(-1);
+    try{
+      const contract=pnpmTypecheckInputs(root,workspace,script);
+      issues.push(...contract.limitations);
+      const declared=contract.workspace.pkg.scripts[script].trim().split(/\s+/).slice(1);
+      if(path.resolve(root,selected.cwd||'.')!==path.join(root,contract.workspace.dir)||
+        selected.command?.[0]!==process.execPath||
+        selected.command?.[1]!==contract.tsc||
+        JSON.stringify(selected.command.slice(2))!==JSON.stringify(declared))
+        issues.push('standalone TypeScript invocation changed');
+    }catch(e){issues.push(e.message);}
+    if(!selected.probes?.some(argv=>argv[1]?.endsWith('/pnpm-typecheck-probe.mjs')))
+      issues.push('pnpm TypeScript input probe missing');
+    if(!selected.environment?.executableIdentity||
+      !['node'].every(name=>selected.environment?.pathExecutables?.includes(name))||
+      !['PNPM_','COREPACK_','npm_config_','DYLD_','TSGO_'].every(name=>
+        selected.environment?.prefixes?.includes(name)))
+      issues.push('pnpm execution context declaration incomplete');
+    return {qualified:issues.length===0,issues};
+  }
   if(selected.qualification==='yarn-workspace-tsc-v1'){
     const issues=[];
     try{

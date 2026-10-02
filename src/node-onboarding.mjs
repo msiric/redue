@@ -3,6 +3,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import micromatch from 'micromatch';
 import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
+import {pnpmInstallInfo,pnpmProjectInfo,pnpmTypecheckInputs} from './pnpm-inputs.mjs';
 
 const exists=file=>{try{fs.accessSync(file);return true;}catch{return false;}};
 const readJson=file=>JSON.parse(fs.readFileSync(file,'utf8'));
@@ -41,8 +42,18 @@ function manager(root,pkg) {
     issue:kinds.size?'package-manager declaration conflicts with lockfiles':
       'no supported lockfile or packageManager declaration'};
   const name=[...kinds][0],version=declared?.[1]===name?declared[2]:null;
-  if(name==='pnpm'||name==='bun')return {name,version,layout:'unsupported',
-    issue:`${name} installation layout is not supported in this alpha`};
+  if(name==='bun')return {name,version,layout:'unsupported',
+    issue:'bun installation layout is not supported in this alpha'};
+  if(name==='pnpm'){
+    try{const installed=pnpmInstallInfo(root);
+      return {name,version:installed.version,
+        layout:`node-modules/${installed.linker}`,issue:null,lockfiles:locks,
+        workspacePatterns:installed.patterns};}
+    catch(e){let project;try{project=pnpmProjectInfo(root);}catch{}
+      return {name,version:project?.version||version,
+        layout:project?.linker||'recording-only',issue:e.message,
+        lockfiles:locks,workspacePatterns:project?.patterns||[]};}
+  }
   if(name==='npm')return {name,version:version||installedNpmVersion(),
     layout:'node-modules',issue:null,
     lockfiles:locks};
@@ -96,7 +107,8 @@ function sourceInputs(root,kind,lockfiles) {
 }
 function classify(kind,scriptName,script,pkg,managerInfo,root) {
   const value=script.trim();
-  if(managerInfo.issue)return {level:'unsupported',reason:managerInfo.issue};
+  if(managerInfo.issue)return {level:managerInfo.name==='pnpm'?'recording':'unsupported',
+    reason:managerInfo.issue};
   if(kind==='typecheck'&&exactTypeScript(value)&&
     !pkg.scripts?.['pre'+scriptName]&&!pkg.scripts?.['post'+scriptName]&&
     managerInfo.name==='npm'&&
@@ -154,9 +166,9 @@ export function discoverNodeProject(root) {
   const repositoryIssue=git.status===0?null:
     'Git checkout is unavailable; filesystem observation needs a checkout';
   const observationIssue=repositoryIssue||sourceLinkIssue(root);
-  const workspaces=Boolean(pkg.workspaces);
-  const workspacePatterns=Array.isArray(pkg.workspaces)?pkg.workspaces:
-    pkg.workspaces?.packages;
+  const workspacePatterns=pm.name==='pnpm'?pm.workspacePatterns:
+    Array.isArray(pkg.workspaces)?pkg.workspaces:pkg.workspaces?.packages;
+  const workspaces=Boolean(pkg.workspaces)||Boolean(workspacePatterns?.length);
   if(workspaces&&(!Array.isArray(workspacePatterns)||
     workspacePatterns.some(value=>typeof value!=='string'||path.isAbsolute(value)||
       value.split('/').includes('..'))))
@@ -171,6 +183,20 @@ export function discoverNodeProject(root) {
     if(workspaces&&classification.level==='ready')classification={level:'recording',
       reason:'workspace task and installed-input closure need explicit qualification'};
     const check={name:kind,script,kind,inputs:sourceInputs(root,kind,pm.lockfiles||[])};
+    if(pm.name==='pnpm'&&kind==='typecheck'&&!workspaces&&!pm.issue&&
+      /^(?:tsc --noEmit|tsc -p (?:\.|tsconfig\.json)(?: --noEmit)?)$/.test(scripts[script].trim())){
+      try{const contract=pnpmTypecheckInputs(root,'.',script);
+        if(contract.limitations.length)throw Error(contract.limitations.join('; '));
+        check.command=['@node','@typescript-bin:.',
+          ...scripts[script].trim().split(/\s+/).slice(1)];
+        check.cwd='.';
+        check.inputs=['package.json','pnpm-lock.yaml',
+          ...(exists(path.join(root,'pnpm-workspace.yaml'))?['pnpm-workspace.yaml']:[]),
+          'tsconfig.json','src/**'];
+        classification={level:'ready',reason:'pinned pnpm TypeScript inputs and installation; checked again before reuse',
+          qualification:'pnpm-tsc-v1'};}
+      catch(e){classification={level:'recording',reason:`pnpm TypeScript contract needs review: ${e.message}`};}
+    }
     if(classification.qualification)check.qualification=classification.qualification;
     checks.push({config:check,...classification});
   }
@@ -183,18 +209,20 @@ export function discoverNodeProject(root) {
         continue;
       }
       seen.add(name);
-      if(!['npm','yarn'].includes(pm.name))continue;
+      if(!['npm','yarn','pnpm'].includes(pm.name))continue;
       for(const [kind,names] of Object.entries(scriptNames)){
         const selected=selectScript(kind,names,member.scripts||{});
         if(selected.ambiguous){ambiguous.push({kind:`${name}:${kind}`,
           scripts:selected.ambiguous});continue;}
         if(!selected.script)continue;
         const command=pm.name==='npm'?['@which:npm','run',selected.script,
-          '--workspace',name]:['@which:yarn','workspace',name,'run',selected.script];
+          '--workspace',name]:pm.name==='yarn'?
+          ['@which:yarn','workspace',name,'run',selected.script]:
+          ['@which:pnpm','--filter',name,'run',selected.script];
         const check={name:`${name}:${kind}`,kind,command,
           inputs:['package.json',...(pm.lockfiles||[]),`${dir}/**`,
             `!${dir}/node_modules/**`]};
-        let level=pm.issue?'unsupported':'recording';
+        let level=pm.issue&&pm.name!=='pnpm'?'unsupported':'recording';
         let reason=pm.issue||'workspace script found; shared configuration and installed inputs need review';
         if(!pm.issue&&pm.name==='yarn'&&pm.layout==='node-modules/classic'&&
           kind==='typecheck'&&(member.scripts||{})[selected.script]?.trim()==='tsc -p .'&&
@@ -205,6 +233,22 @@ export function discoverNodeProject(root) {
             check.inputs=['package.json','yarn.lock','.yarnrc.yml',file,`${dir}/src/**`];
             level='ready';reason='pinned Yarn workspace tsc and installed inputs; checked again before reuse';
           }catch(e){reason=`workspace TypeScript contract needs review: ${e.message}`;}
+        }
+        if(!pm.issue&&pm.name==='pnpm'&&kind==='typecheck'&&
+          /^(?:tsc --noEmit|tsc -p (?:\.|tsconfig\.json)(?: --noEmit)?)$/.test(
+            (member.scripts||{})[selected.script]?.trim()||'')&&
+          !member.scripts?.['pre'+selected.script]&&!member.scripts?.['post'+selected.script]){
+          try{const contract=pnpmTypecheckInputs(root,name,selected.script);
+            if(contract.limitations.length)throw Error(contract.limitations.join('; '));
+            check.workspace=name;check.qualification='pnpm-tsc-v1';
+            check.script=selected.script;
+            check.cwd=dir;
+            check.command=['@node',`@typescript-bin:${dir}`,
+              ...member.scripts[selected.script].trim().split(/\s+/).slice(1)];
+            check.inputs=['package.json','pnpm-lock.yaml','pnpm-workspace.yaml',file,
+              `${dir}/src/**`];
+            level='ready';reason='pinned pnpm workspace TypeScript inputs; checked again before reuse';
+          }catch(e){reason=`pnpm TypeScript contract needs review: ${e.message}`;}
         }
         checks.push({config:check,level,reason});
       }

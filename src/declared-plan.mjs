@@ -6,6 +6,7 @@ import {createHash} from 'node:crypto';
 import {permittedRoots,resolveDeclaredInstalled} from './installed-inputs.mjs';
 import {qualifyTypeScript} from './typescript-qualification.mjs';
 import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
+import {pnpmTypecheckInputs} from './pnpm-inputs.mjs';
 
 const identity=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const safePattern=value=>{
@@ -18,7 +19,7 @@ const safePattern=value=>{
 
 export function discoverDeclared(config) {
   const root=fs.realpathSync(config.root),plans={},configurationInputs=new Set(),
-    workspaceManifests=new Set();
+    workspaceManifests=new Set(),workspacePatterns=new Set();
   if(!Array.isArray(config.checks)||!config.checks.length)throw Error('selected checks required');
   for(const selected of config.checks){
     if(typeof selected.name!=='string'||!selected.name||plans[selected.name])
@@ -55,6 +56,11 @@ export function discoverDeclared(config) {
         selected.command[4]);}
       catch(e){workspaceIssue=e.message;}
     }
+    if(selected.qualification==='pnpm-tsc-v1'){
+      try{workspace=pnpmTypecheckInputs(root,selected.workspace||'.',
+        selected.script||selected.command.at(-1));}
+      catch(e){workspaceIssue=e.message;}
+    }
     const installed=resolveDeclaredInstalled(root,
       [...(selected.installedInputs||[]),...(workspace?.installed||[])],allowedRoots);
     const automatic=qualifyTypeScript(root,selected);
@@ -63,8 +69,10 @@ export function discoverDeclared(config) {
     const additivePatterns=[...new Set([...(selected.generatedInputs||[]),
       ...installed.internalPatterns])].sort();
     const unresolved=[...installed.unresolved,...(automatic?.issues||[]),
+      ...(workspace?.limitations||[]),
       ...(workspaceIssue?[workspaceIssue]:[])];
     for(const item of workspace?.configurationInputs||[])configurationInputs.add(item);
+    for(const item of workspace?.workspacePatterns||[])workspacePatterns.add(item);
     for(const item of workspace?.closure||[])workspaceManifests.add(item.manifest);
     if(!automatic)for(const category of ['source','generated','installedDependencies',
       'environment','toolchain','runtime'])if(!selected.coverage?.[category])
@@ -85,21 +93,25 @@ export function discoverDeclared(config) {
         ...(workspace?.generated||[])])].sort(),
       declaredInstalledInputs:[...new Set([...(selected.installedInputs||[]),
         ...(workspace?.installed||[])])].sort(),
-      installation:null,installedInstances:[],resolutionCandidates:[],resolutionFindings:[],
+      installation:workspace?.installation||null,
+      installedInstances:workspace?.installedInstances||[],
+      resolutionCandidates:[],resolutionFindings:workspace?.absences||[],
       installedPhysicalRoots,externalPatterns,
       externalObservationRoots:Object.keys(externalPatterns).sort(),
       resolutionLinks:installed.links,
       resolutionTriggers:[...new Set([...installed.triggers,
-        ...(workspace?.linkTriggers||[])])],
+        ...(workspace?.linkTriggers||[]),
+        ...(workspace?.resolutionCandidates||[]).map(row=>row.path)])],
       installedMappings:installed.mappings,effectiveEnvironmentGlobs:{},
       probes:selected.probes||[],environment:selected.environment||{},
       qualification:selected.qualification||null,
       executionProvenance:'declared-command',
       unresolved:[...new Set(unresolved)].sort()};
+    plan.resolutionCandidates=workspace?.resolutionCandidates||[];
     plan.id=identity(plan);plans[selected.name]=plan;
   }
   return {schema:1,provider:'declared-project@1',root,plans,discoveredAt:Date.now(),
-    workspaceCount:1,workspacePatterns:[],
+    workspaceCount:1,workspacePatterns:[...workspacePatterns],
     configurationInputs:[...configurationInputs].sort(),
     workspaceManifests:[...workspaceManifests].sort()};
 }

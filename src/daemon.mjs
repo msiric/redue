@@ -94,7 +94,7 @@ function probe(row) {
     if(out.error||out.signal||out.status!==0) {
       if(!row.probeError){row.revision++;row.lastReason='declared state probe became unavailable';}
       row.probeHash=null;row.probeAt=0;
-      const code=['typescript-noemit-v1','yarn-workspace-tsc-v1']
+      const code=['typescript-noemit-v1','yarn-workspace-tsc-v1','pnpm-tsc-v1']
         .includes(row.plan.qualification)?
         /VSTATE_REASON:([a-z-]+)/.exec(out.stderr?.toString()||'')?.[1]:null;
       const explanations={
@@ -117,6 +117,12 @@ function probe(row) {
         'yarn-distribution-unobservable':'Corepack Yarn distribution cannot be inspected',
         'typescript-input-outside-workspace-contract':'TypeScript reads outside the selected workspace, declared dependency outputs, or installed roots',
         'workspace-typecheck-contract-unavailable':'workspace TypeScript applicability probe could not establish inputs'
+        ,'pnpm-execution-environment-unsupported':'pnpm or Node launcher environment override needs review'
+        ,'pnpm-distribution-unobservable':'pnpm executable contents cannot be observed'
+        ,'pnpm-version-mismatch':'pnpm executable differs from the pinned version'
+        ,'typescript-input-outside-pnpm-contract':'TypeScript reads outside the selected workspace, linked outputs, or installed inputs'
+        ,'pnpm-input-coverage-unavailable':'pnpm installed-input coverage became unavailable; inspect check details'
+        ,'pnpm-typecheck-contract-unavailable':'pnpm TypeScript input contract could not be established'
       };
       row.probeError=code?explanations[code]||`TypeScript applicability unavailable (${code})`:
         `probe unavailable: ${argv[0]} (${out.error?.code||out.signal||out.status})`;return;
@@ -216,7 +222,7 @@ function rows(contextHashes) {
             if(r.files[f]!==current[f]){changed=describeChangedInput(row.plan,f);break;}
         }
         row.staleReason=changed||
-          (['typescript-noemit-v1','yarn-workspace-tsc-v1']
+          (['typescript-noemit-v1','yarn-workspace-tsc-v1','pnpm-tsc-v1']
             .includes(row.plan.qualification)?
             'TypeScript input set, generated file, or toolchain context changed':
             'declared input content or membership changed');
@@ -456,6 +462,14 @@ function flush() {
     setTimeout(()=>{if(!stopping)refreshPlan();},1000);}
   publish();
 }
+function pnpmTopologyChanged(type,rel) {
+  if(!config.checks.some(check=>check.qualification==='pnpm-tsc-v1')||
+    !rel.split('/').includes('node_modules'))return false;
+  if(type==='create'||type==='delete')return true;
+  try{const stat=fs.lstatSync(path.join(root,rel));
+    return stat.isDirectory()||stat.isSymbolicLink();}
+  catch(e){return e.code==='ENOENT';}
+}
 function notification(type,filename) {
   metrics.notifications++;
   if(!filename){observationGap('unnamed_event');return;}
@@ -463,7 +477,7 @@ function notification(type,filename) {
   if(rel==='.git'||rel.startsWith('.git/'))return;
   if(planning) {
     pending.add(rel);metrics.maxQueue=Math.max(metrics.maxQueue,pending.size);
-    if(planTrigger(rel)||candidateDescendants.has(rel))
+    if(planTrigger(rel)||candidateDescendants.has(rel)||pnpmTopologyChanged(type,rel))
       planDirty=true;
     if(pending.size>50000)observationGap('backlog_overflow');
     return;
@@ -478,6 +492,10 @@ function notification(type,filename) {
   if(planTrigger(rel))
     if(triggerChanged(rel))planDirty=true;
   if(candidateTriggerChanged(rel))planDirty=true;
+  // A newly installed package or nearer Node candidate may change a compiler
+  // file list even when it was absent from the previous input plan. The store
+  // outside this checkout is not observed and cannot cause this refresh.
+  if(pnpmTopologyChanged(type,rel))planDirty=true;
   pending.add(rel);metrics.maxQueue=Math.max(metrics.maxQueue,pending.size);
   if(index) {
     for(const name of index.candidates(rel))

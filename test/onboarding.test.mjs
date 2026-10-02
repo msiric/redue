@@ -94,9 +94,11 @@ test('generated npm TypeScript check earns CURRENT; unrelated edits preserve, in
 
 test('unsupported manager and workspace boundary are explicit',t=>{
   const pnpm=project(t,{manager:'pnpm'});
-  const unsupported=JSON.parse(good(pnpm.root,pnpm.state,'init','--json'));
-  assert.equal(unsupported.installation_layout,'unsupported');
-  assert(!fs.existsSync(pnpm.config));
+  const recording=JSON.parse(good(pnpm.root,pnpm.state,'init','--json'));
+  assert.equal(recording.installation_layout,'recording-only');
+  assert.match(recording.issue,/exact pnpm 12/);
+  assert.equal(recording.checks[0].level,'recording');
+  assert(fs.existsSync(pnpm.config));
   const workspace=project(t,{workspaces:true});
   const preview=JSON.parse(good(workspace.root,workspace.state,'init','--dry-run','--json'));
   assert.equal(preview.workspaces,true);
