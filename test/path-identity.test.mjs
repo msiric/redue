@@ -1,12 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import fs from 'node:fs';
+import os from 'node:os';
 import {normalizedPath,samePath,withinPath,observedRelative,validInputRelative} from '../src/path-identity.mjs';
 import {controlEndpoint} from '../src/control-endpoint.mjs';
 import {stateIdentity,userStateBase} from '../src/platform-state.mjs';
 import {findExecutable} from '../src/executable-lookup.mjs';
 import {windowsLaunch} from '../src/windows-command.mjs';
 import {terminateWindowsTree} from '../src/windows-process.mjs';
+import {resolveLinks} from '../src/installed-inputs.mjs';
 import {EventEmitter} from 'node:events';
 
 test('Windows lexical identity folds drive and path spelling without crossing roots',()=>{
@@ -81,3 +84,20 @@ test('Windows cancellation requests only the recorded process tree',async()=>{
   assert.deepEqual(actual.args,['/PID','4321','/T','/F']);
   assert.equal(actual.file,'taskkill.exe');
 });
+
+test('NTFS short-path junction target retains its link and resolves inside the long checkout',
+  {skip:process.platform!=='win32'},t=>{
+    const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-ntfs-link-'));
+    t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
+    const target=path.join(base,'packages','dep');
+    fs.mkdirSync(target,{recursive:true});
+    const root=fs.realpathSync.native(base);
+    const logical=path.join(root,'node_modules','dep');
+    fs.mkdirSync(path.dirname(logical));
+    fs.symlinkSync(target,logical,'junction');
+    const resolved=resolveLinks(logical,root);
+    assert.equal(resolved.reason,null);
+    assert(samePath(resolved.physical,fs.realpathSync.native(target)));
+    assert.equal(resolved.links.length,1);
+    assert(samePath(resolved.links[0].path,logical));
+  });

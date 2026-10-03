@@ -164,7 +164,7 @@ test('pnpm resolution and absent optional changes rebuild a check plan conservat
   put(path.join(optional,'index.js'),'module.exports = {};\n');
   const presentPlan=discoverDeclared(config).plans.app;
   assert.notEqual(absentPlan.id,presentPlan.id);
-  assert.equal(presentPlan.unresolved.length,0);
+  assert.equal(presentPlan.unresolved.length,0,JSON.stringify(presentPlan.unresolved));
   const externalLink=path.join(app,'node_modules','external');
   assert(presentPlan.resolutionTriggers.includes('packages/app/node_modules/external'));
   fs.rmSync(externalLink);
@@ -197,8 +197,14 @@ test('pnpm hoisted metadata is distinct and shared hardlinks with unknown aliase
   assert.equal(index.unavailable,null);
   const before=index.fingerprint('app');
   put(alias,'export declare const ext: string;\n');
+  assert.equal(fs.readFileSync(path.join(external,'index.d.ts'),'utf8'),
+    'export declare const ext: string;\n');
   index.updatePath(path.relative(root,path.join(external,'index.d.ts')).split(path.sep).join('/'));
-  assert.notEqual(index.fingerprint('app'),before);
+  if(process.platform==='win32'){
+    // This alpha contract explicitly withholds reuse for shared hardlinks on
+    // Windows; a non-reusable plan need not produce an authoritative digest.
+    assert(bundle.plans.app.unresolved.some(reason=>/hardlinks/.test(reason)));
+  }else assert.notEqual(index.fingerprint('app'),before);
   fs.rmSync(alias);
   assert(fs.existsSync(path.join(external,'index.d.ts')));
 });

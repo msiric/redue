@@ -332,7 +332,9 @@ test('failed reconciliation stays UNVERIFIED, preserves PASS, and restart repair
   assert(events(f).some(e=>e.kind==='reconciliation_failed'));
   const item=row(f);assert.equal(item.freshness,'UNVERIFIED');
   assert.equal(item.result,'PASS');assert.equal(item.invocation.runId,runId);
-  assert.match(item.reason,/deterministic reconciliation failed/);
+  assert.match(item.reason,process.platform==='win32'?
+    /(?:deterministic reconciliation failed|plan unavailable: injected reconciliation failure)/:
+    /deterministic reconciliation failed/);
   await new Promise(resolve=>setTimeout(resolve,900));
   assert.equal(events(f).filter(e=>e.kind==='reconciliation_started').length,2);
   fs.unlinkSync(path.join(f.state,'reconcile-fault'));

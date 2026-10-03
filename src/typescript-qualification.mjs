@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import {realObservedPath} from './path-identity.mjs';
 import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
 import {pnpmTypecheckInputs} from './pnpm-inputs.mjs';
 
@@ -21,7 +22,7 @@ export function qualifyTypeScript(root,selected) {
         JSON.stringify(selected.command.slice(2))!==JSON.stringify(declared))
         issues.push('standalone TypeScript invocation changed');
     }catch(e){issues.push(e.message);}
-    if(!selected.probes?.some(argv=>argv[1]?.endsWith('/pnpm-typecheck-probe.mjs')))
+    if(!selected.probes?.some(argv=>path.basename(argv[1]||'')==='pnpm-typecheck-probe.mjs'))
       issues.push('pnpm TypeScript input probe missing');
     if(!selected.environment?.executableIdentity||
       !['node'].every(name=>selected.environment?.pathExecutables?.includes(name))||
@@ -38,7 +39,7 @@ export function qualifyTypeScript(root,selected) {
         selected.command[3]!=='run')issues.push('workspace command changed');
       else yarnWorkspaceTypecheckInputs(root,selected.workspace,selected.command[4]);
     }catch(e){issues.push(e.message);}
-    if(!selected.probes?.some(argv=>argv[1]?.endsWith('/yarn-workspace-typecheck-probe.mjs')))
+    if(!selected.probes?.some(argv=>path.basename(argv[1]||'')==='yarn-workspace-typecheck-probe.mjs'))
       issues.push('workspace TypeScript input probe missing');
     if(!selected.environment?.executableIdentity||
       !['node','yarn'].every(name=>selected.environment?.pathExecutables?.includes(name))||
@@ -85,8 +86,10 @@ export function qualifyTypeScript(root,selected) {
     !['npm_config_','DYLD_','TSGO_'].every(name=>
       selected.environment?.prefixes?.includes(name)))
     issues.push('caller toolchain or execution context declaration is incomplete');
-  if(!selected.probes?.some(argv=>argv[1]?.endsWith('/typescript-contract-probe.mjs')&&
-    argv[2]===root&&argv[3]===selected.script&&argv[4]===selected.command[0]))
+  if(!selected.probes?.some(argv=>path.basename(argv[1]||'')==='typescript-contract-probe.mjs'&&
+    argv[2]&&fs.existsSync(argv[2])&&
+    realObservedPath(argv[2])===root&&argv[3]===selected.script&&
+    argv[4]===selected.command[0]))
     issues.push('TypeScript input and toolchain probe is missing');
   return {qualified:issues.length===0,issues};
 }
