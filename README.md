@@ -7,7 +7,7 @@ observation is UNVERIFIED, never CURRENT. CURRENT is bounded evidence about a
 named check, not a claim that the project is correct.
 
 This repository is local product-engineering source, not a published package.
-On macOS with Node 22 or newer:
+On macOS with Node 22 or newer, or Linux with Node 22 or newer and Python 3:
 
 ```sh
 npm ci
@@ -50,7 +50,9 @@ node bin/vstate.mjs remove-state
 Use `--config FILE` for an external project config and `--state-dir DIR` to
 override the local state location. By default, state is in a uniquely named
 directory under `~/Library/Application Support/vstate/`; sockets, receipts,
-snapshots, and logs stay there. `remove-state` requires a matching ownership
+snapshots, and logs stay there. On Linux the default base is
+`$XDG_STATE_HOME/vstate/` when `XDG_STATE_HOME` is absolute, otherwise
+`~/.local/state/vstate/`. `remove-state` requires a matching ownership
 marker and removes only that directory. It never deletes project files or
 installed dependencies. Probes and checks execute local commands, so only use
 configuration from repositories you trust. Ordinary operation needs no account,
@@ -125,9 +127,14 @@ relevant manifests, configuration, and installation metadata. The global pnpm
 store is neither watched nor deleted. PnP, custom modules/virtual-store roots,
 global virtual stores, injected workspace dependencies, and external links
 without an observed boundary remain recording-only with a reason. Installed
-files with hard-linked aliases outside the checkout also remain recording-only:
-their contents are indexed, but writes through an unseen alias cannot support
-CURRENT. An absent optional package remains unqualified when Node could later
+files with hard-linked aliases outside the checkout remain recording-only on
+macOS: writes through an unseen alias cannot support CURRENT there. On Linux,
+vstate watches project-installed file inodes and rehashes the selected
+installed inputs on every synchronized read. A cached read remains UNVERIFIED
+for these pnpm checks; a synchronized read can establish CURRENT after the
+rehash. If an inode watch cannot be installed, observation becomes unavailable
+instead of dropping that file. The global store is not watched. An absent
+optional package remains unqualified when Node could later
 resolve it from an unobserved ancestor `node_modules`; project-local candidate
 locations are still tracked for plan changes. No configuration assertion is
 generated to hide either gap.
@@ -170,6 +177,11 @@ establish CURRENT. Never infer project correctness from an aggregate state.
 - `src/pnpm-inputs.mjs` derives pnpm installation and TypeScript input plans;
   `src/pnpm-typecheck-probe.mjs` checks the effective compiler input list.
 - `src/daemon.mjs` owns one checkout observer, reconciliation and applicability.
+- `src/platform-observation.mjs` selects macOS FSEvents or the Linux inotify
+  transport. The Linux helper reports overflow/watch loss and runs on local
+  ext2/3/4, XFS, Btrfs, F2FS, tmpfs, or ZFS. Network, FUSE, overlay, and
+  unrecognized mounts are unavailable rather than assumed observable. The
+  helper needs Python 3; inotify watch exhaustion also withholds CURRENT.
 - `src/cli.mjs` executes checks against before/after checkpoints and records
   results; `src/run-lock.mjs` protects a single writer.
 - `bin/vstate.mjs` owns public CLI parsing, readable output and config/state
