@@ -5,6 +5,26 @@ import {createRequire} from 'node:module';
 import micromatch from 'micromatch';
 import {withinPath as within,realObservedPath} from './path-identity.mjs';
 
+export function yarnLocalTsc(root){
+  const expected=path.join(root,'node_modules','typescript','bin','tsc');
+  if(process.platform==='win32'){
+    const shim=path.join(root,'node_modules','.bin','tsc.cmd');
+    const body=fs.readFileSync(shim,'utf8').replace(/\r\n/g,'\n').trim();
+    const standard=`@IF EXIST "%~dp0\\node.exe" (
+  "%~dp0\\node.exe"  "%~dp0\\..\\typescript\\bin\\tsc" %*
+) ELSE (
+  @SETLOCAL
+  @SET PATHEXT=%PATHEXT:;.JS;=;%
+  node  "%~dp0\\..\\typescript\\bin\\tsc" %*
+)`;
+    if(body!==standard)throw Error('local TypeScript executable is not the installed compiler');
+    return realObservedPath(expected);
+  }
+  const tsc=realObservedPath(path.join(root,'node_modules','.bin','tsc'));
+  if(tsc!==expected)throw Error('local TypeScript executable is not the installed compiler');
+  return tsc;
+}
+
 const posix=file=>file.split(path.sep).join('/');
 const read=file=>JSON.parse(fs.readFileSync(file,'utf8'));
 const relative=(root,file)=>posix(path.relative(root,file));
@@ -80,7 +100,8 @@ export function yarnWorkspaceTypecheckInputs(root,workspace,script){
     selected.pkg.scripts?.['pre'+script]||selected.pkg.scripts?.['post'+script])
     throw Error('workspace typecheck must be standalone tsc -p .');
   const packageDir=safeDirectory(root,selected.dir);
-  if(fs.existsSync(path.join(packageDir,'node_modules','.bin','tsc')))
+  if(fs.existsSync(path.join(packageDir,'node_modules','.bin','tsc'))||
+    fs.existsSync(path.join(packageDir,'node_modules','.bin','tsc.cmd')))
     throw Error('workspace-local TypeScript executable needs separate toolchain coverage');
   const {parsed,configs}=parsedTypeScript(root,selected.dir);
   const outDir=parsed.options.outDir&&within(path.resolve(parsed.options.outDir),root)?
@@ -118,9 +139,7 @@ export function yarnWorkspaceTypecheckInputs(root,workspace,script){
     // contents are indexed at the physical workspace output location.
     linkTriggers.push(logical);
   }
-  const tsc=realObservedPath(path.join(root,'node_modules','.bin','tsc'));
-  if(tsc!==path.join(root,'node_modules','typescript','bin','tsc'))
-    throw Error('local TypeScript executable is not the installed compiler');
+  yarnLocalTsc(root);
   return {workspace:selected,closure:[...closure.values()],source:[...new Set(source)],
     installed,generated:[...new Set(generated)],configs,
     configurationInputs:[...new Set(['package.json','yarn.lock','.yarnrc.yml',

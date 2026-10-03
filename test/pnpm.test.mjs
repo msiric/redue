@@ -74,6 +74,17 @@ function runtime(root){
         'DYLD_','TSGO_']}}]};
 }
 
+test('pnpm 12 implicit project-local virtual store is accepted only when physically local',t=>{
+  const {root}=fixture(t);
+  const file=path.join(root,'node_modules','.modules.yaml');
+  const modules=JSON.parse(fs.readFileSync(file,'utf8'));
+  delete modules.virtualStoreDir;json(file,modules);
+  assert.equal(pnpmInstallInfo(root).linker,'isolated');
+  assert.equal(pnpmTypecheckInputs(root,'@fixture/app','typecheck').limitations.length,0);
+  modules.virtualStoreDir=path.join(root,'elsewhere');json(file,modules);
+  assert.throws(()=>pnpmInstallInfo(root),/nonstandard or incomplete/);
+});
+
 test('pnpm init selects a project-relative workspace TypeScript check and rejects unsupported layout',t=>{
   const {root}=fixture(t);
   const discovered=discoverNodeProject(root),row=discovered.checks.find(item=>

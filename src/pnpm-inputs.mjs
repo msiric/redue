@@ -8,7 +8,7 @@ import {execFileSync,spawnSync} from 'node:child_process';
 import micromatch from 'micromatch';
 import YAML from 'yaml';
 import {resolveLinks} from './installed-inputs.mjs';
-import {withinPath as within,realObservedPath} from './path-identity.mjs';
+import {withinPath as within,realObservedPath,samePath} from './path-identity.mjs';
 
 const rel=(root,file)=>path.relative(root,file).split(path.sep).join('/');
 const read=file=>JSON.parse(fs.readFileSync(file,'utf8'));
@@ -54,7 +54,17 @@ export function pnpmInstallInfo(root){
   const modules=yaml(modulesFile);
   if(modules.nodeLinker!==linker||modules.packageManager!==pkg.packageManager)
     throw Error('installed pnpm linker or version differs from project configuration');
-  if(modules.virtualStoreDir!=='.pnpm'||!exists(path.join(root,'node_modules','.pnpm','lock.yaml')))
+  const virtualStore=path.join(root,'node_modules','.pnpm');
+  // pnpm 12 on Windows can omit virtualStoreDir when using its project-local
+  // default. Accept only the observed, ordinary local directory in that case.
+  const declared=modules.virtualStoreDir;
+  const selected=declared===undefined?virtualStore:
+    path.resolve(path.dirname(modulesFile),declared);
+  let localStore=false;
+  try{localStore=fs.lstatSync(virtualStore).isDirectory()&&
+    samePath(realObservedPath(virtualStore),realObservedPath(selected));}
+  catch{}
+  if(!localStore||!exists(path.join(virtualStore,'lock.yaml')))
     throw Error('nonstandard or incomplete project-local pnpm virtual store');
   if(!exists(path.join(root,'pnpm-lock.yaml')))
     throw Error('pnpm lockfile is missing');

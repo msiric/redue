@@ -6,7 +6,7 @@ import path from 'node:path';
 import os from 'node:os';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
-import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
+import {yarnWorkspaceTypecheckInputs,yarnLocalTsc} from './yarn-workspace-inputs.mjs';
 import {withinPath as within,realObservedPath} from './path-identity.mjs';
 import {windowsLaunch} from './windows-command.mjs';
 
@@ -39,7 +39,7 @@ try{
     `yarn@${version.stdout.trim()}`!==pkg.packageManager)
     fail('yarn-toolchain-unavailable');
   const cwd=path.join(root,contract.workspace.dir);
-  const tsc=realObservedPath(path.join(root,'node_modules','.bin','tsc'));
+  const tsc=yarnLocalTsc(root);
   const listed=spawnSync(process.execPath,[tsc,'-p','.','--listFilesOnly'],
     {cwd,env:process.env,encoding:'utf8',timeout:4000,maxBuffer:16*1024*1024,
       stdio:['ignore','pipe','pipe']});

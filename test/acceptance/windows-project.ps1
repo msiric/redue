@@ -50,13 +50,25 @@ if($Project -ne 'npm'){
   Native $corepack @('prepare',$pin,'--activate')
 }
 switch($Project){
-  npm { Native 'npm' @('ci','--no-audit','--no-fund') }
+  npm {
+    Native 'npm' @('ci','--no-audit','--no-fund')
+    $names = (Get-ChildItem Env: | Where-Object {
+      $_.Name -match '^(NODE_OPTIONS|NODE_PATH|BASH_ENV|ENV|npm_config_)'
+    } | Select-Object -ExpandProperty Name)
+    Write-Host "npm execution environment key names: $($names -join ', ')"
+  }
   yarn {
     $yarn = Join-Path $shims 'yarn.cmd'
     Native $yarn @('install','--immutable','--mode=skip-build')
     Native $yarn @('workspace','@jsonjoy.com/fs-node-builtins','run','build')
     $tscShim = Join-Path $root 'node_modules/.bin/tsc.cmd'
     Write-Host "Yarn Windows tsc shim: $(Get-Content -LiteralPath $tscShim -Raw)"
+    Write-Host "Corepack Yarn launcher: $(Get-Content -LiteralPath $yarn -Raw)"
+    foreach($cacheRoot in @((Join-Path $env:LOCALAPPDATA 'node/corepack'),
+      (Join-Path $env:USERPROFILE '.cache/node/corepack'))){
+      if(Test-Path $cacheRoot){Get-ChildItem $cacheRoot -Recurse -Filter yarn.js -File |
+        Select-Object -First 4 -ExpandProperty FullName | ForEach-Object {Write-Host "Yarn cache file: $_"}}
+    }
   }
   pnpm {
     $pnpm = Join-Path $shims 'pnpm.cmd'
