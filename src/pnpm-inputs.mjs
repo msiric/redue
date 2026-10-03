@@ -8,7 +8,7 @@ import {execFileSync,spawnSync} from 'node:child_process';
 import micromatch from 'micromatch';
 import YAML from 'yaml';
 import {resolveLinks} from './installed-inputs.mjs';
-import {withinPath as within} from './path-identity.mjs';
+import {withinPath as within,realObservedPath} from './path-identity.mjs';
 
 const rel=(root,file)=>path.relative(root,file).split(path.sep).join('/');
 const read=file=>JSON.parse(fs.readFileSync(file,'utf8'));
@@ -25,7 +25,7 @@ function safePatterns(values){
   return values;
 }
 export function pnpmProjectInfo(root){
-  root=fs.realpathSync(root);
+  root=realObservedPath(root);
   const pkg=read(path.join(root,'package.json'));
   const pin=/^pnpm@(12\.\d+\.\d+)(?:\+[^\s]+)?$/.exec(pkg.packageManager||'');
   if(!pin)throw Error('an exact pnpm 12 packageManager pin is required');
@@ -36,7 +36,7 @@ export function pnpmProjectInfo(root){
   return {version:pin[1],linker,patterns,settings};
 }
 export function pnpmInstallInfo(root){
-  root=fs.realpathSync(root);
+  root=realObservedPath(root);
   const pkg=read(path.join(root,'package.json'));
   const {version,linker,patterns,settings}=pnpmProjectInfo(root);
   const workspaceFile=path.join(root,'pnpm-workspace.yaml');
@@ -75,7 +75,7 @@ export function pnpmInstallInfo(root){
       'node_modules/.modules.yaml','node_modules/.pnpm/lock.yaml']};
 }
 export function pnpmWorkspacePackages(root,patterns){
-  root=fs.realpathSync(root);
+  root=realObservedPath(root);
   const found=new Map();
   if(!patterns.length)return found;
   const files=execFileSync('git',['ls-files','--cached','--others','--exclude-standard',
@@ -175,7 +175,7 @@ function parsedTypeScript(root,dir,ts){
     ts.ModuleResolutionKind.Node16,ts.ModuleResolutionKind.NodeNext]);
   if(!supported.has(parsed.options.moduleResolution))
     throw Error('TypeScript module resolver is outside the supported Node contract');
-  for(const file of reads)if(!within(fs.realpathSync(file),root))
+  for(const file of reads)if(!within(realObservedPath(file),root))
     throw Error('TypeScript configuration escapes the checkout');
   return {parsed,configs:[...reads].map(file=>rel(root,file)).sort()};
 }
@@ -188,7 +188,7 @@ function listedTypeScriptFiles(root,selected,tsc){
   if(out.error||out.signal||out.status!==0)
     throw Error('TypeScript input listing is unavailable');
   const files=out.stdout.trim().split(/\r?\n/).filter(Boolean)
-    .map(file=>fs.realpathSync(file));
+    .map(file=>realObservedPath(file));
   if(!files.length)throw Error('TypeScript input listing is empty');
   return files;
 }
@@ -218,7 +218,7 @@ function sharedHardlinkIn(folder){
   return false;
 }
 export function pnpmTypecheckInputs(root,workspace,script){
-  root=fs.realpathSync(root);
+  root=realObservedPath(root);
   const install=pnpmInstallInfo(root),members=pnpmWorkspacePackages(root,install.patterns);
   const selected=workspace==='.'?{name:'.',dir:'.',manifest:'package.json',
     pkg:read(path.join(root,'package.json'))}:members.get(workspace);
@@ -228,7 +228,7 @@ export function pnpmTypecheckInputs(root,workspace,script){
     selected.pkg.scripts?.['pre'+script]||selected.pkg.scripts?.['post'+script])
     throw Error('typecheck must be one standalone TypeScript invocation');
   const selectedDir=path.join(root,selected.dir),lookup=createRequire(path.join(selectedDir,'package.json'));
-  let tsPackage;try{tsPackage=fs.realpathSync(lookup.resolve('typescript/package.json'));}
+  let tsPackage;try{tsPackage=realObservedPath(lookup.resolve('typescript/package.json'));}
   catch{throw Error('installed TypeScript compiler cannot be resolved');}
   if(!within(tsPackage,root))throw Error('TypeScript compiler is outside the observed checkout');
   const tsRoot=path.dirname(tsPackage),ts=lookup('typescript');

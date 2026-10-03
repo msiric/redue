@@ -3,7 +3,7 @@ import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import micromatch from 'micromatch';
-import {withinPath as within} from './path-identity.mjs';
+import {withinPath as within,realObservedPath} from './path-identity.mjs';
 
 const posix=file=>file.split(path.sep).join('/');
 const read=file=>JSON.parse(fs.readFileSync(file,'utf8'));
@@ -15,7 +15,7 @@ const safeDirectory=(root,dir)=>{
 };
 
 export function yarnWorkspacePackages(root){
-  root=fs.realpathSync(root);
+  root=realObservedPath(root);
   const pkg=read(path.join(root,'package.json'));
   const patterns=Array.isArray(pkg.workspaces)?pkg.workspaces:pkg.workspaces?.packages;
   if(!Array.isArray(patterns)||!patterns.length||patterns.some(value=>
@@ -58,13 +58,13 @@ function parsedTypeScript(root,dir){
       parsed.options.moduleResolution!==ts.ModuleResolutionKind.Node10)
     throw Error('custom TypeScript module resolution needs explicit input coverage');
   if(parsed.projectReferences?.length)throw Error('TypeScript project references need a separate contract');
-  for(const file of reads)if(!within(fs.realpathSync(file),root))
+  for(const file of reads)if(!within(realObservedPath(file),root))
     throw Error(`TypeScript configuration escapes the checkout: ${path.basename(file)}`);
   return {parsed,configs:[...reads].map(file=>relative(root,file)).sort()};
 }
 
 export function yarnWorkspaceTypecheckInputs(root,workspace,script){
-  root=fs.realpathSync(root);
+  root=realObservedPath(root);
   const rootPkg=read(path.join(root,'package.json'));
   if(!/^yarn@4\./.test(rootPkg.packageManager||''))throw Error('pinned Yarn 4 required');
   const yarnrc=fs.readFileSync(path.join(root,'.yarnrc.yml'),'utf8');
@@ -118,7 +118,7 @@ export function yarnWorkspaceTypecheckInputs(root,workspace,script){
     // contents are indexed at the physical workspace output location.
     linkTriggers.push(logical);
   }
-  const tsc=fs.realpathSync(path.join(root,'node_modules','.bin','tsc'));
+  const tsc=realObservedPath(path.join(root,'node_modules','.bin','tsc'));
   if(tsc!==path.join(root,'node_modules','typescript','bin','tsc'))
     throw Error('local TypeScript executable is not the installed compiler');
   return {workspace:selected,closure:[...closure.values()],source:[...new Set(source)],

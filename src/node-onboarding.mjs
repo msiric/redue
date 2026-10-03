@@ -4,6 +4,8 @@ import {spawnSync} from 'node:child_process';
 import micromatch from 'micromatch';
 import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
 import {pnpmInstallInfo,pnpmProjectInfo,pnpmTypecheckInputs} from './pnpm-inputs.mjs';
+import {realObservedPath} from './path-identity.mjs';
+import {findExecutable} from './executable-lookup.mjs';
 
 const exists=file=>{try{fs.accessSync(file);return true;}catch{return false;}};
 const readJson=file=>JSON.parse(fs.readFileSync(file,'utf8'));
@@ -20,14 +22,14 @@ const toolConfigs=['tsconfig.json','tsconfig.base.json','vite.config.ts','vite.c
   'eslint.config.js','eslint.config.mjs','.eslintrc','.eslintrc.json',
   '.eslintrc.js','.npmrc','.yarnrc.yml'];
 function installedNpmVersion() {
-  for(const folder of (process.env.PATH||'').split(path.delimiter)){
-    try{
-      const executable=fs.realpathSync(path.join(folder||process.cwd(),'npm'));
-      const manifest=readJson(path.join(path.dirname(path.dirname(executable)),
-        'package.json'));
-      if(manifest.name==='npm')return manifest.version;
-    }catch{}
-  }
+  try{
+    const executable=findExecutable('npm');
+    if(!executable)return null;
+    const manifest=readJson(process.platform==='win32'?
+      path.join(path.dirname(executable),'node_modules','npm','package.json'):
+      path.join(path.dirname(path.dirname(executable)),'package.json'));
+    if(manifest.name==='npm')return manifest.version;
+  }catch{}
   return null;
 }
 
@@ -158,6 +160,7 @@ function workspaceManifests(root,patterns) {
   return matched.map(file=>({file,pkg:readJson(path.join(root,file))}));
 }
 export function discoverNodeProject(root) {
+  root=realObservedPath(root);
   const packageFile=path.join(root,'package.json');
   if(!exists(packageFile))throw Error('run init from a repository containing package.json');
   const pkg=readJson(packageFile),pm=manager(root,pkg),scripts=pkg.scripts||{};

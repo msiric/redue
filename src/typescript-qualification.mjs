@@ -59,8 +59,11 @@ export function qualifyTypeScript(root,selected) {
     selected.command[2]!==selected.script)
     issues.push('package-manager invocation differs from the discovered script');
   try{const npm=fs.realpathSync(selected.command[0]);
-    if(path.basename(npm)!=='npm-cli.js'||
-      path.basename(path.dirname(path.dirname(npm)))!=='npm')
+    const supported=process.platform==='win32'?path.basename(npm).toLowerCase()==='npm.cmd'&&
+      fs.existsSync(path.join(path.dirname(npm),'node_modules','npm','bin','npm-cli.js')):
+      path.basename(npm)==='npm-cli.js'&&
+      path.basename(path.dirname(path.dirname(npm)))==='npm';
+    if(!supported)
       issues.push('npm executable layout is not supported');}
   catch{issues.push('npm executable unavailable');}
   if(!fs.existsSync(path.join(root,'tsconfig.json')))

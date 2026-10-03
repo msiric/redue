@@ -7,7 +7,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {pnpmTypecheckInputs} from './pnpm-inputs.mjs';
-import {withinPath as within} from './path-identity.mjs';
+import {withinPath as within,realObservedPath} from './path-identity.mjs';
 
 const [rootArg,workspace,script]=process.argv.slice(2);
 const hash=value=>createHash('sha256').update(value).digest('hex');
@@ -15,7 +15,7 @@ const digest=file=>hash(fs.readFileSync(file));
 const fail=code=>{throw Object.assign(Error(code),{code});};
 try{
   if(!rootArg||!workspace||!script)fail('probe-arguments');
-  const root=fs.realpathSync(rootArg);
+  const root=realObservedPath(rootArg);
   if(process.env.NODE_OPTIONS||process.env.NODE_PATH||process.env.BASH_ENV||
     process.env.ENV||Object.keys(process.env).some(key=>
       /^(PNPM_|COREPACK_|npm_config_|DYLD_|TSGO_)/i.test(key)))
@@ -29,7 +29,7 @@ try{
   if(listed.error||listed.signal||listed.status!==0)
     fail('typescript-input-list-unavailable');
   const inputs=listed.stdout.trim().split(/\r?\n/).filter(Boolean)
-    .map(file=>fs.realpathSync(file));
+    .map(file=>realObservedPath(file));
   if(!inputs.length)fail('typescript-input-list-unavailable');
   const inputRoots=[path.join(selected,'src'),...contract.generated.map(pattern=>
     path.join(root,pattern.slice(0,-3))),...contract.installed.filter(p=>!p.startsWith('!'))

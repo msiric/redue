@@ -7,7 +7,7 @@ import {spawn,spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {processAlive} from './process-liveness.mjs';
 import {controlEndpoint} from './control-endpoint.mjs';
-import {samePath,withinPath} from './path-identity.mjs';
+import {samePath,withinPath,realObservedPath} from './path-identity.mjs';
 import {findExecutable} from './executable-lookup.mjs';
 import {windowsLaunch} from './windows-command.mjs';
 import {terminateWindowsTree} from './windows-process.mjs';
@@ -21,7 +21,7 @@ const here=path.dirname(fileURLToPath(import.meta.url));
 const [configArg,action,name]=process.argv.slice(2);
 if(!configArg||!action)throw Error('internal usage: cli.mjs CONFIG ACTION [check]');
 const configFile=path.resolve(configArg), config=JSON.parse(fs.readFileSync(configFile));
-const root=fs.realpathSync(config.root), state=path.resolve(config.state),
+const root=realObservedPath(config.root), state=path.resolve(config.state),
   endpoint=controlEndpoint(state),socket=endpoint.address;
 assertOwnedStatePlacement(config);
 if(withinPath(state,root))throw Error('state must be outside checkout');

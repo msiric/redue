@@ -8,7 +8,7 @@ import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {discoverNodeProject} from '../src/node-onboarding.mjs';
 import {processAlive} from '../src/process-liveness.mjs';
-import {samePath,withinPath} from '../src/path-identity.mjs';
+import {samePath,withinPath,realObservedPath} from '../src/path-identity.mjs';
 import {stateIdentity,userStateBase} from '../src/platform-state.mjs';
 import {findExecutable} from '../src/executable-lookup.mjs';
 
@@ -119,7 +119,7 @@ if(!Array.isArray(publicConfig.checks)||!publicConfig.checks.length)
   error('config needs at least one explicitly defined check');
 for(const key of Object.keys(publicConfig))
   if(!['schema','root','checks','packageManager'].includes(key))error(`unsupported config field ${key}`);
-const root=fs.realpathSync(path.resolve(path.dirname(configFile),publicConfig.root||'.'));
+const root=realObservedPath(path.resolve(path.dirname(configFile),publicConfig.root||'.'));
 const stateBase=userStateBase(process.platform,process.env,os.homedir());
 const state=stateOverride||path.join(stateBase,'vstate',
   `vstate-${createHash('sha256').update(stateIdentity(root)+'\0'+
@@ -140,7 +140,7 @@ function token(value){
     const manifest=path.join(root,dir,'package.json');
     let resolved;try{resolved=createRequire(manifest).resolve('typescript/package.json');}
     catch{error('installed TypeScript compiler cannot be resolved');}
-    const compiler=path.join(path.dirname(fs.realpathSync(resolved)),'bin','tsc');
+    const compiler=path.join(path.dirname(realObservedPath(resolved)),'bin','tsc');
     if(!withinPath(compiler,root)||!fs.existsSync(compiler))
       error('TypeScript executable is outside the observed project');
     return compiler;

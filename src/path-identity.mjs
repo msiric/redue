@@ -1,4 +1,12 @@
 import path from 'node:path';
+import fs from 'node:fs';
+
+// Windows callers may supply an 8.3 spelling while filesystem APIs and
+// TypeScript report the long name. Canonicalize existing paths at observation
+// boundaries; keep logical link paths separately for invalidation.
+export function realObservedPath(value) {
+  return process.platform==='win32'?fs.realpathSync.native(value):fs.realpathSync(value);
+}
 
 // Use the host path implementation in production. Passing path.win32 makes
 // the identity rules testable elsewhere; those tests are not NTFS acceptance.

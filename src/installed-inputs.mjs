@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import {createHash} from 'node:crypto';
-import {normalizedPath,samePath,withinPath as within} from './path-identity.mjs';
+import {normalizedPath,samePath,withinPath as within,realObservedPath} from './path-identity.mjs';
 
 const hash=value=>createHash('sha256').update(value).digest('hex');
 const posix=file=>file.split(path.sep).join('/');
@@ -49,7 +49,7 @@ export function permittedRoots(root,values=[]) {
   for(const value of values) {
     if(typeof value!=='string'||!path.isAbsolute(value))
       throw Error('external observation root must be absolute');
-    const real=fs.realpathSync(value);
+    const real=realObservedPath(value);
     if([path.parse(real).root,os.homedir()].includes(real)||within(root,real))
       throw Error('external observation root is too broad');
     if(!within(real,root))allowed.push(real);

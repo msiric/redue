@@ -6,8 +6,10 @@ import path from 'node:path';
 export function findExecutable(name,{platform=process.platform,env=process.env,
   cwd=process.cwd(),paths=path,access=fs.accessSync,realpath=fs.realpathSync}={}) {
   if(!name||paths.basename(name)!==name)return null;
+  // An extensionless POSIX shell shim can coexist with npm.cmd on Windows.
+  // CreateProcess cannot run the shell shim, so prefer native PATHEXT files.
   const suffixes=platform==='win32'&&!paths.extname(name)?
-    ['',...(env.PATHEXT||'.COM;.EXE;.BAT;.CMD').split(';').filter(Boolean)]:[''];
+    [...(env.PATHEXT||'.COM;.EXE;.BAT;.CMD').split(';').filter(Boolean),'']:[''];
   for(const folder of (env.PATH||'').split(paths.delimiter))for(const suffix of suffixes) {
     const candidate=paths.join(folder||cwd,name+suffix);
     try{access(candidate,fs.constants.X_OK);return realpath(candidate);}catch{}

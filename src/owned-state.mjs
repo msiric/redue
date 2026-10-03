@@ -2,13 +2,13 @@
 // state creation or removal. A watched root is readable, never state-owned.
 import fs from 'node:fs';
 import path from 'node:path';
-import {withinPath as within} from './path-identity.mjs';
+import {withinPath as within,realObservedPath} from './path-identity.mjs';
 
 export function resolvedDestination(file) {
   let current=path.resolve(file),rest=[];
   for(;;) {
     try {
-      const canonical=fs.realpathSync(current);
+      const canonical=realObservedPath(current);
       return path.join(canonical,...rest);
     } catch(e) {
       if(e.code!=='ENOENT')throw e;

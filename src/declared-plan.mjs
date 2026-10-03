@@ -7,7 +7,7 @@ import {permittedRoots,resolveDeclaredInstalled} from './installed-inputs.mjs';
 import {qualifyTypeScript} from './typescript-qualification.mjs';
 import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
 import {pnpmTypecheckInputs} from './pnpm-inputs.mjs';
-import {observedRelative,withinPath} from './path-identity.mjs';
+import {observedRelative,withinPath,realObservedPath} from './path-identity.mjs';
 
 const identity=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const safePattern=value=>{
@@ -19,7 +19,7 @@ const safePattern=value=>{
 };
 
 export function discoverDeclared(config) {
-  const root=fs.realpathSync(config.root),plans={},configurationInputs=new Set(),
+  const root=realObservedPath(config.root),plans={},configurationInputs=new Set(),
     workspaceManifests=new Set(),workspacePatterns=new Set();
   if(!Array.isArray(config.checks)||!config.checks.length)throw Error('selected checks required');
   for(const selected of config.checks){

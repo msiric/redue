@@ -26,7 +26,9 @@ function project(t,{manager='npm',declaredManager=null,
   put(path.join(root,'.gitignore'),'node_modules/\n');
   fs.mkdirSync(path.join(root,'node_modules','.bin'),{recursive:true});
   fs.cpSync(sourceTypeScript,path.join(root,'node_modules','typescript'),{recursive:true});
-  fs.symlinkSync('../typescript/bin/tsc',path.join(root,'node_modules','.bin','tsc'));
+  if(process.platform==='win32')fs.copyFileSync(path.resolve('node_modules/.bin/tsc.cmd'),
+    path.join(root,'node_modules','.bin','tsc.cmd'));
+  else fs.symlinkSync('../typescript/bin/tsc',path.join(root,'node_modules','.bin','tsc'));
   execFileSync('git',['init','-q'],{cwd:root});
   execFileSync('git',['add','package.json','tsconfig.json','src','.gitignore',
     ...(manager==='npm'?['package-lock.json']:manager==='yarn'?['yarn.lock']:

@@ -6,7 +6,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {spawnSync} from 'node:child_process';
-import {withinPath as within} from './path-identity.mjs';
+import {withinPath as within,realObservedPath} from './path-identity.mjs';
 
 const [rootArg,scriptName,npmArg]=process.argv.slice(2);
 const hash=value=>createHash('sha256').update(value).digest('hex');
@@ -41,7 +41,7 @@ function npmRcKeys(file){
 }
 try{
   if(!rootArg||!scriptName||!npmArg)fail('probe-arguments');
-  const root=fs.realpathSync(rootArg),npm=fs.realpathSync(npmArg);
+  const root=realObservedPath(rootArg),npm=realObservedPath(npmArg);
   const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
   if(pkg.scripts?.[scriptName]?.trim()!=='tsc --noEmit'||
     pkg.scripts?.['pre'+scriptName]||pkg.scripts?.['post'+scriptName])
@@ -50,7 +50,7 @@ try{
     process.env.ENV||Object.keys(process.env).some(key=>
       /^(npm_config_|DYLD_|TSGO_)/i.test(key)))fail('execution-environment-unsupported');
   const tsRoot=path.join(root,'node_modules','typescript');
-  const tsc=fs.realpathSync(path.join(root,'node_modules','.bin','tsc'));
+  const tsc=realObservedPath(path.join(root,'node_modules','.bin','tsc'));
   if(tsc!==path.join(tsRoot,'bin','tsc'))fail('typescript-executable-changed');
   const configReads=new Set(),visited=new Set();
   let ts;try{ts=require(tsRoot);}catch{}
@@ -89,7 +89,7 @@ try{
       fail('typescript-config-graph-unsupported');
     configReads.add(config);
   }
-  for(const file of configReads)if(!within(fs.realpathSync(file),root))
+  for(const file of configReads)if(!within(realObservedPath(file),root))
     fail('typescript-config-outside-repository');
   const listed=spawnSync(process.execPath,[tsc,'--noEmit','--listFilesOnly'],
     {cwd:root,env:process.env,encoding:'utf8',timeout:4000,maxBuffer:16*1024*1024,
@@ -97,7 +97,7 @@ try{
   if(listed.error||listed.signal||listed.status!==0)fail('typescript-input-list-unavailable');
   const files=listed.stdout.trim().split(/\r?\n/).filter(Boolean)
     .map(file=>path.resolve(file));
-  if(!files.length||files.some(file=>!within(fs.realpathSync(file),root)))
+  if(!files.length||files.some(file=>!within(realObservedPath(file),root)))
     fail('typescript-input-outside-repository');
   const npmRoot=path.dirname(path.dirname(npm));
   if(path.basename(npmRoot)!=='npm'||path.basename(path.dirname(npmRoot))!=='node_modules')
@@ -110,7 +110,7 @@ try{
     configs:[...configReads].sort().map(file=>[hash(file),digestFile(file)]),
     files:[...new Set(files)].sort().map(file=>[hash(file),digestFile(file)]),
     npmTree:treeHash(npmRoot),npmConfig,
-    node:hash(JSON.stringify([process.version,fs.realpathSync(process.execPath),
+    node:hash(JSON.stringify([process.version,realObservedPath(process.execPath),
       fs.statSync(process.execPath).size])),
     shell:digestFile('/bin/sh')};
   process.stdout.write(hash(JSON.stringify(facts)));

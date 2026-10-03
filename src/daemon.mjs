@@ -7,7 +7,7 @@ import {Worker} from 'node:worker_threads';
 import {fileURLToPath} from 'node:url';
 import {subscribe,hasHistory,backend} from './platform-observation.mjs';
 import {controlEndpoint} from './control-endpoint.mjs';
-import {observedRelative,withinPath} from './path-identity.mjs';
+import {observedRelative,withinPath,realObservedPath} from './path-identity.mjs';
 import micromatch from 'micromatch';
 import {sha} from './plan.mjs';
 import {InputIndex} from './index.mjs';
@@ -18,7 +18,7 @@ import {history} from './observation.mjs';
 
 const configFile=path.resolve(process.argv[2]);
 const config=JSON.parse(fs.readFileSync(configFile));
-const root=fs.realpathSync(config.root), state=path.resolve(config.state);
+const root=realObservedPath(config.root), state=path.resolve(config.state);
 assertOwnedStatePlacement(config);
 let rootIdentity=fs.statSync(root,{bigint:true});
 if(withinPath(state,root))throw Error('state must be outside checkout');

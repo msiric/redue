@@ -54,6 +54,10 @@ test('Windows PATH lookup honors executable suffixes without changing command na
   assert(seen.includes('D:\\Node\\npm.CMD'));
   assert.equal(findExecutable('..\\npm',{platform:'win32',paths:path.win32,
     env:{PATH:'D:\\Node'},cwd:'C:\\',access(){throw Error('should not search');}}),null);
+  assert.equal(findExecutable('npm',{platform:'win32',paths:path.win32,
+    env:{PATH:'D:\\Node',PATHEXT:'.CMD'},cwd:'C:\\',
+    access(file){if(!['D:\\Node\\npm.CMD','D:\\Node\\npm'].includes(file))throw Error('missing');},
+    realpath:file=>file}),'D:\\Node\\npm.CMD');
 });
 
 test('Windows batch launch preserves ordinary argument boundaries and rejects expansion',()=>{

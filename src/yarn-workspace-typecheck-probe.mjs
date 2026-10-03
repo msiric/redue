@@ -7,7 +7,7 @@ import os from 'node:os';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
-import {withinPath as within} from './path-identity.mjs';
+import {withinPath as within,realObservedPath} from './path-identity.mjs';
 import {windowsLaunch} from './windows-command.mjs';
 
 const [rootArg,workspace,script,yarnArg]=process.argv.slice(2);
@@ -24,7 +24,7 @@ function yarnDistribution(yarn,version){
 }
 try{
   if(!rootArg||!workspace||!script||!yarnArg)fail('probe-arguments');
-  const root=fs.realpathSync(rootArg),yarn=fs.realpathSync(yarnArg);
+  const root=realObservedPath(rootArg),yarn=realObservedPath(yarnArg);
   const contract=yarnWorkspaceTypecheckInputs(root,workspace,script);
   const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json')));
   if(process.env.NODE_OPTIONS||process.env.NODE_PATH||process.env.BASH_ENV||
@@ -39,13 +39,13 @@ try{
     `yarn@${version.stdout.trim()}`!==pkg.packageManager)
     fail('yarn-toolchain-unavailable');
   const cwd=path.join(root,contract.workspace.dir);
-  const tsc=fs.realpathSync(path.join(root,'node_modules','.bin','tsc'));
+  const tsc=realObservedPath(path.join(root,'node_modules','.bin','tsc'));
   const listed=spawnSync(process.execPath,[tsc,'-p','.','--listFilesOnly'],
     {cwd,env:process.env,encoding:'utf8',timeout:4000,maxBuffer:16*1024*1024,
       stdio:['ignore','pipe','pipe']});
   if(listed.error||listed.signal||listed.status!==0)fail('typescript-input-list-unavailable');
   const inputs=listed.stdout.trim().split(/\r?\n/).filter(Boolean)
-    .map(file=>fs.realpathSync(file));
+    .map(file=>realObservedPath(file));
   if(!inputs.length)fail('typescript-input-list-unavailable');
   const selectedRoot=path.join(cwd,'src'),installedRoot=path.join(root,'node_modules');
   const nestedInstalled=[contract.workspace,...contract.closure]
