@@ -103,7 +103,7 @@ if(command==='init'){
         `Writing ${configFile}; inspect it before running checks.`);
   }
   if(willWrite){
-    if(!samePath(path.dirname(configFile),discovery.root))
+    if(!samePath(realObservedPath(path.dirname(configFile)),discovery.root))
       error('init writes only at the repository root; use --config there or --dry-run');
     fs.writeFileSync(configFile,JSON.stringify(discovery.config,null,2)+'\n',{flag:'wx'});
     if(!json)console.log(`Created ${configFile}. No checks were executed.`);
@@ -204,13 +204,15 @@ const checks=publicConfig.checks.map(check=>{
       check.workspace,check.command[4],'@which:yarn']]:pnpmTypecheck?
     [['@node','@vstate/pnpm-typecheck-probe','@project',
       check.workspace||'.',check.script]]:[];
+  const windowsContext=process.platform==='win32'?
+    ['ComSpec','COMSPEC','PATHEXT','USERPROFILE']:[];
   const autoEnvironment=npmAutomatic?{variables:['NODE_OPTIONS','NODE_PATH','CI','HOME',
-    'NODE_ENV','BASH_ENV','ENV'],prefixes:['npm_config_','DYLD_','TSGO_'],
+    'NODE_ENV','BASH_ENV','ENV',...windowsContext],prefixes:['npm_config_','DYLD_','TSGO_'],
     pathExecutables:['node','npm'],executableIdentity:true}:yarnWorkspace?
-    {variables:['NODE_OPTIONS','NODE_PATH','CI','HOME','NODE_ENV','BASH_ENV','ENV'],
+    {variables:['NODE_OPTIONS','NODE_PATH','CI','HOME','NODE_ENV','BASH_ENV','ENV',...windowsContext],
       prefixes:['YARN_','COREPACK_','npm_config_','DYLD_','TSGO_'],
       pathExecutables:['node','yarn'],executableIdentity:true}:pnpmTypecheck?
-    {variables:['NODE_OPTIONS','NODE_PATH','CI','HOME','NODE_ENV','BASH_ENV','ENV'],
+    {variables:['NODE_OPTIONS','NODE_PATH','CI','HOME','NODE_ENV','BASH_ENV','ENV',...windowsContext],
       prefixes:['PNPM_','COREPACK_','npm_config_','DYLD_','TSGO_'],
       pathExecutables:['node'],executableIdentity:true}:{};
   return {name:check.name,command:argv(scriptCommand||check.command,`${check.name}.command`),

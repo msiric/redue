@@ -20,7 +20,12 @@ export function resolveLinks(file,checkout,allowedRoots=[],allowFile=false) {
         return {physical:null,links,prospective:candidate,
           reason:e.code==='ENOENT'?'resolved target missing':
           `resolution unavailable: ${e.code||e.name}`};}
-      if(!st.isSymbolicLink())continue;
+      if(!st.isSymbolicLink()){
+        // NTFS may spell an existing component as RUNNER~1 or its long name.
+        // Normalize that component without skipping a later reparse point.
+        if(process.platform==='win32')current=fs.realpathSync.native(current);
+        continue;
+      }
       if(!roots.some(root=>within(current,root)))
         return {physical:null,links,reason:'link redirect outside observed roots'};
       if([...seen].some(previous=>samePath(previous,current)))
@@ -32,6 +37,7 @@ export function resolveLinks(file,checkout,allowedRoots=[],allowFile=false) {
       redirected=true;break;
     }
     if(redirected)continue;
+    candidate=current;
     if(!roots.some(root=>within(candidate,root)))
       return {physical:null,links,reason:'resolved target outside permitted roots'};
     let st;try{st=fs.statSync(candidate);}catch(e){

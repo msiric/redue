@@ -6,7 +6,13 @@ export const STATE_SCHEMA=1;
 export function atomicJson(file,value){
   const temp=file+`.`+process.pid+`.tmp`;
   fs.writeFileSync(temp,JSON.stringify(value),{mode:0o600});
-  fs.renameSync(temp,file);
+  // Windows readers and AV can briefly hold the replaced name open. Keep the
+  // old complete file until replacement succeeds; never delete it first.
+  for(let attempt=0;;attempt++)try{fs.renameSync(temp,file);break;}catch(e){
+    if(process.platform!=='win32'||!['EPERM','EACCES','EBUSY'].includes(e.code)||attempt===9)
+      throw e;
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,10*(attempt+1));
+  }
 }
 
 export function readReceipts(state){

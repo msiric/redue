@@ -3,6 +3,7 @@
 // contract. It emits one digest; failures emit only a fixed diagnostic code.
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {spawnSync} from 'node:child_process';
@@ -50,8 +51,33 @@ try{
     process.env.ENV||Object.keys(process.env).some(key=>
       /^(npm_config_|DYLD_|TSGO_)/i.test(key)))fail('execution-environment-unsupported');
   const tsRoot=path.join(root,'node_modules','typescript');
-  const tsc=realObservedPath(path.join(root,'node_modules','.bin','tsc'));
-  if(tsc!==path.join(tsRoot,'bin','tsc'))fail('typescript-executable-changed');
+  let tsc;
+  if(process.platform==='win32'){
+    const shim=path.join(root,'node_modules','.bin','tsc.cmd');
+    const body=fs.readFileSync(shim,'utf8').replace(/\r\n/g,'\n').trim();
+    const expected=`@ECHO off
+GOTO start
+:find_dp0
+SET dp0=%~dp0
+EXIT /b
+:start
+SETLOCAL
+CALL :find_dp0
+
+IF EXIST "%dp0%\\node.exe" (
+  SET "_prog=%dp0%\\node.exe"
+) ELSE (
+  SET "_prog=node"
+  SET PATHEXT=%PATHEXT:;.JS;=;%
+)
+
+endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%"  "%dp0%\\..\\typescript\\bin\\tsc" %*`;
+    if(body!==expected)fail('typescript-executable-changed');
+    tsc=realObservedPath(path.join(tsRoot,'bin','tsc'));
+  }else{
+    tsc=realObservedPath(path.join(root,'node_modules','.bin','tsc'));
+    if(tsc!==path.join(tsRoot,'bin','tsc'))fail('typescript-executable-changed');
+  }
   const configReads=new Set(),visited=new Set();
   let ts;try{ts=require(tsRoot);}catch{}
   if(typeof ts?.getParsedCommandLineOfConfigFile==='function'){
@@ -99,10 +125,25 @@ try{
     .map(file=>path.resolve(file));
   if(!files.length||files.some(file=>!within(realObservedPath(file),root)))
     fail('typescript-input-outside-repository');
-  const npmRoot=path.dirname(path.dirname(npm));
+  let npmRoot;
+  if(process.platform==='win32'){
+    if(path.basename(npm).toLowerCase()!=='npm.cmd')
+      fail('npm-installation-layout-unsupported');
+    npmRoot=path.join(path.dirname(npm),'node_modules','npm');
+    const body=fs.readFileSync(npm,'utf8');
+    if(!body.includes('node_modules\\npm\\bin\\npm-cli.js')||
+      !body.includes('node_modules\\npm\\bin\\npm-prefix.js')||
+      !body.includes('"%NODE_EXE%" "%NPM_CLI_JS%" %*'))
+      fail('npm-installation-layout-unsupported');
+    const prefix=spawnSync(process.execPath,[path.join(npmRoot,'bin','npm-prefix.js')],
+      {cwd:root,env:process.env,encoding:'utf8',timeout:4000,stdio:['ignore','pipe','ignore']});
+    if(prefix.error||prefix.status!==0||!prefix.stdout?.trim()||
+      realObservedPath(path.join(prefix.stdout.trim(),'node_modules','npm'))!==
+        realObservedPath(npmRoot))fail('npm-installation-layout-unsupported');
+  }else npmRoot=path.dirname(path.dirname(npm));
   if(path.basename(npmRoot)!=='npm'||path.basename(path.dirname(npmRoot))!=='node_modules')
     fail('npm-installation-layout-unsupported');
-  const home=process.env.HOME;
+  const home=process.platform==='win32'?os.homedir():process.env.HOME;
   if(!home||!path.isAbsolute(home))fail('home-context-unavailable');
   const npmConfig=[path.join(root,'.npmrc'),path.join(home,'.npmrc')]
     .map(file=>[hash(file),npmRcKeys(file)]);
@@ -112,7 +153,12 @@ try{
     npmTree:treeHash(npmRoot),npmConfig,
     node:hash(JSON.stringify([process.version,realObservedPath(process.execPath),
       fs.statSync(process.execPath).size])),
-    shell:digestFile('/bin/sh')};
+    shell:process.platform==='win32'?hash(JSON.stringify([
+      realObservedPath(process.env.ComSpec||process.env.COMSPEC||''),
+      digestFile(process.env.ComSpec||process.env.COMSPEC||''),
+      process.env.PATHEXT||'',digestFile(npm),
+      digestFile(path.join(root,'node_modules','.bin','tsc.cmd'))])):
+      digestFile('/bin/sh')};
   process.stdout.write(hash(JSON.stringify(facts)));
 }catch(e){console.error(`VSTATE_REASON:${e.code&&/^[a-z-]+$/.test(e.code)?e.code:
   'typescript-contract-unavailable'}`);process.exitCode=2;}

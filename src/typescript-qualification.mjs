@@ -69,7 +69,8 @@ export function qualifyTypeScript(root,selected) {
   if(!fs.existsSync(path.join(root,'tsconfig.json')))
     issues.push('tsconfig.json is missing');
   if(!fs.existsSync(path.join(root,'node_modules','typescript','package.json'))||
-    !fs.existsSync(path.join(root,'node_modules','.bin','tsc')))
+    !fs.existsSync(path.join(root,'node_modules','.bin',
+      process.platform==='win32'?'tsc.cmd':'tsc')))
     issues.push('local TypeScript installation is missing');
   if(!selected.inputs?.includes('**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,json,jsonc}')||
     !selected.inputs?.includes('package.json')||

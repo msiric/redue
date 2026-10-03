@@ -247,7 +247,7 @@ async function main(){
     }
     const log=fs.openSync(path.join(state,'observer.log'),'a',0o600);
     const child=spawn(process.execPath,[path.join(here,'daemon.mjs'),configFile],
-      {cwd:state,detached:true,stdio:['ignore',log,log]});child.unref();fs.closeSync(log);
+      {cwd:os.tmpdir(),detached:true,stdio:['ignore',log,log]});child.unref();fs.closeSync(log);
     const waitMs=Math.min(120000,Math.max(100,
       Number(process.env.VSTATE_START_READY_WAIT_MS||5000)));
     for(let i=0;i<Math.ceil(waitMs/100);i++){
