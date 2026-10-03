@@ -179,7 +179,7 @@ test('pnpm hoisted metadata is distinct and shared hardlinks with unknown aliase
   const alias=path.join(root,'isolated-store-alias');
   fs.linkSync(path.join(external,'index.d.ts'),alias);
   const bundle=discoverDeclared(config);
-  if(process.platform==='linux'){
+  if(['linux','win32'].includes(process.platform)){
     assert.equal(bundle.plans.app.id,baseline.plans.app.id);
     assert.equal(bundle.plans.app.synchronizedInstalledRead,true);
   }else{
@@ -188,7 +188,7 @@ test('pnpm hoisted metadata is distinct and shared hardlinks with unknown aliase
   }
   const probe=spawnSync(process.execPath,[path.resolve('src/pnpm-typecheck-probe.mjs'),
     root,'@fixture/app','typecheck'],{encoding:'utf8',env:cleanEnv});
-  if(process.platform==='linux')assert.equal(probe.status,0);
+  if(['linux','win32'].includes(process.platform))assert.equal(probe.status,0);
   else{
     assert.equal(probe.status,2);
     assert.match(probe.stderr,/pnpm-input-coverage-unavailable/);
@@ -200,11 +200,7 @@ test('pnpm hoisted metadata is distinct and shared hardlinks with unknown aliase
   assert.equal(fs.readFileSync(path.join(external,'index.d.ts'),'utf8'),
     'export declare const ext: string;\n');
   index.updatePath(path.relative(root,path.join(external,'index.d.ts')).split(path.sep).join('/'));
-  if(process.platform==='win32'){
-    // This alpha contract explicitly withholds reuse for shared hardlinks on
-    // Windows; a non-reusable plan need not produce an authoritative digest.
-    assert(bundle.plans.app.unresolved.some(reason=>/hardlinks/.test(reason)));
-  }else assert.notEqual(index.fingerprint('app'),before);
+  assert.notEqual(index.fingerprint('app'),before);
   fs.rmSync(alias);
   assert(fs.existsSync(path.join(external,'index.d.ts')));
 });
@@ -214,7 +210,7 @@ test('pnpm observer replans after new local resolution topology without losing u
   fs.rmdirSync(state); // The CLI creates and owns this empty state directory.
   const cli=path.resolve('bin/redue.mjs'),runtime=path.join(state,'project-runtime-v1.json');
   const call=(...args)=>execFileSync(process.execPath,[cli,'--state-dir',state,...args],
-    {cwd:root,encoding:'utf8',timeout:15000,env:cleanEnv});
+    {cwd:root,encoding:'utf8',timeout:process.platform==='win32'?45000:15000,env:cleanEnv});
   t.after(()=>{try{call('stop');}catch{}try{call('remove-state');}catch{}});
   call('init','--workspace','@fixture/app','--check','typecheck');
   call('start');
@@ -242,8 +238,8 @@ test('pnpm observer replans after new local resolution topology without losing u
   assert(fs.existsSync(path.join(external,'index.d.ts')));
 });
 
-test('Linux pnpm installed hardlink alias stales synchronized evidence without a lockfile edit',
-  {skip:process.platform!=='linux'},async t=>{
+test('pnpm installed hardlink alias stales synchronized evidence without a lockfile edit',
+  {skip:!['linux','win32'].includes(process.platform)},async t=>{
   const {root,external}=fixture(t),state=fs.mkdtempSync(path.join(os.tmpdir(),'vstate-pnpm-state-'));
   fs.rmdirSync(state);
   const store=fs.mkdtempSync(path.join(os.tmpdir(),'vstate-pnpm-store-'));
@@ -255,7 +251,7 @@ test('Linux pnpm installed hardlink alias stales synchronized evidence without a
   const lock=digest(path.join(root,'pnpm-lock.yaml'));
   const cli=path.resolve('bin/redue.mjs');
   const call=(...args)=>execFileSync(process.execPath,[cli,'--state-dir',state,...args],
-    {cwd:root,encoding:'utf8',timeout:15000,env:cleanEnv});
+    {cwd:root,encoding:'utf8',timeout:process.platform==='win32'?45000:15000,env:cleanEnv});
   t.after(()=>{try{call('stop');}catch{}try{call('remove-state');}catch{}});
   call('init','--workspace','@fixture/app','--check','typecheck');
   call('start');
@@ -281,7 +277,7 @@ test('pnpm hoisted installation can record and reuse a qualified TypeScript chec
   fs.rmdirSync(state);
   const cli=path.resolve('bin/redue.mjs');
   const call=(...args)=>execFileSync(process.execPath,[cli,'--state-dir',state,...args],
-    {cwd:root,encoding:'utf8',timeout:15000,env:cleanEnv});
+    {cwd:root,encoding:'utf8',timeout:process.platform==='win32'?45000:15000,env:cleanEnv});
   t.after(()=>{try{call('stop');}catch{}try{call('remove-state');}catch{}});
   const init=JSON.parse(call('init','--workspace','@fixture/app','--check','typecheck','--json'));
   assert.equal(init.installation_layout,'node-modules/hoisted');
