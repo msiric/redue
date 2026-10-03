@@ -43,6 +43,7 @@ function fixture(options={}){
       VSTATE_TEST_HISTORY_FAULT_FILE:path.join(state,'history-fault'),
       VSTATE_TEST_LINUX_GAP_FILE:path.join(state,'linux-gap'),
       VSTATE_TEST_LINUX_HANG_FILE:path.join(state,'linux-hang'),
+      VSTATE_TEST_WINDOWS_GAP_FILE:path.join(state,'windows-gap'),
       VSTATE_TEST_RECONCILE_FAULT_FILE:path.join(state,'reconcile-fault'),
       VSTATE_TEST_DROP_EVENTS_FILE:path.join(state,'drop-events')},
     cleanup(){fs.rmSync(base,{recursive:true,force:true});}};
@@ -60,13 +61,15 @@ function withFixture(t,options){const f=fixture(options);t.after(()=>{
 const events=f=>fs.readFileSync(path.join(f.state,'events.jsonl'),'utf8').trim()
   .split('\n').filter(Boolean).map(line=>JSON.parse(line));
 function observationFault(f,kind='fail'){
-  put(path.join(f.state,process.platform==='linux'?'linux-gap':'history-fault'),
+  const target=process.platform==='linux'?'linux-gap':
+    process.platform==='win32'?'windows-gap':'history-fault';
+  put(path.join(f.state,target),
     process.platform==='linux'?(kind==='fail'?'inotify_overflow':kind):kind);
 }
 async function faultObserved(f,kind='fail'){
   const count=events(f).filter(e=>e.kind==='observation_gap').length;
   observationFault(f,kind);
-  if(process.platform==='darwin'){status(f);return;}
+  if(process.platform==='darwin'||process.platform==='win32'){status(f);return;}
   for(let n=0;n<100;n++){
     if(events(f).filter(e=>e.kind==='observation_gap').length>count)return;
     await new Promise(resolve=>setTimeout(resolve,25));
@@ -299,7 +302,8 @@ test('fresh reconciliation detects membership and linked installed-target replac
   const result=await until(f,s=>s.checks[0].freshness==='STALE');
   assert.equal(result.checks[0].result,'PASS');
   assert(fs.existsSync(path.join(f.root,'generated/new.txt')));
-  assert.equal(fs.readlinkSync(path.join(f.root,'node_modules/pkg')),'../workspace/b');
+  assert.equal(fs.realpathSync(path.join(f.root,'node_modules/pkg')),
+    fs.realpathSync(path.join(f.root,'workspace/b')));
   assert(fs.existsSync(path.join(f.root,'node_modules/optional/index.js')));
 });
 

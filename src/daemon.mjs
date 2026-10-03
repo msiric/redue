@@ -693,6 +693,13 @@ async function request(message) {
     healthy,reason,planning};
   if(message.action==='reload'){loadReceipts();publish();return {ok:true};}
   if(message.action==='sync'||message.action==='snapshot') {
+    if(process.platform==='win32'&&process.env.VSTATE_TEST_FAULTS==='1'&&
+      process.env.VSTATE_TEST_WINDOWS_GAP_FILE&&
+      fs.existsSync(process.env.VSTATE_TEST_WINDOWS_GAP_FILE)){
+      fs.unlinkSync(process.env.VSTATE_TEST_WINDOWS_GAP_FILE);
+      observationGap('test_injected_windows_gap');
+      return status();
+    }
     if(planning||recovering)return status();
     // The pinned Windows backend reports explicit errors but does not expose a
     // reliable history/overflow barrier. A decision-grade read therefore

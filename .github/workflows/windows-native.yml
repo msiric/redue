@@ -26,5 +26,24 @@ jobs:
           "PowerShell: $($PSVersionTable.PSVersion); Node: $(node --version); npm: $(npm --version)" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
       - name: Install product dependencies
         run: npm ci
+      - name: Inspect public Windows shims and path aliases
+        shell: pwsh
+        run: |
+          @'
+          import fs from 'node:fs';
+          import os from 'node:os';
+          import {spawnSync} from 'node:child_process';
+          import {findExecutable} from './src/executable-lookup.mjs';
+          import {windowsLaunch} from './src/windows-command.mjs';
+          const npm=findExecutable('npm');
+          const launch=windowsLaunch([npm,'--version']);
+          const ran=spawnSync(launch.file,launch.args,{...launch.options,encoding:'utf8'});
+          console.log(JSON.stringify({temp:os.tmpdir(),real:fs.realpathSync(os.tmpdir()),
+            native:fs.realpathSync.native(os.tmpdir()),npm,launch,
+            comspec:process.env.ComSpec,comspecExists:fs.existsSync(process.env.ComSpec||''),
+            npmShim:fs.readFileSync(npm,'utf8').slice(0,1200),
+            tscShim:fs.readFileSync('node_modules/.bin/tsc.cmd','utf8').slice(0,1200),
+            run:{status:ran.status,error:ran.error?.message,stdout:ran.stdout,stderr:ran.stderr}}));
+          '@ | node --input-type=module -
       - name: Portable and Windows contract tests
         run: npm test
