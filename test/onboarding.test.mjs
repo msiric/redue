@@ -6,7 +6,7 @@ import os from 'node:os';
 import {spawnSync,execFileSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 
-const require=createRequire(import.meta.url),bin=path.resolve('bin/vstate.mjs');
+const require=createRequire(import.meta.url),bin=path.resolve('bin/redue.mjs');
 const sourceTypeScript=path.dirname(require.resolve('typescript/package.json'));
 const put=(file,value)=>{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,value);};
 function project(t,{manager='npm',declaredManager=null,
@@ -32,7 +32,7 @@ function project(t,{manager='npm',declaredManager=null,
     ...(manager==='npm'?['package-lock.json']:manager==='yarn'?['yarn.lock']:
       ['pnpm-lock.yaml'])],{cwd:root});
   t.after(()=>{try{invoke(root,state,'stop');}catch{}fs.rmSync(base,{recursive:true,force:true});});
-  return {root,state,config:path.join(root,'vstate.config.json')};
+  return {root,state,config:path.join(root,'redue.config.json')};
 }
 function invoke(root,state,...args){
   // npm test injects npm_config_* into this test process. The fixture models a
@@ -46,6 +46,17 @@ function good(root,state,...args){const result=invoke(root,state,...args);
   assert.equal(result.status,0,`${args.join(' ')}: ${result.stderr}\n${result.stdout}`);
   return result.stdout;}
 const sync=(root,state)=>JSON.parse(good(root,state,'status','--sync','--json'));
+
+test('REDUE CLI identifies itself and keeps pre-release config compatibility',t=>{
+  const {root,state,config}=project(t);
+  assert.match(good(root,state,'--help'),/Usage: redue /);
+  good(root,state,'init');
+  const legacy=path.join(root,'vstate.config.json');
+  fs.renameSync(config,legacy);
+  assert.match(good(root,state,'init'),/left unchanged/);
+  assert(!fs.existsSync(config));
+  assert.equal(JSON.parse(good(root,state,'status','--json')).checks.length,4);
+});
 
 test('init previews and writes a small script config without running project commands',t=>{
   const {root,state,config}=project(t);

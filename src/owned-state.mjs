@@ -24,9 +24,9 @@ export function assertOwnedStatePlacement(config) {
   const observed=[config.root,...(config.checks||[]).flatMap(check=>
     check.allowedExternalRoots||[])].map(resolvedDestination);
   for(const boundary of observed)if(within(resolved,boundary)||within(boundary,resolved))
-    throw Error('vstate state overlaps an observed checkout or external root');
+    throw Error('REDUE state overlaps an observed checkout or external root');
   try{if(fs.lstatSync(state).isSymbolicLink())
-    throw Error('vstate state directory must not be a symlink');}
+    throw Error('REDUE state directory must not be a symlink');}
   catch(e){if(e.code!=='ENOENT')throw e;}
   return {state,resolved};
 }

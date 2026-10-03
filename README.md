@@ -1,25 +1,29 @@
-# vstate (local alpha development)
+# REDUE
 
-vstate records the outcome of explicitly configured checks and determines
+**Know what still holds. Redo what's due.**
+
+Persistent verification state for developers and coding agents.
+
+REDUE records the outcome of explicitly configured checks and determines
 whether each outcome still applies to its declared inputs. A passing result is
 historical fact; it can later be STALE. Incomplete input coverage or uncertain
 observation is UNVERIFIED, never CURRENT. CURRENT is bounded evidence about a
 named check, not a claim that the project is correct.
 
-This repository is local product-engineering source, not a published package.
+This repository is private product-engineering source, not a published package.
 On macOS with Node 22 or newer, or Linux with Node 22 or newer and Python 3:
 
 ```sh
 npm ci
-node bin/vstate.mjs --help
-node bin/vstate.mjs init
+node bin/redue.mjs --help
+node bin/redue.mjs init
 ```
 
 `init --dry-run` previews existing `package.json` verification scripts without
 writing or running them. `init` prints its findings, then creates a small
-`vstate.config.json` if none exists. It does not edit application or package
+`redue.config.json` if none exists. It does not edit application or package
 manager files. Review the generated config before starting the observer.
-See [the manual example](examples/vstate.config.json) for arbitrary commands.
+See [the manual example](examples/redue.config.json) for arbitrary commands.
 For example, an unsupported check can still record its outcome:
 
 ```json
@@ -37,20 +41,21 @@ This check remains recording-only until its complete applicability boundary is
 reviewed. A successful command alone does not qualify it for CURRENT.
 
 ```sh
-node bin/vstate.mjs start
-node bin/vstate.mjs status --json
-node bin/vstate.mjs status --sync --json
-node bin/vstate.mjs detail
-node bin/vstate.mjs detail --json
-node bin/vstate.mjs run typecheck
-node bin/vstate.mjs stop
-node bin/vstate.mjs remove-state
+node bin/redue.mjs start
+node bin/redue.mjs status --json
+node bin/redue.mjs status --sync --json
+node bin/redue.mjs detail
+node bin/redue.mjs detail --json
+node bin/redue.mjs run typecheck
+node bin/redue.mjs stop
+node bin/redue.mjs remove-state
 ```
 
 Use `--config FILE` for an external project config and `--state-dir DIR` to
 override the local state location. By default, state is in a uniquely named
-directory under `~/Library/Application Support/vstate/`; sockets, receipts,
-snapshots, and logs stay there. On Linux the default base is
+directory under `~/Library/Application Support/vstate/`; the local state name
+is retained for pre-release compatibility. Sockets, receipts, snapshots, and
+logs stay there. On Linux the default base is
 `$XDG_STATE_HOME/vstate/` when `XDG_STATE_HOME` is absolute, otherwise
 `~/.local/state/vstate/`. `remove-state` requires a matching ownership
 marker and removes only that directory. It never deletes project files or
@@ -64,7 +69,7 @@ environment identity. It reports UNVERIFIED where that context is needed.
 declared context. They may run read-only probes and can take longer. A timeout or
 observation gap withholds CURRENT. Neither read is an atomic snapshot against
 another process editing concurrently. Checks execute only with `run`; direct
-commands outside vstate create no receipts.
+commands outside REDUE create no receipts.
 
 ## Node onboarding boundary
 
@@ -94,7 +99,7 @@ state. Root and package-level npm/Yarn workspace scripts are discovered from
 `package.json` workspace declarations. Pinned Yarn 4 `node-modules`/classic
 workspaces with a standalone `tsc -p .` script, local TypeScript, a conventional
 `src` include, and Node module resolution can qualify automatically. For one
-workspace, use `vstate init --workspace NAME --check typecheck`; it writes only
+workspace, use `redue init --workspace NAME --check typecheck`; it writes only
 that check and keeps derived relationships out of project configuration. The
 contract observes selected `src` membership, root/package TypeScript config,
 built declarations of internal workspace dependencies, and physical installed
@@ -129,7 +134,7 @@ global virtual stores, injected workspace dependencies, and external links
 without an observed boundary remain recording-only with a reason. Installed
 files with hard-linked aliases outside the checkout remain recording-only on
 macOS: writes through an unseen alias cannot support CURRENT there. On Linux,
-vstate watches project-installed file inodes and rehashes the selected
+redue watches project-installed file inodes and rehashes the selected
 installed inputs on every synchronized read. A cached read remains UNVERIFIED
 for these pnpm checks; a synchronized read can establish CURRENT after the
 rehash. If an inode watch cannot be installed, observation becomes unavailable
@@ -184,7 +189,7 @@ establish CURRENT. Never infer project correctness from an aggregate state.
   helper needs Python 3; inotify watch exhaustion also withholds CURRENT.
 - `src/cli.mjs` executes checks against before/after checkpoints and records
   results; `src/run-lock.mjs` protects a single writer.
-- `bin/vstate.mjs` owns public CLI parsing, readable output and config/state
+- `bin/redue.mjs` owns public CLI parsing, readable output and config/state
   placement. No presentation surface owns verification semantics.
 
 The supported path is local named checks with declared files, installed inputs,

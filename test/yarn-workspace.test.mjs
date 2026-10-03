@@ -12,7 +12,7 @@ import {yarnWorkspaceTypecheckInputs} from '../src/yarn-workspace-inputs.mjs';
 
 const require=createRequire(import.meta.url);
 const tsRoot=path.dirname(require.resolve('typescript/package.json'));
-const bin=path.resolve('bin/vstate.mjs');
+const bin=path.resolve('bin/redue.mjs');
 const probe=path.resolve('src/yarn-workspace-typecheck-probe.mjs');
 const cleanEnv=Object.fromEntries(Object.entries(process.env).filter(([key])=>
   !/^(npm_config_|YARN_|COREPACK_)/i.test(key)));
@@ -71,7 +71,7 @@ test('pinned Yarn workspace init derives only the selected closure and a readabl
     '@fixture/chosen','--check','typecheck','--json'],{cwd:root,encoding:'utf8'});
   assert.equal(preview.status,0,preview.stderr);
   assert.equal(JSON.parse(preview.stdout).checks.length,1);
-  assert(!fs.existsSync(path.join(root,'vstate.config.json')));
+  assert(!fs.existsSync(path.join(root,'redue.config.json')));
   const probeResult=spawnSync(process.execPath,[probe,root,'@fixture/chosen',
     'typecheck',path.join(root,'fixture-yarn')],{cwd:root,encoding:'utf8',env:cleanEnv});
   assert.equal(probeResult.status,0,probeResult.stderr);

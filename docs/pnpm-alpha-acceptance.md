@@ -1,3 +1,8 @@
+# Historical acceptance note
+
+This acceptance predates the REDUE name. Commands and artifact names below use
+the former `vstate` spelling; the current CLI is `redue`.
+
 # pnpm 12 alpha acceptance (2026-10-03)
 
 This is an engineering acceptance run on public, disposable checkouts. It is not

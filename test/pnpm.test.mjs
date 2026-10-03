@@ -203,7 +203,7 @@ test('pnpm hoisted metadata is distinct and shared hardlinks with unknown aliase
 test('pnpm observer replans after new local resolution topology without losing unrelated evidence',async t=>{
   const {root,external}=fixture(t),state=fs.mkdtempSync(path.join(os.tmpdir(),'vstate-pnpm-state-'));
   fs.rmdirSync(state); // The CLI creates and owns this empty state directory.
-  const cli=path.resolve('bin/vstate.mjs'),runtime=path.join(state,'project-runtime-v1.json');
+  const cli=path.resolve('bin/redue.mjs'),runtime=path.join(state,'project-runtime-v1.json');
   const call=(...args)=>execFileSync(process.execPath,[cli,'--state-dir',state,...args],
     {cwd:root,encoding:'utf8',timeout:15000,env:cleanEnv});
   t.after(()=>{try{call('stop');}catch{}try{call('remove-state');}catch{}});
@@ -244,7 +244,7 @@ test('Linux pnpm installed hardlink alias stales synchronized evidence without a
   assert.equal(fs.statSync(installed).ino,fs.statSync(alias).ino);
   const digest=file=>createHash('sha256').update(fs.readFileSync(file)).digest('hex');
   const lock=digest(path.join(root,'pnpm-lock.yaml'));
-  const cli=path.resolve('bin/vstate.mjs');
+  const cli=path.resolve('bin/redue.mjs');
   const call=(...args)=>execFileSync(process.execPath,[cli,'--state-dir',state,...args],
     {cwd:root,encoding:'utf8',timeout:15000,env:cleanEnv});
   t.after(()=>{try{call('stop');}catch{}try{call('remove-state');}catch{}});
@@ -270,7 +270,7 @@ test('pnpm hoisted installation can record and reuse a qualified TypeScript chec
   const {root,external}=fixture(t,{hoisted:true});
   const state=fs.mkdtempSync(path.join(os.tmpdir(),'vstate-pnpm-hoisted-'));
   fs.rmdirSync(state);
-  const cli=path.resolve('bin/vstate.mjs');
+  const cli=path.resolve('bin/redue.mjs');
   const call=(...args)=>execFileSync(process.execPath,[cli,'--state-dir',state,...args],
     {cwd:root,encoding:'utf8',timeout:15000,env:cleanEnv});
   t.after(()=>{try{call('stop');}catch{}try{call('remove-state');}catch{}});

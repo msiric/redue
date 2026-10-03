@@ -28,7 +28,7 @@ if(withinPath(state,root))throw Error('state must be outside checkout');
 if([path.parse(state).root,os.homedir(),path.dirname(os.homedir())]
   .some(value=>samePath(value,state))||
   !path.basename(state).startsWith('vstate-'))
-  throw Error('state must be a dedicated vstate development directory');
+  throw Error('state must be a dedicated REDUE state directory');
 const ownerFile=path.join(state,'vstate-owner-v1.json');
 const digest=value=>createHash('sha256').update(value).digest('hex');
 function nodeIdentity() {const real=fs.realpathSync(process.execPath),st=fs.statSync(real,{bigint:true});
@@ -313,4 +313,4 @@ async function main(){
   if(action==='run'){await execute();return;}
   throw Error(`unknown action ${action}`);
 }
-main().catch(e=>{console.error(`vstate: ${e.message}`);process.exitCode=2;});
+main().catch(e=>{console.error(`redue: ${e.message}`);process.exitCode=2;});

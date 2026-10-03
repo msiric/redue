@@ -1,3 +1,8 @@
+# Historical acceptance note
+
+This acceptance predates the REDUE name. Commands below use the former
+`vstate` spelling; the current CLI is `redue`.
+
 # Yarn workspace acceptance
 
 Public repository: `streamich/memfs` at

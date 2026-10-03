@@ -1,10 +1,10 @@
 {
-  "name": "vstate",
+  "name": "redue",
   "private": true,
   "version": "0.1.0-alpha.0",
   "type": "module",
   "bin": {
-    "vstate": "./bin/vstate.mjs"
+    "redue": "./bin/redue.mjs"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs"

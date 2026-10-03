@@ -6,7 +6,7 @@ import {spawn,spawnSync,execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {acquireRunLock,inspectRunLock,recoverRunLock} from '../src/run-lock.mjs';
 
-const bin=path.resolve('bin/vstate.mjs');
+const bin=path.resolve('bin/redue.mjs');
 const categories=['source','generated','installedDependencies','environment','toolchain','runtime'];
 function put(file,value){fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,value);}
 function fixture(options={}){
@@ -32,8 +32,8 @@ function fixture(options={}){
     coverage:Object.fromEntries(categories.map(k=>[k,true])),
     coverageReview:Object.fromEntries(categories.map(k=>[k,'reviewed fixture contract']))};
   if(options.absent)check.installedInputs.push('node_modules/optional/**');
-  put(path.join(root,'vstate.config.json'),JSON.stringify({schema:1,checks:[check]},null,2));
-  return {base,root,state,config:path.join(root,'vstate.config.json'),
+  put(path.join(root,'redue.config.json'),JSON.stringify({schema:1,checks:[check]},null,2));
+  return {base,root,state,config:path.join(root,'redue.config.json'),
     env:{...process.env,VSTATE_HISTORY_TIMEOUT_MS:'1000',VSTATE_TEST_FAULTS:'1',
       VSTATE_START_READY_WAIT_MS:'10000',
       VSTATE_TEST_HISTORY_FAULT_FILE:path.join(state,'history-fault'),
@@ -446,7 +446,7 @@ test('Linux killed wrapper preserves an uncertain lock while child work survives
 test('Linux XDG state and case-sensitive Unicode paths keep cleanup scoped',
   {skip:process.platform!=='linux'},t=>{
   const f=fixture(),renamed=path.join(f.base,'project space-é');
-  fs.renameSync(f.root,renamed);f.root=renamed;f.config=path.join(renamed,'vstate.config.json');
+  fs.renameSync(f.root,renamed);f.root=renamed;f.config=path.join(renamed,'redue.config.json');
   const xdg=path.join(f.base,'xdg-state');fs.mkdirSync(xdg);
   const invoke=(...args)=>spawnSync(process.execPath,[bin,'--config',f.config,...args],
     {encoding:'utf8',cwd:renamed,timeout:30000,env:{...f.env,XDG_STATE_HOME:xdg}});
