@@ -17,8 +17,13 @@ try{
   if(!rootArg||!workspace||!script)fail('probe-arguments');
   const root=realObservedPath(rootArg);
   if(process.env.NODE_OPTIONS||process.env.NODE_PATH||process.env.BASH_ENV||
-    process.env.ENV||Object.keys(process.env).some(key=>
-      /^(PNPM_|COREPACK_|npm_config_|DYLD_|TSGO_)/i.test(key)))
+    process.env.ENV||Object.entries(process.env).some(([key,value])=>{
+      if(/^npm_config_prefix$/i.test(key)&&process.platform==='win32'){
+        try{return realObservedPath(value)!==path.dirname(realObservedPath(process.execPath));}
+        catch{return true;}
+      }
+      return /^(PNPM_|COREPACK_|npm_config_|DYLD_|TSGO_)/i.test(key);
+    }))
     fail('pnpm-execution-environment-unsupported');
   const contract=pnpmTypecheckInputs(root,workspace,script);
   if(contract.limitations.length)fail('pnpm-input-coverage-unavailable');

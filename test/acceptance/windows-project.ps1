@@ -69,6 +69,10 @@ switch($Project){
       if(Test-Path $cacheRoot){Get-ChildItem $cacheRoot -Recurse -Filter yarn.js -File |
         Select-Object -First 4 -ExpandProperty FullName | ForEach-Object {Write-Host "Yarn cache file: $_"}}
     }
+    $names = (Get-ChildItem Env: | Where-Object {
+      $_.Name -match '^(NODE_OPTIONS|NODE_PATH|BASH_ENV|ENV|YARN_|COREPACK_|npm_config_)'
+    } | Select-Object -ExpandProperty Name)
+    Write-Host "Yarn execution environment key names: $($names -join ', ')"
   }
   pnpm {
     $pnpm = Join-Path $shims 'pnpm.cmd'
@@ -84,6 +88,14 @@ if($case.workspace){$init += @('--workspace',$case.workspace,'--check','typechec
 Redue $init
 Redue @('start')
 try {
+  $ready = $false
+  for($attempt=0;$attempt -lt 120;$attempt++){
+    $cached = & node $cli --state-dir $state status --json | ConvertFrom-Json
+    if($LASTEXITCODE -eq 0 -and $cached.observation.phase -eq 'ready' -and
+      $cached.observation.healthy -and $cached.observation.pending -eq 0){$ready=$true;break}
+    Start-Sleep -Seconds 1
+  }
+  if(!$ready){throw 'observer did not establish a ready input plan within 120 seconds'}
   Redue @('run',$case.check)
   $first = CheckState 'CURRENT'
   $receipt = $first.invocation.runId

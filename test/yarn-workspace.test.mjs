@@ -51,9 +51,32 @@ const fixture=t=>{
   put(path.join(root,'node_modules','.yarn-state.yml'),'state: fixture\n');
   fs.cpSync(tsRoot,path.join(root,'node_modules','typescript'),{recursive:true});
   fs.mkdirSync(path.join(root,'node_modules','.bin'),{recursive:true});
-  fs.symlinkSync('../typescript/bin/tsc',path.join(root,'node_modules','.bin','tsc'));
-  put(fixtureYarn(root),process.platform==='win32'?'@echo off\r\necho 4.12.0\r\n':
-    '#!/bin/sh\necho 4.12.0\n');
+  if(process.platform==='win32'){
+    put(path.join(root,'node_modules','.bin','tsc.cmd'),`@IF EXIST "%~dp0\\node.exe" (\r
+  "%~dp0\\node.exe"  "%~dp0\\..\\typescript\\bin\\tsc" %*\r
+) ELSE (\r
+  @SETLOCAL\r
+  @SET PATHEXT=%PATHEXT:;.JS;=;%\r
+  node  "%~dp0\\..\\typescript\\bin\\tsc" %*\r
+)\r
+`);
+    const loader='tools\\corepack\\dist\\yarn.js';
+    put(fixtureYarn(root),`@SETLOCAL\r
+@IF EXIST "%~dp0\\node.exe" (\r
+  "%~dp0\\node.exe"  "%~dp0\\${loader}" %*\r
+) ELSE (\r
+  @SET PATHEXT=%PATHEXT:;.JS;=;%\r
+  node  "%~dp0\\${loader}" %*\r
+)\r
+`);
+    put(path.join(root,'tools','corepack','dist','yarn.js'),
+      "process.stdout.write('4.12.0\\n');\n");
+    put(path.join(root,'corepack-home','v1','yarn','4.12.0','yarn.js'),
+      "process.stdout.write('4.12.0\\n');\n");
+  }else{
+    fs.symlinkSync('../typescript/bin/tsc',path.join(root,'node_modules','.bin','tsc'));
+    put(fixtureYarn(root),'#!/bin/sh\necho 4.12.0\n');
+  }
   fs.chmodSync(fixtureYarn(root),0o755);
   execFileSync('git',['init','-q'],{cwd:root});
   execFileSync('git',['add','package.json','.yarnrc.yml','yarn.lock','tsconfig.json',
@@ -79,7 +102,9 @@ test('pinned Yarn workspace init derives only the selected closure and a readabl
   assert.equal(JSON.parse(preview.stdout).checks.length,1);
   assert(!fs.existsSync(path.join(root,'redue.config.json')));
   const probeResult=spawnSync(process.execPath,[probe,root,'@fixture/chosen',
-    'typecheck',fixtureYarn(root)],{cwd:root,encoding:'utf8',env:cleanEnv});
+    'typecheck',fixtureYarn(root)],{cwd:root,encoding:'utf8',
+    env:process.platform==='win32'?{...cleanEnv,COREPACK_HOME:path.join(root,'corepack-home')}:
+      cleanEnv});
   assert.equal(probeResult.status,0,probeResult.stderr);
   assert.match(probeResult.stdout,/^[a-f0-9]{64}$/);
   const tsconfig=path.join(root,'packages/chosen/tsconfig.json');

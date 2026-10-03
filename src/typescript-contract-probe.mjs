@@ -48,8 +48,12 @@ try{
     pkg.scripts?.['pre'+scriptName]||pkg.scripts?.['post'+scriptName])
     fail('typecheck-script-changed');
   if(process.env.NODE_OPTIONS||process.env.NODE_PATH||process.env.BASH_ENV||
-    process.env.ENV||Object.keys(process.env).some(key=>
-      /^(npm_config_|DYLD_|TSGO_)/i.test(key)))fail('execution-environment-unsupported');
+    process.env.ENV||Object.entries(process.env).some(([key,value])=>{
+      if(/^npm_config_prefix$/i.test(key)&&process.platform==='win32'){
+        try{return realObservedPath(value)!==path.dirname(npm);}catch{return true;}
+      }
+      return /^(npm_config_|DYLD_|TSGO_)/i.test(key);
+    }))fail('execution-environment-unsupported');
   const tsRoot=path.join(root,'node_modules','typescript');
   let tsc;
   if(process.platform==='win32'){

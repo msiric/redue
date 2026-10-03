@@ -15,12 +15,36 @@ const hash=value=>createHash('sha256').update(value).digest('hex');
 const digestFile=file=>hash(fs.readFileSync(file));
 const fail=code=>{throw Object.assign(Error(code),{code});};
 function yarnDistribution(yarn,version){
-  if(!/[/\\]corepack[/\\]dist[/\\]yarn\.js$/.test(yarn))return yarn;
-  const candidates=[path.join(os.homedir(),'.cache/node/corepack/v1/yarn',version,'yarn.js'),
-    path.join(os.homedir(),'Library/Caches/node/corepack/v1/yarn',version,'yarn.js')];
+  let loader=yarn;
+  if(process.platform==='win32'&&/\.cmd$/i.test(yarn)){
+    const body=fs.readFileSync(yarn,'utf8').replace(/\r\n/g,'\n').trim();
+    const line=body.split('\n')[2]||'';
+    const match=/^  "%~dp0\\node\.exe"  "%~dp0\\(.+\\corepack\\dist\\yarn\.js)" %\*$/.exec(line);
+    if(!match)fail('yarn-distribution-unobservable');
+    const relative=match[1];
+    const standard=`@SETLOCAL
+@IF EXIST "%~dp0\\node.exe" (
+  "%~dp0\\node.exe"  "%~dp0\\${relative}" %*
+) ELSE (
+  @SET PATHEXT=%PATHEXT:;.JS;=;%
+  node  "%~dp0\\${relative}" %*
+)`;
+    if(body!==standard)fail('yarn-distribution-unobservable');
+    loader=realObservedPath(path.resolve(path.dirname(yarn),relative));
+  }
+  if(!/[/\\]corepack[/\\]dist[/\\]yarn\.js$/.test(loader))
+    return {distribution:yarn,loader};
+  if(process.env.COREPACK_HOME&&!path.isAbsolute(process.env.COREPACK_HOME))
+    fail('yarn-distribution-unobservable');
+  const candidates=process.env.COREPACK_HOME?
+    [path.join(process.env.COREPACK_HOME,'v1/yarn',version,'yarn.js')]:[
+      ...(process.platform==='win32'&&path.isAbsolute(process.env.LOCALAPPDATA||'')?
+        [path.join(process.env.LOCALAPPDATA,'node/corepack/v1/yarn',version,'yarn.js')]:[]),
+      path.join(os.homedir(),'.cache/node/corepack/v1/yarn',version,'yarn.js'),
+      path.join(os.homedir(),'Library/Caches/node/corepack/v1/yarn',version,'yarn.js')];
   const found=candidates.find(file=>fs.existsSync(file));
   if(!found)fail('yarn-distribution-unobservable');
-  return found;
+  return {distribution:found,loader};
 }
 try{
   if(!rootArg||!workspace||!script||!yarnArg)fail('probe-arguments');
@@ -28,8 +52,14 @@ try{
   const contract=yarnWorkspaceTypecheckInputs(root,workspace,script);
   const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json')));
   if(process.env.NODE_OPTIONS||process.env.NODE_PATH||process.env.BASH_ENV||
-    process.env.ENV||Object.keys(process.env).some(key=>
-      /^(YARN_|COREPACK_|npm_config_|DYLD_|TSGO_)/i.test(key)))
+    process.env.ENV||Object.entries(process.env).some(([key,value])=>{
+      if(/^npm_config_prefix$/i.test(key)&&process.platform==='win32'){
+        try{return realObservedPath(value)!==path.dirname(realObservedPath(process.execPath));}
+        catch{return true;}
+      }
+      if(key==='COREPACK_HOME')return !path.isAbsolute(value);
+      return /^(YARN_|COREPACK_|npm_config_|DYLD_|TSGO_)/i.test(key);
+    }))
     fail('workspace-execution-environment-unsupported');
   const launch=windowsLaunch([yarn,'--version']);
   const version=spawnSync(launch.file,launch.args,{cwd:root,env:process.env,
@@ -60,9 +90,11 @@ try{
   const files=[...new Set(inputs)].sort().map(file=>
     [hash(path.relative(root,file)),digestFile(file)]);
   const configs=contract.configs.map(file=>[hash(file),digestFile(path.join(root,file))]);
+  const distribution=yarnDistribution(yarn,version.stdout.trim());
   process.stdout.write(hash(JSON.stringify({schema:1,workspace,script,
     files,configs,yarnVersion:version.stdout.trim(),yarnShim:digestFile(yarn),
-    yarnDistribution:digestFile(yarnDistribution(yarn,version.stdout.trim())),
+    yarnLoader:digestFile(distribution.loader),
+    yarnDistribution:digestFile(distribution.distribution),
     node:process.version,tsc:digestFile(tsc)})));
 }catch(e){console.error(`VSTATE_REASON:${e.code&&/^[a-z-]+$/.test(e.code)?e.code:
   'workspace-typecheck-contract-unavailable'}`);process.exitCode=2;}
