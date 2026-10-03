@@ -3,13 +3,13 @@ $ErrorActionPreference = 'Stop'
 $product = (Get-Location).Path
 $cli = Join-Path $product 'bin/redue.mjs'
 $cases = @{
-  npm = @{repo='zerostorypoints/symblon'; revision='0d6fd27b81f83bfa9e383d69b78c878822965b11'; check='typecheck'}
+  npm = @{repo='renzojohnson/google-workspace-mcp'; revision='33e05a4dc5365d8b135da25a6193d85d92a35205'; check='typecheck'}
   yarn = @{repo='streamich/memfs'; revision='adae41a54ff34c89db4e0d0708ec7c166e8998c6'; check='@jsonjoy.com/fs-node-utils:typecheck'; workspace='@jsonjoy.com/fs-node-utils'}
   pnpm = @{repo='BerriAI/litellm-bench'; revision='642704a95555bc0fc25dd73017584345c8eedb3b'; check='@litellm-bench/result-store:typecheck'; workspace='@litellm-bench/result-store'}
 }
 $case = $cases[$Project]
 $root = Join-Path $env:RUNNER_TEMP "redue-public-$Project"
-$state = Join-Path $env:RUNNER_TEMP "redue-owned-state-$Project"
+$state = Join-Path $env:RUNNER_TEMP "vstate-owned-state-$Project"
 $tools = Join-Path $env:RUNNER_TEMP 'redue-corepack'
 $shims = Join-Path $env:RUNNER_TEMP 'redue-manager-shims'
 $store = Join-Path $env:RUNNER_TEMP 'redue-pnpm-store'
@@ -55,11 +55,16 @@ switch($Project){
     $yarn = Join-Path $shims 'yarn.cmd'
     Native $yarn @('install','--immutable','--mode=skip-build')
     Native $yarn @('workspace','@jsonjoy.com/fs-node-builtins','run','build')
+    $tscShim = Join-Path $root 'node_modules/.bin/tsc.cmd'
+    Write-Host "Yarn Windows tsc shim: $(Get-Content -LiteralPath $tscShim -Raw)"
   }
   pnpm {
     $pnpm = Join-Path $shims 'pnpm.cmd'
     Native $pnpm @('install','--frozen-lockfile','--store-dir',$store)
     Native $pnpm @('--filter','@litellm-bench/contracts','build')
+    $modules = Join-Path $root 'node_modules/.modules.yaml'
+    Write-Host "pnpm virtualStoreDir: $((Get-Content -LiteralPath $modules | Select-String '^virtualStoreDir:').Line)"
+    Write-Host "pnpm local lock present: $(Test-Path (Join-Path $root 'node_modules/.pnpm/lock.yaml'))"
   }
 }
 $init = @('init')
@@ -73,7 +78,7 @@ try {
   Set-Content -LiteralPath (Join-Path $root 'redue-unrelated-note.md') -Value 'disposable acceptance note'
   CheckState 'CURRENT' $receipt | Out-Null
   $sourcePath = switch($Project){
-    npm { Join-Path $root 'index.ts' }
+    npm { Join-Path $root 'src/extension.ts' }
     yarn { Join-Path $root 'packages/fs-node-utils/src/index.ts' }
     pnpm { Join-Path $root 'packages/result-store/src/index.ts' }
   }
