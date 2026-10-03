@@ -1,0 +1,22 @@
+name: Windows public-project acceptance
+
+on:
+  workflow_dispatch:
+
+jobs:
+  acceptance:
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [npm, yarn, pnpm]
+    runs-on: windows-2025
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Exercise real public repository on native NTFS
+        shell: pwsh
+        run: ./test/acceptance/windows-project.ps1 -Project ${{ matrix.project }}
