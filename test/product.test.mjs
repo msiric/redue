@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import {spawn,spawnSync,execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {acquireRunLock,inspectRunLock,recoverRunLock} from '../src/run-lock.mjs';
@@ -9,8 +10,11 @@ import {acquireRunLock,inspectRunLock,recoverRunLock} from '../src/run-lock.mjs'
 const bin=path.resolve('bin/redue.mjs');
 const categories=['source','generated','installedDependencies','environment','toolchain','runtime'];
 function put(file,value){fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,value);}
+const linkDir=(target,link)=>fs.symlinkSync(process.platform==='win32'?
+  path.resolve(path.dirname(link),target):target,link,
+  process.platform==='win32'?'junction':'dir');
 function fixture(options={}){
-  const base=fs.mkdtempSync('/tmp/vstate-product-'),root=path.join(base,'project'),
+  const base=fs.mkdtempSync(path.join(os.tmpdir(),'vstate-product-')),root=path.join(base,'project'),
     state=path.join(base,'vstate-state');
   fs.mkdirSync(root);
   put(path.join(root,'package.json'),'{"name":"vstate-public-fixture","version":"1"}\n');
@@ -108,15 +112,19 @@ test('receipt survives unrelated changes; source, generated, installed and absen
 test('failed outcome, caller identity, observer loss and restart remain conservative',t=>{
   const f=withFixture(t);ok(f,'start');ok(f,'run','check');
   const runId=row(f).invocation.runId;
-  const altered={...process.env,PATH:process.env.PATH+':/tmp/unrelated-vstate-bin'};
+  const altered={...process.env,PATH:process.env.PATH+path.delimiter+
+    path.join(f.base,'unrelated-bin')};
   const same=spawnSync(process.execPath,[bin,'--config',f.config,'--state-dir',f.state,
     'status','--sync','--json'],{encoding:'utf8',cwd:f.root,env:altered});
   assert.equal(same.status,0);assert.equal(JSON.parse(same.stdout).checks[0].freshness,'CURRENT');
-  const shadow=path.join(f.base,'shadow');put(path.join(shadow,'node'),'#!/bin/sh\nexit 0\n');
-  fs.chmodSync(path.join(shadow,'node'),0o755);
+  const shadow=path.join(f.base,'shadow'),shadowNode=path.join(shadow,
+    process.platform==='win32'?'node.cmd':'node');
+  put(shadowNode,process.platform==='win32'?'@echo off\r\nexit /b 0\r\n':
+    '#!/bin/sh\nexit 0\n');
+  fs.chmodSync(shadowNode,0o755);
   const changed=spawnSync(process.execPath,[bin,'--config',f.config,'--state-dir',f.state,
     'status','--sync','--json'],{encoding:'utf8',cwd:f.root,
-    env:{...process.env,PATH:shadow+':'+process.env.PATH}});
+    env:{...process.env,PATH:shadow+path.delimiter+process.env.PATH}});
   assert.equal(changed.status,0);
   assert.equal(JSON.parse(changed.stdout).checks[0].freshness,'STALE');
   ok(f,'stop');const unavailable=JSON.parse(ok(f,'status','--json').stdout);
@@ -172,7 +180,7 @@ test('linked installed target content is observed through its logical declaratio
   fs.mkdirSync(path.join(f.root,'workspace','pkg'),{recursive:true});
   put(path.join(f.root,'workspace/pkg/index.js'),'module.exports=1;\n');
   fs.rmSync(path.join(f.root,'node_modules/pkg'),{recursive:true});
-  fs.symlinkSync('../workspace/pkg',path.join(f.root,'node_modules/pkg'));
+  linkDir('../workspace/pkg',path.join(f.root,'node_modules/pkg'));
   const config=JSON.parse(fs.readFileSync(f.config));
   config.checks[0].installedInputs=['node_modules/pkg/**'];
   put(f.config,JSON.stringify(config));
@@ -274,7 +282,7 @@ test('fresh reconciliation detects membership and linked installed-target replac
   put(path.join(f.root,'workspace/a/index.js'),'module.exports=1;\n');
   put(path.join(f.root,'workspace/b/index.js'),'module.exports=2;\n');
   fs.rmSync(path.join(f.root,'node_modules/pkg'),{recursive:true});
-  fs.symlinkSync('../workspace/a',path.join(f.root,'node_modules/pkg'));
+  linkDir('../workspace/a',path.join(f.root,'node_modules/pkg'));
   const config=JSON.parse(fs.readFileSync(f.config));
   config.checks[0].installedInputs=['node_modules/pkg/**','node_modules/optional/**'];
   put(f.config,JSON.stringify(config));
@@ -282,7 +290,7 @@ test('fresh reconciliation detects membership and linked installed-target replac
   put(path.join(f.state,'drop-events'),'1');
   put(path.join(f.root,'generated/new.txt'),'new member\n');
   fs.rmSync(path.join(f.root,'node_modules/pkg'));
-  fs.symlinkSync('../workspace/b',path.join(f.root,'node_modules/pkg'));
+  linkDir('../workspace/b',path.join(f.root,'node_modules/pkg'));
   put(path.join(f.root,'node_modules/optional/index.js'),'now present\n');
   if(process.platform==='darwin'){
     await faultObserved(f);
@@ -533,7 +541,7 @@ test('external installed-input root replacement is reconciled',async t=>{
   const f=withFixture(t),external=path.join(f.base,'external');
   put(path.join(external,'pkg/index.js'),'module.exports=1;\n');
   fs.rmSync(path.join(f.root,'node_modules/pkg'),{recursive:true});
-  fs.symlinkSync('../../external/pkg',path.join(f.root,'node_modules/pkg'));
+  linkDir('../../external/pkg',path.join(f.root,'node_modules/pkg'));
   const config=JSON.parse(fs.readFileSync(f.config));
   config.checks[0].installedInputs=['node_modules/pkg/**'];
   config.checks[0].allowedExternalRoots=[external];

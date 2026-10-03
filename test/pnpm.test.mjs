@@ -16,6 +16,9 @@ const cleanEnv=Object.fromEntries(Object.entries(process.env).filter(([key])=>
   !/^(NODE_OPTIONS|NODE_PATH|BASH_ENV|ENV|PNPM_|COREPACK_|npm_config_|DYLD_|TSGO_)/i.test(key)));
 const put=(file,value)=>{fs.mkdirSync(path.dirname(file),{recursive:true});
   fs.writeFileSync(file,value);};
+const linkDir=(target,link)=>fs.symlinkSync(process.platform==='win32'?
+  path.resolve(path.dirname(link),target):target,link,
+  process.platform==='win32'?'junction':'dir');
 const json=(file,value)=>put(file,JSON.stringify(value));
 function fixture(t,{hoisted=false}={}){
   const root=fs.mkdtempSync(path.join(os.tmpdir(),'vstate-pnpm-'));
@@ -48,11 +51,11 @@ function fixture(t,{hoisted=false}={}){
   json(path.join(external,'package.json'),{name:'external',version:'1.0.0',
     types:'index.d.ts'});
   put(path.join(external,'index.d.ts'),'export declare const ext: number;\n');
-  fs.symlinkSync('.pnpm/typescript@5.6.3/node_modules/typescript',
+  linkDir('.pnpm/typescript@5.6.3/node_modules/typescript',
     path.join(root,'node_modules','typescript'));
   fs.mkdirSync(path.join(app,'node_modules','@fixture'),{recursive:true});
-  fs.symlinkSync('../../../dep',path.join(app,'node_modules','@fixture','dep'));
-  fs.symlinkSync('../../../node_modules/.pnpm/external@1.0.0/node_modules/external',
+  linkDir('../../../dep',path.join(app,'node_modules','@fixture','dep'));
+  linkDir('../../../node_modules/.pnpm/external@1.0.0/node_modules/external',
     path.join(app,'node_modules','external'));
   execFileSync('git',['init','-q'],{cwd:root});
   execFileSync('git',['add','package.json','pnpm-workspace.yaml','pnpm-lock.yaml',
@@ -144,11 +147,11 @@ test('pnpm workspace, generated and project-installed content match independent 
 test('pnpm resolution and absent optional changes rebuild a check plan conservatively',t=>{
   const {root,app}=fixture(t),config=runtime(root),first=discoverDeclared(config).plans.app;
   const link=path.join(app,'node_modules','@fixture','dep');
-  fs.rmSync(link);fs.symlinkSync('../../../sibling',link);
+  fs.rmSync(link);linkDir('../../../sibling',link);
   const wrong=discoverDeclared(config).plans.app;
   assert(wrong.unresolved.some(reason=>/workspace dependency/.test(reason)));
   assert.notEqual(first.id,wrong.id);
-  fs.rmSync(link);fs.symlinkSync('../../../dep',link);
+  fs.rmSync(link);linkDir('../../../dep',link);
   const manifest=path.join(app,'package.json'),pkg=JSON.parse(fs.readFileSync(manifest));
   pkg.optionalDependencies={optional:'1.0.0'};json(manifest,pkg);
   const absent=pnpmTypecheckInputs(root,'@fixture/app','typecheck');

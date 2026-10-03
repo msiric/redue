@@ -8,6 +8,7 @@ import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
 import {withinPath as within} from './path-identity.mjs';
+import {windowsLaunch} from './windows-command.mjs';
 
 const [rootArg,workspace,script,yarnArg]=process.argv.slice(2);
 const hash=value=>createHash('sha256').update(value).digest('hex');
@@ -30,7 +31,9 @@ try{
     process.env.ENV||Object.keys(process.env).some(key=>
       /^(YARN_|COREPACK_|npm_config_|DYLD_|TSGO_)/i.test(key)))
     fail('workspace-execution-environment-unsupported');
-  const version=spawnSync(yarn,['--version'],{cwd:root,env:process.env,
+  const launch=windowsLaunch([yarn,'--version']);
+  const version=spawnSync(launch.file,launch.args,{cwd:root,env:process.env,
+    ...launch.options,
     encoding:'utf8',timeout:3000,maxBuffer:1024*1024,stdio:['ignore','pipe','pipe']});
   if(version.error||version.signal||version.status!==0||
     `yarn@${version.stdout.trim()}`!==pkg.packageManager)

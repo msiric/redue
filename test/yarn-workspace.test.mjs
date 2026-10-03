@@ -17,6 +17,11 @@ const probe=path.resolve('src/yarn-workspace-typecheck-probe.mjs');
 const cleanEnv=Object.fromEntries(Object.entries(process.env).filter(([key])=>
   !/^(npm_config_|YARN_|COREPACK_)/i.test(key)));
 const put=(file,value)=>{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,value);};
+const linkDir=(target,link)=>fs.symlinkSync(process.platform==='win32'?
+  path.resolve(path.dirname(link),target):target,link,
+  process.platform==='win32'?'junction':'dir');
+const fixtureYarn=root=>path.join(root,process.platform==='win32'?
+  'fixture-yarn.cmd':'fixture-yarn');
 const fixture=t=>{
   const root=fs.mkdtempSync(path.join(os.tmpdir(),'vstate-yarn-workspace-'));
   t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
@@ -40,15 +45,16 @@ const fixture=t=>{
     put(path.join(dir,'lib/index.d.ts'),'export declare const value: number;\n');
   }
   fs.mkdirSync(path.join(root,'node_modules','@fixture'),{recursive:true});
-  for(const [name] of packages)fs.symlinkSync(`../../packages/${name}`,
+  for(const [name] of packages)linkDir(`../../packages/${name}`,
     path.join(root,'node_modules','@fixture',name));
   put(path.join(root,'node_modules','external','index.d.ts'),'export declare const e: number;\n');
   put(path.join(root,'node_modules','.yarn-state.yml'),'state: fixture\n');
   fs.cpSync(tsRoot,path.join(root,'node_modules','typescript'),{recursive:true});
   fs.mkdirSync(path.join(root,'node_modules','.bin'),{recursive:true});
   fs.symlinkSync('../typescript/bin/tsc',path.join(root,'node_modules','.bin','tsc'));
-  put(path.join(root,'fixture-yarn'),'#!/bin/sh\necho 4.12.0\n');
-  fs.chmodSync(path.join(root,'fixture-yarn'),0o755);
+  put(fixtureYarn(root),process.platform==='win32'?'@echo off\r\necho 4.12.0\r\n':
+    '#!/bin/sh\necho 4.12.0\n');
+  fs.chmodSync(fixtureYarn(root),0o755);
   execFileSync('git',['init','-q'],{cwd:root});
   execFileSync('git',['add','package.json','.yarnrc.yml','yarn.lock','tsconfig.json',
     '.gitignore','packages'],{cwd:root});
@@ -73,7 +79,7 @@ test('pinned Yarn workspace init derives only the selected closure and a readabl
   assert.equal(JSON.parse(preview.stdout).checks.length,1);
   assert(!fs.existsSync(path.join(root,'redue.config.json')));
   const probeResult=spawnSync(process.execPath,[probe,root,'@fixture/chosen',
-    'typecheck',path.join(root,'fixture-yarn')],{cwd:root,encoding:'utf8',env:cleanEnv});
+    'typecheck',fixtureYarn(root)],{cwd:root,encoding:'utf8',env:cleanEnv});
   assert.equal(probeResult.status,0,probeResult.stderr);
   assert.match(probeResult.stdout,/^[a-f0-9]{64}$/);
   const tsconfig=path.join(root,'packages/chosen/tsconfig.json');
@@ -144,15 +150,15 @@ test('incremental workspace, generated and installed membership matches fresh re
   index.updatePath('node_modules/external/new.d.ts');
   assert.equal(index.fingerprint(name),oracle());assert.equal(index.fingerprint(name),baseline);
   const link=path.join(root,'node_modules/@fixture/dep');fs.rmSync(link);
-  fs.symlinkSync('../../packages/sibling',link);
+  linkDir('../../packages/sibling',link);
   const changed=discoverDeclared(config);
   assert.notEqual(changed.plans[name].id,bundle.plans[name].id);
   assert(derived.linkTriggers.includes('node_modules/@fixture/dep'));
   const changedProbe=spawnSync(process.execPath,[probe,root,'@fixture/chosen',
-    'typecheck',path.join(root,'fixture-yarn')],{cwd:root,encoding:'utf8',env:cleanEnv});
+    'typecheck',fixtureYarn(root)],{cwd:root,encoding:'utf8',env:cleanEnv});
   assert.notEqual(changedProbe.status,0);
   assert.match(changedProbe.stderr,/typescript-input-outside-workspace-contract/);
-  fs.rmSync(link);fs.symlinkSync('/tmp/not-permitted-vstate-dependency',link);
+  fs.rmSync(link);linkDir(path.join(os.tmpdir(),'not-permitted-vstate-dependency'),link);
   const disallowed=discoverDeclared(config).plans[name].unresolved;
   assert(disallowed.some(reason=>reason.includes('@fixture/dep')),
     JSON.stringify(disallowed));

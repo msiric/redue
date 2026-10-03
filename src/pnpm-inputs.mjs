@@ -280,7 +280,7 @@ export function pnpmTypecheckInputs(root,workspace,script){
     if(within(file,path.join(selectedDir,'src'))||
       [...closure.values()].some(member=>within(file,path.join(root,member.dir))))continue;
     const packageRoot=installedPackageRoot(root,file);
-    if(!packageRoot)throw Error('TypeScript consumes a file outside the observed pnpm contract');
+    if(!packageRoot)throw Error(`TypeScript consumes a file outside the observed pnpm contract: ${rel(root,file)}`);
     if(!instances.has(packageRoot))instances.set(packageRoot,{name:read(path.join(packageRoot,'package.json')).name,
       physicalRoot:rel(root,packageRoot)});
     installed.add(`${rel(root,packageRoot)}/**`);

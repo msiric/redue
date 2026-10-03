@@ -40,7 +40,8 @@ test('Windows local state and control identities are stable across path spelling
   assert.equal(controlEndpoint(state,'win32').address,
     controlEndpoint('c:/users/a name/appdata/local/VSTATE/vstate-123','win32').address);
   assert.equal(controlEndpoint(state,'win32').filesystem,false);
-  assert.equal(controlEndpoint('/tmp/vstate-123','linux').address,'/tmp/vstate-123/observer.sock');
+  assert.equal(controlEndpoint('/tmp/vstate-123','linux').address,
+    path.join('/tmp/vstate-123','observer.sock'));
 });
 
 test('Windows PATH lookup honors executable suffixes without changing command names',()=>{

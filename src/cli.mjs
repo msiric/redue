@@ -219,7 +219,8 @@ async function execute() {
     commitReceipt(state,name,receipt);
     try{await call({action:'reload'});}catch{/* next read remains conservative */}
     console.log(JSON.stringify({check:name,result,target:target.status,
-      invocation:invocation.status,stable,coverage_qualified:receipt.coverage.qualified}));
+      invocation:invocation.status,...(invocation.errorCode?{error_code:invocation.errorCode}:{}),
+      stable,coverage_qualified:receipt.coverage.qualified}));
     process.exitCode=invocation.status==='exited'?invocation.exitCode:
       invocation.status==='interrupted'?128+(os.constants.signals[invocation.signal]||1):127;
   }finally{
