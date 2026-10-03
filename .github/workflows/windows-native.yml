@@ -1,0 +1,30 @@
+name: Windows native acceptance
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  windows:
+    runs-on: windows-2025
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Record native environment
+        shell: pwsh
+        run: |
+          $os = Get-CimInstance Win32_OperatingSystem
+          $drive = (Get-Location).Path.Substring(0,1)
+          $volume = Get-Volume -DriveLetter $drive
+          "OS: $($os.Caption) $($os.Version) build $($os.BuildNumber)" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "Runner image: $env:ImageOS $env:ImageVersion" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "Architecture: $env:PROCESSOR_ARCHITECTURE; filesystem: $($volume.FileSystem)" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "PowerShell: $($PSVersionTable.PSVersion); Node: $(node --version); npm: $(npm --version)" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+      - name: Install product dependencies
+        run: npm ci
+      - name: Portable and Windows contract tests
+        run: npm test
