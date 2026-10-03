@@ -6,10 +6,10 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {spawnSync} from 'node:child_process';
+import {withinPath as within} from './path-identity.mjs';
 
 const [rootArg,scriptName,npmArg]=process.argv.slice(2);
 const hash=value=>createHash('sha256').update(value).digest('hex');
-const within=(file,root)=>file===root||file.startsWith(root+path.sep);
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const digestFile=file=>hash(fs.readFileSync(file));
 const require=createRequire(import.meta.url);

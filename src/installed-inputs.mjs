@@ -4,13 +4,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import {createHash} from 'node:crypto';
+import {normalizedPath,samePath,withinPath as within} from './path-identity.mjs';
 
 const hash=value=>createHash('sha256').update(value).digest('hex');
-const within=(file,root)=>file===root||file.startsWith(root+path.sep);
 const posix=file=>file.split(path.sep).join('/');
 export function resolveLinks(file,checkout,allowedRoots=[],allowFile=false) {
   const roots=[checkout,...allowedRoots],links=[],seen=new Set();
-  let candidate=path.resolve(file);
+  let candidate=normalizedPath(file);
   for(let depth=0;depth<40;depth++){
     let current=path.parse(candidate).root,redirected=false;
     const parts=candidate.slice(current.length).split(path.sep).filter(Boolean);
@@ -23,11 +23,12 @@ export function resolveLinks(file,checkout,allowedRoots=[],allowFile=false) {
       if(!st.isSymbolicLink())continue;
       if(!roots.some(root=>within(current,root)))
         return {physical:null,links,reason:'link redirect outside observed roots'};
-      if(seen.has(current))return {physical:null,links,reason:'symlink cycle'};
+      if([...seen].some(previous=>samePath(previous,current)))
+        return {physical:null,links,reason:'symlink cycle'};
       seen.add(current);
       const target=fs.readlinkSync(current),signature=hash(target);
       links.push({path:current,targetHash:signature});
-      candidate=path.resolve(path.dirname(current),target,...parts.slice(i+1));
+      candidate=normalizedPath(path.resolve(path.dirname(current),target,...parts.slice(i+1)));
       redirected=true;break;
     }
     if(redirected)continue;

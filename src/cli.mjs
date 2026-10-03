@@ -6,6 +6,11 @@ import os from 'node:os';
 import {spawn,spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {processAlive} from './process-liveness.mjs';
+import {controlEndpoint} from './control-endpoint.mjs';
+import {samePath,withinPath} from './path-identity.mjs';
+import {findExecutable} from './executable-lookup.mjs';
+import {windowsLaunch} from './windows-command.mjs';
+import {terminateWindowsTree} from './windows-process.mjs';
 import {createHash,randomUUID} from 'node:crypto';
 import {assertOwnedStatePlacement} from './owned-state.mjs';
 import {permittedRoots} from './installed-inputs.mjs';
@@ -16,10 +21,12 @@ const here=path.dirname(fileURLToPath(import.meta.url));
 const [configArg,action,name]=process.argv.slice(2);
 if(!configArg||!action)throw Error('internal usage: cli.mjs CONFIG ACTION [check]');
 const configFile=path.resolve(configArg), config=JSON.parse(fs.readFileSync(configFile));
-const root=fs.realpathSync(config.root), state=path.resolve(config.state), socket=path.join(state,'observer.sock');
+const root=fs.realpathSync(config.root), state=path.resolve(config.state),
+  endpoint=controlEndpoint(state),socket=endpoint.address;
 assertOwnedStatePlacement(config);
-if(state===root||state.startsWith(root+path.sep))throw Error('state must be outside checkout');
-if([path.parse(state).root,os.homedir(),path.dirname(os.homedir())].includes(state)||
+if(withinPath(state,root))throw Error('state must be outside checkout');
+if([path.parse(state).root,os.homedir(),path.dirname(os.homedir())]
+  .some(value=>samePath(value,state))||
   !path.basename(state).startsWith('vstate-'))
   throw Error('state must be a dedicated vstate development directory');
 const ownerFile=path.join(state,'vstate-owner-v1.json');
@@ -28,15 +35,10 @@ function nodeIdentity() {const real=fs.realpathSync(process.execPath),st=fs.stat
   return digest(JSON.stringify([real,process.version,...['dev','ino','mode','size','mtimeNs','ctimeNs']
     .map(key=>String(st[key]))]));}
 function pathExecutableIdentity(name) {
-  for(const folder of (process.env.PATH||'').split(path.delimiter)){
-    if(!folder)continue;
-    try{const candidate=path.join(folder,name);fs.accessSync(candidate,fs.constants.X_OK);
-      const real=fs.realpathSync(candidate),st=fs.statSync(real,{bigint:true});
-      if(!st.isFile())continue;
-      return digest(JSON.stringify([real,...['dev','ino','mode','size','mtimeNs','ctimeNs']
-        .map(key=>String(st[key]))]));}
-    catch{}
-  }
+  try{const real=findExecutable(name),st=real&&fs.statSync(real,{bigint:true});
+    if(st?.isFile())return digest(JSON.stringify([real,...['dev','ino','mode','size','mtimeNs','ctimeNs']
+      .map(key=>String(st[key]))]));}
+  catch{}
   return digest('<unavailable>');
 }
 function contextHashes() {return Object.fromEntries(config.checks.map(check=>[
@@ -67,7 +69,7 @@ function owner(){
     const existing=JSON.parse(fs.readFileSync(ownerFile));
     if(JSON.stringify(existing)!==JSON.stringify(expected))throw Error('state ownership marker mismatch');
   } else {
-    const allowed=configFile.startsWith(state+path.sep)?path.basename(configFile):null;
+    const allowed=withinPath(configFile,state)?path.basename(configFile):null;
     if(fs.readdirSync(state).some(entry=>entry!==allowed))
       throw Error('unowned state directory is not empty; inspect before initializing');
     atomicJson(ownerFile,expected);
@@ -110,16 +112,26 @@ async function execute() {
   const selected=config.checks.find(c=>c.name===name);
   if(!selected)throw Error(`unknown check ${name}`);
   const runLock=acquireRunLock(state);
-  let activeChild=null,requestedSignal=null;
+  const captureIssues=[];
+  let activeChild=null,requestedSignal=null,treeStop=null,preserveRunLock=false;
   const forward=signal=>{requestedSignal=signal;
     if(activeChild&&activeChild.exitCode===null){
       if(process.platform==='linux'&&activeChild.pid){
         try{process.kill(-activeChild.pid,signal);}
         catch(e){if(e.code!=='ESRCH')throw e;}
+      }else if(process.platform==='win32'&&activeChild.pid){
+        treeStop??=terminateWindowsTree(activeChild.pid).catch(e=>{
+          captureIssues.push(`Windows check-tree cancellation unavailable: ${e.message}`);
+          preserveRunLock=true;
+          activeChild?.kill();
+        });
       }else activeChild.kill(signal);
     }};
   const interrupt=()=>forward('SIGINT'),terminate=()=>forward('SIGTERM');
   process.on('SIGINT',interrupt);process.on('SIGTERM',terminate);
+  const cancelMessage=message=>{if(message?.action==='cancel'&&
+    ['SIGINT','SIGTERM'].includes(message.signal))forward(message.signal);};
+  process.on('message',cancelMessage);
   try {
     const plan=JSON.parse(fs.readFileSync(path.join(state,'plans-v1.json'))).plans[name];
     if(!plan)throw Error('selected input plan unavailable');
@@ -131,7 +143,7 @@ async function execute() {
     if(digest(JSON.stringify(command))!==plan.commandIdentity.argvHash)
       throw Error('execution argv differs from discovered plan');
     const runId=randomUUID();
-    const environmentBefore=contextHashes()[name],captureIssues=[],
+    const environmentBefore=contextHashes()[name],
       captureTimeout=Number(process.env.VSTATE_CAPTURE_TIMEOUT_MS||15000);
     let before=null,after=null;
     try{before=await call({action:'snapshot',name,contextHashes:contextHashes()},captureTimeout);}
@@ -144,13 +156,16 @@ async function execute() {
       if(requestedSignal){resolve({status:'interrupted',exitCode:null,signal:requestedSignal});return;}
       let child,spawnError=null;
       try{runLock.phase('launching');
-        child=spawn(command[0],command.slice(1),{cwd:plan.cwd,
-        stdio:'inherit',env:process.env,detached:process.platform==='linux'});}
+        const launch=windowsLaunch(command);
+        child=spawn(launch.file,launch.args,{cwd:plan.cwd,
+        stdio:'inherit',env:process.env,detached:process.platform==='linux',
+        ...launch.options});}
       catch(e){resolve({status:'start_failed',exitCode:null,signal:null,errorCode:e.code||e.name});return;}
       activeChild=child;runLock.phase('running',child.pid??null);
       if(requestedSignal)forward(requestedSignal);
       child.on('error',e=>{spawnError=e.code||e.name;});
-      child.on('close',(exit,signal)=>{
+      child.on('close',async(exit,signal)=>{
+        if(treeStop)await treeStop;
         if(process.platform==='linux'&&requestedSignal&&child.pid){
           // A verification command may have forked children in its process
           // group. Normal cancellation must reach them even if the leader has
@@ -159,7 +174,7 @@ async function execute() {
           try{process.kill(-child.pid,'SIGTERM');}
           catch(e){if(e.code!=='ESRCH')captureIssues.push('descendant stop uncertain');}
         }
-        activeChild=null;runLock.phase('finished');
+        activeChild=null;if(!preserveRunLock)runLock.phase('finished');
         resolve({status:spawnError?'start_failed':signal||requestedSignal?'interrupted':'exited',
           exitCode:exit,signal:signal||requestedSignal||null,
           ...(spawnError?{errorCode:spawnError}:{})});
@@ -209,13 +224,15 @@ async function execute() {
       invocation.status==='interrupted'?128+(os.constants.signals[invocation.signal]||1):127;
   }finally{
     process.off('SIGINT',interrupt);process.off('SIGTERM',terminate);
-    runLock.release();}
+    process.off('message',cancelMessage);
+    if(process.connected)process.disconnect();
+    if(!preserveRunLock)runLock.release();}
 }
 async function main(){
   if(action==='init') {owner();
     console.log(JSON.stringify({root,state,config:configFile,executable:path.join(here,'cli.mjs')}));return;}
   if(action==='start'){
-    if(Buffer.byteLength(socket)>100)
+    if(endpoint.filesystem&&Buffer.byteLength(socket)>100)
       throw Error(`state path is too long for a Unix control socket: ${state}; choose a shorter --state-dir`);
     owner();
     for(const check of config.checks)permittedRoots(root,check.allowedExternalRoots||[]);
@@ -225,7 +242,7 @@ async function main(){
       if(processAlive(pid))throw Error(`observer already running at PID ${pid}`);
       // Only this development state/socket are owned here; never touch shared services.
       fs.rmSync(observerLock,{recursive:true});
-      try{fs.unlinkSync(socket);}catch(e){if(e.code!=='ENOENT')throw e;}
+      if(endpoint.filesystem)try{fs.unlinkSync(socket);}catch(e){if(e.code!=='ENOENT')throw e;}
     }
     const log=fs.openSync(path.join(state,'observer.log'),'a',0o600);
     const child=spawn(process.execPath,[path.join(here,'daemon.mjs'),configFile],

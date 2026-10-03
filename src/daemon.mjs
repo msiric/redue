@@ -6,6 +6,8 @@ import {spawnSync} from 'node:child_process';
 import {Worker} from 'node:worker_threads';
 import {fileURLToPath} from 'node:url';
 import {subscribe,hasHistory,backend} from './platform-observation.mjs';
+import {controlEndpoint} from './control-endpoint.mjs';
+import {observedRelative,withinPath} from './path-identity.mjs';
 import micromatch from 'micromatch';
 import {sha} from './plan.mjs';
 import {InputIndex} from './index.mjs';
@@ -19,9 +21,10 @@ const config=JSON.parse(fs.readFileSync(configFile));
 const root=fs.realpathSync(config.root), state=path.resolve(config.state);
 assertOwnedStatePlacement(config);
 let rootIdentity=fs.statSync(root,{bigint:true});
-if(state===root||state.startsWith(root+path.sep))throw Error('state must be outside checkout');
+if(withinPath(state,root))throw Error('state must be outside checkout');
 fs.mkdirSync(state,{recursive:true,mode:0o700});
-const socket=path.join(state,'observer.sock'), lock=path.join(state,'observer.lock');
+const endpoint=controlEndpoint(state),socket=endpoint.address,
+  lock=path.join(state,'observer.lock');
 fs.mkdirSync(lock); // Existing lock requires operator inspection; never steal it.
 fs.writeFileSync(path.join(lock,'pid'),String(process.pid),{mode:0o600});
 const generation=randomUUID(), startedAt=Date.now();
@@ -159,7 +162,7 @@ function describeChangedInput(plan,file) {
     .map(mapping=>mapping.logical).slice(0,2);
   return file+' changed'+(matches.length?` (installed via ${matches.join(', ')})`:'');
 }
-function rows(contextHashes,synchronizedInstalled=false) {
+function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=false) {
   if(!index)return [];
   return [...index.checks].map(([name,row])=>{
     const r=receipts[name], result=r?.result||null;
@@ -187,6 +190,8 @@ function rows(contextHashes,synchronizedInstalled=false) {
     if(row.probeError||!row.probeAt||Date.now()-row.probeAt>10000){item.reason=row.probeError||'state probe observation expired';return item;}
     if(row.plan.synchronizedInstalledRead&&!synchronizedInstalled){
       item.reason='installed inputs require a synchronized content read';return item;}
+    if(process.platform==='win32'&&!synchronizedFilesystem){
+      item.reason='Windows cached observation requires a synchronized content read';return item;}
     if(!r)return item;
     if(!r.coverage?.qualified){item.reason='coverage unresolved when execution was recorded';return item;}
     if(r.invocation?.status!=='exited'){
@@ -237,8 +242,8 @@ function rows(contextHashes,synchronizedInstalled=false) {
     return item;
   });
 }
-function status(contextHashes,synchronizedInstalled=false) {
-  const checks=rows(contextHashes,synchronizedInstalled), current=checks.filter(r=>r.freshness==='CURRENT'&&r.result==='PASS').length,
+function status(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=false) {
+  const checks=rows(contextHashes,synchronizedInstalled,synchronizedFilesystem), current=checks.filter(r=>r.freshness==='CURRENT'&&r.result==='PASS').length,
     failed=checks.filter(r=>r.freshness==='CURRENT'&&r.result==='FAIL').length,
     observedFailed=checks.filter(r=>r.result==='FAIL').length,
     stale=checks.filter(r=>r.freshness==='STALE').length,
@@ -348,7 +353,8 @@ async function refreshPlan({forceCold=false}={}) {
     workspacePatterns=bundle.workspacePatterns||workspacePatterns;
     const hydrationStarted=performance.now();
     index=hydrate(bundle,built.index);
-    inputEventSerial=new Map([...index.checks.keys()].map(name=>[name,0]));
+    inputEventSerial=new Map([...index.checks.keys()].map(name=>
+      [name,inputEventSerial.get(name)||0]));
     for(const entry of external.values()) {
       const data=built.external?.[entry.root];
       entry.index=data?hydrate({root:entry.root,plans:Object.fromEntries(
@@ -496,6 +502,8 @@ function notification(type,filename) {
   const rel=filename.toString().split(path.sep).join('/');
   if(rel==='.git'||rel.startsWith('.git/'))return;
   if(planning) {
+    if(index)for(const name of index.candidates(rel))
+      if(index.matches(index.checks.get(name),rel))markInputEvent(name);
     pending.add(rel);metrics.maxQueue=Math.max(metrics.maxQueue,pending.size);
     if(planTrigger(rel)||candidateDescendants.has(rel)||pnpmTopologyChanged(type,rel))
       planDirty=true;
@@ -536,6 +544,8 @@ function externalNotification(entry,type,filename) {
   if(!filename){externalGap(entry,'unnamed_event');return;}
   const rel=filename.toString().split(path.sep).join('/');
   const absolute=path.join(entry.root,rel);
+  if(planning&&entry.index)for(const name of entry.index.candidates(rel))
+    if(entry.index.matches(entry.index.checks.get(name),rel))markInputEvent(name);
   if(planTrigger(absolute)&&triggerChanged(absolute))planDirty=true;
   if(candidateTriggerChanged(absolute))planDirty=true;
   entry.pending.add(rel);metrics.maxQueue=Math.max(metrics.maxQueue,
@@ -625,7 +635,7 @@ function verifyRoot() {
 async function catchUp() {
   if(!hasHistory){
     if(!verifyRoot())throw Error('checkout identity changed');
-    if(!watcher)throw Error('Linux observation unavailable');
+    if(!watcher)throw Error('filesystem observation unavailable');
     await watcher.synchronize();
     for(const entry of external.values())if(entry.index){
       if(!entry.watcher)throw Error(`external observation unavailable: ${entry.root}`);
@@ -684,6 +694,10 @@ async function request(message) {
   if(message.action==='reload'){loadReceipts();publish();return {ok:true};}
   if(message.action==='sync'||message.action==='snapshot') {
     if(planning||recovering)return status();
+    // The pinned Windows backend reports explicit errors but does not expose a
+    // reliable history/overflow barrier. A decision-grade read therefore
+    // reconstructs the declared state instead of trusting its event cursor.
+    if(process.platform==='win32')await refreshPlan({forceCold:true});
     if(healthy)try{await catchUp();}catch(e){observationGap('historical_query',e);}
     if(flushTimer||pending.size||planDirty||[...external.values()].some(e=>e.pending.size))flush();
     let synchronizedInstalled=false;
@@ -706,12 +720,13 @@ async function request(message) {
     }
     if(index&&healthy)for(const row of index.checks.values())probe(row);
     lastObservation=Date.now();publish();
-    const data=status(message.contextHashes,synchronizedInstalled);
+    const data=status(message.contextHashes,synchronizedInstalled,
+      process.platform==='win32'&&healthy&&!planning&&!planDirty);
     if(message.action==='snapshot') {
       data.snapshots={};for(const [name,row] of index?.checks||[])
         if(!message.name||message.name===name)
           data.snapshots[name]={...combinedSummary(name),files:combinedFiles(name),
-          planGeneration:metrics.planRebuilds,
+          planGeneration:row.plan.id,
             inputEventSerial:inputEventSerial.get(name)||0,
             probeHash:row.probeHash,
             observationHealthy:healthy&&applicableExternal(name).every(e=>e.healthy)};
@@ -740,7 +755,7 @@ async function shutdown() {
   watcher?.unsubscribe().catch(()=>{});server.close();
   for(const entry of external.values()){
     clearTimeout(entry.recovery);entry.watcher?.unsubscribe().catch(()=>{});}
-  try{fs.unlinkSync(socket);}catch{}
+  if(endpoint.filesystem)try{fs.unlinkSync(socket);}catch{}
   fs.rmSync(lock,{recursive:true,force:true});
   // A native watcher handle may remain wedged even after unsubscribe. State
   // and control ownership are already released; bound process shutdown.
@@ -768,7 +783,9 @@ async function attachWatch(){
       return;}
     if(process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_DROP_EVENTS_FILE&&
       fs.existsSync(process.env.VSTATE_TEST_DROP_EVENTS_FILE))return;
-    for(const change of changes)notification(change.type,path.relative(root,change.path));
+    for(const change of changes){const rel=observedRelative(root,change.path);
+      if(rel===null){observationGap('event_outside_checkout');break;}
+      notification(change.type,rel);}
   });
   } catch(e){watcher=null;observationGap(e.code||'subscription_start',e);}
 }
@@ -779,14 +796,16 @@ async function attachExternal(entry) {
       externalGap(entry,error.code||'subscription_error',error);return;}
     if(process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_DROP_EVENTS_FILE&&
       fs.existsSync(process.env.VSTATE_TEST_DROP_EVENTS_FILE))return;
-    for(const change of changes)externalNotification(entry,change.type,
-      path.relative(entry.root,change.path));
+    for(const change of changes){const rel=observedRelative(entry.root,change.path);
+      if(rel===null){externalGap(entry,'event_outside_root');break;}
+      externalNotification(entry,change.type,rel);}
   });}
   catch(e){entry.watcher=null;entry.reason=`external subscription unavailable: ${e.code||e.name}`;}
 }
-server.listen(socket,async()=>{
+server.listen({path:socket,readableAll:false,writableAll:false},async()=>{
   const setupStarted=performance.now();
-  fs.chmodSync(socket,0o600);loadReceipts();await attachWatch();
+  if(endpoint.filesystem)fs.chmodSync(socket,0o600);
+  loadReceipts();await attachWatch();
   if(hasHistory&&watcher&&!fs.existsSync(snapshotPath))try{
     await queryHistory(root,snapshotPath,'initial snapshot');}
     catch(e){historyDisabled=true;event('history_unavailable',{phase:'initial snapshot',

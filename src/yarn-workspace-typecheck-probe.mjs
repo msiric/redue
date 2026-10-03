@@ -7,10 +7,10 @@ import os from 'node:os';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
+import {withinPath as within} from './path-identity.mjs';
 
 const [rootArg,workspace,script,yarnArg]=process.argv.slice(2);
 const hash=value=>createHash('sha256').update(value).digest('hex');
-const within=(file,root)=>file===root||file.startsWith(root+path.sep);
 const digestFile=file=>hash(fs.readFileSync(file));
 const fail=code=>{throw Object.assign(Error(code),{code});};
 function yarnDistribution(yarn,version){

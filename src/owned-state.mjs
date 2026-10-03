@@ -2,8 +2,7 @@
 // state creation or removal. A watched root is readable, never state-owned.
 import fs from 'node:fs';
 import path from 'node:path';
-
-const within=(file,root)=>file===root||file.startsWith(root+path.sep);
+import {withinPath as within} from './path-identity.mjs';
 
 export function resolvedDestination(file) {
   let current=path.resolve(file),rest=[];

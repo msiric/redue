@@ -3,9 +3,9 @@ import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import micromatch from 'micromatch';
+import {withinPath as within} from './path-identity.mjs';
 
 const posix=file=>file.split(path.sep).join('/');
-const within=(file,root)=>file===root||file.startsWith(root+path.sep);
 const read=file=>JSON.parse(fs.readFileSync(file,'utf8'));
 const relative=(root,file)=>posix(path.relative(root,file));
 const safeDirectory=(root,dir)=>{

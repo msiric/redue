@@ -5,6 +5,7 @@ import {createHash} from 'node:crypto';
 import micromatch from 'micromatch';
 import {sha} from './plan.mjs';
 import {resolveLinks} from './installed-inputs.mjs';
+import {validInputRelative} from './path-identity.mjs';
 
 const tracked = root => [...new Set(execFileSync('git',
   ['ls-files','--cached','--others','--exclude-standard','-z'],
@@ -151,7 +152,7 @@ export class InputIndex {
   summary(name) { const row=this.checks.get(name); return {fingerprint:this.fingerprint(name),
     revision:row.revision,planId:row.plan.id,files:row.files.size,probeAt:row.probeAt}; }
   record(rel, changeReason=rel+' changed', observedStat=null) {
-    if(!rel || path.posix.isAbsolute(rel) || rel.split('/').includes('..')) {
+    if(!validInputRelative(rel)) {
       this.unavailable='invalid event path'; return false;
     }
     const names=this.candidates(rel), old=this.files.get(rel), matched=[];

@@ -8,8 +8,8 @@ import {execFileSync,spawnSync} from 'node:child_process';
 import micromatch from 'micromatch';
 import YAML from 'yaml';
 import {resolveLinks} from './installed-inputs.mjs';
+import {withinPath as within} from './path-identity.mjs';
 
-const within=(file,root)=>file===root||file.startsWith(root+path.sep);
 const rel=(root,file)=>path.relative(root,file).split(path.sep).join('/');
 const read=file=>JSON.parse(fs.readFileSync(file,'utf8'));
 const exists=file=>{try{fs.lstatSync(file);return true;}catch{return false;}};
@@ -302,9 +302,11 @@ export function pnpmTypecheckInputs(root,workspace,script){
     linkTriggers:[...links],absences,
     limitations:[...(absences.length?[
       'optional dependency absence has ancestor Node lookup locations outside the observed checkout']:[]),
-      ...(shared.length&&process.platform!=='linux'?
+      ...(shared.length&&!['linux','win32'].includes(process.platform)?
         ['installed package hardlinks have unobserved storage aliases']:[])],
-    synchronizedInstalledRead:process.platform==='linux',
+    // Installed hardlinks can change through a store alias without a project
+    // directory notification. A decision-grade read must rehash them.
+    synchronizedInstalledRead:['linux','win32'].includes(process.platform),
     resolutionCandidates:[...candidates].map(value=>
       ({path:value,observedPath:value})),workspacePatterns:install.patterns,
     tsc,tsRoot};

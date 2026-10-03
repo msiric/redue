@@ -7,11 +7,11 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {pnpmTypecheckInputs} from './pnpm-inputs.mjs';
+import {withinPath as within} from './path-identity.mjs';
 
 const [rootArg,workspace,script]=process.argv.slice(2);
 const hash=value=>createHash('sha256').update(value).digest('hex');
 const digest=file=>hash(fs.readFileSync(file));
-const within=(file,root)=>file===root||file.startsWith(root+path.sep);
 const fail=code=>{throw Object.assign(Error(code),{code});};
 try{
   if(!rootArg||!workspace||!script)fail('probe-arguments');

@@ -7,6 +7,7 @@ import {permittedRoots,resolveDeclaredInstalled} from './installed-inputs.mjs';
 import {qualifyTypeScript} from './typescript-qualification.mjs';
 import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
 import {pnpmTypecheckInputs} from './pnpm-inputs.mjs';
+import {observedRelative,withinPath} from './path-identity.mjs';
 
 const identity=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const safePattern=value=>{
@@ -28,7 +29,7 @@ export function discoverDeclared(config) {
       !selected.command.every(item=>typeof item==='string'&&item))
       throw Error(`exact command required for ${selected.name}`);
     const cwd=path.resolve(root,selected.cwd||'.');
-    if(cwd!==root&&!cwd.startsWith(root+path.sep))throw Error('check cwd escapes checkout');
+    if(!withinPath(cwd,root))throw Error('check cwd escapes checkout');
     for(const key of ['inputs','generatedInputs','installedInputs']){
       if(!Array.isArray(selected[key]||[]))throw Error(`${key} must be a path-pattern array`);
       for(const value of selected[key]||[])safePattern(value);
@@ -81,8 +82,8 @@ export function discoverDeclared(config) {
     if((selected.probes||[]).length&&!automatic&&!selected.coverage?.probeContinuity)
       unresolved.push('probe state continuity during execution not established');
     const installedPhysicalRoots=[...new Set(installed.physicalRoots
-      .filter(file=>file.startsWith(root+path.sep))
-      .map(file=>path.relative(root,file).split(path.sep).join('/')))].sort();
+      .filter(file=>withinPath(file,root)&&observedRelative(root,file)!=='')
+      .map(file=>observedRelative(root,file)))].sort();
     const externalPatterns=installed.externalPatterns;
     const plan={name:selected.name,provider:'declared-project@1',inputResolutionVersion:1,
       root,cwd,selectedConfigHash:identity(selected),command:selected.command,

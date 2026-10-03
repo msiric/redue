@@ -8,6 +8,9 @@ import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {discoverNodeProject} from '../src/node-onboarding.mjs';
 import {processAlive} from '../src/process-liveness.mjs';
+import {samePath,withinPath} from '../src/path-identity.mjs';
+import {stateIdentity,userStateBase} from '../src/platform-state.mjs';
+import {findExecutable} from '../src/executable-lookup.mjs';
 
 const productRoot=path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const engine=path.join(productRoot,'src','cli.mjs');
@@ -97,7 +100,7 @@ if(command==='init'){
         `Writing ${configFile}; inspect it before running checks.`);
   }
   if(willWrite){
-    if(path.dirname(configFile)!==discovery.root)
+    if(!samePath(path.dirname(configFile),discovery.root))
       error('init writes only at the repository root; use --config there or --dry-run');
     fs.writeFileSync(configFile,JSON.stringify(discovery.config,null,2)+'\n',{flag:'wx'});
     if(!json)console.log(`Created ${configFile}. No checks were executed.`);
@@ -114,18 +117,14 @@ if(!Array.isArray(publicConfig.checks)||!publicConfig.checks.length)
 for(const key of Object.keys(publicConfig))
   if(!['schema','root','checks','packageManager'].includes(key))error(`unsupported config field ${key}`);
 const root=fs.realpathSync(path.resolve(path.dirname(configFile),publicConfig.root||'.'));
-const stateBase=process.platform==='linux'?
-  (path.isAbsolute(process.env.XDG_STATE_HOME||'')?process.env.XDG_STATE_HOME:
-    path.join(os.homedir(),'.local','state')):
-  path.join(os.homedir(),'Library','Application Support');
+const stateBase=userStateBase(process.platform,process.env,os.homedir());
 const state=stateOverride||path.join(stateBase,'vstate',
-  `vstate-${createHash('sha256').update(root+'\0'+configFile).digest('hex').slice(0,16)}`);
+  `vstate-${createHash('sha256').update(stateIdentity(root)+'\0'+
+    stateIdentity(configFile)).digest('hex').slice(0,16)}`);
 const runtimeFile=path.join(state,'project-runtime-v1.json');
 function which(name){
-  for(const folder of (process.env.PATH||'').split(path.delimiter)){
-    const candidate=path.join(folder||process.cwd(),name);
-    try{fs.accessSync(candidate,fs.constants.X_OK);return fs.realpathSync(candidate);}catch{}
-  }
+  const found=findExecutable(name);
+  if(found)return found;
   error(`cannot resolve executable ${name} on PATH`);
 }
 function token(value){
@@ -139,7 +138,7 @@ function token(value){
     let resolved;try{resolved=createRequire(manifest).resolve('typescript/package.json');}
     catch{error('installed TypeScript compiler cannot be resolved');}
     const compiler=path.join(path.dirname(fs.realpathSync(resolved)),'bin','tsc');
-    if(!compiler.startsWith(root+path.sep)||!fs.existsSync(compiler))
+    if(!withinPath(compiler,root)||!fs.existsSync(compiler))
       error('TypeScript executable is outside the observed project');
     return compiler;
   }
@@ -250,8 +249,10 @@ const internal=command==='remove-state'?'uninstall':
   details&&json?'sync':details?'detail':command==='status'&&sync?'sync':command;
 if(command==='run'){
   const child=spawn(process.execPath,[engine,runtimeFile,internal,check],
-    {stdio:'inherit',env:process.env});
-  const forward=signal=>{if(child.exitCode===null)child.kill(signal);};
+    {stdio:['inherit','inherit','inherit','ipc'],env:process.env});
+  const forward=signal=>{if(child.exitCode!==null)return;
+    if(process.platform==='win32'&&child.connected)child.send({action:'cancel',signal});
+    else child.kill(signal);};
   const interrupt=()=>forward('SIGINT'),terminate=()=>forward('SIGTERM');
   process.on('SIGINT',interrupt);process.on('SIGTERM',terminate);
   const outcome=await new Promise(resolve=>{
