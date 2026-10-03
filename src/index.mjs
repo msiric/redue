@@ -134,6 +134,20 @@ export class InputIndex {
     const row=this.checks.get(name);
     return sha(row.plan.id+'\0'+row.files.size+'\0'+row.sum.toString('hex')+'\0'+(row.probeHash||''));
   }
+  async recheckInstalled(names) {
+    const selected=new Set(names),started=performance.now();
+    let files=0,bytes=0;
+    for(const rel of [...this.files.keys()]){
+      if(!this.installedPath(rel)||![...this.members.get(rel)||[]]
+        .some(name=>selected.has(name)))continue;
+      const before=this.rehashedBytes;
+      this.record(rel,rel+' changed');
+      if(this.unavailable)throw Error(this.unavailable);
+      files++;bytes+=this.rehashedBytes-before;
+      if(files%32===0)await new Promise(resolve=>setImmediate(resolve));
+    }
+    return {files,bytes,durationMs:performance.now()-started};
+  }
   summary(name) { const row=this.checks.get(name); return {fingerprint:this.fingerprint(name),
     revision:row.revision,planId:row.plan.id,files:row.files.size,probeAt:row.probeAt}; }
   record(rel, changeReason=rel+' changed', observedStat=null) {

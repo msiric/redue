@@ -3,10 +3,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {spawnSync} from 'node:child_process';
+import {spawn,spawnSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {discoverNodeProject} from '../src/node-onboarding.mjs';
+import {processAlive} from '../src/process-liveness.mjs';
 
 const productRoot=path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const engine=path.join(productRoot,'src','cli.mjs');
@@ -113,8 +114,12 @@ if(!Array.isArray(publicConfig.checks)||!publicConfig.checks.length)
 for(const key of Object.keys(publicConfig))
   if(!['schema','root','checks','packageManager'].includes(key))error(`unsupported config field ${key}`);
 const root=fs.realpathSync(path.resolve(path.dirname(configFile),publicConfig.root||'.'));
-const state=stateOverride||path.join(os.homedir(),'Library','Application Support',
-  'vstate',`vstate-${createHash('sha256').update(root+'\0'+configFile).digest('hex').slice(0,16)}`);
+const stateBase=process.platform==='linux'?
+  (path.isAbsolute(process.env.XDG_STATE_HOME||'')?process.env.XDG_STATE_HOME:
+    path.join(os.homedir(),'.local','state')):
+  path.join(os.homedir(),'Library','Application Support');
+const state=stateOverride||path.join(stateBase,'vstate',
+  `vstate-${createHash('sha256').update(root+'\0'+configFile).digest('hex').slice(0,16)}`);
 const runtimeFile=path.join(state,'project-runtime-v1.json');
 function which(name){
   for(const folder of (process.env.PATH||'').split(path.delimiter)){
@@ -234,8 +239,7 @@ if(!maintenance&&fs.existsSync(runtimeFile)){
     const pidFile=path.join(state,'observer.lock','pid');
     if(fs.existsSync(pidFile)){
       const pid=Number(fs.readFileSync(pidFile));
-      try{process.kill(pid,0);error('config changed while observer is running; stop it before restarting with the new plan');}
-      catch(e){if(e.code!=='ESRCH')throw e;}
+      if(processAlive(pid))error('config changed while observer is running; stop it before restarting with the new plan');
     }
     fs.writeFileSync(runtimeFile,serialized,{mode:0o600});
   }
@@ -244,6 +248,20 @@ if(!maintenance&&fs.existsSync(runtimeFile)){
 const details=command==='detail'||command==='explain';
 const internal=command==='remove-state'?'uninstall':
   details&&json?'sync':details?'detail':command==='status'&&sync?'sync':command;
+if(command==='run'){
+  const child=spawn(process.execPath,[engine,runtimeFile,internal,check],
+    {stdio:'inherit',env:process.env});
+  const forward=signal=>{if(child.exitCode===null)child.kill(signal);};
+  const interrupt=()=>forward('SIGINT'),terminate=()=>forward('SIGTERM');
+  process.on('SIGINT',interrupt);process.on('SIGTERM',terminate);
+  const outcome=await new Promise(resolve=>{
+    child.once('error',error=>resolve({error}));
+    child.once('close',(status,signal)=>resolve({status,signal}));
+  });
+  process.off('SIGINT',interrupt);process.off('SIGTERM',terminate);
+  if(outcome.error)error(outcome.error.message);
+  process.exit(outcome.status??(outcome.signal?128+os.constants.signals[outcome.signal]:1));
+}
 const result=spawnSync(process.execPath,[engine,runtimeFile,internal,...(check?[check]:[])],
   {stdio:['inherit',json||command==='status'||details?'pipe':'inherit','inherit'],
     encoding:'utf8',env:process.env});

@@ -302,7 +302,9 @@ export function pnpmTypecheckInputs(root,workspace,script){
     linkTriggers:[...links],absences,
     limitations:[...(absences.length?[
       'optional dependency absence has ancestor Node lookup locations outside the observed checkout']:[]),
-      ...(shared.length?['installed package hardlinks have unobserved storage aliases']:[])],
+      ...(shared.length&&process.platform!=='linux'?
+        ['installed package hardlinks have unobserved storage aliases']:[])],
+    synchronizedInstalledRead:process.platform==='linux',
     resolutionCandidates:[...candidates].map(value=>
       ({path:value,observedPath:value})),workspacePatterns:install.patterns,
     tsc,tsRoot};

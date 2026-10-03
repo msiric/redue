@@ -5,7 +5,7 @@ import {randomUUID} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {Worker} from 'node:worker_threads';
 import {fileURLToPath} from 'node:url';
-import parcelWatcher from '@parcel/watcher';
+import {subscribe,hasHistory,backend} from './platform-observation.mjs';
 import micromatch from 'micromatch';
 import {sha} from './plan.mjs';
 import {InputIndex} from './index.mjs';
@@ -34,8 +34,10 @@ for(const check of config.checks)for(const boundary of permittedRoots(root,check
     recoveryDelay:1000,
     snapshot:path.join(state,`external-${sha(boundary).slice(0,16)}.snapshot`)});
 let pending=new Set(), pendingChecks=new Set(), flushTimer, planDirty=false, planning=false, lastObservation=0;
+let inputEventSerial=new Map();
 let synchronizing=null;
-let historyDisabled=false,recoveryTimer=null,recovering=false,recoveryAttempts=0;
+let installedRecheck=null;
+let historyDisabled=!hasHistory,recoveryTimer=null,recovering=false,recoveryAttempts=0;
 let identityChanged=false;
 let triggerHashes=new Map();
 let candidateDescendants=new Map();
@@ -43,7 +45,6 @@ let workspacePatterns=(()=>{const w=JSON.parse(fs.readFileSync(path.join(root,'p
   return Array.isArray(w)?w:w?.packages||[];})();
 let planningWorker=null;
 let gapDuringPlan=false;
-const backend=process.platform==='darwin'?'fs-events':'inotify';
 const snapshotPath=path.join(state,'fs-events.snapshot');
 const metrics={notifications:0,flushes:0,reconciliations:0,planRebuilds:0,gaps:0,
   maxQueue:0,historyQueries:0,historyTimeouts:0,startupAt:startedAt};
@@ -158,7 +159,7 @@ function describeChangedInput(plan,file) {
     .map(mapping=>mapping.logical).slice(0,2);
   return file+' changed'+(matches.length?` (installed via ${matches.join(', ')})`:'');
 }
-function rows(contextHashes) {
+function rows(contextHashes,synchronizedInstalled=false) {
   if(!index)return [];
   return [...index.checks].map(([name,row])=>{
     const r=receipts[name], result=r?.result||null;
@@ -184,6 +185,8 @@ function rows(contextHashes) {
       return item;
     }
     if(row.probeError||!row.probeAt||Date.now()-row.probeAt>10000){item.reason=row.probeError||'state probe observation expired';return item;}
+    if(row.plan.synchronizedInstalledRead&&!synchronizedInstalled){
+      item.reason='installed inputs require a synchronized content read';return item;}
     if(!r)return item;
     if(!r.coverage?.qualified){item.reason='coverage unresolved when execution was recorded';return item;}
     if(r.invocation?.status!=='exited'){
@@ -234,8 +237,8 @@ function rows(contextHashes) {
     return item;
   });
 }
-function status(contextHashes) {
-  const checks=rows(contextHashes), current=checks.filter(r=>r.freshness==='CURRENT'&&r.result==='PASS').length,
+function status(contextHashes,synchronizedInstalled=false) {
+  const checks=rows(contextHashes,synchronizedInstalled), current=checks.filter(r=>r.freshness==='CURRENT'&&r.result==='PASS').length,
     failed=checks.filter(r=>r.freshness==='CURRENT'&&r.result==='FAIL').length,
     observedFailed=checks.filter(r=>r.result==='FAIL').length,
     stale=checks.filter(r=>r.freshness==='STALE').length,
@@ -345,6 +348,7 @@ async function refreshPlan({forceCold=false}={}) {
     workspacePatterns=bundle.workspacePatterns||workspacePatterns;
     const hydrationStarted=performance.now();
     index=hydrate(bundle,built.index);
+    inputEventSerial=new Map([...index.checks.keys()].map(name=>[name,0]));
     for(const entry of external.values()) {
       const data=built.external?.[entry.root];
       entry.index=data?hydrate({root:entry.root,plans:Object.fromEntries(
@@ -362,6 +366,17 @@ async function refreshPlan({forceCold=false}={}) {
     metrics.restartMode=built.restartMode||'cold-index';
     metrics.planPhase='reconciling';
     metrics.planRebuilds++;metrics.reconciliations++;
+    if(!hasHistory&&watcher){
+      const checked=[...index.checks].filter(([,row])=>
+        row.plan.synchronizedInstalledRead).map(([name])=>name);
+      const selected=new Set(checked);
+      const files=[...index.files.keys()].filter(rel=>index.installedPath(rel)&&
+        [...index.members.get(rel)||[]].some(name=>selected.has(name)))
+        .map(rel=>path.join(root,rel));
+      await watcher.watchFiles(files);
+      metrics.installedInodeWatches=files.length;
+      if(checked.length)metrics.initialInstalledRecheck=await index.recheckInstalled(checked);
+    }
     triggerHashes=new Map([...bundle.workspaceManifests,...(bundle.configurationInputs||[]),
       ...Object.values(bundle.plans).flatMap(plan=>plan.resolutionTriggers||[]),
       'package.json','package-lock.json'].map(rel=>[rel,triggerHash(rel)]));
@@ -383,7 +398,7 @@ async function refreshPlan({forceCold=false}={}) {
     lastObservation=Date.now();
     event('plan_rebuilt',{checks:Object.keys(bundle.plans),workspace_count:bundle.workspaceCount});
     const catchUpStarted=performance.now();
-    if(watcher&&!historyDisabled)try{await catchUp();}
+    if(watcher&&(!historyDisabled||!hasHistory))try{await catchUp();}
       catch(e){planning=false;observationGap('historical_query',e);return;}
     metrics.lastCatchUpMs=performance.now()-catchUpStarted;
     if(gapDuringPlan){planning=false;observationGap('plan_gap');return;}
@@ -470,8 +485,13 @@ function pnpmTopologyChanged(type,rel) {
     return stat.isDirectory()||stat.isSymbolicLink();}
   catch(e){return e.code==='ENOENT';}
 }
+function markInputEvent(name) {
+  pendingChecks.add(name);
+  inputEventSerial.set(name,(inputEventSerial.get(name)||0)+1);
+}
 function notification(type,filename) {
   metrics.notifications++;
+  metrics.lastNotificationAt=Date.now();
   if(!filename){observationGap('unnamed_event');return;}
   const rel=filename.toString().split(path.sep).join('/');
   if(rel==='.git'||rel.startsWith('.git/'))return;
@@ -499,9 +519,9 @@ function notification(type,filename) {
   pending.add(rel);metrics.maxQueue=Math.max(metrics.maxQueue,pending.size);
   if(index) {
     for(const name of index.candidates(rel))
-      if(index.matches(index.checks.get(name),rel))pendingChecks.add(name);
+      if(index.matches(index.checks.get(name),rel))markInputEvent(name);
     for(const [prefix,names] of index.prefixes)
-      if(prefix.startsWith(rel+'/'))for(const name of names)pendingChecks.add(name);
+      if(prefix.startsWith(rel+'/'))for(const name of names)markInputEvent(name);
   }
   if(pending.size>50000){healthy=false;reason='observation backlog overflow';metrics.gaps++;
     event('observation_gap',{classification:'backlog_overflow'});publish();
@@ -512,6 +532,7 @@ function notification(type,filename) {
 }
 function externalNotification(entry,type,filename) {
   metrics.notifications++;
+  metrics.lastNotificationAt=Date.now();
   if(!filename){externalGap(entry,'unnamed_event');return;}
   const rel=filename.toString().split(path.sep).join('/');
   const absolute=path.join(entry.root,rel);
@@ -521,9 +542,9 @@ function externalNotification(entry,type,filename) {
     pending.size+[...external.values()].reduce((n,e)=>n+e.pending.size,0));
   if(entry.index) {
     for(const name of entry.index.candidates(rel))
-      if(entry.index.matches(entry.index.checks.get(name),rel))pendingChecks.add(name);
+      if(entry.index.matches(entry.index.checks.get(name),rel))markInputEvent(name);
     for(const [prefix,names] of entry.index.prefixes)
-      if(prefix.startsWith(rel+'/'))for(const name of names)pendingChecks.add(name);
+      if(prefix.startsWith(rel+'/'))for(const name of names)markInputEvent(name);
   }
   if(planDirty){healthy=false;reason='input plan possibly changed';}
   publish();clearTimeout(flushTimer);flushTimer=setTimeout(flush,60);
@@ -565,7 +586,7 @@ async function recoverObservation(classification) {
       event('observation_root_replaced');
     }
     if(!watcher)await attachWatch();
-    if(!watcher)throw Error('root subscription unavailable');
+    if(!watcher)throw Error(`root subscription unavailable: ${reason}`);
     for(const entry of external.values()){
       const identity=fs.statSync(entry.root,{bigint:true});
       if(entry.watcher&&(identity.dev!==entry.identity?.dev||
@@ -602,6 +623,18 @@ function verifyRoot() {
   return false;
 }
 async function catchUp() {
+  if(!hasHistory){
+    if(!verifyRoot())throw Error('checkout identity changed');
+    if(!watcher)throw Error('Linux observation unavailable');
+    await watcher.synchronize();
+    for(const entry of external.values())if(entry.index){
+      if(!entry.watcher)throw Error(`external observation unavailable: ${entry.root}`);
+      await entry.watcher.synchronize();
+    }
+    if(!planning&&(flushTimer||pending.size||planDirty||
+      [...external.values()].some(entry=>entry.pending.size)))flush();
+    lastObservation=Date.now();return;
+  }
   if(historyDisabled)return;
   if(synchronizing)return synchronizing;
   synchronizing=(async()=>{
@@ -643,6 +676,7 @@ async function request(message) {
   if(message.action==='stop'){setImmediate(shutdown);return {ok:true};}
   if(message.action==='metrics')return {generation,metrics,index:{files:index?.files.size,
     rehashedFiles:index?.rehashedFiles,rehashedBytes:index?.rehashedBytes,
+    lastInputChangeAt:index?.lastChange,
     profile:index?.profile},external:[...external.values()].map(e=>({root:e.root,
       healthy:e.healthy,reason:e.reason,files:e.index?.files.size,
       rehashedFiles:e.index?.rehashedFiles,rehashedBytes:e.index?.rehashedBytes})),
@@ -652,14 +686,33 @@ async function request(message) {
     if(planning||recovering)return status();
     if(healthy)try{await catchUp();}catch(e){observationGap('historical_query',e);}
     if(flushTimer||pending.size||planDirty||[...external.values()].some(e=>e.pending.size))flush();
+    let synchronizedInstalled=false;
+    if(index&&healthy&&!planning){
+      const names=[...index.checks].filter(([name,row])=>
+        row.plan.synchronizedInstalledRead&&(!message.name||message.name===name))
+        .map(([name])=>name);
+      if(names.length)try{
+        if(installedRecheck)await installedRecheck;
+        const observedIndex=index;
+        installedRecheck=observedIndex.recheckInstalled(names);
+        const result=await installedRecheck;
+        metrics.lastInstalledRecheck=result;
+        installedRecheck=null;
+        await catchUp();
+        if(flushTimer||pending.size||planDirty)flush();
+        synchronizedInstalled=healthy&&!planning&&!planDirty&&!index.unavailable&&
+          index===observedIndex;
+      }catch(e){installedRecheck=null;observationGap('installed_recheck',e);}
+    }
     if(index&&healthy)for(const row of index.checks.values())probe(row);
     lastObservation=Date.now();publish();
-    const data=status(message.contextHashes);
+    const data=status(message.contextHashes,synchronizedInstalled);
     if(message.action==='snapshot') {
       data.snapshots={};for(const [name,row] of index?.checks||[])
         if(!message.name||message.name===name)
           data.snapshots[name]={...combinedSummary(name),files:combinedFiles(name),
-            planGeneration:metrics.planRebuilds,
+          planGeneration:metrics.planRebuilds,
+            inputEventSerial:inputEventSerial.get(name)||0,
             probeHash:row.probeHash,
             observationHealthy:healthy&&applicableExternal(name).every(e=>e.healthy)};
     }
@@ -709,31 +762,32 @@ const server=net.createServer(client=>{
   });
 });
 async function attachWatch(){
-  try {watcher=await parcelWatcher.subscribe(root,(error,changes)=>{
-    if(error){observationGap('subscription_error',error);watcher?.unsubscribe().catch(()=>{});watcher=null;
+  try {watcher=await subscribe(root,(error,changes)=>{
+    if(error){observationGap(error.code||'subscription_error',error);
+      watcher?.unsubscribe().catch(()=>{});watcher=null;
       return;}
     if(process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_DROP_EVENTS_FILE&&
       fs.existsSync(process.env.VSTATE_TEST_DROP_EVENTS_FILE))return;
     for(const change of changes)notification(change.type,path.relative(root,change.path));
-  },{backend});
-  } catch(e){watcher=null;observationGap('subscription_start',e);}
+  });
+  } catch(e){watcher=null;observationGap(e.code||'subscription_start',e);}
 }
 async function attachExternal(entry) {
   try{entry.identity=fs.statSync(entry.root,{bigint:true});
-    entry.watcher=await parcelWatcher.subscribe(entry.root,(error,changes)=>{
+    entry.watcher=await subscribe(entry.root,(error,changes)=>{
     if(error){entry.watcher?.unsubscribe().catch(()=>{});entry.watcher=null;
-      externalGap(entry,'subscription_error',error);return;}
+      externalGap(entry,error.code||'subscription_error',error);return;}
     if(process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_DROP_EVENTS_FILE&&
       fs.existsSync(process.env.VSTATE_TEST_DROP_EVENTS_FILE))return;
     for(const change of changes)externalNotification(entry,change.type,
       path.relative(entry.root,change.path));
-  },{backend});}
+  });}
   catch(e){entry.watcher=null;entry.reason=`external subscription unavailable: ${e.code||e.name}`;}
 }
 server.listen(socket,async()=>{
   const setupStarted=performance.now();
   fs.chmodSync(socket,0o600);loadReceipts();await attachWatch();
-  if(watcher&&!fs.existsSync(snapshotPath))try{
+  if(hasHistory&&watcher&&!fs.existsSync(snapshotPath))try{
     await queryHistory(root,snapshotPath,'initial snapshot');}
     catch(e){historyDisabled=true;event('history_unavailable',{phase:'initial snapshot',
       error_code:e.code||e.name});}

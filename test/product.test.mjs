@@ -37,6 +37,8 @@ function fixture(options={}){
     env:{...process.env,VSTATE_HISTORY_TIMEOUT_MS:'1000',VSTATE_TEST_FAULTS:'1',
       VSTATE_START_READY_WAIT_MS:'10000',
       VSTATE_TEST_HISTORY_FAULT_FILE:path.join(state,'history-fault'),
+      VSTATE_TEST_LINUX_GAP_FILE:path.join(state,'linux-gap'),
+      VSTATE_TEST_LINUX_HANG_FILE:path.join(state,'linux-hang'),
       VSTATE_TEST_RECONCILE_FAULT_FILE:path.join(state,'reconcile-fault'),
       VSTATE_TEST_DROP_EVENTS_FILE:path.join(state,'drop-events')},
     cleanup(){fs.rmSync(base,{recursive:true,force:true});}};
@@ -53,6 +55,20 @@ function withFixture(t,options){const f=fixture(options);t.after(()=>{
   try{call(f,'stop');}catch{}try{call(f,'remove-state');}catch{}f.cleanup();});return f;}
 const events=f=>fs.readFileSync(path.join(f.state,'events.jsonl'),'utf8').trim()
   .split('\n').filter(Boolean).map(line=>JSON.parse(line));
+function observationFault(f,kind='fail'){
+  put(path.join(f.state,process.platform==='linux'?'linux-gap':'history-fault'),
+    process.platform==='linux'?(kind==='fail'?'inotify_overflow':kind):kind);
+}
+async function faultObserved(f,kind='fail'){
+  const count=events(f).filter(e=>e.kind==='observation_gap').length;
+  observationFault(f,kind);
+  if(process.platform==='darwin'){status(f);return;}
+  for(let n=0;n<100;n++){
+    if(events(f).filter(e=>e.kind==='observation_gap').length>count)return;
+    await new Promise(resolve=>setTimeout(resolve,25));
+  }
+  assert.fail('observation fault was not reported');
+}
 async function until(f,predicate,limitMs=10000){const started=Date.now();
   while(Date.now()-started<limitMs){const value=status(f);
     if(predicate(value))return value;
@@ -70,7 +86,7 @@ test('short startup wait reports owned initialization instead of a false launch 
   assert.equal(usable.checks[0].freshness,'UNVERIFIED');
 });
 
-test('receipt survives unrelated changes; source, generated, installed and absence changes stale it',t=>{
+test('receipt survives unrelated changes; source, generated, installed and absence changes stale it',async t=>{
   const f=withFixture(t,{absent:true});ok(f,'start');ok(f,'run','check');
   const first=row(f);assert.equal(first.freshness,'CURRENT');
   const firstRun=path.join(f.state,'runs-v1',first.invocation.runId+'.json');
@@ -84,7 +100,7 @@ test('receipt survives unrelated changes; source, generated, installed and absen
   put(path.join(f.root,'node_modules/pkg/index.js'),'module.exports=2;\n');
   assert.equal(row(f).freshness,'STALE');ok(f,'run','check');
   put(path.join(f.root,'node_modules/optional/index.js'),'module.exports=1;\n');
-  assert.equal(row(f).freshness,'STALE');
+  assert.equal((await until(f,s=>s.checks[0].freshness==='STALE')).checks[0].freshness,'STALE');
   assert.equal(fs.readFileSync(firstRun,'utf8'),immutable);
   assert(fs.readdirSync(path.join(f.state,'runs-v1')).length>=4);
 });
@@ -202,7 +218,8 @@ test('change while observer is stopped is reconciled before CURRENT returns',t=>
   assert.match(item.reason,/src\/input.txt changed/);
 });
 
-test('healthy history fast path preserves evidence after unrelated edit',t=>{
+test('healthy history fast path preserves evidence after unrelated edit',
+  {skip:process.platform!=='darwin'},t=>{
   const f=withFixture(t);ok(f,'start');ok(f,'run','check');
   const first=row(f).invocation.runId;
   const before=events(f).filter(e=>e.kind==='history_query_completed').length;
@@ -213,7 +230,8 @@ test('healthy history fast path preserves evidence after unrelated edit',t=>{
   assert(events(f).filter(e=>e.kind==='history_query_completed').length>before);
 });
 
-for(const fault of ['hang','fail'])test(`history ${fault} falls back to deterministic reconciliation`,async t=>{
+for(const fault of ['hang','fail'])test(`history ${fault} falls back to deterministic reconciliation`,
+  {skip:process.platform!=='darwin'},async t=>{
   const f=withFixture(t,{absent:true});ok(f,'start');ok(f,'run','check');
   const original=row(f).invocation.runId;
   put(path.join(f.state,'history-fault'),fault);
@@ -238,8 +256,8 @@ for(const fault of ['hang','fail'])test(`history ${fault} falls back to determin
 test('reconciliation preserves unchanged and unrelated inputs, then detects installed and absent inputs',async t=>{
   const f=withFixture(t,{absent:true});ok(f,'start');ok(f,'run','check');
   const runId=row(f).invocation.runId;
-  put(path.join(f.state,'history-fault'),'fail');
-  assert.equal(row(f).freshness,'UNVERIFIED');
+  await faultObserved(f);
+  if(process.platform==='darwin')assert.equal(row(f).freshness,'UNVERIFIED');
   assert.equal((await until(f,s=>s.checks[0].freshness==='CURRENT')).checks[0].invocation.runId,runId);
   put(path.join(f.root,'notes.md'),'outside contract');assert.equal(row(f).freshness,'CURRENT');
   const installed=path.join(f.root,'node_modules/pkg/index.js');
@@ -248,7 +266,7 @@ test('reconciliation preserves unchanged and unrelated inputs, then detects inst
   assert.equal(row(f).freshness,'STALE');ok(f,'run','check');
   assert.equal(row(f).freshness,'CURRENT',JSON.stringify(status(f).checks[0]));
   put(path.join(f.root,'node_modules/optional/index.js'),'module.exports=1;\n');
-  assert.equal(row(f).freshness,'STALE');
+  assert.equal((await until(f,s=>s.checks[0].freshness==='STALE')).checks[0].freshness,'STALE');
 });
 
 test('fresh reconciliation detects membership and linked installed-target replacement',async t=>{
@@ -266,8 +284,10 @@ test('fresh reconciliation detects membership and linked installed-target replac
   fs.rmSync(path.join(f.root,'node_modules/pkg'));
   fs.symlinkSync('../workspace/b',path.join(f.root,'node_modules/pkg'));
   put(path.join(f.root,'node_modules/optional/index.js'),'now present\n');
-  put(path.join(f.state,'history-fault'),'fail');
-  assert.equal(row(f).freshness,'UNVERIFIED');
+  if(process.platform==='darwin'){
+    await faultObserved(f);
+    assert.equal(row(f).freshness,'UNVERIFIED');
+  }
   const result=await until(f,s=>s.checks[0].freshness==='STALE');
   assert.equal(result.checks[0].result,'PASS');
   assert(fs.existsSync(path.join(f.root,'generated/new.txt')));
@@ -281,8 +301,8 @@ test('missed deletion is found by independent fresh reconciliation',async t=>{
   assert(fs.existsSync(generated));
   put(path.join(f.state,'drop-events'),'1');
   fs.unlinkSync(generated);assert(!fs.existsSync(generated));
-  put(path.join(f.state,'history-fault'),'fail');
-  assert.equal(row(f).freshness,'UNVERIFIED');
+  await faultObserved(f);
+  if(process.platform==='darwin')assert.equal(row(f).freshness,'UNVERIFIED');
   const item=(await until(f,s=>s.checks[0].freshness==='STALE')).checks[0];
   assert.equal(item.result,'PASS');
   assert.match(item.reason,/generated\/data.txt changed/);
@@ -292,8 +312,8 @@ test('failed reconciliation stays UNVERIFIED, preserves PASS, and restart repair
   const f=withFixture(t);ok(f,'start');ok(f,'run','check');
   const runId=row(f).invocation.runId;
   put(path.join(f.state,'reconcile-fault'),'1');
-  put(path.join(f.state,'history-fault'),'fail');
-  assert.equal(row(f).freshness,'UNVERIFIED');
+  await faultObserved(f);
+  if(process.platform==='darwin')assert.equal(row(f).freshness,'UNVERIFIED');
   const failedAt=Date.now();
   while(!events(f).some(e=>e.kind==='reconciliation_failed')&&Date.now()-failedAt<5000)
     await new Promise(resolve=>setTimeout(resolve,50));
@@ -304,13 +324,14 @@ test('failed reconciliation stays UNVERIFIED, preserves PASS, and restart repair
   await new Promise(resolve=>setTimeout(resolve,900));
   assert.equal(events(f).filter(e=>e.kind==='reconciliation_started').length,2);
   fs.unlinkSync(path.join(f.state,'reconcile-fault'));
-  fs.unlinkSync(path.join(f.state,'history-fault'));
+  if(process.platform==='darwin')fs.unlinkSync(path.join(f.state,'history-fault'));
   ok(f,'stop');ok(f,'start');
   assert.equal(row(f).freshness,'CURRENT',JSON.stringify(status(f).checks[0]));
   assert.equal(row(f).invocation.runId,runId);
 });
 
-test('hung history does not block cached status or stop',async t=>{
+test('hung history does not block cached status or stop',
+  {skip:process.platform!=='darwin'},async t=>{
   const f=withFixture(t);ok(f,'start');ok(f,'run','check');
   put(path.join(f.state,'history-fault'),'hang');
   const child=spawn(process.execPath,[bin,'--config',f.config,'--state-dir',f.state,
@@ -322,6 +343,179 @@ test('hung history does not block cached status or stop',async t=>{
   assert(performance.now()-began<2500,'stop/status blocked by native history');
   await new Promise(resolve=>child.once('exit',resolve));
   assert.equal(JSON.parse(ok(f,'status','--json').stdout).checks[0].freshness,'UNVERIFIED');
+});
+
+test('Linux overflow, watch loss, and watch exhaustion withhold CURRENT then reconcile',
+  {skip:process.platform!=='linux'},async t=>{
+  const f=withFixture(t);ok(f,'start');ok(f,'run','check');
+  const runId=row(f).invocation.runId;
+  for(const cause of ['inotify_overflow','inotify_watch_lost','inotify_watch_add_failed']){
+    await faultObserved(f,cause);
+    const gap=events(f).findLast(e=>e.kind==='observation_gap');
+    assert.equal(gap.classification,cause);
+    const recovered=await until(f,s=>s.checks[0].freshness==='CURRENT'&&
+      events(f).some(e=>e.kind==='reconciliation_completed'&&e.classification===cause));
+    assert.equal(recovered.checks[0].invocation.runId,runId);
+  }
+});
+
+test('Linux hung synchronization leaves cached status and stop responsive',
+  {skip:process.platform!=='linux'},async t=>{
+  const f=withFixture(t);ok(f,'start');ok(f,'run','check');
+  put(path.join(f.state,'linux-hang'),'1');
+  const sync=spawn(process.execPath,[bin,'--config',f.config,'--state-dir',f.state,
+    'status','--sync','--json'],{cwd:f.root,env:f.env,stdio:'ignore'});
+  await new Promise(resolve=>setTimeout(resolve,100));
+  const began=performance.now();
+  assert.equal(JSON.parse(ok(f,'status','--json').stdout).checks[0].result,'PASS');
+  ok(f,'stop');
+  assert(performance.now()-began<2500,'stop/status blocked by Linux observer barrier');
+  await new Promise(resolve=>sync.once('exit',resolve));
+  assert.equal(JSON.parse(ok(f,'status','--json').stdout).checks[0].freshness,'UNVERIFIED');
+});
+
+test('Linux cancellation reaches verification descendants and leaves no run lock',
+  {skip:process.platform!=='linux'},async t=>{
+  const f=withFixture(t,{script:"const cp=require('node:child_process'),fs=require('node:fs');"+
+    "const child=cp.spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'inherit'});"+
+    "fs.writeFileSync('pids.json',JSON.stringify({leader:process.pid,descendant:child.pid}));"+
+    "setInterval(()=>{},1000);\n"});
+  ok(f,'start');
+  const wrapper=spawn(process.execPath,[bin,'--config',f.config,'--state-dir',f.state,
+    'run','check'],{cwd:f.root,env:f.env,stdio:'ignore'});
+  t.after(()=>{try{wrapper.kill('SIGKILL');}catch{}});
+  const pidsFile=path.join(f.root,'pids.json');
+  for(let n=0;n<100&&!fs.existsSync(pidsFile);n++)
+    await new Promise(resolve=>setTimeout(resolve,25));
+  assert(fs.existsSync(pidsFile),'verification command did not launch');
+  const pids=JSON.parse(fs.readFileSync(pidsFile));
+  wrapper.kill('SIGTERM');
+  const exited=await new Promise(resolve=>wrapper.once('exit',resolve));
+  assert.equal(exited,143);
+  const running=pid=>{try{
+    const state=fs.readFileSync(`/proc/${pid}/stat`,'utf8').split(' ')[2];
+    return state!=='Z'&&state!=='X';
+  }catch{return false;}};
+  for(let n=0;n<100&&(running(pids.leader)||running(pids.descendant));n++)
+    await new Promise(resolve=>setTimeout(resolve,25));
+  assert.equal(running(pids.leader),false);
+  assert.equal(running(pids.descendant),false);
+  assert.equal(inspectRunLock(f.state).state,'absent');
+  const result=row(f);assert.equal(result.freshness,'UNVERIFIED');
+  assert.equal(result.invocation.status,'interrupted');
+});
+
+test('Linux killed wrapper preserves an uncertain lock while child work survives',
+  {skip:process.platform!=='linux'},async t=>{
+  const f=withFixture(t,{script:"const cp=require('node:child_process'),fs=require('node:fs');"+
+    "const child=cp.spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'inherit'});"+
+    "fs.writeFileSync('pids.json',JSON.stringify({leader:process.pid,descendant:child.pid}));"+
+    "setInterval(()=>{},1000);\n"});
+  ok(f,'start');
+  const outer=spawn(process.execPath,[bin,'--config',f.config,'--state-dir',f.state,
+    'run','check'],{cwd:f.root,env:f.env,stdio:'ignore'});
+  let pids=null,owner=null;
+  t.after(()=>{
+    if(pids)try{process.kill(-pids.leader,'SIGKILL');}catch{}
+    if(owner)try{process.kill(owner,'SIGKILL');}catch{}
+    try{outer.kill('SIGKILL');}catch{}
+  });
+  for(let n=0;n<100;n++){
+    const file=path.join(f.root,'pids.json');
+    if(fs.existsSync(file)){pids=JSON.parse(fs.readFileSync(file));break;}
+    await new Promise(resolve=>setTimeout(resolve,25));
+  }
+  assert(pids,'verification command did not launch');
+  owner=inspectRunLock(f.state).owner.pid;
+  process.kill(owner,'SIGKILL');
+  await new Promise(resolve=>outer.once('exit',resolve));
+  assert.equal(inspectRunLock(f.state).state,'uncertain');
+  process.kill(-pids.leader,'SIGTERM');
+  const running=pid=>{try{
+    return !['Z','X'].includes(fs.readFileSync(`/proc/${pid}/stat`,'utf8').split(' ')[2]);
+  }catch{return false;}};
+  for(let n=0;n<100&&(running(pids.leader)||running(pids.descendant));n++)
+    await new Promise(resolve=>setTimeout(resolve,25));
+  assert.equal(running(pids.leader),false);
+  assert.equal(running(pids.descendant),false);
+  assert.equal(inspectRunLock(f.state).state,'uncertain');
+  assert.equal(recoverRunLock(f.state,true).recovered,true);
+  assert.equal(inspectRunLock(f.state).state,'absent');
+});
+
+test('Linux XDG state and case-sensitive Unicode paths keep cleanup scoped',
+  {skip:process.platform!=='linux'},t=>{
+  const f=fixture(),renamed=path.join(f.base,'project space-é');
+  fs.renameSync(f.root,renamed);f.root=renamed;f.config=path.join(renamed,'vstate.config.json');
+  const xdg=path.join(f.base,'xdg-state');fs.mkdirSync(xdg);
+  const invoke=(...args)=>spawnSync(process.execPath,[bin,'--config',f.config,...args],
+    {encoding:'utf8',cwd:renamed,timeout:30000,env:{...f.env,XDG_STATE_HOME:xdg}});
+  const start=invoke('start');assert.equal(start.status,0,start.stderr);
+  t.after(()=>{invoke('stop');invoke('remove-state');f.cleanup();});
+  const owned=path.join(xdg,'vstate');
+  assert.equal(fs.readdirSync(owned).length,1);
+  assert.equal(invoke('run','check').status,0);
+  const fresh=()=>JSON.parse(invoke('status','--sync','--json').stdout).checks[0];
+  assert.equal(fresh().freshness,'CURRENT');
+  put(path.join(renamed,'src/Input.txt'),'unrelated case\n');
+  const config=JSON.parse(fs.readFileSync(f.config));
+  // The declared fixture glob includes both spellings, so the different-case
+  // creation must stale it on a case-sensitive Linux filesystem.
+  assert(config.checks[0].inputs.includes('src/**'));
+  assert.equal(fresh().freshness,'STALE');
+  assert(fs.existsSync(path.join(renamed,'src/input.txt')));
+  assert(fs.existsSync(path.join(renamed,'src/Input.txt')));
+  assert.equal(invoke('remove-state').status,0);
+  assert(fs.existsSync(path.join(renamed,'src/Input.txt')));
+  assert.equal(fs.readdirSync(owned).length,0);
+});
+
+test('Linux inaccessible declared input withholds CURRENT until reconciliation',
+  {skip:process.platform!=='linux'||process.getuid?.()===0},async t=>{
+  const f=withFixture(t);ok(f,'start');ok(f,'run','check');
+  const runId=row(f).invocation.runId;
+  const input=path.join(f.root,'src/input.txt');
+  fs.chmodSync(input,0o000);
+  const uncertain=await until(f,s=>s.checks[0].freshness==='UNVERIFIED');
+  assert.equal(uncertain.checks[0].result,'PASS');
+  assert.equal(uncertain.checks[0].invocation.runId,runId);
+  fs.chmodSync(input,0o644);
+  ok(f,'stop');ok(f,'start');
+  assert.equal(row(f).freshness,'CURRENT');
+});
+
+test('Linux atomic replacement and delete/recreate change the declared input',
+  {skip:process.platform!=='linux'},async t=>{
+  const f=withFixture(t);ok(f,'start');ok(f,'run','check');
+  const input=path.join(f.root,'src/input.txt');
+  const old=oracle(input),replacement=path.join(f.root,'src/input.tmp');
+  put(replacement,'PASS atomic replacement\n');
+  fs.renameSync(replacement,input);
+  assert.notEqual(oracle(input),old);
+  assert.equal((await until(f,s=>s.checks[0].freshness==='STALE')).checks[0].result,'PASS');
+  ok(f,'run','check');assert.equal(row(f).freshness,'CURRENT');
+  fs.unlinkSync(input);
+  assert.equal((await until(f,s=>s.checks[0].freshness==='STALE')).checks[0].result,'PASS');
+  put(input,'PASS recreated\n');
+  assert.equal(row(f).freshness,'STALE');
+  ok(f,'run','check');assert.equal(row(f).freshness,'CURRENT');
+});
+
+test('Linux daemon crash with a missed edit reconciles the historical receipt',
+  {skip:process.platform!=='linux'},async t=>{
+  const f=withFixture(t);ok(f,'start');ok(f,'run','check');
+  const prior=row(f);assert.equal(prior.freshness,'CURRENT');
+  const pid=Number(fs.readFileSync(path.join(f.state,'observer.lock','pid'),'utf8'));
+  process.kill(pid,'SIGKILL');
+  await new Promise(resolve=>setTimeout(resolve,100));
+  const down=JSON.parse(ok(f,'status','--json').stdout).checks[0];
+  assert.equal(down.freshness,'UNVERIFIED');assert.equal(down.result,'PASS');
+  put(path.join(f.root,'src/input.txt'),'PASS after daemon crash\n');
+  ok(f,'start');
+  const recovered=await until(f,s=>s.observation.healthy&&
+    s.checks[0].freshness==='STALE');
+  assert.equal(recovered.checks[0].invocation.runId,prior.invocation.runId);
+  assert.match(recovered.checks[0].reason,/src\/input.txt changed/);
 });
 
 test('checkout root replacement reattaches and reconciles before retaining CURRENT',async t=>{

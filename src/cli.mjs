@@ -5,6 +5,7 @@ import net from 'node:net';
 import os from 'node:os';
 import {spawn,spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {processAlive} from './process-liveness.mjs';
 import {createHash,randomUUID} from 'node:crypto';
 import {assertOwnedStatePlacement} from './owned-state.mjs';
 import {permittedRoots} from './installed-inputs.mjs';
@@ -100,8 +101,8 @@ function cached() {
   try{const value=JSON.parse(fs.readFileSync(path.join(state,'status.json')));
     if(Date.now()>=value.updated_at&&Date.now()<=value.expires_at&&
       value.expires_at-value.updated_at<=3000){
-      try{process.kill(value.pid,0);return value;}
-      catch{return unavailableCached('observer process unavailable');}}
+      if(processAlive(value.pid))return value;
+      return unavailableCached('observer process unavailable');}
   }catch{}
   return unavailableCached('observer heartbeat expired or unavailable');
 }
@@ -111,7 +112,12 @@ async function execute() {
   const runLock=acquireRunLock(state);
   let activeChild=null,requestedSignal=null;
   const forward=signal=>{requestedSignal=signal;
-    if(activeChild&&activeChild.exitCode===null)activeChild.kill(signal);};
+    if(activeChild&&activeChild.exitCode===null){
+      if(process.platform==='linux'&&activeChild.pid){
+        try{process.kill(-activeChild.pid,signal);}
+        catch(e){if(e.code!=='ESRCH')throw e;}
+      }else activeChild.kill(signal);
+    }};
   const interrupt=()=>forward('SIGINT'),terminate=()=>forward('SIGTERM');
   process.on('SIGINT',interrupt);process.on('SIGTERM',terminate);
   try {
@@ -139,12 +145,20 @@ async function execute() {
       let child,spawnError=null;
       try{runLock.phase('launching');
         child=spawn(command[0],command.slice(1),{cwd:plan.cwd,
-        stdio:'inherit',env:process.env});}
+        stdio:'inherit',env:process.env,detached:process.platform==='linux'});}
       catch(e){resolve({status:'start_failed',exitCode:null,signal:null,errorCode:e.code||e.name});return;}
       activeChild=child;runLock.phase('running',child.pid??null);
       if(requestedSignal)forward(requestedSignal);
       child.on('error',e=>{spawnError=e.code||e.name;});
       child.on('close',(exit,signal)=>{
+        if(process.platform==='linux'&&requestedSignal&&child.pid){
+          // A verification command may have forked children in its process
+          // group. Normal cancellation must reach them even if the leader has
+          // already exited. Commands that daemonize into a new session remain
+          // an explicit unsupported process boundary.
+          try{process.kill(-child.pid,'SIGTERM');}
+          catch(e){if(e.code!=='ESRCH')captureIssues.push('descendant stop uncertain');}
+        }
         activeChild=null;runLock.phase('finished');
         resolve({status:spawnError?'start_failed':signal||requestedSignal?'interrupted':'exited',
           exitCode:exit,signal:signal||requestedSignal||null,
@@ -173,6 +187,8 @@ async function execute() {
       captureIssues.push('observer generation changed during execution');
     if(snap?.planGeneration!==end?.planGeneration)
       captureIssues.push('input plan rebuilt during execution');
+    if(snap?.inputEventSerial!==end?.inputEventSerial)
+      captureIssues.push('declared input event occurred during execution');
     if(!snap||!end||snap.planId!==end.planId||snap.fingerprint!==end.fingerprint||
       snap.revision!==end.revision)captureIssues.push('declared inputs changed or were not observed');
     const stable=captureIssues.length===0;
@@ -206,8 +222,7 @@ async function main(){
     const observerLock=path.join(state,'observer.lock');
     if(fs.existsSync(observerLock)){
       const pid=Number(fs.readFileSync(path.join(observerLock,'pid')));
-      let live=false;try{process.kill(pid,0);live=true;}catch(e){if(e.code!=='ESRCH')throw e;}
-      if(live)throw Error(`observer already running at PID ${pid}`);
+      if(processAlive(pid))throw Error(`observer already running at PID ${pid}`);
       // Only this development state/socket are owned here; never touch shared services.
       fs.rmSync(observerLock,{recursive:true});
       try{fs.unlinkSync(socket);}catch(e){if(e.code!=='ENOENT')throw e;}
@@ -228,11 +243,9 @@ async function main(){
       const data=cached();console.log(JSON.stringify({pid:child.pid,state:data.state,
         health:data.observation,ready:false}));return;}
     catch {
-      let live=false;
-      try{process.kill(child.pid,0);live=true;
-        if(fs.existsSync(path.join(observerLock,'pid')))
-          live=Number(fs.readFileSync(path.join(observerLock,'pid')))==child.pid;
-      }catch{}
+      let live=processAlive(child.pid);
+      if(live&&fs.existsSync(path.join(observerLock,'pid')))
+        live=Number(fs.readFileSync(path.join(observerLock,'pid')))==child.pid;
       if(live){console.log(JSON.stringify({pid:child.pid,state:'unverified',ready:false,
         health:{healthy:false,reason:'observer initialization pending; query status before relying on evidence'}}));
         return;}
@@ -262,8 +275,7 @@ async function main(){
     owner();
     if(fs.existsSync(path.join(state,'observer.lock'))){
       const pid=Number(fs.readFileSync(path.join(state,'observer.lock','pid')));
-      let live=false;try{process.kill(pid,0);live=true;}catch(e){if(e.code!=='ESRCH')throw e;}
-      if(live){await call({action:'stop'});
+      if(processAlive(pid)){await call({action:'stop'});
         for(let i=0;i<100&&fs.existsSync(path.join(state,'observer.lock'));i++)
           await new Promise(r=>setTimeout(r,100));
         if(fs.existsSync(path.join(state,'observer.lock')))throw Error('observer did not stop');}

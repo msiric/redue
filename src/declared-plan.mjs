@@ -94,6 +94,7 @@ export function discoverDeclared(config) {
       declaredInstalledInputs:[...new Set([...(selected.installedInputs||[]),
         ...(workspace?.installed||[])])].sort(),
       installation:workspace?.installation||null,
+      ...(workspace?.synchronizedInstalledRead?{synchronizedInstalledRead:true}:{}),
       installedInstances:workspace?.installedInstances||[],
       resolutionCandidates:[],resolutionFindings:workspace?.absences||[],
       installedPhysicalRoots,externalPatterns,

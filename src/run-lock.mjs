@@ -1,12 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
+import {processAlive} from './process-liveness.mjs';
 
-const alive=pid=>{
-  if(!Number.isSafeInteger(pid)||pid<1)return true;
-  try{process.kill(pid,0);return true;}
-  catch(e){return e.code!=='ESRCH';}
-};
+const alive=processAlive;
 const write=(file,value)=>{
   const temp=file+`.${process.pid}.tmp`;
   fs.writeFileSync(temp,JSON.stringify(value),{mode:0o600});

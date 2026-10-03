@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {execFileSync,spawnSync} from 'node:child_process';
 import {createRequire} from 'node:module';
+import {createHash} from 'node:crypto';
 import {discoverNodeProject} from '../src/node-onboarding.mjs';
 import {discoverDeclared} from '../src/declared-plan.mjs';
 import {InputIndex} from '../src/index.mjs';
@@ -175,12 +176,20 @@ test('pnpm hoisted metadata is distinct and shared hardlinks with unknown aliase
   const alias=path.join(root,'isolated-store-alias');
   fs.linkSync(path.join(external,'index.d.ts'),alias);
   const bundle=discoverDeclared(config);
-  assert.notEqual(bundle.plans.app.id,baseline.plans.app.id);
-  assert(bundle.plans.app.unresolved.some(reason=>/hardlinks/.test(reason)));
+  if(process.platform==='linux'){
+    assert.equal(bundle.plans.app.id,baseline.plans.app.id);
+    assert.equal(bundle.plans.app.synchronizedInstalledRead,true);
+  }else{
+    assert.notEqual(bundle.plans.app.id,baseline.plans.app.id);
+    assert(bundle.plans.app.unresolved.some(reason=>/hardlinks/.test(reason)));
+  }
   const probe=spawnSync(process.execPath,[path.resolve('src/pnpm-typecheck-probe.mjs'),
     root,'@fixture/app','typecheck'],{encoding:'utf8',env:cleanEnv});
-  assert.equal(probe.status,2);
-  assert.match(probe.stderr,/pnpm-input-coverage-unavailable/);
+  if(process.platform==='linux')assert.equal(probe.status,0);
+  else{
+    assert.equal(probe.status,2);
+    assert.match(probe.stderr,/pnpm-input-coverage-unavailable/);
+  }
   const index=new InputIndex(bundle,{trackGit:false});index.coldScan();
   assert.equal(index.unavailable,null);
   const before=index.fingerprint('app');
@@ -222,4 +231,57 @@ test('pnpm observer replans after new local resolution topology without losing u
   assert(metric()>before,'new node_modules membership must cause plan rediscovery');
   await awaitCurrent();
   assert(fs.existsSync(path.join(external,'index.d.ts')));
+});
+
+test('Linux pnpm installed hardlink alias stales synchronized evidence without a lockfile edit',
+  {skip:process.platform!=='linux'},async t=>{
+  const {root,external}=fixture(t),state=fs.mkdtempSync(path.join(os.tmpdir(),'vstate-pnpm-state-'));
+  fs.rmdirSync(state);
+  const store=fs.mkdtempSync(path.join(os.tmpdir(),'vstate-pnpm-store-'));
+  t.after(()=>fs.rmSync(store,{recursive:true,force:true}));
+  const installed=path.join(external,'index.d.ts'),alias=path.join(store,'alias.d.ts');
+  fs.linkSync(installed,alias);
+  assert.equal(fs.statSync(installed).ino,fs.statSync(alias).ino);
+  const digest=file=>createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+  const lock=digest(path.join(root,'pnpm-lock.yaml'));
+  const cli=path.resolve('bin/vstate.mjs');
+  const call=(...args)=>execFileSync(process.execPath,[cli,'--state-dir',state,...args],
+    {cwd:root,encoding:'utf8',timeout:15000,env:cleanEnv});
+  t.after(()=>{try{call('stop');}catch{}try{call('remove-state');}catch{}});
+  call('init','--workspace','@fixture/app','--check','typecheck');
+  call('start');
+  const executed=JSON.parse(call('run','@fixture/app:typecheck'));
+  assert.equal(executed.result,'PASS');
+  assert.equal(executed.coverage_qualified,true);
+  const status=()=>JSON.parse(call('status','--sync','--json')).checks[0];
+  assert.equal(status().freshness,'CURRENT');
+  assert.equal(JSON.parse(call('status','--json')).checks[0].freshness,'UNVERIFIED');
+  put(alias,'export declare const ext: number;\n// modified through store alias\n');
+  assert.equal(fs.readFileSync(installed,'utf8'),fs.readFileSync(alias,'utf8'));
+  assert.equal(digest(path.join(root,'pnpm-lock.yaml')),lock);
+  assert.equal(status().freshness,'STALE');
+  assert.equal(JSON.parse(call('run','@fixture/app:typecheck')).result,'PASS');
+  assert.equal(status().freshness,'CURRENT');
+  put(path.join(store,'unrelated-cache-entry'),'other');
+  assert.equal(status().freshness,'CURRENT');
+});
+
+test('pnpm hoisted installation can record and reuse a qualified TypeScript check',async t=>{
+  const {root,external}=fixture(t,{hoisted:true});
+  const state=fs.mkdtempSync(path.join(os.tmpdir(),'vstate-pnpm-hoisted-'));
+  fs.rmdirSync(state);
+  const cli=path.resolve('bin/vstate.mjs');
+  const call=(...args)=>execFileSync(process.execPath,[cli,'--state-dir',state,...args],
+    {cwd:root,encoding:'utf8',timeout:15000,env:cleanEnv});
+  t.after(()=>{try{call('stop');}catch{}try{call('remove-state');}catch{}});
+  const init=JSON.parse(call('init','--workspace','@fixture/app','--check','typecheck','--json'));
+  assert.equal(init.installation_layout,'node-modules/hoisted');
+  call('start');
+  assert.equal(JSON.parse(call('run','@fixture/app:typecheck')).result,'PASS');
+  const status=()=>JSON.parse(call('status','--sync','--json')).checks[0];
+  assert.equal(status().freshness,'CURRENT');
+  put(path.join(root,'unrelated.md'),'unrelated');
+  assert.equal(status().freshness,'CURRENT');
+  put(path.join(external,'index.d.ts'),'export declare const ext: number;\n// hoisted edit\n');
+  assert.equal(status().freshness,'STALE');
 });
