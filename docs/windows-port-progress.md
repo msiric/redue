@@ -1,13 +1,50 @@
-# Windows port status
+# Windows native acceptance checkpoint
 
-Native Windows acceptance is pending. The shared evidence engine is unchanged.
-The current Windows boundary uses path-aware state identity and a named-pipe
-control endpoint, Parcel's Windows watcher, and deterministic reconciliation
-for synchronized reads. Cached Windows applicability remains conservative when
-event continuity cannot be established.
+Windows uses the shared evidence/applicability engine. Platform-specific code
+handles NTFS path identity, named-pipe control, Parcel watcher events, batch
+command quoting, and process-tree termination. Windows cached applicability is
+conservative; a decision-grade synchronized read reconstructs declared inputs.
+Historical PASS/FAIL survives observer uncertainty without becoming CURRENT.
 
-Windows batch commands use a restricted argv mapping through `cmd.exe`.
-Cancellation requests a process-tree termination; unresolved ownership retains
-the run lock for review. Portable tests cover these contracts, but NTFS paths,
-junctions, native watcher behavior, process trees, and npm/Yarn/pnpm workflows
-must be exercised on a real Windows runner before support is claimed.
+The acceptance environment is GitHub Actions `windows-2025`: Windows Server
+2025 Datacenter build 26100, AMD64, NTFS, Node 22.23.3, npm 10.9.9, and
+PowerShell 7.6.6. Disposable tests run on native NTFS, not WSL. Developer Mode
+is not assumed. Tests exercise junctions and hardlinks directly; the final path
+test also reports whether this runner permits ordinary file symlinks and long
+paths.
+
+The native contract suite passed 41 tests with 12 platform-specific skips at
+run `37164202737`. Native Windows process-tree cancellation and killed-daemon
+reconciliation subsequently passed at run `37164869674`, although that run
+had four unrelated readiness/synchronization failures. A later run passed 42
+tests with one pnpm receipt-capture failure (`37165430123`). These variations
+must not be flattened into a stable green result.
+
+Two genuine public repositories completed the full Windows workflow through
+normal `redue init`: npm single-package TypeScript and pinned Yarn 4.12.0
+node-modules workspace. Both reached CURRENT/PASS, preserved it after an
+unrelated edit, became STALE after a relevant edit, returned to CURRENT/PASS
+after a wrapped rerun, and inherited the receipt after observer restart in
+run `37164524314`. Later runs also showed intermittent conservative failures:
+run checkpoints or state probes timed out while observation was rebuilding.
+
+The pinned pnpm 12 isolated-layout public workspace installed to a project
+virtual store with content hard-linked from an isolated disposable store. A
+workspace dependency was an NTFS reparse-point directory, and an installed
+TypeScript file had two hard links (`37165721588`). Its typecheck produced a
+historical PASS, but the run's end checkpoint was unavailable in one diagnostic
+and synchronized status timed out even with a 90-second deadline
+(`37164909331`). A later run (`37165721588`) did reach an end checkpoint, but
+the plan rebuilt during execution; its decision-grade probe then timed out.
+Fixture tests have shown both isolated hardlink
+invalidation and hoisted operation, but the real pnpm workflow has not earned
+reusable CURRENT on Windows. The exact cause of repeated plan rebuilding and
+slow reconciliation needs profiling before changing the kernel.
+
+Release status: Windows semantics fail conservatively in these runs, with no
+observed false CURRENT. Decision-grade availability is not yet reliable enough
+for public-alpha Windows support. The 15-second default capture/status
+deadline and 90-second pnpm diagnostic establish a performance/reliability
+problem; cached/synchronized p95, peak RSS, and event-to-state latency have not
+yet been measured on the native runner. A Windows 11 desktop install/init/run/
+status/restart/remove-state smoke test remains a pre-release follow-up.
