@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // Read-only applicability probe. Its output is one digest or a fixed reason;
 // source, configuration, environment values, and command output are not logged.
+import {compilerFiles} from './typescript-list.mjs';
+import {contextOnly,probeResult} from './probe-result.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -49,7 +51,6 @@ function yarnDistribution(yarn,version){
 try{
   if(!rootArg||!workspace||!script||!yarnArg)fail('probe-arguments');
   const root=realObservedPath(rootArg),yarn=realObservedPath(yarnArg);
-  const contract=yarnWorkspaceTypecheckInputs(root,workspace,script);
   const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json')));
   if(process.env.NODE_OPTIONS||process.env.NODE_PATH||process.env.BASH_ENV||
     process.env.ENV||Object.entries(process.env).some(([key,value])=>{
@@ -67,6 +68,13 @@ try{
   if(version.error||version.signal||version.status!==0||
     `yarn@${version.stdout.trim()}`!==pkg.packageManager)
     fail('yarn-toolchain-unavailable');
+  const distribution=yarnDistribution(yarn,version.stdout.trim());
+  const contextFacts={yarnVersion:version.stdout.trim(),yarnShim:digestFile(yarn),
+    yarnLoader:digestFile(distribution.loader),
+    yarnDistribution:digestFile(distribution.distribution),node:process.version};
+  const contextHash=hash(JSON.stringify(contextFacts));
+  if(contextOnly(contextHash))process.exit(0);
+  const contract=yarnWorkspaceTypecheckInputs(root,workspace,script);
   const cwd=path.join(root,contract.workspace.dir);
   const tsc=yarnLocalTsc(root);
   const listed=spawnSync(process.execPath,[tsc,'-p','.','--listFilesOnly'],
@@ -89,11 +97,16 @@ try{
   const files=[...new Set(inputs)].sort().map(file=>
     [hash(path.relative(root,file)),digestFile(file)]);
   const configs=contract.configs.map(file=>[hash(file),digestFile(path.join(root,file))]);
-  const distribution=yarnDistribution(yarn,version.stdout.trim());
-  process.stdout.write(hash(JSON.stringify({schema:1,workspace,script,
+  let queries=null;
+  if(process.argv.includes('--redue-checkpoint')){
+    const captured=compilerFiles(path.join(root,'node_modules/typescript'),cwd);
+    if(captured&&JSON.stringify(captured.files.map(realObservedPath).sort())===JSON.stringify([...inputs].sort()))
+      queries=captured.queries;
+  }
+  probeResult(hash(JSON.stringify({schema:1,workspace,script,
     files,configs,yarnVersion:version.stdout.trim(),yarnShim:digestFile(yarn),
     yarnLoader:digestFile(distribution.loader),
     yarnDistribution:digestFile(distribution.distribution),
-    node:process.version,tsc:digestFile(tsc)})));
+    node:process.version,tsc:digestFile(tsc)})),contextHash,queries);
 }catch(e){console.error(`VSTATE_REASON:${e.code&&/^[a-z-]+$/.test(e.code)?e.code:
   'workspace-typecheck-contract-unavailable'}`);process.exitCode=2;}

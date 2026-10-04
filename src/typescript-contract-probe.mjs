@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // Read-only applicability probe for the deliberately narrow npm/tsc --noEmit
 // contract. It emits one digest; failures emit only a fixed diagnostic code.
+import {compilerFiles} from './typescript-list.mjs';
+import {contextOnly,probeResult} from './probe-result.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -57,6 +59,46 @@ try{
       }
       return /^(npm_config_|DYLD_|TSGO_)/i.test(key);
     }))fail('execution-environment-unsupported');
+  let npmRoot;
+  if(process.platform==='win32'){
+    if(path.basename(npm).toLowerCase()!=='npm.cmd')
+      fail('npm-installation-layout-unsupported');
+    npmRoot=path.join(path.dirname(npm),'node_modules','npm');
+    const body=fs.readFileSync(npm,'utf8');
+    if(!body.includes('node_modules\\npm\\bin\\npm-cli.js')||
+      !body.includes('node_modules\\npm\\bin\\npm-prefix.js')||
+      !body.includes('"%NODE_EXE%" "%NPM_CLI_JS%" %*'))
+      fail('npm-installation-layout-unsupported');
+    const prefix=spawnSync(process.execPath,[path.join(npmRoot,'bin','npm-prefix.js')],
+      {cwd:root,env:process.env,encoding:'utf8',timeout:4000,stdio:['ignore','pipe','ignore']});
+    const selectedPrefix=prefix.stdout?.trim();
+    if(prefix.error||prefix.status!==0||!selectedPrefix||
+      !path.isAbsolute(selectedPrefix))fail('npm-installation-layout-unsupported');
+    // npm.cmd selects the prefix's CLI only when that file exists. Otherwise
+    // it runs the bundled CLI beside npm.cmd; observe the same branch here.
+    const alternate=path.join(selectedPrefix,'node_modules','npm','bin','npm-cli.js');
+    if(fs.existsSync(alternate)&&
+      realObservedPath(alternate)!==realObservedPath(path.join(npmRoot,'bin','npm-cli.js')))
+      fail('npm-installation-layout-unsupported');
+  }else npmRoot=path.dirname(path.dirname(npm));
+  if(path.basename(npmRoot)!=='npm'||path.basename(path.dirname(npmRoot))!=='node_modules')
+    fail('npm-installation-layout-unsupported');
+  const home=process.platform==='win32'?os.homedir():process.env.HOME;
+  if(!home||!path.isAbsolute(home))fail('home-context-unavailable');
+  const npmConfig=[path.join(root,'.npmrc'),path.join(home,'.npmrc')]
+    .map(file=>[hash(file),npmRcKeys(file)]);
+  const contextFacts={
+    npmTree:treeHash(npmRoot),npmConfig,
+    node:hash(JSON.stringify([process.version,realObservedPath(process.execPath),
+      fs.statSync(process.execPath).size])),
+    shell:process.platform==='win32'?hash(JSON.stringify([
+      realObservedPath(process.env.ComSpec||process.env.COMSPEC||''),
+      digestFile(process.env.ComSpec||process.env.COMSPEC||''),
+      process.env.PATHEXT||'',digestFile(npm),
+      digestFile(path.join(root,'node_modules','.bin','tsc.cmd'))])):
+      digestFile('/bin/sh')};
+  const contextHash=hash(JSON.stringify(contextFacts));
+  if(contextOnly(contextHash))process.exit(0);
   const tsRoot=path.join(root,'node_modules','typescript');
   let tsc;
   if(process.platform==='win32'){
@@ -136,46 +178,16 @@ endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%"  "%dp0%\\..\\
     .map(file=>path.resolve(file));
   if(!files.length||files.some(file=>!within(realObservedPath(file),root)))
     fail('typescript-input-outside-repository');
-  let npmRoot;
-  if(process.platform==='win32'){
-    if(path.basename(npm).toLowerCase()!=='npm.cmd')
-      fail('npm-installation-layout-unsupported');
-    npmRoot=path.join(path.dirname(npm),'node_modules','npm');
-    const body=fs.readFileSync(npm,'utf8');
-    if(!body.includes('node_modules\\npm\\bin\\npm-cli.js')||
-      !body.includes('node_modules\\npm\\bin\\npm-prefix.js')||
-      !body.includes('"%NODE_EXE%" "%NPM_CLI_JS%" %*'))
-      fail('npm-installation-layout-unsupported');
-    const prefix=spawnSync(process.execPath,[path.join(npmRoot,'bin','npm-prefix.js')],
-      {cwd:root,env:process.env,encoding:'utf8',timeout:4000,stdio:['ignore','pipe','ignore']});
-    const selectedPrefix=prefix.stdout?.trim();
-    if(prefix.error||prefix.status!==0||!selectedPrefix||
-      !path.isAbsolute(selectedPrefix))fail('npm-installation-layout-unsupported');
-    // npm.cmd selects the prefix's CLI only when that file exists. Otherwise
-    // it runs the bundled CLI beside npm.cmd; observe the same branch here.
-    const alternate=path.join(selectedPrefix,'node_modules','npm','bin','npm-cli.js');
-    if(fs.existsSync(alternate)&&
-      realObservedPath(alternate)!==realObservedPath(path.join(npmRoot,'bin','npm-cli.js')))
-      fail('npm-installation-layout-unsupported');
-  }else npmRoot=path.dirname(path.dirname(npm));
-  if(path.basename(npmRoot)!=='npm'||path.basename(path.dirname(npmRoot))!=='node_modules')
-    fail('npm-installation-layout-unsupported');
-  const home=process.platform==='win32'?os.homedir():process.env.HOME;
-  if(!home||!path.isAbsolute(home))fail('home-context-unavailable');
-  const npmConfig=[path.join(root,'.npmrc'),path.join(home,'.npmrc')]
-    .map(file=>[hash(file),npmRcKeys(file)]);
   const facts={schema:1,root:hash(root),script:scriptName,
     configs:[...configReads].sort().map(file=>[hash(file),digestFile(file)]),
     files:[...new Set(files)].sort().map(file=>[hash(file),digestFile(file)]),
-    npmTree:treeHash(npmRoot),npmConfig,
-    node:hash(JSON.stringify([process.version,realObservedPath(process.execPath),
-      fs.statSync(process.execPath).size])),
-    shell:process.platform==='win32'?hash(JSON.stringify([
-      realObservedPath(process.env.ComSpec||process.env.COMSPEC||''),
-      digestFile(process.env.ComSpec||process.env.COMSPEC||''),
-      process.env.PATHEXT||'',digestFile(npm),
-      digestFile(path.join(root,'node_modules','.bin','tsc.cmd'))])):
-      digestFile('/bin/sh')};
-  process.stdout.write(hash(JSON.stringify(facts)));
+    ...contextFacts};
+  let queries=null;
+  if(process.argv.includes('--redue-checkpoint')){
+    const captured=compilerFiles(tsRoot,root);
+    if(captured&&JSON.stringify([...captured.files].sort())===JSON.stringify([...files].sort()))
+      queries=captured.queries;
+  }
+  probeResult(hash(JSON.stringify(facts)),contextHash,queries);
 }catch(e){console.error(`VSTATE_REASON:${e.code&&/^[a-z-]+$/.test(e.code)?e.code:
   'typescript-contract-unavailable'}`);process.exitCode=2;}

@@ -15,6 +15,7 @@ import {permittedRoots} from './installed-inputs.mjs';
 import {assertOwnedStatePlacement} from './owned-state.mjs';
 import {atomicJson,readReceipts} from './state-store.mjs';
 import {history} from './observation.mjs';
+import {inputKey} from './decision-validation.mjs';
 import {timing} from './decision-profile.mjs';
 
 const configFile=path.resolve(process.argv[2]);
@@ -51,6 +52,7 @@ let candidateDescendants=new Map();
 let workspacePatterns=(()=>{const w=JSON.parse(fs.readFileSync(path.join(root,'package.json'))).workspaces;
   return Array.isArray(w)?w:w?.packages||[];})();
 let planningWorker=null;
+let validatedPlan=null;
 let gapDuringPlan=false;
 const snapshotPath=path.join(state,'fs-events.snapshot');
 const metrics={notifications:0,flushes:0,reconciliations:0,planRebuilds:0,gaps:0,
@@ -94,9 +96,31 @@ function persistedPlan(bundle) {
       return [name,safe];
     }))};
 }
-function probe(row) {
+function probe(row,allowReuse=false) {
   const started=performance.now();
-  const values=[];
+  const supported=new Map([
+    ['typescript-noemit-v1','typescript-contract-probe.mjs'],
+    ['yarn-workspace-tsc-v1','yarn-workspace-typecheck-probe.mjs'],
+    ['pnpm-tsc-v1','pnpm-typecheck-probe.mjs']]);
+  const expected=supported.get(row.plan.qualification);
+  const cacheable=process.platform==='win32'&&row.plan.probes.length===1&&expected&&
+    row.plan.probes[0][1]===fileURLToPath(new URL(expected,import.meta.url));
+  const key=inputKey(row);
+  if(cacheable&&allowReuse&&row.probeCache?.input===key){
+    const argv=row.plan.probes[0];
+    const out=spawnSync(argv[0],[...argv.slice(1),'--redue-context'],{
+      cwd:row.plan.cwd,timeout:10000,maxBuffer:1024*1024,stdio:['ignore','pipe','pipe']});
+    if(!out.error&&!out.signal&&out.status===0&&
+      out.stdout.toString()===row.probeCache.context){
+      row.probeHash=row.probeCache.hash;row.probeAt=Date.now();row.probeError=null;
+      timing('daemon.probe_context_validation',started,{outcome:'reused',reason:'content_and_context_unchanged'});
+      return;
+    }
+    timing('daemon.probe_context_validation',started,{outcome:'changed_or_unavailable'});
+  }
+  timing('daemon.probe_reason',started,{reason:!cacheable?'generic_probe':
+    !row.probeCache?'no_validated_result':row.probeCache.input!==key?'inputs_changed':'context_changed'});
+  const values=[];let checkpoint=null;
   for(const argv of row.plan.probes) {
     // Supported TypeScript probes perform bounded input/toolchain hashing.
     // Native NTFS runs have exceeded the generic 5 s cap under load, despite
@@ -104,7 +128,7 @@ function probe(row) {
     const timeout=row.plan.qualification==='pnpm-tsc-v1'||
       (process.platform==='win32'&&['typescript-noemit-v1','yarn-workspace-tsc-v1']
         .includes(row.plan.qualification))?10000:5000;
-    const out=spawnSync(argv[0],argv.slice(1),{cwd:row.plan.cwd,
+    const out=spawnSync(argv[0],[...argv.slice(1),...(cacheable?['--redue-checkpoint']:[])],{cwd:row.plan.cwd,
       timeout,maxBuffer:1024*1024,stdio:['ignore','pipe','pipe']});
     if(out.error||out.signal||out.status!==0) {
       if(!row.probeError){row.revision++;row.lastReason='declared state probe became unavailable';}
@@ -144,12 +168,20 @@ function probe(row) {
       timing('daemon.probe',started,{outcome:out.error?.code||out.signal||out.status||'error',
         commands:values.length+1});return;
     }
-    values.push([argv,out.status,sha(out.stdout),sha(out.stderr)]);
+    if(cacheable){
+      try{checkpoint=JSON.parse(out.stdout);
+        if(!/^[a-f0-9]{64}$/.test(checkpoint.output)||!/^[a-f0-9]{64}$/.test(checkpoint.context))
+          throw Error('invalid supported probe checkpoint');}
+      catch{row.probeHash=null;row.probeAt=0;row.probeError='probe checkpoint unavailable';return;}
+    }
+    values.push([argv,out.status,sha(cacheable?checkpoint.output:out.stdout),sha(out.stderr)]);
   }
   const value=sha(JSON.stringify(values));
   if((row.probeHash!==null&&row.probeHash!==value)||row.probeError){
     row.revision++;row.lastReason='declared state probe changed or recovered';}
   row.probeHash=value;row.probeAt=Date.now();row.probeError=null;
+  if(checkpoint)row.probeCache=checkpoint.queries?{input:key,context:checkpoint.context,
+    hash:value,queries:checkpoint.queries}:null;
   timing('daemon.probe',started,{outcome:'ok',commands:values.length});
 }
 function applicableExternal(name) {return [...external.values()].filter(entry=>entry.index?.checks.has(name));}
@@ -324,11 +356,11 @@ function retainIndex() {
     planIds:Object.fromEntries([...index.checks].map(([name,row])=>[name,row.plan.id])),
     cursor:sha(fs.readFileSync(snapshotPath)),external:outside,index:dehydrate(index)});
 }
-function buildInWorker(forceCold=false) {
+function buildInWorker(forceCold=false,reuse=null) {
   return new Promise((resolve,reject)=>{
     const workerStarted=performance.now();
     const file=path.join(path.dirname(fileURLToPath(import.meta.url)),'plan-worker.mjs');
-    const worker=new Worker(file,{workerData:{config:configFile,state,forceCold,
+    const worker=new Worker(file,{workerData:{config:configFile,state,forceCold,reuse,
       reconcileFaultFile:process.env.VSTATE_TEST_RECONCILE_FAULT_FILE}});
     planningWorker=worker;let settled=false;
     const deadline=setTimeout(()=>{
@@ -353,15 +385,20 @@ function buildInWorker(forceCold=false) {
       reject(Error(`input-plan worker exited ${code}`));}});
   });
 }
-async function refreshPlan({forceCold=false}={}) {
+async function refreshPlan({forceCold=false,reuse=false}={}) {
   if(planning||stopping)return;
   const totalStarted=performance.now();
+  const previousProbes=new Map([...(index?.checks||[])].map(([name,row])=>[name,row.probeCache]));
+  const reusable=reuse&&healthy&&!planDirty&&!external.size&&validatedPlan&&
+    [...index.checks.values()].every(row=>!row.plan.qualification||row.probeCache)?
+    {...validatedPlan,bundle:index.bundle,
+      queries:[...index.checks.values()].flatMap(row=>row.probeCache?.queries||[])}:null;
   planning=true;planDirty=false;gapDuringPlan=false;pending.clear();pendingChecks.clear();
   for(const entry of external.values())entry.gap=!entry.watcher;
   metrics.planPhase='discovery';metrics.planScannedFiles=0;metrics.planTotalFiles=null;
   healthy=false;reason='input plan rebuilding';publish();
   try {const workerStarted=performance.now();
-    const built=await buildInWorker(forceCold);
+    const built=await buildInWorker(forceCold,reusable);
     timing('daemon.plan_worker',workerStarted,{forceCold:forceCold?1:0,
       discoveryMs:Math.round(built.discoveryMs),indexingMs:Math.round(built.indexingMs),
       mode:built.restartMode});
@@ -372,6 +409,9 @@ async function refreshPlan({forceCold=false}={}) {
     workspacePatterns=bundle.workspacePatterns||workspacePatterns;
     const hydrationStarted=performance.now();
     index=hydrate(bundle,built.index);
+    validatedPlan=built.guard?{guard:built.guard,inputs:built.inputKeys}:null;
+    if(built.planReused)for(const [name,row] of index.checks)
+      row.probeCache=previousProbes.get(name);
     inputEventSerial=new Map([...index.checks.keys()].map(name=>
       [name,inputEventSerial.get(name)||0]));
     for(const entry of external.values()) {
@@ -390,7 +430,8 @@ async function refreshPlan({forceCold=false}={}) {
     metrics.lastDiscoveryMs=built.discoveryMs;metrics.lastIndexingMs=built.indexingMs;
     metrics.restartMode=built.restartMode||'cold-index';
     metrics.planPhase='reconciling';
-    metrics.planRebuilds++;metrics.reconciliations++;
+    if(!built.planReused)metrics.planRebuilds++;
+    metrics.reconciliations++;
     // Linux attaches per-inode watches before rechecking installed hardlinks.
     // The Windows backend has no per-inode watchFiles implementation; the
     // just-completed cold index already read those bytes. Windows still
@@ -427,10 +468,10 @@ async function refreshPlan({forceCold=false}={}) {
     atomic(path.join(state,'plans-v1.json'),persistedPlan(bundle));
     metrics.lastPlanPersistenceMs=performance.now()-persistenceStarted;
     const probeStarted=performance.now();
-    for(const row of index.checks.values())probe(row);
+    for(const row of index.checks.values())probe(row,built.planReused);
     timing('daemon.plan_probes',probeStarted,{checks:index.checks.size});
     lastObservation=Date.now();
-    event('plan_rebuilt',{checks:Object.keys(bundle.plans),workspace_count:bundle.workspaceCount});
+    event(built.planReused?'plan_validated':'plan_rebuilt',{checks:Object.keys(bundle.plans),workspace_count:bundle.workspaceCount});
     const catchUpStarted=performance.now();
     if(watcher&&(!historyDisabled||!hasHistory))try{await catchUp();}
       catch(e){planning=false;observationGap('historical_query',e);return;}
@@ -729,8 +770,8 @@ async function request(message) {
     const totalStarted=performance.now();
     const decision=++decisionSequence;
     timing('daemon.decision_reason',totalStarted,{decision,action:message.action,
-      plan:process.platform==='win32'?'windows_unconditional_rebuild':'existing_plan',
-      probe:'unconditional',installed:'windows_full_index_or_installed_recheck',
+      plan:process.platform==='win32'?'validate_dependencies_before_reuse':'existing_plan',
+      probe:'reuse_only_with_identical_content_and_context',installed:'current_content_required',
       phase:metrics.planPhase||'initializing',pending:pending.size,
       notifications:metrics.notifications,planRebuilds:metrics.planRebuilds});
     if(process.platform==='win32'&&process.env.VSTATE_TEST_FAULTS==='1'&&
@@ -745,8 +786,8 @@ async function request(message) {
     // reliable history/overflow barrier. A decision-grade read therefore
     // reconstructs the declared state instead of trusting its event cursor.
     if(process.platform==='win32'&&message.action!=='prelaunch'){
-      const started=performance.now();await refreshPlan({forceCold:true});
-      timing('daemon.request_forced_reconcile',started,{healthy:healthy?1:0});}
+      const started=performance.now();await refreshPlan({forceCold:true,reuse:true});
+      timing('daemon.request_content_validation',started,{healthy:healthy?1:0});}
     if(healthy)try{const started=performance.now();await catchUp();
       timing('daemon.request_catch_up',started);}catch(e){observationGap('historical_query',e);}
     if(flushTimer||pending.size||planDirty||[...external.values()].some(e=>e.pending.size))flush();

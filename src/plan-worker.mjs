@@ -4,6 +4,8 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {discover} from './plan.mjs';
 import {InputIndex} from './index.mjs';
+import {queriesMatch} from './typescript-list.mjs';
+import {planGuard,inputKey} from './decision-validation.mjs';
 import {timing} from './decision-profile.mjs';
 
 try {
@@ -12,7 +14,37 @@ try {
   const config=JSON.parse(fs.readFileSync(workerData.config));
   timing('worker.config_load',configStarted);
   const discoveryStarted=performance.now();
-  const bundle=discover(config,workerData.state);
+  let bundle=workerData.reuse?.bundle;
+  let validatedIndex=null,guard=null,reuseReason='no_validated_plan',planReused=false;
+  if(bundle){
+    const started=performance.now();
+    try{
+      guard=planGuard(bundle);
+      if(guard!==workerData.reuse.guard||
+        (workerData.reuse.queries?.length&&!queriesMatch(workerData.reuse.queries)))reuseReason='configuration_or_resolution_changed';
+      else {
+        validatedIndex=new InputIndex(bundle);
+        await validatedIndex.validatedScan(progress=>parentPort.postMessage({kind:'progress',
+          phase:'validating',scanned:progress.scanned,total:progress.total}));
+        if(validatedIndex.unavailable)throw Error(validatedIndex.unavailable);
+        if(planGuard(bundle)!==guard)throw Error('plan dependencies changed during validation');
+        // Compiler imports can change effective membership. Until that content
+        // has been rediscovered, never reuse a compiler input contract.
+        const changed=[...validatedIndex.checks].some(([name,row])=>
+          row.plan.qualification&&inputKey(row)!==workerData.reuse.inputs[name]);
+        reuseReason=changed?'compiler_inputs_changed':'dependencies_unchanged';
+        planReused=!changed;
+      }
+    }catch{reuseReason='validation_unavailable';}
+    timing('worker.plan_validation',started,{reason:reuseReason,
+      files:validatedIndex?.files.size||0,
+      bytes:validatedIndex?.rehashedBytes||0,
+      hashingMs:Math.round(validatedIndex?.profile.hashingMs||0),
+      enumerationMs:Math.round(validatedIndex?.profile.enumerationMs||0)});
+  }
+  if(!planReused){bundle=discover(config,workerData.state);validatedIndex=null;
+    guard=planGuard(bundle);}
+  timing('worker.discovery_reason',performance.now(),{reason:reuseReason,reused:planReused?1:0});
   const discoveryMs=performance.now()-discoveryStarted;
   timing('worker.discovery',discoveryStarted,{checks:Object.keys(bundle.plans).length});
   parentPort.postMessage({kind:'progress',phase:'indexing',discoveryMs,scanned:0,total:null});
@@ -45,9 +77,9 @@ try {
   } else {
   if(workerData.reconcileFaultFile&&fs.existsSync(workerData.reconcileFaultFile))
     throw Error('injected reconciliation failure');
-  const indexingStarted=performance.now(), index=new InputIndex(bundle);
-  index.coldScan(progress=>parentPort.postMessage({kind:'progress',phase:'indexing',
-    discoveryMs,...progress}));
+  const indexingStarted=performance.now(), index=validatedIndex||new InputIndex(bundle);
+  if(!validatedIndex){const report=progress=>parentPort.postMessage({kind:'progress',phase:'indexing',discoveryMs,...progress});
+    if(process.platform==='win32')await index.validatedScan(report);else index.coldScan(report);}
   const indexingMs=performance.now()-indexingStarted;
   timing('worker.index',indexingStarted,{files:index.files.size,
     entries:index.profile.enumeratedEntries,hashed:index.rehashedFiles,
@@ -78,7 +110,8 @@ try {
       rehashedBytes:outside.rehashedBytes,profile:outside.profile};
   }
   timing('worker.total',totalStarted,{mode:'cold',files:index.files.size});
-  parentPort.postMessage({ok:true,bundle,discoveryMs,indexingMs,
+  parentPort.postMessage({ok:true,bundle,discoveryMs,indexingMs,guard,planReused,
+    inputKeys:Object.fromEntries([...index.checks].map(([name,row])=>[name,inputKey(row)])),
     restartMode:'cold-index',
     external,
     index:{files:[...index.files],
