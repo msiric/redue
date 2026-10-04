@@ -9,6 +9,7 @@ import micromatch from 'micromatch';
 import YAML from 'yaml';
 import {resolveLinks} from './installed-inputs.mjs';
 import {withinPath as within,realObservedPath,samePath} from './path-identity.mjs';
+import {timing} from './decision-profile.mjs';
 
 const rel=(root,file)=>path.relative(root,file).split(path.sep).join('/');
 const read=file=>JSON.parse(fs.readFileSync(file,'utf8'));
@@ -36,6 +37,7 @@ export function pnpmProjectInfo(root){
   return {version:pin[1],linker,patterns,settings};
 }
 export function pnpmInstallInfo(root){
+  const started=performance.now();
   root=realObservedPath(root);
   const pkg=read(path.join(root,'package.json'));
   const {version,linker,patterns,settings}=pnpmProjectInfo(root);
@@ -78,6 +80,7 @@ export function pnpmInstallInfo(root){
         throw Error('project .npmrc has execution-relevant pnpm settings requiring review');
     }
   }
+  timing('pnpm.install_metadata',started);
   return {version,linker,patterns,settings,modulesFile,
     configurationInputs:['package.json','pnpm-lock.yaml',
       ...(exists(workspaceFile)?['pnpm-workspace.yaml']:[]),
@@ -85,6 +88,7 @@ export function pnpmInstallInfo(root){
       'node_modules/.modules.yaml','node_modules/.pnpm/lock.yaml']};
 }
 export function pnpmWorkspacePackages(root,patterns){
+  const started=performance.now();
   root=realObservedPath(root);
   const found=new Map();
   if(!patterns.length)return found;
@@ -101,6 +105,7 @@ export function pnpmWorkspacePackages(root,patterns){
     found.set(pkg.name,{name:pkg.name,dir,manifest:file,pkg});
   }
   if(found.size>100)throw Error('pnpm workspace count exceeds the narrow Node onboarding contract');
+  timing('pnpm.workspace_discovery',started,{packages:found.size});
   return found;
 }
 const deps=(pkg,includeDev)=>({...pkg.dependencies,
@@ -228,6 +233,7 @@ function sharedHardlinkIn(folder){
   return false;
 }
 export function pnpmTypecheckInputs(root,workspace,script){
+  const totalStarted=performance.now();
   root=realObservedPath(root);
   const install=pnpmInstallInfo(root),members=pnpmWorkspacePackages(root,install.patterns);
   const selected=workspace==='.'?{name:'.',dir:'.',manifest:'package.json',
@@ -244,14 +250,20 @@ export function pnpmTypecheckInputs(root,workspace,script){
   const tsRoot=path.dirname(tsPackage),ts=lookup('typescript');
   const tsc=path.join(tsRoot,'bin','tsc');
   if(!exists(tsc))throw Error('installed TypeScript executable is missing');
+  const configStarted=performance.now();
   const {configs}=parsedTypeScript(root,selected.dir,ts);
+  timing('pnpm.ts_config',configStarted,{configs:configs.length});
   const closure=new Map(),installed=new Set(),generated=new Set(),
     links=new Set(),candidates=new Set(),absences=[],instances=new Map();
+  let resolutionMs=0,resolutionCount=0;
+  const closureStarted=performance.now();
   const visit=(requester,owner,includeDev=false)=>{
     for(const [name,spec] of Object.entries(deps(owner.pkg,includeDev))){
       if(owner.pkg.dependenciesMeta?.[name]?.injected)
         throw Error(`injected workspace dependency ${name} is recording-only`);
+      const resolutionStarted=performance.now();
       const found=packageAt(root,path.join(root,requester.dir),name);
+      resolutionMs+=performance.now()-resolutionStarted;resolutionCount++;
       const optional=Object.hasOwn(owner.pkg.optionalDependencies||{},name)||
         owner.pkg.peerDependenciesMeta?.[name]?.optional===true;
       if(!found.physical){
@@ -285,7 +297,13 @@ export function pnpmTypecheckInputs(root,workspace,script){
     }
   };
   visit(selected,selected,true);
+  timing('pnpm.dependency_closure',closureStarted,{relationships:resolutionCount,
+    resolutionMs:Math.round(resolutionMs),workspaceLinks:links.size,
+    candidates:candidates.size});
+  const listingStarted=performance.now();
   const files=listedTypeScriptFiles(root,selected,tsc);
+  timing('pnpm.ts_input_listing',listingStarted,{files:files.length});
+  const mappingStarted=performance.now();
   for(const file of files){
     if(within(file,path.join(selectedDir,'src'))||
       [...closure.values()].some(member=>within(file,path.join(root,member.dir))))continue;
@@ -296,13 +314,20 @@ export function pnpmTypecheckInputs(root,workspace,script){
     installed.add(`${rel(root,packageRoot)}/**`);
     installed.add(`!${rel(root,packageRoot)}/node_modules/**`);
   }
+  timing('pnpm.input_mapping',mappingStarted,{instances:instances.size,
+    installedPatterns:installed.size});
   installed.add(`${rel(root,tsRoot)}/**`);
   installed.add(`!${rel(root,tsRoot)}/node_modules/**`);
   if(!instances.has(tsRoot))instances.set(tsRoot,{name:'typescript',physicalRoot:rel(root,tsRoot)});
+  const sharedStarted=performance.now();
   const shared=[...instances.keys()].filter(sharedHardlinkIn);
+  timing('pnpm.hardlink_inspection',sharedStarted,{instances:instances.size,
+    shared:shared.length});
   const source=[...new Set([...install.configurationInputs,selected.manifest,
     ...configs,`${selected.dir==='.'?'':selected.dir+'/'}src/**`,
     ...closure.values().map(member=>member.manifest),...generated])];
+  timing('pnpm.total_discovery',totalStarted,{instances:instances.size,
+    inputFiles:files.length});
   return {install,workspace:selected,closure:[...closure.values()],source,
     installed:[...installed],generated:[...generated],
     configs,configurationInputs:[...new Set([...install.configurationInputs,

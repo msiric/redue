@@ -15,6 +15,7 @@ import {permittedRoots} from './installed-inputs.mjs';
 import {assertOwnedStatePlacement} from './owned-state.mjs';
 import {atomicJson,readReceipts} from './state-store.mjs';
 import {history} from './observation.mjs';
+import {timing} from './decision-profile.mjs';
 
 const configFile=path.resolve(process.argv[2]);
 const config=JSON.parse(fs.readFileSync(configFile));
@@ -91,6 +92,7 @@ function persistedPlan(bundle) {
     }))};
 }
 function probe(row) {
+  const started=performance.now();
   const values=[];
   for(const argv of row.plan.probes) {
     const out=spawnSync(argv[0],argv.slice(1),{cwd:row.plan.cwd,
@@ -129,7 +131,9 @@ function probe(row) {
         ,'pnpm-typecheck-contract-unavailable':'pnpm TypeScript input contract could not be established'
       };
       row.probeError=code?explanations[code]||`TypeScript applicability unavailable (${code})`:
-        `probe unavailable: ${argv[0]} (${out.error?.code||out.signal||out.status})`;return;
+        `probe unavailable: ${argv[0]} (${out.error?.code||out.signal||out.status})`;
+      timing('daemon.probe',started,{outcome:out.error?.code||out.signal||out.status||'error',
+        commands:values.length+1});return;
     }
     values.push([argv,out.status,sha(out.stdout),sha(out.stderr)]);
   }
@@ -137,6 +141,7 @@ function probe(row) {
   if((row.probeHash!==null&&row.probeHash!==value)||row.probeError){
     row.revision++;row.lastReason='declared state probe changed or recovered';}
   row.probeHash=value;row.probeAt=Date.now();row.probeError=null;
+  timing('daemon.probe',started,{outcome:'ok',commands:values.length});
 }
 function applicableExternal(name) {return [...external.values()].filter(entry=>entry.index?.checks.has(name));}
 function combinedSummary(name) {
@@ -341,11 +346,16 @@ function buildInWorker(forceCold=false) {
 }
 async function refreshPlan({forceCold=false}={}) {
   if(planning||stopping)return;
+  const totalStarted=performance.now();
   planning=true;planDirty=false;gapDuringPlan=false;pending.clear();pendingChecks.clear();
   for(const entry of external.values())entry.gap=!entry.watcher;
   metrics.planPhase='discovery';metrics.planScannedFiles=0;metrics.planTotalFiles=null;
   healthy=false;reason='input plan rebuilding';publish();
-  try {const built=await buildInWorker(forceCold);
+  try {const workerStarted=performance.now();
+    const built=await buildInWorker(forceCold);
+    timing('daemon.plan_worker',workerStarted,{forceCold:forceCold?1:0,
+      discoveryMs:Math.round(built.discoveryMs),indexingMs:Math.round(built.indexingMs),
+      mode:built.restartMode});
     if(stopping)return;
     if(!verifyRoot()) {planning=false;metrics.planPhase='unavailable';publish();return;}
     if(gapDuringPlan){planning=false;observationGap('plan_gap');return;}
@@ -373,6 +383,7 @@ async function refreshPlan({forceCold=false}={}) {
     metrics.planPhase='reconciling';
     metrics.planRebuilds++;metrics.reconciliations++;
     if(!hasHistory&&watcher){
+      const inodeStarted=performance.now();
       const checked=[...index.checks].filter(([,row])=>
         row.plan.synchronizedInstalledRead).map(([name])=>name);
       const selected=new Set(checked);
@@ -382,6 +393,8 @@ async function refreshPlan({forceCold=false}={}) {
       await watcher.watchFiles(files);
       metrics.installedInodeWatches=files.length;
       if(checked.length)metrics.initialInstalledRecheck=await index.recheckInstalled(checked);
+      timing('daemon.installed_inode_setup',inodeStarted,{watches:files.length,
+        recheckMs:Math.round(metrics.initialInstalledRecheck?.durationMs||0)});
     }
     triggerHashes=new Map([...bundle.workspaceManifests,...(bundle.configurationInputs||[]),
       ...Object.values(bundle.plans).flatMap(plan=>plan.resolutionTriggers||[]),
@@ -400,7 +413,9 @@ async function refreshPlan({forceCold=false}={}) {
     const persistenceStarted=performance.now();
     atomic(path.join(state,'plans-v1.json'),persistedPlan(bundle));
     metrics.lastPlanPersistenceMs=performance.now()-persistenceStarted;
+    const probeStarted=performance.now();
     for(const row of index.checks.values())probe(row);
+    timing('daemon.plan_probes',probeStarted,{checks:index.checks.size});
     lastObservation=Date.now();
     event('plan_rebuilt',{checks:Object.keys(bundle.plans),workspace_count:bundle.workspaceCount});
     const catchUpStarted=performance.now();
@@ -422,6 +437,8 @@ async function refreshPlan({forceCold=false}={}) {
   } catch(e) {if(!stopping){reason=`plan unavailable: ${e.message}`;
     metrics.planPhase='unavailable';event('plan_failed',{classification:e.name||'Error'});}}
   planning=false;publish();
+  timing('daemon.plan_total',totalStarted,{forceCold:forceCold?1:0,
+    healthy:healthy?1:0,files:index?.files.size||0});
 }
 function triggerHash(rel) {
   try{const file=path.isAbsolute(rel)?rel:path.join(root,rel),st=fs.lstatSync(file);
@@ -693,6 +710,7 @@ async function request(message) {
     healthy,reason,planning};
   if(message.action==='reload'){loadReceipts();publish();return {ok:true};}
   if(message.action==='sync'||message.action==='snapshot') {
+    const totalStarted=performance.now();
     if(process.platform==='win32'&&process.env.VSTATE_TEST_FAULTS==='1'&&
       process.env.VSTATE_TEST_WINDOWS_GAP_FILE&&
       fs.existsSync(process.env.VSTATE_TEST_WINDOWS_GAP_FILE)){
@@ -704,8 +722,11 @@ async function request(message) {
     // The pinned Windows backend reports explicit errors but does not expose a
     // reliable history/overflow barrier. A decision-grade read therefore
     // reconstructs the declared state instead of trusting its event cursor.
-    if(process.platform==='win32')await refreshPlan({forceCold:true});
-    if(healthy)try{await catchUp();}catch(e){observationGap('historical_query',e);}
+    if(process.platform==='win32'){
+      const started=performance.now();await refreshPlan({forceCold:true});
+      timing('daemon.request_forced_reconcile',started,{healthy:healthy?1:0});}
+    if(healthy)try{const started=performance.now();await catchUp();
+      timing('daemon.request_catch_up',started);}catch(e){observationGap('historical_query',e);}
     if(flushTimer||pending.size||planDirty||[...external.values()].some(e=>e.pending.size))flush();
     let synchronizedInstalled=false;
     if(index&&healthy&&!planning){
@@ -715,9 +736,12 @@ async function request(message) {
       if(names.length)try{
         if(installedRecheck)await installedRecheck;
         const observedIndex=index;
+        const recheckStarted=performance.now();
         installedRecheck=observedIndex.recheckInstalled(names);
         const result=await installedRecheck;
         metrics.lastInstalledRecheck=result;
+        timing('daemon.request_installed_recheck',recheckStarted,
+          {files:result.files,bytes:result.bytes});
         installedRecheck=null;
         await catchUp();
         if(flushTimer||pending.size||planDirty)flush();
@@ -725,8 +749,11 @@ async function request(message) {
           index===observedIndex;
       }catch(e){installedRecheck=null;observationGap('installed_recheck',e);}
     }
+    const probeStarted=performance.now();
     if(index&&healthy)for(const row of index.checks.values())probe(row);
+    timing('daemon.request_probes',probeStarted,{checks:index?.checks.size||0});
     lastObservation=Date.now();publish();
+    const applicabilityStarted=performance.now();
     const data=status(message.contextHashes,synchronizedInstalled,
       process.platform==='win32'&&healthy&&!planning&&!planDirty);
     if(message.action==='snapshot') {
@@ -738,6 +765,9 @@ async function request(message) {
             probeHash:row.probeHash,
             observationHealthy:healthy&&applicableExternal(name).every(e=>e.healthy)};
     }
+    timing('daemon.request_applicability',applicabilityStarted,{checks:data.checks.length});
+    timing('daemon.request_total',totalStarted,{action:message.action,
+      healthy:healthy?1:0});
     return data;
   }
   return {error:'unknown action'};

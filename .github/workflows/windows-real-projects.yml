@@ -19,4 +19,6 @@ jobs:
       - run: npm ci
       - name: Exercise real public repository on native NTFS
         shell: pwsh
+        env:
+          REDUE_DECISION_PROFILE: '1'
         run: ./test/acceptance/windows-project.ps1 -Project ${{ matrix.project }}

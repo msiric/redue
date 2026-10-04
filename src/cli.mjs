@@ -16,6 +16,7 @@ import {assertOwnedStatePlacement} from './owned-state.mjs';
 import {permittedRoots} from './installed-inputs.mjs';
 import {acquireRunLock,inspectRunLock,recoverRunLock} from './run-lock.mjs';
 import {atomicJson,commitReceipt} from './state-store.mjs';
+import {timing} from './decision-profile.mjs';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
 const [configArg,action,name]=process.argv.slice(2);
@@ -53,13 +54,17 @@ function contextHashes() {return Object.fromEntries(config.checks.map(check=>[
       `__vstate_path_executable_${name}__`,pathExecutableIdentity(name)]),
     ...(check.environment?.executableIdentity?[['__vstate_node_identity__',nodeIdentity()]]:[])])]));}
 function probeHash(plan) {
+  const started=performance.now();
   const values=[];
   for(const argv of plan.probes||[]) {
     const out=spawnSync(argv[0],argv.slice(1),{cwd:plan.cwd,
       timeout:5000,maxBuffer:1024*1024,stdio:['ignore','pipe','pipe'],env:process.env});
-    if(out.error||out.signal||out.status!==0)return null;
+    if(out.error||out.signal||out.status!==0){
+      timing('cli.probe',started,{outcome:out.error?.code||out.signal||out.status||'error',
+        commands:values.length+1});return null;}
     values.push([argv,out.status,digest(out.stdout),digest(out.stderr)]);
   }
+  timing('cli.probe',started,{outcome:'ok',commands:values.length});
   return digest(JSON.stringify(values));
 }
 function owner(){
@@ -109,6 +114,7 @@ function cached() {
   return unavailableCached('observer heartbeat expired or unavailable');
 }
 async function execute() {
+  const totalStarted=performance.now();
   const selected=config.checks.find(c=>c.name===name);
   if(!selected)throw Error(`unknown check ${name}`);
   const runLock=acquireRunLock(state);
@@ -145,11 +151,16 @@ async function execute() {
     if(digest(JSON.stringify(command))!==plan.commandIdentity.argvHash)
       throw Error('execution argv differs from discovered plan');
     const runId=randomUUID();
-    const environmentBefore=contextHashes()[name],
+    const contextStarted=performance.now();
+    const environmentBefore=contextHashes()[name];
+    timing('cli.context_before',contextStarted);
+    const
       captureTimeout=Number(process.env.VSTATE_CAPTURE_TIMEOUT_MS||15000);
     let before=null,after=null;
+    const startSnapshotStarted=performance.now();
     try{before=await call({action:'snapshot',name,contextHashes:contextHashes()},captureTimeout);}
     catch{captureIssues.push('start observation unavailable');}
+    timing('cli.start_checkpoint',startSnapshotStarted,{available:before?.snapshots?.[name]?1:0});
     const snap=before?.snapshots?.[name];
     if(!snap||!snap.observationHealthy)captureIssues.push('start checkpoint unavailable');
     const probeBefore=probeHash({cwd:plan.cwd,probes:selected.probes||[]});
@@ -190,8 +201,10 @@ async function execute() {
     invocation.reporting='normal';
     const result=invocation.status==='exited'?(invocation.exitCode===0?'PASS':'FAIL'):null;
     const target={source:'direct-command',status:invocation.status==='exited'?'direct_executed':'unknown'};
+    const endSnapshotStarted=performance.now();
     try{after=await call({action:'snapshot',name,contextHashes:contextHashes()},captureTimeout);}
     catch{captureIssues.push('end observation unavailable');}
+    timing('cli.end_checkpoint',endSnapshotStarted,{available:after?.snapshots?.[name]?1:0});
     const end=after?.snapshots?.[name];
     if(!end||!end.observationHealthy)captureIssues.push('end checkpoint unavailable');
     const environmentAfter=contextHashes()[name],probeAfter=probeHash({cwd:plan.cwd,
@@ -218,11 +231,14 @@ async function execute() {
       provider:plan.provider,environmentHashes:environmentBefore,
       files:snap?.files??null,observerGeneration:before?.observation?.generation??null,
       startRevision:snap?.revision??null,endRevision:end?.revision??null};
+    const persistenceStarted=performance.now();
     commitReceipt(state,name,receipt);
+    timing('cli.receipt_persistence',persistenceStarted);
     try{await call({action:'reload'});}catch{/* next read remains conservative */}
     console.log(JSON.stringify({check:name,result,target:target.status,
       invocation:invocation.status,...(invocation.errorCode?{error_code:invocation.errorCode}:{}),
       stable,coverage_qualified:receipt.coverage.qualified}));
+    timing('cli.run_total',totalStarted,{stable:stable?1:0});
     process.exitCode=invocation.status==='exited'?invocation.exitCode:
       invocation.status==='interrupted'?128+(os.constants.signals[invocation.signal]||1):127;
   }finally{
@@ -305,9 +321,11 @@ async function main(){
   }
   if(action==='status'){console.log(JSON.stringify(cached()));return;}
   if(action==='sync'||action==='detail'){
+    const started=performance.now();
     let value;try{value=await call({action:'sync',contextHashes:contextHashes()},
       Number(process.env.VSTATE_SYNC_TIMEOUT_MS||15000));}
     catch(e){value=unavailableCached(e.message);process.exitCode=2;}
+    timing('cli.synchronized_status',started,{available:value.observation?.healthy?1:0});
     if(action==='sync')console.log(JSON.stringify(value));
     else for(const row of value.checks)console.log(`${row.name}: ${row.freshness}/${row.result||'NO RESULT'} — ${row.reason}`);
     return;

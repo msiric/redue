@@ -153,4 +153,9 @@ try {
   if(!(Test-Path -LiteralPath $sourcePath)){throw 'cleanup removed a project input'}
 } finally {
   try{Redue @('stop')}catch{Write-Warning "Owned observer stop failed: $_"}
+  $log = Join-Path $state 'observer.log'
+  if(Test-Path -LiteralPath $log){
+    Write-Host "Bounded decision-phase timing summary for $Project"
+    & node (Join-Path $product 'test/acceptance/timing-summary.mjs') $log
+  }
 }
