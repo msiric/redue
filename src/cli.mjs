@@ -31,6 +31,10 @@ if([path.parse(state).root,os.homedir(),path.dirname(os.homedir())]
   !path.basename(state).startsWith('vstate-'))
   throw Error('state must be a dedicated REDUE state directory');
 const ownerFile=path.join(state,'vstate-owner-v1.json');
+// A native Windows decision reconciles declared contents instead of trusting
+// watcher history. The measured 6k-file pnpm workspace can legitimately need
+// more than the former 15 s default; uncertainty still wins on expiry.
+const decisionDeadlineMs=process.platform==='win32'?30000:15000;
 const digest=value=>createHash('sha256').update(value).digest('hex');
 function nodeIdentity() {const real=fs.realpathSync(process.execPath),st=fs.statSync(real,{bigint:true});
   return digest(JSON.stringify([real,process.version,...['dev','ino','mode','size','mtimeNs','ctimeNs']
@@ -156,7 +160,7 @@ async function execute() {
     const environmentBefore=contextHashes()[name];
     timing('cli.context_before',contextStarted);
     const
-      captureTimeout=Number(process.env.VSTATE_CAPTURE_TIMEOUT_MS||15000);
+      captureTimeout=Number(process.env.VSTATE_CAPTURE_TIMEOUT_MS||decisionDeadlineMs);
     let before=null,after=null;
     const startSnapshotStarted=performance.now();
     try{before=await call({action:'snapshot',name,contextHashes:contextHashes()},captureTimeout);}
@@ -325,7 +329,7 @@ async function main(){
   if(action==='sync'||action==='detail'){
     const started=performance.now();
     let value;try{value=await call({action:'sync',contextHashes:contextHashes()},
-      Number(process.env.VSTATE_SYNC_TIMEOUT_MS||15000));}
+      Number(process.env.VSTATE_SYNC_TIMEOUT_MS||decisionDeadlineMs));}
     catch(e){value=unavailableCached(e.message);process.exitCode=2;}
     timing('cli.synchronized_status',started,{available:value.observation?.healthy?1:0});
     if(action==='sync')console.log(JSON.stringify(value));

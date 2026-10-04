@@ -199,7 +199,9 @@ function listedTypeScriptFiles(root,selected,tsc){
   // performs no typecheck and emits no project outputs.
   const out=spawnSync(process.execPath,[tsc,'-p','tsconfig.json','--listFilesOnly'],
     {cwd:path.join(root,selected.dir),env:process.env,encoding:'utf8',
-      timeout:5000,maxBuffer:32*1024*1024,stdio:['ignore','pipe','pipe']});
+      // The native NTFS public workspace takes 3-5 s to list ~770 inputs;
+      // 5 s sometimes expired despite bounded, progressing compiler work.
+      timeout:10000,maxBuffer:32*1024*1024,stdio:['ignore','pipe','pipe']});
   if(out.error||out.signal||out.status!==0)
     throw Error('TypeScript input listing is unavailable');
   const files=out.stdout.trim().split(/\r?\n/).filter(Boolean)
