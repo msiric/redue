@@ -40,6 +40,12 @@ function CheckState([string]$Expected,[string]$Receipt='') {
   if($Receipt -and $row.invocation.runId -ne $Receipt){throw 'historical run ID changed'}
   return $row
 }
+function ReceiptCheckpoint {
+  $receipt = (Get-Content -LiteralPath (Join-Path $state 'receipts-v1.json') -Raw |
+    ConvertFrom-Json -AsHashtable).checks[$case.check]
+  Write-Host "Run checkpoint issue codes: $($receipt.checkpoint.issues -join ', ')"
+  Write-Host "Run checkpoint revisions: $($receipt.checkpoint.startRevision) -> $($receipt.checkpoint.endRevision)"
+}
 
 Write-Host "Windows public acceptance: $Project; $($case.repo) at $($case.revision)"
 Native 'git' @('init','-q',$root)
@@ -118,9 +124,7 @@ try {
   }
   if(!$ready){throw 'observer did not establish a ready input plan within 120 seconds'}
   Redue @('run',$case.check)
-  $recorded = (Get-Content -LiteralPath (Join-Path $state 'receipts-v1.json') -Raw |
-    ConvertFrom-Json -AsHashtable).checks[$case.check]
-  Write-Host "Run checkpoint issue codes: $($recorded.checkpoint.issues -join ', ')"
+  ReceiptCheckpoint
   $first = CheckState 'CURRENT'
   $receipt = $first.invocation.runId
   Set-Content -LiteralPath (Join-Path $root 'redue-unrelated-note.md') -Value 'disposable acceptance note'
@@ -134,6 +138,7 @@ try {
   Add-Content -LiteralPath $sourcePath -Value "`n// disposable REDUE freshness acceptance"
   CheckState 'STALE' $receipt | Out-Null
   Redue @('run',$case.check)
+  ReceiptCheckpoint
   $second = CheckState 'CURRENT'
   Redue @('stop')
   Redue @('start')
