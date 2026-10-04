@@ -96,8 +96,12 @@ function probe(row) {
   const started=performance.now();
   const values=[];
   for(const argv of row.plan.probes) {
+    // Pnpm's supported probe performs a bounded compiler input listing and
+    // hashes the resulting files. Native NTFS p95 exceeded the generic 5 s
+    // probe deadline even after duplicate listing was removed.
+    const timeout=row.plan.qualification==='pnpm-tsc-v1'?10000:5000;
     const out=spawnSync(argv[0],argv.slice(1),{cwd:row.plan.cwd,
-      timeout:5000,maxBuffer:1024*1024,stdio:['ignore','pipe','pipe']});
+      timeout,maxBuffer:1024*1024,stdio:['ignore','pipe','pipe']});
     if(out.error||out.signal||out.status!==0) {
       if(!row.probeError){row.revision++;row.lastReason='declared state probe became unavailable';}
       row.probeHash=null;row.probeAt=0;
@@ -886,7 +890,12 @@ const heartbeat=setInterval(()=>{
   }
   publish();
 },1000);
-const probeTimer=setInterval(async()=>{if(healthy&&index&&!planning&&!decisionRequests){
+const probeTimer=setInterval(async()=>{
+  // Windows cached reads are conservatively UNVERIFIED until a full decision
+  // reconciliation. Periodic synchronous probes cannot strengthen that cache,
+  // but can block control requests behind several seconds of child work.
+  if(process.platform==='win32')return;
+  if(healthy&&index&&!planning&&!decisionRequests){
   try{await catchUp();for(const row of index.checks.values())probe(row);publish();}
   catch(e){observationGap('periodic_query',e);}
 }},5000);
