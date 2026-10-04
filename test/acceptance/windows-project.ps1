@@ -13,6 +13,13 @@ $state = Join-Path $env:RUNNER_TEMP "vstate-owned-state-$Project"
 $tools = Join-Path $env:RUNNER_TEMP 'redue-corepack'
 $shims = Join-Path $env:RUNNER_TEMP 'redue-manager-shims'
 $store = Join-Path $env:RUNNER_TEMP 'redue-pnpm-store'
+if($Project -eq 'pnpm'){
+  # Diagnostic only: measure whether the supported contract converges when
+  # Windows cold reconciliation is allowed to exceed the product's 15s limit.
+  $env:VSTATE_CAPTURE_TIMEOUT_MS = '90000'
+  $env:VSTATE_SYNC_TIMEOUT_MS = '90000'
+  Write-Host 'pnpm diagnostic: 90s capture/sync deadline; product default remains 15s'
+}
 
 function Native([string]$File,[string[]]$Arguments) {
   & $File @Arguments
