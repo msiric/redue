@@ -19,8 +19,7 @@ try{
   if(process.env.NODE_OPTIONS||process.env.NODE_PATH||process.env.BASH_ENV||
     process.env.ENV||Object.entries(process.env).some(([key,value])=>{
       if(/^npm_config_prefix$/i.test(key)&&process.platform==='win32'){
-        try{return realObservedPath(value)!==path.dirname(realObservedPath(process.execPath));}
-        catch{return true;}
+        return !path.isAbsolute(value);
       }
       return /^(PNPM_|COREPACK_|npm_config_|DYLD_|TSGO_)/i.test(key);
     }))

@@ -50,7 +50,9 @@ try{
   if(process.env.NODE_OPTIONS||process.env.NODE_PATH||process.env.BASH_ENV||
     process.env.ENV||Object.entries(process.env).some(([key,value])=>{
       if(/^npm_config_prefix$/i.test(key)&&process.platform==='win32'){
-        try{return realObservedPath(value)!==path.dirname(npm);}catch{return true;}
+        // The Windows runner supplies a global npm prefix independently of
+        // the selected local compiler. Its value is part of caller context.
+        return !path.isAbsolute(value);
       }
       return /^(npm_config_|DYLD_|TSGO_)/i.test(key);
     }))fail('execution-environment-unsupported');
