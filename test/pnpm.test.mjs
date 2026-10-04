@@ -73,6 +73,15 @@ function runtime(root){
       pathExecutables:['node'],prefixes:['PNPM_','COREPACK_','npm_config_',
         'DYLD_','TSGO_']}}]};
 }
+async function waitReady(call){
+  for(let n=0;n<120;n++){
+    const cached=JSON.parse(call('status','--json'));
+    if(cached.observation?.phase==='ready'&&cached.observation.healthy&&
+      cached.observation.pending===0)return;
+    await new Promise(resolve=>setTimeout(resolve,250));
+  }
+  assert.fail('observer did not establish the input plan');
+}
 
 test('pnpm 12 implicit project-local virtual store is accepted only when physically local',t=>{
   const {root}=fixture(t);
@@ -225,6 +234,7 @@ test('pnpm observer replans after new local resolution topology without losing u
   t.after(()=>{try{call('stop');}catch{}try{call('remove-state');}catch{}});
   call('init','--workspace','@fixture/app','--check','typecheck');
   call('start');
+  await waitReady(call);
   call('run','@fixture/app:typecheck');
   const current=()=>JSON.parse(call('status','--sync','--json')).checks[0];
   const awaitCurrent=async()=>{
@@ -314,6 +324,7 @@ test('pnpm hoisted installation can record and reuse a qualified TypeScript chec
   const init=JSON.parse(call('init','--workspace','@fixture/app','--check','typecheck','--json'));
   assert.equal(init.installation_layout,'node-modules/hoisted');
   call('start');
+  await waitReady(call);
   assert.equal(JSON.parse(call('run','@fixture/app:typecheck')).result,'PASS');
   const status=()=>JSON.parse(call('status','--sync','--json')).checks[0];
   assert.equal(status().freshness,'CURRENT');

@@ -133,6 +133,8 @@ async function execute() {
     ['SIGINT','SIGTERM'].includes(message.signal))forward(message.signal);};
   process.on('message',cancelMessage);
   try {
+    if(!fs.existsSync(path.join(state,'plans-v1.json')))
+      throw Error('observer input plan is not ready; wait for redue status to report ready');
     const plan=JSON.parse(fs.readFileSync(path.join(state,'plans-v1.json'))).plans[name];
     if(!plan)throw Error('selected input plan unavailable');
     if(plan.selectedConfigHash!==digest(JSON.stringify(selected)))

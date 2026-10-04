@@ -101,8 +101,15 @@ test('init previews and writes a small script config without running project com
   assert.equal(json.written,false);
 });
 
-test('generated npm TypeScript check earns CURRENT; unrelated edits preserve, inputs stale',t=>{
+test('generated npm TypeScript check earns CURRENT; unrelated edits preserve, inputs stale',async t=>{
   const {root,state}=project(t);good(root,state,'init');good(root,state,'start');
+  let ready=false;
+  for(let n=0;n<120;n++){
+    const cached=JSON.parse(good(root,state,'status','--json'));
+    if(cached.observation?.phase==='ready'&&cached.observation.healthy){ready=true;break;}
+    await new Promise(resolve=>setTimeout(resolve,250));
+  }
+  assert(ready,'observer did not establish the input plan');
   good(root,state,'run','typecheck');
   let item=sync(root,state).checks.find(row=>row.name==='typecheck');
   assert.equal(item.result,'PASS');assert.equal(item.freshness,'CURRENT',JSON.stringify(item));
