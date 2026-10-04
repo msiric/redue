@@ -143,9 +143,15 @@ endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%"  "%dp0%\\..\\
       fail('npm-installation-layout-unsupported');
     const prefix=spawnSync(process.execPath,[path.join(npmRoot,'bin','npm-prefix.js')],
       {cwd:root,env:process.env,encoding:'utf8',timeout:4000,stdio:['ignore','pipe','ignore']});
-    if(prefix.error||prefix.status!==0||!prefix.stdout?.trim()||
-      realObservedPath(path.join(prefix.stdout.trim(),'node_modules','npm'))!==
-        realObservedPath(npmRoot))fail('npm-installation-layout-unsupported');
+    const selectedPrefix=prefix.stdout?.trim();
+    if(prefix.error||prefix.status!==0||!selectedPrefix||
+      !path.isAbsolute(selectedPrefix))fail('npm-installation-layout-unsupported');
+    // npm.cmd selects the prefix's CLI only when that file exists. Otherwise
+    // it runs the bundled CLI beside npm.cmd; observe the same branch here.
+    const alternate=path.join(selectedPrefix,'node_modules','npm','bin','npm-cli.js');
+    if(fs.existsSync(alternate)&&
+      realObservedPath(alternate)!==realObservedPath(path.join(npmRoot,'bin','npm-cli.js')))
+      fail('npm-installation-layout-unsupported');
   }else npmRoot=path.dirname(path.dirname(npm));
   if(path.basename(npmRoot)!=='npm'||path.basename(path.dirname(npmRoot))!=='node_modules')
     fail('npm-installation-layout-unsupported');

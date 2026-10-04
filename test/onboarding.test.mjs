@@ -5,6 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import {spawnSync,execFileSync} from 'node:child_process';
 import {createRequire} from 'node:module';
+import {findExecutable} from '../src/executable-lookup.mjs';
 
 const require=createRequire(import.meta.url),bin=path.resolve('bin/redue.mjs');
 const sourceTypeScript=path.dirname(require.resolve('typescript/package.json'));
@@ -59,6 +60,28 @@ test('REDUE CLI identifies itself and keeps pre-release config compatibility',t=
   assert(!fs.existsSync(config));
   assert.equal(JSON.parse(good(root,state,'status','--json')).checks.length,4);
 });
+
+test('Windows npm prefix falls back to bundled CLI until an alternate appears',
+  {skip:process.platform!=='win32'},t=>{
+    const {root}=project(t),prefix=fs.mkdtempSync(path.join(os.tmpdir(),'redue-prefix-'));
+    t.after(()=>fs.rmSync(prefix,{recursive:true,force:true}));
+    const npm=findExecutable('npm');
+    const probe=()=>spawnSync(process.execPath,
+      [path.resolve('src/typescript-contract-probe.mjs'),root,'typecheck',npm],
+      {cwd:root,encoding:'utf8',timeout:15000,
+        env:{...process.env,npm_config_prefix:prefix}});
+    const first=probe();
+    assert.equal(first.status,0,first.stderr);
+    const alternate=path.join(prefix,'node_modules','npm','bin','npm-cli.js');
+    put(alternate,'// disposable alternate npm CLI\n');
+    const changed=probe();
+    assert.equal(changed.status,2);
+    assert.match(changed.stderr,/npm-installation-layout-unsupported/);
+    fs.rmSync(alternate);
+    const restored=probe();
+    assert.equal(restored.status,0,restored.stderr);
+    assert.equal(restored.stdout,first.stdout);
+  });
 
 test('init previews and writes a small script config without running project commands',t=>{
   const {root,state,config}=project(t);

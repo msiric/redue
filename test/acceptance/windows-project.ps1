@@ -25,7 +25,15 @@ function State {
   return ($output | ConvertFrom-Json)
 }
 function CheckState([string]$Expected,[string]$Receipt='') {
-  $row = (State).checks | Where-Object name -eq $case.check
+  $row = $null
+  for($attempt=0;$attempt -lt 120;$attempt++){
+    $row = (State).checks | Where-Object name -eq $case.check
+    if($row.freshness -ne 'UNVERIFIED' -or
+      $row.reason -notmatch '^(input plan rebuilding|input plan indexing|observer initialization pending)'){
+      break
+    }
+    Start-Sleep -Seconds 1
+  }
   if(!$row -or $row.freshness -ne $Expected -or $row.result -ne 'PASS'){
     throw "Expected $($case.check) $Expected/PASS; got $($row.freshness)/$($row.result): $($row.reason)"
   }
