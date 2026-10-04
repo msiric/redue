@@ -604,7 +604,7 @@ test('checkout root replacement reattaches and reconciles before retaining CURRE
     const pidFile=path.join(f.state,'observer.lock','pid');
     const pid=fs.existsSync(pidFile)?Number(fs.readFileSync(pidFile)):null;
     const log=fs.readFileSync(path.join(f.state,'observer.log'),'utf8').slice(-4000);
-    throw Error(`${error.message}\nobserver alive: ${pid&&processAlive(pid)}\n`+
+    throw Error(`root iteration ${iteration}: ${error.message}\nobserver alive: ${pid&&processAlive(pid)}\n`+
       `child exit: ${JSON.stringify(exited)}\nrecent events: ${JSON.stringify(events(f).slice(-12))}\nobserver log: ${log}`);
   }
   assert.equal(result.checks[0].invocation.runId,runId);
@@ -658,4 +658,28 @@ test('explicit owned-state stop and removal work after the checkout is deleted',
   assert(!fs.existsSync(f.state));
   for(let n=0;n<60&&processAlive(pid);n++)await new Promise(resolve=>setTimeout(resolve,50));
   assert(!processAlive(pid));
+});
+
+
+test('Windows replacement after failed recovery and successful sync starts a new bounded recovery',
+  {skip:process.platform!=='win32'},async t=>{
+  const f=withFixture(t);f.env.VSTATE_TEST_RECOVERY_FINALIZE_FAULT=path.join(f.state,'finalize-fault');
+  ok(f,'start');ok(f,'run','check');const receipt=row(f).invocation.runId;
+  put(f.env.VSTATE_TEST_RECOVERY_FINALIZE_FAULT,'fail');
+  fs.renameSync(f.root,path.join(f.base,'first-root'));
+  fs.cpSync(path.join(f.base,'first-root'),f.root,{recursive:true});
+  for(let n=0;n<150;n++){
+    if(events(f).filter(e=>e.kind==='reconciliation_failed').length>=2)break;
+    await new Promise(resolve=>setTimeout(resolve,50));
+  }
+  assert(events(f).filter(e=>e.kind==='reconciliation_failed').length>=2);
+  fs.unlinkSync(f.env.VSTATE_TEST_RECOVERY_FINALIZE_FAULT);
+  const restored=await until(f,s=>s.checks[0].freshness==='CURRENT');
+  assert.equal(restored.checks[0].invocation.runId,receipt);
+  const gaps=events(f).filter(e=>e.kind==='observation_root_replaced').length;
+  fs.renameSync(f.root,path.join(f.base,'second-root'));
+  fs.cpSync(path.join(f.base,'second-root'),f.root,{recursive:true});
+  const again=await until(f,s=>s.checks[0].freshness==='CURRENT'&&
+    events(f).filter(e=>e.kind==='observation_root_replaced').length>gaps);
+  assert.equal(again.checks[0].invocation.runId,receipt);
 });

@@ -1,3 +1,4 @@
+import {inflateSync} from 'node:zlib';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -180,11 +181,23 @@ test('incremental workspace, generated and installed membership matches fresh re
   assert.notEqual(changed.plans[name].id,bundle.plans[name].id);
   assert(derived.linkTriggers.includes('node_modules/@fixture/dep'));
   const changedProbe=spawnSync(process.execPath,[probe,root,'@fixture/chosen',
-    'typecheck',fixtureYarn(root)],{cwd:root,encoding:'utf8',env:cleanEnv});
+    'typecheck',fixtureYarn(root)],{cwd:root,encoding:'utf8',env:{...cleanEnv,
+      ...(process.platform==='win32'?{COREPACK_HOME:path.join(root,'corepack-home')}:{})}});
   assert.notEqual(changedProbe.status,0);
   assert.match(changedProbe.stderr,/typescript-input-outside-workspace-contract/);
   fs.rmSync(link);linkDir(path.join(os.tmpdir(),'not-permitted-vstate-dependency'),link);
   const disallowed=discoverDeclared(config).plans[name].unresolved;
   assert(disallowed.some(reason=>reason.includes('@fixture/dep')),
     JSON.stringify(disallowed));
+});
+
+
+test('Yarn compiler certificate preserves independently listed CLI input identity',t=>{
+  const root=fixture(t),args=[probe,root,'@fixture/chosen','typecheck',fixtureYarn(root)];
+  const env={...cleanEnv,...(process.platform==='win32'?{COREPACK_HOME:path.join(root,'corepack-home')}:{})};
+  const run=extra=>spawnSync(process.execPath,[...args,...extra],{cwd:path.join(root,'packages/chosen'),env,encoding:'utf8',timeout:15000});
+  const normal=run([]),certified=run(['--redue-checkpoint']);
+  assert.equal(normal.status,0,normal.stderr);assert.equal(certified.status,0,certified.stderr);
+  const value=JSON.parse(certified.stdout);assert.equal(value.output,normal.stdout);
+  assert(JSON.parse(inflateSync(Buffer.from(value.queryData,'base64'))).length>0);
 });

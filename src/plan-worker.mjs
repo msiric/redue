@@ -20,8 +20,10 @@ try {
     const started=performance.now();
     try{
       guard=planGuard(bundle);
-      if(guard!==workerData.reuse.guard||
-        (workerData.reuse.queries?.length&&!queriesMatch(workerData.reuse.queries)))reuseReason='configuration_or_resolution_changed';
+      const queryStarted=performance.now();
+      const queriesValid=!workerData.reuse.queries?.length||queriesMatch(workerData.reuse.queries);
+      timing('worker.compiler_queries',queryStarted,{queries:workerData.reuse.queries?.length||0,matched:queriesValid?1:0});
+      if(guard!==workerData.reuse.guard||!queriesValid)reuseReason='configuration_or_resolution_changed';
       else {
         validatedIndex=new InputIndex(bundle);
         validatedIndex.coldScan(progress=>parentPort.postMessage({kind:'progress',

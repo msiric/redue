@@ -2,7 +2,6 @@
 // Read-only pnpm/TypeScript applicability probe. Only a digest or fixed
 // diagnostic leaves the process; no source, configuration, or environment
 // value is emitted.
-import {compilerFiles} from './typescript-list.mjs';
 import {contextOnly,probeResult} from './probe-result.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -27,7 +26,7 @@ try{
     fail('pnpm-execution-environment-unsupported');
   const contextHash=hash(JSON.stringify([root,workspace,script,process.version]));
   if(contextOnly(contextHash))process.exit(0);
-  const contract=pnpmTypecheckInputs(root,workspace,script);
+  const contract=pnpmTypecheckInputs(root,workspace,script,{captureQueries:process.argv.includes('--redue-checkpoint')});
   if(contract.limitations.length)fail('pnpm-input-coverage-unavailable');
   const selected=path.join(root,contract.workspace.dir),tsc=contract.tsc;
   const inputs=contract.listedFiles;
@@ -41,14 +40,8 @@ try{
   const files=[...new Set(inputs)].sort().map(file=>
     [hash(path.relative(root,file)),digest(file)]);
   const configs=contract.configs.map(file=>[hash(file),digest(path.join(root,file))]);
-  let queries=null;
-  if(process.argv.includes('--redue-checkpoint')){
-    const captured=compilerFiles(contract.tsRoot,selected);
-    if(captured&&JSON.stringify(captured.files.map(realObservedPath).sort())===JSON.stringify([...inputs].sort()))
-      queries=captured.queries;
-  }
   probeResult(hash(JSON.stringify({schema:1,workspace,script,
     files,configs,node:process.version,tsc:digest(tsc),
-    packageManager:contract.install.version,linker:contract.install.linker})),contextHash,queries);
+    packageManager:contract.install.version,linker:contract.install.linker})),contextHash,contract.discoveryQueries);
 }catch(e){console.error(`VSTATE_REASON:${e.code&&/^[a-z-]+$/.test(e.code)?e.code:
   'pnpm-typecheck-contract-unavailable'}`);process.exitCode=2;}

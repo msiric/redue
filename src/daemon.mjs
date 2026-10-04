@@ -1,3 +1,4 @@
+import {inflateSync} from 'node:zlib';
 import fs from 'node:fs';
 import path from 'node:path';
 import net from 'node:net';
@@ -47,6 +48,7 @@ let synchronizing=null;
 let installedRecheck=null;
 let historyDisabled=!hasHistory,recoveryTimer=null,recovering=false,recoveryAttempts=0;
 let identityChanged=false;
+let identityGapKey=null;
 let triggerHashes=new Map();
 let candidateDescendants=new Map();
 let workspacePatterns=(()=>{const w=JSON.parse(fs.readFileSync(path.join(root,'package.json'))).workspaces;
@@ -171,6 +173,8 @@ function probe(row,allowReuse=false) {
     }
     if(cacheable){
       try{checkpoint=JSON.parse(out.stdout);
+        checkpoint.queries=checkpoint.queryData?JSON.parse(inflateSync(
+          Buffer.from(checkpoint.queryData,'base64'),{maxOutputLength:8*1024*1024})):null;
         if(!/^[a-f0-9]{64}$/.test(checkpoint.output)||!/^[a-f0-9]{64}$/.test(checkpoint.context))
           throw Error('invalid supported probe checkpoint');}
       catch{row.probeHash=null;row.probeAt=0;row.probeError='probe checkpoint unavailable';return;}
@@ -489,9 +493,11 @@ async function refreshPlan({forceCold=false,reuse=false}={}) {
     for(const entry of external.values())if(entry.index&&entry.watcher&&!entry.gap&&
       !entry.index.unavailable){
       entry.healthy=true;entry.reason=null;}
+    if(healthy){identityChanged=false;identityGapKey=null;
+      if(!recovering)recoveryAttempts=0;}
     metrics.planPhase=healthy?'ready':'unavailable';
   } catch(e) {if(!stopping){reason=`plan unavailable: ${e.message}`;
-    metrics.planPhase='unavailable';event('plan_failed',{classification:e.name||'Error'});}}
+    metrics.planPhase='unavailable';event('plan_failed',{classification:e.name||'Error',reason:e.message});}}
   planning=false;publish();
   timing('daemon.plan_total',totalStarted,{forceCold:forceCold?1:0,
     healthy:healthy?1:0,files:index?.files.size||0});
@@ -686,13 +692,17 @@ async function recoverObservation(classification) {
     // The live subscriptions are attached before the fresh scan. Changes
     // delivered during indexing are queued and rechecked before health returns.
     await refreshPlan({forceCold:true});
+    if(process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_RECOVERY_FINALIZE_FAULT&&
+      fs.existsSync(process.env.VSTATE_TEST_RECOVERY_FINALIZE_FAULT))
+      throw Error('injected recovery finalization failure');
     if(!healthy||[...external.values()].some(entry=>entry.index&&!entry.healthy))
       throw Error(reason||'deterministic reconciliation unavailable');
     rootIdentity=fs.statSync(root,{bigint:true});identityChanged=false;
     recoveryAttempts=0;
     event('reconciliation_completed',{classification});
   }catch(e){healthy=false;reason=`deterministic reconciliation failed: ${e.message}; restart observer`;
-    event('reconciliation_failed',{classification,error_code:e.code||e.name||'Error'});
+    event('reconciliation_failed',{classification,error_code:e.code||e.name||'Error',
+      reason:e.message,identityChanged,watcherAttached:Boolean(watcher),planPhase:metrics.planPhase});
     publish();
   }finally{recovering=false;
     if(!healthy&&!stopping&&recoveryAttempts<2&&!recoveryTimer)
@@ -700,10 +710,15 @@ async function recoverObservation(classification) {
   }
 }
 function verifyRoot() {
+  let observed='unavailable';
   try {const current=fs.statSync(root,{bigint:true});
     if(current.dev===rootIdentity.dev&&current.ino===rootIdentity.ino)return true;
-  }catch{}
-  if(!identityChanged){identityChanged=true;healthy=false;
+    observed=String(current.dev)+':'+String(current.ino);
+  }catch(error){observed=error.code||'unavailable';}
+  // Suppress repeats for the same failed identity, not all future root
+  // replacements. A successful decision rebuild may follow a failed recovery.
+  if(identityGapKey!==observed){identityGapKey=observed;identityChanged=true;healthy=false;
+    if(!recovering)recoveryAttempts=0;
     watcher?.unsubscribe().catch(()=>{});watcher=null;
     observationGap('checkout_identity_changed');}
   return false;

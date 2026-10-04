@@ -1,3 +1,4 @@
+import {inflateSync} from 'node:zlib';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -220,4 +221,16 @@ test('npm workspace scripts are discovered as recording-only named checks',t=>{
   const yarnPreview=JSON.parse(good(yarn.root,yarn.state,'init','--dry-run','--json'));
   assert.deepEqual(yarnPreview.proposed_config.checks[0].command,
     ['@which:yarn','workspace','@fixture/library','run','test']);
+});
+
+
+test('npm compiler certificate preserves the independent CLI probe result',t=>{
+  const {root}=project(t),npm=findExecutable('npm');
+  const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!/^npm_config_/i.test(key)));
+  const args=[path.resolve('src/typescript-contract-probe.mjs'),root,'typecheck',npm];
+  const normal=spawnSync(process.execPath,args,{cwd:root,env,encoding:'utf8',timeout:15000});
+  const certified=spawnSync(process.execPath,[...args,'--redue-checkpoint'],{cwd:root,env,encoding:'utf8',timeout:15000});
+  assert.equal(normal.status,0,normal.stderr);assert.equal(certified.status,0,certified.stderr);
+  const value=JSON.parse(certified.stdout);assert.equal(value.output,normal.stdout);
+  assert(JSON.parse(inflateSync(Buffer.from(value.queryData,'base64'))).length>0);
 });

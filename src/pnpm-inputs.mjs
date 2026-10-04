@@ -1,6 +1,7 @@
 // Pinned pnpm 12 node-modules installation provider. The engine sees only
 // repository-relative input sets and resolution relationships, never pnpm
 // virtual-store names as semantic identities.
+import {compilerFiles} from './typescript-list.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {createRequire} from 'node:module';
@@ -234,7 +235,7 @@ function sharedHardlinkIn(folder){
   }
   return false;
 }
-export function pnpmTypecheckInputs(root,workspace,script){
+export function pnpmTypecheckInputs(root,workspace,script,{captureQueries=false}={}){
   const totalStarted=performance.now();
   root=realObservedPath(root);
   const install=pnpmInstallInfo(root),members=pnpmWorkspacePackages(root,install.patterns);
@@ -303,7 +304,8 @@ export function pnpmTypecheckInputs(root,workspace,script){
     resolutionMs:Math.round(resolutionMs),workspaceLinks:links.size,
     candidates:candidates.size});
   const listingStarted=performance.now();
-  const files=listedTypeScriptFiles(root,selected,tsc);
+  const captured=captureQueries?compilerFiles(tsRoot,path.join(root,selected.dir)):null;
+  const files=captured?captured.files.map(realObservedPath):listedTypeScriptFiles(root,selected,tsc);
   timing('pnpm.ts_input_listing',listingStarted,{files:files.length});
   const mappingStarted=performance.now();
   for(const file of files){
@@ -334,7 +336,7 @@ export function pnpmTypecheckInputs(root,workspace,script){
     installed:[...installed],generated:[...generated],
     // The read-only state probe consumes this same resolved compiler file set.
     // It is deliberately omitted from the persisted user-facing input plan.
-    listedFiles:files,
+    listedFiles:files,discoveryQueries:captured?.queries,
     configs,configurationInputs:[...new Set([...install.configurationInputs,
       ...configs,...members.values().map(member=>member.manifest)])],
     installation:{provider:'pnpm',version:install.version,linker:install.linker},

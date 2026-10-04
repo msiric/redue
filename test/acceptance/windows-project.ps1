@@ -43,7 +43,7 @@ function DecisionSample([string]$Kind,[bool]$Sync=$true) {
     $selected = $parsed.checks | Where-Object name -eq $case.check
     if($code -ne 0){throw "Decision sample $Kind failed: $output"}
     if(!$expected -or $selected.freshness -eq $expected){break}
-    if($selected.freshness -eq 'UNVERIFIED' -and $parsed.observation.phase -in
+    if((!$selected -or $selected.freshness -eq 'UNVERIFIED') -and $parsed.observation.phase -in
       @('discovery','initializing','indexing','reconciling','validating')){
       $pending++; Start-Sleep -Milliseconds 100
     }else{throw "Decision sample $Kind expected $expected; got $output"}

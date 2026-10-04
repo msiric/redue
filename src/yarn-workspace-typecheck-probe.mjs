@@ -77,7 +77,8 @@ try{
   const contract=yarnWorkspaceTypecheckInputs(root,workspace,script);
   const cwd=path.join(root,contract.workspace.dir);
   const tsc=yarnLocalTsc(root);
-  const listed=spawnSync(process.execPath,[tsc,'-p','.','--listFilesOnly'],
+  const captured=process.argv.includes('--redue-checkpoint')?compilerFiles(path.join(root,'node_modules/typescript'),cwd):null;
+  const listed=captured?{status:0,stdout:captured.files.join('\n')}:spawnSync(process.execPath,[tsc,'-p','.','--listFilesOnly'],
     {cwd,env:process.env,encoding:'utf8',timeout:4000,maxBuffer:16*1024*1024,
       stdio:['ignore','pipe','pipe']});
   if(listed.error||listed.signal||listed.status!==0)fail('typescript-input-list-unavailable');
@@ -97,16 +98,10 @@ try{
   const files=[...new Set(inputs)].sort().map(file=>
     [hash(path.relative(root,file)),digestFile(file)]);
   const configs=contract.configs.map(file=>[hash(file),digestFile(path.join(root,file))]);
-  let queries=null;
-  if(process.argv.includes('--redue-checkpoint')){
-    const captured=compilerFiles(path.join(root,'node_modules/typescript'),cwd);
-    if(captured&&JSON.stringify(captured.files.map(realObservedPath).sort())===JSON.stringify([...inputs].sort()))
-      queries=captured.queries;
-  }
   probeResult(hash(JSON.stringify({schema:1,workspace,script,
     files,configs,yarnVersion:version.stdout.trim(),yarnShim:digestFile(yarn),
     yarnLoader:digestFile(distribution.loader),
     yarnDistribution:digestFile(distribution.distribution),
-    node:process.version,tsc:digestFile(tsc)})),contextHash,queries);
+    node:process.version,tsc:digestFile(tsc)})),contextHash,captured?.queries);
 }catch(e){console.error(`VSTATE_REASON:${e.code&&/^[a-z-]+$/.test(e.code)?e.code:
   'workspace-typecheck-contract-unavailable'}`);process.exitCode=2;}

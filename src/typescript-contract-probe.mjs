@@ -167,7 +167,8 @@ endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%"  "%dp0%\\..\\
   for(const file of configReads)if(!within(realObservedPath(file),root))
     fail('typescript-config-outside-repository');
   const listingStarted=performance.now();
-  const listed=spawnSync(process.execPath,[tsc,'--noEmit','--listFilesOnly'],
+  const captured=process.argv.includes('--redue-checkpoint')?compilerFiles(tsRoot,root):null;
+  const listed=captured?{status:0,stdout:captured.files.join('\n')}:spawnSync(process.execPath,[tsc,'--noEmit','--listFilesOnly'],
     {cwd:root,env:process.env,encoding:'utf8',timeout:process.platform==='win32'?10000:4000,
       maxBuffer:16*1024*1024,
       stdio:['ignore','pipe','pipe']});
@@ -182,12 +183,6 @@ endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%"  "%dp0%\\..\\
     configs:[...configReads].sort().map(file=>[hash(file),digestFile(file)]),
     files:[...new Set(files)].sort().map(file=>[hash(file),digestFile(file)]),
     ...contextFacts};
-  let queries=null;
-  if(process.argv.includes('--redue-checkpoint')){
-    const captured=compilerFiles(tsRoot,root);
-    if(captured&&JSON.stringify([...captured.files].sort())===JSON.stringify([...files].sort()))
-      queries=captured.queries;
-  }
-  probeResult(hash(JSON.stringify(facts)),contextHash,queries);
+  probeResult(hash(JSON.stringify(facts)),contextHash,captured?.queries);
 }catch(e){console.error(`VSTATE_REASON:${e.code&&/^[a-z-]+$/.test(e.code)?e.code:
   'typescript-contract-unavailable'}`);process.exitCode=2;}

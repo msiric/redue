@@ -1,3 +1,4 @@
+import {inflateSync} from 'node:zlib';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -363,4 +364,14 @@ test('pnpm hoisted installation can record and reuse a qualified TypeScript chec
   const inherited=status();
   assert.equal(inherited.freshness,'CURRENT');
   assert.equal(inherited.invocation.runId,restored.invocation.runId);
+});
+
+
+test('pnpm compiler certificate preserves independently listed CLI input identity',t=>{
+  const {root}=fixture(t),args=[path.resolve('src/pnpm-typecheck-probe.mjs'),root,'@fixture/app','typecheck'];
+  const run=extra=>spawnSync(process.execPath,[...args,...extra],{cwd:path.join(root,'packages/app'),env:cleanEnv,encoding:'utf8',timeout:15000});
+  const normal=run([]),certified=run(['--redue-checkpoint']);
+  assert.equal(normal.status,0,normal.stderr);assert.equal(certified.status,0,certified.stderr);
+  const value=JSON.parse(certified.stdout);assert.equal(value.output,normal.stdout);
+  assert(JSON.parse(inflateSync(Buffer.from(value.queryData,'base64'))).length>0);
 });
