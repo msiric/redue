@@ -113,6 +113,7 @@ function probe(row,allowReuse=false) {
     if(!out.error&&!out.signal&&out.status===0&&
       out.stdout.toString()===row.probeCache.context){
       row.probeHash=row.probeCache.hash;row.probeAt=Date.now();row.probeError=null;
+      metrics.probeReuses=(metrics.probeReuses||0)+1;
       timing('daemon.probe_context_validation',started,{outcome:'reused',reason:'content_and_context_unchanged'});
       return;
     }
@@ -182,7 +183,8 @@ function probe(row,allowReuse=false) {
   row.probeHash=value;row.probeAt=Date.now();row.probeError=null;
   if(checkpoint)row.probeCache=checkpoint.queries?{input:key,context:checkpoint.context,
     hash:value,queries:checkpoint.queries}:null;
-  timing('daemon.probe',started,{outcome:'ok',commands:values.length});
+  timing('daemon.probe',started,{outcome:'ok',commands:values.length,
+    reusable:row.probeCache?1:0,queries:row.probeCache?.queries.length||0});
 }
 function applicableExternal(name) {return [...external.values()].filter(entry=>entry.index?.checks.has(name));}
 function combinedSummary(name) {

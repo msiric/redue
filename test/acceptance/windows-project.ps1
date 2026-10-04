@@ -28,15 +28,31 @@ function DecisionSample([string]$Kind,[bool]$Sync=$true) {
   $clock = [System.Diagnostics.Stopwatch]::StartNew()
   $args = @($cli,'--state-dir',$state,'status','--json')
   if($Sync){$args += '--sync'}
-  $output = & node @args
-  $code = $LASTEXITCODE
+  $expected = switch($Kind){
+    'warm_unchanged' {'CURRENT'}
+    'after_unrelated_edit' {'CURRENT'}
+    'after_relevant_edit' {'STALE'}
+    'first_after_restart' {'CURRENT'}
+    default {''}
+  }
+  $queries=0; $pending=0
+  do {
+    $output = & node @args
+    $code = $LASTEXITCODE; $queries++
+    $parsed = $output | ConvertFrom-Json
+    $selected = $parsed.checks | Where-Object name -eq $case.check
+    if($code -ne 0){throw "Decision sample $Kind failed: $output"}
+    if(!$expected -or $selected.freshness -eq $expected){break}
+    if($selected.freshness -eq 'UNVERIFIED' -and $parsed.observation.phase -in
+      @('discovery','initializing','indexing','reconciling','validating')){
+      $pending++; Start-Sleep -Milliseconds 100
+    }else{throw "Decision sample $Kind expected $expected; got $output"}
+  }while($clock.Elapsed.TotalSeconds -lt 30)
   $clock.Stop()
-  $parsed = $output | ConvertFrom-Json
-  $selected = $parsed.checks | Where-Object name -eq $case.check
+  if($expected -and $selected.freshness -ne $expected){throw "Decision sample $Kind never became usable"}
   $sample = @{phase="acceptance.$Kind";ms=$clock.Elapsed.TotalMilliseconds;
-    exit=$code;freshness=$selected.freshness;result=$selected.result}
+    exit=$code;freshness=$selected.freshness;result=$selected.result;queries=$queries;pending=$pending}
   Add-Content -LiteralPath $env:REDUE_DECISION_PROFILE_FILE -Value ('REDUE_TIMING '+($sample | ConvertTo-Json -Compress))
-  if($code -ne 0){throw "Decision sample $Kind failed: $output"}
   return $parsed
 }
 function CheckState([string]$Expected,[string]$Receipt='') {
@@ -169,8 +185,10 @@ try {
   $receipt = $first.invocation.runId
   for($i=0;$i -lt 8;$i++){DecisionSample 'warm_unchanged' | Out-Null}
   for($i=0;$i -lt 5;$i++){DecisionSample 'cached' $false | Out-Null}
-  Set-Content -LiteralPath (Join-Path $root 'redue-unrelated-note.md') -Value 'disposable acceptance note'
-  DecisionSample 'after_unrelated_edit' | Out-Null
+  for($i=0;$i -lt 5;$i++){
+    Set-Content -LiteralPath (Join-Path $root 'redue-unrelated-note.md') -Value "disposable acceptance note $i"
+    DecisionSample 'after_unrelated_edit' | Out-Null
+  }
   CheckState 'CURRENT' $receipt | Out-Null
   $sourcePath = switch($Project){
     npm { Join-Path $root 'src/extension.ts' }
@@ -178,8 +196,10 @@ try {
     pnpm { Join-Path $root 'packages/result-store/src/index.ts' }
   }
   if(!(Test-Path -LiteralPath $sourcePath)){throw "No selected source file at $sourcePath"}
-  Add-Content -LiteralPath $sourcePath -Value "`n// disposable REDUE freshness acceptance"
-  DecisionSample 'after_relevant_edit' | Out-Null
+  for($i=0;$i -lt 5;$i++){
+    Add-Content -LiteralPath $sourcePath -Value "`n// disposable REDUE freshness acceptance $i"
+    DecisionSample 'after_relevant_edit' | Out-Null
+  }
   CheckState 'STALE' $receipt | Out-Null
   Redue @('run',$case.check)
   ReceiptCheckpoint

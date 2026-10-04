@@ -13,7 +13,7 @@ try {
   const configStarted=performance.now();
   const config=JSON.parse(fs.readFileSync(workerData.config));
   timing('worker.config_load',configStarted);
-  const discoveryStarted=performance.now();
+  let discoveryStarted=performance.now();
   let bundle=workerData.reuse?.bundle;
   let validatedIndex=null,guard=null,reuseReason='no_validated_plan',planReused=false;
   if(bundle){
@@ -42,11 +42,12 @@ try {
       hashingMs:Math.round(validatedIndex?.profile.hashingMs||0),
       enumerationMs:Math.round(validatedIndex?.profile.enumerationMs||0)});
   }
+  discoveryStarted=performance.now();
   if(!planReused){bundle=discover(config,workerData.state);validatedIndex=null;
     guard=planGuard(bundle);}
   timing('worker.discovery_reason',performance.now(),{reason:reuseReason,reused:planReused?1:0});
   const discoveryMs=performance.now()-discoveryStarted;
-  timing('worker.discovery',discoveryStarted,{checks:Object.keys(bundle.plans).length});
+  timing(planReused?'worker.discovery_reused':'worker.discovery',discoveryStarted,{checks:Object.keys(bundle.plans).length});
   parentPort.postMessage({kind:'progress',phase:'indexing',discoveryMs,scanned:0,total:null});
   const digest=file=>createHash('sha256').update(fs.readFileSync(file)).digest('hex');
   let retained=null;
@@ -81,7 +82,7 @@ try {
   if(!validatedIndex){const report=progress=>parentPort.postMessage({kind:'progress',phase:'indexing',discoveryMs,...progress});
     if(process.platform==='win32')await index.validatedScan(report);else index.coldScan(report);}
   const indexingMs=performance.now()-indexingStarted;
-  timing('worker.index',indexingStarted,{files:index.files.size,
+  timing(validatedIndex?'worker.index_reused':'worker.index',indexingStarted,{files:index.files.size,
     entries:index.profile.enumeratedEntries,hashed:index.rehashedFiles,
     bytes:index.rehashedBytes,enumerationMs:Math.round(index.profile.enumerationMs),
     matchingMs:Math.round(index.profile.matchingMs),

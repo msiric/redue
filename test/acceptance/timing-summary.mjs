@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 const values=new Map();
 const counts=new Map();
+const reasons=new Map();
 let peakRssMiB=0;
 for(const file of process.argv.slice(2)){
   if(!fs.existsSync(file))continue;
@@ -14,6 +15,8 @@ for(const file of process.argv.slice(2)){
     if(typeof entry.phase!=='string'||typeof entry.ms!=='number')continue;
     if(!values.has(entry.phase))values.set(entry.phase,[]);
     values.get(entry.phase).push(entry.ms);
+    for(const key of ['reason','outcome','reused'])if(entry[key]!==undefined){
+      const label=entry.phase+'.'+key+':'+entry[key];reasons.set(label,(reasons.get(label)||0)+1);}
     for(const key of ['files','bytes','entries','packages','checks','inputFiles'])
       if(typeof entry[key]==='number'){
         const label=`${entry.phase}.${key}`;
@@ -31,3 +34,4 @@ for(const [phase,samples] of [...values].sort(([a],[b])=>a.localeCompare(b))){
 }
 console.log(JSON.stringify({peakSampledRssMiB:peakRssMiB}));
 console.log(JSON.stringify({maximumPhaseCounts:Object.fromEntries([...counts].sort())}));
+console.log(JSON.stringify({phaseReasons:Object.fromEntries([...reasons].sort())}));
