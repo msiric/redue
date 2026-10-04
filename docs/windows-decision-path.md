@@ -39,9 +39,10 @@ For npm/Yarn, content traversal/read cost was itself substantial.
   are not trusted merely because checkout inputs match. Caller context is still
   separately supplied and compared by the existing receipt contract.
 - Windows continues to read content and membership through the existing index;
-  directory events do not prove hardlink-alias contents unchanged. Eight bounded
-  independent reads replace serialized content I/O. Before/after file identity
-  checks remain. No lockfile/timestamp substitutes for content hashing.
+  directory events do not prove hardlink-alias contents unchanged. An eight-read
+  concurrent implementation was measured and removed: NTFS validation got slower
+  (pnpm index ~3.4 s versus the original ~0.9 s). The original content reader and
+  before/after identity checks remain. No lockfile/timestamp substitutes for bytes.
 - The compiler certificate is internal optimization metadata, not a receipt or
   a new evidence type. It contains answers/digests and local paths, not source
   text or environment values. It is not exported. No TTL grants applicability.

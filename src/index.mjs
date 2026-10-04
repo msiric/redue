@@ -151,7 +151,7 @@ export class InputIndex {
   }
   summary(name) { const row=this.checks.get(name); return {fingerprint:this.fingerprint(name),
     revision:row.revision,planId:row.plan.id,files:row.files.size,probeAt:row.probeAt}; }
-  record(rel, changeReason=rel+' changed', observedStat=null, readyInspection=null) {
+  record(rel, changeReason=rel+' changed', observedStat=null) {
     if(!validInputRelative(rel)) {
       this.unavailable='invalid event path'; return false;
     }
@@ -163,7 +163,7 @@ export class InputIndex {
     catch(e){if(e.code!=='ENOENT'){this.unavailable=String(e);return false;}}
     if(stat&&(stat.isFile()||stat.isSymbolicLink())) {
       const installed=this.installedPath(rel);
-      try{const started=performance.now();inspection=readyInspection||fileHash(this.root,rel,installed,stat);
+      try{const started=performance.now();inspection=fileHash(this.root,rel,installed,stat);
         fresh=inspection.hash;
         this.profile.hashingMs+=performance.now()-started;
         this.rehashedFiles++;this.rehashedBytes+=inspection.bytes;}
@@ -222,7 +222,7 @@ export class InputIndex {
     }
     for(const old of [...this.files.keys()]) if((old===rel||old.startsWith(rel+'/'))&&!found.has(old)) this.record(old);
   }
-  coldScan(progress, deferred=null) {
+  coldScan(progress) {
     this.unavailable=null;
     const trackedStarted=performance.now();
     const names=new Set(this.trackGit?tracked(this.root):[]);
@@ -254,8 +254,7 @@ export class InputIndex {
         } else {
           names.delete(rel);
           const started=performance.now();
-          if(this.candidates(rel).size){if(deferred)deferred.set(rel,st);
-            else this.record(rel,'cold reconciliation',st);}
+          if(this.candidates(rel).size)this.record(rel,'cold reconciliation',st);
           processingMs+=performance.now()-started;
           scanned++;
           if(progress&&scanned%256===0)progress({scanned,total:null});
@@ -273,42 +272,12 @@ export class InputIndex {
     this.profile.enumerationMs+=performance.now()-enumerationStarted-processingMs;
     const recordStarted=performance.now();
     for(const rel of names) {
-      if(this.candidates(rel).size){if(deferred)deferred.set(rel,null);
-        else this.record(rel,'cold reconciliation');}
+      if(this.candidates(rel).size)this.record(rel,'cold reconciliation');
       scanned++;
       if(progress&&scanned%256===0)progress({scanned,total:null});
     }
     if(progress)progress({scanned,total:scanned});
     this.profile.recordMs+=processingMs+performance.now()-recordStarted;
-  }
-  async validatedScan(progress,concurrency=8) {
-    const files=new Map();this.coldScan(progress,files);
-    const jobs=[...files],started=performance.now();let cursor=0,completed=0;
-    const inspect=async()=>{
-      while(cursor<jobs.length){
-        const [rel,observed]=jobs[cursor++];
-        if(![...this.candidates(rel)].some(name=>this.matches(this.checks.get(name),rel)))continue;
-        try{
-          const file=path.join(this.root,rel),before=observed||await fs.promises.lstat(file,{bigint:true});
-          if(!before.isFile())this.record(rel,'cold reconciliation',before);
-          else {
-            const content=await fs.promises.readFile(file);
-            const after=await fs.promises.lstat(file,{bigint:true});
-            for(const key of ['dev','ino','mode','nlink','size','mtimeNs','ctimeNs'])
-              if(before[key]!==after[key])throw Error(`input changed during inspection: ${rel}`);
-            const value='file:'+before.mode+':'+
-              (this.installedPath(rel)&&before.nlink>1?before.nlink+':':'')+sha(content);
-            this.record(rel,'cold reconciliation',before,
-              {hash:sha(value),references:[],bytes:content.length});
-          }
-        }catch(e){if(e.code==='ENOENT'&&!observed)this.record(rel,'cold reconciliation');
-          else this.unavailable=String(e);}
-        completed++;if(progress&&completed%256===0)progress({scanned:completed,total:jobs.length});
-      }
-    };
-    await Promise.all(Array.from({length:concurrency},inspect));
-    this.profile.hashingMs+=performance.now()-started;
-    if(progress)progress({scanned:completed,total:jobs.length});
   }
   updatePath(rel) {
     const full=path.join(this.root,rel);

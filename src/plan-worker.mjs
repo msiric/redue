@@ -24,7 +24,7 @@ try {
         (workerData.reuse.queries?.length&&!queriesMatch(workerData.reuse.queries)))reuseReason='configuration_or_resolution_changed';
       else {
         validatedIndex=new InputIndex(bundle);
-        await validatedIndex.validatedScan(progress=>parentPort.postMessage({kind:'progress',
+        validatedIndex.coldScan(progress=>parentPort.postMessage({kind:'progress',
           phase:'validating',scanned:progress.scanned,total:progress.total}));
         if(validatedIndex.unavailable)throw Error(validatedIndex.unavailable);
         if(planGuard(bundle)!==guard)throw Error('plan dependencies changed during validation');
@@ -80,7 +80,7 @@ try {
     throw Error('injected reconciliation failure');
   const indexingStarted=performance.now(), index=validatedIndex||new InputIndex(bundle);
   if(!validatedIndex){const report=progress=>parentPort.postMessage({kind:'progress',phase:'indexing',discoveryMs,...progress});
-    if(process.platform==='win32')await index.validatedScan(report);else index.coldScan(report);}
+    index.coldScan(report);}
   const indexingMs=performance.now()-indexingStarted;
   timing(validatedIndex?'worker.index_reused':'worker.index',indexingStarted,{files:index.files.size,
     entries:index.profile.enumeratedEntries,hashed:index.rehashedFiles,

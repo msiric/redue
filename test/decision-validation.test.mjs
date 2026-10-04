@@ -46,17 +46,17 @@ test('plan guards include workspace membership, optional configuration and link 
   fs.rmSync(path.join(root,'packages'),{recursive:true});assert.equal(planGuard(bundle),initial);
   put(path.join(root,'.pnpmfile.cjs'),'module.exports={}');assert.notEqual(planGuard(bundle),initial);
 });
-test('bounded content validation matches independent sequential index including hardlink alias mutation',async t=>{
+test('plan content keys detect installed mutation through a hardlink alias',t=>{
   const root=fixture(t);put(path.join(root,'node_modules/pkg/code.js'),'module.exports=1;');
   const alias=path.join(root,'alias');fs.linkSync(path.join(root,'node_modules/pkg/code.js'),alias);
   const plan={id:'fixture',patterns:['src/**','node_modules/pkg/**'],
     installedPhysicalRoots:['node_modules/pkg']};
   const bundle={root,plans:{check:plan}};
-  const compare=async()=>{const oracle=new InputIndex(bundle),validated=new InputIndex(bundle);
-    oracle.coldScan();await validated.validatedScan();
-    assert.equal(validated.unavailable,null);assert.deepEqual(validated.files,oracle.files);
-    assert.equal(inputKey(validated.checks.get('check')),inputKey(oracle.checks.get('check')));
-    return validated.fingerprint('check');};
-  const first=await compare();put(alias,'module.exports=2;');assert.notEqual(await compare(),first);
-  fs.rmSync(path.join(root,'src/main.ts'));put(path.join(root,'src/new.ts'),'export {};');await compare();
+  const first=new InputIndex(bundle);first.coldScan();
+  const identity=inputKey(first.checks.get('check'));
+  // Independent bytes establish that the alias changed the project-visible file.
+  put(alias,'module.exports=2;');
+  assert.equal(fs.readFileSync(path.join(root,'node_modules/pkg/code.js'),'utf8'),'module.exports=2;');
+  const next=new InputIndex(bundle);next.coldScan();
+  assert.notEqual(inputKey(next.checks.get('check')),identity);
 });
