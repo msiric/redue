@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import net from 'node:net';
 import {spawn,spawnSync,execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {acquireRunLock,inspectRunLock,recoverRunLock} from '../src/run-lock.mjs';
+import {controlEndpoint} from '../src/control-endpoint.mjs';
 
 const bin=path.resolve('bin/redue.mjs');
 const categories=['source','generated','installedDependencies','environment','toolchain','runtime'];
@@ -55,6 +57,14 @@ function ok(f,...args){const out=call(f,...args);
     fs.readFileSync(path.join(f.state,'observer.log'),'utf8').slice(-2000):'';
   assert.equal(out.status,0,`${args.join(' ')}: ${out.stderr}\n${out.stdout}\n${log}`);return out;}
 function status(f){return JSON.parse(ok(f,'status','--sync','--json').stdout);}
+function control(f,message){return new Promise((resolve,reject)=>{
+  const client=net.createConnection(controlEndpoint(f.state).address);
+  let data='';
+  client.on('connect',()=>client.write(JSON.stringify(message)+'\n'));
+  client.on('data',chunk=>data+=chunk);
+  client.on('end',()=>{try{resolve(JSON.parse(data));}catch(error){reject(error);}});
+  client.on('error',reject);
+});}
 function row(f){return status(f).checks[0];}
 function withFixture(t,options){const f=fixture(options);t.after(()=>{
   try{call(f,'stop');}catch{}try{call(f,'remove-state');}catch{}f.cleanup();});return f;}
@@ -92,6 +102,23 @@ test('short startup wait reports owned initialization instead of a false launch 
   const usable=await until(f,value=>value.observation.healthy);
   assert.equal(usable.checks[0].freshness,'UNVERIFIED');
 });
+
+test('Windows prelaunch checkpoint incorporates delivered input events without claiming synchronized CURRENT',
+  {skip:process.platform!=='win32'},async t=>{
+    const f=withFixture(t);ok(f,'start');
+    const first=await control(f,{action:'snapshot',name:'check'});
+    assert(first.snapshots?.check?.observationHealthy);
+    put(path.join(f.root,'src/input.txt'),'PASS changed before command launch\n');
+    let later;
+    for(let n=0;n<100;n++){
+      later=await control(f,{action:'prelaunch',name:'check'});
+      if(later.snapshots?.check?.revision!==first.snapshots.check.revision)break;
+      await new Promise(resolve=>setTimeout(resolve,25));
+    }
+    assert.notEqual(later.snapshots?.check?.revision,first.snapshots.check.revision);
+    assert.equal(later.checks[0].freshness,'UNVERIFIED');
+    ok(f,'run','check');assert.equal(row(f).freshness,'CURRENT');
+  });
 
 test('receipt survives unrelated changes; source, generated, installed and absence changes stale it',async t=>{
   const f=withFixture(t,{absent:true});ok(f,'start');ok(f,'run','check');

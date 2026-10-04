@@ -724,7 +724,7 @@ async function request(message) {
       rehashedFiles:e.index?.rehashedFiles,rehashedBytes:e.index?.rehashedBytes})),
     healthy,reason,planning};
   if(message.action==='reload'){loadReceipts();publish();return {ok:true};}
-  if(message.action==='sync'||message.action==='snapshot') {
+  if(message.action==='sync'||message.action==='snapshot'||message.action==='prelaunch') {
     const totalStarted=performance.now();
     if(process.platform==='win32'&&process.env.VSTATE_TEST_FAULTS==='1'&&
       process.env.VSTATE_TEST_WINDOWS_GAP_FILE&&
@@ -737,7 +737,7 @@ async function request(message) {
     // The pinned Windows backend reports explicit errors but does not expose a
     // reliable history/overflow barrier. A decision-grade read therefore
     // reconstructs the declared state instead of trusting its event cursor.
-    if(process.platform==='win32'){
+    if(process.platform==='win32'&&message.action!=='prelaunch'){
       const started=performance.now();await refreshPlan({forceCold:true});
       timing('daemon.request_forced_reconcile',started,{healthy:healthy?1:0});}
     if(healthy)try{const started=performance.now();await catchUp();
@@ -747,9 +747,10 @@ async function request(message) {
     // A successful Windows forced reconciliation has already hashed the
     // complete declared installed input set. A second full pass inside the
     // same request duplicates that work without creating an atomic snapshot.
-    const windowsColdIndex=process.platform==='win32'&&healthy&&!planning&&
+    const windowsColdIndex=process.platform==='win32'&&message.action!=='prelaunch'&&
+      healthy&&!planning&&
       !planDirty&&!index?.unavailable;
-    if(index&&healthy&&!planning){
+    if(index&&healthy&&!planning&&message.action!=='prelaunch'){
       const names=[...index.checks].filter(([name,row])=>
         row.plan.synchronizedInstalledRead&&(!message.name||message.name===name))
         .map(([name])=>name);
@@ -774,13 +775,14 @@ async function request(message) {
       }catch(e){installedRecheck=null;observationGap('installed_recheck',e);}
     }
     const probeStarted=performance.now();
-    if(index&&healthy&&!windowsColdIndex)for(const row of index.checks.values())probe(row);
+    if(index&&healthy&&!windowsColdIndex&&message.action!=='prelaunch')
+      for(const row of index.checks.values())probe(row);
     timing('daemon.request_probes',probeStarted,{checks:index?.checks.size||0});
     lastObservation=Date.now();publish();
     const applicabilityStarted=performance.now();
     const data=status(message.contextHashes,synchronizedInstalled,
       process.platform==='win32'&&healthy&&!planning&&!planDirty);
-    if(message.action==='snapshot') {
+    if(message.action==='snapshot'||message.action==='prelaunch') {
       data.snapshots={};for(const [name,row] of index?.checks||[])
         if(!message.name||message.name===name)
           data.snapshots[name]={...combinedSummary(name),files:combinedFiles(name),

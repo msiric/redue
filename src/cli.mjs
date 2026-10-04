@@ -173,6 +173,18 @@ async function execute() {
     try{before=await call({action:'snapshot',name,contextHashes:contextHashes()},captureTimeout);}
     catch{captureIssues.push('start observation unavailable');}
     timing('cli.start_checkpoint',startSnapshotStarted,{available:before?.snapshots?.[name]?1:0});
+    // A Windows full reconciliation may finish while queued watcher callbacks
+    // are still arriving. Fold callbacks delivered before process launch into
+    // the starting checkpoint; callbacks after launch still disqualify reuse.
+    if(process.platform==='win32'&&before?.snapshots?.[name]?.observationHealthy){
+      await new Promise(resolve=>setTimeout(resolve,100));
+      const prelaunchStarted=performance.now();
+      try{before=await call({action:'prelaunch',name,
+        contextHashes:contextHashes()},Math.min(captureTimeout,5000));}
+      catch{before=null;captureIssues.push('prelaunch observation unavailable');}
+      timing('cli.prelaunch_checkpoint',prelaunchStarted,
+        {available:before?.snapshots?.[name]?1:0});
+    }
     const snap=before?.snapshots?.[name];
     if(!snap||!snap.observationHealthy)captureIssues.push('start checkpoint unavailable');
     const started=Date.now();
