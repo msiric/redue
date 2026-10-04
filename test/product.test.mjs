@@ -357,11 +357,21 @@ test('failed reconciliation stays UNVERIFIED, preserves PASS, and restart repair
   while(!events(f).some(e=>e.kind==='reconciliation_failed')&&Date.now()-failedAt<5000)
     await new Promise(resolve=>setTimeout(resolve,50));
   assert(events(f).some(e=>e.kind==='reconciliation_failed'));
-  const item=row(f);assert.equal(item.freshness,'UNVERIFIED');
-  assert.equal(item.result,'PASS');assert.equal(item.invocation.runId,runId);
-  assert.match(item.reason,process.platform==='win32'?
+  // A synchronized query would itself start another Windows reconciliation.
+  // Inspect the cached state to assert the completed failed attempt, while
+  // permitting a second bounded recovery attempt to be in progress.
+  let item;
+  const failureReason=process.platform==='win32'?
     /(?:deterministic reconciliation failed|plan unavailable: injected reconciliation failure)/:
-    /deterministic reconciliation failed/);
+    /deterministic reconciliation failed/;
+  for(let n=0;n<100;n++){
+    item=JSON.parse(ok(f,'status','--json').stdout).checks[0];
+    assert.equal(item.freshness,'UNVERIFIED');
+    assert.equal(item.result,'PASS');assert.equal(item.invocation.runId,runId);
+    if(failureReason.test(item.reason||''))break;
+    await new Promise(resolve=>setTimeout(resolve,25));
+  }
+  assert.match(item.reason,failureReason);
   await new Promise(resolve=>setTimeout(resolve,900));
   assert.equal(events(f).filter(e=>e.kind==='reconciliation_started').length,2);
   fs.unlinkSync(path.join(f.state,'reconcile-fault'));
