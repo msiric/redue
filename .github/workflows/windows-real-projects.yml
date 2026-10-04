@@ -21,4 +21,5 @@ jobs:
         shell: pwsh
         env:
           REDUE_DECISION_PROFILE: '1'
+          REDUE_PUBLIC_INPUT_TRACE: '1'
         run: ./test/acceptance/windows-project.ps1 -Project ${{ matrix.project }}

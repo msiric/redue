@@ -50,6 +50,12 @@ function ReceiptCheckpoint {
     ConvertFrom-Json -AsHashtable).checks[$case.check]
   Write-Host "Run checkpoint issue codes: $($receipt.checkpoint.issues -join ', ')"
   Write-Host "Run checkpoint revisions: $($receipt.checkpoint.startRevision) -> $($receipt.checkpoint.endRevision)"
+  $events = Join-Path $state 'events.jsonl'
+  if(Test-Path -LiteralPath $events){
+    Get-Content -LiteralPath $events | ForEach-Object { $_ | ConvertFrom-Json } |
+      Where-Object kind -eq 'public_input_notification' | Select-Object -Last 12 |
+      ForEach-Object { Write-Host "Public input notification: $($_.at) $($_.type) $($_.path) planning=$($_.planning)" }
+  }
 }
 
 Write-Host "Windows public acceptance: $Project; $($case.repo) at $($case.revision)"

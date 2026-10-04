@@ -40,6 +40,7 @@ for(const check of config.checks)for(const boundary of permittedRoots(root,check
 let pending=new Set(), pendingChecks=new Set(), flushTimer, planDirty=false, planning=false, lastObservation=0;
 let decisionRequests=0;
 let inputEventSerial=new Map();
+let diagnosticInputEvents=0;
 let synchronizing=null;
 let installedRecheck=null;
 let historyDisabled=!hasHistory,recoveryTimer=null,recovering=false,recoveryAttempts=0;
@@ -519,9 +520,12 @@ function pnpmTopologyChanged(type,rel) {
     return stat.isDirectory()||stat.isSymbolicLink();}
   catch(e){return e.code==='ENOENT';}
 }
-function markInputEvent(name) {
+function markInputEvent(name,rel,type) {
   pendingChecks.add(name);
   inputEventSerial.set(name,(inputEventSerial.get(name)||0)+1);
+  // Disposable public CI only. Never enabled for normal/local repositories.
+  if(process.env.REDUE_PUBLIC_INPUT_TRACE==='1'&&rel&&diagnosticInputEvents++<100)
+    event('public_input_notification',{path:rel,type:type||'unknown',planning});
 }
 function notification(type,filename) {
   metrics.notifications++;
@@ -531,7 +535,7 @@ function notification(type,filename) {
   if(rel==='.git'||rel.startsWith('.git/'))return;
   if(planning) {
     if(index)for(const name of index.candidates(rel))
-      if(index.matches(index.checks.get(name),rel))markInputEvent(name);
+      if(index.matches(index.checks.get(name),rel))markInputEvent(name,rel,type);
     pending.add(rel);metrics.maxQueue=Math.max(metrics.maxQueue,pending.size);
     if(planTrigger(rel)||candidateDescendants.has(rel)||pnpmTopologyChanged(type,rel))
       planDirty=true;
@@ -555,9 +559,9 @@ function notification(type,filename) {
   pending.add(rel);metrics.maxQueue=Math.max(metrics.maxQueue,pending.size);
   if(index) {
     for(const name of index.candidates(rel))
-      if(index.matches(index.checks.get(name),rel))markInputEvent(name);
+      if(index.matches(index.checks.get(name),rel))markInputEvent(name,rel,type);
     for(const [prefix,names] of index.prefixes)
-      if(prefix.startsWith(rel+'/'))for(const name of names)markInputEvent(name);
+      if(prefix.startsWith(rel+'/'))for(const name of names)markInputEvent(name,rel,type);
   }
   if(pending.size>50000){healthy=false;reason='observation backlog overflow';metrics.gaps++;
     event('observation_gap',{classification:'backlog_overflow'});publish();
@@ -573,16 +577,16 @@ function externalNotification(entry,type,filename) {
   const rel=filename.toString().split(path.sep).join('/');
   const absolute=path.join(entry.root,rel);
   if(planning&&entry.index)for(const name of entry.index.candidates(rel))
-    if(entry.index.matches(entry.index.checks.get(name),rel))markInputEvent(name);
+    if(entry.index.matches(entry.index.checks.get(name),rel))markInputEvent(name,rel,type);
   if(planTrigger(absolute)&&triggerChanged(absolute))planDirty=true;
   if(candidateTriggerChanged(absolute))planDirty=true;
   entry.pending.add(rel);metrics.maxQueue=Math.max(metrics.maxQueue,
     pending.size+[...external.values()].reduce((n,e)=>n+e.pending.size,0));
   if(entry.index) {
     for(const name of entry.index.candidates(rel))
-      if(entry.index.matches(entry.index.checks.get(name),rel))markInputEvent(name);
+      if(entry.index.matches(entry.index.checks.get(name),rel))markInputEvent(name,rel,type);
     for(const [prefix,names] of entry.index.prefixes)
-      if(prefix.startsWith(rel+'/'))for(const name of names)markInputEvent(name);
+      if(prefix.startsWith(rel+'/'))for(const name of names)markInputEvent(name,rel,type);
   }
   if(planDirty){healthy=false;reason='input plan possibly changed';}
   publish();clearTimeout(flushTimer);flushTimer=setTimeout(flush,60);
