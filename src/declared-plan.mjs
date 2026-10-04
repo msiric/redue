@@ -8,6 +8,7 @@ import {qualifyTypeScript} from './typescript-qualification.mjs';
 import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
 import {pnpmTypecheckInputs} from './pnpm-inputs.mjs';
 import {observedRelative,withinPath,realObservedPath} from './path-identity.mjs';
+import {timing} from './decision-profile.mjs';
 
 const identity=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const safePattern=value=>{
@@ -52,6 +53,7 @@ export function discoverDeclared(config) {
       throw Error('PATH executables must be simple command names');
     const allowedRoots=permittedRoots(root,selected.allowedExternalRoots||[]);
     let workspace=null,workspaceIssue=null;
+    const workspaceStarted=performance.now();
     if(selected.qualification==='yarn-workspace-tsc-v1'){
       try{workspace=yarnWorkspaceTypecheckInputs(root,selected.workspace,
         selected.command[4]);}
@@ -62,9 +64,13 @@ export function discoverDeclared(config) {
         selected.script||selected.command.at(-1));}
       catch(e){workspaceIssue=e.message;}
     }
+    timing('plan.workspace_inputs',workspaceStarted,{available:workspace?1:0});
+    const installedStarted=performance.now();
     const installed=resolveDeclaredInstalled(root,
       [...(selected.installedInputs||[]),...(workspace?.installed||[])],allowedRoots);
-    const automatic=qualifyTypeScript(root,selected);
+    timing('plan.installed_resolution',installedStarted,{mappings:installed.mappings.length});
+    const automatic=qualifyTypeScript(root,selected,
+      {workspace,issue:workspaceIssue});
     const sourcePatterns=[...new Set([...selected.inputs,...(workspace?.source||[]),
       ...(workspace?.generated||[])])].sort();
     const additivePatterns=[...new Set([...(selected.generatedInputs||[]),

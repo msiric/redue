@@ -1,19 +1,19 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {realObservedPath} from './path-identity.mjs';
-import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
-import {pnpmTypecheckInputs} from './pnpm-inputs.mjs';
 
 // This is a machine-enforced contract, not a claim inferred from a script name.
 // The read-only runtime probe separately checks the effective TypeScript file
 // list, config graph, npm toolchain and caller context on every sync/run.
-export function qualifyTypeScript(root,selected) {
+export function qualifyTypeScript(root,selected,discovered={}) {
   if(selected.qualification==='pnpm-tsc-v1'){
     const issues=[];
     const workspace=selected.workspace||'.';
     const script=selected.script||selected.command?.at(-1);
     try{
-      const contract=pnpmTypecheckInputs(root,workspace,script);
+      if(discovered.issue)throw Error(discovered.issue);
+      const contract=discovered.workspace;
+      if(!contract)throw Error('pnpm TypeScript input discovery unavailable');
       issues.push(...contract.limitations);
       const declared=contract.workspace.pkg.scripts[script].trim().split(/\s+/).slice(1);
       if(path.resolve(root,selected.cwd||'.')!==path.join(root,contract.workspace.dir)||
@@ -37,7 +37,8 @@ export function qualifyTypeScript(root,selected) {
       if(!selected.workspace||selected.command?.length!==5||
         selected.command[1]!=='workspace'||selected.command[2]!==selected.workspace||
         selected.command[3]!=='run')issues.push('workspace command changed');
-      else yarnWorkspaceTypecheckInputs(root,selected.workspace,selected.command[4]);
+      else if(discovered.issue)throw Error(discovered.issue);
+      else if(!discovered.workspace)throw Error('Yarn workspace input discovery unavailable');
     }catch(e){issues.push(e.message);}
     if(!selected.probes?.some(argv=>path.basename(argv[1]||'')==='yarn-workspace-typecheck-probe.mjs'))
       issues.push('workspace TypeScript input probe missing');
