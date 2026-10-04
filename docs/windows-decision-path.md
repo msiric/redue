@@ -3,6 +3,8 @@
 Baseline: clean private `main` at `b671a64`. No evidence-state meanings change.
 This pass targets unchanged synchronized decisions, not a new provider or UI.
 
+Latest conclusion: [B — Windows technically sound but performance-limited](#final-recommendation-after-repeatability). Historical blocked/intermediate results below remain visible.
+
 ## Measured baseline
 
 Native Server 2025 / NTFS public run `37230922931` at `83e857b` separated
@@ -159,7 +161,7 @@ No false CURRENT was observed. Historical PASS remained available during the
 recorded UNVERIFIED failures. No final success count is substituted for the
 blocked repeatability campaign.
 
-## Acceptance blocker and recommendation
+## Historical billing block and interim recommendation
 
 GitHub refused new native jobs beginning with `8033b2b` (runs `37232314686` and
 `37232333943`) before any runner step executed. Its annotation says recent
@@ -188,5 +190,183 @@ platform skips; native Linux on the established ext4-backed Docker named volume
 56 passed / 0 failed / 12 skips. Both ran all 68 product tests. The finalization
 race regression passed on both systems. Test-owned Linux volumes were removed.
 The final Windows-specific replacement-after-failed-recovery regression is
-not counted as executed by either host. Final native CI remains refused before
-runner startup; these shared regressions do not substitute for NTFS acceptance.
+not counted as executed by either host. At that checkpoint, final native CI was
+refused before runner startup; these shared regressions did not substitute for
+NTFS acceptance. The completed native reruns below supersede that block.
+
+## Native rerun after restoring runner availability
+
+The account owner restored Actions capacity after the dashboard confirmed that
+all 2,000 included minutes had been consumed. No billing settings were changed
+by REDUE. The earlier refusal was an account limit, not a product failure.
+
+All three public matrices at unchanged product commit `2f072a9` passed:
+`37233713527`, `37234477384`, and `37234481478`. This is **9/9 public workflows**:
+three each for npm, Yarn node-modules, and pnpm 12 isolated. Every workflow ran
+init, a wrapped check, CURRENT/PASS, preserved CURRENT after unrelated edits,
+STALE/PASS after relevant edits, a wrapped rerun, restart/reconciliation, and a
+fresh CLI process consuming the historical CURRENT receipt. Public repository
+revisions, package-manager modes, check selection, and deadlines were unchanged.
+
+### Final measured economics
+
+Times are seconds. Each row is one independently provisioned Windows runner:
+8 warm queries, 5 cached queries, 5 queries after each edit category, and 2
+ordinary wrapped command executions. p50 uses the existing nearest-rank
+summary (for n=2, it is the smaller command sample). With n=8, p90 and p95 equal
+the maximum. These are per-run quantiles, **not** pooled quantiles reconstructed
+from summaries. Command timing excludes REDUE's receipt preparation overhead.
+
+| Manager / run | Warm p50 / p90 / max | Check p50 / max | Warm/check p50 ratio |
+| --- | ---: | ---: | ---: |
+| npm / 1 | 5.36 / 5.47 / 5.47 | 4.40 / 4.44 | 1.22× |
+| npm / 2 | 5.74 / 10.37 / 10.37 | 4.20 / 4.62 | 1.37× |
+| npm / 3 | 3.78 / 3.82 / 3.82 | 3.16 / 3.17 | 1.19× |
+| yarn / 1 | 3.06 / 6.16 / 6.16 | 1.92 / 2.21 | 1.60× |
+| yarn / 2 | 5.17 / 5.24 / 5.24 | 3.22 / 3.23 | 1.60× |
+| yarn / 3 | 3.84 / 6.88 / 6.88 | 2.33 / 2.34 | 1.65× |
+| pnpm / 1 | 4.18 / 9.16 / 9.16 | 4.94 / 5.07 | 0.85× |
+| pnpm / 2 | 2.70 / 5.60 / 5.60 | 3.70 / 3.80 | 0.73× |
+| pnpm / 3 | 2.98 / 5.82 / 5.82 | 3.94 / 3.99 | 0.76× |
+
+| Manager | Cached p50 range / max | Unrelated-edit p50 range / max | Relevant-edit p50 range / max | First after start range | First after restart range |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| npm | 0.19–0.29 / 0.29 | 3.79–5.35 / 5.36 | 5.59–7.99 / 12.30 | 4.02–5.85 | 3.73–6.35 |
+| yarn | 0.15–0.25 / 0.28 | 3.13–5.20 / 6.90 | 4.67–7.38 / 8.45 | 3.55–5.66 | 2.87–6.78 |
+| pnpm | 0.20–0.29 / 0.36 | 2.69–4.22 / 6.69 | 9.18–12.50 / 15.19 | 3.22–6.84 | 4.82–12.86 |
+
+There are 24 warm samples and 15 samples per edit category per manager; startup
+and restart each have only three samples. The first-after-start query follows
+readiness polling; restart timing includes an initializing response/wait when
+needed. Neither is silently included in the warm sample. Cached Windows status
+remains conservative and cannot replace synchronized applicability.
+
+### Where the remaining time goes
+
+Each manager reused its plan and supported compiler result 25 times per run;
+there were seven complete discoveries (initialization, restart, and five
+relevant edits). Across all three runs that is 75 validated reuses per manager,
+not a time-based cache. pnpm no longer loses reuse because of the optional
+certificate-size fallback. The expensive work is now mostly **current content,
+membership, and compiler-dependency validation**, not unconditional provider
+rediscovery. pnpm's installed-link mapping/closure work is tens to low hundreds
+of milliseconds; it is not the dominant remaining warm phase.
+
+| Manager | Plan-validation p50 range / max | Compiler-question p50 range / max | Fresh context p50 range / max | Largest sampled process RSS |
+| --- | ---: | ---: | ---: | ---: |
+| npm | 2.79–3.95 / 8.90 | 0.28–0.37 / 0.57 | 0.50–0.78 / 3.59 | 211.9 MiB |
+| yarn | 2.13–3.90 / 6.84 | 0.24–0.39 / 0.55 | 0.51–0.69 / 3.41 | 195.8 MiB |
+| pnpm | 1.95–2.66 / 7.87 | 0.47–0.65 / 1.33 | 0.33–0.48 / 3.31 | 333.9 MiB |
+
+Phase statistics mix warm and changed-input work; only the `acceptance.*`
+samples above explicitly distinguish decision contexts. Nested phase timings
+must not be added as independent costs. RSS is the largest sampled individual
+process, not simultaneous aggregate peak memory.
+
+The current scans still include all declared inputs: approximately 18,335
+files/167 MB npm, 16,812 files/176 MB Yarn, and 6,001 files/86 MB pnpm. No input
+was dropped. Independent byte reads still detect hardlink-alias mutation on
+Windows; no trust is derived solely from timestamps or a lockfile. Warm
+validation and fresh context phases have occasional multi-second outliers.
+The summaries locate those tails in those phases but do not establish a
+specific OS/antivirus cause; no such cause is assumed.
+
+pnpm's warm p50 is now 0.73–0.85× command cost, but its tails still exceed a
+rerun. npm is 1.19–1.37× and Yarn 1.60–1.65×: neither establishes useful reuse
+economics for these representative checks. These are measured costs of this
+supported implementation, not a mathematical lower bound on all possible
+implementations. The removed concurrent reader was slower in native profiling;
+there is no evidence here justifying another speculative optimization system.
+A future agent policy should compare synchronized-decision cost to the check
+and rerun these cheap checks when that is cheaper. An ambient UNVERIFIED badge
+must never be used as a substitute for CURRENT to save that cost. No such
+policy is implemented in this pass.
+
+### Native lifecycle repeatability
+
+Native runs `37233711289`, `37234475345`, and `37234479341` each passed **57
+product tests, zero failures, 11 platform skips**, followed by 40 successful
+checkout-root replacement cycles. Total: **3/3 suites and 120/120 separate
+stress cycles**, in addition to each suite's ordinary replacement case. No
+control-pipe loss, stuck recovery, or false CURRENT was observed in this final
+sample. The deterministic replacement-after-failed-recovery and finalization
+uncertainty tests passed in all three suites. So did dead-daemon single-restart
+reconciliation, missing-root maintenance, process cancellation/ownership,
+installed hardlink-alias mutation with unchanged lockfile, observable absence,
+and pnpm hoisted execution/rerun/inheritance. These destructive cases use owned
+fixtures; they are distinct from the genuine public-project workflows above.
+
+Environment: Windows Server 2025 Datacenter 10.0.26100, AMD64, NTFS; image
+`win25-vs2026 20260925.250.1`; Node 22.23.3, npm 10.9.9, PowerShell 7.6.6.
+The historical pipe-loss cause remains unproven. It now has diagnostics and a
+bounded, ownership-checked recovery path with deterministic reconciliation;
+reconnection alone never grants CURRENT. The reproduced identity/recovery-latch
+defect is fixed and has passed native repetition. No automatic retry storm or
+new receipt is used to obtain a green result.
+
+The same product code had already passed macOS **52/0** (16 skips) and native
+Linux **56/0** (12 skips). This continuation changed only acceptance workflow
+and documentation, so shared-code regressions were not rerun solely for another
+passing report. No product code or timeouts changed after `2f072a9`.
+
+### Windows 11 native CLI smoke
+
+A suitable approved environment was available through GitHub's standard
+`windows-11-arm` runner, documented in the
+[hosted-runner reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
+Manual smoke workflow commit `de50a81` changes no product code. Run
+[`37235267994`](https://github.com/msiric/redue/actions/runs/37235267994) passed
+on **Windows 11 Enterprise 10.0.26200, ARM64, NTFS**, image
+`win11-vs2026-arm64 20260924.168.1`, Node 22.23.3, npm 10.9.9, PowerShell 7.6.6.
+Developer Mode was already enabled (registry value 1); it was read, never
+changed. The managed corporate desktop was not used.
+
+The same public pnpm 12.4.1 project completed local product dependency setup,
+PowerShell/direct Node CLI help, init/start, wrapped CURRENT/PASS, unrelated
+preservation, source STALE/PASS, rerun, cached and synchronized status,
+restart/inherited CURRENT, stop, and owned-state removal. Cleanup preserved the
+project input. The observed workspace link was a directory reparse point and
+TypeScript's installed file had two hard links. The exact workspace reparse
+tag (junction versus directory symlink) was not recorded by this smoke; the
+Server 2025 suite separately exercises explicit junction behavior. This is a
+native Windows 11 CLI smoke, not an interactive desktop-terminal usability test
+or proof about a Developer-Mode-disabled ARM64 machine.
+
+Its eight warm queries had p50 **3.32 s**, p90/max **3.42 s**, versus command
+samples **3.315/3.349 s**: effectively a tie, not evidence of meaningful saved
+verification time. Unrelated/relevant-edit p50 was 3.31/9.70 s; first post-restart
+sync was 5.93 s; cached p50 was 341 ms. Largest sampled process RSS was 328 MiB.
+The result does not change the economic recommendation.
+
+### Final recommendation after repeatability
+
+**B — Windows technically sound but performance-limited.** Final native and
+public repetitions passed, the reproduced root-recovery defect is repaired,
+and the historical control-loss symptom has bounded conservative containment.
+No false CURRENT was observed. The approved native Windows 11 CLI follow-up is
+now complete. Authoritative decisions still cost more than rerunning the npm
+and Yarn checks, and pnpm tails remain unattractive despite improved medians.
+Do not declare the verification-reuse path economically successful or start
+alpha polish on that basis.
+
+Next is a product/agent-policy decision about when a caller should synchronize
+versus simply rerun an inexpensive check. Do not weaken installed-content
+validation, infer trust from file age, or build another observation subsystem
+without new evidence. These tests establish measured costs, not a universal
+lower bound. Larger/longer checks may have different economics; no new slow
+check was selected here to improve the ratio.
+
+Remaining conservative boundaries are unchanged: cached Windows applicability
+without decision-grade content validation; incomplete/unsupported input
+contracts; unknown/changed caller context; observation/recovery uncertainty;
+and ambiguous process ownership. Direct commands outside `redue run` still do
+not create receipts. Deliberately detached process trees retain the documented
+cancellation limitation. Recorded outcomes survive these conditions.
+
+Only test workflow and this report changed after the accepted implementation.
+All development tests used owned disposable projects/state/stores; hosted VMs
+were discarded. No corporate checkout, approved execution path, stable observer,
+or personal-project installation was modified. This continuation used about
+74 Windows runner-minutes total (about $0.74 at the displayed baseline rate,
+before billing rounding/storage); GitHub billing is authoritative. No further
+workflows remain running, and no alpha-polish work was started.
