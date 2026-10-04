@@ -3,6 +3,9 @@ name: Windows public-project acceptance
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   acceptance:
     strategy:
@@ -17,6 +20,14 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci
+      - name: Install the distributable candidate
+        shell: pwsh
+        run: |
+          $prefix = Join-Path $env:RUNNER_TEMP 'redue-public-install'
+          $pack = npm pack --json | ConvertFrom-Json
+          npm.cmd install --global --prefix $prefix $pack[0].filename --no-audit --no-fund
+          if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+          "REDUE_ACCEPTANCE_CLI=$(Join-Path $prefix 'node_modules/redue/bin/redue.mjs')" >> $env:GITHUB_ENV
       - name: Exercise real public repository on native NTFS
         shell: pwsh
         env:

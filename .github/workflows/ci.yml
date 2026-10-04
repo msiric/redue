@@ -1,0 +1,46 @@
+name: Product regressions and package installation
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore: ['docs/**', '**/*.md']
+  pull_request:
+    paths-ignore: ['docs/**', '**/*.md']
+permissions:
+  contents: read
+concurrency:
+  group: product-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  product:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: macos-latest, node: '22'}
+          - {os: ubuntu-latest, node: '22'}
+          - {os: windows-2025, node: '22'}
+          - {os: ubuntu-latest, node: '24'}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+      - name: Install tarball, exercise CLI, and remove owned state/install
+        run: npm run test:package
+      - name: PowerShell npm-generated command shim
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $prefix = Join-Path $env:RUNNER_TEMP 'redue-powershell-install'
+          $pack = npm pack --json | ConvertFrom-Json
+          npm.cmd install --global --prefix $prefix $pack[0].filename --no-audit --no-fund
+          if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+          & (Join-Path $prefix 'redue.cmd') --help
+          if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+          npm.cmd uninstall --global --prefix $prefix redue --no-audit --no-fund
+          exit $LASTEXITCODE

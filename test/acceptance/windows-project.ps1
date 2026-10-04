@@ -1,7 +1,7 @@
 param([ValidateSet('npm','yarn','pnpm')][string]$Project)
 $ErrorActionPreference = 'Stop'
 $product = (Get-Location).Path
-$cli = Join-Path $product 'bin/redue.mjs'
+$cli = if($env:REDUE_ACCEPTANCE_CLI){$env:REDUE_ACCEPTANCE_CLI}else{Join-Path $product 'bin/redue.mjs'}
 $cases = @{
   npm = @{repo='renzojohnson/google-workspace-mcp'; revision='33e05a4dc5365d8b135da25a6193d85d92a35205'; check='typecheck'}
   yarn = @{repo='streamich/memfs'; revision='adae41a54ff34c89db4e0d0708ec7c166e8998c6'; check='@jsonjoy.com/fs-node-utils:typecheck'; workspace='@jsonjoy.com/fs-node-utils'}

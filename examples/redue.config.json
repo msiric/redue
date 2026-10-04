@@ -1,15 +1,8 @@
 {
   "schema": 1,
-  "checks": [
-    {
-      "name": "typecheck",
-      "command": ["@which:npm", "run", "typecheck"],
-      "inputs": ["src/**", "package.json", "package-lock.json", "tsconfig.json"],
-      "installedInputs": ["node_modules/**"],
-      "environment": {
-        "pathExecutables": ["node"],
-        "executableIdentity": true
-      }
-    }
-  ]
+  "checks": [{
+    "name": "migration",
+    "command": ["@node", "tools/check-migrations.mjs"],
+    "inputs": ["migrations/**", "tools/check-migrations.mjs"]
+  }]
 }

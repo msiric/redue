@@ -2,197 +2,120 @@
 
 **Know what still holds. Redo what's due.**
 
-Persistent verification state for developers and coding agents.
+You ran the checks. Then the code changed—or a new coding agent started with no
+conversation history. Which results can you still use?
 
-REDUE records the outcome of explicitly configured checks and determines
-whether each outcome still applies to its declared inputs. A passing result is
-historical fact; it can later be STALE. Incomplete input coverage or uncertain
-observation is UNVERIFIED, never CURRENT. CURRENT is bounded evidence about a
-named check, not a claim that the project is correct.
+REDUE keeps persistent verification state for your codebase so developers and
+coding agents can see which previous checks still apply to the code they have now.
+It records evidence, not proofs of correctness.
 
-This repository is private product-engineering source, not a published package.
-On macOS with Node 22 or newer, or Linux with Node 22 or newer and Python 3:
+```text
+$ redue status --sync
+✓ typecheck  CURRENT / PASS
+? test  UNVERIFIED / PASS
+  Recording-only: test runtime, transforms and cache inputs need review
+
+# Later, after a relevant edit:
+$ redue explain typecheck
+typecheck: STALE / PASS
+src/main.ts changed
+Relevant inputs changed:
+  src/main.ts
+Due again when verification is needed: redue run "typecheck"
+```
+
+Agent A verifies and exits. Agent B starts fresh. The receipt is still there;
+REDUE checks whether it still applies. Unrelated documentation edits can preserve
+it; relevant source edits make it stale. [Run the reproducible demo](docs/contributor/demo.md).
+
+## Try the alpha candidate
+
+**Not published to npm yet.** With access to this source checkout, create and
+install the ordinary npm package:
 
 ```sh
 npm ci
-node bin/redue.mjs --help
-node bin/redue.mjs init
+npm pack
+npm install --global ./redue-0.1.0-alpha.0.tgz
 ```
 
-`init --dry-run` previews existing `package.json` verification scripts without
-writing or running them. `init` prints its findings, then creates a small
-`redue.config.json` if none exists. It does not edit application or package
-manager files. Review the generated config before starting the observer.
-See [the manual example](examples/redue.config.json) for arbitrary commands.
-For example, an unsupported check can still record its outcome:
+Use a Node installation you own; REDUE does not need administrator privileges.
+If a global prefix is not writable, use a user-owned `--prefix` or run the
+installed CLI with Node. [Installation and removal](docs/user/getting-started.md)
+includes PowerShell and isolated-prefix instructions. After publication, the
+intended install command is `npm install --global redue@alpha`.
 
-```json
-{
-  "schema": 1,
-  "checks": [{
-    "name": "migration",
-    "command": ["@node", "tools/check-migrations.mjs"],
-    "inputs": ["migrations/**", "tools/check-migrations.mjs"]
-  }]
-}
-```
-
-This check remains recording-only until its complete applicability boundary is
-reviewed. A successful command alone does not qualify it for CURRENT.
+Inside an existing, trusted Git project with dependencies already installed:
 
 ```sh
-node bin/redue.mjs start
-node bin/redue.mjs status --json
-node bin/redue.mjs status --sync --json
-node bin/redue.mjs detail
-node bin/redue.mjs detail --json
-node bin/redue.mjs run typecheck
-node bin/redue.mjs stop
-node bin/redue.mjs remove-state
+cd my-project
+redue init
+redue start
+redue run typecheck  # use a check name printed by init
+redue status
 ```
 
-Use `--config FILE` for an external project config and `--state-dir DIR` to
-override the local state location. By default, state is in a uniquely named
-directory under `~/Library/Application Support/vstate/`; the local state name
-is retained for pre-release compatibility. Sockets, receipts, snapshots, and
-logs stay there. On Linux the default base is
-`$XDG_STATE_HOME/vstate/` when `XDG_STATE_HOME` is absolute, otherwise
-`~/.local/state/vstate/`. `remove-state` requires a matching ownership
-marker and removes only that directory. It never deletes project files or
-installed dependencies. Probes and checks execute local commands, so only use
-configuration from repositories you trust. Ordinary operation needs no account,
-network connection, or telemetry upload.
+`init` discovers existing scripts, explains which can qualify and which are
+recording-only, and writes a small `redue.config.json`. It never runs your checks
+or changes your package manager, source, scripts, or dependencies. Commit the
+reviewed project config; local evidence stays outside the checkout.
 
-`status` is a cheap cached read and cannot establish caller-specific Node or
-environment identity. It reports UNVERIFIED where that context is needed.
-`status --sync --json` and `detail` reconcile observation and use the caller's
-declared context. They may run read-only probes and can take longer. A timeout or
-observation gap withholds CURRENT. Neither read is an atomic snapshot against
-another process editing concurrently. Checks execute only with `run`; direct
-commands outside REDUE create no receipts.
+Start with ordinary `status`. When it cannot establish caller context, use
+`redue status --sync` if that is worthwhile—or just rerun an inexpensive check.
+**Synchronization can cost more than rerunning a cheap check, particularly on
+Windows.** REDUE does not choose or execute that tradeoff for you.
 
-## Node onboarding boundary
+## What the states mean
 
-`init` detects npm from `package-lock.json`/`npm-shrinkwrap.json` or an npm
-`packageManager` declaration. It detects Yarn from `yarn.lock` or its
-declaration and reads `.yarnrc.yml` to distinguish node-modules/classic from
-PnP and other modes. A Yarn v1 lockfile can identify the classic layout, but
-without a declared Yarn version `init` does not create a runnable config:
-Corepack can select a different version and edit `package.json`. Conflicting
-package managers are reported without pretending that installation coverage
-is known. When npm is not pinned in `package.json`,
-`init` reads the local npm executable's package manifest if available; it
-leaves the version unknown rather than guessing if that inspection fails.
+| State | Meaning | Normal next step |
+| --- | --- | --- |
+| CURRENT | The recorded result applies to the declared inputs. | Reuse a passing result; do not rerun merely for freshness. |
+| STALE | Relevant inputs changed since the recorded result. | Rerun when verification is needed. |
+| UNVERIFIED | Applicability is unknown: no receipt, incomplete coverage, pending observation, or missing context. | Read the reason; synchronize if worthwhile, or run the check. |
+| FAILED | The invocation failed. Its applicability is tracked separately. | Keep the failure visible; it is not green evidence. |
 
-At the repository root, `init` looks for existing typecheck, test, lint, and
-build scripts. It prefers familiar script names, then unique recognizable
-`tsc`, Vitest/Jest, ESLint, or Vite commands under other names. Multiple
-matches are reported as ambiguous rather than guessed. It never creates a new
-project script. It recognizes canonical
-`tsc --noEmit` on local npm installations as a candidate for automatic
-qualification. Before CURRENT is possible, a read-only probe checks the
-TypeScript configuration and effective file list, local compiler, installed
-contents, npm/Node identity, and relevant caller context. Unsupported plugins,
-preloads, config graphs, or outside-root inputs leave the check UNVERIFIED with
-an explanation. A discovered script can still be run and recorded in that
-state. Root and package-level npm/Yarn workspace scripts are discovered from
-`package.json` workspace declarations. Pinned Yarn 4 `node-modules`/classic
-workspaces with a standalone `tsc -p .` script, local TypeScript, a conventional
-`src` include, and Node module resolution can qualify automatically. For one
-workspace, use `redue init --workspace NAME --check typecheck`; it writes only
-that check and keeps derived relationships out of project configuration. The
-contract observes selected `src` membership, root/package TypeScript config,
-built declarations of internal workspace dependencies, and physical installed
-files. It rechecks TypeScript's effective input list with a read-only probe.
-A sibling workspace is not an input merely because it shares the repository.
-When an internal dependency is consumed through built declarations, changing
-only its source does not stale the selected check until the consumed output
-changes. Unsupported custom resolution, project references, outside-root
-source links, and installation modes remain recording-only. Other Yarn
-typechecks, Vitest/Jest, ESLint, and builds start recording-only unless a
-separately justified explicit contract is provided.
-In particular, test caches and build-generated inputs are not excluded to
-make evidence green.
+A historical PASS remains PASS when stale or unverified. A historical failure
+never becomes a successful check. CURRENT does not mean every product behavior
+has been verified.
 
-Pinned pnpm 12 projects are read from `packageManager`, `pnpm-workspace.yaml`,
-the lockfile, and the installed `node_modules/.modules.yaml` metadata. The
-supported local layouts are pnpm's standard isolated and hoisted
-`node_modules` with a project-local `.pnpm` virtual store. `init` can discover
-root and workspace scripts. For a standalone `tsc --noEmit` or `tsc -p ...`
-script in the narrow TypeScript contract, it records the exact installed
-compiler invocation directly. This avoids pnpm 12's task-run bookkeeping
-writes during `pnpm run`; it does not alter the project's script. Test, lint,
-build, and ambiguous TypeScript scripts still execute through `pnpm run` and
-start recording-only. The generated `@typescript-bin:WORKSPACE` token resolves
-the local compiler when the check runs; it is not an absolute machine path.
+## Supported alpha path
 
-The pnpm contract indexes consumed installed package contents inside the
-project, selected workspace source, linked workspace declaration outputs,
-relevant manifests, configuration, and installation metadata. The global pnpm
-store is neither watched nor deleted. PnP, custom modules/virtual-store roots,
-global virtual stores, injected workspace dependencies, and external links
-without an observed boundary remain recording-only with a reason. Installed
-files with hard-linked aliases outside the checkout remain recording-only on
-macOS: writes through an unseen alias cannot support CURRENT there. On Linux,
-redue watches project-installed file inodes and rehashes the selected
-installed inputs on every synchronized read. A cached read remains UNVERIFIED
-for these pnpm checks; a synchronized read can establish CURRENT after the
-rehash. If an inode watch cannot be installed, observation becomes unavailable
-instead of dropping that file. The global store is not watched. An absent
-optional package remains unqualified when Node could later
-resolve it from an unobserved ancestor `node_modules`; project-local candidate
-locations are still tracked for plan changes. No configuration assertion is
-generated to hide either gap.
+- macOS, Linux, and Windows on supported local filesystems; Node 22+.
+- Linux also requires Python 3 for observation. No WSL or Git Bash needed on Windows.
+- npm, pinned Yarn `node-modules`, and pinned pnpm 12 isolated/hoisted layouts.
+- Automatic qualification for supported TypeScript invocations; workspace
+  boundaries follow the files actually consumed, including built declarations.
+- Existing test/lint/build and arbitrary commands can record results while
+  their applicability remains unqualified.
 
-An unobservable source symlink or missing Git checkout is reported by `init`
-before writing a config. A local explicit configuration can grant a narrow
-external observation root after review; `init` will not add machine-specific
-paths to a project config automatically.
+The [supported-project boundary](docs/user/supported-projects.md) is deliberately
+narrow. A script named `test` is not automatically a complete test contract.
 
-The generated config is project-relative and versioned. Runtime state and
-receipts live separately. `packageManager`, `checks[].script`, `kind`,
-`inputs`, optional `workspace`, and optional `qualification` are the generated
-public fields. The
-CLI also accepts `checks[].command` as exact argv for arbitrary checks;
-`@node`, `@project`, `@which:NAME`, and the narrow
-`@typescript-bin:WORKSPACE` token are resolved at invocation. A command
-or input-declaration change invalidates previous evidence.
+## Alpha limitations
 
-## JSON for integrations
+- REDUE records evidence; it does not prove correctness.
+- Direct commands outside `redue run` do not create receipts.
+- Some tests, lints, and builds remain UNVERIFIED/PASS because their input contract is incomplete.
+- Synchronized applicability has nontrivial cost and can lose to an inexpensive rerun.
+- Unsupported/exotic install layouts and filesystems remain conservative; they do not become green through guesses.
+- No cloud/team synchronization, IDE extension, or automatic background check execution.
+- Alpha configuration and APIs may evolve. Neither cached nor synchronized status is an atomic snapshot against concurrent edits.
 
-`status --json` is a cached, conservative read. `status --sync --json` and
-`detail --json` reconcile observation and evaluate caller context and read-only
-state probes. All return schema `1` with `state`, counts (`current`, `stale`,
-`failed`, `unverified`), `checks`, and `observation`. A check contains `name`,
-historical `result` (`PASS`, `FAIL`, or null), `freshness` (`CURRENT`, `STALE`,
-`UNVERIFIED`), `reason`, and `reuse_eligible`. The observation object includes
-`healthy` and a reason when unavailable. Consumers should use these fields;
-additional diagnostic fields may change during alpha. Cached reads may be
-UNVERIFIED when caller context is required even if synchronized reads can
-establish CURRENT. Never infer project correctness from an aggregate state.
+## Humans, shells, and agents
 
-## Source boundaries
+```sh
+redue explain typecheck          # synchronized explanation; may run read-only probes
+redue status --json              # conservative cached data
+redue status --sync --json       # caller-aware decision
+redue status --short             # small cached indicator; never synchronizes
+redue stop                      # retains historical receipts
+redue remove-state              # removes only this config's owned local state
+```
 
-- `src/declared-plan.mjs` resolves explicit check input plans.
-- `src/installed-inputs.mjs` resolves permitted linked installed paths;
-  `src/index.mjs` hashes file contents and membership.
-- `src/yarn-workspace-inputs.mjs` derives the narrow Yarn workspace typecheck
-  input plan; `src/yarn-workspace-typecheck-probe.mjs` checks its effective
-  TypeScript file list without running the check.
-- `src/pnpm-inputs.mjs` derives pnpm installation and TypeScript input plans;
-  `src/pnpm-typecheck-probe.mjs` checks the effective compiler input list.
-- `src/daemon.mjs` owns one checkout observer, reconciliation and applicability.
-- `src/platform-observation.mjs` selects macOS FSEvents or the Linux inotify
-  transport. The Linux helper reports overflow/watch loss and runs on local
-  ext2/3/4, XFS, Btrfs, F2FS, tmpfs, or ZFS. Network, FUSE, overlay, and
-  unrecognized mounts are unavailable rather than assumed observable. The
-  helper needs Python 3; inotify watch exhaustion also withholds CURRENT.
-- `src/cli.mjs` executes checks against before/after checkpoints and records
-  results; `src/run-lock.mjs` protects a single writer.
-- `bin/redue.mjs` owns public CLI parsing, readable output and config/state
-  placement. No presentation surface owns verification semantics.
+Agents should use [the documented JSON interface](docs/user/json.md), not parse
+terminal prose. [The canonical agent loop](docs/user/agents.md) keeps the
+sync-versus-rerun choice explicit. [Shell usage](docs/user/shell.md) does not put
+synchronized work in a prompt.
 
-The supported path is local named checks with declared files, installed inputs,
-and read-only probes. There is no background check rerunning, CI evidence
-ingestion, or passive capture of direct commands. The npm TypeScript contract
-is intentionally narrow, not a proof of arbitrary JavaScript dependencies.
+[User docs](docs/README.md) · [Contributing](CONTRIBUTING.md) ·
+[Architecture](docs/contributor/architecture.md) · [Acceptance evidence](docs/acceptance/README.md)
