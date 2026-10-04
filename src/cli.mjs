@@ -303,7 +303,7 @@ async function main(){
     }
     try {await call({action:'metrics'},1000);
       const data=cached();console.log(JSON.stringify({pid:child.pid,state:data.state,
-        health:data.observation,ready:false}));return;}
+        health:data.observation,ready:Boolean(data.observation?.healthy)}));return;}
     catch {
       let live=processAlive(child.pid);
       if(live&&fs.existsSync(path.join(observerLock,'pid')))
