@@ -89,7 +89,9 @@ The native Windows contract suite also passed at
 [`37223907562`](https://github.com/msiric/redue/actions/runs/37223907562):
 46 passed, 0 failed, 11 non-Windows/platform skips. It includes pnpm hoisted
 qualification, hard-link mutation, junction/path, fault/reconciliation, and
-process-tree cancellation cases. The public pnpm installation used project-local
+process-tree cancellation cases. The hoisted fixture additionally covers
+rerun after invalidation and inherited CURRENT after observer restart. The
+public pnpm installation used project-local
 isolated storage, a workspace reparse-point relationship, and a two-link
 TypeScript file; the store was disposable.
 

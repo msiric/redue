@@ -355,4 +355,11 @@ test('pnpm hoisted installation can record and reuse a qualified TypeScript chec
   assert.equal(status().freshness,'CURRENT');
   put(path.join(external,'index.d.ts'),'export declare const ext: number;\n// hoisted edit\n');
   assert.equal(status().freshness,'STALE');
+  assert.equal(JSON.parse(call('run','@fixture/app:typecheck')).result,'PASS');
+  const restored=status();
+  assert.equal(restored.freshness,'CURRENT');
+  call('stop');call('start');await waitReady(call);
+  const inherited=status();
+  assert.equal(inherited.freshness,'CURRENT');
+  assert.equal(inherited.invocation.runId,restored.invocation.runId);
 });
