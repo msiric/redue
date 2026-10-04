@@ -8,6 +8,7 @@ import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {spawnSync} from 'node:child_process';
 import {withinPath as within,realObservedPath} from './path-identity.mjs';
+import {timing} from './decision-profile.mjs';
 
 const [rootArg,scriptName,npmArg]=process.argv.slice(2);
 const hash=value=>createHash('sha256').update(value).digest('hex');
@@ -123,9 +124,13 @@ endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%"  "%dp0%\\..\\
   }
   for(const file of configReads)if(!within(realObservedPath(file),root))
     fail('typescript-config-outside-repository');
+  const listingStarted=performance.now();
   const listed=spawnSync(process.execPath,[tsc,'--noEmit','--listFilesOnly'],
-    {cwd:root,env:process.env,encoding:'utf8',timeout:4000,maxBuffer:16*1024*1024,
+    {cwd:root,env:process.env,encoding:'utf8',timeout:process.platform==='win32'?10000:4000,
+      maxBuffer:16*1024*1024,
       stdio:['ignore','pipe','pipe']});
+  timing('typescript_contract.list_files',listingStarted,{status:listed.status??null,
+    error:listed.error?.code||null});
   if(listed.error||listed.signal||listed.status!==0)fail('typescript-input-list-unavailable');
   const files=listed.stdout.trim().split(/\r?\n/).filter(Boolean)
     .map(file=>path.resolve(file));
