@@ -111,6 +111,48 @@ function call(message,timeout=5000) {
     client.on('error',e=>{clearTimeout(timer);reject(e);});
   });
 }
+async function decisionCall(message,timeout) {
+  const started=Date.now(),remaining=()=>Math.max(1,timeout-(Date.now()-started));
+  try{return await call(message,remaining());}
+  catch(error){
+    if(process.platform!=='win32'||!['ENOENT','ECONNREFUSED','ECONNRESET'].includes(error.code))throw error;
+    const pidFile=path.join(state,'observer.lock','pid');
+    let pid=null;try{pid=Number(fs.readFileSync(pidFile));}catch{}
+    const alive=Number.isSafeInteger(pid)&&pid>0?processAlive(pid):null;
+    const diagnostic={at:Date.now(),kind:'control_connection_unavailable',code:error.code,
+      pid,alive,remainingMs:remaining(),cached:cached().observation};
+    try{fs.appendFileSync(path.join(state,'events.jsonl'),JSON.stringify(diagnostic)+'\n');}catch{}
+    if(alive){
+      // Exactly one reconnect. The sync operation still validates contents;
+      // connection recovery by itself is never evidence of applicability.
+      await new Promise(resolve=>setTimeout(resolve,100));
+      return call(message,remaining());
+    }
+    if(alive!==false||!fs.existsSync(ownerFile)||inspectRunLock(state).state!=='absent')throw error;
+    owner();
+    const recovery=path.join(state,'control-recovery.json');
+    try{fs.writeFileSync(recovery,JSON.stringify({pid,at:Date.now()}),{flag:'wx',mode:0o600});}
+    catch{throw Error('automatic control recovery already attempted; inspect observer.log and run start');}
+    const child=spawn(process.execPath,[fileURLToPath(import.meta.url),configFile,'start'],{
+      cwd:os.tmpdir(),env:{...process.env,VSTATE_START_READY_WAIT_MS:String(Math.min(remaining(),10000))},
+      stdio:'ignore'});
+    await new Promise((resolve,reject)=>{
+      const timer=setTimeout(()=>{child.kill();reject(Error('control recovery start timeout'));},remaining());
+      child.on('error',e=>{clearTimeout(timer);reject(e);});
+      child.on('exit',code=>{clearTimeout(timer);code===0?resolve():reject(Error('control recovery start failed'));});
+    });
+    let value=await call(message,remaining());
+    // Initialization may be honest UNVERIFIED. Never wait/retry an arbitrary
+    // failure; only allow the normal started observer to finish its one index.
+    while(!value.observation?.healthy&&
+      ['discovery','indexing','reconciling','validating'].includes(value.observation?.phase)&&remaining()>100){
+      await new Promise(resolve=>setTimeout(resolve,100));
+      value=await call(message,remaining());
+    }
+    if(value.observation?.healthy)fs.unlinkSync(recovery);
+    return value;
+  }
+}
 function cached() {
   try{const value=JSON.parse(fs.readFileSync(path.join(state,'status.json')));
     if(Date.now()>=value.updated_at&&Date.now()<=value.expires_at&&
@@ -348,7 +390,7 @@ async function main(){
   if(action==='status'){console.log(JSON.stringify(cached()));return;}
   if(action==='sync'||action==='detail'){
     const started=performance.now();
-    let value;try{value=await call({action:'sync',contextHashes:contextHashes()},
+    let value;try{value=await decisionCall({action:'sync',contextHashes:contextHashes()},
       Number(process.env.VSTATE_SYNC_TIMEOUT_MS||decisionDeadlineMs));}
     catch(e){value=unavailableCached(e.message);process.exitCode=2;}
     timing('cli.synchronized_status',started,{available:value.observation?.healthy?1:0});

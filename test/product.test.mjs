@@ -571,7 +571,21 @@ test('Linux/Windows daemon crash with a missed edit reconciles the historical re
 });
 
 test('checkout root replacement reattaches and reconciles before retaining CURRENT',async t=>{
-  const f=withFixture(t);ok(f,'start');ok(f,'run','check');
+  const f=withFixture(t);ok(f,'start');ok(f,'stop');
+  // Retain the real child handle in this stress harness so native exit codes
+  // and signals are observable even if JS cannot write its final event.
+  const logFd=fs.openSync(path.join(f.state,'observer.log'),'a');
+  const daemon=spawn(process.execPath,[path.resolve('src/daemon.mjs'),
+    path.join(f.state,'project-runtime-v1.json')],{cwd:os.tmpdir(),env:f.env,
+    stdio:['ignore',logFd,logFd]});fs.closeSync(logFd);
+  let exited=null;daemon.on('exit',(code,signal)=>{exited={code,signal,at:Date.now()};});
+  t.after(()=>{try{call(f,'stop');}catch{};if(daemon.exitCode===null)daemon.kill();});
+  for(let n=0;n<100;n++){
+    const cached=JSON.parse(ok(f,'status','--json').stdout);
+    if(cached.observation.healthy)break;
+    await new Promise(resolve=>setTimeout(resolve,50));
+  }
+  ok(f,'run','check');
   const runId=row(f).invocation.runId;
   for(let iteration=0;iteration<Number(process.env.REDUE_ROOT_STRESS||1);iteration++){
   const moved=path.join(f.base,'old-project-'+iteration);
@@ -591,7 +605,7 @@ test('checkout root replacement reattaches and reconciles before retaining CURRE
     const pid=fs.existsSync(pidFile)?Number(fs.readFileSync(pidFile)):null;
     const log=fs.readFileSync(path.join(f.state,'observer.log'),'utf8').slice(-4000);
     throw Error(`${error.message}\nobserver alive: ${pid&&processAlive(pid)}\n`+
-      `recent events: ${JSON.stringify(events(f).slice(-12))}\nobserver log: ${log}`);
+      `child exit: ${JSON.stringify(exited)}\nrecent events: ${JSON.stringify(events(f).slice(-12))}\nobserver log: ${log}`);
   }
   assert.equal(result.checks[0].invocation.runId,runId);
   assert(events(f).some(e=>e.kind==='observation_root_replaced'));
@@ -617,4 +631,16 @@ test('external installed-input root replacement is reconciled',async t=>{
   assert(events(f).some(e=>e.kind==='external_observation_root_replaced'||
     e.kind==='observation_gap'));
   assert(fs.existsSync(path.join(external,'pkg/index.js')));
+});
+
+
+test('Windows missing control after dead daemon reconciles once without losing historical result',
+  {skip:process.platform!=='win32'},async t=>{
+  const f=withFixture(t);ok(f,'start');ok(f,'run','check');
+  const prior=row(f),pid=Number(fs.readFileSync(path.join(f.state,'observer.lock','pid')));
+  process.kill(pid,'SIGKILL');await new Promise(resolve=>setTimeout(resolve,200));
+  put(path.join(f.root,'src/input.txt'),'PASS changed while unavailable');
+  const item=row(f);assert.equal(item.freshness,'STALE');assert.equal(item.result,'PASS');
+  assert.equal(item.invocation.runId,prior.invocation.runId);
+  assert(events(f).some(e=>e.kind==='control_connection_unavailable'&&e.alive===false));
 });
