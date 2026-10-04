@@ -266,20 +266,41 @@ test('pnpm installed hardlink alias stales synchronized evidence without a lockf
   t.after(()=>{try{call('stop');}catch{}try{call('remove-state');}catch{}});
   call('init','--workspace','@fixture/app','--check','typecheck');
   call('start');
+  // Start is intentionally asynchronous; a check should not race the first
+  // input-plan build on a slower Windows filesystem.
+  let ready=false;
+  for(let i=0;i<120;i++){
+    const cached=JSON.parse(call('status','--json'));
+    if(cached.observation?.phase==='ready'&&cached.observation.healthy&&
+      cached.observation.pending===0){ready=true;break;}
+    await new Promise(resolve=>setTimeout(resolve,500));
+  }
+  assert(ready,'observer did not finish its initial input plan');
   const executed=JSON.parse(call('run','@fixture/app:typecheck'));
   assert.equal(executed.result,'PASS');
   assert.equal(executed.coverage_qualified,true);
-  const status=()=>JSON.parse(call('status','--sync','--json')).checks[0];
-  assert.equal(status().freshness,'CURRENT');
+  const status=()=>JSON.parse(call('status','--sync','--json'));
+  const expectFresh=async expected=>{
+    let data,row;
+    for(let i=0;i<20;i++){
+      data=status();row=data.checks[0];
+      if(row.freshness===expected)return row;
+      if(row.freshness!=='UNVERIFIED'||
+        !/plan|observer|reconcil/i.test(row.reason||''))break;
+      await new Promise(resolve=>setTimeout(resolve,500));
+    }
+    assert.equal(row?.freshness,expected,JSON.stringify({row,health:data?.health}));
+  };
+  await expectFresh('CURRENT');
   assert.equal(JSON.parse(call('status','--json')).checks[0].freshness,'UNVERIFIED');
   put(alias,'export declare const ext: number;\n// modified through store alias\n');
   assert.equal(fs.readFileSync(installed,'utf8'),fs.readFileSync(alias,'utf8'));
   assert.equal(digest(path.join(root,'pnpm-lock.yaml')),lock);
-  assert.equal(status().freshness,'STALE');
+  await expectFresh('STALE');
   assert.equal(JSON.parse(call('run','@fixture/app:typecheck')).result,'PASS');
-  assert.equal(status().freshness,'CURRENT');
+  await expectFresh('CURRENT');
   put(path.join(store,'unrelated-cache-entry'),'other');
-  assert.equal(status().freshness,'CURRENT');
+  await expectFresh('CURRENT');
 });
 
 test('pnpm hoisted installation can record and reuse a qualified TypeScript check',async t=>{
