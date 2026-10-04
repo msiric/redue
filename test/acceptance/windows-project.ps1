@@ -106,7 +106,7 @@ try {
   if(!$ready){throw 'observer did not establish a ready input plan within 120 seconds'}
   Redue @('run',$case.check)
   $recorded = (Get-Content -LiteralPath (Join-Path $state 'receipts-v1.json') -Raw |
-    ConvertFrom-Json).checks.PSObject.Properties[$case.check].Value
+    ConvertFrom-Json -AsHashtable).checks[$case.check]
   Write-Host "Run checkpoint issue codes: $($recorded.checkpoint.issues -join ', ')"
   $first = CheckState 'CURRENT'
   $receipt = $first.invocation.runId
