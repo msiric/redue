@@ -27,7 +27,12 @@ function State {
 function CheckState([string]$Expected,[string]$Receipt='') {
   $row = $null
   for($attempt=0;$attempt -lt 120;$attempt++){
-    $row = (State).checks | Where-Object name -eq $case.check
+    $observed = State
+    $row = $observed.checks | Where-Object name -eq $case.check
+    if(!$row -and $observed.observation.phase -ne 'ready'){
+      Start-Sleep -Seconds 1
+      continue
+    }
     if($row.freshness -ne 'UNVERIFIED' -or
       $row.reason -notmatch '^(input plan rebuilding|input plan indexing|observer initialization pending)'){
       break
