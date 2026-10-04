@@ -13,6 +13,7 @@ $state = Join-Path $env:RUNNER_TEMP "vstate-owned-state-$Project"
 $tools = Join-Path $env:RUNNER_TEMP 'redue-corepack'
 $shims = Join-Path $env:RUNNER_TEMP 'redue-manager-shims'
 $store = Join-Path $env:RUNNER_TEMP 'redue-pnpm-store'
+$env:REDUE_DECISION_PROFILE_FILE = Join-Path $env:RUNNER_TEMP "redue-timing-$Project.jsonl"
 if($Project -eq 'pnpm'){
   # Diagnostic only: measure whether the supported contract converges when
   # Windows cold reconciliation is allowed to exceed the product's 15s limit.
@@ -153,7 +154,7 @@ try {
   if(!(Test-Path -LiteralPath $sourcePath)){throw 'cleanup removed a project input'}
 } finally {
   try{Redue @('stop')}catch{Write-Warning "Owned observer stop failed: $_"}
-  $log = Join-Path $state 'observer.log'
+  $log = $env:REDUE_DECISION_PROFILE_FILE
   if(Test-Path -LiteralPath $log){
     Write-Host "Bounded decision-phase timing summary for $Project"
     & node (Join-Path $product 'test/acceptance/timing-summary.mjs') $log
