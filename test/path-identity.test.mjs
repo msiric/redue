@@ -148,6 +148,21 @@ test('native NTFS uses case-insensitive identity with spaces, Unicode and replac
     fs.writeFileSync(replacement,'second');
     fs.renameSync(replacement,original);
     assert.equal(fs.readFileSync(alternate,'utf8'),'second');
+    const hardlink=path.join(root,'hardlink.txt');
+    fs.linkSync(original,hardlink);
+    assert.equal(fs.statSync(original).ino,fs.statSync(hardlink).ino);
+    fs.writeFileSync(hardlink,'through hardlink');
+    assert.equal(fs.readFileSync(original,'utf8'),'through hardlink');
+    const symlink=path.join(root,'symlink.txt');
+    try{
+      fs.symlinkSync(original,symlink,'file');
+      assert(fs.lstatSync(symlink).isSymbolicLink());
+      assert.equal(fs.readFileSync(symlink,'utf8'),'through hardlink');
+      t.diagnostic('file symlink creation permitted');
+    }catch(error){
+      if(!['EPERM','EACCES'].includes(error.code))throw error;
+      t.diagnostic(`file symlink creation unavailable: ${error.code}`);
+    }
     const deep=path.join(root,...Array.from({length:14},(_,n)=>
       `segment-${String(n).padStart(2,'0')}-abcdefghijkl`));
     try{

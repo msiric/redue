@@ -96,6 +96,19 @@ switch($Project){
     $modules = Join-Path $root 'node_modules/.modules.yaml'
     Write-Host "pnpm virtualStoreDir: $((Get-Content -LiteralPath $modules | Select-String '^virtualStoreDir:').Line)"
     Write-Host "pnpm local lock present: $(Test-Path (Join-Path $root 'node_modules/.pnpm/lock.yaml'))"
+    @'
+import fs from 'node:fs';
+for(const logical of [
+  'packages/result-store/node_modules/@litellm-bench/contracts',
+  'node_modules/typescript/bin/tsc']){
+  let observed={logical,exists:false};
+  try{const link=fs.lstatSync(logical),physical=fs.statSync(logical);
+    observed={logical,exists:true,reparse:link.isSymbolicLink(),
+      directory:physical.isDirectory(),hardlinks:physical.nlink};}
+  catch(error){observed.error=error.code;}
+  console.log('pnpm NTFS topology: '+JSON.stringify(observed));
+}
+'@ | node --input-type=module -
   }
 }
 $init = @('init')
