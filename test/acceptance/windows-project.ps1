@@ -24,6 +24,21 @@ function State {
   if($LASTEXITCODE -ne 0){throw 'synchronized status failed'}
   return ($output | ConvertFrom-Json)
 }
+function DecisionSample([string]$Kind,[bool]$Sync=$true) {
+  $clock = [System.Diagnostics.Stopwatch]::StartNew()
+  $args = @($cli,'--state-dir',$state,'status','--json')
+  if($Sync){$args += '--sync'}
+  $output = & node @args
+  $code = $LASTEXITCODE
+  $clock.Stop()
+  $parsed = $output | ConvertFrom-Json
+  $selected = $parsed.checks | Where-Object name -eq $case.check
+  $sample = @{phase="acceptance.$Kind";ms=$clock.Elapsed.TotalMilliseconds;
+    exit=$code;freshness=$selected.freshness;result=$selected.result}
+  Add-Content -LiteralPath $env:REDUE_DECISION_PROFILE_FILE -Value ('REDUE_TIMING '+($sample | ConvertTo-Json -Compress))
+  if($code -ne 0){throw "Decision sample $Kind failed: $output"}
+  return $parsed
+}
 function CheckState([string]$Expected,[string]$Receipt='') {
   $row = $null
   for($attempt=0;$attempt -lt 120;$attempt++){
@@ -51,6 +66,7 @@ function ReceiptCheckpoint {
   Write-Host "Run checkpoint issue codes: $($receipt.checkpoint.issues -join ', ')"
   Write-Host "Run checkpoint revisions: $($receipt.checkpoint.startRevision) -> $($receipt.checkpoint.endRevision)"
   Write-Host "Run checkpoint serials: $($receipt.checkpoint.startInputEventSerial) -> $($receipt.checkpoint.endInputEventSerial)"
+  Add-Content -LiteralPath $env:REDUE_DECISION_PROFILE_FILE -Value ('REDUE_TIMING '+(@{phase='acceptance.command';ms=$receipt.invocation.durationMs} | ConvertTo-Json -Compress))
   Write-Host "Run actual command: $($receipt.invocation.startedAt) + $($receipt.invocation.durationMs) ms"
   $events = Join-Path $state 'events.jsonl'
   if(Test-Path -LiteralPath $events){
@@ -146,11 +162,15 @@ try {
     Start-Sleep -Seconds 1
   }
   if(!$ready){throw 'observer did not establish a ready input plan within 120 seconds'}
+  DecisionSample 'first_after_start' | Out-Null
   Redue @('run',$case.check)
   ReceiptCheckpoint
   $first = CheckState 'CURRENT'
   $receipt = $first.invocation.runId
+  for($i=0;$i -lt 8;$i++){DecisionSample 'warm_unchanged' | Out-Null}
+  for($i=0;$i -lt 5;$i++){DecisionSample 'cached' $false | Out-Null}
   Set-Content -LiteralPath (Join-Path $root 'redue-unrelated-note.md') -Value 'disposable acceptance note'
+  DecisionSample 'after_unrelated_edit' | Out-Null
   CheckState 'CURRENT' $receipt | Out-Null
   $sourcePath = switch($Project){
     npm { Join-Path $root 'src/extension.ts' }
@@ -159,12 +179,14 @@ try {
   }
   if(!(Test-Path -LiteralPath $sourcePath)){throw "No selected source file at $sourcePath"}
   Add-Content -LiteralPath $sourcePath -Value "`n// disposable REDUE freshness acceptance"
+  DecisionSample 'after_relevant_edit' | Out-Null
   CheckState 'STALE' $receipt | Out-Null
   Redue @('run',$case.check)
   ReceiptCheckpoint
   $second = CheckState 'CURRENT'
   Redue @('stop')
   Redue @('start')
+  DecisionSample 'first_after_restart' | Out-Null
   CheckState 'CURRENT' $second.invocation.runId | Out-Null
   $fresh = CheckState 'CURRENT' $second.invocation.runId
   "PASS: $Project, inherited CURRENT/PASS run $($fresh.invocation.runId) after restart" |

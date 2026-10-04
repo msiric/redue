@@ -52,6 +52,13 @@ jobs:
           $env:REDUE_DECISION_PROFILE_FILE = Join-Path $env:RUNNER_TEMP 'redue-native-timing.jsonl'
           node --test --test-concurrency=1 test/*.test.mjs
           exit $LASTEXITCODE
+      - name: Repeated checkout root replacement
+        if: always()
+        shell: pwsh
+        run: |
+          $env:REDUE_ROOT_STRESS = '40'
+          node --test --test-name-pattern='checkout root replacement' test/product.test.mjs
+          exit $LASTEXITCODE
       - name: Bounded decision timing summary
         if: always()
         shell: pwsh

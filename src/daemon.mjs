@@ -39,6 +39,7 @@ for(const check of config.checks)for(const boundary of permittedRoots(root,check
     snapshot:path.join(state,`external-${sha(boundary).slice(0,16)}.snapshot`)});
 let pending=new Set(), pendingChecks=new Set(), flushTimer, planDirty=false, planning=false, lastObservation=0;
 let decisionRequests=0;
+let decisionSequence=0;
 let inputEventSerial=new Map();
 let diagnosticInputEvents=0;
 let synchronizing=null;
@@ -726,6 +727,12 @@ async function request(message) {
   if(message.action==='reload'){loadReceipts();publish();return {ok:true};}
   if(message.action==='sync'||message.action==='snapshot'||message.action==='prelaunch') {
     const totalStarted=performance.now();
+    const decision=++decisionSequence;
+    timing('daemon.decision_reason',totalStarted,{decision,action:message.action,
+      plan:process.platform==='win32'?'windows_unconditional_rebuild':'existing_plan',
+      probe:'unconditional',installed:'windows_full_index_or_installed_recheck',
+      phase:metrics.planPhase||'initializing',pending:pending.size,
+      notifications:metrics.notifications,planRebuilds:metrics.planRebuilds});
     if(process.platform==='win32'&&process.env.VSTATE_TEST_FAULTS==='1'&&
       process.env.VSTATE_TEST_WINDOWS_GAP_FILE&&
       fs.existsSync(process.env.VSTATE_TEST_WINDOWS_GAP_FILE)){
@@ -872,6 +879,7 @@ async function attachExternal(entry) {
 server.listen({path:socket,readableAll:false,writableAll:false},async()=>{
   const setupStarted=performance.now();
   if(endpoint.filesystem)fs.chmodSync(socket,0o600);
+  event('control_listening',{pid:process.pid});
   loadReceipts();await attachWatch();
   if(hasHistory&&watcher&&!fs.existsSync(snapshotPath))try{
     await queryHistory(root,snapshotPath,'initial snapshot');}
@@ -907,4 +915,10 @@ const probeTimer=setInterval(async()=>{
   try{await catchUp();for(const row of index.checks.values())probe(row);publish();}
   catch(e){observationGap('periodic_query',e);}
 }},5000);
+process.on('uncaughtExceptionMonitor',error=>{
+  try{event('observer_uncaught_exception',{pid:process.pid,code:error.code||null,
+    message:error.message,stack:error.stack});}catch{}
+});
+process.on('exit',code=>{try{event('observer_exit',{pid:process.pid,code,stopping,
+  healthy,planning,recovering});}catch{}});
 process.on('SIGTERM',shutdown);process.on('SIGINT',shutdown);
