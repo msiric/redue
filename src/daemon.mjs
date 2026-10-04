@@ -524,7 +524,7 @@ function markInputEvent(name,rel,type) {
   pendingChecks.add(name);
   inputEventSerial.set(name,(inputEventSerial.get(name)||0)+1);
   // Disposable public CI only. Never enabled for normal/local repositories.
-  if(process.env.REDUE_PUBLIC_INPUT_TRACE==='1'&&rel&&diagnosticInputEvents++<100)
+  if(process.env.REDUE_PUBLIC_INPUT_TRACE==='1'&&rel&&diagnosticInputEvents++<5000)
     event('public_input_notification',{path:rel,type:type||'unknown',planning});
 }
 function notification(type,filename) {

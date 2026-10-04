@@ -50,11 +50,23 @@ function ReceiptCheckpoint {
     ConvertFrom-Json -AsHashtable).checks[$case.check]
   Write-Host "Run checkpoint issue codes: $($receipt.checkpoint.issues -join ', ')"
   Write-Host "Run checkpoint revisions: $($receipt.checkpoint.startRevision) -> $($receipt.checkpoint.endRevision)"
+  Write-Host "Run checkpoint serials: $($receipt.checkpoint.startInputEventSerial) -> $($receipt.checkpoint.endInputEventSerial)"
+  Write-Host "Run actual command: $($receipt.invocation.startedAt) + $($receipt.invocation.durationMs) ms"
   $events = Join-Path $state 'events.jsonl'
   if(Test-Path -LiteralPath $events){
-    Get-Content -LiteralPath $events | ForEach-Object { $_ | ConvertFrom-Json } |
-      Where-Object kind -eq 'public_input_notification' | Select-Object -Last 12 |
-      ForEach-Object { Write-Host "Public input notification: $($_.at) $($_.type) $($_.path) planning=$($_.planning)" }
+    $notifications = @(Get-Content -LiteralPath $events | ForEach-Object { $_ | ConvertFrom-Json } |
+      Where-Object kind -eq 'public_input_notification')
+    $duringCommand = @($notifications | Where-Object {
+      $_.at -ge $receipt.invocation.startedAt -and
+      $_.at -le ($receipt.invocation.startedAt + $receipt.invocation.durationMs)
+    })
+    Write-Host "Public input notifications: total=$($notifications.Count) during-command=$($duringCommand.Count)"
+    $notifications | Select-Object -First 4 | ForEach-Object {
+      Write-Host "Public input notification first: $($_.at) $($_.type) $($_.path) planning=$($_.planning)" }
+    $duringCommand | Select-Object -First 4 | ForEach-Object {
+      Write-Host "Public input notification in command: $($_.at) $($_.type) $($_.path) planning=$($_.planning)" }
+    $notifications | Select-Object -Last 8 | ForEach-Object {
+      Write-Host "Public input notification last: $($_.at) $($_.type) $($_.path) planning=$($_.planning)" }
   }
 }
 

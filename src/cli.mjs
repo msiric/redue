@@ -237,7 +237,10 @@ async function execute() {
       resolutionLinks:plan.resolutionLinks||[],
       coverage:{qualified:plan.unresolved.length===0,unresolved:plan.unresolved},
       checkpoint:{status:stable?'stable':'unavailable_or_changed',issues:captureIssues,
-        startRevision:snap?.revision??null,endRevision:end?.revision??null},
+        startRevision:snap?.revision??null,endRevision:end?.revision??null,
+        ...(process.env.REDUE_PUBLIC_INPUT_TRACE==='1'?{
+          startInputEventSerial:snap?.inputEventSerial??null,
+          endInputEventSerial:end?.inputEventSerial??null}: {})},
       planId:snap?.planId??plan.id,fingerprint:snap?.fingerprint??null,
       provider:plan.provider,environmentHashes:environmentBefore,
       files:snap?.files??null,observerGeneration:before?.observation?.generation??null,
