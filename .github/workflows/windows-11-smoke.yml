@@ -1,0 +1,36 @@
+name: Windows 11 native CLI smoke
+
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: windows-11-arm
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          architecture: arm64
+      - name: Record native desktop OS environment
+        shell: pwsh
+        run: |
+          $os = Get-CimInstance Win32_OperatingSystem
+          $volume = Get-Volume -DriveLetter (Get-Location).Path.Substring(0,1)
+          $developer = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -ErrorAction SilentlyContinue
+          "OS: $($os.Caption) $($os.Version) build $($os.BuildNumber)" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "Runner image: $env:ImageOS $env:ImageVersion" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "Architecture: $env:PROCESSOR_ARCHITECTURE; filesystem: $($volume.FileSystem)" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "PowerShell: $($PSVersionTable.PSVersion); Node: $(node --version); npm: $(npm --version)" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "Developer Mode registry value: $($developer.AllowDevelopmentWithoutDevLicense) (blank means unavailable/unset)" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+      - run: npm ci
+      - name: PowerShell and direct Node CLI
+        shell: pwsh
+        run: node ./bin/redue.mjs --help
+      - name: Existing public pnpm workspace workflow
+        shell: pwsh
+        env:
+          REDUE_DECISION_PROFILE: '1'
+          REDUE_PUBLIC_INPUT_TRACE: '1'
+        run: ./test/acceptance/windows-project.ps1 -Project pnpm
