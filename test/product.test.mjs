@@ -644,3 +644,18 @@ test('Windows missing control after dead daemon reconciles once without losing h
   assert.equal(item.invocation.runId,prior.invocation.runId);
   assert(events(f).some(e=>e.kind==='control_connection_unavailable'&&e.alive===false));
 });
+
+
+test('explicit owned-state stop and removal work after the checkout is deleted',async t=>{
+  const f=fixture();t.after(()=>f.cleanup());ok(f,'start');ok(f,'run','check');
+  const pid=Number(fs.readFileSync(path.join(f.state,'observer.lock','pid')));
+  fs.rmSync(f.root,{recursive:true});
+  for(const command of ['stop','remove-state']){
+    const result=spawnSync(process.execPath,[bin,'--state-dir',f.state,command],
+      {cwd:os.tmpdir(),env:f.env,encoding:'utf8',timeout:15000});
+    assert.equal(result.status,0,result.stderr);
+  }
+  assert(!fs.existsSync(f.state));
+  for(let n=0;n<60&&processAlive(pid);n++)await new Promise(resolve=>setTimeout(resolve,50));
+  assert(!processAlive(pid));
+});

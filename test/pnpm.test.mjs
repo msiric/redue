@@ -22,7 +22,8 @@ const linkDir=(target,link)=>fs.symlinkSync(process.platform==='win32'?
 const json=(file,value)=>put(file,JSON.stringify(value));
 function fixture(t,{hoisted=false}={}){
   const root=fs.mkdtempSync(path.join(os.tmpdir(),'vstate-pnpm-'));
-  t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+  const cleanups=[];
+  t.after(()=>{for(const cleanup of cleanups)cleanup();fs.rmSync(root,{recursive:true,force:true});});
   json(path.join(root,'package.json'),{private:true,packageManager:'pnpm@12.4.1'});
   put(path.join(root,'pnpm-workspace.yaml'),`packages:\n  - packages/*\n${hoisted?'nodeLinker: hoisted\n':''}`);
   put(path.join(root,'pnpm-lock.yaml'),'lockfileVersion: 12.0\n');
@@ -60,7 +61,7 @@ function fixture(t,{hoisted=false}={}){
   execFileSync('git',['init','-q'],{cwd:root});
   execFileSync('git',['add','package.json','pnpm-workspace.yaml','pnpm-lock.yaml',
     '.gitignore','tsconfig.json','packages'],{cwd:root});
-  return {root,app,dep,sibling,external};
+  return {root,app,dep,sibling,external,beforeRemove:fn=>cleanups.push(fn)};
 }
 function runtime(root){
   const contract=pnpmTypecheckInputs(root,'@fixture/app','typecheck');
@@ -242,12 +243,12 @@ test('pnpm hoisted metadata is distinct and shared hardlinks with unknown aliase
 });
 
 test('pnpm observer replans after new local resolution topology without losing unrelated evidence',async t=>{
-  const {root,external}=fixture(t),state=fs.mkdtempSync(path.join(os.tmpdir(),'vstate-pnpm-state-'));
+  const {root,external,beforeRemove}=fixture(t),state=fs.mkdtempSync(path.join(os.tmpdir(),'vstate-pnpm-state-'));
   fs.rmdirSync(state); // The CLI creates and owns this empty state directory.
   const cli=path.resolve('bin/redue.mjs'),runtime=path.join(state,'project-runtime-v1.json');
   const call=(...args)=>execFileSync(process.execPath,[cli,'--state-dir',state,...args],
     {cwd:root,encoding:'utf8',timeout:process.platform==='win32'?45000:15000,env:cleanEnv});
-  t.after(()=>{try{call('stop');}catch{}try{call('remove-state');}catch{}});
+  beforeRemove(()=>{call('stop');call('remove-state');assert(!fs.existsSync(state));});
   call('init','--workspace','@fixture/app','--check','typecheck');
   call('start');
   await waitReady(call);
@@ -277,7 +278,7 @@ test('pnpm observer replans after new local resolution topology without losing u
 
 test('pnpm installed hardlink alias stales synchronized evidence without a lockfile edit',
   {skip:!['linux','win32'].includes(process.platform)},async t=>{
-  const {root,external}=fixture(t),state=fs.mkdtempSync(path.join(os.tmpdir(),'vstate-pnpm-state-'));
+  const {root,external,beforeRemove}=fixture(t),state=fs.mkdtempSync(path.join(os.tmpdir(),'vstate-pnpm-state-'));
   fs.rmdirSync(state);
   const store=fs.mkdtempSync(path.join(os.tmpdir(),'vstate-pnpm-store-'));
   t.after(()=>fs.rmSync(store,{recursive:true,force:true}));
@@ -289,7 +290,7 @@ test('pnpm installed hardlink alias stales synchronized evidence without a lockf
   const cli=path.resolve('bin/redue.mjs');
   const call=(...args)=>execFileSync(process.execPath,[cli,'--state-dir',state,...args],
     {cwd:root,encoding:'utf8',timeout:process.platform==='win32'?45000:15000,env:cleanEnv});
-  t.after(()=>{try{call('stop');}catch{}try{call('remove-state');}catch{}});
+  beforeRemove(()=>{call('stop');call('remove-state');assert(!fs.existsSync(state));});
   call('init','--workspace','@fixture/app','--check','typecheck');
   call('start');
   // Start is intentionally asynchronous; a check should not race the first
@@ -337,13 +338,13 @@ test('pnpm installed hardlink alias stales synchronized evidence without a lockf
 });
 
 test('pnpm hoisted installation can record and reuse a qualified TypeScript check',async t=>{
-  const {root,external}=fixture(t,{hoisted:true});
+  const {root,external,beforeRemove}=fixture(t,{hoisted:true});
   const state=fs.mkdtempSync(path.join(os.tmpdir(),'vstate-pnpm-hoisted-'));
   fs.rmdirSync(state);
   const cli=path.resolve('bin/redue.mjs');
   const call=(...args)=>execFileSync(process.execPath,[cli,'--state-dir',state,...args],
     {cwd:root,encoding:'utf8',timeout:process.platform==='win32'?45000:15000,env:cleanEnv});
-  t.after(()=>{try{call('stop');}catch{}try{call('remove-state');}catch{}});
+  beforeRemove(()=>{call('stop');call('remove-state');assert(!fs.existsSync(state));});
   const init=JSON.parse(call('init','--workspace','@fixture/app','--check','typecheck','--json'));
   assert.equal(init.installation_layout,'node-modules/hoisted');
   call('start');

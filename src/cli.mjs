@@ -22,7 +22,8 @@ const here=path.dirname(fileURLToPath(import.meta.url));
 const [configArg,action,name]=process.argv.slice(2);
 if(!configArg||!action)throw Error('internal usage: cli.mjs CONFIG ACTION [check]');
 const configFile=path.resolve(configArg), config=JSON.parse(fs.readFileSync(configFile));
-const root=realObservedPath(config.root), state=path.resolve(config.state),
+const maintenance=['stop','uninstall'].includes(action);
+const root=maintenance?path.resolve(config.root):realObservedPath(config.root), state=path.resolve(config.state),
   endpoint=controlEndpoint(state),socket=endpoint.address;
 assertOwnedStatePlacement(config);
 if(withinPath(state,root))throw Error('state must be outside checkout');
@@ -364,6 +365,8 @@ async function main(){
     console.log(JSON.stringify(recoverRunLock(state,name==='--confirm-check-stopped')));return;
   }
   if(action==='stop'){
+    if(!fs.existsSync(ownerFile))throw Error('state ownership marker absent; refusing stop');
+    owner();
     try{const answer=await call({action:'stop'});
       for(let i=0;i<100&&fs.existsSync(path.join(state,'observer.lock'));i++)
         await new Promise(r=>setTimeout(r,100));

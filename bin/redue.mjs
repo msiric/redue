@@ -111,6 +111,16 @@ if(command==='init'){
   if(json)console.log(JSON.stringify({...summary,proposed_config:discovery.config}));
   process.exit(0);
 }
+// Owned-state maintenance must not need the checkout, its package manager,
+// or installed compiler to remain present. No command is run from this path.
+if(stateOverride&&['stop','remove-state'].includes(command)){
+  const runtime=path.join(stateOverride,'project-runtime-v1.json');
+  if(!fs.existsSync(runtime)){console.log('No REDUE state exists at this path.');process.exit(0);}
+  const result=spawnSync(process.execPath,[engine,runtime,command==='stop'?'stop':'uninstall'],
+    {cwd:os.tmpdir(),stdio:'inherit',env:process.env});
+  if(result.error)error(result.error.message);
+  process.exit(result.status??2);
+}
 let publicConfig;
 try{publicConfig=JSON.parse(fs.readFileSync(configFile,'utf8'));}
 catch(e){error(`cannot read ${configFile}: ${e.message}`);}
