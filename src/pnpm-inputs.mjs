@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {createRequire} from 'node:module';
 import {execFileSync,spawnSync} from 'node:child_process';
-import micromatch from 'micromatch';
+import micromatch from './glob.mjs';
 import YAML from 'yaml';
 import {resolveLinks} from './installed-inputs.mjs';
 import {withinPath as within,realObservedPath,samePath} from './path-identity.mjs';

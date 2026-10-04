@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
-import micromatch from 'micromatch';
+import micromatch from './glob.mjs';
 import {sha} from './plan.mjs';
 
 export function inputKey(row) {

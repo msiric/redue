@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import micromatch from 'micromatch';
+import micromatch from './glob.mjs';
 import {sha} from './plan.mjs';
 import {resolveLinks} from './installed-inputs.mjs';
 import {validInputRelative} from './path-identity.mjs';

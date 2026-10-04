@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {createRequire} from 'node:module';
-import micromatch from 'micromatch';
+import micromatch from './glob.mjs';
 import {withinPath as within,realObservedPath} from './path-identity.mjs';
 
 export function yarnLocalTsc(root){

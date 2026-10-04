@@ -55,3 +55,7 @@ override unsupported storage, unresolved links, missing inputs, or observation f
 
 Changing commands, relevant configuration, installed material, or consumed inputs
 invalidates prior applicability. It does not erase historical execution outcomes.
+
+Input globs are limited to 32768 characters and 64 levels of brace/parenthesis
+nesting to avoid an upstream parser exhaustion bug. More complex patterns are
+rejected with an error, not truncated or ignored.
