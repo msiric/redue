@@ -9,7 +9,7 @@ import {fileURLToPath} from 'node:url';
 import {subscribe,hasHistory,backend} from './platform-observation.mjs';
 import {controlEndpoint} from './control-endpoint.mjs';
 import {observedRelative,withinPath,realObservedPath} from './path-identity.mjs';
-import micromatch from 'micromatch';
+import micromatch from './glob.mjs';
 import {sha} from './plan.mjs';
 import {InputIndex} from './index.mjs';
 import {permittedRoots} from './installed-inputs.mjs';
@@ -805,27 +805,28 @@ async function request(message) {
       return status();
     }
     if(planning||recovering)return status();
-    // The pinned Windows backend reports explicit errors but does not expose a
-    // reliable history/overflow barrier. A decision-grade read therefore
-    // reconstructs the declared state instead of trusting its event cursor.
-    if(process.platform==='win32'&&message.action!=='prelaunch'){
+    // Without a usable continuity barrier, live-event delivery alone cannot
+    // establish a decision checkpoint. This also applies after macOS history
+    // has been disabled: a recovered subscription may still have queued events.
+    const needsContentReconciliation=process.platform==='win32'||(hasHistory&&historyDisabled);
+    if(needsContentReconciliation&&message.action!=='prelaunch'){
       const started=performance.now();await refreshPlan({forceCold:true,reuse:true});
       timing('daemon.request_content_validation',started,{healthy:healthy?1:0});}
     if(healthy)try{const started=performance.now();await catchUp();
       timing('daemon.request_catch_up',started);}catch(e){observationGap('historical_query',e);}
     if(flushTimer||pending.size||planDirty||[...external.values()].some(e=>e.pending.size))flush();
     let synchronizedInstalled=false;
-    // A successful Windows forced reconciliation has already hashed the
+    // A successful forced reconciliation has already hashed the
     // complete declared installed input set. A second full pass inside the
     // same request duplicates that work without creating an atomic snapshot.
-    const windowsColdIndex=process.platform==='win32'&&message.action!=='prelaunch'&&
+    const validatedColdIndex=needsContentReconciliation&&message.action!=='prelaunch'&&
       healthy&&!planning&&
       !planDirty&&!index?.unavailable;
     if(index&&healthy&&!planning&&message.action!=='prelaunch'){
       const names=[...index.checks].filter(([name,row])=>
         row.plan.synchronizedInstalledRead&&(!message.name||message.name===name))
         .map(([name])=>name);
-      if(names.length&&windowsColdIndex){
+      if(names.length&&validatedColdIndex){
         synchronizedInstalled=true;
         timing('daemon.request_installed_from_reconcile',performance.now(),
           {checks:names.length,files:index.files.size});
@@ -846,7 +847,7 @@ async function request(message) {
       }catch(e){installedRecheck=null;observationGap('installed_recheck',e);}
     }
     const probeStarted=performance.now();
-    if(index&&healthy&&!windowsColdIndex&&message.action!=='prelaunch')
+    if(index&&healthy&&!validatedColdIndex&&message.action!=='prelaunch')
       for(const row of index.checks.values())probe(row);
     timing('daemon.request_probes',probeStarted,{checks:index?.checks.size||0});
     lastObservation=Date.now();publish();

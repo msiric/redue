@@ -19,3 +19,9 @@ manual recovery path.
 
 The observer does not claim an atomic checkout snapshot against concurrent
 writers. Direct checks outside `redue run` do not create receipts.
+
+After the macOS history fast path has been disabled for an observer generation,
+every decision checkpoint uses deterministic reconciliation. Reattaching a live
+subscription alone is not a delivery barrier: its next notification may still
+be pending when a caller asks for a decision. No repeated wedged history queries
+are needed, and historical receipts are unchanged.

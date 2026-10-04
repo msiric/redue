@@ -308,6 +308,22 @@ test('reconciliation preserves unchanged and unrelated inputs, then detects inst
   assert.equal((await until(f,s=>s.checks[0].freshness==='STALE')).checks[0].freshness,'STALE');
 });
 
+test('disabled macOS history requires a fresh checkpoint even after successful recovery',
+  {skip:process.platform!=='darwin'},async t=>{
+    const f=withFixture(t);ok(f,'start');ok(f,'run','check');
+    const original=row(f).invocation.runId;
+    await faultObserved(f);
+    await until(f,s=>s.checks[0].freshness==='CURRENT');
+    // Model an event not delivered before the decision, deterministically.
+    put(path.join(f.state,'drop-events'),'1');
+    put(path.join(f.root,'notes.md'),'unrelated');
+    assert.equal(row(f).freshness,'CURRENT');
+    const file=path.join(f.root,'node_modules/pkg/index.js'),before=oracle(file);
+    put(file,'module.exports=11;\n');assert.notEqual(oracle(file),before);
+    const result=row(f);assert.equal(result.freshness,'STALE');
+    assert.equal(result.result,'PASS');assert.equal(result.invocation.runId,original);
+  });
+
 test('fresh reconciliation detects membership and linked installed-target replacement',async t=>{
   const f=withFixture(t,{absent:true});
   put(path.join(f.root,'workspace/a/index.js'),'module.exports=1;\n');
