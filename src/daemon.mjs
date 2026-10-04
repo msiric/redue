@@ -223,7 +223,9 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       invocation:r?.invocation||null,target_provenance:r?.target||null,
       coverage_at_run:r?.coverage||null,declared_inputs_match:null,reuse_eligible:false};
     if(receiptStateError){item.reason=receiptStateError;return item;}
-    if(!healthy||index.unavailable){item.reason=reason||index.unavailable||'observation unavailable';return item;}
+    if(!healthy||planning||recovering||index.unavailable){item.reason=
+      (planning||recovering)?'input observation reconciliation pending':
+        reason||index.unavailable||'observation unavailable';return item;}
     const outside=applicableExternal(name).find(entry=>!entry.healthy||entry.index.unavailable);
     if(outside){item.reason=outside.reason||`external observation unavailable: ${outside.index.unavailable}`;
       return item;}
@@ -303,14 +305,14 @@ function status(contextHashes,synchronizedInstalled=false,synchronizedFilesystem
   const stateName=failed?'failed':unverified?'unverified':stale?'stale':'current';
   const now=Date.now();return {schema:1,state:stateName,current,failed,observed_failed:observedFailed,
     stale,unverified,checks,
-    observation:{healthy:healthy&&!index?.unavailable,
+    observation:{healthy:healthy&&!planning&&!recovering&&!index?.unavailable,
       generation,observed_at:lastObservation,
       events:(index?.eventCount||0)+[...external.values()].reduce((n,e)=>n+(e.index?.eventCount||0),0),
       pending:pending.size+[...external.values()].reduce((n,e)=>n+e.pending.size,0),
       reason:healthy?index?.unavailable:reason,
       external:[...external.values()].filter(e=>e.index).map(e=>({root:e.root,
         healthy:e.healthy,reason:e.reason})),
-      phase:metrics.planPhase||'initializing',scanned:metrics.planScannedFiles||0,
+      phase:recovering?'reconciling':metrics.planPhase||'initializing',scanned:metrics.planScannedFiles||0,
       total:metrics.planTotalFiles},
     updated_at:now,expires_at:now+3000,pid:process.pid};
 }
@@ -692,6 +694,9 @@ async function recoverObservation(classification) {
     // The live subscriptions are attached before the fresh scan. Changes
     // delivered during indexing are queued and rechecked before health returns.
     await refreshPlan({forceCold:true});
+    if(process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_RECOVERY_FINISH_DELAY)
+      await new Promise(resolve=>setTimeout(resolve,Math.min(2000,
+        Number(process.env.VSTATE_TEST_RECOVERY_FINISH_DELAY)||0)));
     if(process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_RECOVERY_FINALIZE_FAULT&&
       fs.existsSync(process.env.VSTATE_TEST_RECOVERY_FINALIZE_FAULT))
       throw Error('injected recovery finalization failure');
@@ -704,7 +709,7 @@ async function recoverObservation(classification) {
     event('reconciliation_failed',{classification,error_code:e.code||e.name||'Error',
       reason:e.message,identityChanged,watcherAttached:Boolean(watcher),planPhase:metrics.planPhase});
     publish();
-  }finally{recovering=false;
+  }finally{recovering=false;publish();
     if(!healthy&&!stopping&&recoveryAttempts<2&&!recoveryTimer)
       recoveryTimer=setTimeout(()=>recoverObservation(classification),500);
   }
@@ -781,7 +786,7 @@ async function request(message) {
     profile:index?.profile},external:[...external.values()].map(e=>({root:e.root,
       healthy:e.healthy,reason:e.reason,files:e.index?.files.size,
       rehashedFiles:e.index?.rehashedFiles,rehashedBytes:e.index?.rehashedBytes})),
-    healthy,reason,planning};
+    healthy,reason,planning,recovering,identityChanged,recoveryAttempts};
   if(message.action==='reload'){loadReceipts();publish();return {ok:true};}
   if(message.action==='sync'||message.action==='snapshot'||message.action==='prelaunch') {
     const totalStarted=performance.now();
@@ -854,7 +859,7 @@ async function request(message) {
           planGeneration:row.plan.id,
             inputEventSerial:inputEventSerial.get(name)||0,
             probeHash:row.probeHash,
-            observationHealthy:healthy&&applicableExternal(name).every(e=>e.healthy)};
+            observationHealthy:healthy&&!planning&&!recovering&&applicableExternal(name).every(e=>e.healthy)};
     }
     timing('daemon.request_applicability',applicabilityStarted,{checks:data.checks.length});
     timing('daemon.request_total',totalStarted,{action:message.action,

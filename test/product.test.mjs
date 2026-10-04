@@ -683,3 +683,24 @@ test('Windows replacement after failed recovery and successful sync starts a new
     events(f).filter(e=>e.kind==='observation_root_replaced').length>gaps);
   assert.equal(again.checks[0].invocation.runId,receipt);
 });
+
+
+test('a completed scan cannot publish CURRENT while recovery is still finalizing',async t=>{
+  const f=withFixture(t);f.env.VSTATE_TEST_RECOVERY_FINISH_DELAY='1500';
+  ok(f,'start');ok(f,'run','check');const receipt=row(f).invocation.runId;
+  await faultObserved(f);
+  let finishing=false;
+  for(let n=0;n<100;n++){
+    const metrics=await control(f,{action:'metrics'});
+    if(metrics.recovering&&metrics.metrics.planPhase==='ready'){finishing=true;break;}
+    await new Promise(resolve=>setTimeout(resolve,25));
+  }
+  assert(finishing,'did not reach the deterministic finalization boundary');
+  const cached=JSON.parse(ok(f,'status','--json').stdout);
+  assert.equal(cached.observation.healthy,false);
+  assert.equal(cached.checks[0].freshness,'UNVERIFIED');
+  const synchronized=status(f);assert.equal(synchronized.checks[0].freshness,'UNVERIFIED');
+  assert.equal(synchronized.checks[0].result,'PASS');
+  const recovered=await until(f,s=>s.checks[0].freshness==='CURRENT');
+  assert.equal(recovered.checks[0].invocation.runId,receipt);
+});
