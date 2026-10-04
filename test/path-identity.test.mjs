@@ -132,3 +132,32 @@ test('NTFS short-path junction target retains its link and resolves inside the l
     assert.equal(resolved.links.length,1);
     assert(samePath(resolved.links[0].path,logical));
   });
+
+test('native NTFS uses case-insensitive identity with spaces, Unicode and replacement',
+  {skip:process.platform!=='win32'},t=>{
+    const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-ntfs-case-'));
+    t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
+    const root=path.join(base,'Space Répo');
+    fs.mkdirSync(root);
+    const original=path.join(root,'File résumé.txt');
+    fs.writeFileSync(original,'first');
+    const alternate=path.join(base,'SPACE Répo','file résumé.txt');
+    assert.equal(fs.readFileSync(alternate,'utf8'),'first');
+    assert(samePath(original,alternate));
+    const replacement=path.join(root,'replacement.txt');
+    fs.writeFileSync(replacement,'second');
+    fs.renameSync(replacement,original);
+    assert.equal(fs.readFileSync(alternate,'utf8'),'second');
+    const deep=path.join(root,...Array.from({length:14},(_,n)=>
+      `segment-${String(n).padStart(2,'0')}-abcdefghijkl`));
+    try{
+      fs.mkdirSync(deep,{recursive:true});
+      assert(deep.length>260);
+      fs.writeFileSync(path.join(deep,'input.txt'),'long-path');
+      assert.equal(fs.readFileSync(path.join(deep,'input.txt'),'utf8'),'long-path');
+      t.diagnostic('long NTFS path supported');
+    }catch(error){
+      if(!['ENAMETOOLONG','EINVAL','ENOENT'].includes(error.code))throw error;
+      t.diagnostic(`long NTFS path unavailable: ${error.code}`);
+    }
+  });
