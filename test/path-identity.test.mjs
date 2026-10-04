@@ -11,6 +11,7 @@ import {windowsLaunch} from '../src/windows-command.mjs';
 import {terminateWindowsTree} from '../src/windows-process.mjs';
 import {resolveLinks} from '../src/installed-inputs.mjs';
 import {EventEmitter} from 'node:events';
+import {spawn} from 'node:child_process';
 
 test('Windows lexical identity folds drive and path spelling without crossing roots',()=>{
   const p=path.win32,root='C:\\Work Space\\Répo';
@@ -84,6 +85,36 @@ test('Windows cancellation requests only the recorded process tree',async()=>{
   assert.deepEqual(actual.args,['/PID','4321','/T','/F']);
   assert.equal(actual.file,'taskkill.exe');
 });
+
+test('native Windows cancellation terminates an ordinary descendant',
+  {skip:process.platform!=='win32'},async t=>{
+    const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-tree-'));
+    const marker=path.join(base,'descendant.pid');
+    const script=`const fs=require('node:fs');
+const {spawn}=require('node:child_process');
+const child=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],
+  {stdio:'ignore',windowsHide:true});
+fs.writeFileSync(process.argv[1],String(child.pid));
+setInterval(()=>{},1000);`;
+    const parent=spawn(process.execPath,['-e',script,marker],
+      {stdio:'ignore',windowsHide:true});
+    let descendant;
+    t.after(async()=>{
+      try{await terminateWindowsTree(parent.pid);}catch{}
+      fs.rmSync(base,{recursive:true,force:true});
+    });
+    for(let n=0;n<100&&!fs.existsSync(marker);n++)
+      await new Promise(resolve=>setTimeout(resolve,50));
+    assert(fs.existsSync(marker),'descendant did not start');
+    descendant=Number(fs.readFileSync(marker,'utf8'));
+    assert(Number.isInteger(descendant)&&descendant>0);
+    await terminateWindowsTree(parent.pid);
+    const alive=pid=>{try{process.kill(pid,0);return true;}catch{return false;}};
+    for(let n=0;n<100&&(alive(parent.pid)||alive(descendant));n++)
+      await new Promise(resolve=>setTimeout(resolve,50));
+    assert.equal(alive(parent.pid),false,'parent survived cancellation');
+    assert.equal(alive(descendant),false,'descendant survived cancellation');
+  });
 
 test('NTFS short-path junction target retains its link and resolves inside the long checkout',
   {skip:process.platform!=='win32'},t=>{

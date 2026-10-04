@@ -515,8 +515,8 @@ test('Linux atomic replacement and delete/recreate change the declared input',
   ok(f,'run','check');assert.equal(row(f).freshness,'CURRENT');
 });
 
-test('Linux daemon crash with a missed edit reconciles the historical receipt',
-  {skip:process.platform!=='linux'},async t=>{
+test('Linux/Windows daemon crash with a missed edit reconciles the historical receipt',
+  {skip:!['linux','win32'].includes(process.platform)},async t=>{
   const f=withFixture(t);ok(f,'start');ok(f,'run','check');
   const prior=row(f);assert.equal(prior.freshness,'CURRENT');
   const pid=Number(fs.readFileSync(path.join(f.state,'observer.lock','pid'),'utf8'));
