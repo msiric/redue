@@ -9,6 +9,9 @@ jobs:
   windows:
     runs-on: windows-2025
     timeout-minutes: 35
+    env:
+      REDUE_DECISION_PROFILE: '1'
+      REDUE_DECISION_PROFILE_FILE: ${{ runner.temp }}\redue-native-timing.jsonl
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -47,3 +50,7 @@ jobs:
           '@ | node --input-type=module -
       - name: Portable and Windows contract tests
         run: node --test --test-concurrency=1 test/*.test.mjs
+      - name: Bounded decision timing summary
+        if: always()
+        shell: pwsh
+        run: node test/acceptance/timing-summary.mjs $env:REDUE_DECISION_PROFILE_FILE

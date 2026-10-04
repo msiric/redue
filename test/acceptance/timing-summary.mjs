@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 
 const values=new Map();
+const counts=new Map();
 let peakRssMiB=0;
 for(const file of process.argv.slice(2)){
   if(!fs.existsSync(file))continue;
@@ -13,6 +14,11 @@ for(const file of process.argv.slice(2)){
     if(typeof entry.phase!=='string'||typeof entry.ms!=='number')continue;
     if(!values.has(entry.phase))values.set(entry.phase,[]);
     values.get(entry.phase).push(entry.ms);
+    for(const key of ['files','bytes','entries','packages','checks','inputFiles'])
+      if(typeof entry[key]==='number'){
+        const label=`${entry.phase}.${key}`;
+        counts.set(label,Math.max(counts.get(label)||0,entry[key]));
+      }
     peakRssMiB=Math.max(peakRssMiB,entry.rssMiB||0);
   }
 }
@@ -24,3 +30,4 @@ for(const [phase,samples] of [...values].sort(([a],[b])=>a.localeCompare(b))){
     p95:quantile(sorted,.95),max:sorted.at(-1)}));
 }
 console.log(JSON.stringify({peakSampledRssMiB:peakRssMiB}));
+console.log(JSON.stringify({maximumPhaseCounts:Object.fromEntries([...counts].sort())}));

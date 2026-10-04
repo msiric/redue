@@ -94,6 +94,22 @@ test('pnpm 12 implicit project-local virtual store is accepted only when physica
   assert.throws(()=>pnpmInstallInfo(root),/nonstandard or incomplete/);
 });
 
+test('opt-in decision timing cannot change pnpm probe evidence',t=>{
+  const {root}=fixture(t),file=path.join(os.tmpdir(),`redue-probe-timing-${process.pid}-${Date.now()}.jsonl`);
+  t.after(()=>fs.rmSync(file,{force:true}));
+  const probe=path.resolve('src/pnpm-typecheck-probe.mjs');
+  const run=()=>spawnSync(process.execPath,[probe,root,'@fixture/app','typecheck'],
+    {encoding:'utf8',env:{...cleanEnv,REDUE_DECISION_PROFILE:'1',
+      REDUE_DECISION_PROFILE_FILE:file}});
+  const first=run(),second=run();
+  assert.equal(first.status,0,first.stderr);
+  assert.equal(second.status,0,second.stderr);
+  assert.equal(first.stdout,second.stdout);
+  assert.equal(first.stderr,'');
+  assert.equal(second.stderr,'');
+  assert.match(fs.readFileSync(file,'utf8'),/pnpm\.ts_input_listing/);
+});
+
 test('pnpm init selects a project-relative workspace TypeScript check and rejects unsupported layout',t=>{
   const {root}=fixture(t);
   const discovered=discoverNodeProject(root),row=discovered.checks.find(item=>
@@ -302,6 +318,13 @@ test('pnpm installed hardlink alias stales synchronized evidence without a lockf
     assert.equal(row?.freshness,expected,JSON.stringify({row,health:data?.health}));
   };
   await expectFresh('CURRENT');
+  if(process.platform==='win32'){
+    const runtime=path.join(state,'project-runtime-v1.json');
+    const metrics=JSON.parse(execFileSync(process.execPath,
+      [path.resolve('src/cli.mjs'),runtime,'metrics'],{encoding:'utf8'})).metrics;
+    assert.equal(metrics.lastInstalledRecheck,undefined,
+      'Windows decision must use the completed cold reconciliation, not hash installed files twice');
+  }
   assert.equal(JSON.parse(call('status','--json')).checks[0].freshness,'UNVERIFIED');
   put(alias,'export declare const ext: number;\n// modified through store alias\n');
   assert.equal(fs.readFileSync(installed,'utf8'),fs.readFileSync(alias,'utf8'));

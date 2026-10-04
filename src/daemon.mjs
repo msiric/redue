@@ -38,6 +38,7 @@ for(const check of config.checks)for(const boundary of permittedRoots(root,check
     recoveryDelay:1000,
     snapshot:path.join(state,`external-${sha(boundary).slice(0,16)}.snapshot`)});
 let pending=new Set(), pendingChecks=new Set(), flushTimer, planDirty=false, planning=false, lastObservation=0;
+let decisionRequests=0;
 let inputEventSerial=new Map();
 let synchronizing=null;
 let installedRecheck=null;
@@ -382,7 +383,11 @@ async function refreshPlan({forceCold=false}={}) {
     metrics.restartMode=built.restartMode||'cold-index';
     metrics.planPhase='reconciling';
     metrics.planRebuilds++;metrics.reconciliations++;
-    if(!hasHistory&&watcher){
+    // Linux attaches per-inode watches before rechecking installed hardlinks.
+    // The Windows backend has no per-inode watchFiles implementation; the
+    // just-completed cold index already read those bytes. Windows still
+    // withholds cached CURRENT and reconciles at each decision-grade read.
+    if(!hasHistory&&watcher&&process.platform!=='win32'){
       const inodeStarted=performance.now();
       const checked=[...index.checks].filter(([,row])=>
         row.plan.synchronizedInstalledRead).map(([name])=>name);
@@ -729,11 +734,20 @@ async function request(message) {
       timing('daemon.request_catch_up',started);}catch(e){observationGap('historical_query',e);}
     if(flushTimer||pending.size||planDirty||[...external.values()].some(e=>e.pending.size))flush();
     let synchronizedInstalled=false;
+    // A successful Windows forced reconciliation has already hashed the
+    // complete declared installed input set. A second full pass inside the
+    // same request duplicates that work without creating an atomic snapshot.
+    const windowsColdIndex=process.platform==='win32'&&healthy&&!planning&&
+      !planDirty&&!index?.unavailable;
     if(index&&healthy&&!planning){
       const names=[...index.checks].filter(([name,row])=>
         row.plan.synchronizedInstalledRead&&(!message.name||message.name===name))
         .map(([name])=>name);
-      if(names.length)try{
+      if(names.length&&windowsColdIndex){
+        synchronizedInstalled=true;
+        timing('daemon.request_installed_from_reconcile',performance.now(),
+          {checks:names.length,files:index.files.size});
+      }else if(names.length)try{
         if(installedRecheck)await installedRecheck;
         const observedIndex=index;
         const recheckStarted=performance.now();
@@ -750,7 +764,7 @@ async function request(message) {
       }catch(e){installedRecheck=null;observationGap('installed_recheck',e);}
     }
     const probeStarted=performance.now();
-    if(index&&healthy)for(const row of index.checks.values())probe(row);
+    if(index&&healthy&&!windowsColdIndex)for(const row of index.checks.values())probe(row);
     timing('daemon.request_probes',probeStarted,{checks:index?.checks.size||0});
     lastObservation=Date.now();publish();
     const applicabilityStarted=performance.now();
@@ -808,8 +822,12 @@ const server=net.createServer(client=>{
     if(handled)return;text+=d;if(text.length>4096){event('control_request_rejected',
       {classification:'request_too_large',request_bytes:text.length});client.destroy();return;}
     if(!text.includes('\n'))return;handled=true;
-    try{Promise.resolve(request(JSON.parse(text))).then(v=>respond(client,v))
-      .catch(e=>respond(client,{error:e.message}));}
+    try{const message=JSON.parse(text);
+      const decision=message.action==='sync'||message.action==='snapshot';
+      if(decision)decisionRequests++;
+      Promise.resolve(request(message)).then(v=>respond(client,v))
+        .catch(e=>respond(client,{error:e.message}))
+        .finally(()=>{if(decision)decisionRequests--;});}
     catch(e){respond(client,{error:e.message});}
   });
 });
@@ -868,7 +886,7 @@ const heartbeat=setInterval(()=>{
   }
   publish();
 },1000);
-const probeTimer=setInterval(async()=>{if(healthy&&index){
+const probeTimer=setInterval(async()=>{if(healthy&&index&&!planning&&!decisionRequests){
   try{await catchUp();for(const row of index.checks.values())probe(row);publish();}
   catch(e){observationGap('periodic_query',e);}
 }},5000);

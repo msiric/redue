@@ -8,10 +8,11 @@ export const profiling=process.env.REDUE_DECISION_PROFILE==='1'&&!!file;
 export function timing(phase,started,counts={}) {
   if(!profiling)return;
   const memory=process.memoryUsage();
-  fs.appendFileSync(file,'REDUE_TIMING '+JSON.stringify({
-    at:Date.now(),pid:process.pid,phase,
-    ms:Math.round((performance.now()-started)*10)/10,
-    rssMiB:Math.round(memory.rss/1048576*10)/10,
-    ...counts
-  })+'\n');
+  try{fs.appendFileSync(file,'REDUE_TIMING '+JSON.stringify({
+      at:Date.now(),pid:process.pid,phase,
+      ms:Math.round((performance.now()-started)*10)/10,
+      rssMiB:Math.round(memory.rss/1048576*10)/10,
+      ...counts
+    })+'\n');}
+  catch{/* Diagnostics must never change probe or verification behavior. */}
 }

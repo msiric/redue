@@ -5,7 +5,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {spawnSync} from 'node:child_process';
 import {pnpmTypecheckInputs} from './pnpm-inputs.mjs';
 import {withinPath as within,realObservedPath} from './path-identity.mjs';
 
@@ -27,13 +26,7 @@ try{
   const contract=pnpmTypecheckInputs(root,workspace,script);
   if(contract.limitations.length)fail('pnpm-input-coverage-unavailable');
   const selected=path.join(root,contract.workspace.dir),tsc=contract.tsc;
-  const listed=spawnSync(process.execPath,[tsc,'-p','tsconfig.json','--listFilesOnly'],
-    {cwd:selected,env:process.env,encoding:'utf8',timeout:5000,maxBuffer:32*1024*1024,
-      stdio:['ignore','pipe','pipe']});
-  if(listed.error||listed.signal||listed.status!==0)
-    fail('typescript-input-list-unavailable');
-  const inputs=listed.stdout.trim().split(/\r?\n/).filter(Boolean)
-    .map(file=>realObservedPath(file));
+  const inputs=contract.listedFiles;
   if(!inputs.length)fail('typescript-input-list-unavailable');
   const inputRoots=[path.join(selected,'src'),...contract.generated.map(pattern=>
     path.join(root,pattern.slice(0,-3))),...contract.installed.filter(p=>!p.startsWith('!'))

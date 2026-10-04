@@ -330,6 +330,9 @@ export function pnpmTypecheckInputs(root,workspace,script){
     inputFiles:files.length});
   return {install,workspace:selected,closure:[...closure.values()],source,
     installed:[...installed],generated:[...generated],
+    // The read-only state probe consumes this same resolved compiler file set.
+    // It is deliberately omitted from the persisted user-facing input plan.
+    listedFiles:files,
     configs,configurationInputs:[...new Set([...install.configurationInputs,
       ...configs,...members.values().map(member=>member.manifest)])],
     installation:{provider:'pnpm',version:install.version,linker:install.linker},
