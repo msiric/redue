@@ -97,7 +97,7 @@ function oracle(file){return createHash('sha256').update(fs.readFileSync(file)).
 
 test('short startup wait reports owned initialization instead of a false launch failure',async t=>{
   const f=withFixture(t);f.env.VSTATE_START_READY_WAIT_MS='100';
-  const started=JSON.parse(ok(f,'start').stdout);
+  const started=JSON.parse(ok(f,'start','--json').stdout);
   assert.equal(typeof started.ready,'boolean');
   if(!started.ready)assert.equal(started.health.healthy,false);
   const usable=await until(f,value=>value.observation.healthy);
@@ -215,7 +215,7 @@ test('linked installed target content is observed through its logical declaratio
   const config=JSON.parse(fs.readFileSync(f.config));
   config.checks[0].installedInputs=['node_modules/pkg/**'];
   put(f.config,JSON.stringify(config));
-  const started=ok(f,'start');
+  const started=ok(f,'start','--json');
   assert.equal(JSON.parse(started.stdout).ready,true,
     started.stdout+'\n'+call(f,'status','--json').stdout+'\n'+
     fs.readFileSync(path.join(f.state,'events.jsonl'),'utf8'));

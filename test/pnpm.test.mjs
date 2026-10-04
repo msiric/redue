@@ -253,7 +253,7 @@ test('pnpm observer replans after new local resolution topology without losing u
   call('init','--workspace','@fixture/app','--check','typecheck');
   call('start');
   await waitReady(call);
-  call('run','@fixture/app:typecheck');
+  call('run','@fixture/app:typecheck','--json');
   const current=()=>JSON.parse(call('status','--sync','--json')).checks[0];
   const awaitCurrent=async()=>{
     let freshness;
@@ -304,7 +304,7 @@ test('pnpm installed hardlink alias stales synchronized evidence without a lockf
     await new Promise(resolve=>setTimeout(resolve,500));
   }
   assert(ready,'observer did not finish its initial input plan');
-  const executed=JSON.parse(call('run','@fixture/app:typecheck'));
+  const executed=JSON.parse(call('run','@fixture/app:typecheck','--json'));
   assert.equal(executed.result,'PASS');
   assert.equal(executed.coverage_qualified,true);
   const status=()=>JSON.parse(call('status','--sync','--json'));
@@ -332,7 +332,7 @@ test('pnpm installed hardlink alias stales synchronized evidence without a lockf
   assert.equal(fs.readFileSync(installed,'utf8'),fs.readFileSync(alias,'utf8'));
   assert.equal(digest(path.join(root,'pnpm-lock.yaml')),lock);
   await expectFresh('STALE');
-  assert.equal(JSON.parse(call('run','@fixture/app:typecheck')).result,'PASS');
+  assert.equal(JSON.parse(call('run','@fixture/app:typecheck','--json')).result,'PASS');
   await expectFresh('CURRENT');
   put(path.join(store,'unrelated-cache-entry'),'other');
   await expectFresh('CURRENT');
@@ -350,14 +350,14 @@ test('pnpm hoisted installation can record and reuse a qualified TypeScript chec
   assert.equal(init.installation_layout,'node-modules/hoisted');
   call('start');
   await waitReady(call);
-  assert.equal(JSON.parse(call('run','@fixture/app:typecheck')).result,'PASS');
+  assert.equal(JSON.parse(call('run','@fixture/app:typecheck','--json')).result,'PASS');
   const status=()=>JSON.parse(call('status','--sync','--json')).checks[0];
   assert.equal(status().freshness,'CURRENT');
   put(path.join(root,'unrelated.md'),'unrelated');
   assert.equal(status().freshness,'CURRENT');
   put(path.join(external,'index.d.ts'),'export declare const ext: number;\n// hoisted edit\n');
   assert.equal(status().freshness,'STALE');
-  assert.equal(JSON.parse(call('run','@fixture/app:typecheck')).result,'PASS');
+  assert.equal(JSON.parse(call('run','@fixture/app:typecheck','--json')).result,'PASS');
   const restored=status();
   assert.equal(restored.freshness,'CURRENT');
   call('stop');call('start');await waitReady(call);

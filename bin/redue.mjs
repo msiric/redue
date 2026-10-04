@@ -11,10 +11,14 @@ import {processAlive} from '../src/process-liveness.mjs';
 import {samePath,withinPath,realObservedPath} from '../src/path-identity.mjs';
 import {stateIdentity,userStateBase} from '../src/platform-state.mjs';
 import {findExecutable} from '../src/executable-lookup.mjs';
+import {readCachedStatus} from '../src/cached-state.mjs';
+import {assertOwnedStatePlacement} from '../src/owned-state.mjs';
+import {renderStatus,renderExplain} from '../src/presentation.mjs';
 
 const productRoot=path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const engine=path.join(productRoot,'src','cli.mjs');
-const help=`REDUE 0.1.0-alpha
+const version=JSON.parse(fs.readFileSync(path.join(productRoot,'package.json'))).version;
+const help=`REDUE ${version}
 Usage: redue [--config FILE] [--state-dir DIR] COMMAND [OPTIONS]
 
 Commands:
@@ -22,17 +26,18 @@ Commands:
                        Discover existing scripts; optionally select one workspace/check
   start                Start the local observer
   stop                 Stop this observer
-  status [--json]      Read conservative cached status
+  status [--json|--short] Read conservative cached status
   status --sync        Reconcile inputs and caller context before answering
-  detail [--json]      Explain synchronized check applicability
-  explain [--json]     Alias for detail
+  explain [CHECK] [--json] Explain applicability (synchronized; may cost more than a rerun)
+  detail [CHECK] [--json]  Alias for explain
   run CHECK            Execute one configured check and record its outcome
-  remove-state        Stop and remove only this configuration's owned local state
+  remove-state         Stop and remove only this configuration's owned local state
 
 No checks run in the background. Direct commands outside redue create no receipts.`;
 
 function error(message){console.error(`redue: ${message}`);process.exit(2);}
 const args=process.argv.slice(2);
+if(args.length===1&&args[0]==='--version'){console.log(version);process.exit(0);}
 if(args.includes('--help')||args.includes('-h')||!args.length){console.log(help);process.exit(0);}
 const preferredConfig=path.resolve('redue.config.json');
 const legacyConfig=path.resolve('vstate.config.json');
@@ -51,6 +56,7 @@ if(!['init','start','stop','status','detail','explain','run','remove-state'].inc
 const json=args.includes('--json');
 const sync=args.includes('--sync');
 const dryRun=args.includes('--dry-run');
+const short=args.includes('--short');
 let workspaceSelection=null,checkSelection=null;
 if(command==='init')for(let i=0;i<args.length;){
   if(args[i]==='--workspace'||args[i]==='--check'){
@@ -59,10 +65,11 @@ if(command==='init')for(let i=0;i<args.length;){
     args.splice(i,2);
   }else i++;
 }
-const check=command==='run'?args.shift():null;
+const check=['run','detail','explain'].includes(command)&&args[0]&&!args[0].startsWith('--')?args.shift():null;
 if(command==='run'&&!check)error('run requires a check name');
-if(args.some(value=>!['--json','--sync','--dry-run'].includes(value)))error('unknown option; use --help');
+if(args.some(value=>!['--json','--sync','--dry-run','--short'].includes(value)))error('unknown option; use --help');
 if(sync&&!['status','detail','explain'].includes(command))error('--sync is for status or detail');
+if(short&&(command!=='status'||json||sync))error('--short is a cached status option; do not combine it with --sync or --json');
 if(dryRun&&command!=='init')error('--dry-run is for init');
 
 if(command==='init'){
@@ -94,22 +101,36 @@ if(command==='init'){
       `${summary.version?' '+summary.version:''}; ${summary.installation_layout} installation.`);
     if(summary.issue)console.log(`Boundary: ${summary.issue}`);
     for(const row of summary.checks)
-      console.log(`  ${row.name} (${row.script||row.command?.join(' ')}) — ${row.level}: ${row.reason}`);
+      console.log(`  ${row.name} (${row.script||row.command?.join(' ')}) — `+
+        `${{ready:'ready to qualify',recording:'recording-only',unsupported:'unsupported'}[row.level]||row.level}: ${row.reason}`);
     for(const row of summary.ambiguous)
       console.log(`  ${row.kind}: ambiguous scripts (${row.scripts.join(', ')}); choose one explicitly`);
     if(!summary.checks.length)console.log('No useful existing verification scripts found.');
     console.log(configured?`Existing ${configFile} left unchanged.`:
       dryRun?`Preview only; ${configFile} was not written.`:
-        `Writing ${configFile}; inspect it before running checks.`);
+        willWrite?`Writing ${configFile}; inspect it before running checks.`:'No configuration will be written.');
   }
   if(willWrite){
     if(!samePath(realObservedPath(path.dirname(configFile)),discovery.root))
       error('init writes only at the repository root; use --config there or --dry-run');
     fs.writeFileSync(configFile,JSON.stringify(discovery.config,null,2)+'\n',{flag:'wx'});
-    if(!json)console.log(`Created ${configFile}. No checks were executed.`);
-  } else if(unsupported&&!json)console.log('No config written for unsupported package manager.');
+    if(!json){console.log(`Created ${configFile}. No checks were executed.`);
+      console.log('Ready to qualify means the supported contract will be validated; it is not verification evidence.');
+      console.log(`Next: review the config, then redue start and redue run ${JSON.stringify(discovery.checks[0].config.name)}.`);
+      console.log('Use redue status first. --sync can establish applicability, but may cost more than rerunning a cheap check.');}
+  } else if(unsupported&&!json)console.log(`No config written: ${summary.issue||'unsupported discovery boundary'}.`);
   if(json)console.log(JSON.stringify({...summary,proposed_config:discovery.config}));
   process.exit(0);
+}
+function printLifecycle(output,action,machine){
+  if(machine){process.stdout.write(output);return;}
+  let value;try{value=JSON.parse(output);}catch{process.stdout.write(output);return;}
+  if(action==='start'){
+    console.log(value.ready?'Observer ready.':'Observer started; checking inputs. Applicability stays UNVERIFIED until ready.');
+    console.log('Use redue status. Stop with redue stop.');
+  }else if(action==='remove-state')console.log(`Removed only REDUE-owned state: ${value.removed}`);
+  else console.log(value.ok?'Observer stopped. Historical evidence is retained.':
+    `Observer unavailable: ${value.reason||'not running'}. Previous evidence is not CURRENT.`);
 }
 // Owned-state maintenance must not need the checkout, its package manager,
 // or installed compiler to remain present. No command is run from this path.
@@ -117,23 +138,27 @@ if(stateOverride&&['stop','remove-state'].includes(command)){
   const runtime=path.join(stateOverride,'project-runtime-v1.json');
   if(!fs.existsSync(runtime)){console.log('No REDUE state exists at this path.');process.exit(0);}
   const result=spawnSync(process.execPath,[engine,runtime,command==='stop'?'stop':'uninstall'],
-    {cwd:os.tmpdir(),stdio:'inherit',env:process.env});
+    {cwd:os.tmpdir(),stdio:['inherit','pipe','inherit'],encoding:'utf8',env:process.env});
   if(result.error)error(result.error.message);
+  if(result.stdout)printLifecycle(result.stdout,command,json);
   process.exit(result.status??2);
 }
 let publicConfig;
 try{publicConfig=JSON.parse(fs.readFileSync(configFile,'utf8'));}
-catch(e){error(`cannot read ${configFile}: ${e.message}`);}
+catch(e){error(e.code==='ENOENT'?`no configuration at ${configFile}; run redue init from the project root, or use --config FILE`:`cannot read ${configFile}: ${e.message}`);}
 if(publicConfig.schema!==1)error('config schema must be 1');
 if(!Array.isArray(publicConfig.checks)||!publicConfig.checks.length)
   error('config needs at least one explicitly defined check');
 for(const key of Object.keys(publicConfig))
   if(!['schema','root','checks','packageManager'].includes(key))error(`unsupported config field ${key}`);
+if(check&&!publicConfig.checks.some(row=>row.name===check))error(`unknown check ${check}; use redue status to list configured checks`);
 const root=realObservedPath(path.resolve(path.dirname(configFile),publicConfig.root||'.'));
 const stateBase=userStateBase(process.platform,process.env,os.homedir());
 const state=stateOverride||path.join(stateBase,'vstate',
   `vstate-${createHash('sha256').update(stateIdentity(root)+'\0'+
     stateIdentity(configFile)).digest('hex').slice(0,16)}`);
+if(!/^(?:vstate|redue)-/.test(path.basename(state)))
+  error('--state-dir must name a dedicated redue-* directory outside the checkout (legacy vstate-* is also supported)');
 const runtimeFile=path.join(state,'project-runtime-v1.json');
 function which(name){
   const found=findExecutable(name);
@@ -240,6 +265,7 @@ const checks=publicConfig.checks.map(check=>{
     workspace:check.workspace||null,kind:check.kind||null};
 });
 const runtime={schema:1,provider:'declared-project@1',root,state,checks};
+try{assertOwnedStatePlacement(runtime);}catch(e){error(e.message);}
 const serialized=JSON.stringify(runtime,null,2)+'\n';
 const maintenance=command==='stop'||command==='remove-state';
 if(maintenance&&!fs.existsSync(runtimeFile)){
@@ -259,11 +285,17 @@ if(!maintenance&&fs.existsSync(runtimeFile)){
   }
 }else if(!maintenance)fs.writeFileSync(runtimeFile,serialized,{flag:'wx',mode:0o600});
 
+if(command==='status'&&!sync){
+  const value=readCachedStatus(state,publicConfig.checks);
+  console.log(json?JSON.stringify(value):renderStatus(value,{short}));
+  process.exit(0);
+}
+
 const details=command==='detail'||command==='explain';
 const internal=command==='remove-state'?'uninstall':
-  details&&json?'sync':details?'detail':command==='status'&&sync?'sync':command;
+  details?'sync':command==='status'&&sync?'sync':command;
 if(command==='run'){
-  const child=spawn(process.execPath,[engine,runtimeFile,internal,check],
+  const child=spawn(process.execPath,[engine,runtimeFile,internal,check,...(!json?['--human']:[])],
     {stdio:['inherit','inherit','inherit','ipc'],env:process.env});
   const forward=signal=>{if(child.exitCode!==null)return;
     if(process.platform==='win32'&&child.connected)child.send({action:'cancel',signal});
@@ -279,29 +311,15 @@ if(command==='run'){
   process.exit(outcome.status??(outcome.signal?128+os.constants.signals[outcome.signal]:1));
 }
 const result=spawnSync(process.execPath,[engine,runtimeFile,internal,...(check?[check]:[])],
-  {stdio:['inherit',json||command==='status'||details?'pipe':'inherit','inherit'],
+  {stdio:['inherit','pipe','inherit'],
     encoding:'utf8',env:process.env});
 if(result.error)error(result.error.message);
 if(result.stdout){
-  if(json||!['status','detail','explain'].includes(command))process.stdout.write(result.stdout);
-  else if(command==='status'){
-    try {const value=JSON.parse(result.stdout);
-      console.log(`${value.state.toUpperCase()} — ${value.current} current, ${value.stale} stale, ${value.failed} failed, ${value.unverified} unverified`);
-      if(!value.observation?.healthy)console.log(`Observation unavailable: ${value.observation?.reason}`);
-      for(const row of value.checks||[])if(row.freshness!=='CURRENT'||row.result==='FAIL')
-        console.log(`  ${row.name}: ${row.freshness}${row.result?` / ${row.result}`:''} — ${row.reason}`);
-      if((value.checks||[]).some(row=>row.freshness!=='CURRENT'))
-        console.log('Use `redue detail` for every check; run a check with `redue run NAME`.');
-    }catch{process.stdout.write(result.stdout);}
-  } else {
-    const lines=result.stdout.trimEnd().split('\n');
-    for(const line of lines){
-      const match=/^(.+): (CURRENT|STALE|UNVERIFIED)\/(PASS|FAIL|NO RESULT) — (.*)$/.exec(line);
-      if(!match){console.log(line);continue;}
-      const [,name,freshness,outcome,reason]=match;
-      const label=outcome==='NO RESULT'?'not run':`${outcome} recorded`;
-      console.log(`${name}: ${label}; ${freshness.toLowerCase()} — ${reason.replace(/^input coverage unresolved: /,'reuse not yet qualified: ')}`);
-    }
-  }
+  if(['status','detail','explain'].includes(command)){
+    let value;try{value=JSON.parse(result.stdout);}catch{error('status response could not be read; applicability is unknown');}
+    if(details&&check)value={...value,checks:value.checks.filter(row=>row.name===check)};
+    if(json)console.log(JSON.stringify(value));
+    else console.log(details?renderExplain(value,check):renderStatus(value,{short}));
+  }else printLifecycle(result.stdout,command,json);
 }
 process.exit(result.status??1);

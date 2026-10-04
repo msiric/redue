@@ -114,9 +114,13 @@ test('generated npm TypeScript check earns CURRENT; unrelated edits preserve, in
   good(root,state,'run','typecheck');
   let item=sync(root,state).checks.find(row=>row.name==='typecheck');
   assert.equal(item.result,'PASS');assert.equal(item.freshness,'CURRENT',JSON.stringify(item));
-  assert.match(good(root,state,'detail'),/typecheck: PASS recorded; current/);
-  assert.match(good(root,state,'detail'),/test: not run; unverified — reuse not yet qualified/);
+  assert.match(good(root,state,'detail'),/typecheck: CURRENT \/ PASS/);
+  assert.match(good(root,state,'detail'),/test: UNVERIFIED\nRecording-only:/);
   assert.equal(JSON.parse(good(root,state,'detail','--json')).checks[0].name,'typecheck');
+  const selected=JSON.parse(good(root,state,'explain','typecheck','--json'));
+  assert.deepEqual(selected.checks.map(row=>row.name),['typecheck']);
+  assert.match(good(root,state,'explain','typecheck'),/typecheck: CURRENT \/ PASS/);
+  assert.match(good(root,state,'status','--short'),/^REDUE UNVERIFIED/);
   const runId=item.invocation.runId;
   put(path.join(root,'notes.md'),'unrelated\n');
   assert.equal(sync(root,state).checks.find(row=>row.name==='typecheck').freshness,'CURRENT');
@@ -125,6 +129,8 @@ test('generated npm TypeScript check earns CURRENT; unrelated edits preserve, in
   assert.equal(item.freshness,'STALE');assert.equal(item.result,'PASS');
   assert.equal(item.invocation.runId,runId);
   assert.match(item.reason,/src\/main.ts changed/);
+  assert.deepEqual(item.changed_inputs,['src/main.ts']);
+  assert.match(good(root,state,'explain','typecheck'),/Relevant inputs changed:\n  src\/main.ts/);
   good(root,state,'run','typecheck');
   assert.equal(sync(root,state).checks.find(row=>row.name==='typecheck').freshness,'CURRENT');
   put(path.join(root,'node_modules/typescript/README.md'),'changed installed tool\n');

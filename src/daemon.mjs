@@ -218,7 +218,7 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
   if(!index)return [];
   return [...index.checks].map(([name,row])=>{
     const r=receipts[name], result=r?.result||null;
-    const item={name,result,freshness:'UNVERIFIED',reason:'no receipt',
+    const item={name,result,freshness:'UNVERIFIED',reason:'no receipt',changed_inputs:[],
       plan_id:row.plan.id,observed_at:lastObservation,
       invocation:r?.invocation||null,target_provenance:r?.target||null,
       coverage_at_run:r?.coverage||null,declared_inputs_match:null,reuse_eligible:false};
@@ -268,20 +268,21 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       const before=new Map((r.resolutionLinks||[]).map(link=>[link.path,link.targetHash]));
       const changed=(row.plan.resolutionLinks||[]).find(link=>before.get(link.path)!==link.targetHash);
       item.reason=changed?`installed input link changed: ${changed.path}`:'input plan changed';
+      if(changed)item.changed_inputs=[changed.path];
     }
     else if(names.some(key=>contextHashes[name]?.[key]!==r.environmentHashes?.[key]))
       item.reason='declared execution environment changed';
     else if(r.fingerprint!==combinedSummary(name).fingerprint) {
       const key=r.fingerprint+'\0'+combinedSummary(name).fingerprint;
       if(row.staleReasonKey!==key){
-        let changed=row.lastReason;
+        let changed=row.lastReason;row.staleInputs=[];
         const candidate=changed?.endsWith(' changed')?changed.slice(0,-8):null;
-        if(candidate&&r.files?.[candidate]!==index.files.get(candidate))
-          changed=describeChangedInput(row.plan,candidate);
+        if(candidate&&r.files?.[candidate]!==index.files.get(candidate)){
+          changed=describeChangedInput(row.plan,candidate);row.staleInputs=[candidate];}
         else {
           const current=combinedFiles(name);
           if(r.files)for(const f of new Set([...Object.keys(r.files),...Object.keys(current)]))
-            if(r.files[f]!==current[f]){changed=describeChangedInput(row.plan,f);break;}
+            if(r.files[f]!==current[f]){changed=describeChangedInput(row.plan,f);row.staleInputs=[f];break;}
         }
         row.staleReason=changed||
           (['typescript-noemit-v1','yarn-workspace-tsc-v1','pnpm-tsc-v1']
@@ -290,7 +291,7 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
             'declared input content or membership changed');
         row.staleReasonKey=key;
       }
-      item.reason=row.staleReason;
+      item.reason=row.staleReason;item.changed_inputs=row.staleInputs||[];
     } else {item.freshness='CURRENT';item.reason=result==='FAIL'?'last command failed':'declared inputs match';
       item.reuse_eligible=result==='PASS';}
     return item;

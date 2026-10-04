@@ -17,6 +17,8 @@ import {permittedRoots} from './installed-inputs.mjs';
 import {acquireRunLock,inspectRunLock,recoverRunLock} from './run-lock.mjs';
 import {atomicJson,commitReceipt} from './state-store.mjs';
 import {timing} from './decision-profile.mjs';
+import {readCachedStatus,unavailableCached} from './cached-state.mjs';
+import {renderRun} from './presentation.mjs';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
 const [configArg,action,name]=process.argv.slice(2);
@@ -29,8 +31,8 @@ assertOwnedStatePlacement(config);
 if(withinPath(state,root))throw Error('state must be outside checkout');
 if([path.parse(state).root,os.homedir(),path.dirname(os.homedir())]
   .some(value=>samePath(value,state))||
-  !path.basename(state).startsWith('vstate-'))
-  throw Error('state must be a dedicated REDUE state directory');
+  !/^(?:vstate|redue)-/.test(path.basename(state)))
+  throw Error('state directory name must start with redue- (or legacy vstate-); use a dedicated directory outside the checkout');
 const ownerFile=path.join(state,'vstate-owner-v1.json');
 // A native Windows decision reconciles declared contents instead of trusting
 // watcher history. The measured 6k-file pnpm workspace can legitimately need
@@ -88,19 +90,6 @@ function owner(){
     atomicJson(ownerFile,expected);
   }
 }
-const unknown=reason=>({schema:1,state:'unverified',current:0,stale:0,failed:0,observed_failed:0,
-  unverified:config.checks.length,
-  checks:config.checks.map(c=>({name:c.name,result:null,freshness:'UNVERIFIED',reason})),
-  observation:{healthy:false,reason}});
-function unavailableCached(reason) {
-  try {const value=JSON.parse(fs.readFileSync(path.join(state,'status.json')));
-    const checks=(value.checks||[]).map(row=>({...row,freshness:'UNVERIFIED',
-      reason,reuse_eligible:false,declared_inputs_match:null}));
-    return {...value,state:'unverified',current:0,stale:0,failed:0,
-      unverified:Math.max(1,checks.length),checks,
-      observation:{...value.observation,healthy:false,reason}};
-  }catch{return unknown(reason);}
-}
 function call(message,timeout=5000) {
   return new Promise((resolve,reject)=>{
     let data='',done=false;const client=net.createConnection(socket);
@@ -154,15 +143,7 @@ async function decisionCall(message,timeout) {
     return value;
   }
 }
-function cached() {
-  try{const value=JSON.parse(fs.readFileSync(path.join(state,'status.json')));
-    if(Date.now()>=value.updated_at&&Date.now()<=value.expires_at&&
-      value.expires_at-value.updated_at<=3000){
-      if(processAlive(value.pid))return value;
-      return unavailableCached('observer process unavailable');}
-  }catch{}
-  return unavailableCached('observer heartbeat expired or unavailable');
-}
+const cached=()=>readCachedStatus(state,config.checks);
 async function execute() {
   const totalStarted=performance.now();
   const selected=config.checks.find(c=>c.name===name);
@@ -304,9 +285,10 @@ async function execute() {
     commitReceipt(state,name,receipt);
     timing('cli.receipt_persistence',persistenceStarted);
     try{await call({action:'reload'});}catch{/* next read remains conservative */}
-    console.log(JSON.stringify({check:name,result,target:target.status,
+    const summary={check:name,result,target:target.status,
       invocation:invocation.status,...(invocation.errorCode?{error_code:invocation.errorCode}:{}),
-      stable,coverage_qualified:receipt.coverage.qualified}));
+      stable,coverage_qualified:receipt.coverage.qualified};
+    console.log(process.argv[5]==='--human'?renderRun(summary):JSON.stringify(summary));
     timing('cli.run_total',totalStarted,{stable:stable?1:0});
     process.exitCode=invocation.status==='exited'?invocation.exitCode:
       invocation.status==='interrupted'?128+(os.constants.signals[invocation.signal]||1):127;
@@ -395,7 +377,7 @@ async function main(){
     const started=performance.now();
     let value;try{value=await decisionCall({action:'sync',contextHashes:contextHashes()},
       Number(process.env.VSTATE_SYNC_TIMEOUT_MS||decisionDeadlineMs));}
-    catch(e){value=unavailableCached(e.message);process.exitCode=2;}
+    catch(e){value=unavailableCached(state,e.message,config.checks);process.exitCode=2;}
     timing('cli.synchronized_status',started,{available:value.observation?.healthy?1:0});
     if(action==='sync')console.log(JSON.stringify(value));
     else for(const row of value.checks)console.log(`${row.name}: ${row.freshness}/${row.result||'NO RESULT'} — ${row.reason}`);
