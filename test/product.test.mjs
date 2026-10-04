@@ -537,8 +537,14 @@ test('checkout root replacement reattaches and reconciles before retaining CURRE
   const runId=row(f).invocation.runId;
   const moved=path.join(f.base,'old-project');
   fs.renameSync(f.root,moved);fs.cpSync(moved,f.root,{recursive:true});
-  const result=await until(f,s=>s.checks[0].freshness==='CURRENT'&&
-    events(f).some(e=>e.kind==='reconciliation_completed'),10000);
+  const result=await until(f,s=>s.observation.healthy&&
+    s.checks[0].freshness==='CURRENT'&&
+    // Windows may first fail an asynchronous recovery attempt and then
+    // establish the same deterministic state through a decision-grade read.
+    // Require a rebuilt plan after root replacement, not one event label.
+    (()=>{const history=events(f),at=history.findLastIndex(e=>
+      e.kind==='observation_root_replaced');
+      return at>=0&&history.slice(at+1).some(e=>e.kind==='plan_rebuilt');})(),10000);
   assert.equal(result.checks[0].invocation.runId,runId);
   assert(events(f).some(e=>e.kind==='observation_root_replaced'));
 });
