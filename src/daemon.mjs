@@ -96,10 +96,12 @@ function probe(row) {
   const started=performance.now();
   const values=[];
   for(const argv of row.plan.probes) {
-    // Pnpm's supported probe performs a bounded compiler input listing and
-    // hashes the resulting files. Native NTFS p95 exceeded the generic 5 s
-    // probe deadline even after duplicate listing was removed.
-    const timeout=row.plan.qualification==='pnpm-tsc-v1'?10000:5000;
+    // Supported TypeScript probes perform bounded input/toolchain hashing.
+    // Native NTFS runs have exceeded the generic 5 s cap under load, despite
+    // completing normally and with the duplicated work already removed.
+    const timeout=row.plan.qualification==='pnpm-tsc-v1'||
+      (process.platform==='win32'&&['typescript-noemit-v1','yarn-workspace-tsc-v1']
+        .includes(row.plan.qualification))?10000:5000;
     const out=spawnSync(argv[0],argv.slice(1),{cwd:row.plan.cwd,
       timeout,maxBuffer:1024*1024,stdio:['ignore','pipe','pipe']});
     if(out.error||out.signal||out.status!==0) {

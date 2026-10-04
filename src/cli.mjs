@@ -61,7 +61,9 @@ function probeHash(plan) {
   const started=performance.now();
   const values=[];
   for(const argv of plan.probes||[]) {
-    const timeout=plan.qualification==='pnpm-tsc-v1'?10000:5000;
+    const timeout=plan.qualification==='pnpm-tsc-v1'||
+      (process.platform==='win32'&&['typescript-noemit-v1','yarn-workspace-tsc-v1']
+        .includes(plan.qualification))?10000:5000;
     const out=spawnSync(argv[0],argv.slice(1),{cwd:plan.cwd,
       timeout,maxBuffer:1024*1024,stdio:['ignore','pipe','pipe'],env:process.env});
     if(out.error||out.signal||out.status!==0){
@@ -162,14 +164,17 @@ async function execute() {
     const
       captureTimeout=Number(process.env.VSTATE_CAPTURE_TIMEOUT_MS||decisionDeadlineMs);
     let before=null,after=null;
+    // Expensive state probes can take seconds. Keep the filesystem checkpoint
+    // adjacent to process launch so a late notification from earlier work
+    // does not enter the execution interval before the check even starts.
+    const probeBefore=probeHash({cwd:plan.cwd,probes:selected.probes||[],
+      qualification:selected.qualification});
     const startSnapshotStarted=performance.now();
     try{before=await call({action:'snapshot',name,contextHashes:contextHashes()},captureTimeout);}
     catch{captureIssues.push('start observation unavailable');}
     timing('cli.start_checkpoint',startSnapshotStarted,{available:before?.snapshots?.[name]?1:0});
     const snap=before?.snapshots?.[name];
     if(!snap||!snap.observationHealthy)captureIssues.push('start checkpoint unavailable');
-    const probeBefore=probeHash({cwd:plan.cwd,probes:selected.probes||[],
-      qualification:selected.qualification});
     const started=Date.now();
     const invocation=await new Promise(resolve=>{
       if(requestedSignal){resolve({status:'interrupted',exitCode:null,signal:requestedSignal});return;}
@@ -207,14 +212,14 @@ async function execute() {
     invocation.reporting='normal';
     const result=invocation.status==='exited'?(invocation.exitCode===0?'PASS':'FAIL'):null;
     const target={source:'direct-command',status:invocation.status==='exited'?'direct_executed':'unknown'};
+    const environmentAfter=contextHashes()[name],probeAfter=probeHash({cwd:plan.cwd,
+      probes:selected.probes||[],qualification:selected.qualification});
     const endSnapshotStarted=performance.now();
     try{after=await call({action:'snapshot',name,contextHashes:contextHashes()},captureTimeout);}
     catch{captureIssues.push('end observation unavailable');}
     timing('cli.end_checkpoint',endSnapshotStarted,{available:after?.snapshots?.[name]?1:0});
     const end=after?.snapshots?.[name];
     if(!end||!end.observationHealthy)captureIssues.push('end checkpoint unavailable');
-    const environmentAfter=contextHashes()[name],probeAfter=probeHash({cwd:plan.cwd,
-      probes:selected.probes||[],qualification:selected.qualification});
     if(JSON.stringify(environmentBefore)!==JSON.stringify(environmentAfter))
       captureIssues.push('declared environment changed during execution');
     if(!probeBefore||!probeAfter||probeBefore!==snap?.probeHash||probeAfter!==end?.probeHash)
