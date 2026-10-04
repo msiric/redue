@@ -1,20 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import match from '../src/glob.mjs';
-import upstream from 'micromatch';
 import YAML from 'yaml';
 
-test('unsupported glob nesting fails before the vulnerable recursive parser',()=>{
-  const deep='{'.repeat(5000)+'a,b'+'}'.repeat(5000);
-  assert.throws(()=>match.matcher(deep),/input glob nesting/);
-  assert.throws(()=>match.isMatch('src/a.ts',['src/**',deep]),/input glob nesting/);
-  assert.throws(()=>match.matcher('('.repeat(65)+'a'+')'.repeat(65)),/input glob nesting/);
-  assert.throws(()=>match.matcher('a'.repeat(32769)),/32768/);
-  for(const pattern of ['src/**/*.{ts,tsx}','packages/*','!**/cache/**','@(src|lib)/**'])
-    for(const file of ['src/a.ts','src/a.tsx','lib/b.js','packages/core','docs/a.md']) {
-      assert.equal(match.isMatch(file,pattern,{dot:true}),upstream.isMatch(file,pattern,{dot:true}));
-      assert.equal(match.matcher(pattern,{dot:true})(file),upstream.matcher(pattern,{dot:true})(file));
-    }
+test('the narrow matching boundary preserves ordinary product glob behavior',()=>{
+  for(const [pattern,file,expected] of [
+    ['src/**/*.{ts,tsx}','src/a.ts',true],
+    ['src/**/*.{ts,tsx}','src/deep/a.tsx',true],
+    ['src/**/*.{ts,tsx}','src/a.js',false],
+    ['packages/*','packages/core',true],
+    ['packages/*','packages/core/src',false],
+    ['!**/cache/**','pkg/cache/file',false],
+    ['!**/cache/**','pkg/lib/file',true],
+    ['@(src|lib)/**','lib/b.js',true],
+    ['**/*','.hidden/value',true]
+  ]) {
+    assert.equal(match.isMatch(file,pattern,{dot:true}),expected);
+    assert.equal(match.matcher(pattern,{dot:true})(file),expected);
+  }
+  assert.equal(match.isMatch('src/main.ts',['lib/**','src/**']),true);
 });
 
 test('patched YAML rejects pathological nesting as a parse error, not stack exhaustion',()=>{

@@ -348,6 +348,8 @@ test('pnpm hoisted installation can record and reuse a qualified TypeScript chec
   beforeRemove(()=>{call('stop');call('remove-state');assert(!fs.existsSync(state));});
   const init=JSON.parse(call('init','--workspace','@fixture/app','--check','typecheck','--json'));
   assert.equal(init.installation_layout,'node-modules/hoisted');
+  assert.match(call('init','--dry-run','--workspace','@fixture/app','--check','typecheck'),
+    /Recorded invocation: node \[installed TypeScript in packages\/app\]/);
   call('start');
   await waitReady(call);
   assert.equal(JSON.parse(call('run','@fixture/app:typecheck','--json')).result,'PASS');

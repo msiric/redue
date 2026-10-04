@@ -100,9 +100,13 @@ if(command==='init'){
     console.log(`Node ${summary.node}; ${summary.package_manager||'unknown package manager'}`+
       `${summary.version?' '+summary.version:''}; ${summary.installation_layout} installation.`);
     if(summary.issue)console.log(`Boundary: ${summary.issue}`);
-    for(const row of summary.checks)
+    for(const row of summary.checks){
       console.log(`  ${row.name} (${row.script||row.command?.join(' ')}) — `+
         `${{ready:'ready to qualify',recording:'recording-only',unsupported:'unsupported'}[row.level]||row.level}: ${row.reason}`);
+      if(row.script&&row.command)console.log(`    Recorded invocation: ${row.command.map(value=>
+        value==='@node'?'node':value.startsWith('@typescript-bin:')?
+          `[installed TypeScript in ${value.slice('@typescript-bin:'.length)}]`:value).join(' ')}`);
+    }
     for(const row of summary.ambiguous)
       console.log(`  ${row.kind}: ambiguous scripts (${row.scripts.join(', ')}); choose one explicitly`);
     if(!summary.checks.length)console.log('No useful existing verification scripts found.');

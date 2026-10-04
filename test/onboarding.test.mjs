@@ -70,7 +70,10 @@ test('Windows npm prefix falls back to bundled CLI until an alternate appears',
     const probe=()=>spawnSync(process.execPath,
       [path.resolve('src/typescript-contract-probe.mjs'),root,'typecheck',npm],
       {cwd:root,encoding:'utf8',timeout:15000,
-        env:{...process.env,npm_config_prefix:prefix}});
+        // This fixture models a direct shell invocation. npm test's lifecycle
+        // options are not part of the test's intentionally selected prefix.
+        env:{...Object.fromEntries(Object.entries(process.env).filter(([key])=>
+          !/^npm_config_/i.test(key))),npm_config_prefix:prefix}});
     const first=probe();
     assert.equal(first.status,0,first.stderr);
     const alternate=path.join(prefix,'node_modules','npm','bin','npm-cli.js');
