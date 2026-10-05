@@ -10,9 +10,12 @@ The owner has selected the standard Apache-2.0 license for the open-source core.
 1. Run the product CI matrix (Node 22 on macOS/Linux/Windows; Node 24 on Linux).
 2. Run the manual public-project acceptance on the packaged build when a release
    changes onboarding/install boundaries. Retain deeper native stress separately.
-3. Dispatch **Prepare alpha package (no publication)**. It performs an exact public
-   npm registry check, installs/exercises/uninstalls the tarball, and produces the
-   tarball, package manifest, and SHA-256 checksum as a private Actions artifact.
+3. For the final candidate, dispatch **Exact release tarball smoke (no publication)**.
+   It checks the exact public npm name, audits runtime dependencies, and packs once.
+   macOS, Linux and Windows then install/exercise/uninstall that identical tarball,
+   recording its SHA-256. The tarball, manifest and checksum remain private artifacts.
+   **Prepare alpha package (no publication)** remains an optional single-platform
+   preparation check; it does not replace the final cross-platform package gate.
 4. Inspect the manifest: runtime source/native observer helper, entry points, user
    docs/examples, README/changelog/license only. No local state, private config,
    test installation, corporate material, or historical evidence.

@@ -1,89 +1,110 @@
 # Alpha release gate — 2026-10-05
 
-Decision: **DO NOT SHIP**. Required remote evidence and publication ownership could
-not be verified. This is an evidence/access block, not a newly demonstrated product
-defect. No feature or platform work was begun.
+Decision: **DO NOT SHIP** while the intended publisher lacks a verified publishing
+authentication path. The technical package gate now passes on all three platforms.
+No public visibility change, package publication, tag or release was performed.
 
-## Verified local baseline
+## Ground truth and license
 
-- Clean `main` began at `18e95c2b7bf714c67c8cae75c7c3f0cd088fc84a`.
-- Last fetched `origin/main`: `918154cc782c6c6786cc9e0543aa7efcc49da5a9`.
-- Local main was one commit ahead of that cached reference. Actual remote HEAD
-  could not be read; the cached reference is not fresh remote evidence.
-- Package: `redue@0.1.0-alpha.0`, `private: true`, originally `UNLICENSED`.
-- CLI: `redue` → `bin/redue.mjs`; Node engine `>=22`.
-- Repository: personal `msiric/redue`, last verified PRIVATE. No visibility change
-  was made; current remote visibility could not be independently re-read.
+The continuation began clean at `451206a`, two commits ahead of the actual remote
+`918154c`. GitHub access was restored; both pending commits were pushed normally.
+The personal `msiric/redue` repository was freshly verified PRIVATE.
 
-## Existing Windows result
+The owner-selected standard Apache-2.0 license is installed, including the unchanged
+application appendix from the [Apache Software Foundation](https://www.apache.org/licenses/LICENSE-2.0.txt).
+Package and lockfile metadata agree; README links to LICENSE. No custom restrictions
+were added. The tracked source/fixture review found no vendored third-party code
+requiring a new NOTICE. Runtime dependencies remain separately installed with their
+own licenses/notices, rather than bundled or relicensed.
 
-[Run 37238822164](https://github.com/msiric/redue/actions/runs/37238822164),
-Windows job `111543228646`, remains **UNKNOWN**.
+The candidate is now `redue@0.1.0-alpha.1`; binary `redue` points to `bin/redue.mjs`,
+Node engine remains `>=22`, and `private: true` remains until the final publishing
+gates clear. `src/` and `bin/` have no differences from tested runtime `918154c`.
 
-The intended runtime was `918154c`, Windows Server 2025 / Node 22. Its final tested
-SHA, conclusion, test counts, skips/warnings and installed-package smoke result
-must be retrieved from that existing run. Earlier macOS/Linux and public-project
-passes remain historical evidence in [productization](alpha-productization.md);
-they do not establish this final Windows job's result.
+## Existing Windows evidence retrieved and classified
 
-The shell could not resolve GitHub; the GitHub connector returned 404 for both
-the private repository and job. That response does not establish repository
-deletion or job failure. No replacement job was dispatched and nothing was pushed.
+[Original run 37238822164](https://github.com/msiric/redue/actions/runs/37238822164)
+concluded FAILURE at runtime `918154cc782c6c6786cc9e0543aa7efcc49da5a9`.
+Windows job `111543228646` ran Server 2025 build 10.0.26100, image
+`windows-2025-vs2026` / `20260925.250.1`, Node 22.23.3, npm 10.9.9.
 
-## License completed
+- Native regression suite: **61 passed, 12 platform-specific skips, zero failures**
+  (73 tests). The applicable Windows cases were not skipped.
+- Installed-package smoke: failed before the verification workflow because init
+  classified the fixture typecheck as recording-only instead of ready.
+- The later PowerShell-shim step was skipped after that failure.
+- Logs also include Git line-ending and Actions Node-runtime deprecation warnings;
+  neither caused the failure. They do not invalidate the passing regressions.
 
-The owner selected Apache-2.0. LICENSE contains the standard text from the
-[Apache Software Foundation](https://www.apache.org/licenses/LICENSE-2.0.txt),
-including its unchanged application appendix. Package and lockfile root metadata
-now use `Apache-2.0`; README links to the license. No custom restrictions were added.
+A diagnostic run at `55c3acb` established that the disposable fixture lacked
+`node_modules/typescript/package.json` at both short and canonical Windows paths
+(ENOENT). Both the installed shim and direct Node invocation conservatively refused
+qualification. This was incomplete **test-fixture installation**, not evidence of a
+false CURRENT or a missing product file. The diagnostics do not establish a more
+specific low-level reason for the manual copy's missing manifest.
 
-The tracked source/fixture inventory contains project implementation and generated
-test fixtures, plus scripts referencing public repositories rather than vendored
-copies. No copied third-party implementation requiring a new NOTICE was identified.
-Runtime dependencies remain separately installed with their own licenses/notices;
-they are not bundled into this tarball or relicensed by this change.
+`9f1e998` replaces manually copied compiler/shim files and the stub lockfile with
+normal npm installation of pinned TypeScript 5.6.3 inside the owned fixture. It
+asserts the actual installed compiler version before init. No qualification,
+observation or evidence rule changed. Failure-only prerequisite diagnostics remain.
+This is a corrected setup followed by validation, not blind retries until green.
 
-## npm gate remains blocked
+## Exact-artifact cross-platform validation
 
-A direct request to `https://registry.npmjs.org/redue` failed DNS resolution;
-HTTP 000 is not a registry 404. A separate public web fetch could not retrieve it.
-The previous day's registry 404 is not a present availability/ownership guarantee.
+[Run 37283086590](https://github.com/msiric/redue/actions/runs/37283086590),
+at `9f1e99820d5f2eef657d27e58a4b6dfe0ca0dfe1`, passed all jobs. The lean manual
+workflow packs once, downloads the same artifact on each OS, then invokes the
+actual npm-installed binary/shim. It does not publish. Historical full regression
+suites were not needlessly repeated.
 
-`npm whoami --registry=https://registry.npmjs.org` also failed DNS resolution.
-Authenticated username, 2FA status, exact package owner and publishing rights are
-therefore **UNKNOWN**. No npm organization was selected or created. Prefer the
-verified personal publisher account when available; do not infer it from the
-GitHub username or switch to another package name.
+| Environment | Node | Exact package workflow | Initial / restored receipt |
+| --- | --- | --- | --- |
+| macOS hosted | 22.23.2 | PASS | `65fbd454-246b-4ee3-8b1e-8ad92d5cdfb1` / `3b809f1b-cb84-4752-8e2c-c1cc2188af80` |
+| Linux hosted | 22.23.3 | PASS | `3e31f842-c212-4673-bd30-990225e0b1b9` / `782509ae-efa4-4fcc-82ea-6e31af1e0bc4` |
+| Windows Server 2025 | 22.23.3 | PASS | `441ad2cd-5287-435d-9bcb-7ca4c4eae421` / `b9e1e2c3-438b-4995-8de7-1b3b5d1a5a20` |
 
-`private: true` remains. The recommended first public version is `0.1.0-alpha.1`;
-version mutation and final release packaging wait for the namespace/ownership gate.
+Each exercised help/version, init preview and write, start, wrapped typecheck,
+cached and synchronized status, explain/JSON, unrelated CURRENT, relevant
+STALE/PASS with changed path, rerun CURRENT, stop UNVERIFIED, restart with preserved
+receipt, fresh-process inheritance, recording-only PASS, remove-state and uninstall.
+Cleanup asserted the project and installed compiler survived state removal before
+the entire owned disposable fixture was removed. No real user project was used.
 
-## Local artifact inspection
+Windows timestamps: initial CURRENT at 08:22:33Z, inherited CURRENT at 08:22:36Z,
+unrelated CURRENT at 08:22:39Z, relevant STALE at 08:22:42Z, restored CURRENT at
+08:22:55Z, restart/inherited receipt at 08:23:09Z. These are workflow observations,
+not a new latency benchmark or evidence of customer demand/saved work.
 
-The licensed private alpha.0 package was packed and its archive actually inspected:
+All three report identical tarball SHA-256:
+`30310c40b970b56e35ff95ae429973e849bc132d194ead951da7cfc303e43406`.
+The inspected `redue-0.1.0-alpha.1.tgz` has 52 files and 83,610 compressed bytes.
+It includes the standard LICENSE. No Git metadata, local state/receipts, caches,
+node_modules, test/CI content, acceptance reports, matched credentials, personal
+absolute paths or corporate identifiers were included. The largest file is the
+56,182-byte daemon module. Runtime npm audit reports zero known advisories.
 
-- 52 files, 83,610 compressed bytes.
-- LICENSE bytes match the local standard license exactly.
-- No Git data, local state, receipts, cache, node_modules, tests, CI or acceptance
-  reports included; no matched personal absolute paths, corporate identifiers or
-  credential patterns.
-- Largest file: `src/daemon.mjs`, 56,182 bytes.
-- SHA-256: `3e46053587a09828ad0ae5e275d09652a1c9fd213d688ac26b62b868e2766879`.
+The package still carries the intentional private publication guard. Once the
+authentication gate clears, removing that guard changes artifact bytes: repack and
+run the same lean exact-tarball workflow before the final public-release checkpoint.
+This is release metadata validation, not another engineering milestone.
 
-This is an inspectable private artifact, **not** the final alpha.1 release artifact.
-The current binary reports alpha.0. No runtime behavior changed. `git diff --check`
-passes. Exact-candidate installation on macOS/Linux/Windows was not rerun while
-network/CI access and the preceding release gates were blocked. The old candidate's
-smokes are not relabeled as validation of a future licensed alpha.1 artifact.
+## npm and final publication boundary
 
-## Resume only the blocked release checks
+The actual public `https://registry.npmjs.org/redue` endpoint returned HTTP 404 on
+2026-10-05, including the final check. No unrelated exact package was found. This
+is availability evidence, not a reservation or a server guarantee of first-publish
+acceptance. Do not stage a placeholder or change the name to claim ownership early.
 
-Use an environment with permitted GitHub/public-registry network access and
-authorization for this private repository. Retrieve the existing run, then push
-local commits normally. Confirm the npm publisher, 2FA and exact namespace.
-After those pass, set alpha.1 release metadata, inspect the exact tarball, and run
-only the lean macOS/Linux/Windows package validation. Reassess the release gate.
+Authenticated `npm whoami` and filtered profile data identify personal account
+**msiric**, the intended initial unscoped package owner. No npm organization is
+involved. The latest profile reports **tfa: false**. The owner was informed of
+[npm's publishing authentication requirements](https://docs.npmjs.com/requiring-2fa-for-package-publishing-and-settings-modification/):
+normal interactive publishing requires 2FA; special bypass tokens are a different
+explicit authentication path, not assumed authorization to create/store credentials.
+No token was created or copied by this work. No authentication policy was changed.
 
-Repository visibility and npm publication still require the final human checkpoint.
-No public repository, npm publication, GitHub tag or release was created. No global
-settings, credentials, corporate repositories or stable installations were changed.
+The remaining blocker is a verified publisher authentication path. After it clears,
+finalize the private guard and validate those exact package bytes. Then return for
+the deliberate human approval before repository visibility or npm publication.
+Enable GitHub private vulnerability reporting when the repository is public, before
+publishing. Neither technical validation nor an npm login authorizes public release.

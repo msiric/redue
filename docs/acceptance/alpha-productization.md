@@ -1,5 +1,8 @@
 # Alpha productization acceptance — 2026-10-05
 
+Historical checkpoint; the final Windows result and license decision are resolved
+in the [current release gate](alpha-release-gate.md).
+
 Starting point: clean private `main` at `ef1f89c`. Platform semantics and the
 accepted Windows performance limitation were inherited, not reopened.
 
