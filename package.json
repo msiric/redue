@@ -1,7 +1,11 @@
 {
   "name": "redue",
-  "private": true,
+  "private": false,
   "version": "0.1.0-alpha.1",
+  "publishConfig": {
+    "access": "public",
+    "tag": "alpha"
+  },
   "type": "module",
   "bin": {
     "redue": "./bin/redue.mjs"

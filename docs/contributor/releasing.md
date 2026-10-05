@@ -1,9 +1,10 @@
 # Alpha release procedure
 
-No release is automatic. This repository and package remain private/unpublished
-until the owner explicitly authorizes public release. `package.json` deliberately
-retains `private: true` until registry ownership and release validation are complete.
-The owner has selected the standard Apache-2.0 license for the open-source core.
+No release is automatic. The repository remains private and the package unpublished
+until the owner explicitly authorizes public release. The alpha.1 candidate has
+`private: false` and `publishConfig` set to public/alpha for artifact validation;
+this metadata is not permission to publish. The owner selected the standard
+Apache-2.0 license for the open-source core.
 
 ## Candidate validation
 
@@ -32,13 +33,13 @@ The owner has selected the standard Apache-2.0 license for the open-source core.
 - Enable GitHub private vulnerability reporting when the repository becomes public,
   before publishing the package; the private-repository API currently returns 404.
 - Obtain explicit approval to change repository visibility and publish the package.
-- Remove `private: true`, finalize CHANGELOG date, and review the release commit.
-  Repack and revalidate that exact candidate after metadata changes.
+- Review the publication-enabled metadata and dated CHANGELOG candidate. Repack
+  and revalidate the exact candidate after any package-content changes.
 
 ## Standard publication, after approval
 
 Use `0.1.0-alpha.1` for the first public alpha and increment the prerelease for fixes.
-The current alpha.1 candidate remains private until ownership and validation gates clear.
+The repository and prepared artifact remain privately held until explicit release approval.
 Publish to the `alpha` tag, never silently to `latest`:
 
 ```sh
