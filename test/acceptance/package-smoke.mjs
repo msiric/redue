@@ -6,6 +6,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {createRequire} from 'node:module';
+import {createHash} from 'node:crypto';
 import {findExecutable} from '../../src/executable-lookup.mjs';
 import {windowsLaunch} from '../../src/windows-command.mjs';
 
@@ -14,6 +15,9 @@ const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-package-'));
 const prefix=path.join(base,'prefix'),root=path.join(base,'Project é'),state=path.join(base,'redue-state');
 const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!/^npm_config_/i.test(key)));
 const npm=findExecutable('npm'),demo=process.argv.includes('--demo');
+const tarballAt=process.argv.indexOf('--tarball');
+const suppliedTarball=tarballAt<0?null:path.resolve(process.argv[tarballAt+1]||'');
+if(suppliedTarball)assert(fs.statSync(suppliedTarball).isFile(),'--tarball needs an existing package file');
 const put=(p,s)=>{fs.mkdirSync(path.dirname(p),{recursive:true});fs.writeFileSync(p,s);};
 function exec(command,{cwd=product,allowFailure=false}={}) {
   const launch=windowsLaunch(command);
@@ -40,11 +44,16 @@ async function expect(label,freshness,result='PASS') {
   return row;
 }
 try {
-  const pack=JSON.parse(exec([npm,'pack','--json','--pack-destination',base]).stdout)[0];
-  assert(pack.files.some(f=>f.path==='src/linux-inotify.py'));
-  assert(!pack.files.some(f=>/^(?:test\/|\.local\/|\.github\/|docs\/acceptance\/|node_modules\/)/.test(f.path)));
-  console.log(`Package: ${pack.filename}; ${pack.files.length} files; ${pack.size} bytes`);
-  exec([npm,'install','--global','--prefix',prefix,'--no-audit','--no-fund',path.join(base,pack.filename)]);
+  const pack=suppliedTarball?{filename:path.basename(suppliedTarball),size:fs.statSync(suppliedTarball).size}:
+    JSON.parse(exec([npm,'pack','--json','--pack-destination',base]).stdout)[0];
+  if(pack.files){
+    assert(pack.files.some(f=>f.path==='src/linux-inotify.py'));
+    assert(!pack.files.some(f=>/^(?:test\/|\.local\/|\.github\/|docs\/acceptance\/|node_modules\/)/.test(f.path)));
+  }
+  const tarball=suppliedTarball||path.join(base,pack.filename);
+  const packageSha256=createHash('sha256').update(fs.readFileSync(tarball)).digest('hex');
+  console.log(`Package: ${pack.filename}; ${pack.size} bytes; sha256 ${packageSha256}`);
+  exec([npm,'install','--global','--prefix',prefix,'--no-audit','--no-fund',tarball]);
   assert.match(exec([binary,'--help']).stdout,/Usage: redue/);
   assert.equal(exec([binary,'--version']).stdout.trim(),JSON.parse(fs.readFileSync('package.json')).version);
   fs.mkdirSync(root);
@@ -62,7 +71,8 @@ try {
   else fs.symlinkSync('../typescript/bin/tsc',path.join(root,'node_modules','.bin','tsc'));
   exec(['git','init','-q'],{cwd:root});exec(['git','add','.'],{cwd:root});
   const preview=JSON.parse(cli('init','--dry-run','--json'));
-  assert.equal(preview.written,false);assert.equal(preview.checks[0].level,'ready');
+  console.log(`Init preview: ${JSON.stringify(preview)}`);
+  assert.equal(preview.written,false);assert.equal(preview.checks[0].level,'ready',JSON.stringify(preview));
   console.log(cli('init'));assert(!fs.readFileSync(path.join(root,'redue.config.json'),'utf8').includes(root));
   console.log(cli('start'));
   console.log('Agent A (a separate CLI process) records the check.');
@@ -93,7 +103,7 @@ try {
   exec([npm,'uninstall','--global','--prefix',prefix,'redue','--no-audit','--no-fund']);
   assert(!fs.existsSync(binary));
   console.log(JSON.stringify({platform:process.platform,node:process.version,package:pack.filename,
-    packageBytes:pack.size,observations,cleanup:'owned state and installation only; project/dependencies preserved'}));
+    packageBytes:pack.size,packageSha256,observations,cleanup:'owned state and installation only; project/dependencies preserved'}));
 } finally {
   if(fs.existsSync(state)&&fs.existsSync(binary))exec([binary,'--state-dir',state,'remove-state'],{cwd:base,allowFailure:true});
   // base was created by this process and contains only this disposable experiment.

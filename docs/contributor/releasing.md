@@ -35,7 +35,7 @@ The owner has selected the standard Apache-2.0 license for the open-source core.
 ## Standard publication, after approval
 
 Use `0.1.0-alpha.1` for the first public alpha and increment the prerelease for fixes.
-The current private candidate remains alpha.0 until the registry/ownership gate clears.
+The current alpha.1 candidate remains private until ownership and validation gates clear.
 Publish to the `alpha` tag, never silently to `latest`:
 
 ```sh

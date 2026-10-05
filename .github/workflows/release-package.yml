@@ -1,0 +1,47 @@
+name: Exact release tarball smoke (no publication)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - run: node test/acceptance/registry-name.mjs
+      - name: Audit and pack once
+        run: |
+          npm audit --omit=dev
+          mkdir release-candidate
+          npm pack --json --pack-destination release-candidate > release-candidate/manifest.json
+          sha256sum release-candidate/*.tgz > release-candidate/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: exact-release-candidate
+          path: release-candidate/
+          retention-days: 14
+  smoke:
+    needs: package
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - uses: actions/download-artifact@v4
+        with:
+          name: exact-release-candidate
+          path: release-candidate
+      - name: Install exact tarball and exercise public binary
+        run: node test/acceptance/package-smoke.mjs --tarball release-candidate/redue-0.1.0-alpha.1.tgz

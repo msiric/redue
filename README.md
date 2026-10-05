@@ -36,7 +36,7 @@ install the ordinary npm package:
 ```sh
 npm ci
 npm pack
-npm install --global ./redue-0.1.0-alpha.0.tgz
+npm install --global ./redue-0.1.0-alpha.1.tgz
 ```
 
 Use a Node installation you own; REDUE does not need administrator privileges.

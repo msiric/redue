@@ -11,7 +11,7 @@ The alpha candidate is an ordinary npm tarball. From REDUE source:
 ```sh
 npm ci
 npm pack
-npm install --global ./redue-0.1.0-alpha.0.tgz
+npm install --global ./redue-0.1.0-alpha.1.tgz
 redue --version
 ```
 
@@ -23,7 +23,7 @@ npm dependencies uses the registry; normal local observation does not require ne
 For a reversible user-owned prefix, POSIX shells:
 
 ```sh
-npm install --global --prefix "$HOME/.local/redue-alpha" ./redue-0.1.0-alpha.0.tgz
+npm install --global --prefix "$HOME/.local/redue-alpha" ./redue-0.1.0-alpha.1.tgz
 export PATH="$HOME/.local/redue-alpha/bin:$PATH"
 ```
 
@@ -31,7 +31,7 @@ PowerShell:
 
 ```powershell
 $reduePrefix = Join-Path $env:LOCALAPPDATA 'redue-alpha-install'
-npm.cmd install --global --prefix $reduePrefix ./redue-0.1.0-alpha.0.tgz
+npm.cmd install --global --prefix $reduePrefix ./redue-0.1.0-alpha.1.tgz
 $env:PATH = "$reduePrefix;$env:PATH"
 redue.cmd --help
 ```
