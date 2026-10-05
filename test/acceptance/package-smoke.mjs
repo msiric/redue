@@ -72,6 +72,17 @@ try {
   exec(['git','init','-q'],{cwd:root});exec(['git','add','.'],{cwd:root});
   const preview=JSON.parse(cli('init','--dry-run','--json'));
   console.log(`Init preview: ${JSON.stringify(preview)}`);
+  if(preview.checks[0]?.level!=='ready'){
+    const canonical=fs.realpathSync.native(root);
+    console.log(`Fixture prerequisites: ${JSON.stringify({
+      manifest:JSON.parse(fs.readFileSync(path.join(root,'package.json'))),
+      paths:[root,canonical].map(dir=>({dir,files:['tsconfig.json','node_modules/typescript/package.json']
+        .map(file=>{const full=path.join(dir,file);let access=null;try{fs.accessSync(full);}catch(e){access=e.code;}
+          return {file,exists:fs.existsSync(full),access};})}))})}`);
+    const entry=process.platform==='win32'?path.join(prefix,'node_modules','redue','bin','redue.mjs'):
+      path.join(prefix,'lib','node_modules','redue','bin','redue.mjs');
+    console.log(`Direct Node preview: ${exec([process.execPath,entry,'init','--dry-run','--json'],{cwd:root,allowFailure:true}).stdout}`);
+  }
   assert.equal(preview.written,false);assert.equal(preview.checks[0].level,'ready',JSON.stringify(preview));
   console.log(cli('init'));assert(!fs.readFileSync(path.join(root,'redue.config.json'),'utf8').includes(root));
   console.log(cli('start'));
