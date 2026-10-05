@@ -5,12 +5,11 @@ import os from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {createRequire} from 'node:module';
 import {createHash} from 'node:crypto';
 import {findExecutable} from '../../src/executable-lookup.mjs';
 import {windowsLaunch} from '../../src/windows-command.mjs';
 
-const require=createRequire(import.meta.url),product=process.cwd();
+const product=process.cwd();
 const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-package-'));
 const prefix=path.join(base,'prefix'),root=path.join(base,'Project é'),state=path.join(base,'redue-state');
 const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!/^npm_config_/i.test(key)));
@@ -60,15 +59,14 @@ try {
   assert.match(exec([binary,'status'],{cwd:root,allowFailure:true}).stderr,/run redue init/);
   put(path.join(root,'package.json'),JSON.stringify({name:'redue-demo',version:'1.0.0',
     scripts:{typecheck:'tsc --noEmit',test:'node test.mjs'},devDependencies:{typescript:'5.6.3'}}));
-  put(path.join(root,'package-lock.json'),JSON.stringify({name:'redue-demo',lockfileVersion:3}));
   put(path.join(root,'tsconfig.json'),JSON.stringify({compilerOptions:{noEmit:true,strict:true},include:['src']}));
   put(path.join(root,'src/main.ts'),'export const answer: number = 42;\n');
   put(path.join(root,'test.mjs'),"console.log('Ordinary check output');\n");
   put(path.join(root,'.gitignore'),'node_modules/\n');
-  fs.mkdirSync(path.join(root,'node_modules','.bin'),{recursive:true});
-  fs.cpSync(path.dirname(require.resolve('typescript/package.json')),path.join(root,'node_modules','typescript'),{recursive:true});
-  if(process.platform==='win32')fs.copyFileSync(path.resolve('node_modules/.bin/tsc.cmd'),path.join(root,'node_modules/.bin/tsc.cmd'));
-  else fs.symlinkSync('../typescript/bin/tsc',path.join(root,'node_modules','.bin','tsc'));
+  // Exercise a normal project installation, including npm's lockfile and native
+  // command shims. Never substitute a manually assembled installation as proof.
+  exec([npm,'install','--no-audit','--no-fund'],{cwd:root});
+  assert.equal(JSON.parse(fs.readFileSync(path.join(root,'node_modules','typescript','package.json'))).version,'5.6.3');
   exec(['git','init','-q'],{cwd:root});exec(['git','add','.'],{cwd:root});
   const preview=JSON.parse(cli('init','--dry-run','--json'));
   console.log(`Init preview: ${JSON.stringify(preview)}`);
