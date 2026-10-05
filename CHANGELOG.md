@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0-alpha.1 — 2026-10-05 release candidate (unpublished)
+## 0.1.0-alpha.1 — 2026-10-05
 
 - Persistent execution evidence with independent CURRENT, STALE, and UNVERIFIED applicability.
 - Node/TypeScript onboarding for npm, supported Yarn node-modules workspaces, and pnpm 12 isolated/hoisted layouts.

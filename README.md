@@ -30,8 +30,9 @@ it; relevant source edits make it stale. [Run the reproducible demo](docs/contri
 
 ## Try the alpha candidate
 
-**Not published to npm yet.** With access to this source checkout, create and
-install the ordinary npm package:
+Published alphas install with `npm install --global redue@alpha`.
+To test an unpublished candidate from a source checkout, create and install the
+ordinary npm package:
 
 ```sh
 npm ci
@@ -42,8 +43,7 @@ npm install --global ./redue-0.1.0-alpha.1.tgz
 Use a Node installation you own; REDUE does not need administrator privileges.
 If a global prefix is not writable, use a user-owned `--prefix` or run the
 installed CLI with Node. [Installation and removal](docs/user/getting-started.md)
-includes PowerShell and isolated-prefix instructions. After publication, the
-intended install command is `npm install --global redue@alpha`.
+includes PowerShell and isolated-prefix instructions.
 
 Inside an existing, trusted Git project with dependencies already installed:
 
