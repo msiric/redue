@@ -4,6 +4,7 @@ These documents preserve the measured development history. Dated conclusions are
 historical; the current public support boundary is in [supported projects](../user/supported-projects.md).
 No private checkout or corporate configuration belongs here.
 
+- [Alpha release gate](alpha-release-gate.md)
 - [Alpha productization](alpha-productization.md)
 - [Yarn workspace](yarn-workspace-acceptance.md)
 - [pnpm](pnpm-alpha-acceptance.md)

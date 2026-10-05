@@ -2,7 +2,8 @@
 
 No release is automatic. This repository and package remain private/unpublished
 until the owner explicitly authorizes public release. `package.json` deliberately
-retains `private: true`; license choice and npm ownership are separate release gates.
+retains `private: true` until registry ownership and release validation are complete.
+The owner has selected the standard Apache-2.0 license for the open-source core.
 
 ## Candidate validation
 
@@ -21,9 +22,8 @@ retains `private: true`; license choice and npm ownership are separate release g
 
 ## Explicit release gates
 
-- Confirm the open-source license and copyright holder, then add LICENSE and its
-  SPDX identifier. The current UNLICENSED marker is a publication block, not the
-  recommended final license.
+- Preserve the standard Apache-2.0 LICENSE and matching package metadata. Keep any
+  third-party attribution required by the material actually distributed.
 - Confirm the intended personal npm publisher account, 2FA, and ability to own the
   exact `redue` name. Do not store credentials in this repository or its logs.
 - Enable GitHub private vulnerability reporting when the repository becomes public,
@@ -34,12 +34,13 @@ retains `private: true`; license choice and npm ownership are separate release g
 
 ## Standard publication, after approval
 
-Use `0.1.0-alpha.0` for the first alpha and increment the prerelease for fixes.
+Use `0.1.0-alpha.1` for the first public alpha and increment the prerelease for fixes.
+The current private candidate remains alpha.0 until the registry/ownership gate clears.
 Publish to the `alpha` tag, never silently to `latest`:
 
 ```sh
 npm pack
-npm publish ./redue-0.1.0-alpha.0.tgz --tag alpha --access public
+npm publish ./redue-0.1.0-alpha.1.tgz --tag alpha --access public
 ```
 
 The first publish may require the maintainer's interactive npm authentication/2FA.
@@ -50,7 +51,7 @@ Use a current npm CLI meeting npm's trusted-publishing requirements. Automatic
 provenance requires a public source repository and public package; private candidate
 artifacts must not be represented as having public npm provenance.
 
-Tag the reviewed commit `v0.1.0-alpha.0`, create a GitHub prerelease from CHANGELOG,
+Tag the reviewed commit `v0.1.0-alpha.1`, create a GitHub prerelease from CHANGELOG,
 and attach the matching tarball, manifest, and checksum. There is intentionally no
 publish workflow or write-token release automation before these decisions.
 

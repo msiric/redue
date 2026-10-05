@@ -119,3 +119,7 @@ synchronized work in a prompt.
 
 [User docs](docs/README.md) · [Contributing](CONTRIBUTING.md) ·
 [Architecture](docs/contributor/architecture.md) · [Acceptance evidence](docs/acceptance/README.md)
+
+## License
+
+REDUE is licensed under [Apache-2.0](LICENSE). Dependencies retain their own licenses.
