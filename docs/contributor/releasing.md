@@ -43,8 +43,8 @@ The repository and prepared artifact remain privately held until explicit releas
 Publish to the `alpha` tag, never silently to `latest`:
 
 ```sh
-npm pack
-npm publish ./redue-0.1.0-alpha.1.tgz --tag alpha --access public
+# Use the inspected, cross-platform-tested tarball retained during validation.
+npm publish ./path/to/redue-0.1.0-alpha.1.tgz --tag alpha --access public
 ```
 
 The first publish may require the maintainer's interactive npm authentication/2FA.
@@ -67,6 +67,53 @@ version with an actionable message. Do not assume unpublish is possible: npm's
 policy restricts it and deletion can disrupt users. Do not delete user evidence.
 Users can install an exact prior version; incompatible local state must fail clearly,
 not be silently reinterpreted.
+
+## Reviewed first-alpha sequence
+
+These commands are for the reviewed alpha.1 candidate and are **not executed by
+preparation**. Run only after explicit approval to make REDUE public and publish.
+The final release/report commits are already on private main. From that clean
+checkout, verify that its packaged contents still match candidate `2355466` and
+that npm still identifies `msiric` with publishing 2FA enabled. Recheck the exact
+registry name; stop if another package has appeared.
+
+```sh
+(
+set -eu
+redue_release_commit=$(git rev-parse HEAD)
+redue_release_dir=.local/release-candidates/0.1.0-alpha.1-2355466
+test -z "$(git status --porcelain)"
+(cd "$redue_release_dir" && shasum -a 256 -c SHA256SUMS)
+git push origin main
+
+# Public actions: require the owner's final release approval.
+gh repo edit msiric/redue --visibility public --accept-visibility-change-consequences
+gh api --method PUT repos/msiric/redue/private-vulnerability-reporting
+npm publish "$redue_release_dir/redue-0.1.0-alpha.1.tgz" --tag alpha --access public --registry=https://registry.npmjs.org
+gh release create v0.1.0-alpha.1 "$redue_release_dir/redue-0.1.0-alpha.1.tgz" "$redue_release_dir/SHA256SUMS" "$redue_release_dir/manifest.json" --repo msiric/redue --target "$redue_release_commit" --prerelease --title "REDUE v0.1.0-alpha.1" --notes-file CHANGELOG.md
+)
+```
+
+Stop on any failure. `gh release create` creates the tag at the reviewed commit;
+do not move an existing tag. The maintainer completes npm's interactive 2FA challenge.
+Publish the retained artifact, not a new pack from a different checkout or platform.
+
+Immediate registry smoke, also only after publication:
+
+```sh
+(
+set -eu
+redue_smoke=$(mktemp -d /tmp/redue-postpublish.XXXXXX)
+npm pack redue@0.1.0-alpha.1 --registry=https://registry.npmjs.org --pack-destination "$redue_smoke"
+node test/acceptance/package-smoke.mjs --tarball "$redue_smoke/redue-0.1.0-alpha.1.tgz"
+rm "$redue_smoke/redue-0.1.0-alpha.1.tgz"
+rmdir "$redue_smoke"
+)
+```
+
+The smoke installs into its own prefix and exercises the real public command,
+qualified workflow, restart and scoped removal. It does not replace a user's
+installation. If it fails, retain diagnostics and use the rollback guidance above.
 
 References: [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/),
 [npm pack](https://docs.npmjs.com/cli/v11/commands/npm-pack/),
