@@ -74,9 +74,11 @@ check, especially on Windows. Choose deliberately. A timeout is UNVERIFIED, not 
 
 ## Lifecycle and removal
 
-`start` attaches to this config's existing owned observer or starts one. It may
-report initialization before inputs are ready. `stop` stops that observer and retains
-historical evidence. After restart, observation is reconciled before reuse.
+`start` starts this config's owned observer, or reports that it is already running.
+If already running, use `status`; do not create a second state directory just to
+start another observer. Startup may report initialization before inputs are ready.
+`stop` stops that observer and retains historical evidence. After restart, observation
+is reconciled before reuse.
 
 ```sh
 redue stop

@@ -26,7 +26,8 @@ retains `private: true`; license choice and npm ownership are separate release g
   recommended final license.
 - Confirm the intended personal npm publisher account, 2FA, and ability to own the
   exact `redue` name. Do not store credentials in this repository or its logs.
-- Enable GitHub private vulnerability reporting before making the repository public.
+- Enable GitHub private vulnerability reporting when the repository becomes public,
+  before publishing the package; the private-repository API currently returns 404.
 - Obtain explicit approval to change repository visibility and publish the package.
 - Remove `private: true`, finalize CHANGELOG date, and review the release commit.
   Repack and revalidate that exact candidate after metadata changes.
