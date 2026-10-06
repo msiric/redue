@@ -62,37 +62,12 @@ test('REDUE CLI identifies itself and keeps pre-release config compatibility',t=
   assert.equal(JSON.parse(good(root,state,'status','--json')).checks.length,4);
 });
 
-test('Windows npm prefix falls back to bundled CLI until an alternate appears',
-  {skip:process.platform!=='win32'},t=>{
-    const {root}=project(t),prefix=fs.mkdtempSync(path.join(os.tmpdir(),'redue-prefix-'));
-    t.after(()=>fs.rmSync(prefix,{recursive:true,force:true}));
-    const npm=findExecutable('npm');
-    const probe=()=>spawnSync(process.execPath,
-      [path.resolve('src/typescript-contract-probe.mjs'),root,'typecheck',npm],
-      {cwd:root,encoding:'utf8',timeout:15000,
-        // This fixture models a direct shell invocation. npm test's lifecycle
-        // options are not part of the test's intentionally selected prefix.
-        env:{...Object.fromEntries(Object.entries(process.env).filter(([key])=>
-          !/^npm_config_/i.test(key))),npm_config_prefix:prefix}});
-    const first=probe();
-    assert.equal(first.status,0,first.stderr);
-    const alternate=path.join(prefix,'node_modules','npm','bin','npm-cli.js');
-    put(alternate,'// disposable alternate npm CLI\n');
-    const changed=probe();
-    assert.equal(changed.status,2);
-    assert.match(changed.stderr,/npm-installation-layout-unsupported/);
-    fs.rmSync(alternate);
-    const restored=probe();
-    assert.equal(restored.status,0,restored.stderr);
-    assert.equal(restored.stdout,first.stdout);
-  });
-
 test('init previews and writes a small script config without running project commands',t=>{
   const {root,state,config}=project(t);
   const preview=JSON.parse(good(root,state,'init','--dry-run','--json'));
   assert(!fs.existsSync(config));
   assert.deepEqual(preview.checks.map(row=>row.name),['typecheck','test','lint','build']);
-  assert.equal(preview.checks[0].level,'ready');
+  assert.equal(preview.checks[0].level,'recording');
   assert(preview.checks.slice(1).every(row=>row.level==='recording'));
   good(root,state,'init');
   const written=fs.readFileSync(config,'utf8');
@@ -105,44 +80,23 @@ test('init previews and writes a small script config without running project com
   assert.equal(json.written,false);
 });
 
-test('generated npm TypeScript check earns CURRENT; unrelated edits preserve, inputs stale',async t=>{
+test('npm launcher records immutable outcomes but cannot grant applicability',async t=>{
   const {root,state}=project(t);good(root,state,'init');good(root,state,'start');
-  let ready=false;
-  for(let n=0;n<120;n++){
-    const cached=JSON.parse(good(root,state,'status','--json'));
-    if(cached.observation?.phase==='ready'&&cached.observation.healthy){ready=true;break;}
-    await new Promise(resolve=>setTimeout(resolve,250));
+  good(root,state,'run','typecheck');
+  const first=sync(root,state).checks[0];
+  assert.equal(first.result,'PASS');assert.equal(first.freshness,'UNVERIFIED');
+  assert.equal(first.reuse_eligible,false);assert.match(first.reason,/npm launcher/);
+  const runFile=path.join(state,'runs-v1',first.invocation.runId+'.json'),bytes=fs.readFileSync(runFile);
+  for(const args of [['status','--json'],['status','--sync','--json'],['explain','typecheck','--json']]){
+    const row=JSON.parse(good(root,state,...args)).checks[0];
+    assert.equal(row.reuse_eligible,false);assert.equal(row.invocation.runId,first.invocation.runId);
   }
-  assert(ready,'observer did not establish the input plan');
-  good(root,state,'run','typecheck');
-  let item=sync(root,state).checks.find(row=>row.name==='typecheck');
-  assert.equal(item.result,'PASS');assert.equal(item.freshness,'CURRENT',JSON.stringify(item));
-  assert.match(good(root,state,'detail'),/typecheck: CURRENT \/ PASS/);
-  assert.match(good(root,state,'detail'),/test: UNVERIFIED\nRecording-only:/);
-  assert.equal(JSON.parse(good(root,state,'detail','--json')).checks[0].name,'typecheck');
-  const selected=JSON.parse(good(root,state,'explain','typecheck','--json'));
-  assert.deepEqual(selected.checks.map(row=>row.name),['typecheck']);
-  assert.match(good(root,state,'explain','typecheck'),/typecheck: CURRENT \/ PASS/);
-  assert.match(good(root,state,'status','--short'),/^REDUE UNVERIFIED/);
-  const runId=item.invocation.runId;
-  put(path.join(root,'notes.md'),'unrelated\n');
-  assert.equal(sync(root,state).checks.find(row=>row.name==='typecheck').freshness,'CURRENT');
-  put(path.join(root,'src/main.ts'),'export const value: number = 2;\n');
-  item=sync(root,state).checks.find(row=>row.name==='typecheck');
-  assert.equal(item.freshness,'STALE');assert.equal(item.result,'PASS');
-  assert.equal(item.invocation.runId,runId);
-  assert.match(item.reason,/src\/main.ts changed/);
-  assert.deepEqual(item.changed_inputs,['src/main.ts']);
-  assert.match(good(root,state,'explain','typecheck'),/Relevant inputs changed:\n  src\/main.ts/);
-  good(root,state,'run','typecheck');
-  assert.equal(sync(root,state).checks.find(row=>row.name==='typecheck').freshness,'CURRENT');
-  put(path.join(root,'node_modules/typescript/README.md'),'changed installed tool\n');
-  assert.equal(sync(root,state).checks.find(row=>row.name==='typecheck').freshness,'STALE');
-  const recording=sync(root,state).checks.find(row=>row.name==='test');
-  assert.equal(recording.freshness,'UNVERIFIED');
-  assert.match(recording.reason,/need review/);
-  good(root,state,'stop');
-  assert.equal(JSON.parse(good(root,state,'status','--json')).checks[0].freshness,'UNVERIFIED');
+  put(path.join(root,'src/main.ts'),'export const value: number = "bad";\n');
+  assert.notEqual(invoke(root,state,'run','typecheck').status,0);
+  const failed=sync(root,state).checks[0];assert.equal(failed.result,'FAIL');assert.equal(failed.reuse_eligible,false);
+  assert.deepEqual(fs.readFileSync(runFile),bytes);
+  good(root,state,'stop');good(root,state,'start');
+  assert.equal(sync(root,state).checks[0].reuse_eligible,false);
 });
 
 test('unsupported manager and workspace boundary are explicit',t=>{
@@ -186,7 +140,7 @@ test('discovers uniquely identifiable tool commands without relying on script na
     style:'eslint .',bundle:'vite build'}});
   const preview=JSON.parse(good(root,state,'init','--dry-run','--json'));
   assert.deepEqual(preview.checks.map(row=>row.script),['check','unit','style','bundle']);
-  assert.equal(preview.checks[0].level,'ready');
+  assert.equal(preview.checks[0].level,'recording');
   const ambiguous=project(t,{scripts:{unit:'vitest run',spec:'jest --runInBand'}});
   const other=JSON.parse(good(ambiguous.root,ambiguous.state,'init','--dry-run','--json'));
   assert.deepEqual(other.ambiguous,[{kind:'test',scripts:['unit','spec']}]);
@@ -194,18 +148,6 @@ test('discovers uniquely identifiable tool commands without relying on script na
   const lifecycle=project(t,{scripts:{check:'tsc --noEmit',precheck:'node preflight.js'}});
   const life=JSON.parse(good(lifecycle.root,lifecycle.state,'init','--dry-run','--json'));
   assert.equal(life.checks[0].level,'recording');
-});
-
-test('unsupported TypeScript compiler plugins withhold reuse without changing a PASS receipt',t=>{
-  const {root,state}=project(t);good(root,state,'init');good(root,state,'start');
-  good(root,state,'run','typecheck');
-  assert.equal(sync(root,state).checks[0].freshness,'CURRENT');
-  put(path.join(root,'tsconfig.json'),JSON.stringify({compilerOptions:{noEmit:true,
-    plugins:[{name:'custom-transform'}]},include:['src']}));
-  const item=sync(root,state).checks[0];
-  assert.equal(item.result,'PASS');
-  assert.equal(item.freshness,'UNVERIFIED');
-  assert.match(item.reason,/plugin needs explicit review/);
 });
 
 test('npm workspace scripts are discovered as recording-only named checks',t=>{
@@ -233,13 +175,9 @@ test('npm workspace scripts are discovered as recording-only named checks',t=>{
 });
 
 
-test('npm compiler certificate preserves the independent CLI probe result',t=>{
-  const {root}=project(t),npm=findExecutable('npm');
-  const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!/^npm_config_/i.test(key)));
-  const args=[path.resolve('src/typescript-contract-probe.mjs'),root,'typecheck',npm];
-  const normal=spawnSync(process.execPath,args,{cwd:root,env,encoding:'utf8',timeout:15000});
-  const certified=spawnSync(process.execPath,[...args,'--redue-checkpoint'],{cwd:root,env,encoding:'utf8',timeout:15000});
-  assert.equal(normal.status,0,normal.stderr);assert.equal(certified.status,0,certified.stderr);
-  const value=JSON.parse(certified.stdout);assert.equal(value.output,normal.stdout);
-  assert(JSON.parse(inflateSync(Buffer.from(value.queryData,'base64'))).length>0);
+test('retired npm probe rejects full and cached-context qualification',()=>{
+  for(const extra of [[],['--redue-checkpoint'],['--redue-context-only']]){
+    const r=spawnSync(process.execPath,[path.resolve('src/typescript-contract-probe.mjs'),...extra],{encoding:'utf8'});
+    assert.equal(r.status,2);assert.equal(r.stdout,'');assert.match(r.stderr,/npm-launcher-unobserved-inputs/);
+  }
 });

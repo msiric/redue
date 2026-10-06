@@ -266,6 +266,7 @@ const checks=publicConfig.checks.map(check=>{
     coverageReasons:check.coverageReasons||Object.fromEntries(
       categories.map(category=>[category,reason])),
     qualification:check.qualification||null,script:check.script||null,
+    ...(npmAutomatic?{qualificationInterpretation:'npm-launcher-withheld@1'}:{}),
     workspace:check.workspace||null,kind:check.kind||null};
 });
 const runtime={schema:1,provider:'declared-project@1',root,state,checks};

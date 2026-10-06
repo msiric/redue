@@ -116,7 +116,7 @@ function classify(kind,scriptName,script,pkg,managerInfo,root) {
     managerInfo.name==='npm'&&
     exists(path.join(root,'tsconfig.json'))&&
     exists(path.join(root,'node_modules/typescript/package.json')))
-    return {level:'ready',reason:'canonical local tsc --noEmit; checked again before reuse',
+    return {level:'recording',reason:'npm launcher uses unobserved remote/cache/time inputs; execution can be recorded, but cannot be reused',
       qualification:'typescript-noemit-v1'};
   if(kind==='typecheck')return {level:'recording',reason:
     'TypeScript invocation, installation, or configuration is outside the automatic noEmit contract'};
@@ -183,7 +183,7 @@ export function discoverNodeProject(root) {
     if(!script)continue;
     let classification=observationIssue?{level:'unsupported',reason:observationIssue}:
       classify(kind,script,scripts[script],pkg,pm,root);
-    if(workspaces&&classification.level==='ready')classification={level:'recording',
+    if(workspaces&&classification.qualification==='typescript-noemit-v1')classification={level:'recording',
       reason:'workspace task and installed-input closure need explicit qualification'};
     const check={name:kind,script,kind,inputs:sourceInputs(root,kind,pm.lockfiles||[])};
     if(pm.name==='pnpm'&&kind==='typecheck'&&!workspaces&&!pm.issue&&
