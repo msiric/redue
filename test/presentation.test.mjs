@@ -65,6 +65,9 @@ test('cached status detects later outcomes without IPC and rejects legacy or unr
   assert.equal(row.result,'FAIL');assert.equal(row.invocation.runId,'new');
   assert.equal(row.freshness,'UNVERIFIED');assert.equal(row.reuse_eligible,false);
   assert.equal(value.observed_failed,1);
+  atomicJson(path.join(dir,'status.json'),null);
+  row=readCachedStatus(dir,checks).checks[0];
+  assert.equal(row.result,'FAIL');assert.equal(row.reuse_eligible,false);
   delete cache.receipt_revision;save();row=readCachedStatus(dir,checks).checks[0];
   assert.equal(row.result,'FAIL');assert.equal(row.freshness,'UNVERIFIED');
   fs.writeFileSync(file,'malformed');row=readCachedStatus(dir,checks).checks[0];

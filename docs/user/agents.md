@@ -69,11 +69,15 @@ root `AGENTS.override.md` or an alternative `.claude/CLAUDE.md` are reported
 instead of silently outranked. Global/managed policies, nested instructions,
 Codex instruction-size limits, skill disabling, and host-specific exclusions
 still apply. Complete the host's ordinary trust/permission prompts yourself;
-REDUE never grants tool permission. Do not use a mode that disables project
+REDUE never grants tool permission. Sandboxed hosts may need owner-approved access
+to the checkout, owned state directory and local observer socket. A healthy daemon
+does not establish that the agent can reach it; doctor reports control access
+separately. Do not disable sandbox protections to make this work. Do not use a mode that disables project
 instructions and expect automatic activation.
 
 `agent doctor [codex|claude] --json` is read-only. It distinguishes command lookup,
-config resolution, cached observer health, managed-file integrity, detected host
+config resolution, cached observer health, a bounded read-only control-access probe,
+managed-file integrity, detected host
 version, and loading guidance. `behavior_verified: false` is deliberate: intact
 files do not prove the agent followed them. No hooks are installed. Doctor neither
 executes checks nor starts observers, reconciles inputs, or installs a host.

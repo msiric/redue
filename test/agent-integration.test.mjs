@@ -125,3 +125,22 @@ test('explicit state maintenance bypasses ambiguous project discovery',t=>{
   const state=path.join(f.base,'redue-absent-state');
   for(const action of ['stop','remove-state'])f.ok('--state-dir',state,action);
 });
+
+test('doctor reports inaccessible control independently of cached/file health',t=>{
+  const f=fixture(t),state=path.join(f.base,'redue-state');
+  const out=f.ok('--state-dir',state,'agent','doctor','--json');
+  const value=JSON.parse(out.stdout);
+  assert.equal(value.control.reachable,false);assert.match(value.control.reason,/control unavailable/);
+  assert.equal(value.behavior_verified,false);assert(!fs.existsSync(state));
+});
+test('same explicit physical config and symlinked parent alias have one state identity',t=>{
+  const f=fixture(t),alias=path.join(f.base,'alias');
+  fs.symlinkSync(f.root,alias,process.platform==='win32'?'junction':'dir');
+  const actual=path.join(f.root,'redue.config.json'),logical=path.join(alias,'redue.config.json');
+  assert.equal(projectState(f.root,logical),projectState(f.root,actual));
+  f.ok('--config',logical,'agent','setup','codex','--apply');
+  const target=path.join(f.root,'linked-config.json');
+  // Junctions cover parent aliases on Windows; file hard links must also be refused.
+  fs.linkSync(actual,target);
+  assert.match(f.run('--config',target,'agent','setup','claude','--apply').stderr,/unsafe linked/);
+});

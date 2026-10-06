@@ -11,6 +11,7 @@ const unknown=(reason,checks)=>({schema:1,state:'unverified',current:0,stale:0,f
 export function unavailableCached(state,reason,checks=[]) {
   let value;try{value=JSON.parse(fs.readFileSync(path.join(state,'status.json')));}
   catch{value=unknown(reason,checks);}
+  if(!value||!Array.isArray(value.checks))value=unknown(reason,checks);
   let receipts=null,revision=null;
   try{const snapshot=readReceiptSnapshot(state);receipts=snapshot.value.checks;revision=snapshot.revision;}
   catch(error){reason+=`; latest receipt unavailable; prior outcome only: ${error.message}`;}
