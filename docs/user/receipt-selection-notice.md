@@ -1,7 +1,8 @@
-# Receipt selection correction (alpha.3 candidate)
+# Receipt selection correction in alpha.3
 
-**Known affected release: `@redue/cli@0.1.0-alpha.2`.** This notice describes an
-unreleased fix. No exploit or affected-user count is established.
+**Known affected release: `@redue/cli@0.1.0-alpha.2`. Fixed in
+`@redue/cli@0.1.0-alpha.3`.** No exploit or affected-user count is established.
+REDUE remains an alpha.
 
 If a wrapper persisted a newer outcome but its observer reload notification
 failed, the observer could continue selecting an older passing receipt. Cached
@@ -35,7 +36,9 @@ atomic decision against concurrent edits/writes.
 
 ## Upgrade and restart
 
-After alpha.3 is approved and published, from each initialized project:
+From each initialized project, stop its observer before replacing the installation.
+After all observers for that installation have stopped, upgrade it once, then
+restart each observer with its existing configuration and state selection:
 
 ```sh
 redue stop

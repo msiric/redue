@@ -1,6 +1,8 @@
 # Changelog
 
-## 0.1.0-alpha.3 — unreleased
+## 0.1.0-alpha.3 — 2026-10-06
+
+Install: `npm install --global @redue/cli@alpha`.
 
 - Fix selected execution outcomes remaining hidden behind an older observer/cache
   after a missed reload notification. A newer failure must not leave an older
