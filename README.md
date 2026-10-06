@@ -76,7 +76,7 @@ Start with ordinary `status`. When it cannot establish caller context, use
 **Synchronization can cost more than rerunning a cheap check, particularly on
 Windows.** REDUE does not choose or execute that tradeoff for you.
 
-For the **unreleased candidate**, ordinary npm scripts are recording-only after
+Since alpha.4, ordinary npm scripts are recording-only after
 [an npm launcher applicability gap](docs/acceptance/npm-launcher-boundary.md).
 A separate explicit [direct compiler recipe](docs/user/direct-typescript.md) can
 qualify supported npm typechecks. It does not claim that npm/lifecycle scripts ran.
@@ -93,6 +93,12 @@ Start a fresh agent session and give it an ordinary task. Project-local guidance
 teaches it to inspect evidence before deciding whether verification needs repeating.
 Setup is explicit, reversible, and does not change tool permissions or run checks.
 [Activation, removal, and generic-agent guidance](docs/user/agents.md).
+
+Alpha.5's claim is **opt-in project-local agent activation and direct TypeScript
+evidence, with fresh-session reuse demonstrated in the tested Codex/macOS
+configuration**. Claude setup/removal mechanics are tested; Claude behavior and
+cross-host reuse are not. This is experimental guidance, not guaranteed agent
+compliance, general sandbox compatibility, or a promise of time savings.
 
 ## What the states mean
 
