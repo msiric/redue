@@ -284,7 +284,7 @@ async function execute() {
     const persistenceStarted=performance.now();
     commitReceipt(state,name,receipt);
     timing('cli.receipt_persistence',persistenceStarted);
-    try{await call({action:'reload'});}catch{/* next read remains conservative */}
+    try{await call({action:'reload'});}catch{/* receipt revisions invalidate older status even when reload IPC is unavailable */}
     const summary={check:name,result,target:target.status,
       invocation:invocation.status,...(invocation.errorCode?{error_code:invocation.errorCode}:{}),
       stable,coverage_qualified:receipt.coverage.qualified};

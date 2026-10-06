@@ -14,7 +14,7 @@ import {sha} from './plan.mjs';
 import {InputIndex} from './index.mjs';
 import {permittedRoots} from './installed-inputs.mjs';
 import {assertOwnedStatePlacement} from './owned-state.mjs';
-import {atomicJson,readReceipts} from './state-store.mjs';
+import {atomicJson,readReceiptSnapshot,receiptRevision} from './state-store.mjs';
 import {history} from './observation.mjs';
 import {inputKey} from './decision-validation.mjs';
 import {timing} from './decision-profile.mjs';
@@ -33,6 +33,7 @@ fs.writeFileSync(path.join(lock,'pid'),String(process.pid),{mode:0o600});
 const generation=randomUUID(), startedAt=Date.now();
 let index, receipts={}, watcher, healthy=false, reason='initial reconciliation', stopping=false;
 let receiptStateError=null;
+let receiptStateRevision=null;
 const external=new Map();
 for(const check of config.checks)for(const boundary of permittedRoots(root,check.allowedExternalRoots||[]))
   if(!external.has(boundary))external.set(boundary,{root:boundary,watcher:null,index:null,
@@ -77,9 +78,17 @@ function event(kind,fields={}) {
     repository:root,...fields})+'\n');
 }
 function loadReceipts() {
-  try {receipts=readReceipts(state).checks;receiptStateError=null;}
-  catch(e){receipts={};receiptStateError=e.message;event('receipt_state_unavailable',
-    {classification:e.name||'Error'});}
+  try {const snapshot=readReceiptSnapshot(state);receipts=snapshot.value.checks;
+    receiptStateRevision=snapshot.revision;receiptStateError=null;}
+  catch(e){receiptStateRevision=null;
+    const next=`latest receipt unavailable; prior outcome only: ${e.message}`;
+    if(receiptStateError!==next)event('receipt_state_unavailable',
+      {classification:e.name||'Error'});
+    receiptStateError=next;}
+}
+function refreshReceipts() {
+  try {if(receiptStateRevision===null||receiptRevision(state)!==receiptStateRevision)loadReceipts();}
+  catch {loadReceipts();}
 }
 function persistedPlan(bundle) {
   return {schema:1,provider:bundle.provider,root:bundle.root,discoveredAt:bundle.discoveredAt,
@@ -298,13 +307,16 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
   });
 }
 function status(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=false) {
+  // Reload notifications accelerate visibility but are not required for it: a
+  // wrapper may persist its outcome even when its control connection is denied.
+  refreshReceipts();
   const checks=rows(contextHashes,synchronizedInstalled,synchronizedFilesystem), current=checks.filter(r=>r.freshness==='CURRENT'&&r.result==='PASS').length,
     failed=checks.filter(r=>r.freshness==='CURRENT'&&r.result==='FAIL').length,
     observedFailed=checks.filter(r=>r.result==='FAIL').length,
     stale=checks.filter(r=>r.freshness==='STALE').length,
     unverified=checks.filter(r=>r.freshness==='UNVERIFIED').length||(!checks.length?1:0);
   const stateName=failed?'failed':unverified?'unverified':stale?'stale':'current';
-  const now=Date.now();return {schema:1,state:stateName,current,failed,observed_failed:observedFailed,
+  const now=Date.now();return {schema:1,receipt_revision:receiptStateRevision,state:stateName,current,failed,observed_failed:observedFailed,
     stale,unverified,checks,
     observation:{healthy:healthy&&!planning&&!recovering&&!index?.unavailable,
       generation,observed_at:lastObservation,

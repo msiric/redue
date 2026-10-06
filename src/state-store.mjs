@@ -24,6 +24,22 @@ export function readReceipts(state){
   return value;
 }
 
+// This identity detects replacement of REDUE's owned, atomically written receipt
+// selector. It is not an input-content fingerprint or permission to reuse inputs.
+export function receiptRevision(state){
+  try {const stat=fs.statSync(path.join(state,'receipts-v1.json'),{bigint:true});
+    if(!stat.isFile())throw Error('receipt selector is not a file');
+    return JSON.stringify(['dev','ino','size','mtimeNs','ctimeNs'].map(key=>String(stat[key])));
+  }catch(error){if(error.code==='ENOENT')return 'absent';throw error;}
+}
+
+export function readReceiptSnapshot(state){
+  const revision=receiptRevision(state),value=readReceipts(state);
+  if(receiptRevision(state)!==revision)
+    throw Error('receipt selection changed during read; retry status');
+  return {revision,value};
+}
+
 export function commitReceipt(state,name,receipt){
   const prior=readReceipts(state),runId=receipt.invocation?.runId;
   if(!/^[0-9a-f-]{36}$/.test(runId||''))throw Error('receipt lacks a valid run ID');
