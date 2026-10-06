@@ -1,0 +1,11 @@
+# npm launcher applicability containment (unreleased)
+
+Published `@redue/cli@0.1.0-alpha.3` admitted a normally installed npm 10.9.2 / TypeScript 5.6.3 project with an owned fixed local registry endpoint. Actual wrapped execution recorded PASS. Synchronized status remained CURRENT/PASS after changing only the served notifier manifest, and again after deleting the isolated HOME notifier timestamp. A second wrapped execution failed; caller hashes and local input fingerprint were identical. Both immutable outcomes were preserved.
+
+This establishes an unmodeled input to the declared `npm run typecheck` obligation, not a claim about public registry responses or compiler completion in the failing invocation. The endpoint, response and cache belonged exclusively to the disposable test. Response-only change and timestamp removal were measured separately. npm's update-notifier uses remote metadata, cache and time outside the plan.
+
+The automatic `typescript-noemit-v1` npm-launcher contract is therefore recording-only. Its probe rejects full/context-only evaluation, its plan carries an unresolved reason, and the client runtime interpretation changes so an older live observer must be restarted before use. Generic manually reviewed commands and Yarn/pnpm providers are unchanged. No receipts are rewritten; PASS/FAIL remain historical facts. No environment is rewritten and npm still executes exactly as configured.
+
+Until a correction is released, do not rely solely on automatic npm CURRENT to skip the npm invocation. This branch is not published. After an approved release: stop each observer before upgrading; restart with the same configuration/state. Do not delete receipts. A distinct explicit compiler recipe, if selected later, requires new evidence and does not verify npm launcher/lifecycle behavior.
+
+Reproduction: public alpha.3, Node 22.13.0/npm 10.9.2, real `npm install` of TypeScript 5.6.3; run A 2302 ms (one notifier request), run B 2224 ms (one request). A receipt `bd559473-1daa-4358-8e9a-6499f6f2cb55`; B `398644a5-94f0-4cfd-a078-4aace13fdcb5`. Redacted local evidence retained outside Git. Regression: `test/onboarding.test.mjs`; installed containment: `test/acceptance/package-smoke.mjs`.

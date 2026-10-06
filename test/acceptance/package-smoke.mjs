@@ -82,7 +82,7 @@ try {
   exec(['git','init','-q'],{cwd:root});exec(['git','add','.'],{cwd:root});
   const preview=JSON.parse(cli('init','--dry-run','--json'));
   console.log(`Init preview: ${JSON.stringify(preview)}`);
-  if(preview.checks[0]?.level!=='ready'){
+  if(preview.checks[0]?.level!=='recording'){
     const canonical=fs.realpathSync.native(root);
     console.log(`Fixture prerequisites: ${JSON.stringify({
       manifest:JSON.parse(fs.readFileSync(path.join(root,'package.json'))),
@@ -92,7 +92,7 @@ try {
     const entry=path.join(installedRoot,'bin','redue.mjs');
     console.log(`Direct Node preview: ${exec([process.execPath,entry,'init','--dry-run','--json'],{cwd:root,allowFailure:true}).stdout}`);
   }
-  assert.equal(preview.written,false);assert.equal(preview.checks[0].level,'ready',JSON.stringify(preview));
+  assert.equal(preview.written,false);assert.equal(preview.checks[0].level,'recording',JSON.stringify(preview));
   console.log(cli('init'));assert(!fs.readFileSync(path.join(root,'redue.config.json'),'utf8').includes(root));
   const agent=(...args)=>exec([binary,'agent',...args],{cwd:root}).stdout;
   const previewAgent=JSON.parse(agent('setup','codex','--dry-run','--json'));
@@ -115,17 +115,17 @@ try {
   }
   console.log('Agent A (a separate CLI process) records the check.');
   console.log(cli('run','typecheck'));
-  const first=await expect('Agent A recorded','CURRENT');
+  const first=await expect('Agent A recorded','UNVERIFIED');
   console.log('Agent B starts without conversation history. Cached status first:');
   console.log(cli('status'));
-  const inherited=await expect('Agent B synchronized inherited evidence','CURRENT');
+  const inherited=await expect('Agent B synchronized inherited evidence','UNVERIFIED');
   assert.equal(first.invocation.runId,inherited.invocation.runId);
   put(path.join(root,'notes.md'),'Unrelated documentation.\n');
-  await expect('Unrelated documentation','CURRENT');
+  await expect('Unrelated documentation','UNVERIFIED');
   put(path.join(root,'src/main.ts'),'export const answer: number = 43;\n');
-  const stale=await expect('Relevant source edit','STALE');assert.equal(stale.invocation.runId,first.invocation.runId);
-  assert.deepEqual(stale.changed_inputs,['src/main.ts']);
-  console.log(cli('run','typecheck'));const restored=await expect('Rerun','CURRENT');
+  const stale=await expect('Relevant source edit','UNVERIFIED');assert.equal(stale.invocation.runId,first.invocation.runId);
+  assert.equal(stale.reuse_eligible,false);assert.match(stale.reason,/npm launcher/);
+  console.log(cli('run','typecheck'));const restored=await expect('Rerun','UNVERIFIED');
   assert.notEqual(first.invocation.runId,restored.invocation.runId);
   const recording=cli('run','test');assert.match(recording,/Ordinary check output/);
   assert.match(recording,/UNVERIFIED/);
@@ -133,7 +133,7 @@ try {
   assert.equal(details.checks[0].result,'PASS');assert.equal(details.checks[0].reuse_eligible,false);
   console.log(cli('stop'));
   assert.equal(JSON.parse(cli('status','--json')).checks[0].freshness,'UNVERIFIED');
-  console.log(cli('start'));const restart=await expect('Restart and reconciliation','CURRENT');
+  console.log(cli('start'));const restart=await expect('Restart and reconciliation','UNVERIFIED');
   assert.equal(restart.invocation.runId,restored.invocation.runId);
   assert.match(cli('status','--short'),/^REDUE UNVERIFIED/);
   const nested=path.join(root,'src');
