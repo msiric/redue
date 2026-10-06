@@ -11,14 +11,12 @@ prefix, initializes a small TypeScript checkout, and invokes the installed CLI i
 separate processes. It checks actual states and run IDs rather than printing a
 prewritten success transcript. It also uninstalls and removes only its resources.
 
-Story: Agent A records a real check; a fresh Agent B process reads inherited evidence;
-unrelated docs preserve it; source edits stale it; rerun restores it; stop withholds
-applicability; restart reconciles the same receipt. Recording-only PASS stays
-UNVERIFIED. These are process roles, not a new claim about coding-agent behavior.
-
-The demo first shows ordinary cached status. Qualified Node checks may need
-caller-aware `--sync` before CURRENT can be established. It explicitly shows that
-step; do not edit it out of a recording to imply a cheaper decision.
+The alpha.4 npm demo shows real execution and inherited historical outcomes.
+It deliberately remains UNVERIFIED after success, edits and restart because the
+retired npm-launcher contract lacks remote/cache/time coverage. It does not
+show reusable npm CURRENT. Separate positive generic, Yarn and pnpm regression
+contracts continue to cover CURRENT, preservation, STALE and reconciliation.
+These are CLI process roles, not new coding-agent behavior claims.
 
 The fixture is a product regression/demo, not one of the accepted real repositories
 and not evidence of demand or measured time saved. A GIF/video can be made from this
