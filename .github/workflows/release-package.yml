@@ -46,3 +46,5 @@ jobs:
           path: release-candidate
       - name: Install exact tarball and exercise public binary
         run: node test/acceptance/package-smoke.mjs --manifest release-candidate/manifest.json
+      - name: Released alpha.2 observer and receipt-preserving upgrade
+        run: node test/acceptance/receipt-upgrade.mjs --manifest release-candidate/manifest.json
