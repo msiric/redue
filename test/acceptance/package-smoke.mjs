@@ -94,6 +94,16 @@ try {
   }
   assert.equal(preview.written,false);assert.equal(preview.checks[0].level,'ready',JSON.stringify(preview));
   console.log(cli('init'));assert(!fs.readFileSync(path.join(root,'redue.config.json'),'utf8').includes(root));
+  const agent=(...args)=>exec([binary,'agent',...args],{cwd:root}).stdout;
+  const previewAgent=JSON.parse(agent('setup','codex','--dry-run','--json'));
+  assert.equal(previewAgent.applied,false);assert(!fs.existsSync(path.join(root,'AGENTS.md')));
+  agent('setup','codex','--apply');agent('setup','claude','--apply');
+  const instructions=fs.readFileSync(path.join(root,'AGENTS.md'),'utf8');
+  agent('setup','codex','--apply');assert.equal(fs.readFileSync(path.join(root,'AGENTS.md'),'utf8'),instructions);
+  const agentHealth=JSON.parse(exec([binary,'--state-dir',state,'agent','doctor','--json'],{cwd:root}).stdout);
+  assert.equal(agentHealth.behavior_verified,false);
+  assert(agentHealth.hosts.every(h=>h.integrity==='intact'));
+  console.log('Installed activation: preview/setup/doctor/idempotency PASS; host behavior is evaluated separately.');
   console.log(cli('start'));
   console.log('Agent A (a separate CLI process) records the check.');
   console.log(cli('run','typecheck'));
@@ -118,6 +128,15 @@ try {
   console.log(cli('start'));const restart=await expect('Restart and reconciliation','CURRENT');
   assert.equal(restart.invocation.runId,restored.invocation.runId);
   assert.match(cli('status','--short'),/^REDUE UNVERIFIED/);
+  const nested=path.join(root,'src');
+  const nestedStatus=JSON.parse(exec([binary,'--state-dir',state,'status','--sync','--json'],{cwd:nested}).stdout);
+  assert.equal(nestedStatus.checks[0].invocation.runId,restored.invocation.runId);
+  fs.appendFileSync(path.join(root,'AGENTS.md'),'\nUser policy retained.\n');
+  agent('remove','codex','--apply');assert(fs.existsSync(path.join(root,'CLAUDE.md')));
+  assert.equal(fs.readFileSync(path.join(root,'AGENTS.md'),'utf8'),'\nUser policy retained.\n');
+  agent('remove','claude','--apply');assert(!fs.existsSync(path.join(root,'CLAUDE.md')));
+  assert.equal(JSON.parse(cli('status','--sync','--json')).checks[0].invocation.runId,restored.invocation.runId);
+  console.log('Installed activation: nested state identity/removal/preserved receipt PASS.');
   console.log(cli('remove-state'));assert(!fs.existsSync(state));
   assert(fs.existsSync(path.join(root,'src/main.ts')));assert(fs.existsSync(path.join(root,'node_modules','typescript','lib','tsc.js')));
   exec([npm,'uninstall','--global','--prefix',prefix,productPackage.name,'--no-audit','--no-fund']);

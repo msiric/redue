@@ -9,7 +9,8 @@ import {fileURLToPath} from 'node:url';
 import {discoverNodeProject} from '../src/node-onboarding.mjs';
 import {processAlive} from '../src/process-liveness.mjs';
 import {samePath,withinPath,realObservedPath} from '../src/path-identity.mjs';
-import {stateIdentity,userStateBase} from '../src/platform-state.mjs';
+import {discoverConfig,projectState,canonicalConfig} from '../src/project-location.mjs';
+import {agentCommand} from '../src/agent-integration.mjs';
 import {findExecutable} from '../src/executable-lookup.mjs';
 import {readCachedStatus} from '../src/cached-state.mjs';
 import {assertOwnedStatePlacement} from '../src/owned-state.mjs';
@@ -24,6 +25,10 @@ Usage: redue [--config FILE] [--state-dir DIR] COMMAND [OPTIONS]
 Commands:
   init [--dry-run] [--workspace NAME] [--check KIND]
                        Discover existing scripts; optionally select one workspace/check
+  agent setup codex|claude [--dry-run|--apply] [--json]
+  agent doctor [codex|claude] [--json]
+  agent remove codex|claude [--dry-run|--apply] [--json]
+                       Connect project instructions; explicit setup only
   start                Start the local observer
   stop                 Stop this observer
   status [--json|--short] Read conservative cached status
@@ -39,10 +44,7 @@ function error(message){console.error(`redue: ${message}`);process.exit(2);}
 const args=process.argv.slice(2);
 if(args.length===1&&args[0]==='--version'){console.log(version);process.exit(0);}
 if(args.includes('--help')||args.includes('-h')||!args.length){console.log(help);process.exit(0);}
-const preferredConfig=path.resolve('redue.config.json');
-const legacyConfig=path.resolve('vstate.config.json');
-let configFile=fs.existsSync(preferredConfig)||!fs.existsSync(legacyConfig)?
-  preferredConfig:legacyConfig,stateOverride=null;
+let configFile=null,stateOverride=null;
 for(let i=0;i<args.length;){
   if(args[i]==='--config'||args[i]==='--state-dir'){
     const flag=args[i],value=args[i+1];if(!value)error(`${flag} requires a path`);
@@ -51,6 +53,15 @@ for(let i=0;i<args.length;){
   }else i++;
 }
 const command=args.shift();
+try{configFile??=command==='init'||stateOverride&&['stop','remove-state'].includes(command)?
+  path.resolve(fs.existsSync('redue.config.json')||!fs.existsSync('vstate.config.json')?'redue.config.json':'vstate.config.json'):discoverConfig();}
+catch(e){error(e.message);}
+if(fs.existsSync(path.dirname(configFile)))configFile=canonicalConfig(configFile);
+if(command==='agent'){
+  try{await agentCommand(args,{configFile,stateOverride,entry:fileURLToPath(import.meta.url)});}
+  catch(e){error(e.message);}
+  process.exit(0);
+}
 if(!['init','start','stop','status','detail','explain','run','remove-state'].includes(command))
   error(`unknown command ${command||'<none>'}; use --help`);
 const json=args.includes('--json');
@@ -121,6 +132,7 @@ if(command==='init'){
     if(!json){console.log(`Created ${configFile}. No checks were executed.`);
       console.log('Ready to qualify means the supported contract will be validated; it is not verification evidence.');
       console.log(`Next: review the config, then redue start and redue run ${JSON.stringify(discovery.checks[0].config.name)}.`);
+      console.log('Connect your agent: redue agent setup codex (or claude). Preview with --dry-run.');
       console.log('Use redue status first. --sync can establish applicability, but may cost more than rerunning a cheap check.');}
   } else if(unsupported&&!json)console.log(`No config written: ${summary.issue||'unsupported discovery boundary'}.`);
   if(json)console.log(JSON.stringify({...summary,proposed_config:discovery.config}));
@@ -157,10 +169,7 @@ for(const key of Object.keys(publicConfig))
   if(!['schema','root','checks','packageManager'].includes(key))error(`unsupported config field ${key}`);
 if(check&&!publicConfig.checks.some(row=>row.name===check))error(`unknown check ${check}; use redue status to list configured checks`);
 const root=realObservedPath(path.resolve(path.dirname(configFile),publicConfig.root||'.'));
-const stateBase=userStateBase(process.platform,process.env,os.homedir());
-const state=stateOverride||path.join(stateBase,'vstate',
-  `vstate-${createHash('sha256').update(stateIdentity(root)+'\0'+
-    stateIdentity(configFile)).digest('hex').slice(0,16)}`);
+const state=stateOverride||projectState(root,configFile);
 if(!/^(?:vstate|redue)-/.test(path.basename(state)))
   error('--state-dir must name a dedicated redue-* directory outside the checkout (legacy vstate-* is also supported)');
 const runtimeFile=path.join(state,'project-runtime-v1.json');

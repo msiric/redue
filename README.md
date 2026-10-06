@@ -64,6 +64,19 @@ Start with ordinary `status`. When it cannot establish caller context, use
 **Synchronization can cost more than rerunning a cheap check, particularly on
 Windows.** REDUE does not choose or execute that tradeoff for you.
 
+## Connect your agent (candidate)
+
+```sh
+redue agent setup codex --dry-run
+redue agent setup codex --apply  # or claude
+redue agent doctor
+```
+
+Start a fresh agent session and give it an ordinary task. Project-local guidance
+teaches it to inspect evidence before deciding whether verification needs repeating.
+Setup is explicit, reversible, and does not change tool permissions or run checks.
+[Activation, removal, and generic-agent guidance](docs/user/agents.md).
+
 ## What the states mean
 
 | State | Meaning | Normal next step |

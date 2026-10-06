@@ -125,3 +125,11 @@ all observed roots; its basename must start with `redue-` or legacy `vstate-`.
 For a removed checkout, `redue --state-dir /your/owned/redue-project-state remove-state`
 still works without rebuilding its compiler/configuration. Ownership/active-run conflicts
 are actionable errors, never resolved merely by deleting an old lock.
+
+## Connect an agent explicitly
+
+After initialization, use `redue agent setup codex --dry-run` (or `claude`) to
+review project-local instructions, then repeat with `--apply`. Start a fresh host
+session. `redue agent doctor` checks prerequisites without running verification.
+See [agent activation](agents.md) for loading rules, generic agents, and removal.
+The released alpha.2 does not contain these candidate commands yet.
