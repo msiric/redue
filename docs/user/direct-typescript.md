@@ -44,6 +44,33 @@ review/edit that check's config, and restart using the same config/state. Existi
 npm receipts remain historical; the new command/interpretation needs a fresh run.
 Do not delete receipts. `redue run` always executes the configured command.
 
+## Existing npm configuration: deliberate replacement
+
+First upgrade through the [alpha.4 containment](npm-launcher-notice.md), stopping
+observers before the installation change and restarting with the same config/state.
+The old npm check becomes recording-only; its receipts remain historical.
+To opt into this candidate afterward:
+
+1. Stop the observer, install the reviewed candidate tarball into the same prefix,
+   and keep the original `redue.config.json` and any explicit `--state-dir` selection.
+2. Run `redue init --recipe typescript-direct --check typecheck --dry-run --json`
+   using that config selection. Inspect `proposed_config.checks` and the recorded
+   invocation. This does not write anything, even when the config already exists.
+3. In your editor, replace only the intended check object with the reviewed proposed
+   object. Preserve its name, the top-level project configuration, and every other
+   check. Do not replace the whole config with a one-check preview. Keep a local
+   backup outside observed inputs if desired.
+4. Run `redue start` with the same config/state. `redue status --sync --json` must
+   not treat the old npm receipt as eligible compiler evidence.
+5. Run `redue run typecheck`, then `redue status --sync --json`. A qualified success
+   now records the direct compiler recipe with a new run ID. Old npm runs remain
+   immutable history. Other check definitions are unchanged.
+
+Substitute the actual selected check name throughout. Repeating plain `init`
+does **not** migrate an existing config. A deliberately separate `--config` file
+is useful for comparison, but has separate state by design. Do not create one
+accidentally when intending to preserve the original selection.
+
 Pre/post scripts, compound commands, wrappers, environment assignments, workspace
 projects and unsupported compiler versions are not automatically converted.
 Init retains the original script with a reason. Development-mode source-map helpers,

@@ -37,6 +37,11 @@ it; relevant source edits make it stale. [Run the reproducible demo](docs/contri
 
 ## Install the alpha
 
+This branch prepares **alpha.5**, not yet published. Its opt-in agent activation
+and npm direct-compiler recipe require the candidate tarball; public alpha.4
+contains only the applicability correction.
+
+
 REDUE is published on npm as `@redue/cli`. The installed command is `redue`.
 
 ```sh
@@ -107,8 +112,10 @@ has been verified.
 - macOS, Linux, and Windows on supported local filesystems; Node 22+.
 - Linux also requires Python 3 for observation. No WSL or Git Bash needed on Windows.
 - npm, pinned Yarn `node-modules`, and pinned pnpm 12 isolated/hoisted layouts.
-- Automatic qualification for the supported Yarn/pnpm TypeScript invocations; npm
-  launcher checks are recording-only in alpha.4. Workspace
+- Automatic qualification for supported Yarn/pnpm TypeScript invocations; ordinary npm
+  launcher checks remain recording-only. The alpha.5 candidate adds an explicit
+  [direct local compiler recipe](docs/user/direct-typescript.md) for the reviewed
+  npm/TypeScript boundary. Workspace
   boundaries follow the files actually consumed, including built declarations.
 - Existing test/lint/build and arbitrary commands can record results while
   their applicability remains unqualified.

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.0-alpha.5 — unreleased candidate
+
+- Add opt-in project-local agent activation and direct TypeScript evidence, with
+  fresh-session reuse demonstrated in the tested Codex/macOS configuration.
+- Preserve ordinary npm execution as a separate, recording-only obligation.
+  Direct compilation requires explicit selection and a fresh baseline receipt.
+- Initial direct recipe supports reviewed TypeScript 5.6.3/5.9.3 in single-package
+  npm projects, with documented Node/environment restrictions.
+- Claude integration mechanics are tested; Claude behavior and cross-host reuse
+  remain untested. No universal compliance or inexpensive-check speedup is claimed.
+
 ## 0.1.0-alpha.4 — 2026-10-07
 
 - Withdraw automatic npm-launcher applicability because update notifications consume
