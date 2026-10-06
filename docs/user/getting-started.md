@@ -9,7 +9,7 @@ Node 22 and 24 are the release-test matrix; newer majors are not yet acceptance 
 Install the public alpha:
 
 ```sh
-npm install --global @msiric/redue@alpha
+npm install --global @redue/cli@alpha
 redue --version
 ```
 
@@ -24,7 +24,7 @@ npm dependencies uses the registry; normal local observation does not require ne
 For a reversible user-owned prefix, POSIX shells:
 
 ```sh
-npm install --global --prefix "$HOME/.local/redue-alpha" @msiric/redue@alpha
+npm install --global --prefix "$HOME/.local/redue-alpha" @redue/cli@alpha
 export PATH="$HOME/.local/redue-alpha/bin:$PATH"
 ```
 
@@ -32,14 +32,30 @@ PowerShell:
 
 ```powershell
 $reduePrefix = Join-Path $env:LOCALAPPDATA 'redue-alpha-install'
-npm.cmd install --global --prefix $reduePrefix @msiric/redue@alpha
+npm.cmd install --global --prefix $reduePrefix @redue/cli@alpha
 $env:PATH = "$reduePrefix;$env:PATH"
 redue.cmd --help
 ```
 
 These PATH changes affect only the current shell. Alternatively invoke the
-installed entry point directly: POSIX `node "$HOME/.local/redue-alpha/lib/node_modules/@msiric/redue/bin/redue.mjs"`;
-Windows `node "$reduePrefix/node_modules/@msiric/redue/bin/redue.mjs"`.
+installed entry point directly: POSIX `node "$HOME/.local/redue-alpha/lib/node_modules/@redue/cli/bin/redue.mjs"`;
+Windows `node "$reduePrefix/node_modules/@redue/cli/bin/redue.mjs"`.
+
+## Moving from alpha.1
+
+If the personal-scope alpha.1 package is installed, stop the project's observer
+and replace that package before installing the canonical command:
+
+```sh
+redue stop
+npm uninstall --global @msiric/redue
+npm install --global @redue/cli@alpha
+```
+
+Use the same `--prefix` on both npm commands if your installation has a custom
+prefix. Uninstalling the package does not remove local verification evidence;
+`redue remove-state` is a separate, explicit action. Alpha.1 remains available as
+historical software and is superseded for package identity, not a runtime defect.
 
 ## First project
 
@@ -85,7 +101,7 @@ is reconciled before reuse.
 redue stop
 redue start
 redue remove-state
-npm uninstall --global @msiric/redue
+npm uninstall --global @redue/cli
 ```
 
 For an isolated installation, use the same `--prefix` on uninstall. Remove state

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.0-alpha.2 — 2026-10-06
+
+Install: `npm install --global @redue/cli@alpha`.
+
+- npm distribution moved to the product-owned `@redue/cli` package.
+- The executable remains `redue`; verification semantics and runtime code are unchanged.
+- Alpha.1 (`@msiric/redue`) remains available but is superseded by the canonical package.
+
 ## 0.1.0-alpha.1 — 2026-10-06
 
 Install: `npm install --global @msiric/redue@alpha`. The command remains `redue`.

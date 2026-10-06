@@ -1,11 +1,13 @@
 # Alpha release procedure
 
-REDUE's permanent alpha npm coordinate is `@msiric/redue`; its executable is
+REDUE's permanent npm coordinate is `@redue/cli`; its executable is
 `redue`. The repository is public. Publication still requires explicit release
 authorization; package metadata is not permission to publish.
 
-The unscoped name was rejected by npm's similarity policy. The owner authorized
-the personal-scope fallback when organization creation could not be completed.
+The unscoped name was rejected by npm's similarity policy. Alpha.1 used the
+personal-scope bootstrap package. Alpha.2 uses the `redue` organization, owned by
+`msiric`. Retain the old release and package; after canonical publication and
+public smoke pass, deprecate the old package with the canonical install command.
 A registry 404 does not establish scope ownership or guarantee publication.
 
 ## Candidate validation
@@ -35,30 +37,34 @@ A temporary candidate branch can supply the workflow before main advances. The
 release target must include the reviewed scoped metadata; it must not target the
 obsolete unscoped candidate. The source runtime is not rebuilt during packaging.
 
-## Direct first publication, after approval
+## Direct publication, after approval
 
 From the clean checkout at the reviewed release commit, with the downloaded
-candidate in `.local/release-candidates/alpha.1-scoped/`:
+candidate in `.local/release-candidates/<version>/`:
 
 ```sh
 (
 set -eu
 redue_release_commit=$(git rev-parse HEAD)
-redue_release_dir=.local/release-candidates/alpha.1-scoped
+redue_version=$(node -p 'require("./package.json").version')
+redue_release_dir=".local/release-candidates/$redue_version"
 test -z "$(git status --porcelain)"
 test "$(npm whoami --registry=https://registry.npmjs.org)" = msiric
 node test/acceptance/registry-name.mjs
 redue_artifact=$(node test/acceptance/package-artifact.mjs verify "$redue_release_dir/manifest.json")
 git push origin main
 npm publish "$redue_artifact" --tag alpha --access public --registry=https://registry.npmjs.org
-gh release create v0.1.0-alpha.1 "$redue_artifact" "$redue_release_dir/SHA256SUMS" "$redue_release_dir/manifest.json" --repo msiric/redue --target "$redue_release_commit" --prerelease --title "REDUE v0.1.0-alpha.1" --notes-file CHANGELOG.md
+gh release create "v$redue_version" "$redue_artifact" "$redue_release_dir/SHA256SUMS" "$redue_release_dir/manifest.json" --repo msiric/redue --target "$redue_release_commit" --prerelease --title "REDUE v$redue_version" --notes-file CHANGELOG.md
 )
 ```
 
 Stop on failure and diagnose it. Do not silently switch coordinates, rebuild,
 republish different bytes, or move a tag. The maintainer completes npm's interactive
 2FA challenge. Use direct publication, not staged publishing, for the first version.
-Keep the `alpha` dist-tag; do not silently promote the prerelease to `latest`.
+Publish with `--tag alpha`. On a brand-new package npm may also assign `latest`
+automatically. Verify and report both tags; if `alpha` and the artifact are correct,
+that registry behavior is not a failed release. Do not repeatedly attempt removal
+of `latest` after a registry rejection.
 GitHub private vulnerability reporting is already enabled.
 
 ## Public-registry smoke
@@ -70,10 +76,11 @@ installed public command. This does not replace a user's installation.
 (
 set -eu
 redue_smoke=$(mktemp -d /tmp/redue-postpublish.XXXXXX)
+redue_version=$(node -p 'require("./package.json").version')
 redue_coordinate=$(node -p 'const p=require("./package.json"); p.name+"@"+p.version')
 npm pack "$redue_coordinate" --json --registry=https://registry.npmjs.org --pack-destination "$redue_smoke" > "$redue_smoke/manifest.json"
 node test/acceptance/package-artifact.mjs record "$redue_smoke/manifest.json"
-cmp .local/release-candidates/alpha.1-scoped/SHA256SUMS "$redue_smoke/SHA256SUMS"
+cmp ".local/release-candidates/$redue_version/SHA256SUMS" "$redue_smoke/SHA256SUMS"
 node test/acceptance/package-smoke.mjs --manifest "$redue_smoke/manifest.json"
 redue_download=$(node test/acceptance/package-artifact.mjs verify "$redue_smoke/manifest.json")
 rm "$redue_download" "$redue_smoke/manifest.json" "$redue_smoke/SHA256SUMS"
@@ -83,6 +90,18 @@ rmdir "$redue_smoke"
 
 Verify public npm version/dist-tags, repository visibility, release target and
 attached checksums. Keep failure diagnostics if any step fails.
+
+## Alpha.1 migration pointer
+
+Only after `@redue/cli@0.1.0-alpha.2` is published and its public-registry smoke
+passes, deprecate the personal-scope package without unpublishing it:
+
+```sh
+npm deprecate '@msiric/redue@*' 'REDUE has moved to @redue/cli. Install with: npm install -g @redue/cli@alpha' --registry=https://registry.npmjs.org
+```
+
+Complete interactive 2FA and verify the public deprecation message. Do not change
+or delete the historical alpha.1 GitHub release, tag, assets or package bytes.
 
 ## Later automation and rollback
 

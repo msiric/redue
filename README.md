@@ -30,10 +30,10 @@ it; relevant source edits make it stale. [Run the reproducible demo](docs/contri
 
 ## Install the alpha
 
-REDUE is published on npm as `@msiric/redue`. The installed command is `redue`.
+REDUE is published on npm as `@redue/cli`. The installed command is `redue`.
 
 ```sh
-npm install --global @msiric/redue@alpha
+npm install --global @redue/cli@alpha
 ```
 
 To test a source candidate, run `npm ci` and `npm pack --json`, then install the
