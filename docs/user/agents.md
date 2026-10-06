@@ -75,12 +75,41 @@ does not establish that the agent can reach it; doctor reports control access
 separately. Do not disable sandbox protections to make this work. Do not use a mode that disables project
 instructions and expect automatic activation.
 
+Control access is not simply file-read permission. The observer can reconcile and
+write its owned index, run the trusted configuration's probes in its own process
+context, reload receipts, and stop. Approve only the intended checkout/state and
+endpoint, accounting for that authority. Doctor sends only a bounded metrics
+request; it does not synchronize or run these probes.
+
 `agent doctor [codex|claude] --json` is read-only. It distinguishes command lookup,
 config resolution, cached observer health, a bounded read-only control-access probe,
 managed-file integrity, detected host
 version, and loading guidance. `behavior_verified: false` is deliberate: intact
 files do not prove the agent followed them. No hooks are installed. Doctor neither
 executes checks nor starts observers, reconciles inputs, or installs a host.
+
+Doctor separates missing/unreadable state, a missing or refused endpoint, an
+explicit EPERM/EACCES access denial, and timeout/invalid response. A denial does
+not identify whether OS permissions or host policy caused it. A live PID and
+healthy cached observation do not prove control access. An older cached response
+without receipt-selection validation gets stop/start guidance. Windows command
+shims whose target has not been established are reported as unknown, not a
+proven installation mismatch.
+
+Codex CLI 0.160.1 on macOS has a tested limitation in the scoped socket route:
+its enforced network proxy can allow only the observer socket while blocking
+other destinations, but also injects npm proxy configuration. The current
+TypeScript contract rejects that environment. Socket reachability then works,
+yet a wrapped PASS remains UNVERIFIED. Do not unset the injected variables,
+broaden sandbox access, or assert coverage to force CURRENT. Eligible reuse in
+this configuration has **not** been behaviorally validated.
+
+Before model trials, run `redue agent doctor --json` and
+`redue status --sync --json` inside the agent's actual command boundary. The
+contributor helper `test/acceptance/codex-preflight.mjs --config FILE --check CHECK`
+performs the same bounded, read-only decision check and exits 2 when reuse is not
+eligible. It neither executes verification nor grants access; synchronization
+may run configured probes. A successful outside-shell result is insufficient.
 
 Use the same setup command after a candidate upgrade; it updates intact managed
 content idempotently. Changed skill text or a changed managed block causes a

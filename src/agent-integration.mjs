@@ -132,7 +132,7 @@ export async function agentCommand(args,{configFile,stateOverride,entry,cwd=proc
       console.log(`Control access: ${value.control?.reachable?'available':value.control?.reason||'unavailable'} (bounded read-only probe)`);
       if(value.state_access)console.log(`State access: ${value.state_access.status}${value.state_access.reason?' — '+value.state_access.reason:''}`);
       if(value.compatibility?.reason)console.log(`Observer compatibility: ${value.compatibility.reason}`);
-      if(value.applicability?.requires_sync)console.log('Applicability: cached evidence needs reassessment; choose synchronization or execution deliberately.');
+      if(value.applicability?.requires_reassessment)console.log('Applicability: cached evidence needs reassessment; choose synchronization or execution deliberately.');
       for(const row of value.hosts)console.log(`${row.host}: ${row.version||'host unavailable'}; integration ${row.integrity}; behavioral validation NOT VERIFIED by doctor${row.reason?' — '+row.reason:''}`);
       console.log('Hooks: none installed by REDUE. Doctor does not start observers, execute checks, or prove agent behavior.');
       for(const warning of value.warnings)console.log(`Review: ${warning}`);
@@ -186,7 +186,8 @@ export async function doctor({configFile,stateOverride,entry,cwd,host}){
   let p;try{p=project(configFile);value.project.root=p.root;
     const state=stateOverride||projectState(p.root,configFile);value.project.state=state;
     const cached=readCachedStatus(state,p.config.checks);value.observation=cached.observation;
-    value.applicability={requires_sync:cached.checks.some(row=>row.freshness==='UNVERIFIED'),
+    value.applicability={requires_reassessment:cached.checks.some(row=>row.freshness==='UNVERIFIED'),
+      caller_context_missing:cached.checks.some(row=>row.reason==='execution environment context not supplied'),
       reasons:cached.checks.filter(row=>row.freshness==='UNVERIFIED').map(row=>({check:row.name,reason:row.reason}))};
     try{fs.readdirSync(state);value.state_access={status:'readable'};
       try{const raw=JSON.parse(fs.readFileSync(path.join(state,'status.json'),'utf8'));

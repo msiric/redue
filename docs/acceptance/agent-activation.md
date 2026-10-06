@@ -3,6 +3,122 @@
 Branch: `dev/agent-activation`; baseline `03d735f` (`@redue/cli` alpha.2).
 No release or merge is authorized in this milestone.
 
+## Follow-up: isolated hotfix and Codex access (2026-10-06)
+
+This follow-up does not replace or relabel any earlier model attempt below.
+No positive matrix was started while the in-context preflight lacked eligible
+evidence. Claude and Vitest remain independent.
+
+### Receipt-selection hotfix
+
+Independent branch `fix/receipt-selection`, commit `fd7e393`,
+[PR #2](https://github.com/msiric/redue/pull/2), based on released main `03d735f`.
+Proposed version alpha.3 was unused on public npm. This branch contains no agent
+setup/doctor/removal, skill, or new project discovery. The reviewed receipt
+correction is also carried into the activation candidate.
+
+The new client refuses old/superseded observer selections; the daemon refreshes
+persisted selection before status publication; cached readers validate a bounded
+read/revision. The writer audit found one production writer, called under the
+state run lock. A second reproduction found that failed selector replacement
+could leave a new immutable FAIL behind an old selected PASS. A small owned
+per-check pending-update map withholds applicability until the affected check
+records successfully. A successful different check cannot clear that uncertainty.
+Readable prior outcomes remain explicitly historical across restart. No orphaned
+record is automatically promoted and immutable run records are preserved.
+
+Tests cover omitted reload, newer unstable PASS, stable FAIL without eligibility,
+missing/unreadable/malformed/incompatible selector, replacement during read,
+cached/sync/explain/detail, write/marker-clear failures, cross-check recovery,
+immutable journals, and a real public npm alpha.2 daemon followed by stop/start.
+The latter labels synthetic durable outcomes as fault injection, not real check
+executions; ordinary wrapped executions establish initial and recovered evidence.
+
+[Hotfix product CI](https://github.com/msiric/redue/actions/runs/37488208921)
+passed all four jobs: macOS Node 22, Linux Node 22/24, native Windows Node 22.
+MacOS: 71 passed/16 platform skips; Linux Node 22 and Windows: 75 passed/12
+platform skips. No failures. [Exact artifact CI](https://github.com/msiric/redue/actions/runs/37488208618)
+passed installation and actual alpha.2 observer upgrade on all three platforms.
+Artifact: `redue-cli-0.1.0-alpha.3.tgz`, 53 files, 86,530 bytes; SHA-256
+`316d4e03426e207af87d1ffed2a5479b5e64898f3d5d7feb94b44ca36b99e99e`.
+No activation module or test/acceptance material is in that package. Maintainer
+notice and exact receipt-preserving upgrade steps are in the hotfix PR.
+
+### Deterministic in-context preflight
+
+Codex **0.160.1**, local macOS, installed activation artifact from `4d276a3`,
+SHA-256 `19203e35f08d0de0c7edd5961302a1997097022aef6ff8521a2b2f7529576bfe`.
+Public disposable `renzojohnson/google-workspace-mcp` at
+`33e05a4dc5365d8b135da25a6193d85d92a35205`, normal npm install, generated
+`typescript-noemit-v1` config, unchanged `npm run typecheck` (`tsc --noEmit`).
+Only typecheck was selected. No service/authentication code was executed.
+The checkout contains spaces and Unicode. There are 18,295 indexed files.
+
+Owner explicitly approved session-only checkout/state/socket access, including
+the observer's ability to execute configured probes outside the command sandbox.
+No global settings, broad Unix-socket allow rule, network allow-all, security
+bypass, or proxy around the REDUE endpoint was added. Managed requirements remain
+loaded. Source inspection used the official `rust-v0.160.1` Codex implementation
+as well as the [permissions documentation](https://learn.chatgpt.com/docs/permissions)
+and [network configuration](https://learn.chatgpt.com/docs/agent-approvals-security).
+
+Configuration discovery was not a model experiment. The documented `sandbox
+macos` spelling is not accepted by this installed CLI; its command is `sandbox`.
+A named-profile attempt failed Seatbelt policy compilation on a spaced state path.
+Two legacy-config attempts failed CLI argument dependencies before executing a
+command. Explicitly selecting `:workspace` ignores legacy writable-root/network
+settings in this version. The final deterministic invocation uses `codex sandbox`
+with the working directory supplied by the parent process and the same session
+overrides intended for `codex exec`: workspace-write, the exact owned additional
+state root, login shells disabled, enforced built-in network proxy with no allowed
+domains, and only the exact observer socket allowed. No managed requirements were
+disabled. The debug-only `--allow-unix-socket` flag was not used as a substitute
+for an actual agent configuration route.
+
+| In-context attempt | Objective result |
+| --- | --- |
+| Default denied boundary | CLI/config/state readable; live observer PID; metrics and sync fail EPERM; historical PASS/UNVERIFIED |
+| Approved exact socket | Doctor metrics reachable; unrelated Unix socket and direct TCP both EPERM; sync succeeds but STALE/PASS from changed caller context |
+| Ordinary wrapped typecheck in approved context | Command exits 0 in 874 ms; receipt `a122db37-91d3-46c9-b0be-00f96e5b2570`; unstable PASS/UNVERIFIED, `declared state probe unavailable or changed` |
+| New sandbox process, same approved settings | Sync remains PASS/UNVERIFIED, no inferred eligibility |
+| Exact configured probe diagnostic | Exit 2, `VSTATE_REASON:execution-environment-unsupported` |
+
+The proxy injects upper/lowercase npm `http_proxy`, `https_proxy`, `noproxy`, and
+`proxy` keys (eight variables). The caller hash difference is the existing
+`npm_config_` prefix identity; the TypeScript probe rejects those variables.
+They were not stripped or ignored. Thus socket access is established, while
+the supported caller contract is not. Seed execution outside the sandbox was
+CURRENT/PASS and is not counted as agent-visible eligible evidence.
+
+Doctor now distinguishes state access, control error class/code, cached
+compatibility, process liveness, and caller-context/reassessment needs. It remains
+read-only, sends only metrics, and never equates installed files or reachability
+with behavior/eligibility. Three new focused doctor regressions cover missing vs
+denied vs hung control, readable legacy status, and installed integration state.
+No lifecycle hooks were added.
+
+### Model-behavior gate and next action
+
+Final-candidate positive trials: **0 attempted / 0 successful**. No new model
+calls were made after the preflight failed qualification. Eligible/unrelated/
+stale/unknown/failure/fresh/nested/later-session cases and repeats remain NOT RUN
+for this candidate. This is a gated matrix, not a passing sample. Actual avoided
+executions: none established. Economics: NOT MEASURED. No unsafe reuse or engine
+false CURRENT was observed in the deterministic follow-up; there is no new model
+safety sample. Earlier denied/environment-limited transcripts remain below.
+
+Next smallest compatible step is review of either a Codex-supported per-session
+direct Unix-socket allowance that does not require npm proxy injection, or a
+bounded TypeScript-contract extension that explicitly models the documented proxy
+context, retains its identity, and passes positive/adversarial tests. Neither is
+implemented automatically here. Do not run another positive matrix until the
+same execution-context preflight reaches legitimate CURRENT/PASS.
+
+Claude remains version 2.1.146. Mechanics passed; inference and cross-host handoff
+remain NOT RUN after the earlier account-capacity failure. No purchase or
+authentication change was made. The Vitest investigation and counterexamples
+below are preserved; no additional implementation or production qualification.
+
 ## Contract and implementation
 
 Project-local explicit setup: short host instruction + shared-source
