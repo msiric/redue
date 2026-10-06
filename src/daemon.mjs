@@ -14,7 +14,7 @@ import {sha} from './plan.mjs';
 import {InputIndex} from './index.mjs';
 import {permittedRoots} from './installed-inputs.mjs';
 import {assertOwnedStatePlacement} from './owned-state.mjs';
-import {atomicJson,readReceiptSnapshot,receiptRevision} from './state-store.mjs';
+import {atomicJson,readReceipts,readReceiptSnapshot,receiptRevision} from './state-store.mjs';
 import {history} from './observation.mjs';
 import {inputKey} from './decision-validation.mjs';
 import {timing} from './decision-profile.mjs';
@@ -81,6 +81,9 @@ function loadReceipts() {
   try {const snapshot=readReceiptSnapshot(state);receipts=snapshot.value.checks;
     receiptStateRevision=snapshot.revision;receiptStateError=null;}
   catch(e){receiptStateRevision=null;
+    // A readable selector can still supply explicitly historical outcomes after
+    // restart. The failed snapshot guard remains authoritative for applicability.
+    try{receipts=readReceipts(state).checks;}catch{/* retain previous historical rows */}
     const next=`latest receipt unavailable; prior outcome only: ${e.message}`;
     if(receiptStateError!==next)event('receipt_state_unavailable',
       {classification:e.name||'Error'});

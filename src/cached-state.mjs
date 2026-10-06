@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {processAlive} from './process-liveness.mjs';
-import {readReceiptSnapshot,receiptRevision} from './state-store.mjs';
+import {readReceipts,readReceiptSnapshot,receiptRevision} from './state-store.mjs';
 const unknown=(reason,checks)=>({schema:1,state:'unverified',current:0,stale:0,failed:0,observed_failed:0,
   unverified:checks.length,
   checks:checks.map(c=>({name:c.name,result:null,freshness:'UNVERIFIED',reason,
@@ -14,7 +14,8 @@ export function unavailableCached(state,reason,checks=[]) {
   if(!value||!Array.isArray(value.checks))value=unknown(reason,checks);
   let receipts=null,revision=null;
   try{const snapshot=readReceiptSnapshot(state);receipts=snapshot.value.checks;revision=snapshot.revision;}
-  catch(error){reason+=`; latest receipt unavailable; prior outcome only: ${error.message}`;}
+  catch(error){reason+=`; latest receipt unavailable; prior outcome only: ${error.message}`;
+    try{receipts=readReceipts(state).checks;}catch{/* retain cached historical rows */}}
   const rows=(value.checks||[]).map(row=>{
     const latest=receipts?.[row.name];
     return {...row,...(receipts?{result:latest?.result||null,invocation:latest?.invocation||null,
