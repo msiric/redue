@@ -45,8 +45,9 @@ function project(t,{manager='npm',declaredManager=null,
 function invoke(root,state,...args){
   // npm test injects npm_config_* into this test process. The fixture models a
   // developer invoking the CLI directly, not a nested npm lifecycle command.
+  // Node test worker markers are also fixture-only, not ordinary shell context.
   const env=Object.fromEntries(Object.entries(process.env)
-    .filter(([key])=>!/^npm_config_/i.test(key)&&key!=='NODE_TEST_CONTEXT'));
+    .filter(([key])=>!/^npm_config_/i.test(key)&&!['NODE_TEST_CONTEXT','NODE_TEST_WORKER_ID'].includes(key)));
   return spawnSync(process.execPath,[bin,'--state-dir',state,...args],
     {cwd:root,env,encoding:'utf8',timeout:30000});
 }
@@ -93,7 +94,7 @@ test('direct compiler identity rejects replacements/additions and unsafe runtime
 });
 test('real direct compiler evidence crosses proxy contexts, but not relevant inputs or overrides',async t=>{
   const {root,state}=project(t);init(root,state);good(root,state,'start');
-  const baseEnv=Object.fromEntries(Object.entries(process.env).filter(([key])=>!/^npm_config_/i.test(key)&&key!=='NODE_TEST_CONTEXT'));
+  const baseEnv=Object.fromEntries(Object.entries(process.env).filter(([key])=>!/^npm_config_/i.test(key)&&!['NODE_TEST_CONTEXT','NODE_TEST_WORKER_ID'].includes(key)));
   const contextA={npm_config_proxy:'http://127.0.0.1:3128',NPM_CONFIG_PROXY:'http://127.0.0.1:3128'},
     contextB={npm_config_proxy:'http://127.0.0.1:4321',NPM_CONFIG_PROXY:'http://127.0.0.1:4321'};
   const call=(args,context=contextA)=>spawnSync(process.execPath,[bin,'--state-dir',state,...args],
@@ -140,7 +141,7 @@ test('old npm evidence cannot satisfy the new recipe; extra caller-sensitive pro
 });
 test('direct compiler checkpoint equals the independent CLI listing result',t=>{
   const {root}=project(t),args=[path.resolve('src/direct-typescript-probe.mjs'),root,'typecheck'];
-  const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>key!=='NODE_TEST_CONTEXT'));
+  const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!['NODE_TEST_CONTEXT','NODE_TEST_WORKER_ID'].includes(key)));
   const normal=spawnSync(process.execPath,args,{cwd:root,env,encoding:'utf8',timeout:15000}),
     captured=spawnSync(process.execPath,[...args,'--redue-checkpoint'],{cwd:root,env,encoding:'utf8',timeout:15000});
   assert.equal(normal.status,0,normal.stderr);assert.equal(captured.status,0,captured.stderr);
@@ -151,10 +152,11 @@ test('direct compiler checkpoint equals the independent CLI listing result',t=>{
 test('retained compiler queries cannot load replaced or obsolete implementations',async t=>{
   const {root,state}=project(t);init(root,state);good(root,state,'start');good(root,state,'stop');
   const configFile=path.join(state,'project-runtime-v1.json'),config=JSON.parse(fs.readFileSync(configFile));
+  assert.equal(config.checks[0].qualification,'npm-typescript-direct-v1');
   const bundle=discover(config,state),guard=planGuard(bundle),tsRoot=path.join(root,'node_modules/typescript');
   const marker=path.join(root,'executed-unreviewed.txt'),impl=path.join(tsRoot,'lib/typescript.js'),original=fs.readFileSync(impl);
   const run=async queriedRoot=>{
-    const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>key!=='NODE_TEST_CONTEXT'));
+    const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!['NODE_TEST_CONTEXT','NODE_TEST_WORKER_ID'].includes(key)));
     const worker=new Worker(new URL('../src/plan-worker.mjs',import.meta.url),{env,workerData:{config:configFile,state,forceCold:true,
       reuse:{bundle,guard,inputs:{},queries:[['readDirectory',root,[],{tsRoot:queriedRoot,args:[]}]]}}});
     await new Promise((resolve,reject)=>{worker.on('error',reject);worker.on('exit',code=>code?reject(Error(String(code))):resolve());});
@@ -165,4 +167,23 @@ test('retained compiler queries cannot load replaced or obsolete implementations
   const obsolete=path.join(root,'obsolete-compiler');put(path.join(obsolete,'package.json'),'{"main":"index.js"}');
   put(path.join(obsolete,'index.js'),`require('node:fs').writeFileSync(${JSON.stringify(marker)},'unsafe');module.exports={sys:{readDirectory:()=>[]}};`);
   await run(obsolete);
+});
+
+test('arbitrary proxy-reading command retains strict context and receives no direct exemption',t=>{
+  const {root,state,config}=project(t);
+  const categories=['source','generated','installedDependencies','environment','toolchain','runtime'];
+  fs.writeFileSync(config,JSON.stringify({schema:1,checks:[{name:'proxy-reader',
+    command:['@node','-e','process.exit(process.env.npm_config_proxy === "a" ? 0 : 1)'],
+    inputs:['package.json'],environment:{prefixes:['npm_config_'],executableIdentity:true},
+    coverage:Object.fromEntries(categories.map(k=>[k,true])),
+    coverageReview:Object.fromEntries(categories.map(k=>[k,'Owned fixture: exact Node expression reads one declared environment key, no files or services']))}]}));
+  good(root,state,'start');
+  const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!/^npm_config_/i.test(key)));
+  const call=(args,proxy)=>spawnSync(process.execPath,[bin,'--state-dir',state,...args],
+    {cwd:root,env:{...env,npm_config_proxy:proxy},encoding:'utf8',timeout:30000});
+  const run=call(['run','proxy-reader'],'a');assert.equal(run.status,0,run.stderr);
+  const a=JSON.parse(call(['status','--sync','--json'],'a').stdout).checks[0];
+  assert.equal(a.reuse_eligible,true);
+  const b=JSON.parse(call(['status','--sync','--json'],'b').stdout).checks[0];
+  assert.equal(b.freshness,'STALE');assert.equal(b.reuse_eligible,false);assert.equal(b.invocation.runId,a.invocation.runId);
 });
