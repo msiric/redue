@@ -57,6 +57,12 @@ prefix. Uninstalling the package does not remove local verification evidence;
 `redue remove-state` is a separate, explicit action. Alpha.1 remains available as
 historical software and is superseded for package identity, not a runtime defect.
 
+## Upgrading to alpha.4
+
+Stop every observer using the installation before upgrading, then restart each
+with the same config/state selection. See [the npm launcher notice](npm-launcher-notice.md)
+for exact commands. Do not remove state or delete receipts.
+
 ## First project
 
 From the project root:
@@ -74,7 +80,9 @@ Use a check actually printed by `init`. For a workspace:
 `redue init --workspace @example/package --check typecheck`.
 Initialization previews detected commands and qualification confidence before writing
 `redue.config.json`. An existing config is never overwritten. No checks are run and
-no dependencies installed. A missing/unsupported boundary is explained.
+no dependencies installed. A missing/unsupported boundary is explained. Npm-launcher typechecks are
+recording-only in alpha.4; a passed execution is historical PASS with UNVERIFIED
+applicability, not reusable CURRENT.
 
 “Ready to qualify” means REDUE has a supported recipe whose prerequisites will be
 validated. It is not a receipt. “Recording-only” can record PASS/FAIL without claiming
