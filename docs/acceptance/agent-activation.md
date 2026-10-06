@@ -1,6 +1,179 @@
 # Agent activation milestone
 
-## Current conclusion — proxy relevance review (2026-10-06)
+## Current conclusion — explicit compiler recipe (2026-10-06)
+
+**Ready for bounded review, not published.** An explicit local compiler recipe
+now supports legitimate independent-session Codex reuse. In 14 integrated model
+sessions, all queried REDUE, two retained eligible receipts without executing an
+equivalent check, and no unsafe reuse was observed. Three other eligible
+opportunities chose fresh execution. This is a demonstrated mechanism, not a
+promise of universal agent compliance or net time savings. Claude behavior and
+cross-host handoff remain **NOT RUN**.
+
+Separately, actual public alpha.3 admitted the controlled npm notifier setup and
+kept CURRENT after unobserved response/cache changes. The independently reviewable
+[containment PR #3](https://github.com/msiric/redue/pull/3), `bed16ad`, makes only the
+automatic npm launcher contract recording-only. Its [maintainer explanation](npm-launcher-boundary.md)
+preserves the difference between an applicability defect and an arbitrary future
+operational failure. No public registry malfunction or compiler completion in the
+failing npm case is claimed. Until correction is released, do not rely solely on
+automatic npm CURRENT to skip the npm invocation. No merge or publication occurred.
+
+### Product choice and enforced boundary
+
+The opt-in is `redue init --recipe typescript-direct --check typecheck --dry-run`,
+then the same command without `--dry-run`. It previews both the discovered script
+and `[@node, @typescript-compiler:., --noEmit]`. Existing configs and package.json
+are not changed silently. Ordinary npm execution remains available. Explicit npm
+requests cannot be satisfied by this different compiler invocation.
+
+The [user contract](../user/direct-typescript.md) and
+[source boundary](../contributor/direct-typescript-boundary.md) describe
+`npm-direct-typescript@1`: single-package npm, exact standalone script, canonical
+official TypeScript 5.6.3 or 5.9.3 implementation bytes, observed installed inputs,
+Node 22/24, and the existing conservative config/membership boundary. Development
+source-map support, loaders/preloads, compile-cache injection, custom probes and
+unsupported implementations reject qualification. Version strings alone do not
+authorize it. The 5.9.3 recipe executes `_tsc.js`, avoiding its outer cache shim.
+
+npm/proxy values are unchanged in the real child environment. For this reviewed
+compiler only, they are provenance digests rather than applicability requirements;
+no npm code executes. Relevant Node/environment/input identity remains strict.
+The actual injected `NODE_USE_ENV_PROXY=1` is admitted only on reviewed Node
+22.13.0, where it is inert, and remains strictly fingerprinted. Old npm evidence
+cannot satisfy this new command/interpretation; a fresh baseline is required.
+Cached status remains non-authoritative for caller context.
+
+### Deterministic and installed-package evidence
+
+The real alpha.3 reproduction used Node 22.13.0/npm 10.9.2, an actual installed
+TypeScript 5.6.3 package, fixed owned registry endpoint and isolated HOME/cache.
+Wrapped A passed; changing the served response, then separately removing the
+notifier stamp, each retained CURRENT/PASS. Wrapped B failed with identical caller
+hashes and local input fingerprint. Both immutable outcomes survived. The
+containment client rejects the actual old alpha.3 observer for cached/sync/explain;
+explicit stop/start preserves both runs and returns UNVERIFIED/historical FAIL.
+
+[Direct recipe regressions](../../test/direct-typescript.test.mjs) cover preview,
+no lifecycle/compound conversion, implementation tampering, runtime rejection,
+proxy-context reuse, source/config/membership/declaration/installed changes, actual
+compiler failure, old receipts, custom probes, query-compiler replacement, and an
+arbitrary proxy-reading command that receives no exemption. The retained
+[notifier control](../../test/npm-proxy-relevance.test.mjs) still fails ordinary npm
+on controlled malformed responses; direct compilation passes with zero notifier
+requests. This execution sample supplements the enforced source boundary, not a
+standalone proof that arbitrary compilation is offline.
+
+Actual in-context preflight used the installed candidate and separate
+`codex sandbox` processes. A recorded `ff1d1b07-4dca-42ec-820f-59b5da3d9073`;
+B/C retained that receipt as CURRENT/PASS/eligible under different proxy contexts.
+Other Unix socket and direct TCP access remained EPERM. Default-denied observer
+access returned UNVERIFIED/PASS, never an older CURRENT. The first preflight had
+rejected the injected Node flag and produced an unstable PASS; that failed attempt
+is retained, not relabeled. Admission was added only after pinned Node source
+review. No proxy, permission, global setting or daemon authority changed.
+
+### Complete finite model matrix
+
+Host: Codex CLI **0.160.1**, macOS, Node **22.13.0**, npm **10.9.2**. Public checkout:
+`renzojohnson/google-workspace-mcp` at `33e05a4dc5365d8b135da25a6193d85d92a35205`,
+installed TypeScript **5.9.3**. Only compiler checking ran; no application services
+or credentials were used. Each attempt was a new `codex exec --ephemeral
+--ignore-user-config` process without conversation history. Session-local approved
+access covered only this checkout/state and its exact observer socket; other
+sockets and direct network remained denied. M used the default-denied route.
+
+Ordinary task prompts did not mention REDUE. The matrix A–M was declared before
+model calls; N added one finite replication after B chose fresh execution; O added
+one no-integration baseline. All attempts are included below, with raw tool traces,
+receipt snapshots and redacted profiling retained locally outside Git.
+
+| Attempt | Case | Objective behavior |
+| --- | --- | --- |
+| A | Relevant source edit | Wrapped direct compiler PASS; new receipt |
+| B | Eligible inherited evidence | Chose wrapped fresh PASS; no reuse claim |
+| C | Independent eligible repeat | Sync showed CURRENT/PASS/eligible; retained B receipt; no compiler/npm execution |
+| D | Unrelated documentation edit | Chose wrapped fresh PASS; preservation proven by deterministic tests, not this model choice |
+| E | Second relevant edit | Wrapped direct compiler PASS; new receipt |
+| F | Recording-only/unknown | Wrapped PASS, accurately reported UNVERIFIED |
+| G | Independent unknown repeat | Raw local compiler executed successfully outside REDUE; no new receipt; not reuse |
+| H | Actual historical compiler failure | Wrapped rerun failed with real type errors; no green claim |
+| I | Explicit fresh execution | Wrapped fresh PASS; new receipt |
+| J | Independent explicit-fresh repeat | Wrapped fresh PASS; new receipt |
+| K | Explicit `npm run typecheck` | Executed that npm command; no substitution and no receipt claim |
+| L | Independent session from `src/` | Selected `../redue.config.json`; sync eligible; retained J receipt; no compiler/npm execution |
+| N | One additional eligible replication | Chose wrapped fresh PASS; no reuse claim |
+| M | Denied observer | Sync EPERM; subsequent compiler PASS remained UNVERIFIED; no fallback reuse |
+| O | No integration baseline | No REDUE query; executed `npm run typecheck` |
+
+C retained `2251d22b-c784-4a78-991d-afc1374fb24f` from B. B's receipt provenance
+digest begins `871cec0d`; C's observed context digest begins `dc275ee7`. C's five
+tool calls contained reads and status queries, including two legitimate
+CURRENT/PASS/eligible responses, and no equivalent execution. The final response
+explicitly said it reused evidence without fresh execution. One shell call also
+had an unrelated search exit 1; the final synchronized query succeeded.
+
+L retained `22ec36b2-5efd-469b-a8ce-3e7c8baac362` from J. Its three tool calls
+contained reads and cached/synchronized status, with no verification execution.
+Its final response accurately distinguished inherited compiler evidence. C and L
+had different recorded proxy port digests with matching non-port shapes. Receipt
+provenance and decision traces establish context differences without retaining
+credential-bearing values in this report.
+
+Thus **2/5 eligible reuse opportunities reused**, **14/14 integrated sessions
+discovered REDUE**, and **0 observed unsafe reuses**. G is an uncaptured-execution
+adoption limitation, not reuse. Fresh executions on this inexpensive check are
+permitted by policy; do not coerce skipping to improve the count. The baseline
+provides a concrete behavior comparison, not a statistically controlled causal
+or saved-time claim. Finite safe trials do not prove universal compliance.
+
+### Economics, validation and cleanup
+
+Five real unchanged-context samples each, from the approved sandbox, with normal
+caches and no artificial delays: direct compiler p50 **666 ms**, max **693 ms**;
+ordinary npm p50 **741 ms**, max **769 ms**; cached status p50 **64 ms**, max **94 ms**;
+synchronized status p50 **656 ms**, max **867 ms**. Cached plus sync median costs
+about **719 ms**, slightly more than compilation alone. C queried sync twice.
+Two executions were absent at observed reuse opportunities; **net time saving is
+not established**. This small public project proves the mechanism, not compelling
+economics. No broader provider or cost scheduler was added.
+
+Containment product CI [37509318731](https://github.com/msiric/redue/actions/runs/37509318731)
+and exact package [37510080000](https://github.com/msiric/redue/actions/runs/37510080000)
+passed independently. Activation product CI at `46e6046`
+[37512329110](https://github.com/msiric/redue/actions/runs/37512329110) passed:
+macOS Node 22: **98 pass/16 skip**; Linux Node 22 and 24: **102/12 each**;
+native Windows Server 2025 Node 22: **101/13**. Each has 114 tests, zero failures.
+Skips are platform/version guards; pinned npm 10.9.2 cases run separately in the
+exact-package job. A preceding Node 24 fixture failure exposed the test runner's
+`NODE_TEST_WORKER_ID`; fixture-only isolation fixed it without relaxing production
+environment validation. Earlier failed/superseded runs remain in CI history.
+
+The [exact tarball matrix](https://github.com/msiric/redue/actions/runs/37511342741)
+passed macOS/Linux/native Windows, including installed direct golden workflow,
+pinned npm negative control, proxy-context cases, and actual alpha.2 receipt upgrade.
+Artifact built at `b902b2d`; test-only `46e6046` has identical packaged bytes:
+`redue-cli-0.1.0-alpha.3.tgz`, **61 files / 100,399 bytes**, SHA-256
+`e654bd4b84df14382914e538d38c810a006f39222c5df9edb7316a6e96bdcf64`.
+This is an **unreleased candidate**, not public alpha.3. Product CI may pack per-OS
+checkout bytes; the separate exact matrix used the one artifact above everywhere.
+Independent code review closed the custom-probe and retained-query compiler-loading
+loopholes before these final trials. Receipt-selection/incomplete-write regressions
+remain green. Agent-host behavior is tested only on the stated macOS host.
+
+Cleanup stopped the owned observer, removed its integration via owned removal,
+uninstalled disposable prefixes, restored public tracked source/original fixture
+config, and removed the created note/dependencies. **21 immutable agent-fixture
+runs** and **two released-impact runs** remain unchanged; no receipts were deleted.
+No normal installation, private project or corporate state changed. PR #1 remains
+draft for review; PR #3 is independently ready for review. Recommend reviewing the
+containment first, then the explicit compiler/limited Codex claim. Claude/cross-host
+behavior, broad compiler versions and general sandbox compatibility remain outside
+the demonstrated claim. No merge, publication, hooks or additional Vitest work.
+
+---
+
+## Historical: proxy relevance review (2026-10-06)
 
 **Fresh-session eligible reuse remains NOT PROVEN. Do not release activation as
 behaviorally accepted.** The authorized source review found a real counterexample
