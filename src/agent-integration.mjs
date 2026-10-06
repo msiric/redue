@@ -10,6 +10,7 @@ import {windowsLaunch} from './windows-command.mjs';
 import {readProject,projectState,canonicalConfig} from './project-location.mjs';
 import {readCachedStatus} from './cached-state.mjs';
 import {samePath,withinPath} from './path-identity.mjs';
+import {processAlive} from './process-liveness.mjs';
 
 const policy=fs.readFileSync(new URL('./agent-policy.md',import.meta.url),'utf8');
 const hosts={codex:{instruction:'AGENTS.md',skill:'.agents/skills/redue-verification/SKILL.md'},
@@ -129,6 +130,9 @@ export async function agentCommand(args,{configFile,stateOverride,entry,cwd=proc
       console.log(`Project: ${value.project.config}; ${value.project.error||'configuration resolved'}`);
       console.log(`Observer cached health: ${value.observation?.healthy?'healthy':'unavailable/unknown'}${value.observation?.reason?' — '+value.observation.reason:''}`);
       console.log(`Control access: ${value.control?.reachable?'available':value.control?.reason||'unavailable'} (bounded read-only probe)`);
+      if(value.state_access)console.log(`State access: ${value.state_access.status}${value.state_access.reason?' — '+value.state_access.reason:''}`);
+      if(value.compatibility?.reason)console.log(`Observer compatibility: ${value.compatibility.reason}`);
+      if(value.applicability?.requires_sync)console.log('Applicability: cached evidence needs reassessment; choose synchronization or execution deliberately.');
       for(const row of value.hosts)console.log(`${row.host}: ${row.version||'host unavailable'}; integration ${row.integrity}; behavioral validation NOT VERIFIED by doctor${row.reason?' — '+row.reason:''}`);
       console.log('Hooks: none installed by REDUE. Doctor does not start observers, execute checks, or prove agent behavior.');
       for(const warning of value.warnings)console.log(`Review: ${warning}`);
@@ -177,10 +181,30 @@ export async function agentCommand(args,{configFile,stateOverride,entry,cwd=proc
 }
 export async function doctor({configFile,stateOverride,entry,cwd,host}){
   const value={schema:1,command:{path:findExecutable('redue'),invoked:entry},project:{config:configFile},
-    observation:null,control:null,hosts:[],warnings:[],hooks:'none installed by REDUE',behavior_verified:false};
+    observation:null,control:null,state_access:null,observer_process:null,compatibility:null,
+    applicability:null,hosts:[],warnings:[],hooks:'none installed by REDUE',behavior_verified:false};
   let p;try{p=project(configFile);value.project.root=p.root;
     const state=stateOverride||projectState(p.root,configFile);value.project.state=state;
-    value.observation=readCachedStatus(state,p.config.checks).observation;
+    const cached=readCachedStatus(state,p.config.checks);value.observation=cached.observation;
+    value.applicability={requires_sync:cached.checks.some(row=>row.freshness==='UNVERIFIED'),
+      reasons:cached.checks.filter(row=>row.freshness==='UNVERIFIED').map(row=>({check:row.name,reason:row.reason}))};
+    try{fs.readdirSync(state);value.state_access={status:'readable'};
+      try{const raw=JSON.parse(fs.readFileSync(path.join(state,'status.json'),'utf8'));
+        value.compatibility=raw&&Object.hasOwn(raw,'receipt_revision')?
+          {receipt_selection:'supported',reason:raw.receipt_revision===null?'selected receipt is unavailable; no reuse is authorized':null}:
+          {receipt_selection:'unconfirmed',reason:'cached response lacks receipt-selection validation; stop/start with this candidate to replace an older observer'};
+      }catch(error){value.compatibility={receipt_selection:'unknown',reason:`cached response unavailable (${error.code||'invalid JSON'}); inspect observer health`};
+        if(['EACCES','EPERM'].includes(error.code))value.state_access={status:'denied',code:error.code,reason:'cached state cannot be read in this session'};}
+      try{const pid=Number(fs.readFileSync(path.join(state,'observer.lock','pid'),'utf8'));
+        value.observer_process={pid:Number.isSafeInteger(pid)&&pid>0?pid:null,
+          alive:Number.isSafeInteger(pid)&&pid>0?processAlive(pid):null};
+      }catch{value.observer_process={pid:null,alive:null};}
+    }catch(error){value.state_access={status:error.code==='ENOENT'?'missing':['EACCES','EPERM'].includes(error.code)?'denied':'unavailable',
+      code:error.code||null,reason:`owned state cannot be listed (${error.code||'error'}); check this session's access without resetting receipts`};}
+    if(value.command.path)try{value.command.matches_invocation=/\.(cmd|bat|ps1)$/i.test(value.command.path)?null:
+        samePath(fs.realpathSync(value.command.path),fs.realpathSync(entry));
+      if(value.command.matches_invocation===false)value.warnings.push('redue on PATH differs from the invoked entry; use the intended candidate before judging integration');
+    }catch{value.command.matches_invocation=null;}
     value.control=await controlHealth(state);
   }catch(e){value.project.error=e.code==='ENOENT'?'configuration missing; run redue init at the project root':e.message;}
   for(const name of host?[host]:Object.keys(hosts)){
@@ -203,10 +227,17 @@ function controlHealth(state){
   return new Promise(resolve=>{
     const client=net.createConnection(controlEndpoint(state).address);let data='',done=false;
     const finish=value=>{if(done)return;done=true;clearTimeout(timer);client.destroy();resolve(value);};
-    const timer=setTimeout(()=>finish({reachable:false,reason:'control probe timed out; check host access to owned local state/socket'}),500);
+    const timer=setTimeout(()=>finish({reachable:false,classification:'timeout',reason:'control probe timed out; inspect observer liveness and session access'}),500);
     client.on('connect',()=>client.write(JSON.stringify({action:'metrics'})+'\n'));
     client.on('data',chunk=>{data+=chunk;if(data.length>1024*1024)finish({reachable:false,reason:'control response too large'});});
-    client.on('end',()=>{try{JSON.parse(data);finish({reachable:true});}catch{finish({reachable:false,reason:'invalid control response'});}});
-    client.on('error',error=>finish({reachable:false,reason:`control unavailable (${error.code||'error'}); host permissions may prevent observer access`}));
+    client.on('end',()=>{try{const reply=JSON.parse(data);
+      if(!reply||typeof reply!=='object'||!reply.metrics)throw Error('invalid metrics');
+      finish({reachable:true,classification:'reachable'});
+    }catch{finish({reachable:false,classification:'invalid_response',reason:'invalid control metrics response; verify endpoint and candidate version'});}});
+    client.on('error',error=>{const denied=['EACCES','EPERM'].includes(error.code);
+      finish({reachable:false,code:error.code||null,classification:denied?'access_denied':
+        error.code==='ENOENT'?'endpoint_missing':error.code==='ECONNREFUSED'?'connection_refused':'unavailable',
+        reason:denied?`control access denied (${error.code}); compare session policy and OS permissions for this exact endpoint; no broad permission grant is implied`:
+          `control unavailable (${error.code||'error'}); check observer liveness and endpoint identity; the cause is not established`});});
   });
 }
