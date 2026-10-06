@@ -109,7 +109,7 @@ A future genuinely offline variant would first need enforced/observed notifier
 inactivity and implementation identity, not a promise that a remote service always
 returns valid metadata. Review also identified prerequisites to check before any
 such rule: npm's complete builtin/project/user/global config chain, effective
-Node resolution after ancestor `.bin` PATH insertion, and TypeScript's optional
+Node resolution after ancestor `.bin` PATH insertion, and the reviewed TypeScript 5.6.3 fixture's optional
 `source-map-support` loading under development `NODE_ENV`. None was bypassed or
 silently implemented as a broader contract here. The next decision is whether to
 authorize that narrower invocation/prerequisite; the current request explicitly
@@ -122,8 +122,42 @@ is no new behavioral safety sample. Claude/cross-host remain NOT RUN. Vitest is
 unchanged. The cheap project already demonstrated similar decision/check costs;
 searching for a slower demo cannot repair this relevance counterexample.
 
-Validation and cleanup results for this follow-up are recorded here after the
-focused regression and unchanged-runtime exact-package checks complete.
+### Final validation and cleanup
+
+Changes: `0abeb80` (test, exact-package test entry point, documentation); **no
+`src/` or `bin/` change**. Local macOS Node 22.13.0: 110 tests, 94 passed/16
+platform/version skips, zero failures. Independent adversarial review reproduced
+the counterexample and checked the distinction between the real context and the
+controlled registry fixture.
+
+[Product CI](https://github.com/msiric/redue/actions/runs/37504578508) passed all
+four jobs: macOS Node 22 (92 passed/18 skips), Linux Node 22 and 24 and native
+Windows Node 22 (96 passed/14 skips each), zero failures. The reviewed-npm cases
+skip under other npm versions; the [exact-package matrix](https://github.com/msiric/redue/actions/runs/37504635522)
+separately ran them with official Node 22.13.0/npm 10.9.2 on **all three platforms**.
+All three passed the new seven-scenario counterexample, installed package golden
+workflow, same-context proxy run/reuse and existing adversarial checks, and real
+alpha.2 observer upgrade. Receipt-selection/incomplete-write regressions remain
+passing. This is CLI/package acceptance, not model behavior acceptance.
+
+Unreleased artifact: `redue-cli-0.1.0-alpha.3.tgz`, 57 files, SHA-256
+`53cd7549c8b36c79780da11eccb0bbc49ff464bbb958a2d885292bc975b3d5c7`.
+Comparison with the prior tested candidate found **only** `docs/user/agents.md`
+changed in the payload. Runtime and installed instruction bytes are identical.
+This is not the published alpha.3 artifact; do not identify candidates by version
+alone. The subsequent acceptance-report commit is excluded from the package.
+
+The repeated default-denied preflight still returned EPERM and historical
+PASS/UNVERIFIED, with no fallback to earlier CURRENT. Under the unchanged approved
+route the exact observer endpoint worked, while unrelated Unix socket and direct
+TCP remained EPERM; the different context remained STALE. No permission, proxy,
+managed setting, or normal user installation changed.
+
+Cleanup stopped only the owned observer, removed the disposable Codex integration
+through owned removal, uninstalled the candidate prefix, and removed the owned
+project dependencies and notifier fixtures. Seven immutable run records remain;
+no receipts were deleted. Public project tracked source is unchanged. Raw local
+traces stay outside Git. PR #1 stays draft; no activation merge, package, or release.
 
 ---
 
