@@ -82,7 +82,10 @@ reusability. Qualification can change when configuration or installation changes
 
 `run` streams normal output and preserves execution environment and cancellation.
 For the narrow pnpm TypeScript contract, `init` explicitly shows the direct installed
-compiler invocation it selects; other scripts run through the package manager.
+compiler invocation it selects. In this candidate, npm scripts remain recording-only;
+use `redue init --recipe typescript-direct --dry-run` to preview a distinct,
+explicit [local compiler recipe](direct-typescript.md). Other scripts run through
+the package manager. No existing configuration is silently migrated.
 Only use configs and probes from trusted repositories: these execute local code.
 
 `status` is cached and conservative. `status --sync` and `explain` revalidate caller

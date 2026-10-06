@@ -25,6 +25,10 @@ checks merely for freshness.
 - Use `redue run CHECK` to execute and record needed verification. This command
   always executes. A successful recording-only run can remain UNVERIFIED; describe
   it as an observed PASS, never reusable CURRENT.
+- A direct compiler recipe verifies the configured local compiler, not npm or its
+  lifecycle scripts. Inspect the configuration/verification_recipe before claiming
+  what ran. An explicit request for `npm run typecheck` requires that npm invocation;
+  direct compiler evidence does not satisfy it.
 - Explicit user requests for fresh execution and independent task-specific
   verification obligations still apply. REDUE covers only configured checks.
 

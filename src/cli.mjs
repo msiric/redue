@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import {directQualification,directInterpretation,observedNpmContext} from './direct-typescript.mjs';
 import path from 'node:path';
 import net from 'node:net';
 import os from 'node:os';
@@ -16,7 +17,7 @@ import {assertOwnedStatePlacement} from './owned-state.mjs';
 import {permittedRoots} from './installed-inputs.mjs';
 import {acquireRunLock,inspectRunLock,recoverRunLock} from './run-lock.mjs';
 import {atomicJson,commitReceipt,receiptRevision} from './state-store.mjs';
-import {timing} from './decision-profile.mjs';
+import {timing,profiling} from './decision-profile.mjs';
 import {readCachedStatus,unavailableCached} from './cached-state.mjs';
 import {renderRun} from './presentation.mjs';
 
@@ -65,7 +66,7 @@ function probeHash(plan) {
   const values=[];
   for(const argv of plan.probes||[]) {
     const timeout=plan.qualification==='pnpm-tsc-v1'||
-      (process.platform==='win32'&&['typescript-noemit-v1','yarn-workspace-tsc-v1']
+      (process.platform==='win32'&&['typescript-noemit-v1','npm-typescript-direct-v1','yarn-workspace-tsc-v1']
         .includes(plan.qualification))?10000:5000;
     const out=spawnSync(argv[0],argv.slice(1),{cwd:plan.cwd,
       timeout,maxBuffer:1024*1024,stdio:['ignore','pipe','pipe'],env:process.env});
@@ -184,6 +185,7 @@ async function execute() {
     const runId=randomUUID();
     const contextStarted=performance.now();
     const environmentBefore=contextHashes()[name];
+    const observedContext=selected.qualification===directQualification?{interpretation:directInterpretation,npmProxyDigest:observedNpmContext()}:null;
     timing('cli.context_before',contextStarted);
     const
       captureTimeout=Number(process.env.VSTATE_CAPTURE_TIMEOUT_MS||decisionDeadlineMs);
@@ -279,6 +281,7 @@ async function execute() {
           endInputEventSerial:end?.inputEventSerial??null}: {})},
       planId:snap?.planId??plan.id,fingerprint:snap?.fingerprint??null,
       provider:plan.provider,environmentHashes:environmentBefore,
+      ...(observedContext?{observedContext,verificationRecipe:directInterpretation}:{}),
       files:snap?.files??null,observerGeneration:before?.observation?.generation??null,
       startRevision:snap?.revision??null,endRevision:end?.revision??null};
     const persistenceStarted=performance.now();
@@ -375,6 +378,15 @@ async function main(){
   if(action==='status'){console.log(JSON.stringify(cached()));return;}
   if(action==='sync'||action==='detail'){
     const started=performance.now();
+    if(profiling&&config.checks.some(check=>check.qualification===directQualification)){
+      const proxyShapes=Object.entries(process.env).filter(([key])=>/^npm_config_.*proxy$/i.test(key)).map(([key,value])=>{
+        try{const url=new URL(value),portDigest=digest(url.port);url.port='';
+          return {key,kind:'url',portDigest,withoutPortDigest:digest(url.href)};}
+        catch{return {key,kind:value===''?'empty':'non-url',valueDigest:digest(value)};}
+      });
+      timing('cli.direct_context',started,{interpretation:directInterpretation,
+        observedNpmDigest:observedNpmContext(),proxyShapes});
+    }
     let value;try{value=await decisionCall({action:'sync',contextHashes:contextHashes()},
       Number(process.env.VSTATE_SYNC_TIMEOUT_MS||decisionDeadlineMs));
       // A client upgrade can encounter an older running observer. Its successful

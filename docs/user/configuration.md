@@ -1,7 +1,7 @@
 # Configuration
 
-Prefer `redue init` over hand-authoring a qualified contract. A typical generated
-npm configuration is concise and portable:
+Prefer `redue init` over hand-authoring a contract. An ordinary generated npm script (recording-only in this candidate)
+configuration is concise and portable:
 
 ```json
 {
@@ -27,6 +27,9 @@ validation recipe; it is not a blanket coverage assertion.
 Use `--config FILE` to select an external configuration. `root` is relative to
 that file. Runtime paths, resolved executables, local evidence, and sockets stay
 out of version-controlled configuration.
+
+For the explicit direct compiler choice and generated exact argv, see
+[direct TypeScript](direct-typescript.md). Existing script receipts cannot satisfy it.
 
 ## Arbitrary commands
 

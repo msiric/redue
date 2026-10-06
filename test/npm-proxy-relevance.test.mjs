@@ -2,6 +2,7 @@
 // The fixture owns its HOME/cache, project and HTTP endpoints. It never changes
 // the caller's real proxy, npm installation, agent policy or shared cache.
 import test from 'node:test';
+import {directCompiler} from '../src/direct-typescript.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -86,13 +87,13 @@ test('npm 10.9.2 proxy port is not outcome-equivalent when the update notifier r
     for(const server of servers)await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
     assert.notEqual(servers[0].address().port,servers[1].address().port);
 
-    async function run(mode,{notifier=true}={}){
+    async function run(mode,{notifier=true,direct=false}={}){
       response=mode;requests=0;
       // A fresh owned cache exposes the notifier rather than letting a prior
       // timestamp accidentally certify the network branch as irrelevant.
       fs.rmSync(cache,{recursive:true,force:true});
       const port=servers[mode==='valid'?0:1].address().port;
-      const started=performance.now(),child=spawn(process.execPath,[path.join(npmRoot,'bin','npm-cli.js'),'run','typecheck'],
+      const started=performance.now(),child=spawn(process.execPath,direct?[directCompiler(root).entry,'--noEmit']:[path.join(npmRoot,'bin','npm-cli.js'),'run','typecheck'],
         {cwd:root,env:{...env,npm_config_proxy:`http://127.0.0.1:${port}`,
           ...(!notifier?{npm_config_update_notifier:'false'}:{})},stdio:['ignore','pipe','pipe']});
       let stdout='',stderr='';child.stdout.on('data',v=>stdout+=v);child.stderr.on('data',v=>stderr+=v);
@@ -111,6 +112,9 @@ test('npm 10.9.2 proxy port is not outcome-equivalent when the update notifier r
       assert.equal(a.exit,0,a.stderr);assert.match(a.stdout,/> tsc --noEmit/);
       assert.equal(b.exit,1,b.stderr);assert(a.requests>0&&b.requests>0);
       assert.notEqual(a.port,b.port);
+    }
+    for(const response of ['valid','missing-version','invalid-version']){
+      const direct=await run(response,{direct:true});assert.equal(direct.exit,0,direct.stderr);assert.equal(direct.requests,0);
     }
     const invalid=await run('invalid-version');assert.equal(invalid.exit,1,invalid.stderr);
     const unavailable=await run('http-error');assert.equal(unavailable.exit,0,unavailable.stderr);

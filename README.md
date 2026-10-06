@@ -67,6 +67,11 @@ Start with ordinary `status`. When it cannot establish caller context, use
 **Synchronization can cost more than rerunning a cheap check, particularly on
 Windows.** REDUE does not choose or execute that tradeoff for you.
 
+For the **unreleased candidate**, ordinary npm scripts are recording-only after
+[an npm launcher applicability gap](docs/acceptance/npm-launcher-boundary.md).
+A separate explicit [direct compiler recipe](docs/user/direct-typescript.md) can
+qualify supported npm typechecks. It does not claim that npm/lifecycle scripts ran.
+
 ## Connect your agent (candidate)
 
 ```sh

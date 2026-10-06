@@ -96,32 +96,18 @@ without receipt-selection validation gets stop/start guidance. Windows command
 shims whose target has not been established are reported as unknown, not a
 proven installation mismatch.
 
-Codex CLI 0.160.1 on macOS has a tested limitation in the scoped socket route:
-its enforced proxy permits the intended observer socket while denying other
-destinations, and injects npm proxy configuration. This candidate admits the
-observed `proxy`, `https_proxy`, `http_proxy`, and `noproxy` npm environment keys
-(case-insensitive) for the reviewed npm 10.9.2 standalone `tsc --noEmit` contract.
-`http_proxy` is a host-supplied, inert unknown key in that npm version, not an
-official npm option. Conflicting aliases, invalid values, unknown overrides, and
-unreviewed npm versions remain unsupported. Yarn/pnpm admission is unchanged.
+Codex CLI 0.160.1 on macOS can use the approved exact observer-socket route while
+other sockets and direct network access remain denied. Its independent sessions
+receive different proxy values. Ordinary npm invocation is **not** equivalent
+across arbitrary notifier state: this candidate withholds automatic npm-launcher
+reuse. Do not change proxy settings or permissions to get green evidence.
 
-All original npm context values remain fingerprinted. Same-context execution and
-reuse pass, but independent Codex sessions were observed to receive different
-loopback proxy ports. That difference makes prior evidence STALE on synchronized
-inspection; ordinary cached status remains conservative when caller context is
-unavailable. Do not unset the proxy, broaden permissions, or erase context
-differences to force CURRENT. Eligible **fresh-session** reuse in this environment
-has not been behaviorally established. Two fresh sessions correctly recorded new
-executions instead of claiming inherited eligibility.
-
-Source review found a concrete reason not to ignore these differences: npm 10.9.2
-can run its update notifier during `npm run typecheck`. Certain malformed update
-responses can fail the outer npm invocation despite unchanged compilation inputs.
-The observed agent context
-has that notifier enabled. REDUE therefore does not treat changing proxy ports as
-equivalent for this invocation. Do not disable enforced settings or normalize
-context values to obtain eligibility. This limitation concerns the exact npm
-invocation, not the REDUE product name or agent access permissions.
+The separate opt-in [direct local compiler recipe](direct-typescript.md) does not
+run npm. Its reviewed compiler implementation does not consume npm/proxy settings;
+a digest preserves their observed provenance without treating them as compiler
+inputs. Other execution context remains strict, and cached status still cannot
+assert caller eligibility. An explicit user request for `npm run typecheck` still
+requires npm execution; direct compiler evidence is not a substitute.
 
 Before model trials, run `redue agent doctor --json` and
 `redue status --sync --json` inside the agent's actual command boundary. The

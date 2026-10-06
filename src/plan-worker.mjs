@@ -4,6 +4,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {discover} from './plan.mjs';
 import {InputIndex} from './index.mjs';
+import {directProject,directQualification} from './direct-typescript.mjs';
 import {queriesMatch} from './typescript-list.mjs';
 import {planGuard,inputKey} from './decision-validation.mjs';
 import {timing} from './decision-profile.mjs';
@@ -21,7 +22,14 @@ try {
     try{
       guard=planGuard(bundle);
       const queryStarted=performance.now();
-      const queriesValid=!workerData.reuse.queries?.length||queriesMatch(workerData.reuse.queries);
+      // Cached membership queries load the compiler API; establish its reviewed
+      // implementation before that optimization can execute project code.
+      const directRoots=new Set(config.checks.filter(check=>check.qualification===directQualification)
+        .map(check=>directProject(config.root,check.script).tsRoot));
+      if(directRoots.size&&(workerData.reuse.queries||[]).some(([kind,,,options])=>
+        kind==='readDirectory'&&!directRoots.has(options?.tsRoot)))throw Error('retained compiler implementation changed');
+      const queriesValid=guard===workerData.reuse.guard&&
+        (!workerData.reuse.queries?.length||queriesMatch(workerData.reuse.queries));
       timing('worker.compiler_queries',queryStarted,{queries:workerData.reuse.queries?.length||0,matched:queriesValid?1:0});
       if(guard!==workerData.reuse.guard||!queriesValid)reuseReason='configuration_or_resolution_changed';
       else {

@@ -15,14 +15,14 @@ At the repository root, `init` looks for existing typecheck, test, lint, and
 build scripts. It prefers familiar script names, then unique recognizable
 `tsc`, Vitest/Jest, ESLint, or Vite commands under other names. Multiple
 matches are reported as ambiguous rather than guessed. It never creates a new
-project script. It recognizes canonical
-`tsc --noEmit` on local npm installations as a candidate for automatic
-qualification. Before CURRENT is possible, a read-only probe checks the
-TypeScript configuration and effective file list, local compiler, installed
-contents, npm/Node identity, and relevant caller context. Unsupported plugins,
-preloads, config graphs, or outside-root inputs leave the check UNVERIFIED with
-an explanation. A discovered script can still be run and recorded in that
-state. Root and package-level npm/Yarn workspace scripts are discovered from
+project script. Ordinary npm scripts are recording-only in this candidate: npm launcher notification
+inputs are not fully observed. The opt-in `init --recipe typescript-direct` supports
+a standalone `tsc --noEmit` script in a single-package npm installation using
+reviewed TypeScript 5.6.3/5.9.3 and Node 22/24. It executes the local compiler,
+not npm. Full installed compiler identity, config/membership, installed inputs
+and relevant Node environment are checked before reuse. See the
+[exact direct boundary](direct-typescript.md). Unsupported plugins, preloads,
+configuration or outside-root inputs remain UNVERIFIED. Root and package-level npm/Yarn workspace scripts are discovered from
 `package.json` workspace declarations. Pinned Yarn 4 `node-modules`/classic
 workspaces with a standalone `tsc -p .` script, local TypeScript, a conventional
 `src` include, and Node module resolution can qualify automatically. For one
