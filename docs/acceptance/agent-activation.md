@@ -568,3 +568,65 @@ ordering, and lost observation. The corresponding result is STALE for observed
 relevant differences or UNVERIFIED when coverage/observation is unresolved. PASS
 alone never authorizes reuse. No universal economic recommendation follows from
 two subsecond suites.
+
+## Proxy-context follow-up (2026-10-06; in progress)
+
+The isolated hotfix was merged separately as `b7c2306` and published as alpha.3.
+The final packaged-notice artifact differs from the earlier candidate above:
+SHA-256 `61660a6660563e5b00d16e1d3f8abb1458a96bf60b86ad8201e5fdcf3570b72b`.
+[Final exact matrix](https://github.com/msiric/redue/actions/runs/37493397261)
+passed all three platforms, including actual alpha.2 observer upgrade. Public npm
+bytes match; public install and upgrade smoke passed. Activation is not released.
+
+### Narrow environment interpretation
+
+Inspected/tested toolchain: Node 22.13.0, npm 10.9.2, Codex 0.160.1.
+The unchanged approved socket preflight reproduced the existing caller probe's
+`execution-environment-unsupported` rejection before the extension.
+No permission profile, proxy setting, command, or lifecycle was removed/changed.
+
+Only the observed `npm_config_proxy`, `npm_config_https_proxy`,
+`npm_config_noproxy`, and `npm_config_http_proxy` spellings (case-insensitive)
+are admitted, and only under npm **10.9.2**. `proxy`, `https-proxy`, and `noproxy`
+are recognized npm settings. `http-proxy` is **not** an official npm alias:
+this pinned npm retains it as unknown configuration, passes the environment to
+children, and omits it from flattened fetch options. This specific inert behavior
+does not justify admitting other unknown options or unreviewed npm versions.
+
+Source: npm v10.9.2 [`loadEnv`](https://github.com/npm/cli/blob/v10.9.2/workspaces/config/lib/index.js),
+[`setEnvs`](https://github.com/npm/cli/blob/v10.9.2/workspaces/config/lib/set-envs.js),
+[definitions](https://github.com/npm/cli/blob/v10.9.2/workspaces/config/lib/definitions/definitions.js),
+[flattening](https://github.com/npm/cli/blob/v10.9.2/workspaces/config/lib/definitions/index.js),
+[run-script child environment](https://github.com/npm/run-script/blob/v9.0.2/lib/make-spawn-args.js).
+Installed source plus six disposable npm experiments established casing/empty/
+CLI-override behavior; current npm documentation alone was not treated as proof
+of this exact version.
+
+npm normalizes names and uses enumeration order for conflicting aliases on POSIX.
+Uppercase-only environment settings need not acquire lowercase replacements in
+the child. Empty values are ignored as npm configuration but retained in the child.
+Conflicting case variants are rejected, including empty/nonempty pairs; equal
+pairs are admitted. Windows subprocess environment keys are case-insensitive
+([Node 22.13.0](https://nodejs.org/download/release/v22.13.0/docs/api/child_process.html));
+the conservative duplicate rule does not depend on which spelling Windows keeps.
+Proxy URL values must be empty or HTTP(S) URLs (`proxy=false` is also recognized);
+control characters are rejected. No proxy values, credentials, or private URLs
+are emitted in diagnostics.
+
+These settings cannot select the script, compiler, shell, loader, or workspace
+in the existing exact `npm run typecheck` → `tsc --noEmit` contract. npm lifecycle
+scripts, custom shells/preloads, compiler substitution/plugins, and external
+compiler inputs remain rejected. No network-dependent command becomes qualified.
+`.npmrc`, Yarn, and pnpm admission are unchanged.
+
+Admission is separate from identity: every original npm-prefix key/value is
+still hashed, preserving absent/empty/case/value differences. No value is stripped,
+overwritten, or normalized out of caller context. Caller probes validate their
+own environment; daemon probes validate theirs. Proxy values are not substituted
+from the daemon or added to the shared input/toolchain digest. The explicit
+probe-interpretation revision changes both full and context-only digests, forcing
+prior probe results/evidence to be reevaluated without mutating old receipts.
+
+Tests: `test/npm-typecheck-environment.test.mjs`, the npm 10.9.2 case in
+`test/onboarding.test.mjs`, and `test/acceptance/proxy-package-smoke.mjs` (pinned
+npm in an owned prefix; one exact artifact across macOS/Linux/native Windows).

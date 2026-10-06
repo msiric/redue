@@ -105,6 +105,14 @@ try {
   assert(agentHealth.hosts.every(h=>h.integrity==='intact'));
   console.log('Installed activation: preview/setup/doctor/idempotency PASS; host behavior is evaluated separately.');
   console.log(cli('start'));
+  if(process.argv.includes('--proxy-context')){
+    // Observer was started with its ordinary environment. Only subsequent
+    // caller processes receive these synthetic, non-secret proxy settings.
+    for(const key of ['proxy','https_proxy','http_proxy','noproxy']){
+      const value=key==='noproxy'?'localhost,127.0.0.1':'http://127.0.0.1:3128';
+      env['npm_config_'+key]=value;env[('npm_config_'+key).toUpperCase()]=value;
+    }
+  }
   console.log('Agent A (a separate CLI process) records the check.');
   console.log(cli('run','typecheck'));
   const first=await expect('Agent A recorded','CURRENT');

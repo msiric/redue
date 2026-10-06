@@ -11,6 +11,7 @@ import {createRequire} from 'node:module';
 import {spawnSync} from 'node:child_process';
 import {withinPath as within,realObservedPath} from './path-identity.mjs';
 import {timing} from './decision-profile.mjs';
+import {npmTypecheckEnvironmentIssue,npmEnvironmentInterpretation} from './npm-typecheck-environment.mjs';
 
 const [rootArg,scriptName,npmArg]=process.argv.slice(2);
 const hash=value=>createHash('sha256').update(value).digest('hex');
@@ -50,16 +51,11 @@ try{
   if(pkg.scripts?.[scriptName]?.trim()!=='tsc --noEmit'||
     pkg.scripts?.['pre'+scriptName]||pkg.scripts?.['post'+scriptName])
     fail('typecheck-script-changed');
-  if(process.env.NODE_OPTIONS||process.env.NODE_PATH||process.env.BASH_ENV||
-    process.env.ENV||Object.entries(process.env).some(([key,value])=>{
-      if(/^npm_config_prefix$/i.test(key)&&process.platform==='win32'){
-        // The Windows runner supplies a global npm prefix independently of
-        // the selected local compiler. Its value is part of caller context.
-        return !path.isAbsolute(value);
-      }
-      return /^(npm_config_|DYLD_|TSGO_)/i.test(key);
-    }))fail('execution-environment-unsupported');
-  let npmRoot;
+  let npmRoot=process.platform==='win32'?path.join(path.dirname(npm),'node_modules','npm'):
+    path.dirname(path.dirname(npm));
+  const npmVersion=JSON.parse(fs.readFileSync(path.join(npmRoot,'package.json'),'utf8')).version;
+  const environmentIssue=npmTypecheckEnvironmentIssue(process.env,{npmVersion});
+  if(environmentIssue)fail(environmentIssue);
   if(process.platform==='win32'){
     if(path.basename(npm).toLowerCase()!=='npm.cmd')
       fail('npm-installation-layout-unsupported');
@@ -88,6 +84,7 @@ try{
   const npmConfig=[path.join(root,'.npmrc'),path.join(home,'.npmrc')]
     .map(file=>[hash(file),npmRcKeys(file)]);
   const contextFacts={
+    interpretation:npmEnvironmentInterpretation,
     npmTree:treeHash(npmRoot),npmConfig,
     node:hash(JSON.stringify([process.version,realObservedPath(process.execPath),
       fs.statSync(process.execPath).size])),
