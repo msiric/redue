@@ -119,6 +119,42 @@ remain NOT RUN after the earlier account-capacity failure. No purchase or
 authentication change was made. The Vitest investigation and counterexamples
 below are preserved; no additional implementation or production qualification.
 
+### Final candidate validation and cleanup
+
+Final tested activation runtime/package commit: `df995a0`. This includes the same
+four receipt source files as hotfix `fd7e393` (verified no diff), plus the separate
+doctor diagnostics. [Full CI](https://github.com/msiric/redue/actions/runs/37490198231):
+105 tests; macOS 89 passed/16 platform skips, Linux Node 22/24 and Windows each
+93 passed/12 platform skips; zero failures. [Exact artifact matrix](https://github.com/msiric/redue/actions/runs/37490191261):
+macOS/Linux/native Windows installed setup/doctor/removal and golden package
+workflow all passed. Local focused suite: 26/26 passed.
+
+Unreleased activation artifact (not registry alpha.2):
+`redue-cli-0.1.0-alpha.2.tgz`, 55 files, 94,733 bytes; SHA-256
+`d9749b83e6b25ce9903e4b63235263a4eaaa8e0798729fabe5bcd9b63b055092`.
+The local candidate and CI tarball match byte-for-byte. Identify this candidate
+by commit/checksum, not its unchanged unreleased package version field. The
+contributor preflight helper is intentionally outside the distributed npm files;
+it queries the installed binary rather than executing an engine from source.
+
+Reinstalled this exact final candidate after stopping its earlier observer, then
+restarted with the same owned state. The committed preflight helper was invoked
+inside the default-denied and approved Codex sandbox settings. Both returned exit
+2 / `eligible:false`, retaining receipt `a122db37-91d3-46c9-b0be-00f96e5b2570`.
+The denied case reports connect EPERM; approved sync exits 0 but correctly reports
+the receipt's unstable PASS as UNVERIFIED. One-shot final timings: approved doctor
+91 ms, cached status 75 ms, synchronized status 835 ms; denied doctor 127 ms,
+cached status 78 ms and failed sync 145 ms. These are diagnostic observations,
+not a saved-work or latency-distribution study.
+
+Cleanup stopped the owned observer, removed its integration and candidate npm
+prefix, and confirmed that its control endpoint and lock disappeared. Two
+immutable receipts remained byte-identical. Owned stopped state, public checkout,
+and raw diagnostics are retained locally for review. No stable installation,
+main branch, published package, dist-tag, or release was changed. PR #2 is ready
+for independent hotfix review; PR #1 remains draft. Further model trials remain
+gated on a genuinely eligible in-context preflight.
+
 ## Contract and implementation
 
 Project-local explicit setup: short host instruction + shared-source
