@@ -1,5 +1,5 @@
 {
-  "name": "redue",
+  "name": "@msiric/redue",
   "private": false,
   "version": "0.1.0-alpha.1",
   "publishConfig": {

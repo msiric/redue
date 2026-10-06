@@ -6,14 +6,15 @@ storage is local APFS on macOS, NTFS on Windows, and the documented native Linux
 filesystems. Network/FUSE/overlay mounts are not qualified Linux storage.
 Node 22 and 24 are the release-test matrix; newer majors are not yet acceptance claims.
 
-The alpha candidate is an ordinary npm tarball. From REDUE source:
+Install the public alpha:
 
 ```sh
-npm ci
-npm pack
-npm install --global ./redue-0.1.0-alpha.1.tgz
+npm install --global @msiric/redue@alpha
 redue --version
 ```
+
+For an unpublished source candidate, run `npm ci` and `npm pack --json`, then
+install the exact filename reported by npm with `npm install --global ./<filename>`.
 
 These commands also work in PowerShell (use `npm.cmd`/`redue.cmd` when a local
 PowerShell script policy blocks generated `.ps1` shims; do not change policy).
@@ -23,7 +24,7 @@ npm dependencies uses the registry; normal local observation does not require ne
 For a reversible user-owned prefix, POSIX shells:
 
 ```sh
-npm install --global --prefix "$HOME/.local/redue-alpha" ./redue-0.1.0-alpha.1.tgz
+npm install --global --prefix "$HOME/.local/redue-alpha" @msiric/redue@alpha
 export PATH="$HOME/.local/redue-alpha/bin:$PATH"
 ```
 
@@ -31,14 +32,14 @@ PowerShell:
 
 ```powershell
 $reduePrefix = Join-Path $env:LOCALAPPDATA 'redue-alpha-install'
-npm.cmd install --global --prefix $reduePrefix ./redue-0.1.0-alpha.1.tgz
+npm.cmd install --global --prefix $reduePrefix @msiric/redue@alpha
 $env:PATH = "$reduePrefix;$env:PATH"
 redue.cmd --help
 ```
 
 These PATH changes affect only the current shell. Alternatively invoke the
-installed entry point directly: POSIX `node "$HOME/.local/redue-alpha/lib/node_modules/redue/bin/redue.mjs"`;
-Windows `node "$reduePrefix/node_modules/redue/bin/redue.mjs"`.
+installed entry point directly: POSIX `node "$HOME/.local/redue-alpha/lib/node_modules/@msiric/redue/bin/redue.mjs"`;
+Windows `node "$reduePrefix/node_modules/@msiric/redue/bin/redue.mjs"`.
 
 ## First project
 
@@ -84,7 +85,7 @@ is reconciled before reuse.
 redue stop
 redue start
 redue remove-state
-npm uninstall --global redue
+npm uninstall --global @msiric/redue
 ```
 
 For an isolated installation, use the same `--prefix` on uninstall. Remove state

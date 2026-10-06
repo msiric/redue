@@ -42,5 +42,6 @@ jobs:
           if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
           & (Join-Path $prefix 'redue.cmd') --help
           if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
-          npm.cmd uninstall --global --prefix $prefix redue --no-audit --no-fund
+          $packageName = (Get-Content package.json | ConvertFrom-Json).name
+          npm.cmd uninstall --global --prefix $prefix $packageName --no-audit --no-fund
           exit $LASTEXITCODE

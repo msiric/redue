@@ -8,14 +8,21 @@ import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {findExecutable} from '../../src/executable-lookup.mjs';
 import {windowsLaunch} from '../../src/windows-command.mjs';
+import {readArtifact} from './package-artifact.mjs';
 
 const product=process.cwd();
+const productPackage=JSON.parse(fs.readFileSync(path.join(product,'package.json'),'utf8'));
+assert.equal(productPackage.bin.redue,'./bin/redue.mjs');
 const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-package-'));
 const prefix=path.join(base,'prefix'),root=path.join(base,'Project é'),state=path.join(base,'redue-state');
 const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!/^npm_config_/i.test(key)));
 const npm=findExecutable('npm'),demo=process.argv.includes('--demo');
 const tarballAt=process.argv.indexOf('--tarball');
-const suppliedTarball=tarballAt<0?null:path.resolve(process.argv[tarballAt+1]||'');
+const manifestAt=process.argv.indexOf('--manifest');
+assert(tarballAt<0||manifestAt<0,'Choose --tarball or --manifest');
+const suppliedArtifact=manifestAt<0?null:readArtifact(path.resolve(process.argv[manifestAt+1]||''));
+if(suppliedArtifact){assert.equal(suppliedArtifact.metadata.name,productPackage.name);assert.equal(suppliedArtifact.metadata.version,productPackage.version);}
+const suppliedTarball=suppliedArtifact?.file||(tarballAt<0?null:path.resolve(process.argv[tarballAt+1]||''));
 if(suppliedTarball)assert(fs.statSync(suppliedTarball).isFile(),'--tarball needs an existing package file');
 const put=(p,s)=>{fs.mkdirSync(path.dirname(p),{recursive:true});fs.writeFileSync(p,s);};
 function exec(command,{cwd=product,allowFailure=false}={}) {
@@ -53,8 +60,13 @@ try {
   const packageSha256=createHash('sha256').update(fs.readFileSync(tarball)).digest('hex');
   console.log(`Package: ${pack.filename}; ${pack.size} bytes; sha256 ${packageSha256}`);
   exec([npm,'install','--global','--prefix',prefix,'--no-audit','--no-fund',tarball]);
+  const installedRoot=path.join(prefix,...(process.platform==='win32'?[]:['lib']),'node_modules',...productPackage.name.split('/'));
+  const installedPackage=JSON.parse(fs.readFileSync(path.join(installedRoot,'package.json'),'utf8'));
+  assert.equal(installedPackage.name,productPackage.name);
+  assert.equal(installedPackage.version,productPackage.version);
+  assert.deepEqual(installedPackage.bin,productPackage.bin);
   assert.match(exec([binary,'--help']).stdout,/Usage: redue/);
-  assert.equal(exec([binary,'--version']).stdout.trim(),JSON.parse(fs.readFileSync('package.json')).version);
+  assert.equal(exec([binary,'--version']).stdout.trim(),productPackage.version);
   fs.mkdirSync(root);
   assert.match(exec([binary,'status'],{cwd:root,allowFailure:true}).stderr,/run redue init/);
   put(path.join(root,'package.json'),JSON.stringify({name:'redue-demo',version:'1.0.0',
@@ -77,8 +89,7 @@ try {
       paths:[root,canonical].map(dir=>({dir,files:['tsconfig.json','node_modules/typescript/package.json']
         .map(file=>{const full=path.join(dir,file);let access=null;try{fs.accessSync(full);}catch(e){access=e.code;}
           return {file,exists:fs.existsSync(full),access};})}))})}`);
-    const entry=process.platform==='win32'?path.join(prefix,'node_modules','redue','bin','redue.mjs'):
-      path.join(prefix,'lib','node_modules','redue','bin','redue.mjs');
+    const entry=path.join(installedRoot,'bin','redue.mjs');
     console.log(`Direct Node preview: ${exec([process.execPath,entry,'init','--dry-run','--json'],{cwd:root,allowFailure:true}).stdout}`);
   }
   assert.equal(preview.written,false);assert.equal(preview.checks[0].level,'ready',JSON.stringify(preview));
@@ -109,8 +120,8 @@ try {
   assert.match(cli('status','--short'),/^REDUE UNVERIFIED/);
   console.log(cli('remove-state'));assert(!fs.existsSync(state));
   assert(fs.existsSync(path.join(root,'src/main.ts')));assert(fs.existsSync(path.join(root,'node_modules','typescript','lib','tsc.js')));
-  exec([npm,'uninstall','--global','--prefix',prefix,'redue','--no-audit','--no-fund']);
-  assert(!fs.existsSync(binary));
+  exec([npm,'uninstall','--global','--prefix',prefix,productPackage.name,'--no-audit','--no-fund']);
+  assert(!fs.existsSync(binary));assert(!fs.existsSync(installedRoot));
   console.log(JSON.stringify({platform:process.platform,node:process.version,package:pack.filename,
     packageBytes:pack.size,packageSha256,observations,cleanup:'owned state and installation only; project/dependencies preserved'}));
 } finally {

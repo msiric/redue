@@ -1,6 +1,8 @@
 # Changelog
 
-## 0.1.0-alpha.1 — 2026-10-05
+## 0.1.0-alpha.1 — 2026-10-06
+
+Install: `npm install --global @msiric/redue@alpha`. The command remains `redue`.
 
 - Persistent execution evidence with independent CURRENT, STALE, and UNVERIFIED applicability.
 - Node/TypeScript onboarding for npm, supported Yarn node-modules workspaces, and pnpm 12 isolated/hoisted layouts.

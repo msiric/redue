@@ -1,5 +1,11 @@
 # Alpha release gate — 2026-10-05
 
+Historical unscoped-candidate report. The subsequent npm publish was rejected by
+its name-similarity policy; no unscoped version or GitHub tag was created. The
+repository became public and private vulnerability reporting was enabled. The
+scoped release supersedes this candidate; see the current
+[release procedure](../contributor/releasing.md). Original evidence follows unchanged.
+
 Recommendation: **SHIP**. All technical, licensing, namespace and publisher checks
 passed for the candidate below. This recommendation is not publication approval.
 The repository is still PRIVATE; npm publication, tag and GitHub release have not
@@ -111,7 +117,7 @@ and publication; it is separate from runtime evidence and earlier installations.
 
 The release commit(s) and evidence report are pushed only to the private repository.
 After explicit approval, follow the exact-artifact sequence in
-[the release procedure](../contributor/releasing.md#reviewed-first-alpha-sequence).
+[the release procedure](../contributor/releasing.md).
 Do not rebuild a different tarball for publication. Enable private vulnerability
 reporting after the visibility change and before npm publication. Interactive npm
 2FA must be completed by the maintainer. No publication authorization is inferred

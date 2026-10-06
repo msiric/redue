@@ -18,17 +18,16 @@ jobs:
       - name: Runtime dependency advisory audit
         run: npm audit --omit=dev --json > runtime-audit.json
         continue-on-error: true
-      - run: npm run test:package
       - name: Build inspectable release artifact
         run: |
-          npm pack --json > package-manifest.json
-          sha256sum redue-*.tgz > SHA256SUMS
+          mkdir release-candidate
+          npm pack --json --pack-destination release-candidate > release-candidate/manifest.json
+          node test/acceptance/package-artifact.mjs record release-candidate/manifest.json
+      - run: node test/acceptance/package-smoke.mjs --manifest release-candidate/manifest.json
       - uses: actions/upload-artifact@v4
         with:
           name: redue-alpha-candidate
           path: |
-            redue-*.tgz
-            package-manifest.json
-            SHA256SUMS
+            release-candidate/
             runtime-audit.json
           retention-days: 14

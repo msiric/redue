@@ -28,17 +28,16 @@ Agent A verifies and exits. Agent B starts fresh. The receipt is still there;
 REDUE checks whether it still applies. Unrelated documentation edits can preserve
 it; relevant source edits make it stale. [Run the reproducible demo](docs/contributor/demo.md).
 
-## Try the alpha candidate
+## Install the alpha
 
-Published alphas install with `npm install --global redue@alpha`.
-To test an unpublished candidate from a source checkout, create and install the
-ordinary npm package:
+REDUE is published on npm as `@msiric/redue`. The installed command is `redue`.
 
 ```sh
-npm ci
-npm pack
-npm install --global ./redue-0.1.0-alpha.1.tgz
+npm install --global @msiric/redue@alpha
 ```
+
+To test a source candidate, run `npm ci` and `npm pack --json`, then install the
+reported tarball filename with `npm install --global ./<filename>`.
 
 Use a Node installation you own; REDUE does not need administrator privileges.
 If a global prefix is not writable, use a user-owned `--prefix` or run the

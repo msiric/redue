@@ -13,13 +13,14 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci --no-audit --no-fund
+      - run: node --test test/package-release.test.mjs
       - run: node test/acceptance/registry-name.mjs
       - name: Audit and pack once
         run: |
           npm audit --omit=dev
           mkdir release-candidate
           npm pack --json --pack-destination release-candidate > release-candidate/manifest.json
-          sha256sum release-candidate/*.tgz > release-candidate/SHA256SUMS
+          node test/acceptance/package-artifact.mjs record release-candidate/manifest.json
       - uses: actions/upload-artifact@v4
         with:
           name: exact-release-candidate
@@ -44,4 +45,4 @@ jobs:
           name: exact-release-candidate
           path: release-candidate
       - name: Install exact tarball and exercise public binary
-        run: node test/acceptance/package-smoke.mjs --tarball release-candidate/redue-0.1.0-alpha.1.tgz
+        run: node test/acceptance/package-smoke.mjs --manifest release-candidate/manifest.json

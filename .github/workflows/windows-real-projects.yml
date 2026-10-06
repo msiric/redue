@@ -27,7 +27,8 @@ jobs:
           $pack = npm pack --json | ConvertFrom-Json
           npm.cmd install --global --prefix $prefix $pack[0].filename --no-audit --no-fund
           if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
-          "REDUE_ACCEPTANCE_CLI=$(Join-Path $prefix 'node_modules/redue/bin/redue.mjs')" >> $env:GITHUB_ENV
+          $packageName = (Get-Content package.json | ConvertFrom-Json).name
+          "REDUE_ACCEPTANCE_CLI=$(Join-Path $prefix "node_modules/$packageName/bin/redue.mjs")" >> $env:GITHUB_ENV
       - name: Exercise real public repository on native NTFS
         shell: pwsh
         env:

@@ -1,120 +1,100 @@
 # Alpha release procedure
 
-No release is automatic. The repository remains private and the package unpublished
-until the owner explicitly authorizes public release. The alpha.1 candidate has
-`private: false` and `publishConfig` set to public/alpha for artifact validation;
-this metadata is not permission to publish. The owner selected the standard
-Apache-2.0 license for the open-source core.
+REDUE's permanent alpha npm coordinate is `@msiric/redue`; its executable is
+`redue`. The repository is public. Publication still requires explicit release
+authorization; package metadata is not permission to publish.
+
+The unscoped name was rejected by npm's similarity policy. The owner authorized
+the personal-scope fallback when organization creation could not be completed.
+A registry 404 does not establish scope ownership or guarantee publication.
 
 ## Candidate validation
 
-1. Run the product CI matrix (Node 22 on macOS/Linux/Windows; Node 24 on Linux).
-2. Run the manual public-project acceptance on the packaged build when a release
-   changes onboarding/install boundaries. Retain deeper native stress separately.
-3. For the final candidate, dispatch **Exact release tarball smoke (no publication)**.
-   It checks the exact public npm name, audits runtime dependencies, and packs once.
-   macOS, Linux and Windows then install/exercise/uninstall that identical tarball,
-   recording its SHA-256. The tarball, manifest and checksum remain private artifacts.
-   **Prepare alpha package (no publication)** remains an optional single-platform
-   preparation check; it does not replace the final cross-platform package gate.
-4. Inspect the manifest: runtime source/native observer helper, entry points, user
-   docs/examples, README/changelog/license only. No local state, private config,
-   test installation, corporate material, or historical evidence.
-5. Scan the tree and Git history for secrets. Review dependency licenses and
-   vulnerabilities. Confirm package name availability/ownership immediately before
-   first publication; a registry 404 is not a reservation or proof of publishing rights.
+1. Confirm a clean reviewed commit, publisher `msiric`, publishing 2FA, package
+   ownership/availability and the intended version. Do not log credentials.
+2. Run `node test/acceptance/registry-name.mjs`. It derives the exact encoded
+   coordinate from package.json and distinguishes absent, owned, unexpected and
+   unavailable metadata. Owned requires the expected maintainer and repository;
+   authenticated publication permission remains a separate gate.
+3. Run the focused packaging regressions. Run broader product/platform tests only
+   when runtime changes require them; inherited acceptance is retained separately.
+4. Dispatch **Exact release tarball smoke (no publication)** for the reviewed ref.
+   It audits dependencies and packs once. All three OS jobs install the identical
+   artifact selected from `npm pack --json`, verifying its checksum and exercising
+   the real `redue` binary, freshness workflow, restart and scoped cleanup.
+5. Download `exact-release-candidate` into a separately owned local candidate
+   directory. Retain its `manifest.json`, `SHA256SUMS` and reported tarball. The
+   optional **Prepare alpha package** workflow does not replace the three-OS gate.
+6. Inspect actual package contents and scan the source/history for secrets. Keep
+   Apache-2.0 and third-party notices. No receipts, caches, private configuration,
+   tests or historical acceptance reports belong in the distributed package.
+7. Repack and revalidate after any package-content change. Do not repack between
+   successful validation and publication. Push the reviewed release commit to main.
 
-## Explicit release gates
+A temporary candidate branch can supply the workflow before main advances. The
+release target must include the reviewed scoped metadata; it must not target the
+obsolete unscoped candidate. The source runtime is not rebuilt during packaging.
 
-- Preserve the standard Apache-2.0 LICENSE and matching package metadata. Keep any
-  third-party attribution required by the material actually distributed.
-- Confirm the intended personal npm publisher account, 2FA, and ability to own the
-  exact `redue` name. Do not store credentials in this repository or its logs.
-- Enable GitHub private vulnerability reporting when the repository becomes public,
-  before publishing the package; the private-repository API currently returns 404.
-- Obtain explicit approval to change repository visibility and publish the package.
-- Review the publication-enabled metadata and dated CHANGELOG candidate. Repack
-  and revalidate the exact candidate after any package-content changes.
+## Direct first publication, after approval
 
-## Standard publication, after approval
-
-Use `0.1.0-alpha.1` for the first public alpha and increment the prerelease for fixes.
-The repository and prepared artifact remain privately held until explicit release approval.
-Publish to the `alpha` tag, never silently to `latest`:
-
-```sh
-# Use the inspected, cross-platform-tested tarball retained during validation.
-npm publish ./path/to/redue-0.1.0-alpha.1.tgz --tag alpha --access public
-```
-
-The first publish may require the maintainer's interactive npm authentication/2FA.
-Do not automate around that control. Once the package exists, configure npm's
-GitHub Actions trusted publisher for this owner/repository and one reviewed publish
-workflow. Prefer standard OIDC (`id-token: write`) over a long-lived stored token.
-Use a current npm CLI meeting npm's trusted-publishing requirements. Automatic
-provenance requires a public source repository and public package; private candidate
-artifacts must not be represented as having public npm provenance.
-
-Tag the reviewed commit `v0.1.0-alpha.1`, create a GitHub prerelease from CHANGELOG,
-and attach the matching tarball, manifest, and checksum. There is intentionally no
-publish workflow or write-token release automation before these decisions.
-
-## Rollback
-
-A published version is immutable; fix forward with a new alpha. If necessary,
-move the `alpha` dist-tag to a previous tested version and deprecate the defective
-version with an actionable message. Do not assume unpublish is possible: npm's
-policy restricts it and deletion can disrupt users. Do not delete user evidence.
-Users can install an exact prior version; incompatible local state must fail clearly,
-not be silently reinterpreted.
-
-## Reviewed first-alpha sequence
-
-These commands are for the reviewed alpha.1 candidate and are **not executed by
-preparation**. Run only after explicit approval to make REDUE public and publish.
-The final release/report commits are already on private main. From that clean
-checkout, verify that its packaged contents still match candidate `2355466` and
-that npm still identifies `msiric` with publishing 2FA enabled. Recheck the exact
-registry name; stop if another package has appeared.
+From the clean checkout at the reviewed release commit, with the downloaded
+candidate in `.local/release-candidates/alpha.1-scoped/`:
 
 ```sh
 (
 set -eu
 redue_release_commit=$(git rev-parse HEAD)
-redue_release_dir=.local/release-candidates/0.1.0-alpha.1-2355466
+redue_release_dir=.local/release-candidates/alpha.1-scoped
 test -z "$(git status --porcelain)"
-(cd "$redue_release_dir" && shasum -a 256 -c SHA256SUMS)
+test "$(npm whoami --registry=https://registry.npmjs.org)" = msiric
+node test/acceptance/registry-name.mjs
+redue_artifact=$(node test/acceptance/package-artifact.mjs verify "$redue_release_dir/manifest.json")
 git push origin main
-
-# Public actions: require the owner's final release approval.
-gh repo edit msiric/redue --visibility public --accept-visibility-change-consequences
-gh api --method PUT repos/msiric/redue/private-vulnerability-reporting
-npm publish "$redue_release_dir/redue-0.1.0-alpha.1.tgz" --tag alpha --access public --registry=https://registry.npmjs.org
-gh release create v0.1.0-alpha.1 "$redue_release_dir/redue-0.1.0-alpha.1.tgz" "$redue_release_dir/SHA256SUMS" "$redue_release_dir/manifest.json" --repo msiric/redue --target "$redue_release_commit" --prerelease --title "REDUE v0.1.0-alpha.1" --notes-file CHANGELOG.md
+npm publish "$redue_artifact" --tag alpha --access public --registry=https://registry.npmjs.org
+gh release create v0.1.0-alpha.1 "$redue_artifact" "$redue_release_dir/SHA256SUMS" "$redue_release_dir/manifest.json" --repo msiric/redue --target "$redue_release_commit" --prerelease --title "REDUE v0.1.0-alpha.1" --notes-file CHANGELOG.md
 )
 ```
 
-Stop on any failure. `gh release create` creates the tag at the reviewed commit;
-do not move an existing tag. The maintainer completes npm's interactive 2FA challenge.
-Publish the retained artifact, not a new pack from a different checkout or platform.
+Stop on failure and diagnose it. Do not silently switch coordinates, rebuild,
+republish different bytes, or move a tag. The maintainer completes npm's interactive
+2FA challenge. Use direct publication, not staged publishing, for the first version.
+Keep the `alpha` dist-tag; do not silently promote the prerelease to `latest`.
+GitHub private vulnerability reporting is already enabled.
 
-Immediate registry smoke, also only after publication:
+## Public-registry smoke
+
+Download from the registry, compare with the validated checksum, then exercise the
+installed public command. This does not replace a user's installation.
 
 ```sh
 (
 set -eu
 redue_smoke=$(mktemp -d /tmp/redue-postpublish.XXXXXX)
-npm pack redue@0.1.0-alpha.1 --registry=https://registry.npmjs.org --pack-destination "$redue_smoke"
-node test/acceptance/package-smoke.mjs --tarball "$redue_smoke/redue-0.1.0-alpha.1.tgz"
-rm "$redue_smoke/redue-0.1.0-alpha.1.tgz"
+redue_coordinate=$(node -p 'const p=require("./package.json"); p.name+"@"+p.version')
+npm pack "$redue_coordinate" --json --registry=https://registry.npmjs.org --pack-destination "$redue_smoke" > "$redue_smoke/manifest.json"
+node test/acceptance/package-artifact.mjs record "$redue_smoke/manifest.json"
+cmp .local/release-candidates/alpha.1-scoped/SHA256SUMS "$redue_smoke/SHA256SUMS"
+node test/acceptance/package-smoke.mjs --manifest "$redue_smoke/manifest.json"
+redue_download=$(node test/acceptance/package-artifact.mjs verify "$redue_smoke/manifest.json")
+rm "$redue_download" "$redue_smoke/manifest.json" "$redue_smoke/SHA256SUMS"
 rmdir "$redue_smoke"
 )
 ```
 
-The smoke installs into its own prefix and exercises the real public command,
-qualified workflow, restart and scoped removal. It does not replace a user's
-installation. If it fails, retain diagnostics and use the rollback guidance above.
+Verify public npm version/dist-tags, repository visibility, release target and
+attached checksums. Keep failure diagnostics if any step fails.
 
-References: [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/),
-[npm pack](https://docs.npmjs.com/cli/v11/commands/npm-pack/),
+## Later automation and rollback
+
+Trusted publishing through GitHub Actions/OIDC is a separate follow-up after the
+package exists. Do not add a long-lived publishing token or release automation as
+part of the first release. No automatic migration to the unscoped name is planned.
+
+Published versions are immutable. Fix forward with a new alpha. If necessary,
+move `alpha` to a previous tested version and deprecate the defective version with
+an actionable message. Do not assume unpublish is possible or delete user evidence.
+Incompatible state must fail clearly rather than being reinterpreted.
+
+References: [npm scoped public packages](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages/),
+[npm trusted publishing](https://docs.npmjs.com/trusted-publishers/),
 [npm unpublish policy](https://docs.npmjs.com/policies/unpublish/).
