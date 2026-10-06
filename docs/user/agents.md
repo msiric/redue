@@ -97,12 +97,22 @@ shims whose target has not been established are reported as unknown, not a
 proven installation mismatch.
 
 Codex CLI 0.160.1 on macOS has a tested limitation in the scoped socket route:
-its enforced network proxy can allow only the observer socket while blocking
-other destinations, but also injects npm proxy configuration. The current
-TypeScript contract rejects that environment. Socket reachability then works,
-yet a wrapped PASS remains UNVERIFIED. Do not unset the injected variables,
-broaden sandbox access, or assert coverage to force CURRENT. Eligible reuse in
-this configuration has **not** been behaviorally validated.
+its enforced proxy permits the intended observer socket while denying other
+destinations, and injects npm proxy configuration. This candidate admits the
+observed `proxy`, `https_proxy`, `http_proxy`, and `noproxy` npm environment keys
+(case-insensitive) for the reviewed npm 10.9.2 standalone `tsc --noEmit` contract.
+`http_proxy` is a host-supplied, inert unknown key in that npm version, not an
+official npm option. Conflicting aliases, invalid values, unknown overrides, and
+unreviewed npm versions remain unsupported. Yarn/pnpm admission is unchanged.
+
+All original npm context values remain fingerprinted. Same-context execution and
+reuse pass, but independent Codex sessions were observed to receive different
+loopback proxy ports. That difference makes prior evidence STALE on synchronized
+inspection; ordinary cached status remains conservative when caller context is
+unavailable. Do not unset the proxy, broaden permissions, or erase context
+differences to force CURRENT. Eligible **fresh-session** reuse in this environment
+has not been behaviorally established. Two fresh sessions correctly recorded new
+executions instead of claiming inherited eligibility.
 
 Before model trials, run `redue agent doctor --json` and
 `redue status --sync --json` inside the agent's actual command boundary. The

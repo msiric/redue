@@ -1,7 +1,8 @@
 # Agent activation milestone
 
 Branch: `dev/agent-activation`; baseline `03d735f` (`@redue/cli` alpha.2).
-No release or merge is authorized in this milestone.
+Activation remains unmerged and unpublished. The separately authorized receipt
+hotfix is released; the current proxy/access follow-up is recorded below.
 
 ## Follow-up: isolated hotfix and Codex access (2026-10-06)
 
@@ -569,7 +570,7 @@ relevant differences or UNVERIFIED when coverage/observation is unresolved. PASS
 alone never authorizes reuse. No universal economic recommendation follows from
 two subsecond suites.
 
-## Proxy-context follow-up (2026-10-06; in progress)
+## Proxy-context follow-up (2026-10-06)
 
 The isolated hotfix was merged separately as `b7c2306` and published as alpha.3.
 The final packaged-notice artifact differs from the earlier candidate above:
@@ -628,5 +629,89 @@ probe-interpretation revision changes both full and context-only digests, forcin
 prior probe results/evidence to be reevaluated without mutating old receipts.
 
 Tests: `test/npm-typecheck-environment.test.mjs`, the npm 10.9.2 case in
-`test/onboarding.test.mjs`, and `test/acceptance/proxy-package-smoke.mjs` (pinned
-npm in an owned prefix; one exact artifact across macOS/Linux/native Windows).
+`test/onboarding.test.mjs`, and `test/acceptance/proxy-package-smoke.mjs` (official
+Node 22.13.0 with bundled npm 10.9.2; one exact artifact across macOS/Linux/native Windows).
+
+### Final deterministic and actual-session results
+
+Runtime/test commit `f1c83e4` (proxy change `a5b5080`; hotfix merge `b59c5d2`).
+[Product regressions](https://github.com/msiric/redue/actions/runs/37495756018):
+109 tests; macOS 92 passed/17 skips; Linux Node 22/24 and Windows 96 passed/13
+skips, zero failures. The npm 10.9.2-specific test skips when a different npm is
+installed; the exact-package matrix separately executes it on all three systems.
+[Exact package matrix](https://github.com/msiric/redue/actions/runs/37495749563)
+passed normal install, pinned proxy-context install, and actual alpha.2 upgrade
+on macOS/Linux/native Windows. Its unreleased candidate SHA-256 was
+`a9389df7903f8b4ecb6af159ee8bfcde358833dae58c2d9d8eb5cfbb9cf10da6`.
+This candidate is distinct from registry alpha.3; identify it by commit/checksum.
+
+One intermediate exact matrix failed on all three systems because the test
+self-installed npm and introduced internal links rejected by the existing npm
+installation contract. The fixture now selects the reviewed official Node
+22.13.0 distribution instead. No installation boundary was weakened. A reviewer
+also caught a Windows test assumption: subprocess launch collapses case variants,
+so tests now change the effective value in both spellings. Conflicting duplicate
+helper tests remain; POSIX additionally tests conflicting subprocess values.
+Earlier superseded/canceled jobs are not counted as passing attempts.
+
+In the actual approved Codex sandbox, unchanged ordinary `npm run typecheck`
+produced stable receipt `3f83d29b-2ca5-41e0-865a-51c9ad5e89ba`. A new child process
+within that same context returned healthy CURRENT/PASS with reuse eligibility.
+An unrelated documentation file preserved it. Source, tsconfig, and installed
+TypeScript README edits each returned STALE with the changed path explained;
+restoring original bytes recovered CURRENT for the same historical receipt.
+Synthetic environment tests separately covered absent/empty/case/value changes,
+conflicts, unknown settings, invalid values, shell/loader overrides, real FAIL,
+and unstable PASS. Receipt-selection regressions remained green.
+
+**Independent sessions are a different result.** Three fresh sandbox launches
+recorded three different npm-prefix fingerprints. Two redacted URL-shape samples
+established HTTP loopback, no credentials, changing ports, and unchanged other
+URL components. New launches correctly returned STALE / “declared execution
+environment changed”. The prefix is not removed or normalized. No cross-session
+proxy-equivalence policy was added. This is the concrete remaining qualification
+limit, not an access failure.
+
+Two actual fresh Codex 0.160.1 sessions ran ordinary prompts without mentioning
+REDUE. They were context/adoption checks before the gated positive matrix, not
+eligible-reuse successes:
+
+| Attempt | Task | Objective tool/receipt evidence | Result |
+| --- | --- | --- | --- |
+| Context session 1 | Read-only constants/type review | Read installed skill; ordinary status returned UNVERIFIED; `redue run typecheck`; new receipt `cdb8337a-3d1f-4af6-b74c-17c1cab4af50`, stable PASS, 780 ms | Accurately reported fresh execution and non-reusable cached evidence |
+| Context session 2 | Add one documentation sentence, preserve source | Read installed guidance; ordinary status returned UNVERIFIED; `redue run typecheck`; new receipt `2d4f34a5-b0b4-4cb7-81dc-f53cb57b23bd`, stable PASS, 723 ms | Accurately distinguished prior evidence from fresh execution |
+
+Their receipt environments differed only in the tracked npm-prefix digest.
+Both final reports and complete command traces were inspected. Neither equivalent
+check was skipped; no direct bypass execution was observed in these two tasks.
+Observed unsafe reuse: **0/2**. Eligible reuse successes: **0**. Actual avoided
+executions: **0**. This finite sample is not a universal compliance claim.
+
+The declared 12-case positive/repeat matrix (eligible twice, unrelated, stale
+twice, unknown twice, failure, explicit-fresh twice, nested, later session) remains
+**NOT RUN** because the independent-session eligibility precondition failed.
+Do not relabel the two context trials or the same-sandbox child as that matrix.
+Historical negative model trials above remain historical, not final-candidate
+validation. Claude inference/cross-host: NOT RUN; previous capacity limit remains,
+with no account/billing change. No new Vitest implementation.
+
+Default-denied final preflight: sync fails EPERM and remains UNVERIFIED. Approved
+exact endpoint: control works, unrelated Unix socket and direct TCP remain EPERM;
+context mismatch remains STALE. Security controls and normal command environment
+were not changed. Doctor remained bounded/read-only.
+
+Five warm same-context measurements on the public project's normal caches:
+ordinary npm typecheck p50 **731 ms**, max **740 ms**; synchronized decision p50
+**676 ms**, max **1118 ms**; cached status p50 **61 ms**, max **106 ms**. These are
+mechanism costs, not demonstrated savings; the actual agents reran both times.
+
+The test observer was stopped, integration removed through its owned removal
+command, candidate uninstalled, and experiment-owned dependencies removed.
+Six immutable run records remain byte-identical; source/config/state evidence
+is retained locally. No normal installation, global agent setting, proxy setting,
+corporate state, or published activation package was changed.
+
+Recommendation: review the bounded npm admission independently; keep PR #1 draft.
+A future explicit, contract-specific proxy-equivalence decision would need its own
+counterexamples and caller-identity treatment before claiming inherited reuse.
+Do not substitute broader permissions or call current fresh-session reuse proven.
