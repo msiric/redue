@@ -11,5 +11,6 @@ function run(argv){const launch=windowsLaunch(argv),r=spawnSync(launch.file,laun
   process.stdout.write(r.stdout||'');process.stderr.write(r.stderr||'');
   assert.equal(r.status,0,r.error?.message);return r.stdout;}
 assert.equal(run([findExecutable('npm'),'--version']).trim(),'10.9.2');
+run([process.execPath,'--test','test/npm-proxy-relevance.test.mjs']);
 run([process.execPath,'--test','--test-name-pattern=npm 10.9.2 proxy','test/onboarding.test.mjs']);
 run([process.execPath,'test/acceptance/package-smoke.mjs',...process.argv.slice(2),'--proxy-context']);

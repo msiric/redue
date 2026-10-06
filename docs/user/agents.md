@@ -114,6 +114,15 @@ differences to force CURRENT. Eligible **fresh-session** reuse in this environme
 has not been behaviorally established. Two fresh sessions correctly recorded new
 executions instead of claiming inherited eligibility.
 
+Source review found a concrete reason not to ignore these differences: npm 10.9.2
+can run its update notifier during `npm run typecheck`. Certain malformed update
+responses can fail the outer npm invocation despite unchanged compilation inputs.
+The observed agent context
+has that notifier enabled. REDUE therefore does not treat changing proxy ports as
+equivalent for this invocation. Do not disable enforced settings or normalize
+context values to obtain eligibility. This limitation concerns the exact npm
+invocation, not the REDUE product name or agent access permissions.
+
 Before model trials, run `redue agent doctor --json` and
 `redue status --sync --json` inside the agent's actual command boundary. The
 contributor helper `test/acceptance/codex-preflight.mjs --config FILE --check CHECK`

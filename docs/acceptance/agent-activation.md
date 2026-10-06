@@ -1,5 +1,132 @@
 # Agent activation milestone
 
+## Current conclusion — proxy relevance review (2026-10-06)
+
+**Fresh-session eligible reuse remains NOT PROVEN. Do not release activation as
+behaviorally accepted.** The authorized source review found a real counterexample
+to port-only equivalence within the currently admitted notifier-enabled npm/tsc
+contract. No
+applicability projection was added and no environment/security setting was changed.
+This supersedes the earlier proposal to treat the remaining difference as merely
+incidental; all earlier attempts below remain historical evidence.
+
+Baseline: clean `dev/agent-activation` at `d9d040a`; main/released alpha.3 at
+`b7c2306`; [PR #1](https://github.com/msiric/redue/pull/1) remains draft. The
+independent receipt-selection correction is released. npm's authorized tag
+correction succeeded: both `alpha` and `latest` select `0.1.0-alpha.3` on the
+public registry. No activation publication or merge occurred.
+
+### Exact in-context reproduction
+
+Codex 0.160.1, macOS, Node 22.13.0, npm 10.9.2, real public project and exact
+socket/state policy documented below. The project actually installs TypeScript
+**5.9.3**. Installed candidate: `953f403`, SHA-256
+`7f80d97c5853c78d7fb264e2d1cd651df35a703cc901e701f975ce0b6a64b642`.
+
+Two independent `codex sandbox` launches reproduced the mismatch before any
+changes. A real `npm run typecheck` in A passed (973 ms), creating receipt
+`675ae7b0-50c4-45bd-897c-1d0a0960e3eb`; same-context sync returned healthy
+CURRENT/PASS/eligible. B synchronized without running verification and retained
+the same receipt as STALE/PASS, reason “declared execution environment changed”.
+Resolved Node and npm identities were identical. This is deterministic mechanism
+evidence, **not** a model trial or successful cross-session reuse.
+
+A separate two-launch environment comparison retained only key names, digests and
+redacted shapes, not raw environment values. The differing keys were:
+
+- `ALL_PROXY`, `all_proxy`, `HTTP_PROXY`, `http_proxy`, `HTTPS_PROXY`, `https_proxy`,
+  `FTP_PROXY`, `ftp_proxy`, `WS_PROXY`, `ws_proxy`, `WSS_PROXY`, `wss_proxy`;
+- `NPM_CONFIG_PROXY`, `npm_config_proxy`, `NPM_CONFIG_HTTP_PROXY`,
+  `npm_config_http_proxy`, `NPM_CONFIG_HTTPS_PROXY`, `npm_config_https_proxy`;
+- `BUNDLE_HTTP_PROXY`, `BUNDLE_HTTPS_PROXY`, `DOCKER_HTTP_PROXY`,
+  `DOCKER_HTTPS_PROXY`, `PIP_PROXY`, `YARN_HTTP_PROXY`, `YARN_HTTPS_PROXY`;
+- `PATH` (the temporary session path differs; resolved Node/npm did not).
+
+Proxy differences were HTTP loopback URLs without credentials, changing the port.
+The npm no-proxy values did not differ. The receipt's changed tracked field was
+the npm-prefix digest; other ambient aliases are not that digest. No broader
+irrelevance conclusion follows from their absence from the current identity.
+Inside the actual boundary, npm `ci-info.isCI` was false and effective
+`update-notifier` was **true**. No CI or notifier override was introduced there.
+
+### Source-based counterexample
+
+Review used the installed official Node 22.13.0/npm 10.9.2 distribution and pinned
+[npm source](https://github.com/npm/cli/tree/v10.9.2) (including dependencies in the
+[official npm 10.9.2 tarball](https://registry.npmjs.org/npm/-/npm-10.9.2.tgz)):
+
+1. Configuration parsing admits `proxy`/`https-proxy`/`noproxy`; unknown
+   `http-proxy` remains a child-environment value. Existing casing/empty/conflict
+   rules below remain relevant. Admission does not establish irrelevance.
+2. [CLI entry](https://github.com/npm/cli/blob/v10.9.2/lib/cli/entry.js) starts
+   `npm.exec()` and the update notifier concurrently. The notifier promise has
+   a fulfillment callback but no rejection callback.
+3. [Notifier](https://github.com/npm/cli/blob/v10.9.2/lib/cli/update-notifier.js)
+   can fetch registry metadata through the proxy. Its catch covers the pacote
+   request, but subsequent semver comparisons are outside that catch.
+4. Bundled pacote 19.0.1 uses `PackageJson.normalizeSteps`, which **excludes**
+   `fixVersionField`. A selected registry manifest with a missing or invalid
+   version can therefore reach those semver comparisons. Independent source-level
+   experiments confirmed both cases reject the actual notifier.
+5. [Exit handler](https://github.com/npm/cli/blob/v10.9.2/lib/cli/exit-handler.js)
+   handles the unhandled rejection by exiting npm. The outer command can fail
+   despite unchanged compilation inputs; this is not merely different terminal
+   decoration or elapsed time. Child cancellation/completion was not measured.
+
+The reproducible [regression](../../test/npm-proxy-relevance.test.mjs) uses ordinary
+`npm run typecheck`, real unmodified npm and TypeScript 5.6.3, unchanged project
+files and registry configuration, and two simultaneously live owned loopback
+HTTP endpoints. Only the proxy port differs between A/B. The endpoints return
+controlled registry responses; this is adversarial fault injection, not a claim
+that the real enforced proxy or npm registry returned malformed data. Its custom
+HTTP registry is an allowed configuration in the current contract, not the public
+project's registry. No external network request, shared-store mutation, compiler
+replacement, artificial sleep, or source change is involved.
+
+| Controlled response | Expected ordinary npm result |
+| --- | --- |
+| Valid version, two repetitions | PASS / exit 0 |
+| Missing version, two repetitions | FAIL / exit 1 |
+| Invalid version | FAIL / exit 1 |
+| HTTP 404 | PASS: ordinary fetch errors are caught |
+| Missing version with notifier disabled in this fixture only | PASS, zero requests |
+
+Fresh fixture caches expose the branch rather than mistaking a recent notifier
+stamp for an offline guarantee. That stamp is external, time-dependent state and
+is not an applicability proof. The final negative control establishes a possible
+prerequisite; it is **not** permission to disable the actual agent's notifier,
+change its environment, or declare an arbitrary replacement npm safe by version.
+
+### Decision and remaining boundary
+
+No versioned equivalence is admitted for this observed invocation. Raw observed
+npm-prefix identity remains authoritative in receipt capture and synchronized
+comparison; all other context/input comparisons, immutable outcomes, old-daemon
+handling and conservative cached reads remain unchanged. There is no new receipt
+interpretation, retroactive eligibility, or exemption for generic commands.
+
+A future genuinely offline variant would first need enforced/observed notifier
+inactivity and implementation identity, not a promise that a remote service always
+returns valid metadata. Review also identified prerequisites to check before any
+such rule: npm's complete builtin/project/user/global config chain, effective
+Node resolution after ancestor `.bin` PATH insertion, and TypeScript's optional
+`source-map-support` loading under development `NODE_ENV`. None was bypassed or
+silently implemented as a broader contract here. The next decision is whether to
+authorize that narrower invocation/prerequisite; the current request explicitly
+preserves the observed environment, so this pass does not change it.
+
+Final positive/repeat model matrix: **NOT RUN (eligibility gate failed)**. No new
+model calls, eligible reuse claims, avoided executions, or economic savings.
+Earlier two model attempts and their zero unsafe-reuse count remain below; there
+is no new behavioral safety sample. Claude/cross-host remain NOT RUN. Vitest is
+unchanged. The cheap project already demonstrated similar decision/check costs;
+searching for a slower demo cannot repair this relevance counterexample.
+
+Validation and cleanup results for this follow-up are recorded here after the
+focused regression and unchanged-runtime exact-package checks complete.
+
+---
+
 Branch: `dev/agent-activation`; baseline `03d735f` (`@redue/cli` alpha.2).
 Activation remains unmerged and unpublished. The separately authorized receipt
 hotfix is released; the current proxy/access follow-up is recorded below.
