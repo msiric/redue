@@ -1,20 +1,15 @@
-// Pin the reviewed npm interpretation in an owned prefix on every package OS.
-// This is test setup, not a product/global package-manager change.
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
+// The workflow selects the official Node 22.13.0 distribution, which bundles
+// reviewed npm 10.9.2. npm self-installations can introduce internal symlinks
+// outside the existing npm toolchain contract; do not alter that contract here.
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {findExecutable} from '../../src/executable-lookup.mjs';
 import {windowsLaunch} from '../../src/windows-command.mjs';
-const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-proxy-npm-'));
 const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!/^npm_config_/i.test(key)));
-function run(argv,selectedEnv=env){const launch=windowsLaunch(argv),r=spawnSync(launch.file,launch.args,
-  {...launch.options,env:selectedEnv,stdio:'inherit',timeout:180000});assert.equal(r.status,0,r.error?.message);}
-try{
-  run([findExecutable('npm'),'install','--global','--prefix',base,'npm@10.9.2','--no-audit','--no-fund']);
-  const key=Object.keys(env).find(key=>key.toLowerCase()==='path')||'PATH';
-  const selected={...env,[key]:path.join(base,process.platform==='win32'?'':'bin')+path.delimiter+env[key]};
-  run([process.execPath,'--test','--test-name-pattern=npm 10.9.2 proxy','test/onboarding.test.mjs'],selected);
-  run([process.execPath,'test/acceptance/package-smoke.mjs',...process.argv.slice(2),'--proxy-context'],selected);
-}finally{fs.rmSync(base,{recursive:true,force:true,maxRetries:5,retryDelay:200});}
+function run(argv){const launch=windowsLaunch(argv),r=spawnSync(launch.file,launch.args,
+  {...launch.options,env,encoding:'utf8',timeout:180000,maxBuffer:8*1024*1024});
+  process.stdout.write(r.stdout||'');process.stderr.write(r.stderr||'');
+  assert.equal(r.status,0,r.error?.message);return r.stdout;}
+assert.equal(run([findExecutable('npm'),'--version']).trim(),'10.9.2');
+run([process.execPath,'--test','--test-name-pattern=npm 10.9.2 proxy','test/onboarding.test.mjs']);
+run([process.execPath,'test/acceptance/package-smoke.mjs',...process.argv.slice(2),'--proxy-context']);
