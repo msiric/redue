@@ -715,3 +715,22 @@ Recommendation: review the bounded npm admission independently; keep PR #1 draft
 A future explicit, contract-specific proxy-equivalence decision would need its own
 counterexamples and caller-identity treatment before claiming inherited reuse.
 Do not substitute broader permissions or call current fresh-session reuse proven.
+
+Final packaged-documentation candidate: `953f403`; SHA-256
+`7f80d97c5853c78d7fb264e2d1cd651df35a703cc901e701f975ce0b6a64b642`
+(57 files, 96,972 bytes). Its only payload change from the tested runtime artifact
+above is `docs/user/agents.md`; all runtime and installed instruction/skill bytes
+are identical. [Final exact matrix](https://github.com/msiric/redue/actions/runs/37497094642)
+passed all three systems, including proxy-context and actual alpha.2 upgrade.
+A bounded Claude capacity recheck returned `Credit balance is too low`; behavior
+and cross-host trials remain NOT RUN, with no account or billing changes.
+
+Release distribution follow-up: public alpha.3, its GitHub prerelease/assets,
+registry checksum, install/upgrade smoke, and exact alpha.2 deprecation are
+verified. `alpha` selects alpha.3. The attempted `latest` correction failed twice
+at npm's `/-/v1/done` authentication-completion endpoint with 404; an intervening
+registry read confirmed alpha.3 exists. No further retries or package mutations
+were made. `latest` remains alpha.2 as of this report. The maintainer's remaining
+command is `npm dist-tag add @redue/cli@0.1.0-alpha.3 latest` with npm authentication;
+check current tags first and do not move a newer release backward. Explicit
+`@alpha`/`@0.1.0-alpha.3` installs already select the correction.
