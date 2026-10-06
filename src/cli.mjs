@@ -15,7 +15,7 @@ import {createHash,randomUUID} from 'node:crypto';
 import {assertOwnedStatePlacement} from './owned-state.mjs';
 import {permittedRoots} from './installed-inputs.mjs';
 import {acquireRunLock,inspectRunLock,recoverRunLock} from './run-lock.mjs';
-import {atomicJson,commitReceipt} from './state-store.mjs';
+import {atomicJson,commitReceipt,receiptRevision} from './state-store.mjs';
 import {timing} from './decision-profile.mjs';
 import {readCachedStatus,unavailableCached} from './cached-state.mjs';
 import {renderRun} from './presentation.mjs';
@@ -376,7 +376,18 @@ async function main(){
   if(action==='sync'||action==='detail'){
     const started=performance.now();
     let value;try{value=await decisionCall({action:'sync',contextHashes:contextHashes()},
-      Number(process.env.VSTATE_SYNC_TIMEOUT_MS||decisionDeadlineMs));}
+      Number(process.env.VSTATE_SYNC_TIMEOUT_MS||decisionDeadlineMs));
+      // A client upgrade can encounter an older running observer. Its successful
+      // control response does not establish that it evaluated the latest receipt.
+      if(value.receipt_revision===null){
+        value=unavailableCached(state,'latest receipt selection unavailable; inspect receipt state before reuse',config.checks);
+      }else if(typeof value.receipt_revision!=='string'){
+        value=unavailableCached(state,'observer cannot confirm latest receipt selection; stop and start the observer after upgrading',config.checks);
+        process.exitCode=2;
+      }else if(value.receipt_revision!==receiptRevision(state)){
+        value=unavailableCached(state,'receipt selection changed during synchronization; retry synchronized status',config.checks);
+        process.exitCode=2;
+      }}
     catch(e){value=unavailableCached(state,e.message,config.checks);process.exitCode=2;}
     timing('cli.synchronized_status',started,{available:value.observation?.healthy?1:0});
     if(action==='sync')console.log(JSON.stringify(value));

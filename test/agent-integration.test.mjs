@@ -83,7 +83,7 @@ test('nested working directory selects the same config/state and rejects ambiguo
   const ambiguous=spawnSync(process.execPath,[bin,'status','--json'],{cwd:nested,encoding:'utf8'});
   assert.equal(ambiguous.status,2);
   const selected=spawnSync(process.execPath,[bin,'--config','../../redue.config.json','agent','doctor','--json'],{cwd:nested,encoding:'utf8'});
-  assert.equal(selected.status,0,selected.stderr);assert.equal(JSON.parse(selected.stdout).project.config,config);
+  assert.equal(selected.status,0,selected.stderr);assert.equal(JSON.parse(selected.stdout).project.config,fs.realpathSync.native(config));
 });
 test('config search stops at nested Git roots',t=>{
   const f=fixture(t),nested=path.join(f.root,'src/deep');fs.mkdirSync(path.join(nested,'.git'));
