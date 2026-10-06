@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.0-alpha.3 — unreleased
+
+- Fix selected execution outcomes remaining hidden behind an older observer/cache
+  after a missed reload notification. A newer failure must not leave an older
+  passing receipt eligible for reuse.
+- Withhold applicability during incomplete receipt persistence, unreadable or
+  changing selection, and client connections to an older observer.
+- Preserve immutable run history. Upgrade requires an observer stop/start;
+  receipts need not be deleted. See the [maintainer notice](docs/user/receipt-selection-notice.md).
+
 ## 0.1.0-alpha.2 — 2026-10-06
 
 Install: `npm install --global @redue/cli@alpha`.

@@ -5,7 +5,8 @@ import path from 'node:path';
 import os from 'node:os';
 import net from 'node:net';
 import {spawn,spawnSync,execFileSync} from 'node:child_process';
-import {createHash} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
+import {atomicJson,commitReceipt,readReceipts} from '../src/state-store.mjs';
 import {acquireRunLock,inspectRunLock,recoverRunLock} from '../src/run-lock.mjs';
 import {processAlive} from '../src/process-liveness.mjs';
 import {controlEndpoint} from '../src/control-endpoint.mjs';
@@ -232,6 +233,38 @@ test('incompatible receipt schema withholds CURRENT and explains the state error
   ok(f,'start');const item=row(f);
   assert.equal(item.freshness,'UNVERIFIED');
   assert.match(item.reason,/incompatible receipt state/);
+});
+
+test('persisted receipt supersedes daemon and cached evidence even without reload IPC',t=>{
+  const f=withFixture(t);ok(f,'start');ok(f,'run','check');
+  const first=row(f);assert.equal(first.freshness,'CURRENT');
+  const prior=readReceipts(f.state).checks.check;
+  const priorBytes=fs.readFileSync(path.join(f.state,'runs-v1',first.invocation.runId+'.json'),'utf8');
+  // Exercise the same durable commit as a wrapper whose subsequent reload IPC
+  // fails. Do not notify the daemon or mutate its input plan to reveal the write.
+  const later=(result,stable)=>({...prior,result,stable,invocation:{...prior.invocation,
+    runId:randomUUID(),exitCode:result==='FAIL'?1:0,startedAt:Date.now()},
+    checkpoint:{status:stable?'stable':'unavailable_or_changed',issues:stable?[]:['start observation unavailable']}});
+  const failed=later('FAIL',false);commitReceipt(f.state,'check',failed);
+  const cached=JSON.parse(ok(f,'status','--json').stdout);
+  assert.equal(cached.checks[0].result,'FAIL');assert.equal(cached.checks[0].invocation.runId,failed.invocation.runId);
+  assert.equal(cached.checks[0].reuse_eligible,false);
+  let observed=row(f);assert.equal(observed.result,'FAIL');assert.equal(observed.freshness,'UNVERIFIED');
+  assert.equal(observed.invocation.runId,failed.invocation.runId);
+  const stableFailure=later('FAIL',true);commitReceipt(f.state,'check',stableFailure);
+  observed=row(f);assert.equal(observed.result,'FAIL');assert.equal(observed.freshness,'CURRENT');
+  assert.equal(observed.reuse_eligible,false);assert.equal(observed.invocation.runId,stableFailure.invocation.runId);
+  const incomplete=later('PASS',false);commitReceipt(f.state,'check',incomplete);
+  observed=row(f);assert.equal(observed.result,'PASS');assert.equal(observed.freshness,'UNVERIFIED');
+  assert.equal(observed.invocation.runId,incomplete.invocation.runId);
+  atomicJson(path.join(f.state,'receipts-v1.json'),{schema:99,checks:{}});
+  observed=row(f);assert.equal(observed.freshness,'UNVERIFIED');assert.equal(observed.reuse_eligible,false);
+  assert.equal(observed.invocation.runId,incomplete.invocation.runId);
+  assert.match(observed.reason,/latest receipt unavailable; prior outcome only/);
+  atomicJson(path.join(f.state,'receipts-v1.json'),{schema:1,checks:{check:incomplete}});
+  observed=row(f);assert.equal(observed.invocation.runId,incomplete.invocation.runId);
+  assert.equal(observed.freshness,'UNVERIFIED');
+  assert.equal(fs.readFileSync(path.join(f.state,'runs-v1',first.invocation.runId+'.json'),'utf8'),priorBytes);
 });
 
 test('configuration change cannot reuse old plan; stop remains available',t=>{
