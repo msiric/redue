@@ -87,6 +87,8 @@ test('direct compiler identity rejects replacements/additions and unsafe runtime
   for(const env of [{},{NODE_ENV:'production'},{npm_config_proxy:'http://localhost:1000'},
     {npm_config_unknown:'ignored by canonical compiler'},{NPM_CONFIG_PROXY:'',npm_config_proxy:'different'}])
     assert.equal(directEnvironmentIssue(env),null);
+  assert.equal(directEnvironmentIssue({NODE_USE_ENV_PROXY:'1'}),process.version==='v22.13.0'?null:'direct-execution-environment-unsupported');
+  assert(directEnvironmentIssue({NODE_USE_ENV_PROXY:'invalid'}));
   assert.notEqual(observedNpmContext({npm_config_proxy:'a'}),observedNpmContext({npm_config_proxy:'b'}));
 });
 test('real direct compiler evidence crosses proxy contexts, but not relevant inputs or overrides',async t=>{

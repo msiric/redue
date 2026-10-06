@@ -63,3 +63,7 @@ cached status remains conservative; synchronize deliberately when worth the cost
 Explain/JSON report `verification_recipe: "npm-direct-typescript@1"` for receipts
 recorded with this recipe. Report compiler evidence as compiler evidence. A user's
 explicit request for `npm run typecheck` is not satisfied by this different command.
+
+The injected `NODE_USE_ENV_PROXY=1` setting is admitted only on Node 22.13.0,
+where it is inert; it remains strictly tracked. Other Node versions with this
+setting need review and stay unqualified. REDUE does not alter the setting.

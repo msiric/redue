@@ -37,3 +37,13 @@ replaced with daemon context. A changed command/interpretation changes plan iden
 Tests: `test/direct-typescript.test.mjs`, the retained notifier counterexample
 `test/npm-proxy-relevance.test.mjs`, and exact installed `package-smoke.mjs`.
 Public alpha.3 impact and containment are separate: `docs/acceptance/npm-launcher-boundary.md`.
+
+Actual Codex preflight additionally injects `NODE_USE_ENV_PROXY=1`. This is admitted
+only on exact Node 22.13.0, whose [options source](https://github.com/nodejs/node/blob/v22.13.0/src/node_options.cc),
+[initialization](https://github.com/nodejs/node/blob/v22.13.0/src/node.cc), and
+[HTTP agent](https://github.com/nodejs/node/blob/v22.13.0/lib/_http_agent.js) do not
+implement that setting. The installed runtime also lacks `--use-env-proxy` in its
+allowed flags. Newer Node implementations require separate review; they remain
+unsupported with this nonempty setting. The original flag remains in the strict
+NODE_ applicability fingerprint, unchanged. This is admission of an inert setting
+in a reviewed runtime, not removal of enforced proxy configuration.

@@ -19,6 +19,10 @@ export function directEnvironmentIssue(env=process.env){
   if(env.VSCODE_INSPECTOR_OPTIONS)return 'direct-execution-environment-unsupported';
   for(const [key,value] of Object.entries(env)){
     if(/^NODE_/i.test(key)){
+      // Node 22.13.0 predates env-proxy initialization. This injected flag is
+      // inert there, but remains strictly fingerprinted as NODE_ context.
+      if(key==='NODE_USE_ENV_PROXY'&&value==='1'&&process.version==='v22.13.0'&&
+        !process.allowedNodeEnvironmentFlags.has('--use-env-proxy'))continue;
       if(key==='NODE_ENV'&&['','production','test'].includes(value))continue;
       if(value!=='')return 'direct-execution-environment-unsupported';
     }

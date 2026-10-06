@@ -108,6 +108,7 @@ try {
   if(process.argv.includes('--proxy-context')){
     // Observer was started with its ordinary environment. Only subsequent
     // caller processes receive these synthetic, non-secret proxy settings.
+    if(process.version==='v22.13.0')env.NODE_USE_ENV_PROXY='1';
     for(const key of ['proxy','https_proxy','http_proxy','noproxy']){
       const value=key==='noproxy'?'localhost,127.0.0.1':'http://127.0.0.1:3128';
       env['npm_config_'+key]=value;env[('npm_config_'+key).toUpperCase()]=value;
