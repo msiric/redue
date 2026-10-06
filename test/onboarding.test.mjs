@@ -274,7 +274,7 @@ test('npm 10.9.2 proxy caller records eligible evidence without substituting dae
   assert.equal(first.result,'PASS');assert.equal(first.reuse_eligible,true);
   const id=first.invocation.runId;
   assert.equal(status().invocation.runId,id); // New process, same raw caller context.
-  for(const next of [{},{...proxies,npm_config_noproxy:''},
+  for(const next of [{},{...proxies,npm_config_noproxy:'',NPM_CONFIG_NOPROXY:''},
     Object.fromEntries(Object.entries(proxies).filter(([key])=>key===key.toLowerCase())),
     {...proxies,npm_config_proxy:'http://localhost:4444',NPM_CONFIG_PROXY:'http://localhost:4444'}]){
     const changed=status(next);assert.equal(changed.reuse_eligible,false);assert.equal(changed.invocation.runId,id);
@@ -288,7 +288,8 @@ test('npm 10.9.2 proxy caller records eligible evidence without substituting dae
   fs.appendFileSync(installed,'\n');assert.equal(status().freshness,'STALE');fs.writeFileSync(installed,bytes);
   const contractProbe=path.resolve('src/typescript-contract-probe.mjs');
   for(const override of [{npm_config_unreviewed:'x'},{npm_config_script_shell:'unreviewed'},
-    {npm_config_proxy:'invalid'}, {npm_config_proxy:'http://localhost:9999'},
+    {npm_config_proxy:'invalid',NPM_CONFIG_PROXY:'invalid'},
+    ...(process.platform==='win32'?[]:[{npm_config_proxy:'http://localhost:9999'}]),
     {NODE_OPTIONS:'--trace-warnings'}, {NODE_PATH:root}, {BASH_ENV:'unreviewed'}]){
     const r=spawnSync(process.execPath,[contractProbe,root,'typecheck',npm],
       {cwd:root,env:{...baseEnv,...proxies,...override},encoding:'utf8',timeout:15000});
