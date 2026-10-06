@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.0-alpha.4 — 2026-10-07
+
+- Withdraw automatic npm-launcher applicability because update notifications consume
+  unobserved remote/cache/time state. Npm scripts still run and record outcomes.
+- Preserve historical PASS/FAIL and require stop/start when upgrading an observer.
+  Do not delete receipts. See the [maintainer notice](docs/user/npm-launcher-notice.md).
+- Supported Yarn/pnpm and explicit reviewed contracts are unchanged. No agent
+  activation or npm direct-compiler recipe is included in this correction.
+
 ## 0.1.0-alpha.3 — 2026-10-06
 
 Install: `npm install --global @redue/cli@alpha`.

@@ -15,8 +15,9 @@ At the repository root, `init` looks for existing typecheck, test, lint, and
 build scripts. It prefers familiar script names, then unique recognizable
 `tsc`, Vitest/Jest, ESLint, or Vite commands under other names. Multiple
 matches are reported as ambiguous rather than guessed. It never creates a new
-project script. Ordinary npm scripts are recording-only in this candidate: npm launcher notification
-inputs are not fully observed. The opt-in `init --recipe typescript-direct` supports
+project script. Automatic npm-launcher applicability was withdrawn in alpha.4;
+ordinary npm scripts remain recording-only. See the [maintainer notice](npm-launcher-notice.md).
+The following direct recipe is opt-in and new in the alpha.5 candidate. The opt-in `init --recipe typescript-direct` supports
 a standalone `tsc --noEmit` script in a single-package npm installation using
 reviewed TypeScript 5.6.3/5.9.3 and Node 22/24. It executes the local compiler,
 not npm. Full installed compiler identity, config/membership, installed inputs

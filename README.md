@@ -1,7 +1,9 @@
 # REDUE
 
-Maintainer notice: alpha.2 users should review the
-[receipt-selection correction and interim guidance](docs/user/receipt-selection-notice.md).
+Maintainer notice: alpha.4 withdraws automatic npm-launcher applicability.
+Npm commands still execute and record historical outcomes, but remain UNVERIFIED.
+[Why this changed and how to upgrade without deleting receipts](docs/user/npm-launcher-notice.md).
+Alpha.2 users should also review the [receipt correction](docs/user/receipt-selection-notice.md).
 
 **Know what still holds. Redo what's due.**
 
@@ -11,6 +13,8 @@ conversation history. Which results can you still use?
 REDUE keeps persistent verification state for your codebase so developers and
 coding agents can see which previous checks still apply to the code they have now.
 It records evidence, not proofs of correctness.
+
+For a qualified supported Yarn/pnpm check (ordinary npm scripts are recording-only):
 
 ```text
 $ redue status --sync
@@ -103,7 +107,8 @@ has been verified.
 - macOS, Linux, and Windows on supported local filesystems; Node 22+.
 - Linux also requires Python 3 for observation. No WSL or Git Bash needed on Windows.
 - npm, pinned Yarn `node-modules`, and pinned pnpm 12 isolated/hoisted layouts.
-- Automatic qualification for supported TypeScript invocations; workspace
+- Automatic qualification for the supported Yarn/pnpm TypeScript invocations; npm
+  launcher checks are recording-only in alpha.4. Workspace
   boundaries follow the files actually consumed, including built declarations.
 - Existing test/lint/build and arbitrary commands can record results while
   their applicability remains unqualified.
