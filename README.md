@@ -1,5 +1,8 @@
 # REDUE
 
+Maintainer notice: alpha.2 users should review the
+[receipt-selection correction and interim guidance](docs/user/receipt-selection-notice.md).
+
 **Know what still holds. Redo what's due.**
 
 You ran the checks. Then the code changed—or a new coding agent started with no

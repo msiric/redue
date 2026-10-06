@@ -48,3 +48,5 @@ jobs:
         run: node test/acceptance/package-smoke.mjs --manifest release-candidate/manifest.json
       - name: Reviewed npm proxy context with exact installed package
         run: node test/acceptance/proxy-package-smoke.mjs --manifest release-candidate/manifest.json
+      - name: Released alpha.2 observer and receipt-preserving upgrade
+        run: node test/acceptance/receipt-upgrade.mjs --manifest release-candidate/manifest.json
