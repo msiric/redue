@@ -71,6 +71,42 @@ setup requires `--apply`. `--dry-run` never writes. Installing REDUE or running
 `init` does not connect an agent automatically. Setup does not start an observer
 or execute verification. Use `redue start` when you want observation.
 
+## Update an existing connection
+
+Installing a newer package does **not** rewrite project instructions. From the
+same project and installation, stop every observer using that installation before
+replacing it. Keep the original config and state selection; do not create a second
+config or delete receipts. Example for a default npm installation/config:
+
+```sh
+redue --config redue.config.json stop
+npm install --global @redue/cli@alpha
+redue --config redue.config.json agent setup codex --dry-run
+redue --config redue.config.json agent setup codex --apply
+redue --config redue.config.json start
+redue --config redue.config.json status --sync --json
+```
+
+Use the **same `--prefix`** as the existing npm installation when it has a custom
+prefix, and invoke its corresponding `redue` binary. Keep your actual config path
+on every command. For Claude, select `claude` in both setup commands. Preserve any
+existing `--state-dir` on lifecycle/status commands; setup does not embed custom
+state locations, so retain the documented generic instruction path if your agent
+workflow needs an explicit custom state. PowerShell may use the existing
+`npm.cmd`/`redue.cmd` shims without changing script policy.
+
+Review the preview before applying. Intact owned content updates; unrelated text
+is preserved. Edited managed content is refused, not overwritten. If refused,
+review/reconcile those edits deliberately; do not remove ownership records to force
+an update. Restart the observer with its original selection even if you postpone
+updating instructions, then start a **fresh agent session** after a successful
+update. Setup creates no verification receipt.
+
+Managed project metadata can itself be an observed input. Prior receipts remain
+historical evidence, but setup may make them STALE or UNVERIFIED. Reassess normally
+and run required checks; an upgrade is not a promise that existing receipts remain
+CURRENT. Do not suppress that invalidation or reset state.
+
 Codex gets a short managed section in project `AGENTS.md` and
 `.agents/skills/redue-verification/SKILL.md`. Claude Code gets a managed section
 in `CLAUDE.md` and `.claude/skills/redue-verification/SKILL.md`. Each uses the same

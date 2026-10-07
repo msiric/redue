@@ -57,11 +57,13 @@ prefix. Uninstalling the package does not remove local verification evidence;
 `redue remove-state` is a separate, explicit action. Alpha.1 remains available as
 historical software and is superseded for package identity, not a runtime defect.
 
-## Upgrading to alpha.4
+## Upgrading REDUE
 
 Stop every observer using the installation before upgrading, then restart each
 with the same config/state selection. See [the npm launcher notice](npm-launcher-notice.md)
-for exact commands. Do not remove state or delete receipts.
+for exact commands. Do not remove state or delete receipts. Existing agent connections require a separate
+[preview/apply policy update](agents.md#update-an-existing-connection); installing
+the package alone does not update project instructions.
 
 ## First project
 
@@ -90,7 +92,7 @@ reusability. Qualification can change when configuration or installation changes
 
 `run` streams normal output and preserves execution environment and cancellation.
 For the narrow pnpm TypeScript contract, `init` explicitly shows the direct installed
-compiler invocation it selects. In this candidate, npm scripts remain recording-only;
+compiler invocation it selects. Npm scripts remain recording-only;
 use `redue init --recipe typescript-direct --dry-run` to preview a distinct,
 explicit [local compiler recipe](direct-typescript.md). Other scripts run through
 the package manager. No existing configuration is silently migrated.
