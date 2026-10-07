@@ -27,7 +27,7 @@ function fixture(t){
   execFileSync('git',['init','-q'],{cwd:root});
   const fixtures=[false,true].map(full=>{const state=path.join(base,full?'redue-r':'redue-f');
     return {root,state,env:{...cleanEnv(),VSTATE_START_READY_WAIT_MS:'10000',VSTATE_TEST_FAULTS:'1',
-      ...(full?{VSTATE_TEST_FULL_PROBES:'1'}:{}),VSTATE_HISTORY_TIMEOUT_MS:'300',
+      ...(full?{VSTATE_TEST_FULL_PROBES:'1'}:{}),
       VSTATE_TEST_HISTORY_FAULT_FILE:path.join(state,'history-fault'),
       VSTATE_TEST_DROP_EVENTS_FILE:path.join(state,'drop-events'),
       VSTATE_TEST_RECONCILE_FAULT_FILE:path.join(state,'reconcile-fault')}};});
@@ -71,7 +71,8 @@ test('direct certificate validation rejects missing/obsolete/malformed queries a
 test('macOS guarded and full decisions agree for content, membership, resolution and caller changes',
   {skip:process.platform!=='darwin'},async t=>{
   const {root,fast,full,fixtures}=fixture(t);
-  for(const f of fixtures){call(f,['start']);call(f,['run','typecheck']);assert(row(f).reuse_eligible);}
+  for(const f of fixtures){call(f,['start']);call(f,['run','typecheck']);const initial=await settled(f);
+    assert(initial.reuse_eligible,JSON.stringify(initial));}
   const ids=fixtures.map(f=>row(f).invocation.runId);
   const compare=async(expected,extra)=>{const rows=extra?fixtures.map(f=>row(f,extra)):await Promise.all(fixtures.map(settled));
     assert.deepEqual(semantic(rows[0]),semantic(rows[1]));
@@ -111,7 +112,8 @@ test('macOS guarded and full decisions agree for content, membership, resolution
 
 test('macOS gap, missed edit, failed reconciliation and restart cannot retain a green certificate',
   {skip:process.platform!=='darwin'},async t=>{
-  const {fast:f,root}=fixture(t);call(f,['start']);call(f,['run','typecheck']);const id=row(f).invocation.runId;
+  const {fast:f,root}=fixture(t);f.env.VSTATE_HISTORY_TIMEOUT_MS='300';
+  call(f,['start']);call(f,['run','typecheck']);const id=row(f).invocation.runId;
   put(path.join(f.state,'reconcile-fault'),'1');put(path.join(f.state,'history-fault'),'fail');
   assert.equal(row(f).freshness,'UNVERIFIED');
   put(path.join(f.state,'drop-events'),'1');put(path.join(root,'src/added.ts'),'export const changed=1;');

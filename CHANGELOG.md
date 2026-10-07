@@ -1,6 +1,18 @@
 # Changelog
 
-## 0.1.0-alpha.5 — unreleased candidate
+## 0.1.0-alpha.6 — 2026-10-07
+
+- Reuse guarded compiler discovery for warm direct-TypeScript decisions on macOS
+  with healthy historical observation. Membership, absence, compiler bytes,
+  caller context and receipt selection remain validated independently.
+- Keep full discovery/reconciliation fallbacks and existing platform boundaries.
+- On one measured project, complete warm decision median fell from roughly
+  791 to 474 ms. This is not a universal speedup, agent-task acceleration,
+  memory improvement, or a faster relevant-edit/rebuild claim.
+- Stop observers before upgrading and restart with the same config/state.
+  Preserve receipts; no configuration migration is performed.
+
+## 0.1.0-alpha.5 — 2026-10-07
 
 - Add opt-in project-local agent activation and direct TypeScript evidence, with
   fresh-session reuse demonstrated in the tested Codex/macOS configuration.
