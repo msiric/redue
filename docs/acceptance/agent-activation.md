@@ -21,9 +21,13 @@ public-registry upgrade retained PASS receipt `0051b031-4162-4974-a1da-922cd1ce7
 a new npm run recorded `90834152-f120-454d-afce-209108415161`, still UNVERIFIED.
 Initial public reads returned 404/ETARGET during npm's explicitly reported
 processing delay; later reads and checksums succeeded. There was one publication,
-no rebuild or republish. Distribution administration result: `alpha` selects alpha.4; the authorized `latest` correction and exact alpha.3
-deprecation notice are pending npm browser confirmation. Install the explicit
-patched version or `@alpha` in the meantime.
+no rebuild or republish. `alpha` selects alpha.4. The authorized `latest` correction
+failed at npm browser-auth completion (`PUT /-/v1/done`, HTTP 404); this is not a
+missing-package conclusion, since independent registry reads and install succeeded.
+`latest` still selects alpha.3. Do not repeatedly retry the failed authentication
+flow. The maintainer action is `npm dist-tag add @redue/cli@0.1.0-alpha.4 latest`
+with normal 2FA. The exact alpha.3 deprecation notice is pending. Install the
+explicit patched version or `@alpha` in the meantime.
 
 **Activation is ready for bounded release review, not publication.** The alpha.5
 candidate incorporates containment through normal merges. Runtime and installed
