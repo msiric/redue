@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
+import {createHash} from 'node:crypto';
 import path from 'node:path';
 import {spawnSync,execFileSync} from 'node:child_process';
 import {discoverConfig,projectState} from '../src/project-location.mjs';
@@ -143,4 +144,37 @@ test('same explicit physical config and symlinked parent alias have one state id
   // Junctions cover parent aliases on Windows; file hard links must also be refused.
   fs.linkSync(actual,target);
   assert.match(f.run('--config',target,'agent','setup','claude','--apply').stderr,/unsafe linked/);
+});
+
+test('recognized prior template upgrades intact content for both hosts; edited legacy content remains protected',t=>{
+  for(const host of ['codex','claude'])for(const edit of [false,true]){
+    const f=fixture(t),instruction=host==='codex'?'AGENTS.md':'CLAUDE.md';
+    f.put(instruction,'Existing user policy.\n');f.ok('agent','setup',host,'--apply');
+    const recordPath=`.redue/agents/${host}.json`,record=JSON.parse(f.read(recordPath));
+    const oldBlock=record.block.replace(
+      `Read ${record.skill}: verify the selected recipe, use caller-aware sync\n`+
+      `for direct-compiler reuse, and execute fresh obligations without a reuse query.\n`+
+      `Only healthy schema-1 CURRENT/PASS with\n`,
+      `Read ${record.skill} for the decision policy, then query ordinary status\n`+
+      `before choosing reuse or execution. Only healthy schema-1 CURRENT/PASS with\n`);
+    assert.notEqual(oldBlock,record.block);
+    f.put(instruction,f.read(instruction).replace(record.block,oldBlock)+'User addition.\n');
+    record.block=oldBlock;const oldSkill='Former owned skill policy.\n';
+    f.put(record.skill,oldSkill);record.skillHash=createHash('sha256').update(oldSkill).digest('hex');
+    f.put(recordPath,JSON.stringify(record));
+    if(edit)f.put(record.skill,oldSkill+'User edits.\n');
+    const before=f.read(instruction),skillBefore=f.read(record.skill);
+    assert.equal(f.run('agent','setup',host,'--dry-run').status,edit?2:0);
+    assert.equal(f.read(instruction),before);assert.equal(f.read(record.skill),skillBefore);
+    if(edit){
+      assert.equal(f.run('agent','setup',host,'--apply').status,2);
+      assert.equal(f.run('agent','remove',host,'--apply').status,2);
+      assert.equal(f.read(instruction),before);assert.equal(f.read(record.skill),skillBefore);
+    }else{
+      f.ok('agent','setup',host,'--apply');assert.match(f.read(instruction),/caller-aware sync/);
+      assert.match(f.read(record.skill),/npm-typescript-direct-v1/);
+      const once=f.read(instruction);f.ok('agent','setup',host,'--apply');assert.equal(f.read(instruction),once);
+      f.ok('agent','remove',host,'--apply');assert.equal(f.read(instruction),'Existing user policy.\nUser addition.\n');
+    }
+  }
 });

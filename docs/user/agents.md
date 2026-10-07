@@ -3,18 +3,27 @@
 Use the CLI with explicit project-local activation below, or add this policy to a
 generic agent's instructions with the project owner's permission.
 
-1. Query ordinary `redue status --json` first.
-2. Require schema 1 and healthy observation. If a check has `freshness: "CURRENT"`, `result: "PASS"`, and
-   `reuse_eligible: true`, reuse it. Missing eligibility means false. Do not rerun merely for freshness.
-3. If STALE, run `redue run CHECK` when that verification is needed.
-4. If the historical `result` is FAIL, report it honestly. The human CLI calls
-   this FAILED; applicability is a separate field, never an excuse to call it green.
-5. If UNVERIFIED, inspect its reason. Use `status --sync --json` when establishing
-   applicability is worthwhile, or rerun the underlying check when cheaper/simpler.
-   Use `redue run CHECK` if a new receipt is wanted. Incomplete coverage can remain
-   UNVERIFIED even after success.
-6. Do not assume synchronization is cheaper than execution. There are no universal
-   package-manager or OS thresholds. Inexpensive checks may be cheaper to rerun.
+1. If fresh execution is already required, execute it; do not synchronize merely
+   to confirm an irrelevant reuse opportunity. Use `redue run CHECK` when recording
+   the configured check. An explicit npm-script request still requires npm.
+2. For reuse of the explicitly configured direct compiler recipe
+   (`qualification: "npm-typescript-direct-v1"`, direct compiler command; receipt
+   `verification_recipe: "npm-direct-typescript@1"`), query once:
+   `redue --config CONFIG status --sync --json`. Do not infer a recipe from its name.
+   Cached status cannot establish its caller context. In mixed configurations,
+   assess each check's contract separately; this is not a global sync-first policy.
+3. For other/unknown recipes, query ordinary `status --json` first and decide whether
+   synchronization is worthwhile. Ordinary status and `--short` remain cheap inspection.
+4. Reuse only schema 1, healthy observation and the selected check's CURRENT/PASS
+   with `reuse_eligible: true`. Missing eligibility means false. A historical FAIL
+   is never green evidence. Do not rerun eligible evidence merely for freshness.
+5. STALE requires execution when verification is needed. UNVERIFIED requires an
+   honest choice of synchronization, permitted execution or reporting the limitation.
+   Recording-only success can remain UNVERIFIED. A deliberate cheap-check rerun is
+   permitted; there are no universal platform/package-manager timing thresholds.
+6. Use a successful synchronized response for the current decision without repeated
+   sync/explain calls unless edits, context changes or missing information require it.
+   Do not loop until green or use an earlier response after a later query fails.
 
 `redue explain CHECK --json` gives synchronized detail, including a known changed
 input when available. It has the same cost caveat as synchronized status.
@@ -37,9 +46,9 @@ CURRENT. Do not delete state or reset receipts to make the output green.
 REDUE tells you what evidence exists and whether it still applies. It does not
 promise that establishing applicability is cheaper than every possible check.
 
-## Connect once (candidate)
+## Connect once (experimental)
 
-The alpha.5 candidate supports opt-in project-local activation and direct
+Alpha.5 and later support opt-in project-local activation and direct
 TypeScript evidence, with fresh-session reuse demonstrated for Codex CLI 0.160.1
 on macOS under the documented owner-approved checkout/state/socket route. CLI
 mechanics are tested on macOS/Linux/Windows; model behavior is not claimed for
@@ -47,7 +56,7 @@ every host/platform or sandbox policy. Claude setup/removal mechanics are tested
 but Claude behavior and cross-host reuse remain untested. Reuse is not guaranteed,
 and the existing subsecond example establishes no meaningful net time saving.
 
-After installing this candidate and running `redue init` in a trusted project:
+After installing REDUE and running `redue init` in a trusted project:
 
 ```sh
 redue agent setup codex --dry-run
@@ -61,6 +70,42 @@ Interactive setup shows the changes and asks before applying; noninteractive
 setup requires `--apply`. `--dry-run` never writes. Installing REDUE or running
 `init` does not connect an agent automatically. Setup does not start an observer
 or execute verification. Use `redue start` when you want observation.
+
+## Update an existing connection
+
+Installing a newer package does **not** rewrite project instructions. From the
+same project and installation, stop every observer using that installation before
+replacing it. Keep the original config and state selection; do not create a second
+config or delete receipts. Example for a default npm installation/config:
+
+```sh
+redue --config redue.config.json stop
+npm install --global @redue/cli@alpha
+redue --config redue.config.json agent setup codex --dry-run
+redue --config redue.config.json agent setup codex --apply
+redue --config redue.config.json start
+redue --config redue.config.json status --sync --json
+```
+
+Use the **same `--prefix`** as the existing npm installation when it has a custom
+prefix, and invoke its corresponding `redue` binary. Keep your actual config path
+on every command. For Claude, select `claude` in both setup commands. Preserve any
+existing `--state-dir` on lifecycle/status commands; setup does not embed custom
+state locations, so retain the documented generic instruction path if your agent
+workflow needs an explicit custom state. PowerShell may use the existing
+`npm.cmd`/`redue.cmd` shims without changing script policy.
+
+Review the preview before applying. Intact owned content updates; unrelated text
+is preserved. Edited managed content is refused, not overwritten. If refused,
+review/reconcile those edits deliberately; do not remove ownership records to force
+an update. Restart the observer with its original selection even if you postpone
+updating instructions, then start a **fresh agent session** after a successful
+update. Setup creates no verification receipt.
+
+Managed project metadata can itself be an observed input. Prior receipts remain
+historical evidence, but setup may make them STALE or UNVERIFIED. Reassess normally
+and run required checks; an upgrade is not a promise that existing receipts remain
+CURRENT. Do not suppress that invalidation or reset state.
 
 Codex gets a short managed section in project `AGENTS.md` and
 `.agents/skills/redue-verification/SKILL.md`. Claude Code gets a managed section
@@ -107,7 +152,7 @@ proven installation mismatch.
 Codex CLI 0.160.1 on macOS can use the approved exact observer-socket route while
 other sockets and direct network access remain denied. Its independent sessions
 receive different proxy values. Ordinary npm invocation is **not** equivalent
-across arbitrary notifier state: this candidate withholds automatic npm-launcher
+across arbitrary notifier state: REDUE withholds automatic npm-launcher
 reuse. Do not change proxy settings or permissions to get green evidence.
 
 The separate opt-in [direct local compiler recipe](direct-typescript.md) does not
@@ -124,7 +169,7 @@ performs the same bounded, read-only decision check and exits 2 when reuse is no
 eligible. It neither executes verification nor grants access; synchronization
 may run configured probes. A successful outside-shell result is insufficient.
 
-Use the same setup command after a candidate upgrade; it updates intact managed
+Use the same setup command after an upgrade; it updates intact managed
 content idempotently. Changed skill text or a changed managed block causes a
 conflict instead of an overwrite. Review your edits before retrying.
 
@@ -154,8 +199,8 @@ paths. Other worktrees and remote containers have separate local evidence.
 
 For another agent, put a short instruction in its documented project mechanism:
 “Before deciding whether configured verification needs repeating, read REDUE's
-agent policy, query ordinary `redue status --json` for the intended config, and
-apply the schema/health/reuse rules.” Supply this document and the
+agent policy, identify the selected recipe and use its decision query for the intended config.
+Apply the schema/health/reuse rules.” Supply this document and the
 [JSON contract](json.md) as the detailed policy. Review the agent's actual tool
 trace before calling activation verified. A local npm installation does not install
 REDUE in a remote container; that environment needs its own CLI, checkout,

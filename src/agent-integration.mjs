@@ -45,15 +45,19 @@ function saved(root,host){const text=read(root,marker(host));if(text===null)retu
   const value=JSON.parse(text),h=hosts[host];
   if(value.schema!==1||value.host!==host||value.instruction!==h.instruction||value.skill!==h.skill||
     typeof value.config!=='string'||path.isAbsolute(value.config)||value.config.includes('/')||value.config.includes('\\')||
-    value.block!==blockFor(host,value.config)||
+    (value.block!==blockFor(host,value.config)&&value.block!==blockFor(host,value.config,true))||
     typeof value.skillHash!=='string'||typeof value.instructionCreated!=='boolean')
     throw Error('unrecognized agent ownership record; inspect it without deleting user content');
   return value;
 }
-function blockFor(host,relative){return `\n\n<!-- REDUE:${host}:begin -->\n`+
+// Accept only these exact owned template versions; never arbitrary stored text.
+function blockFor(host,relative,legacy=false){return `\n\n<!-- REDUE:${host}:begin -->\n`+
   `Before deciding whether configured verification needs repeating, use REDUE.\n`+
-  `Read ${hosts[host].skill} for the decision policy, then query ordinary status\n`+
-  `before choosing reuse or execution. Only healthy schema-1 CURRENT/PASS with\n`+
+  (legacy?`Read ${hosts[host].skill} for the decision policy, then query ordinary status\n`+
+    `before choosing reuse or execution. Only healthy schema-1 CURRENT/PASS with\n`:
+    `Read ${hosts[host].skill}: verify the selected recipe, use caller-aware sync\n`+
+    `for direct-compiler reuse, and execute fresh obligations without a reuse query.\n`+
+    `Only healthy schema-1 CURRENT/PASS with\n`)+
   `explicit reuse_eligible=true permits reuse; honor fresh-run requests and other\n`+
   `project verification obligations. Reassess after edits or failed queries.\n`+
   `Selected config (JSON path relative to this file's directory): ${JSON.stringify(relative)}.\n`+
@@ -63,7 +67,7 @@ function blockFor(host,relative){return `\n\n<!-- REDUE:${host}:begin -->\n`+
 function skillFor(relative){return policy+`\nSelected configuration\n\n`+
   `The configuration path, relative to the project instruction file's directory, is\n`+
   `${JSON.stringify(relative)} (a JSON string, not shell code). From that directory use\n`+
-  `\`redue --config CONFIG status --json\`, replacing CONFIG with that single quoted\n`+
+  `the policy-selected \`redue --config CONFIG ...\` command, replacing CONFIG with one quoted\n`+
   `path argument. Apply the same --config to run, explain, start and stop. From a\n`+
   `nested directory use the corresponding relative config path. Do not guess among\n`+
   `multiple configs. Receipts are local to the selected checkout/configuration.\n`;}

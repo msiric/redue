@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.0-alpha.7 — 2026-10-07
+
+- Guide explicitly configured direct-compiler reuse through one caller-aware
+  synchronized query; skip reuse queries when fresh execution is already required.
+- Update intact project-local agent instructions safely; installation alone does
+  not update them. See the [existing-user procedure](docs/user/agents.md#update-an-existing-connection).
+- In the finite Codex/macOS comparison, revised guidance reached eligible evidence
+  and reused it in 4/4 opportunities versus 1/4; verification tool calls fell
+  from 28 to 14. Evidence semantics are unchanged. No universal compliance,
+  tail-latency or causal agent-task speedup is claimed. Claude behavior and
+  cross-host handoff remain untested.
+
 ## 0.1.0-alpha.6 — 2026-10-07
 
 - Reuse guarded compiler discovery for warm direct-TypeScript decisions on macOS
