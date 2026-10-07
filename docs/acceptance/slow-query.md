@@ -72,3 +72,31 @@ before query validation. This separates transport blocking from expensive hashin
 Tests include chunked EOF delivery, malformed/oversized certificate input, changed
 inputs before EOF, relevant changes during delayed response, newer FAIL during
 delayed response, incomplete selector persistence and history-loss fallback.
+
+## Fixed follow-up (runtime 2d37d8a)
+
+Exactly the same 60-query design, three newly started observers, same normal caches
+and approved sandbox. No failed or slow responses were discarded.
+
+| Category | n | Mean ms | Median ms | p90 ms | Max ms |
+|---|---:|---:|---:|---:|---:|
+| All | 60 | 470.4 | 412.2 | 629.9 | 929.3 |
+| Warm unchanged | 30 | 425.4 | 399.4 | 542.7 | 559.5 |
+| Unrelated edit | 12 | 430.2 | 409.7 | 527.9 | 611.2 |
+| Relevant edit | 6 | 807.6 | 777.3 | 929.3 | 929.3 |
+| First after restart | 3 | 413.6 | 406.7 | 434.7 | 434.7 |
+| Idle/periodic transition | 9 | 468.6 | 460.1 | 629.9 | 629.9 |
+
+Total measured query time 28,227.0 ms. All 60 expected states matched. Request
+identity correlated all 60 responses. 54 certificate validations reused discovery;
+six source edits required full probes (`inputs_changed`). No timeout/full-probe
+fallback in unchanged queries, versus one in the baseline. This is bounded evidence
+for removing the reproduced input stall; ordinary median/tail values vary, and
+universal tail reliability or agent-task acceleration is not established.
+
+Local focused regressions: **14/14 PASS**, including delayed newer-FAIL selection,
+input changes before EOF, post-validation source edits, incomplete persistence and
+history-loss recovery. Exact-package matrix and shared-platform CI are recorded
+in the PR. The existing deadlines remain unchanged.
+
+Public tracking: [issue #6](https://github.com/msiric/redue/issues/6).
