@@ -1,6 +1,7 @@
 # Real-project coverage: TypeScript 5.5.2
 
-Current conclusion: **guarded candidate under acceptance, not released**. Final
+Current conclusion: **guarded CLI candidate passes acceptance; new-project model
+handoff pending, not released**. Final
 source review found and rejected the 5.5.2 API ETW module override before loading;
 the earlier unguarded artifact is superseded and must not be released. Twelve current
 public HEADs were screened before selection. Two ordinary locked npm installations
@@ -8,7 +9,7 @@ were measured/checked; only one new compiler implementation is being admitted.
 No scripts, compiler versions, dependency layouts or verification options were
 changed to make a project fit. This is compiler evidence, not application/tests.
 
-The released guidance and completed model comparison are separate:
+The reviewed guidance and completed model comparison are separate:
 [activation evidence](agent-activation.md). Tail diagnostics are a separate branch:
 [slow-query evidence](https://github.com/msiric/redue/tree/investigate/slow-direct-query).
 
@@ -37,7 +38,7 @@ names an inspected locked version. All links pin the screened revision.
 Exactly official **TypeScript 5.5.2** in the existing single-package npm direct
 recipe. Target: `microsoft/vscode-js-debug`, `test:types = tsc --noEmit`.
 Normal `npm ci` included its real Playwright postinstall and Husky preparation;
-browser downloads stayed in the disposable checkout. Neither verification
+browser downloads used an owned disposable cache. Neither verification
 script nor package/lockfile was edited. No pre/post `test:types` lifecycle exists.
 The separate generation/build/test commands are not claimed by this receipt.
 
@@ -52,8 +53,8 @@ new provider or environment-policy extension accompanies this change.
 Same Mac, Node 22.13.0/npm 10.9.2; normal installed compiler and caches. Five
 alternating direct and npm runs all passed. Direct compiler median 2,070 ms,
 max 2,277 ms; npm launcher median 2,286 ms, max 2,680 ms. Launcher overhead is
-not claimed as compiler savings. Candidate decision and complete workflow
-measurements are pending; CURRENT queries alone do not establish saved runs.
+not claimed as compiler savings. The final candidate workflow is measured below; CURRENT queries alone do not
+establish saved runs.
 
 The HyperFormula current locked 4.0.8 project also installed normally and its
 standalone check passed, but qualifying it would require a second implementation
@@ -61,10 +62,17 @@ review. It remains excluded in this pass, not counted as a product adoption.
 
 ## Installed candidate workflow and economics
 
-Runtime `9d61c5f`, local tarball SHA-256
-`6295cf9779e86a0226f3d58192505f62335914e916a45b4dcd92b077312214db`.
+Final guarded runtime `e0753244c7b9cd999574d18d1966f1ce3aa2e97a`, tarball SHA-256
+`8fba4a9e87d3de05e52ffe40b533f42484c8ef8be64d05a5dee9fb5fa4b2908b`.
 This unreleased artifact is not the alpha.7 guidance release artifact despite its
-inherited version field. The CI-packed exact artifact is identified separately.
+inherited version field. The exact same bytes passed the
+[macOS/Linux/native-Windows package matrix](https://github.com/msiric/redue/actions/runs/37645605913),
+including the added 5.5.2 case and existing upgrade/policy/other-compiler cases.
+[Full regressions](https://github.com/msiric/redue/actions/runs/37645866411) passed:
+macOS Node 22 and Windows Node 22 each 107 passed/16 skipped; Linux Node 22
+108 passed/15 skipped; Linux Node 24 also passed. No failing tests. The following
+test-only capture correction has separate local 4/4 acceptance and no packed
+file changes; a fresh CI run checks the final review HEAD.
 
 Actual installed commands: `redue init --recipe typescript-direct --check typecheck`,
 project-local Codex setup, start, wrapped baseline, synchronized inherited status,
@@ -83,25 +91,25 @@ separate medians. Failed commands: zero. No samples discarded.
 |---|---:|---:|---:|---:|---:|---:|
 | Ordinary compiler | 5 | 2106.2 | 2070.0 | 2277.4 | 2277.4 | 10531.1 |
 | npm `test:types` | 5 | 2357.3 | 2285.6 | 2679.5 | 2679.5 | 11786.7 |
-| Initial wrapped run + sync | 1 | 4711.1 | 4711.1 | 4711.1 | 4711.1 | 4711.1 |
-| Cached status (conservative UNVERIFIED) | 10 | 63.2 | 59.3 | 70.6 | 89.8 | 631.6 |
-| Unchanged synchronized decision | 10 | 382.1 | 379.3 | 391.7 | 401.1 | 3820.6 |
-| Unrelated-edit synchronized decision | 5 | 386.8 | 390.6 | 392.7 | 392.7 | 1933.8 |
-| Relevant edit: sync + required run + sync | 3 | 5826.6 | 5790.8 | 5924.4 | 5924.4 | 17479.8 |
-| Stop + start + first sync | 3 | 1847.5 | 1814.7 | 1919.4 | 1919.4 | 5542.5 |
-| First sync alone after restart | 3 | 381.8 | 381.7 | 385.0 | 385.0 | 1145.4 |
-| Explicit fresh wrapped run | 3 | 4157.0 | 4150.2 | 4175.5 | 4175.5 | 12471.1 |
+| Initial wrapped run + sync | 1 | 4635.8 | 4635.8 | 4635.8 | 4635.8 | 4635.8 |
+| Cached status (conservative UNVERIFIED) | 10 | 60.3 | 59.3 | 64.9 | 65.7 | 602.6 |
+| Unchanged synchronized decision | 10 | 407.9 | 396.3 | 412.2 | 515.0 | 4078.6 |
+| Unrelated-edit synchronized decision | 5 | 460.8 | 400.1 | 565.6 | 565.6 | 2303.9 |
+| Relevant edit: sync + required run + sync | 3 | 5964.1 | 6008.5 | 6051.9 | 6051.9 | 17892.4 |
+| Stop + start + first sync | 3 | 2044.7 | 1963.0 | 2234.7 | 2234.7 | 6134.1 |
+| First sync alone after restart | 3 | 468.8 | 432.5 | 572.8 | 572.8 | 1406.3 |
+| Explicit fresh wrapped run | 3 | 4430.3 | 4373.7 | 4645.0 | 4645.0 | 13291.0 |
 
-Unchanged decision/ordinary-compiler median ratio is 0.183: about 1.69 seconds
+Unchanged decision/ordinary-compiler median ratio is 0.191: about 1.67 seconds
 less CLI work per *potential* reuse opportunity in these separate measured paths.
-Initial wrapped execution itself cost 4,275 ms; its compiler invocation was roughly
-2.05 seconds. Recording and relevant-change workflows have real overhead. A user
+Initial wrapped execution itself cost 4,243 ms; its compiler invocation was roughly
+2.05 seconds in the earlier instrumented run. Recording and relevant-change workflows have real overhead. A user
 who needs fresh verification pays it; a CURRENT query alone is not a saved run.
 
 All ten unchanged and five unrelated queries retained baseline receipt
-`39348b4f-f9ae-4478-b0d4-24b00e045767`. Relevant changes returned STALE with historical
+`c77b8b76-f1e2-4cd2-bb9f-e739b2b8f996`. Relevant changes returned STALE with historical
 PASS, then new wrapped outcomes became CURRENT. All three restarts inherited
-`b4ef1d6b-0b82-45c0-914f-b87783a4bff7`. No historical receipt was converted or deleted.
+`31f9dbb0-1579-4637-a0fa-191a2f97d6c2`. No historical receipt was converted or deleted.
 
 New-project model trials: **NOT RUN yet**. The earlier approved exact socket/state
 belongs to a different disposable checkout. A minimal equivalent grant for this
@@ -130,4 +138,30 @@ context. The environment is unchanged. The default relative loader location is
 inside the pinned compiler distribution, whose full membership must match.
 Plan/context identity changes conservatively; old candidate evidence needs a fresh
 baseline. Source review details and adversarial tests are linked above. Final
-artifact and workflow results follow after the guard's acceptance.
+artifact and workflow results are recorded above. The initial post-upgrade query
+was made before indexing was ready and conservatively returned no check rows; it
+is not counted as an applicability result. A fresh baseline then established the
+final guarded measurements. All 36 recorded sequences completed successfully, including the separate
+source-restoration baseline. No poor result was discarded.
+
+
+## Historical attempts and harness corrections
+
+- Pre-ETW-guard runtime `9d61c5f`, artifact
+  `6295cf9779e86a0226f3d58192505f62335914e916a45b4dcd92b077312214db`:
+  unchanged CLI median 379.3 ms, max 401.1 ms (n=10), no failed measured
+  sequences; installed three-platform acceptance passed. Superseded by the
+  loader guard; not release evidence for the final runtime. Local raw rows and
+  receipts retained. They are not added to the final sample count.
+- Node 24 CI exposed a nested-test reporter assumption, not compiler failure.
+  The isolated 5.5.2 suite now requests TAP explicitly and still checks its
+  nonzero test count; the corrected Node 24 run passed.
+- [CI 37644238002](https://github.com/msiric/redue/actions/runs/37644238002)
+  failed one macOS assertion: the second query after an injected gap had already
+  reached STALE instead of UNVERIFIED. `observationGap()` publishes uncertainty,
+  then schedules deterministic recovery after 100 ms. The test discarded that
+  first response and asserted the later query was still uncertain. The harness
+  now retains and strictly checks the gap response, independently requiring the
+  recovered query to detect the deletion as STALE/PASS. No runtime or expected
+  semantic state was relaxed. The separate failed-reconciliation test remains
+  strictly UNVERIFIED while reconciliation is unavailable.
