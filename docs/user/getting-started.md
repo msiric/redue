@@ -90,7 +90,10 @@ reusability. Qualification can change when configuration or installation changes
 
 `run` streams normal output and preserves execution environment and cancellation.
 For the narrow pnpm TypeScript contract, `init` explicitly shows the direct installed
-compiler invocation it selects; other scripts run through the package manager.
+compiler invocation it selects. In this candidate, npm scripts remain recording-only;
+use `redue init --recipe typescript-direct --dry-run` to preview a distinct,
+explicit [local compiler recipe](direct-typescript.md). Other scripts run through
+the package manager. No existing configuration is silently migrated.
 Only use configs and probes from trusted repositories: these execute local code.
 
 `status` is cached and conservative. `status --sync` and `explain` revalidate caller
@@ -133,3 +136,11 @@ all observed roots; its basename must start with `redue-` or legacy `vstate-`.
 For a removed checkout, `redue --state-dir /your/owned/redue-project-state remove-state`
 still works without rebuilding its compiler/configuration. Ownership/active-run conflicts
 are actionable errors, never resolved merely by deleting an old lock.
+
+## Connect an agent explicitly
+
+After initialization, use `redue agent setup codex --dry-run` (or `claude`) to
+review project-local instructions, then repeat with `--apply`. Start a fresh host
+session. `redue agent doctor` checks prerequisites without running verification.
+See [agent activation](agents.md) for loading rules, generic agents, and removal.
+The released alpha.2 does not contain these candidate commands yet.

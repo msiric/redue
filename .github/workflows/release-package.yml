@@ -46,7 +46,14 @@ jobs:
           path: release-candidate
       - name: Install exact tarball and exercise public binary
         run: node test/acceptance/package-smoke.mjs --manifest release-candidate/manifest.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+      - name: Reviewed npm proxy context with exact installed package
+        run: node test/acceptance/proxy-package-smoke.mjs --manifest release-candidate/manifest.json
       - name: Released alpha.2 observer and receipt-preserving upgrade
         run: node test/acceptance/receipt-upgrade.mjs --manifest release-candidate/manifest.json
       - name: Released alpha.3 npm contract and receipt-preserving containment
         run: node test/acceptance/npm-containment-upgrade.mjs --manifest release-candidate/manifest.json
+      - name: Explicit existing-user recipe selection through public containment
+        run: node test/acceptance/direct-recipe-upgrade.mjs --manifest release-candidate/manifest.json

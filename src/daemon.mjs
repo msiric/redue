@@ -114,6 +114,7 @@ function probe(row,allowReuse=false) {
   const started=performance.now();
   const supported=new Map([
     ['typescript-noemit-v1','typescript-contract-probe.mjs'],
+    ['npm-typescript-direct-v1','direct-typescript-probe.mjs'],
     ['yarn-workspace-tsc-v1','yarn-workspace-typecheck-probe.mjs'],
     ['pnpm-tsc-v1','pnpm-typecheck-probe.mjs']]);
   const expected=supported.get(row.plan.qualification);
@@ -141,17 +142,22 @@ function probe(row,allowReuse=false) {
     // Native NTFS runs have exceeded the generic 5 s cap under load, despite
     // completing normally and with the duplicated work already removed.
     const timeout=row.plan.qualification==='pnpm-tsc-v1'||
-      (process.platform==='win32'&&['typescript-noemit-v1','yarn-workspace-tsc-v1']
+      (process.platform==='win32'&&['typescript-noemit-v1','npm-typescript-direct-v1','yarn-workspace-tsc-v1']
         .includes(row.plan.qualification))?10000:5000;
     const out=spawnSync(argv[0],[...argv.slice(1),...(cacheable?['--redue-checkpoint']:[])],{cwd:row.plan.cwd,
       timeout,maxBuffer:1024*1024,stdio:['ignore','pipe','pipe']});
     if(out.error||out.signal||out.status!==0) {
       if(!row.probeError){row.revision++;row.lastReason='declared state probe became unavailable';}
       row.probeHash=null;row.probeAt=0;
-      const code=['typescript-noemit-v1','yarn-workspace-tsc-v1','pnpm-tsc-v1']
+      const code=['typescript-noemit-v1','npm-typescript-direct-v1','yarn-workspace-tsc-v1','pnpm-tsc-v1']
         .includes(row.plan.qualification)?
         /VSTATE_REASON:([a-z-]+)/.exec(out.stderr?.toString()||'')?.[1]:null;
       const explanations={
+        'direct-typescript-implementation-unreviewed':'installed TypeScript bytes or membership differ from the reviewed compiler',
+        'direct-typescript-version-unsupported':'direct compiler recipe supports reviewed TypeScript 5.6.3 and 5.9.3 only',
+        'direct-execution-environment-unsupported':'direct compiler rejects development helpers, Node cache/preloads, and unreviewed runtime overrides',
+        'direct-node-version-unsupported':'direct compiler recipe supports Node 22 and 24',
+        'npm-launcher-unobserved-inputs':'npm launcher uses unobserved notifier inputs; execution is recording-only',
         'typecheck-script-changed':'typecheck script or lifecycle changed; rerun init or review it',
         'execution-environment-unsupported':'Node/npm preload or configuration environment is unsupported',
         'typescript-executable-changed':'local TypeScript executable changed or is missing',
@@ -166,6 +172,9 @@ function probe(row,allowReuse=false) {
         'npm-installation-unobservable':'npm installation contains unobservable entries',
         'npm-configuration-unsupported':'npm script configuration needs review',
         'typescript-contract-unavailable':'TypeScript applicability probe could not establish inputs',
+        'npm-proxy-version-unsupported':'npm proxy context is reviewed only for npm 10.9.2',
+        'npm-proxy-context-ambiguous':'conflicting npm proxy environment keys require resolution',
+        'npm-proxy-value-unsupported':'npm proxy environment contains an unsupported value',
         'workspace-execution-environment-unsupported':'Yarn/Node launcher environment override needs review',
         'yarn-toolchain-unavailable':'pinned Yarn version or executable is unavailable',
         'yarn-distribution-unobservable':'Corepack Yarn distribution cannot be inspected',
@@ -233,6 +242,7 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
     const item={name,result,freshness:'UNVERIFIED',reason:'no receipt',changed_inputs:[],
       plan_id:row.plan.id,observed_at:lastObservation,
       invocation:r?.invocation||null,target_provenance:r?.target||null,
+      ...(r?.verificationRecipe?{verification_recipe:r.verificationRecipe}:{}),
       coverage_at_run:r?.coverage||null,declared_inputs_match:null,reuse_eligible:false};
     if(receiptStateError){item.reason=receiptStateError;return item;}
     if(!healthy||planning||recovering||index.unavailable){item.reason=
@@ -297,7 +307,7 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
             if(r.files[f]!==current[f]){changed=describeChangedInput(row.plan,f);row.staleInputs=[f];break;}
         }
         row.staleReason=changed||
-          (['typescript-noemit-v1','yarn-workspace-tsc-v1','pnpm-tsc-v1']
+          (['typescript-noemit-v1','npm-typescript-direct-v1','yarn-workspace-tsc-v1','pnpm-tsc-v1']
             .includes(row.plan.qualification)?
             'TypeScript input set, generated file, or toolchain context changed':
             'declared input content or membership changed');

@@ -1,3 +1,4 @@
+import {directProject,directQualification} from './direct-typescript.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
@@ -159,7 +160,8 @@ function workspaceManifests(root,patterns) {
   if(matched.length>50)throw Error('more than 50 workspace packages found; select checks explicitly');
   return matched.map(file=>({file,pkg:readJson(path.join(root,file))}));
 }
-export function discoverNodeProject(root) {
+export function discoverNodeProject(root,{recipe=null}={}) {
+  if(recipe&&recipe!=='typescript-direct')throw Error('unknown recipe; use typescript-direct');
   root=realObservedPath(root);
   const packageFile=path.join(root,'package.json');
   if(!exists(packageFile))throw Error('run init from a repository containing package.json');
@@ -186,6 +188,15 @@ export function discoverNodeProject(root) {
     if(workspaces&&classification.qualification==='typescript-noemit-v1')classification={level:'recording',
       reason:'workspace task and installed-input closure need explicit qualification'};
     const check={name:kind,script,kind,inputs:sourceInputs(root,kind,pm.lockfiles||[])};
+    if(recipe==='typescript-direct'&&kind==='typecheck'){
+      try{
+        if(pm.name!=='npm'||workspaces||observationIssue||pm.issue)throw Error('direct recipe requires a supported single-package npm checkout');
+        const compiler=directProject(root,script);
+        check.command=['@node','@typescript-compiler:.','--noEmit'];check.cwd='.';
+        classification={level:'ready',qualification:directQualification,
+          reason:`explicit local TypeScript ${compiler.version} compilation; npm launcher/lifecycle scripts are not executed; package.json stays unchanged`};
+      }catch(e){classification={level:'recording',reason:`Direct recipe unavailable (${e.code||e.message}); original npm script retained, without bypassing required behavior`};}
+    }
     if(pm.name==='pnpm'&&kind==='typecheck'&&!workspaces&&!pm.issue&&
       /^(?:tsc --noEmit|tsc -p (?:\.|tsconfig\.json)(?: --noEmit)?)$/.test(scripts[script].trim())){
       try{const contract=pnpmTypecheckInputs(root,'.',script);

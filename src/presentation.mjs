@@ -33,6 +33,7 @@ export function renderExplain(value,name) {
   return rows.map(row=>{
     const lines=[`${row.name}: ${checkLabel(row)}${row.result?` / ${row.result}`:''}`];
     if(row.result==='FAIL')lines.push(`Historical failure; applicability: ${row.freshness}.`);
+    if(row.verification_recipe==='npm-direct-typescript@1')lines.push('Recorded recipe: direct local TypeScript compiler; npm and lifecycle scripts were not executed.');
     lines.push(explanation(row));
     if(row.changed_inputs?.length)lines.push('Relevant inputs changed:',...row.changed_inputs.map(file=>`  ${file}`));
     if(row.freshness==='STALE')lines.push(`Due again when verification is needed: redue run ${JSON.stringify(row.name)}`);

@@ -5,7 +5,7 @@ For users:
 - [Install, initialize, run, and remove](user/getting-started.md)
 - [Supported projects and conservative boundaries](user/supported-projects.md)
 - [Configuration](user/configuration.md)
-- [Coding-agent decision policy](user/agents.md)
+- [Connect coding agents and apply the decision policy](user/agents.md)
 - [JSON contract](user/json.md)
 - [Shell usage](user/shell.md)
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import {directCompiler,directQualification,directEnvironment,directInterpretation} from '../src/direct-typescript.mjs';
 import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
@@ -9,7 +10,8 @@ import {fileURLToPath} from 'node:url';
 import {discoverNodeProject} from '../src/node-onboarding.mjs';
 import {processAlive} from '../src/process-liveness.mjs';
 import {samePath,withinPath,realObservedPath} from '../src/path-identity.mjs';
-import {stateIdentity,userStateBase} from '../src/platform-state.mjs';
+import {discoverConfig,projectState,canonicalConfig} from '../src/project-location.mjs';
+import {agentCommand} from '../src/agent-integration.mjs';
 import {findExecutable} from '../src/executable-lookup.mjs';
 import {readCachedStatus} from '../src/cached-state.mjs';
 import {assertOwnedStatePlacement} from '../src/owned-state.mjs';
@@ -22,8 +24,12 @@ const help=`REDUE ${version}
 Usage: redue [--config FILE] [--state-dir DIR] COMMAND [OPTIONS]
 
 Commands:
-  init [--dry-run] [--workspace NAME] [--check KIND]
+  init [--dry-run] [--workspace NAME] [--check KIND] [--recipe typescript-direct]
                        Discover existing scripts; optionally select one workspace/check
+  agent setup codex|claude [--dry-run|--apply] [--json]
+  agent doctor [codex|claude] [--json]
+  agent remove codex|claude [--dry-run|--apply] [--json]
+                       Connect project instructions; explicit setup only
   start                Start the local observer
   stop                 Stop this observer
   status [--json|--short] Read conservative cached status
@@ -39,10 +45,7 @@ function error(message){console.error(`redue: ${message}`);process.exit(2);}
 const args=process.argv.slice(2);
 if(args.length===1&&args[0]==='--version'){console.log(version);process.exit(0);}
 if(args.includes('--help')||args.includes('-h')||!args.length){console.log(help);process.exit(0);}
-const preferredConfig=path.resolve('redue.config.json');
-const legacyConfig=path.resolve('vstate.config.json');
-let configFile=fs.existsSync(preferredConfig)||!fs.existsSync(legacyConfig)?
-  preferredConfig:legacyConfig,stateOverride=null;
+let configFile=null,stateOverride=null;
 for(let i=0;i<args.length;){
   if(args[i]==='--config'||args[i]==='--state-dir'){
     const flag=args[i],value=args[i+1];if(!value)error(`${flag} requires a path`);
@@ -51,17 +54,26 @@ for(let i=0;i<args.length;){
   }else i++;
 }
 const command=args.shift();
+try{configFile??=command==='init'||stateOverride&&['stop','remove-state'].includes(command)?
+  path.resolve(fs.existsSync('redue.config.json')||!fs.existsSync('vstate.config.json')?'redue.config.json':'vstate.config.json'):discoverConfig();}
+catch(e){error(e.message);}
+if(fs.existsSync(path.dirname(configFile)))configFile=canonicalConfig(configFile);
+if(command==='agent'){
+  try{await agentCommand(args,{configFile,stateOverride,entry:fileURLToPath(import.meta.url)});}
+  catch(e){error(e.message);}
+  process.exit(0);
+}
 if(!['init','start','stop','status','detail','explain','run','remove-state'].includes(command))
   error(`unknown command ${command||'<none>'}; use --help`);
 const json=args.includes('--json');
 const sync=args.includes('--sync');
 const dryRun=args.includes('--dry-run');
 const short=args.includes('--short');
-let workspaceSelection=null,checkSelection=null;
+let workspaceSelection=null,checkSelection=null,recipeSelection=null;
 if(command==='init')for(let i=0;i<args.length;){
-  if(args[i]==='--workspace'||args[i]==='--check'){
+  if(args[i]==='--workspace'||args[i]==='--check'||args[i]==='--recipe'){
     const flag=args[i],value=args[i+1];if(!value||value.startsWith('--'))error(`${flag} requires a name`);
-    if(flag==='--workspace')workspaceSelection=value;else checkSelection=value;
+    if(flag==='--workspace')workspaceSelection=value;else if(flag==='--recipe')recipeSelection=value;else checkSelection=value;
     args.splice(i,2);
   }else i++;
 }
@@ -73,7 +85,7 @@ if(short&&(command!=='status'||json||sync))error('--short is a cached status opt
 if(dryRun&&command!=='init')error('--dry-run is for init');
 
 if(command==='init'){
-  let discovery;try{discovery=discoverNodeProject(process.cwd());}
+  let discovery;try{discovery=discoverNodeProject(process.cwd(),{recipe:recipeSelection});}
   catch(e){error(e.message);}
   if(workspaceSelection||checkSelection){
     const chosen=discovery.checks.filter(row=>
@@ -104,7 +116,7 @@ if(command==='init'){
       console.log(`  ${row.name} (${row.script||row.command?.join(' ')}) — `+
         `${{ready:'ready to qualify',recording:'recording-only',unsupported:'unsupported'}[row.level]||row.level}: ${row.reason}`);
       if(row.script&&row.command)console.log(`    Recorded invocation: ${row.command.map(value=>
-        value==='@node'?'node':value.startsWith('@typescript-bin:')?
+        value==='@node'?'node':value==='@typescript-compiler:.'?'[reviewed local TypeScript compiler implementation]':value.startsWith('@typescript-bin:')?
           `[installed TypeScript in ${value.slice('@typescript-bin:'.length)}]`:value).join(' ')}`);
     }
     for(const row of summary.ambiguous)
@@ -121,6 +133,7 @@ if(command==='init'){
     if(!json){console.log(`Created ${configFile}. No checks were executed.`);
       console.log('Ready to qualify means the supported contract will be validated; it is not verification evidence.');
       console.log(`Next: review the config, then redue start and redue run ${JSON.stringify(discovery.checks[0].config.name)}.`);
+      console.log('Connect your agent: redue agent setup codex (or claude). Preview with --dry-run.');
       console.log('Use redue status first. --sync can establish applicability, but may cost more than rerunning a cheap check.');}
   } else if(unsupported&&!json)console.log(`No config written: ${summary.issue||'unsupported discovery boundary'}.`);
   if(json)console.log(JSON.stringify({...summary,proposed_config:discovery.config}));
@@ -157,10 +170,7 @@ for(const key of Object.keys(publicConfig))
   if(!['schema','root','checks','packageManager'].includes(key))error(`unsupported config field ${key}`);
 if(check&&!publicConfig.checks.some(row=>row.name===check))error(`unknown check ${check}; use redue status to list configured checks`);
 const root=realObservedPath(path.resolve(path.dirname(configFile),publicConfig.root||'.'));
-const stateBase=userStateBase(process.platform,process.env,os.homedir());
-const state=stateOverride||path.join(stateBase,'vstate',
-  `vstate-${createHash('sha256').update(stateIdentity(root)+'\0'+
-    stateIdentity(configFile)).digest('hex').slice(0,16)}`);
+const state=stateOverride||projectState(root,configFile);
 if(!/^(?:vstate|redue)-/.test(path.basename(state)))
   error('--state-dir must name a dedicated redue-* directory outside the checkout (legacy vstate-* is also supported)');
 const runtimeFile=path.join(state,'project-runtime-v1.json');
@@ -172,6 +182,10 @@ function which(name){
 function token(value){
   if(value==='@node')return process.execPath;
   if(value==='@project')return root;
+  if(value==='@typescript-compiler:.'){
+    try{return directCompiler(root,{verify:false}).entry;}catch(e){error(`direct compiler unavailable: ${e.code||e.message}`);}
+  }
+  if(value==='@vstate/direct-typescript-probe')return path.join(productRoot,'src','direct-typescript-probe.mjs');
   if(value.startsWith('@typescript-bin:')){
     const dir=value.slice('@typescript-bin:'.length);
     if(!dir||path.isAbsolute(dir)||dir.split('/').includes('..'))
@@ -208,8 +222,9 @@ const checks=publicConfig.checks.map(check=>{
   for(const category of categories)if(check.coverage?.[category]&&
     typeof check.coverageReview?.[category]!=='string')
     error(`${check.name}: reviewed coverage ${category} needs a rationale`);
+  const npmDirect=check.qualification===directQualification;
   const pnpmTypecheck=check.qualification==='pnpm-tsc-v1';
-  if(check.script&&check.command&&!pnpmTypecheck)
+  if(check.script&&check.command&&!pnpmTypecheck&&!npmDirect)
     error(`${check.name}: choose script or command, not both`);
   const manager=publicConfig.packageManager;
   if(check.script&&!['npm','yarn','pnpm'].includes(manager))
@@ -218,8 +233,11 @@ const checks=publicConfig.checks.map(check=>{
     [`@which:${manager}`,'run',check.script]:null;
   const npmAutomatic=check.qualification==='typescript-noemit-v1';
   const yarnWorkspace=check.qualification==='yarn-workspace-tsc-v1';
-  if(check.qualification&&!npmAutomatic&&!yarnWorkspace&&!pnpmTypecheck)
+  if(check.qualification&&!npmAutomatic&&!npmDirect&&!yarnWorkspace&&!pnpmTypecheck)
     error(`${check.name}: unknown qualification contract`);
+  if(npmDirect&&(manager!=='npm'||!check.script||check.cwd&&check.cwd!=='.'||
+    JSON.stringify(check.command)!==JSON.stringify(['@node','@typescript-compiler:.','--noEmit'])))
+    error(`${check.name}: direct recipe requires its explicit local compiler command`);
   if(npmAutomatic&&(manager!=='npm'||check.cwd&&check.cwd!=='.'))
     error(`${check.name}: automatic TypeScript qualification currently needs root npm script`);
   if(yarnWorkspace&&(manager!=='yarn'||!check.workspace||check.cwd&&check.cwd!=='.'||
@@ -237,7 +255,7 @@ const checks=publicConfig.checks.map(check=>{
     check.kind==='lint'?'lint plugins, config and resolver inputs need review':
     check.kind==='build'?'build environment and generated inputs need review':
     'check inputs need review';
-  const autoProbes=npmAutomatic?[['@node','@vstate/typescript-contract-probe',
+  const autoProbes=npmDirect?[['@node','@vstate/direct-typescript-probe','@project',check.script]]:npmAutomatic?[['@node','@vstate/typescript-contract-probe',
     '@project',check.script,'@which:npm']]:yarnWorkspace?
     [['@node','@vstate/yarn-workspace-typecheck-probe','@project',
       check.workspace,check.command[4],'@which:yarn']]:pnpmTypecheck?
@@ -245,7 +263,7 @@ const checks=publicConfig.checks.map(check=>{
       check.workspace||'.',check.script]]:[];
   const windowsContext=process.platform==='win32'?
     ['ComSpec','COMSPEC','PATHEXT','USERPROFILE']:[];
-  const autoEnvironment=npmAutomatic?{variables:['NODE_OPTIONS','NODE_PATH','CI','HOME',
+  const autoEnvironment=npmDirect?directEnvironment:npmAutomatic?{variables:['NODE_OPTIONS','NODE_PATH','CI','HOME',
     'NODE_ENV','BASH_ENV','ENV',...windowsContext],prefixes:['npm_config_','DYLD_','TSGO_'],
     pathExecutables:['node','npm'],executableIdentity:true}:yarnWorkspace?
     {variables:['NODE_OPTIONS','NODE_PATH','CI','HOME','NODE_ENV','BASH_ENV','ENV',...windowsContext],
@@ -257,7 +275,7 @@ const checks=publicConfig.checks.map(check=>{
   return {name:check.name,command:argv(scriptCommand||check.command,`${check.name}.command`),
     cwd:check.cwd,inputs:check.inputs||[],generatedInputs:check.generatedInputs||[],
     installedInputs:check.installedInputs||(
-      npmAutomatic?['node_modules/**']:[]),
+      npmAutomatic||npmDirect?['node_modules/**']:[]),
     allowedExternalRoots:check.allowedExternalRoots||[],
     probes:[...(check.probes||[]),...autoProbes]
       .map((p,i)=>argv(p,`${check.name}.probes[${i}]`)),
@@ -267,6 +285,7 @@ const checks=publicConfig.checks.map(check=>{
       categories.map(category=>[category,reason])),
     qualification:check.qualification||null,script:check.script||null,
     ...(npmAutomatic?{qualificationInterpretation:'npm-launcher-withheld@1'}:{}),
+    ...(npmDirect?{qualificationInterpretation:directInterpretation}:{}),
     workspace:check.workspace||null,kind:check.kind||null};
 });
 const runtime={schema:1,provider:'declared-project@1',root,state,checks};
