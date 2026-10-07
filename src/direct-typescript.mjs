@@ -7,6 +7,7 @@ import {realObservedPath,withinPath} from './path-identity.mjs';
 export const directInterpretation='npm-direct-typescript@1';
 export const directQualification='npm-typescript-direct-v1';
 const reviewed={
+  '5.5.2':{entry:'lib/tsc.js',digest:'953b4844b5f6edc745be844b6c367c227b59029b73c4182f508f90cc47e21816'},
   '5.6.3':{entry:'lib/tsc.js',digest:'e674b5dc4dac50f6e91be30094aeea983a1f340231717e62b0b6199ae3049eb2'},
   '5.9.3':{entry:'lib/_tsc.js',digest:'d1b32e75475710fdc85102b1365254d84ceb192d3639d962c53fe1355ce274ca'},
 };

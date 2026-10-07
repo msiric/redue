@@ -13,7 +13,9 @@ import {createRequire} from 'node:module';
 import {findExecutable} from '../src/executable-lookup.mjs';
 
 const require=createRequire(import.meta.url),bin=path.resolve('bin/redue.mjs');
-const sourceTypeScript=path.dirname(require.resolve('typescript/package.json'));
+const compilerPackage=process.env.REDUE_TEST_COMPILER_PACKAGE||'typescript';
+const sourceTypeScript=path.dirname(require.resolve(compilerPackage+'/package.json'));
+const compilerVersion=JSON.parse(fs.readFileSync(path.join(sourceTypeScript,'package.json'))).version;
 const put=(file,value)=>{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,value);};
 function project(t,{manager='npm',declaredManager=null,
   scripts={typecheck:'tsc --noEmit',test:'vitest run',
@@ -78,7 +80,7 @@ test('direct recipe is an explicit previewable choice; no lifecycle or compound 
   }
 });
 test('direct compiler identity rejects replacements/additions and unsafe runtime paths',t=>{
-  const {root}=project(t);assert.equal(directCompiler(root).version,'5.6.3');
+  const {root}=project(t);assert.equal(directCompiler(root).version,compilerVersion);
   const file=path.join(root,'node_modules/typescript/lib/tsc.js'),bytes=fs.readFileSync(file);
   fs.appendFileSync(file,'\n');assert.throws(()=>directCompiler(root),/implementation-unreviewed/);fs.writeFileSync(file,bytes);
   put(path.join(root,'node_modules/typescript/unreviewed.js'),'');assert.throws(()=>directCompiler(root),/implementation-unreviewed/);

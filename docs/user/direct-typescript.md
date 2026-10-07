@@ -5,7 +5,7 @@ check against declared, observed inputs and relevant execution context. It does
 not mean npm or npm lifecycle scripts completed.
 
 For a supported single-package npm project with an existing standalone
-`tsc --noEmit` script, installed dependencies, Node 22/24 and TypeScript 5.6.3/5.9.3:
+`tsc --noEmit` script, installed dependencies, Node 22/24 and TypeScript 5.5.2/5.6.3/5.9.3:
 
 ```sh
 redue init --recipe typescript-direct --check typecheck --dry-run
@@ -33,7 +33,7 @@ A generated check contains:
 
 `script` identifies the reviewed source recipe; `command` is what actually runs:
 the resolved Node executable and local TypeScript implementation, with exact argv
-and no shell. TypeScript 5.6.3 uses `lib/tsc.js`; 5.9.3 uses `lib/_tsc.js` directly,
+and no shell. TypeScript 5.5.2 and 5.6.3 use `lib/tsc.js`; 5.9.3 uses `lib/_tsc.js` directly,
 without its outer compile-cache-enabling shim. No compiler is fetched or bundled.
 The entire installed package must match reviewed official distribution bytes.
 

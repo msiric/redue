@@ -23,7 +23,7 @@ function fixture(t){
   put(path.join(root,'src/main.ts'),'// @ts-ignore optional missing module\nimport {x} from "optional";\nexport const value: number = 1;\n');
   put(path.join(root,'src/other.ts'),'export const other = 2;\n');
   put(path.join(root,'.gitignore'),'node_modules/\n');
-  fs.cpSync(path.resolve('node_modules/typescript'),path.join(root,'node_modules/typescript'),{recursive:true});
+  fs.cpSync(path.resolve('node_modules',process.env.REDUE_TEST_COMPILER_PACKAGE||'typescript'),path.join(root,'node_modules/typescript'),{recursive:true});
   execFileSync('git',['init','-q'],{cwd:root});
   const fixtures=[false,true].map(full=>{const state=path.join(base,full?'redue-r':'redue-f');
     return {root,state,env:{...cleanEnv(),VSTATE_START_READY_WAIT_MS:'10000',VSTATE_TEST_FAULTS:'1',
