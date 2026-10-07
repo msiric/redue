@@ -158,7 +158,7 @@ if(stateOverride&&['stop','remove-state'].includes(command)){
   const runtime=path.join(stateOverride,'project-runtime-v1.json');
   if(!fs.existsSync(runtime)){console.log('No REDUE state exists at this path.');process.exit(0);}
   mark('client.engine_submit');
-const result=spawnSync(process.execPath,[engine,runtime,command==='stop'?'stop':'uninstall'],
+  const result=spawnSync(process.execPath,[engine,runtime,command==='stop'?'stop':'uninstall'],
     {cwd:os.tmpdir(),stdio:['inherit','pipe','inherit'],encoding:'utf8',env:process.env});
   if(result.error)error(result.error.message);
   if(result.stdout)printLifecycle(result.stdout,command,json);
@@ -338,6 +338,7 @@ if(command==='run'){
   if(outcome.error)error(outcome.error.message);
   process.exit(outcome.status??(outcome.signal?128+os.constants.signals[outcome.signal]:1));
 }
+mark('client.engine_submit');
 const result=spawnSync(process.execPath,[engine,runtimeFile,internal,...(check?[check]:[])],
   {stdio:['inherit','pipe','inherit'],
     encoding:'utf8',env:traceEnvironment()});

@@ -142,3 +142,38 @@ test('macOS post-probe continuity barrier observes an edit queued during validat
   assert(fs.existsSync(signal));put(path.join(root,'src/queued.ts'),'export const q=1;');
   assert.equal(await done,0,stderr);assert.equal(JSON.parse(stdout).checks[0].reuse_eligible,false);
 });
+
+test('certificate input is bounded, handles chunked delivery, and validates after EOF',async t=>{
+ const f=fixture(t).fast;
+ const full=spawnSync(process.execPath,[probe,f.root,'typecheck','--redue-checkpoint'],{cwd:f.root,env:f.env,encoding:'utf8',timeout:15000});
+ assert.equal(full.status,0,full.stderr);const c=JSON.parse(full.stdout);
+ const certificate=JSON.stringify({schema:1,context:c.context,queries:JSON.parse(inflateSync(Buffer.from(c.queryData,'base64')))});
+ async function stream(input,mutate){
+  const child=spawn(process.execPath,[probe,f.root,'typecheck','--redue-validate-queries'],{cwd:f.root,env:f.env});
+  let stdout='',stderr='';child.stdout.on('data',b=>stdout+=b);child.stderr.on('data',b=>stderr+=b);child.stdin.on('error',()=>{});
+  const done=new Promise(resolve=>child.once('exit',code=>resolve({code,stdout,stderr})));
+  const timer=setTimeout(()=>child.kill('SIGKILL'),15000);
+  for(let offset=0;offset<input.length;offset+=4096){child.stdin.write(input.slice(offset,offset+4096));await new Promise(r=>setImmediate(r));}
+  if(mutate)mutate();child.stdin.end();const result=await done;clearTimeout(timer);return result;
+ }
+ const good=await stream(certificate);assert.equal(good.code,0,good.stderr);assert.equal(good.stdout,c.context);
+ const changed=await stream(certificate,()=>put(path.join(f.root,'src/main.ts'),'export const changed=1;'));
+ assert.equal(changed.code,2);assert.equal(changed.stdout,'');
+ const malformed=await stream('{');assert.equal(malformed.code,2);
+ const oversized=await stream(' '.repeat(8*1024*1024+1));assert.equal(oversized.code,2);
+});
+
+test('newer failed selection during delayed response remains authoritative',
+ {skip:process.platform!=='darwin'},async t=>{
+ const {fast:f}=fixture(t),signal=path.join(f.state,'probe-signal');
+ f.env.VSTATE_TEST_MAC_PROBE_SIGNAL=signal;call(f,['start']);call(f,['run','typecheck']);assert(row(f).reuse_eligible);
+ fs.rmSync(signal,{force:true});
+ const child=spawn(process.execPath,[cli,'--state-dir',f.state,'status','--sync','--json'],{cwd:f.root,env:f.env});
+ let stdout='',stderr='';child.stdout.on('data',b=>stdout+=b);child.stderr.on('data',b=>stderr+=b);
+ const done=new Promise(resolve=>child.once('exit',resolve));
+ for(let n=0;n<200&&!fs.existsSync(signal);n++)await new Promise(r=>setTimeout(r,10));assert(fs.existsSync(signal));
+ const failed=structuredClone(readReceipts(f.state).checks.typecheck);failed.result='FAIL';failed.invocation.runId=randomUUID();
+ const lock=acquireRunLock(f.state);try{commitReceipt(f.state,'typecheck',failed);}finally{lock.release();}
+ assert.equal(await done,0,stderr);const visible=JSON.parse(stdout).checks[0];
+ assert.equal(visible.result,'FAIL');assert.equal(visible.invocation.runId,failed.invocation.runId);assert.equal(visible.reuse_eligible,false);
+});
