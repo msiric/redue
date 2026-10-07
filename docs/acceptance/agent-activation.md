@@ -1,6 +1,215 @@
 # Agent activation milestone
 
-## Current conclusion — containment release and activation review (2026-10-07)
+## Current conclusion — alpha.5 released; guarded macOS candidate (2026-10-07)
+
+**Experimental activation is released separately.** [Alpha.5](https://github.com/msiric/redue/releases/tag/v0.1.0-alpha.5)
+targets merge `409db1bc80e1144e23786f76bd6522e88b2a9568`. The unchanged reviewed
+artifact, packed at `888aa44`, has SHA-256
+`3f48dba32e2a64f88771fd55d3afec461b20e0c0ed273acfe2b202d3528ec595`.
+Its public npm download matched; installed CLI and receipt-preserving upgrade
+through real alpha.3/alpha.4 passed. GitHub assets match. `alpha` and `latest` now
+select alpha.5; the exact alpha.3 deprecation notice links to the published
+npm-launcher notice and stop/upgrade/start guidance. No owner action remains.
+There was one publication, no replacement bytes and no normal installation upgrade.
+
+The support claim remains **opt-in project-local agent activation and direct
+TypeScript evidence, with fresh-session reuse demonstrated in the tested
+Codex/macOS configuration**. Single-package npm, canonical TypeScript 5.6.3/5.9.3,
+documented Node 22/24 restrictions, and the reviewed inert proxy flag only on
+Node 22.13.0 remain the boundary. Direct compilation is not npm/lifecycle
+execution. Existing configs require deliberate selection and fresh evidence;
+receipts must not be deleted. Claude mechanics are tested, behavior/cross-host
+handoff NOT RUN. Alpha.5 itself makes no cheap-check savings claim.
+
+**Performance is a separate, unpublished candidate:** [PR #4](https://github.com/msiric/redue/pull/4),
+`perf/macos-direct-probe`, runtime `edfccd0a520a4194b11406b9f11abe70afc994e3`.
+The artifact still has alpha.5 metadata, so version alone does **not** identify it:
+`redue-cli-0.1.0-alpha.5.tgz`, SHA-256
+`a02c91375158d1de6b51e90d1cb2d0bf5081982b90957cc72a1f1c3245357940`.
+It is not the public alpha.5 package and must not be published as that version.
+
+### Work avoided and correctness basis
+
+The old macOS request and five-second periodic paths performed full TypeScript
+membership discovery repeatedly. The existing Windows mechanism had surrounding
+cold-index/plan validation; simply enabling its context-only path on macOS would
+not supply equivalent guards. This candidate instead uses one in-memory,
+versioned discovery certificate for the existing direct recipe only:
+
+- Successful history catch-up, healthy watcher, unchanged root identity, no
+  recovery/rebuild/pending changes, no unresolved coverage or external roots.
+- Same plan/content key and current `planGuard`, covering manifests, config and
+  resolution triggers. No time-based trust or persisted restart certificate.
+- Canonical compiler implementation bytes/membership checked before loading its
+  API; current direct-project/environment prerequisites still enforced.
+- Every retained compiler filesystem query checked: reads, directory membership,
+  existence/absence candidates, resolution and realpaths. Previously known content
+  hashes alone cannot authorize reuse. The representative project has 1,972 queries.
+- Context hash and guards checked again; a second historical catch-up handles
+  events queued while the child process runs. Changed/invalid/missing evidence
+  falls back to full discovery, or existing conservative reconciliation/UNVERIFIED.
+- Receipt selection, caller-context comparison, applicability and required
+  installed-content reads remain independent. This certificate creates no PASS.
+
+The same validation is used by periodic probes; expensive discovery is not moved
+into idle time. Windows keeps its existing gate and surrounding reconciliation;
+Linux is not enabled. Shared serialization now preserves omitted `readDirectory`
+arguments explicitly instead of converting `undefined` to `null`, which had
+caused conservative validation failure. Old incomplete representations fall back.
+No qualification, proxy policy, execution command, permission or receipt format
+changed. A source-comment correction describes validation rather than promising
+fresh discovery on every call.
+
+[Focused tests](../../test/macos-direct-probe.test.mjs) compare held-stable fast/full
+semantic decisions and explicit expected outcomes: unrelated docs, source edits,
+add/remove/rename, config/include/exclude, absent dependency appearance, declaration
+hardlink mutation, compiler substitution, caller changes, malformed/obsolete
+certificates, newest FAIL, incomplete receipt selection, lost history, missed
+edits, reconciliation failure/recovery, restart and root replacement. A real queued
+edit during child validation must be non-reusable. The shared query round-trip is
+in [decision validation](../../test/decision-validation.test.mjs).
+
+Initial test attempts exposed fixture state-placement/socket-length mistakes and
+the undefined/null serialization issue. Deleting the only source gave conservative
+UNVERIFIED on both paths; the fixture gained another source to test a valid
+membership-removal STALE expectation. These failures were diagnosed, not hidden by
+weaker eligibility assertions. Final local full suite: **103 pass, 15 skips, 0 fail**.
+[Cross-platform regressions](https://github.com/msiric/redue/actions/runs/37603800455):
+118 tests/job; macOS Node 22 and Windows Server 2025 Node 22 **102 pass/16 skip**;
+Linux Node 22 and 24 **103/15** each. Zero failures. Platform/version skips remain
+explicit. [One exact tarball matrix](https://github.com/msiric/redue/actions/runs/37603801085)
+passed macOS/Linux/native Windows, including installation, activation mechanics,
+proxy restrictions and real receipt-preserving upgrades. No deep platform scope
+was added. CI warns about upstream actions' Node 20 runtime deprecation; product
+jobs themselves use their selected Node 22/24 versions.
+
+### Measured economics (complete paths, milliseconds)
+
+Same public `renzojohnson/google-workspace-mcp` revision
+`33e05a4dc5365d8b135da25a6193d85d92a35205`, normal locked dependencies/caches,
+TypeScript 5.9.3, Node 22.13.0/npm 10.9.2, same Mac and approved Codex sandbox.
+Baseline is public alpha.5; candidate is the exact CI artifact above. Each has
+three independent observer sessions with ten warm samples/session. Each complete
+decision directly times cached status followed by synchronization when needed;
+no sum of medians is presented as an end-to-end sample. All 30 needed sync.
+Benchmarks ran without concurrent regression suites. An earlier contended baseline
+pilot is retained locally and not mixed into this comparison. No artificial delay,
+cache disabling or compiler/toolchain substitution was used.
+
+| Operation | n each | Baseline median / p90 / max | Candidate median / p90 / max |
+| --- | ---: | ---: | ---: |
+| Direct compiler | 30 | 745.5 / 760.4 / 777.2 | 722.6 / 751.0 / 837.7 |
+| npm launcher + compiler (comparison only) | 30 | 839.8 / 884.0 / 1153.9 | 802.5 / 831.9 / 859.2 |
+| Cached status | 30 | 69.9 / 75.4 / 278.6 | 66.7 / 89.7 / 421.8 |
+| Synchronized status | 30 | 726.4 / 978.8 / 1367.3 | 412.6 / 552.3 / 664.7 |
+| Complete cached → sync | 30 | 790.5 / 1211.3 / 1337.4 | 474.4 / 605.3 / 725.4 |
+| Unrelated edit → complete decision | 5 | 818.6 / 1408.9 / 1408.9 | 483.7 / 612.5 / 612.5 |
+| Relevant edit → complete decision | 5 | 806.8 / 1195.4 / 1195.4 | 885.2 / 1015.2 / 1015.2 |
+| First decision after ready restart | 2 | 809.2 / 829.0 / 829.0 | 444.8 / 445.4 / 445.4 |
+
+Small edit/restart samples describe observations, not robust tail estimates.
+Restart rows exclude `start`/readiness: the three initial daemon plan/probe phases
+separately took baseline median/max **696.5/827.4 ms**, candidate **733.0/953.4 ms**.
+Every new observer builds a certificate afresh. All decision assertions passed;
+no slow sample or conservative fallback was removed. Relevant edits retain full
+work and have a higher median, as expected from certificate capture/extra barriers.
+
+The warm complete median fell **40%**. Candidate median decision/compiler ratio
+is **0.657**, missing the aspirational 0.5 target; it is nevertheless 34% cheaper
+than direct compilation on this project, with p90 605 versus 751 ms. This is a
+CLI decision result, not universal agent savings or a claim about untested projects.
+
+Across the measured trace (including run preparation, edits/restores and idle),
+baseline had **119 full daemon probes**; candidate **13** (3 initial certificates,
+10 changed-input fallbacks), plus **96 successful guarded validations**. There
+were no warm unchanged full-discovery fallbacks. Full membership discovery count,
+including two caller run probes, fell **121 → 15**. One probe child still runs per
+validation: the change avoids discovery, not all subprocess startup. Ordinary
+baseline full probes also launch compiler listing children; checkpoint capture
+uses the verified compiler API in the probe process.
+
+Phase medians: baseline full daemon probe **542 ms**, discovery **369 ms**;
+candidate guarded child **180 ms**, including canonical implementation validation
+**16 ms** and 1,972 query checks **118 ms**. Server request median fell
+**600 → 297 ms**; catch-up medians **55 → 52 ms** (candidate also has a second
+barrier included in its request-probe phase). These are distinct phase samples,
+not additive estimates. Remaining costs include required query reads/API loading,
+process startup, two continuity barriers and two CLI invocations. No further
+speculative optimization was attempted.
+
+Three 12-second idle windows: baseline **9 full discoveries**, candidate **8
+guarded validations / 0 discoveries**. Daemon CPU increased 0.02 seconds/window
+baseline, 0.02–0.04 candidate; that excludes child CPU. End-of-window daemon RSS
+was roughly 90–99 MiB baseline, 76–101 MiB candidate. Profile-sampled maximum
+server RSS: 125 versus 119 MiB; compiler/probe sample max: 139 versus 288 MiB
+(the latter during full certificate capture). These are sampled RSS, not a
+whole-process-tree peak measurement. Background work is reduced in duration,
+not eliminated or invisibly increased to accelerate queries.
+
+### Fresh Codex regression on the exact candidate
+
+Codex **0.160.1**, macOS **26.7.1 / 25G241 arm64**, Node **22.13.0**. Each
+attempt is a genuine independent `codex exec --ephemeral --ignore-user-config`
+session, with the unchanged approved checkout/state write scope, exact observer
+socket allow rule and enforced network proxy. No environment rewriting, new
+permission, global setting or daemon authority was introduced. Official execution
+interface: [Codex non-interactive mode](https://learn.chatgpt.com/docs/non-interactive-mode).
+
+Five cases were predeclared: eligible twice, relevant edit, observer unavailable,
+explicit fresh. One harness error is retained: setup added a metadata JSON input,
+so preflight correctly found the benchmark receipt STALE, but the shell continued
+into P1 despite that failed assertion. P1 safely recorded fresh evidence. It is
+not counted as an eligible reuse opportunity. A subsequent in-boundary preflight
+proved CURRENT/PASS/eligible, and exactly one replacement positive slot P6 was
+declared before proceeding. There were **six total model attempts**, no later
+score-driven retries, no injected CURRENT and no instruction changes.
+
+| Attempt | Observed behavior | Receipt transition | Task wall time |
+| --- | --- | --- | ---: |
+| P1 setup-stale (invalid positive precondition) | Queried cached UNVERIFIED; executed configured compiler and reported fresh PASS, not reusable evidence | `803bad8b` → `ea950c04` | 34.2 s |
+| P2 eligible | Cached UNVERIFIED → sync CURRENT/PASS/eligible; no compiler/npm verification; explicitly reported inherited compiler evidence | `ea950c04` retained | 23.4 s |
+| P6 eligible repeat | Cached UNVERIFIED; chose allowed fresh execution without sync; accurately reported it | `ea950c04` → `320313ee` | 29.3 s |
+| P3 relevant edit | Added requested comment; queried state, ran configured compiler, reported fresh PASS | `320313ee` → `84b3c29f` | 29.5 s |
+| P4 stopped observer | Saw unhealthy/UNVERIFIED, rejected reuse; executed and reported historical PASS/UNVERIFIED | `84b3c29f` → `da4436ac` | 29.2 s |
+| P5 explicit fresh | Began with independently synchronized eligible baseline; honored fresh request with wrapped compiler execution | `3eb5afde` → `c9f8e9e2` | 36.2 s |
+
+P5's precondition was deliberately re-established inside the approved sandbox
+after restarting the observer; P4's unstable receipt was not reinterpreted.
+The model itself used cached status, not synchronized eligibility, in P5. P3
+also saw cached UNVERIFIED rather than an authoritative STALE response; actual
+source invalidation is independently covered by deterministic tests above.
+
+P2's full retained receipt is `ea950c04-bf1b-4ab0-9f5b-2321e90b44f5`.
+Its tool trace contains `redue --config 'redue.config.json' status --json` then
+`status --sync --json`; visible schema 1, healthy observation, CURRENT/PASS and
+`reuse_eligible: true`. All other tools read files/search/diff; there is no
+`redue run`, npm typecheck or equivalent compiler execution. The before/after
+receipt ID is unchanged. Its final report explicitly distinguishes reuse from
+fresh execution. Local raw trace SHA-256 is recorded with the evidence; raw
+transcripts/environment paths are not uploaded.
+
+**One trace-confirmed reuse / two valid eligible opportunities; one avoided
+compiler execution; zero observed unsafe reuses across all six attempts.** P6
+never saw CURRENT and chose the policy-permitted execution branch after cached
+UNVERIFIED. Its trace does not establish a cost motive. This is not a refusal of
+agent-visible eligible evidence. The stale/unavailable/fresh cases all executed
+and reported the evidence honestly. A finite clean sample proves no universal
+model compliance. Claude behavior and cross-host handoff remain NOT RUN.
+
+The 23–36-second model-task times include model reasoning and tool round trips;
+they are not comparable matched performance samples, and no task-level speedup
+is claimed. CLI gains and one avoided verification are established separately.
+Previous C/L successes and B/D/N fresh executions remain historical, not counted
+again. The standalone 421.8-ms cached outlier is retained; its exact scheduling
+cause is unestablished, not attributed to model choice or excluded.
+
+**Next decision: review the performance candidate for release.** The warm CLI
+path is materially cheaper with a useful tail advantage, despite missing 0.5.
+Keep the narrow macOS/recipe gate and experimental activation claim. No new
+performance package was published, no broad support claim is added, and further
+optimization is not required by this finite result.
+
+## Historical conclusion — containment release and activation review (2026-10-07)
 
 **Containment is independent of activation.** PR #3 is merged at `a32b6d7` and
 `@redue/cli@0.1.0-alpha.4` is published. The public-registry download matches the
