@@ -22,6 +22,9 @@ test('failed/throwing/malformed/wrong preflight launches no model process',async
 });
 test('negative trials require their own explicit precondition, never arbitrary failure',async()=>{
   let launches=0;const run=(r,expected)=>runGatedTrial({preflight:()=>r,expected,record:()=>{},launch:()=>launches++});
+  assert((await run(report('STALE','PASS',false),'stale')).launched);
+  assert(!(await run(report(),'stale')).launched);
+  assert(!(await run(report('UNVERIFIED','PASS',false),'stale')).launched);
   assert((await run(report('UNVERIFIED','PASS',false),'unverified')).launched);
   assert((await run(report('CURRENT','FAIL',false),'failed')).launched);
   assert(!(await run(report('UNVERIFIED','PASS',false),'failed')).launched);
@@ -32,7 +35,7 @@ test('negative trials require their own explicit precondition, never arbitrary f
   assert((await run(denied,'unavailable')).launched);
   assert(!(await run({...denied,commands:[]},'unavailable')).launched);
   assert(!(await run(report(),'unavailable')).launched);
-  assert.equal(launches,3);
+  assert.equal(launches,4);
 });
 test('record failure also stops launch rather than losing precondition evidence',async()=>{
   let launched=false;
