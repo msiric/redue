@@ -9,7 +9,8 @@ const require=createRequire(import.meta.url);
 const hash=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 export function queryAnswer(kind,file,options) {
   try{
-    if(kind==='readDirectory')return require(options.tsRoot).sys.readDirectory(file,...options.args).sort();
+    if(kind==='readDirectory')return require(options.tsRoot).sys.readDirectory(file,
+      ...options.args.map((value,i)=>options.undefinedArguments?.includes(i)?undefined:value)).sort();
     if(kind==='readFile')return hash(fs.readFileSync(file,'utf8'));
     if(kind==='fileExists')return fs.statSync(file).isFile();
     if(kind==='directoryExists')return fs.statSync(file).isDirectory();
@@ -42,7 +43,10 @@ export function compilerFiles(tsRoot,cwd) {
   const getDirectories=file=>{remember('directories',file);return ts.sys.getDirectories(file);};
   const readDirectory=(dir,...args)=>{
     const result=ts.sys.readDirectory(dir,...args);
-    const full=path.resolve(dir),options={tsRoot,args};
+    // JSON turns undefined array entries into null. TypeScript distinguishes
+    // them (an omitted exclude list is not a null list), so retain that fact.
+    const full=path.resolve(dir),options={tsRoot,args,argsVersion:1,
+      undefinedArguments:args.flatMap((value,i)=>value===undefined?[i]:[])};
     queries.set('readDirectory\0'+full+JSON.stringify(args),
       ['readDirectory',full,[...result].sort(),options]);
     return result;

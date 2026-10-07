@@ -16,7 +16,7 @@ import {permittedRoots} from './installed-inputs.mjs';
 import {assertOwnedStatePlacement} from './owned-state.mjs';
 import {atomicJson,readReceipts,readReceiptSnapshot,receiptRevision} from './state-store.mjs';
 import {history} from './observation.mjs';
-import {inputKey} from './decision-validation.mjs';
+import {inputKey,planGuard} from './decision-validation.mjs';
 import {timing} from './decision-profile.mjs';
 
 const configFile=path.resolve(process.argv[2]);
@@ -110,6 +110,11 @@ function persistedPlan(bundle) {
       return [name,safe];
     }))};
 }
+function macProbeBarrier() {
+  return process.platform==='darwin'&&hasHistory&&!historyDisabled&&healthy&&
+    watcher&&!planning&&!recovering&&!planDirty&&!index?.unavailable&&
+    !pending.size&&!pendingChecks.size&&!external.size&&verifyRoot();
+}
 function probe(row,allowReuse=false) {
   const started=performance.now();
   const supported=new Map([
@@ -118,24 +123,45 @@ function probe(row,allowReuse=false) {
     ['yarn-workspace-tsc-v1','yarn-workspace-typecheck-probe.mjs'],
     ['pnpm-tsc-v1','pnpm-typecheck-probe.mjs']]);
   const expected=supported.get(row.plan.qualification);
-  const cacheable=process.platform==='win32'&&row.plan.probes.length===1&&expected&&
+  const macDirect=process.platform==='darwin'&&row.plan.qualification==='npm-typescript-direct-v1';
+  const cacheable=(process.platform==='win32'||macDirect)&&row.plan.probes.length===1&&expected&&
     row.plan.probes[0][1]===fileURLToPath(new URL(expected,import.meta.url));
   const key=inputKey(row);
-  if(cacheable&&allowReuse&&row.probeCache?.input===key){
+  let guard=null,guardReason=null;
+  if(macDirect&&cacheable)try{guard=planGuard(index.bundle);}catch{guardReason='plan_guard_unavailable';}
+  const cache=row.probeCache;
+  const macGuarded=!macDirect||(macProbeBarrier()&&!row.plan.unresolved.length&&
+    guard!==null&&cache?.schema===1&&cache.guard===guard&&
+    Array.isArray(cache.queries)&&cache.queries.length>0);
+  const forceFull=process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_FULL_PROBES==='1';
+  if(cacheable&&allowReuse&&macGuarded&&!forceFull&&cache?.input===key){
     const argv=row.plan.probes[0];
-    const out=spawnSync(argv[0],[...argv.slice(1),'--redue-context'],{
-      cwd:row.plan.cwd,timeout:10000,maxBuffer:1024*1024,stdio:['ignore','pipe','pipe']});
+    const out=spawnSync(argv[0],[...argv.slice(1),macDirect?'--redue-validate-queries':'--redue-context'],{
+      cwd:row.plan.cwd,timeout:10000,maxBuffer:1024*1024,
+      ...(macDirect?{input:JSON.stringify({schema:cache.schema,context:cache.context,queries:cache.queries})}:
+        {stdio:['ignore','pipe','pipe']})});
+    metrics.probeContextProcesses=(metrics.probeContextProcesses||0)+1;
+    let stillValid=!macDirect;
+    if(macDirect)try{stillValid=macProbeBarrier()&&inputKey(row)===key&&planGuard(index.bundle)===guard;}catch{}
     if(!out.error&&!out.signal&&out.status===0&&
-      out.stdout.toString()===row.probeCache.context){
+      out.stdout.toString()===cache.context&&stillValid){
       row.probeHash=row.probeCache.hash;row.probeAt=Date.now();row.probeError=null;
       metrics.probeReuses=(metrics.probeReuses||0)+1;
       timing('daemon.probe_context_validation',started,{outcome:'reused',reason:'content_and_context_unchanged'});
       return;
     }
+    guardReason='context_or_compiler_queries_changed';
     timing('daemon.probe_context_validation',started,{outcome:'changed_or_unavailable'});
   }
-  timing('daemon.probe_reason',started,{reason:!cacheable?'generic_probe':
-    !row.probeCache?'no_validated_result':row.probeCache.input!==key?'inputs_changed':'context_changed'});
+  if(macDirect&&cache?.guard&&guard!==cache.guard)planDirty=true;
+  const fullReason=forceFull?'forced_full_reference':guardReason||
+    (macDirect&&!macGuarded?'mac_validation_basis_unavailable':!cacheable?'generic_probe':
+    !row.probeCache?'no_validated_result':row.probeCache.input!==key?'inputs_changed':'context_changed');
+  timing('daemon.probe_reason',started,{reason:fullReason});
+  metrics.fullProbeReasons??={};metrics.fullProbeReasons[fullReason]=(metrics.fullProbeReasons[fullReason]||0)+1;
+  metrics.fullProbes=(metrics.fullProbes||0)+1;
+  // A failed or incomplete full probe must not leave an older certificate usable.
+  if(macDirect)row.probeCache=null;
   const values=[];let checkpoint=null;
   for(const argv of row.plan.probes) {
     // Supported TypeScript probes perform bounded input/toolchain hashing.
@@ -207,7 +233,7 @@ function probe(row,allowReuse=false) {
     row.revision++;row.lastReason='declared state probe changed or recovered';}
   row.probeHash=value;row.probeAt=Date.now();row.probeError=null;
   if(checkpoint)row.probeCache=checkpoint.queries?{input:key,context:checkpoint.context,
-    hash:value,queries:checkpoint.queries}:null;
+    hash:value,queries:checkpoint.queries,...(macDirect?{schema:1,guard}: {})}:null;
   timing('daemon.probe',started,{outcome:'ok',commands:values.length,
     reusable:row.probeCache?1:0,queries:row.probeCache?.queries.length||0});
 }
@@ -820,7 +846,7 @@ async function request(message) {
     timing('daemon.decision_reason',totalStarted,{decision,action:message.action,
       plan:process.platform==='win32'?'validate_dependencies_before_reuse':'existing_plan',
       probe:'reuse_only_with_identical_content_and_context',installed:'current_content_required',
-      phase:metrics.planPhase||'initializing',pending:pending.size,
+      planPhase:metrics.planPhase||'initializing',pending:pending.size,
       notifications:metrics.notifications,planRebuilds:metrics.planRebuilds});
     if(process.platform==='win32'&&process.env.VSTATE_TEST_FAULTS==='1'&&
       process.env.VSTATE_TEST_WINDOWS_GAP_FILE&&
@@ -872,8 +898,18 @@ async function request(message) {
       }catch(e){installedRecheck=null;observationGap('installed_recheck',e);}
     }
     const probeStarted=performance.now();
-    if(index&&healthy&&!validatedColdIndex&&message.action!=='prelaunch')
-      for(const row of index.checks.values())probe(row);
+    if(index&&healthy&&!validatedColdIndex&&message.action!=='prelaunch'){
+      const macReuse=macProbeBarrier();
+      for(const row of index.checks.values())probe(row,macReuse);
+      if(macReuse&&process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_MAC_PROBE_SIGNAL){
+        fs.writeFileSync(process.env.VSTATE_TEST_MAC_PROBE_SIGNAL,'validated');
+        await new Promise(resolve=>setTimeout(resolve,200));
+      }
+      // Child validation blocks JS event delivery. Finish with another continuity
+      // barrier so queued edits/gaps cannot be published using the pre-probe index.
+      if(macReuse)try{await catchUp();if(planDirty||pending.size||flushTimer)flush();}
+        catch(e){observationGap('post_probe_history',e);}
+    }
     timing('daemon.request_probes',probeStarted,{checks:index?.checks.size||0});
     lastObservation=Date.now();publish();
     const applicabilityStarted=performance.now();
@@ -1002,7 +1038,12 @@ const probeTimer=setInterval(async()=>{
   // but can block control requests behind several seconds of child work.
   if(process.platform==='win32')return;
   if(healthy&&index&&!planning&&!decisionRequests){
-  try{await catchUp();for(const row of index.checks.values())probe(row);publish();}
+  try{await catchUp();
+    if(healthy&&!planning&&!recovering){const macReuse=macProbeBarrier();
+      for(const row of index.checks.values())probe(row,macReuse);
+      if(macReuse){await catchUp();if(planDirty||pending.size||flushTimer)flush();}
+    }
+    publish();}
   catch(e){observationGap('periodic_query',e);}
 }},5000);
 process.on('uncaughtExceptionMonitor',error=>{

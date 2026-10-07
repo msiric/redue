@@ -32,6 +32,8 @@ test('compiler discovery certificate matches CLI and detects new/missing resolut
 });
 test('compiler certificate validates source membership and content, not timestamps or TTL',t=>{
   const root=fixture(t),first=compilerFiles(tsRoot,root);
+  assert(queriesMatch(JSON.parse(JSON.stringify(first.queries))),
+    'omitted compiler arguments must survive checkpoint serialization');
   put(path.join(root,'src/empty/.keep'),'');
   const empty=compilerFiles(tsRoot,root);assert(queriesMatch(empty.queries));
   put(path.join(root,'src/empty/new.ts'),'export const b=1;');assert(!queriesMatch(empty.queries));

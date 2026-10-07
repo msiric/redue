@@ -4,8 +4,9 @@ import path from 'node:path';
 import {realObservedPath} from './path-identity.mjs';
 
 // This is a machine-enforced contract, not a claim inferred from a script name.
-// The read-only runtime probe separately checks the effective TypeScript file
-// list, config graph, npm toolchain and caller context on every sync/run.
+// Runtime validation checks effective compiler membership, configuration and
+// toolchain identity. Supported discovery certificates still validate those
+// filesystem queries; caller context is independently compared at the decision.
 export function qualifyTypeScript(root,selected,discovered={}) {
   if(selected.qualification===directQualification){
     const issues=[];
