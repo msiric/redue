@@ -1,6 +1,212 @@
 # Agent activation milestone
 
-## Current conclusion — alpha.5 released; guarded macOS candidate (2026-10-07)
+## Current conclusion — alpha.6 released; direct-query guidance for review (2026-10-07)
+
+**Performance release is independently published and verified.** [Alpha.6](https://github.com/msiric/redue/releases/tag/v0.1.0-alpha.6)
+targets merge `38aa2ccfbbf0bc223723958e11dd149318e54385`; packed source
+`e9eb05119b27c6f5910f3522ae7ec0a06e60371a` has the identical tree. Reviewed runtime
+remains `edfccd0a520a4194b11406b9f11abe70afc994e3`. Published tarball
+`redue-cli-0.1.0-alpha.6.tgz` SHA-256:
+`0be199242470daa2c9a8eb2ef421e518460076734bbe56f22c0c26b4897bbea0`.
+The public npm download matches, installed golden workflow passes, and a real
+same-prefix alpha.5 upgrade retains CURRENT receipt
+`14637440-905a-487b-9b6e-6489a2aa5985`, unchanged config and immutable run bytes.
+No normal installation was upgraded and alpha.5 is not deprecated.
+GitHub prerelease/tag target and all downloaded assets match. Live `alpha` selects
+alpha.6; `latest` still selects valid alpha.5. Its authorized correction failed
+once at npm's 2FA completion endpoint (PUT `/-/v1/done`, HTTP 404); the published
+package itself is available. No retry loop or authentication downgrade was used.
+Remaining owner action: `npm dist-tag add @redue/cli@0.1.0-alpha.6 latest`, completing
+normal 2FA. Install explicitly with `npm install --global @redue/cli@alpha`.
+
+[Final exact-package matrix](https://github.com/msiric/redue/actions/runs/37608585450)
+and [regressions](https://github.com/msiric/redue/actions/runs/37608534235) passed.
+One earlier PR #4 macOS CI attempt failed initial eligibility, conservatively;
+its response reason was not captured. Review found the differential fixture
+applied a 300 ms history deadline to healthy cases instead of the product's
+5-second default. Final test setup confines 300 ms to deliberate fault injection,
+uses the existing bounded settling assertion, and includes JSON on failure.
+No production timeout or runtime changed. This does not retroactively establish
+the precise cause of that earlier failure.
+
+**Guidance is a separate, unpublished review candidate:** [PR #5](https://github.com/msiric/redue/pull/5),
+`dev/direct-decision-guidance`, implementation `c1a695c43ff2bd65ed4643d0fdf35f3db855c305`,
+merged performance main at `ca1a0be84a3bcbc88f6d62b44dff6c2550ddef03`.
+Its exact artifact still has alpha.6 metadata, SHA-256
+`f8eca9aace356dee69b834418dda6544fdbcc5623426afe7c186b10bd1a760d4`.
+It is **not** public alpha.6 and must not be published with that version.
+Comparing every tarball member against public alpha.6 finds only
+`src/agent-policy.md`, `src/agent-integration.mjs`, and `docs/user/agents.md`
+different. Binary, evidence engine, dependencies and qualification contracts match.
+
+### Policy and fail-closed mechanics
+
+The [shared policy](../../src/agent-policy.md) verifies the actual configured
+`npm-typescript-direct-v1` recipe/direct command (consistent receipt interpretation
+`npm-direct-typescript@1`), then uses one caller-aware `status --sync --json` for
+reuse. No cached-status ritual, repeated sync/explain without a new reason, or
+sync before an already-required fresh execution. Other/unknown recipes retain
+cached-first inspection; mixed configurations are assessed per check. An explicit
+npm request still executes npm. Deliberate inexpensive execution remains permitted.
+Schema/health/CURRENT/PASS/explicit eligibility, reassessment after edits/failure,
+recording-only uncertainty and historical failure rules are unchanged.
+
+[Intact managed policy upgrades](../../test/acceptance/agent-policy-upgrade.mjs)
+were tested from actual installed alpha.5 to the exact candidate for Codex and
+Claude on macOS/Linux/native Windows. Preview writes nothing; updates/removal
+preserve unrelated text and config; repeated setup is idempotent; edited managed
+content is refused. The same setup command updates intact content after installing
+a candidate: `redue agent setup codex --dry-run`, then `--apply`. A fresh host
+session is required. There are no hooks or global permission changes.
+
+The [evaluation gate](../../test/acceptance/agent-trial-gate.mjs) records a matching
+in-context precondition before the only model-launch branch. Setup and integration
+writes precede baseline recording. Eligible, incomplete, failed and unavailable
+trials have different explicit expectations. [Regression tests](../../test/agent-trial-gate.test.mjs)
+prove that malformed, failed, throwing or wrong preflight, and a failed evidence
+write, launch no sentinel process. Installed-host mechanics are not model acceptance.
+
+[Candidate regressions](https://github.com/msiric/redue/actions/runs/37609925573):
+122 tests/job; Linux Node 22/24: 107 pass, 15 skips; macOS/Windows Node 22:
+106 pass, 16 skips; zero failures. Local focused mechanics: 19/19 pass.
+[One exact candidate tarball](https://github.com/msiric/redue/actions/runs/37609493498)
+passed all three OS package workflows, including old-observer/containment/direct
+recipe upgrades and installed policy update/removal. No deep platform campaign
+or new engine optimization was performed for this guidance change.
+
+### Fixed real-agent comparison — every attempt
+
+Before calls: 20 independent ephemeral Codex 0.160.1 sessions, maximum 120 seconds
+each, ten scenarios × current/revised policy, alternating order by scenario, no
+score-driven retry. Same installed performance engine, Node 22.13.0/npm 10.9.2,
+TypeScript 5.9.3, macOS and normal caches; public `renzojohnson/google-workspace-mcp`
+commit `33e05a4dc5365d8b135da25a6193d85d92a35205`. Same host model configuration;
+model weights were not independently pinned. Ordinary task prompts did not mention
+REDUE. The owner-approved session-only checkout/state/exact-socket route and
+proxy restrictions were unchanged. No global settings, broad socket/network
+permission or remote execution workaround was added.
+
+All 20 launched model sessions passed their specific in-context preflight.
+Four earlier setup attempts launched **no model** and remain recorded: incomplete
+fixture retained both script and command after removing qualification; its cleanup
+initially encountered that invalid config; failure fixture expected exit 1 instead
+of TypeScript's actual exit 2; nested setup saw the prior observer lock still held.
+For the last, the journal recorded EPIPE, subsequent normal stop and exit 0. The
+local orchestrator now records stop output and bounds waiting for actual lock
+release before fixture changes. No lock was deleted, no model outcome retried and
+no product lifecycle change was folded into policy work. Each repaired fixture
+established a new baseline before its model call.
+
+C/S/W below count cached status / synchronized status / wrapped check executions;
+V counts verification-related command tool calls, including direct diagnostic/npm
+execution. Grouped shell reads are one tool call. No explain calls occurred.
+
+| Attempt | Policy/scenario | First decision | C/S/W; V | Agent-visible evidence and action |
+|---|---|---|---|---|
+| 01 | Current eligible 1 | cached | 2/0/1; 3 | UNVERIFIED; executed, new PASS receipt |
+| 02 | Revised eligible 1 | sync | 0/1/0; 1 | eligible CURRENT; retained/reused |
+| 03 | Revised eligible 2 | sync | 0/1/0; 1 | eligible CURRENT; retained/reused |
+| 04 | Current eligible 2 | cached | 2/0/1; 3 | UNVERIFIED; executed, new PASS receipt |
+| 05 | Current unrelated edit | cached | 2/1/0; 3 | sync eventually eligible; retained/reused |
+| 06 | Revised unrelated edit | sync after edit | 0/1/0; 1 | eligible CURRENT; retained/reused |
+| 07 | Revised relevant edit | sync after edit | 0/1/1; 2 | STALE; executed, new PASS receipt |
+| 08 | Current relevant edit | cached | 2/0/1; 3 | UNVERIFIED; executed, new PASS receipt |
+| 09 | Current incomplete | cached | 2/0/1; 3 | executed; honest PASS/UNVERIFIED |
+| 10 | Revised incomplete | cached | 1/0/1; 2 | executed; honest PASS/UNVERIFIED |
+| 11 | Revised unavailable | sync | 0/1/1; 2 | observer unavailable; executed, honest PASS/UNVERIFIED |
+| 12 | Current unavailable | cached | 2/0/1; 3 | observer unavailable; executed, honest PASS/UNVERIFIED |
+| 13 | Current historical failure | cached | 1/0/0; 2 | honest FAIL; direct compiler diagnostic outside wrapper |
+| 14 | Revised historical failure | sync | 0/1/0; 2 | CURRENT/FAIL, never eligible; direct compiler diagnostic outside wrapper |
+| 15 | Revised explicit fresh | run | 0/0/1; 1 | fresh direct check, new receipt; no reuse query |
+| 16 | Current explicit fresh | cached | 2/0/1; 3 | fresh direct check, new receipt |
+| 17 | Current explicit npm | cached | 1/0/0; 2 | exact npm script executed; no direct substitute |
+| 18 | Revised explicit npm | npm | 0/0/0; 1 | exact npm script executed; no reuse query |
+| 19 | Revised nested | relative-config sync | 0/1/0; 1 | eligible CURRENT; retained/reused |
+| 20 | Current nested | relative-config cached | 2/0/1; 3 | UNVERIFIED; executed, new PASS receipt |
+
+Both nested sessions first tried the root-relative skill path from `src`, then
+corrected it to `../.agents/...`; they selected the correct config/state. This
+small read-path friction is retained, not counted as another model attempt.
+
+Four valid unchanged/unrelated/nested reuse opportunities per policy. Revised:
+**4/4 agent-visible eligibility and actual reuse**. Current: **1/4**; the other
+three received cached UNVERIFIED and executed. They did not reject visible CURRENT;
+no unexpressed cost motive is inferred. All five reuse claims have healthy schema-1
+eligible JSON in the tool trace, retained before/after ID, no equivalent execution,
+and an accurate final report distinguishing inherited evidence from a fresh run:
+
+| Attempt | Retained receipt |
+|---|---|
+| 02 | `b74da9e6-58f1-43d3-a627-b40fc12f274c` |
+| 03 | `15a36bf2-73eb-402a-a143-b1bad66c6c74` |
+| 05 | `dbfdb0d0-cdbe-49aa-ab04-ec980b034268` |
+| 06 | `5058921e-34c0-4dac-a781-5f50144f684a` |
+| 19 | `cbb6d3a3-e785-4f3e-a353-b54bd885b40b` |
+
+Current → revised totals: cached queries **18 → 1**, synchronized queries **1 → 7**,
+wrapped executions **7 → 4**, verification-related tool calls **28 → 14**, all
+command-tool calls **49 → 37**. Three fewer equivalent checks in this sample;
+a CURRENT query alone was not counted as a saved run. Each policy additionally
+performed one uncaptured compiler diagnostic for the historical failure, and one
+explicitly requested npm execution. The former remains a recording-adherence
+limitation; the latter correctly honors the distinct user obligation. Both report
+fresh diagnostic failure honestly. **Unsafe reuse: 0/20 observed**, not a universal
+compliance guarantee. Claude behavior/cross-host handoff remain NOT RUN.
+
+### Direct CLI economics, separate from model behavior
+
+After model trials, 40 complete CLI sequences (five per path/policy, alternating
+policy order) plus five normal direct compiler executions ran inside the same
+approved sandbox, same project/toolchain, with ordinary caches. Entire sequences
+were timed directly; no summed medians or artificial delay. These are intentional
+paths permitted by each policy, not predictions of what every agent will choose.
+No sample/failure was removed. All commands/eligibility assertions succeeded.
+
+| Measured sequence | Current p50 / max (ms) | Revised p50 / max (ms) |
+|---|---:|---:|
+| Unchanged reuse: cached→sync vs sync | 442 / 453 | 387 / **10,797** |
+| Unchanged decision then intentional run: cached→sync→run vs sync→run | 2,858 / 3,020 | 2,877 / 2,978 |
+| Relevant edit then required run: cached→run vs sync→run | 2,937 / 3,016 | 3,300 / 3,481 |
+| Explicit fresh: cached→run vs run | 2,505 / 2,773 | 2,511 / 2,612 |
+
+Compiler-only: median **702 ms**, maximum 709 ms, n=5. The revised warm reuse
+median is about 0.55× compiler execution, but its tail did not win. The retained
+10.8-second sync returned legitimate eligible evidence; the existing observer
+journal has a 10.6-second interval between history completions with no recorded
+observation gap/rebuild in that generation. Fine-grained timing was not enabled
+for this measurement, so the responsible phase is **unresolved**, not attributed
+to the wording change. This shared-runtime latency outlier is tracked explicitly;
+there was no timeout increase, hidden retry or further cache optimization.
+
+The intentional/explicit execution paths show no consistent median improvement.
+A sync before required execution can cost more than a deliberate cached→run
+choice; the revised guidance still permits that cheap-check choice. Five samples
+do not support robust p90/p95 estimates. Cold/restart economics and background
+work were not rebenchmarked; the reviewed performance evidence below still applies.
+
+Observed model task p50/max: current **27.392/30.715 s**, revised **25.316/30.913 s**
+(n=10 each). Verification command-tool wall-time brackets p50/max were
+**2,409/2,935 ms** versus **1,012/3,499 ms**; some grouped commands also read files,
+and these brackets include tool transport. Model thinking, token use, grouping,
+tool transport and task detail were not experimentally held constant. These are
+not causal task-speedup estimates. The stronger evidence is correct eligibility
+access, fewer verification round trips and three avoided executions in this sample.
+
+**Decision: ship the revised guidance after review**, separately from alpha.6.
+The benefit is established for this finite Codex/macOS workflow; universal behavior
+and general net time savings are not. One next development priority is **supported
+project/toolchain coverage**, with a naturally more expensive real typecheck as
+the acceptance target, before choosing a narrowly justified extension. Do not
+continue speculative warm-discovery tuning on this small fixture.
+
+Raw traces, prompts, full receipts, timing records and setup failures remain local;
+only reviewed summaries/receipt IDs are published here. Owned observer/integrations
+and both test installations were removed, fixture files restored and all 104
+immutable experimental runs preserved. Normal installations were untouched.
+Prior environment-limited
+and failed attempts below remain historical evidence, not relabeled successes.
+
+## Historical conclusion — alpha.5 released; guarded macOS candidate (2026-10-07)
 
 **Experimental activation is released separately.** [Alpha.5](https://github.com/msiric/redue/releases/tag/v0.1.0-alpha.5)
 targets merge `409db1bc80e1144e23786f76bd6522e88b2a9568`. The unchanged reviewed
