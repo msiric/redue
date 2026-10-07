@@ -1,7 +1,7 @@
 # Synchronized-query tail investigation
 
-Current conclusion: **reproduced and isolated; correction under review**. The fixed
-60-query sample included a 10,941 ms warm response. Its certificate child blocked
+Current conclusion: **reproduced and isolated; correction under review**. The predeclared
+60-query baseline sample included a 10,941 ms warm response. Its certificate child blocked
 in synchronous stdin reading until the existing 10-second deadline, then full
 probe fallback returned eligible evidence. History catch-up was 50 ms, not the
 10-second phase. A separate 60-child reproduction hit the same fd-0 read stall
@@ -10,8 +10,9 @@ once. Bounded asynchronous input consumption completed all 60 follow-up children
 
 The correction changes only certificate transport consumption. No timeout,
 continuity barrier, receipt selection, compiler validation or applicability rule
-is relaxed. The fixed end-to-end follow-up uses the same declared 60-query design;
-results will be retained whether good or bad.
+is relaxed. The corrected end-to-end follow-up used the same declared 60-query design;
+all 60 expected states matched, with no certificate timeouts. Both complete
+distributions, including the original slow response, are retained below.
 
 ## Fixed experiment declared before execution
 
