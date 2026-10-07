@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import {mark,traceEnvironment} from './decision-profile.mjs';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {fork} from 'node:child_process';
@@ -11,11 +12,12 @@ const workerFile=path.join(path.dirname(fileURLToPath(import.meta.url)),'history
 export function history(root,cursor,backend,deadlineMs,faultFile) {
   const next=cursor+'.'+randomUUID()+'.next';
   return new Promise((resolve,reject)=>{
+    mark('history.submit',{deadlineMs});
     const worker=fork(workerFile,[root,fs.existsSync(cursor)?cursor:'',next,backend,
-      faultFile||''],{stdio:['ignore','ignore','ignore','ipc']});
+      faultFile||''],{stdio:['ignore','ignore','ignore','ipc'],env:traceEnvironment()});
     let settled=false,abandoned=false;
     const finish=(error,value)=>{
-      if(settled)return;settled=true;clearTimeout(timer);
+      if(settled)return;settled=true;mark('history.complete',{childPid:worker.pid,outcome:error?.code||error?.name||'ok',events:value?.length});clearTimeout(timer);
       worker.kill('SIGKILL');
       if(error){abandoned=true;try{fs.unlinkSync(next);}catch{}
         reject(error);return;}

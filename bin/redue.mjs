@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import {mark,traceBase,traceContext,traceEnvironment,traceId} from '../src/decision-profile.mjs';
+traceBase({...traceContext(),request:traceId(),work:'client'});
+mark('client.loaded');
 import {directCompiler,directQualification,directEnvironment,directInterpretation} from '../src/direct-typescript.mjs';
 import os from 'node:os';
 import path from 'node:path';
@@ -154,7 +157,8 @@ function printLifecycle(output,action,machine){
 if(stateOverride&&['stop','remove-state'].includes(command)){
   const runtime=path.join(stateOverride,'project-runtime-v1.json');
   if(!fs.existsSync(runtime)){console.log('No REDUE state exists at this path.');process.exit(0);}
-  const result=spawnSync(process.execPath,[engine,runtime,command==='stop'?'stop':'uninstall'],
+  mark('client.engine_submit');
+const result=spawnSync(process.execPath,[engine,runtime,command==='stop'?'stop':'uninstall'],
     {cwd:os.tmpdir(),stdio:['inherit','pipe','inherit'],encoding:'utf8',env:process.env});
   if(result.error)error(result.error.message);
   if(result.stdout)printLifecycle(result.stdout,command,json);
@@ -336,7 +340,8 @@ if(command==='run'){
 }
 const result=spawnSync(process.execPath,[engine,runtimeFile,internal,...(check?[check]:[])],
   {stdio:['inherit','pipe','inherit'],
-    encoding:'utf8',env:process.env});
+    encoding:'utf8',env:traceEnvironment()});
+mark('client.engine_complete',{exit:result.status,signal:result.signal});
 if(result.error)error(result.error.message);
 if(result.stdout){
   if(['status','detail','explain'].includes(command)){

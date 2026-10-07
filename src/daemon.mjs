@@ -17,7 +17,7 @@ import {assertOwnedStatePlacement} from './owned-state.mjs';
 import {atomicJson,readReceipts,readReceiptSnapshot,receiptRevision} from './state-store.mjs';
 import {history} from './observation.mjs';
 import {inputKey,planGuard} from './decision-validation.mjs';
-import {timing} from './decision-profile.mjs';
+import {timing,mark,traceBase,traceContext,traceScope,traceEnvironment,traceId} from './decision-profile.mjs';
 
 const configFile=path.resolve(process.argv[2]);
 const config=JSON.parse(fs.readFileSync(configFile));
@@ -31,6 +31,7 @@ const endpoint=controlEndpoint(state),socket=endpoint.address,
 fs.mkdirSync(lock); // Existing lock requires operator inspection; never steal it.
 fs.writeFileSync(path.join(lock,'pid'),String(process.pid),{mode:0o600});
 const generation=randomUUID(), startedAt=Date.now();
+traceBase({generation,work:'startup'});
 let index, receipts={}, watcher, healthy=false, reason='initial reconciliation', stopping=false;
 let receiptStateError=null;
 let receiptStateRevision=null;
@@ -136,10 +137,12 @@ function probe(row,allowReuse=false) {
   const forceFull=process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_FULL_PROBES==='1';
   if(cacheable&&allowReuse&&macGuarded&&!forceFull&&cache?.input===key){
     const argv=row.plan.probes[0];
+    mark('daemon.probe_launch',{mode:'certificate',deadlineMs:10000});
     const out=spawnSync(argv[0],[...argv.slice(1),macDirect?'--redue-validate-queries':'--redue-context'],{
-      cwd:row.plan.cwd,timeout:10000,maxBuffer:1024*1024,
+      cwd:row.plan.cwd,timeout:10000,maxBuffer:1024*1024,env:traceEnvironment(),
       ...(macDirect?{input:JSON.stringify({schema:cache.schema,context:cache.context,queries:cache.queries})}:
         {stdio:['ignore','pipe','pipe']})});
+    mark('daemon.probe_complete',{mode:'certificate',childPid:out.pid,exit:out.status,signal:out.signal,code:out.error?.code});
     metrics.probeContextProcesses=(metrics.probeContextProcesses||0)+1;
     let stillValid=!macDirect;
     if(macDirect)try{stillValid=macProbeBarrier()&&inputKey(row)===key&&planGuard(index.bundle)===guard;}catch{}
@@ -170,8 +173,10 @@ function probe(row,allowReuse=false) {
     const timeout=row.plan.qualification==='pnpm-tsc-v1'||
       (process.platform==='win32'&&['typescript-noemit-v1','npm-typescript-direct-v1','yarn-workspace-tsc-v1']
         .includes(row.plan.qualification))?10000:5000;
+    mark('daemon.probe_launch',{mode:'full',reason:fullReason,deadlineMs:timeout});
     const out=spawnSync(argv[0],[...argv.slice(1),...(cacheable?['--redue-checkpoint']:[])],{cwd:row.plan.cwd,
-      timeout,maxBuffer:1024*1024,stdio:['ignore','pipe','pipe']});
+      timeout,maxBuffer:1024*1024,stdio:['ignore','pipe','pipe'],env:traceEnvironment()});
+    mark('daemon.probe_complete',{mode:'full',childPid:out.pid,exit:out.status,signal:out.signal,code:out.error?.code});
     if(out.error||out.signal||out.status!==0) {
       if(!row.probeError){row.revision++;row.lastReason='declared state probe became unavailable';}
       row.probeHash=null;row.probeAt=0;
@@ -420,7 +425,7 @@ function buildInWorker(forceCold=false,reuse=null) {
   return new Promise((resolve,reject)=>{
     const workerStarted=performance.now();
     const file=path.join(path.dirname(fileURLToPath(import.meta.url)),'plan-worker.mjs');
-    const worker=new Worker(file,{workerData:{config:configFile,state,forceCold,reuse,
+    const worker=new Worker(file,{workerData:{config:configFile,state,forceCold,reuse,diagnostic:traceContext(),
       reconcileFaultFile:process.env.VSTATE_TEST_RECONCILE_FAULT_FILE}});
     planningWorker=worker;let settled=false;
     const deadline=setTimeout(()=>{
@@ -794,7 +799,7 @@ async function catchUp() {
     lastObservation=Date.now();return;
   }
   if(historyDisabled)return;
-  if(synchronizing)return synchronizing;
+  if(synchronizing){mark('daemon.catch_up_join');return synchronizing;}
   synchronizing=(async()=>{
     if(!verifyRoot())throw Error('checkout identity changed');
     if(!watcher)throw Error('subscription unavailable');
@@ -825,7 +830,8 @@ async function catchUp() {
 function respond(client,value) {
   if(client.destroyed){event('control_reply_unavailable',{classification:'client_destroyed'});return;}
   try{const payload=JSON.stringify(value)+'\n';
-    client.end(payload);client.vstateReplied=true;
+    mark('server.response_constructed',{bytes:payload.length});
+    client.end(payload,()=>mark('server.response_delivered'));client.vstateReplied=true;
     if(process.env.VSTATE_DEBUG_CONTROL==='1')event('control_reply_sent',{bytes:payload.length});}
   catch(e){event('control_reply_unavailable',{classification:e.name||'serialization_error'});
     if(!client.destroyed)client.end('{"error":"control response unavailable"}\n');}
@@ -843,6 +849,7 @@ async function request(message) {
   if(message.action==='sync'||message.action==='snapshot'||message.action==='prelaunch') {
     const totalStarted=performance.now();
     const decision=++decisionSequence;
+    mark('server.decision_start',{decision,pending:pending.size,planDirty,planning,recovering,healthy,historyDisabled,decisionRequests,historyDeadlineMs,reconciliationDeadlineMs});
     timing('daemon.decision_reason',totalStarted,{decision,action:message.action,
       plan:process.platform==='win32'?'validate_dependencies_before_reuse':'existing_plan',
       probe:'reuse_only_with_identical_content_and_context',installed:'current_content_required',
@@ -970,9 +977,11 @@ const server=net.createServer(client=>{
     try{const message=JSON.parse(text);
       const decision=message.action==='sync'||message.action==='snapshot';
       if(decision)decisionRequests++;
-      Promise.resolve(request(message)).then(v=>respond(client,v))
-        .catch(e=>respond(client,{error:e.message}))
-        .finally(()=>{if(decision)decisionRequests--;});}
+      traceScope({request:message.diagnostic?.request||traceId(),work:'request'},()=>{
+        mark('server.request_received',{activeDecisions:decisionRequests});
+        Promise.resolve(request(message)).then(v=>respond(client,v))
+          .catch(e=>respond(client,{error:e.message}))
+          .finally(()=>{mark('server.request_complete');if(decision)decisionRequests--;});});}
     catch(e){respond(client,{error:e.message});}
   });
 });
@@ -1032,7 +1041,8 @@ const heartbeat=setInterval(()=>{
   }
   publish();
 },1000);
-const probeTimer=setInterval(async()=>{
+const probeTimer=setInterval(()=>traceScope({request:traceId(),work:'periodic'},async()=>{
+  mark('server.periodic_start',{pending:pending.size,planDirty,planning,decisionRequests});
   // Windows cached reads are conservatively UNVERIFIED until a full decision
   // reconciliation. Periodic synchronous probes cannot strengthen that cache,
   // but can block control requests behind several seconds of child work.
@@ -1045,7 +1055,9 @@ const probeTimer=setInterval(async()=>{
     }
     publish();}
   catch(e){observationGap('periodic_query',e);}
-}},5000);
+}
+  mark('server.periodic_complete');
+}),5000);
 process.on('uncaughtExceptionMonitor',error=>{
   try{event('observer_uncaught_exception',{pid:process.pid,code:error.code||null,
     message:error.message,stack:error.stack});}catch{}
