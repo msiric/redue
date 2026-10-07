@@ -56,3 +56,58 @@ measurements are pending; CURRENT queries alone do not establish saved runs.
 The HyperFormula current locked 4.0.8 project also installed normally and its
 standalone check passed, but qualifying it would require a second implementation
 review. It remains excluded in this pass, not counted as a product adoption.
+
+## Installed candidate workflow and economics
+
+Runtime `9d61c5f`, local tarball SHA-256
+`6295cf9779e86a0226f3d58192505f62335914e916a45b4dcd92b077312214db`.
+This unreleased artifact is not the alpha.7 guidance release artifact despite its
+inherited version field. The CI-packed exact artifact is identified separately.
+
+Actual installed commands: `redue init --recipe typescript-direct --check typecheck`,
+project-local Codex setup, start, wrapped baseline, synchronized inherited status,
+unrelated `.md` edits, relevant source comments, wrapped rerun, three stop/start
+cycles. All expected states passed. Existing compiler/script/lockfile bytes were
+retained. Initial Playwright downloads were moved to the separately owned cache
+outside the checkout before REDUE cost measurement, so extra test-browser files
+did not artificially enlarge the observed source tree. Required browser assets
+were preserved; verification command and dependencies were unchanged.
+
+These are actual CLI workflow measurements on macOS/Node 22.13.0, not model reuse
+claims. Each row measures the complete listed sequence directly, not a sum of
+separate medians. Failed commands: zero. No samples discarded.
+
+| Measured path | n | Mean ms | Median ms | p90 ms | Max ms | Total ms |
+|---|---:|---:|---:|---:|---:|---:|
+| Ordinary compiler | 5 | 2106.2 | 2070.0 | 2277.4 | 2277.4 | 10531.1 |
+| npm `test:types` | 5 | 2357.3 | 2285.6 | 2679.5 | 2679.5 | 11786.7 |
+| Initial wrapped run + sync | 1 | 4711.1 | 4711.1 | 4711.1 | 4711.1 | 4711.1 |
+| Cached status (conservative UNVERIFIED) | 10 | 63.2 | 59.3 | 70.6 | 89.8 | 631.6 |
+| Unchanged synchronized decision | 10 | 382.1 | 379.3 | 391.7 | 401.1 | 3820.6 |
+| Unrelated-edit synchronized decision | 5 | 386.8 | 390.6 | 392.7 | 392.7 | 1933.8 |
+| Relevant edit: sync + required run + sync | 3 | 5826.6 | 5790.8 | 5924.4 | 5924.4 | 17479.8 |
+| Stop + start + first sync | 3 | 1847.5 | 1814.7 | 1919.4 | 1919.4 | 5542.5 |
+| First sync alone after restart | 3 | 381.8 | 381.7 | 385.0 | 385.0 | 1145.4 |
+| Explicit fresh wrapped run | 3 | 4157.0 | 4150.2 | 4175.5 | 4175.5 | 12471.1 |
+
+Unchanged decision/ordinary-compiler median ratio is 0.183: about 1.69 seconds
+less CLI work per *potential* reuse opportunity in these separate measured paths.
+Initial wrapped execution itself cost 4,275 ms; its compiler invocation was roughly
+2.05 seconds. Recording and relevant-change workflows have real overhead. A user
+who needs fresh verification pays it; a CURRENT query alone is not a saved run.
+
+All ten unchanged and five unrelated queries retained baseline receipt
+`39348b4f-f9ae-4478-b0d4-24b00e045767`. Relevant changes returned STALE with historical
+PASS, then new wrapped outcomes became CURRENT. All three restarts inherited
+`b4ef1d6b-0b82-45c0-914f-b87783a4bff7`. No historical receipt was converted or deleted.
+
+New-project model trials: **NOT RUN yet**. The earlier approved exact socket/state
+belongs to a different disposable checkout. A minimal equivalent grant for this
+checkout and its one observer endpoint was requested once. No model was launched
+outside that boundary. Existing activation successes remain historical evidence,
+not counted again here. Claude and cross-host behavior remain NOT RUN.
+
+One additional real project completes the deterministic workflow; the desired
+second project is not claimed. Eleven screened projects remain excluded for the
+recorded gaps. This result establishes useful *CLI reuse economics*, not causal
+agent-task savings or general ecosystem coverage.
