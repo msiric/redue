@@ -81,7 +81,7 @@ function observationFault(f,kind='fail'){
 async function faultObserved(f,kind='fail'){
   const count=events(f).filter(e=>e.kind==='observation_gap').length;
   observationFault(f,kind);
-  if(process.platform==='darwin'||process.platform==='win32'){status(f);return;}
+  if(process.platform==='darwin'||process.platform==='win32')return status(f);
   for(let n=0;n<100;n++){
     if(events(f).filter(e=>e.kind==='observation_gap').length>count)return;
     await new Promise(resolve=>setTimeout(resolve,25));
@@ -328,8 +328,8 @@ for(const fault of ['hang','fail'])test(`history ${fault} falls back to determin
 test('reconciliation preserves unchanged and unrelated inputs, then detects installed and absent inputs',async t=>{
   const f=withFixture(t,{absent:true});ok(f,'start');ok(f,'run','check');
   const runId=row(f).invocation.runId;
-  await faultObserved(f);
-  if(process.platform==='darwin')assert.equal(row(f).freshness,'UNVERIFIED');
+  const uncertain=await faultObserved(f);
+  if(process.platform==='darwin')assert.equal(uncertain.checks[0].freshness,'UNVERIFIED');
   assert.equal((await until(f,s=>s.checks[0].freshness==='CURRENT')).checks[0].invocation.runId,runId);
   put(path.join(f.root,'notes.md'),'outside contract');assert.equal(row(f).freshness,'CURRENT');
   const installed=path.join(f.root,'node_modules/pkg/index.js');
@@ -373,8 +373,8 @@ test('fresh reconciliation detects membership and linked installed-target replac
   linkDir('../workspace/b',path.join(f.root,'node_modules/pkg'));
   put(path.join(f.root,'node_modules/optional/index.js'),'now present\n');
   if(process.platform==='darwin'){
-    await faultObserved(f);
-    assert.equal(row(f).freshness,'UNVERIFIED');
+    const uncertain=await faultObserved(f);
+    assert.equal(uncertain.checks[0].freshness,'UNVERIFIED');
   }
   const result=await until(f,s=>s.checks[0].freshness==='STALE');
   assert.equal(result.checks[0].result,'PASS');
@@ -390,9 +390,11 @@ test('missed deletion is found by independent fresh reconciliation',async t=>{
   assert(fs.existsSync(generated));
   put(path.join(f.state,'drop-events'),'1');
   fs.unlinkSync(generated);assert(!fs.existsSync(generated));
-  await faultObserved(f);
-  if(process.platform==='darwin')assert.equal(row(f).freshness,'UNVERIFIED');
+  const uncertain=await faultObserved(f);
   const item=(await until(f,s=>s.checks[0].freshness==='STALE')).checks[0];
+  // Assert the response that actually observed the gap. Recovery is allowed
+  // between queries: a later query must detect the deletion, not stay unknown.
+  if(process.platform==='darwin')assert.equal(uncertain.checks[0].freshness,'UNVERIFIED');
   assert.equal(item.result,'PASS');
   assert.match(item.reason,/generated\/data.txt changed/);
 });
@@ -401,8 +403,8 @@ test('failed reconciliation stays UNVERIFIED, preserves PASS, and restart repair
   const f=withFixture(t);ok(f,'start');ok(f,'run','check');
   const runId=row(f).invocation.runId;
   put(path.join(f.state,'reconcile-fault'),'1');
-  await faultObserved(f);
-  if(process.platform==='darwin')assert.equal(row(f).freshness,'UNVERIFIED');
+  const uncertain=await faultObserved(f);
+  if(process.platform==='darwin')assert.equal(uncertain.checks[0].freshness,'UNVERIFIED');
   const failedAt=Date.now();
   while(!events(f).some(e=>e.kind==='reconciliation_failed')&&Date.now()-failedAt<5000)
     await new Promise(resolve=>setTimeout(resolve,50));
