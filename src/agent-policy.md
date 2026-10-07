@@ -3,11 +3,30 @@ name: redue-verification
 description: Decide whether configured verification needs running, using REDUE evidence before verification and completion decisions.
 ---
 
-Query ordinary `redue status --json` before deciding whether configured checks need
-repeating. Apply the selected configuration described below to every command.
-Recheck at the decision point after edits; an earlier CURRENT is not continuing
-authorization after changes, context changes, observation loss, or a failed query.
-There is no atomic guarantee against concurrent edits.
+Apply the selected configuration below to every command. First distinguish an
+execution obligation from a reuse decision:
+
+- If fresh execution is explicitly requested or independently required, execute
+  it without a reuse query that cannot change that decision. Use `redue run CHECK`
+  to record the configured check. An explicit npm-script request requires npm,
+  not a direct compiler substitute.
+- To evaluate reuse for a check whose selected config has
+  `qualification: "npm-typescript-direct-v1"` and the direct compiler command
+  (or whose receipt metadata has `verification_recipe: "npm-direct-typescript@1"`
+  consistent with that config), use one `redue --config CONFIG status --sync --json`
+  directly. Cached status cannot establish this recipe's caller eligibility.
+  Do not infer the recipe from a check's name or precede sync with cached status
+  solely as a ritual. Evaluate each check separately in mixed configurations.
+- For other or unidentified recipes, start with ordinary `status --json` and
+  choose sync or execution from its evidence. Cached status and `--short` remain
+  cheap inspection, not caller-aware proof. A deliberate inexpensive rerun is
+  still permitted; there are no universal OS/package-manager cost thresholds.
+
+Use one successful, still-applicable synchronized response for the current
+decision; do not repeat sync/explain without edits, context changes or missing
+information. Do not loop until green. Reassess after changes, observation loss or
+a later failed query; earlier CURRENT is not continuing authority. There is no
+time-based authorization or atomic guarantee against concurrent edits.
 
 Read schema 1 JSON. Reuse only when the read succeeds, `schema` is 1,
 `observation.healthy` is true, and the selected check has all three:
@@ -29,8 +48,7 @@ checks merely for freshness.
   lifecycle scripts. Inspect the configuration/verification_recipe before claiming
   what ran. An explicit request for `npm run typecheck` requires that npm invocation;
   direct compiler evidence does not satisfy it.
-- Explicit user requests for fresh execution and independent task-specific
-  verification obligations still apply. REDUE covers only configured checks.
+- REDUE covers only configured checks, not every task-specific verification obligation.
 
 Use `redue explain CHECK --json` for synchronized detail (also potentially costly).
 `changed_inputs` can be incomplete; an empty list does not establish no changes.

@@ -8,7 +8,7 @@ import {windowsLaunch} from '../../src/windows-command.mjs';
 const value=flag=>{const at=process.argv.indexOf(flag);return at<0?null:process.argv[at+1];};
 const config=value('--config'),check=value('--check'),cli=findExecutable('redue');
 if(!config||!check)throw Error('usage: node codex-preflight.mjs --config FILE --check CHECK; run within the intended agent boundary');
-const result={schema:1,cli,cwd:process.cwd(),node:process.execPath,
+const result={schema:1,check,cli,cwd:process.cwd(),node:process.execPath,
   sandboxMarker:process.env.CODEX_SANDBOX||null,commands:[],eligible:false};
 for(const args of [['--version'],['--config',config,'agent','doctor','codex','--json'],
   ['--config',config,'status','--json'],['--config',config,'status','--sync','--json']]){
