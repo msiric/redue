@@ -1,13 +1,141 @@
 # Real-project coverage: TypeScript 5.5.2
 
-Current conclusion: **guarded CLI candidate passes acceptance; new-project model
-handoff pending, not released**. Final
-source review found and rejected the 5.5.2 API ETW module override before loading;
-the earlier unguarded artifact is superseded and must not be released. Twelve current
-public HEADs were screened before selection. Two ordinary locked npm installations
-were measured/checked; only one new compiler implementation is being admitted.
-No scripts, compiler versions, dependency layouts or verification options were
-changed to make a project fit. This is compiler evidence, not application/tests.
+Current conclusion (2026-10-07): **combined review candidate prepared; real-project
+handoff NOT RUN because the host execution boundary failed before model launch**.
+PR #7 passed the bounded source review but its authorized remote merge was rejected
+by the host approval layer; it remains open. PR #8 remains draft. Neither the
+separate historical platform results nor the earlier project CLI timings below
+are acceptance of the newly combined artifact. No new project/provider expansion
+or evidence-semantics change was made in this review pass.
+
+### Combined candidate and review cleanup
+
+- Branch `dev/typescript-project-coverage`; packed source
+  `9bcdbc0450ca8e79c7b306299a8eb76adb81fc8f` incorporates PR #7 through normal local
+  merge `c737dff8909816d6dc1f81b1d4a4db6d9c94b318`. This local merge does **not**
+  mean that PR #7 has merged into GitHub main.
+- Exact filename `redue-cli-0.1.0-alpha.7.tgz`, SHA-256
+  `66ec08caf5ace897e3bd4d2c9dd132c3c87898a2e587b293b94d5b4874aed2ac`.
+  Its inherited alpha.7 metadata is not publication authorization: the frozen
+  guidance release is the different `db69cc6414f61bf3754cc7ef368083d8e7711283419a5f481e1f61c974cb98f2`
+  artifact. Local npm manifest, checksum and source-identity record are retained.
+- Review found a concrete contributor fixture problem: the root aliased 5.5.2
+  development dependency had replaced the main `node_modules/.bin/tsc` shim.
+  Commit `5ed6f0b` moves only that test compiler into an isolated private
+  [fixture](../../test/fixtures/typescript-5-5-2/package-lock.json). Its lock points
+  to the official public npm distribution and pins the previously reviewed
+  SHA-512. Main TypeScript remains 5.6.3 and its shim resolves to that compiler.
+  `npm test` installs the fixture through `pretest`; normal package installation
+  has no new installation hook. No project/user/global registry configuration
+  was changed. A clean offline installation used integrity-checked, cached public
+  package bytes because registry DNS was unavailable. This is not a new online
+  registry verification.
+- Recomputed whole-package digests match the reviewed distributions: 5.5.2,
+  120 files, `953b4844b5f6edc745be844b6c367c227b59029b73c4182f508f90cc47e21816`;
+  main 5.6.3, 121 files,
+  `e674b5dc4dac50f6e91be30094aeea983a1f340231717e62b0b6199ae3049eb2`.
+- The existing ETW environment rejection remains before API loading in full,
+  context-only and retained-certificate probes. Added
+  [adversarial tests](../../test/macos-direct-probe.test.mjs) exercise explicit,
+  empty and lowercase overrides through all three entry modes, and insertion at
+  the default relative loader location. Every case rejects before the owned
+  module executes. Canonical package membership covers the default location;
+  strict caller `TS_ETW_` identity is unchanged. The historical counterexample
+  concerns the earlier **unreleased** 5.5.2 candidate, not a demonstrated defect
+  in a released compiler contract.
+
+### Reliability review and local validation
+
+[PR #7](https://github.com/msiric/redue/pull/7) HEAD remains
+`a19d17ecc660a36982b16c6c4347c5bf5eaa67ab`. Review found no new correctness blocker:
+stdin is consumed asynchronously, checked against the existing 8 MiB limit while
+receiving, and parsed/validated only after EOF. Parent certificate timeout remains
+10 seconds. Compiler membership, retained filesystem queries, observation and
+receipt-selection guards remain authoritative; failed certificate validation
+falls back to established discovery. Opt-in diagnostics do not grant applicability.
+The reproduced defect was synchronous input consumption; the deeper Node/libuv
+cause and universal tail reliability remain unproven. Its existing separate
+[package matrix](https://github.com/msiric/redue/actions/runs/37643135167) and
+[full CI](https://github.com/msiric/redue/actions/runs/37643333839) passed.
+
+Combined local validation on macOS/Node 22.13.0:
+
+- Focused compiler/EOF/certificate/ETW tests: 5/5 PASS for 5.6.3 and 5/5 PASS for
+  isolated 5.5.2. Includes malformed/incomplete/oversize input and changes before
+  EOF. Existing delayed newer-FAIL and observation-gap coverage is retained; its
+  full daemon tests have not been rerun under this constrained host.
+- Shared mechanics/input/receipt/incomplete-write/evaluation-gate tests: 42 PASS,
+  3 platform skips, zero failures. The gate now recognizes an explicit STALE
+  precondition without accepting CURRENT or UNVERIFIED as its substitute.
+- Exact tarball installs through npm into an owned disposable prefix. All 62
+  intended files match packed source; no acceptance fixtures, local state or
+  private paths are included. Help/version, real project compiler installation,
+  direct-recipe preview/init, Codex/Claude setup, doctor, idempotency, edited-block
+  refusal, preserving user text during removal, and uninstall PASS. Doctor does
+  not claim behavior verification. No owner/friend installation was changed.
+- Combined full observer/package workflow and Linux/native-Windows CI: **NOT RUN**.
+  Remote main and both PR heads were verified with read-only GitHub access, but
+  CLI network access failed and the merge tool returned
+  `MCP tool call requires approval, but approval policy is never`.
+  No alternate mutation route was attempted after this explicit denial.
+
+### Fixed handoff plan and observed host preflight
+
+The retained debugger checkout/revision, canonical state directory and exact
+socket were checked against its product ownership record before applying the
+approved session-only profile. No other fixture's permissions were reused.
+Codex 0.160.1 was retained, with the managed proxy, other socket/network denials,
+and sandbox unchanged; no credentials or global settings were copied or changed.
+
+Predeclared maximum: eight independent ephemeral model sessions, 180 seconds each,
+no score-driven retries: A relevant pending change requiring recorded verification;
+B unchanged handoff; C unrelated documentation; D relevant source change;
+E handoff of new evidence; F explicit fresh execution; G independent eligible
+repeat; H stopped-observer negative. Ordinary task prompts and local trace plans
+are retained. The [fail-closed gate](../../test/acceptance/agent-trial-gate.mjs)
+must establish each case's specific condition before launching a model.
+
+The exact installed-candidate access preflight failed **before executing REDUE**:
+Codex exited 1 with `failed to start managed network proxy: failed to build network
+proxy: reserve managed loopback proxy listeners`. The gate recorded
+`HOST_BOUNDARY_UNAVAILABLE`, `launched: false`. A preceding sandbox capability
+check had also returned `sandbox_apply: Operation not permitted`. The written
+owner approval did not remove these host-enforced restrictions. No weaker profile,
+proxy bypass, new state identity or unsandboxed model execution was attempted.
+
+All A–H model trials: **NOT RUN**. Agent-visible eligibility, actual reuse,
+equivalent executions, model overhead and combined verification-cycle economics
+are therefore **NOT MEASURED**. No unsafe-reuse claim is drawn from zero attempts.
+Claude and cross-host behavior also remain NOT RUN. The 17 historical runs and all
+26 existing state files were byte-checked unchanged; the observer remains stopped.
+Owned disposable installed packages were uninstalled; no model/observer was started.
+
+### Release and next decision
+
+Public main is still `c9328ae1d641b12e7ca369ad663f91e9b16fb098`. Frozen alpha.7 bytes
+remain unchanged and were not published in this pass. Fresh registry metadata
+could not be retrieved (DNS `ENOTFOUND`); the last verified alpha.6/alpha.5 alpha/latest
+tags are historical, not a new live assertion. Prior alpha.7 authentication failure
+remains documented with its frozen artifact; no retry loop or version substitution.
+
+Recommendation: retain PR #8 as draft and do not publish the combined artifact.
+PR #7 needs its authorized merge through a host context that permits that action;
+the prepared coverage commits need push/combined CI, then the same fixed handoff
+in the approved native execution context. One next product priority remains the
+**complete real-project verification-cycle evaluation**, not more coverage or
+instruction redesign. A coherent follow-up version (provisionally alpha.8) must be
+checked unused and separately approved after those gates; this alpha.7-labelled
+evaluation tarball must not substitute for the frozen guidance release.
+
+## Prior guarded coverage evidence (separate, not combined acceptance)
+
+Final source review found and rejected the 5.5.2 API ETW module override before
+loading; the earlier unguarded artifact is superseded and must not be released.
+Twelve current public HEADs were screened before selection. Two ordinary locked
+npm installations were measured/checked; only one new compiler implementation is
+being admitted. No scripts, compiler versions, dependency layouts or verification
+options were changed to make a project fit. This is compiler evidence, not
+application/tests.
 
 The reviewed guidance and completed model comparison are separate:
 [activation evidence](agent-activation.md). Tail diagnostics are a separate branch:
