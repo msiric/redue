@@ -1,6 +1,144 @@
 # Agent activation milestone
 
-## Current conclusion — explicit compiler recipe (2026-10-06)
+## Current conclusion — containment release and activation review (2026-10-07)
+
+**Containment is independent of activation.** PR #3 is merged at `a32b6d7` and
+`@redue/cli@0.1.0-alpha.4` is published. The public-registry download matches the
+validated artifact and passed installation plus actual alpha.3 upgrade smoke.
+The automatic npm-launcher contract now remains UNVERIFIED while recording exact
+npm outcomes. Historical PASS/FAIL and unrelated contracts are preserved. The
+shipped README and [maintainer notice](../user/npm-launcher-notice.md) explain the
+change and receipt-preserving stop/upgrade/start procedure. No activation code is
+in alpha.4.
+
+Alpha.4 artifact: SHA-256
+`562da06bd1abba3c63ffc61dd01105fc85706dfea9e7081f70263b85f8b41130`, 54 files,
+85,169 bytes. [Exact package matrix](https://github.com/msiric/redue/actions/runs/37548165851)
+and [regressions](https://github.com/msiric/redue/actions/runs/37548151128) passed
+macOS/Linux/native Windows. The artifact was packed at `2b987ee`; subsequent
+acceptance-document-only commit and merge do not change package contents. Actual
+public-registry upgrade retained PASS receipt `0051b031-4162-4974-a1da-922cd1ce740d`;
+a new npm run recorded `90834152-f120-454d-afce-209108415161`, still UNVERIFIED.
+Initial public reads returned 404/ETARGET during npm's explicitly reported
+processing delay; later reads and checksums succeeded. There was one publication,
+no rebuild or republish. Distribution administration result: `alpha` selects alpha.4; the authorized `latest` correction and exact alpha.3
+deprecation notice are pending npm browser confirmation. Install the explicit
+patched version or `@alpha` in the meantime.
+
+**Activation is ready for bounded release review, not publication.** The alpha.5
+candidate incorporates containment through normal merges. Runtime and installed
+instruction bytes are unchanged from reviewed `f1effa7`; existing finite model
+behavior evidence below is retained, not counted again. The precise claim is:
+"Opt-in project-local agent activation and direct TypeScript evidence, with
+fresh-session reuse demonstrated in the tested Codex/macOS configuration."
+
+Single-package npm, canonical TypeScript 5.6.3/5.9.3, the documented Node 22/24
+restrictions, and special inert `NODE_USE_ENV_PROXY=1` admission only on reviewed
+Node 22.13.0 remain the boundary. Actual host behavior: Codex 0.160.1/macOS with
+approved checkout/state/exact-socket access. Cross-platform CLI mechanics do not
+establish model behavior on every platform. Claude mechanics are tested; Claude
+behavior and cross-host handoff remain NOT RUN. No universal compliance, general
+sandbox compatibility or cheap-check speedup is claimed.
+
+Independent review found no new correctness blocker. B/D/N saw **UNVERIFIED**, not
+CURRENT, because ordinary status lacked caller context. They chose the permitted
+execution branch; the traces do not establish that cost motivated them. D explicitly
+cited unavailable caller context. G chose raw compilation without updating receipts
+and reported fresh PASS accurately: an adherence/capture limitation, not reuse.
+No policy/runtime changes were made to improve the score. C/L still establish two
+legitimate independent-session reuse cases; all 14 integrated attempts remain
+reported below, with zero observed unsafe reuses. This pass made no new model calls.
+
+### New-user and existing-user installed setup
+
+The exact package smoke exercises installed preview -> explicit direct init ->
+Codex connection -> start -> direct run -> CURRENT -> unrelated preservation ->
+relevant STALE -> rerun -> restart/inherited CURRENT -> owned removal. Actual
+fresh-session behavior is the retained C/L evidence, not the smoke's scripted
+process roles.
+
+The new [existing-user acceptance](../../test/acceptance/direct-recipe-upgrade.mjs)
+installs real alpha.3, records npm evidence, upgrades through alpha.4, previews the
+candidate without writing, and deliberately replaces **only one** check object.
+It preserves the other check, original config filename/state marker and immutable
+npm runs. Before the fresh direct run, old npm evidence cannot authorize compiler
+reuse. New direct evidence uses a distinct run ID and recipe. The tested procedure
+is in [the user guide](../user/direct-typescript.md#existing-npm-configuration-deliberate-replacement).
+Repeating init is not migration; selecting a separate comparison config creates
+separate state intentionally.
+
+Candidate source `888aa44`, version `0.1.0-alpha.5`; 62 files / 102,594 bytes; exact tarball SHA-256
+`3f48dba32e2a64f88771fd55d3afec461b20e0c0ed273acfe2b202d3528ec595`.
+[Exact matrix](https://github.com/msiric/redue/actions/runs/37549060232) result: **PASS** on macOS, Linux and native Windows with the same packed bytes.
+[Regressions](https://github.com/msiric/redue/actions/runs/37549037297) passed, 114 tests per job:
+macOS Node 22 **98 pass/16 skip**; Linux Node 22 and 24 **102/12 each**; native
+Windows Server 2025 Node 22 **101/13**, zero failures. Skips are platform/version
+guards; the exact-package jobs separately run pinned npm 10.9.2 acceptance.
+The first macOS/Linux existing-user jobs failed with ETARGET while alpha.4 was
+still processing; all preceding steps passed. Their failures are retained. Only the failed macOS/Linux jobs were retried after public alpha.4 availability
+was independently established; both passed, using the same packed candidate bytes.
+Windows passed its first attempt, including the existing-user transition. No activation version is published.
+
+### Bounded practical-value screen — all three projects
+
+| Project / pinned revision | Result |
+| --- | --- |
+| `renzojohnson/google-workspace-mcp` / `33e05a4dc5365d8b135da25a6193d85d92a35205` | Existing real project qualifies with its normal locked installation, TypeScript 5.9.3 and standalone script. It remains inexpensive. |
+| `microsoft/playwright-mcp` / `f183dad4a52965583e3cc1d59b88cdc279e2e57d` | Metadata screen excluded: no TypeScript dependency or standalone typecheck script. No invented script or browser provider. |
+| `microsoft/vscode-pull-request-github` / `b71ce754df5e0c14559f161e1d57bf24a5c9582f` | Metadata/config screen excluded: webpack compilation and `tsc -p tsconfig.test.json` with emitted output and incremental build-info, plus generated declaration setup. No conversion or installation performed to force qualification. |
+
+These are three screened projects, **not three applicability successes**. No
+naturally expensive eligible check was found in this finite screen. The last
+project would need a separately reviewed named-config/emitted/incremental contract
+and generated-declaration boundary, not merely a compiler-version allowlist change.
+That possible extension was identified, not implemented or promised sound.
+
+On the qualifying project, macOS 26.7.1 arm64 / Node 22.13.0 / npm 10.9.2,
+normal caches, approved Codex sandbox route, five samples per row:
+
+| Measured operation | Median ms | Max ms |
+| --- | ---: | ---: |
+| Actual direct compiler | 729.0 | 732.0 |
+| Ordinary `npm run typecheck` | 799.4 | 1,184.2 |
+| Cached status | 68.1 | 72.7 |
+| Synchronized unchanged status | 688.0 | 811.3 |
+| Complete CLI decision: cached, then sync | 895.4 | 1,234.8 |
+| Complete decision after unrelated edit | 874.9 | 903.5 |
+| Complete decision after relevant edit | 752.9 | 883.3 |
+| First complete decision after restart | 739.2 | 755.5 |
+| Stop/start lifecycle, measured separately | 1,141.6 | 1,256.1 |
+
+Complete-decision rows are timed end-to-end across both actual CLI processes,
+**not sums of separate medians**. Lifecycle time is not included in the first-query
+row. Every query returned the expected eligibility/invalidation. These are CLI
+mechanism measurements, not additional model trials or saved-execution counts.
+The median complete unchanged decision is about 1.23 times the direct compiler
+median. The largest decision sample was 1.235 s; its exact tail cause was not
+isolated. No artificial delay, disabled cache, dependency exclusion or script
+rewrite was used. No meaningful net benefit is established here.
+
+Five additional diagnostic warm requests identified a bounded follow-up: median
+server request **567 ms**, of which request probes took **512 ms**. Accompanying
+TypeScript file listing took about **348 ms** (six listings include one periodic
+probe). Applicability evaluation itself was effectively sub-millisecond; catch-up
+was about 52 ms. Source inspection explains `generic_probe`: the existing validated
+compiler-certificate reuse path is Windows-only, so macOS repeats full discovery
+for this recipe. This is evidence of repeated work, not a permission to skip inputs.
+
+**One next priority:** evaluate reusing the existing guarded compiler-certificate
+path for unchanged direct-recipe decisions on macOS, retaining implementation,
+membership, caller-context and observation validation. Do not build a new cache,
+cost scheduler or provider. Measure the resulting complete decision before making
+an economic claim or staging an external value demo.
+
+Owned benchmark observer/integration/install were removed; public tracked source
+and original fixture config restored. All **22** immutable agent-fixture runs and
+the **two** released-impact runs remain intact. No normal installation, global
+agent setting, proxy/security control, private project or corporate state changed.
+
+---
+
+## Historical conclusion — explicit compiler recipe (2026-10-06)
 
 **Ready for bounded review, not published.** An explicit local compiler recipe
 now supports legitimate independent-session Codex reuse. In 14 integrated model
