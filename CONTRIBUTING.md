@@ -9,6 +9,12 @@ npm test
 npm run test:package
 ```
 
+`npm test` installs the pinned TypeScript 5.5.2 test fixture in its own package
+before running the suites. It does not share `node_modules/.bin` with the main
+TypeScript 5.6.3 development dependency. To run individual compiler tests after
+`npm ci`, run `npm run pretest` once first. Both lockfiles use public npm URLs;
+no global registry configuration is required.
+
 There is no transpilation/build step. `npm pack` builds the distributable tarball.
 Tests use disposable repositories and owned state. Do not run destructive acceptance
 against personal/corporate checkouts or shared package stores.

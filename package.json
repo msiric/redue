@@ -13,7 +13,8 @@
   "scripts": {
     "test": "node --test --test-concurrency=1 test/*.test.mjs",
     "test:package": "node test/acceptance/package-smoke.mjs",
-    "demo": "node test/acceptance/package-smoke.mjs --demo"
+    "demo": "node test/acceptance/package-smoke.mjs --demo",
+    "pretest": "npm --prefix test/fixtures/typescript-5-5-2 ci --no-audit --no-fund"
   },
   "dependencies": {
     "@parcel/watcher": "2.5.6",
@@ -24,8 +25,7 @@
     "node": ">=22"
   },
   "devDependencies": {
-    "typescript": "5.6.3",
-    "typescript-5-5-2": "npm:typescript@5.5.2"
+    "typescript": "5.6.3"
   },
   "description": "Persistent verification state for developers and coding agents.",
   "homepage": "https://github.com/msiric/redue",
