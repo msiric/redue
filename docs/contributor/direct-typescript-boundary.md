@@ -82,3 +82,20 @@ a 5.6.3 receipt cannot silently authorize 5.5.2. Existing old clients reject thi
 newly admitted version; restart with the candidate is required. Immutable outcomes
 are unchanged. The shared adversarial suite runs against both 5.6.3 and 5.5.2;
 the exact-package matrix additionally installs 5.5.2 through ordinary npm.
+
+Final 5.5.2 API review found a difference from 5.6.3/5.9.3: its `perfLogger`
+initialization attempts `require(process.env.TS_ETW_MODULE_PATH ??
+"./node_modules/@microsoft/typescript-etw")`. The direct CLI does not contain that
+loader, but input probes load the API. Qualification therefore rejects the override
+before loading the API, including empty/case variants; the real environment is
+never stripped. The default relative module is inside the compiler package and
+must remain absent under the pinned whole-package membership digest. The new
+strict `TS_ETW_` context prefix prevents a caller with the override from borrowing
+a daemon's clean context. This is a conservative prerequisite, not an exemption.
+
+Adding the declared context prefix changes plan/context identity. Evidence from
+older candidate declarations is not silently reused: restart/reconcile and record
+a fresh baseline as needed. The fixture verifies an injected module never runs
+and that caller-only override changes cannot reuse a clean receipt. No published
+5.5.2 contract exists; the previously measured candidate preceded this guard and
+must not be released. Repacked bytes require fresh exact-artifact acceptance.

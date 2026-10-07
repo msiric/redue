@@ -1,6 +1,8 @@
 # Real-project coverage: TypeScript 5.5.2
 
-Current conclusion: **candidate under acceptance, not released**. Twelve current
+Current conclusion: **guarded candidate under acceptance, not released**. Final
+source review found and rejected the 5.5.2 API ETW module override before loading;
+the earlier unguarded artifact is superseded and must not be released. Twelve current
 public HEADs were screened before selection. Two ordinary locked npm installations
 were measured/checked; only one new compiler implementation is being admitted.
 No scripts, compiler versions, dependency layouts or verification options were
@@ -111,3 +113,21 @@ One additional real project completes the deterministic workflow; the desired
 second project is not claimed. Eleven screened projects remain excluded for the
 recorded gaps. This result establishes useful *CLI reuse economics*, not causal
 agent-task savings or general ecosystem coverage.
+
+
+## Final source-review counterexample and containment
+
+Official 5.5.2 `lib/typescript.js` can load an arbitrary module through
+`TS_ETW_MODULE_PATH` when input probes load its API (the CLI entry lacks this path).
+A controlled owned module ran under the prior **unreleased** candidate's full
+probe, which returned exit 0. With the guard, the same call returned exit 2,
+`direct-execution-environment-unsupported`, and the module did not run. No released
+5.6.3/5.9.3 defect or REDUE false-CURRENT reproduction is claimed by this test.
+
+Qualification now rejects defined override values, including empty/case aliases,
+and strictly fingerprints `TS_ETW_` so a caller cannot substitute the clean daemon
+context. The environment is unchanged. The default relative loader location is
+inside the pinned compiler distribution, whose full membership must match.
+Plan/context identity changes conservatively; old candidate evidence needs a fresh
+baseline. Source review details and adversarial tests are linked above. Final
+artifact and workflow results follow after the guard's acceptance.
