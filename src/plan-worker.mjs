@@ -7,8 +7,9 @@ import {InputIndex} from './index.mjs';
 import {directProject,directQualification} from './direct-typescript.mjs';
 import {queriesMatch} from './typescript-list.mjs';
 import {planGuard,inputKey} from './decision-validation.mjs';
-import {timing} from './decision-profile.mjs';
+import {timing,traceBase} from './decision-profile.mjs';
 
+traceBase(workerData.diagnostic);
 try {
   const totalStarted=performance.now();
   const configStarted=performance.now();
