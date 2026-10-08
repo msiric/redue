@@ -185,7 +185,7 @@ function probe(row,allowReuse=false) {
         /VSTATE_REASON:([a-z-]+)/.exec(out.stderr?.toString()||'')?.[1]:null;
       const explanations={
         'direct-typescript-implementation-unreviewed':'installed TypeScript bytes or membership differ from the reviewed compiler',
-        'direct-typescript-version-unsupported':'direct compiler recipe supports reviewed TypeScript 5.6.3 and 5.9.3 only',
+        'direct-typescript-version-unsupported':'direct compiler recipe supports reviewed TypeScript 5.5.2, 5.6.3 and 5.9.3 only',
         'direct-execution-environment-unsupported':'direct compiler rejects development helpers, Node cache/preloads, and unreviewed runtime overrides',
         'direct-node-version-unsupported':'direct compiler recipe supports Node 22 and 24',
         'npm-launcher-unobserved-inputs':'npm launcher uses unobserved notifier inputs; execution is recording-only',

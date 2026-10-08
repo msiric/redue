@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.1.0-alpha.8 — 2026-10-08
+
+- Consume compiler-certificate input asynchronously while preserving the input-size
+  limit, parent deadline, complete-input validation and conservative fallbacks.
+- Support the exact reviewed TypeScript 5.5.2 distribution in the explicitly selected
+  single-package npm direct-compiler recipe. Enforce implementation membership and
+  reject ETW module overrides before compiler API loading.
+- Real independent Codex/macOS sessions reused compiler evidence on the pinned
+  vscode-js-debug project. Cross-platform CLI/package acceptance is separate;
+  Claude behavior and cross-host handoff remain untested.
+- The measured eight-case workflow avoided four compiler executions but cost
+  20.01 seconds versus 16.97 seconds for eight ordinary compiler runs. No net
+  workflow or whole-agent speedup is claimed. This verifies compiler inputs only,
+  not npm lifecycle behavior or application correctness.
+- Stop observers before upgrading, retain the same configuration/state, then
+  restart. Do not delete receipts or automatically convert existing checks.
+
 ## 0.1.0-alpha.7 — 2026-10-07
 
 - Guide explicitly configured direct-compiler reuse through one caller-aware

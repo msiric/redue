@@ -46,6 +46,8 @@ jobs:
           path: release-candidate
       - name: Install exact tarball and exercise public binary
         run: node test/acceptance/package-smoke.mjs --manifest release-candidate/manifest.json
+      - name: Reviewed TypeScript 5.5.2 with exact installed package
+        run: node test/acceptance/package-smoke.mjs --manifest release-candidate/manifest.json --compiler 5.5.2
       - uses: actions/setup-node@v4
         with:
           node-version: '22.13.0'

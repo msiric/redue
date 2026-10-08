@@ -11,6 +11,8 @@ import {windowsLaunch} from '../../src/windows-command.mjs';
 import {readArtifact} from './package-artifact.mjs';
 
 const product=process.cwd();
+const compilerAt=process.argv.indexOf('--compiler'),compilerVersion=compilerAt<0?'5.6.3':process.argv[compilerAt+1];
+assert(['5.5.2','5.6.3'].includes(compilerVersion));
 const productPackage=JSON.parse(fs.readFileSync(path.join(product,'package.json'),'utf8'));
 assert.equal(productPackage.bin.redue,'./bin/redue.mjs');
 const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-package-'));
@@ -70,7 +72,7 @@ try {
   fs.mkdirSync(root);
   assert.match(exec([binary,'status'],{cwd:root,allowFailure:true}).stderr,/run redue init/);
   put(path.join(root,'package.json'),JSON.stringify({name:'redue-demo',version:'1.0.0',
-    scripts:{typecheck:'tsc --noEmit',test:'node test.mjs'},devDependencies:{typescript:'5.6.3'}}));
+    scripts:{typecheck:'tsc --noEmit',test:'node test.mjs'},devDependencies:{typescript:compilerVersion}}));
   put(path.join(root,'tsconfig.json'),JSON.stringify({compilerOptions:{noEmit:true,strict:true},include:['src']}));
   put(path.join(root,'src/main.ts'),'export const answer: number = 42;\n');
   put(path.join(root,'test.mjs'),"console.log('Ordinary check output');\n");
@@ -78,7 +80,7 @@ try {
   // Exercise a normal project installation, including npm's lockfile and native
   // command shims. Never substitute a manually assembled installation as proof.
   exec([npm,'install','--no-audit','--no-fund'],{cwd:root});
-  assert.equal(JSON.parse(fs.readFileSync(path.join(root,'node_modules','typescript','package.json'))).version,'5.6.3');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(root,'node_modules','typescript','package.json'))).version,compilerVersion);
   exec(['git','init','-q'],{cwd:root});exec(['git','add','.'],{cwd:root});
   const preview=JSON.parse(cli('init','--recipe','typescript-direct','--dry-run','--json'));
   console.log(`Init preview: ${JSON.stringify(preview)}`);

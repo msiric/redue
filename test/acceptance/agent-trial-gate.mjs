@@ -9,6 +9,8 @@ export function preconditionMatches(report,expected){
     row.freshness==='CURRENT'&&row.result==='PASS'&&row.reuse_eligible===true);
   if(expected==='eligible')return eligible&&report.eligible===true;
   if(eligible||report.eligible===true)return false;
+  if(expected==='stale')return Boolean(last?.exit===0&&supported&&status.observation.healthy===true&&
+    row.freshness==='STALE'&&row.result==='PASS'&&row.reuse_eligible===false);
   if(expected==='failed')return Boolean(last?.exit===0&&supported&&status.observation.healthy===true&&
     row.result==='FAIL'&&row.reuse_eligible===false);
   if(expected==='unverified')return Boolean(last?.exit===0&&supported&&status.observation.healthy===true&&

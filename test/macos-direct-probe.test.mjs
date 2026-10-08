@@ -23,7 +23,7 @@ function fixture(t){
   put(path.join(root,'src/main.ts'),'// @ts-ignore optional missing module\nimport {x} from "optional";\nexport const value: number = 1;\n');
   put(path.join(root,'src/other.ts'),'export const other = 2;\n');
   put(path.join(root,'.gitignore'),'node_modules/\n');
-  fs.cpSync(path.resolve('node_modules/typescript'),path.join(root,'node_modules/typescript'),{recursive:true});
+  fs.cpSync(path.resolve('node_modules',process.env.REDUE_TEST_COMPILER_PACKAGE||'typescript'),path.join(root,'node_modules/typescript'),{recursive:true});
   execFileSync('git',['init','-q'],{cwd:root});
   const fixtures=[false,true].map(full=>{const state=path.join(base,full?'redue-r':'redue-f');
     return {root,state,env:{...cleanEnv(),VSTATE_START_READY_WAIT_MS:'10000',VSTATE_TEST_FAULTS:'1',
@@ -66,6 +66,27 @@ test('direct certificate validation rejects missing/obsolete/malformed queries a
   put(path.join(f.root,'node_modules/typescript/lib/typescript.js'),'throw Error("must not load replacement");');
   const replaced=invoke(['--redue-validate-queries'],JSON.stringify(certificate));
   assert.match(replaced.stderr,/implementation-unreviewed/);
+});
+
+test('ETW overrides and default loader additions cannot execute through any direct probe mode',t=>{
+  const f=fixture(t).fast,marker=path.join(f.root,'etw-loaded');
+  const injected=path.join(f.root,'owned-etw.cjs');
+  put(injected,`require('node:fs').writeFileSync(${JSON.stringify(marker)},'loaded');`);
+  const invoke=(args,input,env={})=>spawnSync(process.execPath,[probe,f.root,'typecheck',...args],
+    {cwd:f.root,env:{...f.env,...env},input,encoding:'utf8',timeout:15000});
+  const full=invoke(['--redue-checkpoint']);assert.equal(full.status,0,full.stderr);
+  const c=JSON.parse(full.stdout),input=JSON.stringify({schema:1,context:c.context,
+    queries:JSON.parse(inflateSync(Buffer.from(c.queryData,'base64')))});
+  const modes=[[],['--redue-context'],['--redue-validate-queries']];
+  for(const env of [{TS_ETW_MODULE_PATH:injected},{TS_ETW_MODULE_PATH:''},{ts_etw_module_path:injected}])
+    for(const args of modes){const r=invoke(args,input,env);
+      assert.equal(r.status,2);assert.match(r.stderr,/direct-execution-environment-unsupported/);
+      assert.equal(r.stdout,'');assert(!fs.existsSync(marker),'unreviewed ETW module ran');}
+  put(path.join(f.root,'node_modules/typescript/lib/node_modules/@microsoft/typescript-etw/index.js'),
+    fs.readFileSync(injected));
+  for(const args of modes){const r=invoke(args,input);
+    assert.equal(r.status,2);assert.match(r.stderr,/direct-typescript-implementation-unreviewed/);
+    assert.equal(r.stdout,'');assert(!fs.existsSync(marker),'default loader addition ran');}
 });
 
 test('macOS guarded and full decisions agree for content, membership, resolution and caller changes',

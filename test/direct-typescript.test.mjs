@@ -13,7 +13,9 @@ import {createRequire} from 'node:module';
 import {findExecutable} from '../src/executable-lookup.mjs';
 
 const require=createRequire(import.meta.url),bin=path.resolve('bin/redue.mjs');
-const sourceTypeScript=path.dirname(require.resolve('typescript/package.json'));
+const compilerPackage=process.env.REDUE_TEST_COMPILER_PACKAGE||'typescript';
+const sourceTypeScript=path.dirname(require.resolve(compilerPackage+'/package.json'));
+const compilerVersion=JSON.parse(fs.readFileSync(path.join(sourceTypeScript,'package.json'))).version;
 const put=(file,value)=>{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,value);};
 function project(t,{manager='npm',declaredManager=null,
   scripts={typecheck:'tsc --noEmit',test:'vitest run',
@@ -78,13 +80,14 @@ test('direct recipe is an explicit previewable choice; no lifecycle or compound 
   }
 });
 test('direct compiler identity rejects replacements/additions and unsafe runtime paths',t=>{
-  const {root}=project(t);assert.equal(directCompiler(root).version,'5.6.3');
+  const {root}=project(t);assert.equal(directCompiler(root).version,compilerVersion);
   const file=path.join(root,'node_modules/typescript/lib/tsc.js'),bytes=fs.readFileSync(file);
   fs.appendFileSync(file,'\n');assert.throws(()=>directCompiler(root),/implementation-unreviewed/);fs.writeFileSync(file,bytes);
   put(path.join(root,'node_modules/typescript/unreviewed.js'),'');assert.throws(()=>directCompiler(root),/implementation-unreviewed/);
   for(const env of [{NODE_ENV:'development'},{NODE_OPTIONS:'--require ./helper.cjs'},
     {NODE_PATH:root},{NODE_COMPILE_CACHE:root},{LD_PRELOAD:'helper'},{DYLD_INSERT_LIBRARIES:'helper'},
-    {TSC_WATCHFILE:'anything'},{NODE_INSPECT_RESUME_ON_START:'1'}])assert(directEnvironmentIssue(env));
+    {TSC_WATCHFILE:'anything'},{NODE_INSPECT_RESUME_ON_START:'1'},
+    {TS_ETW_MODULE_PATH:'./unreviewed.cjs'},{TS_ETW_MODULE_PATH:''},{ts_etw_module_path:'./unreviewed.cjs'}])assert(directEnvironmentIssue(env));
   for(const env of [{},{NODE_ENV:'production'},{npm_config_proxy:'http://localhost:1000'},
     {npm_config_unknown:'ignored by canonical compiler'},{NPM_CONFIG_PROXY:'',npm_config_proxy:'different'}])
     assert.equal(directEnvironmentIssue(env),null);
@@ -106,6 +109,8 @@ test('real direct compiler evidence crosses proxy contexts, but not relevant inp
   assert.equal(receipt.verificationRecipe,'npm-direct-typescript@1');assert(receipt.observedContext.npmProxyDigest);
   assert(!Object.keys(receipt.environmentHashes).some(key=>/npm/i.test(key)));
   assert.equal(status(contextB).invocation.runId,id);assert.equal(status(contextB).reuse_eligible,true);
+  for(const override of [{TS_ETW_MODULE_PATH:'./unreviewed.cjs'},{TS_ETW_MODULE_PATH:''},{ts_etw_module_path:'./unreviewed.cjs'}])
+    assert.equal(status({...contextB,...override}).reuse_eligible,false);
   assert.equal(JSON.parse(call(['status','--json'],contextB).stdout).checks[0].reuse_eligible,false);
   assert.match(good(root,state,'explain','typecheck'),/npm and lifecycle scripts were not executed/);
   put(path.join(root,'notes.md'),'unrelated\n');assert.equal(status(contextB).reuse_eligible,true);
@@ -116,10 +121,12 @@ test('real direct compiler evidence crosses proxy contexts, but not relevant inp
   const installed=path.join(root,'node_modules/typescript/README.md'),original=fs.readFileSync(installed);
   fs.appendFileSync(installed,'\n');assert.equal(status().reuse_eligible,false);fs.writeFileSync(installed,original);
   const probe=path.resolve('src/direct-typescript-probe.mjs');
-  for(const env of [{NODE_ENV:'development'},{NODE_OPTIONS:'--trace-warnings'},{NODE_PATH:root},{NODE_COMPILE_CACHE:path.join(root,'cache')}]){
+  const injected=path.join(root,'unreviewed-etw.cjs'),marker=path.join(root,'unreviewed-etw-ran');
+  put(injected,`require('node:fs').writeFileSync(${JSON.stringify(marker)},'unreviewed');`);
+  for(const env of [{NODE_ENV:'development'},{NODE_OPTIONS:'--trace-warnings'},{NODE_PATH:root},{NODE_COMPILE_CACHE:path.join(root,'cache')},{TS_ETW_MODULE_PATH:injected},{TS_ETW_MODULE_PATH:''}]){
     for(const extra of [[],['--redue-context']]){
       const r=spawnSync(process.execPath,[probe,root,'typecheck',...extra],{cwd:root,env:{...baseEnv,...env},encoding:'utf8',timeout:15000});
-      assert.equal(r.status,2);assert.match(r.stderr,/VSTATE_REASON:/);
+      assert.equal(r.status,2);assert.match(r.stderr,/VSTATE_REASON:/);assert(!fs.existsSync(marker),'unreviewed ETW module executed');
     }
   }
   put(path.join(root,'src/main.ts'),'export const value: number = "bad";\n');

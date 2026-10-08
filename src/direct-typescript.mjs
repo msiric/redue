@@ -7,17 +7,21 @@ import {realObservedPath,withinPath} from './path-identity.mjs';
 export const directInterpretation='npm-direct-typescript@1';
 export const directQualification='npm-typescript-direct-v1';
 const reviewed={
+  '5.5.2':{entry:'lib/tsc.js',digest:'953b4844b5f6edc745be844b6c367c227b59029b73c4182f508f90cc47e21816'},
   '5.6.3':{entry:'lib/tsc.js',digest:'e674b5dc4dac50f6e91be30094aeea983a1f340231717e62b0b6199ae3049eb2'},
   '5.9.3':{entry:'lib/_tsc.js',digest:'d1b32e75475710fdc85102b1365254d84ceb192d3639d962c53fe1355ce274ca'},
 };
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 export const directEnvironment={variables:['NODE_ENV','NODE_OPTIONS','NODE_PATH','NODE_COMPILE_CACHE','VSCODE_INSPECTOR_OPTIONS'],
-  prefixes:['NODE_','DYLD_','LD_','TSGO_','TSC_'],executableIdentity:true};
+  prefixes:['NODE_','DYLD_','LD_','TSGO_','TSC_','TS_ETW_'],executableIdentity:true};
 export function directEnvironmentIssue(env=process.env){
   if(![22,24].includes(Number(process.versions.node.split('.')[0])))return 'direct-node-version-unsupported';
   if(env.VSCODE_INSPECTOR_OPTIONS)return 'direct-execution-environment-unsupported';
   for(const [key,value] of Object.entries(env)){
+    // The 5.5.2 API can require this unreviewed module during probe loading.
+    // Reject even empty/case aliases; do not mutate the caller's environment.
+    if(/^TS_ETW_MODULE_PATH$/i.test(key))return 'direct-execution-environment-unsupported';
     if(/^NODE_/i.test(key)){
       // Node 22.13.0 predates env-proxy initialization. This injected flag is
       // inert there, but remains strictly fingerprinted as NODE_ context.

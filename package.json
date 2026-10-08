@@ -1,7 +1,7 @@
 {
   "name": "@redue/cli",
   "private": false,
-  "version": "0.1.0-alpha.7",
+  "version": "0.1.0-alpha.8",
   "publishConfig": {
     "access": "public",
     "tag": "alpha"
@@ -13,7 +13,8 @@
   "scripts": {
     "test": "node --test --test-concurrency=1 test/*.test.mjs",
     "test:package": "node test/acceptance/package-smoke.mjs",
-    "demo": "node test/acceptance/package-smoke.mjs --demo"
+    "demo": "node test/acceptance/package-smoke.mjs --demo",
+    "pretest": "npm --prefix test/fixtures/typescript-5-5-2 ci --no-audit --no-fund"
   },
   "dependencies": {
     "@parcel/watcher": "2.5.6",
