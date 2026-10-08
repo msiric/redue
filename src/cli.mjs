@@ -161,6 +161,12 @@ async function execute() {
   const totalStarted=performance.now();
   const selected=config.checks.find(c=>c.name===name);
   if(!selected)throw Error(`unknown check ${name}`);
+  // Recording uses existing state only. Never initialize or repair ownership
+  // as a fallback for unavailable observation.
+  const expectedOwner={schema:1,kind:'vstate-product-alpha',config:configFile,root,state};
+  const existingOwner=JSON.parse(fs.readFileSync(ownerFile,'utf8'));
+  if(JSON.stringify(existingOwner)!==JSON.stringify(expectedOwner))
+    throw Error('state ownership marker mismatch');
   const lockStarted=performance.now(),runLock=acquireRunLock(state);
   timing('cli.run_lock',lockStarted);
   const captureIssues=[];
