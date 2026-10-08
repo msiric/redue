@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.0-alpha.9 — 2026-10-09
+
+- Reduce repeated caller discovery on the guarded macOS direct-TypeScript path.
+  Both execution boundaries still validate in the actual caller environment,
+  with full-probe fallback when a discovery certificate cannot be used.
+- Preserve required content/membership, compiler/context, observation and durable
+  receipt-selection guards. The configured compiler still executes on every run.
+- Recording overhead fell in the measured debugger-project sample, but every
+  complete A–H candidate cycle remained slower than eight ordinary compiler runs.
+  No net workflow saving, broader support or CPU/memory improvement is claimed.
+- Stop observers before upgrading in the existing prefix, retain config/state
+  and receipts, then restart. No automatic migration is performed.
+
 ## 0.1.0-alpha.8 — 2026-10-08
 
 - Consume compiler-certificate input asynchronously while preserving the input-size

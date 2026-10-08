@@ -1,8 +1,14 @@
 name: Exact release tarball smoke (no publication)
 on:
   workflow_dispatch:
+    inputs:
+      artifact_run_id:
+        description: Existing exact-release-candidate run to validate without repacking
+        required: false
+        type: string
 permissions:
   contents: read
+  actions: read
 jobs:
   package:
     runs-on: ubuntu-latest
@@ -16,11 +22,21 @@ jobs:
       - run: node --test test/package-release.test.mjs
       - run: node test/acceptance/registry-name.mjs
       - name: Audit and pack once
+        if: ${{ !inputs.artifact_run_id }}
         run: |
           npm audit --omit=dev
           mkdir release-candidate
           npm pack --json --pack-destination release-candidate > release-candidate/manifest.json
           node test/acceptance/package-artifact.mjs record release-candidate/manifest.json
+      - name: Reuse preserved exact candidate
+        if: ${{ inputs.artifact_run_id }}
+        uses: actions/download-artifact@v4
+        with:
+          name: exact-release-candidate
+          path: release-candidate
+          run-id: ${{ inputs.artifact_run_id }}
+          github-token: ${{ github.token }}
+      - run: node test/acceptance/package-artifact.mjs verify release-candidate/manifest.json
       - uses: actions/upload-artifact@v4
         with:
           name: exact-release-candidate

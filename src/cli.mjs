@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import {directQualification,directInterpretation,observedNpmContext} from './direct-typescript.mjs';
+import {directRunCertificateAllowed,validateDirectRunCertificate} from './direct-run-certificate.mjs';
 import path from 'node:path';
 import net from 'node:net';
 import os from 'node:os';
@@ -25,6 +26,7 @@ mark('cli.loaded');
 const here=path.dirname(fileURLToPath(import.meta.url));
 const [configArg,action,name]=process.argv.slice(2);
 if(!configArg||!action)throw Error('internal usage: cli.mjs CONFIG ACTION [check]');
+const configStarted=performance.now();
 const configFile=path.resolve(configArg), config=JSON.parse(fs.readFileSync(configFile));
 const maintenance=['stop','uninstall'].includes(action);
 const root=maintenance?path.resolve(config.root):realObservedPath(config.root), state=path.resolve(config.state),
@@ -36,6 +38,7 @@ if([path.parse(state).root,os.homedir(),path.dirname(os.homedir())]
   !/^(?:vstate|redue)-/.test(path.basename(state)))
   throw Error('state directory name must start with redue- (or legacy vstate-); use a dedicated directory outside the checkout');
 const ownerFile=path.join(state,'vstate-owner-v1.json');
+timing('cli.config_resolution',configStarted);
 // A native Windows decision reconciles declared contents instead of trusting
 // watcher history. The measured 6k-file pnpm workspace can legitimately need
 // more than the former 15 s default; uncertainty still wins on expiry.
@@ -146,11 +149,20 @@ async function decisionCall(message,timeout) {
   }
 }
 const cached=()=>readCachedStatus(state,config.checks);
+async function testRunBoundary(phase) {
+  if(process.env.VSTATE_TEST_FAULTS!=='1'||process.env.VSTATE_TEST_RUN_BOUNDARY!==phase)return;
+  const release=path.join(state,'test-run-release');
+  fs.writeFileSync(path.join(state,'test-run-paused'),phase);
+  const until=Date.now()+5000;
+  while(!fs.existsSync(release)&&Date.now()<until)await new Promise(resolve=>setTimeout(resolve,10));
+  if(!fs.existsSync(release))throw Error('test run boundary was not released');
+}
 async function execute() {
   const totalStarted=performance.now();
   const selected=config.checks.find(c=>c.name===name);
   if(!selected)throw Error(`unknown check ${name}`);
-  const runLock=acquireRunLock(state);
+  const lockStarted=performance.now(),runLock=acquireRunLock(state);
+  timing('cli.run_lock',lockStarted);
   const captureIssues=[];
   let activeChild=null,requestedSignal=null,treeStop=null,preserveRunLock=false;
   const forward=signal=>{requestedSignal=signal;
@@ -174,6 +186,7 @@ async function execute() {
   try {
     if(!fs.existsSync(path.join(state,'plans-v1.json')))
       throw Error('observer input plan is not ready; wait for redue status to report ready');
+    const resolutionStarted=performance.now();
     const plan=JSON.parse(fs.readFileSync(path.join(state,'plans-v1.json'))).plans[name];
     if(!plan)throw Error('selected input plan unavailable');
     if(plan.selectedConfigHash!==digest(JSON.stringify(selected)))
@@ -183,6 +196,7 @@ async function execute() {
       throw Error('invalid execution argv');
     if(digest(JSON.stringify(command))!==plan.commandIdentity.argvHash)
       throw Error('execution argv differs from discovered plan');
+    timing('cli.command_resolution',resolutionStarted);
     const runId=randomUUID();
     const contextStarted=performance.now();
     const environmentBefore=contextHashes()[name];
@@ -194,12 +208,18 @@ async function execute() {
     // Expensive state probes can take seconds. Keep the filesystem checkpoint
     // adjacent to process launch so a late notification from earlier work
     // does not enter the execution interval before the check even starts.
-    const probeBefore=probeHash({cwd:plan.cwd,probes:selected.probes||[],
-      qualification:selected.qualification});
+    const callerCertificate=directRunCertificateAllowed(selected);
+    const probePlan={cwd:plan.cwd,probes:selected.probes||[],qualification:selected.qualification};
+    let probeBefore=callerCertificate?null:probeHash(probePlan);
     const startSnapshotStarted=performance.now();
-    try{before=await call({action:'snapshot',name,contextHashes:contextHashes()},captureTimeout);}
+    try{before=await call({action:'snapshot',name,contextHashes:contextHashes(),
+      ...(callerCertificate?{runCertificate:1}:{})},captureTimeout);}
     catch{captureIssues.push('start observation unavailable');}
     timing('cli.start_checkpoint',startSnapshotStarted,{available:before?.snapshots?.[name]?1:0});
+    await testRunBoundary('after-start-checkpoint');
+    // Start the observed interval before caller validation, not after it. Any
+    // intervening edit (even restored before launch) remains disqualifying.
+    if(callerCertificate)probeBefore=validateDirectRunCertificate(plan,selected,before?.snapshots?.[name])??probeHash(probePlan);
     // A Windows full reconciliation may finish while queued watcher callbacks
     // are still arriving. Fold callbacks delivered before process launch into
     // the starting checkpoint; callbacks after launch still disqualify reuse.
@@ -214,7 +234,8 @@ async function execute() {
     }
     const snap=before?.snapshots?.[name];
     if(!snap||!snap.observationHealthy)captureIssues.push('start checkpoint unavailable');
-    const started=Date.now();
+    await testRunBoundary('before-launch');
+    const started=Date.now(),executionStarted=performance.now();
     const invocation=await new Promise(resolve=>{
       if(requestedSignal){resolve({status:'interrupted',exitCode:null,signal:requestedSignal});return;}
       let child,spawnError=null;
@@ -225,6 +246,7 @@ async function execute() {
         ...launch.options});}
       catch(e){resolve({status:'start_failed',exitCode:null,signal:null,errorCode:e.code||e.name});return;}
       activeChild=child;runLock.phase('running',child.pid??null);
+      mark('cli.child_started',{childPid:child.pid});
       if(requestedSignal)forward(requestedSignal);
       child.on('error',e=>{spawnError=e.code||e.name;});
       child.on('close',async(exit,signal)=>{
@@ -244,6 +266,8 @@ async function execute() {
       });
     });
     const ended=Date.now();
+    timing('cli.compiler_execution',executionStarted,{status:invocation.status,exit:invocation.exitCode});
+    await testRunBoundary('after-exit');
     invocation.startedAt=started;invocation.durationMs=ended-started;
     invocation.argvHash=plan.commandIdentity.argvHash;
     invocation.argc=command.length;
@@ -251,8 +275,9 @@ async function execute() {
     invocation.reporting='normal';
     const result=invocation.status==='exited'?(invocation.exitCode===0?'PASS':'FAIL'):null;
     const target={source:'direct-command',status:invocation.status==='exited'?'direct_executed':'unknown'};
-    const environmentAfter=contextHashes()[name],probeAfter=probeHash({cwd:plan.cwd,
-      probes:selected.probes||[],qualification:selected.qualification});
+    const afterContextStarted=performance.now(),environmentAfter=contextHashes()[name];
+    timing('cli.context_after',afterContextStarted);
+    const probeAfter=(callerCertificate?validateDirectRunCertificate(plan,selected,before?.snapshots?.[name]):null)??probeHash(probePlan);
     const endSnapshotStarted=performance.now();
     try{after=await call({action:'snapshot',name,contextHashes:contextHashes()},captureTimeout);}
     catch{captureIssues.push('end observation unavailable');}
@@ -288,7 +313,9 @@ async function execute() {
     const persistenceStarted=performance.now();
     commitReceipt(state,name,receipt);
     timing('cli.receipt_persistence',persistenceStarted);
+    const reloadStarted=performance.now();
     try{await call({action:'reload'});}catch{/* receipt revisions invalidate older status even when reload IPC is unavailable */}
+    timing('cli.receipt_reload',reloadStarted);
     const summary={check:name,result,target:target.status,
       invocation:invocation.status,...(invocation.errorCode?{error_code:invocation.errorCode}:{}),
       stable,coverage_qualified:receipt.coverage.qualified};
