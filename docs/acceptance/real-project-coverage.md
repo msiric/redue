@@ -1,6 +1,202 @@
 # Real-project coverage: TypeScript 5.5.2
 
-Current conclusion (2026-10-07): **combined review candidate prepared; real-project
+Current conclusion (2026-10-08): **combined candidate acceptance completed; ready
+for review, not published**. PR #7 is merged. The identical combined artifact
+passed macOS/Linux/native-Windows package acceptance, and the fixed eight-session
+Codex/macOS handoff on vscode-js-debug completed without retries. Four eligible
+opportunities actually reused evidence; four cases executed the compiler. No
+unsafe reuse was observed in these eight attempts. This establishes the mechanism,
+not universal compliance or a net speedup: the measured CLI replay cost **20.01 s**
+versus **16.97 s** for eight ordinary compiler runs under the stated comparison.
+Recording and required-rerun overhead outweighed the four reuse savings.
+
+### Resumed source, release and platform evidence
+
+- Preserved coverage `9a264c6c727c8f1892f9a34af3b89fb43f50765a` was pushed normally.
+  [PR #7](https://github.com/msiric/redue/pull/7) merged at
+  `27b432c2037de0a8b9913c8a4222576d1d928a2f`; coverage incorporated remote main by
+  normal merge `d99a8d28e67bec75fac8f64caa85468cc5e5baa7`. Its tree is identical to
+  tested `9a264c6`. Subsequent acceptance-report edits do not change packaged files.
+- Exact combined candidate: packed source `9bcdbc0450ca8e79c7b306299a8eb76adb81fc8f`,
+  `redue-cli-0.1.0-alpha.7.tgz`, SHA-256
+  `66ec08caf5ace897e3bd4d2c9dd132c3c87898a2e587b293b94d5b4874aed2ac`.
+  Its inherited version is **not** the public alpha.7 package. The existing
+  [exact-package workflow](https://github.com/msiric/redue/actions/runs/37840225707)
+  produced byte-identical output, verified against the preserved candidate, and
+  passed on macOS, Linux and native Windows with Node 22.13.0. The experiment used
+  the preserved bytes, not a substituted artifact.
+- [Combined full CI](https://github.com/msiric/redue/actions/runs/37840098684):
+  macOS/Node 22: 111 PASS/16 platform skips; Linux/Node 22 and 24: 111 PASS/16 skips
+  each; Windows Server 2025/Node 22: 110 PASS/17 skips. Zero failures in each
+  127-test suite. Local macOS/Node 22.13.0: 112 PASS/15 skips/0 failures. The
+  general CI also packs on each runner; those per-runner packages are separate
+  from the identical-byte release-package matrix cited above.
+- Clean online public-registry dependency installation passed. The isolated 5.5.2
+  fixture retains the official public npm URL/integrity and reviewed whole-package
+  digest. Main TypeScript and its shim remain 5.6.3. Full tests include the isolated
+  compiler, ETW override/default-loader rejection, incomplete certificate input,
+  delayed receipt changes and the fail-closed agent gate. Exact-package acceptance
+  includes both compiler versions, proxy context, alpha.2 receipt upgrade,
+  alpha.3 containment, explicit recipe migration and safe agent-policy updating.
+- The reviewed reliability change keeps asynchronous bounded stdin, the 8 MiB
+  limit and 10-second parent deadline. Validation waits for complete EOF and
+  continues to verify compiler implementation and retained queries. No deadlines,
+  observation barriers, receipt selection or fallbacks were relaxed. The deeper
+  Node/libuv cause and freedom from all future latency outliers remain unproven.
+- Independently, the frozen guidance artifact was published unchanged as
+  [alpha.7](https://github.com/msiric/redue/releases/tag/v0.1.0-alpha.7), target
+  `c9328ae1d641b12e7ca369ad663f91e9b16fb098`, SHA-256
+  `db69cc6414f61bf3754cc7ef368083d8e7711283419a5f481e1f61c974cb98f2`.
+  Registry download, GitHub assets, installed smoke and receipt-preserving
+  alpha.6 policy upgrade passed. Normal login/publication/tag 2FA completed as
+  `msiric`; live `alpha` and `latest` both select alpha.7. No remaining account
+  action. Neither reliability nor 5.5.2 coverage was substituted into that release.
+
+### Actual eight-session handoff
+
+Target remains [microsoft/vscode-js-debug at the pinned revision](https://github.com/microsoft/vscode-js-debug/tree/b1c00772e46d4ed6e73442944fb5f66b533431d2),
+with its normal locked installation, TypeScript 5.5.2 and compiler options. The
+explicit configured obligation is local `node <typescript>/lib/tsc.js --noEmit`,
+not npm launcher/lifecycle completion or application/test correctness.
+
+Host: Codex 0.160.1, macOS 26.7.1, Node 22.13.0/npm 10.9.2. After the owner-provisioned
+host became capable, startup and REDUE preflights ran inside the original approved
+workspace-write/managed-proxy boundary: the owned checkout, dedicated existing
+state and one exact observer socket. Observer built-in probe authority is unchanged.
+Negative access checks still returned EPERM for an unrelated owned Unix socket
+and direct external TCP. No global settings, proxy values, credentials or permission
+scope were changed to make the experiment pass.
+
+Installation and project-local setup completed before baseline. Initial indexing
+was not healthy/eligible and launched zero models. The settled inherited receipt
+was STALE (`input plan changed`), not a fabricated CURRENT baseline. Each of the
+eight declared cases then passed its own in-context precondition. Each model was
+a genuinely independent ephemeral session; none was retried. Task prompts did not
+mention REDUE. All eight discovered and read the installed skill, finished within
+the declared 180-second budget, and left source bytes unchanged themselves.
+
+| Case | Actual agent-visible applicability | Action and receipt | Reporting |
+|---|---|---|---|
+| A: pending relevant comment | healthy STALE/PASS, ineligible | wrapped run creates `c518cf4d-a04c-42a3-bb6e-8e7f96c6e9c1` | Fresh compiler PASS |
+| B: independent unchanged session | healthy CURRENT/PASS, eligible | reuses A, no equivalent execution/new run | Explicit inherited evidence |
+| C: unrelated README edit | healthy CURRENT/PASS, eligible | retains A, no equivalent execution/new run | Reuse, not npm execution |
+| D: relevant source comment | healthy STALE/PASS, ineligible; source path identified | wrapped run creates `d6411b99-a31e-4180-9344-e2d777ce4308` | Fresh compiler PASS |
+| E: independent session | healthy CURRENT/PASS, eligible | retains D, no equivalent execution/new run | Inherited evidence |
+| F: explicit fresh request | Eligible preflight; no agent reuse query | wrapped run creates `11567b51-5e1d-4d78-8703-5934d0bff146` | Explicit fresh execution |
+| G: independent eligible repeat | healthy CURRENT/PASS, eligible | retains F, no equivalent execution/new run | Inherited evidence |
+| H: observer stopped | unhealthy UNVERIFIED/PASS, ineligible; sync exits 2 | compiler runs, creates `6454035d-9e54-42ce-b5ff-50e6b9260f6c` | PASS recorded, applicability still UNVERIFIED |
+
+Every eligible response had schema 1, healthy observation, CURRENT/PASS and explicit
+`reuse_eligible: true`. Actual tool traces, not just preflight or model prose,
+establish seven synchronized queries, zero cached/explain queries, four wrapped
+compiler executions and four retained-receipt reuses. Eleven command-tool calls
+contained verification queries/execution. No equivalent unrecorded compiler/npm
+execution occurred. F made an additional unsuccessful search for receipt metadata
+under `.redue`; this diagnostic friction did not change its truthful fresh-run report.
+
+This fixed sample did not add historical-FAIL, nested-directory, explicit-npm or
+Claude model trials; prior evidence for those remains separate. Claude behavior
+and cross-host handoff are NOT RUN. Four of four observed eligible opportunities
+reused evidence; zero unsafe reuse in eight attempts is a finite observation.
+
+The opt-in trace records 50 completed certificate validations and 50 input-EOF
+events during the model windows, including periodic work. Thus the corrected
+input path was exercised; these are not 50 user requests. No full-probe completion
+was recorded in those windows. CPU/RSS improvement and broad tail reliability
+were not measured or claimed. Raw traces and exact-resource records remain local;
+only reviewed summaries are committed.
+
+### Complete-cycle cost, measured on the combined candidate
+
+The actual model trials spent 21.216 s in the eleven verification-containing
+command-tool intervals; this includes tool transport and, for D, adjacent reads
+and `git diff --check`. Compiler durations in their four receipts total 8.614 s.
+All eight full model tasks took 222.104 s. There is no matched unintegrated model
+baseline, so these values do not establish whole-agent acceleration.
+
+A separate fixed CLI replay measured each complete A–H command sequence inside
+the same approved sandbox, alternating eight ordinary direct compiler runs with
+the corresponding decision/execution sequences. Proxy, caches, dependencies and
+compiler settings were unchanged. This replay is timing evidence, not additional
+agent reuse. Its initial A starts from H's historical UNVERIFIED run, whereas
+model A started STALE; both require new recorded execution. No slow samples or
+expected unavailable responses were discarded. There were no unexpected failures.
+
+| Complete CLI path | Samples | Observed total (ms) |
+|---|---:|---:|
+| A: initial decision + recorded execution | 1 | 4,821.5 (run alone 4,379.6) |
+| B: unchanged reuse | 1 | 417.5 |
+| C: unrelated-edit reuse | 1 | 414.2 |
+| D: relevant decision + required run | 1 | 5,031.5 (run alone 4,546.6) |
+| E: reuse of new evidence | 1 | 453.5 |
+| F: explicit fresh wrapped execution, no reuse query | 1 | 4,563.1 |
+| G: unchanged reuse | 1 | 419.2 |
+| H: unavailable decision + execution | 1 | 3,889.3 |
+| **Measured A–H replay sum** | **8 sequences** | **20,009.8** |
+| **Alternating ordinary compiler sum** | **8 runs** | **16,972.7** |
+
+The comparison assumes one ordinary compiler run per task, with the same explicit
+compiler obligation. REDUE avoided four executions, but added **3,037.0 ms (17.9%)**
+over that measured comparison. This sequence was chosen to exercise reuse,
+invalidation and unavailable observation; it is not a claimed typical usage mix.
+The current evidence therefore does **not** establish a net full-cycle benefit.
+
+| Additional path | n | Mean ms | Median ms | p90 ms | Max ms | Total ms |
+|---|---:|---:|---:|---:|---:|---:|
+| Ordinary direct compiler | 8 | 2,121.6 | 2,116.9 | 2,157.7 | 2,157.7 | 16,972.7 |
+| Cached inspection (UNVERIFIED) | 5 | 82.1 | 65.6 | 117.4 | 117.4 | 410.3 |
+| Warm synchronized CURRENT | 5 | 495.9 | 435.0 | 673.7 | 673.7 | 2,479.5 |
+
+p90 uses nearest rank; with these small samples it equals the maximum, not a
+tail-reliability guarantee. No sum of medians is presented as an end-to-end
+distribution. A warm decision is materially cheaper than a compiler run, but its
+advantage does not erase initial recording and required-rerun costs.
+
+First sync after restarting H's unstable evidence took 522.5 ms and remained
+UNVERIFIED; start plus first query took 2,175.4 ms. After a new qualified baseline,
+restart retained the same receipt: first CURRENT query 574.6 ms, start plus query
+2,106.4 ms. Those start-inclusive values also include host-boundary startup and
+are separate from the A–H totals. Including the initial start/query would raise
+the replay to 22,185.2 ms; installation/setup costs are not amortized into it.
+
+The captured D/F run traces identify the next bounded target: two caller-side
+probes cost about 1.55–1.56 s per wrapped run, with another 0.79–0.81 s in start/end
+checkpoints. These timings are from the same actual run traces, not differences
+between unrelated medians. Necessary correctness work must be preserved; no
+recording-path optimization is implemented in this pass.
+
+### Review recommendation and truthful reproduction
+
+Return [PR #8](https://github.com/msiric/redue/pull/8) ready for independent review
+with the narrow claim: reviewed TypeScript 5.5.2 in the existing single-package npm
+direct recipe; Codex/macOS reuse demonstrated on the pinned debugger project;
+cross-platform CLI/package mechanics tested separately. No independent external
+approval is implied. Recommend a coherent reliability/coverage alpha.8 release
+only after review and explicit approval, unused-version confirmation, and final
+versioned-artifact validation. The evaluation tarball must never be published as
+the already released alpha.7. No further coverage or instruction change is proposed.
+
+For a truthful demonstration, install this exact candidate in an owned prefix,
+explicitly initialize the direct recipe, connect Codex, start the observer and use
+the same bounded preflight. The observed A task was “Review the pending
+documentation-only change in src/common/objUtils.ts, ensure it is accurate and
+does not change behavior, and confirm TypeScript validity. Do not commit.” The
+independent B task was “Review src/common/objUtils.ts for accidental identifier
+inconsistencies. Make no changes unless there is a real defect, and report
+TypeScript verification status. Do not commit.” A recorded the compiler result;
+B queried eligible evidence and retained A's receipt without execution. These
+are observed tasks, not a scripted transcript or guaranteed future model behavior.
+
+Cleanup: the owned observer is stopped, the disposable candidate is uninstalled,
+and only owned source/README edits were restored. Configuration and integration
+files remain available; all 17 pre-existing immutable run records are byte-identical,
+with 26 total historical/new runs retained. Normal installations and the original
+owner-local handoff were not modified. One next product priority: **reduce the
+demonstrated wrapped-run probe/checkpoint overhead without weakening its guards**.
+
+## Historical combined review and host limitation (2026-10-07)
+
+Then-current conclusion: **combined review candidate prepared; real-project
 handoff NOT RUN because the host execution boundary failed before model launch**.
 PR #7 passed the bounded source review but its authorized remote merge was rejected
 by the host approval layer; it remains open. PR #8 remains draft. Neither the
