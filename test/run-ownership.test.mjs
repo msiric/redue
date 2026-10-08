@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 
-const bin=path.resolve('bin/redue.mjs');
+const bin=path.resolve(process.env.REDUE_UNAVAILABLE_TEST_BIN||'bin/redue.mjs');
 test('run refuses missing, malformed or mismatched ownership without executing or replacing evidence',t=>{
   const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-run-owner-')),
     root=path.join(base,'project'),state=path.join(base,'redue-state');

@@ -220,12 +220,22 @@ async function execute() {
     const startSnapshotStarted=performance.now();
     try{before=await call({action:'snapshot',name,contextHashes:contextHashes(),
       ...(callerCertificate?{runCertificate:1}:{})},captureTimeout);}
-    catch{captureIssues.push('start observation unavailable');}
+    catch(error){captureIssues.push('start observation unavailable'+
+      (typeof error.code==='string'&&/^[A-Z0-9_]+$/.test(error.code)?` (${error.code})`:''));}
     timing('cli.start_checkpoint',startSnapshotStarted,{available:before?.snapshots?.[name]?1:0});
+    // Missing discovery metadata can recover through a full probe. A missing
+    // healthy start boundary cannot: freeze this decision before any recovery.
+    // Only the reviewed macOS direct recipe enters this qualification shortcut.
+    const unobservedDirectRun=callerCertificate&&
+      before?.snapshots?.[name]?.observationHealthy!==true;
+    if(unobservedDirectRun){
+      captureIssues.push('qualification probes and end checkpoint not performed: no healthy start checkpoint');
+      mark('cli.run_validation_skipped',{reason:'start_observation_unavailable',probes:2,endCheckpoint:1});
+    }
     await testRunBoundary('after-start-checkpoint');
     // Start the observed interval before caller validation, not after it. Any
     // intervening edit (even restored before launch) remains disqualifying.
-    if(callerCertificate)probeBefore=validateDirectRunCertificate(plan,selected,before?.snapshots?.[name])??probeHash(probePlan);
+    if(callerCertificate&&!unobservedDirectRun)probeBefore=validateDirectRunCertificate(plan,selected,before?.snapshots?.[name])??probeHash(probePlan);
     // A Windows full reconciliation may finish while queued watcher callbacks
     // are still arriving. Fold callbacks delivered before process launch into
     // the starting checkpoint; callbacks after launch still disqualify reuse.
@@ -283,16 +293,18 @@ async function execute() {
     const target={source:'direct-command',status:invocation.status==='exited'?'direct_executed':'unknown'};
     const afterContextStarted=performance.now(),environmentAfter=contextHashes()[name];
     timing('cli.context_after',afterContextStarted);
-    const probeAfter=(callerCertificate?validateDirectRunCertificate(plan,selected,before?.snapshots?.[name]):null)??probeHash(probePlan);
+    const probeAfter=unobservedDirectRun?null:((callerCertificate?validateDirectRunCertificate(plan,selected,before?.snapshots?.[name]):null)??probeHash(probePlan));
     const endSnapshotStarted=performance.now();
-    try{after=await call({action:'snapshot',name,contextHashes:contextHashes()},captureTimeout);}
-    catch{captureIssues.push('end observation unavailable');}
-    timing('cli.end_checkpoint',endSnapshotStarted,{available:after?.snapshots?.[name]?1:0});
+    if(!unobservedDirectRun){
+      try{after=await call({action:'snapshot',name,contextHashes:contextHashes()},captureTimeout);}
+      catch{captureIssues.push('end observation unavailable');}
+      timing('cli.end_checkpoint',endSnapshotStarted,{available:after?.snapshots?.[name]?1:0});
+    }
     const end=after?.snapshots?.[name];
-    if(!end||!end.observationHealthy)captureIssues.push('end checkpoint unavailable');
+    if(!unobservedDirectRun&&(!end||!end.observationHealthy))captureIssues.push('end checkpoint unavailable');
     if(JSON.stringify(environmentBefore)!==JSON.stringify(environmentAfter))
       captureIssues.push('declared environment changed during execution');
-    if(!probeBefore||!probeAfter||probeBefore!==snap?.probeHash||probeAfter!==end?.probeHash)
+    if(!unobservedDirectRun&&(!probeBefore||!probeAfter||probeBefore!==snap?.probeHash||probeAfter!==end?.probeHash))
       captureIssues.push('declared state probe unavailable or changed');
     if(before?.observation?.generation!==after?.observation?.generation)
       captureIssues.push('observer generation changed during execution');
