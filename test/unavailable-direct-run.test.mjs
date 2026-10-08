@@ -56,7 +56,7 @@ test('observer can recover during the actual compiler process without qualifying
  // Pause only the owned compiler process to place real observer recovery
  // inside its invocation deterministically. This is a race fixture, not timing.
  process.kill(started.childPid,'SIGSTOP');
- try{call(f,['start']);}finally{process.kill(started.childPid,'SIGCONT');}
+ try{fs.appendFileSync(path.join(f.root,'src/main.ts'),'\n// Relevant edit during the real compiler invocation.\n');call(f,['start']);}finally{process.kill(started.childPid,'SIGCONT');}
  const readyAt=Date.now(),done=await r.done;assert.equal(done.code,0,done.output);const selected=receipt(f);assert(readyAt<=selected.invocation.startedAt+selected.invocation.durationMs,'observer recovery must occur during actual execution');evidence(f,selected,'PASS');
 });
 

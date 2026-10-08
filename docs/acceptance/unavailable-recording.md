@@ -96,6 +96,10 @@ isolated ownership guard passed all seven tests. The standalone ownership fixtur
 also initially omitted required project metadata; adding its ordinary package
 metadata made it valid. No model was launched for these fixture failures. No
 assertion, product timeout, interpretation or security control was relaxed.
+The final review strengthened the mid-execution recovery fixture with a relevant
+source edit while the actual owned compiler was paused. That affected case passed
+again from source and through the exact installed tarball; no runtime or packaged
+bytes changed, so the model/economic observations remain applicable.
 
 ## Fixed workflow economics
 
