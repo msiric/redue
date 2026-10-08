@@ -238,7 +238,8 @@ function probe(row,allowReuse=false) {
     row.revision++;row.lastReason='declared state probe changed or recovered';}
   row.probeHash=value;row.probeAt=Date.now();row.probeError=null;
   if(checkpoint)row.probeCache=checkpoint.queries?{input:key,context:checkpoint.context,
-    hash:value,queries:checkpoint.queries,...(macDirect?{schema:1,guard}: {})}:null;
+    hash:value,queries:checkpoint.queries,...(macDirect?{schema:1,guard,
+      output:checkpoint.output,queryData:checkpoint.queryData,stderrHash:values[0][3]}: {})}:null;
   timing('daemon.probe',started,{outcome:'ok',commands:values.length,
     reusable:row.probeCache?1:0,queries:row.probeCache?.queries.length||0});
 }
@@ -930,6 +931,20 @@ async function request(message) {
             inputEventSerial:inputEventSerial.get(name)||0,
             probeHash:row.probeHash,
             observationHealthy:healthy&&!planning&&!recovering&&applicableExternal(name).every(e=>e.healthy)};
+      // Export only a currently guarded, check-specific discovery certificate.
+      // The caller must independently validate it in its own environment. The
+      // snapshot stays the start of the observed interval, including validation.
+      if(message.runCertificate===1&&macProbeBarrier()){
+        const row=index?.checks.get(message.name),cache=row?.probeCache;
+        if(row?.plan.qualification==='npm-typescript-direct-v1'&&
+          !row.plan.unresolved.length&&cache?.schema===1&&cache.input===inputKey(row)&&
+          cache.hash===row.probeHash&&cache.guard===planGuard(index.bundle)&&
+          cache.output&&cache.queryData&&data.snapshots[message.name])
+          data.snapshots[message.name].discoveryCertificate={schema:1,planId:row.plan.id,
+            cwd:row.plan.cwd,probeDefinition:sha(JSON.stringify(row.plan.probes)),
+            context:cache.context,output:cache.output,stderrHash:cache.stderrHash,
+            queryData:cache.queryData};
+      }
     }
     timing('daemon.request_applicability',applicabilityStarted,{checks:data.checks.length});
     timing('daemon.request_total',totalStarted,{action:message.action,
