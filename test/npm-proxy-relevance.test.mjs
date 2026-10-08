@@ -101,9 +101,11 @@ test('npm 10.9.2 proxy port is not outcome-equivalent when the update notifier r
       const [exit,signal]=await new Promise((resolve,reject)=>{
         child.once('error',reject);child.once('close',(code,sig)=>resolve([code,sig]));
       }).finally(()=>clearTimeout(timer));
-      assert.equal(signal,null);assert.deepEqual(fs.readFileSync(path.join(root,'package.json')),identity);
-      t.diagnostic(JSON.stringify({response:mode,notifier,exit,requests,
-        durationMs:Math.round(performance.now()-started)}));
+      const diagnostic={response:mode,notifier,direct,exit,signal,requests,
+        durationMs:Math.round(performance.now()-started)};
+      t.diagnostic(JSON.stringify(diagnostic));
+      assert.equal(signal,null,JSON.stringify({...diagnostic,stdout,stderr}));
+      assert.deepEqual(fs.readFileSync(path.join(root,'package.json')),identity);
       return {exit,stdout,stderr,requests,port};
     }
     // Real unmodified npm and real TypeScript; no mocked notifier or sleeps.
