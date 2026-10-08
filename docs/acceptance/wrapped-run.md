@@ -288,3 +288,13 @@ finite regression result. The fixed A–H workload still does not beat ordinary
 compilation; the product target is not met, and the remaining checkpoint/unavailable
 cost is measured rather than declared an irreducible lower bound. No further
 speculative optimization, support expansion or guidance change is included here.
+
+## Alpha.9 final release validation
+
+The later evidence-only HEAD CI run [37853374447](https://github.com/msiric/redue/actions/runs/37853374447)
+hit the isolated 5.5.2 harness's combined 180-second timeout after 16 passing
+nested tests, before completing the two newly expanded suites. The harness now
+runs each constituent file with the same 180-second bound and reports its exact
+error/signal. No runtime code, operation deadline or assertion was weakened.
+The failure remains recorded; the final versioned artifact and updated harness
+require fresh acceptance before publication.
