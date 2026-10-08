@@ -17,10 +17,11 @@ import {assertOwnedStatePlacement} from './owned-state.mjs';
 import {permittedRoots} from './installed-inputs.mjs';
 import {acquireRunLock,inspectRunLock,recoverRunLock} from './run-lock.mjs';
 import {atomicJson,commitReceipt,receiptRevision} from './state-store.mjs';
-import {timing,profiling} from './decision-profile.mjs';
+import {timing,profiling,mark,traceContext} from './decision-profile.mjs';
 import {readCachedStatus,unavailableCached} from './cached-state.mjs';
 import {renderRun} from './presentation.mjs';
 
+mark('cli.loaded');
 const here=path.dirname(fileURLToPath(import.meta.url));
 const [configArg,action,name]=process.argv.slice(2);
 if(!configArg||!action)throw Error('internal usage: cli.mjs CONFIG ACTION [check]');
@@ -93,13 +94,13 @@ function owner(){
 }
 function call(message,timeout=5000) {
   return new Promise((resolve,reject)=>{
-    let data='',done=false;const client=net.createConnection(socket);
-    const timer=setTimeout(()=>{client.destroy();reject(Error('observer synchronization timeout'));},timeout);
-    client.on('connect',()=>client.write(JSON.stringify(message)+'\n'));
+    let data='',done=false;mark('client.control_connect',{deadlineMs:timeout});const client=net.createConnection(socket);
+    const timer=setTimeout(()=>{mark('client.control_timeout');client.destroy();reject(Error('observer synchronization timeout'));},timeout);
+    client.on('connect',()=>{mark('client.control_submit');client.write(JSON.stringify({...message,...(profiling?{diagnostic:traceContext()}: {})})+'\n');});
     client.on('data',chunk=>data+=chunk);
-    client.on('end',()=>{clearTimeout(timer);if(done)return;done=true;
+    client.on('end',()=>{mark('client.control_complete',{bytes:data.length});clearTimeout(timer);if(done)return;done=true;
       try{resolve(JSON.parse(data));}catch(e){reject(e);}});
-    client.on('error',e=>{clearTimeout(timer);reject(e);});
+    client.on('error',e=>{mark('client.control_error',{code:e.code});clearTimeout(timer);reject(e);});
   });
 }
 async function decisionCall(message,timeout) {
