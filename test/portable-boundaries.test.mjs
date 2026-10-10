@@ -9,6 +9,7 @@ import {canonical,encodeEnvelope,parseEnvelope,inspectEnvelope,PortableEnvelopeE
   from '../src/portable-envelope.mjs';
 import {importEvidence,readImportedSnapshot} from '../src/portable-store.mjs';
 import {portableCommand} from '../src/portable-command.mjs';
+import {decidePortableEvidence} from '../src/portable-applicability.mjs';
 
 // Independent controls for the facts portable comparison must retain. These
 // tests do not grant portable eligibility or replace observer interval checks.
@@ -236,4 +237,55 @@ test('owner replacement after export persistence removes only the owned incomple
   await assert.rejects(exporting(f),error=>error.code==='PORTABLE_OWNERSHIP');
   assert(changed);assert.equal(fs.existsSync(f.output),false);
   assert.equal(JSON.parse(fs.readFileSync(f.historical)).receipt.invocation.runId,f.r.invocation.runId);
+});
+
+function recipientDecision(records,local=null,revision=digest('catalog')){
+  return decidePortableEvidence({check:'typecheck',facts:portableFixture().facts,
+    prerequisites:{understood:true,observationHealthy:true,callerValidated:true,complete:true},
+    snapshot:{records,revision},local});
+}
+function candidate(p,acceptance='manual-digest-v1'){
+  const envelope=encodeEnvelope(p);
+  return {check:'typecheck',digest:envelope.digest,envelope,acceptance};
+}
+function localOutcome(extra={}){return {present:true,result:'PASS',stable:true,
+  invocationStatus:'exited',applicability:'CURRENT',facts:portableFixture().facts,
+  resolvedCatalogRevision:null,...extra};}
+
+test('different preliminary facts cannot turn a newer unstable local outcome into harmless history',()=>{
+  const different=portableFixture().facts;different.files[0][1]=digest('different start input');
+  for(const extra of [{stable:false},{invocationStatus:'interrupted'},{invocationStatus:'start_failed'},
+    {result:null},{stable:false,result:'FAIL'}]){
+    const decision=recipientDecision([candidate(portableFixture())],localOutcome({
+      applicability:'STALE',facts:different,...extra}));
+    assert.equal(decision.reason,'PORTABLE_LOCAL_SELECTION_BARS_FALLBACK');
+    assert.equal(decision.reuse_eligible,false);assert.equal(decision.local_reuse_blocked,true);
+  }
+});
+
+test('accepted incomplete origins cannot use different start facts to evade conflict handling',()=>{
+  for(const result of ['PASS','FAIL']){
+    const incomplete=portableFixture();incomplete.origin.result=result;
+    incomplete.origin.invocation.exitCode=result==='PASS'?0:1;incomplete.origin.complete=false;
+    incomplete.facts.files[0][1]=digest('different preliminary input');
+    const decision=recipientDecision([candidate(portableFixture()),candidate(incomplete)]);
+    assert.equal(decision.reason,'PORTABLE_ACCEPTED_ORIGIN_INCOMPLETE');
+    assert.equal(decision.reuse_eligible,false);assert.equal(decision.incomplete.length,1);
+  }
+});
+
+test('resolution binds exact current accepted catalog rather than arrival order or old local PASS',()=>{
+  const fail=portableFixture();fail.origin.result='FAIL';fail.origin.invocation.exitCode=1;
+  const records=[candidate(fail),candidate(portableFixture())],revision=digest('resolved catalog');
+  const resolved=recipientDecision(records,localOutcome({resolvedCatalogRevision:revision}),revision);
+  assert.equal(resolved.reason,'PORTABLE_CATALOG_EXPLICITLY_RESOLVED_LOCALLY');
+  assert.equal(resolved.reuse_eligible,false,'helper never represents local execution as imported reuse');
+  for(const ordered of [records,[...records].reverse()]){
+    const changed=recipientDecision(ordered,localOutcome({resolvedCatalogRevision:revision}),digest('changed catalog'));
+    assert.equal(changed.reason,'PORTABLE_APPLICABLE_CONFLICT');
+    assert.equal(changed.local_reuse_blocked,true);assert.equal(changed.reuse_eligible,false);
+  }
+  const unaccepted=recipientDecision([candidate(fail,'untrusted')],localOutcome());
+  assert.equal(unaccepted.reason,'PORTABLE_LOCAL_CURRENT_SELECTED');
+  assert.equal(unaccepted.local_reuse_blocked,false);
 });

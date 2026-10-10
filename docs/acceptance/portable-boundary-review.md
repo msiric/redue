@@ -223,3 +223,24 @@ The approved workflow's origin assertion, protected signer policy, privacy revie
 actual signature verification, trust-removal semantics and independently matched
 recipient runtime remain separate G3 requirements. No workflow or trust account
 was changed in this review.
+
+## Pure conflict-decision review
+
+Helper author commit `c1402d8` was independently reviewed. A precommit finding
+showed that a STALE label with different preliminary local facts bypassed stability
+and invocation checks. An incomplete run's starting facts cannot prove its full
+execution used unrelated inputs. The author tightened that exception to a stable,
+exited, fully identified local outcome and likewise checks imported completeness
+before classifying different facts as historical.
+
+Independent controls cover unstable/interrupted/start-failed local outcomes with
+different start facts, accepted incomplete PASS/FAIL with different preliminary
+facts, replay under reversed catalog arrival order, exact catalog-resolution
+binding, and lack of authority for an unaccepted failure. Author plus independent
+policy/boundary tests: 28 passed, zero failed or skipped on macOS Node 22.13.0.
+
+The engine caller must supply local facts only from complete current-interpretation
+capture and a conflict-resolution binding only from identical accepted catalog
+observed at both run boundaries. A metadata revision is not input-content or
+producer-order authority. The pure helper does not implement those engine barriers;
+integration remains independently unverified.
