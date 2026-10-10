@@ -11,6 +11,7 @@ import {controlEndpoint} from '../src/control-endpoint.mjs';
 import {commitReceipt,readReceipts} from '../src/state-store.mjs';
 import {acquireRunLock} from '../src/run-lock.mjs';
 import {pathToFileURL} from 'node:url';
+import {checkpointBaselineDiagnostics} from './acceptance/checkpoint-diagnostics.mjs';
 
 // Explicit registration groups avoid test-name RegExp semantics varying across
 // supported Node releases. Registration-only is a harness coverage check, never
@@ -149,8 +150,10 @@ discovery('macOS guarded and full decisions agree for content, membership, resol
 discovery('macOS gap, missed edit, failed reconciliation and restart cannot retain a green certificate',
   {skip:process.platform!=='darwin'},async t=>{
   const {fast:f,root}=fixture(t);f.env.VSTATE_HISTORY_TIMEOUT_MS='300';
+  if(process.env.REDUE_TEST_CHECKPOINT_DIAGNOSTICS==='1')Object.assign(f.env,{REDUE_DECISION_PROFILE:'1',
+    REDUE_DECISION_PROFILE_FILE:path.join(f.state,'checkpoint-timing.jsonl')});
   call(f,['start']);call(f,['run','typecheck']);const baseline=row(f),id=baseline.invocation.runId;
-  assert.equal(baseline.freshness,'CURRENT',JSON.stringify({baseline,receipt:readReceipts(f.state).checks.typecheck.checkpoint}));
+  assert.equal(baseline.freshness,'CURRENT',JSON.stringify(checkpointBaselineDiagnostics(f,baseline)));
   put(path.join(f.state,'reconcile-fault'),'1');put(path.join(f.state,'history-fault'),'fail');
   assert.equal(row(f).freshness,'UNVERIFIED');
   put(path.join(f.state,'drop-events'),'1');put(path.join(root,'src/added.ts'),'export const changed=1;');
