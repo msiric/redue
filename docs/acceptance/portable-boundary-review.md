@@ -406,4 +406,20 @@ actually imported a valid payload, replaced that one leaf at the open boundary
 and exhausted its external three-second deadline (`ETIMEDOUT`) against store
 `3c4a820`. The test retains a fail-closed completion expectation; it does not
 weaken the timeout or introduce a writer to release the FIFO. Correction and
-post-fix review are pending in this record until independently exercised.
+post-fix review used author correction `3df3f58`: both readers open nonblocking
+where supported and reject non-regular or multiply linked opened descriptors
+before reading. The unchanged independent real FIFO control completed in about
+93 ms with conservative error and zero records, rather than timing out. Combined
+store, CI inspector and independent boundary tests passed 52/52 with no skips or
+failures. The earlier observed timeout remains preserved above.
+
+CI inspector hardening `2f86e3c` was also reviewed: locally approved verifier bytes
+are bound before and after execution, linked/changed inputs are refused and every
+returned verified statement must match policy. `local_policy_current:false`
+truthfully leaves authoritative policy revision/removal handling to integration.
+Binary digest does not certify arbitrary native loader/preload effects: an approved
+native verifier distribution and trusted execution context remain prerequisites.
+Explicit offline identification is not a guarantee of no network activity; pinned
+gh trusted-root initialization can refresh TUF/Sigstore data. Neither these
+controlled verification-output tests nor the helper grant producer acceptance or
+live G3 signature/workflow certification.
