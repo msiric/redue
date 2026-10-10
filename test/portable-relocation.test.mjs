@@ -43,4 +43,36 @@ test('real origin captures fresh portable facts inside observed execution; old e
   const inspected=JSON.parse(good(root,state,'evidence','inspect',target,'--json'));
   assert.equal(inspected.reuse_eligible,false);assert.equal(inspected.producer_accepted,false);
   assert.deepEqual(fs.readFileSync(path.join(state,'runs-v1',id+'.json')),original);
+  const recipient=path.join(base,'recipient'),recipientState=path.join(base,'redue-recipient');
+  fs.cpSync(root,recipient,{recursive:true,dereference:false,verbatimSymlinks:true});
+  good(recipient,recipientState,'start');
+  const imported=JSON.parse(good(recipient,recipientState,'evidence','import',target,'--check','typecheck','--accept-digest',exported.digest,'--apply','--json'));
+  assert.equal(imported.producer_accepted,true);assert.equal(imported.reuse_eligible,false);
+  assert(!fs.existsSync(path.join(recipientState,'runs-v1')),'import must not create a local run');
+  const current=JSON.parse(good(recipient,recipientState,'status','--sync','--json')).checks[0];
+  assert.equal(current.freshness,'CURRENT',JSON.stringify(current));assert.equal(current.reuse_eligible,true);
+  assert.equal(current.evidence_source,'imported');assert.equal(current.invocation,null);
+  assert.equal(current.imported_evidence.origin_run_id,id);
+  assert(!fs.existsSync(path.join(recipientState,'runs-v1')),'recipient synchronization must not execute verification');
+  const cached=JSON.parse(good(recipient,recipientState,'status','--json')).checks[0];
+  assert.equal(cached.reuse_eligible,false);
+  fs.writeFileSync(path.join(recipient,'src/a.ts'),'export const value: number = 2;\n');
+  const stale=JSON.parse(good(recipient,recipientState,'status','--sync','--json')).checks[0];
+  assert.equal(stale.freshness,'STALE',JSON.stringify(stale));assert.equal(stale.reuse_eligible,false);
+  assert.deepEqual(fs.readFileSync(path.join(state,'runs-v1',id+'.json')),original);
+  // A newer incompletely observed local outcome must not reveal the older
+  // imported PASS after observer recovery.
+  fs.writeFileSync(path.join(recipient,'src/a.ts'),'export const value: number = 1;\n');
+  good(recipient,recipientState,'stop');
+  good(recipient,recipientState,'run','typecheck','--portable');
+  const newest=JSON.parse(fs.readFileSync(path.join(recipientState,'receipts-v1.json'))).checks.typecheck;
+  assert.equal(newest.result,'PASS');assert.equal(newest.stable,false);assert.equal(newest.portable.complete,false);
+  good(recipient,recipientState,'start');
+  const recovered=JSON.parse(good(recipient,recipientState,'status','--sync','--json')).checks[0];
+  assert.equal(recovered.reuse_eligible,false,JSON.stringify(recovered));
+  assert.equal(recovered.invocation.runId,newest.invocation.runId);
+  good(recipient,recipientState,'run','typecheck','--portable');
+  const repaired=JSON.parse(good(recipient,recipientState,'status','--sync','--json')).checks[0];
+  assert.equal(repaired.reuse_eligible,true,JSON.stringify(repaired));
+  assert.equal(repaired.invocation.runId,JSON.parse(fs.readFileSync(path.join(recipientState,'receipts-v1.json'))).checks.typecheck.invocation.runId);
 });

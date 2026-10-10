@@ -189,7 +189,7 @@ export async function doctor({configFile,stateOverride,entry,cwd,host}){
     applicability:null,hosts:[],warnings:[],hooks:'none installed by REDUE',behavior_verified:false};
   let p;try{p=project(configFile);value.project.root=p.root;
     const state=stateOverride||projectState(p.root,configFile);value.project.state=state;
-    const cached=readCachedStatus(state,p.config.checks);value.observation=cached.observation;
+    const cached=readCachedStatus(state,p.config.checks,{configFile:path.join(state,'project-runtime-v1.json'),root:p.root});value.observation=cached.observation;
     value.applicability={requires_reassessment:cached.checks.some(row=>row.freshness==='UNVERIFIED'),
       caller_context_missing:cached.checks.some(row=>row.reason==='execution environment context not supplied'),
       reasons:cached.checks.filter(row=>row.freshness==='UNVERIFIED').map(row=>({check:row.name,reason:row.reason}))};

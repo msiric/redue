@@ -94,10 +94,8 @@ export function portableManifest(root,observed){
     return [rel,hash];
   });
 }
-export function capturePortableFacts(plan,snapshot,context){
+export function portableProbeFacts(plan){
   const recipe=portableRecipe(plan);
-  if(snapshot?.observationHealthy!==true||!snapshot.files)fail('PORTABLE_OBSERVATION_INCOMPLETE');
-  const root=plan.root,files=portableManifest(root,snapshot.files);
   const probe=spawnSync(plan.probes[0][0],[...plan.probes[0].slice(1),'--redue-portable'],
     {cwd:plan.cwd,env:process.env,encoding:'utf8',timeout:10000,maxBuffer:8*1024*1024,stdio:['ignore','pipe','pipe']});
   if(probe.error||probe.signal||probe.status!==0){
@@ -106,10 +104,20 @@ export function capturePortableFacts(plan,snapshot,context){
   }
   const discovered=JSON.parse(probe.stdout);
   if(discovered.schema!==1)fail('PORTABLE_INTERPRETATION_UNSUPPORTED');
+  return {recipe,discovered};
+}
+export function portableCallerProof(plan){
+  const {recipe,discovered}=portableProbeFacts(plan);
+  return sha(canonical({recipe,discovered}));
+}
+export function capturePortableFacts(plan,snapshot,context){
+  if(snapshot?.observationHealthy!==true||!snapshot.files)fail('PORTABLE_OBSERVATION_INCOMPLETE');
+  const files=portableManifest(plan.root,snapshot.files),{recipe,discovered}=portableProbeFacts(plan);
   for(const [rel] of [...discovered.discovery.configs,...discovered.discovery.files])
     if(!Object.hasOwn(snapshot.files,rel))fail('PORTABLE_COVERAGE_UNSUPPORTED');
   return {schema:1,recipe,platform:{os:process.platform,arch:process.arch,release:os.release()},
     runtime:discovered.runtime,compiler:discovered.compiler,context,files,discovery:discovered.discovery};
 }
+export const portableFactsProof=facts=>sha(canonical({recipe:facts.recipe,discovered:{schema:1,runtime:facts.runtime,compiler:facts.compiler,discovery:facts.discovery}}));
 export const samePortableFacts=(a,b)=>a!==null&&b!==null&&canonical(a)===canonical(b);
 export const portableFactsDigest=facts=>digestPayload(facts);

@@ -329,7 +329,7 @@ if(!maintenance&&fs.existsSync(runtimeFile)){
 }else if(!maintenance)fs.writeFileSync(runtimeFile,serialized,{flag:'wx',mode:0o600});
 
 if(command==='status'&&!sync){
-  const value=readCachedStatus(state,publicConfig.checks);
+  const value=readCachedStatus(state,publicConfig.checks,{configFile:runtimeFile,root});
   console.log(json?JSON.stringify(value):renderStatus(value,{short}));
   process.exit(0);
 }

@@ -21,7 +21,8 @@ import {atomicJson,commitReceipt,receiptRevision} from './state-store.mjs';
 import {timing,profiling,mark,traceContext} from './decision-profile.mjs';
 import {readCachedStatus,unavailableCached} from './cached-state.mjs';
 import {renderRun} from './presentation.mjs';
-import {capturePortableFacts,samePortableFacts,portableInterpretation} from './portable-facts.mjs';
+import {readPortableCatalog,portableCatalogMatches} from './portable-catalog.mjs';
+import {capturePortableFacts,portableCallerProof,samePortableFacts,portableInterpretation} from './portable-facts.mjs';
 
 mark('cli.loaded');
 const here=path.dirname(fileURLToPath(import.meta.url));
@@ -149,7 +150,7 @@ async function decisionCall(message,timeout) {
     return value;
   }
 }
-const cached=()=>readCachedStatus(state,config.checks);
+const cached=()=>readCachedStatus(state,config.checks,{configFile,root});
 async function testRunBoundary(phase) {
   if(process.env.VSTATE_TEST_FAULTS!=='1'||process.env.VSTATE_TEST_RUN_BOUNDARY!==phase)return;
   const release=path.join(state,'test-run-release');
@@ -255,6 +256,7 @@ async function execute() {
     // Persisted plans intentionally replace argv with identities. Bind the real
     // already-validated selected argv back only for this owned capture.
     const portablePlan={...plan,command,probes:selected.probes||[]};
+    const portableCatalogStart=portableRequested?readPortableCatalog(state,{configFile,root}):null;
     let portableStart=null,portableEnd=null,portableIssue=null;
     if(portableRequested)try{portableStart=capturePortableFacts(portablePlan,snap,environmentBefore);}
     catch(error){portableIssue=error.code||'PORTABLE_CAPTURE_UNAVAILABLE';}
@@ -331,6 +333,9 @@ async function execute() {
     if(!snap||!end||snap.planId!==end.planId||snap.fingerprint!==end.fingerprint||
       snap.revision!==end.revision)captureIssues.push('declared inputs changed or were not observed');
     const stable=captureIssues.length===0;
+    const portableCatalogEnd=portableRequested?readPortableCatalog(state,{configFile,root}):null;
+    const resolvedCatalogRevision=portableRequested&&!portableCatalogStart.error&&!portableCatalogEnd.error&&
+      portableCatalogStart.revision===portableCatalogEnd.revision?portableCatalogStart.revision:null;
     const receipt={result,invocation,target,stable,fingerprintVersion:1,
       resolutionLinks:plan.resolutionLinks||[],
       coverage:{qualified:plan.unresolved.length===0,unresolved:plan.unresolved},
@@ -344,7 +349,7 @@ async function execute() {
       ...(observedContext?{observedContext,verificationRecipe:directInterpretation}:{}),
       ...(portableRequested?{portable:{schema:1,interpretation:portableInterpretation,
         complete:invocation.status==='exited'&&['PASS','FAIL'].includes(result)&&!portableIssue&&stable&&plan.unresolved.length===0&&samePortableFacts(portableStart,portableEnd),
-        facts:portableStart,reason:portableIssue||(!samePortableFacts(portableStart,portableEnd)?'PORTABLE_BOUNDARY_CHANGED':null)}}:{}),
+        facts:portableStart,resolvedCatalogRevision,reason:portableIssue||(!samePortableFacts(portableStart,portableEnd)?'PORTABLE_BOUNDARY_CHANGED':null)}}:{}),
       files:snap?.files??null,observerGeneration:before?.observation?.generation??null,
       startRevision:snap?.revision??null,endRevision:end?.revision??null};
     const persistenceStarted=performance.now();
@@ -452,11 +457,24 @@ async function main(){
       timing('cli.direct_context',started,{interpretation:directInterpretation,
         observedNpmDigest:observedNpmContext(),proxyShapes});
     }
-    let value;try{value=await decisionCall({action:'sync',contextHashes:contextHashes()},
+    const catalog=readPortableCatalog(state,{configFile,root}),portableProofs={};
+    if(!catalog.error&&catalog.records.some(record=>record.acceptance!=='untrusted')){
+      const plans=JSON.parse(fs.readFileSync(path.join(state,'plans-v1.json'))).plans;
+      for(const selected of config.checks){
+        const plan=plans[selected.name];
+        if(catalog.records.some(record=>record.check===selected.name&&record.acceptance!=='untrusted'))try{
+          if(plan?.selectedConfigHash!==digest(JSON.stringify(selected)))throw Error('configuration mismatch');
+          portableProofs[selected.name]=portableCallerProof({...plan,command:selected.command,probes:selected.probes||[]});
+        }catch{portableProofs[selected.name]=null;}
+      }
+    }
+    let value;try{value=await decisionCall({action:'sync',contextHashes:contextHashes(),portableProofs},
       Number(process.env.VSTATE_SYNC_TIMEOUT_MS||decisionDeadlineMs));
       // A client upgrade can encounter an older running observer. Its successful
       // control response does not establish that it evaluated the latest receipt.
-      if(value.receipt_revision===null){
+      if(!portableCatalogMatches(state,{configFile,root},value.portable_revision??(catalog.revision==='none'?'none':null))){
+        value=unavailableCached(state,'portable evidence selection changed or observer requires restart; no reuse is authorized',config.checks);process.exitCode=2;
+      }else if(value.receipt_revision===null){
         value=unavailableCached(state,'latest receipt selection unavailable; inspect receipt state before reuse',config.checks);
       }else if(typeof value.receipt_revision!=='string'){
         value=unavailableCached(state,'observer cannot confirm latest receipt selection; stop and start the observer after upgrading',config.checks);

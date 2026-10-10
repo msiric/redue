@@ -16,6 +16,9 @@ import {permittedRoots} from './installed-inputs.mjs';
 import {assertOwnedStatePlacement} from './owned-state.mjs';
 import {atomicJson,readReceipts,readReceiptSnapshot,receiptRevision} from './state-store.mjs';
 import {history} from './observation.mjs';
+import {readPortableCatalog} from './portable-catalog.mjs';
+import {capturePortableFacts,portableFactsProof,portableInterpretation} from './portable-facts.mjs';
+import {decidePortableEvidence} from './portable-applicability.mjs';
 import {inputKey,planGuard} from './decision-validation.mjs';
 import {timing,mark,traceBase,traceContext,traceScope,traceEnvironment,traceId} from './decision-profile.mjs';
 
@@ -267,7 +270,7 @@ function describeChangedInput(plan,file) {
     .map(mapping=>mapping.logical).slice(0,2);
   return file+' changed'+(matches.length?` (installed via ${matches.join(', ')})`:'');
 }
-function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=false) {
+function localRows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=false) {
   if(!index)return [];
   return [...index.checks].map(([name,row])=>{
     const r=receipts[name], result=r?.result||null;
@@ -351,17 +354,43 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
     return item;
   });
 }
-function status(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=false) {
+
+function rows(contextHashes,synchronizedInstalled,synchronizedFilesystem,catalog,portableDecisions={}){
+  return localRows(contextHashes,synchronizedInstalled,synchronizedFilesystem).map(item=>{
+    if(catalog.error)return {...item,freshness:'UNVERIFIED',reuse_eligible:false,
+      reason_code:catalog.error.code,reason:'portable evidence catalog unavailable; inspect owned state'};
+    const accepted=catalog.records.filter(record=>record.check===item.name&&record.acceptance!=='untrusted');
+    if(!accepted.length)return item;
+    const decision=portableDecisions[item.name];
+    if(!decision||decision.catalog_revision!==catalog.revision||
+      decision.receipt_revision!==receiptStateRevision||receiptStateRevision===null)return {...item,freshness:'UNVERIFIED',reuse_eligible:false,
+      reason_code:'PORTABLE_SYNC_REQUIRED',reason:'accepted imported evidence requires caller-aware synchronization'};
+    if(['PORTABLE_LOCAL_CURRENT_SELECTED','PORTABLE_CATALOG_EXPLICITLY_RESOLVED_LOCALLY'].includes(decision.reason))
+      return {...item,portable_evidence:decision};
+    const selected=decision.selected;
+    return {...item,result:selected?.origin.result??item.result,freshness:decision.freshness,
+      reuse_eligible:decision.reuse_eligible,reason_code:decision.reason,
+      reason:decision.reason==='PORTABLE_RECIPIENT_CURRENT'?'accepted evidence executed elsewhere matches locally observed inputs':
+        decision.reason==='PORTABLE_FACTS_DIFFER'?'imported evidence differs from locally observed inputs':
+        'imported evidence cannot authorize reuse ('+decision.reason+')',
+      ...(selected?{evidence_source:'imported',invocation:null,target_provenance:null,
+        imported_evidence:{digest:selected.digest,origin_run_id:selected.run_id,
+          result:selected.origin.result,acceptance:selected.acceptance},
+        local_historical:{result:item.result,invocation:item.invocation}}:{}),portable_evidence:decision};
+  });
+}
+function status(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=false,portableDecisions={}) {
   // Reload notifications accelerate visibility but are not required for it: a
   // wrapper may persist its outcome even when its control connection is denied.
   refreshReceipts();
-  const checks=rows(contextHashes,synchronizedInstalled,synchronizedFilesystem), current=checks.filter(r=>r.freshness==='CURRENT'&&r.result==='PASS').length,
+  const catalog=readPortableCatalog(state,{configFile,root});
+  const checks=rows(contextHashes,synchronizedInstalled,synchronizedFilesystem,catalog,portableDecisions), current=checks.filter(r=>r.freshness==='CURRENT'&&r.result==='PASS').length,
     failed=checks.filter(r=>r.freshness==='CURRENT'&&r.result==='FAIL').length,
     observedFailed=checks.filter(r=>r.result==='FAIL').length,
     stale=checks.filter(r=>r.freshness==='STALE').length,
     unverified=checks.filter(r=>r.freshness==='UNVERIFIED').length||(!checks.length?1:0);
   const stateName=failed?'failed':unverified?'unverified':stale?'stale':'current';
-  const now=Date.now();return {schema:1,receipt_revision:receiptStateRevision,state:stateName,current,failed,observed_failed:observedFailed,
+  const now=Date.now();return {schema:1,receipt_revision:receiptStateRevision,portable_revision:catalog.revision,state:stateName,current,failed,observed_failed:observedFailed,
     stale,unverified,checks,
     observation:{healthy:healthy&&!planning&&!recovering&&!index?.unavailable,
       generation,observed_at:lastObservation,
@@ -919,10 +948,47 @@ async function request(message) {
         catch(e){observationGap('post_probe_history',e);}
     }
     timing('daemon.request_probes',probeStarted,{checks:index?.checks.size||0});
+    // Recipient discovery uses only its own configured built-in probe and index.
+    // Imported payloads never choose executable paths, inputs, or probe authority.
+    const catalog=readPortableCatalog(state,{configFile,root}),portableDecisions={};
+    const validations=new Map();
+    if(message.action==='sync'&&!catalog.error&&index&&healthy&&!planning&&!recovering&&!planDirty){
+      for(const [name,row] of index.checks){
+        if(!catalog.records.some(record=>record.check===name&&record.acceptance!=='untrusted'))continue;
+        const beginning={index,key:inputKey(row),serial:inputEventSerial.get(name)||0};
+        let facts=null,error=null;
+        try{
+          if(!/^[a-f0-9]{64}$/.test(message.portableProofs?.[name]||''))throw Error('caller validation missing');
+          facts=capturePortableFacts(row.plan,{files:combinedFiles(name),observationHealthy:true},message.contextHashes?.[name]);
+          if(portableFactsProof(facts)!==message.portableProofs[name])throw Error('caller and recipient contexts differ');
+        }catch(e){error=e.code||'PORTABLE_CALLER_UNVERIFIED';facts=null;}
+        validations.set(name,{beginning,facts,error});
+      }
+      // Synchronous child work delays event delivery; catch up before using it.
+      try{await catchUp();if(flushTimer||pending.size||planDirty)flush();}
+      catch(e){observationGap('portable_post_discovery_history',e);}
+      refreshReceipts();
+      const local=new Map(localRows(message.contextHashes,synchronizedInstalled,process.platform==='win32'&&healthy&&!planning&&!planDirty).map(row=>[row.name,row]));
+      const currentCatalog=readPortableCatalog(state,{configFile,root});
+      for(const [name,{beginning,facts,error}] of validations){
+        const row=index?.checks.get(name),selected=receipts[name],item=local.get(name);
+        const unchanged=!currentCatalog.error&&currentCatalog.revision===catalog.revision&&
+          index===beginning.index&&row&&inputKey(row)===beginning.key&&
+          (inputEventSerial.get(name)||0)===beginning.serial&&!pendingChecks.has(name)&&
+          healthy&&!planning&&!recovering&&!planDirty&&!index.unavailable;
+        portableDecisions[name]={...decidePortableEvidence({check:name,facts,
+          prerequisites:{understood:!error,complete:!!facts,callerValidated:!error,
+            observationHealthy:!!unchanged},snapshot:currentCatalog,
+          local:selected?{present:true,result:selected.result??null,stable:selected.stable===true,
+            invocationStatus:selected.invocation?.status??null,applicability:item?.freshness||'UNVERIFIED',
+            facts:selected.portable?.interpretation===portableInterpretation&&selected.portable?.complete===true?selected.portable.facts:null,
+            resolvedCatalogRevision:selected.portable?.resolvedCatalogRevision??null}:null}),catalog_revision:currentCatalog.revision,receipt_revision:receiptStateRevision};
+      }
+    }
     lastObservation=Date.now();publish();
     const applicabilityStarted=performance.now();
     const data=status(message.contextHashes,synchronizedInstalled,
-      process.platform==='win32'&&healthy&&!planning&&!planDirty);
+      process.platform==='win32'&&healthy&&!planning&&!planDirty,portableDecisions);
     if(message.action==='snapshot'||message.action==='prelaunch') {
       data.snapshots={};for(const [name,row] of index?.checks||[])
         if(!message.name||message.name===name)
