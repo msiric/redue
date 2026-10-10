@@ -5,6 +5,8 @@ original-run interval capture, caller interval validation and delayed recipient
 publication have independent controls. The versioned content profile has real
 same-host copied-executable handoff evidence. Current CI-policy/subject coupling
 has controlled authorization and corruption regressions; it is not live signing.
+The corrected copied-Node caller test passed on frozen `2beab5e`; its earlier
+reported caller-test PASS is unreconciled and is not used as gate evidence.
 Two-machine execution, actual cross-agent acceptance, authenticated CI and release
 gates remain pending.
 The first hosted machine and installed-macOS attempts stopped at incomplete
@@ -538,6 +540,15 @@ were retained, with zero recipient compiler executions. The combined controlled
 case passed in approximately 45.5 seconds. This contains the source finding;
 there was no pre-fix actual false-CURRENT reproduction and none is implied.
 
+Historical evidence correction: the reported 45.5-second caller-test PASS above
+cannot now be reconciled with the committed old assertion and exact CLI source.
+`38abb5f` searched the human reason for an error-code token, while the reviewed
+`d453e9a` source already emitted human text separately from `reason_code`. No raw
+log identifying the transient source/test ordering was retained for that claimed
+PASS. The report and IDs remain historical, but that result is **unreconciled**
+and is not used to certify the caller boundary. The current frozen rerun below
+supersedes it for acceptance.
+
 The preceding full independent boundary run passed 30/30 (approximately 108.6
 seconds), retaining original change/restore, incomplete outcome, catalog conflict,
 source-event and delayed-publication controls under the versioned profile. The
@@ -792,5 +803,18 @@ owned test searched a human reason for a structured error-code token. The CLI
 sets `reason_code: PORTABLE_CALLER_CONTEXT_CHANGED`; the test now requires that
 exact field and retains exit-2, non-CURRENT/non-reuse, immutable origin and zero
 recipient execution assertions. The original failure is retained. One targeted
-real handoff rerun is pending completion of the overlapping supplemental suite;
+real handoff rerun followed completion of the overlapping supplemental suite;
 this assertion repair does not retroactively declare the full run clean.
+
+That one targeted actual run used a frozen archive of
+`2beab5e8a4df80cd351402c27a915c7750d6841d` and passed 1/1 in 43,121.49 ms.
+Origin `4406bef3-dad6-4448-942b-e9b12aaff614` and envelope
+`d4d912e62f94ab86987654fe796033791eee5d9b1834f9ff82a1d9c2eb2ae789`
+were retained across the byte-identical copied-Node recipient. The test required
+eligible imported PASS, null local invocation and zero recipient compiler runs;
+stable paused control, both actual metadata-mutation phases with exact structured
+reason/exit 2/non-CURRENT/non-reuse, missing-release expiry, later recovery and
+immutable original bytes all passed. Agent-visible JSON was parsed and asserted
+in-process, not saved as a separate raw transcript. The private log and frozen
+source identity are retained locally; owned temporary archive/processes were
+cleaned. This is same-machine CLI boundary evidence, not model or G2/G3 proof.
