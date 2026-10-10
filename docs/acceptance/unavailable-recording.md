@@ -1,10 +1,14 @@
 # Unavailable-start recording
 
-Current conclusion: final combined alpha.10 release preparation is authorized;
-no new benchmark or model campaign is required for metadata/user-documentation
-changes. The optimization milestone is closed. External pilot usage is NOT STARTED;
-follow the [pilot guide](../user/pilot.md). The evidence below is controlled
-acceptance, not natural-usage evidence. On the
+Current conclusion: combined [alpha.10 is released](https://github.com/msiric/redue/releases/tag/v0.1.0-alpha.10)
+from `2e939cacc1532117d8a1a374ce8ad93441afbefd`. Public npm and GitHub artifact
+bytes match the checksum below; alpha/latest both select alpha.10. Exact three-OS
+package acceptance, public install, alpha.8 upgrade and receipt-preserving policy
+update/removal passed. The optimization milestone is closed. External pilot usage
+and new internal natural-work evaluation are NOT STARTED; follow the
+[pilot guide](../user/pilot.md). No participants were contacted or private projects
+accessed. The evidence below is controlled acceptance, not natural-usage evidence.
+No new benchmark/model campaign was run for release metadata/docs. On the
 unchanged fixed A–H workload, all three new candidate cycles were cheaper than
 their corresponding ordinary compiler totals (0.74–1.53 seconds saved). All three
 contemporaneous PR #9 cycles remained slower. This narrow improvement comes from
@@ -237,4 +241,25 @@ and multi-run recording (three cases) now have complementary, disjoint selection
 groups, each retaining the existing 180-second harness limit. All assertions and
 product deadlines are unchanged. This contributor-only harness correction does
 not alter the frozen artifact or require another benchmark/model campaign.
-Final corrected-harness CI remains a merge gate, recorded in PR #10.
+[Corrected-harness CI](https://github.com/msiric/redue/actions/runs/38058229237)
+passed on macOS Node 22, Linux Node 22/24 and native Windows Node 22. The isolated
+local 5.5.2 suite also passed (175 seconds total). Only contributor tests/evidence
+changed after packing; all 64 packaged files match the release source.
+
+The public npm download and GitHub release asset both match the validated SHA-256.
+Public-registry CLI smoke covered init/preview, explicit setup, actual compiler
+recording, inherited evidence, unrelated preservation, relevant invalidation,
+rerun, restart, nested identity and safe removal. These are scripted package
+mechanics, not new model sessions. The public alpha.8 same-prefix upgrade retained
+config/state and an immutable historical run, preserved unrelated instructions,
+refused edited managed content and retained evidence after disconnect/uninstall.
+Only disposable test installations/state were cleaned; normal installations and
+prior experimental receipts were untouched. Alpha.9 remains absent from npm;
+its original artifact and manifest are retained unshipped. No valid older release
+was deprecated. There is no remaining account action for this release.
+
+Pilot feedback uses voluntary owner-reviewed local notes and the existing issue
+tracker, with no automatic collection. No natural reuse frequency, user retention
+or whole-task benefit has been measured. The next priority is the owner-approved
+pilot on existing supported projects; select further development from actual
+setup/qualification/reliability friction, not another benchmark optimization.
