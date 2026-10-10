@@ -7,7 +7,7 @@ import childProcess from 'node:child_process';
 import {syncBuiltinESMExports} from 'node:module';
 import {createHash} from 'node:crypto';
 import {canonical,encodeEnvelope,PORTABLE_INTERPRETATION} from '../src/portable-envelope.mjs';
-import {machineOptions,readMachineTransfer,requireImportedEligibility,runMachine} from './acceptance/portable-machine.mjs';
+import {machineOptions,readMachineTransfer,requireImportedEligibility,runMachine,summarizeMachineOrigin} from './acceptance/portable-machine.mjs';
 const hash=value=>createHash('sha256').update(value).digest('hex'),source='1'.repeat(40),packageSha='2'.repeat(64);
 function fixture(t){
   const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-machine-test-')));t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
@@ -63,4 +63,15 @@ test('failed artifact precondition launches no installation, check or model',asy
   t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
   await assert.rejects(runMachine({'--role':'producer','--tarball':tarball,'--sha256':packageSha,'--source':source,'--output':f.base}));
   assert.equal(launches,0);
+});
+
+test('local CURRENT never repairs an incomplete portable origin and diagnostics disclose only static classes',()=>{
+  const diagnostic=summarizeMachineOrigin({result:'PASS',stable:true,coverage:{qualified:true},invocation:{status:'exited'},
+    portable:{schema:1,interpretation:'redue-portable-direct-typescript@2',complete:false,reason:'PORTABLE_PROBE_TIMEOUT',facts:{}},
+    checkpoint:{status:'stable',issues:[]},freshness:'CURRENT',reuse_eligible:true});
+  assert.equal(diagnostic.portable_complete,false);assert.equal(diagnostic.stable,true);assert.equal(diagnostic.reason,'PORTABLE_PROBE_TIMEOUT');
+  const privateValue='https://user:secret@private.invalid/owned/source.ts';
+  const redacted=summarizeMachineOrigin({portable:{reason:privateValue,interpretation:privateValue},checkpoint:{issues:[privateValue,'declared input event occurred during execution']}});
+  assert(!JSON.stringify(redacted).includes(privateValue));assert.deepEqual(redacted.checkpoint_issue_codes,['OTHER_PRIVATE_ISSUE','INPUT_EVENT']);
+  assert.equal(redacted.reason,'OTHER_PRIVATE_REASON');assert.equal(redacted.interpretation,null);assert.equal(redacted.portable_complete,false);
 });

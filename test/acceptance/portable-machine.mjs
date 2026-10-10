@@ -9,6 +9,7 @@ import {spawnSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {parseEnvelope,parsePortableJson,canonical} from '../../src/portable-envelope.mjs';
 import {readBoundedPortableFile} from '../../src/portable-command.mjs';
+import {receiptRevision} from '../../src/state-store.mjs';
 export const MACHINE_TRANSFER_LIMIT=2*1024*1024;
 const sha=value=>createHash('sha256').update(value).digest('hex'),HEX=/^[a-f0-9]{64}$/;
 const names=['manifest.json','redue-portable-evidence.json'];
@@ -52,6 +53,49 @@ export function requireImportedEligibility(status,{digest,originRunId}){
   assert.equal(check?.imported_evidence?.digest,digest);assert.equal(check?.imported_evidence?.origin_run_id,originRunId);
   return check;
 }
+const originReasons=new Set(['PORTABLE_BOUNDARY_CHANGED','PORTABLE_CAPTURE_UNAVAILABLE','PORTABLE_CALLER_UNVERIFIED',
+  'PORTABLE_CONTRACT_UNSUPPORTED','PORTABLE_COVERAGE_UNSUPPORTED','PORTABLE_DISCOVERY_INCOMPLETE','PORTABLE_EXTERNAL_INPUT',
+  'PORTABLE_INPUT_CHANGED','PORTABLE_INTERPRETATION_UNSUPPORTED','PORTABLE_OBSERVATION_INCOMPLETE','PORTABLE_PATH',
+  'PORTABLE_PROBE_TIMEOUT','PORTABLE_PROBE_UNAVAILABLE','PORTABLE_SYMLINK','PORTABLE_RUNTIME_UNSUPPORTED']);
+const checkpointReasons=new Map([
+  ['start observation unavailable','START_OBSERVATION_UNAVAILABLE'],['start checkpoint unavailable','START_CHECKPOINT_UNAVAILABLE'],
+  ['qualification probes and end checkpoint not performed: no healthy start checkpoint','NO_HEALTHY_START'],
+  ['prelaunch observation unavailable','PRELAUNCH_OBSERVATION_UNAVAILABLE'],['end observation unavailable','END_OBSERVATION_UNAVAILABLE'],
+  ['end checkpoint unavailable','END_CHECKPOINT_UNAVAILABLE'],['declared environment changed during execution','CONTEXT_CHANGED'],
+  ['declared environment changed during portable validation','PORTABLE_CONTEXT_CHANGED'],
+  ['declared state probe unavailable or changed','PROBE_UNAVAILABLE_OR_CHANGED'],['observer generation changed during execution','OBSERVER_GENERATION_CHANGED'],
+  ['input plan rebuilt during execution','PLAN_REBUILT'],['declared input event occurred during execution','INPUT_EVENT'],
+  ['declared inputs changed or were not observed','INPUTS_CHANGED_OR_UNOBSERVED']]);
+// Diagnostic data never creates origin completeness or recipient eligibility.
+// Use reviewed static classifications; arbitrary receipt strings stay private.
+export function summarizeMachineOrigin(receipt){
+  const p=receipt?.portable,issues=Array.isArray(receipt?.checkpoint?.issues)?receipt.checkpoint.issues:[];
+  const issueCodes=issues.slice(0,64).map(value=>checkpointReasons.get(value)||
+    (typeof value==='string'&&/^start observation unavailable \([A-Z0-9_]+\)$/.test(value)?'START_OBSERVATION_UNAVAILABLE':'OTHER_PRIVATE_ISSUE'));
+  return {portable_present:Boolean(p),portable_schema:p?.schema===1?1:null,
+    portable_complete:p?.complete===true,interpretation:['redue-portable-direct-typescript@1','redue-portable-direct-typescript@2'].includes(p?.interpretation)?p.interpretation:null,
+    reason:p?.reason===null?null:originReasons.has(p?.reason)?p.reason:'OTHER_PRIVATE_REASON',
+    facts_present:Boolean(p?.facts),stable:receipt?.stable===true,coverage_qualified:receipt?.coverage?.qualified===true,
+    checkpoint_status:['stable','unavailable_or_changed'].includes(receipt?.checkpoint?.status)?receipt.checkpoint.status:null,
+    checkpoint_issue_codes:issueCodes,checkpoint_issue_count:issues.length,
+    outcome:['PASS','FAIL'].includes(receipt?.result)?receipt.result:null,
+    invocation_status:['exited','interrupted','start_failed'].includes(receipt?.invocation?.status)?receipt.invocation.status:null};
+}
+function readMachineOriginDiagnostics(state,{root,runId}){
+  try{
+    const directory=fs.lstatSync(state);assert(directory.isDirectory()&&directory.uid===process.getuid()&&(directory.mode&0o022)===0);
+    assert.equal(fs.realpathSync(state),state);assert.equal(fs.realpathSync(root),root);
+    const owner=readBoundedPortableFile(path.join(state,'vstate-owner-v1.json'),{limit:8192}),
+      expected={schema:1,kind:'vstate-product-alpha',config:path.join(state,'project-runtime-v1.json'),root,state};
+    assert.equal(canonical(parsePortableJson(owner)),canonical(expected));const revision=receiptRevision(state);
+    const selection=parsePortableJson(readBoundedPortableFile(path.join(state,'receipts-v1.json'))),receipt=selection?.checks?.typecheck;
+    assert.equal(selection?.schema,1);assert(/^[a-f0-9-]{36}$/.test(runId));assert.equal(receipt?.invocation?.runId,runId);
+    const immutable=parsePortableJson(readBoundedPortableFile(path.join(state,'runs-v1',runId+'.json')));
+    assert.equal(immutable.schema,1);assert.equal(immutable.check,'typecheck');assert.equal(canonical(immutable.receipt),canonical(receipt));
+    assert.equal(receiptRevision(state),revision);assert.deepEqual(readBoundedPortableFile(path.join(state,'vstate-owner-v1.json'),{limit:8192}),owner);
+    return {read:'OWNED_SELECTED_IMMUTABLE_ORIGIN',...summarizeMachineOrigin(receipt)};
+  }catch{return {read:'SELECTED_ORIGIN_UNAVAILABLE'};}
+}
 export function writeControlledPortableProject(root){
   assert(path.isAbsolute(root));assert(!fs.existsSync(root),'Fixture writer refuses an existing checkout');
   const put=(name,value)=>{const file=path.join(root,name);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,value);};
@@ -82,7 +126,7 @@ export async function runMachine(options){
     throw Object.assign(Error('Producer and receiver share one boot; no two-machine acceptance'),{code:'MACHINE_BOUNDARY_NOT_INDEPENDENT'});
   const base=fs.realpathSync(fs.mkdtempSync('/tmp/redue-machine-')),root=path.join(base,'Checkout 空间'),state=path.join(base,'redue-state'),prefix=path.join(base,'prefix'),binary=path.join(prefix,'bin','redue');
   const observations=[],calls=[],put=(name,value)=>{const file=path.join(root,name);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,value);};
-  let started=false;
+  let started=false,originPrecondition=null;
   function exec(argv,{cwd=base,allowFailure=false}={}){const before=performance.now(),result=spawnSync(argv[0],argv.slice(1),
     {cwd,env:process.env,encoding:'utf8',timeout:120000,maxBuffer:8*1024*1024});
     calls.push({kind:argv[0]===binary?'redue':path.basename(argv[0]),args:argv[0]===binary?argv.slice(5).map(value=>path.isAbsolute(value)?'<owned-path>':value):[],milliseconds:performance.now()-before,status:result.status});
@@ -117,6 +161,9 @@ export async function runMachine(options){
       assert.equal(baseline.observation.healthy,true);assert.equal(selected.result,'PASS');assert.equal(selected.reuse_eligible,true);
       originRunId=selected.invocation.runId;const file=path.join(transfer,names[1]);
       const previewExport=json('evidence','export','typecheck','--output',file,'--dry-run');
+      originPrecondition={preview_complete:previewExport.origin?.complete===true,
+        preview_reason:['PORTABLE_ORIGIN_INCOMPLETE','PORTABLE_CAPTURE_MISSING'].includes(previewExport.reason_code)?previewExport.reason_code:null,
+        selected_origin:readMachineOriginDiagnostics(state,{root,runId:originRunId})};
       assert.equal(previewExport.origin.complete,true);assert.equal(previewExport.written,false);assert(!fs.existsSync(file));
       const exported=json('evidence','export','typecheck','--output',file);assert.equal(exported.origin.complete,true);digest=exported.digest;
       const evidence=readBoundedPortableFile(file,{limit:1024*1024}),parsed=parseEnvelope(evidence),facts=parsed.statement.predicate.facts;
@@ -153,7 +200,7 @@ export async function runMachine(options){
       controlled_digest_acceptance:role==='receiver',authenticated_ci_producer:false,models_launched:0,
       equivalent_receiver_execution:role==='receiver'?false:null,
       scope:'controlled noLib mechanics; normal default-library external queries and useful-project acceptance not established'};
-  }catch(error){error.machine_evidence={role,source,package_sha256:expected,observations,calls,models_launched:0};throw error;
+  }catch(error){error.machine_evidence={role,source,package_sha256:expected,observations,calls,origin_precondition:originPrecondition,models_launched:0};throw error;
   }finally{
     if(started)exec([binary,'--config',path.join(root,'redue.config.json'),'--state-dir',state,'stop'],{cwd:root,allowFailure:true});
     fs.rmSync(base,{recursive:true,force:true,maxRetries:5,retryDelay:200});
