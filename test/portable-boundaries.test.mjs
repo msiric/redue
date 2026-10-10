@@ -224,6 +224,29 @@ test('an initialized empty storage directory is not proof of a pristine missing 
   assert(!fs.existsSync(path.join(state.state,'portable-imports-v1.json')));
 });
 
+test('replacement of a validated stored regular leaf with a FIFO cannot block its bounded reader',
+  {skip:process.platform==='win32'},t=>{
+  const state=ownedStore(t),pass=encodeEnvelope(portableFixture());importEvidence(storeOptions(state,pass));
+  const target=path.join(state.state,'portable-evidence-v1',pass.digest+'.json');
+  const module=fileURLToPath(new URL('../src/portable-store.mjs',import.meta.url));
+  const script=`import fs from 'node:fs';import {spawnSync} from 'node:child_process';
+    import {readImportedSnapshot} from ${JSON.stringify(module)};
+    const target=process.argv[1],state=process.argv[2],configFile=process.argv[3],root=process.argv[4];
+    const open=fs.openSync;let injected=false;
+    fs.openSync=function(file,...args){if(file===target&&!injected){injected=true;
+      fs.unlinkSync(target);const made=spawnSync('mkfifo',[target],{encoding:'utf8'});
+      if(made.status!==0)throw Error('Owned FIFO prerequisite unavailable');}
+      return open.call(fs,file,...args);};
+    const snapshot=readImportedSnapshot(state,{configFile,root});
+    console.log(JSON.stringify({injected,code:snapshot.error?.code,records:snapshot.records.length}));`;
+  const child=spawnSync(process.execPath,['--input-type=module','-e',script,target,
+    state.state,state.configFile,state.root],{encoding:'utf8',timeout:3000,maxBuffer:65536});
+  assert.equal(child.status,0,`Reader blocked or failed: ${child.error?.code??child.stderr}`);
+  const result=JSON.parse(child.stdout);assert.equal(result.injected,true);
+  assert(['PORTABLE_STATE_CHANGED','PORTABLE_STATE_UNSAFE'].includes(result.code));
+  assert.equal(result.records,0);
+});
+
 function exportStore(t){
   const f=ownedStore(t),p=portableFixture(),r={result:p.origin.result,
     invocation:{...p.origin.invocation,runId:p.origin.runId},stable:true,

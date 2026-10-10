@@ -394,3 +394,16 @@ reviewed: it retains CURRENT/PASS/explicit eligibility and healthy-schema rules,
 identifies execution at the origin with null local invocation, preserves digest
 and origin receipt IDs, and forbids automatic import/acceptance. This is policy
 mechanics review, not actual Codex/Claude behavior acceptance.
+
+## Bounded-reader leaf replacement
+
+A further independent source review found that store and CI readers checked
+regular-file type before a blocking open. A concurrent leaf replacement with a
+FIFO could then block before the opened descriptor's type check, outside the
+intended bounded read. This is a local availability boundary finding, not a claim
+of exploitation or affected-user count. The independent owned subprocess control
+actually imported a valid payload, replaced that one leaf at the open boundary
+and exhausted its external three-second deadline (`ETIMEDOUT`) against store
+`3c4a820`. The test retains a fail-closed completion expectation; it does not
+weaken the timeout or introduce a writer to release the FIFO. Correction and
+post-fix review are pending in this record until independently exercised.
