@@ -190,6 +190,7 @@ test('disabled signer rejects boolean schema/exit codes and broken inner subject
     if(mutation==='envelope-schema')envelope.schema=true;
     if(mutation==='predicate-schema')envelope.statement.predicate.schema=true;
     if(mutation==='exit-code')envelope.statement.predicate.origin.invocation.exitCode=false;
+    envelope.statement.subject[0].digest.sha256=digest(canonical(envelope.statement.predicate));
     if(mutation==='inner-subject')envelope.statement.subject[0].digest.sha256=digest('different predicate');
     envelope.digest=digest(canonical(envelope.statement));
     const raw=canonical(envelope),p=envelope.statement.predicate,profile={platform:p.facts.platform,runtime:p.facts.runtime,compiler:p.facts.compiler};
