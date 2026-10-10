@@ -109,3 +109,48 @@ setup, establish fresh origin capture/import, run the preflight in the actual
 recipient boundary and retain its real result. Missing prerequisites launch zero
 models. Cross-host evidence needs actual independent Codex and Claude sessions;
 installed files/auth status cannot close that gate.
+
+## Preliminary exact-installed mechanics: 2026-10-10
+
+The reproducible contributor check is
+[`test/acceptance/portable-installed-smoke.mjs`](../../test/acceptance/portable-installed-smoke.mjs).
+It verifies the supplied checksum before installation, uses owned disposable
+prefixes/checkouts/state, launches no models and stops its owned observers before
+teardown. It does not modify a stable installation or host permissions.
+
+```sh
+node test/acceptance/portable-installed-smoke.mjs \
+  --tarball PATH_TO_REVIEWED_TARBALL \
+  --sha256 a8aea832d71d498ed3bde5ee0faffc0da536a08a5ffd04dafd688e2d199e5936 \
+  --source 1beaaea --baseline @redue/cli@0.1.0-alpha.10
+```
+
+The source `1beaaea` candidate file is `redue-cli-0.1.0-alpha.10.tgz`, not the
+published alpha.10 bytes. Its installed help/assets, normal npm project install
+and separate recipient `npm ci`, direct-recipe preview/selection, old-receipt
+inspection, fresh portable capture, export/inspect/import and local applicability
+passed on macOS ARM64 / Node 22.13.0. Published alpha.10 project-policy setup,
+candidate update/idempotency, refusal of edited managed skills and selective host
+removal preserved unrelated instructions and the origin record.
+
+Two attempts are retained: the first stopped before evidence recording because
+macOS's long default temporary path exceeded Unix socket limits. The second used
+an owned canonical short temporary directory and passed. This was a harness setup
+correction, not an observer correctness fix. Both attempts launched zero models.
+
+The passing controlled `noLib` project supplied observed global declarations.
+Origin run `c14425b9-e3dc-4331-bc85-2887c66c6cfc` exported evidence digest
+`c9da40fe002ac50f3f175f22fdf059cf3e9f217d1457ca399312ec7f79c50992`.
+Recipient synchronization reported CURRENT/PASS, `reuse_eligible: true`,
+`evidence_source: imported`, no local invocation and the retained origin ID.
+No recipient local run directory was created; unrelated documentation preserved
+eligibility and a relevant source edit produced STALE/non-reusable. Source
+history was unchanged throughout the check, until owned fixture teardown.
+
+Single observations were 1,869.6 ms for wrapped origin recording, 1,045.2 ms for
+recipient synchronization, 1,117.9 ms after the unrelated edit and 1,114.8 ms for
+relevant-edit invalidation. These are mechanics observations, not a latency
+distribution, complete-path economic comparison or saved-time claim. Ordinary
+default-library external queries remain unsupported in this slice. Actual
+agent behavior, independent-machine acceptance and authenticated CI acceptance
+remain separate gates. Later candidate bytes require their own installed check.

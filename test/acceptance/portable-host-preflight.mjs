@@ -13,9 +13,9 @@ export function portablePreconditionMatches(report,expected,{evidenceId,runId,st
   if(state&&report.prerequisites.state_matches!==true)return false;
   if(!preconditionMatches(report,expected))return false;
   const row=report.commands.at(-1)?.response?.checks?.find(row=>row.name===report.check);
-  if(runId&&row?.invocation?.runId!==runId)return false;
-  if(evidenceId&&(row?.evidence?.identity!==evidenceId||row.evidence.source!=='import'))return false;
-  if(evidenceId&&runId&&row?.evidence?.origin_run_id!==runId)return false;
+  const imported=row?.evidence_source==='imported';
+  if(runId&&(imported?row?.imported_evidence?.origin_run_id:row?.invocation?.runId)!==runId)return false;
+  if(evidenceId&&(!imported||row?.imported_evidence?.digest!==evidenceId||row.invocation!==null))return false;
   return true;
 }
 
@@ -72,8 +72,8 @@ export function collectPortableHostPreflight({host,config,check,state=null,cwd=p
   invoke([...base,'status','--sync','--json']);
   report.eligible=preconditionMatches({...report,eligible:true},'eligible');
   const row=report.commands.at(-1)?.response?.checks?.find(row=>row.name===check);
-  report.runId=row?.invocation?.runId||null;
-  report.evidenceId=row?.evidence?.identity||null;
+  report.runId=(row?.evidence_source==='imported'?row?.imported_evidence?.origin_run_id:row?.invocation?.runId)||null;
+  report.evidenceId=row?.evidence_source==='imported'?row?.imported_evidence?.digest||null:null;
   return report;
 }
 

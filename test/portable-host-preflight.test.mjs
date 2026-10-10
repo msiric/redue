@@ -11,8 +11,8 @@ const config=path.join(cwd,'redue.config.json'),state=path.join(cwd,'owned state
 const digest='a'.repeat(64);
 function status({freshness='CURRENT',result='PASS',eligible=true}={}){
   return {schema:1,observation:{healthy:true},checks:[{name:'typecheck',freshness,result,
-    reuse_eligible:eligible,invocation:{runId:'origin-1'},
-    evidence:{identity:digest,origin_run_id:'origin-1',source:'import',acceptance:'manual-digest-v1'}}]};
+    reuse_eligible:eligible,invocation:null,evidence_source:'imported',
+    imported_evidence:{digest,origin_run_id:'origin-1',result,acceptance:'manual-digest-v1'}}]};
 }
 function doctor(host='codex'){
   return {schema:1,command:{matches_invocation:true},project:{config,state},
@@ -40,6 +40,7 @@ test('portable preflight queries one caller-aware decision without a cached ritu
   assert.equal(portablePreconditionMatches(report,'eligible',{evidenceId:digest,runId:'origin-1',state}),true);
   assert.equal(portablePreconditionMatches(report,'eligible',{evidenceId:'b'.repeat(64)}),false);
   assert.equal(portablePreconditionMatches(report,'eligible',{runId:'a different receipt'}),false);
+  assert.equal(report.runId,'origin-1');assert.equal(report.evidenceId,digest);
   assert(commands.every(args=>!args.includes('run')&&!args.includes('start')));
 });
 
@@ -82,10 +83,13 @@ test('negative trials require their declared state and never gain import authori
   const report=collect({d,s:unavailable,syncExit:2});
   assert(portablePreconditionMatches(report,'unavailable'));
   assert.equal(report.commands.filter(c=>c.args.includes('status')).length,2);
-  const local=status();local.checks[0].evidence.source='local';
+  const local=status();local.checks[0].evidence_source='local';local.checks[0].invocation={runId:'local-1'};
   assert(!portablePreconditionMatches(collect({s:local}),'eligible',{evidenceId:digest}));
-  const inconsistent=status();inconsistent.checks[0].evidence.origin_run_id='different-origin';
+  assert(portablePreconditionMatches(collect({s:local}),'eligible',{runId:'local-1'}));
+  const inconsistent=status();inconsistent.checks[0].imported_evidence.origin_run_id='different-origin';
   assert(!portablePreconditionMatches(collect({s:inconsistent}),'eligible',{evidenceId:digest,runId:'origin-1'}));
+  const inventedExecution=status();inventedExecution.checks[0].invocation={runId:'origin-1'};
+  assert(!portablePreconditionMatches(collect({s:inventedExecution}),'eligible',{evidenceId:digest,runId:'origin-1'}));
 });
 
 test('both host mechanisms use the same gate; command errors and malformed JSON are bounded and redacted',()=>{
