@@ -40,7 +40,10 @@ export function decidePortableEvidence({check,facts,prerequisites,snapshot,local
   for(const record of snapshot.records){
     // Inspection-only imports have no authority over either imported or local
     // evidence, including a failure asserted by an unaccepted producer.
-    if(record?.acceptance!=='manual-digest-v1')continue;
+    // The authoritative catalog reader rechecks current CI policy before this
+    // decision. Raw imported authentication claims never reach this boundary
+    // as accepted records merely because an artifact contains them.
+    if(!['manual-digest-v1','github-ci-v1'].includes(record?.acceptance))continue;
     if(record.check!==check)continue;
     let envelope;
     try{

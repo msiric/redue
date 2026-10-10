@@ -5,6 +5,8 @@ import {assertOwnedStatePlacement} from './owned-state.mjs';
 import {canonical,encodeEnvelope,inspectEnvelope,parsePortableJson,
   PORTABLE_INTERPRETATION,PORTABLE_LIMITS,PortableEnvelopeError} from './portable-envelope.mjs';
 import {importEvidence} from './portable-store.mjs';
+import {readProducerPolicySnapshot,revalidateProducerPolicySnapshot} from './portable-producer-policy.mjs';
+import {authorizeCIImport} from './portable-ci-authorization.mjs';
 
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const fail=(code,message)=>{throw new PortableEnvelopeError(code,message);};
@@ -166,18 +168,26 @@ function parseOptions(args){
   if(!['export','inspect','import'].includes(action)||!target||target.startsWith('--'))
     fail('PORTABLE_USAGE','Use evidence export CHECK, inspect FILE, or import FILE --check CHECK');
   const allowed=action==='export'?['--output','--dry-run','--json']:
-    action==='inspect'?['--json']:['--check','--accept-digest','--apply','--json'];
+    action==='inspect'?['--json']:['--check','--accept-digest','--ci-policy-digest','--gh-executable','--gh-sha256','--bundle','--apply','--json'];
   const flags={};
   for(let at=0;at<rest.length;at++){
     const option=rest[at];
     if(!allowed.includes(option)||Object.hasOwn(flags,option))fail('PORTABLE_USAGE','Unknown or repeated evidence option');
-    if(['--output','--check','--accept-digest'].includes(option)){
+    if(['--output','--check','--accept-digest','--ci-policy-digest','--gh-executable','--gh-sha256','--bundle'].includes(option)){
       const value=rest[++at];if(!value||value.startsWith('--'))fail('PORTABLE_USAGE','Evidence option requires one value');
       flags[option]=value;
     }else flags[option]=true;
   }
   if(action==='export'&&!flags['--output'])fail('PORTABLE_USAGE','Export requires --output FILE; preview with --dry-run');
   if(action==='import'&&!flags['--check'])fail('PORTABLE_CHECK','Import requires --check with an explicitly configured local check');
+  const ci=Boolean(flags['--ci-policy-digest']);
+  if(ci&&(flags['--accept-digest']||!flags['--gh-executable']||!flags['--gh-sha256'])||
+    !ci&&['--gh-executable','--gh-sha256','--bundle'].some(key=>flags[key]))
+    fail('PORTABLE_USAGE','CI acceptance requires one policy digest and reviewed verifier path/checksum, without manual acceptance');
+  if(ci&&(!/^[a-f0-9]{64}$/.test(flags['--ci-policy-digest'])||
+    !/^[a-f0-9]{64}$/.test(flags['--gh-sha256'])||!path.isAbsolute(flags['--gh-executable'])||
+    flags['--bundle']&&!path.isAbsolute(flags['--bundle'])))
+    fail('PORTABLE_USAGE','Select an exact policy/verifier digest and absolute local verifier/bundle paths');
   return {action,target,flags};
 }
 
@@ -187,8 +197,23 @@ export async function portableCommand(args,context={}){
   else if(action==='export')result=exportEvidence(target,flags['--output'],Boolean(flags['--dry-run']),context);
   else{
     const project=projectSelection(context,flags['--check']);
-    result={action,...importEvidence({...project,check:flags['--check'],bytes:readBoundedPortableFile(target),
-      acceptDigest:flags['--accept-digest']??null,apply:Boolean(flags['--apply'])})};
+    const bytes=readBoundedPortableFile(target);let ciAuthorization=null,policySnapshot=null;
+    if(flags['--ci-policy-digest']){
+      // The imported artifact cannot select or create its producer authority.
+      const policyFile=path.join(project.state,'portable-producers-v1.json');
+      policySnapshot=readProducerPolicySnapshot(policyFile);
+      if(!policySnapshot.policies.some(item=>item.digest===flags['--ci-policy-digest']))
+        fail('PORTABLE_CI_ACCEPTANCE','Selected producer policy is not in the current authoritative registry');
+      if(flags['--apply'])ciAuthorization=authorizeCIImport({...project,policySnapshot,
+        policyDigest:flags['--ci-policy-digest'],artifactFile:path.resolve(target),
+        bundleFile:flags['--bundle']??null,ghExecutable:flags['--gh-executable'],ghExecutableSha256:flags['--gh-sha256']});
+      if(!revalidateProducerPolicySnapshot(policySnapshot,{expectedFile:policyFile}))
+        fail('PORTABLE_CI_POLICY_CHANGED','Current authoritative producer policy changed before import');
+    }
+    result={action,...importEvidence({...project,check:flags['--check'],bytes,
+      acceptDigest:flags['--accept-digest']??null,ciAuthorization,apply:Boolean(flags['--apply'])}),
+      ...(policySnapshot?{selected_policy_digest:flags['--ci-policy-digest'],proposed_acceptance:'github-ci-v1',
+        producer_verified:Boolean(ciAuthorization)}:{})};
   }
   if(flags['--json'])console.log(JSON.stringify(result));
   else{
@@ -200,7 +225,8 @@ export async function portableCommand(args,context={}){
       for(const file of result.disclosed_paths)console.log(`  disclosed path: ${JSON.stringify(file)}`);
     }else if(action==='import')console.log(result.apply?'Imported candidate stored.':'Preview only; no state written. Use --apply to import.');
     console.log('Import/inspection/export does not authorize reuse. Query recipient status --sync --json.');
-    if(result.acceptance)console.log(`Acceptance: ${result.acceptance}; no signer authentication is implied by manual digest approval.`);
+    if(result.acceptance)console.log(`Acceptance: ${result.acceptance}; only explicit CI authentication verifies a signer.`);
+    if(result.proposed_acceptance&&!result.apply)console.log('CI acceptance preview only; no verifier executed or new trust granted.');
     if(result.limitation)console.log(result.limitation);
   }
   return result;

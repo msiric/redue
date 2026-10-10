@@ -44,6 +44,7 @@ Commands:
   evidence export CHECK --output FILE [--dry-run]
   evidence inspect FILE [--json]
   evidence import FILE --check CHECK [--accept-digest SHA256] [--apply]
+    CI: --ci-policy-digest SHA256 --gh-executable ABS_PATH --gh-sha256 SHA256 [--bundle ABS_PATH]
                        Explicit portable evidence; import never establishes CURRENT
   remove-state         Stop and remove only this configuration's owned local state
 
