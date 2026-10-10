@@ -105,6 +105,9 @@ jobs:
           set -euo pipefail
           python3 <<'PYTHON'
           import os, stat, json, hashlib, pathlib, re
+          # The fixed signer uses only GitHub's OIDC provider. Do not admit an
+          # alternate token inherited by the signing library.
+          assert not os.environ.get('SIGSTORE_ID_TOKEN')
           root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'redue-sign-input'
           assert not root.is_symlink() and root.is_dir()
           assert set(p.name for p in root.iterdir()) == {'manifest.json', 'redue-portable-evidence.json'}
@@ -148,18 +151,31 @@ jobs:
           manifest_raw = read('manifest.json', 16384)
           assert len(raw) + len(manifest_raw) <= 2*1024*1024
           envelope, manifest = decode(raw), decode(manifest_raw)
-          assert set(envelope) == {'schema', 'statement', 'digest'} and envelope['schema'] == 1
+          one = lambda value: type(value) is int and value == 1
+          canon = lambda value: json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode('utf-8')
+          assert set(envelope) == {'schema', 'statement', 'digest'} and one(envelope['schema'])
           stmt = envelope['statement']; p = stmt['predicate']; origin = p['origin']
+          assert set(stmt) == {'_type','subject','predicateType','predicate'}
+          assert set(p) == {'schema','interpretation','origin','facts'}
+          assert set(origin) == {'runId','check','result','invocation','complete'}
+          assert re.fullmatch('[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}',origin['runId'])
+          assert type(origin['check']) is str and 0 < len(origin['check']) <= 256
+          assert type(stmt['subject']) is list and len(stmt['subject']) == 1
+          subject = stmt['subject'][0]
+          assert set(subject) == {'name','digest'} and subject['name'] == 'redue-evidence'
+          assert set(subject['digest']) == {'sha256'} and subject['digest']['sha256'] == hashlib.sha256(canon(p)).hexdigest()
           assert stmt['_type'] == 'https://in-toto.io/Statement/v1'
           assert stmt['predicateType'] == 'https://redue.dev/attestation/direct-typescript/v1'
-          assert p['schema'] == 1 and p['interpretation'] == 'redue-portable-direct-typescript@2'
+          assert one(p['schema']) and p['interpretation'] == 'redue-portable-direct-typescript@2'
           assert p['facts'] is not None and origin['complete'] is True and origin['result'] == 'PASS'
+          assert set(p['facts']) == {'schema','recipe','platform','runtime','compiler','context','files','discovery'} and one(p['facts']['schema'])
+          assert type(origin['invocation']['exitCode']) is int
           assert origin['invocation'] == {'status': 'exited', 'exitCode': 0, 'signal': None}
           canonical = json.dumps(stmt, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode('utf-8')
           inner = hashlib.sha256(canonical).hexdigest(); outer = hashlib.sha256(raw).hexdigest()
           assert re.fullmatch('[a-f0-9]{64}', envelope['digest']) and envelope['digest'] == inner
           assert set(manifest) == {'schema','source','package_sha256','evidence_sha256','evidence_digest','origin_run_id','profile_digest','node_physical_identity','boot_identity','interpretation','profile','scope','package_filename'}
-          assert manifest['schema'] == 1 and manifest['source'] == os.environ['GITHUB_SHA']
+          assert one(manifest['schema']) and manifest['source'] == os.environ['GITHUB_SHA']
           assert manifest['scope'] == 'controlled-noLib-direct-typescript'
           assert manifest['evidence_digest'] == inner and manifest['evidence_sha256'] == outer
           assert manifest['origin_run_id'] == origin['runId'] and manifest['interpretation'] == p['interpretation']
