@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {queryAnswer,queriesMatch} from '../src/typescript-list.mjs';
 import {createHash,randomUUID} from 'node:crypto';
-import {canonical,encodeEnvelope,parseEnvelope,inspectEnvelope,PortableEnvelopeError}
+import {canonical,encodeEnvelope,parseEnvelope,inspectEnvelope,PortableEnvelopeError,PORTABLE_INTERPRETATION}
   from '../src/portable-envelope.mjs';
 import {importEvidence,readImportedSnapshot} from '../src/portable-store.mjs';
 import {portableCommand} from '../src/portable-command.mjs';
@@ -16,7 +16,7 @@ import {fileURLToPath} from 'node:url';
 import {commitReceipt} from '../src/state-store.mjs';
 import {acquireRunLock} from '../src/run-lock.mjs';
 import {portableRuntimeSupported} from '../src/portable-runtime.mjs';
-import {parseCacheMembers} from '../src/portable-runtime-cache.mjs';
+import {parseCacheMembers,inspectCacheContents} from '../src/portable-runtime-cache.mjs';
 import {readProducerPolicySnapshot,revalidateProducerPolicySnapshot,producerPolicyBindingCurrent,
   PRODUCER_POLICY_INTERPRETATION} from '../src/portable-producer-policy.mjs';
 import {inspectDefaultOpenSSL,DEFAULT_OPENSSL_CONFIG,portableOpenSSLContextIssue}
@@ -37,7 +37,7 @@ function ownerPolicy(t){
   const policy={schema:1,interpretation:'redue-github-ci-trust@1',issuer:'https://token.actions.githubusercontent.com',
     repository:'controlled/portable',repositoryId:'123',ownerId:'456',workflow:'.github/workflows/portable.yml',ref:'refs/heads/main',
     sourceCommit:'1'.repeat(40),signerCommit:'2'.repeat(40),artifactSha256:'3'.repeat(64),evidenceDigest:'4'.repeat(64),
-    evidenceInterpretation:'redue-portable-direct-typescript@1',refresh:'required',bundleSha256:null};
+    evidenceInterpretation:PORTABLE_INTERPRETATION,refresh:'required',bundleSha256:null};
   const file=path.join(root,'policy.json'),registry={schema:1,interpretation:PRODUCER_POLICY_INTERPRETATION,
     revision:1,policies:[policy]};fs.writeFileSync(file,canonical(registry),{mode:0o600});
   return {root,file,registry};
@@ -166,7 +166,7 @@ test('symlink topology remains distinct even when both targets have identical co
 });
 
 const digest=value=>createHash('sha256').update(value).digest('hex');
-function portableFixture(){return {schema:1,interpretation:'redue-portable-direct-typescript@1',
+function portableFixture(){return {schema:1,interpretation:PORTABLE_INTERPRETATION,
   origin:{runId:'e00b34bd-2163-4883-b143-7217a8d5f86f',check:'typecheck',result:'PASS',
     invocation:{status:'exited',exitCode:0,signal:null},complete:true},
   facts:{schema:1,recipe:{interpretation:'npm-direct-typescript@1',script:'typecheck',
@@ -177,6 +177,24 @@ function portableFixture(){return {schema:1,interpretation:'redue-portable-direc
     context:{},files:[['src/value.ts',digest('source')]],
     discovery:{configs:[['tsconfig.json',digest('config')]],
       files:[['src/value.ts',digest('source')]],queriesSha256:digest('queries')}}};}
+
+test('older portable interpretation cannot acquire current-schema authority',()=>{
+  const obsolete=portableFixture();obsolete.interpretation='redue-portable-direct-typescript@1';
+  assert.notEqual(obsolete.interpretation,PORTABLE_INTERPRETATION);
+  assert.throws(()=>encodeEnvelope(obsolete),error=>error instanceof PortableEnvelopeError);
+});
+
+test('the one writable Cryptex ancestor requires exact native protected child identity',
+  {skip:!portableRuntimeSupported()},t=>{
+  const native=createRequire(import.meta.url)('../src/portable-runtime-darwin-arm64.node'),cache=native.inspect();
+  const refusal=fn=>assert.throws(fn,error=>error.code==='PORTABLE_RUNTIME_UNSUPPORTED');
+  refusal(()=>inspectCacheContents({...cache,cryptexRoot:{...cache.cryptexRoot,flags:0}}));
+  refusal(()=>inspectCacheContents({...cache,cryptexRoot:{...cache.cryptexRoot,ino:'0'}}));
+  const original=fs.lstatSync;
+  t.mock.method(fs,'lstatSync',function(file,...args){const stat=original.call(fs,file,...args);
+    if(file==='/System/Volumes/Preboot')stat.mode=(stat.mode&~0o777n)|0o777n;return stat;});
+  refusal(()=>inspectCacheContents(cache));
+});
 
 test('canonical identity retains exact case, Unicode composition, membership and missing-query identity',()=>{
   const original=encodeEnvelope(portableFixture());
@@ -476,6 +494,41 @@ function observedCompiler(t){
   return {base,root,state,put,call,selected,paused,env,bin,
     ownObserver:(state,call)=>cleanupCalls.push({state,call})};
 }
+
+test('real copied-Node recipient independently reuses origin evidence without executing the compiler',
+  {skip:!portableRuntimeSupported(),timeout:240000},async t=>{
+  const f=observedCompiler(t);f.call('run','typecheck','--portable');const baseline=f.selected();
+  assert.equal(baseline.result,'PASS');assert.equal(baseline.portable.complete,true);
+  const historical=path.join(f.state,'runs-v1',baseline.invocation.runId+'.json'),original=fs.readFileSync(historical);
+  const artifact=path.join(f.base,'portable.json');
+  const exported=JSON.parse(f.call('evidence','export','typecheck','--output',artifact,'--json'));
+  const root=path.join(f.base,'receiver'),state=path.join(f.base,'redue-copy-receiver'),node=path.join(f.base,'node');
+  fs.cpSync(f.root,root,{recursive:true,dereference:false,verbatimSymlinks:true});
+  fs.copyFileSync(process.execPath,node);fs.chmodSync(node,0o755);
+  assert.equal(digest(fs.readFileSync(node)),digest(fs.readFileSync(process.execPath)));
+  const rawIdentity=file=>{const real=fs.realpathSync(file),stat=fs.statSync(real,{bigint:true});
+    return digest(JSON.stringify([real,process.version,...['dev','ino','mode','size','mtimeNs','ctimeNs']
+      .map(key=>String(stat[key]))]));};
+  assert.equal(baseline.environmentHashes.__vstate_node_identity__,rawIdentity(process.execPath));
+  assert.notEqual(rawIdentity(node),rawIdentity(process.execPath),'observed raw installation identity really differs');
+  const call=(...words)=>{const r=spawnSync(node,[f.bin,'--state-dir',state,...words],
+    {cwd:root,env:f.env,encoding:'utf8',timeout:60000});assert.equal(r.status,0,r.stderr+r.stdout);return r.stdout;};
+  f.ownObserver(state,call);call('start');
+  const deadline=Date.now()+15000;
+  while(!fs.existsSync(path.join(state,'plans-v1.json'))&&Date.now()<deadline)
+    await new Promise(resolve=>setTimeout(resolve,10));
+  assert(fs.existsSync(path.join(state,'plans-v1.json')),'receiver startup prerequisite');
+  call('evidence','import',artifact,'--check','typecheck','--accept-digest',exported.digest,'--apply','--json');
+  const response=JSON.parse(call('status','--sync','--json')),row=response.checks[0];
+  assert.equal(row.freshness,'CURRENT');assert.equal(row.result,'PASS');assert.equal(row.reuse_eligible,true);
+  assert.equal(row.evidence_source,'imported');assert.equal(row.invocation,null);
+  assert.equal(row.imported_evidence.origin_run_id,baseline.invocation.runId);
+  assert.equal(row.imported_evidence.digest,exported.digest);
+  assert.equal(fs.existsSync(path.join(state,'runs-v1')),false,'recipient executed no equivalent compiler check');
+  assert.deepEqual(fs.readFileSync(historical),original,'immutable raw producer provenance preserved');
+  const cached=JSON.parse(call('status','--json')).checks[0];assert.equal(cached.reuse_eligible,false);
+  t.diagnostic(`Copied-Node origin ${baseline.invocation.runId}; envelope ${exported.digest}; recipient compiler runs 0`);
+});
 
 test('real portable origin refuses change-and-restore, post-exit membership and lost end observation',
   {skip:!portableRuntimeSupported(),timeout:150000},async t=>{

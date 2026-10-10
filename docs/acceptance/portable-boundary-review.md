@@ -481,3 +481,38 @@ replacement control distinguishes actual mutation from native EPERM/EACCES fault
 injection refusal, while a separate performed size mutation must still fail as
 CHANGED. The previous Windows assertion failure remains historical evidence;
 source review is not a new native Windows pass.
+
+## Versioned content profile and copied-executable handoff
+
+Author profile `1d3c0df` was independently reviewed and its native helper rebuilt
+with the previously recorded fixed clang flags. The rebuilt and bundled hashes
+match `d16b6f14ed089c795bf763743a0212b9f4ee4dc2310c39a3231e038dc137dff3`.
+The only writable-ancestor exception is the exact Cryptexes parent, conditional
+on the fixed child OS directory's root ownership, non-writable mode, matching
+native lstat identity and system-no-unlink flag. The documented trusted-OS
+[flag contract](https://developer.apple.com/documentation/system/fileflags/systemnounlink)
+and [pinned C definition](https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/sys/stat.h)
+cover removal/rename protection. This is not an independent proof of APFS's
+closed enforcement implementation or a readonly-mount assertion. Missing flag,
+wrong child identity or another writable ancestor remain unsupported.
+
+An actual controlled origin run exported complete PASS. A separately initialized
+recipient checkout used an owned copied official Node executable with identical
+bytes but a demonstrably different raw physical Node hash. The recipient's
+caller-aware synchronized query independently returned imported CURRENT/PASS,
+explicit eligibility, the same origin receipt and envelope digest, and null local
+invocation. No recipient runs directory existed; the immutable producer receipt,
+including raw original context, was unchanged. Cached inspection remained
+non-authoritative. These controls and old-interpretation rejection passed 3/3
+in approximately 15.8 seconds. This is real compiler execution and same-host
+relocation, not model adoption, two-machine reuse or authenticated CI acceptance.
+
+Review identified a remaining detectable generation-mix window: caller portable
+proof discovery preceded raw context capture for request submission. After the
+physical-Node projection, an intervening caller executable change could cease
+being vetoed by raw comparison while the old full-runtime proof remained valid.
+This source finding was reported to the integration owner immediately; no actual
+false-CURRENT reproduction is claimed yet. The caller proof must be bound to
+unchanged before/after raw caller context, with conservative handling of a later
+known context change. Versioned content equivalence does not justify substituting
+the daemon's validated runtime for an unvalidated changed caller context.
