@@ -1,6 +1,26 @@
 # Changelog
 
-## 0.1.0-alpha.9 — 2026-10-09
+## 0.1.0-alpha.10 — 2026-10-10
+
+- Combine guarded caller-discovery reuse and cheaper non-reusable recording on
+  the existing macOS direct-TypeScript path. Healthy runs still validate both
+  boundaries in the caller context, falling back to full probes when necessary.
+- Once a healthy start observation is missing, omit qualification-only work that
+  cannot repair it. Execute the configured compiler and durably record its true
+  outcome; later observer recovery cannot make that invocation reusable.
+- Refuse missing, malformed or mismatched state ownership before execution.
+  Preserve cancellation, immutable history and newest-receipt selection.
+- Three fixed A–H cycles cost 15.16/15.35/15.82 seconds versus matched ordinary
+  compiler totals of 16.69/16.66/16.56 seconds. These modest CLI savings do not
+  establish real-world reuse frequency, CPU/memory or whole-agent benefit.
+- Provide a [fixed-build opt-in pilot guide](docs/user/pilot.md). External usage
+  has not started. No compiler/platform expansion or policy redesign is included;
+  Claude behavior and cross-host handoff remain untested.
+- Stop observers before upgrading in the same prefix, preserve config/state and
+  receipts, preview/apply project-local policy updates, then restart and reassess.
+  Never silently migrate a check. Alpha.9 remains an unshipped candidate.
+
+## 0.1.0-alpha.9 — unshipped candidate (2026-10-09)
 
 - Reduce repeated caller discovery on the guarded macOS direct-TypeScript path.
   Both execution boundaries still validate in the actual caller environment,

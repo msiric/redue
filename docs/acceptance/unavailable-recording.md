@@ -1,6 +1,10 @@
 # Unavailable-start recording
 
-Current conclusion: ready for review in PR #10; not merged or published. On the
+Current conclusion: final combined alpha.10 release preparation is authorized;
+no new benchmark or model campaign is required for metadata/user-documentation
+changes. The optimization milestone is closed. External pilot usage is NOT STARTED;
+follow the [pilot guide](../user/pilot.md). The evidence below is controlled
+acceptance, not natural-usage evidence. On the
 unchanged fixed A–H workload, all three new candidate cycles were cheaper than
 their corresponding ordinary compiler totals (0.74–1.53 seconds saved). All three
 contemporaneous PR #9 cycles remained slower. This narrow improvement comes from
@@ -14,9 +18,10 @@ Candidate packed source: `78ab0535f541d99ce6ed1cd2a5062447f6f6fd68`.
 Filename: `redue-cli-0.1.0-alpha.9.tgz`.
 SHA-256: `4b9c21cae902e6d4aa9ef6181d996d8ba9d130dc97516352150e4178f5afa0c9`.
 This is an **unpublished evaluation artifact with inherited alpha.9 metadata**,
-not the PR #9 publication artifact (`d971aef5…07f`). Later main-merge/documentation
-commits do not change any packaged file. Publication needs separate approval,
-an unused version, and final versioned-artifact acceptance.
+not the preserved, unshipped PR #9 artifact (`d971aef5…07f`). At reviewed HEAD
+`6aa9fd7`, packaged files still matched this evaluation artifact. Alpha.10 changes
+version/user documentation and requires its own exact artifact and platform gate.
+Neither alpha.9 artifact will be published as an intermediate release.
 
 ## Boundary
 
@@ -56,7 +61,7 @@ about affected users.
 - `test/run-ownership.test.mjs`: no execution/receipt mutation on invalid ownership.
 - `test/acceptance/unavailable-package-smoke.mjs`: same tests through the installed
   artifact; macOS shortcut, Linux/Windows unchanged paths and ownership refusal.
-- Preserve the released PR #9 artifact and new candidate as distinct exact bytes.
+- Preserve the unshipped PR #9 artifact and new candidate as distinct exact bytes.
 - Predeclare three paired A–H cycles, alternating B/C/C/B/B/C, eight corresponding
   ordinary compiler runs each. Same fixed four reuses/four required executions;
   no model adoption claim from replay. Setup and restart stay separate.
