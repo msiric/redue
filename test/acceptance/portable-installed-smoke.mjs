@@ -6,6 +6,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {findExecutable} from '../../src/executable-lookup.mjs';
 import {windowsLaunch} from '../../src/windows-command.mjs';
 const options={};
@@ -49,6 +50,11 @@ try{
     assert(fs.statSync(path.join(installed,file)).isFile(),`Missing installed portable asset: ${file}`);
   assert.match(exec([binary,'--help']).stdout,/evidence import FILE --check CHECK/);
   assert.equal(exec([binary,'--version']).stdout.trim(),metadata.version);
+  const baseline=options['--baseline']||'@redue/cli@0.1.0-alpha.10',
+    policyUpgrade=JSON.parse(exec([process.execPath,fileURLToPath(new URL('./portable-policy-upgrade.mjs',import.meta.url)),
+      '--entry',path.join(installed,'bin','redue.mjs'),'--baseline',baseline]).stdout);
+  assert.equal(policyUpgrade.model_trials,0);assert.equal(policyUpgrade.observers_started,0);
+  assert.equal(policyUpgrade.checks_executed,0);assert.equal(policyUpgrade.observations.length,4);
   fs.mkdirSync(origin);put(path.join(origin,'package.json'),JSON.stringify({name:'portable-installed-control',version:'1.0.0',
     scripts:{typecheck:'tsc --noEmit'},devDependencies:{typescript:'5.6.3'}}));
   put(path.join(origin,'tsconfig.json'),JSON.stringify({compilerOptions:{strict:true,noEmit:true,noLib:true,target:'ES2022',types:[],typeRoots:['./node_modules/@types']},include:['src']}));
@@ -61,7 +67,6 @@ try{
   assert.equal(preview.written,false);assert(!fs.existsSync(path.join(origin,'redue.config.json')));
   assert.equal(preview.checks[0].level,'ready');cli(origin,originState,'init','--recipe','typescript-direct','--check','typecheck');
   // Upgrade the project-owned instructions from the actual published policy.
-  const baseline=options['--baseline']||'@redue/cli@0.1.0-alpha.10';
   exec([npm,'install','--global','--prefix',baselinePrefix,'--registry=https://registry.npmjs.org','--no-audit','--no-fund',baseline]);
   for(const host of ['codex','claude']){
     const dry=JSON.parse(agent(oldBinary,origin,'setup',host,'--dry-run','--json').stdout);assert.equal(dry.applied,false);
@@ -120,7 +125,8 @@ try{
   }
   console.log(JSON.stringify({schema:1,source:options['--source'],candidate_filename:path.basename(tarball),candidate_sha256:checksum,
     package:metadata.name,metadata_version:metadata.version,not_public_alpha10_bytes:true,platform:process.platform,arch:process.arch,node:process.version,
-    published_policy_baseline:baseline,installed_mechanics:'PASS',observations,model_behavior:'NOT RUN',two_machine:'NOT RUN',
+    published_policy_baseline:baseline,installed_policy_ownership:policyUpgrade.observations,
+    installed_mechanics:'PASS',observations,model_behavior:'NOT RUN',two_machine:'NOT RUN',
     coverage:'controlled noLib same-host project; complete observed globals; default-library external queries remain unsupported',
     cleanup:'owned observers/prefixes/checkouts only; source historical record was preserved until disposable experiment teardown'}));
 }finally{

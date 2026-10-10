@@ -30,6 +30,13 @@ try{
     put(config,JSON.stringify({schema:1,checks:[{name:'typecheck',command:['@node','check.mjs'],inputs:['src/**']}]}));
     put(path.join(root,instruction),'User instruction before.\n');
     const call=(selected,...args)=>exec([process.execPath,selected,'--config',config,'agent',...args],{cwd:root});
+    // New policy text once exceeded a pipe's immediate-write capacity. Exercise
+    // the actual candidate's complete fresh preview before installing ownership.
+    const fresh=JSON.parse(call(entry,'setup',host,'--dry-run','--json').stdout);
+    assert.equal(fresh.applied,false);assert(fresh.changes.some(row=>row.path.endsWith('/SKILL.md')&&
+      row.content.includes('imported_evidence.origin_run_id')));
+    assert.equal(fs.readFileSync(path.join(root,instruction),'utf8'),'User instruction before.\n');
+    assert(!fs.existsSync(skill));assert(!fs.existsSync(path.join(root,'.redue')));
     call(oldEntry,'setup',host,'--apply','--json');
     fs.appendFileSync(path.join(root,instruction),'\nUser instruction after.\n');
     const oldSkill=fs.readFileSync(skill,'utf8');assert(!oldSkill.includes('imported_evidence.origin_run_id'));
@@ -59,6 +66,6 @@ try{
     }
     assert.deepEqual(fs.readFileSync(config),beforeConfig);assert(!fs.existsSync(path.join(root,'node_modules')));
   }
-  console.log(JSON.stringify({schema:1,published_baseline:options['--baseline'],observations,model_trials:0,
+  console.log(JSON.stringify({schema:1,published_baseline:options['--baseline'],fresh_candidate_preview:'PASS',observations,model_trials:0,
     observers_started:0,checks_executed:0,permissions_changed:false,cleanup:'owned disposable policy fixtures and installation only'}));
 }finally{fs.rmSync(base,{recursive:true,force:true,maxRetries:5,retryDelay:200});}

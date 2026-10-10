@@ -1,5 +1,30 @@
 # Portable-evidence host preflight
 
+**Current installed-mechanics conclusion (2026-10-11): PASS, limited same-host
+controlled fixture; model behavior and independent-machine acceptance NOT RUN.**
+The coherent source is `b0cdd5e077b04915482b43c3af126515fa352761`, artifact
+`redue-cli-0.1.0-alpha.10.tgz`, SHA-256
+`1ff1bbdb73bc672bb6ff6b253f91d951d405f6591eb0c3d50d7a5b7fd6c20692`.
+This is unreleased candidate identity, not the published alpha.10 package.
+
+Two installed checks passed on macOS ARM64 / Node 22.13.0. Both established real
+portable origin capture, exact manual-digest import, independent recipient
+CURRENT/PASS without a local run record, unrelated-edit preservation and
+source-edit STALE. The second also exercised complete fresh setup JSON after the
+CLI queued-output correction. Both used the actual installed candidate for
+published-policy update/removal and edited-content refusal on Codex and Claude;
+neither launched a model or changed host permissions. Origin IDs were
+`70040541-e27e-41d9-967f-6c6c96179423` and
+`1f401ff8-f5b5-4fb5-94a4-28f37457090d`. This remains a controlled `noLib`
+mechanics result; the ordinary default-library limitation remains below.
+
+Run the command in the historical installed-mechanics section using this source
+and checksum for the current candidate. The installed helper now invokes
+`portable-policy-upgrade.mjs --entry` with the actual installed binary, rather
+than treating source-only policy tests as installed acceptance. All owned
+disposable observers and installations were cleaned. Owner-local structured
+outputs are retained separately; no raw environment or transcript is published.
+
 This acceptance helper is contributor-only, outside npm's package files. It does
 not launch a model, install anything, start an observer, change permissions or
 execute verification. Its explicit synchronized query can run the trusted local
