@@ -45,9 +45,9 @@ function readFile(file,limit){
     return buffer;
   }finally{if(descriptor!==undefined)fs.closeSync(descriptor);}
 }
-function selected(state){
+function selected(state,{recoverPending=false}={}){
   const file=path.join(state,SELECTOR);
-  if(!safePath(file,{absent:true}))return {schema:1,records:[]};
+  if(!safePath(file,{absent:true})){assertMissingSelection(state,{recoverPending});return {schema:1,records:[]};}
   let value;try{value=parsePortableJson(readFile(file,LIMITS.selector));}
   catch(error){if(error instanceof PortableEnvelopeError)throw error;
     fail('PORTABLE_STATE_INVALID','Portable import selection is malformed');}
@@ -68,6 +68,34 @@ function validateSelection(value){
   if(total>LIMITS.bytes)fail('PORTABLE_SIZE','Portable imports exceed their cumulative byte limit');
   return value;
 }
+function pendingTransaction(state){
+  const file=path.join(state,PENDING);
+  if(!safePath(file,{absent:true}))return null;
+  const value=parsePortableJson(readFile(file,LIMITS.selector));
+  if(!exact(value,['schema','digest','check','acceptance','selection'])||value.schema!==1||
+    typeof value.digest!=='string'||!HEX.test(value.digest)||typeof value.check!=='string'||
+    !value.check||value.check.length>256||/[\u0000-\u001f\u007f]/u.test(value.check)||
+    !['untrusted','manual-digest-v1'].includes(value.acceptance))
+    fail('PORTABLE_IMPORT_INCOMPLETE','Pending portable import is incompatible; owner inspection is required');
+  validateSelection(value.selection);return value;
+}
+function assertMissingSelection(state,{recoverPending=false}={}){
+  const directory=path.join(state,DIRECTORY);
+  if(!safePath(directory,{directory:true,absent:true}))return;
+  // An existing storage directory means catalog absence is not a new empty
+  // catalog. Never replay an old PASS to reconstruct a lost accepted selection.
+  if(recoverPending){
+    const pending=pendingTransaction(state),entries=fs.readdirSync(directory);
+    const records=pending?.selection.records;
+    // The first transaction can fail after creating its immutable payload but
+    // before its first selector. Only its exact, fully bound single-record
+    // transaction can repair this; multi-record lost selectors remain unknown.
+    if(records?.length===1&&records[0].digest===pending.digest&&records[0].check===pending.check&&
+      records[0].acceptance===pending.acceptance&&entries.length<=1&&
+      entries.every(name=>name===pending.digest+'.json'))return;
+  }
+  fail('PORTABLE_SELECTION_MISSING','Portable import selection is missing from existing storage; owner inspection is required');
+}
 function storageBudget(state,digest,length){
   const directory=path.join(state,DIRECTORY);
   if(!safePath(directory,{directory:true,absent:true}))return;
@@ -83,13 +111,10 @@ function storageBudget(state,digest,length){
     fail('PORTABLE_SIZE','Portable storage exceeds its cumulative limit');
 }
 function pendingSelection(state,next,digest,check,acceptance){
-  const file=path.join(state,PENDING);
-  if(!safePath(file,{absent:true}))return;
-  const value=parsePortableJson(readFile(file,LIMITS.selector));
-  if(!exact(value,['schema','digest','check','acceptance','selection'])||value.schema!==1||
-    value.digest!==digest||value.check!==check||value.acceptance!==acceptance)
+  const value=pendingTransaction(state);
+  if(!value)return;
+  if(value.digest!==digest||value.check!==check||value.acceptance!==acceptance)
     fail('PORTABLE_IMPORT_INCOMPLETE','Retry the exact pending portable import; a different import cannot repair it');
-  validateSelection(value.selection);
   if(canonical(value.selection)!==canonical(next))
     fail('PORTABLE_IMPORT_INCOMPLETE','Pending portable selection differs; owner inspection is required');
 }
@@ -152,6 +177,7 @@ export function importedRevision(state){
   if(safePath(path.join(state,PENDING),{absent:true}))
     fail('PORTABLE_IMPORT_INCOMPLETE','Portable import update is incomplete; perform an explicit valid import to recover');
   const stat=safePath(path.join(state,SELECTOR),{absent:true});
+  if(!stat)assertMissingSelection(state);
   return directoryIdentity(safePath(state,{directory:true}))+':'+(stat?fingerprint(stat):'absent');
 }
 export function readImportedSnapshot(state,expected){
@@ -183,7 +209,7 @@ export function importEvidence({state,configFile,root,check,bytes,acceptDigest=n
     fail('PORTABLE_ACCEPTANCE','Explicit acceptance must match this exact evidence digest');
   const expected={state:path.resolve(state),configFile:path.resolve(configFile),root:path.resolve(root)};
   const identity=owner(expected),acceptance=acceptDigest===null?'untrusted':'manual-digest-v1';
-  const existing=selected(expected.state),prior=existing.records.find(record=>record.digest===envelope.digest);
+  const existing=selected(expected.state,{recoverPending:true}),prior=existing.records.find(record=>record.digest===envelope.digest);
   if(prior&&prior.check!==check)fail('PORTABLE_CHECK','This evidence is already mapped to another local check');
   const record={digest:envelope.digest,check,acceptance:prior?.acceptance==='manual-digest-v1'?prior.acceptance:acceptance,bytes:length};
   const next={schema:1,records:[...existing.records.filter(item=>item.digest!==envelope.digest),record]};
@@ -201,7 +227,7 @@ export function importEvidence({state,configFile,root,check,bytes,acceptDigest=n
   try{
     if(owner(expected)!==identity)fail('PORTABLE_STATE_CHANGED','Portable state ownership changed before import');
     // Recheck under the existing run lock, not a second independent writer lock.
-    const current=selected(expected.state);
+    const current=selected(expected.state,{recoverPending:true});
     if(canonical(current)!==canonical(existing))fail('PORTABLE_STATE_CHANGED','Portable selection changed before import');
     pendingSelection(expected.state,next,envelope.digest,check,record.acceptance);
     storageBudget(expected.state,envelope.digest,length);

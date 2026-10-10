@@ -127,6 +127,9 @@ test('cumulative count is bounded before writes and all selected imports remain 
 });
 test('unselected interrupted files still consume the bounded physical storage budget',t=>{
   const f=fixture(t);fs.mkdirSync(path.join(f.state,'portable-evidence-v1'));
+  // A known empty selector isolates physical orphan budgeting from the distinct
+  // missing-selection guard; missing selectors have their own fail-closed test.
+  fs.writeFileSync(path.join(f.state,'portable-imports-v1.json'),canonical({schema:1,records:[]}));
   for(let i=0;i<PORTABLE_STORE_LIMITS.records;i++){
     const e=envelope(String(i));fs.writeFileSync(recordFile(f,e),canonical(e));
   }
@@ -155,4 +158,62 @@ test('read-side ownership must match the recipient, not merely a valid absolute 
   const changed=readImportedSnapshot(f.state,f);
   assert.equal(changed.records.length,0);assert.equal(changed.error.code,'PORTABLE_OWNERSHIP');
   fs.writeFileSync(marker,original);assert.equal(readImportedSnapshot(f.state,f).records.length,1);
+});
+
+test('missing selector with initialized storage cannot replay older PASS and forget accepted FAIL',t=>{
+  const f=fixture(t),pass=envelope(),failed=JSON.parse(canonical(envelope('failed')));
+  failed.statement.predicate.origin.result='FAIL';failed.statement.predicate.origin.invocation.exitCode=2;
+  const failure=encodeEnvelope(failed.statement.predicate);
+  importEvidence(options(f,pass,{apply:true,acceptDigest:pass.digest}));
+  importEvidence(options(f,failure,{apply:true,acceptDigest:failure.digest}));
+  const files=fs.readdirSync(path.join(f.state,'portable-evidence-v1')).sort();
+  fs.unlinkSync(path.join(f.state,'portable-imports-v1.json'));
+  assert.equal(readImportedSnapshot(f.state,f).error.code,'PORTABLE_SELECTION_MISSING');
+  assert.throws(()=>importedRevision(f.state),error=>error.code==='PORTABLE_SELECTION_MISSING');
+  for(const apply of [false,true])assert.throws(()=>importEvidence(options(f,pass,{apply,acceptDigest:pass.digest})),
+    error=>error.code==='PORTABLE_SELECTION_MISSING');
+  assert.deepEqual(fs.readdirSync(path.join(f.state,'portable-evidence-v1')).sort(),files);
+  assert(!fs.existsSync(path.join(f.state,'portable-import-pending-v1.json')));
+  assert(!fs.existsSync(path.join(f.state,'portable-imports-v1.json')));
+});
+test('empty initialized storage without a selector is ambiguous rather than pristine state',t=>{
+  const f=fixture(t);fs.mkdirSync(path.join(f.state,'portable-evidence-v1'));
+  assert.equal(readImportedSnapshot(f.state,f).error.code,'PORTABLE_SELECTION_MISSING');
+  assert.throws(()=>importEvidence(options(f,envelope(),{apply:true})),error=>error.code==='PORTABLE_SELECTION_MISSING');
+});
+test('first exact pending transaction recovers after failed initial selector publication',t=>{
+  const f=fixture(t),e=envelope(),rename=fs.renameSync,selector=path.join(f.state,'portable-imports-v1.json');let fail=true;
+  t.mock.method(fs,'renameSync',function(from,to,...args){
+    if(fail&&to===selector)throw Object.assign(Error('controlled failure'),{code:'EIO'});
+    return rename.call(fs,from,to,...args);
+  });
+  assert.throws(()=>importEvidence(options(f,e,{apply:true,acceptDigest:e.digest})),error=>error.code==='PORTABLE_IMPORT_FAILED');
+  assert(!fs.existsSync(selector));assert(fs.existsSync(recordFile(f,e)));
+  assert.equal(readImportedSnapshot(f.state,f).error.code,'PORTABLE_IMPORT_INCOMPLETE');
+  for(const change of [{bytes:canonical(envelope('other'))},{check:'other-check'},{acceptDigest:null}])
+    assert.throws(()=>importEvidence(options(f,e,{apply:true,acceptDigest:e.digest,...change})));
+  fail=false;importEvidence(options(f,e,{apply:true,acceptDigest:e.digest}));
+  assert.equal(readImportedSnapshot(f.state,f).records[0].acceptance,'manual-digest-v1');
+});
+test('first exact pending transaction recovers before initial storage directory creation',t=>{
+  const f=fixture(t),e=envelope(),mkdir=fs.mkdirSync,directory=path.join(f.state,'portable-evidence-v1');let fail=true;
+  t.mock.method(fs,'mkdirSync',function(target,...args){
+    if(fail&&target===directory)throw Object.assign(Error('controlled failure'),{code:'EIO'});
+    return mkdir.call(fs,target,...args);
+  });
+  assert.throws(()=>importEvidence(options(f,e,{apply:true,acceptDigest:e.digest})),error=>error.code==='PORTABLE_IMPORT_FAILED');
+  assert(!fs.existsSync(directory));assert.equal(readImportedSnapshot(f.state,f).error.code,'PORTABLE_IMPORT_INCOMPLETE');
+  fail=false;importEvidence(options(f,e,{apply:true,acceptDigest:e.digest}));
+  assert.equal(readImportedSnapshot(f.state,f).records.length,1);
+});
+test('missing multi-record selector cannot be reconstructed from pending even with an exact retry',t=>{
+  const f=fixture(t),a=envelope(),b=envelope('second');
+  importEvidence(options(f,a,{apply:true,acceptDigest:a.digest}));
+  importEvidence(options(f,b,{apply:true,acceptDigest:b.digest}));
+  const current=selection(f);fs.writeFileSync(path.join(f.state,'portable-import-pending-v1.json'),
+    canonical({schema:1,digest:b.digest,check:'selected-local-check',acceptance:'manual-digest-v1',selection:current}));
+  fs.unlinkSync(path.join(f.state,'portable-imports-v1.json'));
+  assert.throws(()=>importEvidence(options(f,b,{apply:true,acceptDigest:b.digest})),error=>error.code==='PORTABLE_SELECTION_MISSING');
+  assert.equal(readImportedSnapshot(f.state,f).error.code,'PORTABLE_IMPORT_INCOMPLETE');
+  assert(!fs.existsSync(path.join(f.state,'portable-imports-v1.json')));
 });
