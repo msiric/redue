@@ -52,6 +52,14 @@ export function requireImportedEligibility(status,{digest,originRunId}){
   assert.equal(check?.imported_evidence?.digest,digest);assert.equal(check?.imported_evidence?.origin_run_id,originRunId);
   return check;
 }
+export function writeControlledPortableProject(root){
+  assert(path.isAbsolute(root));assert(!fs.existsSync(root),'Fixture writer refuses an existing checkout');
+  const put=(name,value)=>{const file=path.join(root,name);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,value);};
+  fs.mkdirSync(root);put('package.json',JSON.stringify({name:'portable-machine-control',version:'1.0.0',scripts:{typecheck:'tsc --noEmit'},devDependencies:{typescript:'5.6.3'}}));
+  put('tsconfig.json',JSON.stringify({compilerOptions:{strict:true,noEmit:true,noLib:true,target:'ES2022',types:[],typeRoots:['./node_modules/@types']},include:['src']}));
+  put('src/globals.d.ts','interface Array<T> {}\ninterface Boolean {}\ninterface CallableFunction {}\ninterface Function {}\ninterface IArguments {}\ninterface NewableFunction {}\ninterface Number {}\ninterface Object {}\ninterface RegExp {}\ninterface String {}\n');
+  put('src/a.ts','export const value: number = 1;\n');put('.gitignore','node_modules/\n');
+}
 function physicalIdentity(){const file=fs.realpathSync(process.execPath),stat=fs.statSync(file,{bigint:true});
   return sha(canonical({file,dev:String(stat.dev),ino:String(stat.ino),mtime:String(stat.mtimeNs)}));}
 function bootIdentity(){const result=spawnSync('/usr/sbin/sysctl',['-n','kern.bootsessionuuid'],{encoding:'utf8',timeout:3000,maxBuffer:4096});
@@ -98,10 +106,7 @@ export async function runMachine(options){
     const installed=path.join(prefix,'lib/node_modules/@redue/cli');
     const metadata=JSON.parse(fs.readFileSync(path.join(installed,'package.json')));assert.equal(metadata.name,'@redue/cli');
     assert.deepEqual(metadata.bin,{redue:'./bin/redue.mjs'});exec([binary,'--help']);
-    fs.mkdirSync(root);put('package.json',JSON.stringify({name:'portable-machine-control',version:'1.0.0',scripts:{typecheck:'tsc --noEmit'},devDependencies:{typescript:'5.6.3'}}));
-    put('tsconfig.json',JSON.stringify({compilerOptions:{strict:true,noEmit:true,noLib:true,target:'ES2022',types:[],typeRoots:['./node_modules/@types']},include:['src']}));
-    put('src/globals.d.ts','interface Array<T> {}\ninterface Boolean {}\ninterface CallableFunction {}\ninterface Function {}\ninterface IArguments {}\ninterface NewableFunction {}\ninterface Number {}\ninterface Object {}\ninterface RegExp {}\ninterface String {}\n');
-    put('src/a.ts','export const value: number = 1;\n');put('.gitignore','node_modules/\n');
+    writeControlledPortableProject(root);
     exec(['npm','install','--registry=https://registry.npmjs.org','--no-audit','--no-fund'],{cwd:root});exec(['git','init','-q'],{cwd:root});
     const preview=json('init','--recipe','typescript-direct','--check','typecheck','--dry-run');
     assert.equal(preview.written,false);assert.equal(preview.checks[0].level,'ready');assert(!fs.existsSync(path.join(root,'redue.config.json')));
@@ -134,7 +139,7 @@ export async function runMachine(options){
       assert.equal(json('status').checks[0].reuse_eligible,false,'Cached inspection is not caller authority');
       put('notes.md','Unrelated documentation.\n');requireImportedEligibility(sync('unrelated edit'),{digest,originRunId});
       cli('stop');started=false;cli('start');started=true;requireImportedEligibility(sync('restart inherited import'),{digest,originRunId});
-      put('src/a.ts','export const value: number = 2;\n');let changed=sync('relevant edit').checks[0];
+    put('src/a.ts','export const value: number = 2;\n');let changed=sync('relevant edit').checks[0];
       assert.equal(changed.freshness,'STALE');assert.equal(changed.reuse_eligible,false);
       cli('stop');started=false;cli('start');started=true;changed=sync('restart with relevant edit').checks[0];
       assert.equal(changed.freshness,'STALE');assert.equal(changed.reuse_eligible,false);
