@@ -49,6 +49,19 @@ function opened(file){
     return {file,descriptor,stat};
   }catch(error){if(descriptor!==undefined)fs.closeSync(descriptor);fail();}
 }
+function protectedParents(file){
+  const parents=[];let current=path.dirname(file);
+  while(true){
+    const stat=fs.lstatSync(current,{bigint:true});
+    if(!stat.isDirectory()||stat.isSymbolicLink()||stat.uid!==0n||(stat.mode&0o022n)!==0n)fail();
+    parents.push([current,stat]);if(current===path.dirname(current))break;current=path.dirname(current);
+  }
+  return parents;
+}
+function unchangedParents(parents){for(const [file,before] of parents){
+  const now=fs.lstatSync(file,{bigint:true});
+  if(!equalStat(before,now)||now.uid!==0n)fail();
+}}
 function unchanged(member){
   if(!equalStat(member.stat,fs.fstatSync(member.descriptor,{bigint:true}))||
     !equalStat(member.stat,fs.lstatSync(member.file,{bigint:true})))fail();
@@ -61,6 +74,7 @@ export function inspectCacheContents(cache){
   try{if(fs.realpathSync(cache.file)!==cache.file)fail();}catch{fail();}
   const openedFiles=[],started=performance.now();
   try{
+    const parents=protectedParents(cache.file);
     const base=opened(cache.file);openedFiles.push(base);
     if(base.stat.size>BigInt(MAX_BASE))fail();
     const bytes=Buffer.alloc(Number(base.stat.size));
@@ -86,6 +100,7 @@ export function inspectCacheContents(cache){
     }
     // Recheck every earlier member after the last member has been consumed.
     for(const member of openedFiles)unchanged(member);
+    unchangedParents(parents);
     if(performance.now()-started>10000)fail();
     return {interpretation:'darwin-arm64e-full-cache-content@1',files,totalBytes:Number(total)};
   }catch{fail();}
