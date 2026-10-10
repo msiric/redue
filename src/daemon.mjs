@@ -363,7 +363,10 @@ function rows(contextHashes,synchronizedInstalled,synchronizedFilesystem,catalog
     if(!accepted.length)return item;
     const decision=portableDecisions[item.name];
     if(!decision||decision.catalog_revision!==catalog.revision||
-      decision.receipt_revision!==receiptStateRevision||receiptStateRevision===null)return {...item,freshness:'UNVERIFIED',reuse_eligible:false,
+      decision.receipt_revision!==receiptStateRevision||receiptStateRevision===null||
+      !healthy||planning||recovering||planDirty||index?.unavailable||pendingChecks.has(item.name)||
+      decision.input_key!==inputKey(index.checks.get(item.name))||
+      decision.input_event_serial!==(inputEventSerial.get(item.name)||0))return {...item,freshness:'UNVERIFIED',reuse_eligible:false,
       reason_code:'PORTABLE_SYNC_REQUIRED',reason:'accepted imported evidence requires caller-aware synchronization'};
     if(['PORTABLE_LOCAL_CURRENT_SELECTED','PORTABLE_CATALOG_EXPLICITLY_RESOLVED_LOCALLY'].includes(decision.reason))
       return {...item,portable_evidence:decision};
@@ -982,8 +985,21 @@ async function request(message) {
           local:selected?{present:true,result:selected.result??null,stable:selected.stable===true,
             invocationStatus:selected.invocation?.status??null,applicability:item?.freshness||'UNVERIFIED',
             facts:selected.portable?.interpretation===portableInterpretation&&selected.portable?.complete===true?selected.portable.facts:null,
-            resolvedCatalogRevision:selected.portable?.resolvedCatalogRevision??null}:null}),catalog_revision:currentCatalog.revision,receipt_revision:receiptStateRevision};
+            resolvedCatalogRevision:selected.portable?.resolvedCatalogRevision??null}:null}),catalog_revision:currentCatalog.revision,receipt_revision:receiptStateRevision,
+          input_key:row?inputKey(row):null,input_event_serial:inputEventSerial.get(name)||0};
       }
+    }
+    if(message.action==='sync'&&process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_PORTABLE_PUBLICATION_BARRIER==='1'){
+      // Owned fixture-only barrier. No snapshot is delivered while waiting and
+      // all selection/content/health guards below remain authoritative.
+      const paused=path.join(state,'test-portable-publish-paused'),released=path.join(state,'test-portable-publish-release');
+      fs.writeFileSync(paused,'paused',{flag:'wx',mode:0o600});
+      const deadline=performance.now()+5000;
+      while(!fs.existsSync(released)){
+        if(performance.now()>=deadline)throw Error('test portable publication barrier expired');
+        await new Promise(resolve=>setTimeout(resolve,10));
+      }
+      fs.unlinkSync(paused);fs.unlinkSync(released);
     }
     lastObservation=Date.now();publish();
     const applicabilityStarted=performance.now();
