@@ -753,3 +753,24 @@ permissions/no-checkout check remains on every platform, while only interpreter
 execution is POSIX-scoped. Its nine POSIX controls pass, as do the independent six
 malformed/OIDC subcases. The actual native Windows combined rerun remains a
 separate requirement.
+
+Following the reported explicit owner approval, activation of the signing
+workflow was independently checked against exact SHA-256
+`5770b7f0ac9133fbf0190cf0e238ac800263b632d7f4741f3fddb04882591924`.
+The `.github/workflows/portable-evidence.yml` bytes equal the reviewed proposal:
+fixed repository/ref/push, separate fresh signer, minimal signing permissions,
+no signer checkout/lifecycle execution, pinned actions and bounded fixed data.
+This enables that route; it grants no recipient producer acceptance and certifies
+no live G3 result. The unchanged copied header still says disabled, so the tracker
+must record actual enablement explicitly rather than treating that comment as a
+security control.
+
+Unsigned two-VM mechanics were changed to dispatch-only with the same fixed
+repository/ref checks to avoid a second transfer on the signing push. The package
+upload now checks both tarball and actual directory payload below 480 KiB; its
+41-byte source marker and archive overhead fit the 512 KiB reserve. Static parsed
+trigger/permission/action-pin/retention checks passed. Reported existing artifact
+usage 4,290,318 bytes plus the 5 MiB signing-route and 512 KiB package reservations
+totals 10,057,486 bytes, below the owner-approved 10 MiB. This clears one push only;
+further pushes, dispatches or attempts require fresh cumulative accounting and
+must not infer unlimited spending or storage approval.
