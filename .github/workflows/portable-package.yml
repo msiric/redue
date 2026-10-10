@@ -1,0 +1,73 @@
+name: Portable evidence exact installed package (no publication)
+on:
+  pull_request:
+    paths: ['src/portable*', 'src/agent-policy.md', 'test/acceptance/portable*', '.github/workflows/portable-package.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: portable-package-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22.13.0'
+      - run: npm ci --no-audit --no-fund
+      - name: Pack once, retain actual filename and inspect exact bytes
+        run: |
+          mkdir portable-candidate
+          npm pack --json --pack-destination portable-candidate > portable-candidate/manifest.json
+          node test/acceptance/package-artifact.mjs record portable-candidate/manifest.json
+          node --input-type=module -e "import fs from 'node:fs'; import assert from 'node:assert/strict'; const m=JSON.parse(fs.readFileSync('portable-candidate/manifest.json'))[0]; assert(m.size<1024*1024); assert(m.files.every(f=>!/(^|\/)(?:\.git|\.local|test|receipts|runs-v1|node_modules)(?:\/|$)/.test(f.path))); fs.writeFileSync('portable-candidate/source.txt', process.env.GITHUB_SHA+'\n');"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: portable-exact-package-${{ github.run_id }}-${{ github.run_attempt }}
+          path: portable-candidate/
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 1
+  installed:
+    needs: pack
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-26, ubuntu-latest, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22.13.0'
+      - run: npm ci --no-audit --no-fund
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: portable-exact-package-${{ github.run_id }}-${{ github.run_attempt }}
+          path: portable-candidate
+      - name: Verify the exact downloaded package and source identity
+        run: |
+          node test/acceptance/package-artifact.mjs verify portable-candidate/manifest.json
+          node --input-type=module -e "import fs from 'node:fs';import assert from 'node:assert/strict';assert.equal(fs.readFileSync('portable-candidate/source.txt','utf8').trim(),process.env.GITHUB_SHA);"
+      - name: Existing public CLI installation and recording boundaries
+        run: |
+          node test/acceptance/package-smoke.mjs --manifest portable-candidate/manifest.json
+          node test/acceptance/unavailable-package-smoke.mjs --manifest portable-candidate/manifest.json
+      - name: Installed project policy upgrades and owned removal
+        run: node test/acceptance/agent-policy-upgrade.mjs --manifest portable-candidate/manifest.json --prior @redue/cli@0.1.0-alpha.10
+      - name: Installed portable origin and separately initialized recipient
+        if: runner.os == 'macOS'
+        run: >-
+          node --input-type=module -e "import {readArtifact} from './test/acceptance/package-artifact.mjs';
+          import {spawnSync} from 'node:child_process';const a=readArtifact('portable-candidate/manifest.json');
+          const r=spawnSync(process.execPath,['test/acceptance/portable-installed-smoke.mjs','--tarball',a.file,'--sha256',a.sha256,'--source',process.env.GITHUB_SHA],{stdio:'inherit'});process.exit(r.status??1);"
+      # A single <1 MiB candidate, one-day retention, confirmed included capacity.
+      # No signing, OIDC, policy change, observer-state transfer or model account.
