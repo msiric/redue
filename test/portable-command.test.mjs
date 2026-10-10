@@ -165,11 +165,28 @@ test('bounded artifact reads reject links, directories, oversized files and repl
   catch(error){if(process.platform!=='win32'||error.code!=='EPERM')throw error;}
   if(fs.existsSync(path.join(f.base,'linked.json')))
     assert.throws(()=>readBoundedPortableFile(path.join(f.base,'linked.json')),errorCode('PORTABLE_FILE_UNSAFE'));
-  const original=fs.readSync;let changed=false;
+  const original=fs.readSync;let attempted=false,replacementError=null;
   t.mock.method(fs,'readSync',function(fd,...args){const count=original.call(fs,fd,...args);
-    if(!changed){changed=true;const replacement=file+'.new';fs.writeFileSync(replacement,'hello');fs.renameSync(replacement,file);}
+    if(!attempted){attempted=true;const replacement=file+'.new';fs.writeFileSync(replacement,'hello');
+      try{fs.renameSync(replacement,file);}catch(error){replacementError=error.code;throw error;}}
+    return count;});
+  // Windows can refuse replacing a currently open file. That is a failed fault
+  // injection, not a completed replacement detected under another name.
+  assert.throws(()=>readBoundedPortableFile(file),error=>replacementError!==null?
+    process.platform==='win32'&&['EPERM','EACCES'].includes(replacementError)&&error.code==='PORTABLE_FILE_UNAVAILABLE':
+    error.code==='PORTABLE_FILE_CHANGED');
+  assert(attempted);
+  if(replacementError!==null)t.diagnostic(`Windows refused replacement injection: ${replacementError}; no bytes returned`);
+});
+
+test('performed in-place artifact size mutation during reading is rejected as changed',t=>{
+  const f=fixture(t),file=path.join(f.base,'mutated.json');fs.writeFileSync(file,'hello');
+  const original=fs.readSync;let mutated=false;
+  t.mock.method(fs,'readSync',function(fd,...args){const count=original.call(fs,fd,...args);
+    if(!mutated){fs.appendFileSync(file,' changed');mutated=true;}
     return count;});
   assert.throws(()=>readBoundedPortableFile(file),errorCode('PORTABLE_FILE_CHANGED'));
+  assert(mutated);assert.equal(fs.statSync(file).size,13);
 });
 
 test('unsafe output paths, invalid ownership and options never create directories or export files',async t=>{
