@@ -13,10 +13,11 @@ G1 technical slice only; G2/G3 incomplete; G4 prepublication NOT READY.**
 
 ## Source, owners and approval boundaries
 
-Verified root commit `e33c6a2b2dd64e884a7e33c05dffd6f341ddfb56`; remote task branch
-`2bc636acf96b8652ff9dcac1d3aa846a3a9532d2`. Current uncommitted runtime/probe
-profiling work and `test/portable-profile.test.mjs` are not in the preserved exact
-2bc artifact. Root owns shared CLI/daemon/facts/runtime/catalog; B owns
+Verified root commit `70d54201d8c0bffd8dcf0354de7ac8e99829daee`; remote task branch
+`2bc636acf96b8652ff9dcac1d3aa846a3a9532d2`. Reviewed bounded runtime/probe
+diagnostics `57c3a3d`, native profiling test and platform fix `274fb42` are committed
+but are not in the preserved exact 2bc artifact. Root70d5420 includes independent
+C review; the verified integration tree is clean. Root owns shared CLI/daemon/facts/runtime/catalog; B owns
 envelope/store/CI authentication and focused Windows test correction; C owns independent
 critical-boundary review/adversarial tests; D owns onboarding/host and machine
 helper reporting. Isolated worktrees remain `../redue-portable-import`,
@@ -68,8 +69,8 @@ bytes have the same verified SHA; actual PR-merge source
 - Product `38094703929`: Linux22/24/macOS PASS; Windows has two test failures,
   established as workflow-byte CRLF conversion and POSIX-only expected-path text.
   B's focused `5d486260cb868afba7501d993ff7b2d727e6bbfc` forces LF only for the
-  two exact signer files and uses native `path.join` in the assertion. Author14/14;
-  D independent source GO/upgrade3PASS, signer suite could not load missing yaml.
+  two exact signer files and uses native `path.join` in the assertion. Root and independent C frozen control suites14/14 PASS;
+  D source GO/upgrade3PASS, its earlier signer attempt could not load missing yaml.
   Separate archive test command was host-rejected before execution; no bypass or
   independent14PASS claim. Native CI pending. Exact-package Windows success is a
   distinct route, not product acceptance.
@@ -81,9 +82,9 @@ bytes have the same verified SHA; actual PR-merge source
   `4406bef3-dad6-4448-942b-e9b12aaff614`, digest
   `d4d912e62f94ab86987654fe796033791eee5d9b1834f9ff82a1d9c2eb2ae789`.
   Do not replace the old full failure with a full rerun/PASS claim.
-- Root current uncommitted bounded runtime profiling test:1/1 PASS8.095s,
+- Bounded runtime profiling test:1/1 PASS8.095s,
   `.local/portable-evidence/portable-profile-actual-author.tap`; independent C
-  source review GO for bounded diagnostics; not hosted execution certification. Local timing does not identify the hosted internal phase.
+  source review GO for bounded diagnostics, now committed57c3a3d/70d5420; not hosted execution certification. Local timing does not identify the hosted internal phase.
 
 ## Next commands and fail-closed gates
 
