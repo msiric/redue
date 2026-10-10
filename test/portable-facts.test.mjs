@@ -3,9 +3,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {portableDiscovery,portableRelative,samePortableFacts,portableApplicabilityContext} from '../src/portable-facts.mjs';
+import {portableDiscovery,portableRelative,samePortableFacts,portableApplicabilityContext,portableProbeFailureCode} from '../src/portable-facts.mjs';
 import {portableRuntime,portableRuntimeSupported} from '../src/portable-runtime.mjs';
 const hex='a'.repeat(64);
+test('portable failure diagnostics distinguish an established timeout without disclosing child output',()=>{
+  assert.equal(portableProbeFailureCode({error:{code:'ETIMEDOUT'},stderr:'private child output'}),'PORTABLE_PROBE_TIMEOUT');
+  assert.equal(portableProbeFailureCode({error:{code:'ENOENT'},stderr:'private child output'}),'PORTABLE_PROBE_UNAVAILABLE');
+  assert.equal(portableProbeFailureCode({stderr:'VSTATE_REASON:PORTABLE_RUNTIME_UNSUPPORTED\n'}),'PORTABLE_RUNTIME_UNSUPPORTED');
+});
 function project(t){const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-portable-facts-')));
   fs.mkdirSync(path.join(root,'src'));fs.writeFileSync(path.join(root,'src','a.ts'),'export const x=1;');
   t.after(()=>fs.rmSync(root,{recursive:true,force:true}));return root;}

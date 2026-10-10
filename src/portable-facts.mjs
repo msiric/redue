@@ -94,13 +94,16 @@ export function portableManifest(root,observed){
     return [rel,hash];
   });
 }
+export function portableProbeFailureCode(probe){
+  if(probe.error?.code==='ETIMEDOUT')return 'PORTABLE_PROBE_TIMEOUT';
+  return probe.stderr?.match(/^VSTATE_REASON:(PORTABLE_[A-Z_]+)$/m)?.[1]||'PORTABLE_PROBE_UNAVAILABLE';
+}
 export function portableProbeFacts(plan){
   const recipe=portableRecipe(plan);
   const probe=spawnSync(plan.probes[0][0],[...plan.probes[0].slice(1),'--redue-portable'],
     {cwd:plan.cwd,env:process.env,encoding:'utf8',timeout:10000,maxBuffer:8*1024*1024,stdio:['ignore','pipe','pipe']});
   if(probe.error||probe.signal||probe.status!==0){
-    const code=probe.stderr?.match(/^VSTATE_REASON:(PORTABLE_[A-Z_]+)$/m)?.[1];
-    fail(code||'PORTABLE_PROBE_UNAVAILABLE');
+    fail(portableProbeFailureCode(probe));
   }
   const discovered=JSON.parse(probe.stdout);
   if(discovered.schema!==1)fail('PORTABLE_INTERPRETATION_UNSUPPORTED');
