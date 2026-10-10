@@ -12,6 +12,7 @@ import {fileURLToPath} from 'node:url';
 import {fileHash} from './index.mjs';
 import {resolveLinks} from './installed-inputs.mjs';
 import {timing,mark,traceId,traceScope,traceEnvironment,profiling} from './decision-profile.mjs';
+import {portableProbeDeadlineMs} from './portable-budget.mjs';
 
 export const portableInterpretation=PORTABLE_INTERPRETATION;
 const fail=code=>{throw Object.assign(Error(code),{code});};
@@ -99,12 +100,16 @@ export function portableProbeFailureCode(probe){
   if(probe.error?.code==='ETIMEDOUT')return 'PORTABLE_PROBE_TIMEOUT';
   return probe.stderr?.match(/^VSTATE_REASON:(PORTABLE_[A-Z_]+)$/m)?.[1]||'PORTABLE_PROBE_UNAVAILABLE';
 }
-export function portableProbeFacts(plan){
+export function portableProbeFacts(plan,{budget}={}){
+  let timeout=Math.min(portableProbeDeadlineMs,budget?.remaining()??portableProbeDeadlineMs);
+  if(!Number.isSafeInteger(timeout)||timeout<1)fail('PORTABLE_PROBE_TIMEOUT');
   const recipe=portableRecipe(plan);
+  timeout=Math.min(timeout,budget?.remaining()??portableProbeDeadlineMs);
+  if(!Number.isSafeInteger(timeout)||timeout<1)fail('PORTABLE_PROBE_TIMEOUT');
   const probe=traceScope({work:profiling?traceId():undefined},()=>{
-    const started=performance.now();mark('portable_probe.launch',{deadlineMs:10000});
+    const started=performance.now();mark('portable_probe.launch',{deadlineMs:timeout});
     const result=spawnSync(plan.probes[0][0],[...plan.probes[0].slice(1),'--redue-portable'],
-      {cwd:plan.cwd,env:traceEnvironment(),encoding:'utf8',timeout:10000,maxBuffer:8*1024*1024,stdio:['ignore','pipe','pipe']});
+      {cwd:plan.cwd,env:traceEnvironment(),encoding:'utf8',timeout,maxBuffer:8*1024*1024,stdio:['ignore','pipe','pipe']});
     timing('portable_probe.complete',started,{available:!result.error&&!result.signal&&result.status===0?1:0,
       timedOut:result.error?.code==='ETIMEDOUT'?1:0});return result;
   });
@@ -113,11 +118,12 @@ export function portableProbeFacts(plan){
   }
   const discovered=JSON.parse(probe.stdout);
   if(discovered.schema!==1)fail('PORTABLE_INTERPRETATION_UNSUPPORTED');
+  budget?.remaining();
   return {recipe,discovered};
 }
-export function portableCallerProof(plan){
-  const {recipe,discovered}=portableProbeFacts(plan);
-  return sha(canonical({recipe,discovered}));
+export function portableCallerProof(plan,budget){
+  const {recipe,discovered}=portableProbeFacts(plan,{budget});
+  const proof=sha(canonical({recipe,discovered}));budget?.remaining();return proof;
 }
 export function portableApplicabilityContext(context,runtime){
   if(!context||typeof context!=='object'||Array.isArray(context)||
@@ -126,14 +132,16 @@ export function portableApplicabilityContext(context,runtime){
   // environment hashes stay immutable and remain the start/end stability guard.
   return {...context,__vstate_node_identity__:sha(canonical(runtime))};
 }
-export function capturePortableFacts(plan,snapshot,context){
+export function capturePortableFacts(plan,snapshot,context,budget){
+  budget?.remaining();
   if(snapshot?.observationHealthy!==true||!snapshot.files)fail('PORTABLE_OBSERVATION_INCOMPLETE');
-  const files=portableManifest(plan.root,snapshot.files),{recipe,discovered}=portableProbeFacts(plan);
+  const files=portableManifest(plan.root,snapshot.files),{recipe,discovered}=portableProbeFacts(plan,{budget});
   for(const [rel] of [...discovered.discovery.configs,...discovered.discovery.files])
     if(!Object.hasOwn(snapshot.files,rel))fail('PORTABLE_COVERAGE_UNSUPPORTED');
-  return {schema:1,recipe,platform:{os:process.platform,arch:process.arch,release:os.release()},
+  const facts={schema:1,recipe,platform:{os:process.platform,arch:process.arch,release:os.release()},
     runtime:discovered.runtime,compiler:discovered.compiler,
     context:portableApplicabilityContext(context,discovered.runtime),files,discovery:discovered.discovery};
+  budget?.remaining();return facts;
 }
 export const portableFactsProof=facts=>sha(canonical({recipe:facts.recipe,discovered:{schema:1,runtime:facts.runtime,compiler:facts.compiler,discovery:facts.discovery}}));
 export const samePortableFacts=(a,b)=>a!==null&&b!==null&&canonical(a)===canonical(b);

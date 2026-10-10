@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {mark,timing,profiling} from './decision-profile.mjs';
+import {portableCacheDeadlineMs} from './portable-budget.mjs';
 
 const HEADER=552,ENTRY=56,MAX_BASE=8*1024*1024,MAX_MEMBER=3*1024**3,MAX_TOTAL=12*1024**3;
 const MAGIC=Buffer.from('dyld_v1  arm64e\0');
@@ -85,7 +86,7 @@ export function inspectCacheContents(cache){
   try{if(fs.realpathSync(cache.file)!==cache.file)fail();}catch{fail();}
   const openedFiles=[],started=performance.now();
   try{
-    mark('portable_cache.start',{deadlineMs:10000});
+    mark('portable_cache.start',{deadlineMs:portableCacheDeadlineMs});
     const parents=protectedParents(cache.file,cache.cryptexRoot);
     const base=opened(cache.file);openedFiles.push(base);
     if(base.stat.size>BigInt(MAX_BASE))fail();
@@ -107,7 +108,7 @@ export function inspectCacheContents(cache){
       let position=0,readMs=0,hashMs=0,nextProgress=128*1024*1024;
       mark('portable_cache.member_start',{member:i,bytes:Number(member.stat.size),completedBytes});
       while(position<Number(member.stat.size)){
-        if(performance.now()-started>10000)fail();
+        if(performance.now()-started>portableCacheDeadlineMs)fail();
         const readStarted=profiling?performance.now():0;
         const length=Math.min(chunk.length,Number(member.stat.size)-position),read=fs.readSync(member.descriptor,chunk,0,length,position);
         if(profiling)readMs+=performance.now()-readStarted;
@@ -122,7 +123,7 @@ export function inspectCacheContents(cache){
     // Recheck every earlier member after the last member has been consumed.
     for(const member of openedFiles)unchanged(member);
     unchangedParents(parents);
-    if(performance.now()-started>10000)fail();
+    if(performance.now()-started>portableCacheDeadlineMs)fail();
     timing('portable_cache.complete',started,{members:files.length,totalBytes:Number(total)});
     return {interpretation:'darwin-arm64e-full-cache-content@1',files,totalBytes:Number(total)};
   }catch{fail();}

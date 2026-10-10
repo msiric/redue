@@ -18,6 +18,7 @@ import {atomicJson,readReceipts,readReceiptSnapshot,receiptRevision} from './sta
 import {history} from './observation.mjs';
 import {readPortableCatalog} from './portable-catalog.mjs';
 import {capturePortableFacts,portableFactsProof,portableInterpretation} from './portable-facts.mjs';
+import {createPortableBudget} from './portable-budget.mjs';
 import {decidePortableEvidence} from './portable-applicability.mjs';
 import {inputKey,planGuard} from './decision-validation.mjs';
 import {timing,mark,traceBase,traceContext,traceScope,traceEnvironment,traceId} from './decision-profile.mjs';
@@ -956,14 +957,16 @@ async function request(message) {
     const catalog=readPortableCatalog(state,{configFile,root}),portableDecisions={};
     const validations=new Map();
     if(message.action==='sync'&&!catalog.error&&index&&healthy&&!planning&&!recovering&&!planDirty){
+      const portableBudget=createPortableBudget();
       for(const [name,row] of index.checks){
         if(!catalog.records.some(record=>record.check===name&&record.acceptance!=='untrusted'))continue;
         const beginning={index,key:inputKey(row),serial:inputEventSerial.get(name)||0};
         let facts=null,error=null;
         try{
           if(!/^[a-f0-9]{64}$/.test(message.portableProofs?.[name]||''))throw Error('caller validation missing');
-          facts=capturePortableFacts(row.plan,{files:combinedFiles(name),observationHealthy:true},message.contextHashes?.[name]);
+          facts=capturePortableFacts(row.plan,{files:combinedFiles(name),observationHealthy:true},message.contextHashes?.[name],portableBudget);
           if(portableFactsProof(facts)!==message.portableProofs[name])throw Error('caller and recipient contexts differ');
+          portableBudget.remaining();
         }catch(e){error=e.code||'PORTABLE_CALLER_UNVERIFIED';facts=null;}
         validations.set(name,{beginning,facts,error});
       }

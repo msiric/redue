@@ -23,6 +23,7 @@ import {readCachedStatus,unavailableCached} from './cached-state.mjs';
 import {renderRun} from './presentation.mjs';
 import {readPortableCatalog,portableCatalogMatches} from './portable-catalog.mjs';
 import {capturePortableFacts,portableCallerProof,samePortableFacts,portableInterpretation} from './portable-facts.mjs';
+import {createPortableBudget,portableDecisionDeadlineMs} from './portable-budget.mjs';
 
 mark('cli.loaded');
 const here=path.dirname(fileURLToPath(import.meta.url));
@@ -266,7 +267,7 @@ async function execute() {
     const portablePlan={...plan,command,probes:selected.probes||[]};
     const portableCatalogStart=portableRequested?readPortableCatalog(state,{configFile,root}):null;
     let portableStart=null,portableEnd=null,portableIssue=null;
-    if(portableRequested)try{portableStart=capturePortableFacts(portablePlan,snap,environmentBefore);}
+    if(portableRequested)try{portableStart=capturePortableFacts(portablePlan,snap,environmentBefore,createPortableBudget());}
     catch(error){portableIssue=error.code||'PORTABLE_CAPTURE_UNAVAILABLE';}
     await testRunBoundary('before-launch');
     const started=Date.now(),executionStarted=performance.now();
@@ -314,7 +315,7 @@ async function execute() {
     const probeAfter=unobservedDirectRun?null:((callerCertificate?validateDirectRunCertificate(plan,selected,before?.snapshots?.[name]):null)??probeHash(probePlan));
     // Portable discovery is inside the same observed interval. The final
     // checkpoint must include events caused during this validation too.
-    if(portableRequested)try{portableEnd=capturePortableFacts(portablePlan,snap,environmentAfter);}
+    if(portableRequested)try{portableEnd=capturePortableFacts(portablePlan,snap,environmentAfter,createPortableBudget());}
     catch(error){portableIssue=error.code||'PORTABLE_CAPTURE_UNAVAILABLE';}
     if(portableRequested)await testRunBoundary('after-portable-validation');
     const endSnapshotStarted=performance.now();
@@ -476,12 +477,15 @@ async function main(){
     // interval. Preserve the raw local identity throughout that interval.
     const callerBefore=contextHashes();
     if(needsPortableProof){
+      // All selected imported checks share one finite caller inspection budget.
+      // Expired checks get no proof; no imported payload chooses the deadline.
+      const portableBudget=createPortableBudget();
       const plans=JSON.parse(fs.readFileSync(path.join(state,'plans-v1.json'))).plans;
       for(const selected of config.checks){
         const plan=plans[selected.name];
         if(catalog.records.some(record=>record.check===selected.name&&record.acceptance!=='untrusted'))try{
           if(plan?.selectedConfigHash!==digest(JSON.stringify(selected)))throw Error('configuration mismatch');
-          portableProofs[selected.name]=portableCallerProof({...plan,command:selected.command,probes:selected.probes||[]});
+          portableProofs[selected.name]=portableCallerProof({...plan,command:selected.command,probes:selected.probes||[]},portableBudget);
         }catch{portableProofs[selected.name]=null;}
       }
     }
@@ -490,7 +494,7 @@ async function main(){
     if(needsPortableProof&&JSON.stringify(callerBefore)!==JSON.stringify(callerRequest))
       throw Object.assign(Error('caller context changed during portable proof; no reuse is authorized'),{code:'PORTABLE_CALLER_CONTEXT_CHANGED'});
     value=await decisionCall({action:'sync',contextHashes:callerRequest,portableProofs},
-      Number(process.env.VSTATE_SYNC_TIMEOUT_MS||decisionDeadlineMs));
+      Number(process.env.VSTATE_SYNC_TIMEOUT_MS||(needsPortableProof?portableDecisionDeadlineMs:decisionDeadlineMs)));
     if(needsPortableProof)await testPortableCallerBoundary('before-publication');
     if(needsPortableProof&&JSON.stringify(callerBefore)!==JSON.stringify(contextHashes()))
       throw Object.assign(Error('caller context changed during synchronized evaluation; no reuse is authorized'),{code:'PORTABLE_CALLER_CONTEXT_CHANGED'});
