@@ -179,7 +179,7 @@ Metadata revision alone is not envelope-content authority. This review does not
 claim hostile same-user filesystem mutation is prevented by ordinary path checks,
 nor certify actual installed packaging or machine reuse.
 
-## Export ownership review in progress
+## Export ownership review result
 
 Command author commit `bfdbaab` was inspected independently. Two deterministic
 fault controls replaced the state owner while the immutable origin was read and
@@ -188,4 +188,38 @@ because its repeated selection barrier checked receipt revision but not ownershi
 This is a scope/ownership gap in the unreleased command, not a demonstrated
 recipient CURRENT result. The author was notified to retain exact owner checks
 through every export barrier and preserve cleanup of only the created destination.
-The expected refusal tests remain unchanged while the author corrects the gap.
+Commit `4407444` binds exact owner content, marker fingerprint and ancestor
+identities into each export selection barrier, including the no-write preview.
+The same two independent refusal tests then passed unchanged; the post-fsync
+failure removes only the destination inode created by this export. The selected
+historical run remains intact.
+
+The combined focused suite ran with author command fixes `2c23163`, `4407444`,
+store fixes above, and CI inspection preparation `2a3b78b`:
+
+```sh
+node --test test/portable-boundaries.test.mjs test/portable-envelope.test.mjs \
+  test/portable-store.test.mjs test/portable-command.test.mjs \
+  test/portable-host-preflight.test.mjs test/portable-ci-trust.test.mjs
+```
+
+Result: 59 tests passed, zero failed or skipped, on macOS arm64 Node 22.13.0.
+These are mechanics, fault controls and controlled verifier-output tests. They
+are not actual signatures, agent sessions, independent machines or G1 acceptance.
+
+## CI inspector preparation review
+
+The reviewed `2a3b78b` helper pins the locally selected verifier's 2.79.0 output
+contract and checks authenticated certificate identity, exact outer artifact
+SHA-256 and the inner evidence digest. It returns verification without producer
+acceptance or reuse. Pinned [GitHub CLI verification source](https://github.com/cli/cli/blob/v2.79.0/pkg/cmd/attestation/verify/verify.go)
+distinguishes authenticated certificate/timestamp fields from workflow-controlled
+statement assertions; [extension enforcement](https://github.com/cli/cli/blob/v2.79.0/pkg/cmd/attestation/verification/extensions.go)
+checks source, signer and issuer. REDUE's stricter exact comparisons are
+conservative. The helper's online mode is an explicit lookup, not proof of globally
+latest evidence; offline identity cannot claim unseen revocation or newer results.
+
+The approved workflow's origin assertion, protected signer policy, privacy review,
+actual signature verification, trust-removal semantics and independently matched
+recipient runtime remain separate G3 requirements. No workflow or trust account
+was changed in this review.
