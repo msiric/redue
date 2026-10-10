@@ -244,3 +244,41 @@ capture and a conflict-resolution binding only from identical accepted catalog
 observed at both run boundaries. A metadata revision is not input-content or
 producer-order authority. The pure helper does not implement those engine barriers;
 integration remains independently unverified.
+
+## Original-run interval review
+
+Origin author commit `c9173f5` was inspected and exercised by an independent
+actual-run control. The initial review worktree lacked the pinned development
+compiler; its first attempt stopped at that prerequisite. After a clean locked
+`npm ci --ignore-scripts`, the default macOS temporary directory exceeded the
+control-socket path limit and the next attempt stopped before recording. The
+fixture was relocated to a separately owned canonical `/private/tmp` directory;
+no models, permission changes or environment-proxy changes were involved.
+
+The established fixture uses the real local TypeScript 5.6.3 compiler with noLib
+and explicit observed global declarations. It is a controlled same-host origin
+test, not an adoption or two-machine result. The final run passed these expected
+assertions:
+
+- Fully observed baseline PASS has complete portable capture.
+- A relevant edit then restoration between start capture and child launch leaves
+  actual PASS historical but records the observed input event and refuses complete
+  portable origin. Equal ending bytes do not erase the interval event.
+- New source membership after child exit makes the PASS unstable/nonportable.
+- Stopping observation after exit removes the required ending boundary. Restart
+  selects that newer incomplete PASS, never the older baseline CURRENT.
+- The original immutable baseline run is unchanged throughout.
+
+The test used existing controlled run-boundary hooks; these are fault-injection
+controls around real compiler execution, not simulated process outcomes. Command:
+
+```sh
+node --test --test-name-pattern='real portable origin' test/portable-boundaries.test.mjs
+```
+
+Result: one complete interval-control test passed on macOS arm64 Node 22.13.0,
+approximately 11.5 seconds. That duration is a test result, not an economic claim.
+Capture retains exact bundled probe/argv binding, reviewed compiler verification,
+broad observed source/installed scope, consumed-input coverage and final observation
+after ending discovery. Outside-root discovery still refuses portability. Recipient
+publication/race validation is a separate review step.

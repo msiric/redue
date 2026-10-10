@@ -10,6 +10,9 @@ import {canonical,encodeEnvelope,parseEnvelope,inspectEnvelope,PortableEnvelopeE
 import {importEvidence,readImportedSnapshot} from '../src/portable-store.mjs';
 import {portableCommand} from '../src/portable-command.mjs';
 import {decidePortableEvidence} from '../src/portable-applicability.mjs';
+import {createRequire} from 'node:module';
+import {spawn,spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 
 // Independent controls for the facts portable comparison must retain. These
 // tests do not grant portable eligibility or replace observer interval checks.
@@ -288,4 +291,73 @@ test('resolution binds exact current accepted catalog rather than arrival order 
   const unaccepted=recipientDecision([candidate(fail,'untrusted')],localOutcome());
   assert.equal(unaccepted.reason,'PORTABLE_LOCAL_CURRENT_SELECTED');
   assert.equal(unaccepted.local_reuse_blocked,false);
+});
+
+function observedCompiler(t){
+  const base=fs.realpathSync(fs.mkdtempSync(path.join(process.platform==='darwin'?'/tmp':os.tmpdir(),'redue-origin-review-'))),
+    root=path.join(base,'project'),state=path.join(base,'redue-state'),
+    bin=fileURLToPath(new URL('../bin/redue.mjs',import.meta.url));
+  let cleanupCall=null;
+  t.after(()=>{try{if(cleanupCall&&fs.existsSync(state))cleanupCall('stop');}
+    finally{fs.rmSync(base,{recursive:true,force:true});}});
+  const put=(rel,bytes)=>{const file=path.join(root,rel);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,bytes);};
+  put('package.json',JSON.stringify({name:'independent-origin-control',version:'1.0.0',scripts:{typecheck:'tsc --noEmit'}}));
+  put('package-lock.json','{"lockfileVersion":3}');
+  // Controlled same-host origin mechanics, not useful-project adoption: noLib
+  // makes every declaration explicit and avoids unobserved ancestor candidates.
+  put('tsconfig.json',JSON.stringify({compilerOptions:{strict:true,noEmit:true,noLib:true,
+    target:'ES2022',types:[],typeRoots:['./node_modules/@types']},include:['src']}));
+  put('src/globals.d.ts','interface Array<T> {}\ninterface Boolean {}\ninterface CallableFunction {}\ninterface Function {}\ninterface IArguments {}\ninterface NewableFunction {}\ninterface Number {}\ninterface Object {}\ninterface RegExp {}\ninterface String {}\n');
+  put('src/value.ts','export const value: number = 1;\n');
+  const compiler=path.dirname(createRequire(import.meta.url).resolve('typescript/package.json'));
+  fs.cpSync(compiler,path.join(root,'node_modules/typescript'),{recursive:true});
+  fs.mkdirSync(path.join(root,'node_modules/.bin'));fs.symlinkSync('../typescript/bin/tsc',path.join(root,'node_modules/.bin/tsc'));
+  const git=spawnSync('git',['init','-q'],{cwd:root,encoding:'utf8'});assert.equal(git.status,0,git.stderr);
+  const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!['NODE_TEST_CONTEXT','NODE_TEST_WORKER_ID'].includes(key)));
+  const args=words=>[bin,'--state-dir',state,...words];
+  const call=(...words)=>{const r=spawnSync(process.execPath,args(words),{cwd:root,env,encoding:'utf8',timeout:60000});
+    assert.equal(r.status,0,r.stderr+r.stdout);return r.stdout;};
+  const selected=()=>JSON.parse(fs.readFileSync(path.join(state,'receipts-v1.json'))).checks.typecheck;
+  const paused=async phase=>{
+    for(const name of ['test-run-paused','test-run-release'])try{fs.unlinkSync(path.join(state,name));}catch(e){if(e.code!=='ENOENT')throw e;}
+    const child=spawn(process.execPath,args(['run','typecheck','--portable']),{cwd:root,
+      env:{...env,VSTATE_TEST_FAULTS:'1',VSTATE_TEST_RUN_BOUNDARY:phase},stdio:['ignore','pipe','pipe']});
+    let output='';child.stdout.on('data',x=>output+=x);child.stderr.on('data',x=>output+=x);
+    const done=new Promise(resolve=>child.on('close',code=>resolve({code,output})));
+    const until=Date.now()+15000;
+    while(!fs.existsSync(path.join(state,'test-run-paused'))&&Date.now()<until){
+      if(child.exitCode!==null)break;await new Promise(resolve=>setTimeout(resolve,10));
+    }
+    assert.equal(fs.readFileSync(path.join(state,'test-run-paused'),'utf8'),phase);
+    return {done,release:()=>fs.writeFileSync(path.join(state,'test-run-release'),'release')};
+  };
+  cleanupCall=call;
+  call('init','--recipe','typescript-direct');call('start');
+  return {base,root,state,put,call,selected,paused};
+}
+
+test('real portable origin refuses change-and-restore, post-exit membership and lost end observation',
+  {skip:process.platform!=='darwin'||process.arch!=='arm64',timeout:150000},async t=>{
+  const f=observedCompiler(t);
+  f.call('run','typecheck','--portable');const baseline=f.selected();
+  assert.equal(baseline.result,'PASS');assert.equal(baseline.portable.complete,true);
+  const immutable=path.join(f.state,'runs-v1',baseline.invocation.runId+'.json'),original=fs.readFileSync(immutable);
+  const source=fs.readFileSync(path.join(f.root,'src/value.ts'));
+  let run=await f.paused('before-launch');
+  f.put('src/value.ts','export const value: number = 2;\n');f.call('status','--sync','--json');
+  f.put('src/value.ts',source);f.call('status','--sync','--json');run.release();
+  let done=await run.done;assert.equal(done.code,0,done.output);
+  let r=f.selected();assert.equal(r.result,'PASS');assert.equal(r.portable.complete,false);
+  assert.equal(r.stable,false);assert(r.checkpoint.issues.includes('declared input event occurred during execution'));
+  assert.notEqual(r.invocation.runId,baseline.invocation.runId);
+  assert.deepEqual(fs.readFileSync(immutable),original);
+  run=await f.paused('after-exit');f.put('src/new.ts','export const added: number = 3;\n');
+  f.call('status','--sync','--json');run.release();done=await run.done;assert.equal(done.code,0,done.output);
+  r=f.selected();assert.equal(r.result,'PASS');assert.equal(r.portable.complete,false);assert.equal(r.stable,false);
+  run=await f.paused('after-exit');f.call('stop');run.release();done=await run.done;assert.equal(done.code,0,done.output);
+  r=f.selected();assert.equal(r.result,'PASS');assert.equal(r.portable.complete,false);
+  assert(r.checkpoint.issues.includes('end checkpoint unavailable'));
+  f.call('start');const status=JSON.parse(f.call('status','--sync','--json')).checks[0];
+  assert.equal(status.invocation.runId,r.invocation.runId);assert.equal(status.reuse_eligible,false);
+  assert.notEqual(status.freshness,'CURRENT');assert.deepEqual(fs.readFileSync(immutable),original);
 });
