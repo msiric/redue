@@ -2,16 +2,16 @@
 
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision 1.0, unchanged.
 
-Current conclusion: the @2 same-machine installed relocation/copy-Node slice and independent caller/origin/CI-policy controls pass. The first real two-VM attempt (38093305258) failed its producer portable-completeness gate before upload: local CURRENT did not establish complete portable origin. Receiver and models did not run. Exact-package run38093307269 passed Linux/Windows but failed macOS portable export; product38093307241 passed Linux22/24 and failed Windows POSIX-signer test mechanics and a distinct macOS initial UNVERIFIED assertion. Failures remain open or explicitly corrected below, never reclassified as product acceptance. Owner approved the exact independently reviewed signing workflow; producer acceptance is still separately gated. Claude PENDING_OWNER_ACCOUNT, actual portable model handoff NOT RUN, and no prepublication readiness claim.
+Current conclusion: exact installed source `2bc636a` passes the controlled @2 same-machine noLib export/import and policy-ownership workflow, with no recipient execution. This does not establish two-machine or model reuse. Signed producer run `38094702115` failed complete origin with an established `PORTABLE_PROBE_TIMEOUT` at the unchanged 10-second parent deadline; its internal responsible phase is still unknown and the signer was skipped. Profile run `38094703930` matches public labels/native inventory but both actual prototypes report `PORTABLE_RUNTIME_UNSUPPORTED`; complete profile acceptance is not established. Exact-package run `38094703938` passes Linux/Windows and fails the macOS complete-origin assertion; that different VM's cause cannot be inherited from the signed run. Product `38094703929` passes Linux22/24/macOS; Windows test failures are established as CRLF conversion of reviewed workflow bytes and a POSIX-only expected path; the focused test correction is reviewed but native CI remains pending. G2/G3 and prepublication readiness remain incomplete.
 
-Agreed Day 0: 2026-10-10 21:24 UTC (owner confirmed). First substantive review: 2026-10-13 21:24 UTC. Daily concise progress summaries. Additional metered spending is $0/day and $0 total for the first 72 hours; only established subscription-included capacity is allowed. Standard public GitHub-hosted validation VMs are now approved: two independent macos-26 ARM64 profile jobs first. Owner confirmed 10 MiB included artifact storage, one-day retention and no paid usage; signing and producer-trust policy need owner review. Claude remains PENDING_OWNER_ACCOUNT. Provisioning and blocked time count from kickoff; dates will not be reset. Initial targets remain Day 14 demonstration / Day 28 prepublication readiness, uncalibrated until the real G1 slice.
+Agreed Day 0: 2026-10-10 21:24 UTC (owner confirmed). First substantive review: 2026-10-13 21:24 UTC. Daily concise progress summaries. Additional metered spending is $0/day and $0 total for the first 72 hours; only established subscription-included capacity is allowed. Standard public GitHub-hosted validation VMs are now approved: two independent macos-26 ARM64 profile jobs first. Owner confirmed 10 MiB included artifact storage, one-day retention and no paid usage; exact signing enablement is approved, while producer-trust policy still needs owner review. Claude remains PENDING_OWNER_ACCOUNT. Provisioning and blocked time count from kickoff; dates will not be reset. Initial targets remain Day 14 demonstration / Day 28 prepublication readiness, uncalibrated until the real G1 slice.
 
 | Gate | Current status | Evidence / outstanding prerequisite |
 | --- | --- | --- |
 | G0 | Partial | Day 0/caps/cadence and standard public runners approved; source/native preflight reviewed. Two independent macos-26 inventory jobs passed; 10 MiB included storage confirmed. Signer workflow enablement approved; exact producer policy, receiving-agent machine and Claude account unresolved. |
-| G1 | Technical slice passes on prototype | Actual compiler origin/export/import/independent recipient CURRENT and relevant-edit rejection, with independent interval/publication controls. Exact b0cdd5e installed candidate passes; calibration forecast and final profile acceptance pending. |
-| G2 | Not run | Hosted profile inventory passed; reviewed cross-machine runtime/input boundary and actual model preflights pending. Claude PENDING_OWNER_ACCOUNT. |
-| G3 | Pending live producer | Authentication/current-policy implementation independently reviewed; exact signing workflow approved. No live successful signature or accepted producer policy. |
+| G1 | Same-machine technical slice passes | Exact 2bc636a installed noLib origin/export/import independently returns eligible PASS; unrelated edit CURRENT/relevant edit STALE and policy ownership pass. Not useful-project, model or final profile acceptance. |
+| G2 | Blocked preconditions / actual reuse not run | Independent inventory matches, but current hosted complete-origin/runtime prototype gates fail. Receiving-agent machine and Claude approval pending; no failed prerequisite launches models. |
+| G3 | Producer gate failed; signer skipped | Exact signing workflow is owner-approved/enabled. Run38094702115 incomplete origin/established probe timeout; no live successful signature or accepted producer policy. |
 | G4 prepublication | Not ready | G1–G3, V01–V22, independent review, final bytes and economics outstanding. |
 | Publication / postpublication | Pending owner approval | No main merge, release tag or npm operation in this milestone. |
 | External usage | Not started | Owner-approved willing participants separate from technical gates. |
@@ -20,22 +20,30 @@ Integration owner: root (Lane A). One writer per shared interface: root owns CLI
 
 | Task | Owner / independent reviewer | Branch and owned interface | Current evidence / next action |
 | --- | --- | --- | --- |
-| PE-01 resources/profile | Owner + C / integration | Local G0 record + storage-free workflow | Two independent standard macos-26 inventory jobs passed; storage approved. Signer and Claude decisions pending. |
+| PE-01 resources/profile | Owner + C / integration | Local G0 record + storage-free workflow | Standard macos-26/storage/signing enablement approved. Current labels/native inventory match but prototypes reject; receiving-agent resource, Claude and exact producer policy pending. |
 | PE-02 minimum decisions | A/B / C | `portable-evidence-decisions.md` | D1–D3 independently challenged; no known critical defect within constrained same-host slice. Cross-machine identity remains separately reviewed work. |
 | PE-03 fresh origin + export | A / C | Core/CLI | Real within-interval capture passes; old origin cannot be repaired; ownership/selection and event guards independently tested. |
 | PE-04 safe envelope/inspect/import | B / C | Envelope/store/pure decision | Strict bounded parsing, explicit exact-digest acceptance, durable separate import selection, lost-selector FAIL replay controls pass. |
 | PE-05 relocation slice | A / C | Recipient/catalog/cached | Actual independently initialized checkout returns eligible imported PASS with no runs-v1. Relevant edit, newer unstable selection and publication races prevent reuse. |
 | PE-06 host handoff | D / C | Policy/JSON/preflight | Installed/imported reporting guide; no-model gate and safe instruction updates pass. Actual portable model behavior NOT RUN. |
-| PE-07 machine profile | A / C | Runtime + preflight | Actual independent profiles match; startup/default config and full content projection under review; no portable equivalence inferred from runner label or OS version. |
+| PE-07 machine profile | A / C | Runtime + preflight | Current actual runner labels/native inventory match; both full runtime prototypes report PORTABLE_RUNTIME_UNSUPPORTED. Root profiles the actual phase under independent review; no label equivalence or deadline relaxation. |
 | PE-08 producer trust | B / C | CI authentication preparation | Exact policy/tool/artifact authentication hardening under review; no automatic acceptance. |
-| PE-09 CI route | B+A / C+owner | Proposed workflow | Signing permissions and trust rule not enabled; no live authenticated producer yet. |
-| PE-10 installed handoff | D / C | Installed smoke | Exact b0cdd5e installed source passes two-check relocation and both-host policy updates; final release artifact pending. |
+| PE-09 CI route | B+A / C+owner | Proposed workflow | Exact workflow5770b7f… owner-approved and enabled; actual producer incomplete, signer skipped. Producer trust still unapproved; no live authenticated accepted artifact. |
+| PE-10 installed handoff | D / C | Installed smoke | Exact2bc636a installed controlled relocation and both-host policy ownership pass; prior actual @1→@2 upgrade/FAIL replay evidence retained. Final release bytes pending. |
 | PE-11 integrated review | C / integration | Adversarial matrix | Independent same-host origin/publication tests pass; complete V01–V22 and G2/G3 pending. |
 | PE-12 release preparation | A / owner | Task branch only | Draft PR #12 and normal task push; final artifact/economics/combined platform acceptance outstanding; no main/public actions. |
 
 Baseline inspected: `main` and `origin/main` at `b4f286034f43021a74f1babf2c1d0fee5df2a9e5`; package `@redue/cli@0.1.0-alpha.10`. No pre-existing portable implementation or open PR. Owner plan was the only untracked content and is preserved verbatim. Existing worktrees and historical artifacts remain intact.
 
-Current critical boundaries: reviewed @2 runtime/content projection is implemented but caller interval race acceptance and two-machine transfer are pending; complete compiler discovery retains external absent candidates, so ordinary default-library lookup remains unsupported in the initial portable slice. Do not strip these facts, change the debugger project or claim two-machine results from local relocation.
+Current critical boundaries: caller/origin/publication and current-policy controls have independent review; hosted runtime completeness now needs bounded diagnosis. Root local `e33c6a2b2dd64e884a7e33c05dffd6f341ddfb56`, remote `2bc636acf96b8652ff9dcac1d3aa846a3a9532d2`, with current uncommitted profiling work explicitly outside the preserved 2bc artifact. Complete compiler discovery retains external absent candidates, so ordinary default-library lookup remains unsupported. Do not strip facts, change the debugger project or claim model/two-machine acceptance from local relocation.
+
+Latest exact bytes: `.local/portable-evidence/candidates/2bc636a/redue-cli-0.1.0-alpha.10.tgz`, SHA-256 `10ab71da58cd805010900a610b2ce0cb50adee375d697e898d90b8e049c0d71b`. Local and CI downloaded bytes match; CI actual PR-merge source `8d1f5d14dad3891f80f315178cc93c58e2c10e18` shares tree `529d706f3eafa4bfcb970c11aeacef46dfc317db` with 2bc636a. Not public alpha.10 bytes. Actual installed origin `9d6870ed-0bf3-4acd-9248-fcbb96c50fc5`, digest `83560d36ec9783697e61ee8a2b513304bae7d77f9d3c5b2e258f334838ce6c66`; recipient no local invocation/run. Policy updates/idempotence/edited refusals/removal pass for both hosts, not their model behavior. Local retained output: `.local/portable-evidence/installed-2bc636a.log`.
+
+Full coherent archive `59009f8e6ab66c70162871ab10a40da8cfb58ea9` finished 314 tests: 297 PASS, one FAIL, 16 platform skips. The failed test asserted structured refusal through the human `reason` field; the reviewed correction uses `reason_code`. Keep the original failure; C independently reran the corrected copied-Node test on frozen `2beab5e8a4df80cd351402c27a915c7750d6841d`: 1/1 PASS in 43,121.49ms, not a full rerun/PASS claim. Root current uncommitted bounded native profiling test passed 1/1 in 8.095s; C independently reviewed the bounded diagnostic route GO, without hosted phase attribution. That local duration is not the hosted timeout's established internal cause.
+
+Current artifact allowance snapshot: 4,449,062 active bytes +5MiB signing reservation +512KiB package reservation =10,216,230 bytes, below the owner-approved 10MiB. This is not permission for additional unreserved uploads; serialize/check usage before another attempt.
+
+Next highest-value action: integrate only independently reviewed diagnostic changes, collect their bounded runtime/probe phase evidence before any repeated hosted attempt, run the reviewed Windows LF/native-path test correction in native CI, and retain unchanged deadlines/guard refusals. Await the already-requested receiving-agent resource/Claude approval and exact producer-policy approval without repeated requests. No main merge, model trial, publication or trust change is inferred from these records.
 
 ## Daily progress — 2026-10-10 UTC
 
@@ -51,7 +59,7 @@ Blocked ledger: G2 Claude account sinceDay0; G2 profile projection pending actua
 
 Next: commit reviewed preflight/current records, fetch/compare/push task branch, prepare draft PR, run two storage-free profile jobs and standard shared regressions. Pack new exact source/checksum for installed acceptance after coherent review. Resume record gives owners, commits, artifact identities and remaining gates.
 
-## Current checkpoint — 2026-10-10 UTC, storage and versioned profile
+## Historical checkpoint — 2026-10-10 UTC, storage and versioned profile
 
 Owner confirmed 10 MiB of included storage with one-day retention. Exact-package run38091702983 passed macOS26/Linux/nativeWindows install/recording/policy-upgrade/removal. Actual checked-out source was GitHub PR merge1eb27106beff80303e5e8434e894c6e2adee7bfd; tree31ab2ee2374c22d096c6a0d99bd1246f0189cfc5 equals branch006b8170ddf754da77d1a01ccab43656e6129dfe. Artifact SHAab07ae0300c9b779b564d23e2eb81b9a4aa718f0de3254ccd899a54cd25ed0ff. This precedes @2 and is not final profile acceptance. Its same-job relocation remains same-machine acceptance. Product run38091703030: Linux22/24 passed; macOS/Windows pending at this checkpoint.
 
@@ -67,7 +75,7 @@ Current producer-policy registry has private minted snapshots and selected-autho
 
 Blocked ledger: Claude account since Day0; signing/producer policy awaits exact owner review. Storage block ended on owner confirmation; implementations continue. No model trial, signing, trust change, new spending, publication or external usage. G0 partial; G1 technical slice; G2/G3 incomplete; G4 not ready. Day14/28 forecast remains conditional, with first substantive calibration2026-10-13 21:24UTC. Next: independently close caller guard, execute the approved two-VM evidence-only transfer, prepare exact signing workflow for owner review, then eligible actual-host trials when their specific prerequisites hold.
 
-## Current checkpoint — 2026-10-10 UTC, independently controlled authority boundaries
+## Historical checkpoint — 2026-10-10 UTC, independently controlled authority boundaries
 
 Source7f32838 includes raw caller interval guards, late origin context guard, minted explicit CI import authorization and persisted CI policy coupling. Independent actual copied-Node mutation tests pass: both caller publication phases withdraw reuse; a late origin change preserves the actual PASS but makes the newest origin incomplete/non-reusable. Current policy coupling tests16/16 pass after exact outer/inner subject and refresh-mode drift counterexamples. Removing trust cannot reveal older passing evidence. No live signer, changed producer policy, model execution, publication or main merge.
 
@@ -79,7 +87,7 @@ Owner confirmed10MiB included artifact allowance. Latest repo-active usage4,132,
 
 G0partial; G1 technical mechanisms pass with final acceptance pending; G2 actual two-machine/agents pending; G3 live authenticated route pending; G4 not ready. Claude blocked sinceDay0 and signing approval are separate lane blockers. Storage block ended on owner confirmation. No forecast reset, no universal portability/economics or external adoption claim.
 
-## Current checkpoint — 2026-10-10 UTC, actual runner failures and signing approval
+## Historical checkpoint — 2026-10-10 UTC, actual runner failures and signing approval
 
 Remote source88e8828620c454d69ada41d4593d6105dc2b7d21; local source8397e87 plus reviewed signing enablement pending commit. Frozen local full suite59009f8 is running separately: its result is not yet PASS. No model trial launched.
 
