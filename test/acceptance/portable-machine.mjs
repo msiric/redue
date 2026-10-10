@@ -53,6 +53,28 @@ export function requireImportedEligibility(status,{digest,originRunId}){
   assert.equal(check?.imported_evidence?.digest,digest);assert.equal(check?.imported_evidence?.origin_run_id,originRunId);
   return check;
 }
+// Read-only identity inventory of THIS job. It deliberately avoids compiler or
+// portable-runtime preflight so a cold capture is not warmed by this report.
+export function readMachineHostFacts(root,{spawn=spawnSync,env=process.env}={}){
+  const failure=()=>{throw Object.assign(Error('Required read-only machine identity is unavailable'),{code:'MACHINE_HOST_FACTS_UNAVAILABLE'});};
+  const command=(file,args,input)=>{
+    const result=spawn(file,args,{cwd:root,input,encoding:'utf8',timeout:5000,maxBuffer:32768,stdio:['pipe','pipe','pipe']});
+    if(result?.status!==0||result.error||typeof result.stdout!=='string'||Buffer.byteLength(result.stdout)>32768)failure();
+    return result.stdout.trim();
+  };
+  const device=command('/bin/df',['-P',root]).split('\n').at(-1).trim().split(/\s+/)[0];
+  if(!/^\/dev\/disk\d+(?:s\d+)*$/.test(device))failure();
+  let volume;
+  try{volume=parsePortableJson(command('/usr/bin/plutil',['-convert','json','-o','-','-'],command('/usr/sbin/diskutil',['info','-plist',device])));}
+  catch{failure();}
+  if(typeof volume?.FilesystemType!=='string'||volume.FilesystemType.toLowerCase()!=='apfs'||volume.Writable!==true)
+    throw Object.assign(Error('Machine checkout requires the reviewed writable APFS profile'),{code:'MACHINE_FILESYSTEM_UNSUPPORTED'});
+  const version=command('/usr/bin/sw_vers',['-productVersion']),build=command('/usr/bin/sw_vers',['-buildVersion']);
+  if(!/^\d{1,2}\.\d{1,2}(?:\.\d{1,2})?$/.test(version)||!/^\d{1,2}[A-Z][a-zA-Z0-9]{1,12}$/.test(build))failure();
+  const label=key=>typeof env[key]==='string'&&/^[a-zA-Z0-9_.-]{1,100}$/.test(env[key])?env[key]:null;
+  return {runner:{imageOS:label('ImageOS'),imageVersion:label('ImageVersion'),environment:label('RUNNER_ENVIRONMENT')},
+    system:{os:process.platform,arch:process.arch,release:os.release(),version,build,filesystem:'apfs',writable:true}};
+}
 const originReasons=new Set(['PORTABLE_BOUNDARY_CHANGED','PORTABLE_CAPTURE_UNAVAILABLE','PORTABLE_CALLER_UNVERIFIED',
   'PORTABLE_CONTRACT_UNSUPPORTED','PORTABLE_COVERAGE_UNSUPPORTED','PORTABLE_DISCOVERY_INCOMPLETE','PORTABLE_EXTERNAL_INPUT',
   'PORTABLE_INPUT_CHANGED','PORTABLE_INTERPRETATION_UNSUPPORTED','PORTABLE_OBSERVATION_INCOMPLETE','PORTABLE_PATH',
@@ -126,7 +148,7 @@ export async function runMachine(options){
     throw Object.assign(Error('Producer and receiver share one boot; no two-machine acceptance'),{code:'MACHINE_BOUNDARY_NOT_INDEPENDENT'});
   const base=fs.realpathSync(fs.mkdtempSync('/tmp/redue-machine-')),root=path.join(base,'Checkout 空间'),state=path.join(base,'redue-state'),prefix=path.join(base,'prefix'),binary=path.join(prefix,'bin','redue');
   const observations=[],calls=[],put=(name,value)=>{const file=path.join(root,name);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,value);};
-  let started=false,originPrecondition=null;
+  let started=false,originPrecondition=null,hostFacts=null;
   function exec(argv,{cwd=base,allowFailure=false}={}){const before=performance.now(),result=spawnSync(argv[0],argv.slice(1),
     {cwd,env:process.env,encoding:'utf8',timeout:120000,maxBuffer:8*1024*1024});
     calls.push({kind:argv[0]===binary?'redue':path.basename(argv[0]),args:argv[0]===binary?argv.slice(5).map(value=>path.isAbsolute(value)?'<owned-path>':value):[],milliseconds:performance.now()-before,status:result.status});
@@ -146,6 +168,7 @@ export async function runMachine(options){
       reuse_eligible:c?.reuse_eligible,reason_code:c?.reason_code??null,evidence_source:c?.evidence_source??null,
       imported_evidence:c?.imported_evidence??null,run_id:c?.invocation?.runId??null});return status;}
   try{
+    hostFacts=readMachineHostFacts(base);
     exec(['npm','install','--global','--prefix',prefix,'--registry=https://registry.npmjs.org','--no-audit','--no-fund',tarball]);
     const installed=path.join(prefix,'lib/node_modules/@redue/cli');
     const metadata=JSON.parse(fs.readFileSync(path.join(installed,'package.json')));assert.equal(metadata.name,'@redue/cli');
@@ -193,14 +216,14 @@ export async function runMachine(options){
       assert(!fs.existsSync(path.join(state,'runs-v1')));assert(calls.every(c=>c.kind!=='redue'||c.args[0]!=='run'));
     }
     return {schema:1,role,source,package_sha256:expected,metadata_version:metadata.version,unpublished_candidate:true,
-      profile,node_physical_identity:nodePhysical,boot_identity:boot,
+      profile,host_facts:hostFacts,node_physical_identity:nodePhysical,boot_identity:boot,
       independent_boot:role==='receiver'?boot!==transferred.manifest.boot_identity:null,
       raw_node_identity_differs:role==='receiver'?nodePhysical!==transferred.manifest.node_physical_identity:null,
       evidence_digest:digest,origin_run_id:originRunId,observations,calls,
       controlled_digest_acceptance:role==='receiver',authenticated_ci_producer:false,models_launched:0,
       equivalent_receiver_execution:role==='receiver'?false:null,
       scope:'controlled noLib mechanics; normal default-library external queries and useful-project acceptance not established'};
-  }catch(error){error.machine_evidence={role,source,package_sha256:expected,observations,calls,origin_precondition:originPrecondition,models_launched:0};throw error;
+  }catch(error){error.machine_evidence={role,source,package_sha256:expected,observations,calls,host_facts:hostFacts,origin_precondition:originPrecondition,models_launched:0};throw error;
   }finally{
     if(started)exec([binary,'--config',path.join(root,'redue.config.json'),'--state-dir',state,'stop'],{cwd:root,allowFailure:true});
     fs.rmSync(base,{recursive:true,force:true,maxRetries:5,retryDelay:200});

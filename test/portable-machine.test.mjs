@@ -7,7 +7,7 @@ import childProcess from 'node:child_process';
 import {syncBuiltinESMExports} from 'node:module';
 import {createHash} from 'node:crypto';
 import {canonical,encodeEnvelope,PORTABLE_INTERPRETATION} from '../src/portable-envelope.mjs';
-import {machineOptions,readMachineTransfer,requireImportedEligibility,runMachine,summarizeMachineOrigin} from './acceptance/portable-machine.mjs';
+import {machineOptions,readMachineTransfer,requireImportedEligibility,runMachine,summarizeMachineOrigin,readMachineHostFacts} from './acceptance/portable-machine.mjs';
 const hash=value=>createHash('sha256').update(value).digest('hex'),source='1'.repeat(40),packageSha='2'.repeat(64);
 function fixture(t){
   const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-machine-test-')));t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
@@ -74,4 +74,30 @@ test('local CURRENT never repairs an incomplete portable origin and diagnostics 
   const redacted=summarizeMachineOrigin({portable:{reason:privateValue,interpretation:privateValue},checkpoint:{issues:[privateValue,'declared input event occurred during execution']}});
   assert(!JSON.stringify(redacted).includes(privateValue));assert.deepEqual(redacted.checkpoint_issue_codes,['OTHER_PRIVATE_ISSUE','INPUT_EVENT']);
   assert.equal(redacted.reason,'OTHER_PRIVATE_REASON');assert.equal(redacted.interpretation,null);assert.equal(redacted.portable_complete,false);
+});
+
+function hostStub({filesystem='apfs',writable=true,version='26.5',build='25G100',device='/dev/disk3s1',oversize=false,status=0}={}){
+  const calls=[],spawn=(file,args,options)=>{calls.push({file,args,options});let stdout;
+    if(file==='/bin/df')stdout=`Filesystem 512-blocks Used Available Capacity Mounted on\n${device} 100 10 90 10% /private/owned-space`;
+    else if(file==='/usr/sbin/diskutil')stdout='<owned volume plist>';
+    else if(file==='/usr/bin/plutil')stdout=JSON.stringify({FilesystemType:filesystem,Writable:writable,MountPoint:'/private/secret/path',VolumeName:'private'});
+    else if(file==='/usr/bin/sw_vers')stdout=args[0]==='-productVersion'?version:build;
+    else throw Error('Unexpected command: inventory must not probe the compiler/runtime');
+    return {status,stdout:oversize?'x'.repeat(32769):stdout};};return {calls,spawn};
+}
+test('machine report reads this job bounded public identity without warming runtime or exposing private fields',()=>{
+  const f=hostStub(),report=readMachineHostFacts('/owned/checkout',{spawn:f.spawn,env:{ImageOS:'macos26',ImageVersion:'20261001.1',RUNNER_ENVIRONMENT:'github-hosted',TOKEN:'secret',HOME:'/private/home'}});
+  assert.deepEqual(report.runner,{imageOS:'macos26',imageVersion:'20261001.1',environment:'github-hosted'});
+  assert.equal(report.system.version,'26.5');assert.equal(report.system.build,'25G100');assert.equal(report.system.filesystem,'apfs');assert.equal(report.system.writable,true);
+  assert.equal(f.calls.length,5);assert(f.calls.every(c=>c.options.timeout===5000&&c.options.maxBuffer===32768));
+  assert.deepEqual(f.calls[0].args,['-P','/owned/checkout']);assert.equal(f.calls[2].options.input,'<owned volume plist>');
+  assert(!JSON.stringify(report).includes('secret'));assert(!JSON.stringify(report).includes('/private/'));
+  const invalid=readMachineHostFacts('/owned/checkout',{spawn:hostStub().spawn,env:{ImageOS:'https://secret.invalid',ImageVersion:'a'.repeat(101),RUNNER_ENVIRONMENT:'/private/home'}});
+  assert.deepEqual(invalid.runner,{imageOS:null,imageVersion:null,environment:null});
+});
+test('missing, malformed and non-writable filesystem identity fail before any installation or compiler command',()=>{
+  for(const settings of [{filesystem:'hfs'},{writable:false},{writable:'true'},{device:'https://private.invalid'},{version:'private-source'},{build:'/private/path'},{oversize:true},{status:1}]){
+    const f=hostStub(settings);assert.throws(()=>readMachineHostFacts('/owned/checkout',{spawn:f.spawn,env:{}}),error=>['MACHINE_HOST_FACTS_UNAVAILABLE','MACHINE_FILESYSTEM_UNSUPPORTED'].includes(error.code));
+    assert(f.calls.every(c=>['/bin/df','/usr/sbin/diskutil','/usr/bin/plutil','/usr/bin/sw_vers'].includes(c.file)));
+  }
 });
