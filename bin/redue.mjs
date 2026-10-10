@@ -50,9 +50,16 @@ Commands:
 No checks run in the background. Direct commands outside redue create no receipts.`;
 
 function error(message){console.error(`redue: ${message}`);process.exit(2);}
+// stdout/stderr can be asynchronous pipes. Finish queued output before the
+// existing explicit exit, including large JSON previews and status responses.
+async function finish(status=0){
+  for(const stream of [process.stdout,process.stderr])
+    await new Promise((resolve,reject)=>stream.write('',error=>error?reject(error):resolve()));
+  process.exit(status);
+}
 const args=process.argv.slice(2);
-if(args.length===1&&args[0]==='--version'){console.log(version);process.exit(0);}
-if(args.includes('--help')||args.includes('-h')||!args.length){console.log(help);process.exit(0);}
+if(args.length===1&&args[0]==='--version'){console.log(version);await finish(0);}
+if(args.includes('--help')||args.includes('-h')||!args.length){console.log(help);await finish(0);}
 let configFile=null,stateOverride=null;
 for(let i=0;i<args.length;){
   if(args[i]==='--config'||args[i]==='--state-dir'){
@@ -64,7 +71,7 @@ for(let i=0;i<args.length;){
 const command=args.shift();
 if(command==='evidence'&&args[0]==='inspect'){
   try{await portableCommand(args);}catch(e){error(`${e.code||'PORTABLE_UNAVAILABLE'}: ${e.message}`);}
-  process.exit(0);
+  await finish(0);
 }
 try{configFile??=command==='init'||stateOverride&&['stop','remove-state'].includes(command)?
   path.resolve(fs.existsSync('redue.config.json')||!fs.existsSync('vstate.config.json')?'redue.config.json':'vstate.config.json'):discoverConfig();}
@@ -73,7 +80,7 @@ if(fs.existsSync(path.dirname(configFile)))configFile=canonicalConfig(configFile
 if(command==='agent'){
   try{await agentCommand(args,{configFile,stateOverride,entry:fileURLToPath(import.meta.url)});}
   catch(e){error(e.message);}
-  process.exit(0);
+  await finish(0);
 }
 if(!['init','start','stop','status','detail','explain','run','remove-state','evidence'].includes(command))
   error(`unknown command ${command||'<none>'}; use --help`);
@@ -150,7 +157,7 @@ if(command==='init'){
       console.log('Use redue status first. --sync can establish applicability, but may cost more than rerunning a cheap check.');}
   } else if(unsupported&&!json)console.log(`No config written: ${summary.issue||'unsupported discovery boundary'}.`);
   if(json)console.log(JSON.stringify({...summary,proposed_config:discovery.config}));
-  process.exit(0);
+  await finish(0);
 }
 function printLifecycle(output,action,machine){
   if(machine){process.stdout.write(output);return;}
@@ -166,13 +173,13 @@ function printLifecycle(output,action,machine){
 // or installed compiler to remain present. No command is run from this path.
 if(stateOverride&&['stop','remove-state'].includes(command)){
   const runtime=path.join(stateOverride,'project-runtime-v1.json');
-  if(!fs.existsSync(runtime)){console.log('No REDUE state exists at this path.');process.exit(0);}
+  if(!fs.existsSync(runtime)){console.log('No REDUE state exists at this path.');await finish(0);}
   mark('client.engine_submit');
   const result=spawnSync(process.execPath,[engine,runtime,command==='stop'?'stop':'uninstall'],
     {cwd:os.tmpdir(),stdio:['inherit','pipe','inherit'],encoding:'utf8',env:process.env});
   if(result.error)error(result.error.message);
   if(result.stdout)printLifecycle(result.stdout,command,json);
-  process.exit(result.status??2);
+  await finish(result.status??2);
 }
 let publicConfig;
 try{publicConfig=JSON.parse(fs.readFileSync(configFile,'utf8'));}
@@ -308,12 +315,12 @@ const serialized=JSON.stringify(runtime,null,2)+'\n';
 if(command==='evidence'){
   try{await portableCommand(args,{configFile,stateOverride,root,runtime,publicConfig});}
   catch(e){error(`${e.code||'PORTABLE_UNAVAILABLE'}: ${e.message}`);}
-  process.exit(0);
+  await finish(0);
 }
 const maintenance=command==='stop'||command==='remove-state';
 if(maintenance&&!fs.existsSync(runtimeFile)){
   console.log(`No REDUE state exists for ${configFile}.`);
-  process.exit(0);
+  await finish(0);
 }
 if(!maintenance)fs.mkdirSync(state,{recursive:true,mode:0o700});
 if(!maintenance&&fs.existsSync(runtimeFile)){
@@ -331,7 +338,7 @@ if(!maintenance&&fs.existsSync(runtimeFile)){
 if(command==='status'&&!sync){
   const value=readCachedStatus(state,publicConfig.checks,{configFile:runtimeFile,root});
   console.log(json?JSON.stringify(value):renderStatus(value,{short}));
-  process.exit(0);
+  await finish(0);
 }
 
 const details=command==='detail'||command==='explain';
@@ -351,7 +358,7 @@ if(command==='run'){
   });
   process.off('SIGINT',interrupt);process.off('SIGTERM',terminate);
   if(outcome.error)error(outcome.error.message);
-  process.exit(outcome.status??(outcome.signal?128+os.constants.signals[outcome.signal]:1));
+  await finish(outcome.status??(outcome.signal?128+os.constants.signals[outcome.signal]:1));
 }
 mark('client.engine_submit');
 const result=spawnSync(process.execPath,[engine,runtimeFile,internal,...(check?[check]:[])],
@@ -367,4 +374,4 @@ if(result.stdout){
     else console.log(details?renderExplain(value,check):renderStatus(value,{short}));
   }else printLifecycle(result.stdout,command,json);
 }
-process.exit(result.status??1);
+await finish(result.status??1);
