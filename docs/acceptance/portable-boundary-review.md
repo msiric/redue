@@ -17,6 +17,9 @@ that distinction rather than repairing origin from a later local CURRENT respons
 The bounded instrumented capture at `57c3a3d` has independent source review;
 it is preparation for one fixed diagnostic attempt, not a resolved timeout or
 hosted applicability result.
+That attempt identified both portable captures timing out during complete
+dyld-cache consumption; a proposed portable-only budget adjustment remains
+unimplemented/unvalidated and grants no new eligibility.
 REDUE-PE-001 G1–G4 are not certified by
 this document. Baseline inspected: `b4f286034f43021a74f1babf2c1d0fee5df2a9e5`.
 
@@ -911,3 +914,55 @@ linked read-only; no installation scripts ran. The first direct worktree attempt
 could not import its absent `yaml` dependency (three other tests passed); the
 explicit archive run repaired only that test prerequisite. Native Windows
 revalidation remains pending, and its earlier two failures are preserved.
+
+## Captured hosted cause and bounded remedy proposal
+
+Independently parsed all 90 projected rows from signed producer `38095795547`,
+source `3f8117c97973a4415a7341ac826975853123dc00`, package SHA-256
+`7e635a96da36418a364bea454a6170ac793430e3310f936c1f09726c40e9f110`.
+Both actual portable child processes enumerate 13 members totaling 5,820,973,056
+bytes and expire at their enclosing 10-second deadline while consuming member 5.
+Neither logs cache completion or the beginning of compiler discovery. Member 4 is
+the last fully completed member in each capture: 2,678,898,688 bytes cumulatively.
+The last progress reports are 3,349,987,328 and 3,618,422,784 bytes, respectively;
+progress is not completed validation. Parent totals are 10,038.1 and 10,009.0 ms.
+In the first capture member 1 reports 4340 ms reading and 987 ms hashing, member 4
+1292/283 ms, and partial member 5 1448/324 ms. These instrumented partial samples
+establish cache consumption as the timed-out phase and show read cost dominates
+those measured segments; they do not establish its underlying storage cause or a
+complete uninstrumented duration. Historical PASS/local healthy CURRENT remain
+separate from incomplete portable origin/facts absent. No upload, signer or model
+followed the failed gate.
+
+Current enclosing limits were traced: each original beginning/end capture uses
+the fixed portable child deadline independently; cache consumption has its own
+cooperative limit inside that child. Caller proof happens before the control
+timer. Recipient full capture occurs inside the daemon synchronized request.
+Ordinary macOS control/checkpoint default is 15 seconds, Windows 30; ordinary
+compiler/certificate probes retain their own 10-second limits. The acceptance
+command envelope is 120 seconds, producer job 20 minutes and signer 8 minutes.
+An increase to only the cache timer cannot defeat the enclosing child deadline;
+increasing only the child can leave recipient IPC expiring before its response.
+
+The smallest defensible proposal is a portable-only finite resource envelope:
+30 seconds per origin capture, 25 seconds cooperative complete cache inspection,
+and 45 seconds for an imported-evidence control decision. Caller and daemon
+portable-validation loops should each share a 30-second monotonic aggregate
+budget, with each built-in child limited by remaining time, so multiple accepted
+checks cannot multiply the control path into many minutes. Other recipes/probes
+and ordinary control decisions retain current limits. These numbers provide
+explicit headroom for the measured partial throughput, not a guaranteed success
+forecast. No automatic retries, prewarming, member omission or certificate cache
+is proposed. Every complete byte/directory/runtime check, both execution
+boundaries, post-work catch-up, raw caller interval, selected receipt/catalog and
+durable publication guard must remain authoritative. Expiry is non-reuse.
+
+This is an availability/resource change, not a new equivalence/trust exception or
+changed fact identity, provided those conditions hold. It needs coherent source
+and independent review before implementation is called accepted, plus controlled
+expiry, multi-check budget, during-work edit/restore, cancellation and newer
+selection tests. `spawnSync` can defer signal delivery up to the hard process
+bound; tests must preserve the actual interrupted outcome and lock ownership,
+not promise immediate cancellation. No further remote attempt is authorized by
+this proposal alone. Record the finite resource decision and account for its
+worst case under existing owner caps; no permission or workflow widening follows.
