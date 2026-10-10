@@ -1,7 +1,47 @@
 # Portable-evidence host preflight
 
-**Current installed-mechanics conclusion (2026-10-11): PASS, limited same-host
-controlled fixture; model behavior and independent-machine acceptance NOT RUN.**
+**Current conclusion (2026-10-11): installed @2 controlled-fixture export/import,
+receipt-preserving upgrade and policy ownership checks PASS on one macOS machine.
+The first hosted producer stopped at an incomplete-portable-origin precondition;
+receiver and models did not run. Cross-agent, two-machine and live authenticated CI
+acceptance remain open.**
+
+Current exact tested source is `b4c33b193740d6997daa650eecd5f665d58a3b97`,
+`redue-cli-0.1.0-alpha.10.tgz`, SHA-256
+`ec4b7cabdc0ad8d41850b947881730dbd2367c00d91a1935fd07c04624767f48`.
+These are unreleased candidate bytes, not public alpha.10. The real local producer
+recorded origin `7a9a699d-9c7b-4f92-aa05-41e69c447c14`, digest
+`996b50d8a2e6c5411bdb37b390403b8793dc02cb1891fb4ea766d292d27b3324`;
+only an envelope and manifest traveled (23,246 bytes). A same-boot receiver was
+refused, not counted as a second machine. The hosted run `38093305258` reached
+local CURRENT/PASS but did not establish complete portable origin; its cause is
+unresolved. No upload, receiver or model followed that failed gate.
+
+[`portable-upgrade-smoke.mjs`](../../test/acceptance/portable-upgrade-smoke.mjs)
+tests the actual old `b0cdd5e` @1 tarball against these @2 bytes, rather than editing
+an old receipt. It passed same-state stop/start history/config preservation,
+obsolete-origin refusal, and old PASS replay after a genuine newer FAIL. Old origin
+`b63d4e88-21c0-4530-8d93-53913206c4fa` remained historical PASS and STALE;
+selected FAIL `4d0d28cb-70ef-425d-82b2-75bb4719bd84` was unchanged after refusal.
+The independently selected policy fixture established imported eligibility with
+no recipient execution, then tested published alpha.10 Codex and Claude policy
+update, edited-content refusal and removal. User instructions, config and import
+bytes remained intact. Final reassessment returned eligible PASS; that observation
+is not a promise that arbitrary setup edits preserve CURRENT.
+
+Both upgrade attempts remain recorded locally. Attempt 1 used `--state-dir` for
+agent setup and was correctly refused by the published package. Agent file
+setup/removal uses only the selected config and refuses machine-local state
+embedding. Attempt 2 corrected this fixture invocation and passed. CLI/status/run
+operations retained their explicitly selected owned state. No permissions changed,
+models ran or receipts were deleted; owned experiment processes/installations were
+cleaned. See [acceptance pointers](portable-acceptance-map.md) for the remaining
+V01–V22 gaps. Passing mechanics is not behavioral verification.
+
+## Historical @1 installed mechanics
+
+The following two checks passed before the @2 runtime profile; they are retained
+for provenance and do not establish current cross-machine acceptance.
 The coherent source is `b0cdd5e077b04915482b43c3af126515fa352761`, artifact
 `redue-cli-0.1.0-alpha.10.tgz`, SHA-256
 `1ff1bbdb73bc672bb6ff6b253f91d951d405f6591eb0c3d50d7a5b7fd6c20692`.
@@ -73,8 +113,9 @@ The owner-local installed versions are Codex CLI **0.162.0** and Claude Code
 Claude `claude.ai` login. They do not establish inference capacity, a model budget,
 permission to call a model, or trust in imported producers. No model was launched
 for these checks. Day 0 is owner-confirmed 2026-10-10 21:24 UTC, with **$0 additional
-daily/total spend**. A second independent machine and Claude inference approval
-have not been supplied; those gates remain open.
+daily/total spend**. The owner subsequently approved two standard independent macos-26 validation
+VMs and 10 MiB included artifact storage with one-day retention. Claude inference
+remains PENDING_OWNER_ACCOUNT; account login is not behavior approval.
 
 The retained approved Codex route for the owned debugger experiment uses
 `codex sandbox` with the existing workspace/state/exact-socket configuration and
@@ -116,13 +157,13 @@ permissions to claim that prerequisite. Claude behavior remains **NOT RUN**.
 
 ## Remaining owner-provisioned prerequisites
 
-Record one matched, separately provisioned second machine/VM with independent OS,
-filesystem, installation and REDUE state. The simplest route is an existing owned
-macOS/architecture/runtime match; no such resource is currently approved or known
-available. Two worktrees or two agent processes on this machine do not satisfy G2.
-An owner-provisioned VM is acceptable only with the same independence and reviewed
-profile. This lane will not purchase capacity, inspect corporate credentials or
-guess remote hosts.
+The approved standard macos-26 producer/receiver jobs use independent OS boots,
+filesystems, installations and state. Their actual full runtime profile still has
+to pass origin and recipient validation; a runner label or inventory match alone
+is insufficient. The first producer precondition failed, so machine acceptance is
+not complete. Two worktrees or two agent processes on one machine do not satisfy
+G2. This lane will not purchase capacity, inspect corporate credentials or guess
+remote hosts.
 
 Before any paid/additionally metered model or CI action, record the permitted
 account/model, usable included capacity, concurrency and resource scope. The $0
