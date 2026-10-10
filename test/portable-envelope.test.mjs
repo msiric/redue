@@ -92,6 +92,9 @@ test('malformed, truncated and non-UTF8 input has bounded classified failure',()
   rejects('{"x":"\\udc00"}','PORTABLE_UNICODE');
   rejects('{"x":9007199254740992}','PORTABLE_NUMBER');
   rejects('{"x":1.5}','PORTABLE_NUMBER');
+  rejects('{"x":1e-99999}','PORTABLE_NUMBER');
+  rejects('{"x":9007199254740990.9}','PORTABLE_NUMBER');
+  rejects('{"x":1.0}','PORTABLE_NUMBER');
 });
 test('byte, nesting, string and item limits reject parse abuse without decompression',()=>{
   rejects(Buffer.alloc(PORTABLE_LIMITS.bytes+1,32),'PORTABLE_SIZE');

@@ -88,12 +88,16 @@ function parseJson(bytes){
     for(const [literal,result] of [['true',true],['false',false],['null',null]])
       if(source.startsWith(literal,cursor)){cursor+=literal.length;return result;}
     number.lastIndex=cursor;const match=number.exec(source);
-    if(!match)malformed();cursor+=match[0].length;const result=Number(match[0]);
+    if(!match)malformed();cursor+=match[0].length;
+    if(!/^-?(?:0|[1-9]\d*)$/.test(match[0]))
+      fail('PORTABLE_NUMBER','Portable JSON requires integer number tokens');
+    const result=Number(match[0]);
     if(!Number.isSafeInteger(result))fail('PORTABLE_NUMBER','Portable JSON requires safe integer numbers');
     return result;
   }
   const result=value(0);white();if(cursor!==source.length)malformed();return result;
 }
+export const parsePortableJson=bytes=>parseJson(bytes);
 
 // RFC 8785 ordering/string serialization over our stricter integer-only I-JSON
 // domain. Arrays keep their order; keys use raw UTF-16 ordering; Unicode is never
