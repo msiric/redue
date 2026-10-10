@@ -35,7 +35,7 @@ const pathPrefixes = rel => {
   return prefixes;
 };
 
-function fileHash(root, rel,installed=false,before=fs.lstatSync(path.join(root,rel),
+export function fileHash(root, rel,installed=false,before=fs.lstatSync(path.join(root,rel),
   {bigint:true})) {
   const file=path.join(root, rel);
   let value,references=[],bytes=Number(before.size);

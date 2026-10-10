@@ -4,11 +4,11 @@ Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revisio
 
 Current conclusion: implementation started; no portable eligibility claim has passed acceptance. Publication is not authorized. External natural use has not started.
 
-Kickoff observed: 2026-10-10 21:24 UTC. Owner confirmation of agreed Day 0, two independent environments, model/CI caps and review cadence is pending. Provisioning and blocked time count from kickoff; dates will not be reset. Initial targets remain Day 14 demonstration / Day 28 prepublication readiness, uncalibrated until the real G1 slice.
+Agreed Day 0: 2026-10-10 21:24 UTC (owner confirmed). First substantive review: 2026-10-13 21:24 UTC. Daily concise progress summaries. Additional metered spending is $0/day and $0 total for the first 72 hours; only established subscription-included capacity is allowed. No new machine/VM is approved. Claude calls require an explicitly approved usable account; CI entitlement must be confirmed before jobs. Provisioning and blocked time count from kickoff; dates will not be reset. Initial targets remain Day 14 demonstration / Day 28 prepublication readiness, uncalibrated until the real G1 slice.
 
 | Gate | Current status | Evidence / outstanding prerequisite |
 | --- | --- | --- |
-| G0 | Partial | Local repository and public GitHub reads verified; owner resource/profile/cap response pending. No paid model trials or provisioning started. |
+| G0 | Partial | Local repository and public GitHub reads verified; caps and cadence confirmed; independent machine/profile, Claude behavioral approval and no-additional-charge CI entitlement unresolved. No paid model trials or provisioning started. |
 | G1 | In progress | Fresh origin capture, safe envelope, separate-checkout recipient validation under development. |
 | G2 | Not run | Codex + Claude actual behavior and independent matched machine not provisioned/approved yet. |
 | G3 | Not run | Authenticated reviewed CI producer and recipient trust route required. |
@@ -35,3 +35,11 @@ Current critical review findings: absolute path hashes cannot simply be stripped
 Usage: four approved implementation/review lanes; no external model evaluations, cloud provisioning, npm publication, account/trust changes or new spending initiated. Local implementation/test/review timings will be recorded with each result rather than estimated as completed work.
 
 Next commands: inspect and implement origin facts; integrate independently reviewed parser; run new portability tests and existing receipt/direct-compiler regressions. Detailed results will link from here, with every failed attempt retained.
+
+## Daily progress — 2026-10-10
+
+Task branch integrates through `243f8d6`; no main merge or publication. Bounded envelope, durable separate import selection, explicit CLI export/inspection/import, fail-closed host preflight and preparatory policy-bound CI authentication inspector are committed. Core fresh-run capture and recipient integration are in progress. Independent review identified and addressed lexical numeric ambiguity, interrupted-import FAIL replay, reader ownership mismatch and probe-path/consumed-input coverage. Export ownership race remains under repair; no portable CURRENT claim is accepted yet.
+
+Local focused evidence: parser/store/boundary 36/36; direct/compiler combined 27/27; fresh facts tests 4/4. Latest leaf/facts/preflight run: 15/16, with the remaining test using a now-obsolete owner-less import reader interface; repair is assigned to D without weakening its expected result. Native helper prototype initially failed `ERR_DLOPEN_FAILED` because `-no_uuid` omitted LC_UUID; diagnosed, flag removed, actual active-cache APIs verified. Native reproduction and profile review remain independent gates. No model calls, paid jobs, provisioning, account changes or external usage.
+
+Blocked-time ledger: G2 machine approval and Claude call capacity, and G3/combined-platform CI entitlement, blocked since Day 0 pending owner decisions; implementation proceeds concurrently, so this is lane-blocked time, not a claim all work stopped. Day 14/28 targets remain uncalibrated until the 72-hour working-slice review.

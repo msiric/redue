@@ -21,6 +21,7 @@ import {atomicJson,commitReceipt,receiptRevision} from './state-store.mjs';
 import {timing,profiling,mark,traceContext} from './decision-profile.mjs';
 import {readCachedStatus,unavailableCached} from './cached-state.mjs';
 import {renderRun} from './presentation.mjs';
+import {capturePortableFacts,samePortableFacts,portableInterpretation} from './portable-facts.mjs';
 
 mark('cli.loaded');
 const here=path.dirname(fileURLToPath(import.meta.url));
@@ -250,6 +251,13 @@ async function execute() {
     }
     const snap=before?.snapshots?.[name];
     if(!snap||!snap.observationHealthy)captureIssues.push('start checkpoint unavailable');
+    const portableRequested=process.argv.includes('--portable');
+    // Persisted plans intentionally replace argv with identities. Bind the real
+    // already-validated selected argv back only for this owned capture.
+    const portablePlan={...plan,command,probes:selected.probes||[]};
+    let portableStart=null,portableEnd=null,portableIssue=null;
+    if(portableRequested)try{portableStart=capturePortableFacts(portablePlan,snap,environmentBefore);}
+    catch(error){portableIssue=error.code||'PORTABLE_CAPTURE_UNAVAILABLE';}
     await testRunBoundary('before-launch');
     const started=Date.now(),executionStarted=performance.now();
     const invocation=await new Promise(resolve=>{
@@ -294,6 +302,10 @@ async function execute() {
     const afterContextStarted=performance.now(),environmentAfter=contextHashes()[name];
     timing('cli.context_after',afterContextStarted);
     const probeAfter=unobservedDirectRun?null:((callerCertificate?validateDirectRunCertificate(plan,selected,before?.snapshots?.[name]):null)??probeHash(probePlan));
+    // Portable discovery is inside the same observed interval. The final
+    // checkpoint must include events caused during this validation too.
+    if(portableRequested)try{portableEnd=capturePortableFacts(portablePlan,snap,environmentAfter);}
+    catch(error){portableIssue=error.code||'PORTABLE_CAPTURE_UNAVAILABLE';}
     const endSnapshotStarted=performance.now();
     if(!unobservedDirectRun){
       try{after=await call({action:'snapshot',name,contextHashes:contextHashes()},captureTimeout);}
@@ -301,6 +313,10 @@ async function execute() {
       timing('cli.end_checkpoint',endSnapshotStarted,{available:after?.snapshots?.[name]?1:0});
     }
     const end=after?.snapshots?.[name];
+    // The end index must cover exactly the manifest validated inside the
+    // interval; never fill a missing portable measurement after the boundary.
+    if(portableEnd&&end?.files&&JSON.stringify(snap.files)!==JSON.stringify(end.files))
+      portableIssue='PORTABLE_BOUNDARY_CHANGED';
     if(!unobservedDirectRun&&(!end||!end.observationHealthy))captureIssues.push('end checkpoint unavailable');
     if(JSON.stringify(environmentBefore)!==JSON.stringify(environmentAfter))
       captureIssues.push('declared environment changed during execution');
@@ -326,6 +342,9 @@ async function execute() {
       planId:snap?.planId??plan.id,fingerprint:snap?.fingerprint??null,
       provider:plan.provider,environmentHashes:environmentBefore,
       ...(observedContext?{observedContext,verificationRecipe:directInterpretation}:{}),
+      ...(portableRequested?{portable:{schema:1,interpretation:portableInterpretation,
+        complete:invocation.status==='exited'&&['PASS','FAIL'].includes(result)&&!portableIssue&&stable&&plan.unresolved.length===0&&samePortableFacts(portableStart,portableEnd),
+        facts:portableStart,reason:portableIssue||(!samePortableFacts(portableStart,portableEnd)?'PORTABLE_BOUNDARY_CHANGED':null)}}:{}),
       files:snap?.files??null,observerGeneration:before?.observation?.generation??null,
       startRevision:snap?.revision??null,endRevision:end?.revision??null};
     const persistenceStarted=performance.now();

@@ -1,0 +1,46 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {createRequire} from 'node:module';
+import {spawnSync} from 'node:child_process';
+const require=createRequire(import.meta.url),bin=path.resolve('bin/redue.mjs');
+const compiler=path.dirname(require.resolve('typescript/package.json'));
+const put=(file,bytes)=>{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,bytes);};
+function fixture(t){
+  const base=fs.realpathSync(fs.mkdtempSync(path.join(process.platform==='darwin'?'/tmp':os.tmpdir(),'redue-pe-')));
+  const root=path.join(base,'origin'),state=path.join(base,'redue-origin');fs.mkdirSync(root);
+  put(path.join(root,'package.json'),JSON.stringify({name:'portable-typescript-fixture',version:'1.0.0',scripts:{typecheck:'tsc --noEmit'}}));
+  put(path.join(root,'package-lock.json'),'{"name":"portable-typescript-fixture","lockfileVersion":3}');
+  put(path.join(root,'tsconfig.json'),JSON.stringify({compilerOptions:{strict:true,noEmit:true,noLib:true,target:'ES2022',types:[],typeRoots:['./node_modules/@types']},include:['src']}));
+  put(path.join(root,'src/globals.d.ts'),'interface Array<T> {}\ninterface Boolean {}\ninterface CallableFunction {}\ninterface Function {}\ninterface IArguments {}\ninterface NewableFunction {}\ninterface Number {}\ninterface Object {}\ninterface RegExp {}\ninterface String {}\n');
+  put(path.join(root,'src/a.ts'),'export const value: number = 1;\n');
+  put(path.join(root,'.gitignore'),'node_modules/\n');
+  fs.cpSync(compiler,path.join(root,'node_modules/typescript'),{recursive:true});
+  fs.mkdirSync(path.join(root,'node_modules/.bin'));fs.symlinkSync('../typescript/bin/tsc',path.join(root,'node_modules/.bin/tsc'));
+  const git=spawnSync('git',['init','-q'],{cwd:root,encoding:'utf8'});assert.equal(git.status,0,git.stderr);
+  const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!['NODE_TEST_CONTEXT','NODE_TEST_WORKER_ID'].includes(key)));
+  const invoke=(cwd,directory,...args)=>spawnSync(process.execPath,[bin,'--state-dir',directory,...args],{cwd,env,encoding:'utf8',timeout:60000});
+  const good=(cwd,directory,...args)=>{const result=invoke(cwd,directory,...args);assert.equal(result.status,0,result.stderr+result.stdout);return result.stdout;};
+  t.after(()=>{for(const [cwd,directory] of [[root,state],[path.join(base,'recipient'),path.join(base,'redue-recipient')]])if(fs.existsSync(cwd))invoke(cwd,directory,'stop');fs.rmSync(base,{recursive:true,force:true});});
+  return {base,root,state,invoke,good};
+}
+test('real origin captures fresh portable facts inside observed execution; old evidence is not reconstructed', {skip:process.platform!=='darwin'||process.arch!=='arm64'},t=>{
+  const {base,root,state,good}=fixture(t);
+  good(root,state,'init','--recipe','typescript-direct');good(root,state,'start');
+  good(root,state,'run','typecheck','--portable');
+  const status=JSON.parse(good(root,state,'status','--sync','--json')),id=status.checks[0].invocation.runId;
+  const original=fs.readFileSync(path.join(state,'runs-v1',id+'.json'));
+  const receipt=JSON.parse(original).receipt;
+  assert.equal(receipt.portable.complete,true,JSON.stringify({reason:receipt.portable.reason,issues:receipt.checkpoint.issues}));
+  assert.equal(status.checks[0].reuse_eligible,true);
+  const target=path.join(base,'evidence.json');
+  const preview=JSON.parse(good(root,state,'evidence','export','typecheck','--output',target,'--dry-run','--json'));
+  assert(!fs.existsSync(target));assert.equal(preview.origin.complete,true);
+  const exported=JSON.parse(good(root,state,'evidence','export','typecheck','--output',target,'--json'));
+  assert.equal(exported.origin.complete,true);
+  const inspected=JSON.parse(good(root,state,'evidence','inspect',target,'--json'));
+  assert.equal(inspected.reuse_eligible,false);assert.equal(inspected.producer_accepted,false);
+  assert.deepEqual(fs.readFileSync(path.join(state,'runs-v1',id+'.json')),original);
+});

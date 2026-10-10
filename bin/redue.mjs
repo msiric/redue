@@ -18,6 +18,7 @@ import {agentCommand} from '../src/agent-integration.mjs';
 import {findExecutable} from '../src/executable-lookup.mjs';
 import {readCachedStatus} from '../src/cached-state.mjs';
 import {assertOwnedStatePlacement} from '../src/owned-state.mjs';
+import {portableCommand} from '../src/portable-command.mjs';
 import {renderStatus,renderExplain} from '../src/presentation.mjs';
 
 const productRoot=path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -39,7 +40,11 @@ Commands:
   status --sync        Reconcile inputs and caller context before answering
   explain [CHECK] [--json] Explain applicability (synchronized; may cost more than a rerun)
   detail [CHECK] [--json]  Alias for explain
-  run CHECK            Execute one configured check and record its outcome
+  run CHECK [--portable] Execute one configured check; optionally capture portable origin facts
+  evidence export CHECK --output FILE [--dry-run]
+  evidence inspect FILE [--json]
+  evidence import FILE --check CHECK [--accept-digest SHA256] [--apply]
+                       Explicit portable evidence; import never establishes CURRENT
   remove-state         Stop and remove only this configuration's owned local state
 
 No checks run in the background. Direct commands outside redue create no receipts.`;
@@ -57,6 +62,10 @@ for(let i=0;i<args.length;){
   }else i++;
 }
 const command=args.shift();
+if(command==='evidence'&&args[0]==='inspect'){
+  try{await portableCommand(args);}catch(e){error(`${e.code||'PORTABLE_UNAVAILABLE'}: ${e.message}`);}
+  process.exit(0);
+}
 try{configFile??=command==='init'||stateOverride&&['stop','remove-state'].includes(command)?
   path.resolve(fs.existsSync('redue.config.json')||!fs.existsSync('vstate.config.json')?'redue.config.json':'vstate.config.json'):discoverConfig();}
 catch(e){error(e.message);}
@@ -66,7 +75,7 @@ if(command==='agent'){
   catch(e){error(e.message);}
   process.exit(0);
 }
-if(!['init','start','stop','status','detail','explain','run','remove-state'].includes(command))
+if(!['init','start','stop','status','detail','explain','run','remove-state','evidence'].includes(command))
   error(`unknown command ${command||'<none>'}; use --help`);
 const json=args.includes('--json');
 const sync=args.includes('--sync');
@@ -82,10 +91,11 @@ if(command==='init')for(let i=0;i<args.length;){
 }
 const check=['run','detail','explain'].includes(command)&&args[0]&&!args[0].startsWith('--')?args.shift():null;
 if(command==='run'&&!check)error('run requires a check name');
-if(args.some(value=>!['--json','--sync','--dry-run','--short'].includes(value)))error('unknown option; use --help');
+if(command!=='evidence'&&args.some(value=>!['--json','--sync','--dry-run','--short','--portable'].includes(value)))error('unknown option; use --help');
+if(args.includes('--portable')&&command!=='run')error('--portable is for a fresh recorded run');
 if(sync&&!['status','detail','explain'].includes(command))error('--sync is for status or detail');
 if(short&&(command!=='status'||json||sync))error('--short is a cached status option; do not combine it with --sync or --json');
-if(dryRun&&command!=='init')error('--dry-run is for init');
+if(dryRun&&!['init','evidence'].includes(command))error('--dry-run is for init or evidence export');
 
 if(command==='init'){
   let discovery;try{discovery=discoverNodeProject(process.cwd(),{recipe:recipeSelection});}
@@ -295,6 +305,11 @@ const checks=publicConfig.checks.map(check=>{
 const runtime={schema:1,provider:'declared-project@1',root,state,checks};
 try{assertOwnedStatePlacement(runtime);}catch(e){error(e.message);}
 const serialized=JSON.stringify(runtime,null,2)+'\n';
+if(command==='evidence'){
+  try{await portableCommand(args,{configFile,stateOverride,root,runtime,publicConfig});}
+  catch(e){error(`${e.code||'PORTABLE_UNAVAILABLE'}: ${e.message}`);}
+  process.exit(0);
+}
 const maintenance=command==='stop'||command==='remove-state';
 if(maintenance&&!fs.existsSync(runtimeFile)){
   console.log(`No REDUE state exists for ${configFile}.`);
@@ -323,7 +338,7 @@ const details=command==='detail'||command==='explain';
 const internal=command==='remove-state'?'uninstall':
   details?'sync':command==='status'&&sync?'sync':command;
 if(command==='run'){
-  const child=spawn(process.execPath,[engine,runtimeFile,internal,check,...(!json?['--human']:[])],
+  const child=spawn(process.execPath,[engine,runtimeFile,internal,check,...(!json?['--human']:[]),...(args.includes('--portable')?['--portable']:[])],
     {stdio:['inherit','inherit','inherit','ipc'],env:process.env});
   const forward=signal=>{if(child.exitCode!==null)return;
     if(process.platform==='win32'&&child.connected)child.send({action:'cancel',signal});
