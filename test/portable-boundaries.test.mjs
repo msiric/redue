@@ -15,6 +15,7 @@ import {spawn,spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {commitReceipt} from '../src/state-store.mjs';
 import {acquireRunLock} from '../src/run-lock.mjs';
+import {portableRuntimeSupported} from '../src/portable-runtime.mjs';
 
 // Independent controls for the facts portable comparison must retain. These
 // tests do not grant portable eligibility or replace observer interval checks.
@@ -361,7 +362,7 @@ function observedCompiler(t){
 }
 
 test('real portable origin refuses change-and-restore, post-exit membership and lost end observation',
-  {skip:process.platform!=='darwin'||process.arch!=='arm64',timeout:150000},async t=>{
+  {skip:!portableRuntimeSupported(),timeout:150000},async t=>{
   const f=observedCompiler(t);
   f.call('run','typecheck','--portable');const baseline=f.selected();
   assert.equal(baseline.result,'PASS');assert.equal(baseline.portable.complete,true);
@@ -387,7 +388,7 @@ test('real portable origin refuses change-and-restore, post-exit membership and 
 });
 
 test('delayed recipient publication never hides a newer FAIL or incomplete selector behind imported PASS',
-  {skip:process.platform!=='darwin'||process.arch!=='arm64',timeout:150000},async t=>{
+  {skip:!portableRuntimeSupported(),timeout:150000},async t=>{
   const f=observedCompiler(t);f.call('run','typecheck','--portable');const baseline=f.selected();
   assert.equal(baseline.portable.complete,true);
   const artifact=path.join(f.base,'evidence.json');

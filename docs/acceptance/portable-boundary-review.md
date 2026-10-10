@@ -318,3 +318,13 @@ directory likewise remains unavailable. Both controls passed.
 These results are controlled same-host mechanics. They do not demonstrate actual
 cross-agent behavior, a cross-machine runtime match, producer authentication or
 release-artifact/platform gates.
+
+Combined independent execution after the missing-selector correction and exact
+prototype runtime gate: 87/87 tests passed, zero failed/skipped, approximately
+21.6 seconds. This includes parser, store, pure applicability, controlled CI
+verification-output handling, facts, command ownership, no-model preflight, actual
+same-host relocation and independent boundary tests. Positive native-runtime
+controls now use `portableRuntimeSupported()` and run only on Darwin arm64,
+Node 22.13.0, OS release 25.6.0; other platforms retain parser/store/command tests
+without pretending runtime eligibility. This was a source-worktree test run,
+not an exact installed-artifact or model/platform acceptance claim.
