@@ -90,10 +90,11 @@ function writeExport(file,bytes,validateSelection){
 }
 
 function projectSelection({root,runtime,publicConfig,stateOverride},check){
-  if(!runtime||runtime.schema!==1||typeof runtime.state!=='string'||typeof root!=='string'||
+  if(!runtime||runtime.schema!==1||typeof runtime.state!=='string'||typeof runtime.root!=='string'||typeof root!=='string'||
     path.resolve(root)!==path.resolve(runtime.root)||stateOverride&&path.resolve(stateOverride)!==path.resolve(runtime.state))
     fail('PORTABLE_PROJECT','Selected project/runtime state is unavailable or inconsistent');
-  if(!publicConfig?.checks?.some(row=>row.name===check)||!runtime.checks?.some(row=>row.name===check))
+  if(!Array.isArray(publicConfig?.checks)||!Array.isArray(runtime.checks)||
+    !publicConfig.checks.some(row=>row?.name===check)||!runtime.checks.some(row=>row?.name===check))
     fail('PORTABLE_CHECK','Select an explicitly configured local check');
   const state=path.resolve(runtime.state),ownerConfig=path.join(state,'project-runtime-v1.json');
   if(!/^(?:redue|vstate)-/.test(path.basename(state)))fail('PORTABLE_OWNERSHIP','A dedicated REDUE state directory is required');
