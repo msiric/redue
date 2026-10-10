@@ -748,3 +748,8 @@ portable CLI/package tests retain their native Windows coverage. No deadline,
 Python installation or system setting changed. This correction prevents false
 negative-test passes; it does not establish signer execution on Windows or repair
 the earlier overall CI result.
+Author correction `bc92774` was independently read and repeated: the static
+permissions/no-checkout check remains on every platform, while only interpreter
+execution is POSIX-scoped. Its nine POSIX controls pass, as do the independent six
+malformed/OIDC subcases. The actual native Windows combined rerun remains a
+separate requirement.
