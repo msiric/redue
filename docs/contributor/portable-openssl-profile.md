@@ -24,10 +24,20 @@ below OpenSSL's 65,536-byte expansion limit. The helper never returns or logs
 HOME. This narrowly justified parse-equivalence is not a general environment
 ignore rule: it depends on these exact bytes and the exact reviewed invocation.
 
-`OPENSSL_CONF`, `OPENSSL_MODULES` and `OPENSSL_CONF_INCLUDE` presence, including
-empty values and case aliases, is refused conservatively. This does not assert
-that every alias is interpreted by POSIX OpenSSL. Node flags, preloads, dynamic
-loader behavior and compiler restrictions remain independently enforced.
+Every `OPENSSL_` key's presence, including empty values and case aliases, is
+refused conservatively. In addition to configuration/provider paths, the pinned
+[ARM capability source](https://github.com/nodejs/node/blob/v22.13.0/deps/openssl/openssl/crypto/armcap.c)
+reads `OPENSSL_armcap` before normal feature detection and directly selects its
+implementation capability mask. This is effective on Darwin ARM64 and is not
+bound by a cache digest. The pinned [environment reference](https://github.com/nodejs/node/blob/v22.13.0/deps/openssl/openssl/doc/man7/openssl-env.pod)
+also lists engine paths, architecture-specific masks and optional debug-build
+allocation controls. `OPENSSL_ia32cap` is an x86 setting, not an ARM64 feature.
+Trace settings may be application/build-specific; no claim that Node activates
+them is needed to refuse their unreviewed presence. Unknown prefix keys are also
+unsupported. This does not assert that every alias or optional setting is
+interpreted by this POSIX build. The ordinary local direct-contract guard is
+unchanged. Node flags, preloads, dynamic loader behavior and compiler restrictions
+remain independently enforced.
 
 The reader checks root-owned, non-symlink, non-writable canonical ancestors and
 a root-owned, regular, single-link, bounded leaf. It uses no-follow/nonblocking

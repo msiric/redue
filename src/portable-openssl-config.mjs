@@ -19,7 +19,10 @@ const absentDigest=hash(Buffer.from('redue-openssl-default-absent@1'));
 export function portableOpenSSLContextIssue(env=process.env){
   // Presence is refused even if the value is empty. This makes alias handling
   // explicit without asserting every alias is recognized by POSIX OpenSSL.
-  if(Object.keys(env).some(key=>/^OPENSSL_(?:CONF|MODULES|CONF_INCLUDE)$/i.test(key)))return 'portable-openssl-override-unsupported';
+  // Include recognized CPU capability, engine/provider and optional diagnostic
+  // overrides, plus unknown names. This portable profile has not reviewed any
+  // override; this does not widen or modify the ordinary direct-contract guard.
+  if(Object.keys(env).some(key=>/^OPENSSL_/i.test(key)))return 'portable-openssl-override-unsupported';
   if(Object.hasOwn(env,'HOME')){
     const home=env.HOME;
     if(typeof home!=='string'||!home.isWellFormed()||home.includes('\0')||Buffer.byteLength(home)>HOME_LIMIT)

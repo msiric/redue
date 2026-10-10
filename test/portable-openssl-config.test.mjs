@@ -9,7 +9,9 @@ import {DEFAULT_OPENSSL_CONFIG,OPENSSL_CONFIG_INTERPRETATION,REVIEWED_OPENSSL_TE
 
 const refusal=fn=>assert.throws(fn,{code:'PORTABLE_OPENSSL_UNSUPPORTED'});
 test('overrides and case aliases are refused by presence, without altering the environment',()=>{
-  for(const key of ['OPENSSL_CONF','openssl_conf','OpenSSL_MODULES','OPENSSL_CONF_INCLUDE'])for(const value of ['', 'owned-test']){
+  for(const key of ['OPENSSL_CONF','openssl_conf','OpenSSL_MODULES','OPENSSL_CONF_INCLUDE',
+    'OPENSSL_armcap','openssl_ARMCAP','OPENSSL_ia32cap','OPENSSL_ENGINES',
+    'OPENSSL_MALLOC_FAILURES','OPENSSL_MALLOC_FD','OPENSSL_TRACE','OPENSSL_unreviewed'])for(const value of ['', 'owned-test']){
     const env={HOME:'safe', [key]:value};assert.equal(portableOpenSSLContextIssue(env),'portable-openssl-override-unsupported');
     refusal(()=>inspectDefaultOpenSSL({env}));assert.equal(env[key],value);
   }
