@@ -15,7 +15,8 @@ explicit producer acceptance remain independent requirements.
 ## Explicit verifier preparation
 
 `src/portable-ci-trust.mjs` exposes `verifyCIArtifact` for an explicit read-only
-operation. It is not called by status or import. It does not create trust policy,
+operation. An explicitly applied CI import calls it through the local authorization
+helper; status and import previews do not. It does not create trust policy,
 accept an import, run the configured check or change state. The executable is a
 locally selected, reviewed GitHub CLI installation, never an artifact field. The
 caller must provide `ghExecutableSha256` from the owner-approved installation; the
@@ -136,10 +137,10 @@ policy version or a later revision mismatch must withdraw that policy's authorit
 at recipient publication. Do not retain a successful report as a permanent trust
 certificate. Re-accepting under a changed policy requires an explicit owner action.
 
-The current helper has no policy registry, revocation writer, or import acceptance
-branch. Its report never returns `producer_accepted: true`. How the recipient
-stores approvals and invalidates them on local policy changes is an outstanding
-reviewed interface decision, not functionality provided by this preparation.
+The verifier helper itself has no policy writer or import acceptance branch;
+its report never returns `producer_accepted: true`. The separate authorization,
+store and catalog modules bind explicit acceptance and revalidate the current
+authoritative registry as described below. No imported metadata creates policy.
 A removed policy is not equivalent to an offline policy. Offline identification
 still requires a current, explicitly approved digest-bound policy and never
 asserts unseen revocation status.

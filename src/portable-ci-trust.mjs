@@ -1,5 +1,6 @@
-// Explicit, read-only authentication preparation. This helper is never called by
-// status or import and never installs or updates producer trust. A reviewed local
+// Explicit, read-only authentication preparation. An explicitly applied CI
+// import may call this helper; status and previews do not. It never installs or
+// updates producer trust. A reviewed local
 // verifier installation AND trusted host execution context are prerequisites;
 // binary bytes alone cannot validate native loader/preload effects.
 import fs from 'node:fs';
