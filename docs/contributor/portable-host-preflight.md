@@ -14,8 +14,9 @@ recorded origin `7a9a699d-9c7b-4f92-aa05-41e69c447c14`, digest
 `996b50d8a2e6c5411bdb37b390403b8793dc02cb1891fb4ea766d292d27b3324`;
 only an envelope and manifest traveled (23,246 bytes). A same-boot receiver was
 refused, not counted as a second machine. The hosted run `38093305258` reached
-local CURRENT/PASS but did not establish complete portable origin; its cause is
-unresolved. No upload, receiver or model followed that failed gate.
+local CURRENT/PASS but did not establish complete portable origin; the separate
+macOS package run `38093307269` failed at the same completeness requirement.
+Causes remain unresolved. No transfer/receiver or model followed the first gate.
 
 [`portable-upgrade-smoke.mjs`](../../test/acceptance/portable-upgrade-smoke.mjs)
 tests the actual old `b0cdd5e` @1 tarball against these @2 bytes, rather than editing
@@ -37,6 +38,50 @@ operations retained their explicitly selected owned state. No permissions change
 models ran or receipts were deleted; owned experiment processes/installations were
 cleaned. See [acceptance pointers](portable-acceptance-map.md) for the remaining
 V01–V22 gaps. Passing mechanics is not behavioral verification.
+
+## Hosted-origin diagnostic record
+
+The two first actual runner failures are distinct and remain failed:
+
+| Run | Observed facts | Unestablished facts |
+| --- | --- | --- |
+| `38093305258` unsigned machine route | Source `88e8828620c454d69ada41d4593d6105dc2b7d21`; artifact SHA-256 `e10912264aa1a42c29cbdbc2b06fdcb2dd9617226fb23b970fc843e7b1108492`. Producer local status was healthy CURRENT/PASS and reusable. Export preview returned incomplete origin and the assertion stopped transfer; receiver skipped, models zero. Wrapped execution was 22,612.8 ms. | No captured portable reason/checkpoint details. Duration does not prove a timeout or its underlying cause. Actual job image/build/filesystem facts were not in this report. |
+| `38093307269` exact-package route | Same source commit. Pack, native Windows and Linux jobs succeeded. macOS installed smoke failed at its separate export-preview `origin.complete` assertion (`portable-installed-smoke.mjs:102`); model trials were not part of this job. | No captured origin reason. This is not a second machine receiver trial, nor proof that its separately packed bytes match the first run. |
+
+The read-only diagnostic route in
+[`portable-machine.mjs`](../../test/acceptance/portable-machine.mjs) records only
+reviewed static fields from the exact owned selected receipt and its matching
+immutable origin, behind owner/selection rereads. It does not rediscover missing
+facts, run a probe, repair the receipt or infer complete origin from local CURRENT.
+If those barriers fail, it reports `SELECTED_ORIGIN_UNAVAILABLE` instead of guessing.
+Each new job also records its own bounded public image labels, product/build and
+writable APFS facts before installation/execution. These facts are inventory,
+not runtime equivalence or evidence eligibility. No runtime hashing preflight is
+performed to hide cold-path failure.
+
+| Static diagnosis | Meaning established by this code | Next bounded step |
+| --- | --- | --- |
+| `PORTABLE_PROBE_TIMEOUT` | The probe launch returned `error.code: ETIMEDOUT` at the existing deadline. Signal, elapsed time, exit status and prose alone never establish this code. | Identify the responsible existing probe phase in local diagnostics; keep the deadline and incomplete origin. Do not retry until the evidence is reviewed. |
+| `PORTABLE_PROBE_UNAVAILABLE` | Portable probe did not yield supported complete data; the diagnostic alone does not establish permission, timeout or compiler failure. | Inspect the bounded process result/static failure class without publishing raw stderr or environment. |
+| `PORTABLE_RUNTIME_UNSUPPORTED` | The runtime content/environment boundary was not admitted. | Compare approved profile/version/content facts; do not strip overrides or equate runtime labels. |
+| `PORTABLE_EXTERNAL_INPUT`, `PORTABLE_SYMLINK`, `PORTABLE_PATH` | Required discovery cannot be represented under the supported root/topology boundary. | Keep the project unsupported; do not discard queried paths or modify real inputs to fit. |
+| `PORTABLE_COVERAGE_UNSUPPORTED`, `PORTABLE_DISCOVERY_INCOMPLETE` | Required observed membership or complete discovery is missing. | Review the declaration/config/installed-input boundary; no missing measurement becomes an unchanged hash. |
+| `PORTABLE_INPUT_CHANGED`, `PORTABLE_BOUNDARY_CHANGED`, input/context/plan checkpoint codes | Validation facts or execution-interval observations changed, or could not be established. | Preserve outcome/history; diagnose the reported interval condition before establishing a fresh baseline. A restored end state cannot repair the interval. |
+| `PORTABLE_OBSERVATION_INCOMPLETE` or start/end observation checkpoint codes | A necessary healthy observation boundary was absent. | Repair the actual approved observer prerequisite; later recovery cannot upgrade this original invocation. |
+| `PORTABLE_CONTRACT_UNSUPPORTED`, `PORTABLE_INTERPRETATION_UNSUPPORTED`, `PORTABLE_CALLER_UNVERIFIED` | Invocation, interpretation or actual caller proof did not meet the supported recipe. | Check exact selected configuration and reviewed runtime/recipe; do not substitute daemon context or old evidence. |
+| `OTHER_PRIVATE_REASON`, `OTHER_PRIVATE_ISSUE`, unavailable snapshot | There is no safe recognized classification in this report. | Review protected local evidence once; do not dump arbitrary strings, URLs, source paths or secrets. |
+
+A failure reason can be absent even when completeness is false, for example when
+stability or coverage failed. Interpret those separate booleans/checkpoint fields;
+never treat a null reason as green. Current diagnostics do not distinguish which
+of the beginning/end portable captures produced the retained failure reason.
+The first two failures therefore remain unresolved, not fixed by better reporting.
+
+The owner approved enablement of the exact signing proposal with SHA-256
+`5770b7f0ac9133fbf0190cf0e238ac800263b632d7f4741f3fddb04882591924`.
+That approval does not approve a producer trust policy, authenticate these earlier
+unsigned runs, or certify an imported candidate as CURRENT. Exact later source,
+artifact and signature results require their own recorded evidence.
 
 ## Historical @1 installed mechanics
 
