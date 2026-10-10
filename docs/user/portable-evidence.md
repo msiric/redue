@@ -48,6 +48,16 @@ unrelated instructions, refuses edited managed content and grants no permissions
 Start a fresh host session after setup. Complete setup before recording the
 baseline: project metadata changes may legitimately invalidate evidence.
 
+The examples use the configuration's normal state selection. For an already
+approved explicit state directory, preserve that exact `--state-dir DIR` on
+start/stop, status/explain, run and evidence export/import. Do not choose a new
+state merely because the working directory or installation changes. Agent
+setup/removal instead uses `--config` only and refuses `--state-dir`; it must not
+commit a machine's absolute state path. Custom-state agent workflows need the
+reviewed [generic instruction path](agents.md#project-identity-and-generic-agents)
+with the intended local command selection. Do not treat a config-only generated
+instruction as proof that an agent uses a separate custom state.
+
 Use the actual discovered check name. The configured obligation executes the
 reviewed local Node/TypeScript compiler with `--noEmit`. It does **not** execute the
 npm launcher or lifecycle scripts and does not establish application/test
@@ -68,8 +78,10 @@ Darwin 25.6.0 and the official Node 22.13.0 implementation, including protected
 dyld-cache, loaded-library and default OpenSSL content checks. Matching labels
 alone do not establish equivalence. The source profile is implemented; independent
 machine and agent acceptance remain separate gates. Earlier candidate `@1`
-exports are not reinterpreted or upgraded in place: retain their history and
-record fresh portable evidence with the reviewed `@2` candidate when needed.
+exports are not reinterpreted or upgraded in place: current inspection/import
+refuses the unsupported `@1` interpretation. Retain those files and immutable
+local outcomes; record fresh portable evidence with the reviewed `@2` candidate
+when needed. An interpretation upgrade does not modify an old receipt.
 
 The current installed portability experiment is narrower: TypeScript 5.6.3,
 Node 22.13.0 and the same macOS ARM64 runtime, using a controlled `noLib` project
@@ -96,6 +108,12 @@ gain missing origin facts from today's files, and importing cannot repair a run
 with a missing healthy start or unstable interval. Preserve the history; establish
 a fresh baseline only when the verification obligation and export require it.
 
+For a portable reuse candidate, require the preview's `origin.complete: true`.
+Local CURRENT/PASS does not establish that portable origin capture succeeded.
+An incomplete origin can still export its historical outcome, with no complete
+facts, but importing or later synchronization cannot repair it into reusable
+evidence. Diagnose the stated limitation before recording any new baseline.
+
 Review the export preview before sharing. The file can disclose relative
 filenames, dependency information, content hashes, outcomes and producer facts.
 It is not a source archive, but those facts can still be sensitive. Do not share
@@ -114,11 +132,15 @@ Transfer only the reviewed evidence file through an owner-approved route. In the
 recipient checkout:
 
 ```sh
-redue --config redue.config.json evidence inspect typecheck.evidence.json
+redue evidence inspect typecheck.evidence.json
 # Review the reported identity and origin through your approved handoff.
 redue --config redue.config.json evidence import typecheck.evidence.json --check typecheck --accept-digest REVIEWED_SHA256 --apply
 redue --config redue.config.json status --sync --json
 ```
+
+Inspection needs no project/configuration and grants no acceptance. Project
+selection is required for export/import and recipient applicability. Do not let an
+imported path choose a local config, state or verification obligation.
 
 Select the explicitly configured **local** check with `--check`; its name need not
 match the origin's name. REDUE does not guess a local mapping from imported text.
