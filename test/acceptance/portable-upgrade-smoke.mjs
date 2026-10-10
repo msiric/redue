@@ -15,6 +15,9 @@ export function upgradeOptions(args){const out={};assert.equal(args.length%2,0);
   for(const key of ['--tarball','--legacy-tarball','--evidence'])assert(path.isAbsolute(out[key]||''));
   for(const key of ['--sha256','--legacy-sha256','--evidence-digest'])assert(/^[a-f0-9]{64}$/.test(out[key]||''));
   for(const key of ['--source','--legacy-source'])assert(/^[a-f0-9]{40}$/.test(out[key]||''));return out;}
+export function policyCommandArgs(binary,root,...args){
+  return [binary,'--config',path.join(root,'redue.config.json'),'agent',...args];
+}
 export async function runUpgrade(o){
   for(const [file,digest] of [['--tarball','--sha256'],['--legacy-tarball','--legacy-sha256']])
     assert.equal(hash(readBoundedPortableFile(o[file])),o[digest],'Changed package: no process launched');
@@ -31,7 +34,8 @@ export async function runUpgrade(o){
     calls.push({kind:argv[0].endsWith('/redue')?'redue':path.basename(argv[0]),operation:argv[0].endsWith('/redue')?argv[5]??'help':null,
       milliseconds:performance.now()-before,status:result.status});
     if(!failure)assert.equal(result.status,0,`Controlled compatibility command failed: ${result.error?.code||result.status}`);return result;}
-  const cli=(binary,root,state,...args)=>exec([binary,'--config',path.join(root,'redue.config.json'),'--state-dir',state,...args],{cwd:root}),
+  const policy=(binary,root,...args)=>exec(policyCommandArgs(binary,root,...args),{cwd:root}),
+    cli=(binary,root,state,...args)=>exec([binary,'--config',path.join(root,'redue.config.json'),'--state-dir',state,...args],{cwd:root}),
     json=(binary,root,state,...args)=>JSON.parse(cli(binary,root,state,...args,'--json').stdout),
     sync=(root,state)=>json(current,root,state,'status','--sync');
   const selection=state=>fs.readFileSync(path.join(state,'receipts-v1.json'));
@@ -86,12 +90,12 @@ export async function runUpgrade(o){
       requireImportedEligibility(eligible,{digest:o['--evidence-digest'],originRunId});
       const importFile=path.join(policyState,'portable-imports-v1.json'),importBytes=fs.readFileSync(importFile),policyConfig=fs.readFileSync(path.join(policyRoot,'redue.config.json'));
       for(const [host,file,skillPath] of [['codex','AGENTS.md','.agents/skills/redue-verification/SKILL.md'],['claude','CLAUDE.md','.claude/skills/redue-verification/SKILL.md']]){
-        fs.writeFileSync(path.join(policyRoot,file),'Owner instruction.\n');cli(published,policyRoot,policyState,'agent','setup',host,'--apply','--json');
-        cli(current,policyRoot,policyState,'agent','setup',host,'--dry-run','--json');cli(current,policyRoot,policyState,'agent','setup',host,'--apply','--json');
+        fs.writeFileSync(path.join(policyRoot,file),'Owner instruction.\n');policy(published,policyRoot,'setup',host,'--apply','--json');
+        policy(current,policyRoot,'setup',host,'--dry-run','--json');policy(current,policyRoot,'setup',host,'--apply','--json');
         const skill=path.join(policyRoot,skillPath),intact=fs.readFileSync(skill);fs.appendFileSync(skill,'\nOwned fixture edit inside managed content.\n');const edited=fs.readFileSync(skill);
-        for(const operation of ['setup','remove']){const result=exec([current,'--config',path.join(policyRoot,'redue.config.json'),'--state-dir',policyState,'agent',operation,host,'--apply','--json'],{cwd:policyRoot,failure:true});
+        for(const operation of ['setup','remove']){const result=exec(policyCommandArgs(current,policyRoot,operation,host,'--apply','--json'),{cwd:policyRoot,failure:true});
           assert.notEqual(result.status,0);assert.deepEqual(fs.readFileSync(skill),edited);assert.deepEqual(fs.readFileSync(importFile),importBytes);}
-        fs.writeFileSync(skill,intact);cli(current,policyRoot,policyState,'agent','remove',host,'--apply','--json');
+        fs.writeFileSync(skill,intact);policy(current,policyRoot,'remove',host,'--apply','--json');
         assert.equal(fs.readFileSync(path.join(policyRoot,file),'utf8'),'Owner instruction.\n');assert.deepEqual(fs.readFileSync(importFile),importBytes);
         assert.deepEqual(fs.readFileSync(path.join(policyRoot,'redue.config.json')),policyConfig);assert(!fs.existsSync(path.join(policyState,'runs-v1')));
         observations.push({case:'installed policy update/edited refusal/removal',host,import_digest:o['--evidence-digest'],origin_run_id:originRunId,import_bytes_preserved:true});
