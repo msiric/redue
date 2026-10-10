@@ -14,6 +14,9 @@ portable origin despite eligible local evidence; their responsible phase is not
 established. A later signed-route producer established its portable probe's
 10-second parent timeout; the internal phase remains unknown. Diagnostics preserve
 that distinction rather than repairing origin from a later local CURRENT response.
+The bounded instrumented capture at `57c3a3d` has independent source review;
+it is preparation for one fixed diagnostic attempt, not a resolved timeout or
+hosted applicability result.
 REDUE-PE-001 G1–G4 are not certified by
 this document. Baseline inspected: `b4f286034f43021a74f1babf2c1d0fee5df2a9e5`.
 
@@ -859,3 +862,52 @@ after validations. A killed probe's missing completion is unavailable, never a
 certificate. Review those diagnostics and fresh storage accounting before one
 fixed captured attempt; no repeated benchmark or substantive optimization is
 justified by this timeout alone.
+
+## Bounded instrumented capture review
+
+Independently reviewed `57c3a3d` adds existing opt-in monotonic profiler calls to
+the parent probe, reviewed implementation, runtime and complete cache path. The
+10-second parent/cooperative limits, full byte consumption, metadata/parent/image
+checks, output parsing and applicability decisions are unchanged. Off mode does
+not generate a work ID or per-chunk timing/progress writes. On mode measures read
+and hash time separately; these overlap neither the complete member time nor the
+parent total by addition. Logging can add cost and conservatively reach a deadline;
+it cannot create complete facts. A missing completion marker remains unavailable.
+
+The selected route is the existing controlled machine acceptance entrypoint,
+limited to the fixed public repository/task-branch push and producer's actual
+wrapped portable run. It creates an exclusive mode-0600 file in its owned temporary
+directory outside the observed project. Two diagnostic variables reach the actual
+compiler; this is explicitly an instrumented context. Inspection of the guarded
+TypeScript 5.6.3 `tsc.js` and API environment reads, including dynamic polling key
+construction, found no `REDUE_` reads or environment enumeration. The existing
+Node/loader/proxy context is retained, not stripped or rewritten. This conclusion
+does not authorize an exemption for arbitrary compiler or imported code. Prefer
+this route to a separate replay that warms the failed run's inputs.
+
+The report reader is bounded to 1 MiB, 4096 lines and 512 projected rows. It retains
+only fixed phase names, bounded monotonic/work identifiers and nonnegative finite
+numeric counts. Paths, environment, raw facts, private URLs, UUID cache identities,
+arbitrary reasons and applicability fields are not projected. Child PID/work IDs
+correlate partial start/end probes without claiming a complete capture or changing
+the immutable receipt. Logging/read failure cannot repair origin. Ten pure machine/
+phase controls independently passed on Node 22.13.0. The author separately reports
+actual off/on/unusable-output fact equality; that native test was not duplicated.
+The enabled signer remains exactly owner-approved SHA-256
+`5770b7f0ac9133fbf0190cf0e238ac800263b632d7f4741f3fddb04882591924`.
+One fixed captured attempt is within the reviewed route only after current storage
+accounting; no deadline increase, cache omission, producer acceptance or model
+authorization follows from this review.
+
+## Contributor platform test correction
+
+Independent inspection of `5d48626` confirms `.gitattributes` pins LF only for the
+two approved signer YAML files, preserving the exact existing SHA assertion rather
+than normalizing its input during verification. A disposable Git checkout with
+`core.autocrlf=true` requires those bytes unchanged. The other change uses native
+`path.join` in the expected configuration path, matching the implementation.
+Fourteen affected tests passed on a frozen archive with existing dependencies
+linked read-only; no installation scripts ran. The first direct worktree attempt
+could not import its absent `yaml` dependency (three other tests passed); the
+explicit archive run repaired only that test prerequisite. Native Windows
+revalidation remains pending, and its earlier two failures are preserved.
