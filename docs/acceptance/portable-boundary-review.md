@@ -587,3 +587,60 @@ not complete cross-agent or authenticated-CI gates. The later `256d008` read bou
 must precede allocation. Its 2 MiB per-attempt reservation must also be accounted
 against cumulative owner-approved 10 MiB storage before another attempt, rather
 than interpreted as an unlimited per-run allowance.
+
+## Disabled signer data review and test registration followup
+
+Independent execution of the disabled signing-proposal and machine author tests
+on `7f32838` passed 12/12. Further independent controls exposed five malformed
+inputs accepted by its inline signer validator: boolean envelope/predicate/
+manifest schema values, boolean false exit code, and an incorrect inner subject
+predicate digest. Python boolean/integer equality explains the first four; the
+inner binding was not checked. All five produced a predicate in a bounded local
+data-only reproduction. Signing remains disabled. The recipient envelope parser
+rejects these inputs; no actual signature, imported CURRENT or model false reuse
+is claimed. The integration owner is correcting the data validator; this owned
+regression remains red until that correction is independently tested.
+
+The exact official `actions/attest` distribution at
+[`1e69f48`](https://github.com/actions/attest/tree/1e69f48acb82d1966a394da916b4c1698aa569d6)
+was read without executing it. Its 4,868,977-byte `dist/index.js` digest is
+`3ca89e06ffcb09ff97e9b1633575865cad0b23310ac82176d72990d7554836b5`;
+the pinned action runs using Node 24, distinct from the qualified Node 22.13
+producer compiler. Relevant executed paths were inspected in the distribution,
+not inferred only from TypeScript source: explicit fixed-file SHA-256 subject,
+custom predicate loading, DSSE construction, Sigstore signing and repository
+attestation persistence; the disabled OCI push/storage-record branch is excluded
+by both fixed false inputs. Locked runtime dependencies include `@actions/attest`
+3.2.0, core 3.0.1, github 9.1.1, glob 0.7.0, `@sigstore/sign` and bundle 3.1.0,
+core 2.0.0, protobuf 0.4.3, OCI 0.7.2 and csv-parse 7.0.1. The official registry
+tarballs for attest 3.2.0 and sign 3.1.0 matched the pinned lockfile's SHA-512
+integrities; their relevant distributed signing/OIDC modules were inspected.
+This is a bounded critical-path/dependency review, not a full supply-chain audit.
+
+The bundled Sigstore provider races GitHub's audience-`sigstore` OIDC request
+with a nonempty `SIGSTORE_ID_TOKEN` environment fallback. The proposed fresh
+signer has no producer/repository code execution or producer-supplied environment;
+nevertheless, an explicit refusal of an alternate token is recommended to bind
+this route to its disclosed GitHub identity source. The public-good path contacts
+Fulcio/Rekor and writes a repository attestation; signing therefore requires the
+separate owner approval and public-disclosure review already described. Reading
+the distribution or enabling unsigned controlled VM mechanics grants neither.
+
+The unsigned VM correction `525d9a8` keeps the dedicated `redue-state` ownership
+guard and requires one numeric artifact ID with the pinned downloader's explicit
+single-artifact extraction semantics. Given the reported active artifact sum
+4,132,113 bytes plus 2 MiB VM and 1 MiB package reservations (7,277,841 bytes),
+that one unsigned attempt fits the approved 10 MiB/one-day allowance. Additional
+attempts or signing still require fresh cumulative accounting. No OIDC/model/
+producer-policy authority is introduced by that correction.
+
+The test-only explicit grouping correction `48901be` was source-reviewed and its
+registration repeated independently on Node 22.13: all eleven existing cases
+equal the disjoint eight discovery and three recording groups. No assertions or
+180-second group envelopes changed. The author's actual discovery suite recorded
+seven passes and one initial expected-CURRENT failure with an unavailable ending
+checkpoint; the separate recording group passed all three. A single targeted
+diagnostic run later passed with healthy approximately 53–57 ms histories, but
+the original failure lacked correlated diagnostics. Its cause remains unresolved.
+These observations establish corrected registration, not clean combined runtime
+acceptance or elimination of availability outliers.

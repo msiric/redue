@@ -178,6 +178,34 @@ function portableFixture(){return {schema:1,interpretation:PORTABLE_INTERPRETATI
     discovery:{configs:[['tsconfig.json',digest('config')]],
       files:[['src/value.ts',digest('source')]],queriesSha256:digest('queries')}}};}
 
+test('disabled signer rejects boolean schema/exit codes and broken inner subject binding',t=>{
+  const YAML=createRequire(import.meta.url)('yaml'),proposal=YAML.parse(fs.readFileSync(
+    new URL('../docs/contributor/portable-ci-signing-workflow.yml',import.meta.url),'utf8'));
+  const script=proposal.jobs.signer.steps.find(step=>step.id==='validate').run
+    .split("python3 <<'PYTHON'\n")[1].split('\nPYTHON')[0];
+  const accepted=[];
+  for(const mutation of ['envelope-schema','predicate-schema','manifest-schema','exit-code','inner-subject']){
+    const base=fs.realpathSync(fixture(t)),directory=path.join(base,'redue-sign-input');fs.mkdirSync(directory);
+    const envelope=structuredClone(encodeEnvelope(portableFixture()));
+    if(mutation==='envelope-schema')envelope.schema=true;
+    if(mutation==='predicate-schema')envelope.statement.predicate.schema=true;
+    if(mutation==='exit-code')envelope.statement.predicate.origin.invocation.exitCode=false;
+    if(mutation==='inner-subject')envelope.statement.subject[0].digest.sha256=digest('different predicate');
+    envelope.digest=digest(canonical(envelope.statement));
+    const raw=canonical(envelope),p=envelope.statement.predicate,profile={platform:p.facts.platform,runtime:p.facts.runtime,compiler:p.facts.compiler};
+    const manifest={schema:mutation==='manifest-schema'?true:1,source:'1'.repeat(40),package_sha256:digest('package'),
+      evidence_sha256:digest(raw),evidence_digest:envelope.digest,origin_run_id:p.origin.runId,
+      profile_digest:digest(canonical(profile)),node_physical_identity:digest('node'),boot_identity:digest('boot'),
+      interpretation:PORTABLE_INTERPRETATION,profile,scope:'controlled-noLib-direct-typescript',package_filename:'owned.tgz'};
+    fs.writeFileSync(path.join(directory,'redue-portable-evidence.json'),raw);
+    fs.writeFileSync(path.join(directory,'manifest.json'),canonical(manifest));
+    const result=spawnSync('python3',['-c',script],{env:{...process.env,RUNNER_TEMP:base,GITHUB_SHA:manifest.source},
+      encoding:'utf8',timeout:3000,maxBuffer:65536});
+    if(result.status===0||fs.existsSync(path.join(base,'redue-sign-predicate.json')))accepted.push(mutation);
+  }
+  assert.deepEqual(accepted,[],'Malformed identities must be refused before any signing predicate');
+});
+
 test('older portable interpretation cannot acquire current-schema authority',()=>{
   const obsolete=portableFixture();obsolete.interpretation='redue-portable-direct-typescript@1';
   assert.notEqual(obsolete.interpretation,PORTABLE_INTERPRETATION);
