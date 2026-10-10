@@ -36,7 +36,8 @@ function fixture(t){
     repository:'msiric/redue',repositoryId:'1403689333',ownerId:'26199969',workflow:'.github/workflows/portable-evidence.yml',ref:'refs/heads/main',
     sourceCommit:'1'.repeat(40),signerCommit:'2'.repeat(40),artifactSha256:hash(bytes),evidenceDigest:fail.digest,
     evidenceInterpretation:PORTABLE_INTERPRETATION,refresh:'required',bundleSha256:null};
-  const policyFile=path.join(state,'portable-producers-v1.json'),registry={schema:1,interpretation:'redue-producer-policy-registry@1',revision:1,policies:[policy]};
+  const differentPolicy={...policy,artifactSha256:hash('different-artifact'),evidenceDigest:hash('different-evidence')};
+  const policyFile=path.join(state,'portable-producers-v1.json'),registry={schema:1,interpretation:'redue-producer-policy-registry@1',revision:1,policies:[policy,differentPolicy]};
   const registryBytes=canonical(registry);fs.writeFileSync(policyFile,registryBytes,{mode:0o600});
   const snapshot=readProducerPolicySnapshot(policyFile),ghExecutable=path.join(directory,'reviewed-gh');fs.writeFileSync(ghExecutable,'controlled fixture gh');
   const san=`https://github.com/${policy.repository}/${policy.workflow}@${policy.ref}`;
@@ -57,7 +58,7 @@ function fixture(t){
   t.after(()=>fs.rmSync(directory,{recursive:true,force:true}));
   const decide=catalog=>decidePortableEvidence({check:'typecheck',facts:captured,snapshot:catalog,
     prerequisites:{understood:true,observationHealthy:true,callerValidated:true,complete:true}});
-  return {state,expected,pass,fail,policyFile,registry,registryBytes,decide,calls:()=>verifierCalls};
+  return {state,expected,pass,fail,policyFile,registry,registryBytes,decide,differentPolicyDigest:snapshot.policies[1].digest,calls:()=>verifierCalls};
 }
 
 test('current authenticated FAIL conflicts with old manual PASS without assuming producer order',ownerTests,t=>{
@@ -104,3 +105,23 @@ test('untrusted artifact cannot supply a policy pathname or poison a valid manua
   const catalog=readPortableCatalog(f.state,f.expected);assert.equal(catalog.revision,null);assert(catalog.error);
   assert.equal(f.decide(catalog).reuse_eligible,false);assert.equal(f.calls(),2);
 });
+
+for(const drift of ['outer-artifact','refresh','selected-policy'])
+  test(`valid-shaped persisted CI ${drift} drift cannot gain authority from unrelated current policy`,ownerTests,t=>{
+    const f=fixture(t),before=readPortableCatalog(f.state,f.expected),file=path.join(f.state,'portable-imports-v1.json'),bytes=fs.readFileSync(file);
+    const selected=JSON.parse(bytes),record=selected.records.find(item=>item.acceptance==='github-ci-v1');
+    if(drift==='outer-artifact')record.ciBinding.authentication.artifactSha256=hash('not-the-authenticated-artifact');
+    if(drift==='refresh')record.ciBinding.authentication.refresh='offline-identified';
+    if(drift==='selected-policy')record.ciBinding.policy.policyDigest=f.differentPolicyDigest;
+    fs.writeFileSync(file,canonical(selected));
+    const catalog=readPortableCatalog(f.state,f.expected);
+    assert.equal(catalog.revision,null);assert.equal(catalog.error.code,'PORTABLE_PRODUCER_POLICY_UNAVAILABLE');
+    assert.equal(catalog.records.length,2,'accepted FAIL is retained, not discarded to reveal old PASS');
+    assert.equal(portableCatalogMatches(f.state,f.expected,before.revision),false);
+    assert.equal(f.decide(catalog).reuse_eligible,false);
+    fs.writeFileSync(file,bytes);const recovered=readPortableCatalog(f.state,f.expected);
+    assert.equal(recovered.error,undefined);assert.equal(recovered.records.length,2);
+    assert.equal(f.decide(recovered).reason,'PORTABLE_APPLICABLE_CONFLICT');
+    assert.equal(portableCatalogMatches(f.state,f.expected,before.revision),false,'changed selector identity never restores a prior publication token');
+    assert.equal(f.calls(),2,'currency checks never rerun verifier implicitly');
+  });
