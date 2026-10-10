@@ -51,6 +51,9 @@ function selected(state){
   let value;try{value=parsePortableJson(readFile(file,LIMITS.selector));}
   catch(error){if(error instanceof PortableEnvelopeError)throw error;
     fail('PORTABLE_STATE_INVALID','Portable import selection is malformed');}
+  return validateSelection(value);
+}
+function validateSelection(value){
   if(!exact(value,['schema','records'])||value.schema!==1||!Array.isArray(value.records)||value.records.length>LIMITS.records)
     fail('PORTABLE_STATE_INVALID','Portable import selection is incompatible');
   const seen=new Set();let total=0;
@@ -64,6 +67,31 @@ function selected(state){
   }
   if(total>LIMITS.bytes)fail('PORTABLE_SIZE','Portable imports exceed their cumulative byte limit');
   return value;
+}
+function storageBudget(state,digest,length){
+  const directory=path.join(state,DIRECTORY);
+  if(!safePath(directory,{directory:true,absent:true}))return;
+  const entries=fs.readdirSync(directory);let total=0,present=false;
+  if(entries.length>LIMITS.records)fail('PORTABLE_SIZE','Portable storage exceeds its record limit');
+  for(const name of entries){
+    if(!/^[a-f0-9]{64}\.json$/.test(name))fail('PORTABLE_STATE_INVALID','Portable storage contains an unknown entry');
+    const stat=safePath(path.join(directory,name));
+    if(stat.size>BigInt(PORTABLE_LIMITS.bytes))fail('PORTABLE_SIZE','Portable stored envelope exceeds its byte limit');
+    total+=Number(stat.size);if(name===digest+'.json')present=true;
+  }
+  if(entries.length+(present?0:1)>LIMITS.records||total+(present?0:length)>LIMITS.bytes)
+    fail('PORTABLE_SIZE','Portable storage exceeds its cumulative limit');
+}
+function pendingSelection(state,next,digest,check,acceptance){
+  const file=path.join(state,PENDING);
+  if(!safePath(file,{absent:true}))return;
+  const value=parsePortableJson(readFile(file,LIMITS.selector));
+  if(!exact(value,['schema','digest','check','acceptance','selection'])||value.schema!==1||
+    value.digest!==digest||value.check!==check||value.acceptance!==acceptance)
+    fail('PORTABLE_IMPORT_INCOMPLETE','Retry the exact pending portable import; a different import cannot repair it');
+  validateSelection(value.selection);
+  if(canonical(value.selection)!==canonical(next))
+    fail('PORTABLE_IMPORT_INCOMPLETE','Pending portable selection differs; owner inspection is required');
 }
 function assertState(state){
   safePath(state,{directory:true});
@@ -156,6 +184,8 @@ export function importEvidence({state,configFile,root,check,bytes,acceptDigest=n
   const next={schema:1,records:[...existing.records.filter(item=>item.digest!==envelope.digest),record]};
   if(next.records.length>LIMITS.records||next.records.reduce((sum,item)=>sum+item.bytes,0)>LIMITS.bytes)
     fail('PORTABLE_SIZE','Portable imports exceed their storage limit');
+  pendingSelection(expected.state,next,envelope.digest,check,record.acceptance);
+  storageBudget(expected.state,envelope.digest,length);
   const preview=Object.freeze({schema:1,digest:envelope.digest,check,acceptance:record.acceptance,apply,
     evidence_preserved:!!prior,producer_accepted:record.acceptance==='manual-digest-v1',reuse_eligible:false,
     writes:Object.freeze([DIRECTORY+'/'+envelope.digest+'.json',SELECTOR,PENDING])});
@@ -166,7 +196,9 @@ export function importEvidence({state,configFile,root,check,bytes,acceptDigest=n
     // Recheck under the existing run lock, not a second independent writer lock.
     const current=selected(expected.state);
     if(canonical(current)!==canonical(existing))fail('PORTABLE_STATE_CHANGED','Portable selection changed before import');
-    writeAtomic(path.join(expected.state,PENDING),{schema:1,digest:envelope.digest,check});
+    pendingSelection(expected.state,next,envelope.digest,check,record.acceptance);
+    storageBudget(expected.state,envelope.digest,length);
+    writeAtomic(path.join(expected.state,PENDING),{schema:1,digest:envelope.digest,check,acceptance:record.acceptance,selection:next});
     const directory=path.join(expected.state,DIRECTORY);
     if(!safePath(directory,{directory:true,absent:true}))fs.mkdirSync(directory,{mode:0o700});
     safePath(directory,{directory:true});const file=path.join(directory,envelope.digest+'.json');

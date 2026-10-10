@@ -95,15 +95,19 @@ test('malformed/duplicate/unsupported selectors and incomplete marker never expo
   }
   fs.writeFileSync(file,original);const pending=path.join(f.state,'portable-import-pending-v1.json');fs.writeFileSync(pending,'interrupted');
   assert.throws(()=>importedRevision(f.state),/incomplete/);assert.equal(readImportedSnapshot(f.state).records.length,0);
-  // An explicit valid import owns recovery; passive status never removes markers.
-  importEvidence(options(f,e,{apply:true,acceptDigest:e.digest}));assert.equal(readImportedSnapshot(f.state).records.length,1);
+  // Malformed pending data cannot be reinterpreted as a recoverable transaction.
+  assert.throws(()=>importEvidence(options(f,e,{apply:true,acceptDigest:e.digest})));
+  assert.equal(fs.readFileSync(pending,'utf8'),'interrupted');
 });
 test('failed immutable persistence leaves pending selection and cannot authorize old accepted imports',t=>{
   const f=fixture(t),first=envelope();importEvidence(options(f,first,{apply:true,acceptDigest:first.digest}));
   const next=envelope('second'),file=recordFile(f,next);fs.writeFileSync(file,'unrelated collision');
   assert.throws(()=>importEvidence(options(f,next,{apply:true,acceptDigest:next.digest})));
   assert.equal(readImportedSnapshot(f.state).error.code,'PORTABLE_IMPORT_INCOMPLETE');
-  assert(!fs.existsSync(path.join(f.state,'run.lock')));fs.unlinkSync(file);
+  assert(!fs.existsSync(path.join(f.state,'run.lock')));
+  assert.throws(()=>importEvidence(options(f,first,{apply:true,acceptDigest:first.digest})),/exact pending/);
+  assert.throws(()=>importEvidence(options(f,next,{apply:true})),/exact pending/);
+  assert.equal(readImportedSnapshot(f.state).error.code,'PORTABLE_IMPORT_INCOMPLETE');fs.unlinkSync(file);
   importEvidence(options(f,next,{apply:true,acceptDigest:next.digest}));assert.equal(readImportedSnapshot(f.state).records.length,2);
 });
 test('existing run ownership serializes imports instead of racing verification selection',t=>{
@@ -120,6 +124,14 @@ test('cumulative count is bounded before writes and all selected imports remain 
   assert.throws(()=>importEvidence(options(f,envelope('too many'),{apply:true})),/storage limit/);
   assert.equal(importedRevision(f.state),revision);
   assert.deepEqual(fs.readdirSync(path.join(f.state,'portable-evidence-v1')).sort(),files);
+});
+test('unselected interrupted files still consume the bounded physical storage budget',t=>{
+  const f=fixture(t);fs.mkdirSync(path.join(f.state,'portable-evidence-v1'));
+  for(let i=0;i<PORTABLE_STORE_LIMITS.records;i++){
+    const e=envelope(String(i));fs.writeFileSync(recordFile(f,e),canonical(e));
+  }
+  assert.throws(()=>importEvidence(options(f,envelope('extra'),{apply:true})),/storage exceeds/);
+  assert(!fs.existsSync(path.join(f.state,'portable-import-pending-v1.json')));
 });
 test('selector replacement during envelope reading fails the snapshot barrier',t=>{
   const f=fixture(t),e=envelope();importEvidence(options(f,e,{apply:true,acceptDigest:e.digest}));
