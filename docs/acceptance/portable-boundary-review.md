@@ -85,14 +85,15 @@ acceptance and economic evidence. Unknown resource availability is not a PASS.
 
 ## Envelope review result
 
-Envelope author commit: `ab7f66d`. Independent test commits: `0b392ca`, `6ecbf59`.
+Envelope author commits: `ab7f66d`, `f4eb157`. Independent test commits:
+`0b392ca`, `6ecbf59`, plus the integer-lexeme regression in this review update.
 On macOS arm64 Node 22.13.0:
 
 ```sh
 node --test test/portable-boundaries.test.mjs test/portable-envelope.test.mjs
 ```
 
-Result: 20 tests passed, zero failed or skipped. The independent tests include
+Result: 21 tests passed, zero failed or skipped. The independent tests include
 absence/membership, rename, change-and-restore limitations, symlink topology,
 case/Unicode and identity binding, inert JSON prototype keys, incomplete origin,
 untrusted inspection, unknown embedded command/transport fields, malformed Unicode
@@ -102,7 +103,12 @@ truncation, digest substitutions, accessor rejection and incompatible schemas.
 The review found contradictory `FAIL`/exit-zero and complete/interrupted origins
 could initially pass schema validation. The author corrected exact outcome mapping
 and complete-origin prerequisites before the reviewed commit; regression tests
-passed. No remaining concrete parsed-input exploit was found in this finite review.
+passed. A second review finding showed fractional/exponent tokens could underflow
+or round to integers and share a canonical digest with an integer origin field.
+This was consistent with JavaScript-number canonical meaning, but not the intended
+narrow integer-input domain. Commit `f4eb157` rejects such tokens before numeric
+conversion; independent negative tests cover the underflow and rounding cases.
+No remaining concrete parsed-input exploit was found in this finite review.
 This result does not verify runtime equivalence, authenticate a producer or authorize
 reuse. JavaScript producer objects are local API inputs; the imported-byte threat
 boundary is parsed JSON, which cannot supply executable accessors or proxies.

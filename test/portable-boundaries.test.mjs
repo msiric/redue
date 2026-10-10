@@ -132,3 +132,13 @@ test('parser rejects encoded duplicate keys and invalid Unicode at data boundari
   const utf8=Buffer.from(bytes),invalid=Buffer.concat([utf8.subarray(0,-1),Buffer.from([0xed,0xa0,0x80]),utf8.subarray(-1)]);
   assert.throws(()=>parseEnvelope(invalid),PortableEnvelopeError);
 });
+
+test('integer-only origin fields reject number lexemes that underflow or round to integers',()=>{
+  const bytes=canonical(encodeEnvelope(portableFixture()));
+  for(const token of ['1e-99999','-1e-99999','0.00000000000000000000000000000001',
+    '9007199254740990.9','0e0','0.0']){
+    const changed=bytes.replace('"exitCode":0',`"exitCode":${token}`);
+    assert.throws(()=>parseEnvelope(changed),error=>error instanceof PortableEnvelopeError&&
+      error.code==='PORTABLE_NUMBER',token);
+  }
+});
