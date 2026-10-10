@@ -190,7 +190,9 @@ export function importEvidence({state,configFile,root,check,bytes,acceptDigest=n
     evidence_preserved:!!prior,producer_accepted:record.acceptance==='manual-digest-v1',reuse_eligible:false,
     writes:Object.freeze([DIRECTORY+'/'+envelope.digest+'.json',SELECTOR,PENDING])});
   if(!apply)return preview;
-  safeLock(expected.state);const lock=acquireRunLock(expected.state);
+  safeLock(expected.state);let lock;
+  try{lock=acquireRunLock(expected.state);}
+  catch{fail('PORTABLE_LOCK','Existing run ownership prevents this import; inspect verification ownership');}
   try{
     if(owner(expected)!==identity)fail('PORTABLE_STATE_CHANGED','Portable state ownership changed before import');
     // Recheck under the existing run lock, not a second independent writer lock.
@@ -214,5 +216,11 @@ export function importEvidence({state,configFile,root,check,bytes,acceptDigest=n
     writeAtomic(path.join(expected.state,SELECTOR),next);
     fs.unlinkSync(path.join(expected.state,PENDING));syncDirectory(expected.state);
     return Object.freeze({...preview,evidence_preserved:true});
-  }finally{lock.release();}
+  }catch(error){
+    if(error instanceof PortableEnvelopeError)throw error;
+    fail('PORTABLE_IMPORT_FAILED','Portable import could not complete; inspect owned state before retrying');
+  }finally{
+    try{lock.release();}
+    catch{fail('PORTABLE_LOCK','Portable import lock could not be released; inspect verification ownership');}
+  }
 }

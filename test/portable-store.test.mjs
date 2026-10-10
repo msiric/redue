@@ -112,7 +112,7 @@ test('failed immutable persistence leaves pending selection and cannot authorize
 });
 test('existing run ownership serializes imports instead of racing verification selection',t=>{
   const f=fixture(t),e=envelope(),lock=acquireRunLock(f.state);
-  try{assert.throws(()=>importEvidence(options(f,e,{apply:true})),/run lock live/);
+  try{assert.throws(()=>importEvidence(options(f,e,{apply:true})),error=>error.code==='PORTABLE_LOCK'&&!error.message.includes(f.state));
     assert(!fs.existsSync(path.join(f.state,'portable-imports-v1.json')));
   }finally{lock.release();}
   importEvidence(options(f,e,{apply:true}));assert.equal(readImportedSnapshot(f.state).records.length,1);
