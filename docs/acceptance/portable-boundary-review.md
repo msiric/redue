@@ -11,8 +11,9 @@ Two-machine execution, actual cross-agent acceptance, authenticated CI and relea
 gates remain pending.
 The first hosted machine and installed-macOS attempts stopped at incomplete
 portable origin despite eligible local evidence; their responsible phase is not
-established. Diagnostics preserve that distinction rather than repairing origin
-from a later local CURRENT response.
+established. A later signed-route producer established its portable probe's
+10-second parent timeout; the internal phase remains unknown. Diagnostics preserve
+that distinction rather than repairing origin from a later local CURRENT response.
 REDUE-PE-001 G1–G4 are not certified by
 this document. Baseline inspected: `b4f286034f43021a74f1babf2c1d0fee5df2a9e5`.
 
@@ -818,3 +819,43 @@ immutable original bytes all passed. Agent-visible JSON was parsed and asserted
 in-process, not saved as a separate raw transcript. The private log and frozen
 source identity are retained locally; owned temporary archive/processes were
 cleaned. This is same-machine CLI boundary evidence, not model or G2/G3 proof.
+
+## First established hosted portable failure classification
+
+The retained signed-producer log for run `38094702115` was independently read.
+Source `2bc636acf96b8652ff9dcac1d3aa846a3a9532d2`, exact package
+`10ab71da58cd805010900a610b2ce0cb50adee375d697e898d90b8e049c0d71b`,
+macOS 26.6.2/build 25G83, Darwin 25.6.0, ARM64, Node 22.13.0 and writable APFS
+produced origin `0e4aacb9-a921-4462-b9ec-e97aaa6ee096`. The owned selected/immutable
+diagnostic established historical PASS, stable qualified observation, no checkpoint
+issues, incomplete portable origin, no captured facts and
+`PORTABLE_PROBE_TIMEOUT`. The actual wrapper took 23,364.49 ms and its later
+local synchronization 1,139.90 ms. These are individual samples. This static code
+is emitted only for the unchanged enclosing spawn's `error.code === ETIMEDOUT`.
+The start capture did not produce complete facts; the one retained failure code
+does not distinguish the beginning and ending captures. No evidence upload or
+signer followed the failed precondition, and no authentication/G3/model result is
+established. The separate package-macOS run again lacked complete origin but did
+not capture its reason; that run cannot inherit this one's diagnosis.
+
+The source call path places all module startup, reviewed compiler implementation
+checks, Node/helper reads, OpenSSL inspection, complete dyld-cache SHA-256 reads,
+loaded-image checks, compiler input discovery/query normalization and result JSON
+inside the single 10-second process budget. The cache's separate cooperative
+10-second check starts within that budget after earlier work. No current log
+attributes the elapsed time to cache I/O, hashing, startup or discovery. The
+approximately 5.8 GB inspected locally makes cache work a concrete measurement
+target, not an established remote cause.
+
+The smallest justified next change is diagnostic only using the existing opt-in
+monotonic profiler: correlate parent probe launch/completion with a safe work ID
+and child PID; mark runtime and compiler-discovery stages; expose cache member
+count/total bytes, member ordinals and coarse 128 MiB progress with completed
+bytes and accumulated read/hash durations. Emit separate beginning/end capture
+classifications without changing the receipt. No filenames, addresses, cache
+digests, environment, private inputs or raw probe output need be logged. Bound
+the event count and retain the enclosing/cooperative deadlines and all before/
+after validations. A killed probe's missing completion is unavailable, never a
+certificate. Review those diagnostics and fresh storage accounting before one
+fixed captured attempt; no repeated benchmark or substantive optimization is
+justified by this timeout alone.
