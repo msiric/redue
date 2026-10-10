@@ -717,3 +717,22 @@ override; stateful status/run operations retain the intended owned state. Its
 author-reported attempt-2 replay and historical attempt-1 refusal remain separate.
 The `b5bf327` acceptance map names source/evidence pointers and open gates rather
 than calling test presence or both-host policy mechanics actual model acceptance.
+
+Queued CI recipient helper `b5cbffb` was independently source-reviewed and its
+19 controlled tests repeated successfully. Default inspection starts no process
+and grants no trust; explicit application requires the state-selected current
+policy, source/signer and outer/inner identity, a healthy direct-recipe observer,
+then the actual existing authentication/import CLI and independent recipient
+synchronization. The installed CLI/store remain authoritative for native verifier
+byte identity, current policy and applicability. The entry-file checksum is
+explicitly not whole-installation authentication. Neither controlled responses
+nor this procedure establish live G3, two-machine model handoff or a saved run.
+
+Machine inventory `f88b06b` was independently reviewed and its seven controlled
+tests passed. Fixed read-only `df`, `diskutil`, `plutil` and `sw_vers` calls retain
+5-second/32-KiB bounds and expose only selected public image/version/build and
+writable APFS classifications. They do not warm the full portable runtime hash,
+select a different verification profile or confer eligibility. Unknown, malformed
+or non-writable filesystem facts stop before installation or checks. This is a
+safer cause-capture prerequisite, not a correction to the original incomplete
+origin or authorization to retry indefinitely.
