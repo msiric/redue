@@ -774,3 +774,23 @@ usage 4,290,318 bytes plus the 5 MiB signing-route and 512 KiB package reservati
 totals 10,057,486 bytes, below the owner-approved 10 MiB. This clears one push only;
 further pushes, dispatches or attempts require fresh cumulative accounting and
 must not infer unlimited spending or storage approval.
+
+Checkpoint diagnostic `face462` initially retained a call to the core's unbounded
+receipt reader even though its journal/timing reads were bounded. An independent
+owned FIFO selector reproduction returned null status/ETIMEDOUT/SIGTERM after
+1.5 seconds and no diagnostic output. This is a new test-helper availability
+finding, not a product false-current claim. Leaf correction `690f04a` routes the
+receipt through the same 256 KiB no-follow/nonblocking regular-file reader;
+missing, malformed, oversized or nonregular selection yields no receipt facts.
+Its three pure controls pass and the independent real FIFO case completes in
+approximately 42 ms with unavailable/non-green receipt diagnostics. No core
+reader, assertion, deadline or system setting changed.
+
+The frozen `59009f8` full run recorded 314 cases: 297 pass, one failure and 16
+skips. The copied-Node caller mutation response was correctly non-green, but the
+owned test searched a human reason for a structured error-code token. The CLI
+sets `reason_code: PORTABLE_CALLER_CONTEXT_CHANGED`; the test now requires that
+exact field and retains exit-2, non-CURRENT/non-reuse, immutable origin and zero
+recipient execution assertions. The original failure is retained. One targeted
+real handoff rerun is pending completion of the overlapping supplemental suite;
+this assertion repair does not retroactively declare the full run clean.

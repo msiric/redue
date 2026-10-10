@@ -24,6 +24,23 @@ import {inspectDefaultOpenSSL,DEFAULT_OPENSSL_CONFIG,portableOpenSSLContextIssue
 import {portableProbeFailureCode} from '../src/portable-facts.mjs';
 import {summarizeMachineOrigin} from './acceptance/portable-machine.mjs';
 
+test('failed-checkpoint diagnostics refuse a real FIFO selector without waiting for a writer',
+  {skip:process.platform==='win32'?'Controlled POSIX FIFO fixture':false},t=>{
+  const state=fixture(t),file=path.join(state,'receipts-v1.json');
+  const created=spawnSync('/usr/bin/mkfifo',[file],{encoding:'utf8',timeout:1500});
+  assert.equal(created.status,0,'Owned FIFO fixture must be created');
+  const helper=new URL('./acceptance/checkpoint-diagnostics.mjs',import.meta.url).href;
+  const script=`import {checkpointBaselineDiagnostics} from ${JSON.stringify(helper)};\n`+
+    'console.log(JSON.stringify(checkpointBaselineDiagnostics({state:process.argv[1]},{freshness:"UNVERIFIED"})));';
+  const result=spawnSync(process.execPath,['--input-type=module','-e',script,state],
+    {encoding:'utf8',timeout:1500,maxBuffer:4096});
+  assert.equal(result.error,undefined,'Diagnostics must complete rather than timing out on a selector');
+  assert.equal(result.signal,null);assert.equal(result.status,0);
+  const summary=JSON.parse(result.stdout);assert.equal(summary.freshness,'UNVERIFIED');
+  assert.equal(summary.result,null);assert.equal(summary.stable,false);
+  assert.deepEqual(summary.events,[]);assert.deepEqual(summary.timings,[]);
+});
+
 test('incomplete-machine diagnostics never disclose receipt strings or grant local CURRENT authority',()=>{
   const privateValue='private-receipt-path-and-token-do-not-disclose';
   const summary=summarizeMachineOrigin({freshness:'CURRENT',reuse_eligible:true,result:'PASS',stable:true,
@@ -613,7 +630,7 @@ test('real copied-Node recipient independently reuses origin evidence without ex
     const result=await finished,visible=JSON.parse(result.stdout).checks[0];
     if(change||!release){assert.equal(result.code,2,result.stderr);
       assert.equal(visible.reuse_eligible,false);assert.notEqual(visible.freshness,'CURRENT');
-      if(change)assert.match(visible.reason,/PORTABLE_CALLER_CONTEXT_CHANGED/);
+      if(change)assert.equal(visible.reason_code,'PORTABLE_CALLER_CONTEXT_CHANGED');
     }else{assert.equal(result.code,0,result.stderr);assert.equal(visible.reuse_eligible,true);
       assert.equal(visible.imported_evidence.origin_run_id,baseline.invocation.runId);}
     assert.equal(fs.existsSync(path.join(state,'runs-v1')),false);assert.deepEqual(fs.readFileSync(historical),original);
