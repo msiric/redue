@@ -25,6 +25,6 @@ test('changed candidate or legacy bytes launch zero installs, checks and models'
 
 test('policy file updates select portable config without committing a machine-local state override',()=>{
   const argv=policyCommandArgs('/owned/bin/redue','/owned/Checkout 空间','setup','codex','--apply','--json');
-  assert.deepEqual(argv,['/owned/bin/redue','--config','/owned/Checkout 空间/redue.config.json','agent','setup','codex','--apply','--json']);
+  assert.deepEqual(argv,['/owned/bin/redue','--config',path.join('/owned/Checkout 空间','redue.config.json'),'agent','setup','codex','--apply','--json']);
   assert(!argv.includes('--state-dir'));assert(!argv.includes('/owned/redue-state'));
 });

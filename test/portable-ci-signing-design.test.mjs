@@ -31,6 +31,22 @@ test('enabled signer bytes match the exact owner-approved proposal',()=>{
  assert.deepEqual(fs.readFileSync('.github/workflows/portable-evidence.yml'),fs.readFileSync('docs/contributor/portable-ci-signing-workflow.yml'));
  assert.equal(hash(fs.readFileSync('.github/workflows/portable-evidence.yml')),'5770b7f0ac9133fbf0190cf0e238ac800263b632d7f4741f3fddb04882591924');
 });
+test('signer checkout preserves approved LF bytes with automatic CRLF enabled',t=>{
+ const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-sign-eol-')));
+ t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
+ const git=(...args)=>{const result=spawnSync('git',args,{cwd:base,encoding:'utf8',timeout:5000,maxBuffer:65536});
+  assert.ifError(result.error);assert.equal(result.status,0,'Disposable Git checkout did not complete');};
+ git('init','-q');git('config','core.autocrlf','true');
+ fs.writeFileSync(path.join(base,'.gitattributes'),fs.readFileSync('.gitattributes'));
+ const files=['.github/workflows/portable-evidence.yml','docs/contributor/portable-ci-signing-workflow.yml'];
+ for(const name of files){const file=path.join(base,name);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,fs.readFileSync(name));}
+ git('add','.gitattributes',...files);
+ for(const name of files)fs.unlinkSync(path.join(base,name));
+ git('checkout-index','--all');
+ for(const name of files){const bytes=fs.readFileSync(path.join(base,name));
+  assert.equal(hash(bytes),'5770b7f0ac9133fbf0190cf0e238ac800263b632d7f4741f3fddb04882591924');
+  assert(!bytes.includes(Buffer.from('\r\n')),'Approved signing source may not be converted to CRLF');}
+});
 test('disabled signer has minimal job permissions and no producer checkout',()=>{
  assert.deepEqual(proposal.jobs.signer.permissions,{contents:'read','id-token':'write',attestations:'write'});
  assert(!proposal.jobs.signer.steps.some(s=>s.uses?.startsWith('actions/checkout')));
