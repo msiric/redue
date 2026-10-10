@@ -154,8 +154,12 @@ export function importedRevision(state){
   const stat=safePath(path.join(state,SELECTOR),{absent:true});
   return directoryIdentity(safePath(state,{directory:true}))+':'+(stat?fingerprint(stat):'absent');
 }
-export function readImportedSnapshot(state){
+export function readImportedSnapshot(state,expected){
   try{
+    if(!expected||typeof expected.configFile!=='string'||typeof expected.root!=='string')
+      fail('PORTABLE_OWNERSHIP','Expected project ownership is required to read portable imports');
+    const selectionOwner={state:path.resolve(state),configFile:path.resolve(expected.configFile),root:path.resolve(expected.root)};
+    const ownership=owner(selectionOwner);
     const revision=importedRevision(state),selection=selected(state),records=[];
     for(const record of selection.records){
       const bytes=readFile(path.join(state,DIRECTORY,record.digest+'.json'),PORTABLE_LIMITS.bytes);
@@ -164,7 +168,8 @@ export function readImportedSnapshot(state){
       if(envelope.digest!==record.digest)fail('PORTABLE_DIGEST','Portable immutable evidence identity changed');
       records.push(Object.freeze({...record,envelope}));
     }
-    if(importedRevision(state)!==revision)fail('PORTABLE_STATE_CHANGED','Portable selection changed while reading');
+    if(owner(selectionOwner)!==ownership||importedRevision(state)!==revision)
+      fail('PORTABLE_STATE_CHANGED','Portable selection or ownership changed while reading');
     return Object.freeze({revision,records:Object.freeze(records)});
   }catch(error){return Object.freeze({revision:null,records:Object.freeze([]),error:{
     code:error instanceof PortableEnvelopeError?error.code:'PORTABLE_STATE_UNAVAILABLE',

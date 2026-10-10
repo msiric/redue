@@ -34,7 +34,7 @@ test('preview is no-write and import is untrusted by default without changing lo
   assert.deepEqual(fs.readdirSync(f.state).sort(),before);
   const applied=importEvidence(options(f,e,{apply:true}));assert.equal(applied.evidence_preserved,true);
   assert.equal(applied.producer_accepted,false);assert.equal(applied.reuse_eligible,false);
-  const snapshot=readImportedSnapshot(f.state);assert.equal(snapshot.records.length,1);
+  const snapshot=readImportedSnapshot(f.state,f);assert.equal(snapshot.records.length,1);
   assert.equal(snapshot.records[0].check,'selected-local-check');assert.equal(snapshot.records[0].acceptance,'untrusted');
   assert.equal(snapshot.records[0].envelope.digest,e.digest);
   assert.equal(fs.readFileSync(path.join(f.state,'receipts-v1.json'),'utf8'),'old immutable selection');
@@ -57,7 +57,7 @@ test('missing/malformed/mismatched ownership never initializes state or imports'
     if(value===null)fs.rmSync(marker);else fs.writeFileSync(marker,value);
     assert.throws(()=>importEvidence(options(f,e,{apply:true})));
     assert(!fs.existsSync(path.join(f.state,'portable-evidence-v1')));assert(!fs.existsSync(path.join(f.state,'run.lock')));
-    assert.equal(readImportedSnapshot(f.state).records.length,0);
+    assert.equal(readImportedSnapshot(f.state,f).records.length,0);
   }
   fs.writeFileSync(marker,original);
   const absent=path.join(f.base,'redue-absent');assert.throws(()=>importEvidence(options({...f,state:absent},e,{apply:true})));
@@ -78,23 +78,23 @@ test('state placement and symbolic external write targets are refused',t=>{
 test('immutable envelope file tampering/missing/linked content is conservative on every snapshot',t=>{
   const f=fixture(t),e=envelope();importEvidence(options(f,e,{apply:true,acceptDigest:e.digest}));
   const file=recordFile(f,e),original=fs.readFileSync(file),changed=Buffer.from(original);changed[changed.length-5]^=1;
-  fs.writeFileSync(file,changed);assert.equal(readImportedSnapshot(f.state).records.length,0);
-  fs.writeFileSync(file,original);assert.equal(readImportedSnapshot(f.state).records.length,1);
-  fs.unlinkSync(file);assert.equal(readImportedSnapshot(f.state).records.length,0);
+  fs.writeFileSync(file,changed);assert.equal(readImportedSnapshot(f.state,f).records.length,0);
+  fs.writeFileSync(file,original);assert.equal(readImportedSnapshot(f.state,f).records.length,1);
+  fs.unlinkSync(file);assert.equal(readImportedSnapshot(f.state,f).records.length,0);
   fs.writeFileSync(file,original);const outside=path.join(f.base,'outside-envelope');fs.writeFileSync(outside,original);
   fs.unlinkSync(file);
   try{fs.symlinkSync(outside,file);}catch(error){if(process.platform==='win32'&&error.code==='EPERM'){t.skip('symlink privilege unavailable');return;}throw error;}
-  assert.equal(readImportedSnapshot(f.state).error.code,'PORTABLE_STATE_UNSAFE');
+  assert.equal(readImportedSnapshot(f.state,f).error.code,'PORTABLE_STATE_UNSAFE');
 });
 test('malformed/duplicate/unsupported selectors and incomplete marker never expose accepted records',t=>{
   const f=fixture(t),e=envelope();importEvidence(options(f,e,{apply:true,acceptDigest:e.digest}));
   const file=path.join(f.state,'portable-imports-v1.json'),original=fs.readFileSync(file,'utf8');
   for(const value of ['{',original.replace('"schema":1','"schema":1,"schema":2'),
     original.replace('manual-digest-v1','unknown-policy-v2'),original.replace(e.digest,'../escape')]){
-    fs.writeFileSync(file,value);assert.equal(readImportedSnapshot(f.state).records.length,0);
+    fs.writeFileSync(file,value);assert.equal(readImportedSnapshot(f.state,f).records.length,0);
   }
   fs.writeFileSync(file,original);const pending=path.join(f.state,'portable-import-pending-v1.json');fs.writeFileSync(pending,'interrupted');
-  assert.throws(()=>importedRevision(f.state),/incomplete/);assert.equal(readImportedSnapshot(f.state).records.length,0);
+  assert.throws(()=>importedRevision(f.state),/incomplete/);assert.equal(readImportedSnapshot(f.state,f).records.length,0);
   // Malformed pending data cannot be reinterpreted as a recoverable transaction.
   assert.throws(()=>importEvidence(options(f,e,{apply:true,acceptDigest:e.digest})));
   assert.equal(fs.readFileSync(pending,'utf8'),'interrupted');
@@ -103,19 +103,19 @@ test('failed immutable persistence leaves pending selection and cannot authorize
   const f=fixture(t),first=envelope();importEvidence(options(f,first,{apply:true,acceptDigest:first.digest}));
   const next=envelope('second'),file=recordFile(f,next);fs.writeFileSync(file,'unrelated collision');
   assert.throws(()=>importEvidence(options(f,next,{apply:true,acceptDigest:next.digest})));
-  assert.equal(readImportedSnapshot(f.state).error.code,'PORTABLE_IMPORT_INCOMPLETE');
+  assert.equal(readImportedSnapshot(f.state,f).error.code,'PORTABLE_IMPORT_INCOMPLETE');
   assert(!fs.existsSync(path.join(f.state,'run.lock')));
   assert.throws(()=>importEvidence(options(f,first,{apply:true,acceptDigest:first.digest})),/exact pending/);
   assert.throws(()=>importEvidence(options(f,next,{apply:true})),/exact pending/);
-  assert.equal(readImportedSnapshot(f.state).error.code,'PORTABLE_IMPORT_INCOMPLETE');fs.unlinkSync(file);
-  importEvidence(options(f,next,{apply:true,acceptDigest:next.digest}));assert.equal(readImportedSnapshot(f.state).records.length,2);
+  assert.equal(readImportedSnapshot(f.state,f).error.code,'PORTABLE_IMPORT_INCOMPLETE');fs.unlinkSync(file);
+  importEvidence(options(f,next,{apply:true,acceptDigest:next.digest}));assert.equal(readImportedSnapshot(f.state,f).records.length,2);
 });
 test('existing run ownership serializes imports instead of racing verification selection',t=>{
   const f=fixture(t),e=envelope(),lock=acquireRunLock(f.state);
   try{assert.throws(()=>importEvidence(options(f,e,{apply:true})),error=>error.code==='PORTABLE_LOCK'&&!error.message.includes(f.state));
     assert(!fs.existsSync(path.join(f.state,'portable-imports-v1.json')));
   }finally{lock.release();}
-  importEvidence(options(f,e,{apply:true}));assert.equal(readImportedSnapshot(f.state).records.length,1);
+  importEvidence(options(f,e,{apply:true}));assert.equal(readImportedSnapshot(f.state,f).records.length,1);
 });
 test('cumulative count is bounded before writes and all selected imports remain intact',t=>{
   const f=fixture(t);
@@ -143,7 +143,16 @@ test('selector replacement during envelope reading fails the snapshot barrier',t
     }
     return result;
   });
-  const snapshot=readImportedSnapshot(f.state);
+  const snapshot=readImportedSnapshot(f.state,f);
   assert.equal(replaced,true,'fault injection reached immutable envelope read');
   assert.equal(snapshot.records.length,0);assert.equal(snapshot.error.code,'PORTABLE_STATE_CHANGED');
+});
+test('read-side ownership must match the recipient, not merely a valid absolute marker',t=>{
+  const f=fixture(t),e=envelope();importEvidence(options(f,e,{apply:true,acceptDigest:e.digest}));
+  assert.equal(readImportedSnapshot(f.state).error.code,'PORTABLE_OWNERSHIP');
+  const marker=path.join(f.state,'vstate-owner-v1.json'),original=fs.readFileSync(marker);
+  fs.writeFileSync(marker,JSON.stringify({...JSON.parse(original),root:f.root+'-different'}));
+  const changed=readImportedSnapshot(f.state,f);
+  assert.equal(changed.records.length,0);assert.equal(changed.error.code,'PORTABLE_OWNERSHIP');
+  fs.writeFileSync(marker,original);assert.equal(readImportedSnapshot(f.state,f).records.length,1);
 });
