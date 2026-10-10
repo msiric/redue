@@ -5,14 +5,14 @@ import os from 'node:os';
 import path from 'node:path';
 import childProcess from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {canonical} from '../src/portable-envelope.mjs';
+import {canonical,PORTABLE_INTERPRETATION} from '../src/portable-envelope.mjs';
 import {readProducerPolicySnapshot,revalidateProducerPolicySnapshot,producerPolicyBindingCurrent,
   PRODUCER_POLICY_INTERPRETATION,PRODUCER_POLICY_LIMITS} from '../src/portable-producer-policy.mjs';
 const supported=typeof process.getuid==='function',hash=value=>createHash('sha256').update(value).digest('hex');
 function policy(){return {schema:1,interpretation:'redue-github-ci-trust@1',issuer:'https://token.actions.githubusercontent.com',
   repository:'controlled/portable',repositoryId:'123',ownerId:'456',workflow:'.github/workflows/portable.yml',ref:'refs/heads/main',
   sourceCommit:'1'.repeat(40),signerCommit:'2'.repeat(40),artifactSha256:'3'.repeat(64),evidenceDigest:'4'.repeat(64),
-  evidenceInterpretation:'redue-portable-direct-typescript@2',refresh:'required',bundleSha256:null};}
+  evidenceInterpretation:PORTABLE_INTERPRETATION,refresh:'required',bundleSha256:null};}
 function fixture(t){
   const base=fs.realpathSync(fs.mkdtempSync(path.join(process.platform==='darwin'?'/tmp':os.tmpdir(),'redue-policy-'))),file=path.join(base,'producer-policy.json'),
     registry={schema:1,interpretation:PRODUCER_POLICY_INTERPRETATION,revision:1,policies:[policy()]};
@@ -42,7 +42,8 @@ test('missing, deleted, malformed and obsolete registry cannot replace earlier p
   assert.throws(()=>readProducerPolicySnapshot(f.file),error=>error.code==='PORTABLE_PRODUCER_POLICY_UNAVAILABLE');
   for(const value of ['','{', '{"schema":1,"schema":1}',{...f.registry,interpretation:'old@0'},
     {...f.registry,revision:0},JSON.stringify({...f.registry,revision:1.5}),{...f.registry,extra:'not an approval'},
-    {...f.registry,policies:[{...policy(),sourceCommit:'latest'}]}]){
+    {...f.registry,policies:[{...policy(),sourceCommit:'latest'}]},
+    {...f.registry,policies:[{...policy(),evidenceInterpretation:'redue-portable-direct-typescript@0'}]}]){
     f.put(value);assert.throws(()=>readProducerPolicySnapshot(f.file));
     assert(!revalidateProducerPolicySnapshot(snapshot));assert(!producerPolicyBindingCurrent(f.file,accepted));
   }
