@@ -27,14 +27,17 @@ function fixture(t){
  const run=()=>spawnSync('python3',['-c',script],{env:{...process.env,RUNNER_TEMP:base,GITHUB_SHA:manifest.source},encoding:'utf8',timeout:3000,maxBuffer:65536});
  return {base,dir,manifest,envelope,run};
 }
-test('disabled signer has minimal job permissions and validates fixed data without executing it',t=>{
+test('disabled signer has minimal job permissions and no producer checkout',()=>{
  assert.deepEqual(proposal.jobs.signer.permissions,{contents:'read','id-token':'write',attestations:'write'});
  assert(!proposal.jobs.signer.steps.some(s=>s.uses?.startsWith('actions/checkout')));
- const f=fixture(t),r=f.run();assert.equal(r.status,0,r.stderr);
+});
+const signerPlatform={skip:process.platform==='win32'?'Fixed Ubuntu signer requires POSIX descriptor primitives; not native Windows acceptance':false};
+test('disabled POSIX signer validates fixed data without executing it',signerPlatform,t=>{
+ const f=fixture(t),r=f.run();assert.ifError(r.error);assert.equal(r.signal,null);assert.equal(r.status,0,r.stderr);
  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(f.base,'redue-sign-predicate.json'))),{schema:1,evidenceDigest:f.envelope.digest,evidenceInterpretation:PORTABLE_INTERPRETATION});
 });
 for(const kind of ['duplicate','wrong-source','changed-subject','unknown-manifest','symlink','oversize','incomplete'])
- test(`signer data control ${kind} fails before any predicate/signing`,t=>{
+ test(`signer data control ${kind} fails before any predicate/signing`,signerPlatform,t=>{
   const f=fixture(t),file=path.join(f.dir,'redue-portable-evidence.json'),manifestFile=path.join(f.dir,'manifest.json');
   if(kind==='duplicate')fs.writeFileSync(manifestFile,canonical(f.manifest).replace('"schema":1','"schema":1,"schema":1'));
   if(kind==='wrong-source')fs.writeFileSync(manifestFile,canonical({...f.manifest,source:'2'.repeat(40)}));
@@ -43,5 +46,5 @@ for(const kind of ['duplicate','wrong-source','changed-subject','unknown-manifes
   if(kind==='oversize')fs.writeFileSync(file,Buffer.alloc(1024*1024+1));
   if(kind==='symlink'){fs.renameSync(file,file+'.saved');fs.symlinkSync(file+'.saved',file);}
   if(kind==='incomplete'){const changed=structuredClone(f.envelope);changed.statement.predicate.origin.complete=false;fs.writeFileSync(file,canonical(changed));}
-  const r=f.run();assert.notEqual(r.status,0);assert(!fs.existsSync(path.join(f.base,'redue-sign-predicate.json')));
+  const r=f.run();assert.ifError(r.error);assert.equal(r.signal,null);assert(Number.isInteger(r.status));assert.notEqual(r.status,0);assert(!fs.existsSync(path.join(f.base,'redue-sign-predicate.json')));
  });
