@@ -99,31 +99,45 @@ function projectSelection({root,runtime,publicConfig,stateOverride},check){
   const state=path.resolve(runtime.state),ownerConfig=path.join(state,'project-runtime-v1.json');
   if(!/^(?:redue|vstate)-/.test(path.basename(state)))fail('PORTABLE_OWNERSHIP','A dedicated REDUE state directory is required');
   try{assertOwnedStatePlacement(runtime);}catch{fail('PORTABLE_OWNERSHIP','Selected state overlaps an observed input root');}
-  const owner=parsePortableJson(readBoundedPortableFile(path.join(state,'vstate-owner-v1.json'),{limit:8192}));
+  const ownerFile=path.join(state,'vstate-owner-v1.json'),ownerSnapshot=pathSnapshot(ownerFile);
   const expected={schema:1,kind:'vstate-product-alpha',config:ownerConfig,root:path.resolve(root),state};
-  if(canonical(owner)!==canonical(expected))fail('PORTABLE_OWNERSHIP','Existing ownership does not match this selected project');
-  return {state,root:path.resolve(root),configFile:ownerConfig};
+  const validateOwner=()=>{
+    const owner=parsePortableJson(readBoundedPortableFile(ownerFile,{limit:8192})),current=pathSnapshot(ownerFile);
+    if(canonical(owner)!==canonical(expected)||!unchangedParents(ownerSnapshot,current)||
+      fingerprint(ownerSnapshot.stat)!==fingerprint(current.stat))
+      fail('PORTABLE_OWNERSHIP','Existing ownership changed or does not match this selected project');
+  };
+  validateOwner();
+  return {state,root:path.resolve(root),configFile:ownerConfig,validateOwner};
 }
 
-function selectedOrigin(state,check){
+function selectedOrigin(state,check,validateOwner){
   let revision;
+  validateOwner();
   try{revision=receiptRevision(state);}catch{fail('PORTABLE_SELECTION','Selected receipt update is unavailable or incomplete');}
+  const validateSelection=()=>{
+    validateOwner();
+    try{if(receiptRevision(state)!==revision)throw Error('changed');}
+    catch{fail('PORTABLE_SELECTION_CHANGED','Receipt selection changed or became incomplete during export');}
+  };
+  validateSelection();
   const selection=parsePortableJson(readBoundedPortableFile(path.join(state,'receipts-v1.json')));
+  validateSelection();
   if(selection?.schema!==1||!selection.checks||typeof selection.checks!=='object'||Array.isArray(selection.checks))
     fail('PORTABLE_SELECTION','Selected receipt format is unsupported');
   if(!Object.hasOwn(selection.checks,check))fail('PORTABLE_NO_RECEIPT','No selected local execution exists for this check');
   const receipt=selection.checks[check],runId=receipt?.invocation?.runId;
   if(typeof runId!=='string'||!UUID.test(runId))fail('PORTABLE_SELECTION','Selected invocation identity is unsupported');
   const historical=parsePortableJson(readBoundedPortableFile(path.join(state,'runs-v1',runId+'.json')));
+  validateSelection();
   if(historical?.schema!==1||historical.check!==check||canonical(historical.receipt)!==canonical(receipt))
     fail('PORTABLE_SELECTION','Selected receipt does not match its immutable origin record');
-  const validateSelection=()=>{try{if(receiptRevision(state)!==revision)throw Error('changed');}
-    catch{fail('PORTABLE_SELECTION_CHANGED','Receipt selection changed or became incomplete during export');}};
   validateSelection();return {receipt,validateSelection};
 }
 
 function exportEvidence(check,output,dry,context){
-  const {state}=projectSelection(context,check),{receipt:r,validateSelection}=selectedOrigin(state,check);
+  const {state,validateOwner}=projectSelection(context,check),
+    {receipt:r,validateSelection}=selectedOrigin(state,check,validateOwner);
   const captured=r.portable?.schema===1&&r.portable.interpretation===PORTABLE_INTERPRETATION;
   const complete=Boolean(captured&&r.portable.complete===true&&r.stable===true&&r.coverage?.qualified===true&&
     r.invocation.status==='exited'&&r.portable.facts);
@@ -141,6 +155,7 @@ function exportEvidence(check,output,dry,context){
   // Preview also validates destination safety, but creates no directories/files.
   const destination=pathSnapshot(output,{absent:true});
   if(destination.stat)fail('PORTABLE_FILE_EXISTS','Export never overwrites an existing file');
+  validateSelection();
   if(!dry){const bytes=canonical(envelope);writeExport(output,bytes,validateSelection);
     result.written=true;result.bytes=Buffer.byteLength(bytes);}
   return result;

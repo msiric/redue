@@ -102,6 +102,34 @@ test('new receipt selection during immutable origin reading prevents export',asy
   assert(replaced);assert(!fs.existsSync(output));
 });
 
+for(const boundary of ['immutable origin read','export fsync','preview destination inspection'])
+  test(`changed ownership at ${boundary} refuses export and removes only its owned destination`,async t=>{
+    const f=fixture(t),r=receipt();persist(f,r);const output=path.join(f.base,'evidence.json'),
+      ownerFile=path.join(f.state,'vstate-owner-v1.json'),owner=JSON.parse(fs.readFileSync(ownerFile)),
+      historical=path.join(f.state,'runs-v1',r.invocation.runId+'.json');
+    let changed=false;
+    const changeOwner=()=>{if(!changed){changed=true;
+      fs.writeFileSync(ownerFile,JSON.stringify({...owner,root:f.root+'-different'}));}};
+    if(boundary==='immutable origin read'){
+      const originalOpen=fs.openSync,originalRead=fs.readSync;let immutableFd=null;
+      t.mock.method(fs,'openSync',function(file,...args){const fd=originalOpen.call(fs,file,...args);
+        if(file===historical)immutableFd=fd;return fd;});
+      t.mock.method(fs,'readSync',function(fd,...args){const count=originalRead.call(fs,fd,...args);
+        if(fd===immutableFd)changeOwner();return count;});
+    }else if(boundary==='export fsync'){
+      const original=fs.fsyncSync;
+      t.mock.method(fs,'fsyncSync',function(fd){const result=original.call(fs,fd);changeOwner();return result;});
+    }else{
+      const original=fs.lstatSync;
+      t.mock.method(fs,'lstatSync',function(file,...args){if(file===output)changeOwner();
+        return original.call(fs,file,...args);});
+    }
+    await assert.rejects(portableCommand(exportArgs(output,
+      boundary==='preview destination inspection'?['--dry-run']:[]),f),errorCode('PORTABLE_OWNERSHIP'));
+    assert(changed);assert(!fs.existsSync(output));
+    assert(fs.existsSync(historical));assert.equal(JSON.parse(fs.readFileSync(historical)).receipt.invocation.runId,r.invocation.runId);
+  });
+
 test('inspection needs no project and import requires explicit local mapping/apply without altering local outcomes',async t=>{
   const f=fixture(t),r=receipt();persist(f,r);const output=path.join(f.base,'evidence.json');
   const envelope=encodeEnvelope({schema:1,interpretation:PORTABLE_INTERPRETATION,
@@ -119,7 +147,8 @@ test('inspection needs no project and import requires explicit local mapping/app
   assert(!fs.existsSync(path.join(f.state,'portable-imports-v1.json')));
   const applied=await portableCommand([...args,'--apply','--json'],f);
   assert.equal(applied.apply,true);assert.equal(applied.reuse_eligible,false);
-  assert.equal(readImportedSnapshot(f.state).records[0].check,'compiler');
+  assert.equal(readImportedSnapshot(f.state,{configFile:path.join(f.state,'project-runtime-v1.json'),root:f.root})
+    .records[0].check,'compiler');
   assert.deepEqual(fs.readFileSync(path.join(f.state,'receipts-v1.json')),before);
   assert.equal(JSON.parse(fs.readFileSync(path.join(f.state,'runs-v1',r.invocation.runId+'.json'))).receipt.invocation.runId,r.invocation.runId);
 });
