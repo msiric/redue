@@ -303,6 +303,12 @@ changed the catalog basis; the earlier eligible decision again refused CURRENT
 and reuse, without creating a local run. The extended control passed in about
 13.3 seconds. The constructed FAIL origin is explicitly synthetic fault data;
 it is not reported as real compiler execution or authenticated producer evidence.
+The final variant changes a relevant source during the delay and requires the
+existing owned journal's corresponding input notification before releasing the
+response. Thus the precondition is delivered observation, not an assumed sleep.
+The response refuses CURRENT/reuse and records no local compiler invocation.
+The four-variant publication control passed in about 16.1 seconds; it adds no
+runtime interface and uses only disposable synthetic-source diagnostics.
 Synthetic selection faults are identified as such, not claimed as real recipient
 compiler executions. The producer baseline was actual TypeScript execution.
 
@@ -338,3 +344,19 @@ The one owned fixture left by the initial missing-development-compiler attempt
 was verified by its exact test package identity and sole project entry, then
 removed. It contained no state or receipts. Later controls register cleanup
 before prerequisites so observers and fixtures are cleaned on failures too.
+
+## Current independent D1–D3 assessment
+
+Within the explicitly same-host/boot reviewed prototype, no remaining known
+critical defect was identified after the origin completeness, exact ownership,
+catalog recovery, newer receipt and delayed input/publication corrections above.
+The evidence supports an actual controlled separate-checkout G1 mechanism, not
+the unimplemented cross-machine runtime profile. All assumptions remain enforced
+by complete original capture, locally configured full recipient discovery,
+caller proof, observation continuity and final publication guards. Imported bytes
+do not select commands, validators or authority; manual acceptance is digest-scoped.
+
+This assessment is not a blanket approval of G2–G4: the full matched runtime
+profile, real cross-agent/two-machine trials, authenticated CI producer route,
+complete V01–V22 integration matrix, installed/platform gates and complete-path
+economics still require their own concrete evidence and independent review.

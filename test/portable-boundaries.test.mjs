@@ -387,16 +387,17 @@ test('real portable origin refuses change-and-restore, post-exit membership and 
   assert.notEqual(status.freshness,'CURRENT');assert.deepEqual(fs.readFileSync(immutable),original);
 });
 
-test('delayed recipient publication never hides newer FAIL, incomplete selector or changed catalog behind imported PASS',
+test('delayed recipient publication never hides newer selection, catalog or observed input changes behind imported PASS',
   {skip:!portableRuntimeSupported(),timeout:150000},async t=>{
   const f=observedCompiler(t);f.call('run','typecheck','--portable');const baseline=f.selected();
   assert.equal(baseline.portable.complete,true);
   const artifact=path.join(f.base,'evidence.json');
   const exported=JSON.parse(f.call('evidence','export','typecheck','--output',artifact,'--json'));
-  for(const kind of ['new-fail','incomplete','catalog-fail']){
+  for(const kind of ['new-fail','incomplete','catalog-fail','source-event']){
     const root=path.join(f.base,'recipient-'+kind),state=path.join(f.base,'redue-recipient-'+kind);
     fs.cpSync(f.root,root,{recursive:true,dereference:false,verbatimSymlinks:true});
-    const env={...f.env,VSTATE_TEST_FAULTS:'1',VSTATE_TEST_PORTABLE_PUBLICATION_BARRIER:'1'},
+    const env={...f.env,VSTATE_TEST_FAULTS:'1',VSTATE_TEST_PORTABLE_PUBLICATION_BARRIER:'1',
+      REDUE_PUBLIC_INPUT_TRACE:'1'},
       args=words=>[f.bin,'--state-dir',state,...words];
     const call=(...words)=>{const r=spawnSync(process.execPath,args(words),{cwd:root,env,encoding:'utf8',timeout:60000});
       assert.equal(r.status,0,r.stderr+r.stdout);return r.stdout;};
@@ -423,6 +424,21 @@ test('delayed recipient publication never hides newer FAIL, incomplete selector 
     assert.equal(row.reuse_eligible,true);assert.equal(row.imported_evidence.origin_run_id,baseline.invocation.runId);
     assert.equal(fs.existsSync(path.join(state,'runs-v1')),false,'recipient performed no equivalent compiler execution');
     request=await pausedSync();
+    if(kind==='source-event'){
+      const journal=path.join(state,'events.jsonl'),offset=fs.statSync(journal).size;
+      fs.writeFileSync(path.join(root,'src/value.ts'),'export const value: number = 2;\n');
+      const delivered=()=>fs.readFileSync(journal,'utf8').slice(offset).trim().split('\n')
+        .filter(Boolean).map(line=>JSON.parse(line)).some(event=>
+          event.kind==='public_input_notification'&&event.path==='src/value.ts');
+      const eventDeadline=Date.now()+2000;
+      while(!delivered()&&Date.now()<eventDeadline)await new Promise(resolve=>setTimeout(resolve,10));
+      assert(delivered(),'owned journal did not establish relevant input event before publication');
+      request.release();response=await request.done;
+      assert([0,2].includes(response.code),response.stderr);row=JSON.parse(response.stdout).checks[0];
+      assert.equal(row.reuse_eligible,false);assert.notEqual(row.freshness,'CURRENT');
+      assert.equal(fs.existsSync(path.join(state,'runs-v1')),false);
+      continue;
+    }
     if(kind==='catalog-fail'){
       // Synthetic claimed origin, explicitly accepted only in this owned fault
       // fixture: an added matching failure changes the catalog publication basis.
