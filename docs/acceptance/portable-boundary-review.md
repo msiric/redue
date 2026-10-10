@@ -516,3 +516,23 @@ false-CURRENT reproduction is claimed yet. The caller proof must be bound to
 unchanged before/after raw caller context, with conservative handling of a later
 known context change. Versioned content equivalence does not justify substituting
 the daemon's validated runtime for an unvalidated changed caller context.
+
+The caller interval correction `81f0877` was independently reviewed: all raw
+tracked caller fields are captured before portable proof, compared before request
+submission and compared again after response before publication. Known change
+returns unavailable inspection, never an earlier green snapshot. The independent
+copied-Node control now exercises a stable paused request, real owned-copy metadata
+changes after proof and before publication, and unreleased-barrier expiry. Both
+changed intervals and expiry return exit 2/non-CURRENT/non-reusable evidence; a
+later fresh complete validation can legitimately reuse the same content profile.
+The actual origin receipt `3ea9411d-f0a1-4917-b5c9-8af6e1d96cda` and envelope
+`9a42c6a447feae800ac2acd60e4650cde7fdc93914953371224a22d32bcbc52c`
+were retained, with zero recipient compiler executions. The combined controlled
+case passed in approximately 45.5 seconds. This contains the source finding;
+there was no pre-fix actual false-CURRENT reproduction and none is implied.
+
+The preceding full independent boundary run passed 30/30 (approximately 108.6
+seconds), retaining original change/restore, incomplete outcome, catalog conflict,
+source-event and delayed-publication controls under the versioned profile. The
+caller correction above then received its own affected-path run; this is not a
+new full-package/platform or cross-agent/machine certification.

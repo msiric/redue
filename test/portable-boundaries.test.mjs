@@ -527,6 +527,36 @@ test('real copied-Node recipient independently reuses origin evidence without ex
   assert.equal(fs.existsSync(path.join(state,'runs-v1')),false,'recipient executed no equivalent compiler check');
   assert.deepEqual(fs.readFileSync(historical),original,'immutable raw producer provenance preserved');
   const cached=JSON.parse(call('status','--json')).checks[0];assert.equal(cached.reuse_eligible,false);
+  for(const [phase,change,release] of [['after-proof',false,true],['after-proof',true,true],
+    ['before-publication',true,true],['after-proof',false,false]]){
+    const marker=path.join(state,'test-portable-caller-paused'),released=path.join(state,'test-portable-caller-release');
+    for(const file of [marker,released])try{fs.unlinkSync(file);}catch(error){if(error.code!=='ENOENT')throw error;}
+    const child=spawn(node,[f.bin,'--state-dir',state,'status','--sync','--json'],{cwd:root,
+      env:{...f.env,VSTATE_TEST_FAULTS:'1',VSTATE_TEST_PORTABLE_CALLER_BARRIER:phase},stdio:['ignore','pipe','pipe']});
+    let stdout='',stderr='';child.stdout.on('data',bytes=>stdout+=bytes);child.stderr.on('data',bytes=>stderr+=bytes);
+    const finished=new Promise(resolve=>child.on('close',code=>resolve({code,stdout,stderr})));
+    const until=Date.now()+15000;
+    while(!fs.existsSync(marker)&&child.exitCode===null&&Date.now()<until)
+      await new Promise(resolve=>setTimeout(resolve,10));
+    assert.equal(fs.readFileSync(marker,'utf8'),phase,'caller proof boundary actually reached');
+    const prior=rawIdentity(node);
+    // Controlled real metadata update to the OWNED COPY, never the owner's
+    // normal executable. Content remains reviewed; raw interval still changed.
+    if(change){const stat=fs.statSync(node);fs.utimesSync(node,stat.atime,new Date(stat.mtimeMs+2000));
+      assert.notEqual(rawIdentity(node),prior);}
+    if(release)fs.writeFileSync(released,'release');
+    const result=await finished,visible=JSON.parse(result.stdout).checks[0];
+    if(change||!release){assert.equal(result.code,2,result.stderr);
+      assert.equal(visible.reuse_eligible,false);assert.notEqual(visible.freshness,'CURRENT');
+      if(change)assert.match(visible.reason,/PORTABLE_CALLER_CONTEXT_CHANGED/);
+    }else{assert.equal(result.code,0,result.stderr);assert.equal(visible.reuse_eligible,true);
+      assert.equal(visible.imported_evidence.origin_run_id,baseline.invocation.runId);}
+    assert.equal(fs.existsSync(path.join(state,'runs-v1')),false);assert.deepEqual(fs.readFileSync(historical),original);
+  }
+  // New independent validation may legitimately match the same content profile;
+  // a failed interval is not permanent authority or permanent disqualification.
+  const recovered=JSON.parse(call('status','--sync','--json')).checks[0];assert.equal(recovered.reuse_eligible,true);
+  assert.equal(recovered.imported_evidence.origin_run_id,baseline.invocation.runId);
   t.diagnostic(`Copied-Node origin ${baseline.invocation.runId}; envelope ${exported.digest}; recipient compiler runs 0`);
 });
 
