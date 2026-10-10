@@ -1,8 +1,9 @@
 # Portable evidence: independent boundary review
 
-Current conclusion: initial interface review only. REDUE-PE-001 G1–G4 are not
-certified by this document. No portable implementation or machine/agent outcome
-has been accepted here yet. Baseline inspected: `b4f286034f43021a74f1babf2c1d0fee5df2a9e5`.
+Current conclusion: bounded envelope parsing and pure inspection reviewed;
+origin capture, recipient applicability, transactional import, trust/selection,
+and machine/agent gates remain pending. REDUE-PE-001 G1–G4 are not certified by
+this document. Baseline inspected: `b4f286034f43021a74f1babf2c1d0fee5df2a9e5`.
 
 The review lane is independent of core and envelope authors. It owns this record
 and `test/portable-boundaries.test.mjs`; it does not modify the applicability
@@ -81,3 +82,27 @@ it cannot satisfy G2. No unavailable library is represented by a fabricated hash
 Each implemented case must retain an exact commit, command and actual result.
 Deterministic CLI mechanics remain separate from genuine host behavior, machine
 acceptance and economic evidence. Unknown resource availability is not a PASS.
+
+## Envelope review result
+
+Envelope author commit: `ab7f66d`. Independent test commits: `0b392ca`, `6ecbf59`.
+On macOS arm64 Node 22.13.0:
+
+```sh
+node --test test/portable-boundaries.test.mjs test/portable-envelope.test.mjs
+```
+
+Result: 20 tests passed, zero failed or skipped. The independent tests include
+absence/membership, rename, change-and-restore limitations, symlink topology,
+case/Unicode and identity binding, inert JSON prototype keys, incomplete origin,
+untrusted inspection, unknown embedded command/transport fields, malformed Unicode
+and encoded duplicate keys. Author tests additionally cover size/depth/item limits,
+truncation, digest substitutions, accessor rejection and incompatible schemas.
+
+The review found contradictory `FAIL`/exit-zero and complete/interrupted origins
+could initially pass schema validation. The author corrected exact outcome mapping
+and complete-origin prerequisites before the reviewed commit; regression tests
+passed. No remaining concrete parsed-input exploit was found in this finite review.
+This result does not verify runtime equivalence, authenticate a producer or authorize
+reuse. JavaScript producer objects are local API inputs; the imported-byte threat
+boundary is parsed JSON, which cannot supply executable accessors or proxies.
