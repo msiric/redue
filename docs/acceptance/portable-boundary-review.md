@@ -360,3 +360,37 @@ This assessment is not a blanket approval of G2–G4: the full matched runtime
 profile, real cross-agent/two-machine trials, authenticated CI producer route,
 complete V01–V22 integration matrix, installed/platform gates and complete-path
 economics still require their own concrete evidence and independent review.
+
+## Storage-free runner inventory and output completion review
+
+The integration owner's initial `portable-preflight.yml` and
+`portable-runner-preflight.mjs` were independently inspected before push. The
+two approved standard `macos-26` jobs are limited to eight minutes, contents-read
+permission, fixed Node 22.13.0 and selected public runtime/profile inventory.
+They have no artifact upload, cache, signing/OIDC permission, model credentials
+or producer acceptance. Checkout persists no credentials. The official pinned
+[checkout commit](https://github.com/actions/checkout/commit/11d5960a326750d5838078e36cf38b85af677262)
+and [setup-node commit](https://github.com/actions/setup-node/commit/49933ea5288caeca8642d1e84afbd3f7d6820020)
+were verified. Normal locked public dependency installation remains part of these
+disposable jobs. Logs report selected metadata, key names and content digests,
+never complete environment, private source or credential-bearing values.
+
+The local development inventory passed, reporting `eligibilityEstablished:false`.
+Independent jobs' profile logs do not demonstrate evidence transfer, actual agent
+reuse, authenticated producer trust or a matched cross-machine applicability rule.
+No identified blocker to this bounded owner-approved inventory was found.
+
+The associated CLI correction waits for queued stdout/stderr writes before the
+existing normal explicit exits. Node 22.13.0 documents that
+[process output to pipes may be asynchronous](https://nodejs.org/download/release/v22.13.0/docs/api/process.html#a-note-on-process-io)
+and provides a [write completion callback](https://nodejs.org/download/release/v22.13.0/docs/api/stream.html#writablewritechunk-encoding-callback).
+It does not alter verification semantics or swallow write errors. Independent
+`cli-output` plus `agent-integration` tests passed 17/17, including a piped cached
+JSON response exceeding 64 KiB and intact-versus-edited owned instruction updates.
+The narrow correction does not claim every existing error-exit path is flushed.
+
+The shared imported-evidence policy/documentation addition was independently
+reviewed: it retains CURRENT/PASS/explicit eligibility and healthy-schema rules,
+identifies execution at the origin with null local invocation, preserves digest
+and origin receipt IDs, and forbids automatic import/acceptance. This is policy
+mechanics review, not actual Codex/Claude behavior acceptance.
