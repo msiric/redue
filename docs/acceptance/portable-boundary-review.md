@@ -1,8 +1,9 @@
 # Portable evidence: independent boundary review
 
-Current conclusion: bounded envelope parsing and pure inspection reviewed;
-origin capture, recipient applicability, transactional import, trust/selection,
-and machine/agent gates remain pending. REDUE-PE-001 G1–G4 are not certified by
+Current conclusion: bounded envelope parsing, pure inspection and the initial
+separate-store implementation reviewed; origin capture, recipient applicability,
+integrated trust/conflict selection and machine/agent gates remain pending.
+REDUE-PE-001 G1–G4 are not certified by
 this document. Baseline inspected: `b4f286034f43021a74f1babf2c1d0fee5df2a9e5`.
 
 The review lane is independent of core and envelope authors. It owns this record
@@ -112,3 +113,34 @@ No remaining concrete parsed-input exploit was found in this finite review.
 This result does not verify runtime equivalence, authenticate a producer or authorize
 reuse. JavaScript producer objects are local API inputs; the imported-byte threat
 boundary is parsed JSON, which cannot supply executable accessors or proxies.
+
+## Transactional import review result
+
+Store author commits: `bdd267d`, `20e10a9`, `fa62318`. Independent replay regression:
+`6ff7637`. Command:
+
+```sh
+node --test test/portable-boundaries.test.mjs test/portable-envelope.test.mjs test/portable-store.test.mjs
+```
+
+Result: 33 tests passed, zero failed or skipped, on macOS arm64 Node 22.13.0.
+Imported bytes and acceptance records remain separate from local outcomes.
+The store uses the existing run lock, bounds selected and orphan content, rejects
+symbolic/hard-linked owned files, performs bounded digest/schema reads, and keeps
+an incomplete-transaction guard across persistence failures.
+
+The independent review reproduced a concrete pre-fix defect: after an explicitly
+accepted FAIL's immutable payload persisted but selector replacement failed, a
+replayed old PASS could clear the incomplete marker and omit that FAIL. The first
+independent expected-result test failed against `bdd267d`. Commit `20e10a9` binds
+the full intended transaction and acceptance; only its exact retry can recover.
+The unchanged replay-refusal assertion then passed. I/O errors are sanitized by
+`fa62318`; the test checks the structured error code and actual persisted FAIL file
+rather than requiring private path-bearing error text.
+
+Integration still must bind the exact active ownership marker, re-read imports on
+every authoritative publication, guard cached responses against changed/incomplete
+import selection, and apply the reviewed local-versus-import conflict policy.
+Metadata revision alone is not envelope-content authority. This review does not
+claim hostile same-user filesystem mutation is prevented by ordinary path checks,
+nor certify actual installed packaging or machine reuse.
