@@ -1,0 +1,246 @@
+# DISABLED SIGNING PROPOSAL: outside .github. Owner approval before enablement.
+# Producer assertions are not automatically accepted by any recipient.
+name: Reviewed portable evidence producer and separated signer
+on:
+  push:
+    branches: [dev/portable-evidence]
+permissions:
+  contents: read
+concurrency:
+  group: redue-portable-ci-producer
+  cancel-in-progress: false
+jobs:
+  producer:
+    if: github.repository == 'msiric/redue' && github.event_name == 'push' && github.ref == 'refs/heads/dev/portable-evidence'
+    runs-on: macos-26
+    timeout-minutes: 20
+    outputs:
+      artifact_id: ${{ steps.transfer.outputs.artifact-id }}
+      package_sha256: ${{ steps.prepare.outputs.package_sha256 }}
+      evidence_digest: ${{ steps.produce.outputs.evidence_digest }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.13.0'
+      - name: Install and pack this exact source
+        id: prepare
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          npm ci --no-audit --no-fund
+          mkdir -m 700 "$RUNNER_TEMP/redue-machine-package"
+          npm pack --json --pack-destination "$RUNNER_TEMP/redue-machine-package" > "$RUNNER_TEMP/redue-machine-pack.json"
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import path from 'node:path';import {createHash} from 'node:crypto';
+          const temp=process.env.RUNNER_TEMP,pack=JSON.parse(fs.readFileSync(path.join(temp,'redue-machine-pack.json')));
+          if(pack.length!==1||path.basename(pack[0].filename)!==pack[0].filename)throw Error('Unexpected pack identity');
+          const file=fs.realpathSync(path.join(temp,'redue-machine-package',pack[0].filename)),digest=createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+          fs.appendFileSync(process.env.GITHUB_ENV,`MACHINE_TARBALL=${file}\nMACHINE_PACKAGE_SHA256=${digest}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,`package_sha256=${digest}\n`);
+          JS
+      - name: Real installed producer execution and export
+        id: produce
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -m 700 "$RUNNER_TEMP/redue-machine-transfer"
+          TRANSFER_DIR=$(node -e 'console.log(require("fs").realpathSync(process.argv[1]))' "$RUNNER_TEMP/redue-machine-transfer")
+          node test/acceptance/portable-machine.mjs --role producer --tarball "$MACHINE_TARBALL" --sha256 "$MACHINE_PACKAGE_SHA256" --source "$GITHUB_SHA" --output "$TRANSFER_DIR" > "$RUNNER_TEMP/redue-machine-producer.json"
+          cat "$RUNNER_TEMP/redue-machine-producer.json"
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import path from 'node:path';
+          const temp=process.env.RUNNER_TEMP,report=JSON.parse(fs.readFileSync(path.join(temp,'redue-machine-producer.json')));
+          if(!/^[a-f0-9]{64}$/.test(report.evidence_digest)||report.models_launched!==0)throw Error('Failed producer gate');
+          // Payload <=2MiB; at most two known files. Reserve ZIP overhead well below
+          // owner-approved included storage. Reserve2MiB input plus3MiB final ZIP including overhead.
+          const dir=path.join(temp,'redue-machine-transfer'),files=['manifest.json','redue-portable-evidence.json'];
+          if(fs.readdirSync(dir).sort().join('|')!==files.join('|'))throw Error('Unexpected transfer content');
+          const size=files.reduce((total,file)=>total+fs.statSync(path.join(dir,file)).size,0);
+          if(size>2*1024*1024)throw Error('Reserved storage budget exceeded');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,`evidence_digest=${report.evidence_digest}\n`);
+          JS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        id: transfer
+        with:
+          name: portable-ci-input-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/redue-machine-transfer/manifest.json
+            ${{ runner.temp }}/redue-machine-transfer/redue-portable-evidence.json
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: false
+          compression-level: 0
+  signer:
+    needs: producer
+    if: github.repository == 'msiric/redue' && github.event_name == 'push' && github.ref == 'refs/heads/dev/portable-evidence'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      # No checkout, installation, lifecycle or downloaded code execution.
+      - name: Require exactly one producer artifact ID
+        shell: bash
+        env:
+          SELECTED_ARTIFACT_ID: ${{ needs.producer.outputs.artifact_id }}
+        run: |
+          set -euo pipefail
+          [[ "$SELECTED_ARTIFACT_ID" =~ ^[1-9][0-9]{0,15}$ ]]
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: ${{ needs.producer.outputs.artifact_id }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/redue-sign-input
+      - name: Validate bounded data and bind fixed predicate
+        id: validate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PYTHON'
+          import os, stat, json, hashlib, pathlib, re
+          root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'redue-sign-input'
+          assert not root.is_symlink() and root.is_dir()
+          assert set(p.name for p in root.iterdir()) == {'manifest.json', 'redue-portable-evidence.json'}
+          def read(name, limit):
+              p = root / name
+              a = p.lstat()
+              assert stat.S_ISREG(a.st_mode) and a.st_nlink == 1 and a.st_size <= limit
+              fd = os.open(p, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+              try:
+                  b = os.fstat(fd)
+                  identity = lambda x: (x.st_dev, x.st_ino, x.st_size, x.st_mtime_ns, x.st_ctime_ns)
+                  assert identity(a) == identity(b)
+                  data = bytearray()
+                  while len(data) <= limit:
+                      chunk = os.read(fd, min(65536, limit + 1 - len(data)))
+                      if not chunk: break
+                      data.extend(chunk)
+                  assert len(data) == b.st_size and identity(b) == identity(os.fstat(fd)) == identity(p.lstat())
+                  return bytes(data)
+              finally: os.close(fd)
+          def pairs(items):
+              d = {}
+              for k, v in items:
+                  assert k not in d and k.isascii()
+                  d[k] = v
+              return d
+          def decode(data):
+              obj = json.loads(data.decode('utf-8'), object_pairs_hook=pairs,
+                               parse_constant=lambda _: (_ for _ in ()).throw(ValueError('nonfinite')))
+              pending = [(obj, 0)]; count = 0
+              while pending:
+                  value, depth = pending.pop(); count += 1
+                  assert depth <= 24 and count <= 100000
+                  if isinstance(value, dict): pending.extend((v, depth+1) for v in value.values())
+                  elif isinstance(value, list): pending.extend((v, depth+1) for v in value)
+                  elif isinstance(value, float): raise ValueError('noninteger')
+                  elif isinstance(value, int): assert abs(value) <= 9007199254740991
+                  elif isinstance(value, str): assert len(value) <= 16384 and not any(0xD800 <= ord(c) <= 0xDFFF for c in value)
+              return obj
+          raw = read('redue-portable-evidence.json', 1024*1024)
+          manifest_raw = read('manifest.json', 16384)
+          assert len(raw) + len(manifest_raw) <= 2*1024*1024
+          envelope, manifest = decode(raw), decode(manifest_raw)
+          assert set(envelope) == {'schema', 'statement', 'digest'} and envelope['schema'] == 1
+          stmt = envelope['statement']; p = stmt['predicate']; origin = p['origin']
+          assert stmt['_type'] == 'https://in-toto.io/Statement/v1'
+          assert stmt['predicateType'] == 'https://redue.dev/attestation/direct-typescript/v1'
+          assert p['schema'] == 1 and p['interpretation'] == 'redue-portable-direct-typescript@2'
+          assert p['facts'] is not None and origin['complete'] is True and origin['result'] == 'PASS'
+          assert origin['invocation'] == {'status': 'exited', 'exitCode': 0, 'signal': None}
+          canonical = json.dumps(stmt, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode('utf-8')
+          inner = hashlib.sha256(canonical).hexdigest(); outer = hashlib.sha256(raw).hexdigest()
+          assert re.fullmatch('[a-f0-9]{64}', envelope['digest']) and envelope['digest'] == inner
+          assert set(manifest) == {'schema','source','package_sha256','evidence_sha256','evidence_digest','origin_run_id','profile_digest','node_physical_identity','boot_identity','interpretation','profile','scope','package_filename'}
+          assert manifest['schema'] == 1 and manifest['source'] == os.environ['GITHUB_SHA']
+          assert manifest['scope'] == 'controlled-noLib-direct-typescript'
+          assert manifest['evidence_digest'] == inner and manifest['evidence_sha256'] == outer
+          assert manifest['origin_run_id'] == origin['runId'] and manifest['interpretation'] == p['interpretation']
+          profile = {k:p['facts'][k] for k in ['platform','runtime','compiler']}
+          assert manifest['profile'] == profile
+          assert manifest['profile_digest'] == hashlib.sha256(json.dumps(profile,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+          for key in ['package_sha256','node_physical_identity','boot_identity']: assert re.fullmatch('[a-f0-9]{64}',manifest[key])
+          assert '/' not in manifest['package_filename'] and '\\' not in manifest['package_filename'] and manifest['package_filename'].endswith('.tgz')
+          predicate = {'schema': 1, 'evidenceDigest': inner, 'evidenceInterpretation': p['interpretation']}
+          file = pathlib.Path(os.environ['RUNNER_TEMP']) / 'redue-sign-predicate.json'
+          with file.open('x') as f: json.dump(predicate, f, sort_keys=True, separators=(',', ':'))
+          # Reserve the entire final archive before signing. Combined with the
+          # <=2MiB intermediate, <=1MiB bundle + <=64KiB manifest + ZIP reserve
+          # keeps this one route under 5MiB of the confirmed included allowance.
+          assert len(raw) + 1024*1024 + 65536 + 262144 <= 3*1024*1024
+          PYTHON
+      - name: Attest only the reviewed fixed data subject
+        id: attest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-path: ${{ runner.temp }}/redue-sign-input/redue-portable-evidence.json
+          predicate-path: ${{ runner.temp }}/redue-sign-predicate.json
+          predicate-type: https://redue.dev/attestation/portable-evidence-artifact/v1
+          push-to-registry: false
+          create-storage-record: false
+      - name: Bound and retain the actual attestation bundle
+        shell: bash
+        env:
+          BUNDLE_PATH: ${{ steps.attest.outputs.bundle-path }}
+        run: |
+          set -euo pipefail
+          python3 <<'PYTHON'
+          import os, stat, pathlib, hashlib, json
+          temp = pathlib.Path(os.environ['RUNNER_TEMP']); src = pathlib.Path(os.environ['BUNDLE_PATH'])
+          a = src.lstat(); assert stat.S_ISREG(a.st_mode) and a.st_nlink == 1 and a.st_size <= 1024*1024
+          fd = os.open(src, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+          try:
+              b = os.fstat(fd); identity = lambda x: (x.st_dev,x.st_ino,x.st_size,x.st_mtime_ns,x.st_ctime_ns)
+              assert identity(a) == identity(b)
+              bundle = bytearray()
+              while len(bundle) <= 1024*1024:
+                  part = os.read(fd, min(65536,1024*1024+1-len(bundle)))
+                  if not part: break
+                  bundle.extend(part)
+              assert len(bundle) == b.st_size and identity(b) == identity(os.fstat(fd)) == identity(src.lstat())
+          finally: os.close(fd)
+          out = temp / 'redue-sign-final'; out.mkdir(mode=0o700)
+          def read_input(name, limit):
+              p = temp / 'redue-sign-input' / name
+              before = p.lstat()
+              assert stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and before.st_size <= limit
+              fd = os.open(p, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+              try:
+                  opened = os.fstat(fd); assert identity(before) == identity(opened)
+                  data = bytearray()
+                  while len(data) <= limit:
+                      part = os.read(fd, min(65536, limit+1-len(data)))
+                      if not part: break
+                      data.extend(part)
+                  assert len(data) == opened.st_size and identity(opened) == identity(os.fstat(fd)) == identity(p.lstat())
+                  return bytes(data)
+              finally: os.close(fd)
+          evidence = read_input('redue-portable-evidence.json', 1024*1024)
+          manifest = json.loads(read_input('manifest.json', 16384).decode('utf-8'))
+          assert hashlib.sha256(evidence).hexdigest() == manifest['evidence_sha256']
+          manifest['bundle_sha256'] = hashlib.sha256(bundle).hexdigest()
+          manifest['run_id'] = os.environ['GITHUB_RUN_ID']; manifest['run_attempt'] = os.environ['GITHUB_RUN_ATTEMPT']
+          manifest_bytes = json.dumps(manifest,sort_keys=True,separators=(',',':')).encode()
+          assert len(evidence) <= 1024*1024 and len(bundle) <= 1024*1024 and len(manifest_bytes) <= 65536
+          assert len(evidence)+len(bundle)+len(manifest_bytes)+262144 <= 3*1024*1024
+          for name, data in [('redue-portable-evidence.json', evidence),('attestation-bundle.json',bundle),('manifest.json',manifest_bytes)]:
+              with (out / name).open('xb') as f: f.write(data)
+          PYTHON
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: portable-ci-authenticated-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/redue-sign-final/redue-portable-evidence.json
+            ${{ runner.temp }}/redue-sign-final/attestation-bundle.json
+            ${{ runner.temp }}/redue-sign-final/manifest.json
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: false
+          compression-level: 0
