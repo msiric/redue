@@ -27,6 +27,10 @@ function fixture(t){
  const run=()=>spawnSync('python3',['-c',script],{env:{...process.env,RUNNER_TEMP:base,GITHUB_SHA:manifest.source},encoding:'utf8',timeout:3000,maxBuffer:65536});
  return {base,dir,manifest,envelope,run};
 }
+test('enabled signer bytes match the exact owner-approved proposal',()=>{
+ assert.deepEqual(fs.readFileSync('.github/workflows/portable-evidence.yml'),fs.readFileSync('docs/contributor/portable-ci-signing-workflow.yml'));
+ assert.equal(hash(fs.readFileSync('.github/workflows/portable-evidence.yml')),'5770b7f0ac9133fbf0190cf0e238ac800263b632d7f4741f3fddb04882591924');
+});
 test('disabled signer has minimal job permissions and no producer checkout',()=>{
  assert.deepEqual(proposal.jobs.signer.permissions,{contents:'read','id-token':'write',attestations:'write'});
  assert(!proposal.jobs.signer.steps.some(s=>s.uses?.startsWith('actions/checkout')));

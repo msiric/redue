@@ -25,7 +25,7 @@ jobs:
           mkdir portable-candidate
           npm pack --json --pack-destination portable-candidate > portable-candidate/manifest.json
           node test/acceptance/package-artifact.mjs record portable-candidate/manifest.json
-          node --input-type=module -e "import fs from 'node:fs'; import assert from 'node:assert/strict'; const m=JSON.parse(fs.readFileSync('portable-candidate/manifest.json'))[0]; assert(m.size<1024*1024); assert(m.files.every(f=>!/(^|\/)(?:\.git|\.local|test|receipts|runs-v1|node_modules)(?:\/|$)/.test(f.path))); fs.writeFileSync('portable-candidate/source.txt', process.env.GITHUB_SHA+'\n');"
+          node --input-type=module -e "import fs from 'node:fs'; import assert from 'node:assert/strict'; const m=JSON.parse(fs.readFileSync('portable-candidate/manifest.json'))[0]; assert(m.size<480*1024); assert(fs.readdirSync('portable-candidate').reduce((n,f)=>n+fs.statSync('portable-candidate/'+f).size,0)<480*1024); assert(m.files.every(f=>!/(^|\/)(?:\.git|\.local|test|receipts|runs-v1|node_modules)(?:\/|$)/.test(f.path))); fs.writeFileSync('portable-candidate/source.txt', process.env.GITHUB_SHA+'\n');"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: portable-exact-package-${{ github.run_id }}-${{ github.run_attempt }}
@@ -69,5 +69,5 @@ jobs:
           node --input-type=module -e "import {readArtifact} from './test/acceptance/package-artifact.mjs';
           import {spawnSync} from 'node:child_process';const a=readArtifact('portable-candidate/manifest.json');
           const r=spawnSync(process.execPath,['test/acceptance/portable-installed-smoke.mjs','--tarball',a.file,'--sha256',a.sha256,'--source',process.env.GITHUB_SHA],{stdio:'inherit'});process.exit(r.status??1);"
-      # A single <1 MiB candidate, one-day retention, confirmed included capacity.
+      # A single <480 KiB payload (<512 KiB reserved archive), one-day retention, confirmed included capacity.
       # No signing, OIDC, policy change, observer-state transfer or model account.
