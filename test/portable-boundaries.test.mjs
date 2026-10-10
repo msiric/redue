@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {queryAnswer,queriesMatch} from '../src/typescript-list.mjs';
-import {createHash} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
 import {canonical,encodeEnvelope,parseEnvelope,inspectEnvelope,PortableEnvelopeError}
   from '../src/portable-envelope.mjs';
 import {importEvidence,readImportedSnapshot} from '../src/portable-store.mjs';
@@ -13,6 +13,8 @@ import {decidePortableEvidence} from '../src/portable-applicability.mjs';
 import {createRequire} from 'node:module';
 import {spawn,spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {commitReceipt} from '../src/state-store.mjs';
+import {acquireRunLock} from '../src/run-lock.mjs';
 
 // Independent controls for the facts portable comparison must retain. These
 // tests do not grant portable eligibility or replace observer interval checks.
@@ -200,6 +202,27 @@ test('changed but syntactically valid state ownership cannot retain accepted imp
   fs.writeFileSync(marker,original);assert.equal(importSnapshot(state).records.length,1);
 });
 
+test('missing catalog cannot replay an old PASS over persisted accepted FAIL history',t=>{
+  const state=ownedStore(t),pass=encodeEnvelope(portableFixture());
+  importEvidence(storeOptions(state,pass));
+  const failing=portableFixture();failing.origin.result='FAIL';failing.origin.invocation.exitCode=1;
+  const fail=encodeEnvelope(failing);importEvidence(storeOptions(state,fail));
+  const immutable=path.join(state.state,'portable-evidence-v1',fail.digest+'.json'),original=fs.readFileSync(immutable);
+  fs.unlinkSync(path.join(state.state,'portable-imports-v1.json'));
+  assert.equal(importSnapshot(state).error?.code,'PORTABLE_SELECTION_MISSING');
+  assert.throws(()=>importEvidence(storeOptions(state,pass)),error=>error.code==='PORTABLE_SELECTION_MISSING');
+  assert.deepEqual(fs.readFileSync(immutable),original);
+  assert.equal(importSnapshot(state).records.length,0);
+});
+
+test('an initialized empty storage directory is not proof of a pristine missing catalog',t=>{
+  const state=ownedStore(t),pass=encodeEnvelope(portableFixture());
+  fs.mkdirSync(path.join(state.state,'portable-evidence-v1'));
+  assert.equal(importSnapshot(state).error?.code,'PORTABLE_SELECTION_MISSING');
+  assert.throws(()=>importEvidence(storeOptions(state,pass)),error=>error.code==='PORTABLE_SELECTION_MISSING');
+  assert(!fs.existsSync(path.join(state.state,'portable-imports-v1.json')));
+});
+
 function exportStore(t){
   const f=ownedStore(t),p=portableFixture(),r={result:p.origin.result,
     invocation:{...p.origin.invocation,runId:p.origin.runId},stable:true,
@@ -297,8 +320,8 @@ function observedCompiler(t){
   const base=fs.realpathSync(fs.mkdtempSync(path.join(process.platform==='darwin'?'/tmp':os.tmpdir(),'redue-origin-review-'))),
     root=path.join(base,'project'),state=path.join(base,'redue-state'),
     bin=fileURLToPath(new URL('../bin/redue.mjs',import.meta.url));
-  let cleanupCall=null;
-  t.after(()=>{try{if(cleanupCall&&fs.existsSync(state))cleanupCall('stop');}
+  const cleanupCalls=[];
+  t.after(()=>{try{for(const item of cleanupCalls)if(fs.existsSync(item.state))item.call('stop');}
     finally{fs.rmSync(base,{recursive:true,force:true});}});
   const put=(rel,bytes)=>{const file=path.join(root,rel);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,bytes);};
   put('package.json',JSON.stringify({name:'independent-origin-control',version:'1.0.0',scripts:{typecheck:'tsc --noEmit'}}));
@@ -331,9 +354,10 @@ function observedCompiler(t){
     assert.equal(fs.readFileSync(path.join(state,'test-run-paused'),'utf8'),phase);
     return {done,release:()=>fs.writeFileSync(path.join(state,'test-run-release'),'release')};
   };
-  cleanupCall=call;
+  cleanupCalls.push({state,call});
   call('init','--recipe','typescript-direct');call('start');
-  return {base,root,state,put,call,selected,paused};
+  return {base,root,state,put,call,selected,paused,env,bin,
+    ownObserver:(state,call)=>cleanupCalls.push({state,call})};
 }
 
 test('real portable origin refuses change-and-restore, post-exit membership and lost end observation',
@@ -360,4 +384,61 @@ test('real portable origin refuses change-and-restore, post-exit membership and 
   f.call('start');const status=JSON.parse(f.call('status','--sync','--json')).checks[0];
   assert.equal(status.invocation.runId,r.invocation.runId);assert.equal(status.reuse_eligible,false);
   assert.notEqual(status.freshness,'CURRENT');assert.deepEqual(fs.readFileSync(immutable),original);
+});
+
+test('delayed recipient publication never hides a newer FAIL or incomplete selector behind imported PASS',
+  {skip:process.platform!=='darwin'||process.arch!=='arm64',timeout:150000},async t=>{
+  const f=observedCompiler(t);f.call('run','typecheck','--portable');const baseline=f.selected();
+  assert.equal(baseline.portable.complete,true);
+  const artifact=path.join(f.base,'evidence.json');
+  const exported=JSON.parse(f.call('evidence','export','typecheck','--output',artifact,'--json'));
+  for(const kind of ['new-fail','incomplete']){
+    const root=path.join(f.base,'recipient-'+kind),state=path.join(f.base,'redue-recipient-'+kind);
+    fs.cpSync(f.root,root,{recursive:true,dereference:false,verbatimSymlinks:true});
+    const env={...f.env,VSTATE_TEST_FAULTS:'1',VSTATE_TEST_PORTABLE_PUBLICATION_BARRIER:'1'},
+      args=words=>[f.bin,'--state-dir',state,...words];
+    const call=(...words)=>{const r=spawnSync(process.execPath,args(words),{cwd:root,env,encoding:'utf8',timeout:60000});
+      assert.equal(r.status,0,r.stderr+r.stdout);return r.stdout;};
+    f.ownObserver(state,call);call('start');
+    // start returns after spawning the observer, not after its asynchronous
+    // plan publication. Establish that prerequisite before importing/trialing.
+    const planDeadline=Date.now()+15000;
+    while(!fs.existsSync(path.join(state,'plans-v1.json'))&&Date.now()<planDeadline)
+      await new Promise(resolve=>setTimeout(resolve,10));
+    assert(fs.existsSync(path.join(state,'plans-v1.json')),'recipient observer did not publish its plan');
+    call('evidence','import',artifact,'--check','typecheck','--accept-digest',exported.digest,'--apply','--json');
+    const pausedSync=async()=>{
+      const child=spawn(process.execPath,args(['status','--sync','--json']),{cwd:root,env,stdio:['ignore','pipe','pipe']});
+      let stdout='',stderr='';child.stdout.on('data',x=>stdout+=x);child.stderr.on('data',x=>stderr+=x);
+      const done=new Promise(resolve=>child.on('close',code=>resolve({code,stdout,stderr})));
+      const marker=path.join(state,'test-portable-publish-paused'),until=Date.now()+15000;
+      while(!fs.existsSync(marker)&&Date.now()<until){if(child.exitCode!==null)break;
+        await new Promise(resolve=>setTimeout(resolve,10));}
+      assert(fs.existsSync(marker),stderr);
+      return {done,release:()=>fs.writeFileSync(path.join(state,'test-portable-publish-release'),'release')};
+    };
+    let request=await pausedSync();request.release();let response=await request.done;
+    assert.equal(response.code,0,response.stderr);let row=JSON.parse(response.stdout).checks[0];
+    assert.equal(row.reuse_eligible,true);assert.equal(row.imported_evidence.origin_run_id,baseline.invocation.runId);
+    assert.equal(fs.existsSync(path.join(state,'runs-v1')),false,'recipient performed no equivalent compiler execution');
+    request=await pausedSync();
+    // Controlled receipt-persistence fault, not real recipient execution: the
+    // source baseline above is genuine; this synthetic newer outcome challenges
+    // generation mixing during final publication without changing its inputs.
+    const newer={...baseline,result:'FAIL',stable:false,
+      invocation:{...baseline.invocation,runId:randomUUID(),exitCode:1},
+      portable:{...baseline.portable,complete:false,resolvedCatalogRevision:null},
+      checkpoint:{...baseline.checkpoint,status:'unavailable_or_changed',issues:['controlled missing observation']}};
+    const lock=acquireRunLock(state),obstruction=path.join(state,`receipts-v1.json.${process.pid}.tmp`);
+    try{
+      if(kind==='incomplete')fs.mkdirSync(obstruction);
+      if(kind==='incomplete')assert.throws(()=>commitReceipt(state,'typecheck',newer));
+      else commitReceipt(state,'typecheck',newer);
+    }finally{if(kind==='incomplete')fs.rmdirSync(obstruction);lock.release();}
+    request.release();response=await request.done;
+    assert([0,2].includes(response.code),response.stderr);row=JSON.parse(response.stdout).checks[0];
+    assert.equal(row.reuse_eligible,false);assert.notEqual(row.freshness,'CURRENT');
+    if(kind==='new-fail'){assert.equal(row.result,'FAIL');assert.equal(row.invocation.runId,newer.invocation.runId);}
+    assert.equal(JSON.parse(fs.readFileSync(path.join(state,'runs-v1',newer.invocation.runId+'.json'))).receipt.result,'FAIL');
+  }
 });

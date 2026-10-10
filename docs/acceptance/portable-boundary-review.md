@@ -1,8 +1,9 @@
 # Portable evidence: independent boundary review
 
-Current conclusion: bounded envelope parsing, pure inspection and the initial
-separate-store implementation reviewed; origin capture, recipient applicability,
-integrated trust/conflict selection and machine/agent gates remain pending.
+Current conclusion: bounded parsing/inspection, separate-store conflict policy,
+original-run interval capture and delayed recipient publication have independent
+controls for the deliberately same-host prototype. Two-machine runtime identity,
+actual cross-agent acceptance, authenticated CI and release gates remain pending.
 REDUE-PE-001 G1–G4 are not certified by
 this document. Baseline inspected: `b4f286034f43021a74f1babf2c1d0fee5df2a9e5`.
 
@@ -282,3 +283,38 @@ Capture retains exact bundled probe/argv binding, reviewed compiler verification
 broad observed source/installed scope, consumed-input coverage and final observation
 after ending discovery. Outside-root discovery still refuses portability. Recipient
 publication/race validation is a separate review step.
+
+## Recipient publication and lost-selection review
+
+Recipient integration `1beaaea` and guard correction `fd504b8` were independently
+reviewed. The initial implementation bound catalog revision but could combine an
+earlier portable decision with a newer selected local receipt at publication. The
+correction binds the non-null receipt revision, input identity, event serial and
+healthy completed observation as well as the re-read catalog. It does not treat
+an earlier eligible decision as continuing authority while delayed.
+
+The independent real origin/export/import fixture obtained a caller-aware eligible
+recipient result with the original receipt ID and no recipient run records. During
+a bounded prepublication delay, controlled receipt-persistence faults then committed
+a newer FAIL or persisted its immutable record while interrupting selector replacement.
+Both responses refused CURRENT/reuse; the completed newer FAIL stayed selected.
+Synthetic selection faults are identified as such, not claimed as real recipient
+compiler executions. The producer baseline was actual TypeScript execution.
+
+One fixture attempt stopped before injection because asynchronous observer startup
+had not published plans. The corrected precondition waits for that publication and
+copies relative compiler shims unchanged. Final race control: one test passed,
+zero failed/skipped, about 9.7 seconds on the reviewed macOS/Node profile. No model
+trial was launched by these tests.
+
+Store correction `3c4a820` was independently inspected. Missing selection is not
+pristine when its payload directory exists, even if empty. Only the explicit exact
+first single-record pending transaction may recover its own missing initial selector;
+stored multi-record history is not reconstructed from an old import. Independent
+tests delete a selector after accepted PASS and FAIL, then confirm that old PASS
+replay is refused and immutable FAIL remains unchanged. An empty initialized
+directory likewise remains unavailable. Both controls passed.
+
+These results are controlled same-host mechanics. They do not demonstrate actual
+cross-agent behavior, a cross-machine runtime match, producer authentication or
+release-artifact/platform gates.
