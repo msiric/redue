@@ -18,7 +18,9 @@ export function readPortableCatalog(state,expected){
   // Withhold the entire decision on revoked accepted evidence: silently
   // dropping an accepted FAIL could resurrect an older PASS.
   if(snapshot.records.some(record=>record.acceptance==='github-ci-v1'&&
-    !producerPolicyBindingCurrent(path.join(state,'portable-producers-v1.json'),record.ciBinding.policy)))
+    !producerPolicyBindingCurrent(path.join(state,'portable-producers-v1.json'),record.ciBinding.policy,{
+      evidenceDigest:record.digest,evidenceInterpretation:record.envelope.statement.predicate.interpretation,
+      artifactSha256:record.ciBinding.authentication.artifactSha256,refresh:record.ciBinding.authentication.refresh})))
     return {revision:null,records:snapshot.records,error:{code:'PORTABLE_PRODUCER_POLICY_UNAVAILABLE',
       reason:'Current authoritative producer policy does not authorize previously accepted CI evidence'}};
   return snapshot;

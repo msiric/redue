@@ -97,12 +97,14 @@ export function revalidateProducerPolicySnapshot(snapshot,{expectedFile}={}){
 // Persisted bindings do not require JS mintedness. The integration supplies this
 // binding only after its explicit authenticated acceptance path. Reading a match
 // does not itself authenticate a producer, grant acceptance, or establish CURRENT.
-export function producerPolicyBindingCurrent(policyFile,binding){
+export function producerPolicyBindingCurrent(policyFile,binding,expectedEvidence=null){
   if(!exact(binding,['revision','contentDigest','policyDigest'])||!Number.isSafeInteger(binding.revision)||binding.revision<1||
     typeof binding.contentDigest!=='string'||!HEX.test(binding.contentDigest)||
     typeof binding.policyDigest!=='string'||!HEX.test(binding.policyDigest))return false;
-  try{const current=readPolicy(policyFile);
+  if(expectedEvidence!==null&&!exact(expectedEvidence,['evidenceDigest','evidenceInterpretation','artifactSha256','refresh']))return false;
+  try{const current=readPolicy(policyFile),selected=current.policies.find(item=>item.digest===binding.policyDigest);
     return current.revision===binding.revision&&current.contentDigest===binding.contentDigest&&
-      current.policies.some(item=>item.digest===binding.policyDigest);
+      !!selected&&(expectedEvidence===null||Object.entries(expectedEvidence).every(([key,value])=>
+        value===selected.policy[key]));
   }catch{return false;}
 }

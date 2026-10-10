@@ -232,7 +232,9 @@ export function importEvidence({state,configFile,root,check,bytes,acceptDigest=n
     if(ciAuthorization!==null){
       if(canonical(resolveCIImportAuthorization(ciAuthorization,{...expected,bytes}))!==canonical(record.ciBinding))
         fail('PORTABLE_CI_POLICY_CHANGED','Authenticated producer binding changed before acceptance completed');
-    }else if(!producerPolicyBindingCurrent(path.join(expected.state,'portable-producers-v1.json'),record.ciBinding.policy))
+    }else if(!producerPolicyBindingCurrent(path.join(expected.state,'portable-producers-v1.json'),record.ciBinding.policy,{
+      evidenceDigest:record.digest,evidenceInterpretation:envelope.statement.predicate.interpretation,
+      artifactSha256:record.ciBinding.authentication.artifactSha256,refresh:record.ciBinding.authentication.refresh}))
       fail('PORTABLE_CI_POLICY_CHANGED','Authoritative producer policy is unavailable or changed');
   };
   revalidateAcceptance();
