@@ -316,6 +316,7 @@ async function execute() {
     // checkpoint must include events caused during this validation too.
     if(portableRequested)try{portableEnd=capturePortableFacts(portablePlan,snap,environmentAfter);}
     catch(error){portableIssue=error.code||'PORTABLE_CAPTURE_UNAVAILABLE';}
+    if(portableRequested)await testRunBoundary('after-portable-validation');
     const endSnapshotStarted=performance.now();
     if(!unobservedDirectRun){
       try{after=await call({action:'snapshot',name,contextHashes:contextHashes()},captureTimeout);}
@@ -330,6 +331,8 @@ async function execute() {
     if(!unobservedDirectRun&&(!end||!end.observationHealthy))captureIssues.push('end checkpoint unavailable');
     if(JSON.stringify(environmentBefore)!==JSON.stringify(environmentAfter))
       captureIssues.push('declared environment changed during execution');
+    if(portableRequested&&JSON.stringify(environmentBefore)!==JSON.stringify(contextHashes()[name]))
+      captureIssues.push('declared environment changed during portable validation');
     if(!unobservedDirectRun&&(!probeBefore||!probeAfter||probeBefore!==snap?.probeHash||probeAfter!==end?.probeHash))
       captureIssues.push('declared state probe unavailable or changed');
     if(before?.observation?.generation!==after?.observation?.generation)
