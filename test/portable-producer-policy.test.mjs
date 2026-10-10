@@ -130,3 +130,12 @@ test('hosts without a current-user ownership primitive remain explicitly unsuppo
   const f=fixture(t);assert.throws(()=>readProducerPolicySnapshot(f.file),error=>error.code==='PORTABLE_PRODUCER_POLICY_OWNER');
   assert(!producerPolicyBindingCurrent(f.file,{revision:1,contentDigest:'1'.repeat(64),policyDigest:'2'.repeat(64)}));
 });
+
+test('minted registry snapshots must match the explicitly selected local authority path',t=>{
+  if(!supported){t.skip('Current-user ownership primitive unavailable');return;}
+  const f=fixture(t),snapshot=readProducerPolicySnapshot(f.file);
+  assert.equal(revalidateProducerPolicySnapshot(snapshot,{expectedFile:f.file}),true);
+  assert.equal(revalidateProducerPolicySnapshot(snapshot,{expectedFile:path.join(f.base,'different.json')}),false);
+  assert.equal(revalidateProducerPolicySnapshot(snapshot,{expectedFile:'relative.json'}),false);
+  assert.equal(revalidateProducerPolicySnapshot({...snapshot},{expectedFile:f.file}),false);
+});

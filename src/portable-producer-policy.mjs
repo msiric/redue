@@ -85,8 +85,10 @@ function readPolicy(file){
 export const readProducerPolicySnapshot=policyFile=>readPolicy(policyFile);
 // Revalidate after authentication and at acceptance/publication barriers. This
 // compares bytes and physical identity, not elapsed time or an mtime alone.
-export function revalidateProducerPolicySnapshot(snapshot){
+export function revalidateProducerPolicySnapshot(snapshot,{expectedFile}={}){
   const prior=minted.get(snapshot);if(!prior)return false;
+  if(expectedFile!==undefined&&(typeof expectedFile!=='string'||!path.isAbsolute(expectedFile)||
+    path.resolve(expectedFile)!==prior.file))return false;
   try{const current=readPolicy(prior.file),now=minted.get(current);
     return current.revision===snapshot.revision&&current.contentDigest===snapshot.contentDigest&&
       sameStat(prior.stat,now.stat)&&prior.parents===now.parents;
