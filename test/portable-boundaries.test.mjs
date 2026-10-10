@@ -387,13 +387,13 @@ test('real portable origin refuses change-and-restore, post-exit membership and 
   assert.notEqual(status.freshness,'CURRENT');assert.deepEqual(fs.readFileSync(immutable),original);
 });
 
-test('delayed recipient publication never hides a newer FAIL or incomplete selector behind imported PASS',
+test('delayed recipient publication never hides newer FAIL, incomplete selector or changed catalog behind imported PASS',
   {skip:!portableRuntimeSupported(),timeout:150000},async t=>{
   const f=observedCompiler(t);f.call('run','typecheck','--portable');const baseline=f.selected();
   assert.equal(baseline.portable.complete,true);
   const artifact=path.join(f.base,'evidence.json');
   const exported=JSON.parse(f.call('evidence','export','typecheck','--output',artifact,'--json'));
-  for(const kind of ['new-fail','incomplete']){
+  for(const kind of ['new-fail','incomplete','catalog-fail']){
     const root=path.join(f.base,'recipient-'+kind),state=path.join(f.base,'redue-recipient-'+kind);
     fs.cpSync(f.root,root,{recursive:true,dereference:false,verbatimSymlinks:true});
     const env={...f.env,VSTATE_TEST_FAULTS:'1',VSTATE_TEST_PORTABLE_PUBLICATION_BARRIER:'1'},
@@ -423,6 +423,21 @@ test('delayed recipient publication never hides a newer FAIL or incomplete selec
     assert.equal(row.reuse_eligible,true);assert.equal(row.imported_evidence.origin_run_id,baseline.invocation.runId);
     assert.equal(fs.existsSync(path.join(state,'runs-v1')),false,'recipient performed no equivalent compiler execution');
     request=await pausedSync();
+    if(kind==='catalog-fail'){
+      // Synthetic claimed origin, explicitly accepted only in this owned fault
+      // fixture: an added matching failure changes the catalog publication basis.
+      const predicate=structuredClone(parseEnvelope(fs.readFileSync(artifact)).statement.predicate);
+      predicate.origin.result='FAIL';predicate.origin.invocation.exitCode=1;
+      predicate.origin.runId=randomUUID();
+      const conflicting=encodeEnvelope(predicate),file=path.join(f.base,'conflicting.json');
+      fs.writeFileSync(file,canonical(conflicting));
+      call('evidence','import',file,'--check','typecheck','--accept-digest',conflicting.digest,'--apply','--json');
+      request.release();response=await request.done;
+      assert([0,2].includes(response.code),response.stderr);row=JSON.parse(response.stdout).checks[0];
+      assert.equal(row.reuse_eligible,false);assert.notEqual(row.freshness,'CURRENT');
+      assert.equal(fs.existsSync(path.join(state,'runs-v1')),false);
+      continue;
+    }
     // Controlled receipt-persistence fault, not real recipient execution: the
     // source baseline above is genuine; this synthetic newer outcome challenges
     // generation mixing during final publication without changing its inputs.

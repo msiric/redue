@@ -298,6 +298,11 @@ recipient result with the original receipt ID and no recipient run records. Duri
 a bounded prepublication delay, controlled receipt-persistence faults then committed
 a newer FAIL or persisted its immutable record while interrupting selector replacement.
 Both responses refused CURRENT/reuse; the completed newer FAIL stayed selected.
+An additional controlled accepted matching FAIL import during the same delay
+changed the catalog basis; the earlier eligible decision again refused CURRENT
+and reuse, without creating a local run. The extended control passed in about
+13.3 seconds. The constructed FAIL origin is explicitly synthetic fault data;
+it is not reported as real compiler execution or authenticated producer evidence.
 Synthetic selection faults are identified as such, not claimed as real recipient
 compiler executions. The producer baseline was actual TypeScript execution.
 
@@ -328,3 +333,8 @@ controls now use `portableRuntimeSupported()` and run only on Darwin arm64,
 Node 22.13.0, OS release 25.6.0; other platforms retain parser/store/command tests
 without pretending runtime eligibility. This was a source-worktree test run,
 not an exact installed-artifact or model/platform acceptance claim.
+
+The one owned fixture left by the initial missing-development-compiler attempt
+was verified by its exact test package identity and sole project entry, then
+removed. It contained no state or receipts. Later controls register cleanup
+before prerequisites so observers and fixtures are cleaned on failures too.
