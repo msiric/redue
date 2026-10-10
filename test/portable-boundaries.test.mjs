@@ -8,6 +8,7 @@ import {createHash} from 'node:crypto';
 import {canonical,encodeEnvelope,parseEnvelope,inspectEnvelope,PortableEnvelopeError}
   from '../src/portable-envelope.mjs';
 import {importEvidence,readImportedSnapshot} from '../src/portable-store.mjs';
+import {portableCommand} from '../src/portable-command.mjs';
 
 // Independent controls for the facts portable comparison must retain. These
 // tests do not grant portable eligibility or replace observer interval checks.
@@ -193,4 +194,46 @@ test('changed but syntactically valid state ownership cannot retain accepted imp
   const snapshot=importSnapshot(state);
   assert.equal(snapshot.records.length,0);assert.equal(snapshot.error?.code,'PORTABLE_OWNERSHIP');
   fs.writeFileSync(marker,original);assert.equal(importSnapshot(state).records.length,1);
+});
+
+function exportStore(t){
+  const f=ownedStore(t),p=portableFixture(),r={result:p.origin.result,
+    invocation:{...p.origin.invocation,runId:p.origin.runId},stable:true,
+    coverage:{qualified:true},portable:{schema:1,interpretation:p.interpretation,
+      complete:true,facts:p.facts}};
+  const runtime={schema:1,root:f.root,state:f.state,checks:[{name:'typecheck'}]},
+    publicConfig={schema:1,checks:[{name:'typecheck'}]},ownerConfig=path.join(f.state,'project-runtime-v1.json');
+  fs.writeFileSync(path.join(f.state,'vstate-owner-v1.json'),JSON.stringify({schema:1,
+    kind:'vstate-product-alpha',root:f.root,state:f.state,config:ownerConfig}));
+  fs.writeFileSync(ownerConfig,JSON.stringify(runtime));
+  fs.mkdirSync(path.join(f.state,'runs-v1'));
+  fs.writeFileSync(path.join(f.state,'receipts-v1.json'),JSON.stringify({schema:1,checks:{typecheck:r}}));
+  const historical=path.join(f.state,'runs-v1',r.invocation.runId+'.json');
+  fs.writeFileSync(historical,JSON.stringify({schema:1,check:'typecheck',receipt:r}));
+  t.mock.method(console,'log',()=>{});
+  return {...f,r,runtime,publicConfig,historical,output:path.join(f.base,'export.json')};
+}
+function replaceOwner(f){
+  const marker=path.join(f.state,'vstate-owner-v1.json'),changed=JSON.parse(fs.readFileSync(marker));
+  changed.root=path.join(f.base,'different-project');fs.writeFileSync(marker,JSON.stringify(changed));
+}
+const exporting=f=>portableCommand(['export','typecheck','--output',f.output,'--json'],f);
+
+test('owner replacement while reading immutable origin prevents export',async t=>{
+  const f=exportStore(t),open=fs.openSync,read=fs.readSync;let historicalFd=null,changed=false;
+  t.mock.method(fs,'openSync',function(file,...args){const fd=open.call(fs,file,...args);
+    if(file===f.historical)historicalFd=fd;return fd;});
+  t.mock.method(fs,'readSync',function(fd,...args){const count=read.call(fs,fd,...args);
+    if(fd===historicalFd&&!changed){changed=true;replaceOwner(f);}return count;});
+  await assert.rejects(exporting(f),error=>error.code==='PORTABLE_OWNERSHIP');
+  assert(changed);assert.equal(fs.existsSync(f.output),false);
+});
+
+test('owner replacement after export persistence removes only the owned incomplete destination',async t=>{
+  const f=exportStore(t),sync=fs.fsyncSync;let changed=false;
+  t.mock.method(fs,'fsyncSync',function(fd){const result=sync.call(fs,fd);
+    if(!changed){changed=true;replaceOwner(f);}return result;});
+  await assert.rejects(exporting(f),error=>error.code==='PORTABLE_OWNERSHIP');
+  assert(changed);assert.equal(fs.existsSync(f.output),false);
+  assert.equal(JSON.parse(fs.readFileSync(f.historical)).receipt.invocation.runId,f.r.invocation.runId);
 });

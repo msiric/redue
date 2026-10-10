@@ -66,6 +66,32 @@ identity, architecture/build and conservative loader restrictions. An initial
 same-host-only runtime constraint may support a truthful G1 checkout experiment;
 it cannot satisfy G2. No unavailable library is represented by a fabricated hash.
 
+The initial same-host helper was independently rebuilt from the author's C source
+with the reviewed Node 22.13.0 headers and exact flags:
+
+```sh
+/usr/bin/clang -O2 -arch arm64 -dynamiclib -undefined dynamic_lookup \
+  -DNODE_GYP_MODULE_NAME=redue_portable_runtime \
+  -Wl,-install_name,@rpath/redue-portable-runtime.node \
+  -I <reviewed-node-22.13.0-headers> src/portable-runtime-darwin.c \
+  -o <owned-temporary-directory>/portable-runtime.node
+```
+
+The independent artifact SHA-256 matched
+`ced9a62153d5db768c1f561ece7adc8c9569cf175060c52689549a5ff54a812e`.
+Actual cache UUID matched the base-header UUID, override/interposition were false,
+five loaded images were readable (including the helper), 343 absent-disk images
+were confirmed in the active cache, and no unknown image remained. Empty,
+non-string and oversized path arguments failed conservatively. The temporary
+artifact was removed without altering the author's helper. These are local
+runtime-inspection facts, not a two-machine content-identity certification.
+
+This same-host/boot profile must retain physical Node identity, actual loaded-cache
+UUID/path/file identity, readable-image content and unsupported-loader refusal.
+It relies on the existing trusted OS boundary; a boot identifier plus virtual
+path list alone is insufficient. Final source/packaging identity, original-run
+input coverage and recipient integration remain separate review requirements.
+
 ## Adversarial acceptance to apply to the implementation
 
 | Cases | Independent expected result |
@@ -116,14 +142,15 @@ boundary is parsed JSON, which cannot supply executable accessors or proxies.
 
 ## Transactional import review result
 
-Store author commits: `bdd267d`, `20e10a9`, `fa62318`. Independent replay regression:
-`6ff7637`. Command:
+Store author commits: `bdd267d`, `20e10a9`, `fa62318`, `deb49aa`. Independent
+replay and owner-scope regressions: `6ff7637`, `35722e2`. Command:
 
 ```sh
 node --test test/portable-boundaries.test.mjs test/portable-envelope.test.mjs test/portable-store.test.mjs
 ```
 
-Result: 33 tests passed, zero failed or skipped, on macOS arm64 Node 22.13.0.
+Result before the separate export-race controls below: 35 tests passed, zero
+failed or skipped, on macOS arm64 Node 22.13.0.
 Imported bytes and acceptance records remain separate from local outcomes.
 The store uses the existing run lock, bounds selected and orphan content, rejects
 symbolic/hard-linked owned files, performs bounded digest/schema reads, and keeps
@@ -138,9 +165,27 @@ The unchanged replay-refusal assertion then passed. I/O errors are sanitized by
 `fa62318`; the test checks the structured error code and actual persisted FAIL file
 rather than requiring private path-bearing error text.
 
+The read-side review also found that validating an absolute, well-shaped ownership
+marker was insufficient without the intended recipient scope. Commit `deb49aa`
+makes expected configuration/root mandatory and rechecks exact ownership around
+the snapshot. The independent test changes the marker to another syntactically
+valid root, requires zero accepted records and `PORTABLE_OWNERSHIP`, and verifies
+recovery only after restoring the exact original owner.
+
 Integration still must bind the exact active ownership marker, re-read imports on
 every authoritative publication, guard cached responses against changed/incomplete
 import selection, and apply the reviewed local-versus-import conflict policy.
 Metadata revision alone is not envelope-content authority. This review does not
 claim hostile same-user filesystem mutation is prevented by ordinary path checks,
 nor certify actual installed packaging or machine reuse.
+
+## Export ownership review in progress
+
+Command author commit `bfdbaab` was inspected independently. Two deterministic
+fault controls replaced the state owner while the immutable origin was read and
+after export-file fsync. Both expected refusal assertions failed: export completed
+because its repeated selection barrier checked receipt revision but not ownership.
+This is a scope/ownership gap in the unreleased command, not a demonstrated
+recipient CURRENT result. The author was notified to retain exact owner checks
+through every export barrier and preserve cleanup of only the created destination.
+The expected refusal tests remain unchanged while the author corrects the gap.
