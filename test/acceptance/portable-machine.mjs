@@ -61,8 +61,8 @@ function writeExclusive(file,content){const fd=fs.openSync(file,fs.constants.O_W
 export async function runMachine(options){
   const role=options['--role'],source=options['--source'],tarball=options['--tarball'],expected=options['--sha256'],transfer=options[role==='producer'?'--output':'--input'];
   assert.equal(sha(readBoundedPortableFile(tarball)),expected,'Artifact mismatch: zero installation/check launches');
-  assert.equal(process.platform,'darwin');assert.equal(process.arch,'arm64');assert.equal(process.version,'v22.13.0');
-  assert.equal(os.release(),'25.6.0','Runner label alone does not establish reviewed runtime compatibility');
+  if(process.platform!=='darwin'||process.arch!=='arm64'||process.version!=='v22.13.0'||os.release()!=='25.6.0')
+    throw Object.assign(Error('Actual host is outside the reviewed portable machine profile'),{code:'MACHINE_PROFILE_UNSUPPORTED'});
   assert.equal(fs.realpathSync(transfer),transfer);const transferStat=fs.lstatSync(transfer);
   assert(transferStat.isDirectory()&&transferStat.uid===process.getuid()&&(transferStat.mode&0o022)===0,'Transfer directory must be locally owned and not writable by others');
   const transferred=role==='receiver'?readMachineTransfer(transfer,{source,packageSha256:expected}):null;
@@ -70,7 +70,8 @@ export async function runMachine(options){
   const nodePhysical=physicalIdentity(),boot=bootIdentity();
   if(transferred){assert.equal(options['--controlled-accept-digest'],transferred.manifest.evidence_digest,'Controlled acceptance must match the inspected exact evidence');}
   if(process.env.GITHUB_SHA)assert.equal(source,process.env.GITHUB_SHA,'Candidate source must be this actual GitHub workflow commit');
-  if(transferred)assert.notEqual(boot,transferred.manifest.boot_identity,'Two processes on one boot are not two machines');
+  if(transferred&&boot===transferred.manifest.boot_identity)
+    throw Object.assign(Error('Producer and receiver share one boot; no two-machine acceptance'),{code:'MACHINE_BOUNDARY_NOT_INDEPENDENT'});
   const base=fs.realpathSync(fs.mkdtempSync('/tmp/redue-machine-')),root=path.join(base,'Checkout 空间'),state=path.join(base,'redue-state'),prefix=path.join(base,'prefix'),binary=path.join(prefix,'bin','redue');
   const observations=[],calls=[],put=(name,value)=>{const file=path.join(root,name);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,value);};
   let started=false;
