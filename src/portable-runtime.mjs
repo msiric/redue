@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
@@ -11,11 +12,14 @@ const helperDigest='ced9a62153d5db768c1f561ece7adc8c9569cf175060c52689549a5ff54a
 // G1 only: SAME HOST AND BOOT, same physical Node installation and loaded
 // system cache. This is deliberately NOT a cross-machine runtime projection.
 // G2 needs a separately reviewed full runtime image/content profile.
+export const portableRuntimeSupported=()=>process.platform==='darwin'&&process.arch==='arm64'&&
+  process.version==='v22.13.0'&&os.release()==='25.6.0';
 export function portableRuntime(){
-  if(process.platform!=='darwin'||process.arch!=='arm64')fail();
+  if(!portableRuntimeSupported())fail();
   const helper=fileURLToPath(new URL('./portable-runtime-darwin-arm64.node',import.meta.url));
   if(!fs.existsSync(helper)||fs.lstatSync(helper).isSymbolicLink()||sha(fs.readFileSync(helper))!==helperDigest)fail();
-  const native=createRequire(import.meta.url)(helper),cache=native.inspect();
+  let native,cache;
+  try{native=createRequire(import.meta.url)(helper);cache=native.inspect();}catch{fail();}
   if(cache.overridden||cache.interposed||!/^[a-f0-9]{32}$/.test(cache.uuid)||!path.isAbsolute(cache.file))fail();
   const cacheBefore=fs.statSync(cache.file,{bigint:true}),fd=fs.openSync(cache.file,'r'),header=Buffer.alloc(104);
   try{if(fs.readSync(fd,header,0,104,0)!==104||header.subarray(88,104).toString('hex')!==cache.uuid)fail();}

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {portableDiscovery,portableRelative,samePortableFacts} from '../src/portable-facts.mjs';
-import {portableRuntime} from '../src/portable-runtime.mjs';
+import {portableRuntime,portableRuntimeSupported} from '../src/portable-runtime.mjs';
 const hex='a'.repeat(64);
 function project(t){const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-portable-facts-')));
   fs.mkdirSync(path.join(root,'src'));fs.writeFileSync(path.join(root,'src','a.ts'),'export const x=1;');
@@ -34,7 +34,7 @@ test('missing facts never compare as equivalent or acquire a repaired origin',()
   assert.equal(samePortableFacts({files:[['src/a.ts',hex]]},{files:[['src/A.ts',hex]]}),false);
 });
 test('unsupported runtime profiles fail closed rather than equating OS labels',()=>{
-  if(process.platform!=='darwin'||process.arch!=='arm64'||!fs.existsSync(new URL('../src/portable-runtime-darwin-arm64.node',import.meta.url)))
+  if(!portableRuntimeSupported()||!fs.existsSync(new URL('../src/portable-runtime-darwin-arm64.node',import.meta.url)))
     assert.throws(()=>portableRuntime(),error=>error.code==='PORTABLE_RUNTIME_UNSUPPORTED');
   else {const facts=portableRuntime();assert(facts.sharedObjects.some(([name])=>name==='g1-same-host-boot'));
     assert.match(facts.sha256,/^[a-f0-9]{64}$/);}

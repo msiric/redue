@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {createRequire} from 'node:module';
 import {spawnSync} from 'node:child_process';
+import {portableRuntimeSupported} from '../src/portable-runtime.mjs';
 const require=createRequire(import.meta.url),bin=path.resolve('bin/redue.mjs');
 const compiler=path.dirname(require.resolve('typescript/package.json'));
 const put=(file,bytes)=>{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,bytes);};
@@ -26,7 +27,7 @@ function fixture(t){
   t.after(()=>{for(const [cwd,directory] of [[root,state],[path.join(base,'recipient'),path.join(base,'redue-recipient')]])if(fs.existsSync(cwd))invoke(cwd,directory,'stop');fs.rmSync(base,{recursive:true,force:true});});
   return {base,root,state,invoke,good};
 }
-test('real origin captures fresh portable facts inside observed execution; old evidence is not reconstructed', {skip:process.platform!=='darwin'||process.arch!=='arm64'},t=>{
+test('real origin captures fresh portable facts inside observed execution; old evidence is not reconstructed', {skip:!portableRuntimeSupported()},t=>{
   const {base,root,state,good}=fixture(t);
   good(root,state,'init','--recipe','typescript-direct');good(root,state,'start');
   good(root,state,'run','typecheck','--portable');
