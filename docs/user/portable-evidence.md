@@ -85,6 +85,12 @@ It is not a source archive, but those facts can still be sensitive. Do not share
 private evidence without owner review. Omitted required facts cannot silently
 authorize reuse. Export does not export observer authority or recipient CURRENT.
 
+Export refuses an existing destination and does not create parent directories.
+Choose a new file in an existing owned directory. If the selected receipt or
+project-state ownership changes during preview or writing, export refuses the
+operation; review that change before trying again. It does not repair ownership
+or switch projects automatically.
+
 ## Inspect, accept and evaluate here
 
 Transfer only the reviewed evidence file through an owner-approved route. In the
