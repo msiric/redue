@@ -36,3 +36,11 @@ Two independent runner inventory profiles match: image20260907.0351.1, macOS26.6
 6. Actual Codex/Claude trials require approved specific host resources, usable account and fail-closed in-context preflight. No failed prerequisite launches a model. Claude pending cannot be substituted.
 
 G0partial, G1technicalslice, G2/G3incomplete, G4notready. Complete economics, V01–V22, actualcrossagent/twomachine and finalbytes remain. Continue safe independent work; do not wait for72h or routine acknowledgment. No public gate completion/publication without owner approval.
+
+## Latest resume override — source7f32838
+
+Root integrates Btest-group42884a4 and Dmachine-precondition99f0933; no main/publication. Current independent caller/origin mutation controls and CI policy coupling are reviewed and passing. Source and actual evidence above supersede earlier pending labels, while historical failures remain.
+
+Next: finish C disabled signer/action review; enable only independently reviewed unsigned two-VM workflow under approved storage budget, normal-push preserved branch (origin006b817, no divergence). Collect actual VM results. B diagnoses distinct initial end checkpoint unavailable; D maps V01–V22 and installed controls. Signing remains disabled outside.github until owner approval; Claude PENDING_OWNER_ACCOUNT.
+
+Preserved new installed artifact `.local/portable-evidence/candidates/b4c33b1/redue-cli-0.1.0-alpha.10.tgz`, SHAec4b7cabdc0ad8d41850b947881730dbd2367c00d91a1935fd07c04624767f48; not final/source7f or publishedalpha10. Actual producer data retained separately, no state transfer; fixture controls did not launch models. Repo current artifact usage4,132,113bytes plus2MiB controlled transfer+1MiB package reservation fits confirmed10MiB; check again before uploading.
