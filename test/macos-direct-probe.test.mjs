@@ -1,4 +1,4 @@
-import test from 'node:test';
+import nodeTest from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -11,6 +11,20 @@ import {controlEndpoint} from '../src/control-endpoint.mjs';
 import {commitReceipt,readReceipts} from '../src/state-store.mjs';
 import {acquireRunLock} from '../src/run-lock.mjs';
 import {pathToFileURL} from 'node:url';
+
+// Explicit registration groups avoid test-name RegExp semantics varying across
+// supported Node releases. Registration-only is a harness coverage check, never
+// product acceptance; it launches no fixture or verification processes.
+const selectedGroup=process.env.REDUE_TEST_DIRECT_GROUP??'all';
+assert(['all','discovery','recording'].includes(selectedGroup),'unknown direct-test group');
+const registrationOnly=process.env.REDUE_TEST_DIRECT_REGISTRATION==='1',registered=[];
+function register(group,name,...args){
+  if(selectedGroup!=='all'&&selectedGroup!==group)return;
+  if(registrationOnly){registered.push(name);return;}
+  return nodeTest(name,...args);
+}
+const discovery=(name,...args)=>register('discovery',name,...args);
+const recording=(name,...args)=>register('recording',name,...args);
 
 const cli=path.resolve('bin/redue.mjs'),probe=path.resolve('src/direct-typescript-probe.mjs');
 const cleanEnv=()=>Object.fromEntries(Object.entries(process.env).filter(([k])=>
@@ -50,7 +64,7 @@ function control(f,action){return new Promise((resolve,reject)=>{
   c.on('end',()=>{try{resolve(JSON.parse(data));}catch(e){reject(e);}});c.on('error',reject);
 });}
 
-test('direct certificate validation rejects missing/obsolete/malformed queries and implementation substitution',t=>{
+discovery('direct certificate validation rejects missing/obsolete/malformed queries and implementation substitution',t=>{
   const f=fixture(t).fast;
   const invoke=(args,input,env={})=>spawnSync(process.execPath,[probe,f.root,'typecheck',...args],
     {cwd:f.root,env:{...f.env,...env},input,encoding:'utf8',timeout:15000});
@@ -69,7 +83,7 @@ test('direct certificate validation rejects missing/obsolete/malformed queries a
   assert.match(replaced.stderr,/implementation-unreviewed/);
 });
 
-test('ETW overrides and default loader additions cannot execute through any direct probe mode',t=>{
+discovery('ETW overrides and default loader additions cannot execute through any direct probe mode',t=>{
   const f=fixture(t).fast,marker=path.join(f.root,'etw-loaded');
   const injected=path.join(f.root,'owned-etw.cjs');
   put(injected,`require('node:fs').writeFileSync(${JSON.stringify(marker)},'loaded');`);
@@ -90,7 +104,7 @@ test('ETW overrides and default loader additions cannot execute through any dire
     assert.equal(r.stdout,'');assert(!fs.existsSync(marker),'default loader addition ran');}
 });
 
-test('macOS guarded and full decisions agree for content, membership, resolution and caller changes',
+discovery('macOS guarded and full decisions agree for content, membership, resolution and caller changes',
   {skip:process.platform!=='darwin'},async t=>{
   const {root,fast,full,fixtures}=fixture(t);
   for(const f of fixtures){call(f,['start']);call(f,['run','typecheck']);const initial=await settled(f);
@@ -132,7 +146,7 @@ test('macOS guarded and full decisions agree for content, membership, resolution
     const r=row(f);assert.equal(r.freshness,'UNVERIFIED');assert(!r.reuse_eligible);}
 });
 
-test('macOS gap, missed edit, failed reconciliation and restart cannot retain a green certificate',
+discovery('macOS gap, missed edit, failed reconciliation and restart cannot retain a green certificate',
   {skip:process.platform!=='darwin'},async t=>{
   const {fast:f,root}=fixture(t);f.env.VSTATE_HISTORY_TIMEOUT_MS='300';
   call(f,['start']);call(f,['run','typecheck']);const baseline=row(f),id=baseline.invocation.runId;
@@ -153,7 +167,7 @@ test('macOS gap, missed edit, failed reconciliation and restart cannot retain a 
   const result=await settled(f);assert.equal(result.invocation.runId,id);assert.equal(result.freshness,'CURRENT');
 });
 
-test('macOS post-probe continuity barrier observes an edit queued during validation',
+discovery('macOS post-probe continuity barrier observes an edit queued during validation',
   {skip:process.platform!=='darwin'},async t=>{
   const {fast:f,root}=fixture(t),signal=path.join(f.state,'probe-signal');
   f.env.VSTATE_TEST_MAC_PROBE_SIGNAL=signal;call(f,['start']);call(f,['run','typecheck']);assert(row(f).reuse_eligible);
@@ -166,7 +180,7 @@ test('macOS post-probe continuity barrier observes an edit queued during validat
   assert.equal(await done,0,stderr);assert.equal(JSON.parse(stdout).checks[0].reuse_eligible,false);
 });
 
-test('certificate input is bounded, handles chunked delivery, and validates after EOF',async t=>{
+discovery('certificate input is bounded, handles chunked delivery, and validates after EOF',async t=>{
  const f=fixture(t).fast;
  const full=spawnSync(process.execPath,[probe,f.root,'typecheck','--redue-checkpoint'],{cwd:f.root,env:f.env,encoding:'utf8',timeout:15000});
  assert.equal(full.status,0,full.stderr);const c=JSON.parse(full.stdout);
@@ -186,7 +200,7 @@ test('certificate input is bounded, handles chunked delivery, and validates afte
  const oversized=await stream(' '.repeat(8*1024*1024+1));assert.equal(oversized.code,2);
 });
 
-test('newer failed selection during delayed response remains authoritative',
+discovery('newer failed selection during delayed response remains authoritative',
  {skip:process.platform!=='darwin'},async t=>{
  const {fast:f}=fixture(t),signal=path.join(f.state,'probe-signal');
  f.env.VSTATE_TEST_MAC_PROBE_SIGNAL=signal;call(f,['start']);call(f,['run','typecheck']);assert(row(f).reuse_eligible);
@@ -201,7 +215,7 @@ test('newer failed selection during delayed response remains authoritative',
  assert.equal(visible.result,'FAIL');assert.equal(visible.invocation.runId,failed.invocation.runId);assert.equal(visible.reuse_eligible,false);
 });
 
-test('caller run certificates bind check, plan, probe, implementation and retained queries',
+discovery('caller run certificates bind check, plan, probe, implementation and retained queries',
  {skip:process.platform!=='darwin'},async t=>{
  const {fast:f,root}=fixture(t);call(f,['start']);
  const value=await control(f,{action:'snapshot',name:'typecheck',runCertificate:1});
@@ -230,7 +244,7 @@ test('caller run certificates bind check, plan, probe, implementation and retain
  put(path.join(root,'node_modules/typescript/lib/typescript.js'),'throw Error("must not load");');assert.equal(invoke(),null);
 });
 
-test('wrapped guarded and full paths execute real compiler outcomes with current boundaries',
+recording('wrapped guarded and full paths execute real compiler outcomes with current boundaries',
  {skip:process.platform!=='darwin'},async t=>{
  const {fixtures,root}=fixture(t);
  for(const f of fixtures){f.env.REDUE_DECISION_PROFILE='1';f.env.REDUE_DECISION_PROFILE_FILE=f.state+'-run-profile';call(f,['start']);
@@ -250,7 +264,7 @@ test('wrapped guarded and full paths execute real compiler outcomes with current
    call(f,['run','typecheck']);const receipt=readReceipts(f.state).checks.typecheck;assert.equal(receipt.result,'PASS');assert(!receipt.stable);}
 });
 
-test('wrapped start, launch and post-exit edits or observer loss cannot record eligible PASS',
+recording('wrapped start, launch and post-exit edits or observer loss cannot record eligible PASS',
  {skip:process.platform!=='darwin'},async t=>{
  const {fast:f,root}=fixture(t);call(f,['start']);call(f,['run','typecheck']);
  const source=path.join(root,'src/main.ts'),original=fs.readFileSync(source);
@@ -276,7 +290,7 @@ test('wrapped start, launch and post-exit edits or observer loss cannot record e
  }
 });
 
-test('actual compiler interval changes and cancellation retain execution and observation semantics',
+recording('actual compiler interval changes and cancellation retain execution and observation semantics',
  {skip:process.platform!=='darwin'},async t=>{
  const {fast:f,root}=fixture(t);call(f,['start']);call(f,['run','typecheck']);
  const source=path.join(root,'src/main.ts'),original=fs.readFileSync(source);
@@ -303,3 +317,5 @@ test('actual compiler interval changes and cancellation retain execution and obs
  assert.equal(interrupted.invocation.status,'interrupted');assert.equal(interrupted.result,null);assert(!row(f).reuse_eligible);
  assert(!fs.existsSync(path.join(f.state,'run.lock')));
 });
+
+if(registrationOnly)console.log(JSON.stringify(registered));
