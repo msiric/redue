@@ -1,9 +1,12 @@
 # Portable evidence: independent boundary review
 
 Current conclusion: bounded parsing/inspection, separate-store conflict policy,
-original-run interval capture and delayed recipient publication have independent
-controls for the deliberately same-host prototype. Two-machine runtime identity,
-actual cross-agent acceptance, authenticated CI and release gates remain pending.
+original-run interval capture, caller interval validation and delayed recipient
+publication have independent controls. The versioned content profile has real
+same-host copied-executable handoff evidence. Current CI-policy/subject coupling
+has controlled authorization and corruption regressions; it is not live signing.
+Two-machine execution, actual cross-agent acceptance, authenticated CI and release
+gates remain pending.
 REDUE-PE-001 G1–G4 are not certified by
 this document. Baseline inspected: `b4f286034f43021a74f1babf2c1d0fee5df2a9e5`.
 
@@ -536,3 +539,51 @@ seconds), retaining original change/restore, incomplete outcome, catalog conflic
 source-event and delayed-publication controls under the versioned profile. The
 caller correction above then received its own affected-path run; this is not a
 new full-package/platform or cross-agent/machine certification.
+
+## Final origin boundary and current producer-policy coupling
+
+The additional origin guard `856c895` was independently reviewed and exercised
+using another owned executable copy. A real wrapped baseline produced complete
+PASS. A second real successful compiler execution was paused after portable end
+discovery; the test changed the copied executable's physical metadata before the
+final checkpoint. The outcome remained exited/PASS, but stability and portable
+completeness were false with the specific late-context issue. Export remained
+incomplete, and synchronized status before and after observer restart retained
+that newest non-reusable outcome rather than the older PASS. The old immutable
+receipt was unchanged. This affected-path control passed 1/1 in 22.44 seconds:
+unstable origin `4202b036-c9c0-4b25-a7b0-aeb2ac5cc515`, historical origin
+`757ee4a3-086f-437f-ab9d-85f2e8e31842`. No owner's executable was modified.
+
+CI acceptance review found a persisted-binding consistency gap: a syntactically
+valid binding could identify a current approved policy without coupling that
+policy's actual subject/interpretation/raw artifact/refresh requirements to the
+stored evidence. The CI author independently reproduced three controlled drift
+failures on `0fef00b`; the integration owner's correction `97bf6bc` checks all four
+properties against the same bounded current registry read. Catalog and retained
+import paths supply those expected properties. A revoked or mismatched accepted
+FAIL withholds the whole catalog rather than revealing an older accepted PASS.
+This is controlled owned-state consistency testing, not a live signature forgery,
+hostile-owner claim or actual model false-reuse demonstration.
+
+The process-local authorization token is WeakMap-minted only after verification
+and an exact selected-state policy interval. It binds original artifact bytes,
+canonical evidence meaning and recipient scope; serialized tokens grant nothing.
+Policy is revalidated under the existing run lock before pending/selector writes
+and after selector persistence before pending removal. A late revocation leaves
+the exact incomplete transaction fail-closed. Independent execution of the author
+authorization, command, catalog and machine-control tests passed **30/30** on the
+corrected source in about 1.09 seconds. Controlled verifier output is clearly
+separate from live authenticated CI evidence; verifier native execution context
+remains an explicitly locally approved prerequisite.
+
+The disabled two-VM workflow `063e9b6` is within the approved hosted-runner scope
+for controlled mechanics: fixed repository/task ref/event source, read-only token,
+no OIDC/models/producer registration, one immutable same-run artifact ID, only
+bounded envelope and manifest, independent source pack checksum match, explicit
+exact-digest fixture acceptance and different boot identity. Receiver checks
+require imported eligibility, null local invocation, no `runs-v1` and no configured
+verification run; unrelated/relevant/restart checks remain separate. This does
+not complete cross-agent or authenticated-CI gates. The later `256d008` read bounds
+must precede allocation. Its 2 MiB per-attempt reservation must also be accounted
+against cumulative owner-approved 10 MiB storage before another attempt, rather
+than interpreted as an unlimited per-run allowance.

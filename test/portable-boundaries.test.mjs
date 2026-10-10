@@ -451,13 +451,16 @@ test('resolution binds exact current accepted catalog rather than arrival order 
   assert.equal(unaccepted.local_reuse_blocked,false);
 });
 
-function observedCompiler(t){
+function observedCompiler(t,{copiedNode=false}={}){
   const base=fs.realpathSync(fs.mkdtempSync(path.join(process.platform==='darwin'?'/tmp':os.tmpdir(),'redue-origin-review-'))),
     root=path.join(base,'project'),state=path.join(base,'redue-state'),
     bin=fileURLToPath(new URL('../bin/redue.mjs',import.meta.url));
   const cleanupCalls=[];
   t.after(()=>{try{for(const item of cleanupCalls)if(fs.existsSync(item.state))item.call('stop');}
     finally{fs.rmSync(base,{recursive:true,force:true});}});
+  const node=copiedNode?path.join(base,'node'):process.execPath;
+  if(copiedNode){fs.copyFileSync(process.execPath,node);fs.chmodSync(node,0o755);
+    assert.equal(digest(fs.readFileSync(node)),digest(fs.readFileSync(process.execPath)));}
   const put=(rel,bytes)=>{const file=path.join(root,rel);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,bytes);};
   put('package.json',JSON.stringify({name:'independent-origin-control',version:'1.0.0',scripts:{typecheck:'tsc --noEmit'}}));
   put('package-lock.json','{"lockfileVersion":3}');
@@ -473,12 +476,12 @@ function observedCompiler(t){
   const git=spawnSync('git',['init','-q'],{cwd:root,encoding:'utf8'});assert.equal(git.status,0,git.stderr);
   const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!['NODE_TEST_CONTEXT','NODE_TEST_WORKER_ID'].includes(key)));
   const args=words=>[bin,'--state-dir',state,...words];
-  const call=(...words)=>{const r=spawnSync(process.execPath,args(words),{cwd:root,env,encoding:'utf8',timeout:60000});
+  const call=(...words)=>{const r=spawnSync(node,args(words),{cwd:root,env,encoding:'utf8',timeout:60000});
     assert.equal(r.status,0,r.stderr+r.stdout);return r.stdout;};
   const selected=()=>JSON.parse(fs.readFileSync(path.join(state,'receipts-v1.json'))).checks.typecheck;
   const paused=async phase=>{
     for(const name of ['test-run-paused','test-run-release'])try{fs.unlinkSync(path.join(state,name));}catch(e){if(e.code!=='ENOENT')throw e;}
-    const child=spawn(process.execPath,args(['run','typecheck','--portable']),{cwd:root,
+    const child=spawn(node,args(['run','typecheck','--portable']),{cwd:root,
       env:{...env,VSTATE_TEST_FAULTS:'1',VSTATE_TEST_RUN_BOUNDARY:phase},stdio:['ignore','pipe','pipe']});
     let output='';child.stdout.on('data',x=>output+=x);child.stderr.on('data',x=>output+=x);
     const done=new Promise(resolve=>child.on('close',code=>resolve({code,output})));
@@ -491,7 +494,7 @@ function observedCompiler(t){
   };
   cleanupCalls.push({state,call});
   call('init','--recipe','typescript-direct');call('start');
-  return {base,root,state,put,call,selected,paused,env,bin,
+  return {base,root,state,put,call,selected,paused,env,bin,node,
     ownObserver:(state,call)=>cleanupCalls.push({state,call})};
 }
 
@@ -558,6 +561,37 @@ test('real copied-Node recipient independently reuses origin evidence without ex
   const recovered=JSON.parse(call('status','--sync','--json')).checks[0];assert.equal(recovered.reuse_eligible,true);
   assert.equal(recovered.imported_evidence.origin_run_id,baseline.invocation.runId);
   t.diagnostic(`Copied-Node origin ${baseline.invocation.runId}; envelope ${exported.digest}; recipient compiler runs 0`);
+});
+
+test('portable origin cannot complete after raw caller identity changes during final validation',
+  {skip:!portableRuntimeSupported(),timeout:120000},async t=>{
+  const f=observedCompiler(t,{copiedNode:true});
+  f.call('run','typecheck','--portable');const baseline=f.selected();
+  assert.equal(baseline.result,'PASS');assert.equal(baseline.portable.complete,true);
+  const history=path.join(f.state,'runs-v1',baseline.invocation.runId+'.json'),original=fs.readFileSync(history);
+  const run=await f.paused('after-portable-validation');
+  // A real metadata change to this test's executable copy, after full end
+  // discovery but before final observation. Never mutate the owner's Node.
+  const before=fs.statSync(f.node,{bigint:true}),now=fs.statSync(f.node);
+  fs.utimesSync(f.node,now.atime,new Date(now.mtimeMs+2000));
+  assert.notEqual(fs.statSync(f.node,{bigint:true}).mtimeNs,before.mtimeNs);
+  run.release();const finished=await run.done;assert.equal(finished.code,0,finished.output);
+  const selected=f.selected();assert.equal(selected.result,'PASS');
+  assert.equal(selected.invocation.status,'exited');assert.equal(selected.invocation.exitCode,0);
+  assert.equal(selected.stable,false);assert.equal(selected.portable.complete,false);
+  assert(selected.checkpoint.issues.includes('declared environment changed during portable validation'));
+  assert.notEqual(selected.invocation.runId,baseline.invocation.runId);
+  assert.deepEqual(fs.readFileSync(history),original);
+  const exported=JSON.parse(f.call('evidence','export','typecheck','--output',path.join(f.base,'incomplete.json'),'--json'));
+  assert.equal(exported.origin.complete,false);
+  for(const restart of [false,true]){
+    if(restart){f.call('stop');f.call('start');}
+    const visible=JSON.parse(f.call('status','--sync','--json')).checks[0];
+    assert.equal(visible.invocation.runId,selected.invocation.runId);
+    assert.equal(visible.reuse_eligible,false);assert.notEqual(visible.freshness,'CURRENT');
+  }
+  assert.deepEqual(fs.readFileSync(history),original);
+  t.diagnostic(`Final-validation unstable origin ${selected.invocation.runId}; historical ${baseline.invocation.runId} preserved`);
 });
 
 test('real portable origin refuses change-and-restore, post-exit membership and lost end observation',
