@@ -165,3 +165,22 @@ test('explicit artifact/bundle/verifier reads refuse linked files and symlink an
   assert.throws(()=>verifyCIArtifact({...f.options,policy,bundleFile:path.join(alias,'bundle.json')}),error=>error.code==='PORTABLE_CI_FILE');
   assert.equal(f.calls.length,0);
 });
+
+test('bounded input readers use nonblocking no-follow opens and reject changed file types before reading',t=>{
+  const f=fixture(t),open=fs.openSync,fstat=fs.fstatSync;let checked=false;
+  t.mock.method(fs,'openSync',function(file,flags,...args){
+    if(file===f.options.artifactFile){
+      if(fs.constants.O_NONBLOCK)assert.equal(flags&fs.constants.O_NONBLOCK,fs.constants.O_NONBLOCK);
+      if(fs.constants.O_NOFOLLOW)assert.equal(flags&fs.constants.O_NOFOLLOW,fs.constants.O_NOFOLLOW);
+      checked=true;
+    }
+    return open.call(fs,file,flags,...args);
+  });
+  t.mock.method(fs,'fstatSync',function(descriptor,...args){
+    const stat=fstat.call(fs,descriptor,...args);
+    if(checked)stat.isFile=()=>false;
+    return stat;
+  });
+  assert.throws(()=>verifyCIArtifact(f.options),error=>error.code==='PORTABLE_CI_CHANGED');
+  assert(checked);assert.equal(f.calls.length,0);
+});

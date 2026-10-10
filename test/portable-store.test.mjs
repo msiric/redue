@@ -217,3 +217,22 @@ test('missing multi-record selector cannot be reconstructed from pending even wi
   assert.equal(readImportedSnapshot(f.state,f).error.code,'PORTABLE_IMPORT_INCOMPLETE');
   assert(!fs.existsSync(path.join(f.state,'portable-imports-v1.json')));
 });
+
+test('state descriptor reads are nonblocking and refuse changed non-regular file types',t=>{
+  const f=fixture(t),open=fs.openSync,fstat=fs.fstatSync;let checked=false;
+  t.mock.method(fs,'openSync',function(file,flags,...args){
+    if(file===path.join(f.state,'vstate-owner-v1.json')){
+      if(fs.constants.O_NONBLOCK)assert.equal(flags&fs.constants.O_NONBLOCK,fs.constants.O_NONBLOCK);
+      if(fs.constants.O_NOFOLLOW)assert.equal(flags&fs.constants.O_NOFOLLOW,fs.constants.O_NOFOLLOW);
+      checked=true;
+    }
+    return open.call(fs,file,flags,...args);
+  });
+  t.mock.method(fs,'fstatSync',function(descriptor,...args){
+    const stat=fstat.call(fs,descriptor,...args);
+    if(checked)stat.isFile=()=>false;
+    return stat;
+  });
+  const snapshot=readImportedSnapshot(f.state,f);assert.equal(snapshot.error.code,'PORTABLE_STATE_CHANGED');
+  assert(checked);assert.equal(snapshot.records.length,0);
+});

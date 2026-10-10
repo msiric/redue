@@ -34,9 +34,9 @@ function readFile(file,limit){
   if(before.size>BigInt(limit))fail('PORTABLE_SIZE','Portable state file exceeds its limit');
   let descriptor;
   try{
-    descriptor=fs.openSync(file,fs.constants.O_RDONLY|(fs.constants.O_NOFOLLOW??0));
+    descriptor=fs.openSync(file,fs.constants.O_RDONLY|(fs.constants.O_NOFOLLOW??0)|(fs.constants.O_NONBLOCK??0));
     const opened=fs.fstatSync(descriptor,{bigint:true});
-    if(fingerprint(opened)!==fingerprint(before))fail('PORTABLE_STATE_CHANGED','Portable state changed while opening');
+    if(!opened.isFile()||opened.nlink!==1n||fingerprint(opened)!==fingerprint(before))fail('PORTABLE_STATE_CHANGED','Portable state changed while opening');
     // A bounded read never follows an attacker-grown file to unbounded allocation.
     const buffer=Buffer.alloc(Number(opened.size)),count=fs.readSync(descriptor,buffer,0,buffer.length,0);
     if(count!==buffer.length||fingerprint(fs.fstatSync(descriptor,{bigint:true}))!==fingerprint(opened)||

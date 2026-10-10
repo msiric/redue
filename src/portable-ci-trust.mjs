@@ -41,9 +41,9 @@ function localBytes(file,limit){
   try{
     const before=inputPath(file);
     if(before.stat.size>BigInt(limit))fail('PORTABLE_CI_FILE','Attestation input must be a bounded regular file');
-    descriptor=fs.openSync(file,fs.constants.O_RDONLY|(fs.constants.O_NOFOLLOW??0));
+    descriptor=fs.openSync(file,fs.constants.O_RDONLY|(fs.constants.O_NOFOLLOW??0)|(fs.constants.O_NONBLOCK??0));
     const opened=fs.fstatSync(descriptor,{bigint:true});
-    if(!sameStat(before.stat,opened))fail('PORTABLE_CI_CHANGED','Attestation input changed while opening');
+    if(!opened.isFile()||opened.nlink!==1n||!sameStat(before.stat,opened))fail('PORTABLE_CI_CHANGED','Attestation input changed while opening');
     const bytes=Buffer.alloc(Number(opened.size)),read=fs.readSync(descriptor,bytes,0,bytes.length,0),after=inputPath(file);
     if(read!==bytes.length||!sameStat(opened,fs.fstatSync(descriptor,{bigint:true}))||
       !sameStat(opened,after.stat)||before.parents!==after.parents)
