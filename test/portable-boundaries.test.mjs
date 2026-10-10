@@ -577,6 +577,65 @@ function observedCompiler(t,{copiedNode=false}={}){
     ownObserver:(state,call)=>cleanupCalls.push({state,call})};
 }
 
+test('actual portable inspection cancellation and ending change-and-restore preserve non-reuse',
+  {skip:!portableRuntimeSupported(),timeout:150000},async t=>{
+  const f=observedCompiler(t);f.call('run','typecheck','--portable');const baseline=f.selected();
+  assert.equal(baseline.result,'PASS');assert.equal(baseline.portable.complete,true);
+  const immutable=path.join(f.state,'runs-v1',baseline.invocation.runId+'.json'),original=fs.readFileSync(immutable);
+  const source=fs.readFileSync(path.join(f.root,'src/value.ts'));
+  async function inspecting(ordinal){
+    const file=path.join(f.base,`inspection-${ordinal}.jsonl`);fs.writeFileSync(file,'',{flag:'wx',mode:0o600});
+    const child=spawn(f.node,[f.bin,'--state-dir',f.state,'run','typecheck','--portable'],{
+      cwd:f.root,env:{...f.env,REDUE_DECISION_PROFILE:'1',REDUE_DECISION_PROFILE_FILE:file},stdio:['ignore','pipe','pipe']});
+    let output='';child.stdout.on('data',x=>output+=x);child.stderr.on('data',x=>output+=x);
+    const watchdog=setTimeout(()=>child.kill('SIGKILL'),90000);
+    const done=new Promise(resolve=>child.on('close',(code,signal)=>{clearTimeout(watchdog);resolve({code,signal,output});}));
+    t.after(async()=>{if(child.exitCode===null&&child.signalCode===null)child.kill('SIGKILL');await done;});
+    const rows=()=>fs.readFileSync(file,'utf8').split('\n').filter(x=>x.startsWith('REDUE_TIMING ')).flatMap(x=>{
+      try{return [JSON.parse(x.slice(13))];}catch{return [];}});
+    const until=performance.now()+45000;let work;
+    while(performance.now()<until&&child.exitCode===null){
+      const log=rows(),launch=log.filter(x=>x.phase==='portable_probe.launch')[ordinal-1];
+      if(launch&&log.some(x=>x.work===launch.work&&x.phase==='portable_cache.member_start')&&
+        !log.some(x=>x.work===launch.work&&x.phase==='portable_probe.complete')){work=launch.work;break;}
+      await new Promise(resolve=>setTimeout(resolve,10));
+    }
+    if(!work){child.kill('SIGKILL');await done;assert.fail('Actual full portable inspection precondition was not established');}
+    return {child,done,rows,work};
+  }
+  // This sends a real cancellation during the first synchronous built-in
+  // inspection, not at an ordinary compiler boundary. Delivery may be deferred
+  // until its finite child deadline; no immediate-cancellation claim is made.
+  let run=await inspecting(1);const cancelledAt=process.hrtime.bigint();assert.equal(run.child.kill('SIGTERM'),true);
+  let finished=await run.done;assert.equal(finished.signal,null,finished.output);
+  let log=run.rows(),completion=log.find(x=>x.work===run.work&&x.phase==='portable_probe.complete');
+  assert(completion&&BigInt(completion.monoNs)>cancelledAt,'Cancellation must occur during actual inspection');
+  let selected=f.selected();assert.notEqual(selected.invocation.runId,baseline.invocation.runId);
+  assert.equal(selected.invocation.status,'interrupted');assert.equal(selected.invocation.signal,'SIGTERM');
+  assert.equal(selected.result,null);assert.equal(selected.portable.complete,false);
+  assert.deepEqual(fs.readFileSync(immutable),original);assert.equal(fs.existsSync(path.join(f.state,'run.lock')),false);
+  let visible=JSON.parse(f.call('status','--sync','--json')).checks[0];
+  assert.equal(visible.invocation.runId,selected.invocation.runId);assert.equal(visible.reuse_eligible,false);
+  // Mutate and restore while the actual ending inspection is in progress.
+  // Independent observer synchronization establishes delivered input events;
+  // elapsed time or restored bytes alone cannot establish unchanged execution.
+  run=await inspecting(2);f.put('src/value.ts','export const value: number = 2;\n');
+  f.call('status','--sync','--json');f.put('src/value.ts',source);f.call('status','--sync','--json');
+  const restoredAt=process.hrtime.bigint();finished=await run.done;assert.equal(finished.code,0,finished.output);
+  log=run.rows();completion=log.find(x=>x.work===run.work&&x.phase==='portable_probe.complete');
+  assert(completion&&BigInt(completion.monoNs)>restoredAt,'Restore must occur before ending inspection completes');
+  selected=f.selected();assert.equal(selected.result,'PASS');assert.equal(selected.invocation.status,'exited');
+  assert.equal(selected.stable,false);assert.equal(selected.portable.complete,false);
+  assert(selected.checkpoint.issues.includes('declared input event occurred during execution'));
+  visible=JSON.parse(f.call('status','--sync','--json')).checks[0];
+  assert.equal(visible.invocation.runId,selected.invocation.runId);assert.equal(visible.reuse_eligible,false);
+  assert.notEqual(visible.freshness,'CURRENT');assert.deepEqual(fs.readFileSync(immutable),original);
+  f.call('stop');f.call('start');visible=JSON.parse(f.call('status','--sync','--json')).checks[0];
+  assert.equal(visible.invocation.runId,selected.invocation.runId);assert.equal(visible.reuse_eligible,false);
+  assert.notEqual(visible.freshness,'CURRENT');assert.deepEqual(fs.readFileSync(immutable),original);
+  t.diagnostic(`Actual inspection cancelled and restored origin ${selected.invocation.runId}; historical ${baseline.invocation.runId} retained`);
+});
+
 test('real copied-Node recipient independently reuses origin evidence without executing the compiler',
   {skip:!portableRuntimeSupported(),timeout:240000},async t=>{
   const f=observedCompiler(t);f.call('run','typecheck','--portable');const baseline=f.selected();

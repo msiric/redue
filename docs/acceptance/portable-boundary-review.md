@@ -18,8 +18,9 @@ The bounded instrumented capture at `57c3a3d` has independent source review;
 it is preparation for one fixed diagnostic attempt, not a resolved timeout or
 hosted applicability result.
 That attempt identified both portable captures timing out during complete
-dyld-cache consumption; a proposed portable-only budget adjustment remains
-unimplemented/unvalidated and grants no new eligibility.
+dyld-cache consumption. The portable-only finite budget adjustment at `41e66ac`
+has source review and focused actual cancellation/change-and-restore controls;
+matched-VM completion and higher acceptance gates remain unestablished.
 REDUE-PE-001 G1–G4 are not certified by
 this document. Baseline inspected: `b4f286034f43021a74f1babf2c1d0fee5df2a9e5`.
 
@@ -966,3 +967,45 @@ bound; tests must preserve the actual interrupted outcome and lock ownership,
 not promise immediate cancellation. No further remote attempt is authorized by
 this proposal alone. Record the finite resource decision and account for its
 worst case under existing owner caps; no permission or workflow widening follows.
+
+## Finite budget implementation review and actual boundary control
+
+Independent review of `41e66ac223682f525d969062a4711df211d7f565` confirms the
+portable-only 30-second child/caller/server aggregate, 25-second cache and
+45-second imported-decision IPC limits. Beginning and ending origin captures
+receive independent budgets. Each child timeout is capped by remaining time
+after recipe validation; exhausted/nonfinite/backward clocks stay exhausted.
+Parsing, caller proof canonicalization/hash, completed fact/context construction
+and daemon proof comparison are followed by expiry checks before authority is
+retained. This closes the initial author diff's post-hash expiry gap. Ordinary
+compiler/certificate/checkpoint paths, environment, command, observation and
+durable selection semantics are unchanged. A completed early check can retain
+its independently validated facts; an expired later check receives no proof,
+and the same aggregate budget cannot be renewed for another child. This is not
+continuing authority based on elapsed time.
+
+On a frozen archive of that exact source, one focused actual test passed in
+27,960.72 ms. Healthy origin `db42ea6e-34dc-47f5-98e8-1aa4cc4cdba4` first recorded
+complete portable PASS. A real SIGTERM sent while the first built-in cache
+inspection was active produced a newer immutable interrupted invocation with
+null result, non-reuse and released run ownership. No immediate cancellation
+claim is made: synchronous inspection can defer signal delivery. A separate
+real run changed/restored a relevant source with independent observer sync
+while the ending cache inspection was active. Its actual compiler PASS stayed
+historical, but selected origin `b1ab09c1-6ca1-473d-9b87-9d03471b8511` was
+unstable/incomplete due to input events and remained non-CURRENT/non-reusable
+after status and restart. Original immutable bytes survived both cases. Safe
+work IDs and monotonic completion timestamps established actions occurred
+before the corresponding actual inspection completed; no sleep or substituted
+compiler manufactured this precondition. Diagnostics were explicitly enabled
+in the owned fixture. No model ran. The private source-specific log is retained
+locally and owned temporary archive/observer processes were cleaned.
+
+Independently reviewed and executed B's test-only `c35371a` on the same frozen
+source: 14/14 controls pass. They cover finite constants, shared/nonrenewed and
+separate origin clocks, rounding, permanent invalid/backward expiry, zero child
+launch after expiry and one actual standalone 50-ms child timeout. That last
+case is resource fault injection, not compiler qualification or economics.
+These controls plus source review do not prove a matched VM can complete full
+inspection within the new envelope, nor certify combined platforms, models,
+signatures or G2/G3. One accounted hosted attempt remains a separate gate.
