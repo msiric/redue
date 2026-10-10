@@ -27,7 +27,7 @@ export function machineOptions(args){
 export function readMachineTransfer(directory,{source,packageSha256}={}){
   assert.equal(fs.realpathSync(directory),directory,'No aliased transfer directory');
   assert.deepEqual(fs.readdirSync(directory).sort(),names,'Only the fixed envelope and identity manifest travel');
-  const evidence=readBoundedPortableFile(path.join(directory,names[1])),manifestBytes=readBoundedPortableFile(path.join(directory,names[0]));
+  const evidence=readBoundedPortableFile(path.join(directory,names[1]),{limit:1024*1024}),manifestBytes=readBoundedPortableFile(path.join(directory,names[0]),{limit:16384});
   assert(evidence.length<=1024*1024,'Evidence exceeds its signing subject bound');
   assert(evidence.length+manifestBytes.length<=MACHINE_TRANSFER_LIMIT,'Transfer exceeds its reserved payload budget');
   assert(manifestBytes.length<=16384,'Identity manifest exceeds its bound');
@@ -106,7 +106,7 @@ export async function runMachine(options){
       const previewExport=json('evidence','export','typecheck','--output',file,'--dry-run');
       assert.equal(previewExport.origin.complete,true);assert.equal(previewExport.written,false);assert(!fs.existsSync(file));
       const exported=json('evidence','export','typecheck','--output',file);assert.equal(exported.origin.complete,true);digest=exported.digest;
-      const evidence=readBoundedPortableFile(file),parsed=parseEnvelope(evidence),facts=parsed.statement.predicate.facts;
+      const evidence=readBoundedPortableFile(file,{limit:1024*1024}),parsed=parseEnvelope(evidence),facts=parsed.statement.predicate.facts;
       profile={platform:facts.platform,runtime:facts.runtime,compiler:facts.compiler};
       const manifest={schema:1,source,package_sha256:expected,evidence_sha256:sha(evidence),evidence_digest:digest,
         origin_run_id:originRunId,profile_digest:sha(canonical(profile)),node_physical_identity:nodePhysical,boot_identity:boot,
