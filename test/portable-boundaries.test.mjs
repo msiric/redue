@@ -21,6 +21,7 @@ import {readProducerPolicySnapshot,revalidateProducerPolicySnapshot,producerPoli
   PRODUCER_POLICY_INTERPRETATION} from '../src/portable-producer-policy.mjs';
 import {inspectDefaultOpenSSL,DEFAULT_OPENSSL_CONFIG,portableOpenSSLContextIssue}
   from '../src/portable-openssl-config.mjs';
+import {portableProbeFailureCode} from '../src/portable-facts.mjs';
 
 // Independent controls for the facts portable comparison must retain. These
 // tests do not grant portable eligibility or replace observer interval checks.
@@ -31,6 +32,15 @@ function fixture(t) {
   return root;
 }
 const capture=(kind,file)=>[kind,file,queryAnswer(kind,file)];
+
+test('portable probe diagnostic never infers timeout from signal, exit or free text',()=>{
+  for(const probe of [{signal:'SIGTERM',status:null,stderr:''},
+    {status:2,stderr:'warning: ETIMEDOUT'},
+    {error:{code:'ENOENT'},stderr:'private text mentions ETIMEDOUT'}])
+    assert.equal(portableProbeFailureCode(probe),'PORTABLE_PROBE_UNAVAILABLE');
+  assert.equal(portableProbeFailureCode({error:{code:'ETIMEDOUT'},stderr:'arbitrary private child output'}),'PORTABLE_PROBE_TIMEOUT');
+  assert.equal(portableProbeFailureCode({status:2,stderr:'VSTATE_REASON:PORTABLE_RUNTIME_UNSUPPORTED\n'}),'PORTABLE_RUNTIME_UNSUPPORTED');
+});
 
 function ownerPolicy(t){
   const root=fs.realpathSync(fixture(t));fs.chmodSync(root,0o700);

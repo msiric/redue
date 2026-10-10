@@ -653,3 +653,14 @@ diagnostic run later passed with healthy approximately 53–57 ms histories, but
 the original failure lacked correlated diagnostics. Its cause remains unresolved.
 These observations establish corrected registration, not clean combined runtime
 acceptance or elimination of availability outliers.
+
+The first actual unsigned VM attempt was reported failed before evidence upload,
+recipient or model launch: local evidence was eligible, but portable export lacked
+a complete origin. That is a preserved failed prerequisite, not two-machine reuse
+or a proven timeout. The narrow `ee02b47` diagnostic adds a static timeout code only
+when the existing bounded spawn reports `error.code === ETIMEDOUT`; commands,
+environment, ten-second bound and applicability are unchanged. Independent pure
+controls require generic unavailability for signal/exit/free-text cases and retain
+known runtime refusal codes. Both diagnostic tests pass 2/2; the responsible phase
+of the actual VM failure remains unestablished until captured evidence identifies
+it.
