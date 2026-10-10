@@ -601,6 +601,15 @@ rejects these inputs; no actual signature, imported CURRENT or model false reuse
 is claimed. The integration owner is correcting the data validator; this owned
 regression remains red until that correction is independently tested.
 
+Correction `d70ade2` was then independently read and tested: schema values and
+exit code require exact integer types, exact statement/predicate/origin/subject
+structure and inner predicate digest are bound, and nonempty alternate OIDC
+tokens are refused. The five malformed controls plus alternate-token refusal
+pass 1/1 (six subcases), and the existing signer/machine tests pass 12/12. The
+pre-fix failures remain above. This closes those bounded validator findings;
+signing is still disabled pending the owner's explicit workflow/disclosure/trust
+approval and no live authentication gate is certified.
+
 The exact official `actions/attest` distribution at
 [`1e69f48`](https://github.com/actions/attest/tree/1e69f48acb82d1966a394da916b4c1698aa569d6)
 was read without executing it. Its 4,868,977-byte `dist/index.js` digest is

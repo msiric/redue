@@ -178,13 +178,13 @@ function portableFixture(){return {schema:1,interpretation:PORTABLE_INTERPRETATI
     discovery:{configs:[['tsconfig.json',digest('config')]],
       files:[['src/value.ts',digest('source')]],queriesSha256:digest('queries')}}};}
 
-test('disabled signer rejects boolean schema/exit codes and broken inner subject binding',t=>{
+test('disabled signer rejects boolean schema/exit codes, broken inner binding and alternate OIDC',t=>{
   const YAML=createRequire(import.meta.url)('yaml'),proposal=YAML.parse(fs.readFileSync(
     new URL('../docs/contributor/portable-ci-signing-workflow.yml',import.meta.url),'utf8'));
   const script=proposal.jobs.signer.steps.find(step=>step.id==='validate').run
     .split("python3 <<'PYTHON'\n")[1].split('\nPYTHON')[0];
   const accepted=[];
-  for(const mutation of ['envelope-schema','predicate-schema','manifest-schema','exit-code','inner-subject']){
+  for(const mutation of ['envelope-schema','predicate-schema','manifest-schema','exit-code','inner-subject','alternate-oidc']){
     const base=fs.realpathSync(fixture(t)),directory=path.join(base,'redue-sign-input');fs.mkdirSync(directory);
     const envelope=structuredClone(encodeEnvelope(portableFixture()));
     if(mutation==='envelope-schema')envelope.schema=true;
@@ -200,7 +200,8 @@ test('disabled signer rejects boolean schema/exit codes and broken inner subject
       interpretation:PORTABLE_INTERPRETATION,profile,scope:'controlled-noLib-direct-typescript',package_filename:'owned.tgz'};
     fs.writeFileSync(path.join(directory,'redue-portable-evidence.json'),raw);
     fs.writeFileSync(path.join(directory,'manifest.json'),canonical(manifest));
-    const result=spawnSync('python3',['-c',script],{env:{...process.env,RUNNER_TEMP:base,GITHUB_SHA:manifest.source},
+    const result=spawnSync('python3',['-c',script],{env:{...process.env,RUNNER_TEMP:base,GITHUB_SHA:manifest.source,
+      ...(mutation==='alternate-oidc'?{SIGSTORE_ID_TOKEN:'controlled-not-a-real-token'}:{})},
       encoding:'utf8',timeout:3000,maxBuffer:65536});
     if(result.status===0||fs.existsSync(path.join(base,'redue-sign-predicate.json')))accepted.push(mutation);
   }
