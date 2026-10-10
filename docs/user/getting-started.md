@@ -145,4 +145,4 @@ After initialization, use `redue agent setup codex --dry-run` (or `claude`) to
 review project-local instructions, then repeat with `--apply`. Start a fresh host
 session. `redue agent doctor` checks prerequisites without running verification.
 See [agent activation](agents.md) for loading rules, generic agents, and removal.
-The released alpha.2 does not contain these candidate commands yet.
+For a fixed build and ordinary development evaluation, use the [opt-in pilot guide](pilot.md).

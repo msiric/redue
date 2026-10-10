@@ -62,6 +62,8 @@ jobs:
           path: release-candidate
       - name: Install exact tarball and exercise public binary
         run: node test/acceptance/package-smoke.mjs --manifest release-candidate/manifest.json
+      - name: Unavailable recording boundary with exact installed package
+        run: node test/acceptance/unavailable-package-smoke.mjs --manifest release-candidate/manifest.json
       - name: Reviewed TypeScript 5.5.2 with exact installed package
         run: node test/acceptance/package-smoke.mjs --manifest release-candidate/manifest.json --compiler 5.5.2
       - uses: actions/setup-node@v4
@@ -77,3 +79,5 @@ jobs:
         run: node test/acceptance/direct-recipe-upgrade.mjs --manifest release-candidate/manifest.json
       - name: Installed agent policy update and safe removal
         run: node test/acceptance/agent-policy-upgrade.mjs --manifest release-candidate/manifest.json
+      - name: Public alpha.8 upgrade and receipt-preserving pilot exit
+        run: node test/acceptance/agent-policy-upgrade.mjs --manifest release-candidate/manifest.json --prior @redue/cli@0.1.0-alpha.8

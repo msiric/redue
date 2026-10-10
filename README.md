@@ -14,7 +14,7 @@ REDUE keeps persistent verification state for your codebase so developers and
 coding agents can see which previous checks still apply to the code they have now.
 It records evidence, not proofs of correctness.
 
-For a qualified supported Yarn/pnpm check (ordinary npm scripts are recording-only):
+For a qualified direct-compiler or supported Yarn/pnpm check (ordinary npm scripts are recording-only):
 
 ```text
 $ redue status --sync
@@ -37,9 +37,9 @@ it; relevant source edits make it stale. [Run the reproducible demo](docs/contri
 
 ## Install the alpha
 
-This branch prepares **alpha.5**, not yet published. Its opt-in agent activation
-and npm direct-compiler recipe require the candidate tarball; public alpha.4
-contains only the applicability correction.
+The opt-in pilot uses **0.1.0-alpha.10**. Follow the
+[fixed-version pilot guide](docs/user/pilot.md) for supported projects, setup,
+updates and voluntary feedback. No external usage results are claimed yet.
 
 
 REDUE is published on npm as `@redue/cli`. The installed command is `redue`.
@@ -81,7 +81,7 @@ Since alpha.4, ordinary npm scripts are recording-only after
 A separate explicit [direct compiler recipe](docs/user/direct-typescript.md) can
 qualify supported npm typechecks. It does not claim that npm/lifecycle scripts ran.
 
-## Connect your agent (candidate)
+## Connect your agent (experimental)
 
 ```sh
 redue agent setup codex --dry-run
@@ -94,7 +94,7 @@ teaches it to inspect evidence before deciding whether verification needs repeat
 Setup is explicit, reversible, and does not change tool permissions or run checks.
 [Activation, removal, and generic-agent guidance](docs/user/agents.md).
 
-Alpha.5's claim is **opt-in project-local agent activation and direct TypeScript
+The experimental claim is **opt-in project-local agent activation and direct TypeScript
 evidence, with fresh-session reuse demonstrated in the tested Codex/macOS
 configuration**. Claude setup/removal mechanics are tested; Claude behavior and
 cross-host reuse are not. This is experimental guidance, not guaranteed agent
@@ -119,7 +119,7 @@ has been verified.
 - Linux also requires Python 3 for observation. No WSL or Git Bash needed on Windows.
 - npm, pinned Yarn `node-modules`, and pinned pnpm 12 isolated/hoisted layouts.
 - Automatic qualification for supported Yarn/pnpm TypeScript invocations; ordinary npm
-  launcher checks remain recording-only. The alpha.5 candidate adds an explicit
+  launcher checks remain recording-only. Explicitly select the
   [direct local compiler recipe](docs/user/direct-typescript.md) for the reviewed
   npm/TypeScript boundary. Workspace
   boundaries follow the files actually consumed, including built declarations.

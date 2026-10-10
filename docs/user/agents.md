@@ -50,7 +50,7 @@ promise that establishing applicability is cheaper than every possible check.
 
 Alpha.5 and later support opt-in project-local activation and direct
 TypeScript evidence, with fresh-session reuse demonstrated for Codex CLI 0.160.1
-on macOS under the documented owner-approved checkout/state/socket route. CLI
+and subsequent 0.162.0 trials on macOS under the documented owner-approved checkout/state/socket route. CLI
 mechanics are tested on macOS/Linux/Windows; model behavior is not claimed for
 every host/platform or sandbox policy. Claude setup/removal mechanics are tested,
 but Claude behavior and cross-host reuse remain untested. Reuse is not guaranteed,

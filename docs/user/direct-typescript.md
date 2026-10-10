@@ -1,4 +1,4 @@
-# Explicit local TypeScript verification (unreleased candidate)
+# Explicit local TypeScript verification
 
 This check means: the reviewed local TypeScript compiler completed the configured
 check against declared, observed inputs and relevant execution context. It does
@@ -49,9 +49,9 @@ Do not delete receipts. `redue run` always executes the configured command.
 First upgrade through the [alpha.4 containment](npm-launcher-notice.md), stopping
 observers before the installation change and restarting with the same config/state.
 The old npm check becomes recording-only; its receipts remain historical.
-To opt into this candidate afterward:
+To opt into the direct recipe afterward:
 
-1. Stop the observer, install the reviewed candidate tarball into the same prefix,
+1. Stop the observer, install the selected released version into the same prefix,
    and keep the original `redue.config.json` and any explicit `--state-dir` selection.
 2. Run `redue init --recipe typescript-direct --check typecheck --dry-run --json`
    using that config selection. Inspect `proposed_config.checks` and the recorded
@@ -74,7 +74,7 @@ accidentally when intending to preserve the original selection.
 Pre/post scripts, compound commands, wrappers, environment assignments, workspace
 projects and unsupported compiler versions are not automatically converted.
 Init retains the original script with a reason. Development-mode source-map helpers,
-Node preloads/loaders/compile-cache settings, unsupported compiler plugins or
+Node preloads/loaders/compile-cache settings, `TS_ETW_MODULE_PATH` (including empty or case aliases), unsupported compiler plugins or
 incremental/composite configuration, outside-root inputs and uncertain observation
 withhold applicability. Extra custom probes cannot inherit this recipe's context
 exception. Relevant source, declaration, config, membership and installed-content

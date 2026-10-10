@@ -6,7 +6,10 @@ import {windowsLaunch} from '../../src/windows-command.mjs';
 import {findExecutable} from '../../src/executable-lookup.mjs';
 const at=process.argv.indexOf('--manifest');assert(at>=0);
 const candidate=readArtifact(path.resolve(process.argv[at+1]));
-const priorAt=process.argv.indexOf('--prior');const prior=priorAt<0?'@redue/cli@0.1.0-alpha.6':path.resolve(process.argv[priorAt+1]);
+const priorAt=process.argv.indexOf('--prior');
+const priorArgument=priorAt<0?'@redue/cli@0.1.0-alpha.6':process.argv[priorAt+1];
+assert(priorArgument,'--prior requires a package coordinate or tarball');
+const prior=/^@redue\/cli@0\.1\.0-alpha\.\d+$/.test(priorArgument)?priorArgument:path.resolve(priorArgument);
 const base=fs.realpathSync(fs.mkdtempSync(path.join(process.platform==='darwin'?'/tmp':os.tmpdir(),'rp-'))),root=path.join(base,'Project é space');
 const old=path.join(base,'old'),next=path.join(base,'next');
 const binary=p=>path.join(p,...(process.platform==='win32'?['redue.cmd']:['bin','redue']));
@@ -21,7 +24,7 @@ try{
   for(const [host,file,skill] of [['codex','AGENTS.md','.agents/skills/redue-verification/SKILL.md'],['claude','CLAUDE.md','.claude/skills/redue-verification/SKILL.md']]){
     const read=f=>fs.readFileSync(path.join(root,f),'utf8');write(path.join(root,file),'User policy before.\r\n');
     cli(old,['agent','setup',host,'--apply']);fs.appendFileSync(path.join(root,file),'User policy after.\n');
-    const before=read(file),skillBefore=read(skill);assert.match(skillBefore,/Query ordinary/);
+    const before=read(file),skillBefore=read(skill);assert.match(skillBefore,/Query ordinary|npm-typescript-direct-v1/);
     cli(next,['agent','setup',host,'--dry-run']);assert.equal(read(file),before);assert.equal(read(skill),skillBefore);
     cli(next,['agent','setup',host,'--apply']);assert.match(read(skill),/npm-typescript-direct-v1/);assert.match(read(file),/caller-aware sync/);
     const once=read(file);cli(next,['agent','setup',host,'--apply']);assert.equal(read(file),once);
@@ -55,8 +58,18 @@ try{
     assert.equal(after.invocation.runId,before.invocation.runId);assert.equal(after.result,'PASS');assert.equal(digest(),original);
     assert.deepEqual(fs.readFileSync(path.join(upgrade,'redue.config.json')),configBefore);
     assert.equal(JSON.parse(live(['agent','doctor','codex','--json']).stdout).project.state,ownedState);
+    // Pilot exit removes only owned instructions/install; historical evidence stays.
+    live(['agent','remove','codex','--dry-run']);
+    assert(fs.existsSync(instruction));
+    live(['agent','remove','codex','--apply']);live(['stop']);
+    call([findExecutable('npm'),'uninstall','--global','--prefix',old,'@redue/cli','--no-audit','--no-fund']);
+    assert.equal(digest(),original);assert(fs.existsSync(ownedState));
+    assert.deepEqual(fs.readFileSync(path.join(upgrade,'redue.config.json')),configBefore);
+    assert(!fs.existsSync(binary(old)));
+    // Reinstall only this disposable prefix so its owned test state can be cleaned.
+    call([findExecutable('npm'),'install','--global','--prefix',old,candidate.file,'--no-audit','--no-fund','--registry=https://registry.npmjs.org']);
     // Setup metadata is an input: do not promise retained CURRENT or erase history.
-    console.log(JSON.stringify({samePrefixUpgrade:true,prior,candidateSha256:candidate.sha256,receiptPreserved:true,configStatePreserved:true,afterSetup:after.freshness}));
+    console.log(JSON.stringify({samePrefixUpgrade:true,prior,candidateSha256:candidate.sha256,receiptPreserved:true,configStatePreserved:true,pilotExitPreservesEvidence:true,afterSetup:after.freshness}));
   }finally{if(ownedState){live(['stop']);live(['remove-state']);}}
   console.log(JSON.stringify({platform:process.platform,node:process.version,sha256:candidate.sha256,prior,hosts:['codex','claude'],intactUpdate:true,preview:true,idempotent:true,userTextPreserved:true,modifiedManagedRefused:true,configPreserved:true}));
 }finally{fs.rmSync(base,{recursive:true,force:true,maxRetries:5,retryDelay:200});}

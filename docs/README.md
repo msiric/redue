@@ -3,6 +3,7 @@
 For users:
 
 - [Install, initialize, run, and remove](user/getting-started.md)
+- [Fixed-build opt-in development pilot](user/pilot.md)
 - [Supported projects and conservative boundaries](user/supported-projects.md)
 - [Configuration](user/configuration.md)
 - [Connect coding agents and apply the decision policy](user/agents.md)
