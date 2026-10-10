@@ -1,6 +1,6 @@
 # Portable evidence resume
 
-Read canonical [REDUE-PE-001](portable-evidence.md), [tracker](portable-evidence-tracker.md), [decisions](portable-evidence-decisions.md) and [independent review](../acceptance/portable-boundary-review.md). Resume the existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`; baseline `b4f2860` is history, not a rollback target.
+Read canonical [REDUE-PE-001](portable-evidence.md), [tracker](portable-evidence-tracker.md), [decisions](portable-evidence-decisions.md) and [independent review](../acceptance/portable-boundary-review.md). Resume the existing owner-approved REDUE worktree on `dev/portable-evidence`; baseline `b4f2860` is history, not a rollback target.
 
 Owner confirmed Day 0 **2026-10-10 21:24 UTC**, first substantive review 2026-10-13 21:24 UTC, daily summary and $0 additional daily/total spending for the first 72 hours. Four included-capacity lanes are approved. No main merge, release tag or npm publication is approved.
 
