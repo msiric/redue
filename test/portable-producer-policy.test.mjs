@@ -139,3 +139,25 @@ test('minted registry snapshots must match the explicitly selected local authori
   assert.equal(revalidateProducerPolicySnapshot(snapshot,{expectedFile:'relative.json'}),false);
   assert.equal(revalidateProducerPolicySnapshot({...snapshot},{expectedFile:f.file}),false);
 });
+
+test('selected-path mismatches cannot read or borrow a byte-identical registry snapshot',ownerTests,t=>{
+  const f=fixture(t),g=fixture(t),snapshot=readProducerPolicySnapshot(f.file),
+    other=readProducerPolicySnapshot(g.file),alias=path.join(f.base,'alias.json');
+  assert.equal(snapshot.contentDigest,other.contentDigest);
+  fs.symlinkSync(f.file,alias);
+  const originalOpen=fs.openSync;let reads=0;
+  t.mock.method(fs,'openSync',function(...args){reads++;return originalOpen.apply(fs,args);});
+  for(const expectedFile of [g.file,alias,'',null,1,{},[],path.basename(f.file)]){
+    assert.equal(revalidateProducerPolicySnapshot(snapshot,{expectedFile}),false);
+  }
+  for(const forged of [{...snapshot},JSON.parse(JSON.stringify(snapshot)),{},null,undefined]){
+    assert.equal(revalidateProducerPolicySnapshot(forged,{expectedFile:f.file}),false);
+  }
+  assert.equal(reads,0,'mismatched paths and unminted data must fail before an authoritative reread');
+  assert.equal(revalidateProducerPolicySnapshot(snapshot,{expectedFile:f.file}),true);
+  assert.equal(revalidateProducerPolicySnapshot(snapshot),true,'default interval API remains a fresh bound reread');
+  assert.equal(reads,2);
+  fs.unlinkSync(f.file);
+  assert.equal(revalidateProducerPolicySnapshot(snapshot,{expectedFile:f.file}),false);
+  assert.equal(revalidateProducerPolicySnapshot(other,{expectedFile:g.file}),true);
+});
