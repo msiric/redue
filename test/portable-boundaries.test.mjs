@@ -7,6 +7,7 @@ import {queryAnswer,queriesMatch} from '../src/typescript-list.mjs';
 import {createHash} from 'node:crypto';
 import {canonical,encodeEnvelope,parseEnvelope,inspectEnvelope,PortableEnvelopeError}
   from '../src/portable-envelope.mjs';
+import {importEvidence,readImportedSnapshot} from '../src/portable-store.mjs';
 
 // Independent controls for the facts portable comparison must retain. These
 // tests do not grant portable eligibility or replace observer interval checks.
@@ -141,4 +142,42 @@ test('integer-only origin fields reject number lexemes that underflow or round t
     assert.throws(()=>parseEnvelope(changed),error=>error instanceof PortableEnvelopeError&&
       error.code==='PORTABLE_NUMBER',token);
   }
+});
+
+function ownedStore(t){
+  const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-import-review-'))),
+    root=path.join(base,'project'),state=path.join(base,'redue-state'),
+    configFile=path.join(root,'redue.config.json');
+  fs.mkdirSync(root);fs.mkdirSync(state);fs.writeFileSync(configFile,'{}');
+  fs.writeFileSync(path.join(state,'vstate-owner-v1.json'),JSON.stringify({schema:1,
+    kind:'vstate-product-alpha',config:configFile,root,state}));
+  t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
+  return {base,root,state,configFile};
+}
+const storeOptions=(state,envelope)=>({...state,check:'typecheck',bytes:canonical(envelope),
+  acceptDigest:envelope.digest,apply:true});
+
+test('replaying an old accepted PASS cannot discard an interrupted accepted FAIL import',t=>{
+  const state=ownedStore(t),pass=encodeEnvelope(portableFixture());
+  importEvidence(storeOptions(state,pass));
+  const failing=portableFixture();failing.origin.result='FAIL';failing.origin.invocation.exitCode=1;
+  const fail=encodeEnvelope(failing),selector=path.join(state.state,'portable-imports-v1.json'),
+    rename=fs.renameSync;
+  const fault=t.mock.method(fs,'renameSync',function(from,to){
+    if(to===selector)throw Object.assign(Error('injected import selector failure'),{code:'EACCES'});
+    return rename.call(fs,from,to);
+  });
+  assert.throws(()=>importEvidence(storeOptions(state,fail)),error=>
+    error instanceof PortableEnvelopeError&&error.code==='PORTABLE_IMPORT_FAILED');
+  fault.mock.restore();
+  assert(fs.existsSync(path.join(state.state,'portable-evidence-v1',fail.digest+'.json')),
+    'fault occurred after immutable failing candidate persisted');
+  assert.equal(readImportedSnapshot(state.state).error?.code,'PORTABLE_IMPORT_INCOMPLETE');
+  assert.throws(()=>importEvidence(storeOptions(state,pass)),PortableEnvelopeError,
+    'unrelated valid replay cannot replace pending transaction');
+  assert.equal(readImportedSnapshot(state.state).error?.code,'PORTABLE_IMPORT_INCOMPLETE');
+  importEvidence(storeOptions(state,fail));
+  const snapshot=readImportedSnapshot(state.state);
+  assert.equal(snapshot.error,undefined);
+  assert(snapshot.records.some(record=>record.envelope.statement.predicate.origin.result==='FAIL'));
 });
