@@ -2,16 +2,16 @@
 
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision 1.0, unchanged.
 
-Current conclusion: implementation started; no portable eligibility claim has passed acceptance. Publication is not authorized. External natural use has not started.
+Current conclusion: the real fresh-origin/export/import/separate-checkout G1 mechanism passes on an independently reviewed same-host/boot prototype. Two-machine, actual cross-agent, authenticated CI and final release acceptance remain open. Publication is not authorized; external natural use has not started.
 
-Agreed Day 0: 2026-10-10 21:24 UTC (owner confirmed). First substantive review: 2026-10-13 21:24 UTC. Daily concise progress summaries. Additional metered spending is $0/day and $0 total for the first 72 hours; only established subscription-included capacity is allowed. No new machine/VM is approved. Claude calls require an explicitly approved usable account; CI entitlement must be confirmed before jobs. Provisioning and blocked time count from kickoff; dates will not be reset. Initial targets remain Day 14 demonstration / Day 28 prepublication readiness, uncalibrated until the real G1 slice.
+Agreed Day 0: 2026-10-10 21:24 UTC (owner confirmed). First substantive review: 2026-10-13 21:24 UTC. Daily concise progress summaries. Additional metered spending is $0/day and $0 total for the first 72 hours; only established subscription-included capacity is allowed. Standard public GitHub-hosted validation VMs are now approved: two independent macos-26 ARM64 profile jobs first. Artifact/cache allowance must be confirmed before storage; signing and producer-trust policy need owner review. Claude remains PENDING_OWNER_ACCOUNT. Provisioning and blocked time count from kickoff; dates will not be reset. Initial targets remain Day 14 demonstration / Day 28 prepublication readiness, uncalibrated until the real G1 slice.
 
 | Gate | Current status | Evidence / outstanding prerequisite |
 | --- | --- | --- |
-| G0 | Partial | Local repository and public GitHub reads verified; caps and cadence confirmed; independent machine/profile, Claude behavioral approval and no-additional-charge CI entitlement unresolved. No paid model trials or provisioning started. |
-| G1 | In progress | Fresh origin capture, safe envelope, separate-checkout recipient validation under development. |
-| G2 | Not run | Codex + Claude actual behavior and independent matched machine not provisioned/approved yet. |
-| G3 | Not run | Authenticated reviewed CI producer and recipient trust route required. |
+| G0 | Partial | Day 0/caps/cadence and standard public runners approved; source/native preflight reviewed. Actual runner profiles, included storage, signing policy and Claude account unresolved. |
+| G1 | Technical slice passes on prototype | Actual compiler origin/export/import/independent recipient CURRENT and relevant-edit rejection, with independent interval/publication controls. Final installed candidate and calibration forecast pending. |
+| G2 | Not run | Hosted profile inventory approved; reviewed cross-machine runtime/input boundary and actual model preflights pending. Claude PENDING_OWNER_ACCOUNT. |
+| G3 | Not run | Preparatory authentication tests do not grant trust. Included artifact storage and exact owner-reviewed signer policy pending. |
 | G4 prepublication | Not ready | G1–G3, V01–V22, independent review, final bytes and economics outstanding. |
 | Publication / postpublication | Pending owner approval | No main merge, release tag or npm operation in this milestone. |
 | External usage | Not started | Owner-approved willing participants separate from technical gates. |
@@ -20,26 +20,33 @@ Integration owner: root (Lane A). One writer per shared interface: root owns CLI
 
 | Task | Owner / independent reviewer | Branch and owned interface | Current evidence / next action |
 | --- | --- | --- | --- |
-| PE-01 resources/profile | Owner + C / integration | Local G0 record | Asked once for missing limits and machines. Local deterministic work continues. |
-| PE-02 minimum decisions | A/B / C | `dev/portable-evidence`, `dev/portable-import` | D1–D3 draft requires independent challenge before acceptance. |
-| PE-03 fresh origin + export | A / C | `dev/portable-evidence`; core/CLI | Capture within observed interval, never reconstruct old origin from export-time files. |
-| PE-04 safe envelope/inspect/import | B / C | `dev/portable-import`; new envelope module/tests | B implementing bounded duplicate-key rejection, deterministic integrity binding, explicit digest acceptance. |
-| PE-05 relocation slice | A+C / B | Integration + adversarial tests | Real independent checkout and healthy recipient required; no copied local state. |
-| PE-06 host handoff | D / C | `dev/portable-onboarding`; docs/preflight | Host capabilities distinct from model acceptance; no model call without caps/preconditions. |
-| PE-07–12 | Unclaimed until dependencies ready | See canonical backlog | No completion implied. |
+| PE-01 resources/profile | Owner + C / integration | Local G0 record + storage-free workflow | Two independent standard macos-26 jobs approved; actual profiles, storage, signer and Claude decisions pending. |
+| PE-02 minimum decisions | A/B / C | `portable-evidence-decisions.md` | D1–D3 independently challenged; no known critical defect within constrained same-host slice. Cross-machine identity remains separately reviewed work. |
+| PE-03 fresh origin + export | A / C | Core/CLI | Real within-interval capture passes; old origin cannot be repaired; ownership/selection and event guards independently tested. |
+| PE-04 safe envelope/inspect/import | B / C | Envelope/store/pure decision | Strict bounded parsing, explicit exact-digest acceptance, durable separate import selection, lost-selector FAIL replay controls pass. |
+| PE-05 relocation slice | A / C | Recipient/catalog/cached | Actual independently initialized checkout returns eligible imported PASS with no runs-v1. Relevant edit, newer unstable selection and publication races prevent reuse. |
+| PE-06 host handoff | D / C | Policy/JSON/preflight | Installed/imported reporting guide; no-model gate and safe instruction updates pass. Actual portable model behavior NOT RUN. |
+| PE-07 machine profile | A / C | Runtime + preflight | Storage-free profile inventory ready; no portable equivalence inferred from runner label or OS version. |
+| PE-08 producer trust | B / C | CI authentication preparation | Exact policy/tool/artifact authentication hardening under review; no automatic acceptance. |
+| PE-09 CI route | B+A / C+owner | Proposed workflow | Signing permissions and trust rule not enabled; no live authenticated producer yet. |
+| PE-10 installed handoff | D / C | Installed smoke | Preliminary source1beaaea exact bytes passed; new final candidate after authority/policy fixes required. |
+| PE-11 integrated review | C / integration | Adversarial matrix | Independent same-host origin/publication tests pass; complete V01–V22 and G2/G3 pending. |
+| PE-12 release preparation | A / owner | Task branch only | Final artifact/economics/combined platform acceptance outstanding; no main/public actions. |
 
 Baseline inspected: `main` and `origin/main` at `b4f286034f43021a74f1babf2c1d0fee5df2a9e5`; package `@redue/cli@0.1.0-alpha.10`. No pre-existing portable implementation or open PR. Owner plan was the only untracked content and is preserved verbatim. Existing worktrees and historical artifacts remain intact.
 
-Current critical review findings: absolute path hashes cannot simply be stripped; compiler queries must retain absent candidates and arguments; dyld-cache-only loaded libraries need a reviewed runtime identity, not fabricated per-library hashes. Unsupported identity stays non-reusable.
+Current critical boundaries: cross-machine loaded-runtime/content identity is not implemented; complete compiler discovery retains external absent candidates, so ordinary default-library lookup remains unsupported in the initial portable slice. Do not strip these facts, change the debugger project or claim two-machine results from local relocation.
 
-Usage: four approved implementation/review lanes; no external model evaluations, cloud provisioning, npm publication, account/trust changes or new spending initiated. Local implementation/test/review timings will be recorded with each result rather than estimated as completed work.
+## Daily progress — 2026-10-10 UTC
 
-Next commands: inspect and implement origin facts; integrate independently reviewed parser; run new portability tests and existing receipt/direct-compiler regressions. Detailed results will link from here, with every failed attempt retained.
+Real fresh origin/export/import/independent-checkout applicability is implemented. Independent review addressed parser integer ambiguity, pending/lost-selector FAIL replay, expected owner and export races, origin interval completeness, recipe/consumed-file binding, and final receipt/catalog/input publication races. No remaining known critical defect in the exact same-host/boot prototype. Node22.13.0/DarwinARM64/release25.6.0 and controlled noLib TypeScript5.6.3 are the initial mechanism profile; useful debugger/default-library and cross-machine acceptance are still open.
 
-## Daily progress — 2026-10-10
+Evidence: independent portable suite87/87, all four extended publication variants separately passed; root focused78/78 and store/relocation18/18. Full local regressions226tests:211pass,15platformskips,0fail (~564s), source began7b13080 with later leaf/review changes, so not a frozen final-source certificate. Output/policy/preflight22/22; published alpha.10 policy ownership upgrade4/4; preliminary installed exact source1beaaea mechanics pass. Its artifactSHA a8aea832d71d498ed3bde5ee0faffc0da536a08a5ffd04dafd688e2d199e5936 is preserved but superseded.
 
-Task branch integrates through `243f8d6`; no main merge or publication. Bounded envelope, durable separate import selection, explicit CLI export/inspection/import, fail-closed host preflight and preparatory policy-bound CI authentication inspector are committed. Core fresh-run capture and recipient integration are in progress. Independent review identified and addressed lexical numeric ambiguity, interrupted-import FAIL replay, reader ownership mismatch and probe-path/consumed-input coverage. Export ownership race remains under repair; no portable CURRENT claim is accepted yet.
+Failures retained: initial native no_uuid helper could not load; corrected flags independently rebuilt identical reviewed bytes. Fixture prerequisites (Git root, socket path, actual npm dependencies, observed noLib declarations, state outside checkout) were repaired without weakening checks. New policy exposed piped JSON truncation at8192bytes; queued-output completion fixes it and an independent >64KiB check passed. No model trial, signing, account/trust change, publication, new spending or external usage.
 
-Local focused evidence: parser/store/boundary 36/36; direct/compiler combined 27/27; fresh facts tests 4/4. Latest leaf/facts/preflight run: 15/16, with the remaining test using a now-obsolete owner-less import reader interface; repair is assigned to D without weakening its expected result. Native helper prototype initially failed `ERR_DLOPEN_FAILED` because `-no_uuid` omitted LC_UUID; diagnosed, flag removed, actual active-cache APIs verified. Native reproduction and profile review remain independent gates. No model calls, paid jobs, provisioning, account changes or external usage.
+Resources: owner now approves two independent standard public macos-26 jobs. Official GitHub docs confirm standard public runner minutes are free; no uploads/cache in the preflight. Existing repository active artifacts total3,980,014bytes, but account-wide allowance is unknown. Billing reads return404 with missing user-scope explanation; no auth scope change. Specific10MiB/one-day included allowance question pending. Claude PENDING_OWNER_ACCOUNT. Prepare exact signing permissions/policy for later review, never auto-trust GitHub delivery.
 
-Blocked-time ledger: G2 machine approval and Claude call capacity, and G3/combined-platform CI entitlement, blocked since Day 0 pending owner decisions; implementation proceeds concurrently, so this is lane-blocked time, not a claim all work stopped. Day 14/28 targets remain uncalibrated until the 72-hour working-slice review.
+Blocked ledger: G2 Claude account sinceDay0; G2 profile projection pending actual runner profiles; G3 storage and signer approval pending. Implementation/review proceeds concurrently, so these are lane-blocked intervals. Day14/28 forecast remains conditional on those prerequisites; first substantive calibration at2026-10-13 21:24UTC, not an instruction to wait. No unconditional completion date is justified from one prototype.
+
+Next: commit reviewed preflight/current records, fetch/compare/push task branch, prepare draft PR, run two storage-free profile jobs and standard shared regressions. Pack new exact source/checksum for installed acceptance after coherent review. Resume record gives owners, commits, artifact identities and remaining gates.
