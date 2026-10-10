@@ -13,11 +13,10 @@ G1 technical slice only; G2/G3 incomplete; G4 prepublication NOT READY.**
 
 ## Source, owners and approval boundaries
 
-Verified root commit `70d54201d8c0bffd8dcf0354de7ac8e99829daee`; remote task branch
-`2bc636acf96b8652ff9dcac1d3aa846a3a9532d2`. Reviewed bounded runtime/probe
-diagnostics `57c3a3d`, native profiling test and platform fix `274fb42` are committed
-but are not in the preserved exact 2bc artifact. Root70d5420 includes independent
-C review; the verified integration tree is clean. Root owns shared CLI/daemon/facts/runtime/catalog; B owns
+Verified root commit `3ebbe0e3339fbfaf00686dd11d8a6745eee52890`; remote task branch
+`3f8117c97973a4415a7341ac826975853123dc00`. Reviewed finite portable budgets
+`41e66ac`, tests89972b1/root1a3e680 and artifact capf50d5e9 are committed but not in
+preserved2bc/3f artifacts. Root3ebbe0e includes C review; verified tree clean. Root owns shared CLI/daemon/facts/runtime/catalog; B owns
 envelope/store/CI authentication and focused Windows test correction; C owns independent
 critical-boundary review/adversarial tests; D owns onboarding/host and machine
 helper reporting. Isolated worktrees remain `../redue-portable-import`,
@@ -28,7 +27,8 @@ main merge, release tag or npm publication in this milestone.
 Day0 **2026-10-10 21:24 UTC**; first substantive calibration2026-10-13 21:24UTC.
 $0 additional daily/total spending for first72h, approved included capacity only.
 Standard public macos-26 VMs and **10MiB included artifact storage/one-day retention**
-are approved; current active4,449,062 +5MiB signer +512KiB package =10,216,230 bytes <10MiB;
+are approved; current active4,608,374 +5MiB signer +224KiB package archive =10,080,630 bytes <10MiB;
+new package payload cap192KiB, archive cap224KiB;
 serialize and recheck before uploads, no blind reruns.
 Exact signing workflow proposal SHA-256
 `5770b7f0ac9133fbf0190cf0e238ac800263b632d7f4741f3fddb04882591924`
@@ -37,7 +37,37 @@ policy still needs owner approval. Receiving-agent machine/resource question and
 Claude **PENDING_OWNER_ACCOUNT** remain pending; do not ask again or launch models
 until that specific in-context precondition passes. External natural use NOT STARTED.
 
-## Exact artifact and actual results
+## Current diagnostic and reviewed correction
+
+- Signed source3f run `38095795547` failed origin completeness. Full dyld cache
+  inventory has13 members/5,820,973,056 bytes; old10-second parent expired during
+  member5. Read work dominates measured hashing phases, but the underlying I/O
+  cause is unproven. Signer skipped, no receiver/model/trust acceptance.
+- Reviewed portable-only budgets: child/shared caller-server inspection30s,
+  cache25s, imported-decision IPC45s. Beginning/end origin capture have independent
+  budgets; multi-check inspection cannot renew an exhausted aggregate. Final
+  post-hash/proof/construction expiry withholds authority. Ordinary check/certificate
+  deadlines, command/environment/permissions and durable selection unchanged.
+- Root31/31 controlsPASS6.511s. Independent C actual cancellation/end-edit-restore
+  control1/1 PASS27,960.72ms; root final integrated control1/1 PASS25,580.8ms,
+  `.local/portable-evidence/portable-budget-actual-integrated.tap`. New unstable
+  PASS `c8da580b-f085-41d4-a3ff-a9e8c171cb58` stayed non-reusable, historical
+  `72ee6f12-7e93-442b-b507-64b05d8ebd04` preserved. Synchronous validation can defer
+  signal delivery; no immediate cancellation, hosted PASS or model claim.
+- Old-source exact package `38095797625` macportableFAIL/Linux-WindowsPASS. Actual
+  PR-merge source `eb11c59d78170d922ec16a49534ffe6687da9518`, tree
+  `5c0bf3dce2843173bf9849051eb012601d0834cf` equals3f8117c. Retained tarball in
+  `.local/portable-evidence/ci-38095797625`, verified SHA-256
+  `7e635a96da36418a364bea454a6170ac793430e3310f936c1f09726c40e9f110`.
+  No inherited timeout cause for that different package VM; do not substitute new
+  budget bytes under this identity.
+- Product `38095797641` allfour jobsPASS: macOS322PASS25skip,
+  Linux22 310PASS37skip, nativeWindows242PASS105skip; Linux24 jobPASS, count not
+  retained. Profile `38095797631` both inventory jobsSUCCESS, but actual both
+  `prototype.supported:false`, `PORTABLE_RUNTIME_UNSUPPORTED`. No complete
+  profile/matched-machine eligibility or agent acceptance follows job success.
+
+## Preserved artifact and historical results
 
 Preserved candidate `.local/portable-evidence/candidates/2bc636a/redue-cli-0.1.0-alpha.10.tgz`,
 SHA-256 **10ab71da58cd805010900a610b2ce0cb50adee375d697e898d90b8e049c0d71b**.
@@ -88,16 +118,20 @@ bytes have the same verified SHA; actual PR-merge source
 
 ## Next commands and fail-closed gates
 
+The next action is one accounted normal push/hosted attempt on reviewed new budget
+source, with stored contents/guards unchanged. Retain the actual complete result,
+not just an inventory label. No new budget source has hosted acceptance yet.
+
 1. Verify actual root HEAD/uncommitted changes and current resource reservations.
    Read protected local `signed-producer-2bc636a-failed.log`, `profile-2bc636a.log`,
    `package-2bc636a-failed.log`, `regression-59009f8.{json,tap}` selectively;
    never dump raw environment/private paths or transcript data publicly.
-2. Complete reviewed diagnostic integration and native CI for B's LF/path test
-   correction; retain the completed target rerun separately from old full results. Commit coherent
-   reviewed changes normally. Do not relax deadlines, runtime restrictions,
-   continuity/selection barriers or treat local CURRENT as complete portable origin.
-3. Use the newly bounded phase capture for one justified diagnostic attempt only
-   after evidence review and reserved storage confirmation. Two materially
+2. Use committed reviewed finite budgets, not ad hoc increases or a skipped cache
+   member. Native product CI now passes the LF/path fixes. Keep all historical
+   failures; preserve runtime/continuity/selection restrictions and never treat
+   local CURRENT as complete portable origin.
+3. Collect one justified new-budget hosted result only after reserved storage
+   confirmation; preserve phase capture for failure classification. Two materially
    different failed approaches require review before further retry. Preserve all
    actual failed origins and signer skips; no model trial follows a failed gate.
 4. Receiving-agent resource and Claude approval are already requested. Until usable,
