@@ -423,3 +423,61 @@ Explicit offline identification is not a guarantee of no network activity; pinne
 gh trusted-root initialization can refresh TUF/Sigstore data. Neither these
 controlled verification-output tests nor the helper grant producer acceptance or
 live G3 signature/workflow certification.
+
+## Proposed matched-runtime and current producer-policy review
+
+The cache inspector remains inspection-only until the complete versioned runtime
+rule is integrated and reviewed. Independent table controls passed 2/2: every
+declared UUID/suffix is retained, path traversal, ambiguous suffixes, duplicate
+members, extra symbols files and obsolete/invalid layouts are refused. The
+[reviewed Apple format](https://github.com/apple-oss-distributions/dyld/blob/fd8d0c4d52320ebf64db34f3cb280310d905c5ae/include/mach-o/dyld_cache_format.h)
+binds the modern table and all constituents. One actual read-only local inventory
+hashed all 13 native-bound files (5,813,354,496 bytes) in approximately 6,581 ms;
+its canonical inventory digest was
+`f1a09ebf8f2b4147e3c774f8e5350e2e4193215dce6eff059781f8d7eeb8acdb`.
+This is neither reuse eligibility nor complete-path economics. The cooperative
+read deadline still requires the enclosing process deadline. The new protected
+ancestor check is conservative; the observed writable Cryptexes ancestor needs
+its actual system protection independently justified before any exception.
+
+Official Node distribution bytes were independently read from the
+[Node 22.13.0 release](https://nodejs.org/dist/v22.13.0/): the 48,561,209-byte
+Darwin-arm64 archive SHA-256
+`bc1e374e7393e2f4b20e5bbc157d02e9b1fb2c634b2f992136b38fb8ca2023b7`
+matched the official HTTPS checksum list. Its regular, unexecuted 121,593,488-byte
+`bin/node` leaf SHA-256 was
+`5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc`,
+matching the local/runner executable. No archive paths were extracted and no
+independent PGP signature verification is claimed. Byte provenance does not alone
+establish complete runtime applicability.
+
+The separate OpenSSL startup prerequisite was independently source-reviewed
+against pinned [Node initialization](https://github.com/nodejs/node/blob/v22.13.0/src/node.cc)
+and the bundled OpenSSL configuration parser/module-selection implementation.
+Only exact reviewed template bytes or verified absence are supported; bounded
+HOME expansion is copied as data into unused template values. All OpenSSL
+variable overrides, including empty values/case aliases, remain unsupported.
+Independent absence/ancestor-mutation and override controls passed. This does
+not alter the actual environment or establish a released-version defect. Ordinary
+non-privileged execution must also be enforced in the integrated runtime profile.
+
+Owner-local producer-policy snapshots were independently reviewed and tested.
+The registry is not authentication or acceptance: it binds exact current policy
+bytes, revision and member digest, with physical identity for interval snapshots.
+Removed/narrowed/unreadable policy cannot leave a prior binding authoritative.
+Restoring exact owner-approved bytes can intentionally restore a persisted binding;
+it does not revive an old interval snapshot or prove durable monotonic history.
+A real leaf replacement with a FIFO at open completed conservatively in about
+52 ms with `PORTABLE_PRODUCER_POLICY_CHANGED`, no policy returned. New independent
+cache/OpenSSL/policy controls passed 5/5; author OpenSSL/policy tests independently
+passed 17/17 with one deliberately unsupported-host branch skipped on this host.
+No live authenticated CI producer, model trial or cross-machine reuse is implied.
+
+The bounded exact-package workflow was reviewed within the owner-confirmed 10 MiB
+included storage: one sub-1-MiB packed artifact plus manifest/checksum/source SHA,
+immutable run/attempt name, one-day retention, same-source download verification,
+read-only checkout and no signing/OIDC/model authority. The revised Windows
+replacement control distinguishes actual mutation from native EPERM/EACCES fault
+injection refusal, while a separate performed size mutation must still fail as
+CHANGED. The previous Windows assertion failure remains historical evidence;
+source review is not a new native Windows pass.

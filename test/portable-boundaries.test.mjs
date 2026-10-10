@@ -16,6 +16,11 @@ import {fileURLToPath} from 'node:url';
 import {commitReceipt} from '../src/state-store.mjs';
 import {acquireRunLock} from '../src/run-lock.mjs';
 import {portableRuntimeSupported} from '../src/portable-runtime.mjs';
+import {parseCacheMembers} from '../src/portable-runtime-cache.mjs';
+import {readProducerPolicySnapshot,revalidateProducerPolicySnapshot,producerPolicyBindingCurrent,
+  PRODUCER_POLICY_INTERPRETATION} from '../src/portable-producer-policy.mjs';
+import {inspectDefaultOpenSSL,DEFAULT_OPENSSL_CONFIG,portableOpenSSLContextIssue}
+  from '../src/portable-openssl-config.mjs';
 
 // Independent controls for the facts portable comparison must retain. These
 // tests do not grant portable eligibility or replace observer interval checks.
@@ -26,6 +31,94 @@ function fixture(t) {
   return root;
 }
 const capture=(kind,file)=>[kind,file,queryAnswer(kind,file)];
+
+function ownerPolicy(t){
+  const root=fs.realpathSync(fixture(t));fs.chmodSync(root,0o700);
+  const policy={schema:1,interpretation:'redue-github-ci-trust@1',issuer:'https://token.actions.githubusercontent.com',
+    repository:'controlled/portable',repositoryId:'123',ownerId:'456',workflow:'.github/workflows/portable.yml',ref:'refs/heads/main',
+    sourceCommit:'1'.repeat(40),signerCommit:'2'.repeat(40),artifactSha256:'3'.repeat(64),evidenceDigest:'4'.repeat(64),
+    evidenceInterpretation:'redue-portable-direct-typescript@1',refresh:'required',bundleSha256:null};
+  const file=path.join(root,'policy.json'),registry={schema:1,interpretation:PRODUCER_POLICY_INTERPRETATION,
+    revision:1,policies:[policy]};fs.writeFileSync(file,canonical(registry),{mode:0o600});
+  return {root,file,registry};
+}
+test('producer authority does not survive a removed or narrowed current owner policy',
+  {skip:typeof process.getuid!=='function'},t=>{
+  const f=ownerPolicy(t),snapshot=readProducerPolicySnapshot(f.file),binding={revision:snapshot.revision,
+    contentDigest:snapshot.contentDigest,policyDigest:snapshot.policies[0].digest};
+  assert(producerPolicyBindingCurrent(f.file,binding));
+  fs.writeFileSync(f.file,canonical({...f.registry,policies:[]}));
+  assert(!revalidateProducerPolicySnapshot(snapshot));assert(!producerPolicyBindingCurrent(f.file,binding));
+  fs.unlinkSync(f.file);
+  assert(!revalidateProducerPolicySnapshot(snapshot));assert(!producerPolicyBindingCurrent(f.file,binding));
+  // Restoration is an owner policy action, not an automatic snapshot revival.
+  fs.writeFileSync(f.file,canonical(f.registry),{mode:0o600});
+  assert(producerPolicyBindingCurrent(f.file,binding));assert(!revalidateProducerPolicySnapshot(snapshot));
+});
+test('actual FIFO replacement cannot hang the current producer-policy reader',
+  {skip:typeof process.getuid!=='function'},t=>{
+  const f=ownerPolicy(t),module=fileURLToPath(new URL('../src/portable-producer-policy.mjs',import.meta.url));
+  const script=`import fs from 'node:fs';import {spawnSync} from 'node:child_process';
+    import {readProducerPolicySnapshot} from ${JSON.stringify(module)};
+    const target=process.argv[1],open=fs.openSync;let injected=false;
+    fs.openSync=function(file,...args){if(file===target&&!injected){injected=true;fs.unlinkSync(target);
+      const made=spawnSync('mkfifo',[target],{encoding:'utf8'});if(made.status!==0)throw Error('FIFO prerequisite');}
+      return open.call(fs,file,...args);};
+    try{readProducerPolicySnapshot(target);console.log(JSON.stringify({injected,accepted:true}));}
+    catch(error){console.log(JSON.stringify({injected,accepted:false,code:error.code}));}`;
+  const child=spawnSync(process.execPath,['--input-type=module','-e',script,f.file],
+    {encoding:'utf8',timeout:3000,maxBuffer:65536});
+  assert.equal(child.status,0,`Policy reader blocked: ${child.error?.code??child.stderr}`);
+  const result=JSON.parse(child.stdout);assert(result.injected);assert.equal(result.accepted,false);
+  assert.equal(result.code,'PORTABLE_PRODUCER_POLICY_CHANGED');
+});
+test('OpenSSL absence loses support when an ancestor changes and all override aliases fail closed',t=>{
+  for(const key of ['OPENSSL_armcap','openssl_UNKNOWN','OpenSSL_CONF_INCLUDE'])
+    assert(portableOpenSSLContextIssue({[key]:''}));
+  let parentReads=0;
+  t.mock.method(fs,'lstatSync',file=>{
+    if(file===DEFAULT_OPENSSL_CONFIG)throw Object.assign(Error('controlled absent'),{code:'ENOENT'});
+    const ino=++parentReads>4?9n:1n;
+    return {dev:1n,ino,mode:0o40755n,uid:0n,nlink:2n,size:1n,mtimeNs:1n,ctimeNs:1n,
+      isDirectory:()=>true,isSymbolicLink:()=>false};
+  });
+  assert.throws(()=>inspectDefaultOpenSSL({env:{}}),error=>error.code==='PORTABLE_OPENSSL_UNSUPPORTED');
+});
+
+function cacheTable(){
+  const bytes=Buffer.alloc(664),uuid='a'.repeat(32);
+  Buffer.from('dyld_v1  arm64e\0').copy(bytes);bytes.writeUInt32LE(552,16);
+  Buffer.from(uuid,'hex').copy(bytes,88);bytes.writeUInt32LE(1,216);
+  bytes.writeUInt32LE(552,392);bytes.writeUInt32LE(2,396);
+  for(let i=0;i<2;i++){
+    Buffer.from((i?'c':'b').repeat(32),'hex').copy(bytes,552+i*56);
+    Buffer.from(i?'.02.dyldlinkedit':'.01.dylddata').copy(bytes,576+i*56);
+  }
+  return {bytes,uuid};
+}
+test('cache table inventory never invents suffixes or drops a declared constituent',()=>{
+  const {bytes,uuid}=cacheTable(),members=parseCacheMembers(bytes,uuid);
+  assert.deepEqual(members.map(item=>item.suffix),['','.01.dylddata','.02.dyldlinkedit']);
+  for(const replacement of ['../cache','/external','.01/child','.01\\child','.01\u0000extra','.01.custom']){
+    const changed=Buffer.from(bytes);changed.fill(0,576,608);Buffer.from(replacement).copy(changed,576);
+    assert.throws(()=>parseCacheMembers(changed,uuid),error=>error.code==='PORTABLE_RUNTIME_UNSUPPORTED');
+  }
+  const symbols=Buffer.from(bytes);symbols[400]=1;
+  assert.throws(()=>parseCacheMembers(symbols,uuid),error=>error.code==='PORTABLE_RUNTIME_UNSUPPORTED');
+  const duplicate=Buffer.from(bytes);duplicate.fill(0,632,664);Buffer.from('.01.dylddata').copy(duplicate,632);
+  assert.throws(()=>parseCacheMembers(duplicate,uuid),error=>error.code==='PORTABLE_RUNTIME_UNSUPPORTED');
+});
+test('cache UUID and modern table layout are mandatory, not filesystem-label guesses',()=>{
+  const {bytes,uuid}=cacheTable();
+  for(const mutate of [b=>b.writeUInt32LE(0xffffffff,392),b=>b.writeUInt32LE(0xffffffff,396),
+    b=>b.writeUInt32LE(551,392),b=>b.writeUInt32LE(544,16),b=>b.writeUInt32LE(0,216),
+    b=>b.fill(0,88,104),b=>b.fill(0,608,624)]){
+    const changed=Buffer.from(bytes);mutate(changed);
+    assert.throws(()=>parseCacheMembers(changed,uuid),error=>error.code==='PORTABLE_RUNTIME_UNSUPPORTED');
+  }
+  assert.throws(()=>parseCacheMembers(bytes,uuid.toUpperCase()),error=>error.code==='PORTABLE_RUNTIME_UNSUPPORTED');
+  assert.throws(()=>parseCacheMembers(bytes.subarray(0,663),uuid),error=>error.code==='PORTABLE_RUNTIME_UNSUPPORTED');
+});
 
 test('retained absence and directory membership detect newly resolvable candidates',t=>{
   const root=fixture(t),candidate=path.join(root,'src','new.d.ts');
