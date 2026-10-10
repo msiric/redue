@@ -62,6 +62,15 @@ compatibility. A matching version, commit or lockfile alone is insufficient; the
 recipient checks supported runtime/compiler implementation, input contents,
 membership and context. Unknown platform/runtime equivalence withholds reuse.
 
+The current unreleased portable interpretation is
+`redue-portable-direct-typescript@2`: its reviewed runtime profile is macOS ARM64,
+Darwin 25.6.0 and the official Node 22.13.0 implementation, including protected
+dyld-cache, loaded-library and default OpenSSL content checks. Matching labels
+alone do not establish equivalence. The source profile is implemented; independent
+machine and agent acceptance remain separate gates. Earlier candidate `@1`
+exports are not reinterpreted or upgraded in place: retain their history and
+record fresh portable evidence with the reviewed `@2` candidate when needed.
+
 The current installed portability experiment is narrower: TypeScript 5.6.3,
 Node 22.13.0 and the same macOS ARM64 runtime, using a controlled `noLib` project
 with observed global declarations. Ordinary default-library discovery can query
@@ -117,12 +126,13 @@ Omitting `--apply` previews the proposed import without writing state.
 
 Replace `REVIEWED_SHA256` with the exact identity you deliberately approved, not
 an arbitrary value supplied by an agent or copied automatically from an untrusted
-file. `manual-digest-v1` acceptance is limited to those exact bytes. A digest
-establishes integrity, **not** an authenticated signer identity. Manual approval
+file. `manual-digest-v1` acceptance is limited to the exact canonical evidence
+identity; the exported file-byte checksum is a separate transport identity. A
+digest establishes integrity, **not** an authenticated signer identity. Manual approval
 does not install a CI trust policy or authorize future evidence from a producer.
 
-Inspection/import must not run imported commands, fetch URLs, install dependencies
-or change project permissions. Applicability is separate: the explicit
+Inspection and manual-digest import do not run imported commands, fetch URLs,
+install dependencies or change project permissions. Applicability is separate: the explicit
 synchronized query uses the recipient's existing reviewed local recipe/probes and
 healthy observer. Endpoint approval includes that authority; it is not just file
 read access. Keep the sandbox/proxy and the exact owned checkout/state/socket
@@ -151,6 +161,44 @@ untrusted conflicting records cannot overwrite local selection. If trust,
 compatibility, coverage or conflict remains unresolved, do not infer reuse from a
 signature, timestamp or earlier PASS. A locally executed, fully observed check is
 a separate new outcome.
+
+## Explicit CI authentication (preparation, not live acceptance)
+
+The candidate can preview and explicitly authenticate against an **existing
+owner-approved local producer registry** in the selected owned state. No imported
+file, agent instruction, account login or command creates that approval. The
+current CLI does not provide a policy writer. The proposed signing/artifact route
+has not established G3; see [CI preparation](../contributor/portable-ci-producer.md).
+
+Select the reviewed canonical **policy** digest separately from the envelope
+digest. Supply the owner's approved absolute GitHub CLI executable and its exact
+binary SHA-256; an artifact cannot choose a verifier:
+
+```sh
+# Preview: bounded local policy inspection; no verifier or new acceptance.
+redue --config redue.config.json evidence import typecheck.evidence.json --check typecheck --ci-policy-digest CI_POLICY_SHA256 --gh-executable /approved/path/to/gh --gh-sha256 GH_BINARY_SHA256
+# Apply: explicit bounded authentication, then acceptance under current policy.
+redue --config redue.config.json evidence import typecheck.evidence.json --check typecheck --ci-policy-digest CI_POLICY_SHA256 --gh-executable /approved/path/to/gh --gh-sha256 GH_BINARY_SHA256 --apply
+redue --config redue.config.json status --sync --json
+```
+
+These paths are placeholders for an already approved local installation, not
+commands to obtain a verifier or bypass permissions. Authentication can use
+GitHub/Sigstore network access through the normal permitted route; no imported
+URL is followed as authority. It does not execute the imported verification.
+For an explicitly approved `offline-identified` policy only, add `--bundle` with
+the absolute approved bundle path whose checksum the policy binds. That mode
+does not establish unseen revocation or globally latest evidence, and verifier
+trusted-root refresh may still need permitted networking. Failed authentication
+grants no acceptance. Do not combine CI policy selection with `--accept-digest`.
+
+Every accepted CI candidate remains bound to the current owned registry's
+revision/content and exact policy membership. Removal, narrowing, unreadable or
+missing policy withdraws authority; cached authentication cannot reveal an older
+PASS as reusable under the lost approval. Ordinary status does not refresh trust
+over the network or auto-accept a producer. Authentication and explicit acceptance
+never establish global CURRENT: the recipient still needs the successful local
+caller-aware applicability decision and must respect local outcome conflicts.
 
 ## Later sessions and explicit execution
 
