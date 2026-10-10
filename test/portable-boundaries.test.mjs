@@ -156,6 +156,7 @@ function ownedStore(t){
 }
 const storeOptions=(state,envelope)=>({...state,check:'typecheck',bytes:canonical(envelope),
   acceptDigest:envelope.digest,apply:true});
+const importSnapshot=state=>readImportedSnapshot(state.state,{configFile:state.configFile,root:state.root});
 
 test('replaying an old accepted PASS cannot discard an interrupted accepted FAIL import',t=>{
   const state=ownedStore(t),pass=encodeEnvelope(portableFixture());
@@ -172,12 +173,24 @@ test('replaying an old accepted PASS cannot discard an interrupted accepted FAIL
   fault.mock.restore();
   assert(fs.existsSync(path.join(state.state,'portable-evidence-v1',fail.digest+'.json')),
     'fault occurred after immutable failing candidate persisted');
-  assert.equal(readImportedSnapshot(state.state).error?.code,'PORTABLE_IMPORT_INCOMPLETE');
+  assert.equal(importSnapshot(state).error?.code,'PORTABLE_IMPORT_INCOMPLETE');
   assert.throws(()=>importEvidence(storeOptions(state,pass)),PortableEnvelopeError,
     'unrelated valid replay cannot replace pending transaction');
-  assert.equal(readImportedSnapshot(state.state).error?.code,'PORTABLE_IMPORT_INCOMPLETE');
+  assert.equal(importSnapshot(state).error?.code,'PORTABLE_IMPORT_INCOMPLETE');
   importEvidence(storeOptions(state,fail));
-  const snapshot=readImportedSnapshot(state.state);
+  const snapshot=importSnapshot(state);
   assert.equal(snapshot.error,undefined);
   assert(snapshot.records.some(record=>record.envelope.statement.predicate.origin.result==='FAIL'));
+});
+
+test('changed but syntactically valid state ownership cannot retain accepted imports',t=>{
+  const state=ownedStore(t),pass=encodeEnvelope(portableFixture());
+  importEvidence(storeOptions(state,pass));
+  assert.equal(importSnapshot(state).records.length,1);
+  const marker=path.join(state.state,'vstate-owner-v1.json'),original=fs.readFileSync(marker);
+  const changed=JSON.parse(original);changed.root=path.join(state.base,'different-project');
+  fs.writeFileSync(marker,JSON.stringify(changed));
+  const snapshot=importSnapshot(state);
+  assert.equal(snapshot.records.length,0);assert.equal(snapshot.error?.code,'PORTABLE_OWNERSHIP');
+  fs.writeFileSync(marker,original);assert.equal(importSnapshot(state).records.length,1);
 });
