@@ -1009,3 +1009,24 @@ case is resource fault injection, not compiler qualification or economics.
 These controls plus source review do not prove a matched VM can complete full
 inspection within the new envelope, nor certify combined platforms, models,
 signatures or G2/G3. One accounted hosted attempt remains a separate gate.
+
+## Next-attempt storage and workflow review
+
+On root `1a3e680`, independently read GitHub's artifact inventory: total/returned
+count 45, active count 45, active bytes 4,608,374. Adding the reviewed signer
+reservation of 5,242,880 bytes and one package ZIP reservation of 229,376 bytes
+gives 10,080,630, below the owner's 10,485,760-byte cap by 405,130 bytes. This is
+a point-in-time accounting check, not authority for overlapping unreserved runs.
+
+The pending package workflow writes source identity before summing the complete
+payload; exactly four expected entries must be regular files (symlinks are
+refused): npm's actual tarball filename, manifest, SHA256SUMS and source.txt.
+Both the tarball and total payload are under 192 KiB. A 224 KiB ZIP reservation
+provides bounded overhead for these four fixed short names; existing one-day
+retention, run/attempt-specific immutable name, no overwrite and read-only job
+permissions remain unchanged. No new artifact type, signing permission or state
+transfer is introduced. The separately enabled signer still hashes to exact
+owner-approved `5770b7f0ac9133fbf0190cf0e238ac800263b632d7f4741f3fddb04882591924`.
+Bounded GO is for one accounted next hosted attempt with reviewed finite budgets,
+not producer acceptance, model access or a successful G2/G3 result. Recheck usage
+if any additional upload occurs before that attempt.
