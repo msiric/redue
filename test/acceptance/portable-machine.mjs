@@ -71,13 +71,20 @@ export async function runMachine(options){
   if(transferred){assert.equal(options['--controlled-accept-digest'],transferred.manifest.evidence_digest,'Controlled acceptance must match the inspected exact evidence');}
   if(process.env.GITHUB_SHA)assert.equal(source,process.env.GITHUB_SHA,'Candidate source must be this actual GitHub workflow commit');
   if(transferred)assert.notEqual(boot,transferred.manifest.boot_identity,'Two processes on one boot are not two machines');
-  const base=fs.realpathSync(fs.mkdtempSync('/tmp/redue-machine-')),root=path.join(base,'Checkout 空间'),state=path.join(base,'state'),prefix=path.join(base,'prefix'),binary=path.join(prefix,'bin','redue');
+  const base=fs.realpathSync(fs.mkdtempSync('/tmp/redue-machine-')),root=path.join(base,'Checkout 空间'),state=path.join(base,'redue-state'),prefix=path.join(base,'prefix'),binary=path.join(prefix,'bin','redue');
   const observations=[],calls=[],put=(name,value)=>{const file=path.join(root,name);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,value);};
   let started=false;
   function exec(argv,{cwd=base,allowFailure=false}={}){const before=performance.now(),result=spawnSync(argv[0],argv.slice(1),
     {cwd,env:process.env,encoding:'utf8',timeout:120000,maxBuffer:8*1024*1024});
     calls.push({kind:argv[0]===binary?'redue':path.basename(argv[0]),args:argv[0]===binary?argv.slice(5).map(value=>path.isAbsolute(value)?'<owned-path>':value):[],milliseconds:performance.now()-before,status:result.status});
-    if(!allowFailure)assert.equal(result.status,0,`Controlled command failed: ${result.error?.code||result.status}`);
+    if(!allowFailure&&result.status!==0){
+      const stderr=result.stderr??'',classification=stderr.includes('--state-dir must name a dedicated redue-')?'STATE_DIRECTORY_SCOPE':
+        result.error?.code==='ETIMEDOUT'?'COMMAND_TIMEOUT':'COMMAND_FAILED';
+      const error=Object.assign(Error('Controlled command did not complete'),{code:classification,command_failure:{
+        kind:argv[0]===binary?'redue':path.basename(argv[0]),operation:argv[0]===binary?argv[5]??'help':null,
+        status:result.status,error_code:result.error?.code??null,stderr_bytes:Buffer.byteLength(stderr),
+        // Only this reviewed static diagnostic is retained; never output arbitrary stderr.
+        state_directory_guard:classification==='STATE_DIRECTORY_SCOPE'}});throw error;}
     return result;}
   const cli=(...args)=>exec([binary,'--config',path.join(root,'redue.config.json'),'--state-dir',state,...args],{cwd:root}),
     json=(...args)=>JSON.parse(cli(...args,'--json').stdout);
@@ -150,5 +157,6 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1]
   try{console.log(JSON.stringify(await runMachine(machineOptions(process.argv.slice(2)))));}
   catch(error){console.error(JSON.stringify({schema:1,result:'FAILED_PRECONDITION_OR_ACCEPTANCE',code:error.code??'ASSERTION',
     message:error instanceof assert.AssertionError?'Controlled machine assertion failed':error.message,models_launched:0,
-    actual_host:{platform:process.platform,arch:process.arch,node:process.version,release:os.release()},attempt:error.machine_evidence??null}));process.exitCode=1;}
+    actual_host:{platform:process.platform,arch:process.arch,node:process.version,release:os.release()},attempt:error.machine_evidence??null,
+    command_failure:error.command_failure??null}));process.exitCode=1;}
 }
