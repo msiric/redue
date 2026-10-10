@@ -736,3 +736,15 @@ select a different verification profile or confer eligibility. Unknown, malforme
 or non-writable filesystem facts stop before installation or checks. This is a
 safer cause-capture prerequisite, not a correction to the original incomplete
 origin or authorization to retry indefinitely.
+
+Native Windows product CI for source `88e8828` exposed a test-harness limitation:
+the disabled Ubuntu signer validator's positive process returned null status, and
+seven negative assertions previously treated a non-completing interpreter as a
+rejection. The exact startup error was not captured; no cause is inferred. The
+independent six-subcase signer control now requires no spawn error or signal and
+an integer nonzero exit before classifying rejection, with no predicate created.
+These POSIX descriptor-validator execution controls explicitly skip Windows;
+portable CLI/package tests retain their native Windows coverage. No deadline,
+Python installation or system setting changed. This correction prevents false
+negative-test passes; it does not establish signer execution on Windows or repair
+the earlier overall CI result.
