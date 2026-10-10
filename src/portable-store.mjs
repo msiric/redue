@@ -4,6 +4,8 @@ import {randomUUID} from 'node:crypto';
 import {assertOwnedStatePlacement} from './owned-state.mjs';
 import {acquireRunLock} from './run-lock.mjs';
 import {canonical,parseEnvelope,parsePortableJson,PORTABLE_LIMITS,PortableEnvelopeError} from './portable-envelope.mjs';
+import {resolveCIImportAuthorization,validateCIImportBinding} from './portable-ci-authorization.mjs';
+import {producerPolicyBindingCurrent} from './portable-producer-policy.mjs';
 
 const SELECTOR='portable-imports-v1.json',PENDING='portable-import-pending-v1.json',DIRECTORY='portable-evidence-v1';
 const LIMITS=Object.freeze({records:32,bytes:16*1024*1024,selector:32768});
@@ -58,11 +60,16 @@ function validateSelection(value){
     fail('PORTABLE_STATE_INVALID','Portable import selection is incompatible');
   const seen=new Set();let total=0;
   for(const record of value.records){
-    if(!exact(record,['digest','check','acceptance','bytes'])||!HEX.test(record.digest)||typeof record.digest!=='string'||
+    if(!exact(record,record.acceptance==='github-ci-v1'?['digest','check','acceptance','bytes','ciBinding']:['digest','check','acceptance','bytes'])||!HEX.test(record.digest)||typeof record.digest!=='string'||
       typeof record.check!=='string'||!record.check||record.check.length>256||/[\u0000-\u001f\u007f]/u.test(record.check)||
-      !['untrusted','manual-digest-v1'].includes(record.acceptance)||!Number.isSafeInteger(record.bytes)||
+      !['untrusted','manual-digest-v1','github-ci-v1'].includes(record.acceptance)||!Number.isSafeInteger(record.bytes)||
       record.bytes<1||record.bytes>PORTABLE_LIMITS.bytes||seen.has(record.digest))
       fail('PORTABLE_STATE_INVALID','Portable import selection record is incompatible');
+    if(record.acceptance==='github-ci-v1'){
+      validateCIImportBinding(record.ciBinding);
+      if(record.ciBinding.authentication.evidenceDigest!==record.digest)
+        fail('PORTABLE_STATE_INVALID','Persisted CI acceptance refers to different evidence');
+    }
     seen.add(record.digest);total+=record.bytes;
   }
   if(total>LIMITS.bytes)fail('PORTABLE_SIZE','Portable imports exceed their cumulative byte limit');
@@ -75,7 +82,7 @@ function pendingTransaction(state){
   if(!exact(value,['schema','digest','check','acceptance','selection'])||value.schema!==1||
     typeof value.digest!=='string'||!HEX.test(value.digest)||typeof value.check!=='string'||
     !value.check||value.check.length>256||/[\u0000-\u001f\u007f]/u.test(value.check)||
-    !['untrusted','manual-digest-v1'].includes(value.acceptance))
+    !['untrusted','manual-digest-v1','github-ci-v1'].includes(value.acceptance))
     fail('PORTABLE_IMPORT_INCOMPLETE','Pending portable import is incompatible; owner inspection is required');
   validateSelection(value.selection);return value;
 }
@@ -201,24 +208,41 @@ export function readImportedSnapshot(state,expected){
     code:error instanceof PortableEnvelopeError?error.code:'PORTABLE_STATE_UNAVAILABLE',
     reason:error instanceof PortableEnvelopeError?error.message:'Portable state could not be read'}});}
 }
-export function importEvidence({state,configFile,root,check,bytes,acceptDigest=null,apply=false}){
+export function importEvidence({state,configFile,root,check,bytes,acceptDigest=null,ciAuthorization=null,apply=false}){
   const envelope=parseEnvelope(bytes),serialized=canonical(envelope),length=Buffer.byteLength(serialized);
   if(typeof check!=='string'||!check||check.length>256||/[\u0000-\u001f\u007f]/u.test(check))
     fail('PORTABLE_CHECK','Select a valid locally configured check');
   if(acceptDigest!==null&&(typeof acceptDigest!=='string'||!HEX.test(acceptDigest)||acceptDigest!==envelope.digest))
     fail('PORTABLE_ACCEPTANCE','Explicit acceptance must match this exact evidence digest');
+  if(acceptDigest!==null&&ciAuthorization!==null)
+    fail('PORTABLE_ACCEPTANCE','Select only one explicit producer acceptance method');
   const expected={state:path.resolve(state),configFile:path.resolve(configFile),root:path.resolve(root)};
-  const identity=owner(expected),acceptance=acceptDigest===null?'untrusted':'manual-digest-v1';
+  const identity=owner(expected),acceptance=ciAuthorization!==null?'github-ci-v1':acceptDigest===null?'untrusted':'manual-digest-v1';
   const existing=selected(expected.state,{recoverPending:true}),prior=existing.records.find(record=>record.digest===envelope.digest);
   if(prior&&prior.check!==check)fail('PORTABLE_CHECK','This evidence is already mapped to another local check');
-  const record={digest:envelope.digest,check,acceptance:prior?.acceptance==='manual-digest-v1'?prior.acceptance:acceptance,bytes:length};
+  if(prior&&prior.acceptance!=='untrusted'&&acceptance!=='untrusted'&&prior.acceptance!==acceptance)
+    fail('PORTABLE_ACCEPTANCE','Existing accepted evidence requires an explicit reviewed acceptance-method change');
+  const retainedAcceptance=prior&&prior.acceptance!=='untrusted'?prior.acceptance:acceptance;
+  const ciBinding=ciAuthorization!==null?resolveCIImportAuthorization(ciAuthorization,{...expected,bytes}):prior?.ciBinding;
+  const record={digest:envelope.digest,check,acceptance:retainedAcceptance,bytes:length,
+    ...(retainedAcceptance==='github-ci-v1'?{ciBinding}:{})};
+  validateSelection({schema:1,records:[record]});
+  const revalidateAcceptance=()=>{
+    if(record.acceptance!=='github-ci-v1')return;
+    if(ciAuthorization!==null){
+      if(canonical(resolveCIImportAuthorization(ciAuthorization,{...expected,bytes}))!==canonical(record.ciBinding))
+        fail('PORTABLE_CI_POLICY_CHANGED','Authenticated producer binding changed before acceptance completed');
+    }else if(!producerPolicyBindingCurrent(path.join(expected.state,'portable-producers-v1.json'),record.ciBinding.policy))
+      fail('PORTABLE_CI_POLICY_CHANGED','Authoritative producer policy is unavailable or changed');
+  };
+  revalidateAcceptance();
   const next={schema:1,records:[...existing.records.filter(item=>item.digest!==envelope.digest),record]};
   if(next.records.length>LIMITS.records||next.records.reduce((sum,item)=>sum+item.bytes,0)>LIMITS.bytes)
     fail('PORTABLE_SIZE','Portable imports exceed their storage limit');
   pendingSelection(expected.state,next,envelope.digest,check,record.acceptance);
   storageBudget(expected.state,envelope.digest,length);
   const preview=Object.freeze({schema:1,digest:envelope.digest,check,acceptance:record.acceptance,apply,
-    evidence_preserved:!!prior,producer_accepted:record.acceptance==='manual-digest-v1',reuse_eligible:false,
+    evidence_preserved:!!prior,producer_accepted:record.acceptance!=='untrusted',reuse_eligible:false,
     writes:Object.freeze([DIRECTORY+'/'+envelope.digest+'.json',SELECTOR,PENDING])});
   if(!apply)return preview;
   safeLock(expected.state);let lock;
@@ -229,6 +253,7 @@ export function importEvidence({state,configFile,root,check,bytes,acceptDigest=n
     // Recheck under the existing run lock, not a second independent writer lock.
     const current=selected(expected.state,{recoverPending:true});
     if(canonical(current)!==canonical(existing))fail('PORTABLE_STATE_CHANGED','Portable selection changed before import');
+    revalidateAcceptance();
     pendingSelection(expected.state,next,envelope.digest,check,record.acceptance);
     storageBudget(expected.state,envelope.digest,length);
     writeAtomic(path.join(expected.state,PENDING),{schema:1,digest:envelope.digest,check,acceptance:record.acceptance,selection:next});
@@ -244,7 +269,12 @@ export function importEvidence({state,configFile,root,check,bytes,acceptDigest=n
       syncDirectory(directory);
     }
     if(owner(expected)!==identity)fail('PORTABLE_STATE_CHANGED','Portable state ownership changed during import');
+    revalidateAcceptance();
     writeAtomic(path.join(expected.state,SELECTOR),next);
+    // Revocation/mutation after selector publication leaves the complete pending
+    // transaction intact. Readers then withhold all authority until exact safe
+    // recovery, rather than quietly dropping an accepted newer FAIL.
+    revalidateAcceptance();
     fs.unlinkSync(path.join(expected.state,PENDING));syncDirectory(expected.state);
     return Object.freeze({...preview,evidence_preserved:true});
   }catch(error){

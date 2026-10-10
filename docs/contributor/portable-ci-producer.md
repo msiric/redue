@@ -197,6 +197,42 @@ is a route proposal, not an enabled workflow or a live authenticated acceptance.
 - [Custom GitHub attestations](https://github.com/actions/attest) and
   [identity/issuer verification](https://docs.sigstore.dev/cosign/verifying/verify/).
 
-Run `node --test test/portable-ci-trust.test.mjs` for the controlled verifier
-tests. Live producer signing, receipt-preserving trust integration, second-machine
+## Explicit local acceptance preparation
+
+The integration selects `portable-producers-v1.json` under the already-owned
+recipient state; neither evidence nor verifier output supplies a policy path.
+`authorizeCIImport` requires the privately minted, current snapshot for that exact
+registry and an explicitly selected policy digest. It invokes authentication only
+when deliberately called, then returns a process-local token with no recipient
+eligibility. JSON copies cannot mint a token. The token binds the recipient
+configuration/root/state, canonical evidence identity, exact authenticated outer
+artifact bytes, verifier identity and policy snapshot. It is not persisted.
+
+An explicit applied import can store acceptance `github-ci-v1` with a strict
+descriptive binding of policy revision/content/digest and authenticated evidence,
+artifact and verifier digests. No policy or absolute policy path is embedded in
+the evidence or persisted acceptance. The store canonicalizes the immutable
+envelope meaning; its stored encoding need not equal the original signed encoding.
+The original attestation subject digest remains honest provenance for the raw
+bytes authenticated at explicit acceptance, not a claim about that normalization.
+
+The store revalidates authoritative policy under its existing run lock before and
+after durable selector persistence. Failure after persistence leaves the complete
+pending transaction, withholding catalog authority; it cannot silently discard
+an accepted FAIL. Recovery requires the exact intended transaction and renewed
+current authorization where needed. Ordinary repetition preserves prior accepted
+manual/CI methods. Changing between those methods is refused, rather than silently
+downgrading CI provenance to escape revocation. Manual digest acceptance remains
+the separate legacy path; no CI authorization is inferred from imported JSON.
+
+Every recipient decision/publication still needs independent current-policy
+validation of all previously accepted CI records. A missing, changed or unreadable
+policy cannot be treated as an absent untrusted record to expose an older green
+selection. Stored `ciBinding` is not a trust certificate. Owner-policy mutation,
+revocation and signature authentication remain distinct from compiler applicability.
+POSIX current-user ownership is required by this initial policy path; native
+Windows CI acceptance is not claimed where that ownership cannot be established.
+
+Run `node --test test/portable-ci-trust.test.mjs test/portable-ci-authorization.test.mjs`
+for controlled tests. Live producer signing, second-machine authenticated
 acceptance and final privacy/independent review remain separate evidence gates.

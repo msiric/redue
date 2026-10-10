@@ -5,13 +5,13 @@ import path from 'node:path';
 import os from 'node:os';
 import childProcess from 'node:child_process';
 import {createHash,randomUUID} from 'node:crypto';
-import {canonical,encodeEnvelope} from '../src/portable-envelope.mjs';
+import {canonical,encodeEnvelope,PORTABLE_INTERPRETATION} from '../src/portable-envelope.mjs';
 import {verifyCIArtifact,validateCIPolicy,ciVerifyArguments,CI_PREDICATE_TYPE} from '../src/portable-ci-trust.mjs';
 const hash=value=>createHash('sha256').update(value).digest('hex');
 function fixture(t){
   const directory=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-ci-trust-'))),
     artifactFile=path.join(directory,'redue-portable-evidence.json');
-  const envelope=encodeEnvelope({schema:1,interpretation:'redue-portable-direct-typescript@2',
+  const envelope=encodeEnvelope({schema:1,interpretation:PORTABLE_INTERPRETATION,
     origin:{runId:randomUUID(),check:'typecheck',result:'PASS',invocation:{status:'exited',exitCode:0,signal:null},complete:false},facts:null});
   fs.writeFileSync(artifactFile,canonical(envelope));
   t.after(()=>fs.rmSync(directory,{recursive:true,force:true}));
@@ -19,7 +19,7 @@ function fixture(t){
     repository:'msiric/redue',repositoryId:'1403689333',ownerId:'26199969',workflow:'.github/workflows/portable-evidence.yml',
     ref:'refs/heads/main',sourceCommit:'1'.repeat(40),signerCommit:'2'.repeat(40),
     artifactSha256:hash(fs.readFileSync(artifactFile)),evidenceDigest:envelope.digest,
-    evidenceInterpretation:'redue-portable-direct-typescript@2',refresh:'required',bundleSha256:null};
+    evidenceInterpretation:PORTABLE_INTERPRETATION,refresh:'required',bundleSha256:null};
   const san=`https://github.com/${policy.repository}/${policy.workflow}@${policy.ref}`;
   // Controlled post-verification fixture derived from pinned gh/sigstore output
   // types. It is NOT a signed bundle or live CI authentication demonstration.
@@ -60,7 +60,7 @@ test('explicit controlled verifier matches every identity and digest without acc
 test('unreviewed policy/fork route fails before launching verification',t=>{
   const f=fixture(t);
   for(const mutation of [p=>p.ref='refs/pull/1/merge',p=>p.refresh='allow-any-offline',p=>p.workflow='../external.yml',
-    p=>p.repository='--owner evil',p=>p.evidenceInterpretation='redue-portable-direct-typescript@999',
+    p=>p.repository='--owner evil',p=>p.evidenceInterpretation='unreviewed-interpretation',
     p=>p.issuer='https://issuer.example',p=>p.autoTrust=true]){
     const policy={...f.policy};mutation(policy);assert.throws(()=>verifyCIArtifact({...f.options,policy}));
   }
@@ -81,7 +81,7 @@ test('subject/recipe/timestamp and unknown output data do not gain authority fro
   const f=fixture(t),original=JSON.stringify(f.response.output);
   for(const mutation of [r=>r.statement.subject[0].digest.sha256=hash('other'),r=>r.statement.subject[0].name='other.json',
     r=>r.statement.predicateType='https://slsa.dev/provenance/v1',r=>r.statement.predicate.evidenceDigest=hash('other'),
-    r=>r.statement.predicate.evidenceInterpretation='redue-portable-direct-typescript@999',r=>r.verifiedTimestamps=[],
+    r=>r.statement.predicate.evidenceInterpretation='unreviewed-interpretation',r=>r.verifiedTimestamps=[],
     r=>r.verifiedTimestamps[0].type='CurrentTime',r=>r.trusted=true]){
     f.response.output=JSON.parse(original);mutation(f.response.output[0].verificationResult);assert.throws(()=>verifyCIArtifact(f.options));
   }
