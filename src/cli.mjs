@@ -159,6 +159,14 @@ async function testRunBoundary(phase) {
   while(!fs.existsSync(release)&&Date.now()<until)await new Promise(resolve=>setTimeout(resolve,10));
   if(!fs.existsSync(release))throw Error('test run boundary was not released');
 }
+async function testPortableCallerBoundary(phase) {
+  if(process.env.VSTATE_TEST_FAULTS!=='1'||process.env.VSTATE_TEST_PORTABLE_CALLER_BARRIER!==phase)return;
+  const release=path.join(state,'test-portable-caller-release');
+  fs.writeFileSync(path.join(state,'test-portable-caller-paused'),phase);
+  const until=Date.now()+5000;
+  while(!fs.existsSync(release)&&Date.now()<until)await new Promise(resolve=>setTimeout(resolve,10));
+  if(!fs.existsSync(release))throw Error('portable caller test boundary was not released');
+}
 async function execute() {
   const totalStarted=performance.now();
   const selected=config.checks.find(c=>c.name===name);
@@ -458,7 +466,13 @@ async function main(){
         observedNpmDigest:observedNpmContext(),proxyShapes});
     }
     const catalog=readPortableCatalog(state,{configFile,root}),portableProofs={};
-    if(!catalog.error&&catalog.records.some(record=>record.acceptance!=='untrusted')){
+    const needsPortableProof=!catalog.error&&catalog.records.some(record=>record.acceptance!=='untrusted');
+    let value;try{
+    // The content projection may replace physical executable identity only
+    // after proof and request context have been bound to one stable caller
+    // interval. Preserve the raw local identity throughout that interval.
+    const callerBefore=contextHashes();
+    if(needsPortableProof){
       const plans=JSON.parse(fs.readFileSync(path.join(state,'plans-v1.json'))).plans;
       for(const selected of config.checks){
         const plan=plans[selected.name];
@@ -468,8 +482,15 @@ async function main(){
         }catch{portableProofs[selected.name]=null;}
       }
     }
-    let value;try{value=await decisionCall({action:'sync',contextHashes:contextHashes(),portableProofs},
+    if(needsPortableProof)await testPortableCallerBoundary('after-proof');
+    const callerRequest=contextHashes();
+    if(needsPortableProof&&JSON.stringify(callerBefore)!==JSON.stringify(callerRequest))
+      throw Error('PORTABLE_CALLER_CONTEXT_CHANGED: caller context changed during portable proof; no reuse is authorized');
+    value=await decisionCall({action:'sync',contextHashes:callerRequest,portableProofs},
       Number(process.env.VSTATE_SYNC_TIMEOUT_MS||decisionDeadlineMs));
+    if(needsPortableProof)await testPortableCallerBoundary('before-publication');
+    if(needsPortableProof&&JSON.stringify(callerBefore)!==JSON.stringify(contextHashes()))
+      throw Error('PORTABLE_CALLER_CONTEXT_CHANGED: caller context changed during synchronized evaluation; no reuse is authorized');
       // A client upgrade can encounter an older running observer. Its successful
       // control response does not establish that it evaluated the latest receipt.
       if(!portableCatalogMatches(state,{configFile,root},value.portable_revision??(catalog.revision==='none'?'none':null))){
