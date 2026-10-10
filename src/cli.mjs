@@ -485,12 +485,12 @@ async function main(){
     if(needsPortableProof)await testPortableCallerBoundary('after-proof');
     const callerRequest=contextHashes();
     if(needsPortableProof&&JSON.stringify(callerBefore)!==JSON.stringify(callerRequest))
-      throw Error('PORTABLE_CALLER_CONTEXT_CHANGED: caller context changed during portable proof; no reuse is authorized');
+      throw Object.assign(Error('caller context changed during portable proof; no reuse is authorized'),{code:'PORTABLE_CALLER_CONTEXT_CHANGED'});
     value=await decisionCall({action:'sync',contextHashes:callerRequest,portableProofs},
       Number(process.env.VSTATE_SYNC_TIMEOUT_MS||decisionDeadlineMs));
     if(needsPortableProof)await testPortableCallerBoundary('before-publication');
     if(needsPortableProof&&JSON.stringify(callerBefore)!==JSON.stringify(contextHashes()))
-      throw Error('PORTABLE_CALLER_CONTEXT_CHANGED: caller context changed during synchronized evaluation; no reuse is authorized');
+      throw Object.assign(Error('caller context changed during synchronized evaluation; no reuse is authorized'),{code:'PORTABLE_CALLER_CONTEXT_CHANGED'});
       // A client upgrade can encounter an older running observer. Its successful
       // control response does not establish that it evaluated the latest receipt.
       if(!portableCatalogMatches(state,{configFile,root},value.portable_revision??(catalog.revision==='none'?'none':null))){
@@ -504,7 +504,9 @@ async function main(){
         value=unavailableCached(state,'receipt selection changed during synchronization; retry synchronized status',config.checks);
         process.exitCode=2;
       }}
-    catch(e){value=unavailableCached(state,e.message,config.checks);process.exitCode=2;}
+    catch(e){value=unavailableCached(state,e.message,config.checks);
+      if(e.code==='PORTABLE_CALLER_CONTEXT_CHANGED')value.checks=value.checks.map(row=>({...row,reason_code:e.code}));
+      process.exitCode=2;}
     timing('cli.synchronized_status',started,{available:value.observation?.healthy?1:0});
     if(action==='sync')console.log(JSON.stringify(value));
     else for(const row of value.checks)console.log(`${row.name}: ${row.freshness}/${row.result||'NO RESULT'} — ${row.reason}`);
