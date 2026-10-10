@@ -17,7 +17,20 @@ explicit producer acceptance remain independent requirements.
 `src/portable-ci-trust.mjs` exposes `verifyCIArtifact` for an explicit read-only
 operation. It is not called by status or import. It does not create trust policy,
 accept an import, run the configured check or change state. The executable is a
-locally selected, reviewed GitHub CLI installation, never an artifact field.
+locally selected, reviewed GitHub CLI installation, never an artifact field. The
+caller must provide `ghExecutableSha256` from the owner-approved installation; the
+helper does not derive an approved digest from imported data. Both version and
+exact binary bytes are checked before and after verification. Digest/version
+matching binds the selected implementation but does not prove that implementation
+sound: reviewed distribution provenance remains a prerequisite. The verifier must
+also run in the locally approved trusted host context. Native loader/preload or
+other execution-altering injection is not authenticated by the binary checksum;
+that context must not be supplied or altered by producer artifacts. This helper
+does not validate a general native-loader profile or approve such injection. Artifact, bundle
+and verifier reads reject symlink ancestors, final symlinks and hardlinks, use
+bounded descriptor reads and compare parent/file identity across each read.
+These are read-only path guards, not ownership of an imported producer or authority
+to initialize or alter REDUE state.
 
 The locally reviewed policy binds these fields:
 
@@ -54,11 +67,17 @@ self-hosted runners. It does not combine the mutually exclusive
 certificate fields again with strict equality, rejects fork/pull-request
 contexts, checks the outer subject and inner digest, and verifies that both
 artifact and any offline bundle remained unchanged. Process/output limits are
-30 seconds and 1 MiB. Unknown output and policy interpretations fail closed.
+30 seconds and 1 MiB; local verifier bytes are bounded to 128 MiB. Every returned
+verified statement must match the same selected policy, outer artifact and inner
+digest. One valid statement cannot hide a mismatching second statement. Repeated
+matching attestations are not independent producer-order or latest evidence.
+Unknown output and policy interpretations fail closed.
 
 Success reports `producer_verified: true` but **`producer_accepted: false` and
 `reuse_eligible: false`**. Local acceptance and recipient applicability have not
-been performed. Test fixtures replace the verifier process with controlled
+been performed. `local_policy_current: false` records that this helper has not queried
+the authoritative local policy registry. A successful report cannot establish that
+a previously passed policy still exists or remains approved. Test fixtures replace the verifier process with controlled
 output; they are schema/negative tests, not signatures or real CI evidence.
 
 ## Proposed producer sequence
@@ -92,19 +111,89 @@ The default `required` mode requires the explicit online GitHub verification
 operation to succeed; failure grants no acceptance. This is not proof of a global
 latest record, and the helper does not bypass GitHub/Sigstore's own trusted-root
 cache rules. Owner policy refresh/revocation handling must be integrated and
-reviewed before G3 can pass.
+reviewed before G3 can pass. An online attestation lookup refreshes authentication
+evidence, not the recipient's local approval policy. A previous successful report
+never authorizes reuse after a policy has been removed or narrowed.
 
 Only an explicit `offline-identified` policy accepts a local `.json` bundle for
-verification, with its exact SHA-256 bound in the policy. It reports that remote
-revocation and newer evidence were not queried. Unknown modes and missing bundles
+verification, with its exact SHA-256 bound in the policy. It reports that producer-policy
+revocation and newer evidence were not queried. The `--bundle` route avoids the
+GitHub attestation lookup but is not a promise of network-free verification:
+pinned gh still constructs its Sigstore trusted-root/TUF verifier, whose cache
+refresh may need network. Failure there grants no acceptance; do not change
+network rules or substitute a custom trust root to force offline success. Unknown modes and missing bundles
 are rejected. Neither mode uses age as an input-applicability shortcut.
+
+## Required recipient policy interface
+
+The integration owner must supply the current locally approved policy and its
+owned revision, separate from producer artifacts. Authentication is explicit;
+ordinary status does not fetch a policy or attestations over the network. Before
+acceptance, read that policy authoritatively, verify its revision after the
+bounded authentication operation, and bind the accepted artifact to both the
+policy digest and the reviewed verifier identity. Removal, narrowing, unknown
+policy version or a later revision mismatch must withdraw that policy's authority
+at recipient publication. Do not retain a successful report as a permanent trust
+certificate. Re-accepting under a changed policy requires an explicit owner action.
+
+The current helper has no policy registry, revocation writer, or import acceptance
+branch. Its report never returns `producer_accepted: true`. How the recipient
+stores approvals and invalidates them on local policy changes is an outstanding
+reviewed interface decision, not functionality provided by this preparation.
+A removed policy is not equivalent to an offline policy. Offline identification
+still requires a current, explicitly approved digest-bound policy and never
+asserts unseen revocation status.
+
+## Queued public runner and artifact route
+
+The owner has approved standard public runners, including two independent
+`macos-26` jobs. GitHub documents those arm64 runners as fresh VMs for public jobs;
+the label is not a fixed runtime identity. The first prospective route is two
+separate jobs on that label, pinned Node and reviewed TypeScript, with actual
+runtime/loaded-library profile comparison before any producer or recipient
+qualification. Today's same-host/boot prototype cannot establish cross-job or
+CI-to-owner reuse. This route must remain queued until that profile is reviewed;
+no rule may omit a mismatching boot identity merely to make CI green.
+
+The proposed producer is one owner-reviewed workflow on its approved main ref,
+triggered only by protected push or deliberate dispatch. It must not accept an
+arbitrary checkout ref, shell command, recipe or signing input from a caller.
+All actions are reviewed and pinned to full commits before enabling it. The
+producer runs the actual configured direct compiler with a healthy start/end
+boundary, then exports fixed `redue-portable-evidence.json` bytes. An outer custom
+predicate binds only the inner interpretation/digest. A separate reviewed signing
+step uses `actions/attest` with explicit `subject-path`, `predicate-path` and
+`predicate-type`; its `bundle-path` output identifies the exact bundle to retain.
+Grant only `contents: read`, `id-token: write` and `attestations: write` to the
+reviewed signer job; no package, repository-write, private registry or account
+permissions. Code/dependency execution in a signing job still has access to its
+job permission context, so this requires explicit workflow/producer trust review.
+
+Use the existing Actions artifact route with a fixed run/attempt-qualified name,
+`if-no-files-found: error`, no overwrite, an explicit owner-approved short
+retention, and exact filenames for the evidence, bundle and checksum manifest.
+Download the selected workflow run/artifact explicitly through authenticated
+GitHub access; resolve artifact ID/run/attempt/source commit rather than selecting
+an artifact by an ambiguous display name. The upload archive's artifact digest
+is distinct from the attested inner file checksum; unpack safely into a disposable
+directory, then verify the exact evidence bytes. No imported URL is followed by
+REDUE. Do not upload state directories, receipts catalogs, credentials, source
+contents, or raw tool/model transcripts. The checksum manifest is a convenience,
+not a substitute for issuer/signer verification or recipient applicability.
+
+Storage/retention allowance and final signer policy are still unconfirmed. This
+is a route proposal, not an enabled workflow or a live authenticated acceptance.
 
 ## Primary implementation references
 
 - [GitHub CLI 2.79.0 flags and output](https://github.com/cli/cli/blob/v2.79.0/pkg/cmd/attestation/verify/verify.go).
+- [Pinned verifier/trusted-root initialization](https://github.com/cli/cli/blob/v2.79.0/pkg/cmd/attestation/verification/sigstore.go).
 - [Pinned certificate-extension enforcement](https://github.com/cli/cli/blob/v2.79.0/pkg/cmd/attestation/verification/extensions.go).
 - [Sigstore-go 1.1.0 verification output](https://github.com/sigstore/sigstore-go/blob/v1.1.0/pkg/verify/signed_entity.go)
   and [certificate summary](https://github.com/sigstore/sigstore-go/blob/v1.1.0/pkg/fulcio/certificate/summarize.go).
+- [Standard GitHub-hosted public runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
+- [Attest action v4 inputs/outputs](https://github.com/actions/attest/blob/v4/action.yml)
+  and [artifact upload v4 contract](https://github.com/actions/upload-artifact/blob/v4/action.yml).
 - [Custom GitHub attestations](https://github.com/actions/attest) and
   [identity/issuer verification](https://docs.sigstore.dev/cosign/verifying/verify/).
 

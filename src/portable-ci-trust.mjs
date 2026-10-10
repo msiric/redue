@@ -1,5 +1,7 @@
 // Explicit, read-only authentication preparation. This helper is never called by
-// status or import and never installs or updates producer trust.
+// status or import and never installs or updates producer trust. A reviewed local
+// verifier installation AND trusted host execution context are prerequisites;
+// binary bytes alone cannot validate native loader/preload effects.
 import fs from 'node:fs';
 import path from 'node:path';
 import childProcess from 'node:child_process';
@@ -18,20 +20,33 @@ const shape=(value,required,optional=[])=>plain(value)&&required.every(key=>Obje
   Object.keys(value).every(key=>[...required,...optional].includes(key));
 const sha256=value=>createHash('sha256').update(value).digest('hex');
 const text=value=>typeof value==='string'&&value.length<=4096&&!/[\u0000-\u001f\u007f]/u.test(value);
+const VERIFIER_LIMIT=128*1024*1024;
 const sameStat=(a,b)=>['dev','ino','size','mtimeNs','ctimeNs'].every(key=>a[key]===b[key]);
+function inputPath(file){
+  const resolved=path.resolve(file),base=path.parse(resolved).root,parts=resolved.slice(base.length).split(path.sep);
+  let current=base;const parents=[];
+  for(let i=0;i<parts.length;i++){
+    current=path.join(current,parts[i]);const stat=fs.lstatSync(current,{bigint:true});
+    if(stat.isSymbolicLink())fail('PORTABLE_CI_FILE','Attestation input paths must not contain symlinks');
+    if(i<parts.length-1){if(!stat.isDirectory())fail('PORTABLE_CI_FILE','Attestation input parent is not a directory');
+      parents.push([String(stat.dev),String(stat.ino)]);}
+    else if(!stat.isFile()||stat.nlink!==1n)fail('PORTABLE_CI_FILE','Attestation input must be an unlinked regular file');
+    else return {stat,parents:JSON.stringify(parents)};
+  }
+  fail('PORTABLE_CI_FILE','Attestation input cannot be a filesystem root');
+}
 function localBytes(file,limit){
   if(typeof file!=='string'||!path.isAbsolute(file))fail('PORTABLE_CI_FILE','Select a local absolute artifact path');
   let descriptor;
   try{
-    const before=fs.lstatSync(file,{bigint:true});
-    if(!before.isFile()||before.isSymbolicLink()||before.size>BigInt(limit))
-      fail('PORTABLE_CI_FILE','Attestation input must be a bounded regular file');
+    const before=inputPath(file);
+    if(before.stat.size>BigInt(limit))fail('PORTABLE_CI_FILE','Attestation input must be a bounded regular file');
     descriptor=fs.openSync(file,fs.constants.O_RDONLY|(fs.constants.O_NOFOLLOW??0));
     const opened=fs.fstatSync(descriptor,{bigint:true});
-    if(!sameStat(before,opened))fail('PORTABLE_CI_CHANGED','Attestation input changed while opening');
-    const bytes=Buffer.alloc(Number(opened.size)),read=fs.readSync(descriptor,bytes,0,bytes.length,0);
+    if(!sameStat(before.stat,opened))fail('PORTABLE_CI_CHANGED','Attestation input changed while opening');
+    const bytes=Buffer.alloc(Number(opened.size)),read=fs.readSync(descriptor,bytes,0,bytes.length,0),after=inputPath(file);
     if(read!==bytes.length||!sameStat(opened,fs.fstatSync(descriptor,{bigint:true}))||
-      !sameStat(opened,fs.lstatSync(file,{bigint:true})))
+      !sameStat(opened,after.stat)||before.parents!==after.parents)
       fail('PORTABLE_CI_CHANGED','Attestation input changed while reading');
     return bytes;
   }catch(error){if(error instanceof PortableEnvelopeError)throw error;
@@ -120,7 +135,7 @@ function verifiedOutput(bytes,policy,envelope){
   }
   return output.length;
 }
-export function verifyCIArtifact({artifactFile,policy,bundleFile=null,ghExecutable}){
+export function verifyCIArtifact({artifactFile,policy,bundleFile=null,ghExecutable,ghExecutableSha256}){
   policy=validateCIPolicy(policy);
   const argv=ciVerifyArguments({artifactFile,policy,bundleFile});
   const before=localBytes(artifactFile,PORTABLE_LIMITS.bytes),envelope=parseEnvelope(before);
@@ -131,26 +146,34 @@ export function verifyCIArtifact({artifactFile,policy,bundleFile=null,ghExecutab
     if(sha256(bundleBefore)!==policy.bundleSha256)fail('PORTABLE_CI_SUBJECT','Offline attestation bundle digest differs from the local policy');}
   // The executable is selected locally, never from artifact fields. Its reviewed
   // installation is a prerequisite, just as for the existing local CLI tools.
-  if(typeof ghExecutable!=='string'||!path.isAbsolute(ghExecutable))
-    fail('PORTABLE_CI_TOOL','Select the reviewed local GitHub CLI executable');
+  if(typeof ghExecutable!=='string'||!path.isAbsolute(ghExecutable)||
+    typeof ghExecutableSha256!=='string'||!HEX.test(ghExecutableSha256))
+    fail('PORTABLE_CI_TOOL','Select the reviewed local GitHub CLI executable and its approved digest');
+  const toolBefore=localBytes(ghExecutable,VERIFIER_LIMIT);
+  if(sha256(toolBefore)!==ghExecutableSha256)
+    fail('PORTABLE_CI_TOOL','Local verifier bytes differ from the approved installation');
   const options={encoding:'utf8',timeout:30000,maxBuffer:1024*1024,stdio:['ignore','pipe','pipe'],windowsHide:true};
   let output;
   try{
     const version=childProcess.execFileSync(ghExecutable,['--version'],{...options,timeout:5000});
     if(!/^gh version 2\.79\.0(?:\s|$)/.test(version))fail('PORTABLE_CI_TOOL','GitHub CLI output contract requires reviewed version 2.79.0');
+    if(!toolBefore.equals(localBytes(ghExecutable,VERIFIER_LIMIT)))
+      fail('PORTABLE_CI_TOOL','Local verifier changed after version inspection');
     output=childProcess.execFileSync(ghExecutable,argv,options);
   }catch(error){if(error instanceof PortableEnvelopeError)throw error;
     fail(policy.refresh==='required'?'PORTABLE_CI_REFRESH':'PORTABLE_CI_VERIFY',
       'Attestation authentication could not complete; no producer acceptance was granted');}
   const count=verifiedOutput(output,policy,envelope);
+  if(!toolBefore.equals(localBytes(ghExecutable,VERIFIER_LIMIT)))
+    fail('PORTABLE_CI_TOOL','Local verifier changed during authentication');
   if(!before.equals(localBytes(artifactFile,PORTABLE_LIMITS.bytes))||
     bundleBefore&&!bundleBefore.equals(localBytes(bundleFile,1024*1024)))
     fail('PORTABLE_CI_CHANGED','Attestation inputs changed during authentication');
   return Object.freeze({schema:1,verification:'github-cli-2.79@1',producer_verified:true,
     producer_accepted:false,reuse_eligible:false,evidenceDigest:envelope.digest,artifactSha256:policy.artifactSha256,
-    policyDigest:sha256(canonical(policy)),repository:policy.repository,workflow:policy.workflow,
+    policyDigest:sha256(canonical(policy)),verifierSha256:ghExecutableSha256,local_policy_current:false,repository:policy.repository,workflow:policy.workflow,
     ref:policy.ref,sourceCommit:policy.sourceCommit,signerCommit:policy.signerCommit,verifiedAttestations:count,
     refresh:policy.refresh,globally_latest:false,
-    limitation:policy.refresh==='required'?'Explicit attestation lookup completed; this does not establish globally latest evidence or recipient applicability.':
-      'An explicitly identified offline bundle was verified; remote revocation or newer evidence was not queried.'});
+    limitation:policy.refresh==='required'?'Explicit attestation lookup completed; local approval currency, globally latest evidence and recipient applicability remain unestablished.':
+      'An explicitly identified offline bundle was verified; producer-policy revocation and newer evidence were not queried. Trusted-root refresh may still require network.'});
 }

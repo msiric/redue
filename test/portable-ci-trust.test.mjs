@@ -35,14 +35,16 @@ function fixture(t){
       sourceRepositoryVisibilityAtSigning:'public',buildTrigger:'workflow_dispatch'}},
     verifiedTimestamps:[{type:'Tlog',uri:'https://rekor.sigstore.dev',timestamp:'2026-10-10T00:00:00Z'}]}}];
   const calls=[];
-  const response={output,version:'gh version 2.79.0 (2025-09-08)\n',error:null,afterVerify:null};
+  const response={output,version:'gh version 2.79.0 (2025-09-08)\n',error:null,afterVerify:null,afterVersion:null};
   t.mock.method(childProcess,'execFileSync',(executable,args,options)=>{
     calls.push({executable,args,options});
-    if(args[0]==='--version')return response.version;
+    if(args[0]==='--version'){response.afterVersion?.();return response.version;}
     if(response.error)throw response.error;
     response.afterVerify?.();return typeof response.output==='string'?response.output:JSON.stringify(response.output);
   });
-  const options={artifactFile,policy,ghExecutable:path.join(directory,'reviewed-gh')};
+  const ghExecutable=path.join(directory,'reviewed-gh'),ghExecutableSha256=hash('controlled fixture executable');
+  fs.writeFileSync(ghExecutable,'controlled fixture executable');
+  const options={artifactFile,policy,ghExecutable,ghExecutableSha256};
   return {directory,options,policy,response,calls,envelope};
 }
 test('explicit controlled verifier matches every identity and digest without accepting import',t=>{
@@ -110,4 +112,56 @@ test('offline identification requires exact explicit bundle and never claims rem
   assert.equal(report.globally_latest,false);assert.equal(report.producer_accepted,false);assert.match(report.limitation,/not queried/);
   const args=f.calls.at(-1).args;assert.equal(args[args.indexOf('--bundle')+1],bundleFile);
   fs.appendFileSync(bundleFile,' ');assert.throws(()=>verifyCIArtifact({...f.options,policy,bundleFile}),error=>error.code==='PORTABLE_CI_SUBJECT');
+});
+
+test('locally approved verifier bytes are required; matching version/output cannot authorize a substitute',t=>{
+  const f=fixture(t);
+  assert.throws(()=>verifyCIArtifact({...f.options,ghExecutableSha256:undefined}),error=>error.code==='PORTABLE_CI_TOOL');
+  assert.throws(()=>verifyCIArtifact({...f.options,ghExecutableSha256:hash('other')}),error=>error.code==='PORTABLE_CI_TOOL');
+  fs.writeFileSync(f.options.ghExecutable,'substituted process that would print correct version/output');
+  assert.throws(()=>verifyCIArtifact(f.options),error=>error.code==='PORTABLE_CI_TOOL');
+  assert.equal(f.calls.length,0);
+  fs.writeFileSync(f.options.ghExecutable,'controlled fixture executable');
+  f.response.afterVersion=()=>fs.appendFileSync(f.options.ghExecutable,'mutated');
+  assert.throws(()=>verifyCIArtifact(f.options),error=>error.code==='PORTABLE_CI_TOOL');
+  assert.equal(f.calls.length,1,'mutation between version/verification launches no verification');
+  f.response.afterVersion=null;fs.writeFileSync(f.options.ghExecutable,'controlled fixture executable');
+  f.response.afterVerify=()=>fs.appendFileSync(f.options.ghExecutable,'mutated');
+  assert.throws(()=>verifyCIArtifact(f.options),error=>error.code==='PORTABLE_CI_TOOL');
+});
+test('all verified statements must match policy; a valid statement cannot mask another mismatched one',t=>{
+  const f=fixture(t),good=JSON.parse(JSON.stringify(f.response.output[0]));
+  const bad=JSON.parse(JSON.stringify(good));bad.verificationResult.signature.certificate.sourceRepositoryRef='refs/heads/fork';
+  for(const entries of [[good,bad],[bad,good]]){
+    f.response.output=entries;assert.throws(()=>verifyCIArtifact(f.options),error=>error.code==='PORTABLE_CI_IDENTITY');
+  }
+  const other=JSON.parse(JSON.stringify(good));other.verificationResult.statement.predicate.evidenceDigest=hash('different');
+  f.response.output=[good,other];assert.throws(()=>verifyCIArtifact(f.options),error=>error.code==='PORTABLE_CI_RECIPE');
+  f.response.output=[good,good];const report=verifyCIArtifact(f.options);
+  assert.equal(report.verifiedAttestations,2);assert.equal(report.producer_accepted,false);
+  assert.equal(report.reuse_eligible,false);assert.equal(report.local_policy_current,false);
+});
+test('missing or changed local policy is not replaced by an earlier successful verifier report',t=>{
+  const f=fixture(t),report=verifyCIArtifact(f.options),before=f.calls.length;
+  assert.equal(report.local_policy_current,false,'helper does not read the authoritative policy registry');
+  assert.throws(()=>verifyCIArtifact({...f.options,policy:null}));
+  assert.throws(()=>verifyCIArtifact({...f.options,policy:{...f.policy,sourceCommit:'3'.repeat(40)}}),
+    error=>error.code==='PORTABLE_CI_IDENTITY');
+  assert.equal(report.producer_accepted,false);assert.equal(report.reuse_eligible,false);
+  assert(f.calls.length>before,'changed policy is verified independently, not by cached successful output');
+});
+test('explicit artifact/bundle/verifier reads refuse linked files and symlink ancestors',t=>{
+  const f=fixture(t),linked=path.join(f.directory,'linked-artifact.json');fs.linkSync(f.options.artifactFile,linked);
+  assert.throws(()=>verifyCIArtifact({...f.options,artifactFile:linked}),error=>error.code==='PORTABLE_CI_FILE');
+  fs.unlinkSync(linked);const alias=path.join(f.directory,'alias');
+  try{fs.symlinkSync(f.directory,alias,'dir');}catch(error){
+    if(process.platform==='win32'&&error.code==='EPERM'){t.skip('symlink privilege unavailable');return;}throw error;
+  }
+  assert.throws(()=>verifyCIArtifact({...f.options,artifactFile:path.join(alias,'redue-portable-evidence.json')}),
+    error=>error.code==='PORTABLE_CI_FILE');
+  assert.throws(()=>verifyCIArtifact({...f.options,ghExecutable:path.join(alias,'reviewed-gh')}),error=>error.code==='PORTABLE_CI_FILE');
+  const bundle=path.join(f.directory,'bundle.json');fs.writeFileSync(bundle,'{}');
+  const policy={...f.policy,refresh:'offline-identified',bundleSha256:hash('{}')};
+  assert.throws(()=>verifyCIArtifact({...f.options,policy,bundleFile:path.join(alias,'bundle.json')}),error=>error.code==='PORTABLE_CI_FILE');
+  assert.equal(f.calls.length,0);
 });
