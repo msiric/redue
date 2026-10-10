@@ -26,5 +26,8 @@ test('bounded diagnostic reads tolerate absent, malformed and oversized files wi
   const f={state},baseline={freshness:'UNVERIFIED'};assert.deepEqual(checkpointBaselineDiagnostics(f,baseline).events,[]);
   fs.writeFileSync(path.join(state,'events.jsonl'),'malformed-private-record\n');
   fs.writeFileSync(path.join(state,'checkpoint-timing.jsonl'),'private'.repeat(40000));
-  const result=checkpointBaselineDiagnostics(f,baseline);assert.deepEqual(result.events,[]);assert.deepEqual(result.timings,[]);
+  fs.writeFileSync(path.join(state,'receipts-v1.json'),'private'.repeat(40000));
+  const result=checkpointBaselineDiagnostics(f,baseline);assert.deepEqual(result.events,[]);assert.deepEqual(result.timings,[]);assert.equal(result.result,null);
+  fs.unlinkSync(path.join(state,'receipts-v1.json'));fs.mkdirSync(path.join(state,'receipts-v1.json'));
+  assert.equal(checkpointBaselineDiagnostics(f,baseline).result,null);
 });

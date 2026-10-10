@@ -1,7 +1,6 @@
 // Test-only failure diagnostics. No engine decisions, recovery, retries or writes.
 import fs from 'node:fs';
 import path from 'node:path';
-import {readReceipts} from '../../src/state-store.mjs';
 const limit=256*1024;
 const issues=new Set(['start checkpoint unavailable','end checkpoint unavailable','start observation unavailable',
   'end observation unavailable','prelaunch observation unavailable','declared environment changed during execution',
@@ -17,14 +16,15 @@ const timingPhases=new Set(['cli.start_checkpoint','cli.end_checkpoint','cli.pre
   'server.decision_start','server.request_complete','daemon.request_catch_up','daemon.request_probes',
   'daemon.request_total','daemon.probe_launch','daemon.probe_complete','daemon.probe_context_validation']);
 const integer=value=>Number.isSafeInteger(value)&&value>=0?value:null;
-function boundedLines(file){
-  let fd;try{const before=fs.lstatSync(file);if(!before.isFile()||before.isSymbolicLink()||before.size>limit)return [];
+function boundedText(file){
+  let fd;try{const before=fs.lstatSync(file);if(!before.isFile()||before.isSymbolicLink()||before.size>limit)return null;
     fd=fs.openSync(file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW|(fs.constants.O_NONBLOCK||0));
-    const stat=fs.fstatSync(fd);if(!stat.isFile()||stat.dev!==before.dev||stat.ino!==before.ino||stat.size>limit)return [];
-    const bytes=Buffer.alloc(stat.size);if(fs.readSync(fd,bytes,0,bytes.length,0)!==bytes.length)return [];
-    return bytes.toString('utf8').split('\n').filter(Boolean).slice(-512);
-  }catch{return [];}finally{if(fd!==undefined)fs.closeSync(fd);}
+    const stat=fs.fstatSync(fd);if(!stat.isFile()||stat.dev!==before.dev||stat.ino!==before.ino||stat.size>limit)return null;
+    const bytes=Buffer.alloc(stat.size);if(fs.readSync(fd,bytes,0,bytes.length,0)!==bytes.length)return null;
+    return bytes.toString('utf8');
+  }catch{return null;}finally{if(fd!==undefined)fs.closeSync(fd);}
 }
+const boundedLines=file=>(boundedText(file)??'').split('\n').filter(Boolean).slice(-512);
 export function summarizeCheckpointBaseline({baseline,receipt,journal=[],timings=[]}){
   const generations=new Map(),requests=new Map(),ordinal=(map,value)=>{
     if(typeof value!=='string'||!/^[a-f0-9-]{36}$/i.test(value))return null;
@@ -46,7 +46,8 @@ export function summarizeCheckpointBaseline({baseline,receipt,journal=[],timings
       healthy:typeof row.healthy==='boolean'?row.healthy:null,history_disabled:typeof row.historyDisabled==='boolean'?row.historyDisabled:null}))};
 }
 export function checkpointBaselineDiagnostics(f,baseline){
-  let receipt=null;try{receipt=readReceipts(f.state).checks.typecheck;}catch{}
+  let receipt=null;try{const selected=JSON.parse(boundedText(path.join(f.state,'receipts-v1.json')));
+    if(selected?.schema===1)receipt=selected?.checks?.typecheck??null;}catch{}
   const parse=lines=>lines.flatMap(line=>{try{return [JSON.parse(line.replace(/^REDUE_TIMING /,''))];}catch{return [];}});
   return summarizeCheckpointBaseline({baseline,receipt,journal:parse(boundedLines(path.join(f.state,'events.jsonl'))),
     timings:parse(boundedLines(path.join(f.state,'checkpoint-timing.jsonl')))});
