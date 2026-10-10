@@ -7,6 +7,10 @@ same-host copied-executable handoff evidence. Current CI-policy/subject coupling
 has controlled authorization and corruption regressions; it is not live signing.
 Two-machine execution, actual cross-agent acceptance, authenticated CI and release
 gates remain pending.
+The first hosted machine and installed-macOS attempts stopped at incomplete
+portable origin despite eligible local evidence; their responsible phase is not
+established. Diagnostics preserve that distinction rather than repairing origin
+from a later local CURRENT response.
 REDUE-PE-001 G1–G4 are not certified by
 this document. Baseline inspected: `b4f286034f43021a74f1babf2c1d0fee5df2a9e5`.
 
@@ -664,3 +668,52 @@ controls require generic unavailability for signal/exit/free-text cases and reta
 known runtime refusal codes. Both diagnostic tests pass 2/2; the responsible phase
 of the actual VM failure remains unestablished until captured evidence identifies
 it.
+
+The retained public logs `machine-88e-failed.log` and `package-88e-failed.log`
+were independently read. On source `88e8828620c454d69ada41d4593d6105dc2b7d21`,
+artifact `e10912264aa1a42c29cbdbc2b06fdcb2dd9617226fb23b970fc843e7b1108492`,
+the machine producer recorded local origin `8ffdf893-8403-4e04-8a00-8768ad1f8678`
+and received schema-1 healthy CURRENT/PASS with eligibility. Its wrapped run took
+22,612.82 ms, synchronized query 853.00 ms and dry export 129.33 ms, then the
+complete-origin assertion failed before transfer. The installed macOS smoke
+separately failed the same export precondition after local eligibility passed.
+These are individual failed samples, not a latency distribution. Both temporary
+states were cleaned by their existing harness, so their unrecorded original
+portable reason cannot be reconstructed.
+
+Source review narrows, without choosing, the remaining explanations: portable
+start/end capture, probe, manifest or runtime admission failure; differing complete
+portable facts; or captured interpretation/export consistency. Local eligibility
+requires a stable exited invocation, qualified local coverage and current observed
+inputs/context, but does not require portable capture completeness. The elapsed
+time alone establishes neither timeout nor cache-read responsibility. One fixed
+producer attempt after `ee02b47` and diagnostic `c5a42d3` is justified to capture
+the actual static receipt reason; no deadline, profile, ownership or applicability
+guard needs weakening. Additional sampling depends on that new evidence.
+
+The diagnostic reader was independently source-reviewed: bounded no-follow owned
+marker, selected/immutable receipt agreement and selection revision barriers;
+only reviewed static reason/stability/coverage/outcome classes leave the state.
+An unavailable read reports only unavailable. Its pure classification and upgrade
+units pass 7/7, with the corrected config-only policy invocation passing another
+3/3. An independent hostile-string/object classification control also requires
+no secret output and no freshness or reuse authority. These tests establish safe
+diagnostics, not the missing complete origin or actual installed upgrade replay.
+
+G2 still requires the **receiving agent** to obtain eligible evidence across two
+independent machines, not merely independent VM CLI transfer. The approved hosted
+VM route has no model credentials/execution approval, and the owner-local machine
+has a different measured cache/build profile. Combining local cross-agent trials
+with a separate CLI VM trial does not satisfy that handoff. The minimal remaining
+capability is an owner-provisioned agent-capable independent machine with the
+approved matched runtime content and account/capacity/resource boundaries (or
+explicit approved agent execution on the existing matched VM). Claude inference
+capacity is separately pending. No credentials, permissions or profile equality
+may be manufactured to bridge these prerequisites.
+
+The `bf904ad` installed-upgrade fixture correction is appropriate: project agent
+file operations use the explicit selected config without embedding a state
+override; stateful status/run operations retain the intended owned state. Its
+author-reported attempt-2 replay and historical attempt-1 refusal remain separate.
+The `b5bf327` acceptance map names source/evidence pointers and open gates rather
+than calling test presence or both-host policy mechanics actual model acceptance.

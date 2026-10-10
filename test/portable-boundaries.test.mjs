@@ -22,6 +22,22 @@ import {readProducerPolicySnapshot,revalidateProducerPolicySnapshot,producerPoli
 import {inspectDefaultOpenSSL,DEFAULT_OPENSSL_CONFIG,portableOpenSSLContextIssue}
   from '../src/portable-openssl-config.mjs';
 import {portableProbeFailureCode} from '../src/portable-facts.mjs';
+import {summarizeMachineOrigin} from './acceptance/portable-machine.mjs';
+
+test('incomplete-machine diagnostics never disclose receipt strings or grant local CURRENT authority',()=>{
+  const privateValue='private-receipt-path-and-token-do-not-disclose';
+  const summary=summarizeMachineOrigin({freshness:'CURRENT',reuse_eligible:true,result:'PASS',stable:true,
+    coverage:{qualified:true},invocation:{status:'exited',argv:privateValue},
+    portable:{complete:false,schema:privateValue,interpretation:privateValue,reason:{secret:privateValue},facts:{secret:privateValue}},
+    checkpoint:{status:privateValue,issues:[{secret:privateValue},privateValue,'end checkpoint unavailable']}});
+  assert.equal(summary.portable_complete,false);assert.equal(summary.stable,true);
+  assert.equal(summary.portable_schema,null);assert.equal(summary.interpretation,null);
+  assert.equal(summary.reason,'OTHER_PRIVATE_REASON');assert.equal(summary.checkpoint_status,null);
+  assert.deepEqual(summary.checkpoint_issue_codes,['OTHER_PRIVATE_ISSUE','OTHER_PRIVATE_ISSUE','END_CHECKPOINT_UNAVAILABLE']);
+  assert.equal(summary.facts_present,true);assert.equal(summary.outcome,'PASS');
+  assert.equal(Object.hasOwn(summary,'reuse_eligible'),false);assert.equal(Object.hasOwn(summary,'freshness'),false);
+  assert(!JSON.stringify(summary).includes(privateValue));
+});
 
 // Independent controls for the facts portable comparison must retain. These
 // tests do not grant portable eligibility or replace observer interval checks.
