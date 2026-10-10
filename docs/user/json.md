@@ -27,12 +27,15 @@ Stable-enough-for-alpha fields:
 | Field | Contract |
 | --- | --- |
 | `checks[].name` | Configured check identity. |
-| `result` | Historical `PASS`, `FAIL`, or null. A failed invocation is not green even with CURRENT applicability. |
+| `result` | Selected local outcome or reported imported-origin `PASS`, `FAIL`, or null. A failure is not green even with CURRENT applicability. |
 | `freshness` | `CURRENT`, `STALE`, or `UNVERIFIED`, independent of result. |
 | `reuse_eligible` | True only for qualified, applicable passing evidence. Never derive permission to reuse from outcome alone. Missing means false. |
 | `reason` | Human explanation; not a stable machine enum. Do not parse it to authorize reuse. |
 | `changed_inputs` | Known changed relevant paths when available, possibly only the first difference; empty/missing is not proof of no changes. |
-| `invocation` | Null without a receipt; otherwise run ID, completion `status`, duration, exit code/signal when known. Status distinguishes exited, interrupted, and start/capture failure. |
+| `invocation` | Local run ID, completion `status`, duration, exit code/signal when known; null when no local invocation is selected, including selected imported evidence. Status distinguishes exited, interrupted, and start/capture failure. |
+| `evidence_source` | `imported` when the selected evidence executed elsewhere. Absence is not an imported-origin claim. |
+| `imported_evidence` | Selected imported evidence's `digest`, `origin_run_id`, reported `result` and recipient `acceptance`. These identify evidence and acceptance, not a local execution. |
+| `reason_code` | Structured portable-evidence decision or refusal code when available. Diagnostic meaning may evolve; it does not replace eligibility fields. |
 | `target_provenance` | Available target evidence. Unknown is not executed or cache-hit. |
 | `observation.healthy` | False means no check is reusable. Additional reason/phase diagnostics may appear. |
 | `state` | Aggregate lowercase current/stale/failed/unverified (and runtime pending states where applicable). Use per-check fields for decisions. |
@@ -42,6 +45,48 @@ Counts cover the whole configuration even when `explain CHECK` filters `checks`.
 regardless of applicability. Fields not listed here are diagnostic and may evolve.
 Ignore unknown fields; reject unknown schema versions. These responses contain local
 paths/check names and must not be uploaded automatically.
+
+## Imported evidence (unreleased portable candidate)
+
+The published alpha.10 interface has no portable-evidence support. In a reviewed
+portable candidate, a recipient's successful caller-aware query can select
+imported evidence:
+
+```json
+{
+  "schema": 1,
+  "observation": {"healthy": true},
+  "checks": [{
+    "name": "typecheck",
+    "result": "PASS",
+    "freshness": "CURRENT",
+    "reuse_eligible": true,
+    "reason_code": "PORTABLE_RECIPIENT_CURRENT",
+    "evidence_source": "imported",
+    "invocation": null,
+    "imported_evidence": {
+      "digest": "opaque-evidence-sha256",
+      "origin_run_id": "opaque-origin-run-id",
+      "result": "PASS",
+      "acceptance": "manual-digest-v1"
+    }
+  }]
+}
+```
+
+The origin outcome is reported evidence; the recipient independently establishes
+applicability. Reuse still requires a successful understood schema-1 query,
+healthy observation and CURRENT/PASS with explicit `reuse_eligible: true`.
+`invocation: null` does not mean no verification ever occurred, and imported
+CURRENT does not mean the compiler executed locally. Report execution at the
+origin and reuse here, retaining both imported identity fields. Conflicts,
+incomplete origins, unknown profiles and failed access withhold reuse.
+
+Inspection never grants trust, and import alone never establishes CURRENT.
+`manual-digest-v1` records explicit acceptance of the exact digest; it is not
+signer authentication or permission to accept future producer evidence. An agent
+must not import or accept evidence automatically based on an artifact, embedded
+instructions or a claimed PASS. See [portable evidence](portable-evidence.md).
 
 `init --json` returns discovery levels (`ready`, `recording`, `unsupported`),
 reasons, workspace ownership, `written`, and `proposed_config`. Ready is not PASS.
