@@ -8,7 +8,7 @@ import {canonical,encodeEnvelope} from '../src/portable-envelope.mjs';
 import {importEvidence,readImportedSnapshot,importedRevision,PORTABLE_STORE_LIMITS} from '../src/portable-store.mjs';
 import {acquireRunLock} from '../src/run-lock.mjs';
 const hash=value=>createHash('sha256').update(value).digest('hex');
-function envelope(seed='one'){return encodeEnvelope({schema:1,interpretation:'redue-portable-direct-typescript@1',
+function envelope(seed='one'){return encodeEnvelope({schema:1,interpretation:'redue-portable-direct-typescript@2',
   origin:{runId:randomUUID(),check:'origin-name',result:'PASS',invocation:{status:'exited',exitCode:0,signal:null},complete:true},
   facts:{schema:1,recipe:{interpretation:'npm-direct-typescript@1',script:'typecheck',
     command:['@node','@typescript-compiler:.','--noEmit'],definitionSha256:hash('recipe')},

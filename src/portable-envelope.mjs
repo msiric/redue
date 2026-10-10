@@ -1,7 +1,7 @@
 import {createHash} from 'node:crypto';
 
 export const PORTABLE_PREDICATE_TYPE='https://redue.dev/attestation/direct-typescript/v1';
-export const PORTABLE_INTERPRETATION='redue-portable-direct-typescript@1';
+export const PORTABLE_INTERPRETATION='redue-portable-direct-typescript@2';
 export const PORTABLE_LIMITS=Object.freeze({bytes:8*1024*1024,depth:24,nodes:500000,
   string:16384,manifest:100000,context:256});
 const STATEMENT_TYPE='https://in-toto.io/Statement/v1',HEX=/^[a-f0-9]{64}$/;

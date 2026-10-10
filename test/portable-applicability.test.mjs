@@ -12,7 +12,7 @@ function facts(){return {schema:1,recipe:{interpretation:'npm-direct-typescript@
   context:{NODE_ENV:hash('production')},files:[['src/main.ts',hash('source')]],
   discovery:{configs:[['tsconfig.json',hash('config')]],files:[['src/main.ts',hash('source')]],queriesSha256:hash('queries')}};}
 function record({result='PASS',complete=true,input=facts(),acceptance='manual-digest-v1',check='compiler'}={}){
-  const envelope=encodeEnvelope({schema:1,interpretation:'redue-portable-direct-typescript@1',
+  const envelope=encodeEnvelope({schema:1,interpretation:'redue-portable-direct-typescript@2',
     origin:{runId:randomUUID(),check:'producer-check',result,complete,
       invocation:{status:'exited',exitCode:result==='PASS'?0:2,signal:null}},facts:input});
   return {digest:envelope.digest,check,acceptance,envelope};

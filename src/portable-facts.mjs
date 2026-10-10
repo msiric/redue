@@ -110,13 +110,21 @@ export function portableCallerProof(plan){
   const {recipe,discovered}=portableProbeFacts(plan);
   return sha(canonical({recipe,discovered}));
 }
+export function portableApplicabilityContext(context,runtime){
+  if(!context||typeof context!=='object'||Array.isArray(context)||
+    !/^[a-f0-9]{64}$/.test(context.__vstate_node_identity__??''))fail('PORTABLE_CALLER_UNVERIFIED');
+  // Only this reviewed direct recipe reaches this projection. Raw origin
+  // environment hashes stay immutable and remain the start/end stability guard.
+  return {...context,__vstate_node_identity__:sha(canonical(runtime))};
+}
 export function capturePortableFacts(plan,snapshot,context){
   if(snapshot?.observationHealthy!==true||!snapshot.files)fail('PORTABLE_OBSERVATION_INCOMPLETE');
   const files=portableManifest(plan.root,snapshot.files),{recipe,discovered}=portableProbeFacts(plan);
   for(const [rel] of [...discovered.discovery.configs,...discovered.discovery.files])
     if(!Object.hasOwn(snapshot.files,rel))fail('PORTABLE_COVERAGE_UNSUPPORTED');
   return {schema:1,recipe,platform:{os:process.platform,arch:process.arch,release:os.release()},
-    runtime:discovered.runtime,compiler:discovered.compiler,context,files,discovery:discovered.discovery};
+    runtime:discovered.runtime,compiler:discovered.compiler,
+    context:portableApplicabilityContext(context,discovered.runtime),files,discovery:discovered.discovery};
 }
 export const portableFactsProof=facts=>sha(canonical({recipe:facts.recipe,discovered:{schema:1,runtime:facts.runtime,compiler:facts.compiler,discovery:facts.discovery}}));
 export const samePortableFacts=(a,b)=>a!==null&&b!==null&&canonical(a)===canonical(b);

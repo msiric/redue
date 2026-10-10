@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {portableDiscovery,portableRelative,samePortableFacts} from '../src/portable-facts.mjs';
+import {portableDiscovery,portableRelative,samePortableFacts,portableApplicabilityContext} from '../src/portable-facts.mjs';
 import {portableRuntime,portableRuntimeSupported} from '../src/portable-runtime.mjs';
 const hex='a'.repeat(64);
 function project(t){const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-portable-facts-')));
@@ -36,6 +36,17 @@ test('missing facts never compare as equivalent or acquire a repaired origin',()
 test('unsupported runtime profiles fail closed rather than equating OS labels',()=>{
   if(!portableRuntimeSupported()||!fs.existsSync(new URL('../src/portable-runtime-darwin-arm64.node',import.meta.url)))
     assert.throws(()=>portableRuntime(),error=>error.code==='PORTABLE_RUNTIME_UNSUPPORTED');
-  else {const facts=portableRuntime();assert(facts.sharedObjects.some(([name])=>name==='g1-same-host-boot'));
+  else {const facts=portableRuntime();assert(facts.sharedObjects.some(([name])=>name==='portable-runtime-profile'));
     assert.match(facts.sha256,/^[a-f0-9]{64}$/);}
+});
+
+test('only the portable runtime projection removes local executable physical identity',()=>{
+  const runtime={version:'v22.13.0',sha256:hex,sharedObjects:[['portable-runtime-profile',hex]]},
+    first={__vstate_node_identity__:'b'.repeat(64),NODE_ENV:'c'.repeat(64)},
+    second={...first,__vstate_node_identity__:'d'.repeat(64)};
+  assert.deepEqual(portableApplicabilityContext(first,runtime),portableApplicabilityContext(second,runtime));
+  assert.equal(first.__vstate_node_identity__,'b'.repeat(64),'original context is not rewritten');
+  assert.notDeepEqual(portableApplicabilityContext(first,runtime),portableApplicabilityContext({...second,NODE_ENV:'e'.repeat(64)},runtime));
+  assert.notDeepEqual(portableApplicabilityContext(first,runtime),portableApplicabilityContext(first,{...runtime,sha256:'f'.repeat(64)}));
+  assert.throws(()=>portableApplicabilityContext({},runtime),{code:'PORTABLE_CALLER_UNVERIFIED'});
 });

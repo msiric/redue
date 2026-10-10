@@ -49,11 +49,21 @@ function opened(file){
     return {file,descriptor,stat};
   }catch(error){if(descriptor!==undefined)fs.closeSync(descriptor);fail();}
 }
-function protectedParents(file){
+function protectedParents(file,cryptexRoot){
   const parents=[];let current=path.dirname(file);
   while(true){
     const stat=fs.lstatSync(current,{bigint:true});
-    if(!stat.isDirectory()||stat.isSymbolicLink()||stat.uid!==0n||(stat.mode&0o022n)!==0n)fail();
+    const protectedOS='/System/Volumes/Preboot/Cryptexes/OS';
+    if(current===protectedOS&&(!cryptexRoot||String(stat.dev)!==cryptexRoot.dev||
+      String(stat.ino)!==cryptexRoot.ino||!Number.isInteger(cryptexRoot.flags)||
+      (cryptexRoot.flags&0x00100000)===0))fail();
+    // Only the exact documented Cryptex parent may be writable: its fixed child
+    // was native-lstat bound with SF_NOUNLINK. This is the trusted, nonprivileged
+    // OS boundary, not blanket writable ancestry or a readonly-mount claim.
+    const special=current==='/System/Volumes/Preboot/Cryptexes'&&
+      (stat.mode&0o777n)===0o777n;
+    if(!stat.isDirectory()||stat.isSymbolicLink()||stat.uid!==0n||
+      (stat.mode&0o022n)!==0n&&!special)fail();
     parents.push([current,stat]);if(current===path.dirname(current))break;current=path.dirname(current);
   }
   return parents;
@@ -74,7 +84,7 @@ export function inspectCacheContents(cache){
   try{if(fs.realpathSync(cache.file)!==cache.file)fail();}catch{fail();}
   const openedFiles=[],started=performance.now();
   try{
-    const parents=protectedParents(cache.file);
+    const parents=protectedParents(cache.file,cache.cryptexRoot);
     const base=opened(cache.file);openedFiles.push(base);
     if(base.stat.size>BigInt(MAX_BASE))fail();
     const bytes=Buffer.alloc(Number(base.stat.size));

@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import {canonical,digestPayload,encodeEnvelope,parseEnvelope,inspectEnvelope,
   PORTABLE_LIMITS,PortableEnvelopeError} from '../src/portable-envelope.mjs';
 const hash=text=>createHash('sha256').update(text).digest('hex');
-function predicate(){return {schema:1,interpretation:'redue-portable-direct-typescript@1',
+function predicate(){return {schema:1,interpretation:'redue-portable-direct-typescript@2',
   origin:{runId:'e00b34bd-2163-4883-b143-7217a8d5f86f',check:'typecheck',result:'PASS',
     invocation:{status:'exited',exitCode:0,signal:null},complete:true},
   facts:{schema:1,recipe:{interpretation:'npm-direct-typescript@1',script:'typecheck',
@@ -57,7 +57,7 @@ test('duplicate decoded keys are rejected at every nesting level before digest e
 test('unknown fields and incompatible interpretation never become understood evidence',()=>{
   const unknown=JSON.parse(bytes());unknown.accepted=true;rejects(JSON.stringify(unknown),'PORTABLE_SCHEMA');
   const producer=predicate();producer.producer={trusted:true};assert.throws(()=>encodeEnvelope(producer),PortableEnvelopeError);
-  const future=JSON.parse(bytes());future.statement.predicate.interpretation='redue-portable-direct-typescript@2';
+  const future=JSON.parse(bytes());future.statement.predicate.interpretation='redue-portable-direct-typescript@999';
   rejects(JSON.stringify(future),'PORTABLE_SCHEMA');
   const policy=predicate();policy.facts.trust='automatic';assert.throws(()=>encodeEnvelope(policy),PortableEnvelopeError);
 });
@@ -116,4 +116,9 @@ test('canonical restricted I-JSON preserves Unicode, order-sensitive arrays and 
   assert.throws(()=>canonical(getter),PortableEnvelopeError);assert.equal(invoked,false);
   const array=[0];Object.defineProperty(array,'0',{get(){invoked=true;return 1;},enumerable:true});
   assert.throws(()=>canonical(array),PortableEnvelopeError);assert.equal(invoked,false);
+});
+
+test('prior same-host interpretation cannot acquire the new content-equivalence meaning',()=>{
+  const old=predicate();old.interpretation='redue-portable-direct-typescript@1';
+  assert.throws(()=>encodeEnvelope(old),PortableEnvelopeError);
 });

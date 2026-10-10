@@ -26,7 +26,7 @@ assert.match(device,/^\/dev\/disk\d+(?:s\d+)*$/,'Unrecognized checkout volume; d
 const volume=JSON.parse(command('/usr/bin/plutil',['-convert','json','-o','-','-'],command('/usr/sbin/diskutil',['info','-plist',device])));
 const compiler=directCompiler(root),nodeSha256=sha(fs.readFileSync(fs.realpathSync(process.execPath)));
 const helper=fileURLToPath(new URL('../../src/portable-runtime-darwin-arm64.node',import.meta.url));
-assert.equal(sha(fs.readFileSync(helper)),'ced9a62153d5db768c1f561ece7adc8c9569cf175060c52689549a5ff54a812e','Reviewed native helper bytes differ');
+assert.equal(sha(fs.readFileSync(helper)),'d16b6f14ed089c795bf763743a0212b9f4ee4dc2310c39a3231e038dc137dff3','Reviewed native helper bytes differ');
 const native=createRequire(import.meta.url)(helper),cache=native.inspect();
 const loaded=process.report.getReport().sharedObjects;
 const virtual=loaded.filter(file=>!fs.existsSync(file));

@@ -12,7 +12,7 @@ const supported=typeof process.getuid==='function',hash=value=>createHash('sha25
 function policy(){return {schema:1,interpretation:'redue-github-ci-trust@1',issuer:'https://token.actions.githubusercontent.com',
   repository:'controlled/portable',repositoryId:'123',ownerId:'456',workflow:'.github/workflows/portable.yml',ref:'refs/heads/main',
   sourceCommit:'1'.repeat(40),signerCommit:'2'.repeat(40),artifactSha256:'3'.repeat(64),evidenceDigest:'4'.repeat(64),
-  evidenceInterpretation:'redue-portable-direct-typescript@1',refresh:'required',bundleSha256:null};}
+  evidenceInterpretation:'redue-portable-direct-typescript@2',refresh:'required',bundleSha256:null};}
 function fixture(t){
   const base=fs.realpathSync(fs.mkdtempSync(path.join(process.platform==='darwin'?'/tmp':os.tmpdir(),'redue-policy-'))),file=path.join(base,'producer-policy.json'),
     registry={schema:1,interpretation:PRODUCER_POLICY_INTERPRETATION,revision:1,policies:[policy()]};

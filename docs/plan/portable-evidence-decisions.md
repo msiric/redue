@@ -42,13 +42,30 @@ absence queries, reviewed compiler bytes and relevant execution context remain
 bound. Both receipt selection and imported-catalog revisions are rechecked at
 publication and by the client. Cached status never authorizes imported reuse.
 
-The prototype runtime identity is deliberately SAME HOST/BOOT only: Darwin arm64,
+Historical interpretation @1 was deliberately SAME HOST/BOOT only: Darwin arm64,
 OS release 25.6.0, Node 22.13.0, physical Node identity, active dyld cache UUID and
 physical cache identity, readable loaded-image bytes and verified actual cache
 membership for virtual images. The tiny fixed read-only native helper is
 byte-verified and independently rebuilt. This is not a two-machine equivalence
-rule. Cross-machine runtime/content projection remains required and must receive
-independent review and a versioned interpretation before G2.
+rule. Proposed interpretation @2 replaces portable executable physical identity
+with exact official Node22.13.0 bytes, complete native-bound dyld base/subcache
+contents, fixed readable system-image/helper bytes and reviewed OpenSSL default
+configuration (or verified absence). All OPENSSL_ overrides are refused; exact
+inert default-template HOME expansion has bounded reviewed semantics. Raw local
+executable metadata still guards the original run interval and remains in local
+receipts. All other declared caller context remains strict. Unknown image,
+compiler, privileged runtime, configuration or incomplete read refuses portability.
+Old @1 facts cannot gain the new interpretation; fresh capture is required.
+
+The one writable Cryptex ancestor is accepted only with its exact root-owned,
+non-writable canonical OS child native-bound by device/inode and SF_NOUNLINK,
+all other ancestors/descendants protected and unchanged. Apple's documented
+no-unlink semantics plus trusted nonprivileged OS execution are prerequisites;
+this is not a readonly mount or a compromised-root defense. The helper performs
+fixed read-only lstat/dyld API calls, never imported paths or commands. Complete
+content reads preserve process deadlines; current measured one-shot hash cost is
+about6.8s for5.8GB. No performance benefit is implied. This versioned rule still
+requires independent review and actual two-machine acceptance before G2.
 
 Paths retain exact case and Unicode composition. Directory/external symlinks are
 refused. Ordinary relative npm .bin file shims retain link topology and observed
