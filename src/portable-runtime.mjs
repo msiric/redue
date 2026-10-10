@@ -6,6 +6,7 @@ import {fileURLToPath} from 'node:url';
 import {sha} from './plan.mjs';
 import {inspectCacheContents} from './portable-runtime-cache.mjs';
 import {inspectDefaultOpenSSL} from './portable-openssl-config.mjs';
+import {mark,timing} from './decision-profile.mjs';
 
 const fail=()=>{throw Object.assign(Error('Reviewed loaded runtime identity unavailable'),{code:'PORTABLE_RUNTIME_UNSUPPORTED'});};
 const fingerprint=stat=>['dev','ino','mode','uid','size','mtimeNs','ctimeNs'].map(key=>String(stat[key]));
@@ -39,13 +40,17 @@ function unchanged(item){
 export function portableRuntime(){
   if(!portableRuntimeSupported()||process.getuid?.()===0||
     process.getuid?.()!==process.geteuid?.()||process.getgid?.()!==process.getegid?.())fail();
+  const runtimeStarted=performance.now();mark('portable_runtime.start');
   const binary=fs.realpathSync(process.execPath),node=bytes(binary);
+  timing('portable_runtime.node_complete',runtimeStarted);
   if(node.digest!==reviewedNodeDigest||(node.before.mode&0o6000n)!==0n)fail();
   const helper=fileURLToPath(new URL('./portable-runtime-darwin-arm64.node',import.meta.url)),helperBytes=bytes(helper);
   if(helperBytes.digest!==helperDigest)fail();
+  mark('portable_runtime.helper_complete');
   let native,cache;
   try{native=createRequire(import.meta.url)(helper);cache=native.inspect();}catch{fail();}
-  const openssl=inspectDefaultOpenSSL(),content=inspectCacheContents(cache);
+  const openssl=inspectDefaultOpenSSL();mark('portable_runtime.openssl_complete');
+  const content=inspectCacheContents(cache);mark('portable_runtime.cache_complete');
   const objects=process.report.getReport().sharedObjects,seen=new Set(),virtual=[],readable=[];
   const allowed=new Map([[binary,node],[helper,helperBytes]]);
   for(const file of ['/usr/lib/system/libsystem_kernel.dylib','/usr/lib/system/libsystem_platform.dylib','/usr/lib/system/libsystem_pthread.dylib']){
@@ -65,5 +70,6 @@ export function portableRuntime(){
     ['openssl-default',sha(JSON.stringify(openssl))],['dyld-virtual-images',sha(JSON.stringify(virtual.sort()))],
     ...content.files.map(([suffix,digest])=>['dyld-cache-'+suffix,digest]),...readable]
     .sort(([a],[b])=>a<b?-1:a>b?1:0);
+  timing('portable_runtime.complete',runtimeStarted,{loadedImages:objects.length});
   return {version:process.version,sha256:node.digest,sharedObjects};
 }

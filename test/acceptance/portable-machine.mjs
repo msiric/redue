@@ -10,9 +10,12 @@ import {pathToFileURL} from 'node:url';
 import {parseEnvelope,parsePortableJson,canonical} from '../../src/portable-envelope.mjs';
 import {readBoundedPortableFile} from '../../src/portable-command.mjs';
 import {receiptRevision} from '../../src/state-store.mjs';
+import {readPortablePhases} from './portable-phase-diagnostics.mjs';
 export const MACHINE_TRANSFER_LIMIT=2*1024*1024;
 const sha=value=>createHash('sha256').update(value).digest('hex'),HEX=/^[a-f0-9]{64}$/;
 const names=['manifest.json','redue-portable-evidence.json'];
+export const controlledCiDiagnostics=env=>env.GITHUB_ACTIONS==='true'&&env.GITHUB_REPOSITORY==='msiric/redue'&&
+  env.GITHUB_REF==='refs/heads/dev/portable-evidence'&&env.GITHUB_EVENT_NAME==='push';
 export function machineOptions(args){
   const out={};assert.equal(args.length%2,0,'Options require explicit values');
   for(let i=0;i<args.length;i+=2){assert(['--role','--tarball','--sha256','--source','--output','--input','--controlled-accept-digest'].includes(args[i])&&
@@ -148,9 +151,18 @@ export async function runMachine(options){
     throw Object.assign(Error('Producer and receiver share one boot; no two-machine acceptance'),{code:'MACHINE_BOUNDARY_NOT_INDEPENDENT'});
   const base=fs.realpathSync(fs.mkdtempSync('/tmp/redue-machine-')),root=path.join(base,'Checkout 空间'),state=path.join(base,'redue-state'),prefix=path.join(base,'prefix'),binary=path.join(prefix,'bin','redue');
   const observations=[],calls=[],put=(name,value)=>{const file=path.join(root,name);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,value);};
+  const phaseFile=path.join(base,'portable-phases.jsonl');let portablePhases=null;
   let started=false,originPrecondition=null,hostFacts=null;
-  function exec(argv,{cwd=base,allowFailure=false}={}){const before=performance.now(),result=spawnSync(argv[0],argv.slice(1),
-    {cwd,env:process.env,encoding:'utf8',timeout:120000,maxBuffer:8*1024*1024});
+  function exec(argv,{cwd=base,allowFailure=false}={}){
+    const capture=role==='producer'&&controlledCiDiagnostics(process.env)&&argv[0]===binary&&argv[5]==='run'&&argv.includes('--portable');
+    // Only this explicit controlled CI run is instrumented. The compiler also
+    // inherits these two diagnostic flags; this is not an uninstrumented run.
+    // Node/loader/proxy settings, command and environment relevance are untouched.
+    if(capture)writeExclusive(phaseFile,'');
+    const before=performance.now(),result=spawnSync(argv[0],argv.slice(1),
+    {cwd,env:capture?{...process.env,REDUE_DECISION_PROFILE:'1',REDUE_DECISION_PROFILE_FILE:phaseFile}:process.env,
+      encoding:'utf8',timeout:120000,maxBuffer:8*1024*1024});
+    if(capture)portablePhases=readPortablePhases(phaseFile);
     calls.push({kind:argv[0]===binary?'redue':path.basename(argv[0]),args:argv[0]===binary?argv.slice(5).map(value=>path.isAbsolute(value)?'<owned-path>':value):[],milliseconds:performance.now()-before,status:result.status});
     if(!allowFailure&&result.status!==0){
       const stderr=result.stderr??'',classification=stderr.includes('--state-dir must name a dedicated redue-')?'STATE_DIRECTORY_SCOPE':
@@ -216,14 +228,15 @@ export async function runMachine(options){
       assert(!fs.existsSync(path.join(state,'runs-v1')));assert(calls.every(c=>c.kind!=='redue'||c.args[0]!=='run'));
     }
     return {schema:1,role,source,package_sha256:expected,metadata_version:metadata.version,unpublished_candidate:true,
-      profile,host_facts:hostFacts,node_physical_identity:nodePhysical,boot_identity:boot,
+      profile,host_facts:hostFacts,portable_phases:portablePhases,node_physical_identity:nodePhysical,boot_identity:boot,
       independent_boot:role==='receiver'?boot!==transferred.manifest.boot_identity:null,
       raw_node_identity_differs:role==='receiver'?nodePhysical!==transferred.manifest.node_physical_identity:null,
       evidence_digest:digest,origin_run_id:originRunId,observations,calls,
       controlled_digest_acceptance:role==='receiver',authenticated_ci_producer:false,models_launched:0,
       equivalent_receiver_execution:role==='receiver'?false:null,
       scope:'controlled noLib mechanics; normal default-library external queries and useful-project acceptance not established'};
-  }catch(error){error.machine_evidence={role,source,package_sha256:expected,observations,calls,host_facts:hostFacts,origin_precondition:originPrecondition,models_launched:0};throw error;
+  }catch(error){error.machine_evidence={role,source,package_sha256:expected,observations,calls,host_facts:hostFacts,
+    portable_phases:portablePhases,origin_precondition:originPrecondition,models_launched:0};throw error;
   }finally{
     if(started)exec([binary,'--config',path.join(root,'redue.config.json'),'--state-dir',state,'stop'],{cwd:root,allowFailure:true});
     fs.rmSync(base,{recursive:true,force:true,maxRetries:5,retryDelay:200});

@@ -9,6 +9,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
+import {mark,timing,profiling} from './decision-profile.mjs';
 
 const HEADER=552,ENTRY=56,MAX_BASE=8*1024*1024,MAX_MEMBER=3*1024**3,MAX_TOTAL=12*1024**3;
 const MAGIC=Buffer.from('dyld_v1  arm64e\0');
@@ -84,6 +85,7 @@ export function inspectCacheContents(cache){
   try{if(fs.realpathSync(cache.file)!==cache.file)fail();}catch{fail();}
   const openedFiles=[],started=performance.now();
   try{
+    mark('portable_cache.start',{deadlineMs:10000});
     const parents=protectedParents(cache.file,cache.cryptexRoot);
     const base=opened(cache.file);openedFiles.push(base);
     if(base.stat.size>BigInt(MAX_BASE))fail();
@@ -98,20 +100,30 @@ export function inspectCacheContents(cache){
       if(fs.readSync(current.descriptor,header,0,104,0)!==104||
         !header.subarray(0,16).equals(MAGIC)||hex(header.subarray(88,104))!==member.uuid)fail();
     }
-    const chunk=Buffer.alloc(8*1024*1024),files=[];
+    mark('portable_cache.members',{members:openedFiles.length,totalBytes:Number(total)});
+    const chunk=Buffer.alloc(8*1024*1024),files=[];let completedBytes=0;
     for(let i=0;i<openedFiles.length;i++){
-      const member=openedFiles[i],hash=createHash('sha256');let position=0;
+      const member=openedFiles[i],hash=createHash('sha256'),memberStarted=performance.now();
+      let position=0,readMs=0,hashMs=0,nextProgress=128*1024*1024;
+      mark('portable_cache.member_start',{member:i,bytes:Number(member.stat.size),completedBytes});
       while(position<Number(member.stat.size)){
         if(performance.now()-started>10000)fail();
+        const readStarted=profiling?performance.now():0;
         const length=Math.min(chunk.length,Number(member.stat.size)-position),read=fs.readSync(member.descriptor,chunk,0,length,position);
-        if(read!==length)fail();hash.update(chunk.subarray(0,read));position+=read;
+        if(profiling)readMs+=performance.now()-readStarted;
+        if(read!==length)fail();const hashStarted=profiling?performance.now():0;
+        hash.update(chunk.subarray(0,read));if(profiling)hashMs+=performance.now()-hashStarted;position+=read;
+        if(profiling&&position>=nextProgress){mark('portable_cache.progress',{member:i,completedBytes:completedBytes+position,
+          readMs:Math.round(readMs),hashMs:Math.round(hashMs)});nextProgress+=128*1024*1024;}
       }
-      unchanged(member);files.push([members[i].suffix||'base',hash.digest('hex')]);
+      unchanged(member);files.push([members[i].suffix||'base',hash.digest('hex')]);completedBytes+=position;
+      timing('portable_cache.member_complete',memberStarted,{member:i,completedBytes,readMs:Math.round(readMs),hashMs:Math.round(hashMs)});
     }
     // Recheck every earlier member after the last member has been consumed.
     for(const member of openedFiles)unchanged(member);
     unchangedParents(parents);
     if(performance.now()-started>10000)fail();
+    timing('portable_cache.complete',started,{members:files.length,totalBytes:Number(total)});
     return {interpretation:'darwin-arm64e-full-cache-content@1',files,totalBytes:Number(total)};
   }catch{fail();}
   finally{for(const member of openedFiles)fs.closeSync(member.descriptor);}

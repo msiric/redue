@@ -11,6 +11,7 @@ import {withinPath} from './path-identity.mjs';
 import {fileURLToPath} from 'node:url';
 import {fileHash} from './index.mjs';
 import {resolveLinks} from './installed-inputs.mjs';
+import {timing,mark,traceId,traceScope,traceEnvironment,profiling} from './decision-profile.mjs';
 
 export const portableInterpretation=PORTABLE_INTERPRETATION;
 const fail=code=>{throw Object.assign(Error(code),{code});};
@@ -100,8 +101,13 @@ export function portableProbeFailureCode(probe){
 }
 export function portableProbeFacts(plan){
   const recipe=portableRecipe(plan);
-  const probe=spawnSync(plan.probes[0][0],[...plan.probes[0].slice(1),'--redue-portable'],
-    {cwd:plan.cwd,env:process.env,encoding:'utf8',timeout:10000,maxBuffer:8*1024*1024,stdio:['ignore','pipe','pipe']});
+  const probe=traceScope({work:profiling?traceId():undefined},()=>{
+    const started=performance.now();mark('portable_probe.launch',{deadlineMs:10000});
+    const result=spawnSync(plan.probes[0][0],[...plan.probes[0].slice(1),'--redue-portable'],
+      {cwd:plan.cwd,env:traceEnvironment(),encoding:'utf8',timeout:10000,maxBuffer:8*1024*1024,stdio:['ignore','pipe','pipe']});
+    timing('portable_probe.complete',started,{available:!result.error&&!result.signal&&result.status===0?1:0,
+      timedOut:result.error?.code==='ETIMEDOUT'?1:0});return result;
+  });
   if(probe.error||probe.signal||probe.status!==0){
     fail(portableProbeFailureCode(probe));
   }

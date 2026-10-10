@@ -18,8 +18,11 @@ try{
   const compiler=directProject(root,script);
   timing('direct_probe.implementation',implementationStarted,{version:compiler.version});
   if(process.argv.includes('--redue-portable')){
-    const runtime=portableRuntime();
+    const runtimeStarted=performance.now();mark('portable_probe.runtime_start');
+    const runtime=portableRuntime();timing('portable_probe.runtime_complete',runtimeStarted);
+    const discoveryStarted=performance.now();mark('portable_probe.discovery_start');
     const facts=typeScriptInputFacts(root,compiler.tsRoot,compiler.entry,{portable:true});
+    timing('portable_probe.discovery_complete',discoveryStarted,{queries:facts.queries.length});
     process.stdout.write(JSON.stringify({schema:1,runtime,
       compiler:{version:compiler.version,sha256:compiler.digest,entry:path.relative(root,compiler.entry).split(path.sep).join('/')},
       discovery:portableDiscovery(root,facts)}));
