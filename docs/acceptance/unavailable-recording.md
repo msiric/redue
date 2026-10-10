@@ -215,3 +215,26 @@ Stop this optimization here. The next product priority is a limited opt-in
 real-development evaluation of **reuse frequency** on already supported projects:
 this fixed sequence establishes mechanism and modest CLI savings, not how often
 real users reach enough later eligible decisions to repay recording overhead.
+
+## Alpha.10 release validation
+
+The combined release is packed once from `a98c747e50d92cd779202d5e211e231bdd98446a`:
+`redue-cli-0.1.0-alpha.10.tgz`, SHA-256
+`30adbf2ef1dd4c328515e11e8b8764cbad245974a8d159e183abc63c41723b2f`.
+All 64 package files match source; runtime and installed policy bytes match the
+reviewed evaluation candidate. The changed payload is version/user documentation.
+The [exact-artifact matrix](https://github.com/msiric/redue/actions/runs/38057303449)
+passed on all three platforms, including public alpha.8 same-prefix upgrade,
+intact/edited policy ownership and receipt-preserving pilot exit. The original
+alpha.9 PR #9 artifact remains unshipped; no intermediate publication is required.
+
+The [first final CI run](https://github.com/msiric/redue/actions/runs/38057306704)
+passed Linux Node 22/24 and Windows Node 22, but the macOS nested TypeScript 5.5.2
+harness hit its aggregate 180-second suite envelope after nine passing cases.
+No individual assertion failure preceded that timeout; the remaining normal 5.6.3
+cases passed. This result is retained, not relabeled green. Discovery (eight cases)
+and multi-run recording (three cases) now have complementary, disjoint selection
+groups, each retaining the existing 180-second harness limit. All assertions and
+product deadlines are unchanged. This contributor-only harness correction does
+not alter the frozen artifact or require another benchmark/model campaign.
+Final corrected-harness CI remains a merge gate, recorded in PR #10.
