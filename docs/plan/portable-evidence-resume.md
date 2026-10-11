@@ -6,10 +6,42 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-Current checkpoint (2026-10-11): the owner-requested procedure repair is prepared,
-independently reviewed and mock-tested. The prior native attempt stays UNKNOWN;
-no repeat/native/checker/model call is approved. Old helperdc0, profilecc8,
-checkerb3, actual report9f364dc and process-recordfbce07d are unchanged.
+Current checkpoint (2026-10-11): owner reports the subsequent collector attempt
+reached Node22.13.0 but returned MODULE_NOT_FOUND/requireStack[] for the entry.
+Classification ENTRYPOINT_RESOLUTION_FAILED; collector/checker assertions did not
+run (owner-reported), enforcement UNKNOWN. No new native attempt is approved.
+Private attributed record6b802c61 preserves original result82dd2ea0 and marker633c5044
+without changing them. Saved result: STARTUP_DEADLINE180225.1ms, no collector ACK
+or checker result, assertion/process UNKNOWN; controls/reap/restoration/currency/
+listener cleanup true. Cleanup is not enforcement success. Actual typed argv and
+generated sandbox profile were not recorded; no embedded-newline claim is made.
+
+Both original code files still exist with reviewed01083350/b3bad6 hashes, current
+owner600/single-link, canonical nonsymlink parents700. Setup/cleanup never deletes
+or renames them. Static conflict is independently established: denyRead
+`~/Library/Application Support/redue` and uppercase REDUE code ancestor resolve
+to the same directory/device/inode here, including aliases of both code leaves.
+Pinned187 source expands ~/ and emits deny file-read* subpath for that rule.
+This strongly supports a denial explanation, but does not prove the exact error
+from an unrecorded submitted path. Outer --verify did not validate sandbox access.
+Independent diagnosis27af0b6 is integrated3911320.
+
+D prepares one fixed inline-Node metadata-only diagnostic for both exact original
+code paths through the SAME native Bash boundary, with no contents/import/code
+execution/network/credential access. C reviews it and mock metadata controls.
+No active settings, new workspace, native/checker/model call or resource grant.
+Smallest proposed correction: code-only workspace outside the protected ancestor;
+rebind code paths/hashes/cwd and local authority guards, protect new code parents
+from writes, retain ALL old credential/state denials, authentication in place and
+original canaries/socket grants. Both entry and inner checker need native-boundary
+readability validation before another launch command. Copilot capacity remains
+independently pending. Prior attempts/artifacts/receipts are preserved.
+
+## Historical collector preparation
+
+The earlier owner-requested procedure repair was prepared, independently reviewed
+and mock-tested. Old helperdc0, profilecc8, checkerb3, report9f364dc and
+process-recordfbce07d remained unchanged.
 
 Read-only source plus recorded OWNER_WINDOW_ENDED establishes the old outer-window
 termination branch: start+15 begins on function entry before checks/native startup,

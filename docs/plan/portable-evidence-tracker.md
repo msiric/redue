@@ -3,10 +3,30 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-Current checkpoint (2026-10-11): owner-requested repair is prepared, independently
-reviewed and mock-tested only. Prior native attempt remains UNKNOWN and preserved;
-no repeat/native/checker/model call is approved. Old helperdc0, profilecc8,
-checkerb3, actual report9f364dc and process-recordfbce07d are unchanged.
+Current checkpoint (2026-10-11): owner-reported subsequent attempt is
+ENTRYPOINT_RESOLUTION_FAILED (Node22.13.0 MODULE_NOT_FOUND/requireStack[]).
+Collector/checker assertions did not run per owner; enforcement UNKNOWN. Private
+attributed record6b802c61 preserves result82dd2ea0 and process-marker633c5044.
+Saved STARTUP_DEADLINE180225.1ms has no ACK/checker result; cleanup/currency/controls
+true cannot establish enforcement. Typed argv/generated profile unrecorded;
+no newline inference. No new native attempt is approved.
+
+Entry01083350 and inner checkerb3bad6 still exist intact, owned600/single-link
+with canonical nonsymlink parents. Static protected-ancestor conflict established
+independently: lower-case denied redue is the same directory as uppercase REDUE
+containing BOTH code leaves. Pinned187 source expands ~/ into deny file-read*
+subpath. Strong denial explanation, not definitive specific-invocation proof.
+Outer data-only verification did not establish native readability. Independent
+diagnosis27af0b6 integrated3911320. D owns fixed two-path read-only diagnostic and
+code-only relocation proposal; C reviews. No apply/new workspace/grant/native/
+checker/model. Preserve credentials and denials in place. Native access to BOTH
+files must be validated before another launch command. Copilot capacity remains
+separate; gates incomplete.
+
+## Historical collection repair checkpoint
+
+Earlier owner-requested repair was prepared, independently reviewed and mock-tested
+only. Old helperdc0, profilecc8, checkerb3, report9f364dc and markerfbce07d unchanged.
 
 Read-only source plus recorded OWNER_WINDOW_ENDED establishes the old outer-window
 termination branch: start+15 begins on function entry before checks/native startup,
