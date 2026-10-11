@@ -3,6 +3,17 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
+Current status (2026-10-11): goal control reports ACTIVE. The paused wording
+below records the earlier environment-repair checkpoint, not the current goal
+state. The owner reported completing the verified durable Claude launch; local
+auth status established subscription login, not effective sandbox enforcement or
+model capacity. No further login is currently requested. Independent source/data
+review of the durable disabled checker proposal is complete; actual checker/model
+execution remains gated. Copilot's first bounded Actions trial still needs the
+owner's promised confirmation that four AI credits are included at no extra cost.
+Permitted implementation/review and read-only diagnostics continue; no publication
+or main merge is implied.
+
 Environment repair checkpoint (2026-10-11 13:38UTC): goal paused; owner-authorized
 repair only. Old temporary base is absent. Durable owner-local verified workspace,
 config, exactnative187 and all-tools-denied settings rebuilt; scoped Keychain

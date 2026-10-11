@@ -6,6 +6,17 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
+Current status (2026-10-11): goal control reports ACTIVE. The paused wording
+below records the earlier environment-repair checkpoint, not the current goal
+state. The owner reported completing the verified durable Claude launch; local
+auth status established subscription login, not effective sandbox enforcement or
+model capacity. No further login is currently requested. Independent source/data
+review of the durable disabled checker proposal is complete; actual checker/model
+execution remains gated. Copilot's first bounded Actions trial still needs the
+owner's promised confirmation that four AI credits are included at no extra cost.
+Permitted implementation/review and read-only diagnostics continue; no publication
+or main merge is implied.
+
 **Environment repair checkpoint (2026-10-11 13:38UTC): goal remains paused;
 only the owner's isolated-host repair request was executed. The entire old
 /tmp setup is absent. Verified native187 and saved proposals survived; the exact
