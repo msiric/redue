@@ -61,6 +61,18 @@ workflow or signing was started; frozen8695b612… package hash is unchanged. Re
 availability before any authorized recipient use; expiration cannot authorize a
 substitute origin or relaxed trust. Historical results remain below.
 
+Blocked audit: the same owner-native-result and Copilot-capacity condition is
+revalidated across three consecutive goal turns, including the original repair
+turn and two no-progress continuations. All five new native/gate records remain
+absent; no confirmed live operation handle is available. No safe unblocked task
+was identified after reviewing the current gate/task inventory. Request goal
+status BLOCKED; completion is not claimed. Resume with the approved diagnostic's
+static JSON and lifecycle JSON, or the separate Copilot included-capacity decision.
+Do not launch a native/model trial, repeat preservation/research, or re-create a
+gate from mock output. The reviewed owner procedure and exact manifest above are
+the handoff; current repair commit806f96a is preserved. No permissions, credentials,
+receipts, artifact bytes or public state changed in these continuations.
+
 ## Historical entrypoint diagnosis
 
 Current checkpoint (2026-10-11): owner-reported subsequent attempt is
