@@ -1,12 +1,40 @@
 # Portable-evidence host preflight
 
-**Current conclusion (2026-10-11): installed @2 controlled-fixture export/import,
-receipt-preserving upgrade and policy ownership checks PASS on one macOS machine.
-The first hosted producer stopped at an incomplete-portable-origin precondition;
-receiver and models did not run. Cross-agent, two-machine and live authenticated CI
-acceptance remain open.**
+**Current conclusion (2026-10-11): exact d04b872 installed @2 controlled-fixture
+export/import and policy ownership checks PASS on one macOS machine. Actual
+producer/signing38096670987 succeeds; both full hosted profile prototypes
+38096673747 are supported and independently match21 runtime records plus signed
+origin facts. Required-refresh authentication passes as inspection only, with
+producer_accepted=false/local_policy_current=false/reuse_eligible=false. No actual
+recipient CI acceptance, portable agent handoff or matched-machine reuse is yet
+established; G2/G3/G4 remain incomplete.**
 
-Current exact tested source is `b4c33b193740d6997daa650eecd5f665d58a3b97`,
+Current exact task candidate source `d04b872ee0e848e300c0cc9738ad761e48146acc`,
+SHA-256 `8695b612a5c33dae945b2bc8df57cd68ca3eefb401aa0ef9ca2850d212979ea2`,
+not public alpha.10 bytes despite metadata. Installed origin
+`473be4ea-cab4-49cd-9405-433af9d8576b`/digest
+`1745893830e1da353ebd9bcb5fb92fe2c0e7c374ef86eddd4d8952887c13e30b` is retained
+through separate-checkout recipient/unrelated CURRENT with no local recipient
+execution; relevant edit STALE. Both-host owned-policy update/removal/edited
+refusal passes. Hosted signed origin is separately
+`02f44ac7-e6fc-4d5e-9757-28357654fef1`, digest
+`5d16fbf6b101f88843f41a8c61d3c351e5f9e600306dc4936eaaec8d6ea40d57`.
+Exact-package38096673730 allthreeOS PASS, actual downloaded SHA8695b612… matches
+local bytes and CI merge08c7a101… has verified tree889d4404… equal to d04b872.
+Product38096673735 allfour jobs PASS; exact counts are in the
+[tracker](../plan/portable-evidence-tracker.md), not inherited from other sources.
+
+Owner D4 now approves existing subscription/seat resources and the explicit
+Copilot CLI producer VM A → native Claude Code receiver VM B demo pair; Codex
+acceptance stays separate. Authentication/workflow, current exact producer trust,
+actual sandbox/secret enforcement and in-context expected evidence remain gates.
+The disabled [Claude proposal](portable-claude-receiver-proposal.md) records the
+observed local claude.ai route, not VM capacity or behavior. No model trial follows
+failed setup/preflight. Earlier failed origins and upgrade attempts remain below.
+
+## Historical b4 installed and first hosted preconditions
+
+At that checkpoint the exact tested source was `b4c33b193740d6997daa650eecd5f665d58a3b97`,
 `redue-cli-0.1.0-alpha.10.tgz`, SHA-256
 `ec4b7cabdc0ad8d41850b947881730dbd2367c00d91a1935fd07c04624767f48`.
 These are unreleased candidate bytes, not public alpha.10. The real local producer
@@ -159,8 +187,10 @@ Claude `claude.ai` login. They do not establish inference capacity, a model budg
 permission to call a model, or trust in imported producers. No model was launched
 for these checks. Day 0 is owner-confirmed 2026-10-10 21:24 UTC, with **$0 additional
 daily/total spend**. The owner subsequently approved two standard independent macos-26 validation
-VMs and 10 MiB included artifact storage with one-day retention. Claude inference
-remains PENDING_OWNER_ACCOUNT; account login is not behavior approval.
+VMs and 10 MiB included artifact storage with one-day retention. At that
+historical checkpoint Claude inference was PENDING_OWNER_ACCOUNT. D4 subsequently
+approves the existing subscription; reviewed workflow/OAuth secret and host
+preconditions remain pending, and account login is not behavioral acceptance.
 
 The retained approved Codex route for the owned debugger experiment uses
 `codex sandbox` with the existing workspace/state/exact-socket configuration and

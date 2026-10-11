@@ -14,8 +14,10 @@ G2/G3 incomplete; G4 prepublication NOT READY.**
 
 ## Source, owners and approval boundaries
 
-Verified root and remote task branch
-`d04b872ee0e848e300c0cc9738ad761e48146acc`, clean when checked. This includes the
+Verified root task branch `87de9c5305dca8b253cf4918a17a82ba2aac9355`, clean when checked;
+remote and exact tested candidate remain
+`d04b872ee0e848e300c0cc9738ad761e48146acc`. Later disabled host proposals do not replace
+the candidate identity. This includes the
 reviewed finite portable budgets, final expiration controls and package cap.
 Root owns shared CLI/daemon/facts/runtime/catalog; B owns
 envelope/store/CI authentication and focused Windows test correction; C owns independent
@@ -40,6 +42,19 @@ Code receiver VM B on independent matched approved macOS runners. Codex acceptan
 remains separate. Native OAuth workflow/owner secret and Copilot seat/policy/billing
 checks remain pending; do not ask again whether accounts exist or launch models
 until the exact in-context precondition passes. External natural use NOT STARTED.
+
+Lane D local proposal commits bafb2ec/fc408f6/a0d2012 add a disabled native Claude
+invocation spec and controlled generic project-guidance writer; 12/12 author
+controls pass (166.5ms), independently 12/12 PASS142.38ms. Follow-up9653b26 explicitly
+separates fixed macOS proposal paths from Windows mechanics: author12PASS/1platformSKIP154.6ms,
+light platform-delta review pending. The writer copies the
+unchanged installed policy (SHA db8e2e02895e8ebf39ee0ba23420ed0e0a8525c17246a0c73d3f161aac9c9f32)
+into new owned fixture files only. Copilot/Claude loaders are separate; producer
+role explicitly selects portable capture and receiver does not. Root/state/prefix
+and source-file physical identities are bound; concurrent edited content is left
+intact on failure. No native settings, permission changes or model launches occur.
+Claude 2.1.146 settings/credential-deny are unverified proposal data; help parsing
+and static keys cannot activate it. These leaf proposals are not in the d04 package.
 
 ## Current hosted and installed checkpoint
 
@@ -74,10 +89,13 @@ until the exact in-context precondition passes. External natural use NOT STARTED
   cancellation/end-edit-restore1/1 PASS25,580.8ms. Hosted producer wrapped30,604ms,
   local status634ms are individual instrumented controls, not a net saving claim.
 - Exact-package run `38096673730`: allthree platforms PASS, including macOS
-  installed portable origin/separate recipient. CI tarball identity still needs
-  the actual download/source-tree check; do not infer it solely from local packing.
-  Product `38096673735`: Linux22/24 PASS; macOS/nativeWindows pending. Final
-  product results must be rechecked, not inferred from older CI.
+  installed portable origin/separate recipient. Downloaded CI tarball SHA8695b612…
+  matches local exact bytes. Actual PR-merge source
+  `08c7a101e133ff64e2f8a7be2d167edde0421ebb`, tree
+  `889d4404cf7572b2b016b03ad11ca3be199be022`, is GitHub-API verified equal to d04b872.
+  Product `38096673735`: allfour jobs PASS, macOS336PASS26skip,
+  nativeWindows256PASS106skip, Linux22 324PASS38skip; Linux24 jobPASS/count not retained.
+  Current artifact usage4,826,222bytes; recheck before later uploads.
 
 ## Historical diagnostic and reviewed correction
 
@@ -162,8 +180,9 @@ bytes have the same verified SHA; actual PR-merge source
 
 The single accounted d04b872 push and hosted attempt have completed producer/
 signer and profile preconditions successfully. Preserve old failed origins;
-collect final package/product and independent profile/signature review without a
-new signing push or trial. Owner trust and actual-agent resources are still gates.
+package/product, actual byte identity and independent profile/signature review
+are complete without another signing push or trial. Owner trust and actual native
+agent authentication/enforcement are still gates; account existence is answered.
 
 1. Verify actual root HEAD/uncommitted changes and current resource reservations.
    Read protected local `signed-producer-2bc636a-failed.log`, `profile-2bc636a.log`,
@@ -173,14 +192,17 @@ new signing push or trial. Owner trust and actual-agent resources are still gate
    member. Native product CI now passes the LF/path fixes. Keep all historical
    failures; preserve runtime/continuity/selection restrictions and never treat
    local CURRENT as complete portable origin.
-3. Recheck final d04b872 package/product jobs and current storage. Preserve the
-   exact signer artifact and authenticate its fixed subject only after current
-   owner-local producer-policy approval; no automatic acceptance or retry loop.
+3. Recheck current storage before later uploads. Preserve the completed d04b872
+   package/product and exact source identities and the
+   exact signer artifact and completed read-only authentication inspection.
+   Accept/import only after current owner-local producer-policy approval;
+   no automatic acceptance, needless repeated inspection or retry loop.
 4. Existing accounts and amended demo pair are approved in D4. Until exact native
-   OAuth workflow/owner secret and Copilot entitlement/policy/billing are usable,
+   OAuth workflow/owner secret, native credential/sandbox controls and Copilot entitlement/policy/billing are usable,
    continue independent deterministic review/onboarding work; do not provision,
-   change managed policy, purchase capacity or copy credentials. Actual G2 model
-   reuse still requires independent sessions, agent-visible eligible JSON, retained
+   change managed policy, purchase capacity or copy credentials.
+   Resource status is PENDING_OWNER_AUTH_WORKFLOW/CAPACITY_PROOF, not PENDING_OWNER_ACCOUNT.
+   Actual reuse still requires independent sessions, agent-visible eligible JSON, retained
    digest/run and no equivalent execution.
 5. Producer trust remains a separate explicit owner decision after exact source,
    workflow/signature/subject identities exist. Workflow enablement alone never
