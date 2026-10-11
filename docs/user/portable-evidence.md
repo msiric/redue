@@ -187,8 +187,8 @@ a separate new outcome.
 ### Fresh local execution after an import
 
 An ordinary `redue run CHECK` still records the actual local PASS or FAIL. When
-accepted imports exist, a newer selected local receipt without complete portable
-facts can remain `UNVERIFIED` with `PORTABLE_LOCAL_SELECTION_BARS_FALLBACK`.
+accepted imports exist for that check, a newer selected local receipt without
+complete portable facts can remain `UNVERIFIED` with `PORTABLE_LOCAL_SELECTION_BARS_FALLBACK`.
 REDUE does not fall back to an older imported PASS to hide that local selection.
 A successful ordinary run is not silently converted into portable evidence.
 
