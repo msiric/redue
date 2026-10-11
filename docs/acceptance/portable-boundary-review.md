@@ -2374,3 +2374,52 @@ checkerb3 and normal5628/eebb remain historical/current identities as appropriat
 The new wrapper, selected profile and expanded phase caps require one specific
 owner approval before execution. Mock acceptance is not native sandbox acceptance,
 credential isolation, actual agent reuse or G1–G4 completion.
+
+### Collected owner attempt: entry unavailable and protected-ancestor conflict
+
+The new durable result was independently read at SHA-256
+`82dd2ea01b2f681bed5b320181b9bfdcc41e9e3b5dd25a9d25f21d2433cb9dc4`.
+It records STARTUP_DEADLINE at180225.1ms, no collector-start ACK/result, protocol
+delta[0,0,0], live before/after controls, unchanged prepared files, native signal9/
+reapedtrue, restored terminal and owned-listener cleanuptrue. Assertion outcome,
+checker process outcome and final collection remain UNKNOWN. The owner separately
+reported Node22.13 MODULE_NOT_FOUND for the collector entry. No checker assertion
+ran in the supplied report; no exact typed argv or generated native sandbox
+profile was retained. Protocol0 alone is not an execution counter, and the report
+does not measure model requests. This is not a REDUE failure or an established
+sandbox enforcement result. No automatic retry is authorized.
+
+Current staged wrapper010833/helperc9f6/settingsdfc808 hashes still match the
+reviewed proposal. The collector is a regular non-symlink single-link mode600
+owned file; its workspace and durable-base parents are canonical owned mode700.
+The lower-case denyRead path `~/Library/Application Support/redue` and upper-case
+REDUE ancestor resolve here to the same device16777232/inode1073534877. The
+collector's lower-case alias likewise resolves to its inode1075097668. Thus the
+public controlled entry and inner checker were placed inside an existing
+protected read-denial ancestor. The configuration conflict is established by
+current metadata, without assuming a newline from terminal wrapping or claiming
+the file is absent outside the sandbox.
+
+Bounded public-source inspection of pinned native187 corroborates the intended
+ancestor behavior: `JF` at198174678 expands `~/` with homedir; `v0d` at198193837
+emits `deny file-read* (subpath ...)` for non-glob denyOnly paths; `k0d` invokes
+that read-policy builder. Selected filesystem denyRead feeds denyOnly through
+the reviewed runtime configuration path. Directory metadata allowances in that
+builder do not allow the denied regular-file contents. This provides a strong
+source-grounded read-denial explanation for the entry error; the unretained
+actual argv/profile prevents proving that this was the sole runtime cause of
+the reported MODULE_NOT_FOUND. The first reviewer bounded-source extraction had
+a syntax error before evaluation; corrected read-only extraction succeeded.
+
+The smallest correction to prepare is to place only the noncredential controlled
+code leaves outside the protected state/configuration ancestor, rebind their
+exact source/entry identities and protect them from writes. Preserve credential
+locations, the broad protected-ancestor denial, existing fixture/socket authority
+and prior artifacts. Do not add an ancestor read exemption merely to launch the
+entry. Path rebinding alters checker/wrapper bytes and the exact command/profile;
+it requires a coherent independently reviewed proposal and specific owner
+approval before any operation. Where fixture locations can remain unchanged,
+relocating them is unnecessary. A separately approved in-context metadata-only
+diagnostic may distinguish the observed entry-resolution error if static evidence
+does not suffice; none was run by this reviewer. No native/checker/model launch,
+settings application, credential read or new permission was performed here.
