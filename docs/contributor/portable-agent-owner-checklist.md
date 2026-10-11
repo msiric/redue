@@ -17,6 +17,7 @@ Only these two inputs currently require the owner:
    copy the frozen single command line, then launch the diagnostic:
 
    ```sh
+   CLAUDE_BASE="$HOME/Library/Application Support/REDUE/portable-evidence/native-claude-2.1.187"
    /usr/bin/python3 "$CLAUDE_BASE/owner-sentinel-relocated.py" --diagnostic-input
    /usr/bin/python3 "$CLAUDE_BASE/owner-sentinel-relocated.py" --owner-diagnostic
    ```
