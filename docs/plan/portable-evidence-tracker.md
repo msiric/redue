@@ -3,7 +3,8 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-Current checkpoint (2026-10-11): goal ACTIVE; branch `dev/portable-evidence`.
+Current checkpoint (2026-10-11): execution blocked at owner approval/capacity
+gates; branch `dev/portable-evidence`. The full goal remains incomplete.
 The durable disabled checker rebind and independent review are integrated as
 f5f8ea6/f3d2af1; six deterministic controls pass (root53.639ms). Spaces are
 quoted and the synthetic Unix socket paths fit macOS. Working native187,
@@ -29,6 +30,22 @@ counterexamples are limited to fixed owned synthetic resources. No blind retry
 or model launch follows. Copilot's first bounded Actions trial still
 needs the owner's promised four-included-credit/no-additional-charge confirmation.
 G2/finalG3/G4 remain incomplete; data-only VM acceptance is not model reuse.
+
+Blocked audit: the same acceptance prerequisites remain outstanding across three
+consecutive goal turns. The latest continuation produced no new acceptance;
+reviewers are terminal, the diagnostic process is terminal, and no approved
+independent task can advance the remaining gates now. This is not a live-process
+wait or a failing product test. No checker/model/trust/public action is inferred
+from automatic goal continuation. Day0 is unchanged; lane blocked time remains
+separate from completed implementation/review.
+
+Resume on the specific synthetic-test approval or Copilot included-capacity
+confirmation. For the approved lane, revalidate the exact current source/context,
+file hashes and owner resources before the already reviewed operation. Do not
+repeat login, native `/status`, broad CI or implementation research. The exact
+synthetic request is mapc321bb/settings3018fc/checkerb3bad6, one no-model attempt;
+normal5628de/eebb1e remain preserved. A positive synthetic result still does not
+establish actual agent reuse, CI-secret isolation or all release requirements.
 
 Environment repair checkpoint (2026-10-11 13:38UTC): goal paused; owner-authorized
 repair only. Old temporary base is absent. Durable owner-local verified workspace,
