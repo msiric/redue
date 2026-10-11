@@ -50,12 +50,13 @@ No --dangerously-skip-permissions, account refresh or model call is a preflight.
 
 ## Useful remaining owner action
 
-Account existence is answered. The missing prerequisite is an owner-supported,
-isolated native onboarding/authentication route that reaches the normal prompt,
-followed by independently reviewed **actual native** no-model sentinel proof of
-credential denial and the exact filesystem/socket/network boundary. Native187
-first-start onboarding blocks that proof; do not manufacture completed-onboarding
-flags, copy the owner's login database or substitute a handcrafted sandbox.
+Account existence and owner onboarding are answered: the owner reports native187
+subscription login and the normal prompt in the isolated profile, with no model
+or shell action. The remaining prerequisite is review and specific owner approval
+of the exact synthetic sentinel code/settings/resources below, then **actual native**
+no-model boundary proof. Do not copy login files, change global settings or
+substitute a handcrafted sandbox. This proof remains separate from real credential
+removal, actual REDUE endpoint authority and included model capacity.
 
 No new secret or workflow enablement is requested for the data proposal. Before any
 future authenticated receiver workflow, the owner must review its exact native
@@ -267,8 +268,8 @@ of SIGTERM; it was SIGKILLed and reaped (exit-9). No retry was performed.
 The protected local map/report/clarification identify the exact bytes; the raw
 UI capture stays private. Native onboarding prevented reaching the shell prompt.
 Do not fabricate completed-onboarding configuration, copy an existing login
-database or skip that gate. A supported owner-provisioned test authentication/
-onboarding route is still needed before any strict-shell sentinel test. This
+database or skip that gate. At that historical checkpoint a supported owner-provisioned onboarding route
+was still needed; the owner has since reported completing it without inference. This
 result establishes initial native UI startup only, not zero background network/
 keychain activity, credential denial, effective sandboxing, capacity, model use
 or portable-evidence acceptance.
@@ -311,8 +312,8 @@ exploration here and do not start token-bearing auth status merely to learn
 hasToken. The failed proof approaches and actual theme-gate attempt remain history;
 neither is a REDUE failure or a claim that the subscription lacks capacity.
 
-The next native boundary action is the owner-supported onboarding/authentication
-and independently reviewed sentinel route described above. Until then the proposed
+The owner has since completed onboarding; the next native boundary action is
+the independently reviewed, separately approved sentinel route below. Until then the proposed
 model receiver, authenticated startup and effective sandbox/credential tests remain
 NOT RUN. No secret creation, global changes, native146 upgrade, producer acceptance
 or native-mode enforcement is inferred from this document.
@@ -339,9 +340,9 @@ not executable owner bindings. Exact rendered files and the literal argv/path ma
 are protected owner-local proposal data under this lane's
 `.local/portable-native-sentinel-proposal/`; they are not installed in the
 onboarded profile. The exact proposal map SHA-256 is
-`6ac63f8218a28e2518ff26e94ac9a42800b7488dfdf1f54cfb2800aace807d1b`.
+`28166682959f3981c4bbff1095b6bba9c1b34f72f44f34ed8a4cbbae79f642dc`.
 Rendered checker SHA-256 is
-`9124fae66d047a50ff5d8f80daeef219e2fe5c75bfa66cd140c4f783a07eb567`;
+`40f844386951be415d91ba0a7cef34a9d5c5d677a82d81e216039523cc574a10`;
 rendered proposed settings SHA-256 is
 `b63c0e1e112f41aaa378b0c0f79f7bf65825ff25ae175c2b851b2af312958efe`.
 Original settings785be and nativea59a16 remain unchanged. The selected Node22.13.0
@@ -368,8 +369,7 @@ absence before login did not establish authenticated remote-policy absence, and
 local disableAllHooks is not a managed-hook bypass. Unknown startup authority
 stops the route. Recheck current ownership, physical parent/file identities and
 hashes of Node, native, checker/settings and synthetic resources before/after the
-interval. Reject presence, even empty, of NODE_OPTIONS, NODE_PATH and the reviewed
-LD/DYLD preload/search overrides **before launching Node**; the checker's own
+interval. Reject presence, even empty, of NODE_OPTIONS, NODE_PATH and reviewed LD preload/search overrides or any DYLD_ key **before launching Node**; the checker's own
 presence guard cannot undo a preload that already executed. Reject unintended
 provider/API/startup overrides without printing values. No real authentication
 key receives a fake sentinel value.
@@ -379,7 +379,7 @@ startup using the private map's literal argv/cwd and a **non-secret custom**
 REDUE_PREFLIGHT_SENTINEL process variable, then exactly the private map's
 `!REVIEWED_NODE REVIEWED_CHECKER` command, followed by exit. There is no model
 prompt, print/bare mode, hook, SDK or separate handcrafted sandbox. The parent
-operation is capped at15s; socket operations each cap at1s. Stop at an unexpected
+operation is capped at15s; socket operations each have an absolute1s deadline, including partial replies. Stop at an unexpected
 onboarding/login/trust/permission gate without accepting it or retrying outside
 the sandbox. This operation is **not yet approved or executed**.
 
@@ -406,6 +406,6 @@ sentinel and synthetic file/socket/network mechanics. No real OAuth/GitHub
 credential, config, keychain or REDUE state file is opened by the checker. It does
 not prove real secret removal, actual REDUE observer/probe access, matched-VM
 applicability, subscription capacity or agent reuse. Secret-bearing VM child key
-absence, the actual REDUE endpoint gate and model trials remain separate. Four
+absence, the actual REDUE endpoint gate and model trials remain separate. Five
 pure deterministic controls pass; they create no live fixtures and launch no
 native/auth/tool/model process.

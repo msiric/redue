@@ -19,7 +19,7 @@ export const SENTINEL_BINDINGS=Object.freeze({
 const DENIAL_CODES=new Set(['EACCES','EPERM']);
 const RUNTIME_OVERRIDE_KEYS=Object.freeze(['NODE_OPTIONS','NODE_PATH','LD_PRELOAD','LD_LIBRARY_PATH','DYLD_INSERT_LIBRARIES','DYLD_LIBRARY_PATH','DYLD_FRAMEWORK_PATH']);
 export const classifySentinelError=error=>DENIAL_CODES.has(error?.code)?'DENIED_PERMISSION_ERROR':'UNKNOWN_OR_UNAVAILABLE';
-export const sentinelRuntimeUnsupported=env=>RUNTIME_OVERRIDE_KEYS.some(key=>Object.hasOwn(env,key));
+export const sentinelRuntimeUnsupported=env=>RUNTIME_OVERRIDE_KEYS.some(key=>Object.hasOwn(env,key))||Object.keys(env).some(key=>key.startsWith('DYLD_'));
 const classification=classifySentinelError;
 export async function runNativeSentinel(io){
   const checks=[];
@@ -40,15 +40,11 @@ export async function runNativeSentinel(io){
     real_credentials_opened:false,redue_authority_exercised:false,model_actions_requested:0,
     can_infer:false,portable_applicability:'NOT_TESTED'};
 }
-export function nativeSentinelIO(){
-  const fileProbe=async(file,flags)=>{
-    let handle;try{handle=await fs.open(file,flags,0o600);return 'ACCESS_SUCCEEDED';}
-    catch(error){return classification(error);}finally{if(handle)await handle.close();}
-  };
-  const connection=({path,host,port},expectResponse)=>new Promise(resolve=>{
-    const socket=new net.Socket();let done=false,received=Buffer.alloc(0);
-    const finish=code=>{if(done)return;done=true;socket.destroy();resolve(code);};
-    socket.setTimeout(1000,()=>finish('UNKNOWN_OR_UNAVAILABLE'));
+export function probeSentinelConnection({path,host,port},expectResponse,{Socket=net.Socket,setTimer=setTimeout,clearTimer=clearTimeout}={}){
+  return new Promise(resolve=>{
+    const socket=new Socket();let done=false,deadline,received=Buffer.alloc(0);
+    const finish=code=>{if(done)return;done=true;if(deadline!==undefined)clearTimer(deadline);socket.destroy();resolve(code);};
+    deadline=setTimer(()=>finish('UNKNOWN_OR_UNAVAILABLE'),1000);
     socket.on('error',error=>finish(classification(error)));
     socket.on('end',()=>finish('UNEXPECTED_RESPONSE'));
     socket.on('connect',()=>{
@@ -63,14 +59,21 @@ export function nativeSentinelIO(){
       else if(received.length>=expected.length)finish('UNEXPECTED_RESPONSE');
     });
     try{socket.connect(path?{path}:{host,port});}catch(error){finish(classification(error));}
-  });
+    });
+}
+export function nativeSentinelIO(){
+  const fileProbe=async(file,flags)=>{
+    let handle;try{handle=await fs.open(file,flags,0o600);return 'ACCESS_SUCCEEDED';}
+    catch(error){return classification(error);}finally{if(handle)await handle.close();}
+  };
+
   return {
     sentinelPresent:()=>Object.hasOwn(process.env,'REDUE_PREFLIGHT_SENTINEL'),
     readProbe:()=>fileProbe(SENTINEL_BINDINGS.protectedCanary,F.O_RDONLY|F.O_NOFOLLOW|F.O_NONBLOCK),
     writeProbe:()=>fileProbe(SENTINEL_BINDINGS.outsideWrite,F.O_WRONLY|F.O_CREAT|F.O_EXCL|F.O_NOFOLLOW|F.O_NONBLOCK),
-    allowedSocketProbe:()=>connection({path:SENTINEL_BINDINGS.allowedSocket},true),
-    deniedSocketProbe:()=>connection({path:SENTINEL_BINDINGS.deniedSocket},false),
-    directNetworkProbe:()=>connection({host:SENTINEL_BINDINGS.directHost,port:SENTINEL_BINDINGS.directPort},false),
+    allowedSocketProbe:()=>probeSentinelConnection({path:SENTINEL_BINDINGS.allowedSocket},true),
+    deniedSocketProbe:()=>probeSentinelConnection({path:SENTINEL_BINDINGS.deniedSocket},false),
+    directNetworkProbe:()=>probeSentinelConnection({host:SENTINEL_BINDINGS.directHost,port:SENTINEL_BINDINGS.directPort},false),
   };
 }
 // Author tests import pure adapters; no native/process/socket/filesystem probe is
