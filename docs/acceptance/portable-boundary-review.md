@@ -2680,3 +2680,56 @@ completion, including FAIL and UNKNOWN. This access gate does not establish full
 native enforcement, cross-agent/two-machine model reuse, capacity, economics or
 the release goal. No checker, model, listener, settings application, controller or
 native process was started in this independent review.
+
+
+### Actual owner-operated bounded native synthetic check
+
+The actual owner final collection capture is independently verified at
+`679754cad787c3ab62be73202857f73895b69a2c925912f1eb530ee05f0c2144`;
+the saved immutable collection is
+`b119f866376a264859b6ab5b6017a40c6c0958e1529a4d6c8851fcad32cffc71`.
+Both are bounded, stable, owned600/single-link records. Their common fields agree.
+The saved record deliberately keeps collection_status=UNKNOWN and
+REQUIRES_FINAL_PARENT_COMPLETION, while independently retaining checker PASS,
+actual OS exit0 and pre_persistence_context_outcome=PASS. The later owner final
+JSON supplies collection_status=PASS, persistence_completed=true and11,047.1ms
+versus the saved11,034.5ms. This resolves final completion without rewriting the
+saved pending record. Owner-output provenance remains explicit, and outer helper
+exit status remains NOT_SUPPLIED rather than inferred from the source return path.
+
+All six actual static assertions pass: custom nonsensitive sentinel absent,
+synthetic protected read denied, synthetic outside write denied, the exact allowed
+synthetic socket returns its expected response, the other owned live socket is
+denied, and owned direct loopback is denied. Denials use permission errors, not
+missing/closed endpoints. Recorded live controls pass before and after, and the
+between-control protocol delta is exactly[1,0,0]. The unchanged reviewed supervisor
+records EXACT_REVIEWED_SUPERVISOR_CHILD_CLOSE_EVENT, checker exit0/no signal and
+timeout=false. This is separate from native CLI parent cleanup: its native exit
+is null, signal9, reaped=true. A cleanup SIGKILL is not a failing checker exit and
+must not be reported as native host exit0.
+
+The final report preserves collection_error=null, assertion PASS/process EXIT_ZERO,
+current-file, reap, terminal-restore and owned-listener-cleanup flags true, with
+219.2ms cleanup inside the five-second cap. Applying the unchanged5139
+collection_status predicate to those actual fields returns PASS. Fresh read-only
+verification matches thirteen source fingerprints and the selected a33d6b1a
+access gate. Owned socket paths and outside-write canary are absent. Dedicated
+process marker
+`706da44448c031b04056053f87fb20e67d980386dcdb077d7d8c28342c5a4954`
+is independently verified; dedicated PID metadata confirms absence. That absence
+alone is not reap or process-group completion proof; recorded owned wait/reap and
+cleanup evidence remain necessary. No native startup, checker process, socket
+connection, model call, settings change or gate write was performed by this
+reviewer; process inspection was metadata-only.
+
+Classification: PASS for the six specifically configured synthetic boundary
+checks on this owner-operated pinned native187/manual-Bash invocation. The result
+is not a general command allowlist, all-credentials masking certificate, arbitrary
+filesystem/network security claim or actual model adoption/reuse trial. Real
+credential bodies were not read; the synthetic socket is not observer authority
+or another REDUE transport. Model policy remains
+EXPECTED_DISABLED_NOT_MEASURED, not a measured zero-inference count. This local
+host result does not establish matched hosted receiver provisioning, Copilot
+included capacity, cross-agent/two-machine reuse, whole-task economics or G2/G4.
+Every earlier failed/unknown attempt remains preserved. No release or producer
+trust authority changes follow from this result.
