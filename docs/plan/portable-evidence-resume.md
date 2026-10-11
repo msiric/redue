@@ -6,18 +6,20 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-**Current conclusion (2026-10-11): exact d04b872 installed @2 same-machine
-mechanics pass; actual hosted producer/signing succeeds and both independent
-runner prototypes support the reviewed profile. Recipient authentication and
-matched-machine/model reuse are not yet established. G1 technical slice only;
-G2/G3 incomplete; G4 prepublication NOT READY.**
+**Current conclusion (2026-10-11 01:46 UTC): same-machine export/import mechanics
+and the guide-only b8122c3b exact package pass; all three package jobs and four
+regression jobs are successful. Hosted producer/signing and independent matched
+profile prototypes pass. Actual accepted recipient import and cross-agent/two-machine
+reuse remain unestablished. The one complete controlled cost sample shows no net
+saving. G1 technical slice only; G2/G3 incomplete; G4 prepublication NOT READY.**
 
 ## Source, owners and approval boundaries
 
-Verified root task branch `57cfca3` before this checkpoint's documentation changes;
-remote and exact tested candidate remain
-`d04b872ee0e848e300c0cc9738ad761e48146acc`. Later disabled host proposals do not replace
-the candidate identity. This includes the
+Verified root task branch `aaef64f` before this final checkpoint documentation;
+remote fixed signing/runtime task ref remains
+`d04b872ee0e848e300c0cc9738ad761e48146acc` with frozen8695 artifact. Preparation
+ref05c1d869 tests distinct guide-only223f231/b812 bytes; runtime is unchanged.
+Later disabled host proposals do not replace either artifact identity. This includes the
 reviewed finite portable budgets, final expiration controls and package cap.
 Root owns shared CLI/daemon/facts/runtime/catalog; B owns
 envelope/store/CI authentication and focused Windows test correction; C owns independent
@@ -69,7 +71,7 @@ onboarding bypass occurred. Owner-provisioned supported test onboarding/authenti
 remains the next native gate; strict-shell/sentinel/credential/sandbox proof is unrun.
 Help/static keys cannot activate it. These leaf proposals are not in the d04 package.
 
-## Current bounded acceptance work — 2026-10-11 01:19 UTC
+## Historical bounded acceptance checkpoint — 2026-10-11 01:19 UTC
 
 The owner reply approves the original exact recipient workflow `ef237cbb…`, policy
 and fresh-state provisioning (D5). That workflow was already enabled at b240187;
@@ -106,30 +108,52 @@ shipped guide's explicit fresh portable baseline clarification. No model launche
 new producer, signing, credential access or permission changes are authorized by
 these mechanics. All native/account and corrected-pin gates remain separate.
 
-## Active validation and immediate next commands
+## Completed validation and gated next operations
 
-Normal preparation push succeeded to `dev/portable-ci-preparation` at
-`05c1d869d40903c4663710e1967901e18ca8fc0b`; fixed runtime/signing task ref remains
-frozen d04b872. No force push/main merge/trust change. Current exact-package
-run38101767565 packs once for allthree recipients; product38101769601 covers
-new leaf controls. At submission, active artifacts4,826,222bytes plus224KiB maximum
-new package reservation =5,055,598bytes, within owner-confirmed10MiB included
-limit/one-day retention. No new origin/signing upload/model account.
+Preparation ref `dev/portable-ci-preparation` was tested at
+`05c1d869d40903c4663710e1967901e18ca8fc0b`; later changes are evidence/review
+records only. Fixed runtime/signing task ref remains d04b872. No force push, main
+merge, new signing origin or trust change occurred.
 
-Review actual completed conclusions/logs, not queued status:
+Exact-package [38101767565](https://github.com/msiric/redue/actions/runs/38101767565)
+passed macOS26, Linux and native Windows using one packed artifact. Downloaded
+source.txt is05c1d869; tar SHA-256 b8122c3b… matches the local guide-only223f231
+artifact (80files/158,546bytes). Mac installed origin/separate-checkout acceptance
+passed; Linux/Windows portable-runtime cases are explicitly unsupported/skipped.
+Both-host installed policy ownership checks passed on all three platforms.
 
-```sh
-gh run view 38101767565 --repo msiric/redue --json status,conclusion,jobs
-gh run view 38101769601 --repo msiric/redue --json status,conclusion,jobs
-```
+Product [38101769601](https://github.com/msiric/redue/actions/runs/38101769601),
+same actual source05c1d869, passed all four jobs:481tests each, macOS454PASS/27SKIP,
+Windows305PASS/176SKIP, Linux22 and24 each442PASS/39SKIP; zero failure/cancellation.
+This product workflow repacks independently; its Windows bytes are not b812.
+Exact-artifact proof comes from38101767565, not the product repack. Independent
+review08b55c1 verified logs, downloaded manifest/hash/source and unchanged runtime.
+Protected raw logs/downloads remain under .local/portable-evidence; no public raw
+transcripts or private environment were uploaded.
 
-Verify downloaded pack matches local b8122c3b… before assigning exact-byte evidence.
-Preserve every failure, skips and actual source. Corrected recipient a6006888…
-remains disabled until its separately requested exact approval; original ef237cbb…
-approval cannot authorize changed pins. Native account/boundary actions remain in
-[the consolidated owner checklist](../contributor/portable-agent-owner-checklist.md).
-No failed prerequisite launches a model; no further complete-path timing sample
-is planned. Authoritative V01–V22 map was independently audited and updated.
+At submission active artifacts4,826,222bytes plus224KiB maximum reservation
+=5,055,598bytes, below approved10MiB. Actual new archive160,466bytes has one-day
+retention. No additional storage operation is queued. Frozen signed artifact expiry
+is2026-10-11 23:56:31UTC; recheck live availability before an approved recipient run.
+
+All safe independent tasks in this checkpoint are complete. Do not rerun CI,
+models, preservation or timing while waiting. Next affected operations require:
+
+1. The separately requested exact corrected-recipient workflow approval
+   (a6006888…; only two pins changed). Original ef237cbb… approval does not approve
+   changed bytes. If approved, verify exact proposal/registry/policy/artifact live
+   identity, update only the dedicated recipient branch normally and run once.
+   An expired artifact or failure requires review, not an improvised new producer.
+2. Copilot applicable seat/included quota and effective native credential/sandbox
+   proof; Claude supported isolated onboarding/authentication plus the corresponding
+   no-model boundary proof. Follow the existing consolidated owner checklist;
+   approved account existence is not a missing question. Failed prerequisites
+   launch zero model processes.
+
+These recurring gates block live G2/G3 acceptance and final G4 readiness. Resume
+from this worktree, check status/refs and reread decisions/review before the affected
+operation. No publication or final gate completion is implied. Owner responses may
+unblock one lane without authorizing another.
 
 ## Completed controlled cost sample and revised documentation
 
@@ -153,8 +177,8 @@ ordinary outcomes and no green guarantee. Task candidate packed once from223f231
 158,546bytes,SHA-256 `b8122c3bdcedf42a374ba3a87681ca7654360bc6c10daa64b5ac93a79ca7b190`.
 Only package/docs/user/portable-evidence.md differs from frozen8695; runtime and
 allother package payload identical. Manifest/checksum/source retained. It is neither
-publicalpha.10 nor frozen signing8695 bytes. New exact-platform acceptance pending;
-frozen evidence remains valid for unchanged runtime, not new packaged-guide bytes.
+publicalpha.10 nor frozen signing8695 bytes. Exact-platform38101767565 acceptance passes for these guide-only bytes;
+frozen evidence remains separately identified for its unchanged runtime and signing.
 No final release/version/publication is implied.
 
 ## Current hosted and installed checkpoint

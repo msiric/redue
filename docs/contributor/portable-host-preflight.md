@@ -14,7 +14,11 @@ A distinct guide-only package was packed once at223f231,80files/158,546bytes,
 SHA-256 `b8122c3bdcedf42a374ba3a87681ca7654360bc6c10daa64b5ac93a79ca7b190`.
 Its only payload change is the portable user guide; runtime bytes are identical.
 Current exact-byte matrix38101767565 and shared regressions38101769601 at05c1d86
-are in progress, not PASS. The controlled cost completion at223f231 passed on
+both passed. The exact matrix installs b812 on all three platforms; portable
+origin/relocation acceptance runs on supported macOS only. Product CI has481tests
+each: macOS454PASS/27SKIP, Windows305PASS/176SKIP, Linux22/24 each442PASS/39SKIP,
+zero failures/cancellations. Its independent repack is not exact-byte evidence.
+The controlled cost completion at223f231 passed on
 frozen8695 with truthful ordinary-run PASS/UNVERIFIED after import and restart;
 one sample showed no savings and ran no model. See the tracker for actual counts
 and costs, not this preflight's existence as proof of behavior.

@@ -3,7 +3,8 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-Current conclusion: exact d04b872 installed @2 same-machine mechanics pass. Actual signed producer run `38096670987` producer/signing SUCCESS; both complete profile prototypes `38096673747` SUPPORTED. Independent required-refresh authentication passes under an inspection proposal only (verifiedtrue/acceptedfalse/notcurrentpolicy/reusefalse). All21 runtime records match both VMs and the signed origin; exact data-only producer trust/provisioning is now owner-approved in D5; recipient run38098482463 stopped before import with CI_MACHINE_OBSERVER; the independently reviewed1492a67 fresh-row harness correction passes104/104 controls and one actual installed d04 setup; corrected immutable-pin proposal remains unenabled pending exact review/owner approval. No matched-machine recipient or actual portable model reuse is established. G2/G3/G4 remain incomplete. Preserve earlier complete-cache timeout/origin failures as history; no failed prerequisite launches a model. Exact-package38096673730 allthree platforms PASS with downloaded SHA/source-tree identity verified; product38096673735 allfour jobs PASS. These results do not establish accepted CI import or model handoff.
+Current conclusion (2026-10-11 01:46UTC): guide-only candidate b8122c3b… passes the exact-package38101767565 matrix on all three platforms; same-source05c1d869 product38101769601 passes all four jobs (481tests each, zero failures/cancellations). Independent review08b55c1 verifies artifact/source/log identity. Runtime remains frozen d04b872; ordinary local selection and portable conflicts remain conservative. Hosted signed producer38096670987 and both matched profile prototypes pass; recipient38098482463 failed before import. The corrected immutable-pin proposal remains disabled pending its separately requested exact approval. No live accepted recipient import or actual portable model reuse is established. One complete controlled same-machine sequence cost39.890s versus0.213s for two plain compiler obligations; no net savings. G1 technical slice only; G2/G3/G4 incomplete. See current acceptance map and resume record; earlier failures remain history.
+
 Agreed Day 0: 2026-10-10 21:24 UTC (owner confirmed). First substantive review: 2026-10-13 21:24 UTC. Daily concise progress summaries. Additional metered spending is $0/day and $0 total for the first 72 hours; only established subscription-included capacity is allowed. Standard public GitHub-hosted validation VMs are now approved: two independent macos-26 ARM64 profile jobs first. Owner confirmed 10 MiB included artifact storage, one-day retention and no paid usage; exact signing enablement is approved, and exact data-only producer trust/provisioning are approved in D5; actual recipient applicability remains pending. Owner now approves existing Claude subscription and Copilot personal-use entitlement; exact native Claude OAuth workflow/secret and Copilot seat/policy/billing checks remain prerequisites. Explicit demonstration-pair amendment D4: Copilot CLI producer VM A → native Claude Code receiver VM B on independently matched approved macOS runners; Codex acceptance stays separate. Provisioning and blocked time count from kickoff; dates will not be reset. Initial targets remain Day 14 demonstration / Day 28 prepublication readiness, uncalibrated until the real G1 slice.
 
 | Gate | Current status | Evidence / outstanding prerequisite |
@@ -79,8 +80,13 @@ Current update: one reviewed same-obligation completion sample PASS at223f231,
 frozen8695, ordinary newPASS remainsUNVERIFIED/nonreuse afterrestart. Workflow
 commands39.890s vs two plain obligations0.213s; no net benefit or avoided obligations
 established. New packed-guide candidate223f231 SHA b8122c3b… differs only in shipped
-portable user documentation; src/bin unchanged. Exact matrix for those bytes is
-pending. G2/G3/G4 remain incomplete, no model trial/new signing/trust/publication.
+portable user documentation; src/bin unchanged. Exact matrix38101767565 for those bytes passed all three platforms. Product
+38101769601 passed all four jobs:481tests each, macOS454PASS/27SKIP, native
+Windows305PASS/176SKIP, Linux22/24 each442PASS/39SKIP, zero failures/cancellations.
+This product workflow repacks; its bytes are separate from exact b812 acceptance.
+Independent review08b55c1 confirms the completed evidence. All safe independent
+work at this checkpoint is complete; the recurring owner/native prerequisites
+below prevent live recipient/model acceptance. No further timing or model retry is queued. G2/G3/G4 remain incomplete, no model trial/new signing/trust/publication.
 
 Earlier checkpoint at01:19UTC,3h55m since agreedDay0: frozen d04 origin/signing/profile and installed
 relocation evidence remains valid; no actual model handoff or live accepted recipient
