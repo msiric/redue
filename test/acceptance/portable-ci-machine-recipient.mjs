@@ -9,7 +9,7 @@ import {canonical,parseEnvelope,parsePortableJson} from '../../src/portable-enve
 import {readBoundedPortableFile} from '../../src/portable-command.mjs';
 import {validateCIPolicy} from '../../src/portable-ci-trust.mjs';
 import {writeControlledPortableProject,readMachineHostFacts,requireImportedEligibility} from './portable-machine.mjs';
-import {runCIRecipient} from './portable-ci-recipient.mjs';
+import {runCIRecipient,readCIRecipientProject,requireFreshCIObserver} from './portable-ci-recipient.mjs';
 const sha=v=>createHash('sha256').update(v).digest('hex'),HEX=/^[a-f0-9]{64}$/;
 const fail=code=>{throw Object.assign(Error('Explicit CI machine recipient prerequisite failed'),{code});};
 const flags=['--base','--tarball','--sha256','--source','--input','--registry','--registry-sha256','--policy-digest','--gh-executable','--gh-sha256','--run','--attempt','--manifest-sha256'];
@@ -66,7 +66,7 @@ export function provisionExactCIRegistry({state,root,configFile,bytes,sha256,app
  const expected={schema:1,kind:'vstate-product-alpha',config:configFile,root,state},owner=parsePortableJson(ownerBytes);
  const unchanged=()=>directory(state)===stateBefore&&directory(root)===rootBefore&&fingerprint(fs.lstatSync(ownerFile,{bigint:true}))===fingerprint(ownerBefore)&&readBoundedPortableFile(ownerFile,{limit:8192}).equals(ownerBytes);
  if(configFile!==path.join(state,'project-runtime-v1.json')||canonical(owner)!==canonical(expected)||sha(bytes)!==sha256||!unchanged())fail('CI_MACHINE_OWNERSHIP');
- for(const name of ['receipts-v1.json','runs-v1','portable-imports-v1.json','portable-imports-pending-v1.json','portable-evidence-v1']){try{fs.lstatSync(path.join(state,name));fail('CI_MACHINE_HISTORY');}catch(error){if(error.code!=='ENOENT')throw error;}}
+ for(const name of ['receipts-v1.json','runs-v1','portable-imports-v1.json','portable-import-pending-v1.json','portable-evidence-v1']){try{fs.lstatSync(path.join(state,name));fail('CI_MACHINE_HISTORY');}catch(error){if(error.code!=='ENOENT')throw error;}}
  const target=path.join(state,'portable-producers-v1.json');let fd,written;
  try{fd=fs.openSync(target,fs.constants.O_WRONLY|fs.constants.O_CREAT|fs.constants.O_EXCL|(fs.constants.O_NOFOLLOW??0),0o600);
  const opened=fs.fstatSync(fd,{bigint:true});if(!opened.isFile()||opened.nlink!==1n||opened.uid!==BigInt(process.getuid())||(opened.mode&0o777n)!==0o600n)fail('CI_MACHINE_REGISTRY');
@@ -91,7 +91,8 @@ export function runCIMachineRecipient(options){
   writeControlledPortableProject(root);exec('dependencies','npm',['install','--registry=https://registry.npmjs.org','--no-audit','--no-fund'],{cwd:root});exec('checkout','git',['init','-q'],{cwd:root});
   const preview=json('init','--recipe','typescript-direct','--check','typecheck','--dry-run');if(preview.written!==false||preview.checks[0]?.level!=='ready')fail('CI_MACHINE_SETUP');
   redue('init','--recipe','typescript-direct','--check','typecheck');started=true;redue('start');
-  const ready=json('status','--sync');if(ready.schema!==1||ready.observation?.healthy!==true||ready.checks?.[0]?.verification_recipe!=='npm-direct-typescript@1')fail('CI_MACHINE_OBSERVER');
+  readCIRecipientProject({configFile:config,root,state,cliEntry:cli});
+  requireFreshCIObserver(json('status','--sync'));
   // Re-read selected exact inputs after setup. Base is now intentionally occupied;
   // raw registry must still match before the only explicit new-state policy copy.
   const current=readBoundedPortableFile(o['--registry'],{limit:65536});if(!current.equals(checked.registryBytes))fail('CI_MACHINE_REGISTRY');

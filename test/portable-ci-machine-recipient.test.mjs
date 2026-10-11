@@ -1,6 +1,7 @@
 // Controlled fresh-state preparation tests; no live verifier/VM/model acceptance.
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import childProcess from 'node:child_process';import {createHash,randomUUID} from 'node:crypto';
 import {canonical,encodeEnvelope,PORTABLE_INTERPRETATION} from '../src/portable-envelope.mjs';
+import {requireFreshCIObserver} from './acceptance/portable-ci-recipient.mjs';
 import {ciMachineOptions,ciMachinePreflight,runCIMachineRecipient,provisionExactCIRegistry} from './acceptance/portable-ci-machine-recipient.mjs';
 const hash=v=>createHash('sha256').update(v).digest('hex'),owned={skip:typeof process.getuid!=='function'};
 function fixture(t){
@@ -46,8 +47,14 @@ test('owner marker replacement during durable policy copy refuses all continuati
  assert.equal(f.calls.length,0);assert(!fs.existsSync(path.join(state,'portable-imports-v1.json')));assert(!fs.existsSync(path.join(state,'runs-v1')));
 });
 
-for(const history of ['receipts-v1.json','runs-v1','portable-imports-v1.json','portable-evidence-v1'])test(`policy provisioning refuses existing ${history} before copy`,owned,t=>{
+for(const history of ['receipts-v1.json','runs-v1','portable-imports-v1.json','portable-import-pending-v1.json','portable-evidence-v1'])test(`policy provisioning refuses existing ${history} before copy`,owned,t=>{
  const f=fixture(t),root=path.join(f.base,'Checkout 空间'),state=path.join(f.base,'redue-state'),configFile=path.join(state,'project-runtime-v1.json');fs.mkdirSync(root);fs.mkdirSync(state,{mode:0o700});fs.writeFileSync(path.join(state,'vstate-owner-v1.json'),canonical({schema:1,kind:'vstate-product-alpha',root,state,config:configFile}));
  const file=path.join(state,history);fs.writeFileSync(file,'preserve');assert.throws(()=>provisionExactCIRegistry({state,root,configFile,bytes:f.bytes,sha256:hash(f.bytes),apply:true}),{code:'CI_MACHINE_HISTORY'});
  assert.equal(fs.readFileSync(file,'utf8'),'preserve');assert(!fs.existsSync(path.join(state,'portable-producers-v1.json')));assert.equal(f.calls.length,0);
+});
+
+test('machine observer uses the same receipt-free schema guard without recipe metadata',()=>{
+ const status={schema:1,observation:{healthy:true},checks:[{name:'typecheck',freshness:'UNVERIFIED',result:null,invocation:null,reuse_eligible:false}]};
+ assert.equal(requireFreshCIObserver(status),status.checks[0]);assert(!Object.hasOwn(status.checks[0],'verification_recipe'));
+ status.observation.healthy=false;assert.throws(()=>requireFreshCIObserver(status),{code:'CI_RECIPIENT_OBSERVER'});
 });

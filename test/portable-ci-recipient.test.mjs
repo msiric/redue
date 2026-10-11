@@ -6,6 +6,7 @@ import path from 'node:path';
 import childProcess from 'node:child_process';
 import {createHash,randomUUID} from 'node:crypto';
 import {canonical,encodeEnvelope,PORTABLE_INTERPRETATION} from '../src/portable-envelope.mjs';
+import {directEnvironment} from '../src/direct-typescript.mjs';
 import {readProducerPolicySnapshot} from '../src/portable-producer-policy.mjs';
 import {ciRecipientOptions,preflightCIRecipient,runCIRecipient} from './acceptance/portable-ci-recipient.mjs';
 
@@ -13,9 +14,15 @@ const hash=value=>createHash('sha256').update(value).digest('hex'),ownerTests={s
 function fixture(t){
   const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-ci-recipient-'))),root=path.join(base,'checkout 空间'),state=path.join(base,'redue-state');
   fs.mkdirSync(root);fs.mkdirSync(state,{mode:0o700});
-  const config=path.join(root,'redue.config.json'),runtime=path.join(state,'project-runtime-v1.json');
-  fs.writeFileSync(config,canonical({schema:1,checks:[{name:'typecheck',recipe:'typescript-direct'}]}));
-  fs.writeFileSync(runtime,canonical({schema:1,root,state,checks:[{name:'typecheck',qualification:'npm-typescript-direct-v1'}]}));
+  const config=path.join(root,'redue.config.json'),runtime=path.join(state,'project-runtime-v1.json'),cli=path.join(base,'installed','bin','redue.mjs'),gh=path.join(base,'reviewed-gh');
+  const compiler=path.join(root,'node_modules/typescript/lib/tsc.js'),probe=path.join(base,'installed','src','direct-typescript-probe.mjs');
+  fs.mkdirSync(path.dirname(compiler),{recursive:true});fs.mkdirSync(path.dirname(cli),{recursive:true});fs.mkdirSync(path.dirname(probe),{recursive:true});
+  fs.writeFileSync(path.join(root,'package.json'),canonical({name:'controlled-receiver'}));
+  fs.writeFileSync(path.join(root,'node_modules/typescript/package.json'),canonical({name:'typescript',version:'5.6.3'}));
+  fs.writeFileSync(compiler,'controlled compiler path; never executed');fs.writeFileSync(probe,'controlled builtin probe path; never executed');
+  const inputs=['package.json','tsconfig.json','**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,json,jsonc}'];
+  fs.writeFileSync(config,canonical({schema:1,packageManager:'npm',checks:[{name:'typecheck',script:'typecheck',qualification:'npm-typescript-direct-v1',command:['@node','@typescript-compiler:.','--noEmit'],cwd:'.',inputs}]}));
+  fs.writeFileSync(runtime,canonical({schema:1,provider:'declared-project@1',root,state,checks:[{name:'typecheck',script:'typecheck',qualification:'npm-typescript-direct-v1',qualificationInterpretation:'npm-direct-typescript@1',command:[process.execPath,compiler,'--noEmit'],cwd:'.',inputs,installedInputs:['node_modules/**'],allowedExternalRoots:[],environment:directEnvironment,probes:[[process.execPath,probe,root,'typecheck']]}]}));
   fs.writeFileSync(path.join(state,'vstate-owner-v1.json'),canonical({schema:1,kind:'vstate-product-alpha',root,state,config:runtime}));
   const facts={schema:1,recipe:{interpretation:'npm-direct-typescript@1',script:'typecheck',command:['@node','@typescript-compiler:.','--noEmit'],definitionSha256:hash('definition')},
     platform:{os:'darwin',arch:'arm64',release:'25.6.0'},runtime:{version:'v22.13.0',sha256:hash('node'),sharedObjects:[]},
@@ -24,7 +31,7 @@ function fixture(t){
   const envelope=encodeEnvelope({schema:1,interpretation:PORTABLE_INTERPRETATION,
     origin:{runId:randomUUID(),check:'producer-check',result:'PASS',invocation:{status:'exited',exitCode:0,signal:null},complete:true},facts});
   const artifact=path.join(base,'redue-portable-evidence.json'),bytes=Buffer.from(canonical(envelope)+'\n');fs.writeFileSync(artifact,bytes);
-  const cli=path.join(base,'installed-redue.mjs'),gh=path.join(base,'reviewed-gh');fs.writeFileSync(cli,'controlled CLI fixture');fs.writeFileSync(gh,'controlled gh fixture');
+  fs.writeFileSync(cli,'controlled CLI fixture');fs.writeFileSync(gh,'controlled gh fixture');
   const policy={schema:1,interpretation:'redue-github-ci-trust@1',issuer:'https://token.actions.githubusercontent.com',repository:'msiric/redue',repositoryId:'1403689333',ownerId:'26199969',
     workflow:'.github/workflows/portable-evidence.yml',ref:'refs/heads/main',sourceCommit:'1'.repeat(40),signerCommit:'2'.repeat(40),artifactSha256:hash(bytes),
     evidenceDigest:envelope.digest,evidenceInterpretation:PORTABLE_INTERPRETATION,refresh:'required',bundleSha256:null};
@@ -36,7 +43,7 @@ function fixture(t){
   const imported={digest:envelope.digest,origin_run_id:envelope.statement.predicate.origin.runId,result:'PASS',acceptance:'github-ci-v1'};
   // These are controlled CLI-response fixtures, NOT live signature, machine,
   // compiler, or agent evidence. Actual deployed execution remains queued.
-  const responses={ready:{schema:1,observation:{healthy:true},checks:[{name:'typecheck',verification_recipe:'npm-direct-typescript@1'}]},
+  const responses={ready:{schema:1,observation:{healthy:true},checks:[{name:'typecheck',freshness:'UNVERIFIED',result:null,invocation:null,reuse_eligible:false}]},
     preview:{apply:false,producer_verified:false,producer_accepted:false,digest:envelope.digest},
     applied:{producer_verified:true,producer_accepted:true,reuse_eligible:false,acceptance:'github-ci-v1',digest:envelope.digest},
     visible:{schema:1,observation:{healthy:true},checks:[{name:'typecheck',freshness:'CURRENT',result:'PASS',reuse_eligible:true,evidence_source:'imported',invocation:null,imported_evidence:imported}]},afterPreview:null};
@@ -127,3 +134,39 @@ test('online refresh does not silently become offline when a bundle is supplied'
   const f=fixture(t),bundle=path.join(f.base,'attestation.jsonl');fs.writeFileSync(bundle,'controlled offline fixture');
   assert.throws(()=>runCIRecipient({...f.options,'--bundle':bundle,'--apply':true}),{code:'CI_RECIPIENT_BUNDLE'});zeroLaunch(f);
 });
+
+test('fresh receipt-free status without verification_recipe proceeds through authenticated controlled route',ownerTests,t=>{
+  const f=fixture(t);assert(!Object.hasOwn(f.responses.ready.checks[0],'verification_recipe'));
+  const report=runCIRecipient({...f.options,'--apply':true});assert.equal(report.recipient_reuse_eligible,true);assert.equal(f.calls.length,4);
+  assert.deepEqual(f.calls.map(call=>call.args.includes('import')?'import':'status'),['status','import','import','status']);
+  assert(!f.calls.some(call=>call.args.includes('run')));
+});
+for(const mismatch of ['malformed-public','public-command','public-qualification','manager','script','runtime-command','runtime-probe','runtime-interpretation','runtime-root','duplicate-check'])
+  test(`fresh ${mismatch} configuration fails before any import or authentication`,ownerTests,t=>{
+    const f=fixture(t),config=JSON.parse(fs.readFileSync(f.options['--config'])),runtime=JSON.parse(fs.readFileSync(f.runtime));
+    if(mismatch==='malformed-public')fs.writeFileSync(f.options['--config'],'{"schema":');
+    else {
+      if(mismatch==='public-command')config.checks[0].command=['@which:npm','run','typecheck'];
+      if(mismatch==='public-qualification')config.checks[0].qualification='typescript-noemit-v1';
+      if(mismatch==='manager')config.packageManager='pnpm';
+      if(mismatch==='script')runtime.checks[0].script='unreviewed-script';
+      if(mismatch==='runtime-command')runtime.checks[0].command[1]=process.execPath;
+      if(mismatch==='runtime-probe')runtime.checks[0].probes[0][1]='unreviewed-probe.mjs';
+      if(mismatch==='runtime-interpretation')runtime.checks[0].qualificationInterpretation='obsolete-direct@0';
+      if(mismatch==='runtime-root')runtime.root=f.base;
+      if(mismatch==='duplicate-check')runtime.checks.push(runtime.checks[0]);
+      fs.writeFileSync(f.options['--config'],canonical(config));fs.writeFileSync(f.runtime,canonical(runtime));
+    }
+    assert.throws(()=>runCIRecipient({...f.options,'--apply':true}),{code:'CI_RECIPIENT_PROJECT'});zeroLaunch(f);
+    assert(!fs.existsSync(path.join(f.state,'portable-imports-v1.json')));
+  });
+for(const kind of ['current','pass','local-invocation','reuse','imported-source','wrong-check','duplicate-check'])
+  test(`fresh observer ${kind} cannot masquerade as receipt-free precondition`,ownerTests,t=>{
+    const f=fixture(t),row=f.responses.ready.checks[0];
+    if(kind==='current')row.freshness='CURRENT';if(kind==='pass')row.result='PASS';
+    if(kind==='local-invocation')row.invocation={runId:randomUUID()};if(kind==='reuse')row.reuse_eligible=true;
+    if(kind==='imported-source')row.evidence_source='imported';
+    if(kind==='wrong-check')row.name='other';if(kind==='duplicate-check')f.responses.ready.checks.push({...row});
+    assert.throws(()=>runCIRecipient({...f.options,'--apply':true}),{code:'CI_RECIPIENT_OBSERVER'});
+    assert.equal(f.calls.length,1);assert(!f.calls.some(call=>call.args.includes('import')));
+  });

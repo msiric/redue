@@ -10,6 +10,7 @@ import {canonical,parseEnvelope,parsePortableJson} from '../../src/portable-enve
 import {readBoundedPortableFile} from '../../src/portable-command.mjs';
 import {readProducerPolicySnapshot,revalidateProducerPolicySnapshot} from '../../src/portable-producer-policy.mjs';
 import {readImportedSnapshot} from '../../src/portable-store.mjs';
+import {directCompiler,directQualification,directInterpretation,directEnvironment} from '../../src/direct-typescript.mjs';
 import {requireImportedEligibility} from './portable-machine.mjs';
 
 const sha=value=>createHash('sha256').update(value).digest('hex'),HEX=/^[a-f0-9]{64}$/,COMMIT=/^[a-f0-9]{40}$/;
@@ -43,6 +44,44 @@ function noLocalExecution(state){
   if(selected.schema!==1||!selected.checks||Object.keys(selected.checks).length)fail('CI_RECIPIENT_LOCAL_EXECUTION');
   return sha(canonical(selected));
 }
+// Fresh status rows deliberately omit receipt-derived verification_recipe.
+// This bounded local configuration check is not compiler qualification or PASS;
+// the installed engine still independently establishes post-import CURRENT.
+export function readCIRecipientProject({configFile,root,state,cliEntry}){
+  const runtimeFile=path.join(state,'project-runtime-v1.json');
+  try{
+    const config=parsePortableJson(readBoundedPortableFile(configFile,{limit:65536})),runtime=parsePortableJson(readBoundedPortableFile(runtimeFile,{limit:65536}));
+    const named=value=>Array.isArray(value)&&value.filter(check=>check?.name==='typecheck');
+    const publicRows=named(config.checks),runtimeRows=named(runtime.checks);
+    if(config.schema!==1||config.packageManager!=='npm'||!publicRows||publicRows.length!==1||
+      runtime.schema!==1||runtime.provider!=='declared-project@1'||runtime.root!==root||runtime.state!==state||!runtimeRows||runtimeRows.length!==1||
+      fs.realpathSync(path.resolve(path.dirname(configFile),config.root||'.'))!==root)fail('CI_RECIPIENT_PROJECT');
+    const selected=publicRows[0],resolved=runtimeRows[0],command=['@node','@typescript-compiler:.','--noEmit'];
+    if(selected.qualification!==directQualification||resolved.qualification!==directQualification||resolved.qualificationInterpretation!==directInterpretation||
+      typeof selected.script!=='string'||!selected.script||resolved.script!==selected.script||
+      (selected.cwd||'.')!=='.'||(resolved.cwd||'.')!=='.'||canonical(selected.command)!==canonical(command)||
+      (selected.probes||[]).length||selected.environment||
+      !Array.isArray(selected.inputs)||selected.inputs.some(value=>typeof value!=='string')||
+      !['package.json','tsconfig.json','**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,json,jsonc}'].every(value=>selected.inputs.includes(value))||
+      canonical(resolved.inputs)!==canonical(selected.inputs)||canonical(resolved.installedInputs)!==canonical(['node_modules/**'])||
+      canonical(resolved.allowedExternalRoots)!==canonical([])||canonical(resolved.environment)!==canonical(directEnvironment))fail('CI_RECIPIENT_PROJECT');
+    // Resolve from the local reviewed installation/layout, never an artifact path.
+    // Full implementation validation remains in the actual synchronized probes.
+    const compiler=directCompiler(root,{verify:false});regularCanonical(compiler.entry);
+    const expected=[process.execPath,compiler.entry,'--noEmit'],probe=path.join(path.dirname(path.dirname(cliEntry)),'src','direct-typescript-probe.mjs');
+    if(canonical(resolved.command)!==canonical(expected)||canonical(resolved.probes)!==canonical([[process.execPath,probe,root,selected.script]]))fail('CI_RECIPIENT_PROJECT');
+    const imports=readImportedSnapshot(state,{configFile:runtimeFile,root});if(imports.error)fail('CI_RECIPIENT_OWNERSHIP');
+    if(imports.records.length)fail('CI_RECIPIENT_ALREADY_IMPORTED');
+    return {config,runtime,history:noLocalExecution(state)};
+  }catch(error){if(['CI_RECIPIENT_PROJECT','CI_RECIPIENT_OWNERSHIP','CI_RECIPIENT_LOCAL_EXECUTION','CI_RECIPIENT_ALREADY_IMPORTED'].includes(error.code))throw error;fail('CI_RECIPIENT_PROJECT');}
+}
+export function requireFreshCIObserver(status){
+  const rows=Array.isArray(status?.checks)?status.checks.filter(row=>row?.name==='typecheck'):[];
+  if(status?.schema!==1||status.observation?.healthy!==true||rows.length!==1||rows[0].freshness!=='UNVERIFIED'||
+    rows[0].result!==null||rows[0].invocation!==null||rows[0].reuse_eligible!==false||
+    rows[0].evidence_source&&rows[0].evidence_source!=='none')fail('CI_RECIPIENT_OBSERVER');
+  return rows[0];
+}
 export function preflightCIRecipient(input){
   const options=ciRecipientOptions(Object.entries(input).flatMap(([key,value])=>value===true?[key]:[key,value]));
   const state=options['--state'],root=options['--root'],runtimeFile=path.join(state,'project-runtime-v1.json');
@@ -59,14 +98,7 @@ export function preflightCIRecipient(input){
   // independently checks the entire selected native gh binary before execution.
   regularCanonical(options['--gh-executable']);
   if(sha(readBoundedPortableFile(options['--cli-entry'],{limit:65536}))!==options['--cli-sha256'])fail('CI_RECIPIENT_CLI');
-  const config=parsePortableJson(readBoundedPortableFile(options['--config'],{limit:65536})),
-    runtime=parsePortableJson(readBoundedPortableFile(runtimeFile,{limit:65536}));
-  if(config.schema!==1||!Array.isArray(config.checks)||!config.checks.some(check=>check.name==='typecheck')||
-    runtime.schema!==1||runtime.root!==root||runtime.state!==state||!Array.isArray(runtime.checks)||
-    !runtime.checks.some(check=>check.name==='typecheck'&&check.qualification==='npm-typescript-direct-v1'))fail('CI_RECIPIENT_PROJECT');
-  const imports=readImportedSnapshot(state,{configFile:runtimeFile,root});if(imports.error)fail('CI_RECIPIENT_OWNERSHIP');
-  if(imports.records.length)fail('CI_RECIPIENT_ALREADY_IMPORTED');
-  const history=noLocalExecution(state);
+  const {history}=readCIRecipientProject({configFile:options['--config'],root,state,cliEntry:options['--cli-entry']});
   if(!revalidateProducerPolicySnapshot(snapshot,{expectedFile:path.join(state,'portable-producers-v1.json')}))fail('CI_RECIPIENT_POLICY');
   return {options,snapshot,history,envelope,artifactSha256:sha(bytes),evidenceDigest:envelope.digest,
     originRunId:p.origin.runId,refresh:policy.refresh};
@@ -89,7 +121,7 @@ export function runCIRecipient(options){
     try{return parsePortableJson(result.stdout);}catch{fail('CI_RECIPIENT_RESPONSE');}
   };
   const ready=invoke('recipient preflight',['status','--sync']);
-  if(ready.schema!==1||ready.observation?.healthy!==true||!ready.checks?.some(check=>check.name==='typecheck'&&check.verification_recipe==='npm-direct-typescript@1'))fail('CI_RECIPIENT_OBSERVER');
+  requireFreshCIObserver(ready);
   const args=['evidence','import',initial.options['--artifact'],'--check','typecheck','--ci-policy-digest',initial.options['--policy-digest'],
     '--gh-executable',initial.options['--gh-executable'],'--gh-sha256',initial.options['--gh-sha256'],
     ...(initial.options['--bundle']?['--bundle',initial.options['--bundle']]:[])];
