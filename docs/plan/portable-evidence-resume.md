@@ -182,8 +182,9 @@ bytes have the same verified SHA; actual PR-merge source
 Read [one owner setup checklist](../contributor/portable-agent-owner-checklist.md).
 Exact final data-only recipient proposal remains outside active workflows, SHA
 ef237cbb411b0520791911503d3071a9a42f78502ac8f712406a11566482ef78;
-registry5a1021 and policybab790 still require explicit approval. Owner question
-issued once for that scope and Copilot seat/quota/$0 capacity; do not repeat it.
+Registry5a1021/policybab790 and exactef237 workflow are owner-approved in D5.
+Dedicated recipient branchb240187/run38098482463 is queued; no acceptance result
+yet. Copilot seat/quota/$0 capacity question remains pending; do not repeat it.
 Preparation107tests:106PASS/one native-Windows-only skip/zeroFAIL3.515s,
 `.local/portable-evidence/recipient-host-preparation-integrated.tap`.
 All new code is contributor-only preparation; no runtime/probe/schema changes

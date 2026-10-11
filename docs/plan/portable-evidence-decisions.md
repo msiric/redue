@@ -144,3 +144,24 @@ switch environment keys checked by presence only were absent. This distinguishes
 the observed local route from the prior API-credit error; it does not prove VM
 capacity. Workflow version/authentication and in-context preconditions must still
 be checked. See [Claude receiver preparation](../contributor/portable-claude-receiver-proposal.md).
+
+## D5 — Exact CI recipient trust/provisioning approval (2026-10-11)
+
+The owner explicitly approved the final data-only recipient workflow SHA-256
+`ef237cbb411b0520791911503d3071a9a42f78502ac8f712406a11566482ef78`,
+exact registry bytes SHA-256
+`5a1021fcf9b119f4469370eb33c09dc35c62cb174bc272574065a382aae6d521`,
+and selected required-refresh policy digest
+`bab7901892570e81f15f8e888d2c33e632479f55f461d4ee34f905acfe7a5ce6`.
+Approval covers exclusive provisioning into the workflow's fresh owned VM state,
+not normal installations or global producer trust. The policy accepts only the
+exact d04b872 origin/artifact from approved signer run38096670987/attempt1;
+immutable IDs, workflow/ref/source/signer and outer/inner digests remain bound.
+
+Exact approved bytes are enabled only on dedicated `dev/portable-ci-recipient`,
+commit `b2401875c5e8f60b30c2a87f746b21063e7b5f72`, workflow
+`.github/workflows/portable-ci-recipient.yml`; initial run38098482463 is queued.
+Helper and registry source remain pinned to a23843e; runtime/tarball to d04b872.
+No signing changes, models, OIDC, uploaded artifacts, main merge or publication.
+Successful execution—not approval—must establish authenticated imported CURRENT.
+This does not approve a future Copilot-produced origin or its acceptance policy.
