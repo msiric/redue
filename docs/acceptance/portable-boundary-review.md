@@ -1436,3 +1436,26 @@ The final proposal diff changes only the reviewed source pin. Independent
 controls 2/2 PASS,122.57ms, Node22.13.0; the earlier pin-preparation assertion
 failure remains historical. No secret, native execution, authority, active
 workflow or model capability is added by this test/source correction.
+
+Independent source GO for D5d869099 plus729763103: optional installed-smoke
+complete-path sample retains portable creation/final query/export preview/export/
+inspection/import preview/apply, eligible/cached/unrelated/relevant decisions,
+required ordinary local rerun/final query, and restart/inherited local evidence.
+Plain initial/relevant compilation executes the exact locally resolved configured
+argv, with root/state/cwd/qualification/Node/compiler binding checked. The
+immutable origin, imported history and new local outcome remain checked.
+
+All measured subprocess durations are disjoint; the inclusive policy-upgrade
+helper is not counted again internally. Actual workflow wall time is measured
+directly, and setup/control/cleanup commands remain separately visible. Failure
+reports retain timing and cannot support a favorable comparison. The summary
+explicitly withholds avoided-execution, causal whole-task, model and two-machine
+claims. Independent pure tests2/2 PASS,61.25ms, Node22.13.0; syntax PASS. No
+installed sample was run by this reviewer. Approval is for the predeclared single
+controlled same-host noLib mechanics sample using preserved d04/8695 bytes,
+not new benchmark distribution, adoption or gate completion.
+
+Current product-source CI38099703953 four jobs PASS on892f603 (472 tests/job)
+is separate from prior exact frozen-package matrix38096673730. Its native
+Windows independent repack5e3a/159042 bytes differs from frozen8695/158105
+bytes; source acceptance must not be relabeled as frozen-artifact acceptance.
