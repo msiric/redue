@@ -39,9 +39,13 @@ independently12/12PASS142.38ms. Platform-delta9653b26 author12PASS/1Windowsbranc
 independent source-only review GO5ea02af, no native Windows result. Native Claude2.1.146
 lacks the proposed credential-deny feature; official source first adds it in2.1.187.
 Isolated verified187 help/version passed. Fresh owned no-auth map/settings were independently
-reviewed, selected20 auth/provider/secure-storage keys absent; startup is stopped pending
-actual managed-hook inventory and process-only updater guard review. Native UI/login and
-actual sentinel sandbox tests remain unrun. Preview/apply fixture files are separate from native
+reviewed, selected20 auth/provider/secure-storage keys absent. Actual managed sources
+were absent; supported process-only updater guard independently reviewed. One bounded
+map-v2 native UI startup reached INITIAL_THEME_ONBOARDING_GATE, zero input/tools/models,
+5,155.2ms including owned process SIGKILL/reap after SIGTERM2s. Original report and
+independent clarification retained; no retry/bypass. Supported owner-provisioned test
+onboarding/authentication and actual sentinel sandbox tests remain pending.
+Preview/apply fixture files are separate from native
 REDUE setup/doctor support, import acceptance and model behavior. No active workflow,
 credential or permission is provisioned by these helpers; d04 candidate bytes remain unchanged.
 

@@ -59,11 +59,15 @@ versioned source adds it only in 2.1.187. A verified isolated native2.1.187 bina
 passed version/help only; the documented strict interactive shell route is prepared,
 not executed. Fresh owned no-auth data-only map/settings were independently reviewed
 (settings SHA785be21b…);20 selected authentication/provider/secure-storage keys are absent.
-Startup remains stopped:187 preserves managed hooks despite a local disableAllHooks
-flag, and the process-local updater guard needs exact review. Next narrow step is
-read-only applicable managed-hook inventory plus the supported process-only updater
-guard, not a settings/policy bypass. Native UI/login and sentinel enforcement remain
-unrun gates. Help/static keys cannot activate it. These leaf proposals are not in the d04 package.
+After actual managed-policy sources were confirmed absent and process-only
+DISABLE_UPDATES=1 independently reviewed, one exact map-v2 (SHA40a72b76…) UI-only
+startup passed immediate guards and reached INITIAL_THEME_ONBOARDING_GATE.
+5,155.2ms includes termination; zero keyboard/Bash/model/auth/trust actions.
+Original unclassified report is preserved with independent stage clarification.
+SIGTERM did not exit in2s; the owned process was SIGKILLed/reaped-9. No retry or
+onboarding bypass occurred. Owner-provisioned supported test onboarding/authentication
+remains the next native gate; strict-shell/sentinel/credential/sandbox proof is unrun.
+Help/static keys cannot activate it. These leaf proposals are not in the d04 package.
 
 ## Current hosted and installed checkpoint
 

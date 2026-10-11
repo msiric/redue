@@ -227,7 +227,7 @@ An unknown/native validation result stops the lane. Even a successful sentinel
 preflight would not itself establish subscription capacity, model behavior or
 portable-evidence eligibility.
 
-### Data-only bootstrap checkpoint
+### Historical data-only bootstrap checkpoint
 
 Independent source review permits constructing the no-auth map. A fresh owned
 configuration/GitHub configuration/workspace and settings file now exist locally;
@@ -247,3 +247,33 @@ process-local updater guard. Do not change managed settings. If those host-side
 facts cannot be established, leave startup blocked. The structural public-source
 record is local and bounded; neither it nor a settings digest proves native
 credential isolation, zero startup network activity or model acceptance.
+
+### Actual UI-only bootstrap checkpoint
+
+The source-selected macOS managed settings file/fragments and device/per-user
+managed-preferences files were absent. Inventory reported only presence; no
+policy bodies, commands or private values were read or changed. The [official
+environment reference](https://code.claude.com/docs/en/env-vars) and the exact187
+implementation support `DISABLE_UPDATES=1`; that guard was added only to this
+ephemeral host-startup process, not to REDUE's compiler execution or qualification
+environment. Revised map SHA-256 is
+`40a72b761b80b88fbc8123550b778efa66839d530aed50866775fef761e2a6d2`.
+Independent review cleared that exact map and unchanged settings subject to
+immediate ownership/digest/environment/policy rechecks, which passed.
+
+One bounded native interactive process reached the **INITIAL_THEME_ONBOARDING_GATE**
+in 5,155.2ms including termination. No keyboard input, Bash action, model request,
+authentication or trust approval was submitted. The first automatic report was
+INITIAL_UI_UNCLASSIFIED; independent private-log review confirmed the actual theme
+selection screen, and a separate clarification preserves both records. It was
+not a login, trust or execution failure. The owned process did not exit within2s
+of SIGTERM; it was SIGKILLed and reaped (exit-9). No retry was performed.
+
+The protected local map/report/clarification identify the exact bytes; the raw
+UI capture stays private. Native onboarding prevented reaching the shell prompt.
+Do not fabricate completed-onboarding configuration, copy an existing login
+database or skip that gate. A supported owner-provisioned test authentication/
+onboarding route is still needed before any strict-shell sentinel test. This
+result establishes initial native UI startup only, not zero background network/
+keychain activity, credential denial, effective sandboxing, capacity, model use
+or portable-evidence acceptance.
