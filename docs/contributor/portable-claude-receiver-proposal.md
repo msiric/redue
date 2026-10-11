@@ -314,8 +314,8 @@ neither is a REDUE failure or a claim that the subscription lacks capacity.
 
 The owner has since completed onboarding; the next native boundary action is
 the independently reviewed, separately approved sentinel route below. Until then the proposed
-model receiver, authenticated startup and effective sandbox/credential tests remain
-NOT RUN. No secret creation, global changes, native146 upgrade, producer acceptance
+model receiver and agent-run authenticated boundary/credential tests remain
+NOT RUN; owner-reported authenticated startup is separate. No secret creation, global changes, native146 upgrade, producer acceptance
 or native-mode enforcement is inferred from this document.
 
 ### Owner-completed isolated onboarding — recorded2026-10-11 09:28UTC
