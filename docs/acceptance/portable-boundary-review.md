@@ -11,9 +11,11 @@ pass separately. Candidate version remains alpha10 metadata, not final release
 identity. The complete one-sample installed sequence adds measured command work
 rather than establishing net benefit. No G1–G4 or owner-release certification is
 made here. Original failures, unavailable native prerequisites and immutable
-pilot receipts remain retained. The exact synthetic native Claude sentinel
-proposal has independent source/data review GO; live execution remains blocked by
-unknown effective authenticated managed authority and exact owner approval.
+pilot receipts remain retained. Three specifically approved native synthetic
+preflights stopped before command submission; a separate startup-only SAVE_CURSOR
+diagnostic completed. Native checker enforcement remains unverified. Custom
+terminal decoding has stopped; any owner-operated alternative needs a concrete
+reviewed procedure and new specific approval.
 
 The review lane is independent of core and envelope authors. It owns this record
 and `test/portable-boundaries.test.mjs`; it does not modify the applicability
@@ -2096,3 +2098,37 @@ command, six results, isolated protocol delta, live controls and complete
 cleanup/context checks. Pure decoder controls, the SAVE_CURSOR diagnostic
 and ordinary account login do not supply that evidence or model capacity.
 No native operation or repeat trial is authorized by this review.
+
+
+### Third specifically approved synthetic preparation: CSI decoder refusal
+
+The one approved75082e operation returned NOT_VERIFIED (exit1) after492.8ms.
+Independent inspection confirms protected final report SHA-256
+`b4ebbade7123fb6a0ed508f9e7fc20fc7fddc80954b578c67602bf0b4de24941`,
+mode600/current-owned/single-link. Current75082e source and normal5628/eebb/a59
+files were independently rehashed unchanged. Bash mode was false, command
+submissions0, checker JSON false and protocol delta[0,0,0]. External controls
+before/after, native reaping, fallback absence and owned cleanup are true.
+No checker or model ran, and no REDUE authority was exercised.
+
+Exact source emits NATIVE_SCREEN_CONTROL_UNKNOWN from several CSI parsing or
+interpretation refusal branches: unsupported operation/parameters, private
+mode or erase behavior. The actual opcode/parameters were not retained and
+remain UNKNOWN; neither a particular native mode nor a security/REDUE defect
+is established. This third controller compatibility failure does not undo the
+separate startup-only SAVE_CURSOR observation or justify relabeling either
+earlier discarded escape. Every actual attempt remains retained independently.
+No allowance remains, and no further decoder repair or automated retry is
+authorized or proposed in this review.
+
+The smallest known alternative is an owner-operated pinned187 native TTY
+manual! route already supported by the reviewed native source, replacing
+custom screen automation rather than sandbox controls. It is a candidate
+procedure, not validated readiness: a new specific approval must bind the same
+3018 single-command settings, exact synthetic resources,15s limit, visible
+Bash-mode confirmation, six checker results and external live/protocol/context/
+cleanup evidence. The preserved normal5628/eebb profile denies all tools and
+allows no sentinel execution. No arbitrary commands, permission relaxation,
+new helper/framework, native action or model acceptance follow from this
+recommendation. Native checker enforcement and the actual agent/machine gates
+remain unresolved.
