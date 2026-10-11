@@ -1,7 +1,29 @@
 # One installed portable-evidence cost sample
 
-Status: two attempts retained; one bounded completion sample is proposed after
-independent review. Complete-path economics are not yet established. The root ccba93d attempt stopped before portable recording:
+Status: one independently reviewed completion sample passed on 2026-10-11 using
+harness223f231 and preserved d04b872 package SHA8695b612… . The original two
+failed attempts remain below. This is controlled same-machine mechanics and
+complete-path accounting, not agent/two-machine acceptance or a savings claim.
+Actual workflow wall time39,893.226ms;16 disjoint workflow commands39,890.201ms;
+two plain required compiler obligations212.743ms. Setup10,670.230ms, policy/history
+controls258.356ms and cleanup450.977ms are separate visible costs. The source
+portable wrapped run took10,511.610ms; ordinary recipient rerun1,028.031ms. Costs
+are one ordered sample, not a distribution or typical workflow estimate.
+
+Imported origin `daa040d3-c466-4285-a2f3-b42684ee91c6`, digest
+`ff8e449e05b715be9390993d7b8c204c2eb00ebd9c056d963d2cc5ab0147f8df`,
+was eligible in the independently initialized recipient without a local recorded
+execution; an unrelated edit retained it and relevant source edit became STALE.
+The ordinary rerun selected `1b36a1d5-8597-478a-9988-b33b607748b7`, preserving
+historical PASS but returning UNVERIFIED/non-reusable, actual reason
+PORTABLE_LOCAL_SELECTION_BARS_FALLBACK; that outcome survived restart. This actual
+reason is established only for the completion sample, not retroactively for3a65311.
+No portable recovery run, model trial, signing/transport/trust refresh or avoided
+verification obligation was established by this sample. Net benefit was absent
+for the defined sequence; no whole-task speedup claim is justified. Protected raw
+report and reviewer classification are linked from the durable resume.
+
+Historical attempts and predeclaration follow. The root ccba93d attempt stopped before portable recording:
 the shipped runtime correctly declares cwd as ".", while the harness expected an
 absolute string. Its failure JSON/stderr and all preceding setup-command timings
 are retained privately; portable-workflow and model launches were zero. Source

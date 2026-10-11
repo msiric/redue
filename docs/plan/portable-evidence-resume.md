@@ -106,6 +106,32 @@ shipped guide's explicit fresh portable baseline clarification. No model launche
 new producer, signing, credential access or permission changes are authorized by
 these mechanics. All native/account and corrected-pin gates remain separate.
 
+## Completed controlled cost sample and revised documentation
+
+Root harness223f231/frozen8695 completed the one declared ordinary-rerun sequence
+successfully. Protected `.local/portable-evidence/complete-installed-final-ordinary.json`
+and private stderr retain actual served status and all55 command timings.
+Independent74baba6/f19c359 review:16 workflow commands39,890.201ms, measuredwall
+39,893.226ms; two exact plain obligations212.743ms. Setup10,670.230, controls258.356,
+cleanup450.977ms remain separate. Imported origin daa040d3…/digestff8e449… was
+CURRENT/PASS/eligible without local invocation, unrelated edit retained it and
+relevant source edit became STALE. Ordinary new local1b36a1d5… is actual stable
+exit0/PASS, UNVERIFIED/nonreuse with servedPORTABLE_LOCAL_SELECTION_BARS_FALLBACK
+at finalquery and afterrestart. All old import/origin/new local records checked
+immutable until successful owned disposable teardown. No model, portable recovery,
+matched-machine reuse or net savings. Earlier failures are not relabelled.
+
+Reviewed shipped guide now explains explicit selected-check `run CHECK --portable`
+resolution and its added both-boundary cost, keeping exactconfig/state/command,
+ordinary outcomes and no green guarantee. Task candidate packed once from223f231:
+`.local/portable-evidence/candidates/223f231/redue-cli-0.1.0-alpha.10.tgz`,80files/
+158,546bytes,SHA-256 `b8122c3bdcedf42a374ba3a87681ca7654360bc6c10daa64b5ac93a79ca7b190`.
+Only package/docs/user/portable-evidence.md differs from frozen8695; runtime and
+allother package payload identical. Manifest/checksum/source retained. It is neither
+publicalpha.10 nor frozen signing8695 bytes. New exact-platform acceptance pending;
+frozen evidence remains valid for unchanged runtime, not new packaged-guide bytes.
+No final release/version/publication is implied.
+
 ## Current hosted and installed checkpoint
 
 - Signed run `38096670987` producer and signer SUCCESS on exact source d04b872.

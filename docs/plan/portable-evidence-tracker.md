@@ -75,7 +75,14 @@ Current active artifacts are4,826,222bytes at the verified checkpoint; recheck b
 
 ## Daily progress — 2026-10-11 UTC (current)
 
-At01:19UTC,3h55m since agreedDay0: frozen d04 origin/signing/profile and installed
+Current update: one reviewed same-obligation completion sample PASS at223f231,
+frozen8695, ordinary newPASS remainsUNVERIFIED/nonreuse afterrestart. Workflow
+commands39.890s vs two plain obligations0.213s; no net benefit or avoided obligations
+established. New packed-guide candidate223f231 SHA b8122c3b… differs only in shipped
+portable user documentation; src/bin unchanged. Exact matrix for those bytes is
+pending. G2/G3/G4 remain incomplete, no model trial/new signing/trust/publication.
+
+Earlier checkpoint at01:19UTC,3h55m since agreedDay0: frozen d04 origin/signing/profile and installed
 relocation evidence remains valid; no actual model handoff or live accepted recipient
 is established. D5 exact original data-only approval is recorded; revised two-pin
 proposal awaits its separately requested approval, not a repeat trust decision.
