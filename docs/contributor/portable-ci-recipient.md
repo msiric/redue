@@ -117,3 +117,36 @@ procedure shape, **not** live signature acceptance, two-machine compatibility,
 cross-agent reuse or saved verification work. Missing/unsafe policy and identity
 failures launch no CLI, verifier or model process. No producer workflow is enabled
 or dispatched by these materials.
+
+## Disabled standard-runner route
+
+The [disabled recipient proposal](portable-ci-recipient-workflow.yml) selects the
+completed signer run `38096670987`, attempt `1`, source/signer
+`d04b872ee0e848e300c0cc9738ad761e48146acc`, and authenticated-artifact ID
+`11685889769`. Its hashes describe inspected bytes, **not approved producer
+trust**. The job is disabled and its owner-policy placeholders fail before
+checkout, download, verifier or model. It is outside `.github/workflows`.
+
+A separately reviewed enabling diff and explicit owner approval must provide
+current registry bytes/policy, fixed-copy provisioning into initialized owned
+state and the independent recipient preparation. The proposal deliberately
+stops at this missing prerequisite rather than create trust from artifact data.
+The optional dedicated push branch avoids default-branch-only dispatch and does
+not modify or retrigger the approved signer branch. Do not create/push that branch
+or enable the proposal merely because the signed artifact exists.
+
+The pinned native GitHub CLI archive and regular executable digests come from the
+official 2.79.0 arm64 distribution and published checksums, read without executing
+it. HTTPS/published checksum verification is not independent PGP verification;
+actual trusted host execution and live signature verification remain required.
+The selected producer used the controlled `noLib` fixture; successful matching
+profiles are not cross-agent adoption or general default-library compatibility.
+
+The [exact producer policy proposal](portable-ci-producer-policy-proposal.json)
+is review data only, deliberately not a `portable-producers-v1.json` registry.
+It requires online refresh (`required`); the inspected bundle is not an offline
+substitute. One actual live signature inspection matched these bindings but did
+not accept a producer or establish local policy currency or recipient CURRENT.
+The owner must separately approve the selected policy, authoritative registry
+bytes and any recipient provisioning route. No model credentials, two-agent
+behavior or automatic CI trust is supplied by this proposal.

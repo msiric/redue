@@ -1,0 +1,87 @@
+# DISABLED contributor proposal. Not installed in .github/workflows.
+# Exact recipient workflow bytes, registry bytes/policy and its provisioning need
+# separate owner approval before an enabling diff. No producer signing changes.
+name: Explicit authenticated portable recipient (disabled proposal)
+on:
+  push:
+    branches: [dev/portable-ci-recipient]
+permissions:
+  contents: read
+  actions: read
+  attestations: read
+jobs:
+  recipient:
+    if: ${{ false }}
+    runs-on: macos-26
+    timeout-minutes: 20
+    env:
+      SELECTED_REPOSITORY: msiric/redue
+      SELECTED_WORKFLOW: .github/workflows/portable-evidence.yml
+      SELECTED_REF: refs/heads/dev/portable-evidence
+      SELECTED_RUN: '38096670987'
+      SELECTED_ATTEMPT: '1'
+      SELECTED_SOURCE: d04b872ee0e848e300c0cc9738ad761e48146acc
+      SELECTED_SIGNER: d04b872ee0e848e300c0cc9738ad761e48146acc
+      SELECTED_ARTIFACT_ID: '11685889769'
+      SELECTED_ARCHIVE_SHA256: d5469b8c9f49aa7bca1c7ecadf2a220de21437aa019bdb2722cb87c0cd6b6a29
+      SELECTED_EVIDENCE_SHA256: eb25768d3073dac37a78059efe94bfaab4a91f553dab7e208b05b940ea56dba6
+      SELECTED_EVIDENCE_DIGEST: 5d16fbf6b101f88843f41a8c61d3c351e5f9e600306dc4936eaaec8d6ea40d57
+      SELECTED_BUNDLE_SHA256: a7480a24ed2dd2c0858283055c68de475c5f392d2a8d5e0fb3404c007aa04b4a
+      SELECTED_PACKAGE_SHA256: 8695b612a5c33dae945b2bc8df57cd68ca3eefb401aa0ef9ca2850d212979ea2
+      SELECTED_INTERPRETATION: redue-portable-direct-typescript@2
+      GH_ARCHIVE_SHA256: 5454f9509e3dbb8f321310e9e344877d9a01ebb8f8703886b1afb0936d60ffaa
+      GH_EXECUTABLE_SHA256: 20f0520e9cc872b543bd5e31984f64932b197732c3d3df2c7367d0dc66e7a450
+      OWNER_REGISTRY_SOURCE: OWNER_REVIEWED_REGISTRY_COMMIT
+      OWNER_REGISTRY_SHA256: OWNER_REVIEWED_REGISTRY_BYTES
+      OWNER_POLICY_DIGEST: OWNER_SELECTED_POLICY_DIGEST
+      OWNER_REFRESH: required
+      OWNER_RECIPIENT_APPROVAL_SHA256: OWNER_REVIEWED_ENABLED_WORKFLOW_BYTES
+    steps:
+      - name: Fail closed before checkout, download, verifier or model
+        id: prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'JS'
+          const expected = {"SELECTED_REPOSITORY":"msiric/redue","SELECTED_WORKFLOW":".github/workflows/portable-evidence.yml","SELECTED_REF":"refs/heads/dev/portable-evidence","SELECTED_RUN":"38096670987","SELECTED_ATTEMPT":"1","SELECTED_SOURCE":"d04b872ee0e848e300c0cc9738ad761e48146acc","SELECTED_SIGNER":"d04b872ee0e848e300c0cc9738ad761e48146acc","SELECTED_ARTIFACT_ID":"11685889769","SELECTED_ARCHIVE_SHA256":"d5469b8c9f49aa7bca1c7ecadf2a220de21437aa019bdb2722cb87c0cd6b6a29","SELECTED_EVIDENCE_SHA256":"eb25768d3073dac37a78059efe94bfaab4a91f553dab7e208b05b940ea56dba6","SELECTED_EVIDENCE_DIGEST":"5d16fbf6b101f88843f41a8c61d3c351e5f9e600306dc4936eaaec8d6ea40d57","SELECTED_BUNDLE_SHA256":"a7480a24ed2dd2c0858283055c68de475c5f392d2a8d5e0fb3404c007aa04b4a","SELECTED_PACKAGE_SHA256":"8695b612a5c33dae945b2bc8df57cd68ca3eefb401aa0ef9ca2850d212979ea2","SELECTED_INTERPRETATION":"redue-portable-direct-typescript@2","GH_ARCHIVE_SHA256":"5454f9509e3dbb8f321310e9e344877d9a01ebb8f8703886b1afb0936d60ffaa","GH_EXECUTABLE_SHA256":"20f0520e9cc872b543bd5e31984f64932b197732c3d3df2c7367d0dc66e7a450"};
+          if (Object.entries(expected).some(([key,value])=>process.env[key]!==value))
+            throw Error('RECIPIENT_SELECTED_ARTIFACT_MISMATCH');
+          for (const [key,pattern] of [['OWNER_REGISTRY_SOURCE',/^[a-f0-9]{40}$/],
+            ['OWNER_REGISTRY_SHA256',/^[a-f0-9]{64}$/], ['OWNER_POLICY_DIGEST',/^[a-f0-9]{64}$/],
+            ['OWNER_RECIPIENT_APPROVAL_SHA256',/^[a-f0-9]{64}$/]])
+            if (!pattern.test(process.env[key]||'')) throw Error('RECIPIENT_OWNER_PREREQUISITE_MISSING');
+          if (process.env.OWNER_REFRESH!=='required') throw Error('RECIPIENT_OWNER_PREREQUISITE_MISSING');
+          // Syntax is NOT approval. The job remains disabled, and explicit owner
+          // review must bind these local values to current registry/workflow bytes.
+          console.log('RECIPIENT_DESCRIPTOR_COMPLETE_NOT_AUTHORIZED');
+          JS
+      - name: Owner-approved recipient preparation remains a missing prerequisite
+        shell: bash
+        run: |
+          # No automatic policy creation or artifact-controlled policy path.
+          # A reviewed enabling diff must first provide the procedure below.
+          echo 'RECIPIENT_OWNER_PROVISIONING_NOT_IMPLEMENTED' >&2
+          exit 1
+# The enabling diff, not this proposal, must implement the following fixed route:
+# 1. Checkout the reviewed recipient source (immutable github.sha), credentials off;
+#    independently pack/install the exact producer source above and require the
+#    selected package SHA. Keep recipient profile applicability authoritative.
+# 2. Use native gh 2.79.0 only: official gh_2.79.0_macOS_arm64.zip, <=20MiB,
+#    exact archive SHA above; extract only regular bin/gh, <=128MiB, exact leaf SHA.
+#    No arbitrary archive paths/code execution. Native host context needs review.
+# 3. Read-only selected run/attempt/artifact metadata: require successful completed
+#    run, exact source/ref/workflow, artifact ID/name/run/attempt/archive digest.
+#    Download only that artifact ID through reviewed pinned standard mechanisms;
+#    validate fixed three files, raw evidence/bundle SHA, canonical inner digest.
+#    Remote metadata/predicate never writes/selects a producer trust policy.
+# 4. Initialize the approved fresh direct-compiler fixture and exact owned state.
+#    Separately owner-approved registry copy ONLY: source commit/raw SHA above,
+#    fixed state/portable-producers-v1.json, canonical exact config/root/state,
+#    owned no-symlink ancestors, refuse existing/external targets, 0600 + wx.
+#    This remains missing; no production policy writer/API is added here.
+# 5. Start approved observer; run existing portable-ci-recipient.mjs preview then
+#    explicit --apply with selected policy/native gh SHA and appropriate bundle.
+#    It revalidates current registry; requires recipient CURRENT/PASS/reuse true,
+#    exact imported origin/digest, null invocation and zero receiver local runs.
+# 6. Stop the owned observer. Retain only static timings/receipt provenance in log;
+#    no artifact upload, OIDC/signing, models, telemetry or source/state transfer.
