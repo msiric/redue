@@ -1360,3 +1360,36 @@ Node22.13.0; controlled subprocess/data responses are not live authentication.
 GO permits exact owner review of the revised source pins, not active workflow
 installation, triggering, producer acceptance or recipient CURRENT. A previous
 authorization for different helper bytes is not silently extended to this proposal.
+
+## Copilot manual-shell source preparation
+
+Independent read-only inspection of the pinned1.0.91 distribution app.js
+(7,593,700 bytes, SHA6d0149041a57d909979096bb0ca3b92c14d05b1a2768d21cce7e8461dc18300d)
+confirms the interactive `!` handler strips the prefix, binds cancellation and
+calls `W.shell.executeUserRequested`, without a `W.send` in that handler. Its
+SDK binding passes environment to the native secret filter and invokes
+`session.shell.executeUserRequested`. The other exposed SDK shell entry invokes
+`session.shell.exec`: distinct method names do not establish identical native
+sandbox/credential enforcement or prove the full model-tool pathway. Current
+[official shortcuts](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference)
+support no-chat manual `!`, while `$` hands over to a real shell and stays
+outside this candidate.
+
+B5ec891d accurately keeps these limitations, keychain fallback and managed
+startup-hook constraints explicit. Fresh configuration/cache/GH directories do
+not establish every credential source absent; no policy hook may be disabled to
+create a result. GO is for source-only candidate preparation, not native UI,
+shell, authentication, model or settings execution. No native process was run
+by this reviewer.
+
+The initial disabled Claude startup proposal has a concrete pre-live auth-input
+gap: exact187 `W5`/`ekt` read OAuth/API file-descriptor environment inputs, and
+`qFr` reads custom request headers. Three independent pure controls demonstrate
+its initial `require_ci` accepted those keys alongside a controlled non-secret
+OAuth fixture; zero native processes were launched. Presence rejection and
+actual profile/host-provider override guards were requested. D also caught the
+env-OAuth auth-status route's different `oauth_token` classification before live
+authentication; a cached `claude.ai` status is not its expected result. Remote
+managed-startup-hook uncertainty must not be hidden by local file absence or
+tool denial. Revised auth-status-only preparation remains independently pending;
+no secret, authentication or native UI operation followed these findings.
