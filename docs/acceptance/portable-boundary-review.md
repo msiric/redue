@@ -1292,3 +1292,18 @@ update ran. A supported process-only updater-disable setting and read-only
 presence/key inventory of actual managed-policy sources require review before
 startup. Do not alter managed policy or generalize these observations into
 native enforcement acceptance.
+
+The revised bootstrap map
+`40a72b761b80b88fbc8123550b778efa66839d530aed50866775fef761e2a6d2`
+retains settings785 and adds only process-local `DISABLE_UPDATES=1`; inventory
+`fedc383bb9de18a54ddd7818b9cc1cf58e942bd189da6861e023e0a19a9c440f`
+records four local managed sources absent. Independent exact187 source inspection
+confirms macOS managed file/fragments and device/per-user preference selection;
+independent `lstat` checks find all four absent without reading contents. Its
+updater predicate and [official environment documentation](https://code.claude.com/docs/en/env-vars)
+support the scoped guard. Files remain canonical, current-user owned600 and
+single-linked. Final bounded GO permits root's already-authorized UI-only startup
+only after the listed immediate currency/absence rechecks, with zero keyboard,
+Bash, model, authentication or trust actions, first-gate stop and60-second cap.
+This reviewer did not start native Claude. GO is neither effective sandbox/
+credential acceptance nor a claim of zero background network/keychain activity.
