@@ -3,7 +3,54 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-Current checkpoint (2026-10-11): execution blocked at owner approval/capacity
+Current checkpoint (2026-10-11): two separately owner-approved synthetic native
+Claude187 attempts returned **NOT_VERIFIED**, both before any shell/checker/model
+submission. The second, frozenbeba8c diagnostic revision, stopped at
+NATIVE_SCREEN_ESCAPE_UNSUPPORTED after472.2ms. Exact source narrows this to an
+unrecognized non-CSI/non-OSC escape; its actual byte/family remains UNKNOWN.
+Live controls, fallback absence, fixture cleanup and native reaping all passed
+for attempt2; protocol delta[0,0,0]. Neither attempt proves sandbox enforcement.
+
+Independent reviewcfe7f53 confirms the failure layer and retains both results.
+The two one-attempt allowances are consumed; no further native operation is
+approved. After reviewing both failures, native work is stopped. The minimal
+prospective diagnostic is startup-only/zero-input, reporting a fixed escape-family
+enum rather than raw terminal content, under the unchanged all-tools-denied profile;
+it needs exact review/approval before execution. An owner-operated native route is
+an alternative, not an authorized sandbox bypass. Copilot's included-credit
+confirmation remains separately pending; no new login/account is requested.
+
+## Previous first-attempt checkpoint
+
+The first owner-approved exact synthetic native
+Claude187 attempt executed once and returned **NOT_VERIFIED**. The environment
+repair and local subscription login remain valid; another login is not requested.
+
+Frozen harness10904ba stopped at NATIVE_SCREEN_CONTROL_LIMIT after1,384.8ms,
+before establishing native Bash mode or submitting any shell/checker command.
+The decoder retained an unmatched escape suffix beyond4096characters; the actual
+control family was discarded and remains UNKNOWN. This is a harness/terminal
+compatibility limitation, not a failed REDUE check or evidence of permission
+enforcement. No model trial ran. Live synthetic controls passed before/after;
+protocol delta[0,0,0], fallback absent and owned-fixture cleanup true. Native
+reaping was UNKNOWN in the original report; a later exact dedicated-native
+process metadata check found none remaining, a separate observation rather than
+retrospective reaping proof. Normal5628de settings/eebb1e launcher are preserved.
+
+Independent review398801a/77606c8 is integrated; actual protected report remains
+under the durable native setup's evidence directory. Original109 source and all
+failures are retained. A separate fail-closed parser proposal classifies complete
+unsupported controls without accepting new terminal semantics. It is not a fix
+claim for the unretained actual escape and has not run natively. The one-attempt
+authorization is consumed; no automatic retry, permission widening or model
+launch follows. Copilot's four-included-credit/no-extra-charge confirmation is
+still pending. G2 and finalG3/G4 are incomplete; data-only VM applicability is
+not agent reuse. Frozen8695/b812 artifacts still match their original checksums.
+Day0/forecast targets/spending boundaries are unchanged; external usage NOT STARTED.
+
+## Historical blocked checkpoint
+
+Previous checkpoint (2026-10-11): execution blocked at owner approval/capacity
 gates; branch `dev/portable-evidence`. The full goal remains incomplete.
 The durable disabled checker rebind and independent review are integrated as
 f5f8ea6/f3d2af1; six deterministic controls pass (root53.639ms). Spaces are

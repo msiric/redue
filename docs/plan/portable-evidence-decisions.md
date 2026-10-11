@@ -212,3 +212,17 @@ This is a prerequisite observation, not proof of effective enforcement.
 Copilot's promised confirmation of four included Actions AI credits/no additional
 charge remains separate and pending. Approval of the synthetic test supplies no
 quantitative model budget. Day0 and spending/security boundaries are unchanged.
+
+
+### D6 separately approved second diagnostic attempt
+
+The owner explicitly approved one further synthetic attempt with frozen harness
+SHA-256 `beba8c644d0db33a80580820550a107274993becec23beaa9c6f5bbb9f902a93`.
+The original c321bb proposal/settings/checker/resource bindings and15s limit were
+unchanged. Independent32+7 pure controls and source review preceded actual startup.
+It returned NOT_VERIFIED/NATIVE_SCREEN_ESCAPE_UNSUPPORTED,472.2ms, before shell
+input/checker/model actions. Native reaping and synthetic fixture cleanup completed.
+No actual escape sequence, sandbox denial or product defect is inferred. Both
+specific attempt allowances are now consumed; the reviewed failure record remains
+separate from any prospective diagnostic proposal. No further native retry or
+terminal-semantic expansion is authorized.
