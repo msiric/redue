@@ -28,15 +28,18 @@ main merge, release tag or npm publication in this milestone.
 Day0 **2026-10-10 21:24 UTC**; first substantive calibration2026-10-13 21:24UTC.
 $0 additional daily/total spending for first72h, approved included capacity only.
 Standard public macos-26 VMs and **10MiB included artifact storage/one-day retention**
-are approved; current active4,608,374 +5MiB signer +224KiB package archive =10,080,630 bytes <10MiB;
+are approved; pre-attempt active4,608,374 +5MiB signer +224KiB package archive =10,080,630 bytes <10MiB;
 new package payload cap192KiB, archive cap224KiB;
 serialize and recheck before uploads, no blind reruns.
 Exact signing workflow proposal SHA-256
 `5770b7f0ac9133fbf0190cf0e238ac800263b632d7f4741f3fddb04882591924`
 is approved/enabled. That is not producer trust; exact current producer acceptance
-policy still needs owner approval. Receiving-agent machine/resource question and
-Claude **PENDING_OWNER_ACCOUNT** remain pending; do not ask again or launch models
-until that specific in-context precondition passes. External natural use NOT STARTED.
+policy still needs owner approval. Owner-approved existing Claude subscription and company Copilot personal-use
+entitlement now support explicit D4: Copilot CLI producer VM A → native Claude
+Code receiver VM B on independent matched approved macOS runners. Codex acceptance
+remains separate. Native OAuth workflow/owner secret and Copilot seat/policy/billing
+checks remain pending; do not ask again whether accounts exist or launch models
+until the exact in-context precondition passes. External natural use NOT STARTED.
 
 ## Current hosted and installed checkpoint
 
@@ -70,9 +73,11 @@ until that specific in-context precondition passes. External natural use NOT STA
 - Root focused combined controls44/44 PASS6.833s; preserved actual integrated
   cancellation/end-edit-restore1/1 PASS25,580.8ms. Hosted producer wrapped30,604ms,
   local status634ms are individual instrumented controls, not a net saving claim.
-- Exact-package run `38096673730`: Linux/nativeWindows PASS, macOS portable step
-  still running at this checkpoint. Product `38096673735`: Linux22 PASS; other
-  three jobs pending. Final results must be rechecked, not inferred from older CI.
+- Exact-package run `38096673730`: allthree platforms PASS, including macOS
+  installed portable origin/separate recipient. CI tarball identity still needs
+  the actual download/source-tree check; do not infer it solely from local packing.
+  Product `38096673735`: Linux22/24 PASS; macOS/nativeWindows pending. Final
+  product results must be rechecked, not inferred from older CI.
 
 ## Historical diagnostic and reviewed correction
 
@@ -171,7 +176,8 @@ new signing push or trial. Owner trust and actual-agent resources are still gate
 3. Recheck final d04b872 package/product jobs and current storage. Preserve the
    exact signer artifact and authenticate its fixed subject only after current
    owner-local producer-policy approval; no automatic acceptance or retry loop.
-4. Receiving-agent resource and Claude approval are already requested. Until usable,
+4. Existing accounts and amended demo pair are approved in D4. Until exact native
+   OAuth workflow/owner secret and Copilot entitlement/policy/billing are usable,
    continue independent deterministic review/onboarding work; do not provision,
    change managed policy, purchase capacity or copy credentials. Actual G2 model
    reuse still requires independent sessions, agent-visible eligible JSON, retained

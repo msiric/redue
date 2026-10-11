@@ -111,3 +111,36 @@ selection, silently guessing after selector loss.
 Tests: portable-store, portable-applicability, portable-ci-trust and independent
 portable-boundaries. Fault injections are labelled separately from actual compiler
 execution and actual agent behavior.
+
+## D4 — Owner-approved demonstration-pair amendment (2026-10-11)
+
+The owner explicitly revises the proposed two-machine demonstration to **Copilot
+CLI on producer VM A → native Claude Code on receiver VM B**, using two independent
+matched approved standard macOS runner environments. This is the explicit scope
+amendment required by Section4.4 when replacing an intended host. Selecting two
+models inside Copilot is not two agent products. Codex acceptance remains separate;
+this amendment does not label Codex or Claude reuse demonstrated. The owner’s
+Mac is not a matching endpoint unless the unchanged profile actually validates.
+
+Existing paid Codex and Claude subscriptions and company Copilot CLI access with
+personal use explicitly permitted are approved resources. Additional out-of-plan
+spending remains **$0**; provider rate limits and organization policy still apply.
+The Copilot built-in GITHUB_TOKEN route requires verified applicable seat/policy/
+billing before inference. Native Claude subscription OAuth preparation is approved;
+the owner will create/add any required secret only after reviewing the exact
+workflow. No token in chat, local-login copying or autonomous credential creation.
+
+Execution requires manually initiated reviewed/pinned code, minimal permissions,
+bounded turns/time/concurrency and no untrusted pull-request execution. Credentials
+must not enter logs/artifacts or model-readable files. Existing exact checkout/
+state/socket and sandbox controls remain. A missing precondition launches no model.
+Producer trust is a separate exact local-policy approval; this resource decision
+neither accepts an import nor changes applicability. G2 requires actual traces and
+G3 requires authenticated accepted artifact use through the recipient engine.
+
+Local read-only native Claude2.1.146 authentication check reports `claude.ai`,
+`firstParty`, loggedIn=true and subscriptionType=null. API/bearer/OAuth/provider
+switch environment keys checked by presence only were absent. This distinguishes
+the observed local route from the prior API-credit error; it does not prove VM
+capacity. Workflow version/authentication and in-context preconditions must still
+be checked. See [Claude receiver preparation](../contributor/portable-claude-receiver-proposal.md).
