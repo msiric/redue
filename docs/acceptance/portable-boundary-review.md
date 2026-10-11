@@ -1222,3 +1222,34 @@ permission. Use actual supported policy and no-model sentinel controls, never
 invent settings or bypass the sandbox. The state directory/socket scope and
 approved daemon probe authority remain prerequisites. This concern is separate
 from the data-only recipient workflow, which launches no model.
+
+## Final data-only recipient enablement proposal
+
+Independently inspected the not-installed root proposal
+`docs/contributor/portable-ci-recipient-enable-proposal.yml`, SHA-256
+`ef237cbb411b0520791911503d3071a9a42f78502ac8f712406a11566482ef78`.
+It pins helper preparation and registry source to
+`a23843e171f206e404574d97a59b2d86abc9a0c0`; the helper blob is exactly identical
+to independently reviewed B `87b7df9`. Registry bytes/policy remain the exact
+reviewed digests above. Comparison against the reviewed disabled YAML found only
+the explicit repository/push/ref guard, fixed preparation/registry source and
+status comments/name changed; data extraction, authentication and application
+procedures are unchanged. An initially supplied nonexistent abbreviated ref
+`526bad` could not be compared; the actual reviewed B source was used instead.
+
+Static parsing/assertions pass: only the dedicated recipient push branch, exact
+repository/event/ref guard, read-only contents/actions/attestations permissions,
+macos26 and 20-minute envelope, both checkout sources immutable with credentials
+persistence disabled. There are no uploads, OIDC grants, model secrets, inference
+commands, arbitrary prompt/ref inputs or signer modifications. This data-only
+route deliberately evaluates the fixed signed compiler origin, not an agent-
+produced artifact. Applicable imported provenance and recipient-owned current
+evaluation remain required; signature identity cannot manufacture CURRENT.
+
+GO permits requesting explicit owner review of these exact workflow bytes, exact
+registry/policy and limited fresh-state provisioning. No active workflow copy,
+branch trigger, policy file, import or authentication was performed by this
+reviewer. Model-route authority-file permissions are a separate unresolved
+prerequisite, not a reason to silently expand this no-model operation. A new
+artifact/run, expired download, mismatching profile or changed approved bytes
+requires reevaluation rather than an implicit trust or identity substitution.
