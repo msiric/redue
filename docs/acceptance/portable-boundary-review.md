@@ -4,7 +4,9 @@ Current conclusion: bounded parsing/inspection, separate-store conflict policy,
 original-run interval capture, caller interval validation and delayed recipient
 publication have independent controls. The versioned content profile has real
 same-host copied-executable handoff evidence. Current CI-policy/subject coupling
-has controlled authorization and corruption regressions; it is not live signing.
+has controlled authorization and corruption regressions. One real required-refresh
+authentication of the successful hosted signed envelope now passes; producer
+acceptance, recipient applicability and G3 completion remain separate pending gates.
 The corrected copied-Node caller test passed on frozen `2beab5e`; its earlier
 reported caller-test PASS is unreconciled and is not used as gate evidence.
 Two-machine execution, actual cross-agent acceptance, authenticated CI and release
@@ -1030,3 +1032,46 @@ owner-approved `5770b7f0ac9133fbf0190cf0e238ac800263b632d7f4741f3fddb04882591924
 Bounded GO is for one accounted next hosted attempt with reviewed finite budgets,
 not producer acceptance, model access or a successful G2/G3 result. Recheck usage
 if any additional upload occurs before that attempt.
+
+## First live signed artifact inspection
+
+Producer/signer run `38096670987`, source/signer commit
+`d04b872ee0e848e300c0cc9738ad761e48146acc`, completed successfully. Independently
+checked preserved downloaded ZIP ID `11685889769`, 34,300 bytes, SHA-256
+`d5469b8c9f49aa7bca1c7ecadf2a220de21437aa019bdb2722cb87c0cd6b6a29`.
+The 20,160-byte envelope has raw checksum
+`eb25768d3073dac37a78059efe94bfaab4a91f553dab7e208b05b940ea56dba6`
+and canonical evidence digest
+`5d16fbf6b101f88843f41a8c61d3c351e5f9e600306dc4936eaaec8d6ea40d57`.
+Strict parsing preserves complete historical PASS origin
+`02f44ac7-e6fc-4d5e-9757-28357654fef1`, direct compiler recipe, 130 declared input
+records and current @2 interpretation. The outer DSSE statement names the exact
+envelope byte checksum and binds its inner digest/interpretation; parsing that
+statement alone is not authentication.
+
+One reserved actual read-only `verifyCIArtifact` call completed with the reviewed
+native GitHub CLI 2.79.0 executable checksum
+`615cad3ec927069096ae07bda453152fcbf485928a6b5c24373a3631891b92a4`.
+The in-memory **inspection proposal**, never installed as an accepted policy,
+requires public repository `msiric/redue` ID `1403689333`, owner ID `26199969`,
+the exact approved workflow/ref, source/signer commit above, issuer and exact
+outer/inner identities. Required online lookup produced one verified attestation
+accepted by the bounded strict certificate/statement/timestamp parser. Result:
+`producer_verified: true`, `producer_accepted: false`, `local_policy_current:
+false`, `reuse_eligible: false`, `globally_latest: false`. No policy registry,
+import, trust/account setting or model changed. The private mode-0600 structured
+result is retained locally. Early ad hoc projections used incorrect envelope
+field names and failed before verification; actual schema inspection corrected
+them without a second authentication attempt.
+
+Independently parsed both complete runtime reports from inventory run
+`38096673747`: both report supported prototypes. Their full 21 runtime records
+are exactly equal to each other, to the signed producer manifest and to its
+captured runtime facts; reviewed compiler 5.6.3 implementation checksum also
+matches, and canonical manifest profile checksum verifies. This is actual full
+content equality, not label-based inference. It does not establish that a
+recipient independently queried eligible evidence, imported it under current
+approved policy, or avoided equivalent compiler execution. Local development
+runtime remains different. Receiving-agent, cross-agent, V01–V22 and complete
+economics gates are still pending; one live authenticated artifact is progress,
+not G2/G3 or release readiness certification.
