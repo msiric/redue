@@ -2733,3 +2733,45 @@ host result does not establish matched hosted receiver provisioning, Copilot
 included capacity, cross-agent/two-machine reuse, whole-task economics or G2/G4.
 Every earlier failed/unknown attempt remains preserved. No release or producer
 trust authority changes follow from this result.
+
+
+### Disabled native receiver adapter aligned to reviewed187
+
+Independent critical source review covers author b673e43 and its doc-only test
+count correction a4dda17. The existing data-only invocation constructor now
+requires exactly native2.1.187 and public binary digest
+`a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3`.
+Other versions, arbitrary valid-looking digests and invalid executable basenames
+are refused. Version is labeled proposed and native_binary_verified_by_adapter
+is explicitly false: the constructor does not read or execute that binary.
+The obsolete146 schema blocker is replaced by current matched-VM/authentication,
+credential-isolation, model-tool, native-code/startup-policy, included-capacity,
+exact-origin/current-policy and caller-aware evidence prerequisites.
+
+requireClaudeReceiverActivation still unconditionally refuses. A supplied local
+six-check success, approval/activation flag, matching static version/hash or
+proposed settings cannot launch a model or waive host/evidence conditions. Actual
+local187 manual-Bash PASS remains limited to its recorded invocation; it is not
+VM provisioning, model-tool enforcement or real hosted-credential proof.
+
+Settings changes are additive denials only: Keychain read/write, the exact
+selected settings file read/write and the selected native executable leaf write.
+All old host-config, installation-prefix and producer-registry protections remain;
+root/state write grants, one observer socket, network restrictions, strict
+sandbox/no unsandboxed fallback, tools/MCP/hooks/plugins and proposed eight-turn/
+300-second bounds are unchanged. No arbitrary executable parent, root or home
+scope is granted or treated as physically immutable. Dedicated-parent identity,
+effective startup policy and actual matched-host boundaries remain unverified
+prerequisites. No token values, owner credential-store copying, global settings,
+workflow activation, signing authority or producer trust is introduced.
+
+The six affected pure controls were independently rerun and pass. Ten additional
+independent constructor/activation counterexamples pass obsolete/manual-version
+rejection, alternate digest and boxed digest, unknown approval/token keys,
+invalid leaf/timeout, unchanged six proposed credential denials/one socket and
+refusal of a deliberately mutated active-looking proposal. These are data-only
+controls, not host/model behavior or capacity evidence. The receiver document's
+Four-test count was corrected to Six before integration. GO for this narrow
+reviewed alignment, with permanent disabled activation retained. No native,
+authentication, model, CI process or settings application was performed by this
+reviewer; no G2/G4 or release-ready claim follows.
