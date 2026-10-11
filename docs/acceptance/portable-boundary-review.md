@@ -1553,8 +1553,9 @@ trials; two-machine acceptance and portable recovery execution remain NOT RUN/
 NOT PERFORMED. This finite mechanics sequence establishes no net benefit; it
 cannot establish typical reuse frequency, avoided verification obligations,
 CPU/memory/whole-agent benefit or complete signing/retrieval/authentication cost.
-Protected source record remains root.local/portable-evidence/complete-installed-
-final-ordinary.json; no raw tool output/private paths are published here.
+Protected owner-local source record remains
+`.local/portable-evidence/complete-installed-final-ordinary.json` in the integration
+worktree; no raw tool output/private experiment paths are published here.
 
 Acceptance-map audit distinguishes existing V01–V22 source/fault controls from
 actual model/machine acceptance and future final exact bytes. G1 real relocation
