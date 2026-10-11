@@ -197,8 +197,15 @@ Dedicated recipient branchb240187/run38098482463 failed closed before import
 with CI_MACHINE_OBSERVER. The fresh status has no receipt-derived recipe marker;
 source review shows the harness required that marker before any receipt could
 exist. Runtime profile, exact package and read-only download passed. Zero models
-or recipient compiler executions; exact helper correction/review and updated
-workflow source pin are pending. No blind rerun. Copilot seat/quota/$0 capacity question remains pending; do not repeat it.
+or recipient compiler executions. Independently reviewed1492a67 correction now
+validates the explicit fresh config/runtime and honest empty status, preserving
+all post-import authority. Controlled104/104 and actual installed frozen-d04
+fresh observer/config control PASS once; no import/model/baseline compiler.
+Corrected proposal changes only the two immutable helper source pins to
+a2f2ddc613d1a3d2dfbe5f4f04e97cd69584bc6b, raw SHA
+a600688881452915bde3f63a9dc60d21d952c65a9b4efe3db2c14860976a5d6f.
+It stays outside active workflows pending final independent review and owner
+approval of the changed pins; registry/policy/runtime/artifact are unchanged. No blind rerun. Copilot seat/quota/$0 capacity question remains pending; do not repeat it.
 Preparation107tests:106PASS/one native-Windows-only skip/zeroFAIL3.515s,
 `.local/portable-evidence/recipient-host-preparation-integrated.tap`.
 All new code is contributor-only preparation; no runtime/probe/schema changes

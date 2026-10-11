@@ -21,8 +21,14 @@ is outstanding.
    helper/registry are pinned to immutable a23843e, runtime/artifact to d04b872.
    Exact bytes are enabled only on dedicated dev/portable-ci-recipient atb240187.
    First run38098482463 stopped before import at an erroneous fresh-receipt
-   precondition; corrected helper/source-pin review is pending. Do not repeat
-   producer trust approval or launch a model from this result.
+   precondition. Corrected helper1492a67 is independently reviewed, with104/104
+   controls and an actual frozen-d04 fresh installation passing. The
+   [corrected workflow](portable-ci-recipient-corrected-proposal.yml) changes
+   only its two immutable helper/registry source pins to a2f2ddc; raw SHA-256
+   `a600688881452915bde3f63a9dc60d21d952c65a9b4efe3db2c14860976a5d6f`.
+   It remains unenabled pending review/approval of those changed pins. Exact
+   registry, accepted producer, signed artifact and runtime are unchanged. Do not
+   repeat producer trust approval or launch a model from the first result.
 2. **Copilot included-capacity confirmation.** Confirm account msiric's applicable
    seat permits CLI requests from this personally owned repository, at least four
    AI credits are included for the first bounded trial, and no additional-charge
