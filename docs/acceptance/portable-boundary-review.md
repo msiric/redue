@@ -1474,3 +1474,29 @@ Root85a7ecb applies LF checkout attributes only to the reviewed disabled native
 helper.py and proposal YAML. Exact-byte digest assertions remain unchanged, and
 no global Git setting, native startup or authority is changed. Source GO is not
 a new native-Windows test result; that platform recheck remains pending.
+
+The second actual3a65311 complete-path attempt reached portable creation, export,
+import, eligible/unrelated decisions and relevant STALE, then a successful
+ordinary local rerun. Final query was UNVERIFIED rather than the harness's
+expected CURRENT. Retained report has47 commands; no raw final status reason
+was retained. No specific served reason is claimed retrospectively.
+
+Independent controlled countertest executes the actual applicability/envelope
+modules extracted from checksum-verified frozen8695 package (no installation,
+compiler, daemon, auth or model): selected stable CURRENT/PASS with missing
+complete portable facts after accepted different-input history returns
+PORTABLE_LOCAL_SELECTION_BARS_FALLBACK/UNVERIFIED and preserves historical PASS.
+Complete matching portable local facts with exact observed catalog binding
+resolve via PORTABLE_CATALOG_EXPLICITLY_RESOLVED_LOCALLY; the daemon then retains
+local selection. Current-source owned regression1/1 PASS,83.34ms. This validates
+the source boundary, not the uncaptured original response's exact reason.
+
+D1/D3 require complete origin facts and prohibit fallback hiding a newer selected
+outcome. Plan3.6 permits defined fully observed local resolution, not any process
+exit as resolution. Recommended smallest completion preserves the ordinary-run
+obligation and expects truthful PASS/UNVERIFIED/nonreuse through restart. An
+explicit portable fresh baseline is a separately declared stronger capture with
+its additional cost, never a silent flag substitution or weaker engine. Both
+failed preparations remain retained; no further expensive sample was launched
+by this reviewer. This exposes installed onboarding guidance needed after import,
+not an unsafe-reuse finding or complete economics/adoption result.

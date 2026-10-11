@@ -503,6 +503,22 @@ test('different preliminary facts cannot turn a newer unstable local outcome int
   }
 });
 
+test('ordinary local PASS after import cannot resolve the accepted catalog without complete portable boundaries',()=>{
+  const old=portableFixture();old.facts.files[0][1]=digest('pre-edit source');
+  const records=[candidate(old)],revision=digest('observed catalog');
+  const ordinary=recipientDecision(records,localOutcome({facts:null}),revision);
+  assert.equal(ordinary.reason,'PORTABLE_LOCAL_SELECTION_BARS_FALLBACK');
+  assert.equal(ordinary.freshness,'UNVERIFIED');assert.equal(ordinary.reuse_eligible,false);
+  assert.equal(ordinary.local_historical.result,'PASS');assert.equal(ordinary.local_reuse_blocked,true);
+  const complete=recipientDecision(records,localOutcome({resolvedCatalogRevision:revision}),revision);
+  assert.equal(complete.reason,'PORTABLE_CATALOG_EXPLICITLY_RESOLVED_LOCALLY');
+  assert.equal(complete.local_reuse_blocked,false);
+  assert.equal(complete.reuse_eligible,false,'local selection remains local rather than invented imported reuse');
+  const changed=recipientDecision(records,localOutcome({resolvedCatalogRevision:digest('old catalog')}),revision);
+  assert.equal(changed.reason,'PORTABLE_LOCAL_CURRENT_SELECTED');
+  assert.equal(changed.local_reuse_blocked,false,'complete local facts may independently show different imported inputs as history');
+});
+
 test('accepted incomplete origins cannot use different start facts to evade conflict handling',()=>{
   for(const result of ['PASS','FAIL']){
     const incomplete=portableFixture();incomplete.origin.result=result;
