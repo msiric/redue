@@ -316,3 +316,17 @@ and independently reviewed sentinel route described above. Until then the propos
 model receiver, authenticated startup and effective sandbox/credential tests remain
 NOT RUN. No secret creation, global changes, native146 upgrade, producer acceptance
 or native-mode enforcement is inferred from this document.
+
+### Owner-completed isolated onboarding — recorded2026-10-11 09:28UTC
+
+The owner reports subscription login succeeded and the normal native prompt
+appeared using the previously verified isolated187 command. No model request or
+shell command was submitted and the owner exited. No credential file was copied,
+inspected or exported by the implementation lanes. This establishes owner-observed
+onboarding completion only. Managed authenticated startup behavior, actual native
+credential/sandbox enforcement, included capacity and matched-runner acceptance
+remain unproven. D prepares only the smallest data/checker/settings proposal; C
+reviews independently. Current785be all-tools-denied settings stay unchanged.
+Exact approval is required before any new fixture provisioning, settings application
+or native `!` action. No secret creation, SDK substitution or model trial follows
+from this result.

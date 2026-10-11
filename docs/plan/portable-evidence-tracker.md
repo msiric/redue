@@ -93,9 +93,12 @@ obligation. The previous completed same-machine sample showed no net saving; it 
 not superseded by a cheap-path claim. Broad CI and model comparisons were not rerun.
 
 Copilot Actions entitlement/four included credits remains owner-confirmation
-pending. Native Claude owner-local onboarding command is now verified and recorded
-in the existing owner checklist; no secret is requested. Normal prompt is the next
-owner success signal, not effective credential/sandbox proof or model capacity.
+pending. At the09:28UTC checkpoint the owner reports isolated nativeClaude187
+subscription login succeeded and the normal prompt appeared, with no model/shell
+input and exit. This is owner-observed onboarding success, not an agent-run auth
+inspection, effective credential/sandbox proof or model capacity. No secret is
+requested. D now owns the smallest proposed no-model checker/settings delta; C
+independently reviews it before any application or native tool action.
 Actual native no-model boundary and final in-context evidence gates still precede
 all model calls. The exact data-only approval no longer blocks this lane. G2 and
 final G3/G4 acceptance remain incomplete; external usage NOT STARTED.

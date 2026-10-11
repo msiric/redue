@@ -138,3 +138,10 @@ Primary onboarding references: [authentication](https://code.claude.com/docs/en/
 and [quickstart](https://code.claude.com/docs/en/quickstart). Current documentation
 is newer than the pinned187 implementation; its actual host outcome must be
 recorded rather than inferred from the documentation.
+
+Owner outcome, recorded2026-10-11 09:28UTC: subscription login succeeded and normal
+prompt appeared in this isolated host; owner submitted no model request or shell
+command and exited. This is an owner-observed result, not a token/status inspection
+or an effective sandbox/capacity test. The next active task is independent review
+of the exact no-model checker/settings delta. Existing all-tools-denied settings
+remain intact pending specific approval; no secret or model request is authorized.

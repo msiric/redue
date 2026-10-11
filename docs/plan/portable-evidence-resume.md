@@ -169,11 +169,13 @@ Next operations only follow specific owner actions in the existing
    normal built-in GITHUB_TOKEN authentication/capacity preflight. Actual native
    credential/sandbox proof and fail-closed evidence gates must still precede the
    bounded producer model trial. No PAT/new account/paid route.
-2. Owner runs the exact isolated nativeClaude187 command and normal subscription
-   onboarding privately, exits at normal prompt without model/tool input. This
-   unlocks independent review and actual no-model interactive sentinel/security
-   proof; current settings deny all tools and cannot provide that proof. No secret
-   yet. Runner OAuth setup/workflow and model acceptance remain later reviewed gates.
+2. Owner reports completion of exact isolated nativeClaude187 subscription
+   onboarding, normal prompt and exit with no model/tool input (recorded09:28UTC).
+   This unlocks independent review of the smallest no-model interactive sentinel
+   checker/settings delta. D owns author code; C owns independent review. Current
+   settings deny all tools: no settings application, fixture provisioning or native
+   shell action occurs before exact approval. No secret yet. Runner OAuth workflow,
+   actual effective-boundary proof and model acceptance remain later gates.
 
 No more recipient attempts, broad CI, model calls or timing campaigns are queued.
 The data-only lane is complete for this exact attempt; actual model acceptance
