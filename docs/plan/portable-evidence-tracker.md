@@ -3,37 +3,63 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — approved relocation (2026-10-11)
+## Current checkpoint — relocation ready for owner diagnostic (2026-10-11)
 
-The owner approved the independently reviewed test-code-only relocation to
+Owner-approved test-code-only relocation is applied as inactive files at
 `/Users/mariosiric/Library/Application Support/REDUE-Native-Checks/native187/workspace`.
-Only the collector/checker code, cwd, launch references and exact hashes may change.
-All original authentication, configuration/state, protected targets and existing
-filesystem/socket/network denials stay in place. No global settings change,
-credential copying, model request, automatic terminal retry or new spending.
+Root verified all seven staged file hashes, canonical owned600/single-link leaves,
+original sources/settings and failed-attempt records unchanged. The data-only
+`--verify` and exact one-line `--diagnostic-input` modes pass; they launch no native
+process, checker, model or listener. Credentials/authentication/state, protected
+synthetic targets, all old denials and normal settings stay in place. No global
+settings or REDUE runtime changes, receipt deletion, artifact repack or new grant.
 
-D owns the binding-only repair; C independently reviews the final identities,
-restriction delta, gate and mock controls. Root owns integration and native-result
-classification. One same-boundary read-only diagnostic is approved. Both relocated
-regular scripts must open/fstat/close successfully inside pinned Claude187; existing
-nonsecret protected settings/canary read attempts must return permission denial.
-Directory metadata or an absent credential namespace cannot prove credential-body
-denial. Real credential contents will not be accessed. Credential restrictions
-must remain exact; actual credential-body enforcement remains NOT_TESTED.
+D owns repair; independent C reviewbcac318 is integrated (source899ab247). All
+six checker assertions and180s preparation/15s collection/5s cleanup remain intact.
+Only executable code/cwd/path/hash bindings move; dedicated code parents are
+write-protected and physically outside expanded/case-aliased denied ancestors.
+C's39 source/mock controls plus16 independent gate/refusal controls pass. Root
+reran13 Node+12 final relocation Python mocks and three pinned Node syntax checks.
+These are harness tests, not native enforcement. The initial74c25e3 diagnostic
+proposal could overwrite timeout uncertainty after cleanup; final899ab247 has an
+irreversible error latch/static reason, with its timeout regression passing.
 
-Pinned native source supports owner-entered interactive Bash with
-`respondToBashCommands:false` and strict sandbox controls. No reviewed noninteractive
-same-boundary/no-inference route exists. The diagnostic therefore genuinely needs
-owner input; no print/headless, SDK substitution or terminal controller will be used.
-No native operation has occurred in this checkpoint. Missing output remains UNKNOWN.
+Exact owner-local BASE remains
+`/Users/mariosiric/Library/Application Support/REDUE/portable-evidence/native-claude-2.1.187`.
+Manifest `evidence/native-relocation-manifest.json` SHA-256
+`0f61c3972ef7b6caaa3a4e3ecd51dfb1227579f4436a045d3fd2d1f232ba88b1`;
+procedure `README-native-relocation.md` SHA-256
+`77abb2a02e4f16dab090572ed69b4bf3d913df082c648d097924f53a31fa1c8b`.
+Helper `owner-sentinel-relocated.py` SHA-256
+`899ab247e47df83b71e076d5c1e4174cccbcc519d9503cb8da14a8475dda72ff`;
+diagnostic profile982f4118/full81e874fe, code579af20e/29ebbcde, body14f62b23,
+exact one-line input68ce826c; full identities are in the private manifest.
 
-The owner conditionally authorizes one subsequent owner-operated unchanged-checker
-attempt only after independent review and the actual readability/denial gate PASS.
-Preserve180s preparation/15s collection/5s cleanup and all old attempt records.
-Root will create no approval gate from mock output or outer-filesystem verification.
-Copilot's four-credit Actions entitlement remains separately pending; G2/G4 are
-incomplete. Day0, artifact identities and receipts are preserved. Native full-checker
-and model calls remain0 for this checkpoint; no signing/upload/publication occurs.
+Next is ONLY the approved read-only diagnostic. The supported pinned187 no-model
+route needs owner-entered interactive `!` Bash with respondToBashCommands:false;
+no reviewed noninteractive substitute exists. The diagnostic launcher uses the
+same native boundary with180s preparation/5s cleanup, no terminal controller/input,
+listeners/checker or full-gate acceptance. Actual JSON is owner-supplied; lifecycle
+cleanup is never access proof. Both relocated scripts must independently open/
+fstat/close safely; existing NONSECRET settings/canary readonly opens must return
+EACCES/EPERM. All eight rows must be complete. Real credential directories are
+metadata-only and credential-body denial is NOT_TESTED; their existing protections
+remain exact. No protected contents are read. Missing output/timeout stays UNKNOWN.
+
+One full owner-operated attempt is conditionally approved AFTER this genuine
+current gate passes. Full command remains withheld. Root will not construct a gate
+from mock output or outer metadata. Gate/profile/body/common-restriction/current
+physical bindings must match, with exclusive new records and no old record reuse.
+Root confirmed gate/new native records absent at18:27UTC; native/checker/model0.
+Owner input now blocks only this native lane. Copilot's four-credit Actions
+entitlement remains independently pending. G2/G4 remain incomplete; no signing,
+upload, public release, main merge or model trial occurs. Day0 remains unchanged.
+
+Independent permitted check18:17UTC: GitHub artifact11685889769 from approved
+run38096670987 is unexpired,34,300bytes, through2026-10-11 23:56:31UTC. No download,
+workflow or signing was started; frozen8695b612… package hash is unchanged. Recheck
+availability before any authorized recipient use; expiration cannot authorize a
+substitute origin or relaxed trust. Historical results remain below.
 
 ## Historical entrypoint diagnosis
 

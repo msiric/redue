@@ -9,7 +9,8 @@ was not retained, so the static protected-ancestor conflict is not a proven
 runtime attribution. Original sources, authentication, denials and failure
 records remain preserved. The new private procedure selects only the diagnostic
 profile and dedicated code cwd, then requires owner-entered native Bash input.
-No controller, model, checker or listener runs during that diagnostic. Actual
+The diagnostic helper starts no controller, checker or listener. The expected
+no-inference path is source-reviewed, not measured. Actual
 in-boundary readable relocated files and denied nonsecret protected-file opens
 must pass before root accepts a current, explicit captured gate for full
 collection. Credential-directory metadata is not credential-body proof. Until
@@ -23,7 +24,7 @@ and native Claude Code on independently matched standard macOS receiver VM B.
 Codex acceptance is separate. No account purchase or account-existence decision
 is outstanding.
 
-Current manual-checker status: the owner performed the one approved cc8aaf
+Historical manual-checker status: the owner performed the one approved cc8aaf
 profile attempt. Its supplied launcher report shows13,216.9ms, native signal9,
 cleanup/live controls/source currency true and protocol delta[0,0,0]. Checker
 JSON/exit were not supplied, so boundary acceptance remains UNKNOWN. The allowance

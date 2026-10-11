@@ -2486,14 +2486,14 @@ refuse membership in expanded/case-aliased protected read ancestors. All prior
 read/write denials are retained, with write protection for the new dedicated
 code container and its parents. Credentials, namespace, state, synthetic targets
 and socket authority remain in place; normal all-tools-denied settings still
-hash to5628de7667d4a5125c723ecbc3685336ef12cd80f15da83e6467b3826a337afc.
+hash to `5628de7667d4a5125c723ecbc3685336ef12cd80f15da83e6467b3826a337afc`.
 
 Full and diagnostic profiles have identical restrictions after removing the
 exact command permission, canonical digest
 `a8f7b62e1e21eb3f29ddef88db0974768023a769d554464ed5ed9ffb4d116339`.
-The fixed diagnostic input68ce826c is exactly one plain command plus newline,
-intended for the owner to submit only after entering native187 manual Bash mode.
-Pinned187 manual dispatch and respondToBashCommands:false remain source-grounded
+The fixed diagnostic input `68ce826c` is exactly one plain command plus newline,
+intended for the owner to submit only after entering native 2.1.187 manual Bash mode.
+Pinned 2.1.187 manual dispatch and respondToBashCommands:false remain source-grounded
 no-inference expectations. Manual dispatch bypasses ordinary command approvals;
 the literal permission entry is not an enforced arbitrary-command allowlist.
 No reviewed noninteractive print/headless/SDK equivalent is substituted, and
@@ -2501,11 +2501,11 @@ no automated terminal input or decoder is present.
 
 The diagnostic mode reuses guarded fixed native argv/env/cwd, same-session
 foreground process ownership, terminal restoration and owned reaping. It has
-180s owner startup and5s cleanup bounds, separate exclusive lifecycle/process
+180s owner startup and 5s cleanup bounds, separate exclusive lifecycle/process
 records, no listeners, collector, checker, access-gate acceptance or terminal
 capture. Its outcome is lifecycle-only; actual file-access JSON remains owner
-supplied. An initial unexecuted74c25e3 proposal swallowed Stop reasons and could
-label forced timeout cleanup lifecycle completion. The899ab247 successor retains
+supplied. An initial unexecuted `74c25e3` proposal swallowed Stop reasons and could
+label forced timeout cleanup lifecycle completion. The `899ab247` successor retains
 an irreversible sequence-error/cancel latch, static reason and observed native
 exit/signal; timeout cannot qualify even after successful reap/restore.
 
@@ -2521,8 +2521,8 @@ denial remains NOT_TESTED. Original code rows must be complete but need not be
 readable. Root-owned owner-output provenance is not hostile same-UID
 cryptographic authentication. No gate was produced by this review or its mocks.
 
-Independent reruns passed13 Node controls,12 owner-collection Python controls,
-12 relocation Python controls including mocked180s timeout, and2 connected MOCK
+Independent reruns passed 13 Node controls, 12 owner-collection Python controls,
+12 relocation Python controls including mocked 180s timeout, and 2 connected MOCK
 controls using harmless children. Sixteen independently composed gate/refusal/
 collision controls passed missing original rows/fingerprints, changed profile/
 restrictions/body, relocated EACCES, protected ENOENT, credential-open refusal,
