@@ -1941,3 +1941,25 @@ proof that the actual native UI is supported or that its failure is fixed, and
 is not permission to invoke the replacement. Any new operation requires
 specific owner approval, current preconditions and independent exact-source
 review; the failed report and discarded-data limitation remain historical facts.
+
+
+The final data-only replacement is now frozen as
+`beba8c644d0db33a80580820550a107274993becec23beaa9c6f5bbb9f902a93`.
+The prior e923 source already withheld a positive report when native reaping
+was absent; no false-positive native result was reproduced. The final change
+extracts and tests that guard, requiring exactTrue for reaping and fixture
+cleanup. A final child wait uses at most2s of the remaining original15s budget,
+not a new deadline. A new exclusive600 private process-identification record
+is verified after writing and retained outside public output. Its PID/group is
+cleanup metadata only: later operations must independently match current
+owner, executable, argv and process start identity, not trust an old PID alone.
+
+Thirty-two author pure controls plus seven independent finalizer controls pass
+on the exact beba8c source, including missing/false/nonboolean reaping,
+nonboolean cleanup and preservation of prior negative reasons. An earlier
+independent test preparation stopped at its source-hash assertion because the
+author was revising the file; no extracted code or native operation executed
+in that failed preparation. The final coherent source was unchanged during
+its pure run, and executed10904 remains intact. This is source/data GO to
+prepare a specific new owner approval request only, not authority to repeat
+the consumed attempt or a claim that the native terminal is now supported.
