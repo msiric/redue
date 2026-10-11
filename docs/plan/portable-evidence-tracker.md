@@ -3,7 +3,7 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-Current conclusion (2026-10-11 01:46UTC): guide-only candidate b8122c3b… passes the exact-package38101767565 matrix on all three platforms; same-source05c1d869 product38101769601 passes all four jobs (481tests each, zero failures/cancellations). Independent review08b55c1 verifies artifact/source/log identity. Runtime remains frozen d04b872; ordinary local selection and portable conflicts remain conservative. Hosted signed producer38096670987 and both matched profile prototypes pass; recipient38098482463 failed before import. The corrected immutable-pin proposal remains disabled pending its separately requested exact approval. No live accepted recipient import or actual portable model reuse is established. One complete controlled same-machine sequence cost39.890s versus0.213s for two plain compiler obligations; no net savings. G1 technical slice only; G2/G3/G4 incomplete. See current acceptance map and resume record; earlier failures remain history.
+Current conclusion (2026-10-11 08:06UTC): owner-approved corrected data-only recipient run38123365552 PASSED on exact enabled6b901d0/a6006888 bytes. Required-refresh authentication accepted the exact signed d04 origin02f44ac7…/digest5d16fbf6… under policybab79018…; independent matched VM established healthy importedCURRENT/PASS/reuse_eligible=true with null local invocation and no equivalent receiver execution. Unrelated edit and restart retained that evidence; relevant source edit becameSTALE. Models launched0. The positive authenticated two-machine CLI route is demonstrated, not actual agent reuse or final G2/G3/G4 acceptance. First recipient applicability42274.658ms is one observed cost, not a performance benefit. Previous failure38098482463 remains historical. Exact guide-only b812 package and four481-test regression jobs pass; frozen signing/runtime d04/8695 remains separate. Model acceptance is blocked only on remaining account/effective-native-boundary prerequisites, not recipient approval.
 
 Agreed Day 0: 2026-10-10 21:24 UTC (owner confirmed). First substantive review: 2026-10-13 21:24 UTC. Daily concise progress summaries. Additional metered spending is $0/day and $0 total for the first 72 hours; only established subscription-included capacity is allowed. Standard public GitHub-hosted validation VMs are now approved: two independent macos-26 ARM64 profile jobs first. Owner confirmed 10 MiB included artifact storage, one-day retention and no paid usage; exact signing enablement is approved, and exact data-only producer trust/provisioning are approved in D5; actual recipient applicability remains pending. Owner now approves existing Claude subscription and Copilot personal-use entitlement; exact native Claude OAuth workflow/secret and Copilot seat/policy/billing checks remain prerequisites. Explicit demonstration-pair amendment D4: Copilot CLI producer VM A → native Claude Code receiver VM B on independently matched approved macOS runners; Codex acceptance stays separate. Provisioning and blocked time count from kickoff; dates will not be reset. Initial targets remain Day 14 demonstration / Day 28 prepublication readiness, uncalibrated until the real G1 slice.
 
@@ -12,7 +12,7 @@ Agreed Day 0: 2026-10-10 21:24 UTC (owner confirmed). First substantive review: 
 | G0 | Partial | Day 0/caps/cadence and standard public runners approved; source/native preflight reviewed. Two independent macos-26 inventory jobs passed; 10 MiB included storage confirmed. Signer workflow enablement approved; exact data-only producer policy/provisioning approved in D5; amended native OAuth/workflow and Copilot seat/policy/billing prerequisites unresolved. |
 | G1 | Same-machine technical slice passes | Exact d04b872 installed noLib origin/export/import independently returns eligible PASS; unrelated edit CURRENT/relevant edit STALE and policy ownership pass. Not useful-project, model or final profile acceptance. |
 | G2 | Actual recipient/model reuse not run | Both hosted complete runtime prototypes supported; independent21-record comparison passes. Approved amended pair has native auth/workflow and seat/policy/billing prerequisites pending; no failed prerequisite launches models. |
-| G3 | Producer/signing succeeded; acceptance pending | Owner-approved fixed workflow run38096670987 succeeds; independent required-refresh authentication passes as proposal only; exact data-only trust is approved in D5, but recipient38098482463 failed before import at a harness precondition. Corrected helper independently reviewed and real installed fresh-state control passes; changed-pin workflow review/approval pending, no accepted import/current claim. |
+| G3 | Positive authenticated data-only route demonstrated | Owner-approved exact corrected workflow run38123365552 accepts the signed38096670987 origin and independently establishes importedCURRENT/PASS/eligible, with no equivalent receiver execution. Unrelated/restart preservation and relevantSTALE pass. Existing trust negatives and final candidate binding remain separate review requirements; no model claim. |
 | G4 prepublication | Not ready | G1–G3, V01–V22, independent review, final bytes and economics outstanding. |
 | Publication / postpublication | Pending owner approval | No main merge, release tag or npm operation in this milestone. |
 | External usage | Not started | Owner-approved willing participants separate from technical gates. |
@@ -29,7 +29,7 @@ Integration owner: root (Lane A). One writer per shared interface: root owns CLI
 | PE-06 host handoff | D / C | Policy/JSON/preflight | Installed/imported reporting guide; no-model gate and safe instruction updates pass. Actual portable model behavior NOT RUN. |
 | PE-07 machine profile | A / C | Runtime + preflight | Both d04b872 full runtime prototypes supported after finite budgets retaining all-member validation. Independent21-record comparison passes; actual recipient eligibility pending; old10s failures preserved. |
 | PE-08 producer trust | B / C | CI authentication preparation | Exact policy/tool/artifact authentication hardening under review; no automatic acceptance. |
-| PE-09 CI route | B+A / C+owner | Proposed workflow | Exact workflow5770b7f… owner-approved and enabled; actual producer/signing SUCCESS38096670987. D5 exact data-only producer trust approved; corrected receiver gate pending, no live accepted import. |
+| PE-09 CI route | B+A / C+owner | Exact enabled workflows | Producer/signing38096670987 and one approved corrected recipient38123365552 PASS. Current exact policy accepts imported eligible evidence independently; models0, no copied observer state. Final negative/candidate binding remains distinct. |
 | PE-10 installed handoff | D / C | Installed smoke | Exactd04b872 installed controlled relocation and both-host policy ownership pass; prior actual @1→@2 upgrade/FAIL replay evidence retained. Final release bytes pending. |
 | PE-11 integrated review | C / integration | Adversarial matrix | Independent same-host origin/publication tests pass; complete V01–V22 and G2/G3 pending. |
 | PE-12 release preparation | A / owner | Task branch only | Draft PR #12 and normal task push; final artifact/economics/combined platform acceptance outstanding; no main/public actions. |
@@ -76,17 +76,29 @@ Current active artifacts are4,826,222bytes at the verified checkpoint; recheck b
 
 ## Daily progress — 2026-10-11 UTC (current)
 
-Current update: one reviewed same-obligation completion sample PASS at223f231,
-frozen8695, ordinary newPASS remainsUNVERIFIED/nonreuse afterrestart. Workflow
-commands39.890s vs two plain obligations0.213s; no net benefit or avoided obligations
-established. New packed-guide candidate223f231 SHA b8122c3b… differs only in shipped
-portable user documentation; src/bin unchanged. Exact matrix38101767565 for those bytes passed all three platforms. Product
-38101769601 passed all four jobs:481tests each, macOS454PASS/27SKIP, native
-Windows305PASS/176SKIP, Linux22/24 each442PASS/39SKIP, zero failures/cancellations.
-This product workflow repacks; its bytes are separate from exact b812 acceptance.
-Independent review08b55c1 confirms the completed evidence. All safe independent
-work at this checkpoint is complete; the recurring owner/native prerequisites
-below prevent live recipient/model acceptance. No further timing or model retry is queued. G2/G3/G4 remain incomplete, no model trial/new signing/trust/publication.
+08:06UTC update: corrected data-only lane was newly unblocked by the owner's exact
+a6006888 approval. Root verified complete workflow hash at892f603, unexpired exact
+artifact11685889769, all retained bindings and clean dedicated branch before one
+normal push6b901d0. Recipient38123365552 PASS; imported healthyCURRENT/PASS/eligible
+on independent matched VM, origin retained with no equivalent execution. Unrelated
+edit/restart pass; relevant editSTALE. Required-refresh producer authentication and
+acceptance are actual, not inferred from signing or job success. Models0; no upload,
+new signing/trust relationship, permission change, main merge or publication.
+
+Single recipient command samples: preflight1217.684ms, preview190.715ms, authenticated
+import5040.374ms, applicability42274.658ms. Four recipient commands48,723.431ms;
+14 setup/control/owned-stop commands139,906.693ms are separate. These are commands
+from one controlled data-only run, not a benchmark distribution or avoided agent
+obligation. The previous completed same-machine sample showed no net saving; it is
+not superseded by a cheap-path claim. Broad CI and model comparisons were not rerun.
+
+Copilot Actions entitlement/four included credits remains owner-confirmation
+pending. Native Claude owner-local onboarding command is now verified and recorded
+in the existing owner checklist; no secret is requested. Normal prompt is the next
+owner success signal, not effective credential/sandbox proof or model capacity.
+Actual native no-model boundary and final in-context evidence gates still precede
+all model calls. The exact data-only approval no longer blocks this lane. G2 and
+final G3/G4 acceptance remain incomplete; external usage NOT STARTED.
 
 Earlier checkpoint at01:19UTC,3h55m since agreedDay0: frozen d04 origin/signing/profile and installed
 relocation evidence remains valid; no actual model handoff or live accepted recipient
@@ -101,8 +113,8 @@ resolves the catalog. Diagnostic fix is independently reviewed, no engine semant
 changed. One same-obligation completion sample requires final independent review;
 failed receipts will be retained rather than erased by disposable teardown.
 
-Owner/resource decisions and blocked lanes: original recipient approval no longer
-blocks D5 trust; only changed-pin approval blocks corrected live data acceptance.
+Historical owner/resource ledger before this attempt: original recipient approval no longer
+blocked D5 trust; changed-pin approval then blocked corrected live data acceptance.
 Copilot seat/policy/included quota and effective native credential boundary remain
 prerequisites; Claude native onboarding/authentication and actual sandbox/credential
 proof are unrun. Account existence is answered. No paid usage, model trial, broad

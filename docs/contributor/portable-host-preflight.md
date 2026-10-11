@@ -1,13 +1,12 @@
 # Portable-evidence host preflight
 
-**Current conclusion (2026-10-11): exact d04b872 installed @2 controlled-fixture
-export/import and policy ownership checks PASS on one macOS machine. Actual
-producer/signing38096670987 succeeds; both full hosted profile prototypes
-38096673747 are supported and independently match21 runtime records plus signed
-origin facts. Required-refresh authentication passes as inspection only, with
-producer_accepted=false/local_policy_current=false/reuse_eligible=false. No actual
-recipient CI acceptance, portable agent handoff or matched-machine reuse is yet
-established; G2/G3/G4 remain incomplete.**
+**Current conclusion (2026-10-11 08:06UTC): one owner-approved corrected data-only
+recipient run38123365552 PASS. The independent matched macOS VM authenticated and
+accepted the exact signed origin under required-refresh policy, and independently
+returned importedCURRENT/PASS/eligible, no local invocation/equivalent execution.
+Unrelated/restart retention and relevantSTALE passed. Models0. Positive authenticated
+CLI machine handoff is demonstrated; actual agent handoff and final G2/G3/G4
+acceptance remain incomplete.**
 
 The frozen signing/installed-mechanics candidate remains d04b872/SHA8695b612… .
 A distinct guide-only package was packed once at223f231,80files/158,546bytes,
@@ -41,8 +40,8 @@ Product38096673735 allfour jobs PASS; exact counts are in the
 Owner D4 now approves existing subscription/seat resources and the explicit
 Copilot CLI producer VM A → native Claude Code receiver VM B demo pair; Codex
 acceptance stays separate. D5 approves the exact original data-only producer trust and provisioning; the
-corrected helper-pin proposal still needs its separate approval before a live
-accepted recipient. Native authentication/workflow, sandbox/credential enforcement,
+corrected helper-pin proposal is now explicitly approved and its one live
+data-only recipient attempt passed. Native authentication/workflow, sandbox/credential enforcement,
 capacity proof and in-context expected evidence remain gates.
 The disabled [Claude proposal](portable-claude-receiver-proposal.md) records the
 observed local claude.ai route, not VM capacity or behavior. No model trial follows

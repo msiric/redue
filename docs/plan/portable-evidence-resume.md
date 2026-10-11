@@ -6,16 +6,16 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-**Current conclusion (2026-10-11 01:46 UTC): same-machine export/import mechanics
-and the guide-only b8122c3b exact package pass; all three package jobs and four
-regression jobs are successful. Hosted producer/signing and independent matched
-profile prototypes pass. Actual accepted recipient import and cross-agent/two-machine
-reuse remain unestablished. The one complete controlled cost sample shows no net
-saving. G1 technical slice only; G2/G3 incomplete; G4 prepublication NOT READY.**
+**Current conclusion (2026-10-11 08:06UTC): the one exact owner-approved data-only
+recipient attempt38123365552 PASSED. Independent matched VM authenticated/accepted
+the signed d04 origin and established importedCURRENT/PASS/eligible with no local
+invocation/equivalent execution. Unrelated/restart preservation and relevantSTALE
+passed; models0. This is machine-boundary CLI acceptance, not agent reuse.
+G2 and final G3/G4 acceptance remain incomplete.**
 
 ## Source, owners and approval boundaries
 
-Verified root task branch `aaef64f` before this final checkpoint documentation;
+Verified root task branch `03921f2` before this recipient-result documentation;
 remote fixed signing/runtime task ref remains
 `d04b872ee0e848e300c0cc9738ad761e48146acc` with frozen8695 artifact. Preparation
 ref05c1d869 tests distinct guide-only223f231/b812 bytes; runtime is unchanged.
@@ -136,24 +136,49 @@ At submission active artifacts4,826,222bytes plus224KiB maximum reservation
 retention. No additional storage operation is queued. Frozen signed artifact expiry
 is2026-10-11 23:56:31UTC; recheck live availability before an approved recipient run.
 
-All safe independent tasks in this checkpoint are complete. Do not rerun CI,
-models, preservation or timing while waiting. Next affected operations require:
+## Newly completed data-only recipient lane and remaining operations
 
-1. The separately requested exact corrected-recipient workflow approval
-   (a6006888…; only two pins changed). Original ef237cbb… approval does not approve
-   changed bytes. If approved, verify exact proposal/registry/policy/artifact live
-   identity, update only the dedicated recipient branch normally and run once.
-   An expired artifact or failure requires review, not an improvised new producer.
-2. Copilot applicable seat/included quota and effective native credential/sandbox
-   proof; Claude supported isolated onboarding/authentication plus the corresponding
-   no-model boundary proof. Follow the existing consolidated owner checklist;
-   approved account existence is not a missing question. Failed prerequisites
-   launch zero model processes.
+Owner-approved complete corrected workflowa6006888 at892f603 was verified before
+enabling only dedicated dev/portable-ci-recipient6b901d08708678bc51b8f9f1349555ecc1f5c198.
+Pinned artifact11685889769 was available/expired=false and exactbound before push.
+One [run38123365552](https://github.com/msiric/redue/actions/runs/38123365552) passed
+all steps. Raw report/log remain mode600 under .local/portable-evidence. Two
+structured records are expected: preview appliedfalse, final appliedtrue. Initial
+local parser expected one report and stopped; classification corrected without
+rerunning the job or changing any test result.
 
-These recurring gates block live G2/G3 acceptance and final G4 readiness. Resume
-from this worktree, check status/refs and reread decisions/review before the affected
-operation. No publication or final gate completion is implied. Owner responses may
-unblock one lane without authorizing another.
+Actual required-refresh producerverified/acceptedtrue; current policyrevision1/
+digestbab79018…; origin02f44ac7… and innerdigest5d16fbf6… retained. Recipientvisible
+schema1/healthy/current/pass/reuse_eligible=true, importedgithub-ci-v1, localinvocation
+null. Different boot and raw Nodephysicalidentity plus equal reviewed runtime were
+validated; unrelated/restarteligible, sourceeditSTALE, no localrun or equivalent
+compiler execution. Models0. Actual image20260907.0351.1, macOS26.6.2/build25G83,
+Darwin25.6.0/arm64/APFS; a label alone did not establish applicability.
+
+First applicability42274.658ms, one observed sample under unchanged existing
+deadlines. Four recipient commands48,723.431ms;14 setup/control/owned-stop commands
+139,906.693ms separately. No speedup, model/task benefit or useful-project coverage
+claim. Earlier failed38098482463 and cost samples remain history. No new signing,
+artifact upload, expanded trust, broad CI, publication or model trial occurred.
+Independent terminal classification is recorded in the boundary review/map.
+
+Next operations only follow specific owner actions in the existing
+[checklist](../contributor/portable-agent-owner-checklist.md):
+
+1. Copilot Actions entitlement/four included credits confirmation unlocks the
+   normal built-in GITHUB_TOKEN authentication/capacity preflight. Actual native
+   credential/sandbox proof and fail-closed evidence gates must still precede the
+   bounded producer model trial. No PAT/new account/paid route.
+2. Owner runs the exact isolated nativeClaude187 command and normal subscription
+   onboarding privately, exits at normal prompt without model/tool input. This
+   unlocks independent review and actual no-model interactive sentinel/security
+   proof; current settings deny all tools and cannot provide that proof. No secret
+   yet. Runner OAuth setup/workflow and model acceptance remain later reviewed gates.
+
+No more recipient attempts, broad CI, model calls or timing campaigns are queued.
+The data-only lane is complete for this exact attempt; actual model acceptance
+remains blocked on its account/effective-boundary prerequisites. Publication and
+final public-alpha gate remain pending owner approval; goal is not complete.
 
 ## Completed controlled cost sample and revised documentation
 

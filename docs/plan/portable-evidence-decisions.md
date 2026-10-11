@@ -165,3 +165,25 @@ Helper and registry source remain pinned to a23843e; runtime/tarball to d04b872.
 No signing changes, models, OIDC, uploaded artifacts, main merge or publication.
 Successful execution—not approval—must establish authenticated imported CURRENT.
 This does not approve a future Copilot-produced origin or its acceptance policy.
+
+### D5 corrected-pin execution authorization — recorded 2026-10-11 08:00UTC
+
+The owner explicitly approved one attempt of the complete corrected recipient
+proposal at892f603, SHA-256
+`a600688881452915bde3f63a9dc60d21d952c65a9b4efe3db2c14860976a5d6f`.
+Root verified the whole file against both that commit and the retained proposal
+before applying it. Exact bytes are enabled only on dev/portable-ci-recipient
+`6b901d08708678bc51b8f9f1349555ecc1f5c198`; push launched38123365552 once.
+Before push, actual artifact11685889769 was available/expired=false, with matching
+archive digest, run/source and expiry2026-10-11 23:56:31UTC. Registry, policy,
+runtime, verifier and producer bindings are unchanged. The fresh-state data-only
+lane is newly unblocked; actual result remains to be recorded. No model calls,
+new signing, upload, expanded trust, main merge or publication is authorized.
+Copilot included Actions capacity and native-agent effective-boundary prerequisites
+remain independent. The recording time is not an inferred exact approval timestamp.
+
+Actual run38123365552 completed SUCCESS at08:05UTC: required-refresh producer
+verified/accepted; independent matched recipientCURRENT/PASS/eligible, no local
+invocation/equivalent execution; same origin through unrelated edit/restart and
+relevanteditSTALE. Models0. This closes this positive data-only attempt only;
+actual agent acceptance and final negative/candidate binding remain separate.
