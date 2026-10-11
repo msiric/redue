@@ -2032,3 +2032,26 @@ authority. Its prospective family observation would describe that new startup
 only; it cannot recover the discarded historical sequence, prove credentials/
 sandbox controls, count a checker/model trial or make the native host ready.
 Both prior specifically approved operations remain NOT_VERIFIED and consumed.
+
+
+### Actual separately approved startup-only classification
+
+The one specifically approved1c6a55 startup-only diagnostic completed with
+process exit0 and CLASSIFIED_DIAGNOSTIC_ONLY/SAVE_CURSOR after404.7ms.
+Independent inspection confirms protected final report SHA-256
+`5840f3182ac7495405005cd56562a0b803ac895871d1da1246da1748245e4776`,
+mode600/current-owned/single-link. Keyboard bytes0, model actions0, native
+reaping and source/fallback rechecks are true. Raw terminal/stderr retention
+is false. Current normal5628 settings, eebb launcher and a59 native executable
+were independently rehashed unchanged. No new settings or synthetic resources
+were applied by this classifier.
+
+SAVE_CURSOR establishes the first classified non-CSI/non-OSC escape family
+for this new startup only. It does not identify the discarded bytes from the
+first or second checker preparations, certify complete terminal support or
+establish shell-mode/checker execution, sandbox/credential controls, model
+capacity or portable evidence reuse. The original two NOT_VERIFIED attempts
+remain retained and distinct. No native/auth/fixture action was performed by
+this reviewer. Any disabled decoder correction requires separate critical
+review and any later operation requires specific approval; no retry or native
+feature expansion follows automatically from this diagnostic.
