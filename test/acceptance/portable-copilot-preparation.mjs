@@ -1,5 +1,6 @@
 // Contributor-only preparation. No inference, credential lookup, trust write,
-// host settings change or process launch is available through this module.
+// host settings change or model process launch is available through this module.
+// Inspection executes only three explicit bounded, no-model host commands.
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -10,6 +11,8 @@ export const COPILOT_VERSION='1.0.91';
 export const COPILOT_SECRET_NAMES=['GITHUB_TOKEN','GH_TOKEN','COPILOT_GITHUB_TOKEN',
   'CLAUDE_CODE_OAUTH_TOKEN','ANTHROPIC_API_KEY','ANTHROPIC_AUTH_TOKEN'];
 const sha=data=>createHash('sha256').update(data).digest('hex');
+const overlaps=(a,b)=>a===b||a.startsWith(b+path.sep)||b.startsWith(a+path.sep);
+const fingerprint=stat=>['dev','ino','uid','mode','nlink','size','mtimeNs','ctimeNs'].map(key=>String(stat[key])).join(':');
 const childEnv=env=>{
   const result={...env};
   for(const key of COPILOT_SECRET_NAMES)delete result[key];
@@ -24,6 +27,37 @@ function ownedDirectory(value){
   assert(stat.isDirectory()&&stat.uid===process.getuid()&&(stat.mode&0o022)===0,'Directory ownership is required');
   return value;
 }
+function parentIdentity(directory){
+  assert.equal(fs.realpathSync(directory),directory);const records=[];let current=path.parse(directory).root;
+  for(const segment of directory.slice(current.length).split(path.sep).filter(Boolean)){
+    current=path.join(current,segment);const stat=fs.lstatSync(current,{bigint:true});
+    assert(stat.isDirectory()&&!stat.isSymbolicLink()&&(stat.uid===0n||stat.uid===BigInt(process.getuid())));
+    assert((stat.mode&0o022n)===0n||stat.uid===0n&&(stat.mode&0o1000n)!==0n,'Unsafe executable parent');
+    // Directory mtime changes from unrelated inventory files do not change
+    // its ownership/identity. Native file content has a separate complete guard.
+    records.push([current,String(stat.dev),String(stat.ino),String(stat.uid),String(stat.mode)]);
+  }
+  return JSON.stringify(records);
+}
+function nativeSnapshot(file){
+  const parents=parentIdentity(path.dirname(file)),before=fs.lstatSync(file,{bigint:true});
+  assert.equal(fs.realpathSync(file),file);assert(before.isFile()&&before.nlink===1n);
+  assert(before.uid===0n||before.uid===BigInt(process.getuid()));assert((before.mode&0o022n)===0n);
+  assert(before.size>0n&&before.size<=BigInt(192*1024*1024),'Executable size is bounded');
+  const fd=fs.openSync(file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK);
+  try{
+    const opened=fs.fstatSync(fd,{bigint:true});assert(opened.isFile());assert.equal(fingerprint(opened),fingerprint(before));
+    const hash=createHash('sha256'),buffer=Buffer.alloc(1024*1024);let read=0;
+    while(read<Number(opened.size)){
+      const count=fs.readSync(fd,buffer,0,Math.min(buffer.length,Number(opened.size)-read),read);
+      assert(count>0,'Incomplete executable read');hash.update(buffer.subarray(0,count));read+=count;
+    }
+    assert.equal(fingerprint(fs.fstatSync(fd,{bigint:true})),fingerprint(opened));
+    assert.equal(fingerprint(fs.lstatSync(file,{bigint:true})),fingerprint(opened));
+    assert.equal(parentIdentity(path.dirname(file)),parents);
+    return {sha256:hash.digest('hex'),identity:fingerprint(opened),parents};
+  }finally{fs.closeSync(fd);}
+}
 
 export function inspectCopilot({executable,workspace,home,cache,expectedSha256,execute=spawnSync,env=process.env}){
   const result={schema:1,host:'copilot',expected_version:COPILOT_VERSION,
@@ -31,14 +65,13 @@ export function inspectCopilot({executable,workspace,home,cache,expectedSha256,e
     sandbox_flag_parsed:false,sandbox_enforcement_verified:false,
     entitlement_verified:false,model_launched:false,ready_for_inference:false};
   ownedDirectory(workspace);ownedDirectory(home);ownedDirectory(cache);
-  assert(home!==cache&&!home.startsWith(workspace+path.sep)&&!cache.startsWith(workspace+path.sep),
+  assert(!overlaps(home,cache)&&!overlaps(home,workspace)&&!overlaps(cache,workspace),
     'Private host directories must remain outside the model workspace');
   assert(/^[a-f0-9]{64}$/.test(expectedSha256||''),'Reviewed executable digest is required');
-  assert(path.isAbsolute(executable));const file=fs.realpathSync(executable),before=fs.lstatSync(file);
-  assert(before.isFile()&&before.nlink===1,'Executable must be one ordinary file');
-  assert(before.size>0&&before.size<=192*1024*1024,'Executable size is bounded');
-  assert.equal(sha(fs.readFileSync(file)),expectedSha256,'Unreviewed executable: zero host commands');
+  assert(path.isAbsolute(executable));const file=fs.realpathSync(executable),before=nativeSnapshot(file);
+  assert.equal(before.sha256,expectedSha256,'Unreviewed executable: zero host commands');
   const invoke=args=>{
+    assert.deepEqual(nativeSnapshot(file),before,'Executable changed before inventory command');
     const r=execute(file,args,{cwd:workspace,env:{...childEnv(env),COPILOT_HOME:home,COPILOT_CACHE_HOME:cache,
       COPILOT_AUTO_UPDATE:'false'},encoding:'utf8',timeout:10000,maxBuffer:1024*1024,
       stdio:['ignore','pipe','pipe']});
@@ -57,9 +90,7 @@ export function inspectCopilot({executable,workspace,home,cache,expectedSha256,e
         source.defaultDisabled!==true);
     }catch{}
   }
-  const after=fs.lstatSync(file);
-  assert.equal(sha(fs.readFileSync(file)),expectedSha256,'Host executable changed during inspection');
-  for(const key of ['dev','ino','size','mtimeMs','ctimeMs'])assert.equal(after[key],before[key]);
+  assert.deepEqual(nativeSnapshot(file),before,'Host executable changed during inspection');
   return result;
 }
 
@@ -67,9 +98,10 @@ export function copilotProposal({workspace,state,prefix,nodeDirectory,home,cache
   for(const directory of [workspace,state,prefix,nodeDirectory,home,cache,logDirectory])ownedDirectory(directory);
   assert(Number.isInteger(credits)&&credits>=1&&credits<=4,'Initial proposal is at most four included AI credits');
   const privatePaths=[home,cache,logDirectory];
-  assert(new Set(privatePaths).size===3,'Private host directories must be distinct');
+  for(let at=0;at<privatePaths.length;at++)for(const later of privatePaths.slice(at+1))
+    assert(!overlaps(privatePaths[at],later),'Private host directories must be disjoint');
   for(const p of privatePaths)for(const exposed of [workspace,state,prefix,nodeDirectory])
-    assert(p!==exposed&&!p.startsWith(exposed+path.sep),'Host-private state cannot be exposed to model tools');
+    assert(!overlaps(p,exposed),'Host-private state cannot overlap exposed model paths');
   // This is ONLY a proposal for an owner-reviewed disposable VM. Existing
   // managed floors remain authoritative. No settings are written here.
   const settings={autoUpdate:false,remote:'off',remoteExport:false,memory:false,

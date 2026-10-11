@@ -14,6 +14,13 @@ SHA-256 is
 Read-only help accepts `--sandbox --help` even though the normal help omits that
 flag. It documents `--secret-env-vars`, tool filtering, `--max-ai-credits`,
 `--max-autopilot-continues`, isolated COPILOT_HOME/cache and remote opt-out.
+The official public `@github/copilot-darwin-arm64@1.0.91` distribution was read
+without installation or execution. Its registry SHA-512 integrity matched;
+archive SHA-256 is
+`fd5bddc8756e549e47c04a2f9082c50d04727e9dcdcc02ded8936e6e3d1bace0`;
+the97,603,492-byte archive has four ordinary files, and its158,751,280-byte
+native executable exactly matches the installed digest above. This does not
+claim independent verification of npm's registry signature.
 These observations are parser compatibility, not proof of sandbox enforcement
 or supported CI authentication in this version.
 
@@ -21,13 +28,21 @@ The contributor-only [preparation helper](../../test/acceptance/portable-copilot
 has no inference entry point. It inventories a reviewed executable with bounded
 commands, removes authentication variables only from those inventory children,
 leaves proxy/runtime variables unchanged and always reports inference readiness
-false. It never writes host settings. Five deterministic controls pass.
+false. It never writes host settings. Six deterministic controls pass. An
+independent review's private/exposed ancestor-overlap counterexample is now
+rejected, and executable inventory uses bounded no-follow descriptor reads with
+ownership/parent/content guards before each invocation and after inspection.
 
 Actual isolated instruction inventory found AGENTS.md after the disposable
 fixture acquired its own Git root. Two prior nonmatching inventories remain
 retained: their paths were relative to the enclosing REDUE repository. This is
 generic-instruction discovery only. It establishes neither session loading nor
-agent behavior. Protected outputs remain owner-local in
+agent behavior. The strengthened reader refused the existing installation's
+parent permissions before host execution. Copying only the publicly reviewed,
+digest-matching native executable into the owned disposable tool directory
+allowed the same three inventory commands under the new guards; no credentials
+or settings were copied, and the normal installation was unchanged.
+Protected outputs remain owner-local in
 `.local/portable-evidence/copilot-mechanics-ql48Uy/`; no credential store or
 transcript was copied.
 

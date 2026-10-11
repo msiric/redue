@@ -1,3 +1,5 @@
 # Owner-reviewed signer bytes must be identical on every contributor checkout.
 /.github/workflows/portable-evidence.yml text eol=lf
 /docs/contributor/portable-ci-signing-workflow.yml text eol=lf
+docs/contributor/portable-ci-producer-registry-proposal.json text eol=lf
+docs/contributor/portable-ci-recipient-workflow.yml text eol=lf
