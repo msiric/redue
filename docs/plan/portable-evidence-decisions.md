@@ -187,3 +187,28 @@ verified/accepted; independent matched recipientCURRENT/PASS/eligible, no local
 invocation/equivalent execution; same origin through unrelated edit/restart and
 relevanteditSTALE. Models0. This closes this positive data-only attempt only;
 actual agent acceptance and final negative/candidate binding remain separate.
+
+
+## D6 — One bounded local native synthetic preflight (2026-10-11)
+
+The owner replied **Approved** to the exact durable proposal (map SHA-256
+`c321bb78cbd5dfacf6daaa9eb41db71f3d9aff4fa40456337d8d4e70f83edb1f`).
+This unblocks one no-model native Claude2.1.187 manual `!` invocation of the
+reviewed checker with the separate reviewed sentinel settings, fixed owned file
+canaries, two Unix endpoints and loopback38187. It does not approve inference,
+actual credential or REDUE control access, CI secrets, new trust/signing/uploads,
+main merge or publication. The original settings and launcher stay unchanged.
+Current guards and independent harness review precede the one attempt; unknown
+UI, failed denials or an expired deadline do not authorize an unsandboxed retry.
+
+The current metadata check found the old namespace directories present and empty,
+owned by the current user with canonical nonsymlink755 parents; the exact old
+plaintext credential fallback file is absent. Their creation cause is unestablished.
+Independent review permits this incidental directory state with fallback absence
+checked before/after; no deletion, credential copy or account switch is authorized.
+Auth-source diagnostics still report firstParty/claude.ai/Pro and no API-key source.
+This is a prerequisite observation, not proof of effective enforcement.
+
+Copilot's promised confirmation of four included Actions AI credits/no additional
+charge remains separate and pending. Approval of the synthetic test supplies no
+quantitative model budget. Day0 and spending/security boundaries are unchanged.

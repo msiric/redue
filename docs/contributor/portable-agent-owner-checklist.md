@@ -132,13 +132,15 @@ local/system sources were absent. Pinned187 account/loading source review is
 limited to this observed profile; it is not global policy or enforcement proof.
 The one read-only `/status` capture remained UNKNOWN and is retained as such.
 
-The next Claude owner action is approval of the exact durable map/settings/checker
+The owner has approved one attempt of the exact durable map/settings/checker
 in the linked proposal: controlled synthetic files, two Unix listeners, one fixed
 loopback listener and one native no-model `!` checker invocation. Potential failed
 denials touch only those owned canaries/endpoints. Normal settings and login stay
 unchanged; no actual auth/keychain/REDUE access, arbitrary command, permission
 escalation or model request is part of the checker. Current guards must pass again
-before any approved execution. No secret should be created or added yet.
+before execution. The coordinator will run the bounded no-model attempt; no
+repeat login or further synthetic approval is requested. No secret should be
+created or added yet.
 
 Copilot's pending owner confirmation concerns the Actions billing route: applicable
 msiric seat, at least four included AI credits, and zero additional charges. That
