@@ -2620,3 +2620,63 @@ history. Independent light review verifies corrected provenance, exact manifest/
 procedure binding and unchanged5139 helper/code/profiles. GO remains inactive
 staging/data-only verification, not native enforcement. No new test, native,
 checker, model, settings application or diagnostic operation was performed.
+
+
+### Actual owner-operated v2 diagnostic and captured-gate review
+
+Actual owner-supplied eight-role diagnostic capture
+`e578d137d2841ff5283cd2013a70cd80cea9a6d01623b3f8606cce2f0b7a8a8c`
+is independently read-verified as owned600/single-link, stable and bounded.
+Both relocated code roles show regular/canonical owned600 single-link metadata,
+readonly open, same-inode fstat and close success. Both original code roles retain
+EPERM lstat and otherwise unperformed phases. The two existing NONSECRET
+protected settings/canary roles show EPERM lstat and readonly-open denial, with
+fstat/close unperformed. Configuration/credential directory roles show only
+metadata, no opens; their mode600=false and single_link=false are directory facts,
+not failed assertions. All eight rows pass the current narrow row validator.
+Real credential-body denial remains NOT_TESTED; no protected contents were read.
+The capture is OWNER_SUPPLIED_NATIVE_OUTPUT_NOT_COORDINATOR_MEASURED, not a
+coordinator-collected tool trace or authentication against hostile same-UID code.
+
+The actual saved diagnostic lifecycle
+`dba602d456b95c81c312327898917df0fae4f1637f962935fad58cad7764d14a`
+records native exit0/no signal, reaped/restored/current-file flags true,97,657ms,
+and LIFECYCLE_ONLY_NOT_BOUNDARY_VERIFICATION. Its
+REQUIRES_FINAL_PARENT_COMPLETION marker correctly prevented treating that saved
+pre-persistence snapshot alone as completed-operation proof. The later actual
+owner-supplied final capture
+`b7565da2e7e27c537be437fead29ad92ea314b7f0c8ff1e4a82582c8f51a03e2`
+adds persistence_completed=true and97,669ms, retaining the same lifecycle fields.
+Outer helper exit was NOT_SUPPLIED and is not inferred. Enforcement remains
+UNKNOWN and model policy EXPECTED_DISABLED_NOT_MEASURED. Actual dedicated native
+completion is also reported by the integration owner; a PID alone is not used as
+cleanup evidence. No native startup or stdin operation was performed by this
+reviewer.
+
+Root prepared only a candidate, independently reviewed at
+`a33d6b1ae094f58ef5956d90ebff861d347d5c3f703dcd40811b023067ced425`,9,594bytes.
+Fresh read-only current-source verification matches all thirteen source
+fingerprints plus helper5139 byte/physical identity. The diagnostic in this
+candidate is exactly the actual owner capture. All four bound evidence records
+match their current byte hashes and physical identities, including the actual
+owned-process marker
+`d5c2e6c111823be1157b7c9aaab4ce97eef4738edc8bfcdaa32e960a26f71e8d`.
+Saved/final lifecycle scopes, phases, exits, cleanup and currency agree, and the
+finite elapsed limits hold. Candidate acceptance scope is explicitly
+READABILITY_AND_NONSECRET_DENIAL_ONLY, with credential body NOT_TESTED,
+full checker NOT_RUN, model behavior NOT_RUN and outer exit NOT_SUPPLIED.
+It supplies no producer trust or portable applicability authority.
+
+Conclusion: GO for root's exclusive exact-byte copy of the reviewed candidate
+to the fixed gate, then selected-digest require_access_gate/readback before
+conditional full manual handoff. The fixed gate was absent during this review;
+this reviewer wrote no gate. The prevalidated owner procedure uses only the
+fixed quoted Node/collector command after native187 manual Bash mode, current
+full profile636bab/helper5139 and180s startup/15s collector-ACK window/5s cleanup.
+Literal command permissions are not an enforced manual allowlist. All six checker
+assertions and actual child OS close/exit collection remain unchanged. Its durable
+assertions/status must remain separate from final parent persistence/lifecycle
+completion, including FAIL and UNKNOWN. This access gate does not establish full
+native enforcement, cross-agent/two-machine model reuse, capacity, economics or
+the release goal. No checker, model, listener, settings application, controller or
+native process was started in this independent review.
