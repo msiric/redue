@@ -6,10 +6,10 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-Current checkpoint (2026-10-11): the owner requests read-only diagnosis and
-procedure repair with harmless mock-process tests only. The prior native attempt
-stays UNKNOWN; no repeat/native/checker/model call is approved. Old helperdc0,
-profilecc8, checkerb3, actual report9f364dc and process-recordfbce07d are unchanged.
+Current checkpoint (2026-10-11): the owner-requested procedure repair is prepared,
+independently reviewed and mock-tested. The prior native attempt stays UNKNOWN;
+no repeat/native/checker/model call is approved. Old helperdc0, profilecc8,
+checkerb3, actual report9f364dc and process-recordfbce07d are unchanged.
 
 Read-only source plus recorded OWNER_WINDOW_ENDED establishes the old outer-window
 termination branch: start+15 begins on function entry before checks/native startup,
@@ -18,16 +18,39 @@ Absolute phase/submission/checker timestamps were absent. No stdout/result colle
 existed. Actual command submission, checker startup/exit and lost output remain
 UNKNOWN; signal9/delta0 alone do not establish them. Cleanup is not checker success.
 
-D owns a minimal disabled repair: separate proposed180s startup/owner preparation,
-15s checker execution and5s cleanup; exact in-sandbox supervisor captures bounded
-fixed JSON plus actual OS child exit over the existing allowed synthetic socket.
-C owns independent critical review. Root owns integration/tracker. No terminal
-parser/input automation, REDUE runtime change, result-path permission, global
-setting or credential copying is permitted. Harmless mocked children/disposable
-local endpoints only in tests, clearly labelled harness acceptance. Existing
-assertions/per-operation limits and sandbox/profile guards remain authoritative.
-New exact files/limits/protocol require review and separate owner approval before
-another native attempt. Copilot capacity remains separate; gates are incomplete.
+D's inactive repair separates proposed180s startup/owner preparation, one15s
+checker-collection window and5s cleanup (200s total). The exact in-sandbox
+supervisor captures bounded static JSON and actual OS child close/exit/signal over
+the existing allowed synthetic socket; no new native result-path grant. The
+parent saves exclusive mode600 `evidence/native-collection-result.json` with
+assertion/process observations independent of terminal copying. Accepted FAIL
+survives later error/uncertain completion. Final persistence/lifecycle completion
+is separately conservative UNKNOWN; cleanup cannot create checker success.
+
+Independent C review d77d4c5 is integrated as00c0af2: GO_FOR_OWNER_APPROVAL only.
+Author, reviewer and root reran8 Node mocks,12 Python controls and2 connected
+mock controls PASS; eight further independent source/data controls PASS. Connected
+cases exercise temporary socket transport, harmless child exits, durable readback,
+no-overwrite and owned group kill/reap. They are not Claude enforcement evidence.
+Initial test-only NameError/module-invocation failures and root expected-hash
+transcription error are retained; corrected coherent checks pass.
+
+Prepared owner-local BASE remains `/Users/mariosiric/Library/Application Support/REDUE/portable-evidence/native-claude-2.1.187`.
+New inactive helper `owner-sentinel-collect.py` SHA c9f6e1e98ea49bac81b4d6ac6c3f2bf965552025912a9e56d8d77d10cb504563;
+wrapper `workspace/redue-native-sentinel-collect.mjs` SHA010833502f33471b0a95891a27af9114d532e0881c1209f351a68c5caa6c9cc3;
+profile `settings-sentinel-collect.json` SHAdfc808862940d126e7852b6606ed834505f67fd92ed21047956205fffc3fe4e2.
+Procedure `README-sentinel-collection.md` and proposal manifest are prepared there.
+Root read-only helper `--verify` exits0, native launches0/listeners0, referenced
+paths/identities checked. No native/checker/model or real sentinel endpoint ran.
+Settings delta changes only the exact owner command and new-file protections;
+strict sandbox, disabled Bash response and network/socket grants are retained.
+Manual command scope is owner-operated, not an enforced command allowlist; the
+same-UID socket protocol is not hostile-local-process origin authentication.
+
+Next requires separate owner approval for these exact files/protocol/phase caps
+and one operation, then fresh source/auth/policy prerequisites. Do not execute
+`--owner-run` now, clear old records, retry automatically, change normal/global
+settings or copy credentials. Copilot capacity remains separate; gates incomplete.
 
 ## Historical owner-confirmed UNKNOWN result
 

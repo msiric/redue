@@ -3,10 +3,10 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-Current checkpoint (2026-10-11): the owner requests read-only diagnosis and
-procedure repair with harmless mock-process tests only. The prior native attempt
-stays UNKNOWN; no repeat/native/checker/model call is approved. Old helperdc0,
-profilecc8, checkerb3, actual report9f364dc and process-recordfbce07d are unchanged.
+Current checkpoint (2026-10-11): owner-requested repair is prepared, independently
+reviewed and mock-tested only. Prior native attempt remains UNKNOWN and preserved;
+no repeat/native/checker/model call is approved. Old helperdc0, profilecc8,
+checkerb3, actual report9f364dc and process-recordfbce07d are unchanged.
 
 Read-only source plus recorded OWNER_WINDOW_ENDED establishes the old outer-window
 termination branch: start+15 begins on function entry before checks/native startup,
@@ -15,16 +15,24 @@ Absolute phase/submission/checker timestamps were absent. No stdout/result colle
 existed. Actual command submission, checker startup/exit and lost output remain
 UNKNOWN; signal9/delta0 alone do not establish them. Cleanup is not checker success.
 
-D owns a minimal disabled repair: separate proposed180s startup/owner preparation,
-15s checker execution and5s cleanup; exact in-sandbox supervisor captures bounded
-fixed JSON plus actual OS child exit over the existing allowed synthetic socket.
-C owns independent critical review. Root owns integration/tracker. No terminal
-parser/input automation, REDUE runtime change, result-path permission, global
-setting or credential copying is permitted. Harmless mocked children/disposable
-local endpoints only in tests, clearly labelled harness acceptance. Existing
-assertions/per-operation limits and sandbox/profile guards remain authoritative.
-New exact files/limits/protocol require review and separate owner approval before
-another native attempt. Copilot capacity remains separate; gates are incomplete.
+D's inactive repair uses proposed180s startup, one15s checker-collection window,
+5s cleanup/200s total. Bounded typed reporting uses only the existing synthetic
+allowed socket and a parent-written private result, without native result-path
+access. Captured assertions and actual OS exit/signal remain independent of
+terminal copying and final lifecycle uncertainty; a retained FAIL is not erased.
+No terminal decoder/input automation, REDUE runtime change, new resource grant,
+credential copy or global change. Exact checker/per-operation limits unchanged.
+
+C review d77d4c5 integrated00c0af2: GO_FOR_OWNER_APPROVAL only. Author/reviewer/root
+8 Node+12 Python+2 connected mock tests PASS;8 independent source/data controls
+PASS. Harmless child/socket/persistence/cleanup tests are not native enforcement.
+Prepared helperc9f6e1e/wrapper01083350/profiledfc80886 exist in durable owner-local
+BASE. Root read-only `--verify` exits0 (native/listeners0), old hashes unchanged.
+Private procedure/manifest contain exact identities and proposed settings delta.
+Fresh prerequisite checks and separate exact owner approval remain required;
+no `--owner-run`, real checker or model was invoked. Same-UID protocol is not
+hostile-local-process authentication. Copilot capacity remains independently
+pending; G2/finalG3/G4 remain incomplete. Full resume has exact paths/next command.
 
 ## Historical owner-confirmed UNKNOWN result
 
@@ -365,6 +373,15 @@ Pre-attempt artifact allowance snapshot: 4,608,374 active bytes +5MiB signing re
 Current active artifacts are4,826,222bytes at the verified checkpoint; recheck before any later upload. Next: review disabled host proposals and exact current-policy proposal before recipient acceptance; no new producer/signing push. Actual recipient authority still requires current owner policy and effective receiving-host controls. Preserve prior failures and concrete deadline values. Account-existence question is answered: current resource condition is PENDING_OWNER_AUTH_WORKFLOW/CAPACITY_PROOF, not PENDING_OWNER_ACCOUNT. Amended pair still needs reviewed native OAuth workflow/owner secret, Copilot entitlement/policy/billing and exact producer-policy approval. No main/model/trust/public action is inferred.
 
 ## Daily progress — 2026-10-11 UTC (current)
+
+16:47UTC update: bounded owner-procedure repair completed as inactive preparation.
+Independent review and22 mocks pass; root read-only verification passes. Prior
+UNKNOWN remains immutable. Native attempt requires new exact approval. No runtime,
+model, signing/upload, trust, main merge, publication or resource change occurred.
+Preparation failures retained: test-only NameError/module-invocation errors and a
+root expected-hash transcription error corrected against the original64-character
+hex digest; no actual old-record change. Owner-local procedure has separate
+startup/collection/cleanup bounds and durable static checker/OS status capture.
 
 08:06UTC update: corrected data-only lane was newly unblocked by the owner's exact
 a6006888 approval. Root verified complete workflow hash at892f603, unexpired exact
