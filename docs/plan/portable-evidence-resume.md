@@ -18,25 +18,61 @@ G0–G4 are unchanged. No new goal or planning framework is created.
 
 D revalidated all seven staged native files and diagnostic-input/profile bindings;
 no useful remaining fixture repair was found. Native diagnostic/checker is not
-prohibited by missing consent, but its supported Terminal automation is explicitly
-host-denied. The reviewed owner manual route remains permitted; effective native
-readability is UNKNOWN and full collection remains gated. No denied route is retried.
+prohibited by missing consent. Terminal-app automation is explicitly host-denied;
+that alone does not prohibit a separate supported CLI. Independent C review finds
+that no supported way to establish a fresh rendered prompt/Bash-mode state
+from these stream chunks has been demonstrated; blind input risks inference. No decoder/controller or bypass
+is built. The reviewed manual route remains the currently established safe path.
+Effective native readability is UNKNOWN and full collection remains gated.
 Copilot Actions included capacity is separately unestablished under the $0 cap.
 Local Claude onboarding succeeded; neither subscription existence nor settings
 presence proves effective sandbox enforcement or hosted receiver provisioning.
 
-Unblocked task: synchronize preserved committed work for external review without
-running the fixed signing trigger or changing producer trust. Root and C inspect
-workflow/ref/storage bindings before a normal task push. No substitute signed
-origin or new acceptance policy is authorized. Existing frozen artifacts/attempts
-remain intact. Codex0.162.1 exposes `--approve-for-me`; official documentation
-keeps Auto-review inside existing permission boundaries. Current coordinator
-policy is `never`, so it has no eligible escalation route; no global settings or
-reviewer policy change is made. Tool-specific Terminal/browser denials remain.
+Preserved work is now synchronized normally to the existing
+`dev/portable-ci-preparation` ref at `3c87cdcca19a46059a44c3d4c6f8d382a508345c`;
+no force-push, new signer invocation or producer-trust change. Draft
+[PR #13](https://github.com/msiric/redue/pull/13) reviews that preparation against
+fixed `dev/portable-evidence`; PR #12 and the signed `d04b872` origin remain intact.
+The PR's automatic signing/storage effects were independently reviewed before
+push. Keep PR #13 draft; merging into the signer-trigger branch needs its normal
+checks/review and explicit verification of those effects, not assumed authority.
+
+Exact-package run [38179134382](https://github.com/msiric/redue/actions/runs/38179134382)
+passed on macOS26, Linux and native Windows. Verified four-file archive artifact
+`11716818446` is160,465bytes with one-day retention; observed active artifact storage
+is5,147,153bytes, below the confirmed10MiB included allowance. The archive ZIP
+SHA-256 is `9ce16f51d8974f4c99b2a783289d6520747566df4cbceb6aac1d55f79c6bd9ea`.
+Its actual PR-merge source `e2491712a85c1b2610b9bf67238cf52be61f1b95` has tree
+`e9e278cd45769bda0acb97000b989c59985bdd3f`, independently confirmed equal to3c87cdc.
+Installed `redue-cli-0.1.0-alpha.10.tgz` SHA-256
+`b8122c3bdcedf42a374ba3a87681ca7654360bc6c10daa64b5ac93a79ca7b190` matches the
+existing documentary candidate; it is neither public alpha.10 nor the frozen,
+signed `d04b872` package (`8695b612…`). No bytes are substituted under old identity.
+All three jobs include installed recording and owned-policy upgrade/removal;
+macOS additionally exercises separate local recipient initialization.
+This is installed mechanics, not actual host behavior or new two-machine reuse.
+
+Focused local source controls:61tests,60PASS/one platform skip/zero failures on
+Node22.13.0. Product run
+[38179134336](https://github.com/msiric/redue/actions/runs/38179134336) has Linux22
+and24 and native Windows jobs PASS; macOS remains live at the last successful
+22:18UTC read. At22:20UTC GitHub CLI reads returned an HTTP/2 connection failure
+and then a TCP connection-aborted error. This is observed connectivity, not an
+account-permission or product-test conclusion. No completion is inferred. Follow
+the same exact live handle after connectivity returns; launch no replacement CI. Code/helper/security identity
+is unchanged by the standing-authority and independently reviewed checklist edits.
+
+Codex0.162.1 exposes `--approve-for-me`; official documentation keeps Auto-review
+inside existing permission boundaries. Current coordinator policy is `never`,
+so it has no eligible escalation route; no global settings or reviewer-policy
+change is made. Tool-specific Terminal/browser denials remain. The existing goal
+service still reports its earlier blocked state; this interface cannot resume or
+edit goal operating instructions. This canonical amendment governs the same
+unchanged objective; do not create a replacement goal or claim service activation.
 
 Day0 remains2026-10-10 21:24UTC; calibration2026-10-13 21:24UTC. Owner-resumed blocker
-audit starts afresh. Gates remain incomplete; engineering proceeds on the unblocked
-review/synchronization task. Next owner inputs are one manual native diagnostic
+audit starts afresh. Gates remain incomplete; engineering proceeds on the confirmed live
+regression runs and reviewed integration checkpoint. Next owner inputs are one manual native diagnostic
 result and the precise included Copilot Actions capacity/billing fact, bundled in
 the current contributor checklist; no general account-existence request.
 

@@ -462,6 +462,16 @@ terminal controller. When manual interaction is unavoidable, complete permitted
 preparation and provide one consolidated prevalidated procedure. Distinguish a
 denial of automation from prohibition of the underlying action.
 
+**Current native-route distinction.** The recorded Computer Use denial is for
+the Terminal app; it is not evidence that every separately supported native CLI
+operation is forbidden. The built-in PTY exposes stream chunks, not a verified
+current rendered Claude prompt/Bash-mode state. Blindly submitting a command could
+invoke inference. The currently established safe route remains the reviewed manual
+procedure; do not manufacture observability with a decoder/controller or use a
+CLI path to evade a denied app/security boundary. A genuinely supported equivalent
+needs independently reviewed no-model semantics and actual prerequisites, not
+another per-command consent.
+
 **Owner decisions.** Interrupt only for new spending/paid infrastructure or an
 unconfirmed charging route; owner-required login/2FA, secret provisioning or
 account/administrator action; broader filesystem/network/credential/signing/
