@@ -1278,3 +1278,17 @@ credential-service namespacing does not prove complete keychain isolation;
 version/source support does not certify effective sandbox enforcement or zero
 background network activity. A future interactive strict-shell sentinel check
 requires its own exact reviewed command and actual tool-boundary evidence.
+
+Actual bootstrap map/settings `785be21b4576e0ad7037f761d4a3ee852a5ea6c12bd9245aa17af577acf698cb`
+have the expected fresh owned700 directories and600 single-link settings, with
+zero input/actions and strict empty MCP. Nevertheless startup remains stopped:
+the digest-verified187 implementation's `n9r()` (offset196897759) returns
+managed policy hooks when local `disableAllHooks` is true unless the managed
+policy itself disables hooks. Its `M_e()` (offset207250411) honors
+`DISABLE_UPDATES` then `DISABLE_AUTOUPDATER`; the map supplies neither. Tool
+denial is insufficient to promise no startup-hook execution or normal-install
+updating. This establishes source possibilities, not that hooks exist or an
+update ran. A supported process-only updater-disable setting and read-only
+presence/key inventory of actual managed-policy sources require review before
+startup. Do not alter managed policy or generalize these observations into
+native enforcement acceptance.
