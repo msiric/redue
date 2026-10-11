@@ -1253,3 +1253,28 @@ reviewer. Model-route authority-file permissions are a separate unresolved
 prerequisite, not a reason to silently expand this no-model operation. A new
 artifact/run, expired download, mismatching profile or changed approved bytes
 requires reevaluation rather than an implicit trust or identity substitution.
+
+## Native Claude version-boundary preparation
+
+Independent light review of D `3d1d4f5` and `b5ae542` confirms the pinned
+[official changelog](https://github.com/anthropics/claude-code/blob/2301018b1f61073c501a8e7a4813ef48c239163b/CHANGELOG.md)
+introduces `sandbox.credentials` in2.1.187, `failIfUnavailable` in2.1.83 and
+`allowUnsandboxedCommands` in2.0.30. Version2.1.260 explicitly changes manual
+`!` commands to run outside the sandbox even with strict mode. Therefore the
+installed2.1.146 cannot establish the proposed credential-denial boundary.
+The isolated official187 binary independently hashes to
+`a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3`,
+215,994,048 bytes, matching its retained official manifest. It was not executed
+by this reviewer.
+
+GO is limited to constructing a data-only exact bootstrap map: fresh canonical
+configuration/GH/workspace directories, independently reviewed strict settings,
+zero authorized Bash/model actions, no UI input/auth copies/HOME or global
+changes, and a60-second envelope. Root's subsequent bounded UI-only startup
+authorization still requires reviewing those actual files/paths first. The
+first onboarding/login/trust gate stops the operation without input. No startup,
+credential/sentinel check or inference has occurred in this review. Config-dir
+credential-service namespacing does not prove complete keychain isolation;
+version/source support does not certify effective sandbox enforcement or zero
+background network activity. A future interactive strict-shell sentinel check
+requires its own exact reviewed command and actual tool-boundary evidence.
