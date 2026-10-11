@@ -1,5 +1,21 @@
 # Portable evidence: remaining owner setup
 
+**Current native step:** code-only relocation and one read-only native access
+check are owner-approved in scope and independently reviewed. Inactive code
+and paired profiles are staged; the data-only verifier passed, with no native
+process, checker, model or listener launched. The prior
+owner collection attempt reported `MODULE_NOT_FOUND`; its exact submitted argv
+was not retained, so the static protected-ancestor conflict is not a proven
+runtime attribution. Original sources, authentication, denials and failure
+records remain preserved. The new private procedure selects only the diagnostic
+profile and dedicated code cwd, then requires owner-entered native Bash input.
+No controller, model, checker or listener runs during that diagnostic. Actual
+in-boundary readable relocated files and denied nonsecret protected-file opens
+must pass before root accepts a current, explicit captured gate for full
+collection. Credential-directory metadata is not credential-body proof. Until
+that result exists, the full collection command is conditional and unavailable
+as an immediate action; obsolete instructions below are historical.
+
 Accounts are already approved: existing Codex and Claude subscriptions, and the
 company-provided Copilot entitlement with permitted personal use. Additional
 spending remains $0. The approved demonstration is Copilot CLI on producer VM A
