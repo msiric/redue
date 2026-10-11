@@ -2540,3 +2540,68 @@ protection scope. No actual native/checker/model process, in-boundary diagnostic
 settings application, synthetic fixture provisioning or credential read was
 performed by this reviewer. No native enforcement or portable/model gate PASS
 is established by these source and mock results.
+
+
+### Pinned187 permission-parser repair: fixed diagnostic script leaf
+
+The owner's reported native warning identified the old inline JavaScript Bash
+permission as invalid with Empty parentheses. Bounded inspection independently
+confirms native 2.1.187 public-source BSr at194755299 and Tlu at194754773 reject
+unescaped adjacent parentheses anywhere in the rule before content parsing;
+JavaScript quoting does not exempt calls. This establishes a parser-level cause
+matching the warning, not sandbox denial or actual diagnostic execution. Current
+online documentation's nested-literal behavior must not supersede this pinned
+implementation. No host version upgrade or general Claude behavior claim follows.
+The first reviewer extraction reached a compiled literal rather than JavaScript;
+corrected fixed public-ASCII ranges supplied the source proof, with no secrets or
+native process involved.
+
+The final inactive v2 helper is source-reviewed at
+`5139c3056871c2286cee2841842bfc624e9db9b86d766bdcff14b0c9ee89f81c`;
+full profile `636bab4db073b91c8165fae24de26cb537d3bacab6e99e2014a39fb157cab014`;
+diagnostic profile `15dbfaf4db84fb014263fbfdeb6baddfff0f39bf9d95050ce02cf0b1a307e9b2`;
+input `75fb685a18ec3c926016e59c9cf7c232e499dc3cdce52081c0bc7394fde67750`.
+The diagnostic body remains byte-identical
+`14f62b23437448142e5d3691bb4e85523bc5136dab898c1ed214875181219c4d`, now a new
+protected CommonJS leaf in the already approved relocated CODE directory.
+Its fixed command resolves by shell quoting to exactly the reviewed Node executable
+and that one script pathname. It has no wildcard, prefix allowance or inline
+JavaScript syntax. No original diagnostic target contents/code, credential file,
+network, checker or model operation is added.
+
+All old denials, network/socket scope, environment masking, strict sandbox,
+no-unsandboxed fallback, response=false and Bash shell remain. Only the new v2
+selected profile paths gain denyRead/denyWrite, and the diagnostic code leaf gains
+explicit denyWrite in addition to its protected existing parents. Paired profiles
+have identical restrictions except the single exact command, canonical digest
+`6a03032a5ccffc60d83c8f7cc4b7961530f157c60050003a030f7e5f8339b8ad`.
+Checker/collector bytes and six assertions are unchanged. Diagnostic180/5 and
+conditional full180/15/5 clocks, timeout latch, exact OS exit collection and
+cleanup rules are unchanged. A new v2 record/gate namespace preserves every old
+attempt rather than overwriting it. Full-gate validation additionally binds the
+current v2 helper byte digest and physical identity; missing/changed helper facts
+refuse. Genuine root-captured owner-output/current-source bindings remain required;
+mocks or outer file metadata cannot substitute for the native access gate.
+
+Independent reruns pass4 pinned-parser controls,12 relocation controls and5 v2
+binding controls. Eight additional independent source/data controls pass helper
+binding absence/mutation, stale common restrictions, exact shell argv/permission,
+unchanged body and byte-for-byte provenance of all twelve extracted public parser
+ranges. Earlier independent Bash-subset controls3PASS reproduce old invalid/new
+literal-file valid and exact content binding. These parser tests isolate the Bash
+branch and do not establish native command-permission enforcement; manual direct
+Bash dispatch still bypasses ordinary command approval as previously reviewed.
+The small unexecuted3bc05e5 helper's stale inline-command print label was corrected
+in5139c305; no execution method changed.
+
+The reviewed private procedure60d69b31 and stage manifestd879ed14 select six new
+exclusive mode600/no-follow files, with separate manifest preservation. Root must
+finish the old parent and revalidate source/auth/absence prerequisites before
+staging/operation. Conclusion: GO for the in-scope inactive repair and data-only
+verification. The owner may subsequently use the reviewed manual diagnostic
+under standing authority; any warning/unknown mode stops without Continue or a
+model-assisted fix. No native/checker/model process, diagnostic body execution,
+terminal controller/input, settings selection or permission change occurred in
+this independent review. Native access/enforcement remains UNKNOWN; full
+collection stays conditional on actual current eight-role gate evidence, with
+real credential-body denial still NOT_TESTED.
