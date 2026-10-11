@@ -1510,3 +1510,25 @@ validated UUID/digests are retained, never human reasons or arbitrary producer
 metadata. Independent controls4/4 PASS,51.47ms, Node22.13.0; syntax PASS.
 This adds no new execution, deadline, changed obligation, green assertion or
 third sample. Original failed-response reason remains uncaptured history.
+
+Db19a7be final completion source GO preserves the original ordinary rerun:
+PASS/UNVERIFIED/reuse=false with static selected-local barrier at final query and
+restart. New local immutable receipt must be exited0, stable, exact configured
+argvHash and have no portable capture property. Original source/import/new-local
+bytes remain checked. Independent controls6/6 PASS,56.69ms, Node22.13.0; syntax
+PASS. Source CLI213/306 binds that argvHash to actual resolved command JSON SHA.
+Failed economics fixtures retain owned checkouts/prefixes/state/receipts after
+observer stop attempts, with600 private locator; public reports contain no
+absolute locator. Default/success cleanup remains unchanged. No expensive
+completion sample, model or runtime change was performed by this reviewer.
+
+B4e3004c plus5e0e5d0 shipped-guide clarification GO applies only to accepted
+imports for the selected check. It explains ordinary outcomes can remain
+UNVERIFIED, older imported PASS is not fallback, and deliberate existing
+run CHECK --portable plus caller-aware synchronization adds both-boundary/catalog
+capture cost for a possible fresh local baseline. It preserves selected config/
+state, actual command obligation and receipts; it neither guarantees green nor
+automatically substitutes compiler evidence for npm execution. This directly
+addresses G4 onboarding friction demonstrated by the incomplete sample. Frozen
+8695 artifact is unchanged; newly shipped documentation requires new exact
+candidate bytes and validation before release review.
