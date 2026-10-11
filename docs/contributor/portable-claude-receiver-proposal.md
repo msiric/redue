@@ -93,7 +93,7 @@ workflow; the disabled data proposal does not create another host architecture.
 constructs data only from the caller-selected recipient base. It launches zero
 processes, reads no secrets, writes no settings and always reports PROPOSAL_ONLY.
 Its activation function always refuses; boolean approval/help/static-key fields
-cannot activate it. Four deterministic tests cover scope/budgets/no-bypass and
+cannot activate it. Six deterministic tests cover scope/budgets/no-bypass and
 refusal. This is proposal validation, not native host enforcement.
 
 The proposed argv uses print/stream-json, at most 8 turns and a 300-second parent cap, dontAsk,
