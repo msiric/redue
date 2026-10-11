@@ -14,7 +14,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 3
     env:
-      REVIEWED_SOURCE: 19c5db7d93ba61a616c0833d5df864c15bf5baa7
+      REVIEWED_SOURCE: d1f5b8e8e33f308c755de3a3ee175d672a117407
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:

@@ -35,9 +35,14 @@ is outstanding.
    route is enabled under the $0 cap. GitHub documents built-in GITHUB_TOKEN plus
    `copilot-requests: write`; no PAT or model secret is requested. Repository
    ownership does not prove seat entitlement or available included quota.
-3. **Native Claude OAuth setup, only after the exact workflow review.** Do not
-   create/add a secret yet. Native version-specific credential and sandbox proof
-   is still in preparation. Installed2.1.146 settings/help are not that proof.
+3. **Native host boundary, before OAuth setup.** Do not create/add a secret yet.
+   The secret-free [Claude data proposal](portable-claude-startup-workflow.yml)
+   cannot start native code, tools or inference. Version2.1.187's OAuth auth-status
+   reports token presence as `oauth_token`; that does not establish token validity,
+   subscription capacity or safe authenticated startup. The supported isolated
+   native onboarding/authentication and actual no-model credential/sandbox
+   enforcement proof still need an owner-provisioned host. Installed2.1.146
+   settings/help are not that proof.
    After the reviewed manual, pinned workflow and native version are ready, the
    owner will privately use `claude setup-token` with the existing subscription
    and add CLAUDE_CODE_OAUTH_TOKEN through the GitHub environment-secret UI.

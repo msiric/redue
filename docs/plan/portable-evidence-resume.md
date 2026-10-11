@@ -14,7 +14,7 @@ G2/G3 incomplete; G4 prepublication NOT READY.**
 
 ## Source, owners and approval boundaries
 
-Verified root task branch `69e8218d88c1a5d7ebb022400796d1c5c6d89077`, clean when checked;
+Verified root task branch `a2016f0` before this checkpoint's documentation changes;
 remote and exact tested candidate remain
 `d04b872ee0e848e300c0cc9738ad761e48146acc`. Later disabled host proposals do not replace
 the candidate identity. This includes the
@@ -215,9 +215,21 @@ Preparation107tests:106PASS/one native-Windows-only skip/zeroFAIL3.515s,
 All new code is contributor-only preparation; no runtime/probe/schema changes
 after d04b872, no artifact regeneration, accepted import or model launch.
 Native Claude2.1.146 lacks the requested credential protection. Reviewed isolated
-2.1.187 version/help does not prove effective sandbox enforcement. The no-auth
-UI-only startup is still stopped pending read-only managed-hook source inventory
-and a reviewed process-only updater guard. No OAuth secret is requested yet.
+2.1.187 version/help does not prove effective sandbox enforcement. One no-auth
+UI-only startup reached the initial theme gate and its owned process was reaped;
+no authenticated startup or sandbox/credential proof followed. Independently
+reviewed data-only preparation is integrated at d1f5b8e; it cannot launch native
+code or accept a credential, including empty OAuth input. No OAuth secret is
+requested merely to report token presence.
+
+Current storage-free product run38099703953, exact preparation source892f603,
+completed all four jobs successfully. Each recorded job has472tests: macOS445PASS/
+27skip, nativeWindows297PASS/175skip, Linux22 433PASS/39skip; Linux24 job PASS with
+its count not retained in the downloaded log. Installed smoke on every job packed
+the unchanged runtime SHA8695b612… and passed. Protected log:
+`.local/portable-evidence/product-892f603.log`. Later data-only Claude controls
+are not included in that CI source; their integrated root2/2 PASS151.8ms and
+independent2/2 PASS324.6ms are separate evidence. No model was launched.
 
 ## Next commands and fail-closed gates
 
