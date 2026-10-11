@@ -1459,3 +1459,18 @@ Current product-source CI38099703953 four jobs PASS on892f603 (472 tests/job)
 is separate from prior exact frozen-package matrix38096673730. Its native
 Windows independent repack5e3a/159042 bytes differs from frozen8695/158105
 bytes; source acceptance must not be relabeled as frozen-artifact acceptance.
+
+The first actual ccba93d installed sample stopped before portable work at a
+harness cwd representation assertion: runtime stores the configured "." and
+declared-plan resolves it against root. Retained report has33 command timings,
+zero portable-workflow commands and zero model/two-machine trials. This is not
+an engine or complete-path economics failure. D10289b28 source GO resolves the
+nonempty declared cwd physically and requires exact owned-root equality, retaining
+root/state/qualification/Node/compiler/argv guards. Independent controls3/3 PASS,
+51.43ms, Node22.13.0; syntax PASS. The original failure remains retained before
+one justified preparation-corrected sample, not a favorable-score retry.
+
+Root85a7ecb applies LF checkout attributes only to the reviewed disabled native
+helper.py and proposal YAML. Exact-byte digest assertions remain unchanged, and
+no global Git setting, native startup or authority is changed. Source GO is not
+a new native-Windows test result; that platform recheck remains pending.
