@@ -1,5 +1,57 @@
 # Portable evidence: remaining owner setup
 
+## Current owner-dependent inputs
+
+The [standing autonomy amendment](../plan/portable-evidence.md#65-owner-autonomy-amendment-standing-authority)
+governs routine in-scope engineering. Per-command, exact-helper-hash and
+single-attempt consent are historical requirements, not current operating gates.
+Security/evidence review, genuine preconditions, explicit host denials and the
+$0 additional-spend limit remain in force. Existing accounts are settled.
+Only these two inputs currently require the owner:
+
+1. **Native read-only diagnostic result.** CUA Terminal automation was explicitly
+   denied; this does not forbid the already-approved underlying manual action.
+   The verified private `README-native-relocation.md` contains the consolidated
+   procedure. `CLAUDE_BASE` below denotes its already-verified durable base, not
+   a new directory or account setup. In the owner's Terminal, first print and
+   copy the frozen single command line, then launch the diagnostic:
+
+   ```sh
+   /usr/bin/python3 "$CLAUDE_BASE/owner-sentinel-relocated.py" --diagnostic-input
+   /usr/bin/python3 "$CLAUDE_BASE/owner-sentinel-relocated.py" --owner-diagnostic
+   ```
+
+   In the fresh Claude UI enter `!` Bash mode and submit only the printed line;
+   never submit it at the normal model prompt. Expect both relocated scripts to
+   show successful read-only open, same-inode fstat and close, and the existing
+   nonsecret protected settings/canary opens to return `EPERM` or `EACCES`.
+   Configuration/credential directories are metadata-only, not credential-body
+   proof. Escape out of Bash, then use `/exit` at the ordinary prompt. Return
+   only the structured diagnostic JSON and final helper lifecycle JSON/exit;
+   no credentials or transcript. The 180-second startup and five-second cleanup
+   limits are explicit; missing results or timeout remain UNKNOWN even after
+   successful cleanup. The independently reviewed helper/profiles are staged
+   and data-only verification passed. The diagnostic authorizes no checker,
+   listener or model request; lifecycle completion is not native-enforcement
+   proof. Full checker collection remains conditional on a genuine,
+   current root-captured access gate; its command is not an immediate action.
+2. **Copilot Actions included-capacity fact.** Confirm the applicable entitlement
+   permits the personally owned repository's documented `GITHUB_TOKEN` route,
+   with at least four included AI credits available and no additional-charge
+   route under the $0 cap. The scope-limited API returned404 and the saved
+   browser permission was denied; neither establishes seat/quota/billing facts.
+   Company permission for personal use and account existence are already settled.
+   No token value, new subscription, API billing or broader access is requested.
+
+No fresh command/hash consent is needed for routine repairs or tests within the
+amendment. Real access, capacity and fail-closed model gates still need evidence.
+The sections below preserve historical attempts and approvals; their earlier
+single-attempt or exact-approval wording does not override this current section.
+
+## Historical preparation and approvals
+
+### Preserved relocation checkpoint
+
 **Current native step:** code-only relocation and one read-only native access
 check are owner-approved in scope and independently reviewed. Inactive code
 and paired profiles are staged; the data-only verifier passed, with no native
@@ -17,20 +69,19 @@ collection. Credential-directory metadata is not credential-body proof. Until
 that result exists, the full collection command is conditional and unavailable
 as an immediate action; obsolete instructions below are historical.
 
+### Earlier account and workflow preparation
+
+Historical entry-resolution checkpoint: the owner collection attempt reported
+`MODULE_NOT_FOUND`; its exact submitted argv was not retained. The static
+protected-ancestor conflict is confirmed, but not proven as that runtime error's
+cause. Original sources, authentication, denials and failure records are preserved.
+
 Accounts are already approved: existing Codex and Claude subscriptions, and the
 company-provided Copilot entitlement with permitted personal use. Additional
 spending remains $0. The approved demonstration is Copilot CLI on producer VM A
 and native Claude Code on independently matched standard macOS receiver VM B.
 Codex acceptance is separate. No account purchase or account-existence decision
 is outstanding.
-
-Historical manual-checker status: the owner performed the one approved cc8aaf
-profile attempt. Its supplied launcher report shows13,216.9ms, native signal9,
-cleanup/live controls/source currency true and protocol delta[0,0,0]. Checker
-JSON/exit were not supplied, so boundary acceptance remains UNKNOWN. The allowance
-is consumed: no automatic retry, record deletion or new model call. The
-owner-supplied sanitized result and exact identities are retained in the current
-[resume record](../plan/portable-evidence-resume.md). Copilot capacity is separate.
 
 1. **Exact data-only trust trial — approved (D5).** Reviewed
    [the final recipient workflow](portable-ci-recipient-enable-proposal.yml),
@@ -97,20 +148,6 @@ Copilot controls6/6 and substantive controlled-guidance/Claude data12/12.
 These do not establish effective native permissions or agent reuse.
 
 ## Exact owner-local Claude step
-
-Current outcome: all three approved synthetic attempts stopped before checker
-submission and remain **NOT_VERIFIED**. The latest returned a CSI/controller
-refusal in492.8ms; its actual opcode remains unknown. Cleanup and native reaping
-passed. A separate zero-input startup classified SAVE_CURSOR; it did not prove
-enforcement. All four one-attempt allowances are consumed. Decoder expansion and
-native execution have stopped. Independent result review is complete.
-
-The existing owner-operated native terminal/manual-Bash route may avoid this
-controller limitation, but an exact procedure still needs review and specific
-approval. The normal all-tools-denied launcher cannot execute the checker and
-must not be presented as its launch command. No new login or broad resource
-request is needed. Copilot's included-credit confirmation remains separate.
-See the [current resume](../plan/portable-evidence-resume.md).
 
 Repair checkpoint2026-10-11 13:38UTC: the old temporary setup no longer exists.
 Its configuration cannot be presumed intact. A durable owner-local replacement
