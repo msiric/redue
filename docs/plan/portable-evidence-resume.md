@@ -47,7 +47,8 @@ Lane D local proposal commits bafb2ec/fc408f6/a0d2012 add a disabled native Clau
 invocation spec and controlled generic project-guidance writer; 12/12 author
 controls pass (166.5ms), independently 12/12 PASS142.38ms. Follow-up9653b26 explicitly
 separates fixed macOS proposal paths from Windows mechanics: author12PASS/1platformSKIP154.6ms,
-light platform-delta review pending. The writer copies the
+independent source-only platform-delta review GO (5ea02af); no native Windows run.
+The writer copies the
 unchanged installed policy (SHA db8e2e02895e8ebf39ee0ba23420ed0e0a8525c17246a0c73d3f161aac9c9f32)
 into new owned fixture files only. Copilot/Claude loaders are separate; producer
 role explicitly selects portable capture and receiver does not. Root/state/prefix
