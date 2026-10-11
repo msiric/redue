@@ -2423,3 +2423,46 @@ relocating them is unnecessary. A separately approved in-context metadata-only
 diagnostic may distinguish the observed entry-resolution error if static evidence
 does not suffice; none was run by this reviewer. No native/checker/model launch,
 settings application, credential read or new permission was performed here.
+
+### Entry metadata diagnostic and code-only relocation blueprint review
+
+The final disabled inline diagnostic body is independently reviewed at
+`82a0382dbcfcaf4fb1d0f620d4f9357ab9157543d881448a463de10665922bce`;
+its separate proposed settings are
+`724f1e654ce1ee70c9456c92780b8bf19fae60521ae96888b0c69704a8122f2d`.
+It requires only builtin node:fs and handles exactly the original entry/checker
+roles. Operations are lstat, realpath identity comparison, bounded-target
+O_RDONLY|O_NOFOLLOW|O_NONBLOCK open, fstat and close. Neither target contents nor
+target code is read/imported/executed; no child process, socket, auth or network
+operation is present. Only fixed role labels, static errno/status enums and
+metadata booleans leave the body. Unknown error text is withheld. Each operation
+has a separate field, so realpath failure after successful lstat cannot imply a
+missing file, and fstat/close failure cannot erase an observed successful open.
+
+The first unexecuted proposal accidentally placed a private entry path inside
+the output scope, and conflated later realpath/fstat failures with earlier
+lstat/open fields. Both preparation defects were corrected before any native
+diagnostic operation. Five author mock controls were independently rerun and
+passed. Eight independently composed mock/data controls passed exact command/
+body binding, unchanged settings except command/self-protection, actual phase
+counterexamples, unknown-error suppression, no-private-path output and refusal
+to open a noncanonical target. Every filesystem adapter targeting the proposed
+files was a mock; no in-context filesystem diagnostic or native action occurred.
+
+The settings delta changes only the exact prospective owner command and appends
+the new selected settings file to existing denyRead/denyWrite. Previous strict
+sandbox, response=false, Bash shell, network/socket and credential restrictions
+remain intact. This is GO_FOR_OWNER_APPROVAL for proposal data, not operation
+authorization or proof of readability/enforcement. Any actual diagnostic requires
+a separately approved finite operation bound and existing fresh source/auth
+prerequisites; the old collection allowance must not be reused implicitly.
+
+The relocation blueprint remains NOT_APPLIED/NOT_TESTED. It moves only the two
+noncredential public code leaves and native working directory outside the
+protected ancestor, rebinds entry/digest/command and local-authority guards, and
+protects the entire new code parent against replacement/writes. Physical
+nonmembership in all expanded/case-aliased denied ancestors must be proven; a
+different lexical prefix alone is insufficient. Original credential/Keychain
+locations, state, synthetic targets/socket grants and prior artifacts remain in
+place. No new workspace, settings application, listener, native/checker process,
+model request or permissions change was performed in this review.
