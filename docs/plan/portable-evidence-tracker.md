@@ -36,8 +36,17 @@ billing route, through permitted billing access or the applicable administrator.
 Another broad consent request cannot fix these layers. The $0 limit, exact resource
 scope, no automatic retries, and security/trust/publication boundaries remain.
 G2/G4 are incomplete, models0; no artifact, receipt, runtime or public state changed.
-Day0 and the72h checkpoint are unchanged. The previous blocked audit is historical;
-this owner-resumed run remains active, not complete, while capabilities are assessed.
+Day0 and the72h checkpoint are unchanged. The previous blocked audit is historical.
+The resumed audit now meets three consecutive turns of the same genuine blocker;
+all five current native/gate records remain absent and no live operation handle
+exists. Independent C review found no safe unblocked critical task. Request goal
+status BLOCKED, not complete. No denied operation was retried. Resume when the
+supported host boundary or actual owner diagnostic result is available, and/or
+the independent Copilot included-capacity fact is supplied through permitted access.
+Another broad authorization alone does not resolve these effective prerequisites.
+Current local branch and reviewed preparation are preserved; no public write or
+new native/model/signing/upload occurs. The private resumed audit retains exact
+classification and observations; this is a capability handoff, not gate acceptance.
 
 ## Historical checkpoint — relocation ready for owner diagnostic (2026-10-11)
 
