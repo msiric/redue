@@ -2298,3 +2298,79 @@ checker/profile identities and result remain preserved. Proposed180s startup,
 owner approval; the consumed15s allowance does not authorize them. No new native,
 checker, live listener, permission or model operation was run by this reviewer.
 Only harmless local mock controls are currently permitted for the repair.
+
+### Final collection repair: independent preparation review
+
+The disabled owner-local repair was independently reviewed at these exact hashes:
+
+- owner-collect.py: `c9f6e1e98ea49bac81b4d6ac6c3f2bf965552025912a9e56d8d77d10cb504563`
+- supervisor.mjs: `010833502f33471b0a95891a27af9114d532e0881c1209f351a68c5caa6c9cc3`
+- settings-collect.json: `dfc808862940d126e7852b6606ed834505f67fd92ed21047956205fffc3fe4e2`
+
+The settings preserve the reviewed manual profile's strict sandbox, empty
+excluded-command list, no unsandboxed fallback, disabled Bash response,
+explicit Bash shell and existing denials. The delta changes the exact owner
+command to the fixed collector wrapper and appends protection for the new
+settings and wrapper files. Network/socket grants are byte-for-byte equivalent
+as parsed data; only the existing synthetic allowed socket carries fixed results.
+This is not a REDUE observer endpoint, imported verification evidence, arbitrary
+execution interface or authenticated producer route. As already established for
+native187 manual commands, the ordinary permission entry does not enforce an
+arbitrary-command allowlist; the owner must submit only the literal reviewed line.
+
+The parent retains the real foreground TTY and writes no keyboard input. Proposed
+caps are180s startup including preliminary guards, one15s collection window after
+the first accepted collector ACK, up to5s cleanup and200s total. An ACK is named
+COLLECTOR_START_ACKNOWLEDGED and is not proof that a checker process started.
+The wrapper verifies the immutable checker before requesting ACK, then spawns
+only that exact checker. Missing/malformed ACK launches no checker. Its14s child
+timeout and14.5s unobserved-close limit fit inside the parent's15s collection
+boundary; transport and parent acceptance remain bounded and may conservatively
+produce UNKNOWN. No restart, timer reset, terminal parser or synthetic delay is
+introduced.
+
+The wrapper observes the child's close event, exit code and finite known pinned
+Node signal name set, including SIGIOT. A missing close is distinct from an
+observed exit. Parent parsing rejects contradictory code-plus-signal claims,
+boolean schema/exit values and inconsistent outcomes. Assertion outcome,
+process outcome and final collection/context outcome remain separate. Accepted
+negative rows and actual nonzero exit/signal survive subsequent protocol error,
+cancellation or uncertain completion. Final green additionally requires exact
+protocol delta[1,0,0], live controls before/after, unchanged sources, reaping,
+terminal restoration and owned-listener cleanup. Failed or incomplete persistence
+cannot create a green result. The protocol's one-shot UUID binds a local attempt,
+but does not authenticate it against a hostile same-UID process able to connect
+to this endpoint. Its observations rely on the reviewed local wrapper and the
+owner's fixed operation scope; they are not forensic origin authentication.
+
+The exclusive mode600 durable file retains sanitized checker rows and actual
+supervisor-observed code/signal independently of terminal copying. It deliberately
+marks final persistence/lifecycle completion UNKNOWN with
+REQUIRES_FINAL_PARENT_COMPLETION. That does not discard a retained checker FAIL
+or observed exit; final parent output is separately bounded and cannot invent
+missing checker evidence. No raw native transcript, child stderr, environment
+dump or credential data is persisted. Fresh external authenticated-source and
+policy prerequisites remain necessary immediately before any future operation;
+local file absence alone is not remote-policy proof. Model policy is correctly
+EXPECTED_DISABLED_NOT_MEASURED, not an observed zero-model count.
+
+Independent reruns on pinned Node22.13.0/system Python3.9.6 passed8 Node controls,
+12 Python phase/status controls and2 connected MOCK controls. The connected
+control exercised three isolated temporary Unix-socket transport scenarios with
+harmless JSON-only child processes: successful output/exit0, missing output/exit0,
+and positive assertions/actual exit7. Parent projection, wx0600 fsync/readback,
+no-overwrite refusal and cleanup were exercised. A separate harmless owned
+process-group control verified actual kill/reap, without a post-reap numeric-PID
+kill. Eight independent source/data controls also passed for exact manifest and
+source bindings, unchanged grants, precise settings delta, cancellation/counter/
+reap barriers and accepted FAIL preservation after a late error. The first
+reviewer unittest module-name invocation failed before evaluating tests; direct
+script invocations then passed. No native host, real checker, approved sentinel
+fixtures, auth operation or model was launched by these controls.
+
+Conclusion: GO_FOR_OWNER_APPROVAL and data-only staging/verification for the exact
+repair bytes. The original UNKNOWN owner report, frozen helperdc0/profilecc8/
+checkerb3 and normal5628/eebb remain historical/current identities as appropriate.
+The new wrapper, selected profile and expanded phase caps require one specific
+owner approval before execution. Mock acceptance is not native sandbox acceptance,
+credential isolation, actual agent reuse or G1–G4 completion.
