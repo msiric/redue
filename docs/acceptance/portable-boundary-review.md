@@ -1,19 +1,19 @@
 # Portable evidence: independent boundary review
 
-Current conclusion: origin/caller/publication, parser/store conflict and current
-CI-policy boundaries have independent controls. Real same-host copied-executable
-handoff and one required-refresh authentication inspection of actual hosted
-signed evidence pass. Both complete hosted runtime profiles match the signed
-origin's full content identity. The finite portable inspection budget completed
-on that producer after the earlier fully captured cache-consumption timeouts;
-this does not prove tail reliability. The concrete CI recipient, controlled
-instruction writer and native Claude data proposal are independently reviewed
-preparations, not enabled authority. Exact producer acceptance, actual recipient
-CI applicability, two-machine agent reuse and complete economics remain pending.
-No G1–G4 certification is made here. The earlier unreconciled caller-test PASS
-is not gate evidence; its corrected frozen-source control passes. Historical
-failures, source identities and timing limits remain below. Baseline inspected:
-`b4f286034f43021a74f1babf2c1d0fee5df2a9e5`.
+Current conclusion: parser/store, origin/caller/publication and current CI-policy
+boundaries have independent controls. Actual same-host relocation and copied-Node
+handoffs pass. One owner-approved authenticated two-machine CLI recipient run
+38123365552 establishes CURRENT/PASS imported evidence without equivalent recipient
+execution on frozen d04/8695 bytes; it is not receiving-agent reuse. Actual model
+handoff and native host enforcement remain pending. Exact b812 candidate checks
+pass separately on macOS/Linux/native Windows, and source05 product regressions
+pass separately. Candidate version remains alpha10 metadata, not final release
+identity. The complete one-sample installed sequence adds measured command work
+rather than establishing net benefit. No G1–G4 or owner-release certification is
+made here. Original failures, unavailable native prerequisites and immutable
+pilot receipts remain retained. The exact synthetic native Claude sentinel
+proposal has independent source/data review GO; live execution remains blocked by
+unknown effective authenticated managed authority and exact owner approval.
 
 The review lane is independent of core and envelope authors. It owns this record
 and `test/portable-boundaries.test.mjs`; it does not modify the applicability
@@ -1632,3 +1632,59 @@ new tests/workflows/uploads/signing, model/native-agent processes or additional
 verification were performed by this reviewer. An initial guessed .report.json
 filename was absent; the actual .private.json was located and reviewed, not an
 engine failure. Root owns remaining native-host and final readiness decisions.
+
+
+## Native Claude synthetic proposal — source/data review only
+
+Independent review of onboarding leaf9aa6262,92b1cc1,3ba1304 andc674b2d grants
+**GO for the disabled exact proposal, BLOCKED for live native operation**.
+The exact rendered proposal map SHA-256 is
+`d55150b3abc06af64597e8ec19b8a3668745b8cc393e2531b26e3cd6244d7cf4`,
+checker SHA-256
+`7d97369c54daa009ab7f487f476b19095b5a67e1b424143664538c238d151c8e`,
+and proposed settings SHA-256
+`b63c0e1e112f41aaa378b0c0f79f7bf65825ff25ae175c2b851b2af312958efe`.
+All three proposal files are0600; template rendering exactly matches the private
+checker. Literal argv, single Bash permission, denyWrite for the entire owned
+base and Node version directory, one synthetic allowed socket and15s parent
+cap match the reviewed map. Actual checker/settings destinations remain absent;
+original785be settings remain unchanged. No synthetic resources were provisioned.
+
+Five pure deterministic tests pass independently on actual Node22.13.0 in53.199ms.
+The corrected socket timer is absolute1s and is cleared on completion; it does
+not extend under partial replies. Oversized replies are rejected before buffer
+concatenation, and late data is ignored after completion. EPERM/EACCES alone may
+classify denial; missing/refused/timeout/other errors are unknown. Runtime guards
+reject Node/preload/search overrides, every DYLD_ and OPENSSL_ key by presence;
+external prelaunch validation is mandatory because a checker cannot undo startup
+code that already executed. File opens use no-follow/nonblocking flags; the
+external15s parent boundary remains necessary for the complete native/checker
+operation. No file/socket/network probe, native startup, auth, model or settings
+application was performed by this reviewer. Author-created live probes remain
+UNRUN; the five tests use synthetic adapters/FakeSocket only.
+
+The source-supported187 manual ! route invokes the Bash tool; its strict accessor
+rejects an unsandboxed escape only when effective strict settings hold, and
+excluded commands remain another escape condition. The original no-auth local
+managed-file absence does not establish authenticated remote-policy absence.
+Local disableAllHooks cannot override managed hooks. Owner-reported authenticated
+normal-prompt startup is separately observed, not independent sandbox proof.
+No supported bounded effective-policy inspection has been established here.
+
+Minimal remaining owner/admin prerequisite: through an already supported policy
+view or administration route, establish the applicable managed local/remote
+startup-hook scope and effective sandbox exclusions/strict controls for this
+exact authenticated187 profile. Record only reviewed keys/authority conclusions,
+not raw policy, credentials or auth files. Unknown authority stops the operation;
+a personal-account claim or absent local file is insufficient. If that supported
+route is unavailable, provision a host whose effective policy can be established,
+without bypassing managed policy. Then obtain exact owner approval of this
+synthetic socket/resource/settings operation before provisioning or launch.
+
+The approved operation would still require external positive read/write/listener
+controls before and after the native interval, exact protected code/runtime/file
+currency, actual native ! tool trace and no permission fallback or model prompt.
+A synthetic PASS cannot establish real credential removal, REDUE endpoint
+access, portable applicability, matched-VM reuse, subscription capacity or model
+acceptance. No new host architecture, policy introspection tool or broader
+research is proposed by this review.
