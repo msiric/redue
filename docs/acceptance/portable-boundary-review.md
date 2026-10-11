@@ -15,7 +15,11 @@ pilot receipts remain retained. Three specifically approved native synthetic
 preflights stopped before command submission; a separate startup-only SAVE_CURSOR
 diagnostic completed. Native checker enforcement remains unverified. Custom
 terminal decoding has stopped; any owner-operated alternative needs a concrete
-reviewed procedure and new specific approval.
+reviewed procedure and new specific approval. Pinned187 manual commands default
+to requesting a model response; the prior3018 proposal did not disable that
+behavior. All actual attempts stopped before command submission. A future
+procedure must explicitly bind automatic responses off before it can satisfy
+the no-model boundary.
 
 The review lane is independent of core and envelope authors. It owns this record
 and `test/portable-boundaries.test.mjs`; it does not modify the applicability
@@ -2125,10 +2129,71 @@ The smallest known alternative is an owner-operated pinned187 native TTY
 manual! route already supported by the reviewed native source, replacing
 custom screen automation rather than sandbox controls. It is a candidate
 procedure, not validated readiness: a new specific approval must bind the same
-3018 single-command settings, exact synthetic resources,15s limit, visible
+a new reviewed settings candidate with automatic Bash responses disabled,
+exact synthetic resources,15s limit, visible
 Bash-mode confirmation, six checker results and external live/protocol/context/
 cleanup evidence. The preserved normal5628/eebb profile denies all tools and
 allows no sentinel execution. No arbitrary commands, permission relaxation,
 new helper/framework, native action or model acceptance follow from this
 recommendation. Native checker enforcement and the actual agent/machine gates
 remain unresolved.
+
+
+### Owner-operated procedure preparation: automatic-response correction
+
+Independent bounded inspection of the exact native187/a59 public-code bytes
+finds `yLm` at207536738 reads `Fr().respondToBashCommands ?? true`. Its ordinary
+success and non-interrupted failure branches derive `shouldQuery` from that
+boolean. Thus shell mode itself is not a no-inference guarantee. The preserved
+3018 synthetic settings lack this setting. Prior review language implying that
+manual `!` alone supplied the no-model boundary is corrected here; all three
+actual attempts had command submissions0, so this finding establishes a proposal
+gap rather than an observed model request, charged usage or released defect.
+
+The exact187 schema at194770918 supports `respondToBashCommands:false`. `Fr()`
+at194828076 reads `L5().settings`; `XSr` merges the selected source settings
+with flag settings and finally policy settings. Therefore a separate proposed
+`--settings` file can supply false, provided the existing current authority
+guards remain satisfied and no effective managed override changes it. The normal
+5628/eebb files, credential namespace and original3018 proposal remain untouched.
+Current [interactive documentation](https://code.claude.com/docs/en/interactive-mode#shell-mode-with--prefix)
+also documents automatic responses and the false setting; current
+[sandbox documentation](https://code.claude.com/docs/en/sandboxing#strict-sandbox-mode)
+explicitly distinguishes the pre2.1.260 manual-command behavior. Current docs
+are supporting context, not a substitute for pinned187 execution semantics.
+
+The reviewed dispatch chain is `processBashCommand` at207543321 for Bash input,
+`r7t` returning its Bash result directly, and `sQl` carrying `shouldQuery` into
+interactive `MT`/`Ux`. `Ux` at210062877 returns before the model query when that
+flag is false. Its earlier session-title branch tests `Gce`; the exact no-paste
+manual input begins `<bash-input>` and is excluded by `Gce` at207125982. The
+prompt-suggestion generator belongs to the post-model query path and also has
+a supported false setting. A fresh session with no resume, prior model turns,
+pasted input blocks or queued messages is required; an arbitrary active session
+is not covered by this bounded source argument.
+
+Nine independently extracted source-isolated pure controls pass on Node22.13.0:
+false suppresses querying for success, generic error, shell error, interruption
+and background result; absent/true countercontrols request a response; the
+exact Bash tag is excluded from title generation while an ordinary prompt is
+not. External functions were mocked, and no native dispatcher, shell, model,
+listener, fixture, configuration or credential action ran. These controls verify
+source branching, not native enforcement or billed request counts.
+
+The manual handler directly invokes `sl.call` with `dangerouslyDisableSandbox`.
+The pinned strict accessor rejects that escape when unsandboxed commands are
+forbidden, and the Bash executor passes `pL` into `Xae`. Empty effective
+`excludedCommands`, sandbox enabled and fail-if-unavailable remain mandatory.
+Manual dispatch bypasses ordinary tool permission approval: the exact command
+allow entry must not be presented as proof that arbitrary owner shell commands
+would be denied. The owner procedure must submit only the reviewed literal
+checker command, with the same fixed resource restrictions.
+
+Procedure preparation alone is authorized. The first owner-local launcher draft
+uses `start_new_session` with inherited terminal descriptors without establishing
+foreground terminal ownership; that is not yet a usable owner TTY route. Its
+unconditional zero-model report also cannot be treated as an observed count.
+These are author preparation findings, not executed failures. Final launcher,
+settings, existing-file checks,15s deadline, live-control lifecycle and truthful
+result labels require independent review before an operation approval request.
+No native execution, permissions change or model trial is authorized here.
