@@ -32,7 +32,7 @@ jobs:
       SELECTED_INTERPRETATION: redue-portable-direct-typescript@2
       GH_ARCHIVE_SHA256: 5454f9509e3dbb8f321310e9e344877d9a01ebb8f8703886b1afb0936d60ffaa
       GH_EXECUTABLE_SHA256: 20f0520e9cc872b543bd5e31984f64932b197732c3d3df2c7367d0dc66e7a450
-      OWNER_REGISTRY_SOURCE: a23843e171f206e404574d97a59b2d86abc9a0c0
+      OWNER_REGISTRY_SOURCE: a2f2ddc613d1a3d2dfbe5f4f04e97cd69584bc6b
       OWNER_REGISTRY_SHA256: 5a1021fcf9b119f4469370eb33c09dc35c62cb174bc272574065a382aae6d521
       OWNER_POLICY_DIGEST: bab7901892570e81f15f8e888d2c33e632479f55f461d4ee34f905acfe7a5ce6
       OWNER_REFRESH: required
@@ -58,7 +58,7 @@ jobs:
           JS
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: a23843e171f206e404574d97a59b2d86abc9a0c0
+          ref: a2f2ddc613d1a3d2dfbe5f4f04e97cd69584bc6b
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
