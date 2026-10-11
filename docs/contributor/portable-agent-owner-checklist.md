@@ -7,21 +7,19 @@ governs routine in-scope engineering. Per-command, exact-helper-hash and
 single-attempt consent are historical requirements, not current operating gates.
 Security/evidence review, genuine preconditions, explicit host denials and the
 $0 additional-spend limit remain in force. Existing accounts are settled.
-Only these two inputs currently require the owner:
+The local native no-model prerequisite is complete: allsix fixed synthetic
+checks passed, actual checker exit0 and final persistence/cleanup are independently
+reviewed. Do not rerun the local diagnostic or full checker. Real credential-body
+denial and hosted receiver/model behavior are not established by this result.
 
-1. **Full synthetic native checker completion.** The repaired read-only native
-   diagnostic has passed its narrow actual access gate, with owner-supplied output,
-   saved lifecycle and final persistence confirmation independently reviewed.
-   Do not repeat that diagnostic. Credential-body denial and full enforcement
-   remain unestablished. The consolidated current launch/input/result procedure
-   is in the [resume record](../plan/portable-evidence-resume.md#current-checkpoint--native-access-gate-accepted-full-checker-handoff-ready).
-   It uses only reviewed v2helper and original immutable collector/checker,
-   exact synthetic resources,180s preparation/15s ACK-started collection/5s
-   cleanup, with no model request or terminal automation. The parent collects
-   structured results and actual checker exit automatically; return only its
-   final helper JSON/status, not raw terminal output. Missing evidence is UNKNOWN,
-   failed assertions FAIL; cleanup is never checker success. No new routine
-   approval is needed under the standing authority. Host controls remain intact.
+1. **Hosted native Claude provisioning — not ready for an owner action yet.**
+   The existing workflow is secret-free/data-only, not a reviewed secret-bearing
+   execution route. No secret should be created or added yet. The disabled
+   receiver invocation is being aligned with actual187/pinnedbinary; it keeps
+   machine-specific effective controls, account/source and expected-evidence
+   preflights mandatory. Once an exact runnable route is independently reviewed,
+   provide one consolidated supported OAuth/owner-secret procedure. Do not copy
+   local credentials or transfer this Mac's enforcement authority to a VM.
 2. **Copilot Actions included-capacity fact.** Confirm the applicable entitlement
    permits the personally owned repository's documented `GITHUB_TOKEN` route,
    with at least four included AI credits available and no additional-charge

@@ -6,7 +6,58 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — native access gate accepted; full checker handoff ready
+## Current checkpoint — local native synthetic boundary passed
+
+The owner-operated pinned Claude2.1.187 run completed allsix unchanged synthetic
+assertions: custom environment sentinel absent, protected nonsecret read denied,
+outside write denied, exact synthetic socket allowed, other synthetic socket
+denied, owned direct loopback denied. The supervised checker exited0/no signal,
+actual close-event observation, no timeout. This is actual native execution of
+fixed nonsecret controls, distinct from earlier source/mock tests.
+
+Root verified the saved collection SHA-256
+`b119f866376a264859b6ab5b6017a40c6c0958e1529a4d6c8851fcad32cffc71`
+and the supplied final collection capture SHA-256
+`679754cad787c3ab62be73202857f73895b69a2c925912f1eb530ee05f0c2144`.
+The saved record intentionally retains collection_status:UNKNOWN with
+pre_persistence_context_outcome:PASS and REQUIRES_FINAL_PARENT_COMPLETION;
+the actual supplied final JSON confirms collection_status:PASS and
+persistence_completed:true. Cleanup219.2ms, final11,047.1ms, protocol[1,0,0],
+controls before/after and source currency true; owned process and socket paths
+are absent. The CLI native process was reaped with signal9 as cleanup; that is
+not the checker's exit status. Outer helper exit status was NOT_SUPPLIED, and is
+not inferred from the returned prompt.
+
+C independent review46f97a9 agrees with actual fields and current13source plus
+5139helper/a33gate validation. Private final interpretation
+`evidence/native-relocated-v2-boundary-acceptance.json` SHA-256
+`f4920a033e75aaf80143eb17e5cfa79f9dbc231728fa76b5d37eb5f302dcf1e7`
+records this bounded owner-local result. Old UNKNOWN/failed attempts and all
+original sources/settings/authentication/state remain intact; no permission
+expansion, runtime/package change, model request, public release or trust change.
+
+Scope is only the six local synthetic assertions on this exact source/profile.
+Real credential bodies were NOT_TESTED. Expected-disabled model-response policy
+was NOT_MEASURED. The result is not model behavior, all-host/global enforcement,
+hosted-receiver proof or G2/G4 completion. No further local checker attempt is
+needed. Day0 and the72h calibration are unchanged; observed local native blocker
+is resolved, while hosted resources/auth/actual effective boundary remain separate.
+
+Next unblocked implementation: D aligns the existing disabled receiver invocation
+leaf with actual187/pinned a59binary instead of obsolete146/arbitrary64hex data.
+C independently reviews additive privacy denials, truthful proposal labels and
+permanent fail-closed activation, retaining machine/account/caller/producer gates.
+No new native/model/CI/signing workflow runs while this pure-data correction is
+reviewed. The existing hosted startup workflow is still secret-free/data-only;
+no reviewed secret-bearing receiver execution route is enabled. Do not request
+or create a Claude token until that exact route/security workflow is reviewed.
+Copilot's four-credit Actions included-capacity fact remains separately pending;
+its account and personal-use permission are settled, not repeatedly requested.
+No ready portable Codex fixture survived prior teardown; historical host/proxy
+success and the retained ordinary debugger state are not a portable model
+preflight. Do not relabel them as current acceptance or copy stable receipts.
+
+## Historical checkpoint — native access gate accepted; full checker handoff ready
 
 The owner supplied the actual eight-role native read-only diagnostic. Both
 relocated entry/checker readonly open, same-inode fstat and close succeeded with
