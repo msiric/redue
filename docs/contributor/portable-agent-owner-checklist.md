@@ -73,13 +73,15 @@ These do not establish effective native permissions or agent reuse.
 
 ## Exact owner-local Claude step
 
-Current outcome: two separately approved synthetic attempts returned
-**NOT_VERIFIED**, both before any shell/checker/model submission. The terminal
-decoder refused an unsupported control; its exact sequence is unknown and
-enforcement is unproven. Attempt2 confirms native reaping and fixture cleanup.
-Original settings/login stay in place. Both allowances are consumed; native
-work has stopped pending an exact reviewed diagnostic or owner-operated route.
-No login or broad account/resource request is being repeated. See the [current resume](../plan/portable-evidence-resume.md).
+Current outcome: the separately approved zero-input diagnostic observed
+**SAVE_CURSOR** during one new startup, then reaped the native host in404.7ms.
+No shell/checker/model input was sent. This identifies a decoder compatibility
+requirement; it does not establish enforcement or identify previously discarded
+bytes. Both earlier synthetic attempts remain **NOT_VERIFIED**. Their allowances
+and the one diagnostic allowance are consumed. A narrow disabled decoder repair
+is under independent review; any next native attempt requires specific approval.
+Original settings/login remain intact; no new login or broad resource request is
+needed. See the [current resume](../plan/portable-evidence-resume.md).
 
 Repair checkpoint2026-10-11 13:38UTC: the old temporary setup no longer exists.
 Its configuration cannot be presumed intact. A durable owner-local replacement
