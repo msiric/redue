@@ -3,6 +3,29 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
+Current checkpoint (2026-10-11): automated terminal-controller retries have
+stopped at the owner's instruction. Only preparation of a short owner-operated
+native checker procedure is authorized now. Independent pinned187 source review
+found that manual `!` defaults to a model response; the previous3018 proposal
+lacked an explicit off setting. All three actual attempts stopped before command
+submission, so no observed model call follows from this proposal defect.
+
+A separate proposed manual profile must bind `respondToBashCommands:false` and
+the reviewed Bash route before an operation can meet the no-model requirement.
+The existing strict sandbox/resource restrictions and original5628/eebb profile
+remain unchanged. Preparing files is not effective enforcement or permission to
+run the checker. Final independent review7a117b9 is integrated as dce6c1a;
+owner-local helperdc0eb16/settingscc8aaf/checkerb3bad6 exist and the root read-only
+`--verify` exited0 (561.6ms), native launches0/listeners0. The exact settings delta
+adds automatic-response false and explicit Bash, plus deny protections for the
+new settings filename. Original5628/eebb/3018 remain unchanged. Approval for using
+that separate profile and one owner-operated15s synthetic attempt is pending;
+fresh authority/auth prerequisites must pass immediately before it. No native,
+checker or model action ran. Copilot included-credit confirmation remains separate. G2/finalG3/G4 are incomplete. Day0, resource
+limits, receipts, frozen artifacts and all historical failed attempts are retained.
+
+## Historical terminal-controller checkpoint
+
 Current checkpoint (2026-10-11): the owner explicitly approved one75082e
 synthetic preflight after independent55+11 pure controls and exact-source review.
 Fresh metadata/auth/ownership guards passed. It ran once and stopped before shell
