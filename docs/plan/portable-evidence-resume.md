@@ -6,7 +6,43 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — relocation ready for owner diagnostic (2026-10-11)
+## Current checkpoint — autonomous operation authorized; host controls denied (2026-10-11)
+
+The owner authorizes assistant operation of the existing approved work. Consent
+is no longer the native lane prerequisite. A supported Computer Use selection of
+Terminal returned `Computer Use is not allowed to use the app 'com.apple.Terminal'
+for safety reasons.` No app binding, native launch, keyboard input, checker or model
+was started. Independent C review confirms that an alternate terminal, AppleScript,
+input injector or custom PTY controller must not circumvent this host denial.
+
+Copilot capacity inspection was attempted through two read-only routes. The user AI
+credit billing API returned HTTP404 and identified a missing `user` token scope;
+no scope refresh or credential change was attempted. Official documentation says
+user billing endpoints exclude organization/enterprise-managed license usage,
+so this response establishes neither absent entitlement nor included capacity.
+The browser route selected existing Chrome, but github.com navigation was rejected
+by a saved browser permission. No billing setting or external state was changed.
+The earlier unavailable in-app browser was a capability absence, not a policy
+failure. No alternate browser or transport will circumvent the saved denial.
+
+The reviewed relocation and all old attempt records remain intact. Native
+readability/enforcement is UNKNOWN; the full checker still requires the actual
+readability gate. Existing `OWNER_SUPPLIED_NATIVE_OUTPUT` provenance is not
+assistant-measured evidence. A supported assistant-operated route would require
+truthful actor/provenance bindings and independent review before execution.
+No such successor is implemented merely to work around the denied route.
+
+Minimal next capability is host support for the approved Terminal interaction,
+or owner performance of the already reviewed manual diagnostic. Copilot separately
+needs an observable included-credit/no-additional-charge fact for its Actions
+billing route, through permitted billing access or the applicable administrator.
+Another broad consent request cannot fix these layers. The $0 limit, exact resource
+scope, no automatic retries, and security/trust/publication boundaries remain.
+G2/G4 are incomplete, models0; no artifact, receipt, runtime or public state changed.
+Day0 and the72h checkpoint are unchanged. The previous blocked audit is historical;
+this owner-resumed run remains active, not complete, while capabilities are assessed.
+
+## Historical checkpoint — relocation ready for owner diagnostic (2026-10-11)
 
 Owner-approved test-code-only relocation is applied as inactive files at
 `/Users/mariosiric/Library/Application Support/REDUE-Native-Checks/native187/workspace`.

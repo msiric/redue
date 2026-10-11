@@ -255,3 +255,26 @@ sandbox outcome is inferred. The allowance is consumed. Further native action,
 resource lifetime or route changes require specific review/approval; another
 decoder expansion is not automatically started. Exact result and failures remain
 preserved. Copilot capacity and all actual-agent release gates remain separate.
+
+
+## D7 — assistant operation and effective host capability (2026-10-11)
+
+The owner grants autonomous operation of the existing approved work after asking
+why manual interaction was still required. This resolves the operator-consent
+question; it does not make denied host controls available or establish billing
+entitlement. The supported Terminal Computer Use route is explicitly denied for
+com.apple.Terminal. The independent reviewer confirms no alternate app/controller
+or input transport should achieve that denied action. No native attempt started.
+Existing owner-labelled output cannot be forged as assistant-measured evidence.
+
+A focused personal AI-credit usage GET returned404 and required an additional
+user scope, which was not requested. Organization-managed license usage is not
+included in that endpoint per [GitHub billing API documentation](https://docs.github.com/en/rest/billing/usage).
+The [Actions billing route](https://docs.github.com/en/copilot/concepts/agents/copilot-cli/copilot-cli-in-github-actions)
+uses the applicable seat; permission to use an account is distinct from included
+capacity. A read-only Chrome navigation to GitHub settings was separately denied
+by saved browser policy; no account or billing state was changed. The $0 cap and
+all exact resource/security constraints remain. Current need is a supported host
+interaction route and an established included-capacity fact, not another general
+authorization. No model, native checker, signing, upload, main merge or publication
+occurs in this capability check; prior signed/data-only acceptance is preserved.

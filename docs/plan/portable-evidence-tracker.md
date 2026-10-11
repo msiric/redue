@@ -3,7 +3,43 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — relocation ready for owner diagnostic (2026-10-11)
+## Current checkpoint — autonomous operation authorized; host controls denied (2026-10-11)
+
+The owner authorizes assistant operation of the existing approved work. Consent
+is no longer the native lane prerequisite. A supported Computer Use selection of
+Terminal returned `Computer Use is not allowed to use the app 'com.apple.Terminal'
+for safety reasons.` No app binding, native launch, keyboard input, checker or model
+was started. Independent C review confirms that an alternate terminal, AppleScript,
+input injector or custom PTY controller must not circumvent this host denial.
+
+Copilot capacity inspection was attempted through two read-only routes. The user AI
+credit billing API returned HTTP404 and identified a missing `user` token scope;
+no scope refresh or credential change was attempted. Official documentation says
+user billing endpoints exclude organization/enterprise-managed license usage,
+so this response establishes neither absent entitlement nor included capacity.
+The browser route selected existing Chrome, but github.com navigation was rejected
+by a saved browser permission. No billing setting or external state was changed.
+The earlier unavailable in-app browser was a capability absence, not a policy
+failure. No alternate browser or transport will circumvent the saved denial.
+
+The reviewed relocation and all old attempt records remain intact. Native
+readability/enforcement is UNKNOWN; the full checker still requires the actual
+readability gate. Existing `OWNER_SUPPLIED_NATIVE_OUTPUT` provenance is not
+assistant-measured evidence. A supported assistant-operated route would require
+truthful actor/provenance bindings and independent review before execution.
+No such successor is implemented merely to work around the denied route.
+
+Minimal next capability is host support for the approved Terminal interaction,
+or owner performance of the already reviewed manual diagnostic. Copilot separately
+needs an observable included-credit/no-additional-charge fact for its Actions
+billing route, through permitted billing access or the applicable administrator.
+Another broad consent request cannot fix these layers. The $0 limit, exact resource
+scope, no automatic retries, and security/trust/publication boundaries remain.
+G2/G4 are incomplete, models0; no artifact, receipt, runtime or public state changed.
+Day0 and the72h checkpoint are unchanged. The previous blocked audit is historical;
+this owner-resumed run remains active, not complete, while capabilities are assessed.
+
+## Historical checkpoint — relocation ready for owner diagnostic (2026-10-11)
 
 Owner-approved test-code-only relocation is applied as inactive files at
 `/Users/mariosiric/Library/Application Support/REDUE-Native-Checks/native187/workspace`.
@@ -472,6 +508,12 @@ Pre-attempt artifact allowance snapshot: 4,608,374 active bytes +5MiB signing re
 Current active artifacts are4,826,222bytes at the verified checkpoint; recheck before any later upload. Next: review disabled host proposals and exact current-policy proposal before recipient acceptance; no new producer/signing push. Actual recipient authority still requires current owner policy and effective receiving-host controls. Preserve prior failures and concrete deadline values. Account-existence question is answered: current resource condition is PENDING_OWNER_AUTH_WORKFLOW/CAPACITY_PROOF, not PENDING_OWNER_ACCOUNT. Amended pair still needs reviewed native OAuth workflow/owner secret, Copilot entitlement/policy/billing and exact producer-policy approval. No main/model/trust/public action is inferred.
 
 ## Daily progress — 2026-10-11 UTC (current)
+
+18:47UTC capability update: owner delegates operation; supported Terminal control
+and github.com browser navigation are explicitly denied by host/saved policy.
+Read-only personal AI-credit API returns404/missing user scope and cannot prove
+company-seat included quota. Independent review finds no new unblocked critical
+gate. No native/model/CI action or bypass; prior relocation/results preserved.
 
 16:47UTC update: bounded owner-procedure repair completed as inactive preparation.
 Independent review and22 mocks pass; root read-only verification passes. Prior
