@@ -143,6 +143,9 @@ has no capture modifier or task-specific reuse reminder. Eight deterministic
 controls cover both hosts, preview, ownership/currency failure and no-overwrite;
 these are mechanics, not instruction discovery by a running agent. All fixture
 and guidance changes must finish before the relevant in-context baseline.
+The writer's ownership controls require POSIX semantics and explicitly refuse
+Windows; it does not claim a native Windows host route. The Claude proposal uses
+fixed macOS path semantics even when its pure tests run on another CI platform.
 The current deterministic CI recipient helper deliberately ends STALE after its
 source-edit control and stops the observer; its report cannot be reused as an
 eligible model precondition.

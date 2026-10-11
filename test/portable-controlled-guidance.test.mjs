@@ -7,6 +7,7 @@ import {createHash} from 'node:crypto';
 import {writeControlledPortableGuidance} from './acceptance/portable-controlled-guidance.mjs';
 
 const sha=b=>createHash('sha256').update(b).digest('hex');
+const fixtureTest=(name,fn)=>test(name,{skip:process.platform==='win32'?'POSIX ownership fixture; matched macOS proposal only':false},fn);
 function fixture(t){
   const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-guidance-')));
   t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
@@ -21,7 +22,7 @@ function fixture(t){
 }
 function options(f,extra={}){const {base,...selected}=f;return {...selected,...extra};}
 
-test('preview makes no writes; both hosts load identical installed policy and explicit state route',t=>{
+fixtureTest('preview makes no writes; both hosts load identical installed policy and explicit state route',t=>{
   const f=fixture(t),p=writeControlledPortableGuidance(options(f));
   assert.equal(p.applied,false);assert.equal(p.model_launches,0);assert.equal(p.behavioral_verification,false);
   for(const file of p.files)assert(!fs.existsSync(path.join(f.root,file)));
@@ -35,7 +36,7 @@ test('preview makes no writes; both hosts load identical installed policy and ex
   assert.throws(()=>writeControlledPortableGuidance(options(f,{apply:true})),{code:'CONTROLLED_GUIDANCE_EXISTS'});
 });
 
-test('producer selects capture explicitly without changing the copied shared policy or receiver behavior',t=>{
+fixtureTest('producer selects capture explicitly without changing the copied shared policy or receiver behavior',t=>{
   const f=fixture(t);writeControlledPortableGuidance(options(f,{role:'producer',hosts:['copilot'],apply:true}));
   const guide=fs.readFileSync(path.join(f.root,'REDUE_PORTABLE_AGENT.md'),'utf8');
   assert(guide.startsWith(fs.readFileSync(f.policyFile,'utf8')));assert.match(guide,/run typecheck --portable/);
@@ -43,14 +44,14 @@ test('producer selects capture explicitly without changing the copied shared pol
   assert(!fs.existsSync(path.join(f.root,'CLAUDE.md')));
 });
 
-test('existing or edited instructions are never overwritten; failed preview launches no model',t=>{
+fixtureTest('existing or edited instructions are never overwritten; failed preview launches no model',t=>{
   const f=fixture(t);fs.writeFileSync(path.join(f.root,'CLAUDE.md'),'Owner text.\n');
   for(const apply of [false,true])assert.throws(()=>writeControlledPortableGuidance(options(f,{apply})),{code:'CONTROLLED_GUIDANCE_EXISTS'});
   assert.equal(fs.readFileSync(path.join(f.root,'CLAUDE.md'),'utf8'),'Owner text.\n');
   assert(!fs.existsSync(path.join(f.root,'AGENTS.md')));assert(!fs.existsSync(path.join(f.root,'REDUE_PORTABLE_AGENT.md')));
 });
 
-test('wrong policy identity, role, selected state owner and enclosing Git root fail closed',t=>{
+fixtureTest('wrong policy identity, role, selected state owner and enclosing Git root fail closed',t=>{
   const f=fixture(t);
   for(const extra of [{policySha256:'0'.repeat(64)},{role:'any'},{hosts:['codex']},{apply:'yes'}, {approved:true}, {policyFile:path.join(f.base,'artifact.md')},
     {prefix:f.root,policyFile:path.join(f.root,'lib/node_modules/@redue/cli/src/agent-policy.md')},{root:f.state}])
@@ -60,7 +61,7 @@ test('wrong policy identity, role, selected state owner and enclosing Git root f
   for(const name of ['AGENTS.md','CLAUDE.md','REDUE_PORTABLE_AGENT.md'])assert(!fs.existsSync(path.join(f.root,name)));
 });
 
-test('byte-identical owner replacement is an interval change, not continuing ownership',t=>{
+fixtureTest('byte-identical owner replacement is an interval change, not continuing ownership',t=>{
   const f=fixture(t),original=fs.fsyncSync,owner=path.join(f.state,'vstate-owner-v1.json');let changed=false;
   fs.fsyncSync=function(fd){original(fd);if(!changed){changed=true;const replacement=path.join(f.state,'replacement.json');
     fs.writeFileSync(replacement,fs.readFileSync(owner));fs.renameSync(replacement,owner);}};
@@ -69,7 +70,7 @@ test('byte-identical owner replacement is an interval change, not continuing own
   assert(changed);assert(!fs.existsSync(path.join(f.root,'REDUE_PORTABLE_AGENT.md')));
 });
 
-test('nested repository without its own .git directory, symlink targets and unsafe owner directories are refused',t=>{
+fixtureTest('nested repository without its own .git directory, symlink targets and unsafe owner directories are refused',t=>{
   const f=fixture(t),git=path.join(f.root,'.git');fs.rmdirSync(git);
   assert.throws(()=>writeControlledPortableGuidance(options(f)));
   fs.symlinkSync(f.prefix,git,'dir');assert.throws(()=>writeControlledPortableGuidance(options(f)));fs.unlinkSync(git);fs.mkdirSync(git);
@@ -77,7 +78,7 @@ test('nested repository without its own .git directory, symlink targets and unsa
   fs.unlinkSync(path.join(f.root,'AGENTS.md'));fs.chmodSync(f.state,0o777);assert.throws(()=>writeControlledPortableGuidance(options(f)));
 });
 
-test('state ownership changes at publication trigger refusal and only owned destination cleanup',t=>{
+fixtureTest('state ownership changes at publication trigger refusal and only owned destination cleanup',t=>{
   const f=fixture(t),original=fs.fsyncSync;let mutated=false;
   fs.fsyncSync=function(fd){original(fd);if(!mutated){mutated=true;fs.writeFileSync(path.join(f.state,'vstate-owner-v1.json'),'{}');}};
   try{assert.throws(()=>writeControlledPortableGuidance(options(f,{apply:true})),{code:'CONTROLLED_GUIDANCE_CHANGED'});}
@@ -85,7 +86,7 @@ test('state ownership changes at publication trigger refusal and only owned dest
   assert(mutated);for(const name of ['AGENTS.md','CLAUDE.md','REDUE_PORTABLE_AGENT.md'])assert(!fs.existsSync(path.join(f.root,name)));
 });
 
-test('a concurrently edited created instruction is left intact after failed publication',t=>{
+fixtureTest('a concurrently edited created instruction is left intact after failed publication',t=>{
   const f=fixture(t),original=fs.fsyncSync;let mutated=false;
   fs.fsyncSync=function(fd){original(fd);if(!mutated){mutated=true;
     fs.writeFileSync(path.join(f.root,'REDUE_PORTABLE_AGENT.md'),'Concurrent owner edit.\n');
@@ -95,3 +96,8 @@ test('a concurrently edited created instruction is left intact after failed publ
   assert.equal(fs.readFileSync(path.join(f.root,'REDUE_PORTABLE_AGENT.md'),'utf8'),'Concurrent owner edit.\n');
   assert(!fs.existsSync(path.join(f.root,'AGENTS.md')));assert(!fs.existsSync(path.join(f.root,'CLAUDE.md')));
 });
+
+test('controlled matched-mac guidance refuses unsupported Windows before touching files',
+  {skip:process.platform!=='win32'?'Native Windows branch only':false},()=>{
+    assert.throws(()=>writeControlledPortableGuidance({}),{code:'CONTROLLED_GUIDANCE_UNSUPPORTED'});
+  });

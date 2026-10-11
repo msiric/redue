@@ -1,4 +1,6 @@
-import path from 'node:path';
+// The proposal targets the explicitly approved matched macOS pair, even when
+// its pure data controls run on a different CI host.
+import {posix as path} from 'node:path';
 
 const HASH = /^[0-9a-f]{64}$/;
 const BASE = /^\/private\/tmp\/redue-ci-recipient-[A-Za-z0-9]{8}$/;

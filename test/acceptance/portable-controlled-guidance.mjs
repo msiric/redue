@@ -35,6 +35,7 @@ function sourceSnapshot(file,limit){
 }
 
 export function writeControlledPortableGuidance(options){
+  if(process.platform==='win32')fail('CONTROLLED_GUIDANCE_UNSUPPORTED');
   if(!options||Object.keys(options).some(k=>!['root','state','prefix','policyFile','policySha256','hosts','role','apply'].includes(k)))fail();
   const {root,state,prefix,policyFile,policySha256,hosts,role,apply=false}=options;
   if(!Array.isArray(hosts)||!hosts.length||hosts.length>2||new Set(hosts).size!==hosts.length||
