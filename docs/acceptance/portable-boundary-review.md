@@ -2605,3 +2605,18 @@ terminal controller/input, settings selection or permission change occurred in
 this independent review. Native access/enforcement remains UNKNOWN; full
 collection stays conditional on actual current eight-role gate evidence, with
 real credential-body denial still NOT_TESTED.
+
+
+Doc-only preparation correction after that review: procedure60d69b31 claimed the
+owner exited without Continue/Fix with Claude, exceeding the observed evidence.
+The corrected procedure is
+`0771540a26acd2df6ef4b6521d2145287d7ec3aa1028e335ea545a94487a5afb`;
+its stage manifest is
+`14b53f0e1ff7456e3e7b7e219604385599bee47b05612cb6ba80cbd74a07f320`.
+It now distinguishes the owner-reported warning, root's Exit instruction, observed
+native exit1 and absent diagnostic JSON from the unobserved option selection or
+command submission. Preparation-only zero counts are separated from owner
+history. Independent light review verifies corrected provenance, exact manifest/
+procedure binding and unchanged5139 helper/code/profiles. GO remains inactive
+staging/data-only verification, not native enforcement. No new test, native,
+checker, model, settings application or diagnostic operation was performed.
