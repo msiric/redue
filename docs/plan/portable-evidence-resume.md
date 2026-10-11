@@ -106,6 +106,31 @@ shipped guide's explicit fresh portable baseline clarification. No model launche
 new producer, signing, credential access or permission changes are authorized by
 these mechanics. All native/account and corrected-pin gates remain separate.
 
+## Active validation and immediate next commands
+
+Normal preparation push succeeded to `dev/portable-ci-preparation` at
+`05c1d869d40903c4663710e1967901e18ca8fc0b`; fixed runtime/signing task ref remains
+frozen d04b872. No force push/main merge/trust change. Current exact-package
+run38101767565 packs once for allthree recipients; product38101769601 covers
+new leaf controls. At submission, active artifacts4,826,222bytes plus224KiB maximum
+new package reservation =5,055,598bytes, within owner-confirmed10MiB included
+limit/one-day retention. No new origin/signing upload/model account.
+
+Review actual completed conclusions/logs, not queued status:
+
+```sh
+gh run view 38101767565 --repo msiric/redue --json status,conclusion,jobs
+gh run view 38101769601 --repo msiric/redue --json status,conclusion,jobs
+```
+
+Verify downloaded pack matches local b8122c3b… before assigning exact-byte evidence.
+Preserve every failure, skips and actual source. Corrected recipient a6006888…
+remains disabled until its separately requested exact approval; original ef237cbb…
+approval cannot authorize changed pins. Native account/boundary actions remain in
+[the consolidated owner checklist](../contributor/portable-agent-owner-checklist.md).
+No failed prerequisite launches a model; no further complete-path timing sample
+is planned. Authoritative V01–V22 map was independently audited and updated.
+
 ## Completed controlled cost sample and revised documentation
 
 Root harness223f231/frozen8695 completed the one declared ordinary-rerun sequence

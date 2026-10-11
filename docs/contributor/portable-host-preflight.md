@@ -9,7 +9,17 @@ producer_accepted=false/local_policy_current=false/reuse_eligible=false. No actu
 recipient CI acceptance, portable agent handoff or matched-machine reuse is yet
 established; G2/G3/G4 remain incomplete.**
 
-Current exact task candidate source `d04b872ee0e848e300c0cc9738ad761e48146acc`,
+The frozen signing/installed-mechanics candidate remains d04b872/SHA8695b612… .
+A distinct guide-only package was packed once at223f231,80files/158,546bytes,
+SHA-256 `b8122c3bdcedf42a374ba3a87681ca7654360bc6c10daa64b5ac93a79ca7b190`.
+Its only payload change is the portable user guide; runtime bytes are identical.
+Current exact-byte matrix38101767565 and shared regressions38101769601 at05c1d86
+are in progress, not PASS. The controlled cost completion at223f231 passed on
+frozen8695 with truthful ordinary-run PASS/UNVERIFIED after import and restart;
+one sample showed no savings and ran no model. See the tracker for actual counts
+and costs, not this preflight's existence as proof of behavior.
+
+Frozen exact task candidate source `d04b872ee0e848e300c0cc9738ad761e48146acc`,
 SHA-256 `8695b612a5c33dae945b2bc8df57cd68ca3eefb401aa0ef9ca2850d212979ea2`,
 not public alpha.10 bytes despite metadata. Installed origin
 `473be4ea-cab4-49cd-9405-433af9d8576b`/digest
@@ -26,8 +36,10 @@ Product38096673735 allfour jobs PASS; exact counts are in the
 
 Owner D4 now approves existing subscription/seat resources and the explicit
 Copilot CLI producer VM A → native Claude Code receiver VM B demo pair; Codex
-acceptance stays separate. Authentication/workflow, current exact producer trust,
-actual sandbox/secret enforcement and in-context expected evidence remain gates.
+acceptance stays separate. D5 approves the exact original data-only producer trust and provisioning; the
+corrected helper-pin proposal still needs its separate approval before a live
+accepted recipient. Native authentication/workflow, sandbox/credential enforcement,
+capacity proof and in-context expected evidence remain gates.
 The disabled [Claude proposal](portable-claude-receiver-proposal.md) records the
 observed local claude.ai route, not VM capacity or behavior. No model trial follows
 failed setup/preflight. Earlier failed origins and upgrade attempts remain below.
