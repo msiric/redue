@@ -128,34 +128,40 @@ submit a model prompt or enter `!`. No setup-token, secret, SDK, global setting 
 login-file copy is needed. The goal has resumed; reopening the host does not
 approve checker/model actions.
 
-The independently reviewed disabled
-[durable synthetic checker proposal](portable-claude-receiver-proposal.md#durable-rebinding--disabled-no-native-action)
-has six pure deterministic controls passing. It would test a custom non-secret
-env sentinel and synthetic file/socket/network controls only; it cannot prove
-real credential removal, actual observer access, subscription capacity or model
-reuse. Exact rebound private map/settings/checker identities are separate from
-working settings5628de. Before the approved attempt, no live fixtures or settings application had
-occurred. That attempt temporarily provisioned only its owned synthetic resources
-and separate profile; the checker itself never ran. No unsandboxed retry, print-mode substitute, handcrafted sandbox,
-hook or MCP is permitted.
+The separately prepared **owner-operated** synthetic procedure is independently
+reviewed (7a117b9), but its settings and one live attempt remain unapproved. The
+private durable `README-manual-sentinel.md` contains the exact existing checker
+and launcher paths; `owner-sentinel.py --verify` has passed without launching
+native code or listeners. The original all-tools-denied settings and launcher
+remain unchanged.
 
-Current independently reviewed source/diagnostic findings permit requesting the
-exact bounded synthetic test; no additional administrator policy report is
-currently requested. The actual isolated187 auth status confirms firstParty,
-claude.ai, Pro and no API-key source. Scoped API-service metadata and selected
-local/system sources were absent. Pinned187 account/loading source review is
-limited to this observed profile; it is not global policy or enforcement proof.
-The one read-only `/status` capture remained UNKNOWN and is retained as such.
+The separate proposed settings differ from sentinel settings3018 only by
+`respondToBashCommands: false`, `defaultShell: "bash"`, and retaining the same
+read/write protection for the new selected settings filename. The pinned187
+source review binds the manual Bash branch and disables its model-response
+continuation for a fresh session with no prior turns, queued input or attachments.
+Manual commands bypass ordinary command-permission approval, so the exact command
+is the owner's operation scope, not an enforced command allowlist. No model
+activity or effective sandbox result is inferred from this source review.
 
-The owner has approved one attempt of the exact durable map/settings/checker
-in the linked proposal: controlled synthetic files, two Unix listeners, one fixed
-loopback listener and one native no-model `!` checker invocation. Potential failed
-denials touch only those owned canaries/endpoints. Normal settings and login stay
-unchanged; no actual auth/keychain/REDUE access, arbitrary command, permission
-escalation or model request is part of the checker. Current guards must pass again
-before execution. The coordinator ran that one bounded attempt. A later native attempt requires
-a new specific approval; repeated login is not requested. No secret should be
-created or added yet.
+After exact settings/resource/operation approval and immediate fresh external
+source, authentication and policy guards, the owner can follow the private
+three-step procedure: prepare the one plain-text checker command, launch the
+foreground native session, then enter native Bash mode and submit only that
+command. No keyboard input or terminal parsing is automated. The existing
+15-second whole-attempt limit remains; an unknown outcome is retained without
+retry. Escape out of Bash mode before the local `/exit` command. Preserve only
+the six named results/static reason codes and checker exit status, not a raw
+transcript. The helper's exit status establishes lifecycle/cleanup only, never
+checker or sandbox success.
+
+The prior automated native attempts stopped before any shell/checker input and
+remain NOT_VERIFIED. The synthetic checks cannot establish real-credential or
+Keychain denial, actual REDUE observer authority, subscription capacity or model
+reuse. Applicable authenticated policy and fresh source/authentication guards
+remain prerequisites; prepared files and previous absence checks are not timeless
+authority. No settings application, live listener, checker, model request or
+secret creation is authorized by this preparation record.
 
 Copilot's pending owner confirmation concerns the Actions billing route: applicable
 msiric seat, at least four included AI credits, and zero additional charges. That
