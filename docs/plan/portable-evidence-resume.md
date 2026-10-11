@@ -177,6 +177,20 @@ bytes have the same verified SHA; actual PR-merge source
   `.local/portable-evidence/portable-profile-actual-author.tap`; independent C
   source review GO for bounded diagnostics, now committed57c3a3d/70d5420; not hosted execution certification. Local timing does not identify the hosted internal phase.
 
+## Current owner setup and integration checkpoint
+
+Read [one owner setup checklist](../contributor/portable-agent-owner-checklist.md).
+Exact final data-only recipient proposal remains outside active workflows, SHA
+ef237cbb411b0520791911503d3071a9a42f78502ac8f712406a11566482ef78;
+registry5a1021 and policybab790 still require explicit approval. Owner question
+issued once for that scope and Copilot seat/quota/$0 capacity; do not repeat it.
+Preparation107tests:106PASS/one native-Windows-only skip/zeroFAIL3.515s,
+`.local/portable-evidence/recipient-host-preparation-integrated.tap`.
+All new code is contributor-only preparation; no runtime/probe/schema changes
+after d04b872, no artifact regeneration, accepted import or model launch.
+Native Claude2.1.146 credential protection remains unproven; independently
+review version-specific native controls before requesting an OAuth secret.
+
 ## Next commands and fail-closed gates
 
 The single accounted d04b872 push and hosted attempt have completed producer/
