@@ -1194,3 +1194,31 @@ control demonstrates that a private home ancestor of the writable workspace
 was accepted. Opposite-direction directory overlap and descriptor-bounded
 executable reads were requested before concrete proposal approval. No model or
 sandbox-enforcement claim follows those mechanics.
+
+## Guarded Copilot no-model preparation review
+
+Root `9824ed5` corrects the reviewed preparation defects without enabling a
+model. The executable reader now streams bounded descriptor reads, rejects
+nonregular/hardlinked/writable leaves and unsafe parents, binds complete bytes
+and physical metadata before each inventory command and after inspection, and
+never uses an unchecked path read to allocate the binary. Symmetric path-overlap
+checks refuse private directories both inside and around exposed resources,
+and overlapping private directories. The module accurately states that three
+explicit no-model inventory commands may execute; no inference launcher exists.
+
+Actual frozen root `46e7a1a`: six controlled tests PASS, 95.28 ms, Node22.13.0.
+These tests substitute inventory responses; no Copilot binary or model was run
+by this reviewer. The original five-control PASS and additional accepted private
+home-ancestor counterexample are retained, not rewritten into prior success.
+The fixed preparation still reports entitlement/enforcement/readiness false.
+GO is for this disabled owner-review proposal, not effective managed permissions.
+
+Before a real model route, the writable state grant needs explicit native proof
+that trust/owner/runtime authority files cannot be modified while permitted
+REDUE commands still work. The proposed Claude data has a deny-write entry for
+producer policy; Copilot's current broad state grant does not itself establish
+that boundary. An instruction forbidding automatic trust is not a filesystem
+permission. Use actual supported policy and no-model sentinel controls, never
+invent settings or bypass the sandbox. The state directory/socket scope and
+approved daemon probe authority remain prerequisites. This concern is separate
+from the data-only recipient workflow, which launches no model.
