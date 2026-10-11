@@ -10,7 +10,12 @@ $0 additional-spend limit remain in force. Existing accounts are settled.
 Only these two inputs currently require the owner:
 
 1. **Native read-only diagnostic result.** CUA Terminal automation was explicitly
-   denied; this does not forbid the already-approved underlying manual action.
+   denied; that app-specific refusal does not prohibit a separately supported CLI
+   PTY route or the already-approved underlying manual action. The built-in PTY
+   exposes stream chunks, not a verified fresh rendered prompt/Bash-mode state;
+   blind input could trigger inference. Manual interaction is the only currently
+   established safe route. No decoder/controller or native probe will be added
+   to guess the mode.
    The verified private `README-native-relocation.md` contains the consolidated
    procedure. `CLAUDE_BASE` below denotes its already-verified durable base, not
    a new directory or account setup. In the owner's Terminal, first print and
