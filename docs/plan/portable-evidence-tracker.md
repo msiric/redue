@@ -3,6 +3,40 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
+## Current checkpoint — approved relocation (2026-10-11)
+
+The owner approved the independently reviewed test-code-only relocation to
+`/Users/mariosiric/Library/Application Support/REDUE-Native-Checks/native187/workspace`.
+Only the collector/checker code, cwd, launch references and exact hashes may change.
+All original authentication, configuration/state, protected targets and existing
+filesystem/socket/network denials stay in place. No global settings change,
+credential copying, model request, automatic terminal retry or new spending.
+
+D owns the binding-only repair; C independently reviews the final identities,
+restriction delta, gate and mock controls. Root owns integration and native-result
+classification. One same-boundary read-only diagnostic is approved. Both relocated
+regular scripts must open/fstat/close successfully inside pinned Claude187; existing
+nonsecret protected settings/canary read attempts must return permission denial.
+Directory metadata or an absent credential namespace cannot prove credential-body
+denial. Real credential contents will not be accessed. Credential restrictions
+must remain exact; actual credential-body enforcement remains NOT_TESTED.
+
+Pinned native source supports owner-entered interactive Bash with
+`respondToBashCommands:false` and strict sandbox controls. No reviewed noninteractive
+same-boundary/no-inference route exists. The diagnostic therefore genuinely needs
+owner input; no print/headless, SDK substitution or terminal controller will be used.
+No native operation has occurred in this checkpoint. Missing output remains UNKNOWN.
+
+The owner conditionally authorizes one subsequent owner-operated unchanged-checker
+attempt only after independent review and the actual readability/denial gate PASS.
+Preserve180s preparation/15s collection/5s cleanup and all old attempt records.
+Root will create no approval gate from mock output or outer-filesystem verification.
+Copilot's four-credit Actions entitlement remains separately pending; G2/G4 are
+incomplete. Day0, artifact identities and receipts are preserved. Native full-checker
+and model calls remain0 for this checkpoint; no signing/upload/publication occurs.
+
+## Historical entrypoint diagnosis
+
 Current checkpoint (2026-10-11): owner-reported subsequent attempt is
 ENTRYPOINT_RESOLUTION_FAILED (Node22.13.0 MODULE_NOT_FOUND/requireStack[]).
 Collector/checker assertions did not run per owner; enforcement UNKNOWN. Private
@@ -330,13 +364,13 @@ synthetic-operation approval follows that prerequisite. Copilot Actions included
 credits remain owner-confirmation pending. G2/finalG3/G4 remain incomplete;
 publication and external natural usage remain pending/not started.
 
-Agreed Day 0: 2026-10-10 21:24 UTC (owner confirmed). First substantive review: 2026-10-13 21:24 UTC. Daily concise progress summaries. Additional metered spending is $0/day and $0 total for the first 72 hours; only established subscription-included capacity is allowed. Standard public GitHub-hosted validation VMs are now approved: two independent macos-26 ARM64 profile jobs first. Owner confirmed 10 MiB included artifact storage, one-day retention and no paid usage; exact signing enablement is approved, and exact data-only producer trust/provisioning are approved in D5; actual recipient applicability remains pending. Owner now approves existing Claude subscription and Copilot personal-use entitlement; exact native Claude OAuth workflow/secret and Copilot seat/policy/billing checks remain prerequisites. Explicit demonstration-pair amendment D4: Copilot CLI producer VM A → native Claude Code receiver VM B on independently matched approved macOS runners; Codex acceptance stays separate. Provisioning and blocked time count from kickoff; dates will not be reset. Initial targets remain Day 14 demonstration / Day 28 prepublication readiness, uncalibrated until the real G1 slice.
+Agreed Day 0: 2026-10-10 21:24 UTC (owner confirmed). First substantive review: 2026-10-13 21:24 UTC. Daily concise progress summaries. Additional metered spending is $0/day and $0 total for the first 72 hours; only established subscription-included capacity is allowed. Standard public GitHub-hosted validation VMs are now approved: two independent macos-26 ARM64 profile jobs first. Owner confirmed 10 MiB included artifact storage, one-day retention and no paid usage; exact signing enablement is approved, and exact data-only producer trust/provisioning are approved in D5; actual authenticated data-only recipient applicability passed38123365552. Owner approved existing Claude subscription and Copilot personal-use entitlement. Isolated local Claude subscription onboarding succeeded; effective native security, hosted OAuth provisioning and Copilot seat/policy/billing checks remain prerequisites. Explicit demonstration-pair amendment D4: Copilot CLI producer VM A → native Claude Code receiver VM B on independently matched approved macOS runners; Codex acceptance stays separate. Provisioning and blocked time count from kickoff; dates will not be reset. Initial targets remain Day 14 demonstration / Day 28 prepublication readiness, uncalibrated until the real G1 slice.
 
 | Gate | Current status | Evidence / outstanding prerequisite |
 | --- | --- | --- |
-| G0 | Partial | Day 0/caps/cadence and standard public runners approved; source/native preflight reviewed. Two independent macos-26 inventory jobs passed; 10 MiB included storage confirmed. Signer workflow enablement approved; exact data-only producer policy/provisioning approved in D5; amended native OAuth/workflow and Copilot seat/policy/billing prerequisites unresolved. |
+| G0 | Partial | Day 0/caps/cadence and standard public runners approved; source/native preflight reviewed. Two independent macos-26 inventory jobs passed; 10 MiB included storage confirmed. Signer workflow enablement approved; exact data-only producer policy/provisioning approved in D5; local native subscription onboarding succeeded; relocated native security gate, hosted OAuth provisioning and Copilot seat/policy/billing prerequisites remain unresolved. |
 | G1 | Same-machine technical slice passes | Exact d04b872 installed noLib origin/export/import independently returns eligible PASS; unrelated edit CURRENT/relevant edit STALE and policy ownership pass. Not useful-project, model or final profile acceptance. |
-| G2 | Actual recipient/model reuse not run | Both hosted complete runtime prototypes supported; independent21-record comparison passes. Approved amended pair has native auth/workflow and seat/policy/billing prerequisites pending; no failed prerequisite launches models. |
+| G2 | Actual recipient/model reuse not run | Both hosted complete runtime prototypes supported; independent21-record comparison passes. Approved amended pair has effective native boundary/hosted provisioning and Copilot seat/policy/billing prerequisites pending; no failed prerequisite launches models. |
 | G3 | Positive authenticated data-only route demonstrated | Owner-approved exact corrected workflow run38123365552 accepts the signed38096670987 origin and independently establishes importedCURRENT/PASS/eligible, with no equivalent receiver execution. Unrelated/restart preservation and relevantSTALE pass. Existing trust negatives and final candidate binding remain separate review requirements; no model claim. |
 | G4 prepublication | Not ready | G1–G3, V01–V22, independent review, final bytes and economics outstanding. |
 | Publication / postpublication | Pending owner approval | No main merge, release tag or npm operation in this milestone. |
@@ -346,13 +380,13 @@ Integration owner: root (Lane A). One writer per shared interface: root owns CLI
 
 | Task | Owner / independent reviewer | Branch and owned interface | Current evidence / next action |
 | --- | --- | --- | --- |
-| PE-01 resources/profile | Owner + C / integration | Local G0 record + storage-free workflow | Standard macos-26/storage/signing enablement approved. Both full prototypes supported; independent21-record comparison passes; D5 exact data-only trust approved; amended host authentication/workflow pending. |
+| PE-01 resources/profile | Owner + C / integration | Local G0 record + storage-free workflow | Standard macos-26/storage/signing enablement approved. Both full prototypes supported; independent21-record comparison passes; D5 exact data-only trust approved and live recipient passes; local Claude subscription onboarding succeeded, effective relocated native gate/hosted provisioning and Copilot capacity pending. |
 | PE-02 minimum decisions | A/B / C | `portable-evidence-decisions.md` | D1–D3 independently challenged; no known critical defect within constrained same-host slice. Cross-machine identity remains separately reviewed work. |
 | PE-03 fresh origin + export | A / C | Core/CLI | Real within-interval capture passes; old origin cannot be repaired; ownership/selection and event guards independently tested. |
 | PE-04 safe envelope/inspect/import | B / C | Envelope/store/pure decision | Strict bounded parsing, explicit exact-digest acceptance, durable separate import selection, lost-selector FAIL replay controls pass. |
 | PE-05 relocation slice | A / C | Recipient/catalog/cached | Actual independently initialized checkout returns eligible imported PASS with no runs-v1. Relevant edit, newer unstable selection and publication races prevent reuse. |
 | PE-06 host handoff | D / C | Policy/JSON/preflight | Installed/imported reporting guide; no-model gate and safe instruction updates pass. Actual portable model behavior NOT RUN. |
-| PE-07 machine profile | A / C | Runtime + preflight | Both d04b872 full runtime prototypes supported after finite budgets retaining all-member validation. Independent21-record comparison passes; actual recipient eligibility pending; old10s failures preserved. |
+| PE-07 machine profile | A / C | Runtime + preflight | Both d04b872 full runtime prototypes supported after finite budgets retaining all-member validation. Independent21-record comparison passes; authenticated data-only recipient eligibility passed38123365552; actual agent reuse pending, old10s failures preserved. |
 | PE-08 producer trust | B / C | CI authentication preparation | Exact policy/tool/artifact authentication hardening under review; no automatic acceptance. |
 | PE-09 CI route | B+A / C+owner | Exact enabled workflows | Producer/signing38096670987 and one approved corrected recipient38123365552 PASS. Current exact policy accepts imported eligible evidence independently; models0, no copied observer state. Final negative/candidate binding remains distinct. |
 | PE-10 installed handoff | D / C | Installed smoke | Exactd04b872 installed controlled relocation and both-host policy ownership pass; prior actual @1→@2 upgrade/FAIL replay evidence retained. Final release bytes pending. |

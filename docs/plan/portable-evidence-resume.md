@@ -6,6 +6,40 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
+## Current checkpoint — approved relocation (2026-10-11)
+
+The owner approved the independently reviewed test-code-only relocation to
+`/Users/mariosiric/Library/Application Support/REDUE-Native-Checks/native187/workspace`.
+Only the collector/checker code, cwd, launch references and exact hashes may change.
+All original authentication, configuration/state, protected targets and existing
+filesystem/socket/network denials stay in place. No global settings change,
+credential copying, model request, automatic terminal retry or new spending.
+
+D owns the binding-only repair; C independently reviews the final identities,
+restriction delta, gate and mock controls. Root owns integration and native-result
+classification. One same-boundary read-only diagnostic is approved. Both relocated
+regular scripts must open/fstat/close successfully inside pinned Claude187; existing
+nonsecret protected settings/canary read attempts must return permission denial.
+Directory metadata or an absent credential namespace cannot prove credential-body
+denial. Real credential contents will not be accessed. Credential restrictions
+must remain exact; actual credential-body enforcement remains NOT_TESTED.
+
+Pinned native source supports owner-entered interactive Bash with
+`respondToBashCommands:false` and strict sandbox controls. No reviewed noninteractive
+same-boundary/no-inference route exists. The diagnostic therefore genuinely needs
+owner input; no print/headless, SDK substitution or terminal controller will be used.
+No native operation has occurred in this checkpoint. Missing output remains UNKNOWN.
+
+The owner conditionally authorizes one subsequent owner-operated unchanged-checker
+attempt only after independent review and the actual readability/denial gate PASS.
+Preserve180s preparation/15s collection/5s cleanup and all old attempt records.
+Root will create no approval gate from mock output or outer-filesystem verification.
+Copilot's four-credit Actions entitlement remains separately pending; G2/G4 are
+incomplete. Day0, artifact identities and receipts are preserved. Native full-checker
+and model calls remain0 for this checkpoint; no signing/upload/publication occurs.
+
+## Historical entrypoint diagnosis
+
 Current checkpoint (2026-10-11): owner reports the subsequent collector attempt
 reached Node22.13.0 but returned MODULE_NOT_FOUND/requireStack[] for the entry.
 Classification ENTRYPOINT_RESOLUTION_FAILED; collector/checker assertions did not
