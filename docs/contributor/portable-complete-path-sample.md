@@ -1,7 +1,7 @@
 # One installed portable-evidence cost sample
 
-Status: first attempt stopped at a harness precondition; complete-path sample
-not yet established. The root ccba93d attempt stopped before portable recording:
+Status: two attempts retained; one bounded completion sample is proposed after
+independent review. Complete-path economics are not yet established. The root ccba93d attempt stopped before portable recording:
 the shipped runtime correctly declares cwd as ".", while the harness expected an
 absolute string. Its failure JSON/stderr and all preceding setup-command timings
 are retained privately; portable-workflow and model launches were zero. Source
@@ -26,8 +26,17 @@ not permission to weaken receipt selection or silently add portable capture.
 After two materially different failed attempts, expensive runs are paused. The
 harness now retains allowlisted actual status fields and a static ordered stage
 before asserting, including on failure. Human explanations, paths, environments
-and arbitrary producer fields are not copied. A third attempt needs independent
-review and a revised explicit predeclaration; none is authorized by this update.
+and arbitrary producer fields are not copied. Independent frozen-artifact controls now confirm the expected ordinary-rerun
+boundary: PASS/UNVERIFIED, no reuse, PORTABLE_LOCAL_SELECTION_BARS_FALLBACK when
+complete portable facts are absent. The completion harness asserts exactly that
+same non-reuse outcome after the final query and restart, with the new local run
+and old imported history intact. It records actual exit0 and absence of portable
+capture. No extra compiler execution or silent --portable recovery is added.
+This is an expectation correction grounded in independent controls, not an engine
+change. Root owns one bounded completion sample after independent review; D runs
+none. On --economics failure, stop attempts still occur but checkouts, installations,
+state and receipts are retained, with an owner-private location report. Default CI
+smoke cleanup and successful disposable teardown remain unchanged.
 
 Original sample predeclaration follows. This is a controlled same-machine `noLib` mechanics
 sample, not the public debugger workload, agent adoption, two-machine acceptance
@@ -52,9 +61,10 @@ The fixed sequence is portable recorded execution and final query; export
 preview/export/inspection; explicit digest import preview/apply in a fresh checkout;
 caller-aware eligible query; conservative cached inspection; unrelated edit/query;
 relevant edit/STALE query; ordinary configured recorded compiler rerun and final
-query; observer stop/start and inherited local-evidence query. The rerun is not
+query; observer stop/start and retained non-reusable local-outcome query. The rerun is not
 silently given portable capture. Source outcomes and imported history must remain
-unchanged; only the owned disposable experiment is removed after assertions.
+unchanged. Successful owned disposables are removed after assertions; economics
+failures retain their evidence after observer stop attempts.
 
 Two plain `node LOCAL_TYPESCRIPT/lib/tsc.js --noEmit` commands measure the same
 initial and relevant-edit obligations. The selected config must exactly match the

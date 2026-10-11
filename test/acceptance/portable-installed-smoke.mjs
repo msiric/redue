@@ -9,7 +9,7 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {findExecutable} from '../../src/executable-lookup.mjs';
 import {windowsLaunch} from '../../src/windows-command.mjs';
-import {assertSmokeRootCwd,smokeEvidenceObservation,summarizeSmokeEconomics} from './portable-smoke-economics.mjs';
+import {assertSmokeRootCwd,assertOrdinaryPostImportOutcome,finishOwnedSmokeBase,smokeEvidenceObservation,summarizeSmokeEconomics} from './portable-smoke-economics.mjs';
 const options={};
 for(let i=2;i<process.argv.length;i++){
   const key=process.argv[i];
@@ -152,19 +152,22 @@ try{
   if(options['--economics']){
     const importFile=path.join(recipientState,'portable-imports-v1.json'),importedHistory=fs.readFileSync(importFile);
     const rerun=cli(recipient,recipientState,'run','typecheck'),fresh=row(recipient,recipientState,'recipient-required-run-final');
-    assert.equal(fresh.selected.freshness,'CURRENT');assert.equal(fresh.selected.result,'PASS');assert.equal(fresh.selected.reuse_eligible,true);
-    assert(fresh.selected.invocation?.runId);assert.notEqual(fresh.selected.invocation.runId,id);
-    assert.notEqual(fresh.selected.evidence_source,'imported');
+    assertOrdinaryPostImportOutcome(fresh.selected,id);
     const recipientId=fresh.selected.invocation.runId,recipientRecord=fs.readFileSync(path.join(recipientState,'runs-v1',recipientId+'.json'));
+    const stored=JSON.parse(recipientRecord);assert.equal(stored.schema,1);assert.equal(stored.check,'typecheck');
+    assert.equal(stored.receipt.result,'PASS');assert.equal(stored.receipt.invocation.runId,recipientId);
+    assert.equal(stored.receipt.invocation.status,'exited');assert.equal(stored.receipt.invocation.exitCode,0);assert.equal(stored.receipt.stable,true);
+    assert.equal(stored.receipt.invocation.argvHash,createHash('sha256').update(JSON.stringify(plainCompilerCommand(recipient,recipientState))).digest('hex'));
+    assert.equal(stored.receipt.portable,undefined,'Ordinary rerun must not silently capture portable evidence');
     assert.deepEqual(fs.readFileSync(importFile),importedHistory,'Local rerun must preserve imported history');
     record('required local rerun',fresh.selected,rerun.milliseconds);record('required rerun final query',fresh.selected,fresh.milliseconds);
     cli(recipient,recipientState,'stop');cli(recipient,recipientState,'start');
     const restarted=row(recipient,recipientState,'recipient-restart-inherited');
-    assert.equal(restarted.selected.freshness,'CURRENT');assert.equal(restarted.selected.result,'PASS');assert.equal(restarted.selected.reuse_eligible,true);
+    assertOrdinaryPostImportOutcome(restarted.selected,id);
     assert.equal(restarted.selected.invocation.runId,recipientId);
     assert.deepEqual(fs.readFileSync(path.join(recipientState,'runs-v1',recipientId+'.json')),recipientRecord);
     assert.deepEqual(fs.readFileSync(importFile),importedHistory);assert.deepEqual(fs.readFileSync(path.join(originState,'runs-v1',id+'.json')),immutable);
-    record('restart inherited local evidence',restarted.selected,restarted.milliseconds);
+    record('restart retained non-reusable local outcome',restarted.selected,restarted.milliseconds);
     workflowElapsed=performance.now()-workflowStarted;
     timingScope='plain-baseline';
     exec(plainCompilerCommand(recipient,recipientState),{cwd:recipient,phase:'plain-relevant-compiler'});
@@ -185,6 +188,7 @@ try{
     installed_mechanics:'PASS',history_preserved_before_owned_teardown:true,observations,served_status_observations:servedStatusObservations,command_timings:commandTimings,model_behavior:'NOT RUN',two_machine:'NOT RUN',
     coverage:'controlled noLib same-host project; complete observed globals; default-library external queries remain unsupported',
     cleanup:'owned observers/prefixes/checkouts only; origin/import/local records were preserved until disposable experiment teardown'};
+  if(options['--economics'])finalReport.economics=summarizeSmokeEconomics(commandTimings,workflowElapsed);
  }catch(error){
   acceptanceFailure=error;
   finalReport={schema:1,source:options['--source'],candidate_sha256:checksum,installed_mechanics:'FAILED',
@@ -194,9 +198,13 @@ try{
   for(const [root,state] of [[origin,originState],[recipient,recipientState]])if(fs.existsSync(root)&&fs.existsSync(binary))
     exec([binary,'--config',path.join(root,'redue.config.json'),'--state-dir',state,'stop'],{cwd:root,failure:true,phase:'cleanup-observer-stop'});
   // Only this function created this base. No pilot state or historical handoff is touched.
-  fs.rmSync(base,{recursive:true,force:true,maxRetries:5,retryDelay:200});
+  const cleanup=finishOwnedSmokeBase(base,{economics:options['--economics']===true,failed:!!acceptanceFailure});
+  if(cleanup.retained){
+    finalReport.cleanup='OWNED_ECONOMICS_FAILURE_RETAINED_AFTER_OBSERVER_STOP_ATTEMPTS';
+    finalReport.retained_evidence={owner_private_report:cleanup.owner_private_report};
+    process.stderr.write(`Owned economics experiment retained: ${base}\n`);
+  }
 }
 
-if(options['--economics']&&!acceptanceFailure)finalReport.economics=summarizeSmokeEconomics(commandTimings,workflowElapsed);
 if(!acceptanceFailure||options['--economics'])console.log(JSON.stringify(finalReport));
 if(acceptanceFailure)throw acceptanceFailure;
