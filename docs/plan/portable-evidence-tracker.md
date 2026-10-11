@@ -21,15 +21,56 @@ attributed `native-relocated-diagnostic-rule-warning-20261011.json` preserves th
 warning classification/settings/input/helper/lifecycle digests without raw
 transcripts or protected contents. Old attempt and sources are unchanged.
 
-D owns the bounded staged repair; C independently reviews parser grammar,
-command/code immutability and unchanged security scope. Use an exact Node
-invocation of a fixed diagnostic file in the already-approved relocated CODE
-workspace, with the original diagnostic assertions. No Bash wildcard, broader
-parent/socket/network access, environment rewrite, model request or terminal
-controller. New identities and distinct records preserve the failed attempt;
-staging waits for independent review. Current native assertions remain UNKNOWN.
-The standing authority permits this repair without another helper-hash approval;
-Copilot Actions included capacity is a separate unchanged prerequisite.
+The repair is staged and independently reviewed (source75c8ae3, attribution
+correction73801f5; integrated asaa5882e/49d9287). Root reran the21focused controls
+(4pinned Bash-subset parser +12relocation +5helper/gate mocks) and Node syntax.
+C independently repeated21controls and added8source/gate controls. These are
+parser/harness evidence, not native enforcement. The pinned parser rejects the
+old inline rule and accepts the exact fixed Node plus quoted CJS-file rule.
+The diagnostic body remains byte-identical (`14f62b23…`); checker/collector,
+authentication, state, protected targets, all previous denials, exact socket,
+network restrictions and180s preparation/5s cleanup are unchanged. New files
+add protection, not broader access. No native, checker or model ran in this repair.
+
+Current verified owner-local helper:
+`/Users/mariosiric/Library/Application Support/REDUE/portable-evidence/native-claude-2.1.187/owner-sentinel-relocated-v2.py`
+SHA-256 `5139c3056871c2286cee2841842bfc624e9db9b86d766bdcff14b0c9ee89f81c`.
+Diagnostic profile `15dbfaf4db84fb014263fbfdeb6baddfff0f39bf9d95050ce02cf0b1a307e9b2`;
+paired full profile `636bab4db073b91c8165fae24de26cb537d3bacab6e99e2014a39fb157cab014`.
+Fixed diagnostic code is in the approved dedicated relocated workspace:
+`/Users/mariosiric/Library/Application Support/REDUE-Native-Checks/native187/workspace/redue-native-entry-diagnostic.cjs`.
+Printed input SHA-256 `75fb685a18ec3c926016e59c9cf7c232e499dc3cdce52081c0bc7394fde67750`.
+Private final procedure `README-native-relocation-v2.md` SHA-256
+`0771540a26acd2df6ef4b6521d2145287d7ec3aa1028e335ea545a94487a5afb`;
+staged manifest `evidence/native-relocation-v2-manifest.json` SHA-256
+`941bdb1f3e429f348d06c9d1753821bc997c2b066580b712a006e2afbde2c73f`.
+Root verified allsix new O_EXCL/600/canonical/single-link files and all original
+source/attempt hashes unchanged. Data-only `--verify` and `--diagnostic-input`
+passed after staging. The full operation remains refused without the genuine
+currentv2 access gate, now also bound to the selected helper hash and physical
+identity. No actual gate was manufactured from source checks or mocks.
+
+Next owner action is only the repaired read-only diagnostic, not the full checker.
+Launch the verified v2helper with `--owner-diagnostic`; inside fresh native `!`
+Bash mode submit exactly:
+
+```sh
+/Users/mariosiric/.nvm/versions/node/v22.13.0/bin/node '/Users/mariosiric/Library/Application Support/REDUE-Native-Checks/native187/workspace/redue-native-entry-diagnostic.cjs'
+```
+
+Preserve the structured eight-role JSON and displayed command status, then Escape
+and `/exit`. A settings/permission/auth/trust warning stops this attempt; never
+Continue or Fix with Claude. Diagnostic JSON is owner-supplied, not automatically
+collected. The helper saves only the lifecycle under
+`evidence/native-relocated-v2-diagnostic-lifecycle.json`. Cleanup/nativeexit0 is
+not assertion proof. Both relocated collector/checker safe readonly opens and
+nonsecret protected-settings/canary permission denials are required; credential
+directories remain metadata-only/credential-body denial NOT_TESTED. Missing
+output/timeout remains UNKNOWN. All old records stay intact, all new operation/
+gate records were absent when checked. Another helper-hash approval is unnecessary
+under the standing authority. Copilot Actions capacity remains separate; no new
+billing or general account request. Package artifacts/runtime/CI source and Day0
+are unchanged; G2 and prepublication readiness remain incomplete.
 
 ## Historical checkpoint — standing autonomy applied; lanes reassessed
 

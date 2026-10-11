@@ -16,15 +16,15 @@ Only these two inputs currently require the owner:
    blind input could trigger inference. Manual interaction is the only currently
    established safe route. No decoder/controller or native probe will be added
    to guess the mode.
-   The verified private `README-native-relocation.md` contains the consolidated
+   The verified private `README-native-relocation-v2.md` contains the consolidated
    procedure. `CLAUDE_BASE` below denotes its already-verified durable base, not
    a new directory or account setup. In the owner's Terminal, first print and
    copy the frozen single command line, then launch the diagnostic:
 
    ```sh
    CLAUDE_BASE="$HOME/Library/Application Support/REDUE/portable-evidence/native-claude-2.1.187"
-   /usr/bin/python3 "$CLAUDE_BASE/owner-sentinel-relocated.py" --diagnostic-input
-   /usr/bin/python3 "$CLAUDE_BASE/owner-sentinel-relocated.py" --owner-diagnostic
+   /usr/bin/python3 "$CLAUDE_BASE/owner-sentinel-relocated-v2.py" --diagnostic-input
+   /usr/bin/python3 "$CLAUDE_BASE/owner-sentinel-relocated-v2.py" --owner-diagnostic
    ```
 
    In the fresh Claude UI enter `!` Bash mode and submit only the printed line;
@@ -36,8 +36,13 @@ Only these two inputs currently require the owner:
    only the structured diagnostic JSON and final helper lifecycle JSON/exit;
    no credentials or transcript. The 180-second startup and five-second cleanup
    limits are explicit; missing results or timeout remain UNKNOWN even after
-   successful cleanup. The independently reviewed helper/profiles are staged
-   and data-only verification passed. The diagnostic authorizes no checker,
+   successful cleanup. The repaired v2helper/profiles and fixed diagnostic CJS file are staged,
+   independently reviewed and data-only verified. Native2.1.187 grammar rejected
+   the old inline rule; a new exact Node plus quoted script-file rule passes
+   pinned-parser tests without widening Bash or any resource grant. Old sources
+   and the failed lifecycle are preserved. The new lifecycle file is
+   `evidence/native-relocated-v2-diagnostic-lifecycle.json`; the diagnostic JSON
+   itself remains displayed/owner-supplied. The diagnostic authorizes no checker,
    listener or model request; lifecycle completion is not native-enforcement
    proof. Full checker collection remains conditional on a genuine,
    current root-captured access gate; its command is not an immediate action.
