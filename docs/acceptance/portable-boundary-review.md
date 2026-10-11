@@ -2197,3 +2197,64 @@ These are author preparation findings, not executed failures. Final launcher,
 settings, existing-file checks,15s deadline, live-control lifecycle and truthful
 result labels require independent review before an operation approval request.
 No native execution, permissions change or model trial is authorized here.
+
+
+### Final owner-operated procedure preparation review
+
+The frozen owner-local lifecycle helper is independently source reviewed at
+SHA-256 `dc0eb16d157081a5d7ea1625d8de8874bbc49beb4331a84539755ba7e40b57f3`.
+Its separate selected settings file is
+`cc8aaf8c396424e37d48d8bfb2bc690461e7b99ef1ff7b3afff986118c45ff1e`;
+checker remains b3bad6b2. The settings delta from preserved3018 is explicitly
+`respondToBashCommands:false`, `defaultShell:"bash"`, and appending the newly
+selected settings filename to both existing denyRead and denyWrite lists.
+Previous settings restrictions remain intact. The new file is preparation data;
+normal5628/eebb files and the original proposal are unchanged. Existing native,
+checker and selected-settings paths were independently checked as regular
+non-symlink files. No live resource or native action was performed by reviewer.
+
+The final helper uses `posix_spawn(setpgroup=0)` in the owner's existing session,
+checks the owner begins in the foreground, explicitly transfers the real terminal
+foreground to the dedicated native group and restores it and terminal attributes
+after cleanup. SIGTTOU is masked only around foreground/terminal transitions.
+No PTY, terminal decoder, keyboard writing, preexec callback or automatic command
+submission remains. A15s absolute interval begins before preparation; the native
+window leaves2s for bounded kill/reap and controls. Native PID is retained until
+reaping to avoid reuse, and SIGTERM/SIGHUP set a cancellation latch checked by
+the remaining-budget guard. Currency, terminal restoration and cleanup failures
+cannot receive a successful lifecycle exit. Uncatchable termination still cannot
+promise cleanup; a private owned-process identifier supports explicit recovery.
+
+Local selected/project/system source absence is checked before and after; these
+checks alone do not certify remote authority. The previously reviewed fresh
+external auth-source/metadata prerequisites remain required immediately before
+a future operation. Model policy is labelled EXPECTED_DISABLED_NOT_MEASURED,
+checker output must be supplied by the owner, and enforcement stays
+NOT_AUTOMATICALLY_VERIFIED. A successful lifecycle or protocol counter is not six
+verified sandbox outcomes. The helper retains live-before/live-after controls
+and a separately counted actual-probe interval; ports absent or refused cannot
+be reclassified as enforced denials.
+
+Nine independent AST/data controls pass for final helper/settings identity,
+owned same-session group, foreground/reaping methods, absence of keyboard/PTY
+launch automation, truthful model labels, cancellation, currency/restore and
+fixed budget conditions, exact path restriction append, and existing file paths.
+The first reviewer command had an unmatched parenthesis and never evaluated; the
+corrected command passed. Neither command launched native code, listeners,
+fixtures or model calls. These are static controls, not owner-TTY acceptance.
+
+For a later specifically approved owner operation, submit only the fixed command
+after visibly entering native187 Bash mode. At an idle ordinary prompt, /exit is
+a local immediate command: Fym206173932 loads Mym206173135, which in the fresh
+non-worktree/no-background route performs local goodbye and `gi(0)` rather than
+a model request. Escape out of Bash mode before /exit; do not submit !/exit.
+The helper's group cleanup remains required even after native exit. Any trust,
+auth, policy, unavailable-sandbox or unknown state stops the procedure; do not
+substitute a prose model task, arbitrary shell command or permission bypass.
+
+Conclusion: GO_FOR_OWNER_APPROVAL for this exact preparation and root's data-only
+verification, not for execution. The old3018 no-model assumption is corrected;
+three actual command0 failures remain preserved. A new approval must explicitly
+bind this new settings identity, exact synthetic live resources, literal command,
+15s bound and owner operation. Native enforcement, actual receiving-agent reuse,
+model capacity and G1–G4 completion remain unestablished.
