@@ -1599,3 +1599,36 @@ No new tests, workflows, native processes or models were launched by the reviewe
 This supports candidate CLI/package regression only, not actual independent
 machine/model reuse, accepted current CI producer, final version/public alpha or
 net-benefit gates. Those substantive prerequisites remain explicit.
+
+Independent read-only terminal review: one explicitly owner-approved data-only
+recipient38123365552/head6b901d08708678bc51b8f9f1349555ecc1f5c198 SUCCESS. Exact
+enabled workflow SHAa600688881452915bde3f63a9dc60d21d952c65a9b4efe3db2c14860976a5d6f
+matches reviewed proposal; helper/registrya2f2 pins and fixed d04/8695 producer
+artifact remain unchanged. API shows13 completed successful job steps, no skipped
+steps/failure; logs contain preview applied=false then exactly one applied=true
+result, preserved separately. Protected owner-local .private.json is0600 and
+matching terminal fields were independently inspected. Earlier failed
+recipient38098482463 is not relabeled; no job rerun occurred.
+
+Actual accepted evidence: origin02f44ac7-e6fc-4d5e-9757-28357654fef1, canonical
+digest5d16fbf6b101f88843f41a8c61d3c351e5f9e600306dc4936eaaec8d6ea40d57,
+outer artifactSHAeb25768d3073dac37a78059efe94bfaab4a91f553dab7e208b05b940ea56dba6,
+policybab7901892570e81f15f8e888d2c33e632479f55f461d4ee34f905acfe7a5ce6
+revision1/required refresh, reviewed native verifierSHA20f0520e9cc872b543bd5e31984f64932b197732c3d3df2c7367d0dc66e7a450.
+Producer verified/accepted=true; recipient healthy schema1 CURRENT/PASS/eligible,
+evidence_source=imported, acceptance=github-ci-v1, invocation=null. Actual receiver
+26.6.2/build25G83/APFS/darwin-arm64/release25.6.0 matches reviewed origin profile,
+with independently differing boot and physical Node identity. Unrelated edit and
+restart retain the imported origin; relevant edit becomes STALE. Exact pinned
+helper asserts no local run/receipt history and invokes no equivalent configured
+compiler command. Models0/globally_latest=false. This establishes one positive
+authenticated two-machine CLI route, not receiving-agent/model reuse or every
+G3/final-release gate.
+
+Four recipient calls and14 setup/control calls complete status0; final recipient
+synchronized applicability takes42,274.658ms. This is an observed slow sample,
+not a deadline change, warm-query distribution or net-saving claim. No writes,
+new tests/workflows/uploads/signing, model/native-agent processes or additional
+verification were performed by this reviewer. An initial guessed .report.json
+filename was absent; the actual .private.json was located and reviewed, not an
+engine failure. Root owns remaining native-host and final readiness decisions.
