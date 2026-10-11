@@ -7,6 +7,13 @@ not established. This map identifies controls and missing proof; it does not
 promote test-source presence to a gate PASS. The integration tracker owns current
 run/commit results and the independent review record.
 
+Final combined product run38096673735 passes all applicable d04b872 runtime
+controls: 362 tests per recorded job, macOS336PASS26skip, Windows256PASS106skip,
+Linux22 324PASS38skip; Linux24 jobPASS/count not retained. Exact package38096673730
+passes macOS/Linux/nativeWindows with verified CI/local SHA8695b612… and equal
+source tree. These are regression/platform results, not model or accepted-producer
+gates; later disabled host proposals have separate leaf controls.
+
 Canonical requirements: [REDUE-PE-001](../plan/portable-evidence.md#71-minimum-matrix).
 Current exact installed scope and artifact identities:
 [host preflight](portable-host-preflight.md). Pure fixtures and fault injections

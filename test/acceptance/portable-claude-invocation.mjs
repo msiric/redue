@@ -65,7 +65,7 @@ export function prepareClaudeReceiverInvocation(options) {
   };
   return {
     schema: 1, status: 'PROPOSAL_ONLY', disabled: true, model_launches: 0,
-    blockers: ['OWNER_EXACT_WORKFLOW_REVIEW_REQUIRED', 'NATIVE_CREDENTIAL_DENIAL_NOT_VERIFIED',
+    blockers: ['OWNER_EXACT_WORKFLOW_REVIEW_REQUIRED', 'NATIVE_VERSION_LACKS_CREDENTIAL_DENY', 'NATIVE_CREDENTIAL_DENIAL_NOT_VERIFIED',
       'NATIVE_SANDBOX_AND_PERMISSION_ENFORCEMENT_NOT_VERIFIED', 'CURRENT_PRODUCER_POLICY_APPROVAL_REQUIRED',
       'MATCHED_RECIPIENT_AND_EXPECTED_EVIDENCE_PREFLIGHT_REQUIRED'],
     actual_local_version: claudeVersion, max_turns_proposed: maxTurns, parent_timeout_ms_proposed: timeoutMs,

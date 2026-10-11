@@ -104,8 +104,8 @@ actual workflow; the lexical base check does not approve a filesystem resource.
 Proposed settings keep the sandbox mandatory, forbid unsandboxed retries/excluded
 commands, restrict its one state socket and reject tool-network access. Only exact
 inspection/REDUE commands are proposed; other tools/MCP/hooks/plugins are excluded.
-Subscription and GitHub credential variables are explicitly denied to sandboxed
-children. Host settings/installations/producer-policy writes are not agent-owned.
+Subscription and GitHub credential-deny entries are proposed, not effective on
+the installed 2.1.146 version. Host settings/installations/producer-policy writes are not agent-owned.
 No secret value occurs in argv/settings or a model-readable file.
 
 [Current native sandbox documentation](https://code.claude.com/docs/en/sandboxing)
@@ -149,3 +149,75 @@ fixed macOS path semantics even when its pure tests run on another CI platform.
 The current deterministic CI recipient helper deliberately ends STALE after its
 source-edit control and stops the observer; its report cannot be reused as an
 eligible model precondition.
+
+## No-model native boundary review — 2026-10-11
+
+The [pinned official changelog](https://github.com/anthropics/claude-code/blob/2301018b1f61073c501a8e7a4813ef48c239163b/CHANGELOG.md)
+places `sandbox.credentials` in 2.1.187, `failIfUnavailable` in 2.1.83 and
+`allowUnsandboxedCommands` in 2.0.30. It records the strict `!` shell-mode behavior
+change at 2.1.260. Thus 2.1.146 is **unsupported for the proposed credential-deny
+boundary**, not merely awaiting a positive test. Static strings did not establish
+feature availability. The disabled invocation spec names that version blocker.
+
+An isolated official native darwin-arm64 2.1.187 binary was downloaded without
+installing it or replacing the owner's CLI. Its [official manifest](https://downloads.claude.ai/claude-code-releases/2.1.187/manifest.json)
+size215,994,048bytes and SHA-256
+`a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3`
+match the downloaded binary. Only `--version` and `--help` ran successfully;
+there was no session, inference, auth or settings change. No sandbox-test
+subcommand appears in either version's help. `doctor --help` describes updater
+health and possible MCP-server execution; doctor itself was not run.
+
+The [current strict-mode documentation](https://code.claude.com/docs/en/sandboxing#turn-off-the-retry-with-strict-sandbox-mode)
+and versioned changelog support a candidate **interactive** `!` shell-mode route
+before 2.1.260, with strict sandboxing. The earliest documented combination of the
+required controls is 2.1.187; this is not yet empirical host acceptance.
+Do not pass `!…` to `--print` as a supposed no-model test. The future reviewed
+preflight must enter shell mode through the native interactive UI, use only
+non-secret sentinel variables, verify actual credential removal/one-socket and
+network/file denials, then exit without a model request. An invalid settings file
+can be silently ignored in print mode according to both actual help outputs;
+help parsing is not an enforcement check. A handcrafted sandbox, hook or MCP
+command cannot substitute for the native host boundary.
+
+### Disabled strict-shell preflight specification
+
+This sequence is **not run**. Before native interactive startup, select an empty
+owner-local configuration directory and the already verified owned fixture paths;
+record their canonical identities. No auth file is copied. Refuse startup if any
+real API/OAuth/bearer/provider token is present or if a secure-storage override is
+present; report key presence only. Set CLAUDE_CONFIG_DIR only for this proposed
+process, to the fresh owned directory; do not change HOME or global settings.
+Keep managed settings active. The pinned 2.1.187 binary's credential-service code
+namespaces storage using a digest of this config-directory selection when no
+CLAUDE_SECURESTORAGE_CONFIG_DIR override exists. This source observation does not
+prove that every startup component avoids all existing keychain activity.
+
+Use the verified isolated native binary, **without** print or bare mode, with:
+
+```text
+--permission-mode dontAsk --tools Bash
+--strict-mcp-config --mcp-config {"mcpServers":{}}
+--setting-sources project,local --settings OWNED_REVIEWED_SETTINGS_FILE
+```
+
+The ephemeral settings must be independently reviewed for the exact fixture and
+socket: sandbox enabled, failIfUnavailable=true, allowUnsandboxedCommands=false,
+no excluded commands, no hooks/plugins, exact workspace/state only for writes,
+only the intended observer socket, no tool-network destinations and explicit
+credentials.envVars deny for a **custom non-secret** REDUE_PREFLIGHT_SENTINEL.
+Do not put a fake value in an authentication-variable name to bypass onboarding.
+The settings file and sentinel checker are owner-provided preflight data/code,
+not an imported artifact or a hook. They must not become model task instructions.
+
+If native onboarding/login prevents reaching the interactive shell prompt,
+stop and record LOGIN_REQUIRED before any model request. Do not sign in, refresh,
+skip onboarding, provision a token or reuse the owner's login database. If the
+prompt is available, enter `!` through the native interactive UI, run only the
+reviewed bounded sentinel checker, and exit without submitting a model prompt.
+The checker emits booleans for sentinel absence and expected filesystem/socket/
+network denials, never values or raw settings. Capture the actual shell-mode
+tool boundary; a separate sandbox invocation or an outside command is not proof.
+An unknown/native validation result stops the lane. Even a successful sentinel
+preflight would not itself establish subscription capacity, model behavior or
+portable-evidence eligibility.

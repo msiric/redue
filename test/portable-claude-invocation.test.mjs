@@ -14,6 +14,7 @@ test('receiver proposal is permanently disabled and never claims host authority'
   assert.equal(p.model_launches, 0);
   assert.equal(p.status, 'PROPOSAL_ONLY');
   assert.ok(p.blockers.includes('NATIVE_CREDENTIAL_DENIAL_NOT_VERIFIED'));
+  assert.ok(p.blockers.includes('NATIVE_VERSION_LACKS_CREDENTIAL_DENY'));
   for (const claim of [{}, { reviewed: true }, { helpPassed: true, keyPresent: true }, { activated: true }]) {
     assert.throws(() => requireClaudeReceiverActivation(claim), { code: 'CLAUDE_RECEIVER_ACTIVATION_NOT_APPROVED' });
   }
