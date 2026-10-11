@@ -225,8 +225,11 @@ requested merely to report token presence.
 Current storage-free product run38099703953, exact preparation source892f603,
 completed all four jobs successfully. Each recorded job has472tests: macOS445PASS/
 27skip, nativeWindows297PASS/175skip, Linux22 433PASS/39skip; Linux24 job PASS with
-its count not retained in the downloaded log. Installed smoke on every job packed
-the unchanged runtime SHA8695b612… and passed. Protected log:
+its count not retained in the downloaded log. All installed smoke jobs passed;
+Linux/macOS repacks match SHA8695b612…, while the Windows platform-local repack
+is159,042bytes/SHA5e3a177f0208fbc5ee31b44ada61b9fb6d1bfced506e18223827c9b7b28bbb90.
+That Windows job is not an exact-frozen-byte test. The earlier dedicated exact
+package run38096673730 remains the three-platform frozen-byte acceptance. Protected log:
 `.local/portable-evidence/product-892f603.log`. Later data-only Claude controls
 are not included in that CI source; their integrated root2/2 PASS151.8ms and
 independent2/2 PASS324.6ms are separate evidence. No model was launched.
