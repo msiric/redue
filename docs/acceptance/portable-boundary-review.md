@@ -1500,3 +1500,13 @@ its additional cost, never a silent flag substitution or weaker engine. Both
 failed preparations remain retained; no further expensive sample was launched
 by this reviewer. This exposes installed onboarding guidance needed after import,
 not an unsafe-reuse finding or complete economics/adoption result.
+
+D7aeef9c plus72db693 diagnostic source GO retains actual served status before
+assertions and through failure reports. Independent review caught that the first
+reason-code regex was shape-bounded rather than a static allowlist; final exact
+15-code recipient set drops unfamiliar codes, including uppercase private
+canaries. Schema/health/freshness/result/reuse flags, fixed stage/index and
+validated UUID/digests are retained, never human reasons or arbitrary producer
+metadata. Independent controls4/4 PASS,51.47ms, Node22.13.0; syntax PASS.
+This adds no new execution, deadline, changed obligation, green assertion or
+third sample. Original failed-response reason remains uncaptured history.
