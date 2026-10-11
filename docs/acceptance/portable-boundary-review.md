@@ -1579,3 +1579,23 @@ reviewer command guessed an incorrect full source expansion and stopped at its
 source assertion; corrected git-rev/source.txt comparison passed without changing
 the artifact. No archive extraction execution, installation, probe or model was
 performed. New exact-byte platform acceptance remains pending.
+
+Independent read-only final CI evidence classification: package matrix38101767565
+at05c1d869d40903c4663710e1967901e18ca8fc0b passes pack/macOS/Linux/nativeWindows.
+Downloaded four regular files bind source05, manifest/checksum/80files/158,546
+bytes and SHA-256b8122c3bdcedf42a374ba3a87681ca7654360bc6c10daa64b5ac93a79ca7b190
+to identical local223f bytes. Actual logs show the exact b812 package on all
+three installed jobs, macOS real portable origin/separate-checkout mechanics,
+and installed policy controls macOS8PASS, nativeWindows/Linux1PASS7platformskip.
+
+Product38101769601 same source has481tests per job:macOS454PASS27skip,
+nativeWindows305PASS176skip, Linux22/24each442PASS39skip; failure/cancellation0.
+Its Windows independent repackSHAdae6d9…/159,489bytes is not b812 or prior frozen
+8695. Git source/bin tree IDs05 and223f match exactly
+bd5836f939a5d6e29b4877ace07e208d6d820bcc and
+29ee1fac44925ce9e28a106a0a0632ee1277cd7a. Private retained logs are evidence
+inputs; no raw transcript/path/environment is copied into this record.
+No new tests, workflows, native processes or models were launched by the reviewer.
+This supports candidate CLI/package regression only, not actual independent
+machine/model reuse, accepted current CI producer, final version/public alpha or
+net-benefit gates. Those substantive prerequisites remain explicit.

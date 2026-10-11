@@ -7,21 +7,26 @@ not established. This map identifies controls and missing proof; it does not
 promote test-source presence to a gate PASS. The integration tracker owns current
 run/commit results and the independent review record.
 
-Frozen product run38096673735 passes all applicable d04b872 runtime
-controls: 362 tests per recorded job, macOS336PASS26skip, Windows256PASS106skip,
-Linux22 324PASS38skip; Linux24 jobPASS/count not retained. Exact package38096673730
-passes macOS/Linux/nativeWindows with verified CI/local SHA8695b612… and equal
-source tree. These are regression/platform results, not model or accepted-producer
-gates; later disabled host proposals have separate leaf controls.
+Current exact candidate validation: package matrix38101767565 at source
+05c1d869d40903c4663710e1967901e18ca8fc0b passes pack/macOS/Linux/nativeWindows.
+Downloaded four-file artifact verifies80files/158,546bytes and SHA-256
+b8122c3bdcedf42a374ba3a87681ca7654360bc6c10daa64b5ac93a79ca7b190,
+byte-identical to the223f231 local package. Source/bin trees are identical.
+MacOS includes real installed portable origin/separate recipient mechanics;
+platform-specific installed-policy controls report macOS8PASS, Windows/Linux
+1PASS7skip. No installed-script label establishes actual model behavior.
 
-Later product-source CI38099703953 passes all four jobs at892f603:472 tests/job,
-macOS445PASS27skip, Windows297PASS175skip, Linux22 433PASS39skip; Linux24
-jobPASS/count not retained. This does not replace exact frozen-package acceptance:
-its Windows independent repackSHA5e3a…/159,042bytes differs from frozen8695…/
-158,105bytes. Future release-ready source/policy/documentation must receive a new
-unambiguous artifact identity and affected exact-byte acceptance. Existing valid
-controls remain historical evidence tied to their source/profile, not an excuse to
-rerun excluded documentation milestones or claim unperformed model behavior.
+Current product38101769601 at the same source has481tests/job:macOS454PASS27skip,
+Windows305PASS176skip, Linux22/24 both442PASS39skip; zero failure/cancellation.
+Its Windows independent repackSHAdae6d9…/159,489bytes is separate from the exact
+b812 package matrix. Candidatealpha10 metadata is not publicalpha10 identity.
+Final release version/bytes and remaining agent/machine/trust gates stay pending.
+These are source/package results, not new model or accepted-producer evidence.
+
+Historical package/source records remain preserved: frozen d04b872 product
+38096673735 (362tests/job) and exact package38096673730 verified8695…/158,105bytes;
+later892f603 sourceCI38099703953 (472tests/job) passed with distinct Windows
+independent repack5e3a…/159,042bytes. None is relabeled as the new exact candidate.
 
 One declared owner-local installed completion sample at harness223f231 with frozen
 8695 bytes passes. It records16 workflow commands/39,890.201ms and directly
