@@ -3,3 +3,5 @@
 /docs/contributor/portable-ci-signing-workflow.yml text eol=lf
 docs/contributor/portable-ci-producer-registry-proposal.json text eol=lf
 docs/contributor/portable-ci-recipient-workflow.yml text eol=lf
+
+docs/contributor/portable-ci-recipient-enable-proposal.yml text eol=lf
