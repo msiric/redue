@@ -83,3 +83,66 @@ fresh recipient observation. The model must load the installed project guidance,
 receive actual eligible JSON, retain the origin/digest and avoid equivalent compiler
 execution before a reuse claim is recorded. Private tokens and raw transcripts
 never become public experiment artifacts.
+
+## Concrete disabled invocation and remaining host proof
+
+[portable-claude-invocation.mjs](../../test/acceptance/portable-claude-invocation.mjs)
+constructs data only from the caller-selected recipient base. It launches zero
+processes, reads no secrets, writes no settings and always reports PROPOSAL_ONLY.
+Its activation function always refuses; boolean approval/help/static-key fields
+cannot activate it. Four deterministic tests cover scope/budgets/no-bypass and
+refusal. This is proposal validation, not native host enforcement.
+
+The proposed argv uses print/stream-json, max8 turns/300s parent cap, dontAsk,
+Bash-only tools, empty strict MCP config and a local --settings file. Actual native
+2.1.146 help parsing accepts those flag forms; it does not validate settings or
+prove model/turn behavior. No bare, injected system policy, dangerous permission
+bypass or disabled REDUE skill is proposed. Fresh project instructions load through
+the normal mechanism. Root must verify ownership/canonical paths and finalize the
+actual workflow; the lexical base check does not approve a filesystem resource.
+
+Proposed settings keep the sandbox mandatory, forbid unsandboxed retries/excluded
+commands, restrict its one state socket and reject tool-network access. Only exact
+inspection/REDUE commands are proposed; other tools/MCP/hooks/plugins are excluded.
+Subscription and GitHub credential variables are explicitly denied to sandboxed
+children. Host settings/installations/producer-policy writes are not agent-owned.
+No secret value occurs in argv/settings or a model-readable file.
+
+[Current native sandbox documentation](https://code.claude.com/docs/en/sandboxing)
+states that shell commands inherit credentials unless protected; other tools may
+run outside that boundary. These controls require actual native-version proof.
+[Current subprocess scrub documentation](https://code.claude.com/docs/en/env-vars)
+says pre2.1.251 scrub removed only API/AWS secret variables, not the broader current
+credential list. Therefore local2.1.146 scrub/static keys are insufficient evidence
+that subscription OAuth is hidden. Do not install a real token or run inference
+before independently demonstrating credential-deny and exact sandbox behavior with
+non-secret sentinels. A differently reviewed native version may be owner-provisioned
+normally; never upgrade the owner’s existing installation automatically.
+
+B’s CI recipient helper presently stops its observer after deterministic checks;
+a future model stage must start its own approved observer and reassess after all
+instruction/fixture changes. Its explicit custom state also needs a verified
+installation-provided routing choice: config-only agent setup does not embed that
+state. Do not assume a prepared helper report or preflight outside the host boundary
+establishes agent-visible eligible evidence. No task-specific REDUE reminder repairs
+that gate.
+
+The controlled [generic guidance writer](../../test/acceptance/portable-controlled-guidance.mjs)
+creates only new files in a caller-selected, canonical owned fixture with its own
+Git root and exact state-owner marker. Copilot loads AGENTS.md; native Claude
+loads CLAUDE.md. Both point to the same verbatim, SHA-bound installed shared
+policy plus the explicit project-relative config/state route. This is the
+documented generic mechanism, not native REDUE setup/doctor support for Copilot
+or custom-state embedding. Preview is read-only; application refuses existing
+or edited files. It does not write permissions, state, receipts or producer policy.
+
+The required producer/receiver role is explicit. Only the producer appendix
+selects `run typecheck --portable` for fresh recording; it still executes the
+configured compiler. Export/import/trust remain owner operations. The receiver
+has no capture modifier or task-specific reuse reminder. Six deterministic
+controls cover both hosts, preview, ownership/currency failure and no-overwrite;
+these are mechanics, not instruction discovery by a running agent. All fixture
+and guidance changes must finish before the relevant in-context baseline.
+The current deterministic CI recipient helper deliberately ends STALE after its
+source-edit control and stops the observer; its report cannot be reused as an
+eligible model precondition.
