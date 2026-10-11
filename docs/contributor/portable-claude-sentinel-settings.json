@@ -1,0 +1,83 @@
+{
+  "disableAllHooks": true,
+  "enabledPlugins": {},
+  "permissions": {
+    "allow": [
+      "Bash(__REVIEWED_NODE__ __REVIEWED_BASE__/workspace/redue-native-sentinel.mjs)"
+    ],
+    "deny": [
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "LSP",
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "allowUnsandboxedCommands": false,
+    "autoAllowBashIfSandboxed": false,
+    "excludedCommands": [],
+    "filesystem": {
+      "allowWrite": [
+        "__REVIEWED_BASE__/workspace"
+      ],
+      "denyRead": [
+        "__REVIEWED_BASE__/claude-config",
+        "__REVIEWED_BASE__/gh-config",
+        "~/.claude",
+        "~/.config",
+        "~/.ssh",
+        "~/.aws",
+        "~/.npmrc",
+        "~/.git-credentials",
+        "__REVIEWED_BASE__/native-sentinel-resources/protected",
+        "__REVIEWED_BASE__/settings-sentinel.json",
+        "__REVIEWED_CLAUDE_BINARY__",
+        "~/Library/Keychains",
+        "~/Library/Application Support/vstate",
+        "~/Library/Application Support/redue"
+      ],
+      "denyWrite": [
+        "__REVIEWED_BASE__/claude-config",
+        "__REVIEWED_BASE__/gh-config",
+        "__REVIEWED_CLAUDE_BINARY__",
+        "__REVIEWED_BASE__/workspace/redue-native-sentinel.mjs",
+        "__REVIEWED_BASE__/settings-sentinel.json",
+        "__REVIEWED_BASE__/native-sentinel-resources",
+        "__REVIEWED_NODE__",
+        "~/Library/Keychains",
+        "~/Library/Application Support/vstate",
+        "~/Library/Application Support/redue",
+        "__REVIEWED_BASE__",
+        "__REVIEWED_NODE_DIRECTORY__"
+      ]
+    },
+    "network": {
+      "allowedDomains": [],
+      "deniedDomains": [
+        "*"
+      ],
+      "strictAllowlist": true,
+      "allowUnixSockets": [
+        "__REVIEWED_BASE__/native-sentinel-resources/allowed.sock"
+      ],
+      "allowAllUnixSockets": false,
+      "allowLocalBinding": false
+    },
+    "credentials": {
+      "envVars": [
+        {
+          "name": "REDUE_PREFLIGHT_SENTINEL",
+          "mode": "deny"
+        }
+      ]
+    }
+  }
+}

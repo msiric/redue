@@ -1,15 +1,15 @@
 # Native Claude receiver authentication preparation
 
-Status: **BLOCKED_NATIVE_STARTUP_BOUNDARY**. The current disabled workflow is
-secret-free, data-only preparation; it cannot launch a native process. The sole
-no-auth interactive attempt reached the theme-onboarding gate. Authenticated
-startup-side actions and effective credential/sandbox enforcement remain unproven.
-No OAuth secret is requested merely to inspect token presence. This is not a model
-run or authentication enablement. D4 in
-[portable decisions](../plan/portable-evidence-decisions.md) records the owner’s
-explicit Copilot-producer/native-Claude-receiver amendment. Existing subscriptions
-are approved, additional spending is $0. Actual two-machine applicability and agent
-reuse are still gates; resource approval cannot supply CURRENT.
+Status: **PENDING_EXACT_SENTINEL_REVIEW_AND_OWNER_APPROVAL**. The owner reports
+successful native subscription login and the normal prompt in the previously
+reviewed isolated187 profile, followed by exit without a model request or `!`
+command. This is owner-observed onboarding, not an agent-run authentication,
+capacity, credential-denial or sandbox test. The new six-check synthetic proposal
+below is unrun. The existing disabled workflow remains secret-free and data-only;
+it cannot launch native code. Actual cross-agent/two-machine reuse remains a gate.
+Existing subscriptions are approved, additional spending is $0; resource approval
+cannot supply CURRENT. D4 in [portable decisions](../plan/portable-evidence-decisions.md)
+records the explicit Copilot-producer/native-Claude-receiver amendment.
 
 ## Observed local route
 
@@ -180,7 +180,7 @@ can be silently ignored in print mode according to both actual help outputs;
 help parsing is not an enforcement check. A handcrafted sandbox, hook or MCP
 command cannot substitute for the native host boundary.
 
-### Disabled strict-shell preflight specification
+### Historical disabled strict-shell preflight specification
 
 This sequence is **not run**. Before native interactive startup, select an empty
 owner-local configuration directory and the already verified owned fixture paths;
@@ -330,3 +330,82 @@ reviews independently. Current785be all-tools-denied settings stay unchanged.
 Exact approval is required before any new fixture provisioning, settings application
 or native `!` action. No secret creation, SDK substitution or model trial follows
 from this result.
+
+### Current six-check synthetic sentinel proposal — not applied
+
+The [checker template](../../test/acceptance/portable-claude-sentinel.mjs) and
+[settings template](portable-claude-sentinel-settings.json) contain render markers,
+not executable owner bindings. Exact rendered files and the literal argv/path map
+are protected owner-local proposal data under this lane's
+`.local/portable-native-sentinel-proposal/`; they are not installed in the
+onboarded profile. The exact proposal map SHA-256 is
+`6ac63f8218a28e2518ff26e94ac9a42800b7488dfdf1f54cfb2800aace807d1b`.
+Rendered checker SHA-256 is
+`9124fae66d047a50ff5d8f80daeef219e2fe5c75bfa66cd140c4f783a07eb567`;
+rendered proposed settings SHA-256 is
+`b63c0e1e112f41aaa378b0c0f79f7bf65825ff25ae175c2b851b2af312958efe`.
+Original settings785be and nativea59a16 remain unchanged. The selected Node22.13.0
+executable SHA-256 is
+`5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc`.
+No live canary, listener, workspace checker or profile settings were created.
+
+The proposed delta removes the original all-Bash denial only to allow one literal
+`Bash(REVIEWED_NODE REVIEWED_CHECKER)` command. Other tools remain denied, and
+startup retains `--tools Bash`, dontAsk, strict empty MCP and project/local setting
+sources. Sandbox strict/failIfUnavailable stays enabled, no excluded commands or
+unsandboxed retry, no hooks/plugins, no allow-all socket or tool network. Only the
+one synthetic allowed socket is listed. The entire selected base and Node version
+directory are denied writes, in addition to specific checker/settings/config/
+canary/native files; workspace allowWrite cannot authorize their mutation or
+parent-directory replacement. The checker does not need writable workspace.
+Actual enforcement remains untested. Process-only DISABLE_UPDATES=1 and isolated
+CLAUDE_CONFIG_DIR/GH_CONFIG_DIR remain; HOME, proxies, managed settings and the
+original profile settings are unchanged.
+
+Before any future launch, independently review the exact rendered code/settings
+and applicable authenticated managed-policy startup hooks. Local policy-file
+absence before login did not establish authenticated remote-policy absence, and
+local disableAllHooks is not a managed-hook bypass. Unknown startup authority
+stops the route. Recheck current ownership, physical parent/file identities and
+hashes of Node, native, checker/settings and synthetic resources before/after the
+interval. Reject presence, even empty, of NODE_OPTIONS, NODE_PATH and the reviewed
+LD/DYLD preload/search overrides **before launching Node**; the checker's own
+presence guard cannot undo a preload that already executed. Reject unintended
+provider/API/startup overrides without printing values. No real authentication
+key receives a fake sentinel value.
+
+After that review, the requested owner operation is one bounded native interactive
+startup using the private map's literal argv/cwd and a **non-secret custom**
+REDUE_PREFLIGHT_SENTINEL process variable, then exactly the private map's
+`!REVIEWED_NODE REVIEWED_CHECKER` command, followed by exit. There is no model
+prompt, print/bare mode, hook, SDK or separate handcrafted sandbox. The parent
+operation is capped at15s; socket operations each cap at1s. Stop at an unexpected
+onboarding/login/trust/permission gate without accepting it or retrying outside
+the sandbox. This operation is **not yet approved or executed**.
+
+The six checks are custom sentinel absence, synthetic protected-file open denial,
+synthetic outside-write denial, one allowed synthetic socket's exact fixed reply,
+other synthetic socket connect denial, and owned direct-loopback TCP connect
+denial. Only EACCES/EPERM establish denial. Missing files, refused connections,
+closed listeners, EEXIST, malformed replies and timeouts are unknown/failure.
+The checker emits only booleans and fixed reason codes; no environment values,
+OS error messages, file contents or responses leave it.
+
+The owner-side fixture must prove the protected canary exists and is readable
+outside the sandbox, the write target is absent with a writable existing parent,
+and both Unix listeners and the fixed loopback listener are owned and live.
+Pre/post listener control connects must return the fixed PING/OK protocol; they
+must not forward commands or accept arbitrary input. The fixed loopback endpoint
+is127.0.0.1:38187: occupied or unavailable means stop, never choose another port.
+Retain any unexpected created write canary as a counterexample instead of deleting
+it inside the checker. Missing live-target gates prevent any success claim even
+if the checker reports all six expected results.
+
+Successful native tracing plus these gates would establish only the custom env
+sentinel and synthetic file/socket/network mechanics. No real OAuth/GitHub
+credential, config, keychain or REDUE state file is opened by the checker. It does
+not prove real secret removal, actual REDUE observer/probe access, matched-VM
+applicability, subscription capacity or agent reuse. Secret-bearing VM child key
+absence, the actual REDUE endpoint gate and model trials remain separate. Four
+pure deterministic controls pass; they create no live fixtures and launch no
+native/auth/tool/model process.
