@@ -3,6 +3,26 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
+Current checkpoint (2026-10-11 15:00UTC): the owner approved one exact
+startup-only diagnostic1c6a55. Fresh metadata/auth-source guards passed; native187
+reported claude.ai/firstParty/Pro with no API-key source. The diagnostic ran once
+and classified **SAVE_CURSOR**,404.7ms, zero keyboard bytes/model requests, native
+reaped and original-source/fallback rechecks passed. Private sanitized final
+report SHA-2565840f3182ac7495405005cd56562a0b803ac895871d1da1246da1748245e4776
+is preserved in the durable native setup's evidence directory. This describes
+this startup only; earlier discarded controls remain unknown. No checker ran and
+sandbox enforcement/actual portable agent reuse remain unproven.
+
+The one startup-only authorization is consumed. D owns a disabled, narrowly
+reviewed ESC7/ESC8 parser repair; C independently reviews actual diagnostic and
+proposed semantics. No further native/checker/model operation is authorized by
+this preparation. Copilot's included-credit confirmation remains separately
+pending. Original settings/auth, runtime, receipts, frozen artifacts and security
+boundaries are unchanged; no trust/CI/publication action. Owner resumed this
+specific diagnostic lane; G2 and finalG3/G4 remain incomplete.
+
+## Previous blocked checkpoint
+
 Blocked checkpoint (2026-10-11): the same acceptance prerequisites remain
 outstanding across the diagnostic-preparation turn and two automatic goal
 continuations. Prior continuation was no progress, not a verified process wait.

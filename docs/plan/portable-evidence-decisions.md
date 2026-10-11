@@ -226,3 +226,18 @@ No actual escape sequence, sandbox denial or product defect is inferred. Both
 specific attempt allowances are now consumed; the reviewed failure record remains
 separate from any prospective diagnostic proposal. No further native retry or
 terminal-semantic expansion is authorized.
+
+
+### D6 separately approved startup-only diagnostic
+
+The owner's Approved reply authorizes only the outstanding exact1c6a55 startup-only
+request, not Copilot capacity or a new synthetic checker attempt. Fresh metadata/
+source/auth gates passed before execution. Actual one-attempt report: static
+SAVE_CURSOR family,404.7ms, no keyboard/model/checker input, reapedtrue and original
+source/fallback rechecks true. Its diagnostic status never permits inference or
+establishes effective sandbox enforcement. Protected final reportSHA5840f318…
+is retained. This new startup does not identify prior discarded terminal bytes.
+The allowance is consumed; a reviewed parser change requires its own specific
+native-attempt approval before application/testing. Preparation may continue with
+pure tests and independent source review, never by silently accepting unknown
+terminal controls or broadening tool/permission semantics.
