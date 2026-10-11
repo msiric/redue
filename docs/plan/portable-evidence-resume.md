@@ -6,6 +6,20 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
+Current diagnostic preparation (2026-10-11): startup-only helper SHA-256
+`1c6a55c69cc58a64eab982c9c5ddfadb2eb801191500addb620afca67fc73c9b`
+is independently reviewed in e2870f6 (review source4924afe). Root15 pure controls
+and reviewer15+7 pure/static controls pass; native launches0. It uses original
+all-tools-denied settings, sends zero input, and reports only a fixed control
+family within15s. No checker/model or synthetic resource/settings operation is
+included. One specific owner approval is pending; prior allowances remain
+consumed. A family observation is diagnostic only, not sandbox or reuse proof.
+Before an approved launch, repeat current metadata/auth guards and exact hashes.
+Copilot included-credit confirmation remains separately pending. No new login,
+public CI, trust change, runtime change or publication is requested here.
+
+## Previous two-attempt checkpoint
+
 Current checkpoint (2026-10-11): two separately owner-approved synthetic native
 Claude187 attempts returned **NOT_VERIFIED**, both before any shell/checker/model
 submission. The second, frozenbeba8c diagnostic revision, stopped at
