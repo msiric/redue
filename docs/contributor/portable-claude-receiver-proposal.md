@@ -1,6 +1,11 @@
 # Native Claude receiver authentication preparation
 
-Status: disabled preparation, not a model run or authentication enablement. D4 in
+Status: **BLOCKED_NATIVE_STARTUP_BOUNDARY**. The current disabled workflow is
+secret-free, data-only preparation; it cannot launch a native process. The sole
+no-auth interactive attempt reached the theme-onboarding gate. Authenticated
+startup-side actions and effective credential/sandbox enforcement remain unproven.
+No OAuth secret is requested merely to inspect token presence. This is not a model
+run or authentication enablement. D4 in
 [portable decisions](../plan/portable-evidence-decisions.md) records the owner’s
 explicit Copilot-producer/native-Claude-receiver amendment. Existing subscriptions
 are approved, additional spending is $0. Actual two-machine applicability and agent
@@ -43,46 +48,34 @@ contains newer-version features; it is not empirical acceptance of this binary.
 Pin/review the actual native distribution and its supported flags before inference.
 No --dangerously-skip-permissions, account refresh or model call is a preflight.
 
-## Remaining owner actions, in order
+## Useful remaining owner action
 
-1. Review the exact disabled/manual workflow and native executable version/hash,
-   fixed public fixture, explicit prompt, matched-profile gate, exact checkout/
-   state/socket scope, permissions, endpoint policy, turn/time/concurrency bounds,
-   redacted evidence retention and total included-resource reservation. Registration
-   of a workflow_dispatch route on main requires a separately owner-approved normal
-   PR/merge; no branch-dispatch bypass or main merge is authorized by this document.
-   No untrusted PR code or arbitrary command/ref inputs may receive the secret.
-2. After approval, run `claude setup-token` in a private owner-controlled terminal
-   under the existing subscription. Add it through the supported GitHub Actions
-   environment-secret UI as **CLAUDE_CODE_OAUTH_TOKEN** only after reviewing a
-   protected `portable-evidence-claude` environment: only the workflow’s exact
-   reviewed dispatch ref and required owner approval before a job receives its
-   secrets. Branch restrictions apply to the run ref, not just its checkout SHA. Creating that
-   environment/protection is an owner administration action, not done here.
-   Secret naming alone does not scope a repository secret to one workflow. Other
-   workflows can request an environment; the required approval must inspect exact
-   workflow/source before release. If these protections are unavailable, stop for
-   explicit owner review of broader access, never silently use a repository-wide
-   secret. GitHub documents required reviewers/selected branches/environment
-   secrets for public repositories including Free; actual configuration remains
-   an owner action ([official environment rules](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)).
-   Never send its value in chat, commit it, log it or copy a local login database.
-   The secret name is public; its value stays secret. Deleting an Actions secret
-   alone does not revoke the long-lived provider token; owner revocation/rotation
-   must use the provider’s supported controls. No API-key fallback.
-3. Approve the concrete reviewed workflow execution only after included Copilot
-   seat/quota/policy and $0-overage confirmation, native Claude capacity/policy
-   checks, current producer acceptance and fail-closed recipient preflight pass.
-   Token presence/auth status are insufficient for an eligible-evidence claim.
-   A missing or failed prerequisite launches zero models.
+Account existence is answered. The missing prerequisite is an owner-supported,
+isolated native onboarding/authentication route that reaches the normal prompt,
+followed by independently reviewed **actual native** no-model sentinel proof of
+credential denial and the exact filesystem/socket/network boundary. Native187
+first-start onboarding blocks that proof; do not manufacture completed-onboarding
+flags, copy the owner's login database or substitute a handcrafted sandbox.
 
-The root integration owner supplies the concrete workflow and owner-policy
-proposal. These notes do not enable signing, create trust, install software or
-change global/account settings. An independently matched runtime still needs
-fresh recipient observation. The model must load the installed project guidance,
-receive actual eligible JSON, retain the origin/digest and avoid equivalent compiler
-execution before a reuse claim is recorded. Private tokens and raw transcripts
-never become public experiment artifacts.
+No new secret or workflow enablement is requested for the data proposal. Before any
+future authenticated receiver workflow, the owner must review its exact native
+and source hashes, startup-side behavior, matched profile, resource scope, limits
+and redaction. Normal main workflow registration needs a separately approved PR.
+That future secret-bearing job requires a protected portable-evidence-claude
+environment with selected run-ref and required owner review; naming a repository
+secret alone cannot scope its access to one workflow. Review other workflows able
+to request that environment. Only then may the owner privately use the supported
+subscription setup-token/browser flow and environment-secret UI. Never request
+token values in chat, copy local credentials or fall back to API billing. Current
+documentation describes one-year OAuth tokens; deleting the Actions secret does
+not revoke the provider token. Existing $0-overage and capacity requirements remain.
+[GitHub's environment documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)
+describes public-repository branch/reviewer protections; none were changed here.
+
+Token presence, an auth-status field, static settings and a settings digest cannot
+establish any of these gates. Producer acceptance remains a separate current
+owner-policy decision. The root integration owner supplies the future reviewed
+workflow; the disabled data proposal does not create another host architecture.
 
 ## Concrete disabled invocation and remaining host proof
 
@@ -163,8 +156,10 @@ An isolated official native darwin-arm64 2.1.187 binary was downloaded without
 installing it or replacing the owner's CLI. Its [official manifest](https://downloads.claude.ai/claude-code-releases/2.1.187/manifest.json)
 size215,994,048bytes and SHA-256
 `a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3`
-match the downloaded binary. Only `--version` and `--help` ran successfully;
-there was no session, inference, auth or settings change. No sandbox-test
+match the downloaded binary. At that initial checkpoint only `--version` and `--help` ran successfully.
+Later `auth status --help` confirmed the supported JSON flag without running the
+authentication action, and the separately authorized no-auth UI attempt below ran.
+No187 token-bearing auth-status or model request has executed. No sandbox-test
 subcommand appears in either version's help. `doctor --help` describes updater
 health and possible MCP-server execution; doctor itself was not run.
 
@@ -216,7 +211,7 @@ The settings file and sentinel checker are owner-provided preflight data/code,
 not an imported artifact or a hook. They must not become model task instructions.
 
 If native onboarding/login prevents reaching the interactive shell prompt,
-stop and record LOGIN_REQUIRED before any model request. Do not sign in, refresh,
+stop and record the actual onboarding/login stage before any model request. Do not sign in, refresh,
 skip onboarding, provision a token or reuse the owner's login database. If the
 prompt is available, enter `!` through the native interactive UI, run only the
 reviewed bounded sentinel checker, and exit without submitting a model prompt.
@@ -277,3 +272,47 @@ onboarding route is still needed before any strict-shell sentinel test. This
 result establishes initial native UI startup only, not zero background network/
 keychain activity, credential denial, effective sandboxing, capacity, model use
 or portable-evidence acceptance.
+
+### Current disabled auth-route data proposal
+
+The [manual proposal](portable-claude-startup-workflow.yml) remains outside .github.
+It checks one literal reviewed helper source on macos-26/Node22.13.0, with no inputs,
+secrets, native executable downloads, authentication calls, tool/model actions or
+uploads. The [helper](../../test/acceptance/portable-claude-startup.py) emits only a
+fixed **AUTH_STATUS_ONLY_DATA_PROPOSAL / BLOCKED_NATIVE_STARTUP_BOUNDARY** record.
+It has no native-process launcher and always reports can_infer=false and zero
+native/model/Bash actions. The workflow head and literal helper checkout are
+separate identities; integration must repin before any owner-approved registration.
+Its pure tests use synthetic payloads and prove refusal before any native launch;
+this is not an empirical authenticated-host test.
+
+Exact187 public implementation review establishes the proposed env-token status
+interpretation: Ak selects CLAUDE_CODE_OAUTH_TOKEN, bEp maps that source to
+**authMethod=oauth_token**, and absent provider selectors map to apiProvider=firstParty.
+The normal installed146 user's claude.ai status is a different route. Native187
+loggedIn=true is derived from token presence; it does not validate the token,
+expiry, subscription capacity or model access. The sanitizer retains only fixed
+method/provider/boolean fields, discarding email, organization and other values.
+Malformed/oversized payloads and unexpected methods/providers are refused.
+
+The data route rejects presence even when empty of OAuth/API token descriptors,
+ANTHROPIC_CUSTOM_HEADERS/profile/provider overrides, CLAUDE_BG_AUTH_SNAPSHOT_PATH,
+alternate provider credentials and startup bypasses. Exact187 reads the snapshot
+path and can unlink its file; it is not inert. No complete payload, environment,
+private path or exception value is published. DISABLE_UPDATES=1 remains a supported
+**future process-only startup guard**, not an alteration to compiler qualification.
+
+Independent source review found commander preAction initializes configuration and
+remote managed settings even for auth subcommands. Local managed-file absence
+therefore does not prove absence of authenticated startup-side hooks/helpers.
+The exact auth-status action appears narrower than interactive SessionStart, but
+absence of all external startup actions was **not established**. We stop the source
+exploration here and do not start token-bearing auth status merely to learn
+hasToken. The failed proof approaches and actual theme-gate attempt remain history;
+neither is a REDUE failure or a claim that the subscription lacks capacity.
+
+The next native boundary action is the owner-supported onboarding/authentication
+and independently reviewed sentinel route described above. Until then the proposed
+model receiver, authenticated startup and effective sandbox/credential tests remain
+NOT RUN. No secret creation, global changes, native146 upgrade, producer acceptance
+or native-mode enforcement is inferred from this document.

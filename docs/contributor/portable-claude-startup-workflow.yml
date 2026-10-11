@@ -1,0 +1,37 @@
+# DISABLED outside .github; pure controls only, no native executable or secret step.
+# Root must repin REVIEWED_SOURCE after integration and owner review before registration.
+name: Portable Claude native auth data proposal
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: redue-portable-claude-auth-data-only
+  cancel-in-progress: false
+jobs:
+  data-proposal:
+    if: github.repository == 'msiric/redue' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/dev/portable-evidence'
+    runs-on: macos-26
+    timeout-minutes: 3
+    env:
+      REVIEWED_SOURCE: 19c5db7d93ba61a616c0833d5df864c15bf5baa7
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.REVIEWED_SOURCE }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.13.0'
+      - name: Verify fixed source and pure zero-native controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$REVIEWED_SOURCE"
+          test "$(node --version)" = 'v22.13.0'
+          test "$(uname -m)" = 'arm64'
+          node --test test/portable-claude-startup.test.mjs
+          REDUE_CHECKED_SOURCE="$REVIEWED_SOURCE" python3 -B test/acceptance/portable-claude-startup.py --source "$REVIEWED_SOURCE"
+# No secrets, native downloads/startup, protected-environment release, tools/model,
+# artifacts, signing/OIDC, trust-policy changes or authentication calls.
+# Its BLOCKED report is NOT host readiness. No owner secret is requested for this route.
