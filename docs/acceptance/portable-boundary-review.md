@@ -1995,3 +1995,40 @@ confirmation, current guards, exact scope/deadline and external pre/post proof;
 it is not authority to execute, relax permissions, omit controls or count
 owner operation as model/portable reuse. No further native, fixture or settings
 actions were performed by this reviewer.
+
+
+### Disabled startup-only escape classifier review
+
+A minimal owner-local diagnostic, not a replacement checker attempt, is
+source/data reviewed at exact SHA-256
+`1c6a55c69cc58a64eab982c9c5ddfadb2eb801191500addb620afca67fc73c9b`.
+It uses only the preserved normal5628/eebb/a59 all-tools-denied setup and the
+reviewed beba guard definitions. It sends no input, submits no command, creates
+no synthetic resources/listeners and applies no new settings. Its only
+additional owned write is an exclusive600 provisional diagnostic/PID record.
+Current external source/auth prerequisites must be repeated before any later
+owner-approved startup. Same40x2048 geometry avoids a new display variable.
+
+The classifier emits only a fixed ESC-family enum or UNKNOWN; parameters,
+titles, native terminal text and credential values are not retained or printed.
+The initial581 preparation used a greedy OSC terminator that could swallow
+an intervening first escape. Final matching stops at the first BEL/ST, tested
+with consecutive OSCs and split terminators. It classifies syntax only and
+accepts no new native tool or terminal semantics. Unsupported/malformed/
+oversized input remains unavailable rather than enabling input.
+
+Fifteen author pure controls plus seven independent pure/static controls pass
+through AST-extracted classifier definitions: first-terminator ordering, hidden
+escapes inside OSC, split ST/charset, malformed/control limits, aggregate64KiB
+bounds and absence of send routes. No top-level helper dispatcher, native
+process, fixture, listener, auth or settings operation ran in this review.
+Source was unchanged during validation. The whole15s budget reserves reaping
+and checks persistence; actual elapsed is recomputed after persistence and
+excess prevents CLASSIFIED. Private immutable evidence is expressly provisional
+until final sanitized stdout/deadline completion and cannot establish authority.
+
+This is GO to request one exact startup-only diagnostic approval, NOT execution
+authority. Its prospective family observation would describe that new startup
+only; it cannot recover the discarded historical sequence, prove credentials/
+sandbox controls, count a checker/model trial or make the native host ready.
+Both prior specifically approved operations remain NOT_VERIFIED and consumed.
