@@ -22,6 +22,17 @@ function directory(file){
   return identity(s);
 }
 function absent(file){try{fs.lstatSync(file);fail('CONTROLLED_GUIDANCE_EXISTS');}catch(e){if(e.code!=='ENOENT')throw e;}}
+function sourceSnapshot(file,limit){
+  const physical=()=>{
+    const parents=[];let current=path.dirname(file);
+    for(;;){const stat=fs.lstatSync(current,{bigint:true});if(!stat.isDirectory()||stat.isSymbolicLink())fail();
+      parents.push(identity(stat));const next=path.dirname(current);if(next===current)break;current=next;}
+    return JSON.stringify({parents,file:fingerprint(fs.lstatSync(file,{bigint:true}))});
+  };
+  const before=physical(),bytes=readBoundedPortableFile(file,{limit});
+  if(physical()!==before)fail('CONTROLLED_GUIDANCE_CHANGED');
+  return {bytes,physical:before};
+}
 
 export function writeControlledPortableGuidance(options){
   if(!options||Object.keys(options).some(k=>!['root','state','prefix','policyFile','policySha256','hosts','role','apply'].includes(k)))fail();
@@ -32,11 +43,11 @@ export function writeControlledPortableGuidance(options){
     typeof apply!=='boolean'||!/^[a-f0-9]{64}$/.test(policySha256??''))fail();
   // These explicit resources come from the locally owned fixture, never an artifact.
   const config=path.join(root,'redue.config.json'),ownerFile=path.join(state,'vstate-owner-v1.json');
-  if(path.dirname(root)!==path.dirname(state)||path.dirname(root)!==path.dirname(prefix)||
+  if(new Set([root,state,prefix]).size!==3||path.dirname(root)!==path.dirname(state)||path.dirname(root)!==path.dirname(prefix)||
     path.basename(state)!=='redue-state'||policyFile!==path.join(prefix,'lib/node_modules/@redue/cli/src/agent-policy.md'))fail();
   const roots={root:directory(root),state:directory(state),prefix:directory(prefix),git:directory(path.join(root,'.git'))};
-  const configBytes=readBoundedPortableFile(config,{limit:65536}),ownerBytes=readBoundedPortableFile(ownerFile,{limit:8192}),
-    policy=readBoundedPortableFile(policyFile,{limit:65536});
+  const configSource=sourceSnapshot(config,65536),ownerSource=sourceSnapshot(ownerFile,8192),policySource=sourceSnapshot(policyFile,65536),
+    configBytes=configSource.bytes,ownerBytes=ownerSource.bytes,policy=policySource.bytes;
   if(hash(policy)!==policySha256||!policy.toString('utf8').startsWith('---\nname: redue-verification\n'))fail();
   let owner,selected;
   try{owner=JSON.parse(ownerBytes);selected=JSON.parse(configBytes);}catch{fail();}
@@ -45,10 +56,12 @@ export function writeControlledPortableGuidance(options){
     Object.keys(expected).some(k=>owner[k]!==expected[k])||
     !selected.checks?.some(c=>c.name==='typecheck'&&c.qualification==='npm-typescript-direct-v1'))fail();
   const validate=()=>{
-    if(directory(root)!==roots.root||directory(state)!==roots.state||directory(prefix)!==roots.prefix||directory(path.join(root,'.git'))!==roots.git||
-      !readBoundedPortableFile(config,{limit:65536}).equals(configBytes)||
-      !readBoundedPortableFile(ownerFile,{limit:8192}).equals(ownerBytes)||
-      !readBoundedPortableFile(policyFile,{limit:65536}).equals(policy))fail('CONTROLLED_GUIDANCE_CHANGED');
+    if(directory(root)!==roots.root||directory(state)!==roots.state||directory(prefix)!==roots.prefix||directory(path.join(root,'.git'))!==roots.git)
+      fail('CONTROLLED_GUIDANCE_CHANGED');
+    for(const [file,limit,source] of [[config,65536,configSource],[ownerFile,8192,ownerSource],[policyFile,65536,policySource]]){
+      const now=sourceSnapshot(file,limit);
+      if(now.physical!==source.physical||!now.bytes.equals(source.bytes))fail('CONTROLLED_GUIDANCE_CHANGED');
+    }
   };
   const stateRelative=path.relative(root,state),route=`redue --config ${quote(path.basename(config))} --state-dir ${quote(stateRelative)}`;
   const capture=role==='producer'?' --portable':'';

@@ -52,11 +52,21 @@ test('existing or edited instructions are never overwritten; failed preview laun
 
 test('wrong policy identity, role, selected state owner and enclosing Git root fail closed',t=>{
   const f=fixture(t);
-  for(const extra of [{policySha256:'0'.repeat(64)},{role:'any'},{hosts:['codex']},{apply:'yes'}, {approved:true}, {policyFile:path.join(f.base,'artifact.md')}])
+  for(const extra of [{policySha256:'0'.repeat(64)},{role:'any'},{hosts:['codex']},{apply:'yes'}, {approved:true}, {policyFile:path.join(f.base,'artifact.md')},
+    {prefix:f.root,policyFile:path.join(f.root,'lib/node_modules/@redue/cli/src/agent-policy.md')},{root:f.state}])
     assert.throws(()=>writeControlledPortableGuidance(options(f,extra)));
   fs.writeFileSync(path.join(f.state,'vstate-owner-v1.json'),JSON.stringify({schema:1,kind:'vstate-product-alpha',root:f.root,state:f.state,config:'different'}));
   assert.throws(()=>writeControlledPortableGuidance(options(f)));
   for(const name of ['AGENTS.md','CLAUDE.md','REDUE_PORTABLE_AGENT.md'])assert(!fs.existsSync(path.join(f.root,name)));
+});
+
+test('byte-identical owner replacement is an interval change, not continuing ownership',t=>{
+  const f=fixture(t),original=fs.fsyncSync,owner=path.join(f.state,'vstate-owner-v1.json');let changed=false;
+  fs.fsyncSync=function(fd){original(fd);if(!changed){changed=true;const replacement=path.join(f.state,'replacement.json');
+    fs.writeFileSync(replacement,fs.readFileSync(owner));fs.renameSync(replacement,owner);}};
+  try{assert.throws(()=>writeControlledPortableGuidance(options(f,{apply:true})),{code:'CONTROLLED_GUIDANCE_CHANGED'});}
+  finally{fs.fsyncSync=original;}
+  assert(changed);assert(!fs.existsSync(path.join(f.root,'REDUE_PORTABLE_AGENT.md')));
 });
 
 test('nested repository without its own .git directory, symlink targets and unsafe owner directories are refused',t=>{

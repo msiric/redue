@@ -8,7 +8,7 @@ reuse are still gates; resource approval cannot supply CURRENT.
 
 ## Observed local route
 
-On2026-10-11, read-only native Claude Code2.1.146 commands `--version`, `auth
+On 2026-10-11, read-only native Claude Code 2.1.146 commands `--version`, `auth
 status --json` and help exit successfully. Allowlisted status fields report
 loggedIn=true, authMethod=`claude.ai`, apiProvider=`firstParty`, subscriptionType=null.
 Checked environment-key presence only: ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN,
@@ -35,7 +35,7 @@ subscription capacity rather than API billing. We propose **native CLI**, not th
 Claude Code GitHub Action, so installing its GitHub App and granting its repository
 write permissions are unnecessary for this bounded receiver experiment.
 
-Installed2.1.146 help confirms auth/status/setup-token and print, stream-json,
+Installed 2.1.146 help confirms auth/status/setup-token and print, stream-json,
 settings, permission-mode, tool filtering and session controls. Its bare help
 explicitly excludes OAuth and CLAUDE.md discovery: do not use it to manufacture a
 subscription/instruction test. Current [official CLI reference](https://code.claude.com/docs/en/cli-reference)
@@ -93,7 +93,7 @@ Its activation function always refuses; boolean approval/help/static-key fields
 cannot activate it. Four deterministic tests cover scope/budgets/no-bypass and
 refusal. This is proposal validation, not native host enforcement.
 
-The proposed argv uses print/stream-json, max8 turns/300s parent cap, dontAsk,
+The proposed argv uses print/stream-json, at most 8 turns and a 300-second parent cap, dontAsk,
 Bash-only tools, empty strict MCP config and a local --settings file. Actual native
 2.1.146 help parsing accepts those flag forms; it does not validate settings or
 prove model/turn behavior. No bare, injected system policy, dangerous permission
@@ -112,8 +112,8 @@ No secret value occurs in argv/settings or a model-readable file.
 states that shell commands inherit credentials unless protected; other tools may
 run outside that boundary. These controls require actual native-version proof.
 [Current subprocess scrub documentation](https://code.claude.com/docs/en/env-vars)
-says pre2.1.251 scrub removed only API/AWS secret variables, not the broader current
-credential list. Therefore local2.1.146 scrub/static keys are insufficient evidence
+says scrub before 2.1.251 removed only API/AWS secret variables, not the broader current
+credential list. Therefore local 2.1.146 scrub/static keys are insufficient evidence
 that subscription OAuth is hidden. Do not install a real token or run inference
 before independently demonstrating credential-deny and exact sandbox behavior with
 non-secret sentinels. A differently reviewed native version may be owner-provisioned
@@ -139,7 +139,7 @@ or edited files. It does not write permissions, state, receipts or producer poli
 The required producer/receiver role is explicit. Only the producer appendix
 selects `run typecheck --portable` for fresh recording; it still executes the
 configured compiler. Export/import/trust remain owner operations. The receiver
-has no capture modifier or task-specific reuse reminder. Seven deterministic
+has no capture modifier or task-specific reuse reminder. Eight deterministic
 controls cover both hosts, preview, ownership/currency failure and no-overwrite;
 these are mechanics, not instruction discovery by a running agent. All fixture
 and guidance changes must finish before the relevant in-context baseline.
