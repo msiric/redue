@@ -43,19 +43,36 @@ hosted-receiver proof or G2/G4 completion. No further local checker attempt is
 needed. Day0 and the72h calibration are unchanged; observed local native blocker
 is resolved, while hosted resources/auth/actual effective boundary remain separate.
 
-Next unblocked implementation: D aligns the existing disabled receiver invocation
-leaf with actual187/pinned a59binary instead of obsolete146/arbitrary64hex data.
-C independently reviews additive privacy denials, truthful proposal labels and
-permanent fail-closed activation, retaining machine/account/caller/producer gates.
-No new native/model/CI/signing workflow runs while this pure-data correction is
-reviewed. The existing hosted startup workflow is still secret-free/data-only;
-no reviewed secret-bearing receiver execution route is enabled. Do not request
-or create a Claude token until that exact route/security workflow is reviewed.
+The next bounded implementation is integrated: disabled receiver invocation
+b673e43/a4dda17 (root4e9f01d/98ee6f9) now admits only proposed187/a59 binary
+metadata, rejects older versions/wrong digests and labels the binary unverified
+until a real host inspects it. Keychain/settings/native-leaf denials are additive;
+project/state/socket/network grants are unchanged. Activation always refuses,
+including forged local-PASS/capacity claims. C reviewad4e236 independently passed
+six regressions plus10counter-controls. Root's affected shared controls report
+23tests/22PASS/one native-Windows skip/zero failures on Node22.13.0.
+No real VM, native, auth, model or CI execution is inferred from these controls.
+
+The existing hosted startup workflow remains secret-free/data-only; no reviewed
+secret-bearing receiver execution route is enabled. Do not request or create a
+Claude token until that exact route/security workflow is reviewed. A local
+synthetic result cannot stand in for matched-VM native model-tool isolation or
+caller-aware expected-evidence preflight. No ready portable Codex fixture survived
+prior teardown; historical startup/proxy success is not a fresh execution-boundary
+preflight. The preserved ordinary debugger state is not portable acceptance.
+
+A normal meaningful preparation-branch push is approved and audited: origin/main
+b4f2860, signer branchd04b872 unchanged; preparation3c87cdc is an ancestor, no
+remote divergence. Signer triggers only dev/portable-evidence, never this
+preparation branch. Current46active artifacts use4,518,793bytes; reserve224KiB
+for one existing exact-package job gives4,748,169bytes <confirmed10MiB. Keep
+one-day retention; no extra signing/trust or model job is authorized by the push.
+Follow the exact automatic CI handles after pushing; source/bin remain identical
+to reviewed d04b872. No merge/publication is part of this checkpoint.
+
 Copilot's four-credit Actions included-capacity fact remains separately pending;
 its account and personal-use permission are settled, not repeatedly requested.
-No ready portable Codex fixture survived prior teardown; historical host/proxy
-success and the retained ordinary debugger state are not a portable model
-preflight. Do not relabel them as current acceptance or copy stable receipts.
+Do not relabel historical fixtures as current acceptance or copy stable receipts.
 
 ## Historical checkpoint — native access gate accepted; full checker handoff ready
 
