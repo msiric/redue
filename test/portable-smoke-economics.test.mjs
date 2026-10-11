@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {summarizeSmokeEconomics} from './acceptance/portable-smoke-economics.mjs';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {assertSmokeRootCwd,summarizeSmokeEconomics} from './acceptance/portable-smoke-economics.mjs';
 const sample=()=>[
  {scope:'setup',phase:'candidate-package-install',milliseconds:999,exit_status:0,error_code:null},
  {scope:'plain-baseline',phase:'plain-initial-compiler',milliseconds:100,exit_status:0,error_code:null},
@@ -22,4 +25,13 @@ test('missing, failed, fabricated or mislabeled samples fail rather than provide
   const rows=sample();mutate(rows);assert.throws(()=>summarizeSmokeEconomics(rows,600));
  }
  assert.throws(()=>summarizeSmokeEconomics(sample(),null));
+});
+
+test('runtime relative cwd resolves to the same canonical owned root, not a different directory',()=>{
+ const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-smoke-cwd-')));
+ const root=path.join(base,'root'),other=path.join(base,'other');fs.mkdirSync(root);fs.mkdirSync(other);fs.mkdirSync(path.join(root,'nested'));
+ try{
+  for(const cwd of ['.',root,'nested/..'])assert.doesNotThrow(()=>assertSmokeRootCwd(root,cwd,fs.realpathSync));
+  for(const cwd of ['',null,undefined,4,'nested','../other',other])assert.throws(()=>assertSmokeRootCwd(root,cwd,fs.realpathSync));
+ }finally{fs.rmSync(base,{recursive:true,force:true});}
 });

@@ -1,6 +1,17 @@
 # One installed portable-evidence cost sample
 
-Status: predeclared, not run. This is a controlled same-machine `noLib` mechanics
+Status: first attempt stopped at a harness precondition; complete-path sample
+not yet established. The root ccba93d attempt stopped before portable recording:
+the shipped runtime correctly declares cwd as ".", while the harness expected an
+absolute string. Its failure JSON/stderr and all preceding setup-command timings
+are retained privately; portable-workflow and model launches were zero. Source
+`bin/redue.mjs` retains the selected relative cwd and `src/declared-plan.mjs`
+resolves it against the root. The corrected harness requires a nonempty declared
+string whose resolved physical directory is exactly the canonical owned root;
+root/state/compiler identity checks stay intact. One justified rerun requires
+independent review; this is not a product/economics failure or a score retry.
+
+Original sample predeclaration follows. This is a controlled same-machine `noLib` mechanics
 sample, not the public debugger workload, agent adoption, two-machine acceptance
 or a benchmark distribution. No model or permission change is involved. Existing
 installed-smoke behavior remains the default; `--economics` explicitly adds the

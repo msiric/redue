@@ -9,7 +9,7 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {findExecutable} from '../../src/executable-lookup.mjs';
 import {windowsLaunch} from '../../src/windows-command.mjs';
-import {summarizeSmokeEconomics} from './portable-smoke-economics.mjs';
+import {assertSmokeRootCwd,summarizeSmokeEconomics} from './portable-smoke-economics.mjs';
 const options={};
 for(let i=2;i<process.argv.length;i++){
   const key=process.argv[i];
@@ -56,7 +56,7 @@ function plainCompilerCommand(root,state){
   assert.deepEqual(publicCheck.command,['@node','@typescript-compiler:.','--noEmit']);
   const runtime=JSON.parse(fs.readFileSync(path.join(state,'project-runtime-v1.json'))),check=runtime.checks.find(check=>check.name==='typecheck');
   assert.equal(runtime.root,root);assert.equal(runtime.state,state);
-  assert.equal(check.qualification,'npm-typescript-direct-v1');assert.equal(check.cwd,root);
+  assert.equal(check.qualification,'npm-typescript-direct-v1');assertSmokeRootCwd(runtime.root,check.cwd,fs.realpathSync);
   assert.equal(check.command.length,3);assert.equal(check.command[2],'--noEmit');
   assert.equal(fs.realpathSync(check.command[0]),fs.realpathSync(process.execPath),'Same actual Node runtime required');
   assert.equal(fs.realpathSync(check.command[1]),fs.realpathSync(path.join(root,'node_modules/typescript/lib/tsc.js')));

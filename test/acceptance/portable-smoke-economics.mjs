@@ -1,5 +1,10 @@
 // One mechanistic sample, not a benchmark framework or a saved-run estimate.
 import assert from 'node:assert/strict';
+import path from 'node:path';
+export function assertSmokeRootCwd(root,cwd,realpath){
+  assert(typeof cwd==='string'&&cwd.length>0,'Declared runtime working directory required');
+  assert.equal(realpath(path.resolve(root,cwd)),realpath(root),'Resolved compiler working directory must be the owned root');
+}
 export function summarizeSmokeEconomics(commands,elapsed){
   assert(Array.isArray(commands)&&commands.length>0);
   assert(Number.isFinite(elapsed)&&elapsed>=0,'Actual complete workflow wall time required');
