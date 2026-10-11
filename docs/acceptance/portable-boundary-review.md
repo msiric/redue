@@ -1075,3 +1075,51 @@ approved policy, or avoided equivalent compiler execution. Local development
 runtime remains different. Receiving-agent, cross-agent, V01–V22 and complete
 economics gates are still pending; one live authenticated artifact is progress,
 not G2/G3 or release readiness certification.
+
+## Exact recipient proposal and amended host preparation review
+
+Independently reviewed Lane B `68fcde5` as a disabled preparation, not producer
+acceptance. The selected policy digest
+`bab7901892570e81f15f8e888d2c33e632479f55f461d4ee34f905acfe7a5ce6`
+binds the exact source/signer, immutable repository and owner IDs, workflow/ref,
+outer and inner identities from the live inspection above. Its required online
+refresh remains explicit; the local bundle is not a substitute. The proposed
+JSON is not a producer registry. The recipient YAML remains outside active
+workflows, its job is unconditionally disabled, and a second mandatory stop
+refuses downstream preparation even after synthetic descriptor syntax passes.
+There is no policy writer, authorization token, import or model launch.
+
+Ran all 25 pure controls independently on frozen root `d04b872` with exactly
+B's four-file overlay: 25/25 PASS, actual Node 22.13.0, 908.95 ms. Existing
+installed dependencies were linked read-only into a disposable archive; no
+installation scripts ran. An initial test against the leaf's older whole-tree
+ancestry gave 24 PASS / 1 policy-interpretation rejection because that tree still
+used @1. It is retained as an incorrect test-source combination, not silently
+reported as current @2 acceptance or a product defect. Both private logs are
+retained; no additional live verifier call occurred.
+
+Before an enabling diff, owner approval of exact workflow bytes must be bound
+out of band: putting a workflow's own final byte hash into that workflow is
+self-referential. Negative process tests must also assert integer completed exit
+status rather than treat an interpreter that never completed as a rejection.
+These points were sent to the author; neither bypasses the present disabled
+job/mandatory stop. Bounded GO covers owner review of this precise policy and
+preparation only, not trust installation or live recipient acceptance.
+
+Light source review of Lane D's corrected D4/native-Claude preparation preserves
+the explicit owner-approved Copilot producer / Claude receiver amendment, with
+Codex acceptance separate and all applicability/trust gates retained. Current
+official Claude documentation describes setup-token subscription OAuth for CI
+and a one-year token; installed 2.1.146 help/status is separated from newer
+documentation and a successful version/status command is not model execution.
+The proposal now specifies a protected Actions environment with selected run
+ref and required owner approval, discloses other workflows can request that
+environment, and never claims a secret name scopes repository-wide access.
+Deleting an Actions secret is not provider credential revocation. Exact workflow,
+trusted binary, host policy, included capacity, producer acceptance and the actual
+in-context recipient gate still precede all model calls. This is docs-only GO,
+not token generation, account administration or host behavior acceptance.
+
+Primary references: [Claude authentication](https://code.claude.com/docs/en/authentication),
+[Claude GitHub Actions](https://code.claude.com/docs/en/github-actions), and
+[GitHub environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments).
