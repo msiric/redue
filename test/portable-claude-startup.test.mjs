@@ -4,6 +4,7 @@ import test from 'node:test';
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {createHash} from 'node:crypto';
 
 test('disabled native startup controls are fail closed and never launch a process', {skip:process.platform==='win32'},()=>{
   const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -61,6 +62,12 @@ test('disabled workflow cannot deliver credentials or invoke the native host', a
   assert.doesNotMatch(active,/secrets\.|id-token:|attestations:|upload-artifact|environment:|--native|auth status|curl /);
   assert.match(active,/workflow_dispatch:/);
   assert.match(active,/persist-credentials: false/);
-  assert.match(active,/REVIEWED_SOURCE: 19c5db7d93ba61a616c0833d5df864c15bf5baa7/);
+  const source=active.match(/^\s+REVIEWED_SOURCE: ([a-f0-9]{40})$/m)?.[1];
+  assert(source,'The disabled proposal must select one immutable source');
+  const digest='20a24e8e99c56d70c3b10e24b14e9efb192087383b9b9a3ea64290408b78d1c1';
+  const helper=await readFile(new URL('./acceptance/portable-claude-startup.py',import.meta.url));
+  assert.equal(createHash('sha256').update(helper).digest('hex'),digest);
+  assert(active.includes(`REVIEWED_HELPER_SHA256: ${digest}`));
+  assert(active.includes('"$REVIEWED_HELPER_SHA256"'));
   assert.match(active,/python3 -B test\/acceptance\/portable-claude-startup\.py --source/);
 });
