@@ -3,16 +3,32 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-Current status (2026-10-11): goal control reports ACTIVE. The paused wording
-below records the earlier environment-repair checkpoint, not the current goal
-state. The owner reported completing the verified durable Claude launch; local
-auth status established subscription login, not effective sandbox enforcement or
-model capacity. No further login is currently requested. Independent source/data
-review of the durable disabled checker proposal is complete; actual checker/model
-execution remains gated. Copilot's first bounded Actions trial still needs the
-owner's promised confirmation that four AI credits are included at no extra cost.
-Permitted implementation/review and read-only diagnostics continue; no publication
-or main merge is implied.
+Current checkpoint (2026-10-11): goal ACTIVE; branch `dev/portable-evidence`.
+The durable disabled checker rebind and independent review are integrated as
+f5f8ea6/f3d2af1; six deterministic controls pass (root53.639ms). Spaces are
+quoted and the synthetic Unix socket paths fit macOS. Working native187,
+all-tools-denied settings5628de and launchereebb1e remain unchanged. No fixtures,
+listeners, checker, settings application, model, trust or publication action ran.
+
+One independently reviewed bounded read-only auth-source diagnostic exited0:
+loggedIn/claude.ai/firstParty/pro with apiKeySource absent. Scoped API-service
+metadata, fixed descriptor file, native-config primaryApiKey key and selected
+local/project settings were absent; no credential values were requested or
+printed. Pinned187 source review resolves the concrete OAuth-plus-API fallback
+counterexample for this observed context; it is not a global/future policy claim.
+
+The one reviewed native `/status` attempt started187 and submitted only the
+built-in command. It did not capture a complete source field within30s and is
+STATUS_NOT_CAPTURED/UNKNOWN, not enforcement proof. Parent terminal exit0 is
+cleanup/diagnostic completion only, never a passed prerequisite. Owned process
+cleanup completed; no raw terminal output was retained. Private mode600 records
+live under the verified durable setup's `evidence` directory. Independent review51611b2 confirms `/status` is not a mandatory plan gate;
+the actual account/source/metadata findings permit requesting the exact bounded
+synthetic test, not executing it or asserting enforcement. Its failed-denial
+counterexamples are limited to fixed owned synthetic resources. No blind retry
+or model launch follows. Copilot's first bounded Actions trial still
+needs the owner's promised four-included-credit/no-additional-charge confirmation.
+G2/finalG3/G4 remain incomplete; data-only VM acceptance is not model reuse.
 
 Environment repair checkpoint (2026-10-11 13:38UTC): goal paused; owner-authorized
 repair only. Old temporary base is absent. Durable owner-local verified workspace,

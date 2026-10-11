@@ -124,16 +124,21 @@ working settings5628de. No live fixtures, settings application or native checker
 action occurred. No unsandboxed retry, print-mode substitute, handcrafted sandbox,
 hook or MCP is permitted.
 
-The next owner/admin prerequisite is a supported policy view or administration
-route establishing this exact authenticated187 profile's applicable managed
-local/remote startup-hook scope and effective sandbox exclusions/strict controls.
-Provide only a redacted key/authority conclusion; do not share raw policy, auth
-files or credentials. The prior pre-login local-policy absence and personal-account
-status are insufficient. No supported bounded inspection route is established here;
-unknown authority stops native execution. If this host cannot expose that policy,
-an appropriately policy-observable approved host is needed. Once established,
-exact synthetic resource/socket/settings approval is still required before launch.
-No secret should be created or added now.
+Current independently reviewed source/diagnostic findings permit requesting the
+exact bounded synthetic test; no additional administrator policy report is
+currently requested. The actual isolated187 auth status confirms firstParty,
+claude.ai, Pro and no API-key source. Scoped API-service metadata and selected
+local/system sources were absent. Pinned187 account/loading source review is
+limited to this observed profile; it is not global policy or enforcement proof.
+The one read-only `/status` capture remained UNKNOWN and is retained as such.
+
+The next Claude owner action is approval of the exact durable map/settings/checker
+in the linked proposal: controlled synthetic files, two Unix listeners, one fixed
+loopback listener and one native no-model `!` checker invocation. Potential failed
+denials touch only those owned canaries/endpoints. Normal settings and login stay
+unchanged; no actual auth/keychain/REDUE access, arbitrary command, permission
+escalation or model request is part of the checker. Current guards must pass again
+before any approved execution. No secret should be created or added yet.
 
 Copilot's pending owner confirmation concerns the Actions billing route: applicable
 msiric seat, at least four included AI credits, and zero additional charges. That
