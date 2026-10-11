@@ -17,9 +17,16 @@ independently: lower-case denied redue is the same directory as uppercase REDUE
 containing BOTH code leaves. Pinned187 source expands ~/ into deny file-read*
 subpath. Strong denial explanation, not definitive specific-invocation proof.
 Outer data-only verification did not establish native readability. Independent
-diagnosis27af0b6 integrated3911320. D owns fixed two-path read-only diagnostic and
-code-only relocation proposal; C reviews. No apply/new workspace/grant/native/
-checker/model. Preserve credentials and denials in place. Native access to BOTH
+diagnosis27af0b6 integrated3911320. D's fixed two-path Node-inline metadata
+diagnostic82a0382d/settings724f1e65 is reviewed by C92655cd/integrated49c9b0e.
+Five author/reviewer/root mock tests and8 independent controls PASS; root syntax
+PASS. Per-phase filesystem error codes/static booleans only, no contents or target
+code/network execution. This is mocked preparation, not native enforcement.
+Private proposal4d246473 and relocation blueprint5fe9aabe remain unapplied;
+source privacy/phase defects preserved and corrected before operation. No new
+launch procedure, apply/workspace/grant/native/checker/model. Next requires one
+separately approved finite read-only SAME-boundary operation; no automatic retry.
+Preserve credentials and denials in place. Native access to BOTH
 files must be validated before another launch command. Copilot capacity remains
 separate; gates incomplete.
 

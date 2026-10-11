@@ -26,9 +26,26 @@ This strongly supports a denial explanation, but does not prove the exact error
 from an unrecorded submitted path. Outer --verify did not validate sandbox access.
 Independent diagnosis27af0b6 is integrated3911320.
 
-D prepares one fixed inline-Node metadata-only diagnostic for both exact original
+D prepared one fixed inline-Node metadata-only diagnostic for both exact original
 code paths through the SAME native Bash boundary, with no contents/import/code
-execution/network/credential access. C reviews it and mock metadata controls.
+execution/network/credential access. C92655cd is integrated49c9b0e: source/mock
+GO_FOR_OWNER_APPROVAL, not execution. Author/reviewer/root five mocked metadata
+tests PASS; eight further independent mock/data controls PASS; root pinned Node
+syntax check PASS. This has not run against real target files/native enforcement.
+It reports each lstat/realpath/open/fstat/close result independently using static
+roles/errno/booleans; no target path/content or raw error text leaves the diagnostic.
+It uses Node -e so the diagnostic itself does not depend on a readable script entry.
+
+Prepared private proposal directory: `/Users/mariosiric/Documents/redue-portable-onboarding/.local/portable-native-entry-diagnostic-proposal`.
+Body SHA82a0382dbcfcaf4fb1d0f620d4f9357ab9157543d881448a463de10665922bce;
+separate proposed settings SHA724f1e654ce1ee70c9456c92780b8bf19fae60521ae96888b0c69704a8122f2d;
+proposal SHA4d2464735b63d2519afd8aa80b78f8ce0960828d36166f006c591dbc4f184815.
+Earlier privacy/phase-attribution proposal defects remain preserved in its private
+history; they were corrected before any operation. Settings delta is only the
+exact diagnostic command plus new self-denials; existing strict/filesystem/socket/
+network/credential protections remain. No diagnostic settings staged into BASE,
+no new native launch procedure supplied. Next needs one separately approved finite
+read-only SAME-boundary operation and fresh policy/auth/source prerequisites.
 No active settings, new workspace, native/checker/model call or resource grant.
 Smallest proposed correction: code-only workspace outside the protected ancestor;
 rebind code paths/hashes/cwd and local authority guards, protect new code parents
