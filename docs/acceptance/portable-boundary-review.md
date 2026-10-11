@@ -1307,3 +1307,36 @@ only after the listed immediate currency/absence rechecks, with zero keyboard,
 Bash, model, authentication or trust actions, first-gate stop and60-second cap.
 This reviewer did not start native Claude. GO is neither effective sandbox/
 credential acceptance nor a claim of zero background network/keychain activity.
+
+The sole root-authorized UI-only startup was independently classified from its
+protected2,740-byte capture as `INITIAL_THEME_ONBOARDING_GATE`: ANSI-stripped
+output contains the choose/theme prompt and Welcome/Dark/Light terms, with no
+login/trust/error terms observed. The original unclassified report stays intact;
+a separate clarification records this observation. No raw transcript is published.
+There was no keyboard, Bash, model, authentication or trust action. The owned
+process required SIGKILL and was reaped after its SIGTERM grace period. Reaching
+this initial UI establishes startup capability only; the shell prompt, native
+credential/sandbox enforcement and actual model behavior remain untested.
+
+## Fresh CI recipient precondition correction
+
+Independent source review of B `1492a67a3174571cf29174fdb7eb05fb3e2133a0`
+confirms the hosted `CI_MACHINE_OBSERVER` failure came from requiring a
+receipt-derived `verification_recipe` field in an intentionally receipt-free
+row. The failed run38098482463 is retained. The focused helpers now bind the
+public/runtime locally configured direct recipe, exact local Node/compiler argv,
+built-in probe, inputs/environment, owner and empty history before authentication.
+Compiler path resolution with `verify:false` is expressly not qualification;
+independent installed probes still establish applicability. The shared fresh
+observer guard requires healthy UNVERIFIED with null result/invocation and no
+reuse, without inventing receipt metadata. Config mismatch, duplicates, existing
+history/imports and failed observer gate stop before authentication. The actual
+pending-store filename is checked rather than an unused plural spelling.
+
+Actual coherent root `b1d10f7645aaf3fdc9c8cf1cde15c94c3eb3b6da` plus the exact
+four-file149 overlay:104/104 focused controls PASS,2,789.19ms, Node22.13.0.
+Existing root dependencies were linked read-only; no installation, authentication,
+compiler/model or remote operation occurred. Post-import CURRENT/PASS, imported
+origin/digest, null local invocation and absence of receiver execution requirements
+are unchanged. GO is limited to this focused acceptance-harness correction, not
+successful live recipient acceptance or cross-agent reuse.
