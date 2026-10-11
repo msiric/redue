@@ -6,6 +6,27 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
+Blocked checkpoint (2026-10-11): the same acceptance prerequisites remain
+outstanding across the diagnostic-preparation turn and two automatic goal
+continuations. Prior continuation was no progress, not a verified process wait.
+Final author/reviewer agents are terminal; no live native/model operation is
+pending. Revalidation confirms classifier1c6a55 unchanged and its actual result
+file absent. Owner approval for that new zero-input operation and Copilot's
+promised included-credit confirmation are still pending. Both prior native
+allowances are consumed; neither conversation silence nor automatic continuation
+supplies approval. No safe independent acceptance task remains now. Goal status
+is BLOCKED, not complete; G2 and finalG3/G4 remain incomplete.
+
+Resume only the specifically unblocked lane. For native diagnostic approval,
+repeat current metadata/auth guards and exact helper/source checks, execute the
+reviewed startup-only operation once, preserve its actual sanitized result, then
+review the next boundary before any checker/model action. For Copilot confirmation,
+use the existing reviewed entitlement and no-model preflights before requesting/
+executing the exact bounded trial. No new account, credential copy, broad CI,
+artifact regeneration, trust change, root signing push or publication is implied.
+Day0 and spending/security boundaries are unchanged. All prior failures, receipts,
+frozen artifacts and independent review remain preserved.
+
 Current diagnostic preparation (2026-10-11): startup-only helper SHA-256
 `1c6a55c69cc58a64eab982c9c5ddfadb2eb801191500addb620afca67fc73c9b`
 is independently reviewed in e2870f6 (review source4924afe). Root15 pure controls
