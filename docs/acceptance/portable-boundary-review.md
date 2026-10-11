@@ -1776,3 +1776,41 @@ boolean. Actual native API-source absence must confirm the metadata result;
 unexpected output/exit/source stops. No native/auth/status/model/checker operation
 was executed by this reviewer. This conditional diagnostic GO is not synthetic
 resource approval, sandbox enforcement, credential removal or model acceptance.
+
+
+### Exact builtin /status diagnostic preparation review
+
+The once-executed authorized native auth-source diagnostic reports exit0,
+loggedIn/claude.ai/firstParty/pro and apiKeySourcePresent=false/classNONE. Its
+allowlisted334-byte protected result has SHA-256
+`d0cdb8da1cba49064bb0e31922fc1973ae82ede8dfea8779e780dbca91ca2812`.
+No raw status/credential values are retained in that record. This confirms the
+missing API-source condition for the reviewed pinned187 current-process route;
+it is not token-validity/capacity/enforcement proof.
+
+Independent source/data GO was given for one owner-authorized builtin /status
+diagnostic, private helper SHA-256
+`1341de58711e8214f17245fd93d2b46381e55493fc0bf8b352fbed2ff8815540`.
+The initial55110 helper incorrectly filtered recognized source substrings, which
+could discard unknown suffixes/wrapped fields or accept a partial PTY chunk.
+That initial proposal was not run. The corrected parser requires a completed
+modal footer and exact complete Command line arguments field; all other complete
+fields are unexpected/unparsed, and incomplete fields remain unknown. Additional
+fixed settings/login/policy gates stop instead of permitting input.
+
+Nine independent AST-only pure parser cases pass, including partial footer,
+unknown suffix, comma-separated/wrapped source, diagnostic text and no data.
+Only the parse_status function was extracted; no helper top-level code, native
+process, metadata subprocess or actual terminal action ran in this review.
+The auth precondition is bound to the exact d0cdb8 result with regular/single-link/
+current-owner600/4KiB guards, exact native integer0 and sourceNONE. The reviewed
+all-tools-denied5628/eebb path is unchanged. Only builtin /status may be submitted
+after the native version/prompt and no-gate checks; no shell/model/checker input.
+The native operation is30s bounded with256KiB raw memory cap, no raw retention,
+fixed-class result only, and owned process-group cleanup.
+
+This GO permits a current-process loaded-source observation only. It cannot
+prove zero historical startup side effects, future managed-policy stability or
+native sandbox/credential enforcement. Any unexpected UI shape, gate, source,
+exit or timeout remains unavailable; the synthetic checker and model/resource
+approvals are independent. No native /status was executed by this reviewer.
