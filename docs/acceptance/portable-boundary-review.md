@@ -1963,3 +1963,35 @@ in that failed preparation. The final coherent source was unchanged during
 its pure run, and executed10904 remains intact. This is source/data GO to
 prepare a specific new owner approval request only, not authority to repeat
 the consumed attempt or a claim that the native terminal is now supported.
+
+
+### Second specifically approved operation: decoder refusal before tools
+
+The second owner-approved operation used exact beba8c and returned NOT_VERIFIED
+(exit1) after472.2ms. Independent inspection confirms the protected report
+SHA-256 `e6abc11b7408e66f84a79ce01fe1e27a9e259665780a99ee3e9447dbb70816c8`,
+mode600/current-owned/single-link. Native startup occurred, shell mode was
+false, command submissions0, checker JSON false and protocol delta[0,0,0].
+External controls before/after, plaintext fallback absence, fixture cleanup
+and native reaping are true in this second report. The first report's reaping
+uncertainty and less-specific failure remain distinct historical evidence.
+
+Exact source attributes NATIVE_SCREEN_ESCAPE_UNSUPPORTED to the custom
+terminal decoder refusing an unmatched ESC prefix outside its recognized CSI
+and OSC forms. Its actual subsequent byte/specific escape sequence is UNKNOWN
+because raw data was discarded. This is an established harness compatibility
+failure before the checker, not an observed sandbox denial, credential-filter
+result, REDUE failure or insecure native execution. Neither attempt exercised
+the six-check boundary or a model. The two specific allowances are consumed.
+
+No further terminal-semantics implementation or native retry is justified from
+these discarded bytes alone. If useful and separately approved, the smallest
+diagnostic is a fixed allowlisted escape-family enum and bounded length, never
+raw terminal bytes/parameters; pure cases must preserve refusal before input.
+A concrete owner-operated pinned187 UI route for the same exact command, new
+settings and controlled endpoints is another candidate for review, avoiding
+a continuing custom decoder campaign. It must still preserve native Bash-mode
+confirmation, current guards, exact scope/deadline and external pre/post proof;
+it is not authority to execute, relax permissions, omit controls or count
+owner operation as model/portable reuse. No further native, fixture or settings
+actions were performed by this reviewer.
