@@ -99,3 +99,44 @@ record **HOST_CAPABILITY_UNESTABLISHED** with the actual failed layer. The minim
 owner/provider action is provisioning a supported interactive 1.0.91 session with
 the reviewed effective policy and credential-free startup context, not granting
 broader access. No shell, native UI or model was executed for this source review.
+
+## Disabled standard macOS runner first-start proposal
+
+The first-start proposal is **BLOCKED before native UI launch**, not an enabled
+workflow. It would use one standard `macos-26` ephemeral VM, the exact native
+1.0.91 distribution above, an empty owned disposable workspace, and fresh
+configuration/GitHub CLI/cache directories. Its scope is one bounded normal PTY
+startup, no input, then termination. No secrets, model prompts, `!` commands,
+credentials, policy installation, artifact uploads or signing are in this stage.
+Workflow permissions would be empty; no checkout credentials would persist.
+The later `!` sandbox/credential-denial control remains a distinct review gate.
+
+Only two source approaches were used: the pinned distribution's JS/native
+forwarding and the current official auth/configuration/hook documentation. Neither
+provides an authoritative cheap read-only green absence check for every native
+credential and managed-policy source. No native guard/helper or active workflow
+was added to paper over that gap.
+
+The concrete owner/provider prerequisite is an approved runner context known to
+have no Copilot OAuth credential in its system credential store, no authenticated
+`gh` fallback, and no injected authentication/BYOK credentials. A standard runner
+label or fresh `HOME`, `COPILOT_HOME` and `GH_CONFIG_DIR` alone is insufficient
+proof. Do not inspect, export, remove or relocate an owner's credential store.
+Record how the disposable context was actually provisioned and the applicable
+provider guarantee; if that cannot be established, no UI process starts.
+
+Before enabling even the input-free stage, establish the actual managed-policy
+and startup-hook scope. The documented macOS sources are the MDM preference domain
+`com.github.copilot`, `/Library/Application Support/GitHubCopilot/managed-settings.json`
+and `/etc/github-copilot/policy.d/*.json`. Fresh workspace/user directories do not
+replace those sources. Record their known absent state or separately reviewed
+applicable policy; unknown/unreadable/native-managed state fails the gate. Never
+use `disableAllHooks`, a changed search path or a hand-built sandbox to bypass it.
+
+After this prerequisite and independent review, the owner can approve one exact
+input-free startup route on that provisioned VM. The resulting observation may
+establish startup availability only; it cannot establish token-child denial,
+REDUE applicability, no-model `!` enforcement or model adoption. If native startup
+requests login or undisclosed host authority, retain that result and stop rather
+than feeding input. This proposal has executed zero native/UI/model processes and
+requires no new account, billing, trust-store or global settings change.
