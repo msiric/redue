@@ -6,17 +6,18 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-**Current conclusion (2026-10-11): same-machine installed @2 mechanics pass;
-hosted origin/runtime preconditions fail conservatively. No actual portable model,
-matched-machine recipient or live authenticated CI acceptance is established.
-G1 technical slice only; G2/G3 incomplete; G4 prepublication NOT READY.**
+**Current conclusion (2026-10-11): exact d04b872 installed @2 same-machine
+mechanics pass; actual hosted producer/signing succeeds and both independent
+runner prototypes support the reviewed profile. Recipient authentication and
+matched-machine/model reuse are not yet established. G1 technical slice only;
+G2/G3 incomplete; G4 prepublication NOT READY.**
 
 ## Source, owners and approval boundaries
 
-Verified root commit `3ebbe0e3339fbfaf00686dd11d8a6745eee52890`; remote task branch
-`3f8117c97973a4415a7341ac826975853123dc00`. Reviewed finite portable budgets
-`41e66ac`, tests89972b1/root1a3e680 and artifact capf50d5e9 are committed but not in
-preserved2bc/3f artifacts. Root3ebbe0e includes C review; verified tree clean. Root owns shared CLI/daemon/facts/runtime/catalog; B owns
+Verified root and remote task branch
+`d04b872ee0e848e300c0cc9738ad761e48146acc`, clean when checked. This includes the
+reviewed finite portable budgets, final expiration controls and package cap.
+Root owns shared CLI/daemon/facts/runtime/catalog; B owns
 envelope/store/CI authentication and focused Windows test correction; C owns independent
 critical-boundary review/adversarial tests; D owns onboarding/host and machine
 helper reporting. Isolated worktrees remain `../redue-portable-import`,
@@ -37,7 +38,43 @@ policy still needs owner approval. Receiving-agent machine/resource question and
 Claude **PENDING_OWNER_ACCOUNT** remain pending; do not ask again or launch models
 until that specific in-context precondition passes. External natural use NOT STARTED.
 
-## Current diagnostic and reviewed correction
+## Current hosted and installed checkpoint
+
+- Signed run `38096670987` producer and signer SUCCESS on exact source d04b872.
+  Actual complete origin `02f44ac7-e6fc-4d5e-9757-28357654fef1`, canonical evidence
+  digest `5d16fbf6b101f88843f41a8c61d3c351e5f9e600306dc4936eaaec8d6ea40d57`.
+  Artifact ID11685889769; downloaded ZIP SHA-256
+  `d5469b8c9f49aa7bca1c7ecadf2a220de21437aa019bdb2722cb87c0cd6b6a29`.
+  Fixed evidence/manifest/attestation are preserved under
+  `.local/portable-evidence/signed-38096670987`. A successful signer is not owner
+  trust, recipient verification or imported CURRENT; independent required-refresh native gh2.79 authentication PASS under an
+  inspection proposal only: verified=true, accepted=false, local policy not current,
+  reuse=false. Exact producer policy remains unapproved.
+- Profile run `38096673747`: both actual full prototypes SUPPORTED, beyond labels
+  or inventory alone. Independent comparison verifies all21 entries match both VMs and signed
+  origin facts/manifest, including reviewed compiler5.6.3. No
+  receiving-agent machine, two-machine imported CURRENT or model reuse follows.
+- Exact local d04b872 package has80 files/158,105 archive bytes, SHA-256
+  `8695b612a5c33dae945b2bc8df57cd68ca3eefb401aa0ef9ca2850d212979ea2`;
+  manifest/checksum under `.local/portable-evidence/candidates/d04b872`.
+  This is task-candidate content, not public alpha.10 despite metadata.
+- Actual installed `.local/portable-evidence/installed-d04b872.log` PASS:
+  controlled same-host noLib TypeScript5.6.3 origin
+  `473be4ea-cab4-49cd-9405-433af9d8576b`, imported digest
+  `1745893830e1da353ebd9bcb5fb92fe2c0e7c374ef86eddd4d8952887c13e30b`.
+  Separate-checkout recipient retained eligible PASS without any local run;
+  unrelated edit CURRENT, relevant edit STALE. Both host-policy intact updates,
+  idempotence/removal and edited-content refusals PASS; model behavior NOT RUN.
+  Individual measurements: initial wrapped11,127ms; recipient5,595ms;
+  unrelated5,235ms; relevant5,319ms. Not complete-path benefit evidence.
+- Root focused combined controls44/44 PASS6.833s; preserved actual integrated
+  cancellation/end-edit-restore1/1 PASS25,580.8ms. Hosted producer wrapped30,604ms,
+  local status634ms are individual instrumented controls, not a net saving claim.
+- Exact-package run `38096673730`: Linux/nativeWindows PASS, macOS portable step
+  still running at this checkpoint. Product `38096673735`: Linux22 PASS; other
+  three jobs pending. Final results must be rechecked, not inferred from older CI.
+
+## Historical diagnostic and reviewed correction
 
 - Signed source3f run `38095795547` failed origin completeness. Full dyld cache
   inventory has13 members/5,820,973,056 bytes; old10-second parent expired during
@@ -118,9 +155,10 @@ bytes have the same verified SHA; actual PR-merge source
 
 ## Next commands and fail-closed gates
 
-The next action is one accounted normal push/hosted attempt on reviewed new budget
-source, with stored contents/guards unchanged. Retain the actual complete result,
-not just an inventory label. No new budget source has hosted acceptance yet.
+The single accounted d04b872 push and hosted attempt have completed producer/
+signer and profile preconditions successfully. Preserve old failed origins;
+collect final package/product and independent profile/signature review without a
+new signing push or trial. Owner trust and actual-agent resources are still gates.
 
 1. Verify actual root HEAD/uncommitted changes and current resource reservations.
    Read protected local `signed-producer-2bc636a-failed.log`, `profile-2bc636a.log`,
@@ -130,10 +168,9 @@ not just an inventory label. No new budget source has hosted acceptance yet.
    member. Native product CI now passes the LF/path fixes. Keep all historical
    failures; preserve runtime/continuity/selection restrictions and never treat
    local CURRENT as complete portable origin.
-3. Collect one justified new-budget hosted result only after reserved storage
-   confirmation; preserve phase capture for failure classification. Two materially
-   different failed approaches require review before further retry. Preserve all
-   actual failed origins and signer skips; no model trial follows a failed gate.
+3. Recheck final d04b872 package/product jobs and current storage. Preserve the
+   exact signer artifact and authenticate its fixed subject only after current
+   owner-local producer-policy approval; no automatic acceptance or retry loop.
 4. Receiving-agent resource and Claude approval are already requested. Until usable,
    continue independent deterministic review/onboarding work; do not provision,
    change managed policy, purchase capacity or copy credentials. Actual G2 model
