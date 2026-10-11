@@ -19,8 +19,10 @@ The actual control opcode/parameters were not retained and remain UNKNOWN.
 
 All three synthetic allowances and the startup-only allowance are consumed.
 No checker/model trial has run. Native execution and parser expansion have stopped;
-C reviews the actual result and D/C may identify an existing supported owner/native
-TTY route without building another harness or changing resource/permission scope.
+Independent actual-result review9773c3d is integrated as58ec2dd. C and D identify
+only the existing owner-operated pinned187 nativeTTY/manual-Bash route as a
+possible next step. It needs a reviewed exact procedure and specific approval;
+no new harness, decoder expansion or resource/permission change is queued.
 Copilot included-credit confirmation remains separately pending. G2/finalG3/G4
 remain incomplete; data-only machine acceptance is not agent reuse. No runtime,
 receipt, artifact, authentication, trust, CI or publication changes occurred.

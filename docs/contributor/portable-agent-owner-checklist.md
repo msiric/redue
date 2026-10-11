@@ -73,15 +73,19 @@ These do not establish effective native permissions or agent reuse.
 
 ## Exact owner-local Claude step
 
-Current outcome: the separately approved zero-input diagnostic observed
-**SAVE_CURSOR** during one new startup, then reaped the native host in404.7ms.
-No shell/checker/model input was sent. This identifies a decoder compatibility
-requirement; it does not establish enforcement or identify previously discarded
-bytes. Both earlier synthetic attempts remain **NOT_VERIFIED**. Their allowances
-and the one diagnostic allowance are consumed. A narrow disabled decoder repair
-is under independent review; any next native attempt requires specific approval.
-Original settings/login remain intact; no new login or broad resource request is
-needed. See the [current resume](../plan/portable-evidence-resume.md).
+Current outcome: all three approved synthetic attempts stopped before checker
+submission and remain **NOT_VERIFIED**. The latest returned a CSI/controller
+refusal in492.8ms; its actual opcode remains unknown. Cleanup and native reaping
+passed. A separate zero-input startup classified SAVE_CURSOR; it did not prove
+enforcement. All four one-attempt allowances are consumed. Decoder expansion and
+native execution have stopped. Independent result review is complete.
+
+The existing owner-operated native terminal/manual-Bash route may avoid this
+controller limitation, but an exact procedure still needs review and specific
+approval. The normal all-tools-denied launcher cannot execute the checker and
+must not be presented as its launch command. No new login or broad resource
+request is needed. Copilot's included-credit confirmation remains separate.
+See the [current resume](../plan/portable-evidence-resume.md).
 
 Repair checkpoint2026-10-11 13:38UTC: the old temporary setup no longer exists.
 Its configuration cannot be presumed intact. A durable owner-local replacement
