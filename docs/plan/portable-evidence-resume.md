@@ -6,12 +6,18 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-**Current conclusion (2026-10-11 08:06UTC): the one exact owner-approved data-only
-recipient attempt38123365552 PASSED. Independent matched VM authenticated/accepted
-the signed d04 origin and established importedCURRENT/PASS/eligible with no local
-invocation/equivalent execution. Unrelated/restart preservation and relevantSTALE
-passed; models0. This is machine-boundary CLI acceptance, not agent reuse.
-G2 and final G3/G4 acceptance remain incomplete.**
+**Current conclusion (2026-10-11 09:51UTC): the approved data-only recipient
+attempt38123365552 PASSED, independently establishing importedCURRENT/PASS/eligible
+on the matched VM without equivalent local execution. This is not agent reuse.
+Owner-observed isolated nativeClaude187 subscription onboarding now succeeds;
+no model or shell request was submitted. The disabled synthetic sentinel proposal
+is independently source/data-reviewed (f36527a), integrated throughb90e92c, and
+five pure controls pass. Actual native execution is blocked on effective
+authenticated managed-hook/excluded-command/strict-policy proof, then exact
+synthetic resource/settings approval. Prior pre-login local-policy absence is
+insufficient; no supported bounded effective-policy inspection route is established.
+Copilot Actions included-credit confirmation remains pending. G2 and final
+G3/G4 are incomplete; no fixtures/settings/native/model action was performed.**
 
 ## Source, owners and approval boundaries
 
@@ -171,10 +177,13 @@ Next operations only follow specific owner actions in the existing
    bounded producer model trial. No PAT/new account/paid route.
 2. Owner reports completion of exact isolated nativeClaude187 subscription
    onboarding, normal prompt and exit with no model/tool input (recorded09:28UTC).
-   This unlocks independent review of the smallest no-model interactive sentinel
-   checker/settings delta. D owns author code; C owns independent review. Current
-   settings deny all tools: no settings application, fixture provisioning or native
-   shell action occurs before exact approval. No secret yet. Runner OAuth workflow,
+   The smallest no-model interactive sentinel
+   checker/settings delta is now independently reviewed and integrated, disabled.
+   D authored; C reviewedf36527a; root integrated and ran5/5 pure controls53.972ms.
+   Effective authenticated managed hooks, exclusions and strict controls remain
+   UNKNOWN; establish them through a supported owner/admin policy view before
+   requesting exact operation approval. Current settings deny all tools: no settings
+   application, fixture provisioning or native shell action has occurred. No secret yet. Runner OAuth workflow,
    actual effective-boundary proof and model acceptance remain later gates.
 
 No more recipient attempts, broad CI, model calls or timing campaigns are queued.

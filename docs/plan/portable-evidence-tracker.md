@@ -3,7 +3,17 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-Current conclusion (2026-10-11 08:06UTC): owner-approved corrected data-only recipient run38123365552 PASSED on exact enabled6b901d0/a6006888 bytes. Required-refresh authentication accepted the exact signed d04 origin02f44ac7…/digest5d16fbf6… under policybab79018…; independent matched VM established healthy importedCURRENT/PASS/reuse_eligible=true with null local invocation and no equivalent receiver execution. Unrelated edit and restart retained that evidence; relevant source edit becameSTALE. Models launched0. The positive authenticated two-machine CLI route is demonstrated, not actual agent reuse or final G2/G3/G4 acceptance. First recipient applicability42274.658ms is one observed cost, not a performance benefit. Previous failure38098482463 remains historical. Exact guide-only b812 package and four481-test regression jobs pass; frozen signing/runtime d04/8695 remains separate. Model acceptance is blocked only on remaining account/effective-native-boundary prerequisites, not recipient approval.
+Current conclusion (2026-10-11 09:51UTC): the exact owner-approved data-only
+recipient38123365552 passed and remains distinct from actual agent reuse.
+Owner-reported isolated Claude187 subscription login reached the normal prompt,
+without a model or shell request. The exact disabled synthetic boundary proposal
+is integrated throughb90e92c after independentf36527a source/data review; root
+5/5 pure controlsPASS53.972ms. No live/native/model/settings action occurred.
+Effective authenticated managed-hook/excluded-command/strict-policy authority
+remains UNKNOWN; no supported bounded inspection route is established. Exact
+synthetic-operation approval follows that prerequisite. Copilot Actions included
+credits remain owner-confirmation pending. G2/finalG3/G4 remain incomplete;
+publication and external natural usage remain pending/not started.
 
 Agreed Day 0: 2026-10-10 21:24 UTC (owner confirmed). First substantive review: 2026-10-13 21:24 UTC. Daily concise progress summaries. Additional metered spending is $0/day and $0 total for the first 72 hours; only established subscription-included capacity is allowed. Standard public GitHub-hosted validation VMs are now approved: two independent macos-26 ARM64 profile jobs first. Owner confirmed 10 MiB included artifact storage, one-day retention and no paid usage; exact signing enablement is approved, and exact data-only producer trust/provisioning are approved in D5; actual recipient applicability remains pending. Owner now approves existing Claude subscription and Copilot personal-use entitlement; exact native Claude OAuth workflow/secret and Copilot seat/policy/billing checks remain prerequisites. Explicit demonstration-pair amendment D4: Copilot CLI producer VM A → native Claude Code receiver VM B on independently matched approved macOS runners; Codex acceptance stays separate. Provisioning and blocked time count from kickoff; dates will not be reset. Initial targets remain Day 14 demonstration / Day 28 prepublication readiness, uncalibrated until the real G1 slice.
 
@@ -44,8 +54,8 @@ reviewed, selected20 auth/provider/secure-storage keys absent. Actual managed so
 were absent; supported process-only updater guard independently reviewed. One bounded
 map-v2 native UI startup reached INITIAL_THEME_ONBOARDING_GATE, zero input/tools/models,
 5,155.2ms including owned process SIGKILL/reap after SIGTERM2s. Original report and
-independent clarification retained; no retry/bypass. Supported owner-provisioned test
-onboarding/authentication and actual sentinel sandbox tests remain pending.
+independent clarification retained; no retry/bypass. Owner-observed isolated subscription onboarding now succeeds; actual sentinel
+sandbox tests remain pending effective authenticated policy proof and exact approval.
 Preview/apply fixture files are separate from native
 REDUE setup/doctor support, import acceptance and model behavior. No active workflow,
 credential or permission is provisioned by these helpers; d04 candidate bytes remain unchanged.
@@ -191,3 +201,22 @@ The previously reported45.51s caller-mutation PASS cannot be reconciled with ret
 Test-only checkpoint diagnostics now use bounded256KiB regular no-follow/nonblocking reads. Independent ownedFIFO control retained the new diagnostic helper's pre-fix1.5s stall; corrected4650c2c returns null/non-green promptly. It never supplies engine authority, recovery or a relaxed assertion. Remote initialUNVERIFIED cause stays UNRESOLVED.
 
 Corrected coherent-source caller control:2beab5e8a4df80cd351402c27a915c7750d6841d actual1/1PASS43.121s. Origin4406bef3-dad6-4448-942b-e9b12aaff614/envelope digestd4d912e62f94ab86987654fe796033791eee5d9b1834f9ff82a1d9c2eb2ae789; recipientzero compiler runs. Stable positive, both raw-metadata mutation phases structuredreason_code/exit2/nonreuse,5s barrierexpiry and laterrecovery allasserted. Log/source record ownedreviewlocal/copied-node-corrected-2beab5e; only parsed in-memory responses, no raw transcript uploaded. This replaces the unreconciled historical claim for current acceptance, not the failedfull-suite result itself.
+
+## Current native-lane checkpoint — 2026-10-11 09:51UTC
+
+Root preserved owner-completed onboarding and integrated author9aa6262/92b1cc1/
+3ba1304/c674b2d plus independentf36527a review throughb90e92c. Public source is
+a disabled template; protected owner-local rendered mapSHA d55150b3… binds
+checker7d97369c…/settingsb63c0e1e…; original785be all-tools-denied settings unchanged.
+Independent5/5PASS53.199ms; root integrated5/5PASS53.972ms. Absolute1s connection
+deadline,15s parent cap, bounded replies and runtime-preload presence refusal
+were reviewed; pure adapters are not live sandbox proof. No src/bin change, pack,
+CI, signing, trust, upload, fixture, credential-file read or native/model launch.
+
+Affected lane is blocked on the supported owner/admin policy conclusion for
+applicable authenticated managed local/remote hooks and effective exclusions/strict
+controls, then exact synthetic-operation approval. Personal-account status or
+pre-login local absence cannot supply that proof. No additional source investigation
+is queued after independent review. Copilot's remaining action is its already
+requested four-credit Actions included-capacity confirmation. Day0 and deadlines
+are unchanged; actual agent/two-machine acceptance and final readiness are unproven.

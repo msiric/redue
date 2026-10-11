@@ -40,7 +40,7 @@ is outstanding.
    route is enabled under the $0 cap. GitHub documents built-in GITHUB_TOKEN plus
    `copilot-requests: write`; no PAT or model secret is requested. Repository
    ownership does not prove seat entitlement or available included quota.
-3. **Isolated native Claude onboarding, before any secret.** Do not create/add a secret yet.
+3. **Isolated native Claude onboarding completed; no secret yet.** Do not create/add a secret yet.
    The secret-free [Claude data proposal](portable-claude-startup-workflow.yml)
    cannot start native code, tools or inference. Version2.1.187's OAuth auth-status
    reports token presence as `oauth_token`; that does not establish token validity,
@@ -116,17 +116,24 @@ this native-startup process guard, not a compiler-environment change.
 
 Expected success is isolated native onboarding/authentication, **not** tool
 sandboxing, subscription capacity, evidence eligibility or model acceptance. Current
-settings deliberately deny all tools. The next no-model gate is an independently
-reviewed bounded non-secret sentinel checker and explicit local settings change:
-native interactive `!` must reach the actual Bash-tool boundary under strict
-sandboxing; credential/config reads, unrelated sockets, direct network and outside
-writes must be denied, while only the approved observer endpoint is reachable.
-No unsandboxed retry, print-mode substitute, handcrafted sandbox, hook or MCP.
-Authenticated managed startup policy must be reviewed after login; prior local
-policy-file absence does not establish its effective behavior. Only after that
-proof and normal subscription/capacity preconditions can a bounded native receiver
-model trial proceed. A runner OAuth-secret workflow remains a separately reviewed
-owner action; do not create or add its secret now.
+settings deliberately deny all tools. The independently reviewed disabled
+[synthetic checker proposal](portable-claude-receiver-proposal.md#current-six-check-synthetic-sentinel-proposal--not-applied)
+now has five pure tests passing. It would test a custom non-secret env sentinel
+and synthetic file/socket/network controls only; it cannot prove real credential
+removal, actual observer access, capacity or model reuse. No live fixture/settings
+application/native action occurred. No unsandboxed retry, print-mode substitute,
+handcrafted sandbox, hook or MCP is permitted.
+
+The next owner/admin prerequisite is a supported policy view or administration
+route establishing this exact authenticated187 profile's applicable managed
+local/remote startup-hook scope and effective sandbox exclusions/strict controls.
+Provide only a redacted key/authority conclusion; do not share raw policy, auth
+files or credentials. The prior pre-login local-policy absence and personal-account
+status are insufficient. No supported bounded inspection route is established here;
+unknown authority stops native execution. If this host cannot expose that policy,
+an appropriately policy-observable approved host is needed. Once established,
+exact synthetic resource/socket/settings approval is still required before launch.
+No secret should be created or added now.
 
 Copilot's pending owner confirmation concerns the Actions billing route: applicable
 msiric seat, at least four included AI credits, and zero additional charges. That
@@ -142,6 +149,6 @@ recorded rather than inferred from the documentation.
 Owner outcome, recorded2026-10-11 09:28UTC: subscription login succeeded and normal
 prompt appeared in this isolated host; owner submitted no model request or shell
 command and exited. This is an owner-observed result, not a token/status inspection
-or an effective sandbox/capacity test. The next active task is independent review
-of the exact no-model checker/settings delta. Existing all-tools-denied settings
+or an effective sandbox/capacity test. Independent source/data reviewf36527a of the exact no-model
+checker/settings delta is complete; actual effective-boundary proof remains unrun. Existing all-tools-denied settings
 remain intact pending specific approval; no secret or model request is authorized.
