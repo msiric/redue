@@ -172,6 +172,11 @@ The [current strict-mode documentation](https://code.claude.com/docs/en/sandboxi
 and versioned changelog support a candidate **interactive** `!` shell-mode route
 before 2.1.260, with strict sandboxing. The earliest documented combination of the
 required controls is 2.1.187; this is not yet empirical host acceptance.
+Bounded inspection of the digest-verified native implementation finds its manual
+shell handler calls the same Bash tool as model tool calls. Its sandbox decision
+honors an unsandboxed flag only when the strict-setting accessor permits it.
+This supports the candidate route structurally; it is not an executed sentinel
+test or a claim that arbitrary settings were validated.
 Do not pass `!…` to `--print` as a supposed no-model test. The future reviewed
 preflight must enter shell mode through the native interactive UI, use only
 non-secret sentinel variables, verify actual credential removal/one-socket and

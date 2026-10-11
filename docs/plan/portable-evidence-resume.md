@@ -54,8 +54,11 @@ into new owned fixture files only. Copilot/Claude loaders are separate; producer
 role explicitly selects portable capture and receiver does not. Root/state/prefix
 and source-file physical identities are bound; concurrent edited content is left
 intact on failure. No native settings, permission changes or model launches occur.
-Claude 2.1.146 settings/credential-deny are unverified proposal data; help parsing
-and static keys cannot activate it. These leaf proposals are not in the d04 package.
+Claude 2.1.146 cannot support the proposed credential-deny boundary: official
+versioned source adds it only in 2.1.187. A verified isolated native2.1.187 binary
+passed version/help only; the documented strict interactive shell route is prepared,
+not executed. Fresh no-auth bootstrap/login and actual sentinel enforcement remain
+gates. Help/static keys cannot activate it. These leaf proposals are not in the d04 package.
 
 ## Current hosted and installed checkpoint
 
