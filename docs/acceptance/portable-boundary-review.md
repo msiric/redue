@@ -2055,3 +2055,44 @@ remain retained and distinct. No native/auth/fixture action was performed by
 this reviewer. Any disabled decoder correction requires separate critical
 review and any later operation requires specific approval; no retry or native
 feature expansion follows automatically from this diagnostic.
+
+
+### Disabled bounded cursor-save decoder correction
+
+The final owner-local successor is source reviewed at SHA-256
+`75082ecd42ce75fe145ced1d2a9ea12fffdc371cef77d71260b56654407a0d0b`.
+It adds only one-level ESC7/ESC8 saved position to the existing bounded text
+projection. Split sequences wait; a new save overwrites the slot; restore
+without save refuses;1049 transitions clear the slot. Unsupported charset
+selection/shifts, origin/margin/wrap modes, conceal/font/unreviewed SGR and
+other terminal semantics remain refused. Decoration/color does not authorize
+input. First-BEL/ST OSC parsing prevents hidden intervening controls from
+being swallowed. No engine, recipe, trust, host permission or runtime bytes
+changed; prior executed10904/beba/1c6 helpers remain exact and preserved.
+
+Primary [XTerm411 control sequences](https://invisible-island.net/xterm/ctlseqs/ctlseqs.html)
+and [cursor implementation](https://github.com/ThomasDickey/xterm-snapshots/blob/xterm-411/cursor.c)
+were independently checked. Its save/restore includes flags, character sets
+and pending wrap, with saved state per buffer. The official archive969be283
+and cursor.c member3caf38bd were independently rehashed and the retained
+member equals the archive contents. The successor deliberately refuses state
+it does not model; this is not a complete DECSC/DECRC or terminal-emulator claim.
+
+Independent review found that the preliminary930 proposal refused a save at
+the last column but still silently clamped ordinary printing there. Final750
+refuses the unsupported edge printable before mutation instead of inventing
+wrapping. The preliminary source is retained separately; this was a proposal
+correction, not an observed native/released defect. Fifty-five author controls
+and eleven independently extracted pure controls pass on exact750, covering
+save/overwrite/restore position, unknown interpretation state, edge refusal
+without mutation and saved-state invalidation. Source was unchanged, and no
+top-level dispatcher, native, fixture, listener, auth or model action executed
+in this review. Existing original15s bounds, fixed command/protocol proof and
+exactTrue reaping/cleanup requirements remain intact.
+
+This is GO for a specific owner approval request only. A later positive native
+claim still requires actual confirmed Bash mode, the exact single checker
+command, six results, isolated protocol delta, live controls and complete
+cleanup/context checks. Pure decoder controls, the SAVE_CURSOR diagnostic
+and ordinary account login do not supply that evidence or model capacity.
+No native operation or repeat trial is authorized by this review.
