@@ -74,3 +74,14 @@ test('state ownership changes at publication trigger refusal and only owned dest
   finally{fs.fsyncSync=original;}
   assert(mutated);for(const name of ['AGENTS.md','CLAUDE.md','REDUE_PORTABLE_AGENT.md'])assert(!fs.existsSync(path.join(f.root,name)));
 });
+
+test('a concurrently edited created instruction is left intact after failed publication',t=>{
+  const f=fixture(t),original=fs.fsyncSync;let mutated=false;
+  fs.fsyncSync=function(fd){original(fd);if(!mutated){mutated=true;
+    fs.writeFileSync(path.join(f.root,'REDUE_PORTABLE_AGENT.md'),'Concurrent owner edit.\n');
+    fs.writeFileSync(path.join(f.state,'vstate-owner-v1.json'),'{}');}};
+  try{assert.throws(()=>writeControlledPortableGuidance(options(f,{apply:true})));}
+  finally{fs.fsyncSync=original;}
+  assert.equal(fs.readFileSync(path.join(f.root,'REDUE_PORTABLE_AGENT.md'),'utf8'),'Concurrent owner edit.\n');
+  assert(!fs.existsSync(path.join(f.root,'AGENTS.md')));assert(!fs.existsSync(path.join(f.root,'CLAUDE.md')));
+});

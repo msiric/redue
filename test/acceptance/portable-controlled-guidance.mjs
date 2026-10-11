@@ -65,7 +65,7 @@ export function writeControlledPortableGuidance(options){
       validate();const file=path.join(root,name);let fd;
       try{
         fd=fs.openSync(file,fs.constants.O_WRONLY|fs.constants.O_CREAT|fs.constants.O_EXCL|(fs.constants.O_NOFOLLOW??0),0o600);
-        const stat=fs.fstatSync(fd,{bigint:true});created.push({file,identity:identity(stat)});
+        const stat=fs.fstatSync(fd,{bigint:true});created.push({file,identity:identity(stat),bytes});
         if(!stat.isFile()||stat.nlink!==1n)fail();
         fs.writeFileSync(fd,bytes);fs.fsyncSync(fd);
         const now=fs.lstatSync(file,{bigint:true});
@@ -76,7 +76,8 @@ export function writeControlledPortableGuidance(options){
     validate();
   }catch(e){
     // Remove only destinations created by this call, under the unchanged root.
-    for(const c of created)try{if(directory(root)===roots.root&&identity(fs.lstatSync(c.file,{bigint:true}))===c.identity)fs.unlinkSync(c.file);}catch{}
+    for(const c of created)try{if(directory(root)===roots.root&&identity(fs.lstatSync(c.file,{bigint:true}))===c.identity&&
+      readBoundedPortableFile(c.file,{limit:65536}).equals(c.bytes))fs.unlinkSync(c.file);}catch{}
     throw e;
   }
   return {schema:1,mechanism:'controlled-generic-project-instructions',applied:apply,

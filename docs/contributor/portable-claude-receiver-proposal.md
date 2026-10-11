@@ -139,7 +139,7 @@ or edited files. It does not write permissions, state, receipts or producer poli
 The required producer/receiver role is explicit. Only the producer appendix
 selects `run typecheck --portable` for fresh recording; it still executes the
 configured compiler. Export/import/trust remain owner operations. The receiver
-has no capture modifier or task-specific reuse reminder. Six deterministic
+has no capture modifier or task-specific reuse reminder. Seven deterministic
 controls cover both hosts, preview, ownership/currency failure and no-overwrite;
 these are mechanics, not instruction discovery by a running agent. All fixture
 and guidance changes must finish before the relevant in-context baseline.
