@@ -2466,3 +2466,77 @@ different lexical prefix alone is insufficient. Original credential/Keychain
 locations, state, synthetic targets/socket grants and prior artifacts remain in
 place. No new workspace, settings application, listener, native/checker process,
 model request or permissions change was performed in this review.
+
+
+### Code-only relocation and owner-operated diagnostic preparation
+
+The final private helper is independently source-reviewed at
+`899ab247e47df83b71e076d5c1e4174cccbcc519d9503cb8da14a8475dda72ff`.
+The relocated checker is
+`579af20e9055163c37e95e0aebba97c7732a65b81d0dd6bc82ee41a11dbca4d7`;
+wrapper `29ebbcdef49377da5d57fb2053d7fc92271e62c78f0331cd7a2233823f74679b`;
+full profile `81e874fe9239caa4ceb63d2d9e847c4f7d08a8c02eea372085d4a13c8354c15a`;
+diagnostic profile `982f4118dd441b65a919d9c99a602660b0984512b4e8ecfd9cfed223552a55e9`;
+diagnostic body `14f62b23437448142e5d3691bb4e85523bc5136dab898c1ed214875181219c4d`.
+Checker changes are limited to its executable-path binding; wrapper changes are
+limited to its own entry, checker entry and checker digest. All six assertions
+and execution/status/collection methods remain unchanged. Only public code and
+native cwd move to a dedicated code container. The physical-ancestor guard must
+refuse membership in expanded/case-aliased protected read ancestors. All prior
+read/write denials are retained, with write protection for the new dedicated
+code container and its parents. Credentials, namespace, state, synthetic targets
+and socket authority remain in place; normal all-tools-denied settings still
+hash to5628de7667d4a5125c723ecbc3685336ef12cd80f15da83e6467b3826a337afc.
+
+Full and diagnostic profiles have identical restrictions after removing the
+exact command permission, canonical digest
+`a8f7b62e1e21eb3f29ddef88db0974768023a769d554464ed5ed9ffb4d116339`.
+The fixed diagnostic input68ce826c is exactly one plain command plus newline,
+intended for the owner to submit only after entering native187 manual Bash mode.
+Pinned187 manual dispatch and respondToBashCommands:false remain source-grounded
+no-inference expectations. Manual dispatch bypasses ordinary command approvals;
+the literal permission entry is not an enforced arbitrary-command allowlist.
+No reviewed noninteractive print/headless/SDK equivalent is substituted, and
+no automated terminal input or decoder is present.
+
+The diagnostic mode reuses guarded fixed native argv/env/cwd, same-session
+foreground process ownership, terminal restoration and owned reaping. It has
+180s owner startup and5s cleanup bounds, separate exclusive lifecycle/process
+records, no listeners, collector, checker, access-gate acceptance or terminal
+capture. Its outcome is lifecycle-only; actual file-access JSON remains owner
+supplied. An initial unexecuted74c25e3 proposal swallowed Stop reasons and could
+label forced timeout cleanup lifecycle completion. The899ab247 successor retains
+an irreversible sequence-error/cancel latch, static reason and observed native
+exit/signal; timeout cannot qualify even after successful reap/restore.
+
+The full mode remains blocked before listeners/native without the fixed
+root-captured gate and explicitly selected digest. It binds current diagnostic,
+profiles, common restrictions and physical source fingerprints. All eight role
+rows must have complete static phase/nullable-boolean schemas. Both relocated
+code rows must independently show safe metadata, readonly open, same-inode fstat
+and close. Only EPERM/EACCES readonly-open errors for the two existing NONSECRET
+protected regular files qualify their operation-specific denial. Real credential
+and configuration directories are metadata-only, never opened; credential-body
+denial remains NOT_TESTED. Original code rows must be complete but need not be
+readable. Root-owned owner-output provenance is not hostile same-UID
+cryptographic authentication. No gate was produced by this review or its mocks.
+
+Independent reruns passed13 Node controls,12 owner-collection Python controls,
+12 relocation Python controls including mocked180s timeout, and2 connected MOCK
+controls using harmless children. Sixteen independently composed gate/refusal/
+collision controls passed missing original rows/fingerprints, changed profile/
+restrictions/body, relocated EACCES, protected ENOENT, credential-open refusal,
+boolean typing, missing gate, invalid digest and existing private-record collision.
+Missing gate/collision launched zero mocked native processes and zero listeners.
+Reviewer test preparation initially aliased the fixture's expected bindings, then
+encountered an author-edit nested-with SyntaxError, then used a non-TTY StringIO
+and incorrectly expected a filesystem call. Corrected isolated controls passed;
+these were test-preparation mistakes, not observed native/product failures.
+
+Conclusion: GO for inactive staging, data-only verification and the specifically
+approved owner-operated diagnostic preparation. Full collection is CONDITIONAL
+on a genuine current native access gate and the owner's limited-surrogate
+protection scope. No actual native/checker/model process, in-boundary diagnostic,
+settings application, synthetic fixture provisioning or credential read was
+performed by this reviewer. No native enforcement or portable/model gate PASS
+is established by these source and mock results.
