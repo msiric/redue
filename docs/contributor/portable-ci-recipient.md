@@ -124,13 +124,19 @@ The [disabled recipient proposal](portable-ci-recipient-workflow.yml) selects th
 completed signer run `38096670987`, attempt `1`, source/signer
 `d04b872ee0e848e300c0cc9738ad761e48146acc`, and authenticated-artifact ID
 `11685889769`. Its hashes describe inspected bytes, **not approved producer
-trust**. The job is disabled and its owner-policy placeholders fail before
-checkout, download, verifier or model. It is outside `.github/workflows`.
+trust**. The job remains disabled; its missing reviewed registry-source pin fails before
+checkout, download, verifier or model. The executable queued steps independently
+pack the selected source, read the exact artifact, set up the owned fixture and
+invoke the existing recipient procedure. It is outside `.github/workflows`.
 
-A separately reviewed enabling diff and explicit owner approval must provide
-current registry bytes/policy, fixed-copy provisioning into initialized owned
-state and the independent recipient preparation. The proposal deliberately
-stops at this missing prerequisite rather than create trust from artifact data.
+A separately reviewed enabling diff and explicit owner approval must bind
+current registry bytes/policy and its source commit, the provisioning action and
+the exact workflow. Approval is out of band; no workflow hashes itself. The
+[test-only machine recipient](../../test/acceptance/portable-ci-machine-recipient.mjs)
+implements only an explicit `--apply` copy of the separately proposed registry
+bytes into fresh initialized owned state. It refuses existing or mismatched
+state and uses exclusive mode-0600 durable writes. It is not a product policy
+writer, migration, or authorization inferred from a signature.
 The optional dedicated push branch avoids default-branch-only dispatch and does
 not modify or retrigger the approved signer branch. Do not create/push that branch
 or enable the proposal merely because the signed artifact exists.
@@ -150,3 +156,34 @@ not accept a producer or establish local policy currency or recipient CURRENT.
 The owner must separately approve the selected policy, authoritative registry
 bytes and any recipient provisioning route. No model credentials, two-agent
 behavior or automatic CI trust is supplied by this proposal.
+
+The [registry proposal bytes](portable-ci-producer-registry-proposal.json) have
+SHA-256 `5a1021fcf9b119f4469370eb33c09dc35c62cb174bc272574065a382aae6d521`;
+the selected policy digest remains
+`bab7901892570e81f15f8e888d2c33e632479f55f461d4ee34f905acfe7a5ce6`.
+The file is outside active state and remains **approval pending**. Do not copy it
+into normal or experimental state before explicit owner policy/provisioning
+approval. The queued route checks raw registry bytes before its only copy;
+remote artifact fields never select or create that file.
+
+Machine preview performs bounded reads and launches no process. Application is
+limited to the supplied fresh short owned base: `Checkout 空间`, `redue-state`,
+and `prefix` are fixed children. It preserves true imported provenance, runs no
+compiler check, and retains the state while stopping its owned observer. It
+requires the actual installed runtime bytes to match the producer and both boot
+and raw Node physical identity to differ. Recipient synchronized applicability
+remains authoritative; this profile comparison does not manufacture CURRENT.
+It tests unrelated-edit reuse, inherited import after restart and relevant-edit
+invalidation without creating local execution evidence. No agent is launched.
+
+The native verifier and artifact download is read-only and bounded. The selected
+run, attempt, source, artifact ID, archive checksum, fixed three files and their
+checksums are checked before setup. A timeout, malformed identity, changed
+policy, unsupported profile or failed recipient query stops the procedure. It
+never tries manual-digest acceptance as an authentication fallback.
+
+A failed setup may leave the owned experimental directory and an incomplete
+registry copy for inspection; it never continues to authentication/import. Do
+not treat existence of that file as successful provisioning or repair a failed
+ownership interval automatically. Resolve the recorded prerequisite and have
+the owner review the experimental state before another explicit attempt.
