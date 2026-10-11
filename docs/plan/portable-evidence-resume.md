@@ -14,7 +14,7 @@ G2/G3 incomplete; G4 prepublication NOT READY.**
 
 ## Source, owners and approval boundaries
 
-Verified root task branch `87de9c5305dca8b253cf4918a17a82ba2aac9355`, clean when checked;
+Verified root task branch `69e8218d88c1a5d7ebb022400796d1c5c6d89077`, clean when checked;
 remote and exact tested candidate remain
 `d04b872ee0e848e300c0cc9738ad761e48146acc`. Later disabled host proposals do not replace
 the candidate identity. This includes the
@@ -35,8 +35,8 @@ new package payload cap192KiB, archive cap224KiB;
 serialize and recheck before uploads, no blind reruns.
 Exact signing workflow proposal SHA-256
 `5770b7f0ac9133fbf0190cf0e238ac800263b632d7f4741f3fddb04882591924`
-is approved/enabled. That is not producer trust; exact current producer acceptance
-policy still needs owner approval. Owner-approved existing Claude subscription and company Copilot personal-use
+is approved/enabled. Producer trust is separate; exact current data-only producer
+acceptance and fresh-state provisioning are now approved in D5. Owner-approved existing Claude subscription and company Copilot personal-use
 entitlement now support explicit D4: Copilot CLI producer VM A → native Claude
 Code receiver VM B on independent matched approved macOS runners. Codex acceptance
 remains separate. Native OAuth workflow/owner secret and Copilot seat/policy/billing
@@ -76,7 +76,8 @@ unrun gates. Help/static keys cannot activate it. These leaf proposals are not i
   `.local/portable-evidence/signed-38096670987`. A successful signer is not owner
   trust, recipient verification or imported CURRENT; independent required-refresh native gh2.79 authentication PASS under an
   inspection proposal only: verified=true, accepted=false, local policy not current,
-  reuse=false. Exact producer policy remains unapproved.
+  reuse=false. That historical inspection did not use approved local trust. D5 now
+  approves only the exact data-only policy; actual accepted import remains pending.
 - Profile run `38096673747`: both actual full prototypes SUPPORTED, beyond labels
   or inventory alone. Independent comparison verifies all21 entries match both VMs and signed
   origin facts/manifest, including reviewed compiler5.6.3. No
@@ -188,7 +189,8 @@ bytes have the same verified SHA; actual PR-merge source
 ## Current owner setup and integration checkpoint
 
 Read [one owner setup checklist](../contributor/portable-agent-owner-checklist.md).
-Exact final data-only recipient proposal remains outside active workflows, SHA
+Exact final data-only recipient proposal is preserved outside active workflows; an
+identical copy is enabled on the dedicated recipient branch. SHA
 ef237cbb411b0520791911503d3071a9a42f78502ac8f712406a11566482ef78;
 Registry5a1021/policybab790 and exactef237 workflow are owner-approved in D5.
 Dedicated recipient branchb240187/run38098482463 failed closed before import
@@ -201,16 +203,18 @@ Preparation107tests:106PASS/one native-Windows-only skip/zeroFAIL3.515s,
 `.local/portable-evidence/recipient-host-preparation-integrated.tap`.
 All new code is contributor-only preparation; no runtime/probe/schema changes
 after d04b872, no artifact regeneration, accepted import or model launch.
-Native Claude2.1.146 credential protection remains unproven; independently
-review version-specific native controls before requesting an OAuth secret.
+Native Claude2.1.146 lacks the requested credential protection. Reviewed isolated
+2.1.187 version/help does not prove effective sandbox enforcement. The no-auth
+UI-only startup is still stopped pending read-only managed-hook source inventory
+and a reviewed process-only updater guard. No OAuth secret is requested yet.
 
 ## Next commands and fail-closed gates
 
 The single accounted d04b872 push and hosted attempt have completed producer/
 signer and profile preconditions successfully. Preserve old failed origins;
 package/product, actual byte identity and independent profile/signature review
-are complete without another signing push or trial. Owner trust and actual native
-agent authentication/enforcement are still gates; account existence is answered.
+are complete without another signing push or trial. Exact data-only owner trust is approved; corrected receiver precondition and actual
+native agent authentication/enforcement are still gates. Account existence is answered.
 
 1. Verify actual root HEAD/uncommitted changes and current resource reservations.
    Read protected local `signed-producer-2bc636a-failed.log`, `profile-2bc636a.log`,
@@ -232,9 +236,10 @@ agent authentication/enforcement are still gates; account existence is answered.
    Resource status is PENDING_OWNER_AUTH_WORKFLOW/CAPACITY_PROOF, not PENDING_OWNER_ACCOUNT.
    Actual reuse still requires independent sessions, agent-visible eligible JSON, retained
    digest/run and no equivalent execution.
-5. Producer trust remains a separate explicit owner decision after exact source,
-   workflow/signature/subject identities exist. Workflow enablement alone never
-   accepts an artifact. Live CI authentication requires the current owner-local
+5. D5 explicitly approves only the exact d04 signed-origin data-only trust policy.
+   Changed helper pins/workflow bytes need their own review; do not change the
+   approved policy or source artifact. A later model-produced origin requires
+   its own concrete trust decision. Workflow enablement alone never accepts an artifact. Live CI authentication requires the current owner-local
    registry at all publication barriers, never an imported policy or old approval.
 6. After a coherent source/review change, create and validate new exact bytes only
    when justified. The preserved 2bc artifact and prior @1/b4 candidates are
