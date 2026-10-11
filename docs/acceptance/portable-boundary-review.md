@@ -1814,3 +1814,38 @@ prove zero historical startup side effects, future managed-policy stability or
 native sandbox/credential enforcement. Any unexpected UI shape, gate, source,
 exit or timeout remains unavailable; the synthetic checker and model/resource
 approvals are independent. No native /status was executed by this reviewer.
+
+
+### Unavailable /status display and bounded synthetic approval rationale
+
+The one authorized1341de diagnostic completed at its30s boundary with helper
+terminal exit0 and completed cleanup, not a claim that the native child exited0.
+Actual protected result SHA-256
+`ddfd3c08d9a3979b1c6c03959946ff9a58ecc4ca5bd9a0c68624a064cf617592`
+was independently inspected: native version observed=true, builtin status
+submitted=true, STATUS_NOT_CAPTURED, source classes empty, raw output retained
+false, model/shell actions0, enforcement NOT_TESTED. Empty classes are UNKNOWN,
+not an observation that no source was loaded. No second attempt is proposed.
+
+The canonical plan does not require this particular native display as a gate.
+Pinned187 source semantics, the confirmed OAuth-Pro/firstParty/no-API-source
+result, complete current selected-source metadata negatives and intact explicit
+CLI inputs provide a defensible narrow rationale to REQUEST exact owner approval
+of the reviewed synthetic test. They do not establish hypothetical administrative
+intent, future policy stability or actual sandbox enforcement. Code/settings,
+current account/context and complete source/helper metadata must be rechecked
+immediately before any future operation; a changed or unknown precondition stops
+it rather than inheriting this rationale.
+
+The proposed checker itself performs only the fixed approved synthetic opens,
+custom env presence and owned-listener connections. It reads no real credential,
+auth/keychain or REDUE authority, invokes no arbitrary command and requests no
+model action. Even if settings are ignored or a denial fails, the bounded actions
+remain those explicit synthetic accesses; possible creation of the owned write
+canary is a counterexample to retain, not permission to retry unsandboxed or a
+successful enforcement claim. Exact owner approval must cover those synthetic
+counterexample accesses as well as the one socket/settings/resource scope.
+Known-live external controls and native tool tracing remain mandatory. This is
+GO to request that exact test approval only, NOT GO to execute it or weaken any
+host policy. The prior unavailable /status and prior policy-evidence limitations
+remain retained; no stale green or new model/machine acceptance is inferred.
