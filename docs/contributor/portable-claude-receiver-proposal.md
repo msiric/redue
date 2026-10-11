@@ -1,15 +1,22 @@
 # Native Claude receiver authentication preparation
 
-Status: **PENDING_EXACT_SENTINEL_REVIEW_AND_OWNER_APPROVAL**. The owner reports
-successful native subscription login and the normal prompt in the previously
-reviewed isolated187 profile, followed by exit without a model request or `!`
-command. This is owner-observed onboarding, not an agent-run authentication,
-capacity, credential-denial or sandbox test. The new six-check synthetic proposal
-below is unrun. The existing disabled workflow remains secret-free and data-only;
-it cannot launch native code. Actual cross-agent/two-machine reuse remains a gate.
-Existing subscriptions are approved, additional spending is $0; resource approval
-cannot supply CURRENT. D4 in [portable decisions](../plan/portable-evidence-decisions.md)
-records the explicit Copilot-producer/native-Claude-receiver amendment.
+Status: **DISABLED_PENDING_MATCHED_VM_GATES**. The data-only receiver proposal
+now requires the reviewed native2.1.187 distribution, SHA-256
+`a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3`.
+Its constructor does not inspect a binary or grant execution; activation still
+always refuses. Older2.1.146, other versions and nonmatching hashes are rejected.
+The actual owner-operated local187 manual-Bash synthetic check passed six checks,
+with supervisor-observed checker exit0 and final parent completion in11,047.1ms;
+[independent review](../acceptance/portable-boundary-review.md) records its narrow
+scope. This establishes that one local invocation, not matched-VM/model-tool
+behavior, real credential-body denial, hosted OAuth or agent reuse.
+The existing workflow remains secret-free and data-only. No hosted secret-bearing
+native receiver route has been enabled. Actual cross-agent/two-machine reuse,
+current caller-aware evidence and subscription capacity remain gates. Existing
+subscriptions are approved; additional spending is $0. D4 in
+[portable decisions](../plan/portable-evidence-decisions.md) records the explicit
+Copilot-producer/native-Claude-receiver amendment. Dated sections below retain
+prior observations and failed/unrun proposals without relabeling them.
 
 ## Observed local route
 
@@ -50,18 +57,20 @@ No --dangerously-skip-permissions, account refresh or model call is a preflight.
 
 ## Useful remaining owner action
 
-Account existence and owner onboarding are answered: the owner reports native187
-subscription login and the normal prompt in the isolated profile, with no model
-or shell action. The remaining prerequisite is review and specific owner approval
-of the exact synthetic sentinel code/settings/resources below, then **actual native**
-no-model boundary proof. Do not copy login files, change global settings or
-substitute a handcrafted sandbox. This proof remains separate from real credential
-removal, actual REDUE endpoint authority and included model capacity.
+Account existence and local onboarding are answered; the local manual synthetic
+boundary check has now passed. The remaining host prerequisite is the intended
+matched VM: actual native model-tool sandbox, real subscription/GitHub credential
+isolation, exact REDUE endpoint/probe access and in-context expected evidence.
+A local nonsecret sentinel result cannot establish those fields. The existing
+constructor remains a proposal, not a launcher or a gate waiver. Do not copy login
+files, change global settings or substitute a handcrafted sandbox. Review follows
+the [standing authority](../plan/portable-evidence.md#65-owner-autonomy-amendment-standing-authority);
+routine code/hash changes do not require another per-command approval.
 
 No new secret or workflow enablement is requested for the data proposal. Before any
 future authenticated receiver workflow, the owner must review its exact native
 and source hashes, startup-side behavior, matched profile, resource scope, limits
-and redaction. Normal main workflow registration needs a separately approved PR.
+and redaction. Normal workflow registration follows the reviewed repository process; protected-environment and secret provisioning remain owner account actions.
 That future secret-bearing job requires a protected portable-evidence-claude
 environment with selected run-ref and required owner review; naming a repository
 secret alone cannot scope its access to one workflow. Review other workflows able
@@ -88,9 +97,7 @@ cannot activate it. Four deterministic tests cover scope/budgets/no-bypass and
 refusal. This is proposal validation, not native host enforcement.
 
 The proposed argv uses print/stream-json, at most 8 turns and a 300-second parent cap, dontAsk,
-Bash-only tools, empty strict MCP config and a local --settings file. Actual native
-2.1.146 help parsing accepts those flag forms; it does not validate settings or
-prove model/turn behavior. No bare, injected system policy, dangerous permission
+Bash-only tools, empty strict MCP config and a local --settings file. The reviewed187 target supports the native sandbox/credential schema; its constructor's flags and settings remain unexecuted on the matched VM. A version/hash match or local manual-Bash proof does not validate the hosted print/model-tool path, effective settings or turn limits. No bare, injected system policy, dangerous permission
 bypass or disabled REDUE skill is proposed. Fresh project instructions load through
 the normal mechanism. Root must verify ownership/canonical paths and finalize the
 actual workflow; the lexical base check does not approve a filesystem resource.
@@ -98,17 +105,15 @@ actual workflow; the lexical base check does not approve a filesystem resource.
 Proposed settings keep the sandbox mandatory, forbid unsandboxed retries/excluded
 commands, restrict its one state socket and reject tool-network access. Only exact
 inspection/REDUE commands are proposed; other tools/MCP/hooks/plugins are excluded.
-Subscription and GitHub credential-deny entries are proposed, not effective on
-the installed 2.1.146 version. Host settings/installations/producer-policy writes are not agent-owned.
-No secret value occurs in argv/settings or a model-readable file.
+Subscription and GitHub credential-deny entries use the reviewed187 schema, but their effective behavior on the secret-bearing matched VM is still unverified. Host settings/installations/producer-policy writes are not agent-owned.
+The proposal adds no broader filesystem/socket/network grant. Keychain/settings read denials and existing host-config/prefix write denials remain; the selected native executable leaf is write-protected. Its dedicated parent, physical path and startup policy still require matched-VM review; the lexical constructor does not protect or approve an arbitrary parent. No secret value occurs in argv/settings or a model-readable file.
 
 [Current native sandbox documentation](https://code.claude.com/docs/en/sandboxing)
 states that shell commands inherit credentials unless protected; other tools may
 run outside that boundary. These controls require actual native-version proof.
 [Current subprocess scrub documentation](https://code.claude.com/docs/en/env-vars)
 says scrub before 2.1.251 removed only API/AWS secret variables, not the broader current
-credential list. Therefore local 2.1.146 scrub/static keys are insufficient evidence
-that subscription OAuth is hidden. Do not install a real token or run inference
+credential list. Therefore2.1.146 is excluded, and the local187 custom-sentinel proof does not establish that hosted subscription OAuth is hidden. Do not install a real token or run inference
 before independently demonstrating credential-deny and exact sandbox behavior with
 non-secret sentinels. A differently reviewed native version may be owner-provisioned
 normally; never upgrade the owner’s existing installation automatically.

@@ -2,7 +2,10 @@
 // its pure data controls run on a different CI host.
 import {posix as path} from 'node:path';
 
-const HASH = /^[0-9a-f]{64}$/;
+export const REVIEWED_CLAUDE_NATIVE = Object.freeze({
+  version: '2.1.187',
+  sha256: 'a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3',
+});
 const BASE = /^\/private\/tmp\/redue-ci-recipient-[A-Za-z0-9]{8}$/;
 
 function fail() {
@@ -23,7 +26,8 @@ export function prepareClaudeReceiverInvocation(options) {
   if (typeof base !== 'string' || !BASE.test(base) || path.normalize(base) !== base ||
       typeof claudeExecutable !== 'string' || !path.isAbsolute(claudeExecutable) ||
       /[\0\r\n]/.test(claudeExecutable) || path.normalize(claudeExecutable) !== claudeExecutable ||
-      !HASH.test(claudeSha256 ?? '') || claudeVersion !== '2.1.146' ||
+      path.basename(claudeExecutable) !== 'claude' ||
+      claudeSha256 !== REVIEWED_CLAUDE_NATIVE.sha256 || claudeVersion !== REVIEWED_CLAUDE_NATIVE.version ||
       !Number.isInteger(maxTurns) || maxTurns < 1 || maxTurns > 8 ||
       !Number.isInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 300000) fail();
   const root = path.join(base, 'Checkout 空间');
@@ -50,8 +54,8 @@ export function prepareClaudeReceiverInvocation(options) {
       excludedCommands: [],
       filesystem: {
         allowWrite: [root, state],
-        denyRead: [hostConfig, '~/.ssh', '~/.aws', '~/.npmrc', '~/.claude', '~/.config', '~/.git-credentials'],
-        denyWrite: [hostConfig, prefix, path.join(state, 'portable-producers-v1.json')],
+        denyRead: [hostConfig, settingsFile, '~/Library/Keychains', '~/.ssh', '~/.aws', '~/.npmrc', '~/.claude', '~/.config', '~/.git-credentials'],
+        denyWrite: [hostConfig, settingsFile, prefix, claudeExecutable, '~/Library/Keychains', path.join(state, 'portable-producers-v1.json')],
       },
       network: {
         allowedDomains: [], deniedDomains: ['*'], strictAllowlist: true,
@@ -65,10 +69,13 @@ export function prepareClaudeReceiverInvocation(options) {
   };
   return {
     schema: 1, status: 'PROPOSAL_ONLY', disabled: true, model_launches: 0,
-    blockers: ['OWNER_EXACT_WORKFLOW_REVIEW_REQUIRED', 'NATIVE_VERSION_LACKS_CREDENTIAL_DENY', 'NATIVE_CREDENTIAL_DENIAL_NOT_VERIFIED',
-      'NATIVE_SANDBOX_AND_PERMISSION_ENFORCEMENT_NOT_VERIFIED', 'CURRENT_PRODUCER_POLICY_APPROVAL_REQUIRED',
+    blockers: ['HOSTED_WORKFLOW_AND_AUTH_ENVIRONMENT_NOT_PROVISIONED',
+      'MATCHED_VM_CREDENTIAL_ISOLATION_NOT_VERIFIED', 'MATCHED_VM_NATIVE_MODEL_TOOL_BOUNDARY_NOT_VERIFIED',
+      'MATCHED_VM_NATIVE_CODE_AND_STARTUP_POLICY_NOT_VERIFIED',
+      'MATCHED_VM_SUBSCRIPTION_AUTH_AND_INCLUDED_CAPACITY_NOT_ESTABLISHED',
+      'CURRENT_PRODUCER_POLICY_AND_EXACT_ORIGIN_REQUIRED',
       'MATCHED_RECIPIENT_AND_EXPECTED_EVIDENCE_PREFLIGHT_REQUIRED'],
-    actual_local_version: claudeVersion, max_turns_proposed: maxTurns, parent_timeout_ms_proposed: timeoutMs,
+    native_version_proposed: claudeVersion, native_binary_verified_by_adapter: false, max_turns_proposed: maxTurns, parent_timeout_ms_proposed: timeoutMs,
     executable: claudeExecutable, executable_sha256_proposed: claudeSha256,
     cwd: root, settings_file_proposed: settingsFile,
     argv_proposed: ['--print', '--verbose', '--output-format', 'stream-json', '--max-turns', String(maxTurns),
@@ -82,7 +89,7 @@ export function prepareClaudeReceiverInvocation(options) {
 }
 
 export function requireClaudeReceiverActivation() {
-  const error = new Error('Native Claude receiver remains disabled pending independently verified host controls and owner approval.');
+  const error = new Error('Native Claude receiver remains disabled pending matched-host, account and evidence preconditions.');
   error.code = 'CLAUDE_RECEIVER_ACTIVATION_NOT_APPROVED';
   throw error;
 }
