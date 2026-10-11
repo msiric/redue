@@ -1123,3 +1123,47 @@ not token generation, account administration or host behavior acceptance.
 Primary references: [Claude authentication](https://code.claude.com/docs/en/authentication),
 [Claude GitHub Actions](https://code.claude.com/docs/en/github-actions), and
 [GitHub environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments).
+
+## Concrete disabled recipient route review
+
+Lane B `87b7df9`, over coherent root `ad2e78d`, resolves the earlier concrete
+review findings. Native verifier reads use a separate 128-MiB capped, no-follow,
+nonblocking regular descriptor with single-link, file fingerprint and parent
+identity checks; the 1-MiB evidence reader is unchanged. Explicit registry
+provisioning requires exact owner-selected bytes and initialized dedicated
+state, refuses local/imported history and existing targets, uses exclusive
+mode-0600 descriptor writes plus fsync, and revalidates owner bytes/physical
+identity, parents and written leaf before returning. A controlled owner change
+at fsync is rejected; an ambiguous failed copy remains for inspection, never
+authentication continuation or automatic repair.
+
+Independent frozen `ad2e78d` plus seven proposal-file overlay: 84/84 focused
+controls PASS in 2,979.52 ms (65 new preparation/download controls, 19 existing
+recipient controls), actual Node22.13.0, existing dependencies read-only and no
+installation. The positive preview launches zero processes. Precise failure
+codes now distinguish changed policy, transfer, verifier, source and occupied
+state. Controlled download tests run the actual bounded extraction/metadata
+script with fake HTTPS/API records, not an actual signature verifier or VM.
+The full local log is private; no additional live authentication occurred.
+
+The queued route pins the selected successful producer run/attempt/ref/source,
+repository IDs, artifact identity and ZIP digest, fixed three regular members
+and their exact bytes, canonical evidence interpretation, official native
+verifier bytes and independently packed producer package. Current receiver
+runtime equality and different boot/raw Node identities precede initialization;
+recipient synchronized applicability remains independently authoritative. The
+procedure never runs the verification command locally. It checks imported
+provenance, null local invocation, no local runs, unrelated-edit preservation,
+restart inheritance and relevant-edit invalidation. It does not establish model
+behavior or ambient process absence.
+
+Registry proposal bytes SHA-256
+`5a1021fcf9b119f4469370eb33c09dc35c62cb174bc272574065a382aae6d521`
+and the exact policy digest above remain outside authority-bearing state. Job
+`if:false` and missing reviewed registry-source pin prevent enablement. Workflow
+approval is now explicitly out of band. Bounded GO is to present this concrete
+route, policy and provisioning action for owner approval, not to install trust
+or enable it. Preserve exact approved bytes across platform checkout line-end
+conversion; do not normalize a mismatching policy during import. Live recipient
+acceptance, actual two-machine agent reuse and complete-path economics remain
+outstanding.
