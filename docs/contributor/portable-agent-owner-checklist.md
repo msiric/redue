@@ -45,7 +45,8 @@ is outstanding.
    cannot start native code, tools or inference. Version2.1.187's OAuth auth-status
    reports token presence as `oauth_token`; that does not establish token validity,
    subscription capacity or safe authenticated startup. The supported isolated
-   native onboarding/authentication is the owner-local step below. Actual no-model
+   native onboarding/authentication was completed by the owner; the verified optional
+   reopening command is below. Actual no-model
    credential/sandbox enforcement still needs its reviewed checker and native proof.
    Installed2.1.146 settings/help are not that proof.
    After the reviewed manual, pinned workflow and native version are ready, the
@@ -97,31 +98,31 @@ its own new config metadata/backups. The selector also retains the obsolete
 plaintext fallback path: healthy Keychain reads did not use/recreate it, and its
 failure is not a reason to restore credentials into /tmp or silently switch accounts.
 
-Use the protected verified launcher from the updated owner script. No browser
-login is currently requested. Do not copy login files or manufacture onboarding
-flags; the native UI may still require theme or trust review for the new workspace.
-The repair does not resume the paused milestone or approve checker/model actions.
+The owner has confirmed the durable launch completed. No repeated theme choice,
+subscription selection or browser login is requested. To reopen **only that same
+all-tools-denied profile**, use the verified owner-local launcher:
 
-Choose a theme, select the existing Claude subscription/claude.ai route (not
-Console/API billing), and complete its browser login privately. Follow the native
-login-success/Enter prompt and review safety/trust only for that exact owned empty
-workspace. If an unexpected provider, organization policy or error appears, stop
-and report the stage. At the normal prompt submit no model request or `!` command;
-exit with Ctrl-C. Report only whether native login succeeded and the normal prompt
-was reached, never codes, tokens, private account details or login screenshots.
-No setup-token, secret, SDK, global-settings change or login-file copy is needed.
-Normal HOME, managed policy and proxy remain in effect. DISABLE_UPDATES is only
-this native-startup process guard, not a compiler-environment change.
+```sh
+/usr/bin/python3 "$HOME/Library/Application Support/REDUE/portable-evidence/native-claude-2.1.187/launch-claude.py"
+```
 
-Expected success is isolated native onboarding/authentication, **not** tool
-sandboxing, subscription capacity, evidence eligibility or model acceptance. Current
-settings deliberately deny all tools. The independently reviewed disabled
-[synthetic checker proposal](portable-claude-receiver-proposal.md#current-six-check-synthetic-sentinel-proposal--not-applied)
-now has five pure tests passing. It would test a custom non-secret env sentinel
-and synthetic file/socket/network controls only; it cannot prove real credential
-removal, actual observer access, capacity or model reuse. No live fixture/settings
-application/native action occurred. No unsandboxed retry, print-mode substitute,
-handcrafted sandbox, hook or MCP is permitted.
+This optional owner command preserves normal HOME, managed policy and proxy,
+checks the exact native/settings identities and retains the isolated account
+namespace. DISABLE_UPDATES is only its process-local startup guard. Stop on an
+unexpected auth/trust/policy gate; do not accept new authority, repeat login,
+submit a model prompt or enter `!`. No setup-token, secret, SDK, global setting or
+login-file copy is needed. The goal has resumed; reopening the host does not
+approve checker/model actions.
+
+The independently reviewed disabled
+[durable synthetic checker proposal](portable-claude-receiver-proposal.md#durable-rebinding--disabled-no-native-action)
+has six pure deterministic controls passing. It would test a custom non-secret
+env sentinel and synthetic file/socket/network controls only; it cannot prove
+real credential removal, actual observer access, subscription capacity or model
+reuse. Exact rebound private map/settings/checker identities are separate from
+working settings5628de. No live fixtures, settings application or native checker
+action occurred. No unsandboxed retry, print-mode substitute, handcrafted sandbox,
+hook or MCP is permitted.
 
 The next owner/admin prerequisite is a supported policy view or administration
 route establishing this exact authenticated187 profile's applicable managed
@@ -145,9 +146,11 @@ and [quickstart](https://code.claude.com/docs/en/quickstart). Current documentat
 is newer than the pinned187 implementation; its actual host outcome must be
 recorded rather than inferred from the documentation.
 
-Owner outcome, recorded2026-10-11 09:28UTC: subscription login succeeded and normal
-prompt appeared in this isolated host; owner submitted no model request or shell
-command and exited. This is an owner-observed result, not a token/status inspection
-or an effective sandbox/capacity test. Independent source/data reviewf36527a of the exact no-model
-checker/settings delta is complete; actual effective-boundary proof remains unrun. Existing all-tools-denied settings
-remain intact pending specific approval; no secret or model request is authorized.
+Owner outcomes: the earlier temporary-profile report recorded successful
+subscription login and the normal prompt without a model/shell action; that
+profile was subsequently lost. The owner has since confirmed the repaired durable
+launch completed. These are owner-observed outcomes, separate from the bounded
+allowlisted native auth-status result above. Source/data reviewsf36527a and the
+integrated rebound reviewf3d2af1 establish the disabled proposal only, not effective sandbox,
+capacity or model acceptance. The current all-tools-denied settings remain intact;
+no secret, checker or model request is authorized.
