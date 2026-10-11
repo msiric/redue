@@ -6,6 +6,31 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
+Current checkpoint (2026-10-11): the owner requests read-only diagnosis and
+procedure repair with harmless mock-process tests only. The prior native attempt
+stays UNKNOWN; no repeat/native/checker/model call is approved. Old helperdc0,
+profilecc8, checkerb3, actual report9f364dc and process-recordfbce07d are unchanged.
+
+Read-only source plus recorded OWNER_WINDOW_ENDED establishes the old outer-window
+termination branch: start+15 begins on function entry before checks/native startup,
+and the launcher ends the owner window at remaining<=2 before group cleanup.
+Absolute phase/submission/checker timestamps were absent. No stdout/result collector
+existed. Actual command submission, checker startup/exit and lost output remain
+UNKNOWN; signal9/delta0 alone do not establish them. Cleanup is not checker success.
+
+D owns a minimal disabled repair: separate proposed180s startup/owner preparation,
+15s checker execution and5s cleanup; exact in-sandbox supervisor captures bounded
+fixed JSON plus actual OS child exit over the existing allowed synthetic socket.
+C owns independent critical review. Root owns integration/tracker. No terminal
+parser/input automation, REDUE runtime change, result-path permission, global
+setting or credential copying is permitted. Harmless mocked children/disposable
+local endpoints only in tests, clearly labelled harness acceptance. Existing
+assertions/per-operation limits and sandbox/profile guards remain authoritative.
+New exact files/limits/protocol require review and separate owner approval before
+another native attempt. Copilot capacity remains separate; gates are incomplete.
+
+## Historical owner-confirmed UNKNOWN result
+
 Current checkpoint (2026-10-11): the owner confirms performing the one approved
 manual attempt and supplies its structured launcher report. Result remains
 **UNKNOWN**, not a native boundary PASS: no checker JSON or checker exit was
