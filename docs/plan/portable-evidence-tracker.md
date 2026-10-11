@@ -3,7 +3,35 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — standing autonomy applied; lanes reassessed
+## Current checkpoint — native permission-rule repair
+
+Owner-reported pinned Claude2.1.187 settings validation skipped the exact inline
+Node diagnostic `Bash(...)` permission rule as `Empty parentheses`. Independent
+C source inspection confirms that native validation rejects unescaped empty
+parentheses anywhere in a rule before parsing its content, including inside the
+quoted JavaScript. The earlier fresh checks verified identities and outer
+filesystem prerequisites but missed this native rule-grammar precondition.
+This is a diagnostic configuration defect, not a passed enforcement test.
+
+Root instructed `Exit and fix manually`, never Continue or Fix with Claude.
+Observed saved lifecycle: native exit1/no signal,46,941.5ms, UNKNOWN_OR_REFUSED;
+owned process reaped, terminal restored and original files unchanged. Actual
+assertion JSON was not supplied, and no access gate exists. The privately
+attributed `native-relocated-diagnostic-rule-warning-20261011.json` preserves the
+warning classification/settings/input/helper/lifecycle digests without raw
+transcripts or protected contents. Old attempt and sources are unchanged.
+
+D owns the bounded staged repair; C independently reviews parser grammar,
+command/code immutability and unchanged security scope. Use an exact Node
+invocation of a fixed diagnostic file in the already-approved relocated CODE
+workspace, with the original diagnostic assertions. No Bash wildcard, broader
+parent/socket/network access, environment rewrite, model request or terminal
+controller. New identities and distinct records preserve the failed attempt;
+staging waits for independent review. Current native assertions remain UNKNOWN.
+The standing authority permits this repair without another helper-hash approval;
+Copilot Actions included capacity is a separate unchanged prerequisite.
+
+## Historical checkpoint — standing autonomy applied; lanes reassessed
 
 The owner’s [standing autonomy amendment](portable-evidence.md#65-owner-autonomy-amendment-standing-authority)
 is now the operating instruction for the existing goal. Routine in-scope repairs,
