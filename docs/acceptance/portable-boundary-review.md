@@ -19,7 +19,9 @@ reviewed procedure and new specific approval. Pinned187 manual commands default
 to requesting a model response; the prior3018 proposal did not disable that
 behavior. All actual attempts stopped before command submission. A future
 procedure must explicitly bind automatic responses off before it can satisfy
-the no-model boundary.
+the no-model boundary. A later owner-operated attempt ended its outer
+window without retained checker output; its checker execution and model count
+remain unknown.
 
 The review lane is independent of core and envelope authors. It owns this record
 and `test/portable-boundaries.test.mjs`; it does not modify the applicability
@@ -2258,3 +2260,41 @@ three actual command0 failures remain preserved. A new approval must explicitly
 bind this new settings identity, exact synthetic live resources, literal command,
 15s bound and owner operation. Native enforcement, actual receiving-agent reuse,
 model capacity and G1–G4 completion remain unestablished.
+
+
+### Owner-operated fixed-window attempt: observed limit and diagnosis
+
+The protected owner-supplied structured result was independently inspected at
+SHA-256 `9f364dc3ab867f53808dc2984392e3e3c6cec1c145fde850664f6c5289f2195b`
+(mode600, regular single-link). Its provenance is
+OWNER_SUPPLIED_STRUCTURED_LAUNCHER_RESULT, not a retained native tool trace.
+It binds frozen helperdc0/settingscc8/checkerb3 and reports elapsed13216.9ms,
+OWNER_WINDOW_ENDED, native signal9/reapedtrue, foreground restoredtrue, controls
+before/aftertrue, protocol delta[0,0,0], file currency and listener cleanuptrue.
+The checker JSON was not supplied. Checker execution, checker exit, actual
+submission time and model count remain UNKNOWN/NOT_MEASURED; neither protocol0
+nor absent output proves the checker never started. Coordinator fresh metadata
+reads occurred after the owner attempt and are not retrospective pretrial proof.
+
+The unchanged helperdc0 was independently rehashed and source inspected. Its15s
+absolute interval begins before source/file guards and native startup. The native
+window loop ends when only2s remain, then unconditionally assigns
+OWNER_WINDOW_ENDED and kills the dedicated process group in cleanup. That literal
+reason occurs in one branch. The owner-reported result therefore supports this
+outer-window branch; it does not separate native startup, human preparation,
+command submission or checker runtime. It does not establish output loss, a
+checker failure, native sandbox failure or REDUE correctness failure. The prior
+three automated attempts remain separate known command0 outcomes; this later
+manual attempt must not inherit their no-command/no-model classifications.
+
+A bounded repair may separate an explicitly approved owner-startup interval from
+the actual checker15s execution budget and finite cleanup. It must obtain actual
+child wait status rather than treating a checker's intended exit or printed
+booleans as the observed process exit. A fixed source-reviewed in-sandbox wrapper
+can relay bounded static data through the existing synthetic allowed socket; this
+is a proposal, not new imported evidence or REDUE authority. Original helper,
+checker/profile identities and result remain preserved. Proposed180s startup,
+15s checker and5s cleanup caps change the operation envelope and require new exact
+owner approval; the consumed15s allowance does not authorize them. No new native,
+checker, live listener, permission or model operation was run by this reviewer.
+Only harmless local mock controls are currently permitted for the repair.
