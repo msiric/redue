@@ -1905,3 +1905,39 @@ approved synthetic canaries/endpoints and custom env key; its no-real-credential
 statement concerns checker accesses, not ordinary native OAuth startup. This is
 read-only single-checker host-boundary preparation, not general writable-agent,
 portable evidence, cross-machine, model reuse or complete-goal acceptance.
+
+
+### Actual one-attempt native result and data-only parser follow-up
+
+The exact10904 harness's one owner-approved operation returned NOT_VERIFIED
+(exit1) after1,384.8ms. Independent inspection of the protected current-owned
+single-link600 result confirms SHA-256
+`fc53216ee2725a54250d6a2952e221bc60b394fcdd2535901e12ee75485ebbbe`.
+Native startup occurred, but Bash mode was not confirmed, command submissions
+were0, checker JSON was not verified and the inter-control protocol delta was
+[0,0,0]. External controls before/after were live, plaintext fallback remained
+absent and created fixtures were cleaned. The report separately records
+OWNED_NATIVE_REAP_UNKNOWN; fixture cleanup is not proof of native-process
+cleanup. Any later exact owned-process metadata/reaping observation is separate
+evidence. No checker boundary, model, REDUE authority or portable reuse trial
+completed. The one-attempt allowance is consumed; no automatic retry is approved.
+
+The static reason NATIVE_SCREEN_CONTROL_LIMIT originates only from retaining
+more than4096 characters after an unmatched escape prefix. Actual terminal
+bytes were deliberately not retained, so the actual escape family remains
+UNKNOWN. Three independent AST-only synthetic controls demonstrate that
+unsupported ESC(B, unmatched CSI> and incomplete OSC can all produce this same
+reason. They do not identify which occurred in the actual native attempt.
+
+A separate disabled run-next.py SHA-256
+`e923ef8735d73bc66337e691f6bbc7cec9a20982386e3fdcc1e1f23deb10747a`
+has source GO for data-only preparation. Its minimal diff immediately refuses
+syntactically complete unsupported ESC/CSI forms with fixed codes; only bounded
+syntactically incomplete CSI/OSC prefixes wait. It accepts no new terminal
+semantics and preserves the executed10904 source. Twenty-five author controls
+plus six additional independent split-family/OSC/colon controls pass through
+AST-extracted pure functions only, with0 native/fixture actions. This is not
+proof that the actual native UI is supported or that its failure is fixed, and
+is not permission to invoke the replacement. Any new operation requires
+specific owner approval, current preconditions and independent exact-source
+review; the failed report and discarded-data limitation remain historical facts.
