@@ -1733,3 +1733,46 @@ source meaning and actual current scoped observations; doctor/config changes or
 raw debug dumps are not substituted. Effective managed policy remains UNKNOWN
 until such evidence exists. Live operation still needs the separate exact owner
 resource/socket/settings approval, with the existing no-model boundaries intact.
+
+
+### Bounded current-process policy diagnostic review
+
+The two previous failed proof approaches were reviewed before a third: local
+policy-file absence before authentication did not exclude remote policy, and
+static settings did not establish effective controls. Requested pinned187 source
+xPa201746663/eD194686943/An194828010/Qpe194829541/n9r196897750 shows that /status
+lists nonempty active setting sources, always includes flag/policy sources in the
+candidate list, and derives managed source labels separately. Local disableAllHooks
+still retains managed hooks; the source listing cannot prove historical startup
+side effects or future policy stability. Startup can initiate remote loading and
+policy notifications before the user enters /status. These limits remain.
+
+A concrete missing precondition was found at bEp201755812: auth status computes
+Ak and Yg(), prioritizes OAuth in authMethod, and independently emits apiKeySource.
+Yg() does not set skipRetrievingKeyFromApiKeyHelper and can call a configured helper.
+Thus claude.ai/firstParty/pro alone did not prove remote ineligibility. Uj200757730
+uses the same OAuth subscription but calls Yg with skip-helper for the API-key
+eligibility alternative. API-key sources include the fixed descriptor fallback,
+scoped Keychain API service and native-config primaryApiKey. No credential value
+or configuration body was read by this reviewer.
+
+Actual protected metadata record bfbfd1e2… is600, regular/current-owned/single-link:
+scoped API service absent with native security exit44 without password options,
+fixed descriptor path absent, project/local settings absent, primaryApiKey key
+absent; only absence/presence was published. Root separately reports current
+system-managed sources and relevant override keys absent. This is narrower than
+an administrative policy claim. In pinned187, Ujfalse sets cSr=false; Wpe then
+ignores an otherwise retained remote cache. Therefore a subsequently confirmed
+firstParty/claude.ai/pro plus no API-key source can justify remote-inactivity for
+that exact current process and unchanged source/override context, not every Pro
+installation or a future context.
+
+Source/data GO was given for protected auth-source-diagnostic.py SHA-256
+`0bd8ea2027c02651c3054d1d6e29c6f76d1bfc4deb3cdc96a26e8da6fae05ee8`.
+It hashes/reuses only the exact eebb1e55 launcher's imports/constants/functions,
+excludes its interactive dispatcher, inherits the bounded64KiB/15s process-group
+reader, and emits fixed method/provider/subscription/source enums plus a presence
+boolean. Actual native API-source absence must confirm the metadata result;
+unexpected output/exit/source stops. No native/auth/status/model/checker operation
+was executed by this reviewer. This conditional diagnostic GO is not synthetic
+resource approval, sandbox enforcement, credential removal or model acceptance.
