@@ -1,30 +1,19 @@
 # Portable evidence: independent boundary review
 
-Current conclusion: bounded parsing/inspection, separate-store conflict policy,
-original-run interval capture, caller interval validation and delayed recipient
-publication have independent controls. The versioned content profile has real
-same-host copied-executable handoff evidence. Current CI-policy/subject coupling
-has controlled authorization and corruption regressions. One real required-refresh
-authentication of the successful hosted signed envelope now passes; producer
-acceptance, recipient applicability and G3 completion remain separate pending gates.
-The corrected copied-Node caller test passed on frozen `2beab5e`; its earlier
-reported caller-test PASS is unreconciled and is not used as gate evidence.
-Two-machine execution, actual cross-agent acceptance, authenticated CI and release
-gates remain pending.
-The first hosted machine and installed-macOS attempts stopped at incomplete
-portable origin despite eligible local evidence; their responsible phase is not
-established. A later signed-route producer established its portable probe's
-10-second parent timeout; the internal phase remains unknown. Diagnostics preserve
-that distinction rather than repairing origin from a later local CURRENT response.
-The bounded instrumented capture at `57c3a3d` has independent source review;
-it is preparation for one fixed diagnostic attempt, not a resolved timeout or
-hosted applicability result.
-That attempt identified both portable captures timing out during complete
-dyld-cache consumption. The portable-only finite budget adjustment at `41e66ac`
-has source review and focused actual cancellation/change-and-restore controls;
-matched-VM completion and higher acceptance gates remain unestablished.
-REDUE-PE-001 G1–G4 are not certified by
-this document. Baseline inspected: `b4f286034f43021a74f1babf2c1d0fee5df2a9e5`.
+Current conclusion: origin/caller/publication, parser/store conflict and current
+CI-policy boundaries have independent controls. Real same-host copied-executable
+handoff and one required-refresh authentication inspection of actual hosted
+signed evidence pass. Both complete hosted runtime profiles match the signed
+origin's full content identity. The finite portable inspection budget completed
+on that producer after the earlier fully captured cache-consumption timeouts;
+this does not prove tail reliability. The concrete CI recipient, controlled
+instruction writer and native Claude data proposal are independently reviewed
+preparations, not enabled authority. Exact producer acceptance, actual recipient
+CI applicability, two-machine agent reuse and complete economics remain pending.
+No G1–G4 certification is made here. The earlier unreconciled caller-test PASS
+is not gate evidence; its corrected frozen-source control passes. Historical
+failures, source identities and timing limits remain below. Baseline inspected:
+`b4f286034f43021a74f1babf2c1d0fee5df2a9e5`.
 
 The review lane is independent of core and envelope authors. It owns this record
 and `test/portable-boundaries.test.mjs`; it does not modify the applicability
@@ -1167,3 +1156,41 @@ or enable it. Preserve exact approved bytes across platform checkout line-end
 conversion; do not normalize a mismatching policy during import. Live recipient
 acceptance, actual two-machine agent reuse and complete-path economics remain
 outstanding.
+
+## Controlled instruction and native Claude proposal review
+
+Reviewed Lane D `bafb2ec`, `fc408f6`, `a0d2012` and `9653b26` as contributor-only
+preparation. The role-specific producer appendix explicitly selects portable
+capture for the configured compiler; the receiver keeps the installed shared
+policy and does not receive a task-specific reuse directive. Export, import and
+producer trust remain separate owner operations. New guidance destinations are
+exclusive and mode0600; source policy, config and exact owner physical identities
+and parents remain bound across publication. Distinct root/state/prefix resources
+are required. Failure cleanup removes only unchanged created content and preserves
+a concurrent owner edit in the same inode.
+
+Independent coherent `ad2e78d` plus final `a0d2012` five-file overlay: 12/12 PASS,
+142.38 ms, actual Node22.13.0. Prior `fc408f6` overlay 11/11 PASS, 133.34 ms, is
+retained separately. Both are pure/owned filesystem controls; no credentials,
+host process or model were invoked. The subsequent narrow `9653b26` diff
+explicitly refuses Windows writer execution before touching files and skips
+only POSIX fixture mechanics there, with a native Windows refusal control.
+Fixed macOS proposal paths now use POSIX data semantics on every test host.
+That diff has independent source review, not a native Windows behavior result.
+
+The native Claude invocation builder creates unverified proposal data only and
+its activation function always refuses. It cannot turn help output, a static
+settings key or a boolean approval into permission or secret-denial proof.
+Actual matched-profile, managed settings, exact socket/network/resource controls
+and non-secret credential-sentinel preflight must succeed before real OAuth is
+provisioned or any model launches. In particular installed2.1.146 is not assumed
+to implement current documentation's later credential scrub. Bounded GO permits
+owner review of this disabled proposal and controlled generic fixture setup;
+it certifies neither native Claude enforcement nor actual instruction discovery.
+
+A separate root Copilot preparation review is not yet complete. Its original
+87de9c5 five author controls independently pass, but an additional no-process
+control demonstrates that a private home ancestor of the writable workspace
+was accepted. Opposite-direction directory overlap and descriptor-bounded
+executable reads were requested before concrete proposal approval. No model or
+sandbox-enforcement claim follows those mechanics.
