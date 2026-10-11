@@ -340,9 +340,9 @@ not executable owner bindings. Exact rendered files and the literal argv/path ma
 are protected owner-local proposal data under this lane's
 `.local/portable-native-sentinel-proposal/`; they are not installed in the
 onboarded profile. The exact proposal map SHA-256 is
-`28166682959f3981c4bbff1095b6bba9c1b34f72f44f34ed8a4cbbae79f642dc`.
+`d55150b3abc06af64597e8ec19b8a3668745b8cc393e2531b26e3cd6244d7cf4`.
 Rendered checker SHA-256 is
-`40f844386951be415d91ba0a7cef34a9d5c5d677a82d81e216039523cc574a10`;
+`7d97369c54daa009ab7f487f476b19095b5a67e1b424143664538c238d151c8e`;
 rendered proposed settings SHA-256 is
 `b63c0e1e112f41aaa378b0c0f79f7bf65825ff25ae175c2b851b2af312958efe`.
 Original settings785be and nativea59a16 remain unchanged. The selected Node22.13.0
@@ -369,7 +369,7 @@ absence before login did not establish authenticated remote-policy absence, and
 local disableAllHooks is not a managed-hook bypass. Unknown startup authority
 stops the route. Recheck current ownership, physical parent/file identities and
 hashes of Node, native, checker/settings and synthetic resources before/after the
-interval. Reject presence, even empty, of NODE_OPTIONS, NODE_PATH and reviewed LD preload/search overrides or any DYLD_ key **before launching Node**; the checker's own
+interval. Reject presence, even empty, of NODE_OPTIONS, NODE_PATH and reviewed LD preload/search overrides or any DYLD_/OPENSSL_ key **before launching Node**; the checker's own
 presence guard cannot undo a preload that already executed. Reject unintended
 provider/API/startup overrides without printing values. No real authentication
 key receives a fake sentinel value.

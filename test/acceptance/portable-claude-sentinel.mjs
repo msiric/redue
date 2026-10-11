@@ -19,7 +19,7 @@ export const SENTINEL_BINDINGS=Object.freeze({
 const DENIAL_CODES=new Set(['EACCES','EPERM']);
 const RUNTIME_OVERRIDE_KEYS=Object.freeze(['NODE_OPTIONS','NODE_PATH','LD_PRELOAD','LD_LIBRARY_PATH','DYLD_INSERT_LIBRARIES','DYLD_LIBRARY_PATH','DYLD_FRAMEWORK_PATH']);
 export const classifySentinelError=error=>DENIAL_CODES.has(error?.code)?'DENIED_PERMISSION_ERROR':'UNKNOWN_OR_UNAVAILABLE';
-export const sentinelRuntimeUnsupported=env=>RUNTIME_OVERRIDE_KEYS.some(key=>Object.hasOwn(env,key))||Object.keys(env).some(key=>key.startsWith('DYLD_'));
+export const sentinelRuntimeUnsupported=env=>RUNTIME_OVERRIDE_KEYS.some(key=>Object.hasOwn(env,key))||Object.keys(env).some(key=>key.startsWith('DYLD_')||key.startsWith('OPENSSL_'));
 const classification=classifySentinelError;
 export async function runNativeSentinel(io){
   const checks=[];
@@ -52,8 +52,9 @@ export function probeSentinelConnection({path,host,port},expectResponse,{Socket=
       socket.write(SENTINEL_BINDINGS.request);
     });
     socket.on('data',chunk=>{
+      if(done)return;
+      if(chunk.length>64-received.length){finish('UNEXPECTED_RESPONSE');return;}
       received=Buffer.concat([received,chunk]);
-      if(received.length>64){finish('UNEXPECTED_RESPONSE');return;}
       const expected=Buffer.from(SENTINEL_BINDINGS.response);
       if(received.equals(expected))finish('EXPECTED_RESPONSE');
       else if(received.length>=expected.length)finish('UNEXPECTED_RESPONSE');
