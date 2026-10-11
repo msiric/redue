@@ -1532,3 +1532,34 @@ automatically substitutes compiler evidence for npm execution. This directly
 addresses G4 onboarding friction demonstrated by the incomplete sample. Frozen
 8695 artifact is unchanged; newly shipped documentation requires new exact
 candidate bytes and validation before release review.
+
+Independent read-only classification of completed installed sample: harness
+223f231, frozen d04/8695 artifact, installed mechanics PASS. Actual served imported
+baseline/unrelated responses have healthy schema1 CURRENT/PASS/eligible, origin
+daa040d3-c466-4285-a2f3-b42684ee91c6, digest
+ff8e449e05b715be9390993d7b8c204c2eb00ebd9c056d963d2cc5ab0147f8df, null local
+invocation. Relevant edit is STALE/nonreuse. Ordinary newer local invocation
+1b36a1d5-8597-478a-9988-b33b607748b7 remains PASS/UNVERIFIED/nonreuse with actual
+PORTABLE_LOCAL_SELECTION_BARS_FALLBACK after final query and restart. This proves
+the reason in this sample only;3a's missing reason is not filled retrospectively.
+
+One sample has16 disjoint workflow commands totaling39,890.201ms, directly
+measured wall39,893.226ms. Two exact plain obligations total212.743ms; measured
+added command work39,677.458ms. Setup31commands/10,670.230ms includes four expected
+edited-policy refusals; ownership/history controls4commands/258.356ms and cleanup
+2commands/450.977ms remain separate. Actual receipt/history checks pass and no
+recipient recorded execution occurs before relevant edit. There are zero model
+trials; two-machine acceptance and portable recovery execution remain NOT RUN/
+NOT PERFORMED. This finite mechanics sequence establishes no net benefit; it
+cannot establish typical reuse frequency, avoided verification obligations,
+CPU/memory/whole-agent benefit or complete signing/retrieval/authentication cost.
+Protected source record remains root.local/portable-evidence/complete-installed-
+final-ordinary.json; no raw tool output/private paths are published here.
+
+Acceptance-map audit distinguishes existing V01–V22 source/fault controls from
+actual model/machine acceptance and future final exact bytes. G1 real relocation
+and relevant rejection are evidenced independently of calibration forecasting.
+G2 amended native handoff/effective host prerequisites and G3 accepted live
+recipient remain pending; D5 trust approval itself is already recorded. G4
+prepublication final artifact/onboarding/affected acceptance and complete-path
+economics remain independent. No control-only result marks those gates PASS.
