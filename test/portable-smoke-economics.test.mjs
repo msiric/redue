@@ -3,7 +3,7 @@ import test from 'node:test';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {assertSmokeRootCwd,summarizeSmokeEconomics} from './acceptance/portable-smoke-economics.mjs';
+import {assertSmokeRootCwd,smokeEvidenceObservation,summarizeSmokeEconomics} from './acceptance/portable-smoke-economics.mjs';
 const sample=()=>[
  {scope:'setup',phase:'candidate-package-install',milliseconds:999,exit_status:0,error_code:null},
  {scope:'plain-baseline',phase:'plain-initial-compiler',milliseconds:100,exit_status:0,error_code:null},
@@ -34,4 +34,18 @@ test('runtime relative cwd resolves to the same canonical owned root, not a diff
   for(const cwd of ['.',root,'nested/..'])assert.doesNotThrow(()=>assertSmokeRootCwd(root,cwd,fs.realpathSync));
   for(const cwd of ['',null,undefined,4,'nested','../other',other])assert.throws(()=>assertSmokeRootCwd(root,cwd,fs.realpathSync));
  }finally{fs.rmSync(base,{recursive:true,force:true});}
+});
+
+test('served evidence is collected before a failing assertion and excludes hostile explanations',()=>{
+ const status={schema:1,observation:{healthy:true},checks:[{name:'typecheck',freshness:'UNVERIFIED',result:'PASS',reuse_eligible:false,
+  reason_code:'PORTABLE_LOCAL_SELECTION_BARS_FALLBACK',reason:'secret https://private.invalid/token',
+  invocation:{runId:'12345678-1234-1234-1234-123456789abc'},imported_evidence:{digest:'a'.repeat(64),origin_run_id:'private-path'},extra:'secret'}]};
+ const rows=[];rows.push(smokeEvidenceObservation('recipient-required-run-final',status,7));
+ assert.throws(()=>assert.equal(status.checks[0].freshness,'CURRENT'));
+ assert.equal(rows[0].freshness,'UNVERIFIED');assert.equal(rows[0].result,'PASS');assert.equal(rows[0].reuse_eligible,false);
+ assert.equal(rows[0].reason_code,'PORTABLE_LOCAL_SELECTION_BARS_FALLBACK');assert.equal(rows[0].command_index,7);
+ assert.equal(rows[0].origin_run_id,null);assert.doesNotMatch(JSON.stringify(rows),/secret|private/);
+ status.checks[0].reason_code='secret https://private.invalid';status.checks[0].freshness='secret';
+ const redacted=smokeEvidenceObservation('recipient-required-run-final',status,8);assert.equal(redacted.reason_code,null);assert.equal(redacted.freshness,null);
+ assert.throws(()=>smokeEvidenceObservation('private/path',status,8));
 });

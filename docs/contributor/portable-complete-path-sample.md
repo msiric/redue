@@ -11,6 +11,24 @@ string whose resolved physical directory is exactly the canonical owned root;
 root/state/compiler identity checks stay intact. One justified rerun requires
 independent review; this is not a product/economics failure or a score retry.
 
+
+The justified 3a65311 attempt passed real portable recording/export/import,
+recipient eligible applicability, unrelated preservation and relevant STALE, then
+stopped when the ordinary local rerun's final query was UNVERIFIED despite command
+exit0. No model was launched. The old failure report omitted the selected reason;
+**do not claim a specific code was actually served**. Current source independently
+shows accepted catalogs require complete portable facts and both-boundary catalog
+binding to resolve a newer local selection; an ordinary run does not create those
+fields. The documentation's generic separate-local-outcome statement does not
+explain this post-import limitation. This is a concrete usability gap to review,
+not permission to weaken receipt selection or silently add portable capture.
+
+After two materially different failed attempts, expensive runs are paused. The
+harness now retains allowlisted actual status fields and a static ordered stage
+before asserting, including on failure. Human explanations, paths, environments
+and arbitrary producer fields are not copied. A third attempt needs independent
+review and a revised explicit predeclaration; none is authorized by this update.
+
 Original sample predeclaration follows. This is a controlled same-machine `noLib` mechanics
 sample, not the public debugger workload, agent adoption, two-machine acceptance
 or a benchmark distribution. No model or permission change is involved. Existing

@@ -9,7 +9,7 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {findExecutable} from '../../src/executable-lookup.mjs';
 import {windowsLaunch} from '../../src/windows-command.mjs';
-import {assertSmokeRootCwd,summarizeSmokeEconomics} from './portable-smoke-economics.mjs';
+import {assertSmokeRootCwd,smokeEvidenceObservation,summarizeSmokeEconomics} from './portable-smoke-economics.mjs';
 const options={};
 for(let i=2;i<process.argv.length;i++){
   const key=process.argv[i];
@@ -31,7 +31,7 @@ const base=fs.realpathSync(fs.mkdtempSync(path.join(process.platform==='darwin'?
   prefix=path.join(base,'candidate-prefix'),baselinePrefix=path.join(base,'published-prefix'),
   origin=path.join(base,'Origin 空间'),recipient=path.join(base,'Recipient 空间'),
   originState=path.join(base,'redue-origin'),recipientState=path.join(base,'redue-recipient'),npm=findExecutable('npm');
-const env={...process.env},observations=[],commandTimings=[];
+const env={...process.env},observations=[],commandTimings=[],servedStatusObservations=[];
 let timingScope='setup',workflowStarted=null,workflowElapsed=null,finalReport,acceptanceFailure;
 const put=(file,content)=>{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,content);};
 function exec(command,{cwd=base,failure=false,phase='setup-or-compatibility',project=null}={}){
@@ -62,7 +62,8 @@ function plainCompilerCommand(root,state){
   assert.equal(fs.realpathSync(check.command[1]),fs.realpathSync(path.join(root,'node_modules/typescript/lib/tsc.js')));
   return check.command;
 }
-function row(root,state){const result=cli(root,state,'status','--sync','--json'),status=JSON.parse(result.stdout),selected=status.checks.find(c=>c.name==='typecheck');
+function row(root,state,stage){const result=cli(root,state,'status','--sync','--json'),status=JSON.parse(result.stdout),selected=status.checks.find(c=>c.name==='typecheck');
+  servedStatusObservations.push(smokeEvidenceObservation(stage,status,commandTimings.length-1));
   assert.equal(status.schema,1);assert.equal(status.observation.healthy,true);return {selected,milliseconds:result.milliseconds};}
 function record(step,selected,milliseconds){observations.push({step,milliseconds,freshness:selected.freshness,result:selected.result,
   reuse_eligible:selected.reuse_eligible,run_id:selected.invocation?.runId??null,
@@ -126,7 +127,7 @@ try{
     exec(plain,{cwd:origin,phase:'plain-initial-compiler'});
     timingScope='portable-workflow';workflowStarted=performance.now();
   }
-  const recorded=cli(origin,originState,'run','typecheck','--portable'),initial=row(origin,originState);
+  const recorded=cli(origin,originState,'run','typecheck','--portable'),initial=row(origin,originState,'origin-portable-final');
   assert.equal(initial.selected.reuse_eligible,true);record('origin wrapped portable execution',initial.selected,recorded.milliseconds);
   const id=initial.selected.invocation.runId,immutable=fs.readFileSync(path.join(originState,'runs-v1',id+'.json')),
     artifact=path.join(base,'portable.evidence.json');
@@ -140,17 +141,17 @@ try{
   assert.equal(importPreview.apply,false);assert(!fs.existsSync(path.join(recipientState,'portable-imports-v1.json')));
   const imported=json(recipient,recipientState,'evidence','import',artifact,'--check','typecheck','--accept-digest',exported.digest,'--apply');
   assert.equal(imported.producer_accepted,true);assert.equal(imported.reuse_eligible,false);assert(!fs.existsSync(path.join(recipientState,'runs-v1')));
-  const current=row(recipient,recipientState);assert.equal(current.selected.freshness,'CURRENT');assert.equal(current.selected.result,'PASS');assert.equal(current.selected.reuse_eligible,true);
+  const current=row(recipient,recipientState,'recipient-imported-baseline');assert.equal(current.selected.freshness,'CURRENT');assert.equal(current.selected.result,'PASS');assert.equal(current.selected.reuse_eligible,true);
   assert.equal(current.selected.evidence_source,'imported');assert.equal(current.selected.invocation,null);assert.equal(current.selected.imported_evidence.origin_run_id,id);
   record('recipient independent local applicability',current.selected,current.milliseconds);assert(!fs.existsSync(path.join(recipientState,'runs-v1')));
-  const cached=json(recipient,recipientState,'status');assert.equal(cached.checks[0].reuse_eligible,false);
-  put(path.join(recipient,'notes.md'),'Unrelated documentation.\n');const unrelated=row(recipient,recipientState);assert.equal(unrelated.selected.reuse_eligible,true);
+  const cached=json(recipient,recipientState,'status');servedStatusObservations.push(smokeEvidenceObservation('recipient-cached',cached,commandTimings.length-1));assert.equal(cached.checks[0].reuse_eligible,false);
+  put(path.join(recipient,'notes.md'),'Unrelated documentation.\n');const unrelated=row(recipient,recipientState,'recipient-unrelated');assert.equal(unrelated.selected.reuse_eligible,true);
   record('unrelated edit',unrelated.selected,unrelated.milliseconds);
-  put(path.join(recipient,'src/a.ts'),'export const value: number = 2;\n');const stale=row(recipient,recipientState);assert.equal(stale.selected.freshness,'STALE');assert.equal(stale.selected.reuse_eligible,false);
+  put(path.join(recipient,'src/a.ts'),'export const value: number = 2;\n');const stale=row(recipient,recipientState,'recipient-relevant');assert.equal(stale.selected.freshness,'STALE');assert.equal(stale.selected.reuse_eligible,false);
   record('relevant edit',stale.selected,stale.milliseconds);assert.deepEqual(fs.readFileSync(path.join(originState,'runs-v1',id+'.json')),immutable);
   if(options['--economics']){
     const importFile=path.join(recipientState,'portable-imports-v1.json'),importedHistory=fs.readFileSync(importFile);
-    const rerun=cli(recipient,recipientState,'run','typecheck'),fresh=row(recipient,recipientState);
+    const rerun=cli(recipient,recipientState,'run','typecheck'),fresh=row(recipient,recipientState,'recipient-required-run-final');
     assert.equal(fresh.selected.freshness,'CURRENT');assert.equal(fresh.selected.result,'PASS');assert.equal(fresh.selected.reuse_eligible,true);
     assert(fresh.selected.invocation?.runId);assert.notEqual(fresh.selected.invocation.runId,id);
     assert.notEqual(fresh.selected.evidence_source,'imported');
@@ -158,7 +159,7 @@ try{
     assert.deepEqual(fs.readFileSync(importFile),importedHistory,'Local rerun must preserve imported history');
     record('required local rerun',fresh.selected,rerun.milliseconds);record('required rerun final query',fresh.selected,fresh.milliseconds);
     cli(recipient,recipientState,'stop');cli(recipient,recipientState,'start');
-    const restarted=row(recipient,recipientState);
+    const restarted=row(recipient,recipientState,'recipient-restart-inherited');
     assert.equal(restarted.selected.freshness,'CURRENT');assert.equal(restarted.selected.result,'PASS');assert.equal(restarted.selected.reuse_eligible,true);
     assert.equal(restarted.selected.invocation.runId,recipientId);
     assert.deepEqual(fs.readFileSync(path.join(recipientState,'runs-v1',recipientId+'.json')),recipientRecord);
@@ -181,13 +182,13 @@ try{
   finalReport={schema:1,source:options['--source'],candidate_filename:path.basename(tarball),candidate_sha256:checksum,
     package:metadata.name,metadata_version:metadata.version,not_public_alpha10_bytes:true,platform:process.platform,arch:process.arch,node:process.version,
     published_policy_baseline:baseline,installed_policy_ownership:policyUpgrade.observations,
-    installed_mechanics:'PASS',history_preserved_before_owned_teardown:true,observations,command_timings:commandTimings,model_behavior:'NOT RUN',two_machine:'NOT RUN',
+    installed_mechanics:'PASS',history_preserved_before_owned_teardown:true,observations,served_status_observations:servedStatusObservations,command_timings:commandTimings,model_behavior:'NOT RUN',two_machine:'NOT RUN',
     coverage:'controlled noLib same-host project; complete observed globals; default-library external queries remain unsupported',
     cleanup:'owned observers/prefixes/checkouts only; origin/import/local records were preserved until disposable experiment teardown'};
  }catch(error){
   acceptanceFailure=error;
   finalReport={schema:1,source:options['--source'],candidate_sha256:checksum,installed_mechanics:'FAILED',
-    reason_code:'INSTALLED_SMOKE_PRECONDITION_OR_COMMAND_FAILED',command_timings:commandTimings,model_behavior:'NOT RUN',two_machine:'NOT RUN'};
+    reason_code:'INSTALLED_SMOKE_PRECONDITION_OR_COMMAND_FAILED',observations,served_status_observations:servedStatusObservations,command_timings:commandTimings,model_behavior:'NOT RUN',two_machine:'NOT RUN'};
 }finally{
   timingScope='cleanup';
   for(const [root,state] of [[origin,originState],[recipient,recipientState]])if(fs.existsSync(root)&&fs.existsSync(binary))
