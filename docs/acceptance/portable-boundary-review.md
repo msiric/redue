@@ -1418,3 +1418,21 @@ and current evidence reconciliation. Native acceptance requires owner-supported
 normal onboarding/prompt plus actual reviewed sentinel enforcement, exact trust
 file/socket controls, matched profile and approved capacity. None is supplied by
 a static proposal, a data record or first-theme UI.
+
+B207ecdea adds a disabled first-start record only. Independent source review GO:
+the native UI remains BLOCKED until owner/provider-provisioned credential-free
+startup and actual managed-policy/hook scope are established. Runner labels and
+fresh config directories are explicitly insufficient. Two bounded source
+approaches did not establish an authoritative cheap absence check; no new
+helper/workflow, keychain inspection, native process or model followed. This
+record preserves the stopping rule and does not grant host authority.
+
+Root567e3ba replaces the circular author-commit assertion in the disabled Claude
+data-only workflow test with exact reviewed helper SHA20a24e8e99c56d70c3b10e24b14e9efb192087383b9b9a3ea64290408b78d1c1
+and an immutable literal source requirement. Its selected source
+567e3ba685a579ba6dbf89d452e503c90c51ad14 contains those exact helper bytes and
+updated tests; the actual job separately checks checkout HEAD and helper SHA.
+The final proposal diff changes only the reviewed source pin. Independent
+controls 2/2 PASS,122.57ms, Node22.13.0; the earlier pin-preparation assertion
+failure remains historical. No secret, native execution, authority, active
+workflow or model capability is added by this test/source correction.
