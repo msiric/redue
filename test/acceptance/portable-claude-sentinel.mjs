@@ -11,8 +11,8 @@ export const SENTINEL_BINDINGS=Object.freeze({
   checker:base+'/workspace/redue-native-sentinel.mjs',
   protectedCanary:base+'/native-sentinel-resources/protected/read-canary.txt',
   outsideWrite:base+'/native-sentinel-resources/outside/write-canary.txt',
-  allowedSocket:base+'/native-sentinel-resources/allowed.sock',
-  deniedSocket:base+'/native-sentinel-resources/denied.sock',
+  allowedSocket:base+'/a.sock',
+  deniedSocket:base+'/d.sock',
   directHost:'127.0.0.1',directPort:38187,
   request:'REDUE_SENTINEL_PING\n',response:'REDUE_SENTINEL_OK\n',
 });

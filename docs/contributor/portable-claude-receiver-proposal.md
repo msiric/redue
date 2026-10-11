@@ -332,7 +332,7 @@ Exact approval is required before any new fixture provisioning, settings applica
 or native `!` action. No secret creation, SDK substitution or model trial follows
 from this result.
 
-### Current six-check synthetic sentinel proposal — not applied
+### Historical temporary six-check synthetic sentinel proposal — not applied
 
 The [checker template](../../test/acceptance/portable-claude-sentinel.mjs) and
 [settings template](portable-claude-sentinel-settings.json) contain render markers,
@@ -345,7 +345,7 @@ Rendered checker SHA-256 is
 `7d97369c54daa009ab7f487f476b19095b5a67e1b424143664538c238d151c8e`;
 rendered proposed settings SHA-256 is
 `b63c0e1e112f41aaa378b0c0f79f7bf65825ff25ae175c2b851b2af312958efe`.
-Original settings785be and nativea59a16 remain unchanged. The selected Node22.13.0
+At that checkpoint original settings785be and nativea59a16 were unchanged. The selected Node22.13.0
 executable SHA-256 is
 `5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc`.
 No live canary, listener, workspace checker or profile settings were created.
@@ -409,3 +409,38 @@ applicability, subscription capacity or agent reuse. Secret-bearing VM child key
 absence, the actual REDUE endpoint gate and model trials remain separate. Five
 pure deterministic controls pass; they create no live fixtures and launch no
 native/auth/tool/model process.
+
+### Durable rebinding — disabled, no native action
+
+The owner reports successfully launching the repaired durable187 setup. The
+original temporary profile is now absent; saved historical proposal files remain
+protected. This does not authorize a model or checker action. The working durable
+native SHA remainsa59a16; its all-tools-denied settings SHA is
+`5628de7667d4a5125c723ecbc3685336ef12cd80f15da83e6467b3826a337afc`
+and unchanged launcher SHA iseebb1e55. No credential was copied. The launcher's
+explicit secure-storage selection preserves the existing Keychain namespace in
+place; the pinned187 implementation also leaves its plaintext fallback at the old
+namespace path, not at the durable config path. This is not a new default login,
+a token-validity/capacity claim or an environment change to a verification check.
+
+The re-rendered disabled map is protected locally under
+`.local/portable-native-sentinel-durable-proposal/`, SHA-256
+`c321bb78cbd5dfacf6daaa9eb41db71f3d9aff4fa40456337d8d4e70f83edb1f`.
+Rendered checker SHA-256 is
+`b3bad6b2f056a28ee67886ee320703675fffc5c31185009983c228701ca70c6f`;
+proposed settings SHA-256 is
+`3018fc31cca7b676c9f24c84cf904ae8eefb2c4302a759b5a9013e0fed7817a7`.
+These are proposal-only copies: working settings5628, launcher and authentication
+are untouched; no checker, synthetic canary or listener was installed.
+
+The durable base contains spaces, so the literal one-command permission and manual
+shell input quote the checker argument. Two short synthetic socket basenames,
+`a.sock` and `d.sock`, keep each reviewed absolute pathname at98 UTF-8 bytes; the
+previous nested resource socket paths would be130 bytes and exceed macOS's Unix
+socket pathname capacity. No other socket authority is added. Fixed loopback
+port38187, six checks, absolute socket deadlines, strict policy and known-live
+external controls are unchanged. Six pure deterministic controls pass; none
+executes native code or proves the authenticated effective policy. The original
+launcher cannot run this proposal: a separately reviewed exact settings selection,
+synthetic-resource provisioning and owner approval remain required, alongside the
+actual effective managed-hook/strict/excluded-command prerequisite.

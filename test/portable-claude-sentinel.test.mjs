@@ -22,7 +22,7 @@ test('every missing/refused/timed-out/accessible target fails closed with redact
 });
 test('proposed exact settings delta retains strict sandbox and exposes one literal checker only',async()=>{
  const settings=JSON.parse(await fs.readFile(new URL('../docs/contributor/portable-claude-sentinel-settings.json',import.meta.url),'utf8'));
- assert.deepEqual(settings.permissions.allow,[`Bash(${B.node} ${B.checker})`]);assert(!settings.permissions.deny.includes('Bash'));
+ assert.deepEqual(settings.permissions.allow,[`Bash(${B.node} '${B.checker}')`]);assert(!settings.permissions.deny.includes('Bash'));
  for(const tool of ['Read','Write','Edit','WebFetch','WebSearch','Agent','Task','LSP','Glob','Grep'])assert(settings.permissions.deny.includes(tool));
  assert.equal(settings.sandbox.enabled,true);assert.equal(settings.sandbox.failIfUnavailable,true);assert.equal(settings.sandbox.allowUnsandboxedCommands,false);
  assert.equal(settings.sandbox.autoAllowBashIfSandboxed,false);assert.deepEqual(settings.sandbox.excludedCommands,[]);
@@ -59,4 +59,10 @@ test('connection deadline is absolute despite partial replies and cleanup is bou
  const oversized=probeSentinelConnection({path:'synthetic-test-only'},true,timers);
  socket.emit('data',Buffer.alloc(65));assert.equal(await oversized,'UNEXPECTED_RESPONSE');assert.equal(cancelled,4);
  socket.emit('data',null);assert.equal(cancelled,4);
+});
+
+test('durable binding uses two short socket basenames and quoted single checker argument',()=>{
+ assert(B.allowedSocket.endsWith('/a.sock'));assert(B.deniedSocket.endsWith('/d.sock'));
+ // Reviewed durable private base length91; short suffix keeps sockaddr_un payload below104 bytes.
+ assert(91+Buffer.byteLength('/a.sock')<104);assert(91+Buffer.byteLength('/d.sock')<104);
 });

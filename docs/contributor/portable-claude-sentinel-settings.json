@@ -3,7 +3,7 @@
   "enabledPlugins": {},
   "permissions": {
     "allow": [
-      "Bash(__REVIEWED_NODE__ __REVIEWED_BASE__/workspace/redue-native-sentinel.mjs)"
+      "Bash(__REVIEWED_NODE__ '__REVIEWED_BASE__/workspace/redue-native-sentinel.mjs')"
     ],
     "deny": [
       "WebFetch",
@@ -66,7 +66,7 @@
       ],
       "strictAllowlist": true,
       "allowUnixSockets": [
-        "__REVIEWED_BASE__/native-sentinel-resources/allowed.sock"
+        "__REVIEWED_BASE__/a.sock"
       ],
       "allowAllUnixSockets": false,
       "allowLocalBinding": false
