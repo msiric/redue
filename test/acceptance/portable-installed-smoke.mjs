@@ -44,13 +44,24 @@ function exec(command,{cwd=base,failure=false,phase='setup-or-compatibility',pro
 }
 const binary=path.join(prefix,'bin','redue'),oldBinary=path.join(baselinePrefix,'bin','redue');
 function cli(root,state,...args){
-  const phase=args[0]==='evidence'?`evidence-${args[1]}${args.includes('--dry-run')?'-preview':args.includes('--apply')?'-apply':''}`:
+  const phase=args[0]==='evidence'?`evidence-${args[1]}${args.includes('--dry-run')||args[1]==='import'&&!args.includes('--apply')?'-preview':args.includes('--apply')?'-apply':''}`:
     args[0]==='run'?`wrapped-${args.includes('--portable')?'portable':'local'}-execution`:
     args[0]==='status'?`status-${args.includes('--sync')?'synchronized':'cached'}`:`redue-${args[0]}`;
   return exec([binary,'--config',path.join(root,'redue.config.json'),'--state-dir',state,...args],{cwd:root,phase,project:root===origin?'origin':'recipient'});
 }
 const json=(root,state,...args)=>JSON.parse(cli(root,state,...args,'--json').stdout);
 const agent=(binaryAt,root,...args)=>exec([binaryAt,'--config',path.join(root,'redue.config.json'),'agent',...args],{cwd:root,phase:`agent-${args[0]}-${args[1]}${args.includes('--dry-run')?'-preview':''}`});
+function plainCompilerCommand(root,state){
+  const publicCheck=JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'))).checks.find(check=>check.name==='typecheck');
+  assert.deepEqual(publicCheck.command,['@node','@typescript-compiler:.','--noEmit']);
+  const runtime=JSON.parse(fs.readFileSync(path.join(state,'project-runtime-v1.json'))),check=runtime.checks.find(check=>check.name==='typecheck');
+  assert.equal(runtime.root,root);assert.equal(runtime.state,state);
+  assert.equal(check.qualification,'npm-typescript-direct-v1');assert.equal(check.cwd,root);
+  assert.equal(check.command.length,3);assert.equal(check.command[2],'--noEmit');
+  assert.equal(fs.realpathSync(check.command[0]),fs.realpathSync(process.execPath),'Same actual Node runtime required');
+  assert.equal(fs.realpathSync(check.command[1]),fs.realpathSync(path.join(root,'node_modules/typescript/lib/tsc.js')));
+  return check.command;
+}
 function row(root,state){const result=cli(root,state,'status','--sync','--json'),status=JSON.parse(result.stdout),selected=status.checks.find(c=>c.name==='typecheck');
   assert.equal(status.schema,1);assert.equal(status.observation.healthy,true);return {selected,milliseconds:result.milliseconds};}
 function record(step,selected,milliseconds){observations.push({step,milliseconds,freshness:selected.freshness,result:selected.result,
@@ -110,10 +121,9 @@ try{
   const oldFile=path.join(base,'old-local.evidence.json'),old=json(origin,originState,'evidence','export','typecheck','--output',oldFile);
   assert.equal(old.origin.complete,false);assert.equal(JSON.parse(fs.readFileSync(oldFile)).statement.predicate.facts,null);
   if(options['--economics']){
-    const check=JSON.parse(fs.readFileSync(path.join(origin,'redue.config.json'))).checks.find(check=>check.name==='typecheck');
-    assert.deepEqual(check.command,['@node','@typescript-compiler:.','--noEmit'],'Plain measurement must match explicitly selected recipe');
+    const plain=plainCompilerCommand(origin,originState);
     timingScope='plain-baseline';
-    exec([process.execPath,path.join(origin,'node_modules/typescript/lib/tsc.js'),'--noEmit'],{cwd:origin,phase:'plain-initial-compiler'});
+    exec(plain,{cwd:origin,phase:'plain-initial-compiler'});
     timingScope='portable-workflow';workflowStarted=performance.now();
   }
   const recorded=cli(origin,originState,'run','typecheck','--portable'),initial=row(origin,originState);
@@ -156,7 +166,7 @@ try{
     record('restart inherited local evidence',restarted.selected,restarted.milliseconds);
     workflowElapsed=performance.now()-workflowStarted;
     timingScope='plain-baseline';
-    exec([process.execPath,path.join(recipient,'node_modules/typescript/lib/tsc.js'),'--noEmit'],{cwd:recipient,phase:'plain-relevant-compiler'});
+    exec(plainCompilerCommand(recipient,recipientState),{cwd:recipient,phase:'plain-relevant-compiler'});
     timingScope='ownership-and-history-controls';
   }
   // Removal preserves unrelated instructions, other host content and history.

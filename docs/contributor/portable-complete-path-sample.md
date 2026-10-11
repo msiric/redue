@@ -29,7 +29,9 @@ unchanged; only the owned disposable experiment is removed after assertions.
 
 Two plain `node LOCAL_TYPESCRIPT/lib/tsc.js --noEmit` commands measure the same
 initial and relevant-edit obligations. The selected config must exactly match the
-direct compiler tokens first. The initial plain command runs before portable
+direct compiler tokens first, and the owned runtime snapshot must bind the same
+Node executable, exact installed entry/argv, qualification, root, working directory
+and state. The baseline executes that resolved configured command. The initial plain command runs before portable
 recording and the relevant plain command after the entire sequence; normal caches,
 inputs and process environment stay unchanged. That order is visible, not a
 randomized or matched agent-task comparison. The existing old-receipt and policy
