@@ -5,6 +5,15 @@ export function assertSmokeRootCwd(root,cwd,realpath){
   assert(typeof cwd==='string'&&cwd.length>0,'Declared runtime working directory required');
   assert.equal(realpath(path.resolve(root,cwd)),realpath(root),'Resolved compiler working directory must be the owned root');
 }
+// Public recipient decision codes from the reviewed portable-applicability contract.
+// An unfamiliar code is not copied merely because it looks like an enum.
+const PUBLIC_RECIPIENT_CODES=new Set([
+  'PORTABLE_CATALOG_UNAVAILABLE','PORTABLE_RECIPIENT_UNVERIFIED','PORTABLE_RECIPIENT_FACTS_INVALID',
+  'PORTABLE_ACCEPTED_RECORD_INVALID','PORTABLE_LOCAL_SELECTION_INVALID','PORTABLE_LOCAL_SELECTION_BARS_FALLBACK',
+  'PORTABLE_CATALOG_EXPLICITLY_RESOLVED_LOCALLY','PORTABLE_ACCEPTED_ORIGIN_INCOMPLETE','PORTABLE_APPLICABLE_CONFLICT',
+  'PORTABLE_UNORDERED_ORIGINS','PORTABLE_LOCAL_CURRENT_SELECTED','PORTABLE_APPLICABLE_FAILURE',
+  'PORTABLE_RECIPIENT_CURRENT','PORTABLE_FACTS_DIFFER','PORTABLE_NO_ACCEPTED_EVIDENCE',
+]);
 // Static stage plus allowlisted returned state; never forward human reasons or
 // arbitrary producer metadata into a public failure report.
 export function smokeEvidenceObservation(stage,status,commandIndex){
@@ -18,7 +27,7 @@ export function smokeEvidenceObservation(stage,status,commandIndex){
     observation_healthy:typeof status?.observation?.healthy==='boolean'?status.observation.healthy:null,
     freshness:allowed(selected?.freshness,['CURRENT','STALE','UNVERIFIED']),
     result:allowed(selected?.result,['PASS','FAIL']),reuse_eligible:selected?.reuse_eligible===true,
-    reason_code:typeof selected?.reason_code==='string'&&/^[A-Z][A-Z0-9_]{0,95}$/.test(selected.reason_code)?selected.reason_code:null,
+    reason_code:PUBLIC_RECIPIENT_CODES.has(selected?.reason_code)?selected.reason_code:null,
     run_id:identity(selected?.invocation?.runId),
     evidence_source:allowed(selected?.evidence_source,['local','imported']),
     imported_digest:digest(selected?.imported_evidence?.digest),

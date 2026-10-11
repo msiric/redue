@@ -47,5 +47,7 @@ test('served evidence is collected before a failing assertion and excludes hosti
  assert.equal(rows[0].origin_run_id,null);assert.doesNotMatch(JSON.stringify(rows),/secret|private/);
  status.checks[0].reason_code='secret https://private.invalid';status.checks[0].freshness='secret';
  const redacted=smokeEvidenceObservation('recipient-required-run-final',status,8);assert.equal(redacted.reason_code,null);assert.equal(redacted.freshness,null);
+ status.checks[0].reason_code='PRIVATE_SECRET_TOKEN';
+ assert.equal(smokeEvidenceObservation('recipient-required-run-final',status,9).reason_code,null);
  assert.throws(()=>smokeEvidenceObservation('private/path',status,8));
 });
