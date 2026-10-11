@@ -7,11 +7,10 @@ and native Claude Code on independently matched standard macOS receiver VM B.
 Codex acceptance is separate. No account purchase or account-existence decision
 is outstanding.
 
-1. **Exact data-only trust trial.** Review
+1. **Exact data-only trust trial — approved (D5).** Reviewed
    [the final recipient workflow](portable-ci-recipient-enable-proposal.yml),
    SHA-256 `ef237cbb411b0520791911503d3071a9a42f78502ac8f712406a11566482ef78`,
-   and separately approve its exact producer policy and fresh-state registry
-   provisioning. The registry SHA-256 is
+   and its exact producer policy/fresh-state registry provisioning are owner-approved. The registry SHA-256 is
    `5a1021fcf9b119f4469370eb33c09dc35c62cb174bc272574065a382aae6d521`;
    policy digest is
    `bab7901892570e81f15f8e888d2c33e632479f55f461d4ee34f905acfe7a5ce6`.
@@ -20,7 +19,10 @@ is outstanding.
    OIDC, uploads or global trust. Signing approval does not grant this trust.
    The exact review files are on `dev/portable-ci-preparation` at2448a8d;
    helper/registry are pinned to immutable a23843e, runtime/artifact to d04b872.
-   The workflow remains outside `.github/workflows` until approval.
+   Exact bytes are enabled only on dedicated dev/portable-ci-recipient atb240187.
+   First run38098482463 stopped before import at an erroneous fresh-receipt
+   precondition; corrected helper/source-pin review is pending. Do not repeat
+   producer trust approval or launch a model from this result.
 2. **Copilot included-capacity confirmation.** Confirm account msiric's applicable
    seat permits CLI requests from this personally owned repository, at least four
    AI credits are included for the first bounded trial, and no additional-charge
