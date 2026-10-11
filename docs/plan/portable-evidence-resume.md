@@ -6,6 +6,31 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
+Current checkpoint (2026-10-11 16:15UTC): the owner approved the exact separate
+manual profile and one owner-operated15s attempt after fresh prerequisites. Profile
+SHA-256cc8aaf8c396424e37d48d8bfb2bc690461e7b99ef1ff7b3afff986118c45ff1e,
+helperdc0eb16 and checkerb3bad6 remain exact. Read-only `--verify` exited0;
+metadata confirms OAuth item present, scoped API service absent44 and native
+primaryApiKey key absent. No coordinator native/checker/model launch occurred.
+
+The operation gate stopped at an existing owned manual-process record, modified
+16:12:41UTC, SHA-256fbce07dacb46bc46d6036c214d4c95e2de2e2d172e9bea0f5390460c4b4a77b1.
+Its recorded PID is absent at inspection; the synthetic socket paths are absent.
+These facts do not establish checker execution, exit or complete cleanup. Actual
+checker outcome remains UNKNOWN pending owner-provided structured checker and
+launcher results. Do not clear the record, repeat the attempt, infer unused
+approval, or turn missing output into PASS. One concise owner clarification was
+requested; no further execution or permission request follows automatically.
+
+Protected nonsecret prerequisite record `native-manual-owner-approval-preflight-20261011.json`
+SHA-256bdb7785a3bd697a87e8e6552b80665e480da374f167da4a5a127625551d85cce
+preserves identities and observed gates. Original settings, authentication,
+receipts, frozen artifacts and security boundaries are unchanged. Copilot included
+capacity remains separately pending; G2/finalG3/G4 remain incomplete. No authority
+or enforcement is inferred from the file checks. Day0 and spending limits remain.
+
+## Historical owner-operated procedure preparation
+
 Current checkpoint (2026-10-11): automated terminal-controller retries have
 stopped at the owner's instruction. Only preparation of a short owner-operated
 native checker procedure is authorized now. Independent pinned187 source review

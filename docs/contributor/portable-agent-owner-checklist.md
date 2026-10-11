@@ -7,6 +7,13 @@ and native Claude Code on independently matched standard macOS receiver VM B.
 Codex acceptance is separate. No account purchase or account-existence decision
 is outstanding.
 
+Current manual-checker status: the owner approved the exact cc8aaf separate
+profile and one15s owner-operated attempt. Fresh file checks pass, but an existing
+manual-attempt process record now blocks another launch. Checker result and exit
+remain UNKNOWN pending the owner’s structured output; no record is cleared or
+retry inferred. Coordinator launched no checker/model. See the current
+[resume record](../plan/portable-evidence-resume.md). Copilot capacity is separate.
+
 1. **Exact data-only trust trial — approved (D5).** Reviewed
    [the final recipient workflow](portable-ci-recipient-enable-proposal.yml),
    SHA-256 `ef237cbb411b0520791911503d3071a9a42f78502ac8f712406a11566482ef78`,
