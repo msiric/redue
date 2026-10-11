@@ -6,7 +6,26 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-**Current conclusion (2026-10-11 09:51UTC): the approved data-only recipient
+**Environment repair checkpoint (2026-10-11 13:38UTC): goal remains paused;
+only the owner's isolated-host repair request was executed. The entire old
+/tmp setup is absent. Verified native187 and saved proposals survived; the exact
+old scoped Keychain entry exists. A durable owner-local workspace/config/binary/
+all-tools-denied profile and guarded launcher now exist outside tracked files.
+Private `.local/portable-evidence/claude-environment-repair.json` identifies the
+canonical setup and full protected record; the old owner onboarding script now
+points to that verified launcher, with the prior command retained separately.
+BinarySHA a59a16… unchanged; rebound settingsSHA5628de…; launchereebb1e….
+Independent source/data repair review GO; no effective-enforcement claim.
+Native auth-status exit0 reports claude.ai/firstParty/pro/loggedIntrue using the
+old Keychain namespace in place, without copying credentials. Its first execution
+initialized native config metadata/backups. No token validity/capacity claim.
+Old plaintext fallback remains an explicit pinned-native caveat, not a required
+workspace or recovered credential file; old tmp directory is still absent.
+No native checker, model, trust change, CI, merge, publication or goal resumption.
+Owner may complete ordinary theme/trust UI if shown; another browser login is not
+currently requested. Managed-policy/sentinel/model gates remain separate.**
+
+**Previous checkpoint (2026-10-11 09:51UTC): the approved data-only recipient
 attempt38123365552 PASSED, independently establishing importedCURRENT/PASS/eligible
 on the matched VM without equivalent local execution. This is not agent reuse.
 Owner-observed isolated nativeClaude187 subscription onboarding now succeeds;

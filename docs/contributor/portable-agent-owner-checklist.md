@@ -72,36 +72,35 @@ These do not establish effective native permissions or agent reuse.
 
 ## Exact owner-local Claude step
 
-Verified native2.1.187 SHA-256
-`a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3`,
-settings SHA-256
-`785be21b4576e0ad7037f761d4a3ee852a5ea6c12bd9245aa17af577acf698cb`.
-Directories remain canonical, owner-local and mode700; settings are mode600.
-No credential file was copied or read. The read-only recheck sees no selected
-auth/provider overrides in this session; the owner's terminal must independently
-avoid alternate API/bearer/OAuth/provider/secure-storage overrides. If one is
-set, stop and report only its key name rather than stripping it or printing values.
+Repair checkpoint2026-10-11 13:38UTC: the old temporary setup no longer exists.
+Its configuration cannot be presumed intact. A durable owner-local replacement
+is verified outside tracked files, identified by the protected
+`.local/portable-evidence/claude-environment-repair.json` record. The current
+`.local/portable-evidence/claude-owner-onboarding.sh` uses that verified launcher;
+the original stale command is archived and must not be reused.
 
-Run the preserved reviewed command in the owner's terminal:
+Exact native187 SHA-256 remains
+`a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3`.
+Reconstructed original all-tools-denied settings match785be… before rebinding;
+new durable settingsSHA5628de… keep every tool denied, strict sandbox/no exclusions,
+no Unix endpoint grants, and protect the rebound config/settings/binary locations.
+Do not apply the separately proposed sentinel allowance as repair defaults.
 
-```sh
-(
-  cd "$OWNED_EMPTY_WORKSPACE" || exit
-  env CLAUDE_CONFIG_DIR="$OWNED_CLAUDE_CONFIG" \
-      GH_CONFIG_DIR="$OWNED_GH_CONFIG" DISABLE_UPDATES=1 \
-      "$REVIEWED_NATIVE_CLAUDE_187" \
-      --permission-mode dontAsk --tools Bash \
-      --strict-mcp-config --mcp-config '{"mcpServers":{}}' \
-      --setting-sources project,local --settings "$REVIEWED_NO_TOOL_SETTINGS"
-)
-```
+The guarded owner-local launcher checks canonical paths, ownership, permissions,
+checksums and unintended auth/runtime overrides before entry. It preserves the
+exact prior isolated Keychain namespace through the **source-reviewed187**
+secure-storage selector, without copying credentials or selecting the default
+account. Native auth-status exit0 reports loggedIntrue/claude.ai/firstParty/pro;
+only allowlisted fields were retained. This is recognized local authentication,
+not token-validity, capacity, model or effective-permission proof. Native generated
+its own new config metadata/backups. The selector also retains the obsolete
+plaintext fallback path: healthy Keychain reads did not use/recreate it, and its
+failure is not a reason to restore credentials into /tmp or silently switch accounts.
 
-The exact canonical owner-local command is preserved privately at
-`.local/portable-evidence/claude-owner-onboarding.sh` (mode600) and supplied to the
-owner. The variables above are placeholders for those verified paths, not paths to
-infer or a command to run without binding them. Private home/temporary paths do
-not need to appear in public instructions.
-
+Use the protected verified launcher from the updated owner script. No browser
+login is currently requested. Do not copy login files or manufacture onboarding
+flags; the native UI may still require theme or trust review for the new workspace.
+The repair does not resume the paused milestone or approve checker/model actions.
 
 Choose a theme, select the existing Claude subscription/claude.ai route (not
 Console/API billing), and complete its browser login privately. Follow the native

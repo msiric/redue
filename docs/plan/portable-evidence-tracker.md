@@ -3,7 +3,17 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-Current conclusion (2026-10-11 09:51UTC): the exact owner-approved data-only
+Environment repair checkpoint (2026-10-11 13:38UTC): goal paused; owner-authorized
+repair only. Old temporary base is absent. Durable owner-local verified workspace,
+config, exactnative187 and all-tools-denied settings rebuilt; scoped Keychain
+login preserved in place with the pinned native namespace setting. Native auth
+status exit0 reports claude.ai/firstParty/pro, not validity/capacity. Native config
+metadata/backups initialized; no credentials copied or raw status exported.
+Independent repair source/data GO, not sandbox enforcement. Protected repair
+record and current verified command are linked from the resume record. No checker,
+model, CI/trust/public action. Prior progress and all remaining gates stay intact.
+
+Previous conclusion (2026-10-11 09:51UTC): the exact owner-approved data-only
 recipient38123365552 passed and remains distinct from actual agent reuse.
 Owner-reported isolated Claude187 subscription login reached the normal prompt,
 without a model or shell request. The exact disabled synthetic boundary proposal
