@@ -1688,3 +1688,48 @@ A synthetic PASS cannot establish real credential removal, REDUE endpoint
 access, portable applicability, matched-VM reuse, subscription capacity or model
 acceptance. No new host architecture, policy introspection tool or broader
 research is proposed by this review.
+
+
+### Durable profile rebound review — proposal remains disabled
+
+After an owner-authorized environment repair and owner-reported successful durable
+native187 launch, independent read-only review of onboarding9bdbd4c grants GO for
+the re-rendered proposal only. Map SHA-256
+`c321bb78cbd5dfacf6daaa9eb41db71f3d9aff4fa40456337d8d4e70f83edb1f`,
+checker SHA-256
+`b3bad6b2f056a28ee67886ee320703675fffc5c31185009983c228701ca70c6f`,
+and proposed settings SHA-256
+`3018fc31cca7b676c9f24c84cf904ae8eefb2c4302a759b5a9013e0fed7817a7`
+match600 private files. Exact template rendering, quoted single checker argument,
+literal manual ! input, protected originals and absent application destinations
+were checked independently. Six pure controls pass in48.297ms; no native action,
+listener/canary provisioning, settings application or model trial occurred.
+
+The two short socket basenames produce98-byte absolute paths, unlike130-byte
+nested paths in the durable base. Only one exact synthetic socket is allowed;
+this changes neither REDUE transport nor recipient authority. Quoted command
+text is correct shell argument syntax but actual native permission matching and
+sandbox enforcement remain untested. The working durable all-tools-denied
+settings5628de and bounded repair launcher eebb1e55 remain byte-identical; the
+original launcher cannot select this sentinel proposal.
+
+Explicit secure-storage selection preserves the old isolated Keychain namespace
+without copying credentials. Source inspection showed that plaintext fallback
+also follows that old namespace path, not the new durable config path. This
+repair context is bound separately from the earlier no-override preflight; no
+historical environment/enforcement evidence is silently reused. Metadata presence
+and owner-reported normal prompt do not establish token validity, capacity or
+effective managed startup authority.
+
+Before a third policy-evidence approach, the two previous limitations were
+reviewed: prelogin local-source absence cannot rule out authenticated remote
+policy, and source-only strict settings cannot establish effective merging.
+Current official [settings documentation](https://code.claude.com/docs/en/settings#confirm-what-loaded)
+documents /status setting-source provenance, while explicitly distinguishing it
+from the source of each effective key. /config is not a complete settings view.
+Those current docs alone do not certify native187 hook/exclusion semantics or a
+current managed snapshot. Any concrete bounded diagnostic needs pinned-version
+source meaning and actual current scoped observations; doctor/config changes or
+raw debug dumps are not substituted. Effective managed policy remains UNKNOWN
+until such evidence exists. Live operation still needs the separate exact owner
+resource/socket/settings approval, with the existing no-model boundaries intact.
