@@ -51,7 +51,7 @@ credential or permission is provisioned by these helpers; d04 candidate bytes re
 
 Baseline inspected: `main` and `origin/main` at `b4f286034f43021a74f1babf2c1d0fee5df2a9e5`; package `@redue/cli@0.1.0-alpha.10`. No pre-existing portable implementation or open PR. Owner plan was the only untracked content and is preserved verbatim. Existing worktrees and historical artifacts remain intact.
 
-Current critical boundaries: caller/origin/publication and current-policy controls have independent review. Root after independently reviewed native-preparation docs (`69e8218`) is clean when checked; remote remains `d04b872ee0e848e300c0cc9738ad761e48146acc`. Later local onboarding/auth proposals do not replace that exact candidate identity. Reviewed finite budgets and final expiry controls are committed in the tested candidate. Full compiler discovery retains external absent candidates; ordinary default-library lookup remains unsupported. Hosted origin/profile success is not recipient or model acceptance.
+Current critical boundaries: caller/origin/publication and current-policy controls have independent review. Root at reviewed diagnostic checkpoint (`57cfca3`) is clean when checked; remote remains `d04b872ee0e848e300c0cc9738ad761e48146acc`. Later local onboarding/auth proposals do not replace that exact candidate identity. Reviewed finite budgets and final expiry controls are committed in the tested candidate. Full compiler discovery retains external absent candidates; ordinary default-library lookup remains unsupported. Hosted origin/profile success is not recipient or model acceptance.
 
 Current exact local artifact: source d04b872,80files/158,105 archive bytes, SHA-256 `8695b612a5c33dae945b2bc8df57cd68ca3eefb401aa0ef9ca2850d212979ea2`, manifest/checksum `.local/portable-evidence/candidates/d04b872`. Actual installed origin `473be4ea-cab4-49cd-9405-433af9d8576b`, imported digest `1745893830e1da353ebd9bcb5fb92fe2c0e7c374ef86eddd4d8952887c13e30b`. Recipient/unrelatedCURRENT, relevantSTALE, zero recipient compiler executions; both-host policy ownership passes. Raw local `.local/portable-evidence/installed-d04b872.log`; models NOT RUN. Not public alpha.10 bytes.
 
@@ -72,6 +72,31 @@ Final source3f product CI38095797641: macOS322PASS/25skip, Linux22 310PASS/37ski
 Pre-attempt artifact allowance snapshot: 4,608,374 active bytes +5MiB signing reservation +224KiB package archive reservation =10,080,630 bytes <10MiB. Root cap is192KiB package payload/224KiB archive. Serialize/check actual usage before the single accounted attempt; no extra unreserved upload authority.
 
 Current active artifacts are4,826,222bytes at the verified checkpoint; recheck before any later upload. Next: review disabled host proposals and exact current-policy proposal before recipient acceptance; no new producer/signing push. Actual recipient authority still requires current owner policy and effective receiving-host controls. Preserve prior failures and concrete deadline values. Account-existence question is answered: current resource condition is PENDING_OWNER_AUTH_WORKFLOW/CAPACITY_PROOF, not PENDING_OWNER_ACCOUNT. Amended pair still needs reviewed native OAuth workflow/owner secret, Copilot entitlement/policy/billing and exact producer-policy approval. No main/model/trust/public action is inferred.
+
+## Daily progress — 2026-10-11 UTC (current)
+
+At01:19UTC,3h55m since agreedDay0: frozen d04 origin/signing/profile and installed
+relocation evidence remains valid; no actual model handoff or live accepted recipient
+is established. D5 exact original data-only approval is recorded; revised two-pin
+proposal awaits its separately requested approval, not a repeat trust decision.
+New productCI892f603 allfour jobsPASS, with independently repacked Windows bytes
+explicitly distinguished from prior exact-frozen-byte acceptance. Two complete-path
+attempts failed on reviewed harness expectations; neither establishes complete
+costs or net benefit. Frozen-module review confirms ordinary post-import PASS may
+remain UNVERIFIED until an explicitly selected complete portable local baseline
+resolves the catalog. Diagnostic fix is independently reviewed, no engine semantics
+changed. One same-obligation completion sample requires final independent review;
+failed receipts will be retained rather than erased by disposable teardown.
+
+Owner/resource decisions and blocked lanes: original recipient approval no longer
+blocks D5 trust; only changed-pin approval blocks corrected live data acceptance.
+Copilot seat/policy/included quota and effective native credential boundary remain
+prerequisites; Claude native onboarding/authentication and actual sandbox/credential
+proof are unrun. Account existence is answered. No paid usage, model trial, broad
+permission change, main merge or publication. Exact approval times before this
+checkpoint were not retained; no historic blocked-hour total is invented. Concurrent
+implementation/review proceeds while those lanes are blocked. Day14/28 forecast
+remains conditional, with formal calibration atOct13 21:24UTC; no date reset.
 
 ## Daily progress — 2026-10-10 UTC
 

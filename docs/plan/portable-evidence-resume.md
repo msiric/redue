@@ -14,7 +14,7 @@ G2/G3 incomplete; G4 prepublication NOT READY.**
 
 ## Source, owners and approval boundaries
 
-Verified root task branch `a2016f0` before this checkpoint's documentation changes;
+Verified root task branch `57cfca3` before this checkpoint's documentation changes;
 remote and exact tested candidate remain
 `d04b872ee0e848e300c0cc9738ad761e48146acc`. Later disabled host proposals do not replace
 the candidate identity. This includes the
@@ -68,6 +68,43 @@ SIGTERM did not exit in2s; the owned process was SIGKILLed/reaped-9. No retry or
 onboarding bypass occurred. Owner-provisioned supported test onboarding/authentication
 remains the next native gate; strict-shell/sentinel/credential/sandbox proof is unrun.
 Help/static keys cannot activate it. These leaf proposals are not in the d04 package.
+
+## Current bounded acceptance work — 2026-10-11 01:19 UTC
+
+The owner reply approves the original exact recipient workflow `ef237cbb…`, policy
+and fresh-state provisioning (D5). That workflow was already enabled at b240187;
+its actual run38098482463 failed before import. The independently reviewed
+corrected proposal `a6006888…` changes two helper source pins only and remains
+**disabled pending its separately requested approval**. Do not interpret approval
+of old exact bytes as authorization for changed bytes or repeat the failed job.
+The frozen signed artifact remains unexpired through2026-10-11 23:56:31UTC.
+
+Product CI38099703953 at892f603 completed allfour jobs successfully: macOS445PASS/
+27skip, nativeWindows297PASS/175skip, Linux22 433PASS/39skip, each472tests;
+Linux24 jobPASS/count not retained. This workflow repacks independently: the
+Windows SHA5e3a177f… is different, so it does not add exact-frozen-byte Windows
+acceptance. That comes from earlier exact-package38096673730 only.
+
+Two opt-in installed cost attempts are retained privately: ccba93d stopped before
+portable recording on a relative-cwd harness assumption; corrected3a65311 recorded,
+exported/imported and independently reused the frozen d04 evidence, then detected
+STALE correctly. Its ordinary recipient rerun succeeded but final query returned
+UNVERIFIED rather than the harness's incorrect CURRENT expectation. The actual
+served reason was not captured and must not be reconstructed as fact. Independent
+frozen-module control b2cb052 proves that complete portable facts are required for
+a newer local outcome to resolve an accepted import catalog; ordinary PASS remains
+historical/non-reusable. No engine change or unsafe reuse was observed. No complete
+sample or economic benefit has been established.
+
+Reviewed diagnostic leaf7aeef9c/72db693 (integratedffb6f99/a2c528c) now captures safe
+served evidence before assertions, with an exact public-code allowlist; independent
+4/4PASS. Root focused applicability/diagnostic/corrected workflow/native controls
+19/19PASS176ms. After two failures, the lane paused for independent review. D owns
+truthful completion of the same ordinary-run obligation and preserving owned
+failed-sample receipts; C reviews it before one declared root run. B owns only the
+shipped guide's explicit fresh portable baseline clarification. No model launches,
+new producer, signing, credential access or permission changes are authorized by
+these mechanics. All native/account and corrected-pin gates remain separate.
 
 ## Current hosted and installed checkpoint
 
