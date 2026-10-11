@@ -241,3 +241,17 @@ The allowance is consumed; a reviewed parser change requires its own specific
 native-attempt approval before application/testing. Preparation may continue with
 pure tests and independent source review, never by silently accepting unknown
 terminal controls or broadening tool/permission semantics.
+
+
+### D6 separately approved cursor-repair synthetic attempt
+
+The owner approved one exact75082ecd42ce75fe145ced1d2a9ea12fffdc371cef77d71260b56654407a0d0b
+preflight with unchanged c321bb proposal/settings/checker/resources and15s cap.
+Independent primary-source review and55+11 pure controls preceded fresh live
+metadata/auth guards. Actual attempt3 stopped at NATIVE_SCREEN_CONTROL_UNKNOWN
+before any shell/checker/model submission,492.8ms. Cleanup/reaping/fallback and
+external controls passed; protocol delta[0,0,0]. No actual unknown opcode or
+sandbox outcome is inferred. The allowance is consumed. Further native action,
+resource lifetime or route changes require specific review/approval; another
+decoder expansion is not automatically started. Exact result and failures remain
+preserved. Copilot capacity and all actual-agent release gates remain separate.

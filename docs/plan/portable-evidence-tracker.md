@@ -3,6 +3,27 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
+Current checkpoint (2026-10-11): the owner explicitly approved one75082e
+synthetic preflight after independent55+11 pure controls and exact-source review.
+Fresh metadata/auth/ownership guards passed. It ran once and stopped before shell
+or checker input: **NOT_VERIFIED/NATIVE_SCREEN_CONTROL_UNKNOWN**,492.8ms.
+Native reaping, fixture cleanup, before/after controls and plaintext-fallback
+absence passed; protocol delta[0,0,0]. Protected result3 SHA-256
+b4ebbade7123fb6a0ed508f9e7fc20fc7fddc80954b578c67602bf0b4de24941
+is preserved; original settings/launcher remain unchanged and owned fixtures are
+absent. This is a terminal-controller limit, not a REDUE or sandbox-denial result.
+The actual control opcode/parameters were not retained and remain UNKNOWN.
+
+All three synthetic allowances and the startup-only allowance are consumed.
+No checker/model trial has run. Native execution and parser expansion have stopped;
+C reviews the actual result and D/C may identify an existing supported owner/native
+TTY route without building another harness or changing resource/permission scope.
+Copilot included-credit confirmation remains separately pending. G2/finalG3/G4
+remain incomplete; data-only machine acceptance is not agent reuse. No runtime,
+receipt, artifact, authentication, trust, CI or publication changes occurred.
+
+## Previous successful startup-only diagnostic
+
 Current checkpoint (2026-10-11 15:00UTC): the owner approved one exact
 startup-only diagnostic1c6a55. Fresh metadata/auth-source guards passed; native187
 reported claude.ai/firstParty/Pro with no API-key source. The diagnostic ran once
