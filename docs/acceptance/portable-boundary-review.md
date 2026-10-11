@@ -1849,3 +1849,59 @@ Known-live external controls and native tool tracing remain mandatory. This is
 GO to request that exact test approval only, NOT GO to execute it or weaken any
 host policy. The prior unavailable /status and prior policy-evidence limitations
 remain retained; no stale green or new model/machine acceptance is inferred.
+
+
+### Owner-approved one-attempt native synthetic harness review
+
+Owner approval D6 covers the exact c321bb78 map, 3018fc31 new settings and
+b3bad6b2 checker only. Independent read-only rehash confirms all three exact
+bytes, current ownership, single links and mode600. The normal 5628de76
+all-tools-denied profile and eebb1e55 launcher remain separate and must remain
+unchanged. The existing old secure-storage namespace directory now exists empty,
+current-owned/mode755; its cause is unestablished. Directory existence alone is
+not a refusal condition. Canonical non-symlink/non-writable owned parents and
+continued absence of its exact plaintext fallback file remain required before
+and after the attempt. No credentials are copied, inspected, deleted or rebased.
+
+Independent source GO is conditional on freezing owner-local harness SHA-256
+`10904ba25acb7577292c132364c49aad95b7075bd169f70190e3b21ac86bd3b5`
+and repeating the integration owner's current account/source metadata guards.
+The fixed15s deadline includes preparation and validation; reads enforce byte
+bounds/deadline checks, the native loop reserves cleanup time, and elapsed
+excess/reap/cleanup uncertainty cannot produce a verified report. Original files
+are checked before/after. Created files use exclusive complete writes and
+identity/content checks; modified resources or the unexpected write canary are
+retained rather than deleted as successful cleanup. Raw terminal bytes stay in
+bounded memory and are discarded; output contains fixed result projections only.
+
+Pinned native187 public source distinguishes the main Bash prefix at209845244
+(Ft==='bash' emits '!') from the generic shortcut text at205064540, which also
+says '! for shell mode'. The harness first observes the187 banner and normal
+prompt, sends only '!', then requires a complete current screen containing the
+standalone Bash prefix plus footer before writing the remaining fixed command.
+The Enter byte is submitted only after all command bytes are written. Unknown
+terminal controls refuse; alternate-buffer changes clear stale screen content,
+partial/synchronized frames withhold input. It does not fall back to a model,
+an arbitrary shell command, an unsandboxed path or additional UI confirmation.
+
+The initial d6d7 review reproduced acceptance of boolean schema/model-count
+fields through Python numeric equality. The corrected harness requires exact
+integer types. Eighteen author pure controls and nine additional independently
+extracted AST-only controls pass on the exact10904 hash: unsupported private
+cursor/mode sequences, stale alternate-buffer prefix, malformed write returns
+and expired budget before any input. No helper top-level dispatcher, native,
+fixture, listener, settings application, auth or model operation ran in this
+review. The approved native attempt remains NOT RUN at this review checkpoint.
+
+An actual positive classification additionally requires all six fixed checker
+results, actual Bash-mode command tracing, synchronized protocol delta[1,0,0]
+between known-live external controls, unchanged originals, fallback absence and
+owned cleanup/reaping. The protocol counter is published before the response
+and snapshots are locked, avoiding the prior control-versus-checker count race.
+A JSON response or echoed command alone is not native execution/enforcement
+proof. A failure, missing or refused endpoint, timeout or unknown UI remains a
+counterexample/unavailable result without retry. The checker can open only the
+approved synthetic canaries/endpoints and custom env key; its no-real-credential
+statement concerns checker accesses, not ordinary native OAuth startup. This is
+read-only single-checker host-boundary preparation, not general writable-agent,
+portable evidence, cross-machine, model reuse or complete-goal acceptance.
