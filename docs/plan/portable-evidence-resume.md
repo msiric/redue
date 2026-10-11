@@ -6,7 +6,41 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — autonomous operation authorized; host controls denied (2026-10-11)
+## Current checkpoint — standing autonomy applied; lanes reassessed
+
+The owner’s [standing autonomy amendment](portable-evidence.md#65-owner-autonomy-amendment-standing-authority)
+is now the operating instruction for the existing goal. Routine in-scope repairs,
+reviewed integrations, task pushes/PRs and permitted evaluations no longer require
+per-command/hash/single-attempt consent. Main PR merges require normal checks and
+independent critical review; public package/release distribution, trust expansion, account
+actions and unconfirmed spending remain owner decisions. The goal objective and
+G0–G4 are unchanged. No new goal or planning framework is created.
+
+D revalidated all seven staged native files and diagnostic-input/profile bindings;
+no useful remaining fixture repair was found. Native diagnostic/checker is not
+prohibited by missing consent, but its supported Terminal automation is explicitly
+host-denied. The reviewed owner manual route remains permitted; effective native
+readability is UNKNOWN and full collection remains gated. No denied route is retried.
+Copilot Actions included capacity is separately unestablished under the $0 cap.
+Local Claude onboarding succeeded; neither subscription existence nor settings
+presence proves effective sandbox enforcement or hosted receiver provisioning.
+
+Unblocked task: synchronize preserved committed work for external review without
+running the fixed signing trigger or changing producer trust. Root and C inspect
+workflow/ref/storage bindings before a normal task push. No substitute signed
+origin or new acceptance policy is authorized. Existing frozen artifacts/attempts
+remain intact. Codex0.162.1 exposes `--approve-for-me`; official documentation
+keeps Auto-review inside existing permission boundaries. Current coordinator
+policy is `never`, so it has no eligible escalation route; no global settings or
+reviewer policy change is made. Tool-specific Terminal/browser denials remain.
+
+Day0 remains2026-10-10 21:24UTC; calibration2026-10-13 21:24UTC. Owner-resumed blocker
+audit starts afresh. Gates remain incomplete; engineering proceeds on the unblocked
+review/synchronization task. Next owner inputs are one manual native diagnostic
+result and the precise included Copilot Actions capacity/billing fact, bundled in
+the current contributor checklist; no general account-existence request.
+
+## Historical checkpoint — autonomous operation authorized; host controls denied (2026-10-11)
 
 The owner authorizes assistant operation of the existing approved work. Consent
 is no longer the native lane prerequisite. A supported Computer Use selection of

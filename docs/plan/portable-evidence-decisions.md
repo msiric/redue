@@ -278,3 +278,15 @@ all exact resource/security constraints remain. Current need is a supported host
 interaction route and an established included-capacity fact, not another general
 authorization. No model, native checker, signing, upload, main merge or publication
 occurs in this capability check; prior signed/data-only acceptance is preserved.
+
+
+## D8 — standing autonomy within unchanged boundaries
+
+The owner’s explicit AUTONOMY AMENDMENT is integrated into canonical Section6.5.
+Routine helper/hash/attempt changes are reviewed engineering events, not owner
+consent gates. Task branches/PRs and normal reviewed in-scope merges are allowed;
+public release, expanded signing/trust/security scope and unknown charging routes
+remain consequential owner decisions. Original failures/approvals remain history.
+The native manual route is allowed; a denied Terminal-control route is not.
+No old owner-supplied output is relabelled assistant-measured. Goal objective,
+G0–G4, Day0, zero additional spending and exact producer bindings are unchanged.

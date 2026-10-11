@@ -21,6 +21,8 @@
 
 **Operating decision:** pursue a genuine two-agent, two-machine implementation of one supported verification contract. Reuse REDUE's existing evidence engine. Parallelize independent work, automate feedback, and remove avoidable waiting. Do not accelerate by weakening what eligible evidence means.
 
+**Standing operating authority:** the owner’s [autonomy amendment](#65-owner-autonomy-amendment-standing-authority) governs ongoing execution. Earlier per-command, exact-helper-hash and single-attempt approvals remain historical evidence, not routine operating gates. The objective, scope and G0–G4 requirements are unchanged.
+
 This plan replaces the earlier 12–16-week calendar for this narrow objective. It does not promise universal portability, general test qualification, or product-market fit in four weeks. The schedule is an engineering target, not a statistical confidence interval. Earlier delivery is welcome when the gates are met.
 
 This document is the roadmap, not blanket permission to publish packages, spend money, modify account settings, or override host policy. Those operations retain normal owner approval. No background agent operation is created merely by writing this plan.
@@ -414,6 +416,91 @@ Track successful task completion, retries, tests, spend, and idle/blocked time. 
 Automate deterministic CI, schema checks, formatting, and independent agent review. Use fast targeted tests per commit and full matrices at relevant integration/release gates. Never remove necessary assertions merely to reduce latency.
 
 Do not replay the entire historical acceptance campaign after excluded documentation changes. Tie evidence to code, policy bytes, environment, and artifact identity so valid results can be reused honestly.
+
+### 6.5 Owner autonomy amendment — standing authority
+
+This amendment is owner-provided operating instruction for the existing
+REDUE-PE-001 goal. It supersedes earlier per-command, exact-helper-hash and
+single-attempt approval requirements for routine engineering **within the
+existing approved resource and trust scope**. It does not replace the objective,
+erase failed attempts, change host policy, supply capacity or weaken acceptance.
+
+**Authorized work.** The integration owner may inspect, implement, refactor,
+document and test the agreed functionality; delegate bounded work within approved
+included capacity using isolated worktrees and one integration owner; repair
+fixtures, launchers, collectors and diagnostics; relocate owned test code and
+update path/hash bindings while preserving protected credentials/state. Isolated
+project/test configuration changes may preserve approved security properties
+without expanding access. Diagnostics, deterministic tests, model evaluations and
+approved CI may run once their actual prerequisites and included capacity are
+established. Only owned experimental artifacts may be managed, within the current
+storage/retention limits. Task-branch commits/pushes, PR preparation and reviewed
+integration are authorized. Routine in-scope PRs may merge through the normal
+repository process when required checks pass for the relevant revision,
+independent critical-boundary review is complete, and no unresolved correctness
+blocker remains; never bypass protection or substitute author self-review.
+Public package publication, release tags and distribution changes still need
+specific owner approval. Before a push/merge, inspect automatically triggered
+signing/artifact workflows against existing signing authority and current storage
+reservations; routine source authority does not expand producer trust.
+
+**Review changes rather than escalating hashes.** A changed helper hash is an
+audit event, not automatically an owner decision. Inspect the diff, update exact
+identities/manifests, run affected tests and obtain independent security/evidence
+review where needed, then proceed within existing authority. Never substitute
+bytes under an old identity. Previously approved producer identities, signing
+permissions and accepted-producer rules do not expand when helpers/artifacts
+change. Routine filenames, commands, pins and formatting need no fresh consent.
+
+**Failure is engineering work.** Preserve every failed, unknown and successful
+attempt. Diagnose, repair and rerun within scope/capacity, with new evidence or
+independent review after repeated failures; never retry to select a preferred
+score. Do not retry or bypass an unchanged explicit host denial. A supported,
+permitted equivalent may replace unavailable automation only when it preserves
+the experiment, not as a route around denied authority. Do not build a general
+terminal controller. When manual interaction is unavoidable, complete permitted
+preparation and provide one consolidated prevalidated procedure. Distinguish a
+denial of automation from prohibition of the underlying action.
+
+**Owner decisions.** Interrupt only for new spending/paid infrastructure or an
+unconfirmed charging route; owner-required login/2FA, secret provisioning or
+account/administrator action; broader filesystem/network/credential/signing/
+producer-trust authority; material goal/verification/support changes; destructive
+user-data/history/shared-Git changes; public release; or a consequential unresolved
+choice with materially different cost/risk/product outcomes. Use approved existing
+accounts/entitlements. Additional spending remains $0. Personal-use approval is
+not proof of an unknown Actions billing entitlement; do not buy capacity.
+
+**Lane blockers and continuity.** Record an exact missing prerequisite once,
+together with the smallest owner action and recommendation, then take valuable
+unblocked critical-path work. Do not repeat unchanged resource requests, rerun
+broad CI or create documents to appear busy. Overall BLOCKED requires no safe,
+useful remaining work within scope/budget and the goal service’s consecutive-turn
+audit. Preserve a resumable handoff; never fabricate progress or acceptance.
+
+**Trust remains unchanged.** Evidence travels; CURRENT is independently
+established by the recipient. Preserve assertions, original observation,
+conflicting-evidence handling and producer authentication. Keep real execution,
+harness mocks, machine acceptance, model behavior and economics distinct. Missing
+evidence is UNKNOWN. No credential copying, secret logging, global security
+weakening, production changes or automatic pilot upgrades. Isolate correctness
+findings and repair them before unsafe delivery.
+
+**Minimal interruptions.** Update the existing tracker/resume at meaningful
+checkpoints. Reports are informational and need no acknowledgment. Bundle genuine
+owner actions: exact action, why authority is insufficient, recommendation,
+cost/risk, blocked task and work continuing. Use supported Codex Auto-review for
+eligible operations when installed version/effective policy permit it. Keep
+sandbox/reviewer safeguards; never rewrite reviewer policy to approve everything
+or treat Auto-review as proof of safety or an override of another tool’s denial.
+
+**Immediate application.** The repaired native diagnostic/checker can proceed
+without another single-attempt consent once its effective host prerequisites and
+security properties hold. This amendment supplies neither denied Terminal
+control nor native enforcement evidence nor Copilot included capacity. Finish
+permitted preparation, consolidate unavoidable owner actions, and keep all
+unblocked implementation/review tasks moving. Original Day0, profile decisions,
+spending/storage limits, immutable receipts and gates remain in force.
 
 ---
 
