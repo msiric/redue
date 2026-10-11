@@ -1340,3 +1340,23 @@ compiler/model or remote operation occurred. Post-import CURRENT/PASS, imported
 origin/digest, null local invocation and absence of receiver execution requirements
 are unchanged. GO is limited to this focused acceptance-harness correction, not
 successful live recipient acceptance or cross-agent reuse.
+
+The subsequent actual installed fresh-config control uses helper source
+`a2f2ddc613d1a3d2dfbe5f4f04e97cd69584bc6b` and unchanged d04 tarball8695.
+Its private record shows installation/preview/init/start/sync/stop exit0, a
+425.37ms healthy UNVERIFIED/no-receipt query, no local run/import/model or policy
+creation, and successful binding of the generated config/runtime by the corrected
+helper. This establishes actual installed onboarding for this precondition,
+not portable matched-profile or G3 acceptance.
+
+Independent corrected-workflow proposal review verifies exact SHA-256
+`a600688881452915bde3f63a9dc60d21d952c65a9b4efe3db2c14860976a5d6f`:
+only two immutable helper/registry source pins change from a238 to a2f2ddc;
+both helper files at a2 match independently reviewed149 bytes. Registry5a1021,
+policybab79, producer d04/artifact8695, runtime/ref/read-only permissions and
+strict post-import controls remain unchanged. The original ef237 proposal stays
+preserved. Actual corrected plus existing workflow controls43/43 PASS,2,969.13ms,
+Node22.13.0; controlled subprocess/data responses are not live authentication.
+GO permits exact owner review of the revised source pins, not active workflow
+installation, triggering, producer acceptance or recipient CURRENT. A previous
+authorization for different helper bytes is not silently extended to this proposal.
