@@ -7,11 +7,12 @@ and native Claude Code on independently matched standard macOS receiver VM B.
 Codex acceptance is separate. No account purchase or account-existence decision
 is outstanding.
 
-Current manual-checker status: the owner approved the exact cc8aaf separate
-profile and one15s owner-operated attempt. Fresh file checks pass, but an existing
-manual-attempt process record now blocks another launch. Checker result and exit
-remain UNKNOWN pending the owner’s structured output; no record is cleared or
-retry inferred. Coordinator launched no checker/model. See the current
+Current manual-checker status: the owner performed the one approved cc8aaf
+profile attempt. Its supplied launcher report shows13,216.9ms, native signal9,
+cleanup/live controls/source currency true and protocol delta[0,0,0]. Checker
+JSON/exit were not supplied, so boundary acceptance remains UNKNOWN. The allowance
+is consumed: no automatic retry, record deletion or new model call. The
+owner-supplied sanitized result and exact identities are retained in the current
 [resume record](../plan/portable-evidence-resume.md). Copilot capacity is separate.
 
 1. **Exact data-only trust trial — approved (D5).** Reviewed

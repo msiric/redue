@@ -3,6 +3,34 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
+Current checkpoint (2026-10-11): the owner confirms performing the one approved
+manual attempt and supplies its structured launcher report. Result remains
+**UNKNOWN**, not a native boundary PASS: no checker JSON or checker exit was
+supplied. The launcher reports OWNER_WINDOW_ENDED,13,216.9ms, native signal9,
+reaping/terminal restoration/live controls/source currency/listener cleanup true,
+and actual protocol delta[0,0,0]. Native signal9 is the launcher termination,
+not an observed checker outcome. Model response was expected disabled, not measured.
+Do not infer command submission, successful denial, absent inference or checker
+execution from these facts.
+
+The exact approved profilecc8aaf/helperdc0eb16/checkerb3bad6 identities are retained.
+Protected owner-supplied result `native-manual-owner-result-20261011.json`
+SHA-2569f364dc3ab867f53808dc2984392e3e3c6cec1c145fde850664f6c5289f2195b
+is saved mode600 with source attribution. The manual-process record remains
+untouched. The one-attempt authorization is consumed; no repeat, deletion,
+controller, permission/settings change or model request is authorized. Root’s
+fresh reads followed this owner attempt and are not retrospective pretrial proof.
+No coordinator native/checker/model launch occurred. If separate checker output
+exists, accept only its static structured results and displayed exit, never raw
+terminal/protected contents; absent or ambiguous output remains UNKNOWN.
+
+Copilot included-credit confirmation remains separately pending. G2/finalG3/G4
+remain incomplete; original settings/authentication, receipts, frozen artifacts,
+Day0 and spending/security boundaries are preserved. No positive enforcement or
+agent-reuse claim is made. This lane stops on the actual finite unknown result.
+
+## Historical owner-approval prerequisite check
+
 Current checkpoint (2026-10-11 16:15UTC): the owner approved the exact separate
 manual profile and one owner-operated15s attempt after fresh prerequisites. Profile
 SHA-256cc8aaf8c396424e37d48d8bfb2bc690461e7b99ef1ff7b3afff986118c45ff1e,
