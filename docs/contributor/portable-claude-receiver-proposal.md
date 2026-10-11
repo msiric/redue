@@ -226,3 +226,24 @@ tool boundary; a separate sandbox invocation or an outside command is not proof.
 An unknown/native validation result stops the lane. Even a successful sentinel
 preflight would not itself establish subscription capacity, model behavior or
 portable-evidence eligibility.
+
+### Data-only bootstrap checkpoint
+
+Independent source review permits constructing the no-auth map. A fresh owned
+configuration/GitHub configuration/workspace and settings file now exist locally;
+settings SHA-256 is `785be21b4576e0ad7037f761d4a3ee852a5ea6c12bd9245aa17af577acf698cb`.
+The selected20 authentication/provider/secure-storage environment keys are absent.
+All tools, including Bash, are denied; no keyboard input or model action is
+authorized. The map remains **DATA_ONLY_NOT_STARTED**; no native interactive
+process has started.
+
+Final startup review found a separate host-side prerequisite: exact187 source
+preserves managed hooks even when the local settings disableAllHooks flag is true.
+Tool sandboxing therefore does not establish that startup hooks are disabled.
+Its updater also honors the supported process-only DISABLE_UPDATES guard, but the
+current map has not added that guard. Before starting, review the actual applicable
+managed-hook inventory through a read-only key/presence summary and the exact
+process-local updater guard. Do not change managed settings. If those host-side
+facts cannot be established, leave startup blocked. The structural public-source
+record is local and bounded; neither it nor a settings digest proves native
+credential isolation, zero startup network activity or model acceptance.

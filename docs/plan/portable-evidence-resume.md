@@ -57,8 +57,13 @@ intact on failure. No native settings, permission changes or model launches occu
 Claude 2.1.146 cannot support the proposed credential-deny boundary: official
 versioned source adds it only in 2.1.187. A verified isolated native2.1.187 binary
 passed version/help only; the documented strict interactive shell route is prepared,
-not executed. Fresh no-auth bootstrap/login and actual sentinel enforcement remain
-gates. Help/static keys cannot activate it. These leaf proposals are not in the d04 package.
+not executed. Fresh owned no-auth data-only map/settings were independently reviewed
+(settings SHA785be21b…);20 selected authentication/provider/secure-storage keys are absent.
+Startup remains stopped:187 preserves managed hooks despite a local disableAllHooks
+flag, and the process-local updater guard needs exact review. Next narrow step is
+read-only applicable managed-hook inventory plus the supported process-only updater
+guard, not a settings/policy bypass. Native UI/login and sentinel enforcement remain
+unrun gates. Help/static keys cannot activate it. These leaf proposals are not in the d04 package.
 
 ## Current hosted and installed checkpoint
 
