@@ -183,8 +183,12 @@ Read [one owner setup checklist](../contributor/portable-agent-owner-checklist.m
 Exact final data-only recipient proposal remains outside active workflows, SHA
 ef237cbb411b0520791911503d3071a9a42f78502ac8f712406a11566482ef78;
 Registry5a1021/policybab790 and exactef237 workflow are owner-approved in D5.
-Dedicated recipient branchb240187/run38098482463 is queued; no acceptance result
-yet. Copilot seat/quota/$0 capacity question remains pending; do not repeat it.
+Dedicated recipient branchb240187/run38098482463 failed closed before import
+with CI_MACHINE_OBSERVER. The fresh status has no receipt-derived recipe marker;
+source review shows the harness required that marker before any receipt could
+exist. Runtime profile, exact package and read-only download passed. Zero models
+or recipient compiler executions; exact helper correction/review and updated
+workflow source pin are pending. No blind rerun. Copilot seat/quota/$0 capacity question remains pending; do not repeat it.
 Preparation107tests:106PASS/one native-Windows-only skip/zeroFAIL3.515s,
 `.local/portable-evidence/recipient-host-preparation-integrated.tap`.
 All new code is contributor-only preparation; no runtime/probe/schema changes
