@@ -3,7 +3,73 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — native permission-rule repair
+## Current checkpoint — native access gate accepted; full checker handoff ready
+
+The owner supplied the actual eight-role native read-only diagnostic. Both
+relocated entry/checker readonly open, same-inode fstat and close succeeded with
+canonical owned600/single-link metadata. Protected nonsecret settings/canary
+opens returnedEPERM; original protected code metadata returnedEPERM. Configuration
+and credential-namespace directories were metadata-only; credential-body denial
+remains NOT_TESTED. This is real owner-supplied native output, not a mock or
+coordinator-measured result, and not full native/model acceptance.
+
+Root collected the actual saved lifecycle and owner-supplied final launcher JSON.
+Native exit0/no signal, reaping/terminal restoration/source currency true;
+saved97,657ms followed by final97,669ms and persistence_completed:true.
+The saved record alone was marked REQUIRES_FINAL_PARENT_COMPLETION; the later
+supplied final JSON resolves that requirement. Outer shell exit status itself
+was NOT_SUPPLIED and is not invented. No model-response observation is inferred
+from lifecycle cleanup or expected-disabled policy.
+
+Private captured diagnosticSHA `e578d137d2841ff5283cd2013a70cd80cea9a6d01623b3f8606cce2f0b7a8a8c`,
+final lifecycle captureSHA `b7565da2e7e27c537be437fead29ad92ea314b7f0c8ff1e4a82582c8f51a03e2`,
+saved lifecycleSHA `dba602d456b95c81c312327898917df0fae4f1637f962935fad58cad7764d14a`.
+C independent reviewf1d09a0 checked allactual rows, four evidence identities,
+13current source fingerprints plus the5139c305 helper physical identity and
+conditional full handoff. The exact candidate was copied O_EXCL/600 to fixed
+`evidence/native-relocated-v2-access-gate.json`; selected SHA-256 is
+`a33d6b1ae094f58ef5956d90ebff861d347d5c3f703dcd40811b023067ced425`.
+Root's actual require_access_gate readback with fresh verification passed.
+Acceptance is READABILITY_AND_NONSECRET_DENIAL_ONLY, not producer trust,
+credential-body proof, hostile-same-UID authentication or full enforcement.
+All old failures and original files remain preserved; no runtime/package change.
+
+Next is one consolidated owner-operated full synthetic checker handoff using the
+same reviewed v2helper5139c305, paired fullprofile636bab4d, original immutable
+collector29ebbcde/checker579af20e, dedicated relocated CODE, and exact original
+synthetic targets/socket/network/credential constraints. Full process/result
+records and sockets were absent when checked; no coordinator native/checker or
+listener was started. The helper itself rechecks current source/gate/policy and
+ownership before listeners/native, never launches when a prerequisite fails.
+
+Outer launch command:
+
+```sh
+/usr/bin/python3 '/Users/mariosiric/Library/Application Support/REDUE/portable-evidence/native-claude-2.1.187/owner-sentinel-relocated-v2.py' --owner-run --gate-digest a33d6b1ae094f58ef5956d90ebff861d347d5c3f703dcd40811b023067ced425
+```
+
+Inside the fresh native `!` Bash mode submit only:
+
+```sh
+/Users/mariosiric/.nvm/versions/node/v22.13.0/bin/node '/Users/mariosiric/Library/Application Support/REDUE-Native-Checks/native187/workspace/redue-native-sentinel-collect.mjs'
+```
+
+180s preparation,15s checker window beginning only at collector ACK,5s cleanup.
+The parent automatically collects structured six-assertion JSON and observed
+checker exit/signal to `evidence/native-relocated-v2-collection-result.json`.
+Wait for automatic outer completion; do not submit further prompts/commands or
+exit while collection is pending. Preserve only final helper JSON/status; no
+checker transcript copying is needed. The saved collection status is deliberately
+UNKNOWN/pending until final parent completion; a successful final completion needs
+collection_status:PASS and persistence_completed:true plus actual captured
+assertions/OS outcome and current context. Missing results/timeout remain UNKNOWN,
+failed assertions FAIL; cleanup cannot substitute for checker success. A settings,
+permission/auth/trust warning stops the operation; never Continue/Fix with Claude.
+Full checker result is NOT_RUN as of this checkpoint, no model acceptance or G2/G4
+completion is claimed. Copilot Actions capacity remains a separate unchanged
+prerequisite. Day0 and all public release/trust/budget boundaries remain unchanged.
+
+## Historical checkpoint — native permission-rule repair
 
 Owner-reported pinned Claude2.1.187 settings validation skipped the exact inline
 Node diagnostic `Bash(...)` permission rule as `Empty parentheses`. Independent

@@ -9,43 +9,19 @@ Security/evidence review, genuine preconditions, explicit host denials and the
 $0 additional-spend limit remain in force. Existing accounts are settled.
 Only these two inputs currently require the owner:
 
-1. **Native read-only diagnostic result.** CUA Terminal automation was explicitly
-   denied; that app-specific refusal does not prohibit a separately supported CLI
-   PTY route or the already-approved underlying manual action. The built-in PTY
-   exposes stream chunks, not a verified fresh rendered prompt/Bash-mode state;
-   blind input could trigger inference. Manual interaction is the only currently
-   established safe route. No decoder/controller or native probe will be added
-   to guess the mode.
-   The verified private `README-native-relocation-v2.md` contains the consolidated
-   procedure. `CLAUDE_BASE` below denotes its already-verified durable base, not
-   a new directory or account setup. In the owner's Terminal, first print and
-   copy the frozen single command line, then launch the diagnostic:
-
-   ```sh
-   CLAUDE_BASE="$HOME/Library/Application Support/REDUE/portable-evidence/native-claude-2.1.187"
-   /usr/bin/python3 "$CLAUDE_BASE/owner-sentinel-relocated-v2.py" --diagnostic-input
-   /usr/bin/python3 "$CLAUDE_BASE/owner-sentinel-relocated-v2.py" --owner-diagnostic
-   ```
-
-   In the fresh Claude UI enter `!` Bash mode and submit only the printed line;
-   never submit it at the normal model prompt. Expect both relocated scripts to
-   show successful read-only open, same-inode fstat and close, and the existing
-   nonsecret protected settings/canary opens to return `EPERM` or `EACCES`.
-   Configuration/credential directories are metadata-only, not credential-body
-   proof. Escape out of Bash, then use `/exit` at the ordinary prompt. Return
-   only the structured diagnostic JSON and final helper lifecycle JSON/exit;
-   no credentials or transcript. The 180-second startup and five-second cleanup
-   limits are explicit; missing results or timeout remain UNKNOWN even after
-   successful cleanup. The repaired v2helper/profiles and fixed diagnostic CJS file are staged,
-   independently reviewed and data-only verified. Native2.1.187 grammar rejected
-   the old inline rule; a new exact Node plus quoted script-file rule passes
-   pinned-parser tests without widening Bash or any resource grant. Old sources
-   and the failed lifecycle are preserved. The new lifecycle file is
-   `evidence/native-relocated-v2-diagnostic-lifecycle.json`; the diagnostic JSON
-   itself remains displayed/owner-supplied. The diagnostic authorizes no checker,
-   listener or model request; lifecycle completion is not native-enforcement
-   proof. Full checker collection remains conditional on a genuine,
-   current root-captured access gate; its command is not an immediate action.
+1. **Full synthetic native checker completion.** The repaired read-only native
+   diagnostic has passed its narrow actual access gate, with owner-supplied output,
+   saved lifecycle and final persistence confirmation independently reviewed.
+   Do not repeat that diagnostic. Credential-body denial and full enforcement
+   remain unestablished. The consolidated current launch/input/result procedure
+   is in the [resume record](../plan/portable-evidence-resume.md#current-checkpoint--native-access-gate-accepted-full-checker-handoff-ready).
+   It uses only reviewed v2helper and original immutable collector/checker,
+   exact synthetic resources,180s preparation/15s ACK-started collection/5s
+   cleanup, with no model request or terminal automation. The parent collects
+   structured results and actual checker exit automatically; return only its
+   final helper JSON/status, not raw terminal output. Missing evidence is UNKNOWN,
+   failed assertions FAIL; cleanup is never checker success. No new routine
+   approval is needed under the standing authority. Host controls remain intact.
 2. **Copilot Actions included-capacity fact.** Confirm the applicable entitlement
    permits the personally owned repository's documented `GITHUB_TOKEN` route,
    with at least four included AI credits available and no additional-charge
