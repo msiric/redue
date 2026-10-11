@@ -1564,3 +1564,18 @@ G2 amended native handoff/effective host prerequisites and G3 accepted live
 recipient remain pending; D5 trust approval itself is already recorded. G4
 prepublication final artifact/onboarding/affected acceptance and complete-path
 economics remain independent. No control-only result marks those gates PASS.
+
+Independent source-only package inspection GO: source
+223f231ff6d6312e85998b00d7c6bcdfa080dd12,80regular in-package files/158,546
+archive bytes, SHA-256
+b8122c3bdcedf42a374ba3a87681ca7654360bc6c10daa64b5ac93a79ca7b190.
+Manifest entry names/modes/sizes, SHA1/SHA512 integrity, SHA256SUMS and exact
+source user-guide bytes match. Against frozen8695, only
+docs/user/portable-evidence.md differs; source/bin/other79 payload files are
+byte-identical. No private experiment/test/.github/evidence/log/env file inventory
+is included. Versionalpha10 metadata does not identify publicalpha10 bytes or
+frozen8695, and this is not a release-ready/version-final artifact. Initial
+reviewer command guessed an incorrect full source expansion and stopped at its
+source assertion; corrected git-rev/source.txt comparison passed without changing
+the artifact. No archive extraction execution, installation, probe or model was
+performed. New exact-byte platform acceptance remains pending.
