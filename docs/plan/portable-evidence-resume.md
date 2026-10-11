@@ -55,11 +55,19 @@ This is installed mechanics, not actual host behavior or new two-machine reuse.
 Focused local source controls:61tests,60PASS/one platform skip/zero failures on
 Node22.13.0. Product run
 [38179134336](https://github.com/msiric/redue/actions/runs/38179134336) has Linux22
-and24 and native Windows jobs PASS; macOS remains live at the last successful
-22:18UTC read. At22:20UTC GitHub CLI reads returned an HTTP/2 connection failure
-and then a TCP connection-aborted error. This is observed connectivity, not an
-account-permission or product-test conclusion. No completion is inferred. Follow
-the same exact live handle after connectivity returns; launch no replacement CI. Code/helper/security identity
+and24, native Windows and macOS jobs PASS after connectivity recovered. The487-test
+suite reports macOS460PASS/27skip, Linux22 and24 each448PASS/39skip, native
+Windows311PASS/176skip; all zero failures/cancellations. Each product job also
+passed installed CLI recording, and Windows passed its generated PowerShell shim.
+The two22:20UTC HTTP/2/TCP read failures are retained as transient observations,
+not account-permission or product-test conclusions; the same original run was
+followed to completion, with no replacement CI. Documentation-only follow-up
+commits are preserved locally and independently reviewed; no runtime, tests or
+packaged file differs from3c87cdc. Keep that distinction explicit rather than
+claiming CI ran on the later documentation commit. Do not rerun broad CI solely
+for a status update. At the next substantive task push, synchronize these normal
+commits with the existing preparation branch; never force-push or trigger a
+substitute signed producer. No experiment is currently live. Code/helper/security identity
 is unchanged by the standing-authority and independently reviewed checklist edits.
 
 Codex0.162.1 exposes `--approve-for-me`; official documentation keeps Auto-review
@@ -71,8 +79,9 @@ edit goal operating instructions. This canonical amendment governs the same
 unchanged objective; do not create a replacement goal or claim service activation.
 
 Day0 remains2026-10-10 21:24UTC; calibration2026-10-13 21:24UTC. Owner-resumed blocker
-audit starts afresh. Gates remain incomplete; engineering proceeds on the confirmed live
-regression runs and reviewed integration checkpoint. Next owner inputs are one manual native diagnostic
+audit starts afresh. Gates remain incomplete; the confirmed regression runs and reviewed integration
+checkpoint are complete. The two current model/native lane prerequisites remain
+outstanding; do not invent new acceptance or repeat denied operations. Next owner inputs are one manual native diagnostic
 result and the precise included Copilot Actions capacity/billing fact, bundled in
 the current contributor checklist; no general account-existence request.
 
