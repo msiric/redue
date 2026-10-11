@@ -1393,3 +1393,28 @@ authentication; a cached `claude.ai` status is not its expected result. Remote
 managed-startup-hook uncertainty must not be hidden by local file absence or
 tool denial. Revised auth-status-only preparation remains independently pending;
 no secret, authentication or native UI operation followed these findings.
+
+D19c5db7 plus04e2f0f replaces the token-bearing proposal with data-only code,
+not a broader startup workaround. Exact helperSHA
+`20a24e8e99c56d70c3b10e24b14e9efb192087383b9b9a3ea64290408b78d1c1`
+has no native/subprocess launcher, filesystem bootstrap or secret activation.
+It rejects presence of alternate auth/startup inputs and the future approved
+OAuth key itself, even empty. Correct data context always returns
+BLOCKED_NATIVE_STARTUP_BOUNDARY/native0/can_infer=false. The synthetic sanitizer's
+oauth_token/firstParty mapping matches exact187 source but establishes neither
+token validity nor subscription capacity. The earlier three accepted-input
+counterexamples remain historical, not retrospectively erased.
+
+Revised outside-.github workflowSHA
+`01208b4d2f9c496fe8dfdc2cae7d58a61313c7fdcaa17184436a87d3e05a650c`
+has no secret reference/protected-environment release/native download/auth/UI/tool
+call/upload/OIDC. Its literal helper source must be repinned after integration
+before any separately approved registration. Actual independent focused controls
+2/2 PASS,324.62ms, Node22.13.0; no native or authentication process ran. Source
+GO permits integration of this disabled preparation only. There is no reason to
+request a year-long OAuth token merely to learn token presence. Safe unblocked
+work is focused integration, local regressions, artifact/onboarding preparation
+and current evidence reconciliation. Native acceptance requires owner-supported
+normal onboarding/prompt plus actual reviewed sentinel enforcement, exact trust
+file/socket controls, matched profile and approved capacity. None is supplied by
+a static proposal, a data record or first-theme UI.
