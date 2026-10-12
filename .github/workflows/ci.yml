@@ -1,47 +1,66 @@
-name: Product regressions and package installation
+name: Bounded direct fixture timeout diagnosis
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths-ignore: ['docs/**', '**/*.md']
-  pull_request:
-    paths-ignore: ['docs/**', '**/*.md']
 permissions:
   contents: read
 concurrency:
-  group: product-${{ github.ref }}
-  cancel-in-progress: true
+  group: redue-windows-direct-diagnostic
+  cancel-in-progress: false
 jobs:
-  product:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - {os: macos-latest, node: '22'}
-          - {os: ubuntu-latest, node: '22'}
-          - {os: windows-2025, node: '22'}
-          - {os: ubuntu-latest, node: '24'}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 25
+  diagnostic:
+    if: github.repository == 'msiric/redue' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/test/portable-windows-diagnostic' && github.actor == 'msiric' && github.run_attempt == 1
+    runs-on: windows-2025
+    timeout-minutes: 12
+    env:
+      REVIEWED_SOURCE: f1662966455afffda1bf60b3bfdfeb006c7b32a7
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          node-version: ${{ matrix.node }}
-      - run: npm ci --no-audit --no-fund
-      - run: npm test
-      - name: Install tarball, exercise CLI, and remove owned state/install
-        run: npm run test:package
-      - name: PowerShell npm-generated command shim
-        if: runner.os == 'Windows'
+          ref: ${{ env.REVIEWED_SOURCE }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.23.3'
+      - name: Fixed source, toolchain and isolated diagnostics
         shell: pwsh
         run: |
-          $prefix = Join-Path $env:RUNNER_TEMP 'redue-powershell-install'
-          $pack = npm pack --json | ConvertFrom-Json
-          npm.cmd install --global --prefix $prefix $pack[0].filename --no-audit --no-fund
-          if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
-          & (Join-Path $prefix 'redue.cmd') --help
-          if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
-          $packageName = (Get-Content package.json | ConvertFrom-Json).name
-          npm.cmd uninstall --global --prefix $prefix $packageName --no-audit --no-fund
+          if ((git rev-parse HEAD) -ne $env:REVIEWED_SOURCE) { throw 'source mismatch' }
+          if ((node --version) -ne 'v22.23.3') { throw 'runtime mismatch' }
+          node --version
+          npm.cmd --version
+          npm.cmd ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm.cmd run pretest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $directory = node --input-type=module -e 'import fs from "node:fs";import os from "node:os";import path from "node:path";console.log(fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()),"redue-direct-diagnostics-")));'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "REDUE_TEST_DIRECT_DIAGNOSTICS_DIR=$directory" >> $env:GITHUB_ENV
+          'REDUE_TEST_DIRECT_DIAGNOSTICS=1' >> $env:GITHUB_ENV
+      - name: One original TypeScript 5.5.2 contract suite
+        id: compiler552
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          node --test --test-reporter=tap test/direct-typescript-552.test.mjs
           exit $LASTEXITCODE
+      - name: One original TypeScript 5.6.3 old-receipt case
+        id: oldreceipt
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          node --test --test-reporter=tap --test-name-pattern='^old npm evidence cannot satisfy the new recipe; extra caller-sensitive probes are unqualified$' test/direct-typescript.test.mjs
+          exit $LASTEXITCODE
+      - name: Bounded test-only phase evidence and exact outcomes
+        if: always()
+        env:
+          COMPILER552_OUTCOME: ${{ steps.compiler552.outcome }}
+          OLD_RECEIPT_OUTCOME: ${{ steps.oldreceipt.outcome }}
+        shell: pwsh
+        run: |
+          if ($env:REDUE_TEST_DIRECT_DIAGNOSTICS_DIR) {
+            node --input-type=module -e 'import fs from "node:fs";import path from "node:path";import {readBoundedPortableFile} from "./src/portable-command.mjs";const safe=bytes=>{const rows=[];for(const line of bytes.toString("utf8").split("\n")){if(!line.startsWith("REDUE_TIMING "))continue;let r;try{r=JSON.parse(line.slice(13));}catch{continue;}if(!/^(cli|client|server|daemon|history|worker|certificate|direct_probe|plan)[.][a-z_]+$/.test(r.phase))continue;if(rows.length===512)return{status:"TRACE_COUNT_UNKNOWN",rows:[]};const row={phase:r.phase};for(const k of ["at","pid","ms","deadlineMs","commands","queries","bytes","pending","activeDecisions","decisionRequests","historyDeadlineMs","reconciliationDeadlineMs","forceCold","checks","available","exit","childPid"]){if(typeof r[k]==="number"&&Number.isFinite(r[k]))row[k]=r[k];}for(const k of ["request","generation","work"]){if(typeof r[k]==="string"&&/^[a-f0-9-]{36}$/.test(r[k]))row[k]=r[k];}if(typeof r.monoNs==="string"&&/^\d{1,24}$/.test(r.monoNs))row.monoNs=r.monoNs;if(["full","certificate","reused","fallback","ok","cold","retained","changed_or_unavailable"].includes(r.mode))row.mode=r.mode;rows.push(row);}return{status:rows.length?"AVAILABLE":"TRACE_PHASE_UNKNOWN",rows};};const dir=process.env.REDUE_TEST_DIRECT_DIAGNOSTICS_DIR;let files=fs.readdirSync(dir).filter(n=>/^[a-f0-9-]{36}\.jsonl$/.test(n));if(files.length>64)throw Error("trace count exceeded");for(const name of files){const file=path.join(dir,name);let bytes;try{bytes=readBoundedPortableFile(file,{limit:1024*1024});}catch{console.log(JSON.stringify({trace:name,status:"TRACE_READ_UNKNOWN"}));continue;}console.log(JSON.stringify({trace:name,...safe(bytes)}));}'
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          Write-Output "compiler552=$env:COMPILER552_OUTCOME oldreceipt=$env:OLD_RECEIPT_OUTCOME"
+          if ($env:COMPILER552_OUTCOME -ne 'success' -or $env:OLD_RECEIPT_OUTCOME -ne 'success') { exit 1 }
+      # Exactly two predefined cases, no retries, model credentials or uploads.
