@@ -3,7 +3,39 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current native lane — secret replaced; pinned thinking-progress repair under review
+## Current native lane — six empirical checks PASS; final startup-source guard UNKNOWN
+
+Actual hosted [run38251411464](https://github.com/msiric/redue/actions/runs/38251411464)
+used reviewed source7870dd1/workflowd8cd842 and the replaced owner secret. Native
+init validated, eight numeric progress frames were admitted, two assistant
+messages/two reported turns included the exact authorized Bash command. Matching
+tool IDs toolu_01W5hnaJ1QLzWWPs97kLXDhf and independent socket collection establish
+actual checker execution. All six synthetic assertions PASS; supervisor-observed
+checker exit0/signalnull, native exit0/signalnull, delta[1,0,0], matchingreports,
+sourcecurrency/livecontrols/reaping/listenercleanup/finalpersistence alltrue.
+Collection10867.727ms, totaljob28138ms; no raw transcript/token body retained.
+
+Overall collection_status remainsUNKNOWN / DIAGNOSTIC_STARTUP_SOURCE_PRESENT.
+The post-native absence guard found a protected startup-source path; which fixed
+role was not captured. Don't infer remote policy, credential cache or project
+content, and don't waive the guard or label the full native prerequisitePASS.
+Six assertion successes establish only their named operations; no real credential
+body was opened, no portable applicability or recipient reuse was tested.
+Private exact report `.local/portable-evidence/native-diagnostic-38251411464-final.json`.
+
+Metadata-only repair3e5e946 preserves all ten original paths/order/lstat/refusals,
+adding only fixed finite role and BEFORE/AFTER_NATIVE phase to the existing error.
+No body is read; arbitrary error fields cannot enter the fixed-role projection.
+Root19pure/mock controlsPASS (latestTAP retained); independent review pending.
+Prepared workflow35a5ddf, SHA5f2c9f936b46d8e7759784b8fd610342333df072cefa08c6e6c4fc3e52f1ab6f,
+changes only this source pin. After independent GO/fresh gates, one bounded
+role-capture attempt under standing authority can identify the missing fact.
+No token replacement, owner hash approval, permission relaxation or new trust is
+requested. All earlier failures/unknowns remain immutable. $0/4turn120s, no
+uploads/signing/publication. Copilot Actions included capacity remains separate;
+G2/finalG3/G4 incomplete. Day0/checkpoint unchanged.
+
+## Historical native lane — secret replaced; pinned thinking-progress repair under review
 
 The owner replaced the protected OAuth secret at2026-10-12T12:38:00Z; only metadata
 was read. Fresh environment/ref/source/account/capacity gates passed. The unchanged

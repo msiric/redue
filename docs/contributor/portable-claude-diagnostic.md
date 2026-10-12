@@ -1,16 +1,17 @@
 # Bounded native Claude diagnostic proposal
 
-This native route is **ATTEMPTED / UNKNOWN — PINNED PROGRESS EVENT**:
-[latest run38250370384](https://github.com/msiric/redue/actions/runs/38250370384).
-The owner replaced the protected OAuth secret; fresh metadata gates passed.
-The unchanged native parser stopped after validated init on `thinking_tokens`,
-with no observed401/API retry and no tool/checker result. This is not a token
-validity certificate or enforcement PASS. No new token setup is requested.
+This native route has **six actual synthetic assertions PASS / overall UNKNOWN**:
+[latest run38251411464](https://github.com/msiric/redue/actions/runs/38251411464).
+Actual native tool/result and independent socket reports agree; checker and native
+exit0/no signal, two turns, unchanged source/live controls and cleanup/persistence
+all pass. The final startup-source absence guard still refuses because a protected
+path appeared after the native run. Its fixed role was not captured. Do not waive
+this refusal, infer benign cache/policy contents or count this as recipient reuse.
 
-Source7870dd1's strict numeric-progress admission and source-only workflowd8cd842
-are under independent review. Progress receives no instruction/permission/evidence
-authority; other system events, errors and failed assertions remain conservative.
-All prior attempts and their exact unknown/failure fields are preserved.
+A metadata-only fixed-role/phase repair3e5e946 is under independent review. It
+reads no bodies and preserves every guard. No further token or owner setup is
+requested; root continues bounded diagnosis under standing authority. Historical
+attempts retain their exact UNKNOWN fields. Security/resource scope is unchanged.
 
 [Registration PR14](https://github.com/msiric/redue/pull/14) passed all four checks
 and merged as da6b87f67ae8e80b6ce92a0636fac8a9c11261b7. The dedicated
