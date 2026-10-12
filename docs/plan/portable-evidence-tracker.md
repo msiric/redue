@@ -3,7 +3,50 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — approved sealed-input implementation; no new authority yet
+## Current checkpoint — real-project preparation refusal; hardlink repair under review
+
+At 2026-10-12 21:12UTC, integration branch `dev/portable-sealed-typescript`
+was clean at fea95d1; independent hardlink-direction review5b53389 is integrated
+as1481fb3. The owner-approved D12 direction remains a disabled opt-in proposal:
+new origin authority is withheld and accepted imports remain history-only.
+No existing command, receipts, producer policy or credentials are changed.
+
+The exact public debugger sourceb1c0077 has33,345 locally declared files and77
+internal npm links, including18 nested shims. The first legacy representation
+refused PORTABLE_SYMLINK with zero child launches. After independently reviewed
+sealed-specific representation/compact protocol, one actual fixed restricted
+preparation at runtime5d36610 refused TREE_FILE, child74/reaped, with the owned
+parent still empty. Metadata-only diagnosis identified two esbuild regular files
+sharing nlink2. No compiler or model launched. Complete refusal path10111.05ms
+includes9798.51ms source-manifest work and310.83ms preparation; this is not
+successful staging cost, reuse economics or a native sealing result.
+
+The bounded hosted mechanics run38306972841 passed27/27 on macos-26-arm64.
+It ran only fixed preparer fixtures, with no installation, source project copy,
+model, signing, artifact upload or secrets. Kernel/filesystem were not recorded;
+the label alone cannot establish the matched recipe profile. Current affected
+local suite passed101/101. Parent/child protocol and namespace classifications
+are data mechanics; a physical digest is audit, not current per-file validation.
+
+Root owns shared interfaces and the parent; A is implementing source-complete
+hardlink materialization@2 in its isolated worktree. C has conceptual GO only:
+all actually distinct source entries must be verified before body reads, their
+count must equal nlink, and every destination is a fresh single-link inode.
+Source and materialized typed digests differ and must both remain explicit,
+including shim target rebinding. Legacy provider hashes are never normalized.
+Independent implementation/protocol review precedes a materially changed real
+copy. Native stage-parent write/rename/hardlink/MAP_SHARED denial and complete
+staged compiler query validation remain NOT_RUN.
+
+Next: finish/review leaf@2; version fixed compact protocol consistently; run
+focused regressions; then attempt one reviewed data-only real-project preparation.
+Proceed to native enforcement and staged namespace only on actual prerequisites.
+Hosted Claude's prior diagnostic remains scopedPASS; Copilot Actions included
+capacity remains PENDING. G1/G2/G3/prepublicationG4 are incomplete. Alpha.11 frozen
+artifacts remain unchanged/unpublished. Day0 and the72h checkpoint are unchanged;
+no reset, fabricated blocked duration or portable acceptance claim is made.
+
+## Prior checkpoint — approved sealed-input implementation; no new authority yet
 
 The owner approved D12's explicit opt-in sealed-input TypeScript direction.
 The integration worktree remains `redue-portable-ordinary-boundary`, now on

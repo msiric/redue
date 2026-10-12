@@ -33,7 +33,8 @@ Existing commands, user configurations and receipts are unchanged.
 - Parent0d7ab18 binds source, empty private parent, code and official Node before
   and after its fixed child; uses remaining120s monotonic budget/SIGKILL,
   validates finite protocol and actual staged directory, and always denies reuse.
-  It is awaiting independent successor review before real-project preparation.
+  It passed independent parent/mock review4005487 and compact protocol review
+  at5d36610 before the real-project attempt.
 
 These helpers never establish complete namespace coverage from copied file pairs.
 Empty directories, configuration membership and failed resolution candidates
@@ -74,9 +75,43 @@ Private evidence remains under `.local/portable-evidence/`:
 No credential or raw environment bodies, private transcripts or source contents
 are retained in this public record. Previous failures remain evidence.
 
+## Real-project preparation and hosted mechanics checkpoint
+
+The actual pinned debugger projectb1c0077 selected33,345 declared paths with77
+npm shims,18 nested. Legacy portableManifest refused before any child. New
+sealed-specific shim representation does not relax ordinary check semantics.
+One reviewed fixed preparation at5d36610 then refused TREE_FILE, exit74/reaped;
+its owned parent remained empty. A metadata-only diagnosis found two installed
+esbuild files with nlink2; no compiler/model execution followed the refusal.
+Complete refusal cost10111.05ms includes9798.51ms manifest work and310.83ms
+preparation. These are not successful stage or end-to-end reuse measurements.
+
+Independent review5b53389 admits only the proposed direction of complete source
+hardlink groups: actual unique physical directory entries equal nlink before any
+body, current metadata and ancestor rechecks throughout, fresh nlink1 copies.
+Installed source hashes retain nlink provenance; the materialized manifest must
+have separately verified single-link hashes and rebound shim target digests.
+Implementation@2 and compact protocol successors remain under independent review.
+No old hashes/receipts are reinterpreted. Quiescent pre-agent preparation and
+separate read confinement remain mandatory; metadata checks are not a write seal.
+
+[Hosted fixture run38306972841](https://github.com/msiric/redue/actions/runs/38306972841)
+passed27/27 in1308.98ms on the reported macos-26-arm64 image, source5d36610.
+It used one standard job, read-only GitHub permission and no npm installation,
+public-project staging, models, secrets, uploads or signing. Kernel release and
+filesystem were not captured, so it establishes preparer mechanics rather than
+matched-machine/profile or agent sealing. The affected local suite passed101/101
+separately. Actual native sealed recipe/compiler execution remains NOT_RUN.
+
+| Private record | SHA-256 |
+| --- | --- |
+| sealed-debugger-preparation-5d36610.json |3281238d1684e43c28754c0bb1966cf25aa939721987b90443e65e7501d0eaf3|
+| sealed-debugger-tree-file-diagnosis.json |956e85cfdcfd5a268d0a812058b7b5304d42bd11f8133f30bd09a2e7791bcf55|
+| hosted-preparer-38306972841.json |849951e5f5bcae835e56a2e31c4b6e011518760b33d213008f6ceec1c8e39c23|
+
 ## Remaining authority gates
 
-Finish independent parent/namespace review, enforce trusted/quiescent preparation
+Finish the hardlink-successor implementation/protocol review, enforce trusted/quiescent preparation
 and bounded per-job stage accounting, and verify complete locally derived staged
 queries. Actual native write/chmod/unlink/parent replacement/hardlink/MAP_SHARED
 denial is required before any seal claim. Preparation must finish/reap before
