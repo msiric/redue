@@ -7,12 +7,14 @@ const text=fs.readFileSync(new URL('./acceptance/sealed-typescript-compiler-prof
 function invoke(scenario={},input){
   let reads=0,projectCalls=0;const root='/owned/private/redue-materialization-ABC123',parent=path.dirname(root),node='/reviewed/node';
   const stat=file=>({uid:scenario.badOwner&&file===root?502n:501n,dev:1n,ino:BigInt(file.length),
-    mode:scenario.badMode&&file===parent?0o40755n:0o40700n,
+    mode:scenario.badMode&&file===parent?0o40755n:scenario.nodeSpecial&&file===node?0o106755n:0o40700n,
     isSymbolicLink:()=>scenario.symlink===file,isDirectory:()=>!file.endsWith('/node')&&!file.endsWith('/tsc.js'),isFile:()=>file===node||file.endsWith('/tsc.js')});
   const mockFs={realpathSync:file=>scenario.alias===file?file+'.alias':file,lstatSync:stat,readFileSync:()=>{reads++;return 'NODE';}};
   const crypto=()=>({update(){return this;},digest:()=>scenario.badNode?'0'.repeat(64):'5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc'});
   const context=vm.createContext({fs:mockFs,path,os:{release:()=>scenario.release||'25.6.0'},createHash:crypto,
-    process:{platform:scenario.platform||'darwin',arch:scenario.arch||'arm64',version:scenario.version||'v22.13.0',getuid:()=>501,execPath:node},
+    process:{platform:scenario.platform||'darwin',arch:scenario.arch||'arm64',version:scenario.version||'v22.13.0',
+      getuid:()=>scenario.root?0:501,geteuid:()=>scenario.uidMismatch?502:scenario.root?0:501,
+      getgid:()=>20,getegid:()=>scenario.gidMismatch?21:20,execPath:node},
     directProject:(selected,script)=>{projectCalls++;if(scenario.projectFailure)throw Object.assign(Error('ENVIRONMENT_REFUSED'),{code:'ENVIRONMENT_REFUSED'});
       assert.equal(selected,root);assert.equal(script,'test:types');return {tsRoot:root+'/node_modules/typescript',entry:root+'/node_modules/typescript/lib/tsc.js',version:scenario.compiler||'5.5.2',digest:'a'.repeat(64)};},Buffer});
   vm.runInContext(text,context);let value,error;try{value=context.invoke(input===undefined?vm.runInContext(`({root:${JSON.stringify(root)},script:'test:types'})`,context):input);}catch(e){error=e.code;}
@@ -32,7 +34,8 @@ test('root and parent ownership/mode/physical aliases refuse before any project 
   }
 });
 test('unsupported actual profile or Node identity refuses',()=>{
-  for(const scenario of [{platform:'linux'},{arch:'x64'},{version:'v22.14.0'},{release:'25.7.0'},{badNode:true}]){
+  for(const scenario of [{platform:'linux'},{arch:'x64'},{version:'v22.14.0'},{release:'25.7.0'},{badNode:true},
+    {root:true},{uidMismatch:true},{gidMismatch:true},{nodeSpecial:true}]){
     const r=invoke(scenario);assert(r.error);assert.equal(r.projectCalls,0);
   }
 });

@@ -27,12 +27,14 @@ export function sealedCompilerFixtureProfile(options){
     !['root','script'].every(key=>Object.hasOwn(options,key)&&Object.hasOwn(Object.getOwnPropertyDescriptor(options,key),'value')))
     fail('STAGED_COMPILER_OPTIONS');
   if(process.platform!=='darwin'||process.arch!=='arm64'||process.version!=='v22.13.0'||os.release()!=='25.6.0'||
-    typeof process.getuid!=='function'||process.getuid()===0)fail('STAGED_COMPILER_PLATFORM');
+    !['getuid','geteuid','getgid','getegid'].every(key=>typeof process[key]==='function')||
+    process.getuid()===0||process.getuid()!==process.geteuid()||process.getgid()!==process.getegid())fail('STAGED_COMPILER_PLATFORM');
   const {root,script}=options,stage=checked(root,'directory'),parent=path.dirname(root),parentStat=checked(parent,'directory');
   if(!/^redue-materialization-[A-Za-z0-9]{6}$/.test(path.basename(root))||
     (stage.mode&0o7777n)!==0o700n||(parentStat.mode&0o7777n)!==0o700n||typeof script!=='string'||!script||
     /[\u0000-\u001f\u007f]/u.test(script))fail('STAGED_COMPILER_SELECTION');
-  parents(root);const node=fs.realpathSync(process.execPath);checked(node,'file');parents(node);
+  parents(root);const node=fs.realpathSync(process.execPath),nodeStat=checked(node,'file');parents(node);
+  if((nodeStat.mode&0o6000n)!==0n)fail('STAGED_COMPILER_RUNTIME');
   const nodeSha256=hash(fs.readFileSync(node));
   if(nodeSha256!=='5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc')fail('STAGED_COMPILER_RUNTIME');
   // Environment, standalone obligation and whole installed implementation are
