@@ -1,6 +1,30 @@
 # Portable evidence: remaining owner setup
 
-## Current owner-dependent inputs
+## Current owner action — replace the rejected subscription token
+
+Hosted native run [38248933839](https://github.com/msiric/redue/actions/runs/38248933839)
+reported HTTP401 / authentication_failed before any observed assistant or checker
+call. No further unchanged attempt will run. Environment protections, account facts
+and capacity are already provisioned; do not repeat those setup questions.
+
+The freshly verified owner-only command is:
+
+```sh
+/bin/bash "/Users/mariosiric/Documents/redue/.local/portable-evidence/claude-owner-setup-token-reviewed.sh"
+```
+
+Use its subscription `setup-token` flow, then privately replace **only**
+`CLAUDE_CODE_OAUTH_TOKEN` in the existing
+[portable-evidence-claude environment](https://github.com/msiric/redue/settings/environments).
+Paste only the generated token in GitHub's secret field, never in chat or a file.
+No new account, API key, billing, auth transport or permission is requested. Root
+will revalidate and operate the existing bounded diagnostic after actual metadata
+changes. Missing/failed evidence remainsUNKNOWN. Copilot's included Actions billing
+fact is unchanged and separate; this token action does not unblock it.
+
+The sections below retain historical setup and approvals; do not repeat them.
+
+## Historical owner-dependent inputs
 
 The [standing autonomy amendment](../plan/portable-evidence.md#65-owner-autonomy-amendment-standing-authority)
 governs routine in-scope engineering. Per-command, exact-helper-hash and

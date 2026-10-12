@@ -1,22 +1,20 @@
 # Bounded native Claude diagnostic proposal
 
-This native route is **ATTEMPTED / UNKNOWN**:
-[run 38242312293](https://github.com/msiric/redue/actions/runs/38242312293).
-The approved protected job passed its prerequisite/preparation stages, then
-stopped on `NATIVE_SYSTEM_CONTEXT_UNKNOWN`. No assistant response or checker
-report was observed. Assertions and native enforcement remain UNKNOWN. Reaping,
-live controls, source currency, listener cleanup and final persistence passed;
-these do not replace checker success. Native exit143/signalnull is reported
-without inferring its cause. Raw event subtype/order was not retained.
+This native route is **ATTEMPTED / UNKNOWN — AUTHENTICATION REFUSED**:
+[latest run38248933839](https://github.com/msiric/redue/actions/runs/38248933839).
+Actual validated initialization was followed by `api_retry` with HTTP401 and
+fixed category `authentication_failed`; no assistant/tool/checker result was
+observed. Stop unchanged attempts. Token expiration, revocation or malformed
+provisioning is not distinguished by that result. Hosted enforcement remains
+UNKNOWN; successful lifecycle cleanup is not checker success.
 
-The one-job allowance is consumed. The classification-only repair at
-`ed4219aa6eef8f3addd97fd8a1510ef51396215d` passed independent review, sixteen mock
-controls and92 differential cases. Its prepared workflow
-[7deb7d2](https://github.com/msiric/redue/blob/7deb7d26e9a51c05592043a7304ce384760850d8/.github/workflows/portable-claude-diagnostic.yml)
-changes only that source pin; no event is newly accepted. The live dispatch ref
-and protected variables remain unchanged, and no further run has launched.
-A new single bounded-job allowance remains required; authentication provisioning
-need not be repeated.
+The independently reviewed observation-only repair85425a5 and workflowbabf43b
+retain rejection, four turns/120 seconds and all permissions. Native secret input
+is nonempty and preserved by the reviewed route without exposing its value.
+The owner must replace only `CLAUDE_CODE_OAUTH_TOKEN` in the existing protected
+`portable-evidence-claude` environment through the supported subscription-token
+procedure; no new account/policy setup is requested. Previous runs38242312293
+and38246645326 retain their original UNKNOWN results and uncaptured fields.
 
 [Registration PR14](https://github.com/msiric/redue/pull/14) passed all four checks
 and merged as da6b87f67ae8e80b6ce92a0636fac8a9c11261b7. The dedicated

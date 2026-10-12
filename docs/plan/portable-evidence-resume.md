@@ -6,7 +6,56 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current native lane — retry event identified; enforcement remains UNKNOWN
+## Current native lane — HTTP401 authentication refusal; no further unchanged attempt
+
+The bounded cause-capture [run38248933839](https://github.com/msiric/redue/actions/runs/38248933839)
+completedUNKNOWN on source85425a5ca5a1a1df8eb1c7e1f56ca7cd5405a107 / workflow
+babf43bd0ed25fb6e9567e14ae5a23178084436f, SHA-256
+159acc8c945a329fb2a0785366e8cb377ec79d78bec9553047d0eefc149773a3.
+Normal configured GitHub review was approved through the supported API under
+owner standing authority; protections were neither changed nor bypassed.
+Actual validated init was followed by api_retry AFTER_VALIDATED_INIT with
+category authentication_failed, HTTP401, attempt1/max_retries10; delay is
+UNAVAILABLE under the bounded numeric projection. The parser stopped as designed.
+Zero assistant/tool/checker reports were observed; this is not proof of zero
+model requests. Assertions, checker exit/signal and hosted enforcement stayUNKNOWN.
+Nativeexit143/signalnull is separate from checker outcomes. Livecontrols/source/
+reaping/listenercleanup/finalpersistence allpass, protocol[0,0,0]. Diagnostic
+1,131.455ms, totaljob15,843ms. Private exact report:
+`.local/portable-evidence/native-diagnostic-38248933839-final.json`.
+
+This establishes a provider authentication refusal for the provisioned native
+request; it does not establish expired versus revoked versus malformed token,
+account capacity or billing failure, nor a REDUE/sandbox defect. Do not retry
+unchanged credentials, switch authentication route or relax native/host policy.
+The older attempts remainUNKNOWN with their original limited fields. Current
+helper/environment/workflow wiring preserves the nonempty protected OAuth input
+into the native parent, without printing or writing it. No API-key override or
+credential-store copy was introduced. Static/source checks are not OAuth validity.
+
+The next owner-only action is to generate a fresh subscription token using the
+already-reviewed isolated setup-token command and replace only environment secret
+CLAUDE_CODE_OAUTH_TOKEN in portable-evidence-claude. No account-existence question,
+new secret scope, PAT/API billing, policy change or repeated setup is needed.
+Read-only launcher verification freshly confirms binarya59/settings5628 and
+existing Keychain metadata; it launches no native process and proves no token
+validity/enforcement. The exact owner command is:
+`/bin/bash "/Users/mariosiric/Documents/redue/.local/portable-evidence/claude-owner-setup-token-reviewed.sh"`.
+Keep token values out of chat/files; provisioning uses the supported private owner
+interface. After actual secret metadata changes, fresh gated diagnosis may resume
+under standing authority; no fixed result, protocol acceptance or trust is waived.
+Original owner account/capacity timestamp remains unchanged and expires normally.
+
+Observation repair85425a5 passed independent17mocks/75differential cases in
+f8fe190/rootb374f97. Its source-only workflow pin passed8e034e0/root1456c1a.
+Root17mocks pass84.2ms. These are harness/source results, not native enforcement.
+One preflight GitHub read returned502 before mutations/ledger/model, followed by
+a successful ordinary read; it is distinct from the captured ClaudeHTTP401.
+All three hosted attempts and one-operation ledgers are preserved. No publication,
+new signing/origin/trust or recipient model acceptance. Copilot included Actions
+billing remains separate/pending. G2/finalG3/G4 incomplete; Day0/checkpoint unchanged.
+
+## Historical native lane — retry event identified; enforcement remains UNKNOWN
 
 The owner authorized continued bounded diagnosis and autonomous routine work.
 Normal protected-environment review was completed through GitHub's documented
