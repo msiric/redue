@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {measurePreparationOperations,PREPARATION_DIAGNOSTIC_LIMITS} from './acceptance/sealed-typescript-preparation-diagnostic.mjs';
+import {measurePreparationOperations,PREPARATION_DIAGNOSTIC_LIMITS,writePreparationDiagnosticResult} from './acceptance/sealed-typescript-preparation-diagnostic.mjs';
 function fake(){return Object.fromEntries(['lstatSync','openSync','fstatSync','readSync','writeSync','fsyncSync','closeSync','mkdirSync','chmodSync','fchmodSync','symlinkSync','readlinkSync','realpathSync','opendirSync']
  .map(name=>[name,(...args)=>name==='openSync'?10:name==='readSync'||name==='writeSync'?3:name==='opendirSync'?{readSync(){return null;},closeSync(){}}:undefined]));}
 test('fixed counters retain operations and failures without arguments/body/error values',()=>{
@@ -39,6 +39,19 @@ test('a broken clock suppresses diagnostics without replacing primitive results'
  const r=measurePreparationOperations({root:'/r',parent:'/p'},()=>io.openSync('/r/a'),()=>{},
   {io,clock:()=>{if(calls++>0)throw Error('NONSECRET_CLOCK');return 0;}});
  assert.equal(r.result,10);assert.equal(r.clockValid,false);assert.equal(r.frames,0);
+});
+test('finalization validity is returned after a capped last clock failure',()=>{
+ const io=fake();let n=0,calls=0;
+ const r=measurePreparationOperations({root:'/r',parent:'/p'},()=>{for(let i=0;i<1000;i++)io.lstatSync('/r/a');},()=>{},
+  {io,clock:()=>++calls===3003?NaN:n+=5000});
+ assert.equal(r.frames,32);assert.equal(r.clockValid,false);
+});
+test('result transport failure is static and nonthrowing',async()=>{
+ const response={schema:1,outcome:'UNKNOWN'};
+ assert.equal(await writePreparationDiagnosticResult(response,{write(){throw Error('NONSECRET_IO');}}),false);
+ assert.equal(await writePreparationDiagnosticResult(response,{write(v,done){done(Error('NONSECRET_IO'));}}),false);
+ let frame='';assert.equal(await writePreparationDiagnosticResult(response,{write(v,done){frame=v;done();}}),true);
+ assert.equal(frame,JSON.stringify(response)+'\n');
 });
 test('bounded frames and bytes retain no authority and invalid clocks suppress diagnostic values',()=>{
  const io=fake(),frames=[];let n=0;

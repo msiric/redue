@@ -26,6 +26,7 @@ export function measurePreparationOperations({root,parent},operation,emit,{clock
    if(failed)entry[3]++;else if(['readSync','writeSync'].includes(kind)&&Number.isSafeInteger(result)&&result>=0)entry[4]+=result;
    snapshot(false);
   }};
+ let result;
  try{
   for(const kind of methods){const original=io[kind];if(typeof original!=='function')throw Error('DIAGNOSTIC_PRIMITIVE_UNAVAILABLE');
    io[kind]=function(...args){const selected=group(args[0]);return measured(kind,selected,()=>{
@@ -40,25 +41,33 @@ export function measurePreparationOperations({root,parent},operation,emit,{clock
     }
     return value;});};restores.push(()=>io[kind]=original);
   }
-  const result=operation();snapshot(true);return{result,clockValid:valid,streamValid,frames,bytes};
+  result=operation();snapshot(true);
  }finally{
   for(const restore of directories)restore();for(const restore of restores.reverse())restore();
   // Retain final failure counters when possible, never replacing its error.
   try{if(!finalEmitted)snapshot(true);}catch{}
  }
+ return{result,clockValid:valid,streamValid,frames,bytes};
+}
+export async function writePreparationDiagnosticResult(response,stream){
+ try{const frame=JSON.stringify(response)+'\n';
+  return await new Promise(resolve=>{try{stream.write(frame,error=>resolve(!error));}catch{resolve(false);}});
+ }catch{return false;}
 }
 async function main(){let code=74;
  let transportFailed=false;
  const streamFailure=()=>{transportFailed=true;process.exitCode=74;};
  process.stdout.on('error',streamFailure);process.stderr.on('error',streamFailure);
+ let response;
  try{if(process.argv.length!==2)throw Object.assign(Error('PREPARATION_ARGUMENTS'),{code:'PREPARATION_ARGUMENTS'});
   const options=parsePreparationInput(await consumePreparationInput(process.stdin));
   const measured=measurePreparationOperations(options,()=>materializeSealedTypeScriptTree(options),frame=>process.stderr.write(frame));
   code=measured.clockValid&&measured.streamValid?0:74;
-  process.stdout.write(JSON.stringify({schema:1,scope:'PREPARATION_DIAGNOSTIC_ONLY',outcome:code===0?'DATA_OPERATION_FINISHED_NOT_SEALED':'UNKNOWN',
-   frames:measured.frames,bytes:measured.bytes,sealed:false,reuseEligible:false})+'\n');
- }catch(error){process.stdout.write(JSON.stringify({schema:1,scope:'PREPARATION_DIAGNOSTIC_ONLY',outcome:'UNKNOWN',
-   reason:known.has(error?.code)?error.code:'PREPARATION_FAILED',sealed:false,reuseEligible:false})+'\n');}
- process.exitCode=transportFailed?74:code;
+  response={schema:1,scope:'PREPARATION_DIAGNOSTIC_ONLY',outcome:code===0?'DATA_OPERATION_FINISHED_NOT_SEALED':'UNKNOWN',
+   frames:measured.frames,bytes:measured.bytes,sealed:false,reuseEligible:false};
+ }catch(error){response={schema:1,scope:'PREPARATION_DIAGNOSTIC_ONLY',outcome:'UNKNOWN',
+   reason:known.has(error?.code)?error.code:'PREPARATION_FAILED',sealed:false,reuseEligible:false};}
+ const sent=await writePreparationDiagnosticResult(response,process.stdout);
+ process.exitCode=transportFailed||!sent?74:code;
 }
 if(process.argv[1]===fileURLToPath(import.meta.url))await main();
