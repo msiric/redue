@@ -5107,3 +5107,62 @@ read grant, ignored query, daemon-view substitution or timeout increase is
 authorized by this overlay. D12 covers the restrictive proposal and current
 approved VM scope; broader authority or a new executor is not implied. No native
 process, compiler, model, CI job or settings write occurred in this review.
+
+## Complete source aliases: materialization@2 and compact schema3 admission
+
+GO for coherent335c14df3d653bbc3345cac1674f081562fb1c85 as one fixed restricted
+data preparation operation and its two new nonsensitive preparer fixtures.
+Leafd58493e sourceSHA22116157aad74ae8acf9879537b4325e5d8d7596490e5376c70741e95aa316e5,
+childaf9de25 sourceSHA4be75afe5c26ad5bfdc1db331489e1ee12a88f7a86c786446fa630497116263b,
+and parent sourceSHAdbadf63d93de45b5c32aad662d03bbeb96f89e48375b29d726b281974e2ff9eb
+were independently inspected. No native receiver/agent/compiler/model or current
+reuse admission follows. Existing origin containment stays false.
+
+The leaf validates the complete selected source metadata before bodies: stable
+owned regular groups, global nlink equal to actual unique physical-parent/exact-
+basename entries, exact case spelling through source ancestors, bounded iterator
+enumeration and current fingerprints. Outside/incomplete groups and aliases refuse
+before source bodies/staging. Source hashes preserve installed nlink; every copied
+regular file is a distinct fresh nlink1 inode, and copied shims bind the copied
+target digest. Source and materialized sorted manifests, their digests and source
+alias groups remain distinct. Source bodies/hashes and physical bindings are
+rechecked after copying. Failed partial stages remain retained without recursive
+failure cleanup or a false cumulative-quota claim.
+
+Materialization@2 feeds compact protocolschema3/summary@2. Exact parent fields bind
+the supplied source manifest/count, bounded materialized/physical/group digests,
+logical alias group/entry counts, bytes and staged-root identity. Zero groups
+requires zero alias entries, the empty-group digest and equal source/materialized
+digests; positive groups cannot use the empty-group digest. Counts are bounded by
+the selected file count. Noninstalled complete source groups can legitimately have
+equal source/materialized hashes, so inequality is not an authority requirement.
+All digests/counts are trusted-child audit, not parent per-file/current body proof.
+Retired schemas/interpretations/arrays, inconsistent fields, arbitrary failure
+codes, changed bindings and final budget exhaustion remain refused/UNKNOWN.
+Empty env, fixed child/code/Node,8MiB transports,120s monotonic remaining budget,
+512MiB logical content bound and false sealed/executable/reuse flags are unchanged.
+
+Independent archived leaf/shim/manifest suites passed60/60 in367.62ms; current
+parent/child/profile-constructor suites passed40/40 in398.54ms. Five independent
+owned nonsensitive filesystem controls passed5/5 in111.29ms: complete nested
+source aliases/distinct copies, outside alias zero-body refusal, case double-count
+zero-body refusal, regenerated nested shim digest and source unlink/relink
+refusal with partial retention. Three additional independent summary mocks
+passed3/3 in62.30ms, including equal noninstalled manifests, impossible audit
+shape/private-value withholding and three-member immutable false-flag audit.
+
+The metadata-aware restored-ancestor test still reads a NONSECRET outside canary
+before TREE_DIGEST refusal. The older trigger is caught earlier, not reinterpreted
+as atomic read isolation. Trusted quiescent preparation and its separately reviewed
+filesystem confinement therefore remain mandatory. The parent's intermediate
+mock helper-binding failure is preserved as test preparation, not real child
+materialization. The two new actual restricted-child fixtures were source-reviewed
+only by this reviewer; no public project, sandbox-exec, compiler, native agent,
+model or CI execution was performed here.
+
+Before a sealed native recipe can qualify, actual nonsensitive admission must
+also attempt an outside hardlink to staged content and write through any alias
+if link creation succeeds, alongside stage/ancestor replacement and shared-RW
+mapping refusal. No pre-existing writable mapping/handle may cross trusted
+preparation into the agent phase. Source-derived subpath/ancestor rules alone do
+not establish these kernel checks or complete TypeScript resolution semantics.
