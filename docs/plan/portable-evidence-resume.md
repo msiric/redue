@@ -26,10 +26,12 @@ No model trial starts merely from static settings, source review or local PASS.
 Task branch6d89bdf is normally pushed to `origin/dev/portable-ci-preparation`;
 draftPR13 updated with precise limits. Signer d04b872/main b4f2860 unchanged.
 Latest exact-package38189432506 passes all three platforms; product38189432507
-is in progress for combined helper/protection changes. Root affected123/123 pass;
+passes all four jobs: macOS511PASS/27skip, Linux22/24 each499PASS/39skip,
+native Windows322PASS/216skip,538tests per job and zero failures. Root affected123/123 pass;
 independent held154/154 and protection7/7 pass. Previous359916f product/all-platform
 package passes and failed/UNKNOWN attempts are preserved below. Exact package
-identity will be independently downloaded from the current run, never substituted
+identity is independently downloaded and verified: source6cc4cd5 has the same
+tree as6d89bdf; tarball SHA-256b8122c3b unchanged. It is never substituted
 for frozen8695b612 or public alpha.10. No release/publication/auto-upgrade.
 
 Codex0.162.1/current74c6a6d binary reports ChatGPT login with API/access/WIF key

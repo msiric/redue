@@ -23,10 +23,12 @@ No model trial starts merely from static settings, source review or local PASS.
 Task branch6d89bdf is normally pushed to `origin/dev/portable-ci-preparation`;
 draftPR13 updated with precise limits. Signer d04b872/main b4f2860 unchanged.
 Latest exact-package38189432506 passes all three platforms; product38189432507
-is in progress for combined helper/protection changes. Root affected123/123 pass;
+passes all four jobs: macOS511PASS/27skip, Linux22/24 each499PASS/39skip,
+native Windows322PASS/216skip,538tests per job and zero failures. Root affected123/123 pass;
 independent held154/154 and protection7/7 pass. Previous359916f product/all-platform
 package passes and failed/UNKNOWN attempts are preserved below. Exact package
-identity will be independently downloaded from the current run, never substituted
+identity is independently downloaded and verified: source6cc4cd5 has the same
+tree as6d89bdf; tarball SHA-256b8122c3b unchanged. It is never substituted
 for frozen8695b612 or public alpha.10. No release/publication/auto-upgrade.
 
 Codex0.162.1/current74c6a6d binary reports ChatGPT login with API/access/WIF key
@@ -936,7 +938,25 @@ Pre-attempt artifact allowance snapshot: 4,608,374 active bytes +5MiB signing re
 
 Current active artifacts are4,826,222bytes at the verified checkpoint; recheck before any later upload. Next: review disabled host proposals and exact current-policy proposal before recipient acceptance; no new producer/signing push. Actual recipient authority still requires current owner policy and effective receiving-host controls. Preserve prior failures and concrete deadline values. Account-existence question is answered: current resource condition is PENDING_OWNER_AUTH_WORKFLOW/CAPACITY_PROOF, not PENDING_OWNER_ACCOUNT. Amended pair still needs reviewed native OAuth workflow/owner secret, Copilot entitlement/policy/billing and exact producer-policy approval. No main/model/trust/public action is inferred.
 
-## Daily progress — 2026-10-11 UTC (current)
+## Daily progress — 2026-10-12 UTC (current)
+
+The owner-operated local six-assertion Claude boundary passed with actual checker
+exit0; this remains local synthetic evidence, not hosted or agent reuse. D9 now
+keeps the approved hosted pair and permits one bounded native programmatic
+diagnostic after independent credential/startup review. D implements the exact
+checker/result lifecycle and mock controls; C reviews the critical boundary;
+B audits remaining deterministic V01–V22 gaps; root integrates. No authenticated
+native process, hosted inference or new signing/trust has run.
+
+Combined preparation6d89bdf product38189432507 and exact-package38189432506
+pass every configured platform job. The downloaded source6cc4cd5 has the same
+tree; b8122c3b exact bytes are distinct from frozen8695b612 and public alpha.10.
+The earlier macOS baseline timeout and opt-in trace ownership failure remain
+recorded; their test-only correction preserves production limits and assertions.
+Copilot included Actions capacity and reviewed Claude owner secret remain separate
+prerequisites. G2/finalG3/G4 stay incomplete; no date or scope reset.
+
+## Daily progress — 2026-10-11 UTC (historical)
 
 22:22UTC completion update: connectivity recovered; original product38179134336
 ALLfourPASS with zero failures/cancellations (macOS460PASS/27skip,
