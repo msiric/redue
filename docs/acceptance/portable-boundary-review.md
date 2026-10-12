@@ -5749,3 +5749,82 @@ program discovery is not independently proved equivalent to all actual CLI
 queries or a successful typecheck. Exact implementation/schema/bounds/restoration
 and native profile/currentness need review before any capture invocation; this
 source direction alone grants no execution, sealing or receipt authority.
+
+
+## Fixed local mapping wrapper: adversarial framing and violation preservation
+
+Initial private wrapperSHA795f7749e1b2fb54353be69ce12d1e2ce04811867981c8955f20e7a31de52f96
+was blocked. Five independent fully mocked controls passed5/5 in59.11ms,
+reproducing persisted unreviewed classification/accepted extra schema, malformed
+FAIL-header latch, valid ACCESS under UNKNOWN header lost, known failed fixture
+preservation masked, and arbitrary status/signal falsely reaped. Class/errno
+relations and known unsafe postmetadata also required correction. No real mapper,
+fixture operation, C build, native agent or model ran in reviewer controls.
+
+GO for exact465c5daf9880490351c74605eefbc35f753561204188ba35984dde3eda8b4842
+for its one kernel-only fixture under15s/8192-byte child cap. Ten independent VM
+controls passed10/10 in80.07ms: exact finite UTF8/schema/enum/errno relations
+before row retention, valid failure preservation, unsafe postmetadata failure
+before body reads, syscall-unavailable UNKNOWN, intended workspace timestamp
+change, finite status/signal/reap, framing/duplicate/BOM rejection and deadlines.
+Known violations survive later closure/currentness/persistence uncertainty.
+Malformed frames and unsupported FAIL headers do not fabricate failures.
+Profile remains default-deny with only exact workspace-canary writes and named
+canary/binary/OS-runtime reads; no network/fork/new executor or native-agent grant.
+
+Independent record review confirmed first saved
+SHAad1c9da44ef66af8a4913260af59a7078a400f12359f62c5da1cff5b05c39ca8
+and outerSHA5794a43acae31c4a76767376654a5857f57f9a26581a660567327a111ada8f27,
+owned regular single-link0600, final ACK true, child74/no signal/observed reap,
+450.0875ms, first row UNKNOWN/EINVAL, mapping operations NOT_PERFORMED and
+owned descriptors closed. Fixture/pins/ancestors were current. Role and syscall
+phase were not captured, so the actual EINVAL cause remains unassigned.
+
+## Source-backed nonconflicting mapping flags and changed fixture
+
+Apple's pinned xnu-12377.1.9 vn_open_auth rejects simultaneous O_NOFOLLOW_ANY and
+O_NOFOLLOW, and separately applies NAMEI_NOFOLLOW_ANY for existing-file lookup.
+This establishes the incompatible reviewed flag pipeline, not the precise actual
+failure phase or equality with the running kernel patch.
+[Apple XNU vfs_vnops.c](https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.1.9/bsd/vfs/vfs_vnops.c)
+Installed SDK27 fcntl.h constants independently matched ANY0x20000000,
+terminalNOFOLLOW0x100, NONBLOCK0x4 and CLOEXEC0x01000000. No real open probe ran
+in source review. Actual kernel12377.161.15.700.19 and SDK27 are separately
+reported context; cited12377.1.9 is not actual-kernel proof.
+
+GO for source-only f3bb399 / SHA45da4c9ae98b6d7f893a5edb133c2e8401be477e92432bfbf76d4608bfec69ef:
+remove only conflicting terminal NOFOLLOW, retain ANY/NONBLOCK/CLOEXEC and add
+static conflict assertion. Identity, false-authority protocol and operation/
+cleanup distinctions remain unchanged. Eleven archived source/Boolean controls
+passed11/11 in49.81ms; no C compiler or syscall ran in reviewer testing.
+
+GO for exact changed fixed parentSHAba293b1b1d1ecae7aa0696a908eb519425e214160294ccc654612ff986209149.
+It changes only the build-directory basename and four pins. Independently checked
+exact two-path render189b2f24..., binary97c9446f..., profile447bac61... (only base
+rebind), manifest367de87e..., canonical owned single-link leaves, code/profile/
+manifest0600, binary0755/nonsetid, and0644/30-byte marker canaries. Ten same
+mocked adversarial controls passed10/10 in64.77ms. Original records are preserved.
+No review-provided real build or mapper/native operation occurred.
+
+Actual changed savedSHA2ffd49d880f1c14302739fabe8dbc9613e0f7a5beb6269bd6eba949f8d79d813
+and outerSHA2dff05c850b1deaf07e04a8d94c67acd04e73fd77b1312ecfe9361c1e4553c4f
+were independently read: owned regular single-link0600, final ACK true,
+442.304042ms, child74/no signal/reaped, no stderr, all seven expected rows.
+Writable workspace MAP_SHARED change/restore was observed; staged O_RDWR returned
+EPERM; readonly-FD mprotect/shared-write mapping returned EACCES. The latter are
+descriptor/VM constraints, not independent sandbox-denial proof. Fixture/pins/
+ancestors remained current. Global UNKNOWN/native-agent NOT_TESTED/sealed and
+reuse false are correct. No stage-wide native-agent seal, no-inherited-writer
+proof, receipt or origin authority follows; first UNKNOWN is not reclassified.
+
+## Shared compiler graph extraction: legacy behavior retained
+
+GO for e06b29f shared compilerProgramFiles extraction. It moves the existing
+config/host/program traversal without changing default raw queryAnswer,
+queriesMatch, provenance or admission; it loads no API and grants no callback
+or imported-code authority. A future sealed child must supply only its verified
+trusted API/forwarding context. Five fake-compiler controls passed5/5 in48.93ms;
+three own before/after VM differential controls passed3/3 in49.82ms, preserving
+graph/query facts and call order, raw EPERM before TSsys fallback and bad-config
+refusal before program creation. No expensive actual TypeScript test was rerun
+by the reviewer, and no sealed capture/namespace/CLI equivalence is approved yet.
