@@ -193,6 +193,26 @@ A run that lacked a healthy starting observation cannot be rehabilitated by impo
 
 Retain actual source outcome and origin scope even when local trust is absent. Clearly distinguish an unauthenticated producer-reported PASS from locally accepted execution evidence.
 
+### 3.3.1 Owner-approved sealed-input direction — D12
+
+On 2026-10-12 the owner approved bounded work on an explicit opt-in sealed-input
+TypeScript origin recipe for the existing approved runner profiles. The actual
+mapped-input counterexample and [independent boundary review](../acceptance/portable-boundary-review.md)
+withdraw unrestricted portable-origin authority; they do not establish a released
+false-CURRENT reproduction. Do not repeat observer experiments to regain authority.
+
+The new recipe must bind an enforced stable input tree and actual staged compiler
+invocation under a fresh interpretation. Preparation is trusted and pre-agent;
+copying, chmod, hashes or an owner marker alone are not sealing. Source selection,
+namespace/resolution, compiler/runtime and recipient applicability remain required.
+An imported record must never grant stage-writing or observation authority.
+The initial implementation is opt-in and non-authoritative until independently
+reviewed enforcement and actual native-boundary prerequisites pass. Existing
+configured checks and historical records are not converted. Existing permissions,
+producer trust, signing scope, $0 spending and publication boundaries are unchanged.
+Staging/setup/economics remain unmeasured. G0–G4 and Day0 are unchanged; this is an
+approved implementation direction, not gate completion or release approval.
+
 ### 3.4 Recipient evaluation
 
 Retain the existing applicability authority. Add portable comparison at that boundary; do not create a competing verifier in the CLI, importer, agent skill, or UI.

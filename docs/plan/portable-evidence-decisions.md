@@ -361,3 +361,23 @@ and current canonical filesystem topology, not imported data or guessed disk
 layouts. Missing coverage, replacement, pending events or history gaps remain
 non-reusable. This decision enables implementation/review preparation, not an
 unrecorded local-Mac subscription or a portable model-handoff success claim.
+
+## D12 — bounded opt-in sealed-input TypeScript recipe — owner approved 2026-10-12
+
+Owner answer: “Approve bounded sealed-input recipe work.” Observed and recorded
+at2026-10-12 20:04UTC; the approval's exact delivery time is not asserted.
+Implement D12 in canonical Section3.3.1. The older origin containment is preserved
+on `fix/portable-origin-interval` atb3b4985; new work proceeds from that commit on
+`dev/portable-sealed-typescript`, in the existing integration worktree.
+
+Root owns recipe/CLI/daemon interfaces and integration. Agent A owns only the
+bounded tree-materialization leaf and its tests; C independently reviews critical
+read/write, namespace and interpretation boundaries. One writer per interface.
+No materializer output is a receipt, seal or applicability authorization.
+The current leaf's outside-read race is preserved as a counterexample; use requires
+a separately reviewed preparation filesystem boundary and trusted quiescent phase.
+No inference, experimental observer, signing or publication is authorized by a
+helper's test success. Hosted Claude's earlier six-check diagnostic stays closed
+PASS within its actual scope, not new staged-parent enforcement. Copilot's included
+Actions charging fact remains pending. Continue data/source implementation without
+repeating account questions. Fresh origin/trust bindings remain separately gated.

@@ -3,10 +3,37 @@
 Read canonical [REDUE-PE-001](portable-evidence.md),
 [tracker](portable-evidence-tracker.md), [decisions](portable-evidence-decisions.md)
 and [independent review](../acceptance/portable-boundary-review.md). Resume the
-existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree on `fix/portable-origin-interval`;
+existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree on `dev/portable-sealed-typescript`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — portable origin continuity withheld after actual mapped-input FAIL
+## Current checkpoint — approved sealed-input implementation; no new authority yet
+
+The owner approved D12's explicit opt-in sealed-input TypeScript direction.
+The integration worktree remains `redue-portable-ordinary-boundary`, now on
+`dev/portable-sealed-typescript` from preserved containmentb3b4985. Root owns
+shared interfaces; A owns the data materializer; C independently reviews critical
+boundaries. Reviewffa53f9 is integrated as8713614. Existing portable origins
+remain incomplete and accepted imports history-only; no old evidence is relabelled.
+
+A's first leaf037f6da exposed a nonsecret ancestor-swap outside read, path-based
+cleanup race and unbounded final enumeration. Repair4869269 retains partial stages,
+bounds enumeration and rejects physical case-alias containment. Its32 passing
+controls are data mechanics, not sealing. Independent successor review is pending;
+the real outside-read limitation remains a required preparer-boundary task.
+A copied file manifest does not prove empty-directory, absence or compiler-query
+namespace equivalence. The new staged recipe must independently establish them.
+
+Next: review/integrate the repaired leaf; implement a fresh non-authoritative
+recipe preview and narrow trusted preparation boundary; test actual restrictive
+native stage enforcement only after independent security review/prerequisites.
+No model, CI signing, producer-trust expansion, public release or permission
+relaxation has occurred. New origin/recipient applicability is NOT established.
+Claude's prior diagnostic remains scopedPASS; Copilot Actions included-capacity
+fact is pending. G1/G2/G3/prepublicationG4 remain incomplete. Day0 and72h checkpoint
+stay unchanged; staging cost and blocked duration are not invented. Alpha.11
+frozen artifacts remain unchanged/unpublished.
+
+## Prior checkpoint — portable origin continuity withheld after actual mapped-input FAIL
 
 The reviewed fixed CI-only vnode successor [38295197761](https://github.com/msiric/redue/actions/runs/38295197761),
 source3768433fd3942fadc54e104cd639045baf18116c, completed all six cases.
