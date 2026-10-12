@@ -61,6 +61,45 @@ Next: finish the fixed compiler/mapping boundary review, verify current staged
 membership/namespace, and establish native seal prerequisites before model/origin claims. Day0 and72h checkpoint
 remain unchanged; prior failed/UNKNOWN attempts and partial trees are preserved.
 
+
+## Fixed compiler/validation observations — 2026-10-12 22:55UTC
+
+The first independently reviewed bcc701 private fixture retained the extra
+before/after live-source audit. It returned UNKNOWN/FIXTURE_DEADLINE, dispatch1,
+childexit0/reaped/zero stdout+stderr. Final currentness and timing were not
+established. The matching outer ACK is retained; child zero cannot repair the
+missing checks. No compiler acknowledgement, receipt or native model claim.
+
+One reviewed eaf2a23 read-only component sample made zero compiler dispatches:
+loaded code identity72.551ms; live declared+ALL installed manifest9857.792ms;
+materialized tree contents/membership6685.825ms; compiler/runtime profile68.730ms.
+The complete component sequence was16695.479ms. All four callbacks returned,
+but overall authority remains UNKNOWN. These are one sample, not a repeated
+whole-cycle distribution or proof of the phase that caused the earlier deadline.
+The tree enumeration is not TypeScript resolution-query completeness.
+
+D12 independently permits a precisely scoped prepared-snapshot-only mechanical
+fixture: current live-source equality is a different claim. Historical source
+selection/provenance is retained; recipient obligation matching is still required.
+The c2b0b18 successor kept all fresh stage/code/Node/parent/config/profile/current
+content and membership before/after checks, argv/cwd/env,30s/1MiB/output/reap guards.
+It returned UNKNOWN in14537.302ms: dispatch1, childexit0/reaped/no output,33345files,
+4532directories,77links, but bindingsCurrent:false. Which guard differed was not
+captured. No third compiler attempt until evidence identifies the reason. Source
+inspection of enumeration order/ancestor metadata is a hypothesis, not attribution.
+Next is a small no-dispatch guard diagnostic and independent review.
+
+| Private record | SHA-256 |
+| --- | --- |
+| sealed-debugger-compiler-fixture.json |fb4a76d487fd8f36decd11588fa55db107715b89c2e6a8d4b3fb0f4a1985bfb0|
+| sealed-debugger-validation-phases.json |01ea67ad1c9942cde06fe523c6a56a093418f1e23df4d4a89b5f50665bc44c5a|
+| sealed-debugger-snapshot-compiler-fixture.json |821b673b58874fef758b09f991d235f1046f9bb3fa8c707b88ca6eb6964c136c|
+
+Each saved record remains pending without its exact matching final outer ACK;
+all corresponding ACKs are retained owner-locally. No raw source, environment,
+credentials or compiler diagnostics are published. Existing receipts, failed
+partials, frozen artifacts and the fixed pilot remain untouched.
+
 ## Concrete implementation and review
 
 - Root integrates `dev/portable-sealed-typescript` from containmentb3b4985 in
