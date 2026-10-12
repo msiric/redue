@@ -1,10 +1,16 @@
 # Bounded native Claude diagnostic proposal
 
-This native route is **DISPATCHED / WAITING FOR OWNER ENVIRONMENT REVIEW**:
+This native route is **ATTEMPTED / UNKNOWN**:
 [run 38242312293](https://github.com/msiric/redue/actions/runs/38242312293).
-Protected account/capacity facts and secret metadata passed the fresh prerequisite
-checks on 2026-10-12; the secret value was never read. Required owner review is
-pending, so native enforcement remains NOT TESTED. Do not dispatch a second run.
+The approved protected job passed its prerequisite/preparation stages, then
+stopped on `NATIVE_SYSTEM_CONTEXT_UNKNOWN`. No assistant response or checker
+report was observed. Assertions and native enforcement remain UNKNOWN. Reaping,
+live controls, source currency, listener cleanup and final persistence passed;
+these do not replace checker success. Native exit143/signalnull is reported
+without inferring its cause. Raw event subtype/order was not retained.
+
+The one-job allowance is consumed. A classification-only repair is under
+independent review; no event is newly accepted and no further run has launched.
 
 [Registration PR14](https://github.com/msiric/redue/pull/14) passed all four checks
 and merged as da6b87f67ae8e80b6ce92a0636fac8a9c11261b7. The dedicated

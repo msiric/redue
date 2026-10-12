@@ -6,7 +6,39 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current native diagnostic — owner provisioning verified; one run awaiting review
+## Current native diagnostic — actual hosted result UNKNOWN; classification repair under review
+
+The owner approved the required environment review. The single hosted
+[run 38242312293](https://github.com/msiric/redue/actions/runs/38242312293)
+completed with workflow failure at 2026-10-12 11:33:11 UTC. Owner prerequisites,
+pinned binary preparation and source checks passed. The actual structured report
+is UNKNOWN / NATIVE_SYSTEM_CONTEXT_UNKNOWN: native startup was observed, but
+zero assistant messages, no tool/result IDs and no checker report were observed.
+Checker exit/signal and assertions remain UNKNOWN. Native exit was 143 with
+signal null; that value alone does not establish its cause. Both live controls,
+source currency, native reaping, listener cleanup and result persistence passed.
+These lifecycle facts do not establish enforcement. Protocol delta was [0,0,0].
+The total job clock reported 17,894 ms; diagnostic collection took 1,622.962 ms.
+No raw transcript or secret value was retained. Exact source is da0b1080f3edcc68f3d4067cb51f961759e68312,
+workflow SHA-256 a5f4e589823844144203e98151d315cd785f6d7d09212a720749618789e43e72.
+
+Private actual report: `.local/portable-evidence/native-diagnostic-38242312293-final.json`.
+The exclusive dispatch ledger records COMPLETED_UNKNOWN. Do not rerun this run
+or dispatch again under the consumed one-job authorization. Actual rejected
+subtype and event ordering were not retained; neither source inspection nor
+exit143 can reconstruct them. A classification-only helper repair now records
+only pinned literal subtype names (others use a fixed unknown code), and whether
+the first rejected event preceded validated init. No event is newly admitted;
+rejection, termination, checker assertions, permissions, OAuth handling and PASS
+criteria are unchanged. Root's sixteen pure/mock controls pass. Independent
+critical review is pending before a new source is proposed for another bounded
+attempt. Those tests do not establish native enforcement.
+
+Copilot's included Actions billing fact remains a separate pending prerequisite.
+G2/final G3/G4 are incomplete; no recipient model trial or publication is unlocked.
+Day 0 and the 72-hour calibration are unchanged. Preserve all earlier results.
+
+## Historical native diagnostic — owner provisioning verified; one run awaiting review
 
 On 2026-10-12, the owner completed the protected Claude setup. Read-only GitHub
 metadata confirms the required msiric review, the sole dedicated branch policy,
