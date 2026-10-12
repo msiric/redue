@@ -2775,3 +2775,60 @@ Four-test count was corrected to Six before integration. GO for this narrow
 reviewed alignment, with permanent disabled activation retained. No native,
 authentication, model, CI process or settings application was performed by this
 reviewer; no G2/G4 or release-ready claim follows.
+
+
+### Healthy direct-test baseline and diagnostic-state fixture correction
+
+Actual product run38185767714/macOS job114607630351 fails the gap/reconciliation
+case's initial CURRENT assertion. Read-only public log inspection confirms
+UNVERIFIED/PASS, exited invocation, stable=false, identical start/end revision127
+and only end checkpoint unavailable. Generation1 shows successful initial snapshot,
+plan rebuild and four root-replay completions, then root-replay history_timeout
+with deadline300, observation_gap and reconciliation_started. The failure is
+emitted2026-10-11T23:57:27.078731Z with5,224.04375ms test duration. Those are CI output
+metadata, not individual history-event timestamps; diagnostics have no timings.
+The retained bounded excerpt hashes
+`e194c4138ac6049b26f55f5235dc4c55f9e8652c95ce28bec11e9d37e81e7125`.
+Underlying reasons the query did not settle within300ms remain UNKNOWN. No native
+API/load/scheduler flakiness claim is established. The conservative runtime
+response correctly preserves compiler PASS without making the incomplete run
+eligible; subsequent polling cannot repair the missing original end boundary.
+
+Independent source review confirms the fixture sets its300ms override before
+start/run/healthy baseline, while intentional history-fail/reconciliation/drop
+files are written only after that CURRENT assertion. Daemon startup captures
+that deadline for its lifetime; the production default remains5000ms. This case
+uses an immediate explicit fail injection, not a hang, so the shortened healthy
+baseline deadline is unnecessary. Separate hung-history deadline/stop controls
+remain. The first log filter was overly broad and several path guesses did not
+match files; corrected source/log reads established the specific evidence above,
+with no tests or runtime operations triggered by those searches.
+
+Root's original local unprofiled300ms single case passes7,424.40ms: that does not
+erase the real CI failure or prove the override always fails. A separate original
+profiling-enabled attempt fails652.16ms before baseline because its diagnostic
+trace populates unowned state, and start correctly refuses ownership. This is a
+diagnostic fixture defect, not evidence about the300ms history operation. These
+root-reported targeted attempts and their retained failures remain distinct from
+independent review's four pure diagnostic controls.
+
+The exact three-file test-only diff hashes
+`fa583dd278ade52ea9586baeaafe6c0f98ef35b14dccf17c2594bf6c1caa7004`.
+It removes only this artificial deadline override and places optional timing
+beside state in the fixture's owned base, updating the reader and bounded fixture
+cleanup. It does not weaken ownership or grant access to a nonempty state. The
+existing assertion sequence, including all76 assertion-bearing lines, is
+mechanically identical. All explicit faults, initial CURRENT, receipt-ID,
+non-reuse, stale/reconciliation and restart checks remain. Runtime source/default
+deadline, compiler invocation, packaged bytes and production semantics are unchanged.
+
+This exact diff was applied only temporarily in the isolated reviewer worktree;
+four diagnostic controls pass50.59ms, then those overlays were restored without
+committing the root author's test files. Root additionally reports the corrected
+profiling-enabled real macOS case PASS7,087.60ms, three adjacent queued-edit/chunked
+certificate/newer-FAIL controls PASS and the separate hung-history/stop case
+PASS2,161.50ms. Those are author actual targeted results, not independently rerun
+macOS acceptance or a new clean full matrix. Conclusion: GO for the narrow fixture
+correction, retaining all failed history and current-binding requirements. No CI
+rerun, native host/model trial, runtime change or assertion relaxation was performed
+by this reviewer. Corrected hosted acceptance remains a later actual result.
