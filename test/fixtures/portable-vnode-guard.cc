@@ -80,14 +80,20 @@ struct Collector{
   void boundary(const char* type,uint64_t request){std::string ids;for(const auto id:dirty){if(!ids.empty())ids+=',';ids+=std::to_string(id);}
     emit(std::string("{\"schema\":1,\"type\":\"")+type+"\",\"request\":"+std::to_string(request)+",\"serial\":"+std::to_string(serial)+",\"dirtyIds\":["+ids+"],\"uncertain\":"+(uncertain?"true":"false")+"}");}
 };
-bool receipt(uint64_t expected,uint64_t ident,int filter,int flags,intptr_t data){return ident==expected&&filter==-4&&flags==0x4000&&data==0;}
+// Pinned XNU f6217f8 kern_event.c receipt copyout retains request flags and
+// adds EV_ERROR/data zero; it does not replace flags with EV_ERROR alone.
+bool receipt(uint64_t expected,uint64_t ident,int filter,int flags,intptr_t data){return ident==expected&&filter==-4&&flags==0x4061&&data==0;}
 bool resourceFits(uint64_t targetCount,uint64_t limit){return targetCount>0&&targetCount<=maxTargets&&limit>=targetCount+16;}
-bool deliveryValid(int filter,uint16_t flags,intptr_t data){return filter==-4&&(flags&~0x0020)==0&&data==0;}
+// Fresh fixed registration stores the same 0x61 flags in kn_kevent. The vnode
+// process and legacy copyout retain them; unexpected runner flags stay unknown.
+bool deliveryValid(int filter,uint16_t flags,intptr_t data){return filter==-4&&flags==0x0061&&data==0;}
 bool drainFits(size_t count,std::chrono::steady_clock::duration elapsed){return count<maxEvents&&elapsed<std::chrono::milliseconds(50);}
 }
 #ifndef REDUE_VNODE_PURE_TEST
 namespace vnode_spike {
 static_assert(EVFILT_VNODE==-4&&EV_ERROR==0x4000,"Reviewed event ABI");
+static_assert((EV_ADD|EV_CLEAR|EV_RECEIPT|EV_ERROR)==0x4061,"Reviewed receipt ABI");
+static_assert((EV_ADD|EV_CLEAR|EV_RECEIPT)==0x0061,"Reviewed delivery ABI");
 static_assert((NOTE_DELETE|NOTE_WRITE|NOTE_EXTEND|NOTE_ATTRIB|NOTE_LINK|NOTE_RENAME|NOTE_REVOKE)==knownNotes,"Reviewed NOTE ABI");
 struct Owned{
   int queue=-1;std::vector<int> fds;
