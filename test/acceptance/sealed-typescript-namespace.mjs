@@ -3,6 +3,9 @@
 // absence or applicability. Imported paths are never approved read scopes.
 // Caller probes must use the actual compiler execution's filesystem policy;
 // daemon answers under a different policy cannot replace those caller facts.
+// Existing typescript-list queryAnswer converts ONLY ENOENT/ENOTDIR to null:
+// EPERM/EACCES throw, while pinned ts.sys wrappers may handle them differently.
+// This classifier must not manufacture an absence answer from a denial.
 import path from 'node:path';import {createHash} from 'node:crypto';
 import {canonical} from '../../src/portable-envelope.mjs';
 const paths=path.posix,sha=value=>createHash('sha256').update(canonical(value)).digest('hex');
