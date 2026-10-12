@@ -10,14 +10,14 @@ const round=value=>Math.round(value*1000)/1000;
 const inside=(file,root)=>typeof file==='string'&&(file===root||file.startsWith(root+'/'));
 export function measurePreparationOperations({root,parent},operation,emit,{clock=()=>performance.now(),io=fs}={}){
  const start=clock(),stats={source:{},stage:{},boundary:{}},fds=new Map(),restores=[],directories=new Set();
- let valid=Number.isFinite(start)&&start>=0,streamValid=true,previous=start,last=start,frames=0,bytes=0;
- const now=()=>{const n=clock();if(!Number.isFinite(n)||n<previous)valid=false;previous=n;return n;};
+ let valid=Number.isFinite(start)&&start>=0,streamValid=true,previous=start,last=start,frames=0,bytes=0,finalEmitted=false;
+ const now=()=>{let n;try{n=clock();}catch{valid=false;return previous;}if(!Number.isFinite(n)||n<previous)valid=false;previous=n;return n;};
  const group=arg=>typeof arg==='number'?(fds.get(arg)||'boundary'):inside(arg,root)?'source':inside(arg,parent)?'stage':'boundary';
  const snapshot=final=>{
   const n=now();if(!valid||!streamValid||frames>=PREPARATION_DIAGNOSTIC_LIMITS.frames||!final&&n-last<PREPARATION_DIAGNOSTIC_LIMITS.intervalMs)return;
   const record={schema:1,scope:'PREPARATION_OPERATION_DIAGNOSTIC_ONLY',elapsedMs:round(n-start),final,stats};
   const frame=JSON.stringify(record)+'\n';if(Buffer.byteLength(frame)>PREPARATION_DIAGNOSTIC_LIMITS.bytes-bytes)return;
-  bytes+=Buffer.byteLength(frame);frames++;last=n;try{emit(frame);}catch{streamValid=false;}
+  bytes+=Buffer.byteLength(frame);frames++;last=n;try{emit(frame);if(final)finalEmitted=true;}catch{streamValid=false;}
  };
  const measured=(kind,selected,call)=>{const before=now();let failed=false,result;
   try{return result=call();}catch(error){failed=true;throw error;}finally{
@@ -44,10 +44,13 @@ export function measurePreparationOperations({root,parent},operation,emit,{clock
  }finally{
   for(const restore of directories)restore();for(const restore of restores.reverse())restore();
   // Retain final failure counters when possible, never replacing its error.
-  try{if(frames===0||last!==previous)snapshot(true);}catch{}
+  try{if(!finalEmitted)snapshot(true);}catch{}
  }
 }
 async function main(){let code=74;
+ let transportFailed=false;
+ const streamFailure=()=>{transportFailed=true;process.exitCode=74;};
+ process.stdout.on('error',streamFailure);process.stderr.on('error',streamFailure);
  try{if(process.argv.length!==2)throw Object.assign(Error('PREPARATION_ARGUMENTS'),{code:'PREPARATION_ARGUMENTS'});
   const options=parsePreparationInput(await consumePreparationInput(process.stdin));
   const measured=measurePreparationOperations(options,()=>materializeSealedTypeScriptTree(options),frame=>process.stderr.write(frame));
@@ -56,6 +59,6 @@ async function main(){let code=74;
    frames:measured.frames,bytes:measured.bytes,sealed:false,reuseEligible:false})+'\n');
  }catch(error){process.stdout.write(JSON.stringify({schema:1,scope:'PREPARATION_DIAGNOSTIC_ONLY',outcome:'UNKNOWN',
    reason:known.has(error?.code)?error.code:'PREPARATION_FAILED',sealed:false,reuseEligible:false})+'\n');}
- process.exitCode=code;
+ process.exitCode=transportFailed?74:code;
 }
 if(process.argv[1]===fileURLToPath(import.meta.url))await main();
