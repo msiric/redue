@@ -1,0 +1,182 @@
+# DISABLED contributor proposal. Not installed in .github/workflows.
+# Exact recipient workflow bytes, registry bytes/policy and its provisioning need
+# separate owner approval before an enabling diff. No producer signing changes.
+name: Explicit authenticated portable recipient (disabled proposal)
+on:
+  push:
+    branches: [dev/portable-ci-recipient]
+permissions:
+  contents: read
+  actions: read
+  attestations: read
+jobs:
+  recipient:
+    if: ${{ false }}
+    runs-on: macos-26
+    timeout-minutes: 20
+    env:
+      SELECTED_REPOSITORY: msiric/redue
+      SELECTED_WORKFLOW: .github/workflows/portable-evidence.yml
+      SELECTED_REF: refs/heads/dev/portable-evidence
+      SELECTED_RUN: '38096670987'
+      SELECTED_ATTEMPT: '1'
+      SELECTED_SOURCE: d04b872ee0e848e300c0cc9738ad761e48146acc
+      SELECTED_SIGNER: d04b872ee0e848e300c0cc9738ad761e48146acc
+      SELECTED_ARTIFACT_ID: '11685889769'
+      SELECTED_ARCHIVE_SHA256: d5469b8c9f49aa7bca1c7ecadf2a220de21437aa019bdb2722cb87c0cd6b6a29
+      SELECTED_EVIDENCE_SHA256: eb25768d3073dac37a78059efe94bfaab4a91f553dab7e208b05b940ea56dba6
+      SELECTED_EVIDENCE_DIGEST: 5d16fbf6b101f88843f41a8c61d3c351e5f9e600306dc4936eaaec8d6ea40d57
+      SELECTED_BUNDLE_SHA256: a7480a24ed2dd2c0858283055c68de475c5f392d2a8d5e0fb3404c007aa04b4a
+      SELECTED_PACKAGE_SHA256: 8695b612a5c33dae945b2bc8df57cd68ca3eefb401aa0ef9ca2850d212979ea2
+      SELECTED_MANIFEST_SHA256: 18633c66ec58e49a88e76ebdc0d2a2132fa34b4ee327dc960c5d956efbd102fa
+      SELECTED_INTERPRETATION: redue-portable-direct-typescript@2
+      GH_ARCHIVE_SHA256: 5454f9509e3dbb8f321310e9e344877d9a01ebb8f8703886b1afb0936d60ffaa
+      GH_EXECUTABLE_SHA256: 20f0520e9cc872b543bd5e31984f64932b197732c3d3df2c7367d0dc66e7a450
+      OWNER_REGISTRY_SOURCE: OWNER_REVIEWED_REGISTRY_COMMIT
+      OWNER_REGISTRY_SHA256: 5a1021fcf9b119f4469370eb33c09dc35c62cb174bc272574065a382aae6d521
+      OWNER_POLICY_DIGEST: bab7901892570e81f15f8e888d2c33e632479f55f461d4ee34f905acfe7a5ce6
+      OWNER_REFRESH: required
+    steps:
+      - name: Fail closed before checkout, download, verifier or model
+        id: prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'JS'
+          const expected = {"SELECTED_REPOSITORY":"msiric/redue","SELECTED_WORKFLOW":".github/workflows/portable-evidence.yml","SELECTED_REF":"refs/heads/dev/portable-evidence","SELECTED_RUN":"38096670987","SELECTED_ATTEMPT":"1","SELECTED_SOURCE":"d04b872ee0e848e300c0cc9738ad761e48146acc","SELECTED_SIGNER":"d04b872ee0e848e300c0cc9738ad761e48146acc","SELECTED_ARTIFACT_ID":"11685889769","SELECTED_ARCHIVE_SHA256":"d5469b8c9f49aa7bca1c7ecadf2a220de21437aa019bdb2722cb87c0cd6b6a29","SELECTED_EVIDENCE_SHA256":"eb25768d3073dac37a78059efe94bfaab4a91f553dab7e208b05b940ea56dba6","SELECTED_EVIDENCE_DIGEST":"5d16fbf6b101f88843f41a8c61d3c351e5f9e600306dc4936eaaec8d6ea40d57","SELECTED_BUNDLE_SHA256":"a7480a24ed2dd2c0858283055c68de475c5f392d2a8d5e0fb3404c007aa04b4a","SELECTED_PACKAGE_SHA256":"8695b612a5c33dae945b2bc8df57cd68ca3eefb401aa0ef9ca2850d212979ea2","SELECTED_MANIFEST_SHA256":"18633c66ec58e49a88e76ebdc0d2a2132fa34b4ee327dc960c5d956efbd102fa","SELECTED_INTERPRETATION":"redue-portable-direct-typescript@2","GH_ARCHIVE_SHA256":"5454f9509e3dbb8f321310e9e344877d9a01ebb8f8703886b1afb0936d60ffaa","GH_EXECUTABLE_SHA256":"20f0520e9cc872b543bd5e31984f64932b197732c3d3df2c7367d0dc66e7a450"};
+          if (Object.entries(expected).some(([key,value])=>process.env[key]!==value))
+            throw Error('RECIPIENT_SELECTED_ARTIFACT_MISMATCH');
+          for (const [key,pattern] of [['OWNER_REGISTRY_SOURCE',/^[a-f0-9]{40}$/],
+            ['OWNER_REGISTRY_SHA256',/^[a-f0-9]{64}$/], ['OWNER_POLICY_DIGEST',/^[a-f0-9]{64}$/]])
+            if (!pattern.test(process.env[key]||'')) throw Error('RECIPIENT_OWNER_PREREQUISITE_MISSING');
+          if (process.env.OWNER_REGISTRY_SHA256!=='5a1021fcf9b119f4469370eb33c09dc35c62cb174bc272574065a382aae6d521'||process.env.OWNER_POLICY_DIGEST!=='bab7901892570e81f15f8e888d2c33e632479f55f461d4ee34f905acfe7a5ce6') throw Error('RECIPIENT_OWNER_PREREQUISITE_MISSING');
+          if (process.env.OWNER_REFRESH!=='required') throw Error('RECIPIENT_OWNER_PREREQUISITE_MISSING');
+          // Syntax is NOT approval. The job remains disabled, and explicit owner
+          // review must bind current registry/workflow bytes OUT OF BAND, never
+          // using a self-referential in-file workflow approval hash.
+          console.log('RECIPIENT_DESCRIPTOR_COMPLETE_NOT_AUTHORIZED');
+          JS
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.13.0'
+      - name: Reviewed helper dependencies
+        run: npm ci --no-audit --no-fund
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: d04b872ee0e848e300c0cc9738ad761e48146acc
+          path: producer-source
+          persist-credentials: false
+      - name: Independent exact producer package
+        shell: bash
+        working-directory: producer-source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          npm ci --no-audit --no-fund
+          mkdir -m 700 "$RUNNER_TEMP/redue-ci-package"
+          npm pack --json --pack-destination "$RUNNER_TEMP/redue-ci-package" > "$RUNNER_TEMP/redue-ci-pack.json"
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import path from 'node:path';import {createHash} from 'node:crypto';
+          const pack=JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP,'redue-ci-pack.json')));
+          if(pack.length!==1||path.basename(pack[0].filename)!==pack[0].filename)throw Error('PACKAGE_FILENAME');
+          const file=fs.realpathSync(path.join(process.env.RUNNER_TEMP,'redue-ci-package',pack[0].filename));
+          if(createHash('sha256').update(fs.readFileSync(file)).digest('hex')!==process.env.SELECTED_PACKAGE_SHA256)throw Error('PACKAGE_BYTES');
+          fs.appendFileSync(process.env.GITHUB_ENV,`CI_RECIPIENT_TARBALL=${file}\n`);
+          JS
+      - name: Exact reviewed native verifier and read-only selected artifact
+        id: download
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 <<'PYTHON'
+          import os,pathlib,hashlib,urllib.request,zipfile,io,stat,subprocess,json,selectors,time
+          base=pathlib.Path(os.environ['RUNNER_TEMP'])/'redue-ci-transfer'
+          base.mkdir(mode=0o700);base=base.resolve(strict=True)
+          def sha(b):return hashlib.sha256(b).hexdigest()
+          def put(name,b,mode=0o600):
+            with open(base/name,'xb') as f:f.write(b);f.flush();os.fsync(f.fileno())
+            os.chmod(base/name,mode)
+          def api(args,limit):
+            # Only read-only literal APIs and the reviewed native executable.
+            p=subprocess.Popen([str(base/'gh'),'api',*args],stdout=subprocess.PIPE,stderr=subprocess.DEVNULL)
+            try:
+              deadline=time.monotonic()+30;parts=[];size=0
+              with selectors.DefaultSelector() as sel:
+                sel.register(p.stdout,selectors.EVENT_READ)
+                while True:
+                  remaining=deadline-time.monotonic()
+                  if remaining<=0 or not sel.select(remaining):raise ValueError('READ_ONLY_API_TIMEOUT')
+                  chunk=os.read(p.stdout.fileno(),min(65536,limit-size+1))
+                  if not chunk:break
+                  size+=len(chunk)
+                  if size>limit:raise ValueError('DOWNLOAD_LIMIT')
+                  parts.append(chunk)
+              if p.wait(timeout=max(0.001,deadline-time.monotonic()))!=0:raise ValueError('READ_ONLY_API')
+              return b''.join(parts)
+            finally:
+              if p.poll() is None:p.kill();p.wait()
+          request=urllib.request.Request('https://github.com/cli/cli/releases/download/v2.79.0/gh_2.79.0_macOS_arm64.zip')
+          with urllib.request.urlopen(request,timeout=30) as response:archive=response.read(20*1024*1024+1)
+          if len(archive)>20*1024*1024 or sha(archive)!=os.environ['GH_ARCHIVE_SHA256']:raise ValueError('GH_ARCHIVE')
+          with zipfile.ZipFile(io.BytesIO(archive)) as z:
+            leaf=z.getinfo('gh_2.79.0_macOS_arm64/bin/gh')
+            if not stat.S_ISREG(leaf.external_attr>>16) or leaf.file_size>128*1024*1024:raise ValueError('GH_LEAF')
+            binary=z.read(leaf)
+          if sha(binary)!=os.environ['GH_EXECUTABLE_SHA256']:raise ValueError('GH_BINARY')
+          put('gh',binary,0o700)
+          repo=os.environ['SELECTED_REPOSITORY'];run=os.environ['SELECTED_RUN'];attempt=os.environ['SELECTED_ATTEMPT'];artifact=os.environ['SELECTED_ARTIFACT_ID']
+          runmeta=json.loads(api([f'/repos/{repo}/actions/runs/{run}/attempts/{attempt}'],65536))
+          if str(runmeta.get('id'))!=run or str(runmeta.get('run_attempt'))!=attempt or runmeta.get('status')!='completed' or runmeta.get('conclusion')!='success' or runmeta.get('event')!='push' or runmeta.get('head_branch')!='dev/portable-evidence' or runmeta.get('head_sha')!=os.environ['SELECTED_SOURCE'] or runmeta.get('path')!=os.environ['SELECTED_WORKFLOW']:raise ValueError('RUN_BINDING')
+          meta=json.loads(api([f'/repos/{repo}/actions/artifacts/{artifact}'],65536))
+          if str(meta.get('id'))!=artifact or meta.get('expired') is not False or meta.get('name')!=f'portable-ci-authenticated-{run}-{attempt}' or meta.get('size_in_bytes')!=34300 or meta.get('digest')!='sha256:'+os.environ['SELECTED_ARCHIVE_SHA256'] or str(meta.get('workflow_run',{}).get('id'))!=run or meta.get('workflow_run',{}).get('head_sha')!=os.environ['SELECTED_SOURCE'] or str(meta.get('workflow_run',{}).get('repository_id'))!='1403689333' or str(meta.get('workflow_run',{}).get('head_repository_id'))!='1403689333' or meta.get('workflow_run',{}).get('head_branch')!='dev/portable-evidence':raise ValueError('ARTIFACT_BINDING')
+          archive=api([f'/repos/{repo}/actions/artifacts/{artifact}/zip'],4*1024*1024)
+          if sha(archive)!=os.environ['SELECTED_ARCHIVE_SHA256']:raise ValueError('ARTIFACT_ARCHIVE')
+          expected={'redue-portable-evidence.json':(20160,os.environ['SELECTED_EVIDENCE_SHA256']),'attestation-bundle.json':(10505,os.environ['SELECTED_BUNDLE_SHA256']),'manifest.json':(3209,os.environ['SELECTED_MANIFEST_SHA256'])}
+          target=base/'artifact';target.mkdir(mode=0o700)
+          with zipfile.ZipFile(io.BytesIO(archive)) as z:
+            if sorted(z.namelist())!=sorted(expected):raise ValueError('ARTIFACT_MEMBERS')
+            for name,(size,digest) in expected.items():
+              info=z.getinfo(name)
+              if not stat.S_ISREG(info.external_attr>>16) or info.file_size!=size:raise ValueError('ARTIFACT_MEMBER')
+              data=z.read(info)
+              if sha(data)!=digest:raise ValueError('ARTIFACT_MEMBER_BYTES')
+              with open(target/name,'xb') as f:f.write(data)
+              os.chmod(target/name,0o600)
+          registry=api(['-H','Accept: application/vnd.github.raw+json',f'/repos/{repo}/contents/docs/contributor/portable-ci-producer-registry-proposal.json?ref='+os.environ['OWNER_REGISTRY_SOURCE']],65536)
+          if sha(registry)!=os.environ['OWNER_REGISTRY_SHA256']:raise ValueError('OWNER_REGISTRY_BYTES')
+          put('registry.json',registry)
+          with open(os.environ['GITHUB_ENV'],'a') as f:f.write('CI_RECIPIENT_TRANSFER='+str(base)+'\n')
+          PYTHON
+      - name: Explicit owner-approved fresh recipient and independent applicability
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          BASE=$(mktemp -d /tmp/redue-ci-recipient-XXXXXXXX)
+          BASE=$(node -e 'console.log(require("fs").realpathSync(process.argv[1]))' "$BASE")
+          node test/acceptance/portable-ci-machine-recipient.mjs \
+            --base "$BASE" --tarball "$CI_RECIPIENT_TARBALL" --sha256 "$SELECTED_PACKAGE_SHA256" \
+            --source "$SELECTED_SOURCE" --input "$CI_RECIPIENT_TRANSFER/artifact" \
+            --registry "$CI_RECIPIENT_TRANSFER/registry.json" --registry-sha256 "$OWNER_REGISTRY_SHA256" \
+            --policy-digest "$OWNER_POLICY_DIGEST" --gh-executable "$CI_RECIPIENT_TRANSFER/gh" \
+            --gh-sha256 "$GH_EXECUTABLE_SHA256" --run "$SELECTED_RUN" --attempt "$SELECTED_ATTEMPT" \
+            --manifest-sha256 "$SELECTED_MANIFEST_SHA256"
+          # Explicit apply is authorized only by the separately reviewed enabling
+          # diff and owner policy/provisioning approval, not by artifact contents.
+          node test/acceptance/portable-ci-machine-recipient.mjs \
+            --base "$BASE" --tarball "$CI_RECIPIENT_TARBALL" --sha256 "$SELECTED_PACKAGE_SHA256" \
+            --source "$SELECTED_SOURCE" --input "$CI_RECIPIENT_TRANSFER/artifact" \
+            --registry "$CI_RECIPIENT_TRANSFER/registry.json" --registry-sha256 "$OWNER_REGISTRY_SHA256" \
+            --policy-digest "$OWNER_POLICY_DIGEST" --gh-executable "$CI_RECIPIENT_TRANSFER/gh" \
+            --gh-sha256 "$GH_EXECUTABLE_SHA256" --run "$SELECTED_RUN" --attempt "$SELECTED_ATTEMPT" \
+            --manifest-sha256 "$SELECTED_MANIFEST_SHA256" --apply
+# Still disabled. Owner approval is OUT OF BAND and must bind reviewed final
+# enabled workflow bytes and registry source/raw bytes. No self-referential hash.
+# No uploads, OIDC, models, global policy, signer modifications or manual fallback.

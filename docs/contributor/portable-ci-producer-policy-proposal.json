@@ -1,0 +1,26 @@
+{
+  "status": "PROPOSED_NOT_APPROVED",
+  "purpose": "Owner review only; not an authoritative producer policy registry and not imported authority.",
+  "workflowRun": "38096670987",
+  "workflowAttempt": "1",
+  "artifactId": "11685889769",
+  "archiveSha256": "d5469b8c9f49aa7bca1c7ecadf2a220de21437aa019bdb2722cb87c0cd6b6a29",
+  "policyDigest": "bab7901892570e81f15f8e888d2c33e632479f55f461d4ee34f905acfe7a5ce6",
+  "policy": {
+    "schema": 1,
+    "interpretation": "redue-github-ci-trust@1",
+    "issuer": "https://token.actions.githubusercontent.com",
+    "repository": "msiric/redue",
+    "repositoryId": "1403689333",
+    "ownerId": "26199969",
+    "workflow": ".github/workflows/portable-evidence.yml",
+    "ref": "refs/heads/dev/portable-evidence",
+    "sourceCommit": "d04b872ee0e848e300c0cc9738ad761e48146acc",
+    "signerCommit": "d04b872ee0e848e300c0cc9738ad761e48146acc",
+    "artifactSha256": "eb25768d3073dac37a78059efe94bfaab4a91f553dab7e208b05b940ea56dba6",
+    "evidenceDigest": "5d16fbf6b101f88843f41a8c61d3c351e5f9e600306dc4936eaaec8d6ea40d57",
+    "evidenceInterpretation": "redue-portable-direct-typescript@2",
+    "refresh": "required",
+    "bundleSha256": null
+  }
+}

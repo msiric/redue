@@ -1,0 +1,76 @@
+# Unregistered proposal outside .github. Deployment requires independent review,
+# a concrete integrated source pin, owner policy/capacity fact and protected secret.
+name: Bounded native Claude boundary diagnostic
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: redue-native-claude-boundary-diagnostic
+  cancel-in-progress: false
+jobs:
+  diagnostic:
+    if: github.repository == 'msiric/redue' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/dev/portable-claude-diagnostic' && github.actor == 'msiric' && github.run_attempt == 1
+    runs-on: macos-26
+    timeout-minutes: 2
+    environment: portable-evidence-claude
+    env:
+      REVIEWED_SOURCE: REQUIRED_INTEGRATED_REVIEWED_COMMIT
+      REDUE_CLAUDE_ACCOUNT_POLICY_FACT: ${{ vars.REDUE_CLAUDE_ACCOUNT_POLICY_FACT }}
+      REDUE_CLAUDE_INCLUDED_DIAGNOSTIC_CAPACITY: ${{ vars.REDUE_CLAUDE_INCLUDED_DIAGNOSTIC_CAPACITY }}
+    steps:
+      - name: Start total job clock and reject unresolved source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$REVIEWED_SOURCE" =~ ^[a-f0-9]{40}$ ]]
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          printf 'REDUE_DIAGNOSTIC_JOB_STARTED_MS=%s\n' "$(($(date +%s)*1000))" >> "$GITHUB_ENV"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.REVIEWED_SOURCE }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.13.0'
+      - name: Validate owner prerequisites and prepare exact public native fixture without credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$REVIEWED_SOURCE"
+          test "$(uname -m)" = 'arm64'
+          while IFS= read -r key; do
+            case "$key" in NODE_OPTIONS|NODE_PATH|BASH_ENV|ENV|LD_*|DYLD_*|OPENSSL_*|CLAUDE_*|ANTHROPIC_*) exit 2;; esac
+          done < <(compgen -e)
+          test "$(node --version)" = 'v22.13.0'
+          export REDUE_CHECKED_SOURCE="$REVIEWED_SOURCE"
+          node test/acceptance/portable-claude-diagnostic.mjs --check-prerequisites --source "$REVIEWED_SOURCE"
+          base="$(mktemp -d /private/tmp/redue-claude-diagnostic-XXXXXX)"
+          chmod 700 "$base"
+          mkdir -m 700 "$base/native"
+          curl --fail --location --silent --show-error --max-time 35 \
+            https://downloads.claude.ai/claude-code-releases/2.1.187/darwin-arm64/claude \
+            --output "$base/native/claude"
+          test "$(shasum -a 256 "$base/native/claude" | cut -d ' ' -f1)" = a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3
+          chmod 700 "$base/native/claude"
+          export REDUE_DIAGNOSTIC_BASE="$base"
+          node test/acceptance/portable-claude-diagnostic.mjs --prepare --source "$REVIEWED_SOURCE"
+          printf 'REDUE_DIAGNOSTIC_BASE=%s\n' "$base" >> "$GITHUB_ENV"
+      - name: One bounded subscription-authenticated native diagnostic
+        shell: bash
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+          # No owner token is printed, copied to a file, or released to another step.
+          while IFS= read -r key; do
+            case "$key" in
+              CLAUDE_CODE_OAUTH_TOKEN) ;;
+              NODE_OPTIONS|NODE_PATH|BASH_ENV|ENV|LD_*|DYLD_*|OPENSSL_*|CLAUDE_*|ANTHROPIC_*) exit 2;;
+            esac
+          done < <(compgen -e)
+          export REDUE_CHECKED_SOURCE="$REVIEWED_SOURCE"
+          node test/acceptance/portable-claude-diagnostic.mjs --run --source "$REVIEWED_SOURCE"
+      # No uploads, cache, OIDC, signing, SDK, terminal input or automatic retry.
+      # The whole job includes checkout/download/prepare/drain inside two minutes.
+      # A missing precondition or deadline is UNKNOWN, never a waiver or API fallback.

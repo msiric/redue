@@ -1,28 +1,27 @@
 # Portable evidence: independent boundary review
 
-Current conclusion: bounded parsing/inspection, separate-store conflict policy,
-original-run interval capture, caller interval validation and delayed recipient
-publication have independent controls. The versioned content profile has real
-same-host copied-executable handoff evidence. Current CI-policy/subject coupling
-has controlled authorization and corruption regressions; it is not live signing.
-The corrected copied-Node caller test passed on frozen `2beab5e`; its earlier
-reported caller-test PASS is unreconciled and is not used as gate evidence.
-Two-machine execution, actual cross-agent acceptance, authenticated CI and release
-gates remain pending.
-The first hosted machine and installed-macOS attempts stopped at incomplete
-portable origin despite eligible local evidence; their responsible phase is not
-established. A later signed-route producer established its portable probe's
-10-second parent timeout; the internal phase remains unknown. Diagnostics preserve
-that distinction rather than repairing origin from a later local CURRENT response.
-The bounded instrumented capture at `57c3a3d` has independent source review;
-it is preparation for one fixed diagnostic attempt, not a resolved timeout or
-hosted applicability result.
-That attempt identified both portable captures timing out during complete
-dyld-cache consumption. The portable-only finite budget adjustment at `41e66ac`
-has source review and focused actual cancellation/change-and-restore controls;
-matched-VM completion and higher acceptance gates remain unestablished.
-REDUE-PE-001 G1–G4 are not certified by
-this document. Baseline inspected: `b4f286034f43021a74f1babf2c1d0fee5df2a9e5`.
+Current conclusion: parser/store, origin/caller/publication and current CI-policy
+boundaries have independent controls. Actual same-host relocation and copied-Node
+handoffs pass. One owner-approved authenticated two-machine CLI recipient run
+38123365552 establishes CURRENT/PASS imported evidence without equivalent recipient
+execution on frozen d04/8695 bytes; it is not receiving-agent reuse. Actual model
+handoff and native host enforcement remain pending. Exact b812 candidate checks
+pass separately on macOS/Linux/native Windows, and source05 product regressions
+pass separately. Candidate version remains alpha10 metadata, not final release
+identity. The complete one-sample installed sequence adds measured command work
+rather than establishing net benefit. No G1–G4 or owner-release certification is
+made here. Original failures, unavailable native prerequisites and immutable
+pilot receipts remain retained. Three specifically approved native synthetic
+preflights stopped before command submission; a separate startup-only SAVE_CURSOR
+diagnostic completed. Native checker enforcement remains unverified. Custom
+terminal decoding has stopped; any owner-operated alternative needs a concrete
+reviewed procedure and new specific approval. Pinned187 manual commands default
+to requesting a model response; the prior3018 proposal did not disable that
+behavior. All actual attempts stopped before command submission. A future
+procedure must explicitly bind automatic responses off before it can satisfy
+the no-model boundary. A later owner-operated attempt ended its outer
+window without retained checker output; its checker execution and model count
+remain unknown.
 
 The review lane is independent of core and envelope authors. It owns this record
 and `test/portable-boundaries.test.mjs`; it does not modify the applicability
@@ -1030,3 +1029,2213 @@ owner-approved `5770b7f0ac9133fbf0190cf0e238ac800263b632d7f4741f3fddb04882591924
 Bounded GO is for one accounted next hosted attempt with reviewed finite budgets,
 not producer acceptance, model access or a successful G2/G3 result. Recheck usage
 if any additional upload occurs before that attempt.
+
+## First live signed artifact inspection
+
+Producer/signer run `38096670987`, source/signer commit
+`d04b872ee0e848e300c0cc9738ad761e48146acc`, completed successfully. Independently
+checked preserved downloaded ZIP ID `11685889769`, 34,300 bytes, SHA-256
+`d5469b8c9f49aa7bca1c7ecadf2a220de21437aa019bdb2722cb87c0cd6b6a29`.
+The 20,160-byte envelope has raw checksum
+`eb25768d3073dac37a78059efe94bfaab4a91f553dab7e208b05b940ea56dba6`
+and canonical evidence digest
+`5d16fbf6b101f88843f41a8c61d3c351e5f9e600306dc4936eaaec8d6ea40d57`.
+Strict parsing preserves complete historical PASS origin
+`02f44ac7-e6fc-4d5e-9757-28357654fef1`, direct compiler recipe, 130 declared input
+records and current @2 interpretation. The outer DSSE statement names the exact
+envelope byte checksum and binds its inner digest/interpretation; parsing that
+statement alone is not authentication.
+
+One reserved actual read-only `verifyCIArtifact` call completed with the reviewed
+native GitHub CLI 2.79.0 executable checksum
+`615cad3ec927069096ae07bda453152fcbf485928a6b5c24373a3631891b92a4`.
+The in-memory **inspection proposal**, never installed as an accepted policy,
+requires public repository `msiric/redue` ID `1403689333`, owner ID `26199969`,
+the exact approved workflow/ref, source/signer commit above, issuer and exact
+outer/inner identities. Required online lookup produced one verified attestation
+accepted by the bounded strict certificate/statement/timestamp parser. Result:
+`producer_verified: true`, `producer_accepted: false`, `local_policy_current:
+false`, `reuse_eligible: false`, `globally_latest: false`. No policy registry,
+import, trust/account setting or model changed. The private mode-0600 structured
+result is retained locally. Early ad hoc projections used incorrect envelope
+field names and failed before verification; actual schema inspection corrected
+them without a second authentication attempt.
+
+Independently parsed both complete runtime reports from inventory run
+`38096673747`: both report supported prototypes. Their full 21 runtime records
+are exactly equal to each other, to the signed producer manifest and to its
+captured runtime facts; reviewed compiler 5.6.3 implementation checksum also
+matches, and canonical manifest profile checksum verifies. This is actual full
+content equality, not label-based inference. It does not establish that a
+recipient independently queried eligible evidence, imported it under current
+approved policy, or avoided equivalent compiler execution. Local development
+runtime remains different. Receiving-agent, cross-agent, V01–V22 and complete
+economics gates are still pending; one live authenticated artifact is progress,
+not G2/G3 or release readiness certification.
+
+## Exact recipient proposal and amended host preparation review
+
+Independently reviewed Lane B `68fcde5` as a disabled preparation, not producer
+acceptance. The selected policy digest
+`bab7901892570e81f15f8e888d2c33e632479f55f461d4ee34f905acfe7a5ce6`
+binds the exact source/signer, immutable repository and owner IDs, workflow/ref,
+outer and inner identities from the live inspection above. Its required online
+refresh remains explicit; the local bundle is not a substitute. The proposed
+JSON is not a producer registry. The recipient YAML remains outside active
+workflows, its job is unconditionally disabled, and a second mandatory stop
+refuses downstream preparation even after synthetic descriptor syntax passes.
+There is no policy writer, authorization token, import or model launch.
+
+Ran all 25 pure controls independently on frozen root `d04b872` with exactly
+B's four-file overlay: 25/25 PASS, actual Node 22.13.0, 908.95 ms. Existing
+installed dependencies were linked read-only into a disposable archive; no
+installation scripts ran. An initial test against the leaf's older whole-tree
+ancestry gave 24 PASS / 1 policy-interpretation rejection because that tree still
+used @1. It is retained as an incorrect test-source combination, not silently
+reported as current @2 acceptance or a product defect. Both private logs are
+retained; no additional live verifier call occurred.
+
+Before an enabling diff, owner approval of exact workflow bytes must be bound
+out of band: putting a workflow's own final byte hash into that workflow is
+self-referential. Negative process tests must also assert integer completed exit
+status rather than treat an interpreter that never completed as a rejection.
+These points were sent to the author; neither bypasses the present disabled
+job/mandatory stop. Bounded GO covers owner review of this precise policy and
+preparation only, not trust installation or live recipient acceptance.
+
+Light source review of Lane D's corrected D4/native-Claude preparation preserves
+the explicit owner-approved Copilot producer / Claude receiver amendment, with
+Codex acceptance separate and all applicability/trust gates retained. Current
+official Claude documentation describes setup-token subscription OAuth for CI
+and a one-year token; installed 2.1.146 help/status is separated from newer
+documentation and a successful version/status command is not model execution.
+The proposal now specifies a protected Actions environment with selected run
+ref and required owner approval, discloses other workflows can request that
+environment, and never claims a secret name scopes repository-wide access.
+Deleting an Actions secret is not provider credential revocation. Exact workflow,
+trusted binary, host policy, included capacity, producer acceptance and the actual
+in-context recipient gate still precede all model calls. This is docs-only GO,
+not token generation, account administration or host behavior acceptance.
+
+Primary references: [Claude authentication](https://code.claude.com/docs/en/authentication),
+[Claude GitHub Actions](https://code.claude.com/docs/en/github-actions), and
+[GitHub environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments).
+
+## Concrete disabled recipient route review
+
+Lane B `87b7df9`, over coherent root `ad2e78d`, resolves the earlier concrete
+review findings. Native verifier reads use a separate 128-MiB capped, no-follow,
+nonblocking regular descriptor with single-link, file fingerprint and parent
+identity checks; the 1-MiB evidence reader is unchanged. Explicit registry
+provisioning requires exact owner-selected bytes and initialized dedicated
+state, refuses local/imported history and existing targets, uses exclusive
+mode-0600 descriptor writes plus fsync, and revalidates owner bytes/physical
+identity, parents and written leaf before returning. A controlled owner change
+at fsync is rejected; an ambiguous failed copy remains for inspection, never
+authentication continuation or automatic repair.
+
+Independent frozen `ad2e78d` plus seven proposal-file overlay: 84/84 focused
+controls PASS in 2,979.52 ms (65 new preparation/download controls, 19 existing
+recipient controls), actual Node22.13.0, existing dependencies read-only and no
+installation. The positive preview launches zero processes. Precise failure
+codes now distinguish changed policy, transfer, verifier, source and occupied
+state. Controlled download tests run the actual bounded extraction/metadata
+script with fake HTTPS/API records, not an actual signature verifier or VM.
+The full local log is private; no additional live authentication occurred.
+
+The queued route pins the selected successful producer run/attempt/ref/source,
+repository IDs, artifact identity and ZIP digest, fixed three regular members
+and their exact bytes, canonical evidence interpretation, official native
+verifier bytes and independently packed producer package. Current receiver
+runtime equality and different boot/raw Node identities precede initialization;
+recipient synchronized applicability remains independently authoritative. The
+procedure never runs the verification command locally. It checks imported
+provenance, null local invocation, no local runs, unrelated-edit preservation,
+restart inheritance and relevant-edit invalidation. It does not establish model
+behavior or ambient process absence.
+
+Registry proposal bytes SHA-256
+`5a1021fcf9b119f4469370eb33c09dc35c62cb174bc272574065a382aae6d521`
+and the exact policy digest above remain outside authority-bearing state. Job
+`if:false` and missing reviewed registry-source pin prevent enablement. Workflow
+approval is now explicitly out of band. Bounded GO is to present this concrete
+route, policy and provisioning action for owner approval, not to install trust
+or enable it. Preserve exact approved bytes across platform checkout line-end
+conversion; do not normalize a mismatching policy during import. Live recipient
+acceptance, actual two-machine agent reuse and complete-path economics remain
+outstanding.
+
+## Controlled instruction and native Claude proposal review
+
+Reviewed Lane D `bafb2ec`, `fc408f6`, `a0d2012` and `9653b26` as contributor-only
+preparation. The role-specific producer appendix explicitly selects portable
+capture for the configured compiler; the receiver keeps the installed shared
+policy and does not receive a task-specific reuse directive. Export, import and
+producer trust remain separate owner operations. New guidance destinations are
+exclusive and mode0600; source policy, config and exact owner physical identities
+and parents remain bound across publication. Distinct root/state/prefix resources
+are required. Failure cleanup removes only unchanged created content and preserves
+a concurrent owner edit in the same inode.
+
+Independent coherent `ad2e78d` plus final `a0d2012` five-file overlay: 12/12 PASS,
+142.38 ms, actual Node22.13.0. Prior `fc408f6` overlay 11/11 PASS, 133.34 ms, is
+retained separately. Both are pure/owned filesystem controls; no credentials,
+host process or model were invoked. The subsequent narrow `9653b26` diff
+explicitly refuses Windows writer execution before touching files and skips
+only POSIX fixture mechanics there, with a native Windows refusal control.
+Fixed macOS proposal paths now use POSIX data semantics on every test host.
+That diff has independent source review, not a native Windows behavior result.
+
+The native Claude invocation builder creates unverified proposal data only and
+its activation function always refuses. It cannot turn help output, a static
+settings key or a boolean approval into permission or secret-denial proof.
+Actual matched-profile, managed settings, exact socket/network/resource controls
+and non-secret credential-sentinel preflight must succeed before real OAuth is
+provisioned or any model launches. In particular installed2.1.146 is not assumed
+to implement current documentation's later credential scrub. Bounded GO permits
+owner review of this disabled proposal and controlled generic fixture setup;
+it certifies neither native Claude enforcement nor actual instruction discovery.
+
+A separate root Copilot preparation review is not yet complete. Its original
+87de9c5 five author controls independently pass, but an additional no-process
+control demonstrates that a private home ancestor of the writable workspace
+was accepted. Opposite-direction directory overlap and descriptor-bounded
+executable reads were requested before concrete proposal approval. No model or
+sandbox-enforcement claim follows those mechanics.
+
+## Guarded Copilot no-model preparation review
+
+Root `9824ed5` corrects the reviewed preparation defects without enabling a
+model. The executable reader now streams bounded descriptor reads, rejects
+nonregular/hardlinked/writable leaves and unsafe parents, binds complete bytes
+and physical metadata before each inventory command and after inspection, and
+never uses an unchecked path read to allocate the binary. Symmetric path-overlap
+checks refuse private directories both inside and around exposed resources,
+and overlapping private directories. The module accurately states that three
+explicit no-model inventory commands may execute; no inference launcher exists.
+
+Actual frozen root `46e7a1a`: six controlled tests PASS, 95.28 ms, Node22.13.0.
+These tests substitute inventory responses; no Copilot binary or model was run
+by this reviewer. The original five-control PASS and additional accepted private
+home-ancestor counterexample are retained, not rewritten into prior success.
+The fixed preparation still reports entitlement/enforcement/readiness false.
+GO is for this disabled owner-review proposal, not effective managed permissions.
+
+Before a real model route, the writable state grant needs explicit native proof
+that trust/owner/runtime authority files cannot be modified while permitted
+REDUE commands still work. The proposed Claude data has a deny-write entry for
+producer policy; Copilot's current broad state grant does not itself establish
+that boundary. An instruction forbidding automatic trust is not a filesystem
+permission. Use actual supported policy and no-model sentinel controls, never
+invent settings or bypass the sandbox. The state directory/socket scope and
+approved daemon probe authority remain prerequisites. This concern is separate
+from the data-only recipient workflow, which launches no model.
+
+## Final data-only recipient enablement proposal
+
+Independently inspected the not-installed root proposal
+`docs/contributor/portable-ci-recipient-enable-proposal.yml`, SHA-256
+`ef237cbb411b0520791911503d3071a9a42f78502ac8f712406a11566482ef78`.
+It pins helper preparation and registry source to
+`a23843e171f206e404574d97a59b2d86abc9a0c0`; the helper blob is exactly identical
+to independently reviewed B `87b7df9`. Registry bytes/policy remain the exact
+reviewed digests above. Comparison against the reviewed disabled YAML found only
+the explicit repository/push/ref guard, fixed preparation/registry source and
+status comments/name changed; data extraction, authentication and application
+procedures are unchanged. An initially supplied nonexistent abbreviated ref
+`526bad` could not be compared; the actual reviewed B source was used instead.
+
+Static parsing/assertions pass: only the dedicated recipient push branch, exact
+repository/event/ref guard, read-only contents/actions/attestations permissions,
+macos26 and 20-minute envelope, both checkout sources immutable with credentials
+persistence disabled. There are no uploads, OIDC grants, model secrets, inference
+commands, arbitrary prompt/ref inputs or signer modifications. This data-only
+route deliberately evaluates the fixed signed compiler origin, not an agent-
+produced artifact. Applicable imported provenance and recipient-owned current
+evaluation remain required; signature identity cannot manufacture CURRENT.
+
+GO permits requesting explicit owner review of these exact workflow bytes, exact
+registry/policy and limited fresh-state provisioning. No active workflow copy,
+branch trigger, policy file, import or authentication was performed by this
+reviewer. Model-route authority-file permissions are a separate unresolved
+prerequisite, not a reason to silently expand this no-model operation. A new
+artifact/run, expired download, mismatching profile or changed approved bytes
+requires reevaluation rather than an implicit trust or identity substitution.
+
+## Native Claude version-boundary preparation
+
+Independent light review of D `3d1d4f5` and `b5ae542` confirms the pinned
+[official changelog](https://github.com/anthropics/claude-code/blob/2301018b1f61073c501a8e7a4813ef48c239163b/CHANGELOG.md)
+introduces `sandbox.credentials` in2.1.187, `failIfUnavailable` in2.1.83 and
+`allowUnsandboxedCommands` in2.0.30. Version2.1.260 explicitly changes manual
+`!` commands to run outside the sandbox even with strict mode. Therefore the
+installed2.1.146 cannot establish the proposed credential-denial boundary.
+The isolated official187 binary independently hashes to
+`a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3`,
+215,994,048 bytes, matching its retained official manifest. It was not executed
+by this reviewer.
+
+GO is limited to constructing a data-only exact bootstrap map: fresh canonical
+configuration/GH/workspace directories, independently reviewed strict settings,
+zero authorized Bash/model actions, no UI input/auth copies/HOME or global
+changes, and a60-second envelope. Root's subsequent bounded UI-only startup
+authorization still requires reviewing those actual files/paths first. The
+first onboarding/login/trust gate stops the operation without input. No startup,
+credential/sentinel check or inference has occurred in this review. Config-dir
+credential-service namespacing does not prove complete keychain isolation;
+version/source support does not certify effective sandbox enforcement or zero
+background network activity. A future interactive strict-shell sentinel check
+requires its own exact reviewed command and actual tool-boundary evidence.
+
+Actual bootstrap map/settings `785be21b4576e0ad7037f761d4a3ee852a5ea6c12bd9245aa17af577acf698cb`
+have the expected fresh owned700 directories and600 single-link settings, with
+zero input/actions and strict empty MCP. Nevertheless startup remains stopped:
+the digest-verified187 implementation's `n9r()` (offset196897759) returns
+managed policy hooks when local `disableAllHooks` is true unless the managed
+policy itself disables hooks. Its `M_e()` (offset207250411) honors
+`DISABLE_UPDATES` then `DISABLE_AUTOUPDATER`; the map supplies neither. Tool
+denial is insufficient to promise no startup-hook execution or normal-install
+updating. This establishes source possibilities, not that hooks exist or an
+update ran. A supported process-only updater-disable setting and read-only
+presence/key inventory of actual managed-policy sources require review before
+startup. Do not alter managed policy or generalize these observations into
+native enforcement acceptance.
+
+The revised bootstrap map
+`40a72b761b80b88fbc8123550b778efa66839d530aed50866775fef761e2a6d2`
+retains settings785 and adds only process-local `DISABLE_UPDATES=1`; inventory
+`fedc383bb9de18a54ddd7818b9cc1cf58e942bd189da6861e023e0a19a9c440f`
+records four local managed sources absent. Independent exact187 source inspection
+confirms macOS managed file/fragments and device/per-user preference selection;
+independent `lstat` checks find all four absent without reading contents. Its
+updater predicate and [official environment documentation](https://code.claude.com/docs/en/env-vars)
+support the scoped guard. Files remain canonical, current-user owned600 and
+single-linked. Final bounded GO permits root's already-authorized UI-only startup
+only after the listed immediate currency/absence rechecks, with zero keyboard,
+Bash, model, authentication or trust actions, first-gate stop and60-second cap.
+This reviewer did not start native Claude. GO is neither effective sandbox/
+credential acceptance nor a claim of zero background network/keychain activity.
+
+The sole root-authorized UI-only startup was independently classified from its
+protected2,740-byte capture as `INITIAL_THEME_ONBOARDING_GATE`: ANSI-stripped
+output contains the choose/theme prompt and Welcome/Dark/Light terms, with no
+login/trust/error terms observed. The original unclassified report stays intact;
+a separate clarification records this observation. No raw transcript is published.
+There was no keyboard, Bash, model, authentication or trust action. The owned
+process required SIGKILL and was reaped after its SIGTERM grace period. Reaching
+this initial UI establishes startup capability only; the shell prompt, native
+credential/sandbox enforcement and actual model behavior remain untested.
+
+## Fresh CI recipient precondition correction
+
+Independent source review of B `1492a67a3174571cf29174fdb7eb05fb3e2133a0`
+confirms the hosted `CI_MACHINE_OBSERVER` failure came from requiring a
+receipt-derived `verification_recipe` field in an intentionally receipt-free
+row. The failed run38098482463 is retained. The focused helpers now bind the
+public/runtime locally configured direct recipe, exact local Node/compiler argv,
+built-in probe, inputs/environment, owner and empty history before authentication.
+Compiler path resolution with `verify:false` is expressly not qualification;
+independent installed probes still establish applicability. The shared fresh
+observer guard requires healthy UNVERIFIED with null result/invocation and no
+reuse, without inventing receipt metadata. Config mismatch, duplicates, existing
+history/imports and failed observer gate stop before authentication. The actual
+pending-store filename is checked rather than an unused plural spelling.
+
+Actual coherent root `b1d10f7645aaf3fdc9c8cf1cde15c94c3eb3b6da` plus the exact
+four-file149 overlay:104/104 focused controls PASS,2,789.19ms, Node22.13.0.
+Existing root dependencies were linked read-only; no installation, authentication,
+compiler/model or remote operation occurred. Post-import CURRENT/PASS, imported
+origin/digest, null local invocation and absence of receiver execution requirements
+are unchanged. GO is limited to this focused acceptance-harness correction, not
+successful live recipient acceptance or cross-agent reuse.
+
+The subsequent actual installed fresh-config control uses helper source
+`a2f2ddc613d1a3d2dfbe5f4f04e97cd69584bc6b` and unchanged d04 tarball8695.
+Its private record shows installation/preview/init/start/sync/stop exit0, a
+425.37ms healthy UNVERIFIED/no-receipt query, no local run/import/model or policy
+creation, and successful binding of the generated config/runtime by the corrected
+helper. This establishes actual installed onboarding for this precondition,
+not portable matched-profile or G3 acceptance.
+
+Independent corrected-workflow proposal review verifies exact SHA-256
+`a600688881452915bde3f63a9dc60d21d952c65a9b4efe3db2c14860976a5d6f`:
+only two immutable helper/registry source pins change from a238 to a2f2ddc;
+both helper files at a2 match independently reviewed149 bytes. Registry5a1021,
+policybab79, producer d04/artifact8695, runtime/ref/read-only permissions and
+strict post-import controls remain unchanged. The original ef237 proposal stays
+preserved. Actual corrected plus existing workflow controls43/43 PASS,2,969.13ms,
+Node22.13.0; controlled subprocess/data responses are not live authentication.
+GO permits exact owner review of the revised source pins, not active workflow
+installation, triggering, producer acceptance or recipient CURRENT. A previous
+authorization for different helper bytes is not silently extended to this proposal.
+
+## Copilot manual-shell source preparation
+
+Independent read-only inspection of the pinned1.0.91 distribution app.js
+(7,593,700 bytes, SHA6d0149041a57d909979096bb0ca3b92c14d05b1a2768d21cce7e8461dc18300d)
+confirms the interactive `!` handler strips the prefix, binds cancellation and
+calls `W.shell.executeUserRequested`, without a `W.send` in that handler. Its
+SDK binding passes environment to the native secret filter and invokes
+`session.shell.executeUserRequested`. The other exposed SDK shell entry invokes
+`session.shell.exec`: distinct method names do not establish identical native
+sandbox/credential enforcement or prove the full model-tool pathway. Current
+[official shortcuts](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference)
+support no-chat manual `!`, while `$` hands over to a real shell and stays
+outside this candidate.
+
+B5ec891d accurately keeps these limitations, keychain fallback and managed
+startup-hook constraints explicit. Fresh configuration/cache/GH directories do
+not establish every credential source absent; no policy hook may be disabled to
+create a result. GO is for source-only candidate preparation, not native UI,
+shell, authentication, model or settings execution. No native process was run
+by this reviewer.
+
+The initial disabled Claude startup proposal has a concrete pre-live auth-input
+gap: exact187 `W5`/`ekt` read OAuth/API file-descriptor environment inputs, and
+`qFr` reads custom request headers. Three independent pure controls demonstrate
+its initial `require_ci` accepted those keys alongside a controlled non-secret
+OAuth fixture; zero native processes were launched. Presence rejection and
+actual profile/host-provider override guards were requested. D also caught the
+env-OAuth auth-status route's different `oauth_token` classification before live
+authentication; a cached `claude.ai` status is not its expected result. Remote
+managed-startup-hook uncertainty must not be hidden by local file absence or
+tool denial. Revised auth-status-only preparation remains independently pending;
+no secret, authentication or native UI operation followed these findings.
+
+D19c5db7 plus04e2f0f replaces the token-bearing proposal with data-only code,
+not a broader startup workaround. Exact helperSHA
+`20a24e8e99c56d70c3b10e24b14e9efb192087383b9b9a3ea64290408b78d1c1`
+has no native/subprocess launcher, filesystem bootstrap or secret activation.
+It rejects presence of alternate auth/startup inputs and the future approved
+OAuth key itself, even empty. Correct data context always returns
+BLOCKED_NATIVE_STARTUP_BOUNDARY/native0/can_infer=false. The synthetic sanitizer's
+oauth_token/firstParty mapping matches exact187 source but establishes neither
+token validity nor subscription capacity. The earlier three accepted-input
+counterexamples remain historical, not retrospectively erased.
+
+Revised outside-.github workflowSHA
+`01208b4d2f9c496fe8dfdc2cae7d58a61313c7fdcaa17184436a87d3e05a650c`
+has no secret reference/protected-environment release/native download/auth/UI/tool
+call/upload/OIDC. Its literal helper source must be repinned after integration
+before any separately approved registration. Actual independent focused controls
+2/2 PASS,324.62ms, Node22.13.0; no native or authentication process ran. Source
+GO permits integration of this disabled preparation only. There is no reason to
+request a year-long OAuth token merely to learn token presence. Safe unblocked
+work is focused integration, local regressions, artifact/onboarding preparation
+and current evidence reconciliation. Native acceptance requires owner-supported
+normal onboarding/prompt plus actual reviewed sentinel enforcement, exact trust
+file/socket controls, matched profile and approved capacity. None is supplied by
+a static proposal, a data record or first-theme UI.
+
+B207ecdea adds a disabled first-start record only. Independent source review GO:
+the native UI remains BLOCKED until owner/provider-provisioned credential-free
+startup and actual managed-policy/hook scope are established. Runner labels and
+fresh config directories are explicitly insufficient. Two bounded source
+approaches did not establish an authoritative cheap absence check; no new
+helper/workflow, keychain inspection, native process or model followed. This
+record preserves the stopping rule and does not grant host authority.
+
+Root567e3ba replaces the circular author-commit assertion in the disabled Claude
+data-only workflow test with exact reviewed helper SHA20a24e8e99c56d70c3b10e24b14e9efb192087383b9b9a3ea64290408b78d1c1
+and an immutable literal source requirement. Its selected source
+567e3ba685a579ba6dbf89d452e503c90c51ad14 contains those exact helper bytes and
+updated tests; the actual job separately checks checkout HEAD and helper SHA.
+The final proposal diff changes only the reviewed source pin. Independent
+controls 2/2 PASS,122.57ms, Node22.13.0; the earlier pin-preparation assertion
+failure remains historical. No secret, native execution, authority, active
+workflow or model capability is added by this test/source correction.
+
+Independent source GO for D5d869099 plus729763103: optional installed-smoke
+complete-path sample retains portable creation/final query/export preview/export/
+inspection/import preview/apply, eligible/cached/unrelated/relevant decisions,
+required ordinary local rerun/final query, and restart/inherited local evidence.
+Plain initial/relevant compilation executes the exact locally resolved configured
+argv, with root/state/cwd/qualification/Node/compiler binding checked. The
+immutable origin, imported history and new local outcome remain checked.
+
+All measured subprocess durations are disjoint; the inclusive policy-upgrade
+helper is not counted again internally. Actual workflow wall time is measured
+directly, and setup/control/cleanup commands remain separately visible. Failure
+reports retain timing and cannot support a favorable comparison. The summary
+explicitly withholds avoided-execution, causal whole-task, model and two-machine
+claims. Independent pure tests2/2 PASS,61.25ms, Node22.13.0; syntax PASS. No
+installed sample was run by this reviewer. Approval is for the predeclared single
+controlled same-host noLib mechanics sample using preserved d04/8695 bytes,
+not new benchmark distribution, adoption or gate completion.
+
+Current product-source CI38099703953 four jobs PASS on892f603 (472 tests/job)
+is separate from prior exact frozen-package matrix38096673730. Its native
+Windows independent repack5e3a/159042 bytes differs from frozen8695/158105
+bytes; source acceptance must not be relabeled as frozen-artifact acceptance.
+
+The first actual ccba93d installed sample stopped before portable work at a
+harness cwd representation assertion: runtime stores the configured "." and
+declared-plan resolves it against root. Retained report has33 command timings,
+zero portable-workflow commands and zero model/two-machine trials. This is not
+an engine or complete-path economics failure. D10289b28 source GO resolves the
+nonempty declared cwd physically and requires exact owned-root equality, retaining
+root/state/qualification/Node/compiler/argv guards. Independent controls3/3 PASS,
+51.43ms, Node22.13.0; syntax PASS. The original failure remains retained before
+one justified preparation-corrected sample, not a favorable-score retry.
+
+Root85a7ecb applies LF checkout attributes only to the reviewed disabled native
+helper.py and proposal YAML. Exact-byte digest assertions remain unchanged, and
+no global Git setting, native startup or authority is changed. Source GO is not
+a new native-Windows test result; that platform recheck remains pending.
+
+The second actual3a65311 complete-path attempt reached portable creation, export,
+import, eligible/unrelated decisions and relevant STALE, then a successful
+ordinary local rerun. Final query was UNVERIFIED rather than the harness's
+expected CURRENT. Retained report has47 commands; no raw final status reason
+was retained. No specific served reason is claimed retrospectively.
+
+Independent controlled countertest executes the actual applicability/envelope
+modules extracted from checksum-verified frozen8695 package (no installation,
+compiler, daemon, auth or model): selected stable CURRENT/PASS with missing
+complete portable facts after accepted different-input history returns
+PORTABLE_LOCAL_SELECTION_BARS_FALLBACK/UNVERIFIED and preserves historical PASS.
+Complete matching portable local facts with exact observed catalog binding
+resolve via PORTABLE_CATALOG_EXPLICITLY_RESOLVED_LOCALLY; the daemon then retains
+local selection. Current-source owned regression1/1 PASS,83.34ms. This validates
+the source boundary, not the uncaptured original response's exact reason.
+
+D1/D3 require complete origin facts and prohibit fallback hiding a newer selected
+outcome. Plan3.6 permits defined fully observed local resolution, not any process
+exit as resolution. Recommended smallest completion preserves the ordinary-run
+obligation and expects truthful PASS/UNVERIFIED/nonreuse through restart. An
+explicit portable fresh baseline is a separately declared stronger capture with
+its additional cost, never a silent flag substitution or weaker engine. Both
+failed preparations remain retained; no further expensive sample was launched
+by this reviewer. This exposes installed onboarding guidance needed after import,
+not an unsafe-reuse finding or complete economics/adoption result.
+
+D7aeef9c plus72db693 diagnostic source GO retains actual served status before
+assertions and through failure reports. Independent review caught that the first
+reason-code regex was shape-bounded rather than a static allowlist; final exact
+15-code recipient set drops unfamiliar codes, including uppercase private
+canaries. Schema/health/freshness/result/reuse flags, fixed stage/index and
+validated UUID/digests are retained, never human reasons or arbitrary producer
+metadata. Independent controls4/4 PASS,51.47ms, Node22.13.0; syntax PASS.
+This adds no new execution, deadline, changed obligation, green assertion or
+third sample. Original failed-response reason remains uncaptured history.
+
+Db19a7be final completion source GO preserves the original ordinary rerun:
+PASS/UNVERIFIED/reuse=false with static selected-local barrier at final query and
+restart. New local immutable receipt must be exited0, stable, exact configured
+argvHash and have no portable capture property. Original source/import/new-local
+bytes remain checked. Independent controls6/6 PASS,56.69ms, Node22.13.0; syntax
+PASS. Source CLI213/306 binds that argvHash to actual resolved command JSON SHA.
+Failed economics fixtures retain owned checkouts/prefixes/state/receipts after
+observer stop attempts, with600 private locator; public reports contain no
+absolute locator. Default/success cleanup remains unchanged. No expensive
+completion sample, model or runtime change was performed by this reviewer.
+
+B4e3004c plus5e0e5d0 shipped-guide clarification GO applies only to accepted
+imports for the selected check. It explains ordinary outcomes can remain
+UNVERIFIED, older imported PASS is not fallback, and deliberate existing
+run CHECK --portable plus caller-aware synchronization adds both-boundary/catalog
+capture cost for a possible fresh local baseline. It preserves selected config/
+state, actual command obligation and receipts; it neither guarantees green nor
+automatically substitutes compiler evidence for npm execution. This directly
+addresses G4 onboarding friction demonstrated by the incomplete sample. Frozen
+8695 artifact is unchanged; newly shipped documentation requires new exact
+candidate bytes and validation before release review.
+
+Independent read-only classification of completed installed sample: harness
+223f231, frozen d04/8695 artifact, installed mechanics PASS. Actual served imported
+baseline/unrelated responses have healthy schema1 CURRENT/PASS/eligible, origin
+daa040d3-c466-4285-a2f3-b42684ee91c6, digest
+ff8e449e05b715be9390993d7b8c204c2eb00ebd9c056d963d2cc5ab0147f8df, null local
+invocation. Relevant edit is STALE/nonreuse. Ordinary newer local invocation
+1b36a1d5-8597-478a-9988-b33b607748b7 remains PASS/UNVERIFIED/nonreuse with actual
+PORTABLE_LOCAL_SELECTION_BARS_FALLBACK after final query and restart. This proves
+the reason in this sample only;3a's missing reason is not filled retrospectively.
+
+One sample has16 disjoint workflow commands totaling39,890.201ms, directly
+measured wall39,893.226ms. Two exact plain obligations total212.743ms; measured
+added command work39,677.458ms. Setup31commands/10,670.230ms includes four expected
+edited-policy refusals; ownership/history controls4commands/258.356ms and cleanup
+2commands/450.977ms remain separate. Actual receipt/history checks pass and no
+recipient recorded execution occurs before relevant edit. There are zero model
+trials; two-machine acceptance and portable recovery execution remain NOT RUN/
+NOT PERFORMED. This finite mechanics sequence establishes no net benefit; it
+cannot establish typical reuse frequency, avoided verification obligations,
+CPU/memory/whole-agent benefit or complete signing/retrieval/authentication cost.
+Protected owner-local source record remains
+`.local/portable-evidence/complete-installed-final-ordinary.json` in the integration
+worktree; no raw tool output/private experiment paths are published here.
+
+Acceptance-map audit distinguishes existing V01–V22 source/fault controls from
+actual model/machine acceptance and future final exact bytes. G1 real relocation
+and relevant rejection are evidenced independently of calibration forecasting.
+G2 amended native handoff/effective host prerequisites and G3 accepted live
+recipient remain pending; D5 trust approval itself is already recorded. G4
+prepublication final artifact/onboarding/affected acceptance and complete-path
+economics remain independent. No control-only result marks those gates PASS.
+
+Independent source-only package inspection GO: source
+223f231ff6d6312e85998b00d7c6bcdfa080dd12,80regular in-package files/158,546
+archive bytes, SHA-256
+b8122c3bdcedf42a374ba3a87681ca7654360bc6c10daa64b5ac93a79ca7b190.
+Manifest entry names/modes/sizes, SHA1/SHA512 integrity, SHA256SUMS and exact
+source user-guide bytes match. Against frozen8695, only
+docs/user/portable-evidence.md differs; source/bin/other79 payload files are
+byte-identical. No private experiment/test/.github/evidence/log/env file inventory
+is included. Versionalpha10 metadata does not identify publicalpha10 bytes or
+frozen8695, and this is not a release-ready/version-final artifact. Initial
+reviewer command guessed an incorrect full source expansion and stopped at its
+source assertion; corrected git-rev/source.txt comparison passed without changing
+the artifact. No archive extraction execution, installation, probe or model was
+performed. New exact-byte platform acceptance remains pending.
+
+Independent read-only final CI evidence classification: package matrix38101767565
+at05c1d869d40903c4663710e1967901e18ca8fc0b passes pack/macOS/Linux/nativeWindows.
+Downloaded four regular files bind source05, manifest/checksum/80files/158,546
+bytes and SHA-256b8122c3bdcedf42a374ba3a87681ca7654360bc6c10daa64b5ac93a79ca7b190
+to identical local223f bytes. Actual logs show the exact b812 package on all
+three installed jobs, macOS real portable origin/separate-checkout mechanics,
+and installed policy controls macOS8PASS, nativeWindows/Linux1PASS7platformskip.
+
+Product38101769601 same source has481tests per job:macOS454PASS27skip,
+nativeWindows305PASS176skip, Linux22/24each442PASS39skip; failure/cancellation0.
+Its Windows independent repackSHAdae6d9…/159,489bytes is not b812 or prior frozen
+8695. Git source/bin tree IDs05 and223f match exactly
+bd5836f939a5d6e29b4877ace07e208d6d820bcc and
+29ee1fac44925ce9e28a106a0a0632ee1277cd7a. Private retained logs are evidence
+inputs; no raw transcript/path/environment is copied into this record.
+No new tests, workflows, native processes or models were launched by the reviewer.
+This supports candidate CLI/package regression only, not actual independent
+machine/model reuse, accepted current CI producer, final version/public alpha or
+net-benefit gates. Those substantive prerequisites remain explicit.
+
+Independent read-only terminal review: one explicitly owner-approved data-only
+recipient38123365552/head6b901d08708678bc51b8f9f1349555ecc1f5c198 SUCCESS. Exact
+enabled workflow SHAa600688881452915bde3f63a9dc60d21d952c65a9b4efe3db2c14860976a5d6f
+matches reviewed proposal; helper/registrya2f2 pins and fixed d04/8695 producer
+artifact remain unchanged. API shows13 completed successful job steps, no skipped
+steps/failure; logs contain preview applied=false then exactly one applied=true
+result, preserved separately. Protected owner-local .private.json is0600 and
+matching terminal fields were independently inspected. Earlier failed
+recipient38098482463 is not relabeled; no job rerun occurred.
+
+Actual accepted evidence: origin02f44ac7-e6fc-4d5e-9757-28357654fef1, canonical
+digest5d16fbf6b101f88843f41a8c61d3c351e5f9e600306dc4936eaaec8d6ea40d57,
+outer artifactSHAeb25768d3073dac37a78059efe94bfaab4a91f553dab7e208b05b940ea56dba6,
+policybab7901892570e81f15f8e888d2c33e632479f55f461d4ee34f905acfe7a5ce6
+revision1/required refresh, reviewed native verifierSHA20f0520e9cc872b543bd5e31984f64932b197732c3d3df2c7367d0dc66e7a450.
+Producer verified/accepted=true; recipient healthy schema1 CURRENT/PASS/eligible,
+evidence_source=imported, acceptance=github-ci-v1, invocation=null. Actual receiver
+26.6.2/build25G83/APFS/darwin-arm64/release25.6.0 matches reviewed origin profile,
+with independently differing boot and physical Node identity. Unrelated edit and
+restart retain the imported origin; relevant edit becomes STALE. Exact pinned
+helper asserts no local run/receipt history and invokes no equivalent configured
+compiler command. Models0/globally_latest=false. This establishes one positive
+authenticated two-machine CLI route, not receiving-agent/model reuse or every
+G3/final-release gate.
+
+Four recipient calls and14 setup/control calls complete status0; final recipient
+synchronized applicability takes42,274.658ms. This is an observed slow sample,
+not a deadline change, warm-query distribution or net-saving claim. No writes,
+new tests/workflows/uploads/signing, model/native-agent processes or additional
+verification were performed by this reviewer. An initial guessed .report.json
+filename was absent; the actual .private.json was located and reviewed, not an
+engine failure. Root owns remaining native-host and final readiness decisions.
+
+
+## Native Claude synthetic proposal — source/data review only
+
+Independent review of onboarding leaf9aa6262,92b1cc1,3ba1304 andc674b2d grants
+**GO for the disabled exact proposal, BLOCKED for live native operation**.
+The exact rendered proposal map SHA-256 is
+`d55150b3abc06af64597e8ec19b8a3668745b8cc393e2531b26e3cd6244d7cf4`,
+checker SHA-256
+`7d97369c54daa009ab7f487f476b19095b5a67e1b424143664538c238d151c8e`,
+and proposed settings SHA-256
+`b63c0e1e112f41aaa378b0c0f79f7bf65825ff25ae175c2b851b2af312958efe`.
+All three proposal files are0600; template rendering exactly matches the private
+checker. Literal argv, single Bash permission, denyWrite for the entire owned
+base and Node version directory, one synthetic allowed socket and15s parent
+cap match the reviewed map. Actual checker/settings destinations remain absent;
+original785be settings remain unchanged. No synthetic resources were provisioned.
+
+Five pure deterministic tests pass independently on actual Node22.13.0 in53.199ms.
+The corrected socket timer is absolute1s and is cleared on completion; it does
+not extend under partial replies. Oversized replies are rejected before buffer
+concatenation, and late data is ignored after completion. EPERM/EACCES alone may
+classify denial; missing/refused/timeout/other errors are unknown. Runtime guards
+reject Node/preload/search overrides, every DYLD_ and OPENSSL_ key by presence;
+external prelaunch validation is mandatory because a checker cannot undo startup
+code that already executed. File opens use no-follow/nonblocking flags; the
+external15s parent boundary remains necessary for the complete native/checker
+operation. No file/socket/network probe, native startup, auth, model or settings
+application was performed by this reviewer. Author-created live probes remain
+UNRUN; the five tests use synthetic adapters/FakeSocket only.
+
+The source-supported187 manual ! route invokes the Bash tool; its strict accessor
+rejects an unsandboxed escape only when effective strict settings hold, and
+excluded commands remain another escape condition. The original no-auth local
+managed-file absence does not establish authenticated remote-policy absence.
+Local disableAllHooks cannot override managed hooks. Owner-reported authenticated
+normal-prompt startup is separately observed, not independent sandbox proof.
+No supported bounded effective-policy inspection has been established here.
+
+Minimal remaining owner/admin prerequisite: through an already supported policy
+view or administration route, establish the applicable managed local/remote
+startup-hook scope and effective sandbox exclusions/strict controls for this
+exact authenticated187 profile. Record only reviewed keys/authority conclusions,
+not raw policy, credentials or auth files. Unknown authority stops the operation;
+a personal-account claim or absent local file is insufficient. If that supported
+route is unavailable, provision a host whose effective policy can be established,
+without bypassing managed policy. Then obtain exact owner approval of this
+synthetic socket/resource/settings operation before provisioning or launch.
+
+The approved operation would still require external positive read/write/listener
+controls before and after the native interval, exact protected code/runtime/file
+currency, actual native ! tool trace and no permission fallback or model prompt.
+A synthetic PASS cannot establish real credential removal, REDUE endpoint
+access, portable applicability, matched-VM reuse, subscription capacity or model
+acceptance. No new host architecture, policy introspection tool or broader
+research is proposed by this review.
+
+
+### Durable profile rebound review — proposal remains disabled
+
+After an owner-authorized environment repair and owner-reported successful durable
+native187 launch, independent read-only review of onboarding9bdbd4c grants GO for
+the re-rendered proposal only. Map SHA-256
+`c321bb78cbd5dfacf6daaa9eb41db71f3d9aff4fa40456337d8d4e70f83edb1f`,
+checker SHA-256
+`b3bad6b2f056a28ee67886ee320703675fffc5c31185009983c228701ca70c6f`,
+and proposed settings SHA-256
+`3018fc31cca7b676c9f24c84cf904ae8eefb2c4302a759b5a9013e0fed7817a7`
+match600 private files. Exact template rendering, quoted single checker argument,
+literal manual ! input, protected originals and absent application destinations
+were checked independently. Six pure controls pass in48.297ms; no native action,
+listener/canary provisioning, settings application or model trial occurred.
+
+The two short socket basenames produce98-byte absolute paths, unlike130-byte
+nested paths in the durable base. Only one exact synthetic socket is allowed;
+this changes neither REDUE transport nor recipient authority. Quoted command
+text is correct shell argument syntax but actual native permission matching and
+sandbox enforcement remain untested. The working durable all-tools-denied
+settings5628de and bounded repair launcher eebb1e55 remain byte-identical; the
+original launcher cannot select this sentinel proposal.
+
+Explicit secure-storage selection preserves the old isolated Keychain namespace
+without copying credentials. Source inspection showed that plaintext fallback
+also follows that old namespace path, not the new durable config path. This
+repair context is bound separately from the earlier no-override preflight; no
+historical environment/enforcement evidence is silently reused. Metadata presence
+and owner-reported normal prompt do not establish token validity, capacity or
+effective managed startup authority.
+
+Before a third policy-evidence approach, the two previous limitations were
+reviewed: prelogin local-source absence cannot rule out authenticated remote
+policy, and source-only strict settings cannot establish effective merging.
+Current official [settings documentation](https://code.claude.com/docs/en/settings#confirm-what-loaded)
+documents /status setting-source provenance, while explicitly distinguishing it
+from the source of each effective key. /config is not a complete settings view.
+Those current docs alone do not certify native187 hook/exclusion semantics or a
+current managed snapshot. Any concrete bounded diagnostic needs pinned-version
+source meaning and actual current scoped observations; doctor/config changes or
+raw debug dumps are not substituted. Effective managed policy remains UNKNOWN
+until such evidence exists. Live operation still needs the separate exact owner
+resource/socket/settings approval, with the existing no-model boundaries intact.
+
+
+### Bounded current-process policy diagnostic review
+
+The two previous failed proof approaches were reviewed before a third: local
+policy-file absence before authentication did not exclude remote policy, and
+static settings did not establish effective controls. Requested pinned187 source
+xPa201746663/eD194686943/An194828010/Qpe194829541/n9r196897750 shows that /status
+lists nonempty active setting sources, always includes flag/policy sources in the
+candidate list, and derives managed source labels separately. Local disableAllHooks
+still retains managed hooks; the source listing cannot prove historical startup
+side effects or future policy stability. Startup can initiate remote loading and
+policy notifications before the user enters /status. These limits remain.
+
+A concrete missing precondition was found at bEp201755812: auth status computes
+Ak and Yg(), prioritizes OAuth in authMethod, and independently emits apiKeySource.
+Yg() does not set skipRetrievingKeyFromApiKeyHelper and can call a configured helper.
+Thus claude.ai/firstParty/pro alone did not prove remote ineligibility. Uj200757730
+uses the same OAuth subscription but calls Yg with skip-helper for the API-key
+eligibility alternative. API-key sources include the fixed descriptor fallback,
+scoped Keychain API service and native-config primaryApiKey. No credential value
+or configuration body was read by this reviewer.
+
+Actual protected metadata record bfbfd1e2… is600, regular/current-owned/single-link:
+scoped API service absent with native security exit44 without password options,
+fixed descriptor path absent, project/local settings absent, primaryApiKey key
+absent; only absence/presence was published. Root separately reports current
+system-managed sources and relevant override keys absent. This is narrower than
+an administrative policy claim. In pinned187, Ujfalse sets cSr=false; Wpe then
+ignores an otherwise retained remote cache. Therefore a subsequently confirmed
+firstParty/claude.ai/pro plus no API-key source can justify remote-inactivity for
+that exact current process and unchanged source/override context, not every Pro
+installation or a future context.
+
+Source/data GO was given for protected auth-source-diagnostic.py SHA-256
+`0bd8ea2027c02651c3054d1d6e29c6f76d1bfc4deb3cdc96a26e8da6fae05ee8`.
+It hashes/reuses only the exact eebb1e55 launcher's imports/constants/functions,
+excludes its interactive dispatcher, inherits the bounded64KiB/15s process-group
+reader, and emits fixed method/provider/subscription/source enums plus a presence
+boolean. Actual native API-source absence must confirm the metadata result;
+unexpected output/exit/source stops. No native/auth/status/model/checker operation
+was executed by this reviewer. This conditional diagnostic GO is not synthetic
+resource approval, sandbox enforcement, credential removal or model acceptance.
+
+
+### Exact builtin /status diagnostic preparation review
+
+The once-executed authorized native auth-source diagnostic reports exit0,
+loggedIn/claude.ai/firstParty/pro and apiKeySourcePresent=false/classNONE. Its
+allowlisted334-byte protected result has SHA-256
+`d0cdb8da1cba49064bb0e31922fc1973ae82ede8dfea8779e780dbca91ca2812`.
+No raw status/credential values are retained in that record. This confirms the
+missing API-source condition for the reviewed pinned187 current-process route;
+it is not token-validity/capacity/enforcement proof.
+
+Independent source/data GO was given for one owner-authorized builtin /status
+diagnostic, private helper SHA-256
+`1341de58711e8214f17245fd93d2b46381e55493fc0bf8b352fbed2ff8815540`.
+The initial55110 helper incorrectly filtered recognized source substrings, which
+could discard unknown suffixes/wrapped fields or accept a partial PTY chunk.
+That initial proposal was not run. The corrected parser requires a completed
+modal footer and exact complete Command line arguments field; all other complete
+fields are unexpected/unparsed, and incomplete fields remain unknown. Additional
+fixed settings/login/policy gates stop instead of permitting input.
+
+Nine independent AST-only pure parser cases pass, including partial footer,
+unknown suffix, comma-separated/wrapped source, diagnostic text and no data.
+Only the parse_status function was extracted; no helper top-level code, native
+process, metadata subprocess or actual terminal action ran in this review.
+The auth precondition is bound to the exact d0cdb8 result with regular/single-link/
+current-owner600/4KiB guards, exact native integer0 and sourceNONE. The reviewed
+all-tools-denied5628/eebb path is unchanged. Only builtin /status may be submitted
+after the native version/prompt and no-gate checks; no shell/model/checker input.
+The native operation is30s bounded with256KiB raw memory cap, no raw retention,
+fixed-class result only, and owned process-group cleanup.
+
+This GO permits a current-process loaded-source observation only. It cannot
+prove zero historical startup side effects, future managed-policy stability or
+native sandbox/credential enforcement. Any unexpected UI shape, gate, source,
+exit or timeout remains unavailable; the synthetic checker and model/resource
+approvals are independent. No native /status was executed by this reviewer.
+
+
+### Unavailable /status display and bounded synthetic approval rationale
+
+The one authorized1341de diagnostic completed at its30s boundary with helper
+terminal exit0 and completed cleanup, not a claim that the native child exited0.
+Actual protected result SHA-256
+`ddfd3c08d9a3979b1c6c03959946ff9a58ecc4ca5bd9a0c68624a064cf617592`
+was independently inspected: native version observed=true, builtin status
+submitted=true, STATUS_NOT_CAPTURED, source classes empty, raw output retained
+false, model/shell actions0, enforcement NOT_TESTED. Empty classes are UNKNOWN,
+not an observation that no source was loaded. No second attempt is proposed.
+
+The canonical plan does not require this particular native display as a gate.
+Pinned187 source semantics, the confirmed OAuth-Pro/firstParty/no-API-source
+result, complete current selected-source metadata negatives and intact explicit
+CLI inputs provide a defensible narrow rationale to REQUEST exact owner approval
+of the reviewed synthetic test. They do not establish hypothetical administrative
+intent, future policy stability or actual sandbox enforcement. Code/settings,
+current account/context and complete source/helper metadata must be rechecked
+immediately before any future operation; a changed or unknown precondition stops
+it rather than inheriting this rationale.
+
+The proposed checker itself performs only the fixed approved synthetic opens,
+custom env presence and owned-listener connections. It reads no real credential,
+auth/keychain or REDUE authority, invokes no arbitrary command and requests no
+model action. Even if settings are ignored or a denial fails, the bounded actions
+remain those explicit synthetic accesses; possible creation of the owned write
+canary is a counterexample to retain, not permission to retry unsandboxed or a
+successful enforcement claim. Exact owner approval must cover those synthetic
+counterexample accesses as well as the one socket/settings/resource scope.
+Known-live external controls and native tool tracing remain mandatory. This is
+GO to request that exact test approval only, NOT GO to execute it or weaken any
+host policy. The prior unavailable /status and prior policy-evidence limitations
+remain retained; no stale green or new model/machine acceptance is inferred.
+
+
+### Owner-approved one-attempt native synthetic harness review
+
+Owner approval D6 covers the exact c321bb78 map, 3018fc31 new settings and
+b3bad6b2 checker only. Independent read-only rehash confirms all three exact
+bytes, current ownership, single links and mode600. The normal 5628de76
+all-tools-denied profile and eebb1e55 launcher remain separate and must remain
+unchanged. The existing old secure-storage namespace directory now exists empty,
+current-owned/mode755; its cause is unestablished. Directory existence alone is
+not a refusal condition. Canonical non-symlink/non-writable owned parents and
+continued absence of its exact plaintext fallback file remain required before
+and after the attempt. No credentials are copied, inspected, deleted or rebased.
+
+Independent source GO is conditional on freezing owner-local harness SHA-256
+`10904ba25acb7577292c132364c49aad95b7075bd169f70190e3b21ac86bd3b5`
+and repeating the integration owner's current account/source metadata guards.
+The fixed15s deadline includes preparation and validation; reads enforce byte
+bounds/deadline checks, the native loop reserves cleanup time, and elapsed
+excess/reap/cleanup uncertainty cannot produce a verified report. Original files
+are checked before/after. Created files use exclusive complete writes and
+identity/content checks; modified resources or the unexpected write canary are
+retained rather than deleted as successful cleanup. Raw terminal bytes stay in
+bounded memory and are discarded; output contains fixed result projections only.
+
+Pinned native187 public source distinguishes the main Bash prefix at209845244
+(Ft==='bash' emits '!') from the generic shortcut text at205064540, which also
+says '! for shell mode'. The harness first observes the187 banner and normal
+prompt, sends only '!', then requires a complete current screen containing the
+standalone Bash prefix plus footer before writing the remaining fixed command.
+The Enter byte is submitted only after all command bytes are written. Unknown
+terminal controls refuse; alternate-buffer changes clear stale screen content,
+partial/synchronized frames withhold input. It does not fall back to a model,
+an arbitrary shell command, an unsandboxed path or additional UI confirmation.
+
+The initial d6d7 review reproduced acceptance of boolean schema/model-count
+fields through Python numeric equality. The corrected harness requires exact
+integer types. Eighteen author pure controls and nine additional independently
+extracted AST-only controls pass on the exact10904 hash: unsupported private
+cursor/mode sequences, stale alternate-buffer prefix, malformed write returns
+and expired budget before any input. No helper top-level dispatcher, native,
+fixture, listener, settings application, auth or model operation ran in this
+review. The approved native attempt remains NOT RUN at this review checkpoint.
+
+An actual positive classification additionally requires all six fixed checker
+results, actual Bash-mode command tracing, synchronized protocol delta[1,0,0]
+between known-live external controls, unchanged originals, fallback absence and
+owned cleanup/reaping. The protocol counter is published before the response
+and snapshots are locked, avoiding the prior control-versus-checker count race.
+A JSON response or echoed command alone is not native execution/enforcement
+proof. A failure, missing or refused endpoint, timeout or unknown UI remains a
+counterexample/unavailable result without retry. The checker can open only the
+approved synthetic canaries/endpoints and custom env key; its no-real-credential
+statement concerns checker accesses, not ordinary native OAuth startup. This is
+read-only single-checker host-boundary preparation, not general writable-agent,
+portable evidence, cross-machine, model reuse or complete-goal acceptance.
+
+
+### Actual one-attempt native result and data-only parser follow-up
+
+The exact10904 harness's one owner-approved operation returned NOT_VERIFIED
+(exit1) after1,384.8ms. Independent inspection of the protected current-owned
+single-link600 result confirms SHA-256
+`fc53216ee2725a54250d6a2952e221bc60b394fcdd2535901e12ee75485ebbbe`.
+Native startup occurred, but Bash mode was not confirmed, command submissions
+were0, checker JSON was not verified and the inter-control protocol delta was
+[0,0,0]. External controls before/after were live, plaintext fallback remained
+absent and created fixtures were cleaned. The report separately records
+OWNED_NATIVE_REAP_UNKNOWN; fixture cleanup is not proof of native-process
+cleanup. Any later exact owned-process metadata/reaping observation is separate
+evidence. No checker boundary, model, REDUE authority or portable reuse trial
+completed. The one-attempt allowance is consumed; no automatic retry is approved.
+
+The static reason NATIVE_SCREEN_CONTROL_LIMIT originates only from retaining
+more than4096 characters after an unmatched escape prefix. Actual terminal
+bytes were deliberately not retained, so the actual escape family remains
+UNKNOWN. Three independent AST-only synthetic controls demonstrate that
+unsupported ESC(B, unmatched CSI> and incomplete OSC can all produce this same
+reason. They do not identify which occurred in the actual native attempt.
+
+A separate disabled run-next.py SHA-256
+`e923ef8735d73bc66337e691f6bbc7cec9a20982386e3fdcc1e1f23deb10747a`
+has source GO for data-only preparation. Its minimal diff immediately refuses
+syntactically complete unsupported ESC/CSI forms with fixed codes; only bounded
+syntactically incomplete CSI/OSC prefixes wait. It accepts no new terminal
+semantics and preserves the executed10904 source. Twenty-five author controls
+plus six additional independent split-family/OSC/colon controls pass through
+AST-extracted pure functions only, with0 native/fixture actions. This is not
+proof that the actual native UI is supported or that its failure is fixed, and
+is not permission to invoke the replacement. Any new operation requires
+specific owner approval, current preconditions and independent exact-source
+review; the failed report and discarded-data limitation remain historical facts.
+
+
+The final data-only replacement is now frozen as
+`beba8c644d0db33a80580820550a107274993becec23beaa9c6f5bbb9f902a93`.
+The prior e923 source already withheld a positive report when native reaping
+was absent; no false-positive native result was reproduced. The final change
+extracts and tests that guard, requiring exactTrue for reaping and fixture
+cleanup. A final child wait uses at most2s of the remaining original15s budget,
+not a new deadline. A new exclusive600 private process-identification record
+is verified after writing and retained outside public output. Its PID/group is
+cleanup metadata only: later operations must independently match current
+owner, executable, argv and process start identity, not trust an old PID alone.
+
+Thirty-two author pure controls plus seven independent finalizer controls pass
+on the exact beba8c source, including missing/false/nonboolean reaping,
+nonboolean cleanup and preservation of prior negative reasons. An earlier
+independent test preparation stopped at its source-hash assertion because the
+author was revising the file; no extracted code or native operation executed
+in that failed preparation. The final coherent source was unchanged during
+its pure run, and executed10904 remains intact. This is source/data GO to
+prepare a specific new owner approval request only, not authority to repeat
+the consumed attempt or a claim that the native terminal is now supported.
+
+
+### Second specifically approved operation: decoder refusal before tools
+
+The second owner-approved operation used exact beba8c and returned NOT_VERIFIED
+(exit1) after472.2ms. Independent inspection confirms the protected report
+SHA-256 `e6abc11b7408e66f84a79ce01fe1e27a9e259665780a99ee3e9447dbb70816c8`,
+mode600/current-owned/single-link. Native startup occurred, shell mode was
+false, command submissions0, checker JSON false and protocol delta[0,0,0].
+External controls before/after, plaintext fallback absence, fixture cleanup
+and native reaping are true in this second report. The first report's reaping
+uncertainty and less-specific failure remain distinct historical evidence.
+
+Exact source attributes NATIVE_SCREEN_ESCAPE_UNSUPPORTED to the custom
+terminal decoder refusing an unmatched ESC prefix outside its recognized CSI
+and OSC forms. Its actual subsequent byte/specific escape sequence is UNKNOWN
+because raw data was discarded. This is an established harness compatibility
+failure before the checker, not an observed sandbox denial, credential-filter
+result, REDUE failure or insecure native execution. Neither attempt exercised
+the six-check boundary or a model. The two specific allowances are consumed.
+
+No further terminal-semantics implementation or native retry is justified from
+these discarded bytes alone. If useful and separately approved, the smallest
+diagnostic is a fixed allowlisted escape-family enum and bounded length, never
+raw terminal bytes/parameters; pure cases must preserve refusal before input.
+A concrete owner-operated pinned187 UI route for the same exact command, new
+settings and controlled endpoints is another candidate for review, avoiding
+a continuing custom decoder campaign. It must still preserve native Bash-mode
+confirmation, current guards, exact scope/deadline and external pre/post proof;
+it is not authority to execute, relax permissions, omit controls or count
+owner operation as model/portable reuse. No further native, fixture or settings
+actions were performed by this reviewer.
+
+
+### Disabled startup-only escape classifier review
+
+A minimal owner-local diagnostic, not a replacement checker attempt, is
+source/data reviewed at exact SHA-256
+`1c6a55c69cc58a64eab982c9c5ddfadb2eb801191500addb620afca67fc73c9b`.
+It uses only the preserved normal5628/eebb/a59 all-tools-denied setup and the
+reviewed beba guard definitions. It sends no input, submits no command, creates
+no synthetic resources/listeners and applies no new settings. Its only
+additional owned write is an exclusive600 provisional diagnostic/PID record.
+Current external source/auth prerequisites must be repeated before any later
+owner-approved startup. Same40x2048 geometry avoids a new display variable.
+
+The classifier emits only a fixed ESC-family enum or UNKNOWN; parameters,
+titles, native terminal text and credential values are not retained or printed.
+The initial581 preparation used a greedy OSC terminator that could swallow
+an intervening first escape. Final matching stops at the first BEL/ST, tested
+with consecutive OSCs and split terminators. It classifies syntax only and
+accepts no new native tool or terminal semantics. Unsupported/malformed/
+oversized input remains unavailable rather than enabling input.
+
+Fifteen author pure controls plus seven independent pure/static controls pass
+through AST-extracted classifier definitions: first-terminator ordering, hidden
+escapes inside OSC, split ST/charset, malformed/control limits, aggregate64KiB
+bounds and absence of send routes. No top-level helper dispatcher, native
+process, fixture, listener, auth or settings operation ran in this review.
+Source was unchanged during validation. The whole15s budget reserves reaping
+and checks persistence; actual elapsed is recomputed after persistence and
+excess prevents CLASSIFIED. Private immutable evidence is expressly provisional
+until final sanitized stdout/deadline completion and cannot establish authority.
+
+This is GO to request one exact startup-only diagnostic approval, NOT execution
+authority. Its prospective family observation would describe that new startup
+only; it cannot recover the discarded historical sequence, prove credentials/
+sandbox controls, count a checker/model trial or make the native host ready.
+Both prior specifically approved operations remain NOT_VERIFIED and consumed.
+
+
+### Actual separately approved startup-only classification
+
+The one specifically approved1c6a55 startup-only diagnostic completed with
+process exit0 and CLASSIFIED_DIAGNOSTIC_ONLY/SAVE_CURSOR after404.7ms.
+Independent inspection confirms protected final report SHA-256
+`5840f3182ac7495405005cd56562a0b803ac895871d1da1246da1748245e4776`,
+mode600/current-owned/single-link. Keyboard bytes0, model actions0, native
+reaping and source/fallback rechecks are true. Raw terminal/stderr retention
+is false. Current normal5628 settings, eebb launcher and a59 native executable
+were independently rehashed unchanged. No new settings or synthetic resources
+were applied by this classifier.
+
+SAVE_CURSOR establishes the first classified non-CSI/non-OSC escape family
+for this new startup only. It does not identify the discarded bytes from the
+first or second checker preparations, certify complete terminal support or
+establish shell-mode/checker execution, sandbox/credential controls, model
+capacity or portable evidence reuse. The original two NOT_VERIFIED attempts
+remain retained and distinct. No native/auth/fixture action was performed by
+this reviewer. Any disabled decoder correction requires separate critical
+review and any later operation requires specific approval; no retry or native
+feature expansion follows automatically from this diagnostic.
+
+
+### Disabled bounded cursor-save decoder correction
+
+The final owner-local successor is source reviewed at SHA-256
+`75082ecd42ce75fe145ced1d2a9ea12fffdc371cef77d71260b56654407a0d0b`.
+It adds only one-level ESC7/ESC8 saved position to the existing bounded text
+projection. Split sequences wait; a new save overwrites the slot; restore
+without save refuses;1049 transitions clear the slot. Unsupported charset
+selection/shifts, origin/margin/wrap modes, conceal/font/unreviewed SGR and
+other terminal semantics remain refused. Decoration/color does not authorize
+input. First-BEL/ST OSC parsing prevents hidden intervening controls from
+being swallowed. No engine, recipe, trust, host permission or runtime bytes
+changed; prior executed10904/beba/1c6 helpers remain exact and preserved.
+
+Primary [XTerm411 control sequences](https://invisible-island.net/xterm/ctlseqs/ctlseqs.html)
+and [cursor implementation](https://github.com/ThomasDickey/xterm-snapshots/blob/xterm-411/cursor.c)
+were independently checked. Its save/restore includes flags, character sets
+and pending wrap, with saved state per buffer. The official archive969be283
+and cursor.c member3caf38bd were independently rehashed and the retained
+member equals the archive contents. The successor deliberately refuses state
+it does not model; this is not a complete DECSC/DECRC or terminal-emulator claim.
+
+Independent review found that the preliminary930 proposal refused a save at
+the last column but still silently clamped ordinary printing there. Final750
+refuses the unsupported edge printable before mutation instead of inventing
+wrapping. The preliminary source is retained separately; this was a proposal
+correction, not an observed native/released defect. Fifty-five author controls
+and eleven independently extracted pure controls pass on exact750, covering
+save/overwrite/restore position, unknown interpretation state, edge refusal
+without mutation and saved-state invalidation. Source was unchanged, and no
+top-level dispatcher, native, fixture, listener, auth or model action executed
+in this review. Existing original15s bounds, fixed command/protocol proof and
+exactTrue reaping/cleanup requirements remain intact.
+
+This is GO for a specific owner approval request only. A later positive native
+claim still requires actual confirmed Bash mode, the exact single checker
+command, six results, isolated protocol delta, live controls and complete
+cleanup/context checks. Pure decoder controls, the SAVE_CURSOR diagnostic
+and ordinary account login do not supply that evidence or model capacity.
+No native operation or repeat trial is authorized by this review.
+
+
+### Third specifically approved synthetic preparation: CSI decoder refusal
+
+The one approved75082e operation returned NOT_VERIFIED (exit1) after492.8ms.
+Independent inspection confirms protected final report SHA-256
+`b4ebbade7123fb6a0ed508f9e7fc20fc7fddc80954b578c67602bf0b4de24941`,
+mode600/current-owned/single-link. Current75082e source and normal5628/eebb/a59
+files were independently rehashed unchanged. Bash mode was false, command
+submissions0, checker JSON false and protocol delta[0,0,0]. External controls
+before/after, native reaping, fallback absence and owned cleanup are true.
+No checker or model ran, and no REDUE authority was exercised.
+
+Exact source emits NATIVE_SCREEN_CONTROL_UNKNOWN from several CSI parsing or
+interpretation refusal branches: unsupported operation/parameters, private
+mode or erase behavior. The actual opcode/parameters were not retained and
+remain UNKNOWN; neither a particular native mode nor a security/REDUE defect
+is established. This third controller compatibility failure does not undo the
+separate startup-only SAVE_CURSOR observation or justify relabeling either
+earlier discarded escape. Every actual attempt remains retained independently.
+No allowance remains, and no further decoder repair or automated retry is
+authorized or proposed in this review.
+
+The smallest known alternative is an owner-operated pinned187 native TTY
+manual! route already supported by the reviewed native source, replacing
+custom screen automation rather than sandbox controls. It is a candidate
+procedure, not validated readiness: a new specific approval must bind the same
+a new reviewed settings candidate with automatic Bash responses disabled,
+exact synthetic resources,15s limit, visible
+Bash-mode confirmation, six checker results and external live/protocol/context/
+cleanup evidence. The preserved normal5628/eebb profile denies all tools and
+allows no sentinel execution. No arbitrary commands, permission relaxation,
+new helper/framework, native action or model acceptance follow from this
+recommendation. Native checker enforcement and the actual agent/machine gates
+remain unresolved.
+
+
+### Owner-operated procedure preparation: automatic-response correction
+
+Independent bounded inspection of the exact native187/a59 public-code bytes
+finds `yLm` at207536738 reads `Fr().respondToBashCommands ?? true`. Its ordinary
+success and non-interrupted failure branches derive `shouldQuery` from that
+boolean. Thus shell mode itself is not a no-inference guarantee. The preserved
+3018 synthetic settings lack this setting. Prior review language implying that
+manual `!` alone supplied the no-model boundary is corrected here; all three
+actual attempts had command submissions0, so this finding establishes a proposal
+gap rather than an observed model request, charged usage or released defect.
+
+The exact187 schema at194770918 supports `respondToBashCommands:false`. `Fr()`
+at194828076 reads `L5().settings`; `XSr` merges the selected source settings
+with flag settings and finally policy settings. Therefore a separate proposed
+`--settings` file can supply false, provided the existing current authority
+guards remain satisfied and no effective managed override changes it. The normal
+5628/eebb files, credential namespace and original3018 proposal remain untouched.
+Current [interactive documentation](https://code.claude.com/docs/en/interactive-mode#shell-mode-with--prefix)
+also documents automatic responses and the false setting; current
+[sandbox documentation](https://code.claude.com/docs/en/sandboxing#strict-sandbox-mode)
+explicitly distinguishes the pre2.1.260 manual-command behavior. Current docs
+are supporting context, not a substitute for pinned187 execution semantics.
+
+The reviewed dispatch chain is `processBashCommand` at207543321 for Bash input,
+`r7t` returning its Bash result directly, and `sQl` carrying `shouldQuery` into
+interactive `MT`/`Ux`. `Ux` at210062877 returns before the model query when that
+flag is false. Its earlier session-title branch tests `Gce`; the exact no-paste
+manual input begins `<bash-input>` and is excluded by `Gce` at207125982. The
+prompt-suggestion generator belongs to the post-model query path and also has
+a supported false setting. A fresh session with no resume, prior model turns,
+pasted input blocks or queued messages is required; an arbitrary active session
+is not covered by this bounded source argument.
+
+Nine independently extracted source-isolated pure controls pass on Node22.13.0:
+false suppresses querying for success, generic error, shell error, interruption
+and background result; absent/true countercontrols request a response; the
+exact Bash tag is excluded from title generation while an ordinary prompt is
+not. External functions were mocked, and no native dispatcher, shell, model,
+listener, fixture, configuration or credential action ran. These controls verify
+source branching, not native enforcement or billed request counts.
+
+The manual handler directly invokes `sl.call` with `dangerouslyDisableSandbox`.
+The pinned strict accessor rejects that escape when unsandboxed commands are
+forbidden, and the Bash executor passes `pL` into `Xae`. Empty effective
+`excludedCommands`, sandbox enabled and fail-if-unavailable remain mandatory.
+Manual dispatch bypasses ordinary tool permission approval: the exact command
+allow entry must not be presented as proof that arbitrary owner shell commands
+would be denied. The owner procedure must submit only the reviewed literal
+checker command, with the same fixed resource restrictions.
+
+Procedure preparation alone is authorized. The first owner-local launcher draft
+uses `start_new_session` with inherited terminal descriptors without establishing
+foreground terminal ownership; that is not yet a usable owner TTY route. Its
+unconditional zero-model report also cannot be treated as an observed count.
+These are author preparation findings, not executed failures. Final launcher,
+settings, existing-file checks,15s deadline, live-control lifecycle and truthful
+result labels require independent review before an operation approval request.
+No native execution, permissions change or model trial is authorized here.
+
+
+### Final owner-operated procedure preparation review
+
+The frozen owner-local lifecycle helper is independently source reviewed at
+SHA-256 `dc0eb16d157081a5d7ea1625d8de8874bbc49beb4331a84539755ba7e40b57f3`.
+Its separate selected settings file is
+`cc8aaf8c396424e37d48d8bfb2bc690461e7b99ef1ff7b3afff986118c45ff1e`;
+checker remains b3bad6b2. The settings delta from preserved3018 is explicitly
+`respondToBashCommands:false`, `defaultShell:"bash"`, and appending the newly
+selected settings filename to both existing denyRead and denyWrite lists.
+Previous settings restrictions remain intact. The new file is preparation data;
+normal5628/eebb files and the original proposal are unchanged. Existing native,
+checker and selected-settings paths were independently checked as regular
+non-symlink files. No live resource or native action was performed by reviewer.
+
+The final helper uses `posix_spawn(setpgroup=0)` in the owner's existing session,
+checks the owner begins in the foreground, explicitly transfers the real terminal
+foreground to the dedicated native group and restores it and terminal attributes
+after cleanup. SIGTTOU is masked only around foreground/terminal transitions.
+No PTY, terminal decoder, keyboard writing, preexec callback or automatic command
+submission remains. A15s absolute interval begins before preparation; the native
+window leaves2s for bounded kill/reap and controls. Native PID is retained until
+reaping to avoid reuse, and SIGTERM/SIGHUP set a cancellation latch checked by
+the remaining-budget guard. Currency, terminal restoration and cleanup failures
+cannot receive a successful lifecycle exit. Uncatchable termination still cannot
+promise cleanup; a private owned-process identifier supports explicit recovery.
+
+Local selected/project/system source absence is checked before and after; these
+checks alone do not certify remote authority. The previously reviewed fresh
+external auth-source/metadata prerequisites remain required immediately before
+a future operation. Model policy is labelled EXPECTED_DISABLED_NOT_MEASURED,
+checker output must be supplied by the owner, and enforcement stays
+NOT_AUTOMATICALLY_VERIFIED. A successful lifecycle or protocol counter is not six
+verified sandbox outcomes. The helper retains live-before/live-after controls
+and a separately counted actual-probe interval; ports absent or refused cannot
+be reclassified as enforced denials.
+
+Nine independent AST/data controls pass for final helper/settings identity,
+owned same-session group, foreground/reaping methods, absence of keyboard/PTY
+launch automation, truthful model labels, cancellation, currency/restore and
+fixed budget conditions, exact path restriction append, and existing file paths.
+The first reviewer command had an unmatched parenthesis and never evaluated; the
+corrected command passed. Neither command launched native code, listeners,
+fixtures or model calls. These are static controls, not owner-TTY acceptance.
+
+For a later specifically approved owner operation, submit only the fixed command
+after visibly entering native187 Bash mode. At an idle ordinary prompt, /exit is
+a local immediate command: Fym206173932 loads Mym206173135, which in the fresh
+non-worktree/no-background route performs local goodbye and `gi(0)` rather than
+a model request. Escape out of Bash mode before /exit; do not submit !/exit.
+The helper's group cleanup remains required even after native exit. Any trust,
+auth, policy, unavailable-sandbox or unknown state stops the procedure; do not
+substitute a prose model task, arbitrary shell command or permission bypass.
+
+Conclusion: GO_FOR_OWNER_APPROVAL for this exact preparation and root's data-only
+verification, not for execution. The old3018 no-model assumption is corrected;
+three actual command0 failures remain preserved. A new approval must explicitly
+bind this new settings identity, exact synthetic live resources, literal command,
+15s bound and owner operation. Native enforcement, actual receiving-agent reuse,
+model capacity and G1–G4 completion remain unestablished.
+
+
+### Owner-operated fixed-window attempt: observed limit and diagnosis
+
+The protected owner-supplied structured result was independently inspected at
+SHA-256 `9f364dc3ab867f53808dc2984392e3e3c6cec1c145fde850664f6c5289f2195b`
+(mode600, regular single-link). Its provenance is
+OWNER_SUPPLIED_STRUCTURED_LAUNCHER_RESULT, not a retained native tool trace.
+It binds frozen helperdc0/settingscc8/checkerb3 and reports elapsed13216.9ms,
+OWNER_WINDOW_ENDED, native signal9/reapedtrue, foreground restoredtrue, controls
+before/aftertrue, protocol delta[0,0,0], file currency and listener cleanuptrue.
+The checker JSON was not supplied. Checker execution, checker exit, actual
+submission time and model count remain UNKNOWN/NOT_MEASURED; neither protocol0
+nor absent output proves the checker never started. Coordinator fresh metadata
+reads occurred after the owner attempt and are not retrospective pretrial proof.
+
+The unchanged helperdc0 was independently rehashed and source inspected. Its15s
+absolute interval begins before source/file guards and native startup. The native
+window loop ends when only2s remain, then unconditionally assigns
+OWNER_WINDOW_ENDED and kills the dedicated process group in cleanup. That literal
+reason occurs in one branch. The owner-reported result therefore supports this
+outer-window branch; it does not separate native startup, human preparation,
+command submission or checker runtime. It does not establish output loss, a
+checker failure, native sandbox failure or REDUE correctness failure. The prior
+three automated attempts remain separate known command0 outcomes; this later
+manual attempt must not inherit their no-command/no-model classifications.
+
+A bounded repair may separate an explicitly approved owner-startup interval from
+the actual checker15s execution budget and finite cleanup. It must obtain actual
+child wait status rather than treating a checker's intended exit or printed
+booleans as the observed process exit. A fixed source-reviewed in-sandbox wrapper
+can relay bounded static data through the existing synthetic allowed socket; this
+is a proposal, not new imported evidence or REDUE authority. Original helper,
+checker/profile identities and result remain preserved. Proposed180s startup,
+15s checker and5s cleanup caps change the operation envelope and require new exact
+owner approval; the consumed15s allowance does not authorize them. No new native,
+checker, live listener, permission or model operation was run by this reviewer.
+Only harmless local mock controls are currently permitted for the repair.
+
+### Final collection repair: independent preparation review
+
+The disabled owner-local repair was independently reviewed at these exact hashes:
+
+- owner-collect.py: `c9f6e1e98ea49bac81b4d6ac6c3f2bf965552025912a9e56d8d77d10cb504563`
+- supervisor.mjs: `010833502f33471b0a95891a27af9114d532e0881c1209f351a68c5caa6c9cc3`
+- settings-collect.json: `dfc808862940d126e7852b6606ed834505f67fd92ed21047956205fffc3fe4e2`
+
+The settings preserve the reviewed manual profile's strict sandbox, empty
+excluded-command list, no unsandboxed fallback, disabled Bash response,
+explicit Bash shell and existing denials. The delta changes the exact owner
+command to the fixed collector wrapper and appends protection for the new
+settings and wrapper files. Network/socket grants are byte-for-byte equivalent
+as parsed data; only the existing synthetic allowed socket carries fixed results.
+This is not a REDUE observer endpoint, imported verification evidence, arbitrary
+execution interface or authenticated producer route. As already established for
+native187 manual commands, the ordinary permission entry does not enforce an
+arbitrary-command allowlist; the owner must submit only the literal reviewed line.
+
+The parent retains the real foreground TTY and writes no keyboard input. Proposed
+caps are180s startup including preliminary guards, one15s collection window after
+the first accepted collector ACK, up to5s cleanup and200s total. An ACK is named
+COLLECTOR_START_ACKNOWLEDGED and is not proof that a checker process started.
+The wrapper verifies the immutable checker before requesting ACK, then spawns
+only that exact checker. Missing/malformed ACK launches no checker. Its14s child
+timeout and14.5s unobserved-close limit fit inside the parent's15s collection
+boundary; transport and parent acceptance remain bounded and may conservatively
+produce UNKNOWN. No restart, timer reset, terminal parser or synthetic delay is
+introduced.
+
+The wrapper observes the child's close event, exit code and finite known pinned
+Node signal name set, including SIGIOT. A missing close is distinct from an
+observed exit. Parent parsing rejects contradictory code-plus-signal claims,
+boolean schema/exit values and inconsistent outcomes. Assertion outcome,
+process outcome and final collection/context outcome remain separate. Accepted
+negative rows and actual nonzero exit/signal survive subsequent protocol error,
+cancellation or uncertain completion. Final green additionally requires exact
+protocol delta[1,0,0], live controls before/after, unchanged sources, reaping,
+terminal restoration and owned-listener cleanup. Failed or incomplete persistence
+cannot create a green result. The protocol's one-shot UUID binds a local attempt,
+but does not authenticate it against a hostile same-UID process able to connect
+to this endpoint. Its observations rely on the reviewed local wrapper and the
+owner's fixed operation scope; they are not forensic origin authentication.
+
+The exclusive mode600 durable file retains sanitized checker rows and actual
+supervisor-observed code/signal independently of terminal copying. It deliberately
+marks final persistence/lifecycle completion UNKNOWN with
+REQUIRES_FINAL_PARENT_COMPLETION. That does not discard a retained checker FAIL
+or observed exit; final parent output is separately bounded and cannot invent
+missing checker evidence. No raw native transcript, child stderr, environment
+dump or credential data is persisted. Fresh external authenticated-source and
+policy prerequisites remain necessary immediately before any future operation;
+local file absence alone is not remote-policy proof. Model policy is correctly
+EXPECTED_DISABLED_NOT_MEASURED, not an observed zero-model count.
+
+Independent reruns on pinned Node22.13.0/system Python3.9.6 passed8 Node controls,
+12 Python phase/status controls and2 connected MOCK controls. The connected
+control exercised three isolated temporary Unix-socket transport scenarios with
+harmless JSON-only child processes: successful output/exit0, missing output/exit0,
+and positive assertions/actual exit7. Parent projection, wx0600 fsync/readback,
+no-overwrite refusal and cleanup were exercised. A separate harmless owned
+process-group control verified actual kill/reap, without a post-reap numeric-PID
+kill. Eight independent source/data controls also passed for exact manifest and
+source bindings, unchanged grants, precise settings delta, cancellation/counter/
+reap barriers and accepted FAIL preservation after a late error. The first
+reviewer unittest module-name invocation failed before evaluating tests; direct
+script invocations then passed. No native host, real checker, approved sentinel
+fixtures, auth operation or model was launched by these controls.
+
+Conclusion: GO_FOR_OWNER_APPROVAL and data-only staging/verification for the exact
+repair bytes. The original UNKNOWN owner report, frozen helperdc0/profilecc8/
+checkerb3 and normal5628/eebb remain historical/current identities as appropriate.
+The new wrapper, selected profile and expanded phase caps require one specific
+owner approval before execution. Mock acceptance is not native sandbox acceptance,
+credential isolation, actual agent reuse or G1–G4 completion.
+
+### Collected owner attempt: entry unavailable and protected-ancestor conflict
+
+The new durable result was independently read at SHA-256
+`82dd2ea01b2f681bed5b320181b9bfdcc41e9e3b5dd25a9d25f21d2433cb9dc4`.
+It records STARTUP_DEADLINE at180225.1ms, no collector-start ACK/result, protocol
+delta[0,0,0], live before/after controls, unchanged prepared files, native signal9/
+reapedtrue, restored terminal and owned-listener cleanuptrue. Assertion outcome,
+checker process outcome and final collection remain UNKNOWN. The owner separately
+reported Node22.13 MODULE_NOT_FOUND for the collector entry. No checker assertion
+ran in the supplied report; no exact typed argv or generated native sandbox
+profile was retained. Protocol0 alone is not an execution counter, and the report
+does not measure model requests. This is not a REDUE failure or an established
+sandbox enforcement result. No automatic retry is authorized.
+
+Current staged wrapper010833/helperc9f6/settingsdfc808 hashes still match the
+reviewed proposal. The collector is a regular non-symlink single-link mode600
+owned file; its workspace and durable-base parents are canonical owned mode700.
+The lower-case denyRead path `~/Library/Application Support/redue` and upper-case
+REDUE ancestor resolve here to the same device16777232/inode1073534877. The
+collector's lower-case alias likewise resolves to its inode1075097668. Thus the
+public controlled entry and inner checker were placed inside an existing
+protected read-denial ancestor. The configuration conflict is established by
+current metadata, without assuming a newline from terminal wrapping or claiming
+the file is absent outside the sandbox.
+
+Bounded public-source inspection of pinned native187 corroborates the intended
+ancestor behavior: `JF` at198174678 expands `~/` with homedir; `v0d` at198193837
+emits `deny file-read* (subpath ...)` for non-glob denyOnly paths; `k0d` invokes
+that read-policy builder. Selected filesystem denyRead feeds denyOnly through
+the reviewed runtime configuration path. Directory metadata allowances in that
+builder do not allow the denied regular-file contents. This provides a strong
+source-grounded read-denial explanation for the entry error; the unretained
+actual argv/profile prevents proving that this was the sole runtime cause of
+the reported MODULE_NOT_FOUND. The first reviewer bounded-source extraction had
+a syntax error before evaluation; corrected read-only extraction succeeded.
+
+The smallest correction to prepare is to place only the noncredential controlled
+code leaves outside the protected state/configuration ancestor, rebind their
+exact source/entry identities and protect them from writes. Preserve credential
+locations, the broad protected-ancestor denial, existing fixture/socket authority
+and prior artifacts. Do not add an ancestor read exemption merely to launch the
+entry. Path rebinding alters checker/wrapper bytes and the exact command/profile;
+it requires a coherent independently reviewed proposal and specific owner
+approval before any operation. Where fixture locations can remain unchanged,
+relocating them is unnecessary. A separately approved in-context metadata-only
+diagnostic may distinguish the observed entry-resolution error if static evidence
+does not suffice; none was run by this reviewer. No native/checker/model launch,
+settings application, credential read or new permission was performed here.
+
+### Entry metadata diagnostic and code-only relocation blueprint review
+
+The final disabled inline diagnostic body is independently reviewed at
+`82a0382dbcfcaf4fb1d0f620d4f9357ab9157543d881448a463de10665922bce`;
+its separate proposed settings are
+`724f1e654ce1ee70c9456c92780b8bf19fae60521ae96888b0c69704a8122f2d`.
+It requires only builtin node:fs and handles exactly the original entry/checker
+roles. Operations are lstat, realpath identity comparison, bounded-target
+O_RDONLY|O_NOFOLLOW|O_NONBLOCK open, fstat and close. Neither target contents nor
+target code is read/imported/executed; no child process, socket, auth or network
+operation is present. Only fixed role labels, static errno/status enums and
+metadata booleans leave the body. Unknown error text is withheld. Each operation
+has a separate field, so realpath failure after successful lstat cannot imply a
+missing file, and fstat/close failure cannot erase an observed successful open.
+
+The first unexecuted proposal accidentally placed a private entry path inside
+the output scope, and conflated later realpath/fstat failures with earlier
+lstat/open fields. Both preparation defects were corrected before any native
+diagnostic operation. Five author mock controls were independently rerun and
+passed. Eight independently composed mock/data controls passed exact command/
+body binding, unchanged settings except command/self-protection, actual phase
+counterexamples, unknown-error suppression, no-private-path output and refusal
+to open a noncanonical target. Every filesystem adapter targeting the proposed
+files was a mock; no in-context filesystem diagnostic or native action occurred.
+
+The settings delta changes only the exact prospective owner command and appends
+the new selected settings file to existing denyRead/denyWrite. Previous strict
+sandbox, response=false, Bash shell, network/socket and credential restrictions
+remain intact. This is GO_FOR_OWNER_APPROVAL for proposal data, not operation
+authorization or proof of readability/enforcement. Any actual diagnostic requires
+a separately approved finite operation bound and existing fresh source/auth
+prerequisites; the old collection allowance must not be reused implicitly.
+
+The relocation blueprint remains NOT_APPLIED/NOT_TESTED. It moves only the two
+noncredential public code leaves and native working directory outside the
+protected ancestor, rebinds entry/digest/command and local-authority guards, and
+protects the entire new code parent against replacement/writes. Physical
+nonmembership in all expanded/case-aliased denied ancestors must be proven; a
+different lexical prefix alone is insufficient. Original credential/Keychain
+locations, state, synthetic targets/socket grants and prior artifacts remain in
+place. No new workspace, settings application, listener, native/checker process,
+model request or permissions change was performed in this review.
+
+
+### Code-only relocation and owner-operated diagnostic preparation
+
+The final private helper is independently source-reviewed at
+`899ab247e47df83b71e076d5c1e4174cccbcc519d9503cb8da14a8475dda72ff`.
+The relocated checker is
+`579af20e9055163c37e95e0aebba97c7732a65b81d0dd6bc82ee41a11dbca4d7`;
+wrapper `29ebbcdef49377da5d57fb2053d7fc92271e62c78f0331cd7a2233823f74679b`;
+full profile `81e874fe9239caa4ceb63d2d9e847c4f7d08a8c02eea372085d4a13c8354c15a`;
+diagnostic profile `982f4118dd441b65a919d9c99a602660b0984512b4e8ecfd9cfed223552a55e9`;
+diagnostic body `14f62b23437448142e5d3691bb4e85523bc5136dab898c1ed214875181219c4d`.
+Checker changes are limited to its executable-path binding; wrapper changes are
+limited to its own entry, checker entry and checker digest. All six assertions
+and execution/status/collection methods remain unchanged. Only public code and
+native cwd move to a dedicated code container. The physical-ancestor guard must
+refuse membership in expanded/case-aliased protected read ancestors. All prior
+read/write denials are retained, with write protection for the new dedicated
+code container and its parents. Credentials, namespace, state, synthetic targets
+and socket authority remain in place; normal all-tools-denied settings still
+hash to `5628de7667d4a5125c723ecbc3685336ef12cd80f15da83e6467b3826a337afc`.
+
+Full and diagnostic profiles have identical restrictions after removing the
+exact command permission, canonical digest
+`a8f7b62e1e21eb3f29ddef88db0974768023a769d554464ed5ed9ffb4d116339`.
+The fixed diagnostic input `68ce826c` is exactly one plain command plus newline,
+intended for the owner to submit only after entering native 2.1.187 manual Bash mode.
+Pinned 2.1.187 manual dispatch and respondToBashCommands:false remain source-grounded
+no-inference expectations. Manual dispatch bypasses ordinary command approvals;
+the literal permission entry is not an enforced arbitrary-command allowlist.
+No reviewed noninteractive print/headless/SDK equivalent is substituted, and
+no automated terminal input or decoder is present.
+
+The diagnostic mode reuses guarded fixed native argv/env/cwd, same-session
+foreground process ownership, terminal restoration and owned reaping. It has
+180s owner startup and 5s cleanup bounds, separate exclusive lifecycle/process
+records, no listeners, collector, checker, access-gate acceptance or terminal
+capture. Its outcome is lifecycle-only; actual file-access JSON remains owner
+supplied. An initial unexecuted `74c25e3` proposal swallowed Stop reasons and could
+label forced timeout cleanup lifecycle completion. The `899ab247` successor retains
+an irreversible sequence-error/cancel latch, static reason and observed native
+exit/signal; timeout cannot qualify even after successful reap/restore.
+
+The full mode remains blocked before listeners/native without the fixed
+root-captured gate and explicitly selected digest. It binds current diagnostic,
+profiles, common restrictions and physical source fingerprints. All eight role
+rows must have complete static phase/nullable-boolean schemas. Both relocated
+code rows must independently show safe metadata, readonly open, same-inode fstat
+and close. Only EPERM/EACCES readonly-open errors for the two existing NONSECRET
+protected regular files qualify their operation-specific denial. Real credential
+and configuration directories are metadata-only, never opened; credential-body
+denial remains NOT_TESTED. Original code rows must be complete but need not be
+readable. Root-owned owner-output provenance is not hostile same-UID
+cryptographic authentication. No gate was produced by this review or its mocks.
+
+Independent reruns passed 13 Node controls, 12 owner-collection Python controls,
+12 relocation Python controls including mocked 180s timeout, and 2 connected MOCK
+controls using harmless children. Sixteen independently composed gate/refusal/
+collision controls passed missing original rows/fingerprints, changed profile/
+restrictions/body, relocated EACCES, protected ENOENT, credential-open refusal,
+boolean typing, missing gate, invalid digest and existing private-record collision.
+Missing gate/collision launched zero mocked native processes and zero listeners.
+Reviewer test preparation initially aliased the fixture's expected bindings, then
+encountered an author-edit nested-with SyntaxError, then used a non-TTY StringIO
+and incorrectly expected a filesystem call. Corrected isolated controls passed;
+these were test-preparation mistakes, not observed native/product failures.
+
+Conclusion: GO for inactive staging, data-only verification and the specifically
+approved owner-operated diagnostic preparation. Full collection is CONDITIONAL
+on a genuine current native access gate and the owner's limited-surrogate
+protection scope. No actual native/checker/model process, in-boundary diagnostic,
+settings application, synthetic fixture provisioning or credential read was
+performed by this reviewer. No native enforcement or portable/model gate PASS
+is established by these source and mock results.
+
+
+### Pinned187 permission-parser repair: fixed diagnostic script leaf
+
+The owner's reported native warning identified the old inline JavaScript Bash
+permission as invalid with Empty parentheses. Bounded inspection independently
+confirms native 2.1.187 public-source BSr at194755299 and Tlu at194754773 reject
+unescaped adjacent parentheses anywhere in the rule before content parsing;
+JavaScript quoting does not exempt calls. This establishes a parser-level cause
+matching the warning, not sandbox denial or actual diagnostic execution. Current
+online documentation's nested-literal behavior must not supersede this pinned
+implementation. No host version upgrade or general Claude behavior claim follows.
+The first reviewer extraction reached a compiled literal rather than JavaScript;
+corrected fixed public-ASCII ranges supplied the source proof, with no secrets or
+native process involved.
+
+The final inactive v2 helper is source-reviewed at
+`5139c3056871c2286cee2841842bfc624e9db9b86d766bdcff14b0c9ee89f81c`;
+full profile `636bab4db073b91c8165fae24de26cb537d3bacab6e99e2014a39fb157cab014`;
+diagnostic profile `15dbfaf4db84fb014263fbfdeb6baddfff0f39bf9d95050ce02cf0b1a307e9b2`;
+input `75fb685a18ec3c926016e59c9cf7c232e499dc3cdce52081c0bc7394fde67750`.
+The diagnostic body remains byte-identical
+`14f62b23437448142e5d3691bb4e85523bc5136dab898c1ed214875181219c4d`, now a new
+protected CommonJS leaf in the already approved relocated CODE directory.
+Its fixed command resolves by shell quoting to exactly the reviewed Node executable
+and that one script pathname. It has no wildcard, prefix allowance or inline
+JavaScript syntax. No original diagnostic target contents/code, credential file,
+network, checker or model operation is added.
+
+All old denials, network/socket scope, environment masking, strict sandbox,
+no-unsandboxed fallback, response=false and Bash shell remain. Only the new v2
+selected profile paths gain denyRead/denyWrite, and the diagnostic code leaf gains
+explicit denyWrite in addition to its protected existing parents. Paired profiles
+have identical restrictions except the single exact command, canonical digest
+`6a03032a5ccffc60d83c8f7cc4b7961530f157c60050003a030f7e5f8339b8ad`.
+Checker/collector bytes and six assertions are unchanged. Diagnostic180/5 and
+conditional full180/15/5 clocks, timeout latch, exact OS exit collection and
+cleanup rules are unchanged. A new v2 record/gate namespace preserves every old
+attempt rather than overwriting it. Full-gate validation additionally binds the
+current v2 helper byte digest and physical identity; missing/changed helper facts
+refuse. Genuine root-captured owner-output/current-source bindings remain required;
+mocks or outer file metadata cannot substitute for the native access gate.
+
+Independent reruns pass4 pinned-parser controls,12 relocation controls and5 v2
+binding controls. Eight additional independent source/data controls pass helper
+binding absence/mutation, stale common restrictions, exact shell argv/permission,
+unchanged body and byte-for-byte provenance of all twelve extracted public parser
+ranges. Earlier independent Bash-subset controls3PASS reproduce old invalid/new
+literal-file valid and exact content binding. These parser tests isolate the Bash
+branch and do not establish native command-permission enforcement; manual direct
+Bash dispatch still bypasses ordinary command approval as previously reviewed.
+The small unexecuted3bc05e5 helper's stale inline-command print label was corrected
+in5139c305; no execution method changed.
+
+The reviewed private procedure60d69b31 and stage manifestd879ed14 select six new
+exclusive mode600/no-follow files, with separate manifest preservation. Root must
+finish the old parent and revalidate source/auth/absence prerequisites before
+staging/operation. Conclusion: GO for the in-scope inactive repair and data-only
+verification. The owner may subsequently use the reviewed manual diagnostic
+under standing authority; any warning/unknown mode stops without Continue or a
+model-assisted fix. No native/checker/model process, diagnostic body execution,
+terminal controller/input, settings selection or permission change occurred in
+this independent review. Native access/enforcement remains UNKNOWN; full
+collection stays conditional on actual current eight-role gate evidence, with
+real credential-body denial still NOT_TESTED.
+
+
+Doc-only preparation correction after that review: procedure60d69b31 claimed the
+owner exited without Continue/Fix with Claude, exceeding the observed evidence.
+The corrected procedure is
+`0771540a26acd2df6ef4b6521d2145287d7ec3aa1028e335ea545a94487a5afb`;
+its stage manifest is
+`14b53f0e1ff7456e3e7b7e219604385599bee47b05612cb6ba80cbd74a07f320`.
+It now distinguishes the owner-reported warning, root's Exit instruction, observed
+native exit1 and absent diagnostic JSON from the unobserved option selection or
+command submission. Preparation-only zero counts are separated from owner
+history. Independent light review verifies corrected provenance, exact manifest/
+procedure binding and unchanged5139 helper/code/profiles. GO remains inactive
+staging/data-only verification, not native enforcement. No new test, native,
+checker, model, settings application or diagnostic operation was performed.
+
+
+### Actual owner-operated v2 diagnostic and captured-gate review
+
+Actual owner-supplied eight-role diagnostic capture
+`e578d137d2841ff5283cd2013a70cd80cea9a6d01623b3f8606cce2f0b7a8a8c`
+is independently read-verified as owned600/single-link, stable and bounded.
+Both relocated code roles show regular/canonical owned600 single-link metadata,
+readonly open, same-inode fstat and close success. Both original code roles retain
+EPERM lstat and otherwise unperformed phases. The two existing NONSECRET
+protected settings/canary roles show EPERM lstat and readonly-open denial, with
+fstat/close unperformed. Configuration/credential directory roles show only
+metadata, no opens; their mode600=false and single_link=false are directory facts,
+not failed assertions. All eight rows pass the current narrow row validator.
+Real credential-body denial remains NOT_TESTED; no protected contents were read.
+The capture is OWNER_SUPPLIED_NATIVE_OUTPUT_NOT_COORDINATOR_MEASURED, not a
+coordinator-collected tool trace or authentication against hostile same-UID code.
+
+The actual saved diagnostic lifecycle
+`dba602d456b95c81c312327898917df0fae4f1637f962935fad58cad7764d14a`
+records native exit0/no signal, reaped/restored/current-file flags true,97,657ms,
+and LIFECYCLE_ONLY_NOT_BOUNDARY_VERIFICATION. Its
+REQUIRES_FINAL_PARENT_COMPLETION marker correctly prevented treating that saved
+pre-persistence snapshot alone as completed-operation proof. The later actual
+owner-supplied final capture
+`b7565da2e7e27c537be437fead29ad92ea314b7f0c8ff1e4a82582c8f51a03e2`
+adds persistence_completed=true and97,669ms, retaining the same lifecycle fields.
+Outer helper exit was NOT_SUPPLIED and is not inferred. Enforcement remains
+UNKNOWN and model policy EXPECTED_DISABLED_NOT_MEASURED. Actual dedicated native
+completion is also reported by the integration owner; a PID alone is not used as
+cleanup evidence. No native startup or stdin operation was performed by this
+reviewer.
+
+Root prepared only a candidate, independently reviewed at
+`a33d6b1ae094f58ef5956d90ebff861d347d5c3f703dcd40811b023067ced425`,9,594bytes.
+Fresh read-only current-source verification matches all thirteen source
+fingerprints plus helper5139 byte/physical identity. The diagnostic in this
+candidate is exactly the actual owner capture. All four bound evidence records
+match their current byte hashes and physical identities, including the actual
+owned-process marker
+`d5c2e6c111823be1157b7c9aaab4ce97eef4738edc8bfcdaa32e960a26f71e8d`.
+Saved/final lifecycle scopes, phases, exits, cleanup and currency agree, and the
+finite elapsed limits hold. Candidate acceptance scope is explicitly
+READABILITY_AND_NONSECRET_DENIAL_ONLY, with credential body NOT_TESTED,
+full checker NOT_RUN, model behavior NOT_RUN and outer exit NOT_SUPPLIED.
+It supplies no producer trust or portable applicability authority.
+
+Conclusion: GO for root's exclusive exact-byte copy of the reviewed candidate
+to the fixed gate, then selected-digest require_access_gate/readback before
+conditional full manual handoff. The fixed gate was absent during this review;
+this reviewer wrote no gate. The prevalidated owner procedure uses only the
+fixed quoted Node/collector command after native187 manual Bash mode, current
+full profile636bab/helper5139 and180s startup/15s collector-ACK window/5s cleanup.
+Literal command permissions are not an enforced manual allowlist. All six checker
+assertions and actual child OS close/exit collection remain unchanged. Its durable
+assertions/status must remain separate from final parent persistence/lifecycle
+completion, including FAIL and UNKNOWN. This access gate does not establish full
+native enforcement, cross-agent/two-machine model reuse, capacity, economics or
+the release goal. No checker, model, listener, settings application, controller or
+native process was started in this independent review.
+
+
+### Actual owner-operated bounded native synthetic check
+
+The actual owner final collection capture is independently verified at
+`679754cad787c3ab62be73202857f73895b69a2c925912f1eb530ee05f0c2144`;
+the saved immutable collection is
+`b119f866376a264859b6ab5b6017a40c6c0958e1529a4d6c8851fcad32cffc71`.
+Both are bounded, stable, owned600/single-link records. Their common fields agree.
+The saved record deliberately keeps collection_status=UNKNOWN and
+REQUIRES_FINAL_PARENT_COMPLETION, while independently retaining checker PASS,
+actual OS exit0 and pre_persistence_context_outcome=PASS. The later owner final
+JSON supplies collection_status=PASS, persistence_completed=true and11,047.1ms
+versus the saved11,034.5ms. This resolves final completion without rewriting the
+saved pending record. Owner-output provenance remains explicit, and outer helper
+exit status remains NOT_SUPPLIED rather than inferred from the source return path.
+
+All six actual static assertions pass: custom nonsensitive sentinel absent,
+synthetic protected read denied, synthetic outside write denied, the exact allowed
+synthetic socket returns its expected response, the other owned live socket is
+denied, and owned direct loopback is denied. Denials use permission errors, not
+missing/closed endpoints. Recorded live controls pass before and after, and the
+between-control protocol delta is exactly[1,0,0]. The unchanged reviewed supervisor
+records EXACT_REVIEWED_SUPERVISOR_CHILD_CLOSE_EVENT, checker exit0/no signal and
+timeout=false. This is separate from native CLI parent cleanup: its native exit
+is null, signal9, reaped=true. A cleanup SIGKILL is not a failing checker exit and
+must not be reported as native host exit0.
+
+The final report preserves collection_error=null, assertion PASS/process EXIT_ZERO,
+current-file, reap, terminal-restore and owned-listener-cleanup flags true, with
+219.2ms cleanup inside the five-second cap. Applying the unchanged5139
+collection_status predicate to those actual fields returns PASS. Fresh read-only
+verification matches thirteen source fingerprints and the selected a33d6b1a
+access gate. Owned socket paths and outside-write canary are absent. Dedicated
+process marker
+`706da44448c031b04056053f87fb20e67d980386dcdb077d7d8c28342c5a4954`
+is independently verified; dedicated PID metadata confirms absence. That absence
+alone is not reap or process-group completion proof; recorded owned wait/reap and
+cleanup evidence remain necessary. No native startup, checker process, socket
+connection, model call, settings change or gate write was performed by this
+reviewer; process inspection was metadata-only.
+
+Classification: PASS for the six specifically configured synthetic boundary
+checks on this owner-operated pinned native187/manual-Bash invocation. The result
+is not a general command allowlist, all-credentials masking certificate, arbitrary
+filesystem/network security claim or actual model adoption/reuse trial. Real
+credential bodies were not read; the synthetic socket is not observer authority
+or another REDUE transport. Model policy remains
+EXPECTED_DISABLED_NOT_MEASURED, not a measured zero-inference count. This local
+host result does not establish matched hosted receiver provisioning, Copilot
+included capacity, cross-agent/two-machine reuse, whole-task economics or G2/G4.
+Every earlier failed/unknown attempt remains preserved. No release or producer
+trust authority changes follow from this result.
+
+
+### Disabled native receiver adapter aligned to reviewed187
+
+Independent critical source review covers author b673e43 and its doc-only test
+count correction a4dda17. The existing data-only invocation constructor now
+requires exactly native2.1.187 and public binary digest
+`a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3`.
+Other versions, arbitrary valid-looking digests and invalid executable basenames
+are refused. Version is labeled proposed and native_binary_verified_by_adapter
+is explicitly false: the constructor does not read or execute that binary.
+The obsolete146 schema blocker is replaced by current matched-VM/authentication,
+credential-isolation, model-tool, native-code/startup-policy, included-capacity,
+exact-origin/current-policy and caller-aware evidence prerequisites.
+
+requireClaudeReceiverActivation still unconditionally refuses. A supplied local
+six-check success, approval/activation flag, matching static version/hash or
+proposed settings cannot launch a model or waive host/evidence conditions. Actual
+local187 manual-Bash PASS remains limited to its recorded invocation; it is not
+VM provisioning, model-tool enforcement or real hosted-credential proof.
+
+Settings changes are additive denials only: Keychain read/write, the exact
+selected settings file read/write and the selected native executable leaf write.
+All old host-config, installation-prefix and producer-registry protections remain;
+root/state write grants, one observer socket, network restrictions, strict
+sandbox/no unsandboxed fallback, tools/MCP/hooks/plugins and proposed eight-turn/
+300-second bounds are unchanged. No arbitrary executable parent, root or home
+scope is granted or treated as physically immutable. Dedicated-parent identity,
+effective startup policy and actual matched-host boundaries remain unverified
+prerequisites. No token values, owner credential-store copying, global settings,
+workflow activation, signing authority or producer trust is introduced.
+
+The six affected pure controls were independently rerun and pass. Ten additional
+independent constructor/activation counterexamples pass obsolete/manual-version
+rejection, alternate digest and boxed digest, unknown approval/token keys,
+invalid leaf/timeout, unchanged six proposed credential denials/one socket and
+refusal of a deliberately mutated active-looking proposal. These are data-only
+controls, not host/model behavior or capacity evidence. The receiver document's
+Four-test count was corrected to Six before integration. GO for this narrow
+reviewed alignment, with permanent disabled activation retained. No native,
+authentication, model, CI process or settings application was performed by this
+reviewer; no G2/G4 or release-ready claim follows.
+
+
+### Healthy direct-test baseline and diagnostic-state fixture correction
+
+Actual product run38185767714/macOS job114607630351 fails the gap/reconciliation
+case's initial CURRENT assertion. Read-only public log inspection confirms
+UNVERIFIED/PASS, exited invocation, stable=false, identical start/end revision127
+and only end checkpoint unavailable. Generation1 shows successful initial snapshot,
+plan rebuild and four root-replay completions, then root-replay history_timeout
+with deadline300, observation_gap and reconciliation_started. The failure is
+emitted2026-10-11T23:57:27.078731Z with5,224.04375ms test duration. Those are CI output
+metadata, not individual history-event timestamps; diagnostics have no timings.
+The retained bounded excerpt hashes
+`e194c4138ac6049b26f55f5235dc4c55f9e8652c95ce28bec11e9d37e81e7125`.
+Underlying reasons the query did not settle within300ms remain UNKNOWN. No native
+API/load/scheduler flakiness claim is established. The conservative runtime
+response correctly preserves compiler PASS without making the incomplete run
+eligible; subsequent polling cannot repair the missing original end boundary.
+
+Independent source review confirms the fixture sets its300ms override before
+start/run/healthy baseline, while intentional history-fail/reconciliation/drop
+files are written only after that CURRENT assertion. Daemon startup captures
+that deadline for its lifetime; the production default remains5000ms. This case
+uses an immediate explicit fail injection, not a hang, so the shortened healthy
+baseline deadline is unnecessary. Separate hung-history deadline/stop controls
+remain. The first log filter was overly broad and several path guesses did not
+match files; corrected source/log reads established the specific evidence above,
+with no tests or runtime operations triggered by those searches.
+
+Root's original local unprofiled300ms single case passes7,424.40ms: that does not
+erase the real CI failure or prove the override always fails. A separate original
+profiling-enabled attempt fails652.16ms before baseline because its diagnostic
+trace populates unowned state, and start correctly refuses ownership. This is a
+diagnostic fixture defect, not evidence about the300ms history operation. These
+root-reported targeted attempts and their retained failures remain distinct from
+independent review's four pure diagnostic controls.
+
+The exact three-file test-only diff hashes
+`fa583dd278ade52ea9586baeaafe6c0f98ef35b14dccf17c2594bf6c1caa7004`.
+It removes only this artificial deadline override and places optional timing
+beside state in the fixture's owned base, updating the reader and bounded fixture
+cleanup. It does not weaken ownership or grant access to a nonempty state. The
+existing assertion sequence, including all76 assertion-bearing lines, is
+mechanically identical. All explicit faults, initial CURRENT, receipt-ID,
+non-reuse, stale/reconciliation and restart checks remain. Runtime source/default
+deadline, compiler invocation, packaged bytes and production semantics are unchanged.
+
+This exact diff was applied only temporarily in the isolated reviewer worktree;
+four diagnostic controls pass50.59ms, then those overlays were restored without
+committing the root author's test files. Root additionally reports the corrected
+profiling-enabled real macOS case PASS7,087.60ms, three adjacent queued-edit/chunked
+certificate/newer-FAIL controls PASS and the separate hung-history/stop case
+PASS2,161.50ms. Those are author actual targeted results, not independently rerun
+macOS acceptance or a new clean full matrix. Conclusion: GO for the narrow fixture
+correction, retaining all failed history and current-binding requirements. No CI
+rerun, native host/model trial, runtime change or assertion relaxation was performed
+by this reviewer. Corrected hosted acceptance remains a later actual result.
+
+## Disabled receiver declaration-write boundary
+
+Source-only review of the disabled187 receiver proposal identifies an additional
+activation prerequisite. Its current sandbox allows writes to the project and
+state, while denying writes to the producer registry, installation prefix,
+selected host settings and native executable. It does not yet deny writes to
+the public redue.config.json or compiled project-runtime-v1.json declarations.
+No activated VM/model route, exploitation or affected-user population is claimed.
+
+bin/redue.mjs accepts explicit check.probes and combines them with built-in probes
+in the compiled runtime. It refuses regenerating a changed public configuration
+while an observer PID is alive; that does not prevent direct writes to runtime.
+plan-worker.mjs reads that runtime file on a rebuild and may rediscover a changed
+plan. declared-plan.mjs checks that probe argv arrays contain nonempty strings;
+daemon.mjs subsequently executes every declared probe in its full-probe loop.
+The direct compiler qualification can correctly mark extra probes unresolved,
+but that withholds reusable evidence rather than forbidding those probe launches.
+selectedConfigHash compares current declarations with the current plan, not an
+immutable owner-approved execution-authority digest.
+
+Generic owner-configured probes are existing product behavior. The narrower
+future receiver must continuously prevent agent changes to those authority
+declarations, including protected-file replacement through writable parents.
+Review additive exact declaration/ownership-file write denials and physical
+identity/content bindings before activation; preserve ordinary receipt writes
+and the existing direct compiler scope. A trusted callback's before/after status
+validation is an interval check, not continuous enforcement against a daemon
+reading an intervening mutation. Keep requireClaudeReceiverActivation permanently
+refusing until the actual matched-host authority boundary is established. No
+core implementation, proposed settings or host permission was changed here.
+
+Retained pinned187 source establishes that manual Bash and model Bash share the
+native Bash execution implementation, while manual dispatch bypasses ordinary
+command permission approval. A source-bound, actual no-model test on the target
+VM can establish executor prerequisites before a first model trial; it cannot
+certify model command permissions or another tool path. No supported equivalent
+noninteractive same-Bash invocation has been demonstrated for the pinned native
+CLI. Local manual PASS therefore supplies neither hosted VM authority nor an
+automated model launch prerequisite by itself. No native or model action was
+performed for this source review.
+
+## Held authenticated recipient fixture lifecycle
+
+Independent review covers author commits00e1ccb,39b1cdb and57c4a1c, limited to
+the existing machine recipient acceptance helper and its new synthetic lifecycle
+tests. The exact final two-file overlay was tested against root359916f in an
+owned archive with the existing dependencies linked read-only for that run and
+pinned Node22.13.0. The dependency link was removed afterwards. No installed
+artifact, native observer, signature verification, authenticated import, model,
+hosted VM or CI trial was performed. The expired earlier signed artifact is not
+treated as currently available or accepted by these mock controls.
+
+The synchronous legacy route retains its unrelated edit, restart/inheritance,
+relevant STALE and no-equivalent-local-run assertions. The new awaited route
+allows only trusted engineering preparation/supervision callbacks selected by
+local code; imported data cannot select callbacks or execution authority. Its
+callback context exposes paths, a historical independently returned eligible
+baseline, a bounded status operation and an AbortSignal, without a general
+executor or fabricated host-doctor authority. prepare completes before the
+observer starts and before trust provisioning/import. Actual existing local
+configuration, ownership, authenticated import and synchronized applicability
+checks remain required; synthetic responses do not establish those real gates.
+
+The initial proposal did not bind compiled runtime bytes/physical identity, or
+check immutable authority on successful callback completion. Final source binds
+the validated runtime, config/root/state/owner, exact registry and CLI identity
+before/after status and before publishing successful supervision. Any observed
+authority failure is latched: catching it and restoring the file cannot revive
+query or successful-completion authority. Registry replacement and no-query
+authority changes are refused too. A legitimate source edit may finish STALE;
+prepared_eligible is a baseline observation, not continuing CURRENT or final
+reuse authority. These interval checks do not fix the disabled proposal's
+continuous declaration-write boundary described above.
+
+One independent39b counterexample advanced the mock monotonic clock during the
+last file read after callback completion. Its expected TIMEOUT rejection was
+missing. The57c successor checks abort/expiry after the final binding barrier;
+the same counterexample passes. Three additional independent controls pass
+final-binding cancellation, caught/restored exact-registry replacement and
+runtime mutation during a status operation without returning that response.
+The four targeted author suites plus these four independent controls pass
+154/154, zero failures/skips, in2,933.34ms. Retained owned review TAP identities:
+pre-fix98362ad1…, post-fix7c3dc4f1…, final aaa711d9…. Final helper SHA-256 is
+719acc04c2c815f909f2ba5361e2e0518eb041f1da5c4cef41988cd0135304bd.
+Author preparation failures and original negative outcomes remain retained.
+
+The300-second cap is a cooperative monotonic callback/acceptance bound, not
+arbitrary-JavaScript preemption or a hard all-process wall-clock limit. Existing
+synchronous setup/status children retain separate120-second limits and can
+delay timer delivery; expiry observed afterwards withholds success. Trusted
+callbacks must consume the signal and supervise their own children. Their
+returned data is not automatically sanitized model-trace evidence. Strict held
+cleanup requires the approved CLI's stop response ok:true and an absent observer
+lock; failed cleanup or changed CLI refuses closed success. It does not certify
+arbitrary callback-child reaping or run a changed executable to obtain cleanup.
+Conclusion: GO for this bounded test-helper lifecycle extraction, with those
+limits and the permanently disabled native receiver retained. No G2/G4 or
+receiving-agent reuse is established by this review.
+
+The related disabled-proposal correction5414fec adds only exact write denials
+for public redue.config.json, compiled project-runtime-v1.json and the existing
+vstate-owner-v1.json declaration. All old read/write denials remain; project/state
+write grants and socket/network scope are unchanged. None of those declarations
+is made unreadable to the normal CLI. The new explicit
+MATCHED_VM_CONFIGURATION_PARENT_REPLACEMENT_NOT_VERIFIED blocker and permanently
+refusing activation preserve the unresolved actual native parent-replacement
+and enforcement gates; the constructor does not claim that leaf rules alone
+protect a writable parent.
+
+Seven selected pure controls pass independently in54.21ms on pinned Node22.13.
+The new ordinary CLI compatibility fixture was source reviewed and was not run
+by this reviewer. Its author reports an owned, read-only-file cached/synchronized
+status check preserving config/runtime/owner bytes and physical identities with
+no recorded check; that demonstrates writer compatibility, not native sandbox
+enforcement. It retains all status/identity assertions and scoped cleanup, with
+Windows explicitly unsupported for that POSIX fixture. Conclusion: GO for the
+additive disabled data proposal only. No host settings, VM, model, observer or
+credential operation was performed by this reviewer for this correction.
+
+## D9 programmatic diagnostic: finite startup-source review
+
+The owner permits a conditional single hosted native diagnostic, at most four
+turns and120seconds, after its real credential/startup inputs and included
+capacity are established. No such run is performed here. This changes the
+previous manual-console capability requirement, not the G2/G4 evidence gates.
+
+The already retained official187/a59 native bytes were independently rehashed.
+Pinned public-code conclusions are specific to those bytes. Empty setting-sources
+still selects flagSettings and policySettings (nvt194807472). The settings loader
+merges policy after flags. With an environment OAuth token, qs196583840 supplies
+subscriptionType from an optional environment field or null; Uj200757695 allows
+remote settings when OAuth exists and that metadata is null. A fresh config and
+absent local managed files therefore do not establish remote-policy absence.
+Setting a fabricated subscription tier to suppress that path is not permitted.
+
+Safe mode also does not close this boundary: dl193563478 recognizes the flag,
+Vl196896175 permits managed hooks/status-line/file-suggestion customization, and
+n9r196897750 retains policy hooks even with the local disableAllHooks flag.
+[Current official CLI documentation](https://code.claude.com/docs/en/cli-reference)
+explicitly retains the same managed-policy exception. A newer pin is not
+justified merely by the misleading abbreviated description of safe mode.
+
+OAuth environment protection has a useful narrower positive source result.
+aO196884965 (subprocessEnv) deletes CLAUDE_CODE_OAUTH_TOKEN and related background
+authentication fields from its returned environment independently of the
+sandbox/scrub flag. Xae200557818 uses that object for Bash spawning, but later
+spreads environment overrides. Its getEnvironmentOverrides implementation copies
+session variables. Hook spawning likewise adds plugin/passed environment fields
+after aO. Consequently this is not unconditional scrubbing after every override.
+With closed, reviewed hook/plugin/session inputs it proves the host token is not
+forwarded by the ordinary path; intact effective credentials.envVars deny adds
+the separate pre-sandbox env -u removal. The documented subprocess scrub feature
+already exists in187; downloading a newer binary solely for its name is unnecessary.
+No real token is exposed to a child to discover whether these rules work.
+
+Six pure controls using three exact pinned source fragments pass: empty sources
+retain managed policy; local hooks-disable and safe mode preserve a synthetic
+managed hook; a policy-level hooks-disable suppresses it; aO removes a mock OAuth
+value without changing its mock parent; subsequent overrides can reintroduce
+that mock key. Fragments are retained privately with native SHA and byte-range
+digests; these are code interpretation controls, not native enforcement. No
+native/authentication/model or network process was launched for them.
+
+No supported pre-hook policy inventory was established among the finite reviewed
+native commands. doctor210656361 explicitly can spawn .mcp.json stdio servers
+and inspects the updater. auth status reports authentication metadata, while
+global preAction210587893 has already initialized settings/MDM and remote
+settings before the action. The config subcommand reviewed at210655407 reports
+auto-mode configuration, not the complete applicable remote managed policy.
+None supplies a safe source-independent policy-absence certificate.
+
+The exact remaining owner/provider input is an authoritative current fact that
+the intended account/token has no applicable remote managed policy, or its
+applicable policy snapshot reviewed for hooks, status-line/file-suggestion
+commands, helpers, plugins/MCP and strict sandbox/credential settings. Retain all
+actual local source/identity checks too. This input must not be replaced by file
+absence, proposal data, a fake tier or an unreviewed native startup. Normal
+owner OAuth provisioning and included-quota confirmation remain separate. If
+these inputs are unknown, refuse the secret-bearing route before launch. The
+author's still-disabled diagnostic code/assets are a separate pending review;
+this finite source conclusion is neither activation nor an empirical VM claim.
+
+Finite pinned187 permission-source follow-up: gDe204078641 calls hSo for allow
+without stripAllEnvVars. aq204073891 strips only its actual U6t known-safe
+assignment list; broad nWp environment stripping is selected for deny/ask
+matching. Fourteen independent pure source cases retain seven execution-altering
+leading assignment names and their seven env-wrapper forms: NODE_OPTIONS,
+NODE_PATH, BASH_ENV, ENV, LD_PRELOAD, LD_LIBRARY_PATH and DYLD_INSERT_LIBRARIES.
+Those names are absent from U6t and the normalized candidates retain their
+prefixes. A trailing collector argument also remains different. No Node preload
+or native tool was executed. These are actual pinned normalization primitives,
+not an empirical whole-tool authorization result.
+
+The no-wildcard rule is classified exact and the exact case compares the rule
+command with its candidate. Native normalization can still strip redirections
+and known wrappers; the literal rule is not a claim that native matching compares
+only original bytes. Preserve dontAsk, autoAllowBashIfSandboxed:false, strict
+sandbox/no exclusions, prelaunch secret/source/resource restrictions and the
+fixed immutable collector. A reactive streamed-command rejection does not
+authorize a command already dispatched. No broad prefix, trailing-argument or
+additional shell-command grant is introduced by the proposed literal rule.
+
+The new rendered checker/collector templates were independently compared with
+the actual retained original579af20e…/29ebbcde… files. Only exact host, Node,
+code-path and checker-hash bindings were replaced. Both normalized bodies match:
+checker e55a30e93e4658605d2a018fbda603426c085549d522d51d898e6f2a70e57e92;
+collector187b4a16b8663f5f206d30b76d107b5d6b5f16e882e828b49c5533c2dd5c8090.
+This independently checks unchanged assertions/process collection rather than
+relying solely on a render/normalize round-trip of the author's own template.
+Original files remain unchanged. The authenticated workflow remains unregistered
+and unexecuted; its completed lifecycle proposal requires separate final review.
+
+### D9 final conditional proposal review
+
+The final five-file author stack through `04ee1caed47e7506f4b211e401eff87cc4cc0aa3`
+was independently reviewed without native, OAuth, model, fixture-listener or CI
+execution. Its fifteen pure/mock controls pass (79.857542ms). The workflow remains
+outside `.github`, with an unresolved integrated-source pin, a protected owner
+account/policy statement, included-capacity requirement and normal private OAuth
+provisioning. Conclusion: **GO for integration of this conditional, unregistered
+proposal; no deployment or empirical enforcement claim.** The current route
+admits only the authoritative no-applicable-managed-policy case, not an unknown
+policy or a fabricated subscription tier.
+
+The initial literal Bash allow did not exclude pinned187's implicit read-only
+fallback. The successor adds supported prefix DENY rules for all94 independently
+extracted command heads, with no added grants. A separate source reviewer
+corroborated the recursive table/spread union. Actual pinned deny/normalization
+primitives and the permission-ordering function pass564 cases (94 heads times
+six bare, quoted, wrapper and execution-altering-environment forms), before the
+read-only fallback is reached. The exact quoted absolute Node collector remains
+admitted; three controlled compound AST cases deny their other command. Parsing
+and non-authority branch adapters are explicitly controlled in these tests;
+they are not whole native parser or sandbox observations. The pinned sed safety
+branch returns ask/passthrough, and the automatic-mode branch returns passthrough
+under the selected dontAsk mode. The first reviewer fragment-extraction fixture
+included a trailing async token and failed compilation; its corrected function
+boundary passed. That was test preparation, not an observed native defect.
+
+The coherent route retains the original checker/supervisor assertion bodies,
+one literal command, closed stdin, four turns, first run-attempt only, total120s
+and bounded cleanup. Real OAuth reaches only the curated native-host environment;
+runner/GH/OIDC credentials are excluded, and the nonsecret runner tracking marker
+is preserved without reporting it. Reviewed closed startup/session inputs and
+the source-derived credential removal remain prelaunch conditions. Hook/system
+contradictions in the native stream irreversibly withhold success; reactive
+refusal does not undo a hook or replace the owner policy fact. A fresh dispatch
+also needs the integration owner's one-operation ledger.
+
+Only a matching native assistant Bash tool-use ID, native tool result, independently
+collected checker report, observed checker OS close, six assertions, live controls,
+unchanged identities and completed lifecycle can support the diagnostic result.
+Failed assertions survive collection uncertainty; missing data remains UNKNOWN.
+Cancellation is bounded for the owned native group, but UNKNOWN does not claim
+all native Bash descendants were cleaned. The private pending result preserves
+assertions/status independently of a terminal copy; final completion is checked
+after persistence. No raw transcript, stderr, token or model prose is retained.
+No explicit allowWrite entries is not universal filesystem immutability: implicit
+native temporary access remains disclosed. Six named synthetic operations neither
+open real credential bodies nor establish REDUE applicability, receiving-agent
+reuse, VM equivalence, G2/G4 completion or a release-ready artifact.
+
+## Coherent incomplete-origin signer control — independent integration review
+
+B's d204523/root5022cbb adds only13test lines. The new fixture changes
+origin.complete to false, regenerates the envelope subject/semantic digest and
+manifest raw digest, retains nonnull facts and all other positive bindings, then
+requires the exact approved Python data validator to fail without publishing a
+signing predicate. It therefore isolates completeness from the existing broken-
+integrity mutation. Root independently checked the fixture/validator bindings
+and ran all12controls:12PASS,526.036ms on Node22.13.0. B's in-memory guard-removal
+experiment lets the coherent negative through while both versions reject the old
+integrity-broken negative; production validation remains correct. This repairs a
+regression blind spot, not a discovered product defect. The approved workflow
+bytes/hash, signing authority, runtime, trust and imported outcomes are unchanged.
+These pure validator tests do not establish native/model or new live CI evidence.
+
+## Recipient preparation and installed cleanup — independent integration review
+
+B4d99cf1/root79e3bf6 corrects the shared-writer ordering mismatch without
+fabricating state ownership: installed start creates owner/runtime first;
+trusted guidance preparation finishes before fresh-history checks, authentication,
+import and the eligible baseline. Physical/raw authority bindings, latched
+failures and strict cleanup remain. Source review by root and C found no new
+boundary defect. Its shared-writer unit control uses a mocked CLI, not a real
+installation or native host.
+
+Root then exercised exact installed b8122c3b bytes. The first private harness
+import had one extra parent segment and launched nothing. The ordinary npm
+installation hit its120s limit before any observer; public registry HEAD separately
+returned curl35/no HTTP response. Neither proves publisher authentication failure.
+An ordinary offline-cache installation succeeded and actual init/start/preview/
+apply/fresh-status passed, with real owner bytes/inode preserved and no runs or
+import. Cleanup then exposed a test-helper API mismatch: `stop` defaults to human
+text, but strict cleanup parsed JSON without requesting it. The real observer
+stopped and its lock was absent; the original failed collection is preserved.
+
+B126e3c3/root2a74328 adds only `--json` to owned stop and makes its mock faithfully
+return human text when absent. The new pre-fix control fails with CI_MACHINE_CLEANUP;
+the corrected control succeeds while still requiring ok:true and lock absence.
+Root independently reviewed the real CLI printLifecycle branch and ran seven
+affected suites:158tests/157PASS/one platform skip/zero failures,800.320ms.
+The corrected exact-installed eight-command procedure passes: healthy fresh
+UNVERIFIED, no local outcome, unchanged owner bytes/inode, genuine shared guidance,
+JSON stop ok:true and absent observer lock. Private result SHA-256
+fdab8cba811c811329f49c96cf7278218887fb6a0469fb77acd62f90a0f8c3c5.
+This establishes installed preparation/cleanup mechanics only: models0,
+native processes0, no authenticated import or recipient reuse. All preceding
+failed attempts remain separate. Runtime/bin, signing bytes, producer trust,
+historical receipts and normal installations are unchanged.
+
+### Manual-only workflow registration review
+
+The isolated registration branch adds only
+`.github/workflows/portable-claude-diagnostic.yml` to the inspected origin/main
+baseline. Candidate SHA-256 is
+`a5f4e589823844144203e98151d315cd785f6d7d09212a720749618789e43e72`.
+Independent byte comparison against frozen template
+`977154c61c2771643ea3d874c6a90ad92de8b125bdb3322d5c2e2ca2ad7fd54d`
+confirms only two introductory comments and the unresolved source placeholder
+changed. The concrete checkout pin is
+`da0b1080f3edcc68f3d4067cb51f961759e68312`; its diagnostic, assets and tests are
+byte-identical to independently reviewed04ee. The workflow revision and that
+checkout source remain distinct identities.
+
+YAML and static checks pass: workflow_dispatch is the sole trigger; one macOS26
+job is bounded to two minutes; permissions are contents:read; exact repository,
+actor, dedicated ref and run-attempt1 guards remain; the protected environment
+and its current owner-policy/capacity facts remain prerequisites. Only the native
+host step references OAuth. Missing facts fail before the public native download
+and the secret-bearing step. No upload, cache, OIDC, signing, automatic execution,
+terminal input or retry route was introduced.
+
+Frozen exact-source controls pass15/15 (77.928708ms), using only mocks and lexical
+data. The initial reviewer extraction omitted the invocation module and failed
+import resolution before controls ran; adding that unchanged exact-source module
+restored the import closure. This is a reviewer preparation failure, not an
+engine or workflow failure. No native/auth/model/listener/CI operation occurred
+in this review. Conclusion: GO for the normal one-file registration PR and merge;
+neither can trigger this manual-only diagnostic. A later dispatch requires the
+registered workflow on its selected dedicated ref, current provisioning/facts
+and the coordinator's one-operation ledger. Registration alone supplies none of
+those facts and demonstrates no native enforcement or acceptance-gate completion.
+
+### Owner-only token procedure — narrow independent review
+
+C freshly rehashed nativea59/settings5628 and the existing guarded launcher,
+confirming canonical owned single-link expected-mode files. Pinned187 registers
+setup-token as its subscription-auth subcommand, not print/inference. The proposed
+command preserves the existing Keychain namespace selector, config/GH locations,
+all-tools-denied settings and strict empty MCP; empty setting sources is stricter
+than the existing project's/local loading. C identified one startup-context gap:
+a direct command inherited arbitrary terminal cwd. Root corrected it to a subshell
+cd into the existing verified BASE/workspace, not the obsolete credential namespace.
+The resulting shell syntax passes bash -n. Source/filesystem review is conditional
+GO only after the actual no-policy/current included-quota facts. Neither reviewer
+nor root ran native authentication, generated a token, read/copied credentials,
+changed settings or created the protected GitHub environment. Metadata verification
+reports keychain-item presence; it proves neither quota nor native enforcement.
+
+### Fixed Windows regression diagnostic review
+
+The opt-in fixture changes at `f1662966455afffda1bf60b3bfdfeb006c7b32a7`
+preserve the original status/selection assertions, default child environment,
+runtime and30/45/180s bounds. Timing files are owned siblings of fixture roots,
+outside project/state, and opt-in fields expose static phases, counts and process
+outcomes rather than argv, paths, environment values or captured output. These
+changes do not establish a cause for the two observed Windows timeouts.
+
+The isolated manual-only workflow, SHA-256
+`53b6b0888194edd879ce4f4f920f83403f4d5f8213001864e58a539e7813522d`,
+checks out that exact source on Windows2025/Node22.23.3. It admits the fixed
+repository/actor/dedicated ref and first attempt, with contents:read,12 minutes,
+no secrets, uploads, cache, signing or model route. Its two fixed cases execute
+once each. continue-on-error allows the second case to produce evidence, while
+the final always-step checks original step outcomes and fails if either did not
+succeed. It is a bounded diagnostic, not an all-platform or native-model gate.
+
+The initial reporter used size-before-readFileSync and therefore did not enforce
+its byte bound against replacement/growth or nonregular paths. The correction
+reuses the existing reviewed readBoundedPortableFile with1MiB limit and reports
+only TRACE_READ_UNKNOWN on refusal. Phase filtering is format/known-family
+filtering, not a fixed phase whitelist. Independent YAML/static and exact embedded
+JavaScript syntax checks pass, as do four controlled projection cases: positive,
+private-field exclusion, read refusal and513-row rejection. The first reviewer
+YAML fixture passed a Buffer instead of a string and failed before controls;
+correcting only that input type passed. No compiler, observer, native, model or CI
+was launched by this reviewer. Conclusion: GO for the one scoped diagnostic;
+retain actual outcomes without attributing the earlier timeouts to host load.
+
+### Actual fixed Windows capture — evidence interpretation
+
+One storage-free job38199273160 on exact workflow398388e/sourcef166296 passed
+both planned cases without retries. The5.5.2 suite took118225.7ms (nested direct
+107962.3ms); the selected5.6.3 old-receipt case took29736.0ms. This does not erase
+the two timeouts and25-minute cancellation in38196115475 or establish a full
+Windows product PASS. B independently analyzed the retained private fixed log:
+12trace files,9AVAILABLE/252projected rows and3TRACE_COUNT_UNKNOWN. The standalone
+old-receipt trace is one capped file; progress still establishes15successfulCLI
+commands/no error/signal and the formerly failing direct-run opportunity5780.4ms.
+Its detailed phases are unavailable. Two other capped files belong to nested5.5.2
+real-direct/old-receipt fixtures collectively, but exact UUID-to-case mapping is
+not retained. Available proxy-reader/startup rows are not a TypeScript-run cost
+profile. Original timeout phase/cause staysUNRESOLVED; no runtime correction,
+longer bound, weaker assertion, repeated job, native/model test or savings claim
+follows. Test diagnostics are opt-in; engine/bin and immutable receipts unchanged.

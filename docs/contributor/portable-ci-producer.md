@@ -1,10 +1,19 @@
 # Portable CI producer: preparation and remaining gate
 
-This is preparation for REDUE-PE-001 G3, **not completed CI acceptance**. No
-producer workflow has been enabled, no signing authority has been provisioned,
-and no authenticated artifact has demonstrated recipient reuse. The initial
-relocation implementation also remains restricted to the same host/boot; that
-restriction must not be presented as CI-to-machine compatibility.
+This records the current REDUE-PE-001 G3 route, **not completed recipient CI
+acceptance**. The owner approved exact signer proposal SHA-256
+`5770b7f0ac9133fbf0190cf0e238ac800263b632d7f4741f3fddb04882591924`, enabled as
+`.github/workflows/portable-evidence.yml`. Run38096670987 on source d04b872
+completed actual portable origin and signing. Independent required-refresh native
+gh2.79 authentication passed as an inspection proposal only: verified=true,
+accepted=false, local_policy_current=false, reuse_eligible=false.
+
+Both independent macos-26 prototypes now support current @2, with all21 runtime
+records matching each other and the signed origin facts. This supersedes the
+historical @1 same-host/boot restriction; old @1 evidence remains historical and
+requires a fresh @2 baseline. Exact current producer-trust policy is unapproved.
+Actual recipient import/applicability, agent/machine reuse and G3 remain pending;
+a successful signer or matched profile cannot establish those results.
 
 The proposed route uses an existing GitHub Actions artifact and Sigstore
 attestation. The inner REDUE envelope binds its canonical meaning; the outer
@@ -49,7 +58,7 @@ The locally reviewed policy binds these fields:
   "signerCommit": "<reviewed 40-character workflow commit>",
   "artifactSha256": "<exact file SHA-256>",
   "evidenceDigest": "<inner canonical evidence digest>",
-  "evidenceInterpretation": "redue-portable-direct-typescript@1",
+  "evidenceInterpretation": "redue-portable-direct-typescript@2",
   "refresh": "required",
   "bundleSha256": null
 }
@@ -58,7 +67,10 @@ The locally reviewed policy binds these fields:
 This illustrative policy is deliberately incomplete and cannot verify an
 artifact. An imported file or agent suggestion cannot approve or replace it.
 Repository identifiers above were read from the public GitHub API during
-implementation; they are not a new owner trust approval.
+implementation; they are not a new owner trust approval. The current exact signed
+source proposal is [portable-ci-producer-policy-proposal.json](portable-ci-producer-policy-proposal.json),
+queued by commit68fcde5. It is review data, not installed or approved policy; its
+exact source/signer/outer/inner identities cannot authorize other commits or files.
 
 The helper supports the reviewed GitHub CLI **2.79.0** output contract. It invokes
 `gh attestation verify --format json` with exact certificate identity, issuer,

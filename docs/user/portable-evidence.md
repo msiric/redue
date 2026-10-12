@@ -184,6 +184,32 @@ compatibility, coverage or conflict remains unresolved, do not infer reuse from 
 signature, timestamp or earlier PASS. A locally executed, fully observed check is
 a separate new outcome.
 
+### Fresh local execution after an import
+
+An ordinary `redue run CHECK` still records the actual local PASS or FAIL. When
+accepted imports exist for that check, a newer selected local receipt without
+complete portable facts can remain `UNVERIFIED` with `PORTABLE_LOCAL_SELECTION_BARS_FALLBACK`.
+REDUE does not fall back to an older imported PASS to hide that local selection.
+A successful ordinary run is not silently converted into portable evidence.
+
+To deliberately establish a new local baseline for the existing configured
+compiler check, use the existing explicit capture option:
+
+```sh
+redue --config redue.config.json run typecheck --portable
+redue --config redue.config.json status --sync --json
+```
+
+Preserve the selected config and any explicit `--state-dir DIR` on both commands;
+use the actual check name. This executes the same configured direct compiler,
+not npm or its lifecycle scripts. It adds portable validation at both execution
+boundaries and binds the accepted catalog being resolved, so recording has
+additional cost. A complete, fully observed PASS may resolve that catalog; changed
+inputs, unavailable observation, incomplete capture, trust or catalog changes can
+still withhold reuse. The subsequent caller-aware response must independently meet
+the normal eligibility requirements. Do not delete receipts, rewrite an old
+outcome, or repeat runs solely until the status turns green.
+
 ## Explicit CI authentication (preparation, not live acceptance)
 
 The candidate can preview and explicitly authenticate against an **existing
