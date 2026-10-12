@@ -26,6 +26,7 @@ const PINNED_SYSTEM_SUBTYPES=new Set('task_notification task_progress task_updat
 // 210402886 supplies numeric protocol fields; never copy its error payload.
 const PINNED_RETRY_CATEGORIES=new Set(['overloaded','rate_limit','authentication_failed','server_error','unknown']);
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
+const STARTUP_SOURCE_ROLES=new Set(['SYSTEM_MANAGED_JSON','SYSTEM_MANAGED_DIRECTORY','SYSTEM_MANAGED_PLIST','USER_MANAGED_PLIST','ISOLATED_REMOTE_SETTINGS','ISOLATED_CREDENTIAL_STORE','PROJECT_CLAUDE_DIRECTORY','PROJECT_MCP_FILE','PROJECT_INSTRUCTION_FILE','REMOTE_API_KEY_PATH']);
 function classifyRejectedRetry(value){
  const bounded=(v,max,min=0)=>Number.isInteger(v)&&v>=min&&v<=max?v:'UNAVAILABLE';
  return {category:PINNED_RETRY_CATEGORIES.has(value.error)?value.error:'UNREVIEWED_CATEGORY',
@@ -257,10 +258,10 @@ export function prepareOwnedDiagnostic({base,native,source}){
  putExclusive(path.join(plan.assets.host,'manifest.json'),Buffer.from(JSON.stringify(manifest)+'\n'));return {plan,manifest};
 }
 export function selectedStartupSourcesAbsent({host,code}){
- const paths=['/Library/Application Support/ClaudeCode/managed-settings.json','/Library/Application Support/ClaudeCode/managed-settings.d','/Library/Managed Preferences/com.anthropic.claudecode.plist',
-  `/Library/Managed Preferences/${os.userInfo().username}/com.anthropic.claudecode.plist`,path.join(host,'claude-config/remote-settings.json'),path.join(host,'claude-config/.credentials.json'),
-  path.join(code,'.claude'),path.join(code,'.mcp.json'),path.join(code,'CLAUDE.md'),'/home/claude/.claude/remote/.api_key'];
- for(const file of paths)try{fs.lstatSync(file);fail('DIAGNOSTIC_STARTUP_SOURCE_PRESENT');}catch(e){if(e.code!=='ENOENT')throw e;}
+ const paths=[['SYSTEM_MANAGED_JSON','/Library/Application Support/ClaudeCode/managed-settings.json'],['SYSTEM_MANAGED_DIRECTORY','/Library/Application Support/ClaudeCode/managed-settings.d'],['SYSTEM_MANAGED_PLIST','/Library/Managed Preferences/com.anthropic.claudecode.plist'],
+  ['USER_MANAGED_PLIST',`/Library/Managed Preferences/${os.userInfo().username}/com.anthropic.claudecode.plist`],['ISOLATED_REMOTE_SETTINGS',path.join(host,'claude-config/remote-settings.json')],['ISOLATED_CREDENTIAL_STORE',path.join(host,'claude-config/.credentials.json')],
+  ['PROJECT_CLAUDE_DIRECTORY',path.join(code,'.claude')],['PROJECT_MCP_FILE',path.join(code,'.mcp.json')],['PROJECT_INSTRUCTION_FILE',path.join(code,'CLAUDE.md')],['REMOTE_API_KEY_PATH','/home/claude/.claude/remote/.api_key']];
+ for(const [role,file] of paths)try{fs.lstatSync(file);fail('DIAGNOSTIC_STARTUP_SOURCE_PRESENT');}catch(e){if(e.code!=='ENOENT'){e.startupSourceRole=role;throw e;}}
  // These facts are metadata absence only, not a complete authenticated remote-policy proof.
  return true;
 }
@@ -280,7 +281,7 @@ async function executePreparedDiagnostic({plan,manifest,env,jobStartedMs,signal}
  const remaining=()=>LIMITS.totalMs-(Date.now()-jobStartedMs),started=performance.now();
  if(!Number.isSafeInteger(jobStartedMs)||jobStartedMs>Date.now()||remaining()<=LIMITS.cleanupMs+1000)fail('DIAGNOSTIC_JOB_DEADLINE');
  readDeadline=jobStartedMs+LIMITS.totalMs;
- const nativeEnv=nativeDiagnosticEnvironment(env,{host:plan.assets.host});let fixture,observed,pre=false,post=false,sourceCurrent=false,reaped=false,cleanup=false,probeDelta=null,collectionMatches=false,error=null,before;
+ const nativeEnv=nativeDiagnosticEnvironment(env,{host:plan.assets.host});let fixture,observed,pre=false,post=false,sourceCurrent=false,reaped=false,cleanup=false,probeDelta=null,collectionMatches=false,error=null,before,startupSourceRefusal=null,startupPhase='BEFORE_NATIVE';
  try{
   if(signal?.aborted)fail('NATIVE_CANCELLED');currentManifest(manifest);selectedStartupSourcesAbsent(plan.assets,env);fixture=await openOwnedDiagnosticFixture(plan);pre=await fixture.controls();before=fixture.snapshot().counts;
   if(remaining()<=LIMITS.cleanupMs+1000)fail('DIAGNOSTIC_JOB_DEADLINE');
@@ -290,8 +291,8 @@ async function executePreparedDiagnostic({plan,manifest,env,jobStartedMs,signal}
   },{command:plan.command,cwd:plan.assets.code,timeoutMs:Math.min(115000,Math.floor(remaining()-LIMITS.cleanupMs)),cleanupMs:Math.min(5000,Math.max(1,Math.floor(remaining()))),signal});
   reaped=observed.owned_native_reaped;const snap=fixture.snapshot();probeDelta=snap.counts.map((n,i)=>n-before[i]);
   collectionMatches=Boolean(snap.collected&&JSON.stringify(snap.collected)===JSON.stringify(observed.trace.result?.collection));
-  error=snap.error;post=await fixture.controls();sourceCurrent=currentManifest(manifest);selectedStartupSourcesAbsent(plan.assets,env);
- }catch(e){error??=e.code??'DIAGNOSTIC_UNAVAILABLE';}
+  error=snap.error;post=await fixture.controls();sourceCurrent=currentManifest(manifest);startupPhase='AFTER_NATIVE';selectedStartupSourcesAbsent(plan.assets,env);
+ }catch(e){error??=e.code??'DIAGNOSTIC_UNAVAILABLE';if(STARTUP_SOURCE_ROLES.has(e.startupSourceRole))startupSourceRefusal={role:e.startupSourceRole,phase:startupPhase};}
  finally{
   if(fixture)try{
    const budget=Math.max(0,Math.min(LIMITS.cleanupMs,remaining()));if(!budget)fail('DIAGNOSTIC_JOB_DEADLINE');let cleanupTimer;
@@ -307,6 +308,7 @@ async function executePreparedDiagnostic({plan,manifest,env,jobStartedMs,signal}
   native_launch_attempted:observed!==undefined,native_process_spawn_observed:observed?.native_process_spawn_observed??false,model_response_observed:trace.assistant_turns>0,observed_assistant_messages:trace.assistant_turns,model_turns_reported:trace.final?.turns??null,
   native_init_validated:trace.init===true,rejected_system_event:trace.rejected_system_event??null,
   thinking_progress_events:trace.thinking_progress_events??0,
+  startup_source_refusal:startupSourceRefusal,
   tool_use_id:trace.tool?.id??null,tool_result_id:trace.result?.id??null,checker:trace.result?.collection??null,
   owned_native_reaped:reaped,owned_listener_cleanup:cleanup,milliseconds:performance.now()-started,job_milliseconds:Date.now()-jobStartedMs,
   checker_real_credentials_opened:false,native_parent_oauth_used:'EXPECTED_NOT_MEASURED',portable_applicability:'NOT_TESTED',agent_reuse:'NOT_TESTED',raw_transcript_retained:false,raw_stderr_retained:false};

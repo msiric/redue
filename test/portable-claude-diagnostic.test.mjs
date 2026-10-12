@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
 import {PassThrough} from 'node:stream';
+import fs from 'node:fs';
 import {renderNativeDiagnosticAssets,normalizedNativeDiagnosticAsset,nativeDiagnosticTemplateDigests,sha} from './acceptance/portable-native-diagnostic-assets.mjs';
-import {buildDiagnosticSettings,nativeDiagnosticArgv,nativeDiagnosticEnvironment,createNativeDiagnosticTrace,sanitizeCollection,diagnosticOutcome,collectNativeDiagnostic,requireNativeDiagnosticActivation,requireDiagnosticWorkflow,PINNED_READONLY_BASH_HEADS} from './acceptance/portable-claude-diagnostic.mjs';
+import {buildDiagnosticSettings,nativeDiagnosticArgv,nativeDiagnosticEnvironment,createNativeDiagnosticTrace,sanitizeCollection,diagnosticOutcome,collectNativeDiagnostic,requireNativeDiagnosticActivation,requireDiagnosticWorkflow,PINNED_READONLY_BASH_HEADS,selectedStartupSourcesAbsent} from './acceptance/portable-claude-diagnostic.mjs';
 const bindings={base:'/private/tmp/redue-claude-diagnostic-Abc123',node:'/approved/runtime/bin/node'};
 const plan=buildDiagnosticSettings({...bindings,native:'/approved/native/claude'});
 const sessionID='12345678-1234-4234-8234-123456789abc';
@@ -207,4 +208,18 @@ test('only exact bounded thinking progress in a validated native session is nona
  }
  const capped=trace([init,...Array(4097).fill(progress),assistant(),result(),final]);
  assert.equal(capped.thinking_progress_events,4096);assert.equal(capped.error,'NATIVE_SYSTEM_CONTEXT_UNKNOWN');assert.equal(diagnosticOutcome(capped,complete).collection_status,'UNKNOWN');
+});
+
+test('startup-source refusal reports only a fixed role without reading bodies or changing presence/error refusal',()=>{
+ const original=fs.lstatSync,paths=[],roles=['SYSTEM_MANAGED_JSON','SYSTEM_MANAGED_DIRECTORY','SYSTEM_MANAGED_PLIST','USER_MANAGED_PLIST','ISOLATED_REMOTE_SETTINGS','ISOLATED_CREDENTIAL_STORE','PROJECT_CLAUDE_DIRECTORY','PROJECT_MCP_FILE','PROJECT_INSTRUCTION_FILE','REMOTE_API_KEY_PATH'];
+ const missing=()=>{throw Object.assign(Error('PRIVATE_CANARY'),{code:'ENOENT'});};
+ try{
+  fs.lstatSync=file=>{paths.push(file);return missing();};assert.equal(selectedStartupSourcesAbsent(plan.assets),true);assert.equal(paths.length,10);
+  for(let i=0;i<10;i++){
+   let calls=0;fs.lstatSync=()=>{if(calls++===i)return {};return missing();};
+   assert.throws(()=>selectedStartupSourcesAbsent(plan.assets),{code:'DIAGNOSTIC_STARTUP_SOURCE_PRESENT',startupSourceRole:roles[i]});assert.equal(calls,i+1);
+   fs.lstatSync=()=>{throw Object.assign(Error('PRIVATE_CANARY'),{code:'EPERM'});};
+   assert.throws(()=>selectedStartupSourcesAbsent(plan.assets),{code:'EPERM',startupSourceRole:roles[0]});
+  }
+ }finally{fs.lstatSync=original;}
 });
