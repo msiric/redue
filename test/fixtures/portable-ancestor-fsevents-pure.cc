@@ -26,6 +26,7 @@ int main(int argc,char** argv){
   else if(mode=="unrelated")collector.occurrence("/private/tmp/unrelated/source-private.ts",0x100,1);
   else if(mode=="unicode")collector.occurrence("/private/tmp/project-parent/node_modules/@typescript/lib-es2022/inde\xe2\x84\xaa.d.ts",0x100,1);
   else if(mode=="unrelated-unicode")collector.occurrence("/unrelated/\xe6\x96\x87/source.ts",0x100,1);
+  else if(mode=="del")collector.occurrence(scopes[0].path+char(127),0x100,1);
   else if(mode=="malformed")collector.occurrence("/private/tmp/project-parent/../node_modules",0x100,1);
   else if(mode=="overflow-path")collector.occurrence(std::string(5000,'x'),0x100,1);
   else if(mode=="bad-id")collector.occurrence(scopes[0].path,0x100,0);

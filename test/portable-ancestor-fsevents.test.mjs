@@ -43,7 +43,7 @@ test('valid unrelated events are discarded without pathname retention',pure,()=>
   const r=run('unrelated');assert.deepEqual(r.rows,[{schema:1,type:'barrier',request:1,serial:0,uncertain:false}]);assert(!r.stdout.includes('source-private'));
 });
 test('malformed paths, invalid IDs and oversized paths remain uncertainty',pure,()=>{
-  for(const mode of ['malformed','overflow-path','bad-id']){const r=run(mode);assert.equal(r.rows[0].type,'uncertainty');assert.equal(r.rows.at(-1).uncertain,true);}
+  for(const mode of ['malformed','overflow-path','bad-id','del']){const r=run(mode);assert.equal(r.rows[0].type,'uncertainty');assert.equal(r.rows.at(-1).uncertain,true);}
 });
 test('drop/wrap/root/mount/history/unknown flags latch even for unrelated paths',pure,()=>{
   const rows=run('flags').rows;assert.equal(rows.length,18);

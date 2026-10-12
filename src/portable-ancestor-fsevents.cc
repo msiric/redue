@@ -56,7 +56,7 @@ enum class Match { irrelevant,relevant,unknown };
 Match match(const std::string& candidate,const std::string& event){
   if(!asciiCanonical(candidate)||event.empty()||event.size()>maxPath||event[0]!='/'||
       (event.size()>1&&event.back()=='/')||!utf8(event))return Match::unknown;
-  for(size_t i=0;i<event.size();i++){const unsigned char c=event[i];if(c<32||c=='\\'||c==':')return Match::unknown;}
+  for(size_t i=0;i<event.size();i++){const unsigned char c=event[i];if(c<32||c==127||c=='\\'||c==':')return Match::unknown;}
   const auto wanted=components(candidate),actual=components(event);
   for(const auto& item:actual)if(item.empty()||item=="."||item=="..")return Match::unknown;
   if(event.find("//")!=std::string::npos)return Match::unknown;
