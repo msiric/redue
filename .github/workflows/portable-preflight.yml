@@ -1,18 +1,18 @@
-# Task-branch-only fixed recipient phase sample on frozen candidate bytes.
-name: Portable evidence recipient phase diagnosis (no models)
+# One bounded CI-only raw-event provider attempt. No models, tokens, signing,
+# uploads, imported authority, or changes to native-agent permissions.
+name: Portable ordinary-query raw observation preflight
 on:
   workflow_dispatch:
 permissions:
   contents: read
-  actions: read
 concurrency:
-  group: portable-recipient-profile
+  group: portable-ordinary-query-preflight
   cancel-in-progress: false
 jobs:
-  profile:
-    if: github.repository == 'msiric/redue' && github.ref == 'refs/heads/dev/portable-recipient-decision' && github.event_name == 'workflow_dispatch' && github.actor == 'msiric' && github.run_attempt == 1
+  provider:
+    if: github.repository == 'msiric/redue' && github.ref == 'refs/heads/dev/portable-ordinary-boundary' && github.event_name == 'workflow_dispatch' && github.actor == 'msiric' && github.run_attempt == 1
     runs-on: macos-26
-    timeout-minutes: 12
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -22,24 +22,11 @@ jobs:
         with:
           node-version: '22.13.0'
       - run: npm ci --no-audit --no-fund
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
-        with:
-          github-token: ${{ github.token }}
-          repository: msiric/redue
-          run-id: 38266596921
-          name: portable-exact-package-38266596921-1
-          path: frozen-candidate
-      - name: Verify frozen candidate identity before any installation
+      - name: Source and pure protocol/ownership controls; never start the collector locally
+        shell: bash
         run: |
-          node test/acceptance/package-artifact.mjs verify frozen-candidate/manifest.json
-          node --input-type=module <<'JS'
-          import fs from 'node:fs';import assert from 'node:assert/strict';import {readArtifact} from './test/acceptance/package-artifact.mjs';
-          const a=readArtifact('frozen-candidate/manifest.json');
-          assert.equal(a.sha256,'f6e368bd8171412b301f3f5dee3ceebea14da3b3418968504a7a49428e5876a0');
-          assert.equal(a.metadata.version,'0.1.0-alpha.11');
-          assert.equal(fs.readFileSync('frozen-candidate/source.txt','utf8').trim(),'08307d4ccf5a43d2339c4cb634dd0129c0fcc964');
-          assert.deepEqual(fs.readdirSync('frozen-candidate').sort(),['manifest.json','SHA256SUMS','source.txt',a.metadata.filename].sort());
-          JS
-      - name: Six unchanged queries across three owned observer sessions
-        run: node test/acceptance/portable-recipient-profile.mjs --manifest frozen-candidate/manifest.json
-      # No upload/cache, model credentials, inference, signing, or accepted-producer changes.
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --test --test-concurrency=1 test/portable-ancestor-queries.test.mjs test/portable-ancestor-fsevents.test.mjs test/portable-ancestor-protocol.test.mjs test/portable-ancestor-capability.test.mjs test/portable-ancestor-observer.test.mjs
+      - name: One fixed real provider trial on this owned standard runner only
+        run: node test/acceptance/portable-ancestor-stream.mjs

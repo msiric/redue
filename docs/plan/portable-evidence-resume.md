@@ -3,10 +3,134 @@
 Read canonical [REDUE-PE-001](portable-evidence.md),
 [tracker](portable-evidence-tracker.md), [decisions](portable-evidence-decisions.md)
 and [independent review](../acceptance/portable-boundary-review.md). Resume the
-existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
+existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-recipient-decision`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — native diagnostic and alpha.11 exact installed mechanics PASS
+## Current ordinary-boundary work — CI-only provider prerequisite pending
+
+Owner D10 permits narrowly filtered raw query observation only on the approved
+standard GitHub macOS VMs, never broad subscriptions on the owner's Mac. The
+active integration worktree is `/Users/mariosiric/Documents/redue-portable-ordinary-boundary`,
+branch `dev/portable-ordinary-boundary`; root owns all shared interfaces. The
+ordinary debugger's 59 builtin libraries remain inside its unchanged checkout;
+424 ancestor questions and transient membership are the remaining limitation.
+A reviewed raw-event leaf avoids Parcel's create/delete elision; its wrapper
+requires a freshly minted exact CI capability, reviewed runtime profile,
+nonprivileged caller, pinned non-setid helper and bounded protocol/cleanup.
+Current 77 deterministic/pure/process-mock controls pass; these start no real
+stream and establish no native enforcement, interval authority or portable CURRENT.
+Independent final boundary/workflow review precedes one fixed provider attempt.
+No model, signing, upload, producer-trust change or publication is involved.
+The earlier frozen and performance artifacts keep separate identities.
+
+
+## Prior measured checkpoint — warm recipient phase improved; ordinary interval work remains unqualified
+
+Hosted native Claude diagnostic38257021786 remains closed PASS for its six named
+synthetic assertions only. No repeated diagnostic, login or model trial. Alpha.11
+is unpublished; source08307d4/artifactf6e368bd remain frozen historical exact mechanics.
+
+Independent runtime review4367acf GO plus74/74 shared regressions preceded one
+fixed installed-candidate [comparison38279556323](https://github.com/msiric/redue/actions/runs/38279556323).
+Sourcef4abdd318091ac7c17119d872e189e1cf2f7a8f3, tarball
+`redue-cli-0.1.0-alpha.11.tgz`, SHA-256
+84edcfebbc980dacc026aac66d9f3094718267521397a15a79f015f6eb2ce871.
+This is different unreleased content from f6e368bd, never a substituted identity.
+Owner-local bundle `.local/portable-evidence/candidate-alpha11-f4abdd3-38279556323`
+verifies all four source/manifest/checksum/tar files; ZIP162355bytes fits300KiB
+reservation and confirmed10MiB included storage. Source/runtime tests and six
+queries/three observer sessions pass. New Linux/Windows exact bytes are NOT_RUN.
+
+The before/after standard macos-26 jobs both report Darwin25.6.0/ARM64/Node22.13.0;
+they are separate VMs, not an identical-load randomized comparison. Before six
+queries: mean37,244.049ms/median36,091.025ms/max42,103.605ms. After six:
+mean29,485.998ms/median30,080.855ms/max38,233.218ms. Repeated queries(n3):
+before median36,427.273ms/max38,573.658ms; after median21,605.619ms/max24,021.205ms.
+First-per-observer queries(n3) remain expensive: after median37,601.512ms/max38,233.218ms,
+above35s model-preflight budget. No timeout was increased and no cold fix claimed.
+Three private daemon cache revalidations take median4.2ms/max6.3ms; eleven full
+inspections remain, including both origin boundaries and every independent caller.
+Cached OS content never supplies PASS, receipt selection, caller or project facts.
+All six responses were agent-independent imported CURRENT/PASS/eligible with the
+same origin and zero recipient compiler executions. These are CLI mechanics, not
+actual model reuse or complete-workflow savings. Raw GH ZIP logs supplied the
+structured result when gh run view omitted its long line; no raw log was retained.
+Private result SHA-256221052bdfb6ff06a97f6c5456e7cf6af82b534ff5f9f9e1f2caed2a2722b849f.
+
+Ordinary boundary branch/worktree `dev/portable-ordinary-boundary` / sibling
+`redue-portable-ordinary-boundary` integrates reviewed runtime but remains under
+construction. Pinned debuggerb1c00772 still rejects portable qualification;
+its59 consumed builtin libraries are inside the checkout, while424 ancestor
+queries need real interval coverage. Owner approves CI-only filtered observation
+(D10), no owner's-Mac broad watches or expanded native-agent permissions.
+Independent source review reproduced @parcel2.5.6 EventList cancellation of
+create→delete for in-root and ancestor candidates. History-only endpoint/replay
+shortcut is NO-GO; no wrapped false-CURRENT or affected-user claim. All locally
+derived membership/query paths need raw occurrence coverage for a new interpretation.
+The bounded native collector/filter leaf is source-reviewed and built, NEVERstarted.
+The protected capability reader's resource race/revocation corrections pass seven
+independent static controls; hostile same-UID protection still requires the trusted
+CI provisioning and explicit native deny-write boundary. Wrapper/deadline/protocol,
+actual CI delivery, origin/recipient integration and new ordinary-project acceptance
+are pending. No provisional helper can grant reuse. Prior failed/mock/static attempts
+are retained and separate from actual observations.
+
+Copilot's included Actions billing fact remains the pending external capacity fact;
+account existence/personal use are settled. Fresh authenticated origin/artifact/trust
+bindings and actual cross-agent/two-machine reuse remain incomplete, as do final
+V01–V22/candidate economics. No G2/finalG3/G4 pass or owner release readiness.
+Day0=2026-10-10 21:24UTC;72h calibration2026-10-13 21:24UTC unchanged.
+
+## Historical checkpoint — recipient cost identified; ordinary boundary under review
+
+The hosted Claude diagnostic38257021786 remains closed PASS only for its six
+synthetic native assertions; it is not portable agent reuse and needs no repeat.
+Alpha.11 stays unpublished. Frozen source08307d4/artifactf6e368bd retain their
+separate identity and successful platform mechanics; runtime WIP is not those bytes.
+
+Fixed no-model hosted sample [38273261352](https://github.com/msiric/redue/actions/runs/38273261352)
+used that exact artifact: six unchanged queries/three observer sessions, all eligible,
+mean37,244.049ms, median36,091.025ms, maximum42,103.605ms. Correlated phases establish
+TWO protected-cache inspections per query, caller plus daemon; each reads/hashes
+5,820,973,056bytes/13members. Cache median16,897.55ms (n14 including two origin
+boundaries); compiler inspection55.1ms (n111), discovery240.95ms (n14), catch-up97.3ms
+(n9), trust/applicability2.4ms (n9). No inferred network cause or timeout change.
+Private fixed result/summary: `.local/portable-evidence/recipient-profile-38273261352*.json`;
+result SHA-25684acdd9993a81a9c1a72427e0ea0e5e0dfa244441925d891b2d0cd12d9b60aa1.
+The same six-query local controlled sample has median5,683.858ms/max5,856.891ms;
+this is a different host, not a portable speedup. First-per-session means observer
+cold, not OS page-cache cold. A failed initial fixture established zero samples;
+its original files/receipt remain separately retained.
+
+Root owns a narrow private daemon runtime certificate WIP; full caller hashing,
+compiler/context/loaded-image checks, root/input/history/catalog/receipt guards and
+finite fallbacks remain. No persistent/client/imported certificate authority.
+Real built-in full/warm/caller/forged-content/malformed-input controls6PASS14.2s;
+actual daemon bad-proof/client-poison/restart control1PASS26.0s. Earlier fixture
+and mock scheduling failures are retained in private TAP records, not native or
+product correctness claims. Independent runtime review4367acf GO and74/74 shared regressions are complete.
+A fixed same-label candidate before/after sample is prepared after independent
+workflow/helper review; exact after measurements remain pending, no speed claim.
+
+On pinned vscode-js-debugb1c00772, all59 consumed built-in libraries are inside the
+checkout. The blocked boundary is424 outside ancestor resolution queries, not
+missing default-library files. An owned actual compiler A/B/A control shows ancestor
+library replacement can change outcome. It is not a REDUE false-CURRENT reproduction.
+Owner now approves narrowly filtered CI-only ancestor observation, including required
+parent subscriptions through `/`; no owner's-Mac watcher authority or agent permissions
+expand. Agent A owns the exact query-only leaf; C independently reviews it. The leaf
+remains explicitly non-authoritative until an adequate interval barrier is implemented.
+See [boundary evidence](../acceptance/portable-ancestor-resolution.md).
+
+No model has launched. Actual cross-agent/two-machine acceptance, fresh authenticated
+origin/artifact/trust bindings and complete-path final economics remain incomplete.
+Copilot's four Actions credits' included-billing fact remains pending; account existence
+and personal-use approval are settled. Claude account/secret/setup/native diagnostic are
+complete. Failed preconditions still launch zero models. G2/finalG3/G4 are not passed.
+Day0 remains2026-10-10 21:24UTC;72h calibration2026-10-13 21:24UTC is unchanged.
+No fabricated whole-goal blocked-time total or release readiness is claimed.
+
+## Historical checkpoint — native diagnostic and alpha.11 exact installed mechanics PASS
 
 Actual hosted native Claude2.1.187 diagnostic
 [38257021786](https://github.com/msiric/redue/actions/runs/38257021786) passed all
