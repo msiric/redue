@@ -14,7 +14,7 @@ const hash=value=>createHash('sha256').update(value).digest('hex');
 const signals=new Set(['SIGHUP','SIGINT','SIGQUIT','SIGILL','SIGTRAP','SIGABRT','SIGIOT','SIGBUS','SIGFPE','SIGKILL',
   'SIGUSR1','SIGSEGV','SIGUSR2','SIGPIPE','SIGALRM','SIGTERM','SIGCHLD','SIGCONT','SIGSTOP','SIGTSTP','SIGTTIN',
   'SIGTTOU','SIGURG','SIGXCPU','SIGXFSZ','SIGVTALRM','SIGPROF','SIGWINCH','SIGIO','SIGINFO','SIGSYS']);
-function dataManifest(value){
+export function preparationDataManifest(value){
   if(!Array.isArray(value)||Object.getPrototypeOf(value)!==Array.prototype||value.length<1||value.length>100000||
     Reflect.ownKeys(value).length!==value.length+1)fail('PREPARATION_SCHEMA');
   const rows=[];let previous='';
@@ -90,7 +90,7 @@ export function prepareSealedTypeScriptInputs(options){
   if(!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==3||
     !['source','parent','manifest'].every(key=>Object.hasOwn(options,key)&&
       Object.hasOwn(Object.getOwnPropertyDescriptor(options,key),'value')))fail('PREPARATION_OPTIONS');
-  const {source,parent}=options,manifest=dataManifest(options.manifest);
+  const {source,parent}=options,manifest=preparationDataManifest(options.manifest);
   const proposal=sealedPreparationProfile({source,parent});
   remaining();
   const input=JSON.stringify({root:proposal.source,parent:proposal.parent,manifest});
