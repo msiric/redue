@@ -11,6 +11,9 @@ import {PREPARATION_REASON_CODES} from './sealed-typescript-preparation-child.mj
 export const SEALED_PREPARATION_LIMITS=Object.freeze({milliseconds:120000,inputBytes:8*1024*1024,outputBytes:8*1024*1024});
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const hash=value=>createHash('sha256').update(value).digest('hex');
+const signals=new Set(['SIGHUP','SIGINT','SIGQUIT','SIGILL','SIGTRAP','SIGABRT','SIGIOT','SIGBUS','SIGFPE','SIGKILL',
+  'SIGUSR1','SIGSEGV','SIGUSR2','SIGPIPE','SIGALRM','SIGTERM','SIGCHLD','SIGCONT','SIGSTOP','SIGTSTP','SIGTTIN',
+  'SIGTTOU','SIGURG','SIGXCPU','SIGXFSZ','SIGVTALRM','SIGPROF','SIGWINCH','SIGIO','SIGINFO','SIGSYS']);
 function dataManifest(value){
   if(!Array.isArray(value)||Object.getPrototypeOf(value)!==Array.prototype||value.length<1||value.length>100000||
     Reflect.ownKeys(value).length!==value.length+1)fail('PREPARATION_SCHEMA');
@@ -29,8 +32,6 @@ function dataManifest(value){
   }return rows;
 }
 const freeze=value=>{if(value&&typeof value==='object'){for(const item of Object.values(value))freeze(item);Object.freeze(value);}return value;};
-const result=(started,value)=>{const elapsed=performance.now()-started;return freeze({schema:1,scope:'TRUSTED_PRE_AGENT_PREPARATION_ONLY',
-  sealed:false,executable:false,reuseEligible:false,elapsedMs:Number.isFinite(elapsed)&&elapsed>=0?elapsed:null,...value});};
 const exact=(value,keys)=>value&&typeof value==='object'&&!Array.isArray(value)&&
   Object.keys(value).length===keys.length&&keys.every(key=>Object.hasOwn(value,key));
 const identity=file=>{const stat=fs.lstatSync(file,{bigint:true});
@@ -68,6 +69,18 @@ export function prepareSealedTypeScriptInputs(options){
     if(exhausted||!Number.isFinite(now)||now<previous){exhausted=true;fail('PREPARATION_DEADLINE');}
     previous=now;const ms=Math.floor(SEALED_PREPARATION_LIMITS.milliseconds-(now-started));
     if(ms<1){exhausted=true;fail('PREPARATION_DEADLINE');}return ms;};
+  const result=value=>{
+    // Deep result validation/freezing is part of the total budget. One final
+    // validated sample establishes both its classification and reported time.
+    freeze(value);let elapsed=null;
+    try{remaining();elapsed=previous-started;}catch{
+      const {materialization,...audit}=value;
+      value={...audit,outcome:'UNKNOWN',reason:'PREPARATION_DEADLINE'};
+    }
+    return Object.freeze({schema:1,scope:'TRUSTED_PRE_AGENT_PREPARATION_ONLY',
+      sealed:false,executable:false,reuseEligible:false,elapsedMs:elapsed,...value});
+  };
+  remaining();
   if(!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==3||
     !['source','parent','manifest'].every(key=>Object.hasOwn(options,key)&&
       Object.hasOwn(Object.getOwnPropertyDescriptor(options,key),'value')))fail('PREPARATION_OPTIONS');
@@ -84,12 +97,12 @@ export function prepareSealedTypeScriptInputs(options){
       maxBuffer:SEALED_PREPARATION_LIMITS.outputBytes,stdio:['pipe','pipe','pipe']});
   const audit={profileSha256:proposal.sha256,code:proposal.code,
     childExit:Number.isInteger(child.status)&&child.status>=0&&child.status<=255?child.status:null,
-    childSignal:['SIGABRT','SIGKILL','SIGTERM','SIGPIPE','SIGBUS','SIGSEGV','SIGILL','SIGINT'].includes(child.signal)?child.signal:null,
-    childReaped:Number.isInteger(child.pid)&&child.pid>0&&(Number.isInteger(child.status)||typeof child.signal==='string'),
+    childSignal:signals.has(child.signal)?child.signal:child.signal===null?null:'UNKNOWN_SIGNAL',
+    childReaped:Number.isInteger(child.pid)&&child.pid>0&&(Number.isInteger(child.status)&&child.status>=0&&child.status<=255||signals.has(child.signal)),
     sourceEnvironmentChanged:false,preparationEnvironment:'EMPTY_NO_AUTHENTICATION',
     partialStageDisposition:'RETAINED_REQUIRES_OWNED_PROVISIONER_REVIEW'};
   // Never include raw spawn errors/argv/stdout/stderr in an unknown outcome.
-  if(child.error||child.signal||child.stderr||!Number.isInteger(child.status))return result(started,{...audit,
+  if(child.error||child.signal||child.stderr||!Number.isInteger(child.status))return result({...audit,
     outcome:'UNKNOWN',reason:'PREPARATION_CHILD_UNAVAILABLE'});
   try{
     remaining();const output=JSON.parse(child.stdout);
@@ -97,7 +110,7 @@ export function prepareSealedTypeScriptInputs(options){
     // duplicate fields and unexpected framing before any result is admitted.
     if(JSON.stringify(output)+'\n'!==child.stdout)fail('PREPARATION_OUTPUT_UNKNOWN');
     if(child.status===74&&exact(output,['schema','ok','reason_code'])&&output.schema===1&&output.ok===false&&
-      PREPARATION_REASON_CODES.includes(output.reason_code))return result(started,{...audit,outcome:'REFUSED',reason:output.reason_code});
+      PREPARATION_REASON_CODES.includes(output.reason_code))return result({...audit,outcome:'REFUSED',reason:output.reason_code});
     if(child.status!==0||!exact(output,['schema','ok','materialization'])||output.schema!==1||output.ok!==true||
       !treeOutput(output.materialization,proposal,manifest))fail('PREPARATION_OUTPUT_UNKNOWN');
     const tree=output.materialization;
@@ -108,7 +121,7 @@ export function prepareSealedTypeScriptInputs(options){
     remaining();
     // Data only: current bindings still do not certify compiler namespace or a
     // native write seal. No actual command or observation authority travels.
-    return result(started,{...audit,outcome:'MATERIALIZED_NOT_SEALED',reason:'SEALED_RECIPE_ENFORCEMENT_PENDING',materialization:tree});
-  }catch(error){return result(started,{...audit,outcome:'UNKNOWN',reason:
+    return result({...audit,outcome:'MATERIALIZED_NOT_SEALED',reason:'SEALED_RECIPE_ENFORCEMENT_PENDING',materialization:tree});
+  }catch(error){return result({...audit,outcome:'UNKNOWN',reason:
     ['PREPARATION_DEADLINE','PREPARATION_BINDING_CHANGED'].includes(error?.code)?error.code:'PREPARATION_OUTPUT_UNKNOWN'});}
 }
