@@ -3966,3 +3966,148 @@ operations; they do not alter production30s process/25s cache/45s IPC or the35s
 host-preflight bound. Cold session-start costs and setup work must remain visible;
 no measured optimization or final-candidate readiness is inferred before the
 actual declared sample.
+
+### CI ancestor capability resource binding
+
+Conditional source/data GO for capability-reader snapshot SHA256
+`946ae2e6dd16c66274110f228825b79e93ba363722a1b7e202eddea00eddb05f`
+in the isolated ordinary-boundary worktree. It accepts only exact bounded
+nonsecret provisioning schema, selected CI context, canonical ASCII nonsymlink
+resources outside checkout/state, owned0600 single-link descriptor-bound file,
+protected ancestry and owned private parent. Root/state physical identities are
+bound to the provisioning body; final root/state ancestry rereads now detect
+replacement during the capability descriptor read. Only private WeakMap tokens
+are current: copied/serialized lookalikes grant nothing. Invalid currency now
+irreversibly revokes the token rather than reviving after resource restoration.
+Public token data is interpretation plus digest, not capability body or paths.
+
+Independent static filesystem controls initially reproduced3 failures/4 passes:
+root and state replacement during file read minted stale tokens, and root
+replacement caused false currency that became true after restoring the original
+root. Those are prerelease helper findings, not released applicability outcomes.
+After the root author's resource barrier and revocation correction, the same7
+controls pass77.34ms on Node22.13. Prior snapshot and failing TAP remain preserved
+in reviewer-local evidence. These tests use only owned nonsensitive temporary
+files; no subscription, FSEvents operation, CI capability, model or agent process
+was exercised.
+
+Integration remains conditional. Owned0700/0600 is provisioning provenance,
+not authentication against hostile same-UID code. A trusted reviewed workflow
+must select/provision a fixed non-temp protected authority location unavailable
+to the native agent's write permissions, with explicit parent write denial before
+model work. Source/run fields bind that file to supplied trusted CI context;
+environment labels and a self-authored JSON body do not independently authenticate
+actual loaded source. The proposed packaged native-helper hardpin and source/
+workflow checks must be established at integration. No imported path/capability,
+GITHUB_ACTIONS label alone, writable implicit-temp replica or restored revoked
+token may start observation. This review neither activates the native observer
+nor substitutes endpoint identity for interval coverage.
+
+### Raw occurrence provider leaf and in-root membership coverage
+
+Source-only GO for raw-provider leaf `5a125ad` plus `d806c9f`. Final C++ source
+SHA256 is
+`ebdb7387ae79fbf8c2ca81d33fc3acde249013b89791853611068e06d3fd8ab6`;
+retained production build SHA256 is
+`5c43ba4fc39416c3657af878eff645e514bb19705165f2aa9f648f86550a5b9b`
+(79,992 bytes). This reviewer rehashed, but never started, that production binary.
+The build uses the reviewed source and fixed trusted system compiler/flags;
+parent runtime provenance and protected launch identity remain separate gates.
+
+The native leaf creates only the fixed '/' FileEvents/WatchRoot/NoDefer stream,
+filters each raw callback before retention, and emits only static uncertainty,
+locally supplied scope IDs and monotonic serial/request fields. It performs no
+file-body reads, stat/traversal, imported execution or pathname logging. Raw
+create/remove occurrences are not cancellation-aggregated. A serial dispatch
+queue receives callbacks; main-thread FlushSync is outside that queue, and ready/
+barrier acknowledgements follow synchronization. Close flushes, stops/invalidates
+and drains before acknowledging. Drop/wrap/root/mount/history/unknown provider
+flags, malformed paths and overflow permanently withdraw authority. Bounded
+framing/output and a hard parent timeout/reap remain necessary; a blocked output
+or native flush cannot be treated as a successful timely barrier.
+
+Independent exact-source controls51/51 pass962.44ms, including27 pure C++
+filter/framing/serial controls and24 query projection controls. The C++ test build
+excludes CoreServices and production main; it starts no stream. Initial exact
+5a controls51/51 passed1295.97ms. Review found DEL127 classified differently from
+the JavaScript ASCII guard; d806 now makes it uncertainty and retains that case
+in the malformed-path controls. ASCII case aliases are conservative matches;
+potentially matching Unicode ambiguity is uncertainty. Actual standard-VM path
+and firmlink alias delivery is not established by string-filter tests.
+
+Three additional independent pure controls compile the actual extracted Parcel
+EventList class, omitting only its unrelated JavaScript conversion interface.
+They confirm that create→remove is elided for both checkout and ancestor paths,
+while remove→create of an existing path retains an event. No FSEvents watcher,
+configured compiler or wrapped verification is involved. This establishes the
+provider counterexample, not a released false-CURRENT reproduction.
+
+New portable interval interpretation must cover in-root directory membership as
+well as named absent ancestor candidates. A transient source/declaration created,
+consumed through readDirectory/entries/directories and removed can restore the
+endpoint membership list without a preexisting named absent-file query. Derive
+supplementary raw prefix scopes locally from all seven reviewed in-root filesystem
+query kinds, including the checkout root when actually queried; reject unknown
+kinds or unsupported paths instead of omitting them. Keep outside authority
+limited to the separately approved ancestor namespace and preserve ordinary root
+observation. Matching endpoints alone do not become interval evidence.
+
+This GO does not enable observation or certify complete portable origins. Exact
+protected capability, packaged executable/source pins, parent protocol/lifecycle
+and generation/scope/serial start/end checks still need integration review. Real
+CI-only controls must establish transient create/remove, membership addition,
+parent replacement/restoration, case alias delivery and conservative gaps before
+any @3 complete/reuse claim. No owner-Mac broad subscription, model, CI dispatch,
+new resource grant or trust-policy change was performed by this reviewer.
+
+### Hosted private-runtime phase result and complete raw query projection
+
+Independent read-only result review accepts the finite profiling outcome for
+run38279556323, source`f4abdd318091ac7c17119d872e189e1cf2f7a8f3` and owned
+candidate SHA256
+`84edcfebbc980dacc026aac66d9f3094718267521397a15a79f015f6eb2ce871`.
+Preserved tar is160,448 bytes/80 entries and the four-file bundle is169,209 bytes;
+source.txt and manifest/checksums bind it to that task source. It contains no
+ancestor files. This is a new prospective alpha11 candidate, distinct from frozen
+f6e bytes, not a published release. Sanitized result SHA256 is
+`221052bdfb6ff06a97f6c5456e7cf6af82b534ff5f9f9e1f2caed2a2722b849f`;
+summary SHA256 is
+`b538fbc320c5f7b55929a53bb4b316b6e5d8004606e1758f2299cf001afff127`.
+
+All six declared recipient queries across three observer sessions return healthy
+CURRENT/PASS/imported reuse eligibility, null local invocation and the same
+origin`b2eb050a-0cc2-401d-8686-fd1e87005298`/import digest
+`23a648460143520057765ff1f34fcb2077f335fecf0347b68cec59df5a51115e`.
+All25 recorded commands exit0 with no signal/timeout; retained status observations
+precede assertions. Failure is null and cleanup reports both owned observers
+stopped. There are zero models, no signing/refreshed authenticated handoff and no
+ordinary-project result. Setup and origin work are separately recorded.
+
+Recomputed six-query mean29.486s/median30.081s/max38.233s agrees with the summary.
+Three warm second queries have median21.606s/max24.021s; three first queries per
+observer session have median37.602s/max38.233s, all above the unchanged35s host
+preflight command bound. Therefore cold usability remains unresolved. Session
+cold is not an OS page-cache cold experiment: origin setup already inspected
+runtime content. The trace has11 full cache inspections (two origin boundaries
+and nine query inspections) plus three private revalidations, median4.2ms with
+zero body hash bytes; independent caller full inspection remains. No savings or
+net user benefit is inferred from those counts alone.
+
+The before sample38273261352 uses frozen08307d4/f6e on a separate VM; six-query
+mean37.244s/median36.091s/max42.104s and14 full cache inspections remain historical
+measures. Both report Darwin25.6.0/arm64/Node22.13, but matching labels are not a
+paired-machine/runtime-content proof or controlled causal performance estimate.
+The after sample demonstrates the intended warm inspection mechanism while
+retaining cold costs; it does not close G2, ordinary-project acceptance or overall
+G4 economics. This reviewer made no additional hosted or product run.
+
+Source/data-only GO for raw-scope successor`e6dcd2b`:56/56 exact copied pure
+controls pass1324.43ms (29 query projection and27 native-pure controls). Every
+validated query path from the seven existing filesystem kinds becomes a locally
+derived private prefix scope, including membership directories and checkout root
+when queried. Deduplication merges sorted kinds; logical namespace sorting gives
+stable IDs across same-chain clones. The separate raw interpretation binds the
+complete query digest, answers/options, chain and logical scope/kind list;
+physical paths remain local and all results remain reuseEligible=false. External
+body/positive-file and unsupported path refusals remain. This is projection GO,
+not observer-wrapper, native interval or portable-origin completeness acceptance.
