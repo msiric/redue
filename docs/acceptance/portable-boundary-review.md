@@ -5913,3 +5913,41 @@ fixed option list is not a universal options policy; physical read confinement,
 loader bypasses, full query arguments, CLI/API equivalence, namespace completeness,
 stable execution and recipient comparison remain unresolved. Every native-view,
 namespace/sealed/reuse flag remains false; origin containment remains unchanged.
+
+
+## Fixed discovery profile and child frontend
+
+Source-only GO for f792377a77995212f1d8df4ae7942cea64a2866a profile
+SHAd5612d19e85c5f494ded5e96d0faa2d397d8c7f192dd4b35d3a70c07f3bba901
+and fixed frontend
+SHA1847883993965ddf88448110556e7e73dd618c5467fce9ac45951ea1d31ceeed.
+The probe comment clarificationSHA367d8f0953aec6d7486e0faa351439c5401a525a44a3765c607955019198c896
+changes no mechanism: API discovery is not a verification command.
+
+The constructor retains the previously reviewed platform/principal/Node/whole
+TS package admission and base SBPL restrictions, adding only eight exact local
+code-body literals and ancestor metadata. No repository subpath, arbitrary
+loader, new write/network/fork scope or native-agent permission is added. Leaves
+are canonical owned single-link non-special/group-or-other-write files, bound by
+before/open/after descriptor and named fingerprints/content hashes. These are
+local snapshots, not an ongoing immutable-code or hostile-writer confinement
+certificate. Whole selected code/ancestry/current approved bindings must still
+be independently checked before and after any supervised actual child.
+
+Three authored fake controls passed3/3 in51.72ms. Seven own VM controls passed
+7/7 in91.97ms: descriptor/named replacement refusal closes the held FD; unsafe
+code opens zero bodies; added grants are exactly eight literals plus metadata;
+fixed entry accepts one script data argument; extra argv/preloads/wrong platform,
+version or stage basename call no API; missing frontend entry emits zero frames;
+exceptions and oversized observations emit only fixed UNKNOWN without values.
+No actual profile construction, child/TS API, native policy, compiler/model/CI
+operation ran; filesystems, process and probe imports in these controls are fakes.
+
+Missing output cannot become success from a zero process status: parent
+classification must remain NONE/UNKNOWN. The child scope remains observations
+only, native-agent NOT_TESTED and compiler-verification/sealed/reuse false.
+The reported real script identifier test:types is rejected by the old probe's
+script regex before API load. No actual attempt is authorized from this review
+until its minimal data-identifier successor and the exact bounded/currentness/
+parser/publication parent have been reviewed. Colon is potentially safe as
+structured script lookup data; it must not introduce a shell/npm invocation.
