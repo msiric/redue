@@ -3,6 +3,33 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
+## Blocked audit — owner-only acceptance inputs unchanged across three goal turns
+
+The previous two goal turns made real progress (registration/diagnostics, then
+completed platform acceptance). In allthree turns the same native policy/quota/
+protected OAuth and separate Copilot Actions included-credit prerequisites
+remained unavailable. This turn revalidates GitHub environment count0, native
+workflow dispatch listempty, and both known CI handles completedSUCCESS. All
+subagents are terminal. This is not a live-process wait or a product test failure.
+No safe meaningful independent task remains without those inputs; do not create
+another implementation/preparation milestone or rerun completed tests.
+
+Completion audit: G1's export/separate-checkout slice and historical authenticated
+CLI transfer are evidenced; G2's actual two-agent/two-machine reuse is absent.
+FinalG3 needs a fresh reviewed/authenticated model-produced origin and recipient
+trust/evaluation; the old artifact expired. G4 still needs actual behavioral
+V01–V22 coverage, complete-path economics and final versioned bytes/onboarding
+bound to that implementation. Current platform/regression/review results alone
+cannot establish those requirements. No public-alpha gate is complete.
+
+The coordinator marks the existing goal BLOCKED after this three-turn audit,
+without replacing the objective. Resume on actual owner policy/quota/OAuth
+provisioning or Copilot included-capacity evidence through the existing checklist.
+No new owner question is sent. The smallest first action remains the reviewed
+protected Claude environment and subscription OAuth setup; this unlocks only the
+one bounded native diagnostic after its fresh preconditions. Preserve all failed,
+unknown and positive records, frozen artifacts, trust and host/budget boundaries.
+
 ## Current CI checkpoint — reviewed code regressions and package pass; model prerequisites pending
 
 Reviewed test-only diagnostic source de37055d6436f870c907e35fbc65be69e9301452 is
