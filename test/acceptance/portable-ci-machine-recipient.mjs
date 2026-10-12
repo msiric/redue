@@ -202,6 +202,8 @@ export async function withHeldCIMachineRecipient(options,{prepare,supervise,sign
   if(signal?.aborted)abort();if(controller.signal.aborted)throw controller.signal.reason;
   if(performance.now()>=deadline)fail('CI_MACHINE_TIMEOUT');
   phase.assertBindings();
+  if(signal?.aborted)abort();if(controller.signal.aborted)throw controller.signal.reason;
+  if(performance.now()>=deadline)fail('CI_MACHINE_TIMEOUT');
   return {schema:1,prepared_eligible:true,supervised_lifecycle_closed:true,preparation,supervision};
  }catch(error){failure=error;error.machine_recipient_calls=phase?.calls??[];throw error;}
  finally{
