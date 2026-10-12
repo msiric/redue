@@ -51,16 +51,14 @@ function binding(proposal){
   return canonical({directories,node,code:proposal.code});
 }
 function treeOutput(tree,proposal,manifest){
-  return exact(tree,['schema','interpretation','root','manifestDigest','files','bytes','identity','physical','sealed','reuseEligible'])&&
-    tree.schema===1&&tree.interpretation==='redue-typescript-materialization@1'&&tree.sealed===false&&tree.reuseEligible===false&&
+  return exact(tree,['schema','interpretation','root','manifestDigest','fileCount','physicalDigest','bytes','identity','sealed','reuseEligible'])&&
+    tree.schema===1&&tree.interpretation==='redue-typescript-materialization-summary@1'&&tree.sealed===false&&tree.reuseEligible===false&&
     typeof tree.root==='string'&&path.dirname(tree.root)===proposal.parent&&
     /^redue-materialization-[A-Za-z0-9]{6}$/.test(path.basename(tree.root))&&
     Number.isSafeInteger(tree.bytes)&&tree.bytes>=0&&tree.bytes<=512*1024*1024&&
     typeof tree.identity==='string'&&/^\d+:\d+$/.test(tree.identity)&&
-    Array.isArray(tree.files)&&canonical(tree.files)===canonical(manifest)&&tree.manifestDigest===hash(canonical(manifest))&&
-    Array.isArray(tree.physical)&&tree.physical.length===manifest.length&&tree.physical.every((row,at)=>
-      Array.isArray(row)&&row.length===3&&row[0]===manifest[at][0]&&typeof row[1]==='string'&&/^\d+:\d+$/.test(row[1])&&
-      typeof row[2]==='string'&&/^(?:\d+:){7}\d+$/.test(row[2])&&row[2].startsWith(row[1]+':'));
+    tree.fileCount===manifest.length&&tree.manifestDigest===hash(canonical(manifest))&&
+    typeof tree.physicalDigest==='string'&&/^[a-f0-9]{64}$/.test(tree.physicalDigest);
 }
 export function prepareSealedTypeScriptInputs(options){
   const started=performance.now();
@@ -109,9 +107,9 @@ export function prepareSealedTypeScriptInputs(options){
     // Fixed child emits exactly one stringify frame. Re-encoding detects
     // duplicate fields and unexpected framing before any result is admitted.
     if(JSON.stringify(output)+'\n'!==child.stdout)fail('PREPARATION_OUTPUT_UNKNOWN');
-    if(child.status===74&&exact(output,['schema','ok','reason_code'])&&output.schema===1&&output.ok===false&&
+    if(child.status===74&&exact(output,['schema','ok','reason_code'])&&output.schema===2&&output.ok===false&&
       PREPARATION_REASON_CODES.includes(output.reason_code))return result({...audit,outcome:'REFUSED',reason:output.reason_code});
-    if(child.status!==0||!exact(output,['schema','ok','materialization'])||output.schema!==1||output.ok!==true||
+    if(child.status!==0||!exact(output,['schema','ok','materialization'])||output.schema!==2||output.ok!==true||
       !treeOutput(output.materialization,proposal,manifest))fail('PREPARATION_OUTPUT_UNKNOWN');
     const tree=output.materialization;
     const stage=fs.lstatSync(tree.root,{bigint:true});
