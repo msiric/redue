@@ -2,6 +2,7 @@
 // Its parent must supply the separately reviewed filesystem boundary/deadline.
 import {materializeSealedTypeScriptTree,TYPESCRIPT_TREE_LIMITS} from '../../src/sealed-typescript-tree.mjs';
 import {fileURLToPath} from 'node:url';
+import {createHash} from 'node:crypto';
 
 export const PREPARATION_BYTES=8*1024*1024;
 export const PREPARATION_REASON_CODES=Object.freeze(['TREE_PLATFORM','TREE_PATH','TREE_CHANGED','TREE_OPTIONS','TREE_MANIFEST','TREE_FILE','TREE_LIMIT','TREE_DIGEST','TREE_SYMLINK','TREE_PLACEMENT','TREE_OWNERSHIP','TREE_PARENT_OCCUPIED','TREE_UNAVAILABLE',
@@ -44,8 +45,12 @@ export async function consumePreparationInput(input){
 async function main(){let response,failed=false;
   try{if(process.argv.length!==2)fail('PREPARATION_ARGUMENTS');const bytes=await consumePreparationInput(process.stdin);
     const options=parsePreparationInput(bytes),materialization=materializeSealedTypeScriptTree(options);
-    response=JSON.stringify({schema:1,ok:true,materialization});if(Buffer.byteLength(response)>PREPARATION_BYTES)fail('PREPARATION_OUTPUT');
-  }catch(error){failed=true;response=JSON.stringify({schema:1,ok:false,reason_code:safeCode(error)});}
+    const summary={schema:1,interpretation:'redue-typescript-materialization-summary@1',root:materialization.root,
+      manifestDigest:materialization.manifestDigest,fileCount:materialization.files.length,
+      physicalDigest:createHash('sha256').update(JSON.stringify(materialization.physical)).digest('hex'),bytes:materialization.bytes,
+      identity:materialization.identity,sealed:false,reuseEligible:false};
+    response=JSON.stringify({schema:2,ok:true,materialization:summary});if(Buffer.byteLength(response)>PREPARATION_BYTES)fail('PREPARATION_OUTPUT');
+  }catch(error){failed=true;response=JSON.stringify({schema:2,ok:false,reason_code:safeCode(error)});}
   process.exitCode=failed?74:0;process.stdout.on('error',()=>{});
   try{await new Promise((resolve,reject)=>process.stdout.write(response+'\n',error=>error?reject(error):resolve()));}catch{process.exitCode=74;}
 }
