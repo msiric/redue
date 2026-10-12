@@ -85,8 +85,8 @@ function openCIMachineRecipientPhase(options){
  if(process.platform!=='darwin'||process.arch!=='arm64'||process.version!=='v22.13.0'||os.release()!=='25.6.0')fail('CI_MACHINE_PROFILE');
  const exec=(kind,file,args,{cwd=base,allowFailure=false}={})=>{const start=performance.now(),r=childProcess.spawnSync(file,args,{cwd,env:process.env,encoding:'utf8',timeout:120000,maxBuffer:8*1024*1024});
  calls.push({kind,milliseconds:performance.now()-start,status:r.status,error_code:r.error?.code??null});if(!allowFailure&&(r.status!==0||r.error||r.signal))fail('CI_MACHINE_COMMAND');return r;};
- let started=false,lifecycle='preparing',host,configBytes,configIdentity,rootIdentity,cliDigest,stateIdentity,ownerBytes,ownerIdentity;
- const config=path.join(root,'redue.config.json'),cli=path.join(prefix,'lib/node_modules/@redue/cli/bin/redue.mjs');
+ let started=false,lifecycle='preparing',host,configBytes,configIdentity,rootIdentity,cliDigest,stateIdentity,ownerBytes,ownerIdentity,runtimeBytes,runtimeIdentity,registryIdentity,authorityError;
+ const runtimeFile=path.join(state,'project-runtime-v1.json'),config=path.join(root,'redue.config.json'),cli=path.join(prefix,'lib/node_modules/@redue/cli/bin/redue.mjs');
  const verifyCLI=()=>{if(sha(readBoundedPortableFile(cli,{limit:65536}))!==cliDigest)fail('CI_MACHINE_CLI_CHANGED');};
  const redue=(...args)=>{verifyCLI();return exec('redue',process.execPath,[cli,'--config',config,'--state-dir',state,...args],{cwd:root});},json=(...args)=>parsePortableJson(redue(...args,'--json').stdout);
  const close=(strict=false)=>{
@@ -112,8 +112,13 @@ function openCIMachineRecipientPhase(options){
  }catch(error){error.machine_recipient_calls=calls;close();throw error;}
  const active=()=>{if(lifecycle!=='eligible')fail('CI_MACHINE_LIFECYCLE');};
  const bindings=()=>{
-  verifyCLI();if(directory(root)!==rootIdentity||!readBoundedPortableFile(config,{limit:65536}).equals(configBytes)||fingerprint(fs.lstatSync(config,{bigint:true}))!==configIdentity)fail('CI_MACHINE_PREPARATION_CHANGED');
-  if(ownerBytes){const ownerFile=path.join(state,'vstate-owner-v1.json');if(directory(state)!==stateIdentity||!readBoundedPortableFile(ownerFile,{limit:8192}).equals(ownerBytes)||fingerprint(fs.lstatSync(ownerFile,{bigint:true}))!==ownerIdentity)fail('CI_MACHINE_OWNERSHIP');}
+  if(authorityError)throw authorityError;
+  try{
+   verifyCLI();if(directory(root)!==rootIdentity||!readBoundedPortableFile(config,{limit:65536}).equals(configBytes)||fingerprint(fs.lstatSync(config,{bigint:true}))!==configIdentity)fail('CI_MACHINE_PREPARATION_CHANGED');
+   if(ownerBytes){const ownerFile=path.join(state,'vstate-owner-v1.json');if(directory(state)!==stateIdentity||!readBoundedPortableFile(ownerFile,{limit:8192}).equals(ownerBytes)||fingerprint(fs.lstatSync(ownerFile,{bigint:true}))!==ownerIdentity)fail('CI_MACHINE_OWNERSHIP');
+    if(!readBoundedPortableFile(runtimeFile,{limit:65536}).equals(runtimeBytes)||fingerprint(fs.lstatSync(runtimeFile,{bigint:true}))!==runtimeIdentity)fail('CI_MACHINE_RUNTIME_CHANGED');}
+   if(registryIdentity){const file=path.join(state,'portable-producers-v1.json');if(!readBoundedPortableFile(file,{limit:65536}).equals(checked.registryBytes)||fingerprint(fs.lstatSync(file,{bigint:true}))!==registryIdentity)fail('CI_MACHINE_REGISTRY');}
+  }catch(error){authorityError=error;throw error;}
  };
  const paths=Object.freeze({base,root,state,prefix,config,cli});
  return {paths,calls,close,activate(){
@@ -123,20 +128,23 @@ function openCIMachineRecipientPhase(options){
   bindings();
   try{fs.lstatSync(state);fail('CI_MACHINE_PREPARATION_CHANGED');}catch(error){if(error.code!=='ENOENT')throw error;}
   started=true;lifecycle='observing';redue('start');
-  readCIRecipientProject({configFile:config,root,state,cliEntry:cli});
+  const project=readCIRecipientProject({configFile:config,root,state,cliEntry:cli});
+  runtimeBytes=readBoundedPortableFile(runtimeFile,{limit:65536});runtimeIdentity=fingerprint(fs.lstatSync(runtimeFile,{bigint:true}));
+  if(canonical(parsePortableJson(runtimeBytes))!==canonical(project.runtime))fail('CI_MACHINE_RUNTIME_CHANGED');
   const ownerFile=path.join(state,'vstate-owner-v1.json');ownerBytes=readBoundedPortableFile(ownerFile,{limit:8192});ownerIdentity=fingerprint(fs.lstatSync(ownerFile,{bigint:true}));stateIdentity=directory(state);
   requireFreshCIObserver(json('status','--sync'));
   // Re-read selected exact inputs after setup. Base is now intentionally occupied;
   // raw registry must still match before the only explicit new-state policy copy.
   const current=readBoundedPortableFile(o['--registry'],{limit:65536});if(!current.equals(checked.registryBytes))fail('CI_MACHINE_REGISTRY');
-  provisionExactCIRegistry({state,root,configFile:path.join(state,'project-runtime-v1.json'),bytes:current,sha256:o['--registry-sha256'],apply:true});
+  bindings();provisionExactCIRegistry({state,root,configFile:runtimeFile,bytes:current,sha256:o['--registry-sha256'],apply:true});
+  registryIdentity=fingerprint(fs.lstatSync(path.join(state,'portable-producers-v1.json'),{bigint:true}));bindings();
   const result=runCIRecipient({'--cli-entry':cli,'--cli-sha256':sha(readBoundedPortableFile(cli,{limit:65536})),'--config':config,'--state':state,'--root':root,
    '--artifact':path.join(o['--input'],'redue-portable-evidence.json'),'--policy-digest':o['--policy-digest'],'--source':o['--source'],'--signer':o['--source'],
    '--gh-executable':o['--gh-executable'],'--gh-sha256':o['--gh-sha256'],'--apply':true});
 
-  lifecycle='eligible';return {...result,host_facts:host,independent_boot:true,raw_node_identity_differs:true,setup_calls:calls,
+  bindings();lifecycle='eligible';return {...result,host_facts:host,independent_boot:true,raw_node_identity_differs:true,setup_calls:calls,
     scope:'Authenticated controlled noLib CLI preparation; supervising actions require separate authority.'};
- },status(){active();bindings();const value=json('status','--sync');bindings();return value;},restart(){
+ },assertBindings(){active();bindings();},status(){active();bindings();const value=json('status','--sync');bindings();return value;},restart(){
   active();redue('stop');started=true;redue('start');
  }};
 }
@@ -155,8 +163,10 @@ export function runCIMachineRecipient(options){
  finally{phase.close();}
 }
 // Awaited callbacks share this cap; existing synchronous child hard deadlines
-// remain in force. Trusted callbacks must yield and consume the supplied signal
-// for their own children; this is not preemption of arbitrary JS or sandboxing.
+// remain in force and cleanup can add time. Trusted callbacks must yield and
+// consume the signal for their own children; this helper does not prove those
+// children reaped or sanitize supervision output as agent-trace evidence. This
+// is not preemption of arbitrary JS, a hard whole-path300s limit, or sandboxing.
 export const heldCIMachineRecipientTimeoutMs=300000;
 export async function withHeldCIMachineRecipient(options,{prepare,supervise,signal,timeoutMs=heldCIMachineRecipientTimeoutMs}={}){
  if(typeof prepare!=='function'||typeof supervise!=='function'||signal!==undefined&&!(signal instanceof AbortSignal)||
@@ -191,6 +201,7 @@ export async function withHeldCIMachineRecipient(options,{prepare,supervise,sign
   }})));
   if(signal?.aborted)abort();if(controller.signal.aborted)throw controller.signal.reason;
   if(performance.now()>=deadline)fail('CI_MACHINE_TIMEOUT');
+  phase.assertBindings();
   return {schema:1,prepared_eligible:true,supervised_lifecycle_closed:true,preparation,supervision};
  }catch(error){failure=error;error.machine_recipient_calls=phase?.calls??[];throw error;}
  finally{
