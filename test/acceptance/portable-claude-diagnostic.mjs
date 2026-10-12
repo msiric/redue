@@ -25,6 +25,7 @@ const PINNED_SYSTEM_SUBTYPES=new Set('task_notification task_progress task_updat
 // Native187 F7r at198672601 emits only these categories. The retry emitter at
 // 210402886 supplies numeric protocol fields; never copy its error payload.
 const PINNED_RETRY_CATEGORIES=new Set(['overloaded','rate_limit','authentication_failed','server_error','unknown']);
+const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 function classifyRejectedRetry(value){
  const bounded=(v,max,min=0)=>Number.isInteger(v)&&v>=min&&v<=max?v:'UNAVAILABLE';
  return {category:PINNED_RETRY_CATEGORIES.has(value.error)?value.error:'UNREVIEWED_CATEGORY',
@@ -57,13 +58,13 @@ function collectionFromText(content){
  return candidates.length===1?candidates[0]:null;
 }
 export function createNativeDiagnosticTrace({command,cwd}){
- let init=false,error=null,tool=null,result=null,final=null,rejectedSystemEvent=null;const assistantIDs=new Set();
+ let init=false,error=null,tool=null,result=null,final=null,rejectedSystemEvent=null,sessionID=null,thinkingProgressEvents=0;const assistantIDs=new Set();
  const reject=code=>{error??=code;};
  const consume=value=>{
   if(!value||typeof value!=='object'||Array.isArray(value)){reject('NATIVE_STREAM_MALFORMED');return;}
   if(value.type==='system'&&value.subtype==='init'){
    if(init||value.claude_code_version!==REVIEWED_CLAUDE_NATIVE.version||value.cwd!==cwd||value.apiKeySource!=='none'||value.permissionMode!=='dontAsk'||
-     JSON.stringify(value.tools)!==JSON.stringify(['Bash'])||!Array.isArray(value.mcp_servers)||value.mcp_servers.length||!Array.isArray(value.plugins)||value.plugins.length){reject('NATIVE_INITIAL_CONTEXT');return;}init=true;return;
+     JSON.stringify(value.tools)!==JSON.stringify(['Bash'])||!Array.isArray(value.mcp_servers)||value.mcp_servers.length||!Array.isArray(value.plugins)||value.plugins.length){reject('NATIVE_INITIAL_CONTEXT');return;}init=true;sessionID=typeof value.session_id==='string'&&UUID.test(value.session_id)?value.session_id:null;return;
   }
   if(value.type==='assistant'){
    if(!init||value.parent_tool_use_id!==null||!value.message||value.message.role!=='assistant'||typeof value.message.id!=='string'||!Array.isArray(value.message.content)){reject('NATIVE_ASSISTANT_CONTEXT');return;}
@@ -88,6 +89,15 @@ export function createNativeDiagnosticTrace({command,cwd}){
    if(final||!Number.isInteger(value.num_turns)||value.num_turns<1||value.num_turns>4||typeof value.is_error!=='boolean'){reject('NATIVE_FINAL_RESULT');return;}
    final={turns:value.num_turns,success:value.subtype==='success'&&value.is_error===false};return;
   }
+  // Pinned187210399315/682 emits numeric thinking progress independently of
+  // partial-message forwarding. It carries no instruction/permission authority.
+  // Admit only the exact bounded shape in the validated session, retain count
+  // only, and never use it as an assistant response, tool result or PASS basis.
+  if(value.type==='system'&&value.subtype==='thinking_tokens'&&init&&!error&&!final&&thinkingProgressEvents<4096&&
+    Object.keys(value).length===6&&Object.keys(value).every(k=>['type','subtype','estimated_tokens','estimated_tokens_delta','uuid','session_id'].includes(k))&&
+    typeof value.uuid==='string'&&UUID.test(value.uuid)&&sessionID!==null&&value.session_id===sessionID&&
+    typeof value.estimated_tokens==='number'&&Number.isFinite(value.estimated_tokens)&&value.estimated_tokens>=0&&value.estimated_tokens<=1000000&&
+    typeof value.estimated_tokens_delta==='number'&&Number.isFinite(value.estimated_tokens_delta)&&value.estimated_tokens_delta>=0&&value.estimated_tokens_delta<=value.estimated_tokens){thinkingProgressEvents++;return;}
   // Pinned187 emits these hook subtypes (ASCII source202123653). Even a
   // supplied no-policy statement cannot green contradictory native evidence.
   if(value.type==='system'){
@@ -98,7 +108,7 @@ export function createNativeDiagnosticTrace({command,cwd}){
   // Never publish model text, auth/init payloads, error strings or unknown events.
   if(value.type!=='rate_limit_event')reject('NATIVE_STREAM_UNKNOWN');
  };
- return {consume,snapshot:()=>({init,error,assistant_turns:assistantIDs.size,tool,result,final,rejected_system_event:rejectedSystemEvent})};
+ return {consume,snapshot:()=>({init,error,assistant_turns:assistantIDs.size,tool,result,final,rejected_system_event:rejectedSystemEvent,thinking_progress_events:thinkingProgressEvents})};
 }
 export function diagnosticOutcome(trace,{nativeExit=null,nativeSignal=null,timedOut=false,controlsBefore=false,controlsAfter=false,sourceCurrent=false,probeDelta=null,collectionMatches=false,reaped=false,cleanupComplete=false}={}){
  const assertion=trace.result?.collection?.assertion_outcome??'UNKNOWN';
@@ -296,6 +306,7 @@ async function executePreparedDiagnostic({plan,manifest,env,jobStartedMs,signal}
   controls_before:pre,controls_after:post,source_current:sourceCurrent,actual_probe_protocol_delta:probeDelta,collection_matches_tool_result:collectionMatches,
   native_launch_attempted:observed!==undefined,native_process_spawn_observed:observed?.native_process_spawn_observed??false,model_response_observed:trace.assistant_turns>0,observed_assistant_messages:trace.assistant_turns,model_turns_reported:trace.final?.turns??null,
   native_init_validated:trace.init===true,rejected_system_event:trace.rejected_system_event??null,
+  thinking_progress_events:trace.thinking_progress_events??0,
   tool_use_id:trace.tool?.id??null,tool_result_id:trace.result?.id??null,checker:trace.result?.collection??null,
   owned_native_reaped:reaped,owned_listener_cleanup:cleanup,milliseconds:performance.now()-started,job_milliseconds:Date.now()-jobStartedMs,
   checker_real_credentials_opened:false,native_parent_oauth_used:'EXPECTED_NOT_MEASURED',portable_applicability:'NOT_TESTED',agent_reuse:'NOT_TESTED',raw_transcript_retained:false,raw_stderr_retained:false};

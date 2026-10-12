@@ -6,7 +6,8 @@ import {renderNativeDiagnosticAssets,normalizedNativeDiagnosticAsset,nativeDiagn
 import {buildDiagnosticSettings,nativeDiagnosticArgv,nativeDiagnosticEnvironment,createNativeDiagnosticTrace,sanitizeCollection,diagnosticOutcome,collectNativeDiagnostic,requireNativeDiagnosticActivation,requireDiagnosticWorkflow,PINNED_READONLY_BASH_HEADS} from './acceptance/portable-claude-diagnostic.mjs';
 const bindings={base:'/private/tmp/redue-claude-diagnostic-Abc123',node:'/approved/runtime/bin/node'};
 const plan=buildDiagnosticSettings({...bindings,native:'/approved/native/claude'});
-const init={type:'system',subtype:'init',cwd:plan.assets.code,claude_code_version:'2.1.187',apiKeySource:'none',permissionMode:'dontAsk',tools:['Bash'],mcp_servers:[],plugins:[]};
+const sessionID='12345678-1234-4234-8234-123456789abc';
+const init={type:'system',subtype:'init',cwd:plan.assets.code,claude_code_version:'2.1.187',apiKeySource:'none',permissionMode:'dontAsk',tools:['Bash'],mcp_servers:[],plugins:[],session_id:sessionID};
 const id='toolu_01ABC123';
 const assistant=input=>({type:'assistant',parent_tool_use_id:null,message:{id:'msg_1',role:'assistant',content:[{type:'tool_use',name:'Bash',id,input:input??{command:plan.command,timeout:15000}}]}});
 const names=['custom_env_sentinel_absent','synthetic_protected_read_denied','synthetic_outside_write_denied','one_synthetic_socket_allowed','other_synthetic_socket_denied','owned_direct_loopback_denied'];
@@ -186,4 +187,24 @@ test('rejected API retry reports pinned categories and bounded protocol numbers 
  }
  const t=trace([init,{type:'system',subtype:'api_retry',error:'server_error',error_status:503,attempt:1,max_retries:2,retry_delay_ms:0},{type:'system',subtype:'api_retry',error:'authentication_failed',error_status:401,attempt:2,max_retries:2,retry_delay_ms:0}]);
  assert.equal(t.rejected_system_event.api_retry.http_status,503);
+});
+
+test('only exact bounded thinking progress in a validated native session is nonauthoritative transport data',()=>{
+ const progress={type:'system',subtype:'thinking_tokens',estimated_tokens:2.5,estimated_tokens_delta:1.25,uuid:'87654321-1234-4234-8234-123456789abc',session_id:sessionID};
+ const good=trace([init,progress,progress,assistant(),progress,result(),final]);
+ assert.equal(good.thinking_progress_events,3);assert.equal(diagnosticOutcome(good,complete).collection_status,'PASS');
+ assert.equal(Object.hasOwn(good,'estimated_tokens'),false);assert.equal(JSON.stringify(good).includes(sessionID),false);
+ assert.equal(diagnosticOutcome(trace([init,progress,final]),complete).collection_status,'UNKNOWN');
+ for(const bad of [{estimated_tokens:NaN},{estimated_tokens:Infinity},{estimated_tokens:-1},{estimated_tokens:1000001},{estimated_tokens:'PRIVATE_CANARY'},
+  {estimated_tokens_delta:-1},{estimated_tokens_delta:3},{estimated_tokens_delta:null},{uuid:'PRIVATE_CANARY'}, {session_id:'PRIVATE_CANARY'},
+  {session_id:'87654321-1234-4234-8234-123456789abc'}, {permissionMode:'PRIVATE_CANARY'},{extra:'PRIVATE_CANARY'}]){
+  const t=trace([init,{...progress,...bad},assistant(),result(),final]);assert.equal(t.error,'NATIVE_SYSTEM_CONTEXT_UNKNOWN');
+  assert.equal(diagnosticOutcome(t,complete).collection_status,'UNKNOWN');assert.equal(t.thinking_progress_events,0);assert.equal(JSON.stringify(t).includes('PRIVATE_CANARY'),false);
+ }
+ for(const events of [[progress,init,assistant(),result(),final],[{...init,session_id:undefined},progress,assistant(),result(),final],[init,assistant(),result(),final,progress],
+  [init,{type:'system',subtype:'hook_started'},progress,assistant(),result(),final],[init,{type:'system',subtype:'api_retry'},progress,assistant(),result(),final]]){
+  const t=trace(events);assert.equal(diagnosticOutcome(t,complete).collection_status,'UNKNOWN');assert.equal(t.thinking_progress_events,0);
+ }
+ const capped=trace([init,...Array(4097).fill(progress),assistant(),result(),final]);
+ assert.equal(capped.thinking_progress_events,4096);assert.equal(capped.error,'NATIVE_SYSTEM_CONTEXT_UNKNOWN');assert.equal(diagnosticOutcome(capped,complete).collection_status,'UNKNOWN');
 });
