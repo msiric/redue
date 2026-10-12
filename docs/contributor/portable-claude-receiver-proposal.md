@@ -1,22 +1,31 @@
 # Native Claude receiver authentication preparation
 
-Status: **DISABLED_PENDING_MATCHED_VM_GATES**. The data-only receiver proposal
-now requires the reviewed native2.1.187 distribution, SHA-256
-`a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3`.
-Its constructor does not inspect a binary or grant execution; activation still
-always refuses. Older2.1.146, other versions and nonmatching hashes are rejected.
-The actual owner-operated local187 manual-Bash synthetic check passed six checks,
-with supervisor-observed checker exit0 and final parent completion in11,047.1ms;
-[independent review](../acceptance/portable-boundary-review.md) records its narrow
-scope. This establishes that one local invocation, not matched-VM/model-tool
-behavior, real credential-body denial, hosted OAuth or agent reuse.
-The existing workflow remains secret-free and data-only. No hosted secret-bearing
-native receiver route has been enabled. Actual cross-agent/two-machine reuse,
-current caller-aware evidence and subscription capacity remain gates. Existing
-subscriptions are approved; additional spending is $0. D4 in
-[portable decisions](../plan/portable-evidence-decisions.md) records the explicit
-Copilot-producer/native-Claude-receiver amendment. Dated sections below retain
-prior observations and failed/unrun proposals without relabeling them.
+Status: **DISABLED_PENDING_MATCHED_RECIPIENT_GATES**. Native Claude2.1.187's
+[hosted synthetic diagnostic38257021786](https://github.com/msiric/redue/actions/runs/38257021786)
+passed all six named checks with genuine matching tool/result, independently
+collected socket results, checker/native exit0, live controls and final lifecycle/
+persistence. The strict frozen-print empty-sentinel criterion is specific to that
+diagnostic. It is not generic policy clearance, actual REDUE access or receiving-
+agent reuse, and does not activate this different recipient profile.
+
+The existing proposal remains data-only and activation always refuses. It now
+proposes only the exact selected REDUE synchronized-status and run commands;
+all reviewed native187 read-only Bash fallback families and Skill are denied.
+Removing pwd/ls/cat allows avoids conflicts with those deny families. This is a
+verification-obligation trial, not an ordinary arbitrary code-inspection/editing
+agent. No existing execution/profile/producer trust or model capacity is expanded.
+Runner/OIDC token names are also denied consistently with the diagnostic.
+Shared pinned native metadata is test-only; constructor inputs do not establish
+binary identity or native enforcement. No runtime/source receipt semantics change.
+
+Still required: concrete recipient/root/state/config/installed-prefix/probe
+boundary, physical/parent replacement controls, exact controlled guidance,
+current authenticated origin/trust and complete matched profile, in-boundary
+expected applicability and recipient subscription-included capacity. Copilot's
+Actions included-credit fact stays separate. Old expired artifacts cannot be
+substituted; no actual two-agent/two-machine handoff or G2 completion is claimed.
+The successful owner-local checker remains local only. All historical attempts,
+restrictions and $0 limits remain preserved; no publication or account action.
 
 ## Observed local route
 
