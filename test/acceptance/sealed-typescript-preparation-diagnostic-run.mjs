@@ -8,7 +8,7 @@ const methods=new Set(['lstatSync','openSync','fstatSync','readSync','writeSync'
 const exact=(o,keys)=>o&&typeof o==='object'&&!Array.isArray(o)&&Object.keys(o).length===keys.length&&keys.every(k=>Object.hasOwn(o,k));
 export function parsePreparationDiagnosticFrames(bytes){
  if(!(bytes instanceof Uint8Array)||bytes.length>PREPARATION_DIAGNOSTIC_LIMITS.bytes)fail();
- let text;try{text=new TextDecoder('utf8',{fatal:true}).decode(bytes);}catch{fail();}
+ let text;try{text=new TextDecoder('utf8',{fatal:true,ignoreBOM:true}).decode(bytes);}catch{fail();}
  if(!text)return [];if(!text.endsWith('\n'))fail();const lines=text.slice(0,-1).split('\n');
  if(lines.length>PREPARATION_DIAGNOSTIC_LIMITS.frames)fail();const frames=[];let previous=-1;
  for(const line of lines){let row;try{row=JSON.parse(line);}catch{fail();}
@@ -53,7 +53,7 @@ export function diagnoseSealedTypeScriptPreparation(options){
  const signals=new Set(SEALED_PREPARATION_SIGNALS),exit=Number.isInteger(child.status)&&child.status>=0&&child.status<=255?child.status:null;
  let frames=[],collection='UNKNOWN',bindingsCurrent=false,deadline='UNKNOWN',summaryValid=false;
  try{frames=parsePreparationDiagnosticFrames(child.stderr);collection=frames.length?'STRUCTURED_METRICS_ONLY':'MISSING';}catch{}
- try{const text=new TextDecoder('utf8',{fatal:true}).decode(child.stdout),out=JSON.parse(text);
+ try{const text=new TextDecoder('utf8',{fatal:true,ignoreBOM:true}).decode(child.stdout),out=JSON.parse(text);
   summaryValid=JSON.stringify(out)+'\n'===text&&exact(out,['schema','scope','outcome','frames','bytes','sealed','reuseEligible'])&&
    out.schema===1&&out.scope==='PREPARATION_DIAGNOSTIC_ONLY'&&out.outcome==='DATA_OPERATION_FINISHED_NOT_SEALED'&&
    out.frames===frames.length&&out.bytes===child.stderr.length&&out.sealed===false&&out.reuseEligible===false;
@@ -61,10 +61,11 @@ export function diagnoseSealedTypeScriptPreparation(options){
  try{bindingsCurrent=binding(p)===before;}catch{}
  try{remaining();deadline='WITHIN_LIMIT';}catch{deadline='EXCEEDED_OR_UNKNOWN';}
  // Raw stderr/stdout/spawn errors never leave this fixed diagnostic boundary.
+ const reaped=Number.isInteger(child.pid)&&child.pid>0&&(exit!==null||signals.has(child.signal));
  const result={schema:1,scope:'PREPARATION_DIAGNOSTIC_ONLY',outcome:'UNKNOWN',sealing:'NOT_TESTED',reuseEligible:false,
-  diagnosticOperationFinished:summaryValid&&exit===0&&!child.signal&&!child.error&&bindingsCurrent&&deadline==='WITHIN_LIMIT'&&frames.at(-1)?.final===true,
+  diagnosticOperationFinished:reaped&&summaryValid&&exit===0&&!child.signal&&!child.error&&bindingsCurrent&&deadline==='WITHIN_LIMIT'&&frames.at(-1)?.final===true,
   childExit:exit,childSignal:child.signal===null?null:signals.has(child.signal)?child.signal:'UNKNOWN_SIGNAL',
-  childReaped:Number.isInteger(child.pid)&&child.pid>0&&(exit!==null||signals.has(child.signal)),
+  childReaped:reaped,
   frames,collection,summaryValid,bindingsCurrent,deadline,elapsedMs:Number.isFinite(previous-started)?previous-started:null,
   profileSha256:p.sha256,code:p.code,partialStageDisposition:'RETAINED',compilerExecutions:0,models:0};
  const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};

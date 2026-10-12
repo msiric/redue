@@ -7,7 +7,7 @@ test('unknown fields/kinds, private strings, nonfinite or inconsistent values re
  for(const mutate of [r=>r.path='NONSECRET',r=>r.scope='other',r=>r.elapsedMs=-1,r=>r.stats.secret={},r=>r.stats.source.secret=[1,2,2,0,0],r=>r.stats.source.lstatSync=[1,2,3,0,0],r=>r.stats.source.lstatSync=[1,2,2,2,0],r=>r.stats.source.lstatSync=[1,2,2,0,'NONSECRET'],r=>r.stats.source.lstatSync=[1,2,2,0,5],r=>r.stats.source.lstatSync=[0,0,0,0,0]]){const r=row();mutate(r);assert.throws(()=>parsePreparationDiagnosticFrames(encode([r])),/DIAGNOSTIC_DATA_INVALID/);}
 });
 test('duplicates/malformed UTF8/extra frames/truncation and output limits refuse',()=>{
- const text=JSON.stringify(row());for(const bytes of [Buffer.from(text),Buffer.from(text.replace('"schema":1','"schema":1,"schema":1')+'\n'),Buffer.from([0xff]),Buffer.alloc(65537),encode(Array.from({length:33},row))])assert.throws(()=>parsePreparationDiagnosticFrames(bytes),/DIAGNOSTIC_DATA_INVALID/);
+ const text=JSON.stringify(row());for(const bytes of [Buffer.from(text),Buffer.concat([Buffer.from([0xef,0xbb,0xbf]),Buffer.from(text+'\n')]),Buffer.from(text.replace('"schema":1','"schema":1,"schema":1')+'\n'),Buffer.from([0xff]),Buffer.alloc(65537),encode(Array.from({length:33},row))])assert.throws(()=>parsePreparationDiagnosticFrames(bytes),/DIAGNOSTIC_DATA_INVALID/);
 });
 test('decreasing or vanished counters and frames following a final result refuse',()=>{
  const a=row(),b=row();b.elapsedMs=200;for(const mutate of [r=>r.elapsedMs=50,r=>r.stats.source.lstatSync=[0,0,0,0,0],r=>r.stats.source={},r=>a.final=true]){mutate(b);assert.throws(()=>parsePreparationDiagnosticFrames(encode([a,b])),/DIAGNOSTIC_DATA_INVALID/);a.final=false;b.elapsedMs=200;b.stats.source={lstatSync:[1,2,2,0,0]};}
