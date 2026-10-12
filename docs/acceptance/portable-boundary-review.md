@@ -3291,3 +3291,36 @@ apart from the pin. GO for preparation only: the consumed first hosted attempt
 remains UNKNOWN, and no additional job allowance, owner policy/source-fact update,
 dispatch, trust or native enforcement is established here. No native/model/CI
 operation was performed by this reviewer.
+
+### Second hosted capture and rejected-retry metadata
+
+Protected result38246645326, SHA-256
+`a7b6aed37e181b24069006edcfc2d7796f5dca5499f080b1bd7b073c21fe4952`,
+adds materially different evidence: native_init_validated:true and rejected
+api_retry AFTER_VALIDATED_INIT. Its source is ed4219aa…; no assistant message,
+tool ID, checker or protocol connection was observed. Native exit143/signal:null
+and successful live controls, source checks, reaping, listener cleanup and
+persistence remain separate. The result is still UNKNOWN. This establishes a
+native API-retry event, not a permission denial, billing/quota diagnosis or
+particular HTTP status. Category, status and retry counters were not retained in
+this historical attempt and cannot be filled retrospectively.
+
+Observation-only correction `85425a5ca5a1a1df8eb1c7e1f56ca7cd5405a107`, helper
+SHA-256 `7817ba1781640e915a852c2501e67c9a6279251efdce74a396cf9b2eb9eb1c80`,
+retains rejection/termination and adds only the first rejected api_retry's
+sanitized fields. Pinned187 F7r at198672601 yields exactly overloaded, rate_limit,
+authentication_failed, server_error or unknown; the emitter at210402872 supplies
+attempt, max_retries, retry_delay_ms, error_status and that enum. Unknown category
+values collapse to UNREVIEWED_CATEGORY. HTTP status is integer100..599 or null;
+retry numbers have finite integer bounds; malformed/out-of-bound numbers become
+UNAVAILABLE, not clamped or silently interpreted. No error text, message, URL,
+session ID or payload is retained. These are native-reported classifications,
+not independently measured transport status or an event-acceptance exception.
+
+Independent17/17 mocks pass (81.778625ms), plus75 pure differential/first-event
+cases against the prior helper. Original errors, outcomes and settings remain
+equal; private canaries are withheld, the first retry stays latched and a later
+retry cannot attach metadata to a different first rejected system event.
+Conclusion: GO for the observation-only correction. It supplies no additional
+native allowance, request outcome, enforcement, capacity or G2/G4 claim. No
+native/auth/model/CI/checker/listener operation occurred in this review.
