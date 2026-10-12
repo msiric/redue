@@ -1,13 +1,13 @@
 # Portable ancestor resolution boundary
 
-Current conclusion: the pinned public debugger project remains rejected with
-`PORTABLE_EXTERNAL_INPUT`. Its builtin compiler libraries are already inside the
-checkout. The first real raw-provider barrier missed a known transient; a fixed
-ROOT/OWNED comparison observed late delivery in both modes. No @3 interval
-authority or complete origin is enabled. Ancestor resolution absence and its
-continuous observation remain the boundary. This record proposes review scope; it
-does not enable a namespace, grant observation authority, or establish a released
-false-CURRENT defect.
+Current conclusion: ordinary portable qualification remains unsupported. Actual
+CI vnode test38295197761 missed visible mapped B→A changes while an already dirty
+MAP_SHARED mapping stayed open. Other fixed target cases passed; neither this
+result nor the earlier FSEvents results establish continuous origin completeness.
+Independent review also identifies missing support in unreleased @2 origin
+claims; [the current tracker](../plan/portable-evidence-tracker.md) records a
+focused portable-only refusal. Historical executions/imports remain intact.
+No wrapped false-CURRENT reproduction or released-version defect is asserted.
 
 ## Observed project and controlled result
 

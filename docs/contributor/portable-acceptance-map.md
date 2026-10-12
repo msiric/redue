@@ -1,6 +1,15 @@
 # Portable-evidence acceptance pointers
 
-Current conclusion, 2026-10-12: technical controls and one-machine installed
+Current conclusion: portable authoring/reuse is withheld under the unsupported
+origin-interval policy. Actual mapped-change fixture38295197761 and independent
+source review establish that endpoint/history checks are not a continuous origin
+basis for unrestricted @2, including noLib. Earlier matched-machine and installed
+results remain historical observations; they do not close current G1/G2/G3 or
+prepublicationG4. Conditional pure comparison tests do not mint a runtime
+capability. See the [current tracker](../plan/portable-evidence-tracker.md) and
+[independent review](../acceptance/portable-boundary-review.md).
+
+Historical conclusion,  2026-10-12: technical controls and one-machine installed
 relocation/upgrade and one live authenticated matched-machine CLI recipient are
 evidenced. Actual portable cross-agent/receiving-agent reuse is not established. This map identifies controls and missing proof; it does not
 promote test-source presence to a gate PASS. The integration tracker owns current

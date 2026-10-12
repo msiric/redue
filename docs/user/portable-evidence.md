@@ -206,29 +206,26 @@ a separate new outcome.
 
 ### Fresh local execution after an import
 
-An ordinary `redue run CHECK` still records the actual local PASS or FAIL. When
-accepted imports exist for that check, a newer selected local receipt without
-complete portable facts can remain `UNVERIFIED` with `PORTABLE_LOCAL_SELECTION_BARS_FALLBACK`.
-REDUE does not fall back to an older imported PASS to hide that local selection.
-A successful ordinary run is not silently converted into portable evidence.
-
-To deliberately establish a new local baseline for the existing configured
-compiler check, use the existing explicit capture option:
+An ordinary `redue run CHECK` still executes the exact configured command and
+records its actual local PASS or FAIL. It does not convert an old import into
+new evidence or replace immutable history. For example:
 
 ```sh
-redue --config redue.config.json run typecheck --portable
+redue --config redue.config.json run typecheck
 redue --config redue.config.json status --sync --json
 ```
 
-Preserve the selected config and any explicit `--state-dir DIR` on both commands;
-use the actual check name. This executes the same configured direct compiler,
-not npm or its lifecycle scripts. It adds portable validation at both execution
-boundaries and binds the accepted catalog being resolved, so recording has
-additional cost. A complete, fully observed PASS may resolve that catalog; changed
-inputs, unavailable observation, incomplete capture, trust or catalog changes can
-still withhold reuse. The subsequent caller-aware response must independently meet
-the normal eligibility requirements. Do not delete receipts, rewrite an old
-outcome, or repeat runs solely until the status turns green.
+Preserve the selected config and explicit `--state-dir DIR`; use the actual
+check name. Direct compiler execution is not npm/lifecycle execution.
+When accepted imports exist for that check, current synchronized applicability
+remains `UNVERIFIED` with `PORTABLE_ORIGIN_INTERVAL_UNSUPPORTED`. A fresh local
+PASS cannot establish the missing portable interval capability. `--portable`
+currently records incomplete capture and its reason; it does not perform or
+promise complete portable validation at both boundaries. Do not repeat runs,
+delete receipts or rewrite history to try to make this unsupported condition green.
+
+A future supported interval interpretation would require genuinely new evidence
+and recipient reevaluation; a restart or interpretation label cannot supply it.
 
 ## Explicit CI authentication (preparation, not live acceptance)
 

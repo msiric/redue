@@ -3,10 +3,72 @@
 Read canonical [REDUE-PE-001](portable-evidence.md),
 [tracker](portable-evidence-tracker.md), [decisions](portable-evidence-decisions.md)
 and [independent review](../acceptance/portable-boundary-review.md). Resume the
-existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree on `dev/portable-ordinary-boundary`;
+existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree on `fix/portable-origin-interval`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — vnode startup UNKNOWN; source correction under review
+## Current checkpoint — portable origin continuity withheld after actual mapped-input FAIL
+
+The reviewed fixed CI-only vnode successor [38295197761](https://github.com/msiric/redue/actions/runs/38295197761),
+source3768433fd3942fadc54e104cd639045baf18116c, completed all six cases.
+Read-only control stayed quiet; membership/ancestor create-delete, hardlink
+change/restore and root rename/restore produced their expected target hints.
+A MAP_SHARED mapping was already dirty before registration and remained open:
+the owned source bytes were observed as B and then restored to A, but the watched
+leaf count stayed1 and serial stayed3 at the final case drain. The leaf also
+stayed1 after root rename; only parent/root counts rose. Result FAIL, not UNKNOWN.
+Both child processes exited0/no signal/reaped/protocol-clean and owned cleanup
+completed; those lifecycle facts do not repair missing interval coverage.
+Private result `.local/portable-evidence/vnode-38295197761.json`, SHA256
+20b0ce266eb13ead254ff083851c5c945576a89e1358dd188dcf464b5bbefd39.
+Actual native17d58b9f/62680B, sourcef9141387; 2034.906ms is not economic timing.
+The earlier startup UNKNOWN38294279844 remains intact. No models or compiler
+verification ran in either native-guard fixture; native compilation is separate.
+
+Independent actual/source review c2c7b71+a8adfb5 extends the unsupported continuity
+concern to unrestricted unreleased @2 origins, including in-root/noLib inputs.
+Separate endpoint manifests/probes/history cannot establish every unreported
+mapped A→B→A during verification. This is NOT a wrapped false-CURRENT reproduction,
+a released-package defect, or a claim that historical signed executions were false.
+No further FSEvents/vnode retry or wait-as-authority is justified.
+
+Root now uses this same integration worktree on `fix/portable-origin-interval`,
+from preserved ordinary branch4deb137. Focused containment adc9a12+7a51686
+introduces an internal interval policy that currently admits no capability.
+New portable capture is incomplete with PORTABLE_ORIGIN_INTERVAL_UNSUPPORTED;
+accepted imports retain validated PASS/FAIL history but cannot authorize CURRENT.
+New/cached clients also withhold older observers' nested green decisions and
+recompute summaries. Ordinary configured execution/local contracts remain intact;
+other checks without accepted imports are not withdrawn. No schema mutation,
+old receipt edit, producer trust expansion, signing, publication or permissions change.
+Independent final containment review reports GO at7a51686:46/46 affected tests
+pass, including two real configured runs and normal observer restart; seven
+independent data/filesystem controls pass. No experimental collector or model
+was launched by the reviewer. Its scoped reviewa58acca is integrated;
+no main merge or goal readiness is implied.
+
+Actual local controlled runs now record true PASS and FAIL, preserve the first
+immutable run and select the later FAIL after restart (10/10 controls,4.31s).
+Conditional pure comparison/catalog/budget36/36 and repaired runtime-inspection/
+presentation19/19 pass separately. Prior shared run28/29 includes the retired
+caller-authority assertion failure; its affected real full/warm/independent/
+forged/malformed inspection controls remain positive after correction. Invalid
+state basename and overlong socket-path setup failures are retained and launched
+zero verification commands. Final receipt/client/ownership/unavailable-run/presentation regressions21/21
+pass56.05s, after the cached-field correction.
+No claims of portable qualification follow from these containment tests.
+
+Measured runtime comparison remains historical: warm median36.427→21.606s;
+cold37.602s still exceeds35s. The new refusal is NOT a faster supported reuse
+path or an economic improvement. Ordinary debugger remains unsupported. Fresh
+signing/model handoff waits for a sound origin basis; Copilot included Actions
+capacity is still a separate pending fact. Hosted Claude prerequisite is closed
+PASS within its six synthetic assertions; actual cross-agent reuse remains NOT_RUN.
+Alpha.11/frozen artifacts remain unpublished/unchanged. G1 origin completeness/G2/G3/prepublicationG4
+are incomplete. Day0=2026-10-10 21:24UTC and72h checkpoint are unchanged;
+Day14/28 forecast is conditional on a reviewed sound origin boundary and capacity,
+not reset or met by weakening gates. Unmeasured blocked duration is not invented.
+
+## Prior checkpoint — vnode startup UNKNOWN; source correction under review
 
 One fixed CI-only vnode fixture attempt [38294279844](https://github.com/msiric/redue/actions/runs/38294279844)
 used sourcee3c8c02fe5a575c5a0f9b8620beffc5029398522. It returned UNKNOWN before
