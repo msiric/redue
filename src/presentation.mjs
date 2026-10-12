@@ -49,5 +49,6 @@ export function renderRun(value) {
   else if(!value.coverage_qualified)lines.push('Applicability remains UNVERIFIED: input coverage is incomplete.');
   else if(!value.stable)lines.push('Applicability remains UNVERIFIED: inputs changed or observation was unavailable during execution.');
   else lines.push('Inspect redue status before reusing this evidence. Cached status may require --sync to establish applicability.');
+  if(value.portable_complete===false)lines.push('Portable origin is incomplete; this outcome cannot authorize imported reuse ('+value.portable_reason+').');
   return lines.join('\n');
 }

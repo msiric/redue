@@ -97,11 +97,13 @@ function actualProofControls(root){
  assert(full.runtimeCertificate);assert.deepEqual(warm.discovered,full.discovered);assert.deepEqual(warm.recipe,full.recipe);
  assert.equal(Object.hasOwn(full.discovered,'privateRuntimeCertificate'),false);
  const facts={recipe:full.recipe,runtime:full.discovered.runtime,compiler:full.discovered.compiler,discovery:full.discovered.discovery};
- assert.equal(portableCallerProof(plan),portableFactsProof(facts),'caller independently performs full inspection with the same proof');
+ const independent=portableProbeFacts(plan);
+ assert.deepEqual(independent.discovered,full.discovered,'independent full input/runtime inspection still matches');
+ assert.throws(()=>portableCallerProof(plan),{code:'PORTABLE_ORIGIN_INTERVAL_UNSUPPORTED'},'inspection is not supported origin authority');
  const corrupted=structuredClone(full.runtimeCertificate);corrupted.cache.content.files[0][1]='0'.repeat(64);
  const forged=portableProbeFacts(plan,{runtimeCertificate:corrupted});
  assert.notDeepEqual(forged.discovered,full.discovered,'low-level private transport is not an authentication mechanism');
- assert.notEqual(portableFactsProof({...facts,runtime:forged.discovered.runtime}),portableCallerProof(plan),
+ assert.notEqual(portableFactsProof({...facts,runtime:forged.discovered.runtime}),portableFactsProof({recipe:independent.recipe,...independent.discovered}),
   'independent caller content rejects fabricated daemon content; arbitrary writable records cannot grant reuse');
  const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!['NODE_TEST_CONTEXT','NODE_TEST_WORKER_ID'].includes(key)));
  const malformed=spawnSync(process.execPath,[probe,root,'typecheck','--redue-portable','--redue-private-runtime-certificate'],

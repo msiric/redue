@@ -32,13 +32,28 @@ export function decidePortableEvidence({check,facts,prerequisites,snapshot,local
   if(typeof check!=='string'||!check||!plain(snapshot)||!Array.isArray(snapshot.records)||
     snapshot.records.length>32||(typeof snapshot.revision!=='string'||!snapshot.revision)||snapshot.error)
     return decision('PORTABLE_CATALOG_UNAVAILABLE',{blockLocal:true});
-  if(prerequisites?.originIntervalSupported!==true)return decision(portableOriginIntervalReason,{blockLocal:true});
+  const seen=new Set();
+  function accepted(record){
+    if(typeof record.digest!=='string'||!HEX.test(record.digest)||seen.has(record.digest))throw Error();
+    seen.add(record.digest);const envelope=parseEnvelope(canonical(record.envelope));
+    if(envelope.digest!==record.digest)throw Error();return envelope.statement.predicate;
+  }
+  if(prerequisites?.originIntervalSupported!==true){
+    // Unsupported interpretation is not permission to erase accepted outcomes.
+    // Revalidate structure/integrity, then retain history only: no applicability,
+    // selected receipt, content equivalence or green authority is established.
+    for(const record of snapshot.records){
+      if(!['manual-digest-v1','github-ci-v1'].includes(record?.acceptance)||record.check!==check)continue;
+      try{historical.push(summary(record,accepted(record)));}
+      catch{return decision('PORTABLE_ACCEPTED_RECORD_INVALID',{blockLocal:true});}
+    }
+    return decision(portableOriginIntervalReason,{blockLocal:true});
+  }
   if(!plain(prerequisites)||['understood','observationHealthy','callerValidated','complete']
     .some(key=>prerequisites[key]!==true))return decision('PORTABLE_RECIPIENT_UNVERIFIED');
   let recipient;
   try{if(facts===null||!plain(facts))throw Error();recipient=canonical(facts);}
   catch{return decision('PORTABLE_RECIPIENT_FACTS_INVALID');}
-  const seen=new Set();
   for(const record of snapshot.records){
     // Inspection-only imports have no authority over either imported or local
     // evidence, including a failure asserted by an unaccepted producer.
@@ -47,13 +62,10 @@ export function decidePortableEvidence({check,facts,prerequisites,snapshot,local
     // as accepted records merely because an artifact contains them.
     if(!['manual-digest-v1','github-ci-v1'].includes(record?.acceptance))continue;
     if(record.check!==check)continue;
-    let envelope;
-    try{
-      if(typeof record.digest!=='string'||!HEX.test(record.digest)||seen.has(record.digest))throw Error();
-      seen.add(record.digest);envelope=parseEnvelope(canonical(record.envelope));
-      if(envelope.digest!==record.digest)throw Error();
-    }catch{return decision('PORTABLE_ACCEPTED_RECORD_INVALID',{blockLocal:true});}
-    const predicate=envelope.statement.predicate,entry=summary(record,predicate);
+    let predicate;
+    try{predicate=accepted(record);}
+    catch{return decision('PORTABLE_ACCEPTED_RECORD_INVALID',{blockLocal:true});}
+    const entry=summary(record,predicate);
     if(predicate.facts===null||!predicate.origin.complete){incomplete.push(entry);continue;}
     if(canonical(predicate.facts)!==recipient){historical.push(entry);continue;}
     applicable.push(entry);

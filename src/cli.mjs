@@ -373,7 +373,9 @@ async function execute() {
     timing('cli.receipt_reload',reloadStarted);
     const summary={check:name,result,target:target.status,
       invocation:invocation.status,...(invocation.errorCode?{error_code:invocation.errorCode}:{}),
-      stable,coverage_qualified:receipt.coverage.qualified};
+      stable,coverage_qualified:receipt.coverage.qualified,
+      ...(portableRequested?{portable_complete:receipt.portable.complete,
+        portable_reason:receipt.portable.reason,portable_interpretation:receipt.portable.interpretation}: {})};
     console.log(process.argv[5]==='--human'?renderRun(summary):JSON.stringify(summary));
     timing('cli.run_total',totalStarted,{stable:stable?1:0});
     process.exitCode=invocation.status==='exited'?invocation.exitCode:

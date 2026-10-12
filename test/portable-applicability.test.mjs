@@ -117,3 +117,14 @@ test('accepted record digest/schema mutation and wrong local-check mapping are c
   assert.equal(decide([record({check:'different'})]).reason,'PORTABLE_NO_ACCEPTED_EVIDENCE');
   assert.equal(decide([record()],{local:{present:true,result:'PASS'}}).reason,'PORTABLE_LOCAL_SELECTION_INVALID');
 });
+
+test('unsupported origin interpretation retains validated accepted PASS/FAIL history without selecting or matching it',()=>{
+ const pass=record(),fail=record({result:'FAIL'}),value=options([pass,fail]);
+ value.prerequisites.originIntervalSupported=false;
+ const result=decidePortableEvidence(value);
+ assert.equal(result.reason,'PORTABLE_ORIGIN_INTERVAL_UNSUPPORTED');assert.equal(result.freshness,'UNVERIFIED');
+ assert.equal(result.reuse_eligible,false);assert.equal(result.selected,null);assert.equal(result.result,null);
+ assert.deepEqual(result.applicable,[]);assert.deepEqual(result.historical.map(row=>row.origin.result),['PASS','FAIL']);
+ const malformed=clone(pass);malformed.digest='0'.repeat(64);
+ assert.equal(decidePortableEvidence({...value,snapshot:{...value.snapshot,records:[malformed]}}).reason,'PORTABLE_ACCEPTED_RECORD_INVALID');
+});

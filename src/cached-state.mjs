@@ -22,7 +22,9 @@ export function unavailableCached(state,reason,checks=[]) {
     const latest=receipts?.[row.name];
     return {...row,...(receipts?{result:latest?.result||null,invocation:latest?.invocation||null,
       target_provenance:latest?.target||null,coverage_at_run:latest?.coverage||null}:{}),
-      freshness:'UNVERIFIED',reason,reuse_eligible:false,declared_inputs_match:null};
+      freshness:'UNVERIFIED',reason,reuse_eligible:false,declared_inputs_match:null,
+      ...(row.portable_evidence?{portable_evidence:{...row.portable_evidence,
+        freshness:'UNVERIFIED',reuse_eligible:false,reason:'PORTABLE_RECIPIENT_UNVERIFIED'}}:{})};
   });
   return {...value,receipt_revision:revision,state:'unverified',current:0,stale:0,failed:0,
     observed_failed:rows.filter(row=>row.result==='FAIL').length,
