@@ -3239,3 +3239,40 @@ not retained. Available proxy-reader/startup rows are not a TypeScript-run cost
 profile. Original timeout phase/cause staysUNRESOLVED; no runtime correction,
 longer bound, weaker assertion, repeated job, native/model test or savings claim
 follows. Test diagnostics are opt-in; engine/bin and immutable receipts unchanged.
+
+### First hosted native diagnostic and static rejection classification
+
+Protected final evidence for run38242312293 records source
+`da0b1080f3edcc68f3d4067cb51f961759e68312`, pinned187/a59 and terminal job
+failure with collection/assertion/process UNKNOWN. The reason is
+NATIVE_SYSTEM_CONTEXT_UNKNOWN; native exit143 and signal:null are distinct
+observations. No assistant message, tool-use/result ID, checker report or probe
+connection was observed. Live controls, source currency, native reaping, listener
+cleanup and result persistence are true. This is a parser admission refusal,
+not demonstrated sandbox failure. The subtype and its phase were discarded, so
+neither the actual subtype nor validated-init timing can be recovered from this
+record. Zero assistant messages does not establish zero model requests. The
+approved hosted attempt was consumed; this review authorizes no retry.
+
+Classification-only correction `ed4219a` was independently reviewed against its
+parent975544e. Reviewed helper SHA-256 is
+`111e54cc2f76c1cb5c540fb266d606c712a521736e3ef0bc4ed75291ef31f683`;
+the precommit two-file patch digest is
+`be244bab998ea504a542e3beaeaba05ae755b1038def797a55d43568d8ff4f2a`.
+Committed helper/test bytes equal the independently tested copies. The new
+native_init_validated boolean and first rejected_system_event expose only a
+known subtype code plus BEFORE/AFTER_VALIDATED_INIT. All40 table names exactly
+match literal system-event emitters independently extracted from pinned public
+code in the193–211MB range. That finite literal search is not an exhaustive
+runtime schema or permission claim. Missing, malformed and unknown subtype
+values collapse to UNREVIEWED_SUBTYPE; payloads, arbitrary text and parameters
+are not retained. Classification never admits the event or clears its error.
+
+Independent16/16 pure/mock controls pass (75.6705ms). Ninety-two additional pure
+differential cases against the original da0 helper preserve every original
+snapshot field, error and outcome after removing the added static field. Settings
+are deeply equal, with no command, resource, credential, deadline or termination
+change. Known/unknown privacy canaries are withheld and the first classification
+remains latched. Conclusion: GO for the diagnostic-only correction, not a new
+native operation, model trial, event acceptance or retrospective cause claim.
+No native/auth/CI/listener/checker operation occurred in this review.
