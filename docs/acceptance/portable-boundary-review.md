@@ -5458,3 +5458,23 @@ bounded supervision/output and observed reaping remain required for the fixed
 read-only fixture. Native-agent enforcement, absence/alias topology equivalence,
 origin intervals, sealing and reuse stay unverified. In particular, sandbox
 outside-lookup EPERM cannot be silently reinterpreted as original ENOENT.
+
+
+## Fixed staged-compiler harness: unrun proposal countercases
+
+NO-GO for initial private harness SHA8acb16946c8a7a89fc867dd225b5c51bff1a8df4a2117ab0241fc8ee404bedc9.
+Four independent VM controls reproduced PASS after a30s deadline (elapsed30001ms),
+PASS after a reversed final clock (elapsed-1ms), failed-spawn/pid0 labeling as one
+compiler execution, and status74/no output labeling as compiler FAIL. Git source
+checks also had no remaining-budget timeout. These mocks passed4/4 in45.08ms;
+source inspection/currentness walks were mocked solely to isolate supervision.
+The initial mock import-stripper SyntaxError was a reviewer fixture failure,
+corrected before assertions; no actual child or compiler ran.
+
+The harness did not bind imported implementation/profile/manifest code before
+and after execution, nor perform the promised fresh full original-source
+manifest comparison. Require those checks, validated monotonic budget through
+finalization/persistence and truthful dispatch/observed-exit fields. Ambiguous
+sandbox/Node startup failure stays UNKNOWN rather than typecheck FAIL. Keep the
+30s bound; fresh full validation cost is observable and must not be hidden.
+This finding does not invalidate the separate2d39c87 constructor source GO.
