@@ -44,18 +44,58 @@ controls and the separate hung-history/stop control pass. C independently review
 the exact three-file diff, all76 direct assertions unchanged, four pure controls
 PASS. These are test mechanics, not native or model behavior.
 
-Next: commit this reviewed fixture correction, push only the preparation branch,
-and inspect CI for that revision. No runtime/bin, signing, trust, credentials,
-receipts or stable installations change. Storage audit44active artifacts uses
-4,461,410bytes; one224KiB reservation gives4,690,786bytes <confirmed10MiB,
-with one-day retention. Never retry the same failure merely to obtain green.
+Fixture correction93568c4 plus independent review8b892be/root359916f was normally
+pushed only to preparation. Product38187537676 all four jobs PASS: macOS
+463PASS/27skip, Linux22/24 each451PASS/39skip, native Windows314PASS/176skip,
+490tests per job and zero failures. Exact package38187537672 all three jobs PASS,
+sourceba482a8 tree equal359916f and independently downloaded tarball SHA-256
+b8122c3b unchanged. No old failed attempt is erased and no deeper timeout-cause
+claim follows. No runtime/bin, signing, trust, credentials, receipts or stable
+installations change. Storage audit44active artifacts uses4,461,410bytes; one
+224KiB reservation gives4,690,786bytes <confirmed10MiB, with one-day retention.
 
+The held-stable recipient phase is integrated from B00e1ccb/39b1cdb/57c4a1c
+(rootd913d05/b1463e5/6e7310d). It preserves the legacy unrelated/restart/relevant-
+edit entrypoint. Preparation finishes before observer/import/baseline; failed
+preconditions invoke no supervisor. Raw and physical config/runtime/owner/registry/
+CLI bindings are checked before/after queries and before success; detected failures
+latch across catch/restore. Final success does not demand CURRENT after deliberate
+source edits. Its300s callback budget is cooperative; existing synchronous child
+120s limits and cleanup can delay timers. It is not arbitrary-JS preemption or
+callback-child reaping. Strict cleanup needs stop ok:true plus lock absence;
+unsafe CLI changes/cleanup failure cannot produce closed success. No general
+executor, CLI orphan mode, model launch or new trust is introduced.
+
+C independently reviewed154/154 synthetic controls and retained the pre-fix final-
+read deadline counterexample. Reviewf6681d5 is integrated as2c4de56. The proposed
+native profile now adds only exact public-config/runtime/owner-marker write
+protections (D5414fec/root22dcea1; C4d8849d/root04cea8c), with unchanged grants,
+activation always refused and explicit native parent-replacement blocker. Author
+8controls and reviewer7purecontrols pass. Root's six affected suites pass123/123
+on pinnedNode22.13.0, including ordinary CLI preserving declaration bytes and
+physical identities without running a configured check. These are fixtures and
+CLI compatibility, not native enforcement/authenticated import/model acceptance.
+
+Preparation branch sync/checks follow coherent review; no signer/main merge or
+publication. Codex acceptance is independent: D is checking current local binary,
+subscription route and reusable owned same-machine fixture/no-model sandbox
+preflight under existing development scope. Historical torn-down fixtures or
+debugger receipts cannot count. Do not launch a model or grant new access from
+inventory, settings existence or old startup success.
 The signed data-only origin artifact expired at2026-10-11 23:56:31UTC; retained
 prior authentication/machine evidence remains valid historical acceptance, but
 an expired artifact must not be substituted or silently re-signed for a new trial.
 Copilot Actions four-credit included-capacity fact remains pending; no unchanged
-request is repeated. A secret-bearing native hosted route is not enabled; prepare
-its exact supported boundary before asking for provisioning. Model gates remain
+request is repeated. C source review confirms manual native187 `!` shares the
+model Bash sandbox executor but bypasses its command-permission dispatch: the
+local PASS cannot prove model allowlist enforcement or a different VM boundary.
+No reviewed supported noninteractive native no-model route is established, and
+the approved hosted workflow offers no console. A single specific owner question
+requests an existing console-capable receiver VM, only with the full producer
+profile independently matched and $0 added cost; otherwise G2 remains blocked
+on that capability. No SSH/tmate/controller, SDK substitute or inference-as-
+preflight is introduced. A secret-bearing native hosted route is not enabled;
+prepare its exact supported boundary before asking for provisioning. Model gates remain
 fail-closed. G2/finalG3/G4 are incomplete, not release-ready; publication pending.
 Day0/72h calibration and all scope/security/$0 limits are unchanged.
 
