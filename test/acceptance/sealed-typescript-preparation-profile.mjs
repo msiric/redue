@@ -46,6 +46,7 @@ export function sealedPreparationProfile(options){
 (deny default)
 (allow sysctl-read)
 (allow process-exec (literal ${quote(node)}))
+(allow file-read* (literal "/"))
 (allow file-read-metadata ${literals(metadata)})
 (allow file-read* (subpath ${quote(source)}) (subpath ${quote(parent)})
   ${literals([node,...files])}
