@@ -1,0 +1,30 @@
+name: Portable evidence storage-free profile preflight
+on:
+  pull_request:
+    paths: ['src/portable*', 'test/acceptance/portable-runner-preflight.mjs', '.github/workflows/portable-preflight.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: portable-preflight-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  profile:
+    strategy:
+      fail-fast: false
+      matrix:
+        role: [producer, receiver]
+    runs-on: macos-26
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22.13.0'
+      - run: npm ci --no-audit --no-fund
+      - name: Inventory this independent standard runner
+        run: node test/acceptance/portable-runner-preflight.mjs ${{ matrix.role }}
+      # No upload, cache, signing, model credentials or accepted-producer change.
+      # The two logs establish profiles, never independent-machine eligibility.

@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {processAlive} from './process-liveness.mjs';
+import {readPortableCatalog} from './portable-catalog.mjs';
 import {readReceipts,readReceiptSnapshot,receiptRevision} from './state-store.mjs';
 const unknown=(reason,checks)=>({schema:1,state:'unverified',current:0,stale:0,failed:0,observed_failed:0,
   unverified:checks.length,
@@ -27,8 +28,14 @@ export function unavailableCached(state,reason,checks=[]) {
     unverified:Math.max(1,rows.length),checks:rows,
     observation:{...value.observation,healthy:false,reason}};
 }
-export function readCachedStatus(state,checks=[]) {
+export function readCachedStatus(state,checks=[],expected) {
   try{const value=JSON.parse(fs.readFileSync(path.join(state,'status.json')));
+    const catalog=readPortableCatalog(state,expected);
+    if(catalog.error||catalog.revision!=='none'&&value.portable_revision!==catalog.revision)
+      return unavailableCached(state,'portable evidence selection or trust is unconfirmed; synchronize or restart an older observer',checks);
+    // Cached inspection never establishes caller-aware portable applicability.
+    if(value.checks?.some(row=>row.evidence_source==='imported'))
+      return unavailableCached(state,'imported evidence requires caller-aware synchronized applicability',checks);
     if(typeof value.receipt_revision!=='string')
       return unavailableCached(state,'receipt selection is unconfirmed; synchronize status or restart an older observer',checks);
     if(value.receipt_revision!==receiptRevision(state))

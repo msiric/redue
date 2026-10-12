@@ -7,7 +7,7 @@ import {timing} from './decision-profile.mjs';
 const require=createRequire(import.meta.url),hash=value=>createHash('sha256').update(value).digest('hex');
 const digestFile=file=>hash(fs.readFileSync(file));
 const fail=code=>{throw Object.assign(Error(code),{code});};
-export function typeScriptInputFacts(root,tsRoot,tsc){
+export function typeScriptInputFacts(root,tsRoot,tsc,{portable=false}={}){
   const configReads=new Set(),visited=new Set();
   let ts;try{ts=require(tsRoot);}catch{}
   if(typeof ts?.getParsedCommandLineOfConfigFile==='function'){
@@ -48,7 +48,7 @@ export function typeScriptInputFacts(root,tsRoot,tsc){
   for(const file of configReads)if(!within(realObservedPath(file),root))
     fail('typescript-config-outside-repository');
   const listingStarted=performance.now();
-  const captured=process.argv.includes('--redue-checkpoint')?compilerFiles(tsRoot,root):null;
+  const captured=portable||process.argv.includes('--redue-checkpoint')?compilerFiles(tsRoot,root):null;
   const listed=captured?{status:0,stdout:captured.files.join('\n')}:spawnSync(process.execPath,[tsc,'--noEmit','--listFilesOnly'],
     {cwd:root,env:process.env,encoding:'utf8',timeout:process.platform==='win32'?10000:4000,
       maxBuffer:16*1024*1024,
@@ -60,6 +60,7 @@ export function typeScriptInputFacts(root,tsRoot,tsc){
     .map(file=>path.resolve(file));
   if(!files.length||files.some(file=>!within(realObservedPath(file),root)))
     fail('typescript-input-outside-repository');
-  return {configs:[...configReads].sort().map(file=>[hash(file),digestFile(file)]),
-    files:[...new Set(files)].sort().map(file=>[hash(file),digestFile(file)]),queries:captured?.queries};
+  const name=file=>portable?path.relative(root,file).split(path.sep).join('/'):hash(file);
+  return {configs:[...configReads].sort().map(file=>[name(file),digestFile(file)]),
+    files:[...new Set(files)].sort().map(file=>[name(file),digestFile(file)]),queries:captured?.queries};
 }

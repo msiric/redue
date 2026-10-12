@@ -1,0 +1,125 @@
+# Approved bounded validation: reviewed unsigned controlled two-VM mechanics.
+# No OIDC, signer, producer trust policy or model acceptance in this workflow.
+name: Controlled portable evidence across two VMs
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: redue-portable-machine-mechanics
+  cancel-in-progress: false
+jobs:
+  producer:
+    if: github.repository == 'msiric/redue' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/dev/portable-evidence'
+    runs-on: macos-26
+    timeout-minutes: 20
+    outputs:
+      artifact_id: ${{ steps.transfer.outputs.artifact-id }}
+      package_sha256: ${{ steps.prepare.outputs.package_sha256 }}
+      evidence_digest: ${{ steps.produce.outputs.evidence_digest }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.13.0'
+      - name: Install and pack this exact source
+        id: prepare
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          npm ci --no-audit --no-fund
+          mkdir -m 700 "$RUNNER_TEMP/redue-machine-package"
+          npm pack --json --pack-destination "$RUNNER_TEMP/redue-machine-package" > "$RUNNER_TEMP/redue-machine-pack.json"
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import path from 'node:path';import {createHash} from 'node:crypto';
+          const temp=process.env.RUNNER_TEMP,pack=JSON.parse(fs.readFileSync(path.join(temp,'redue-machine-pack.json')));
+          if(pack.length!==1||path.basename(pack[0].filename)!==pack[0].filename)throw Error('Unexpected pack identity');
+          const file=fs.realpathSync(path.join(temp,'redue-machine-package',pack[0].filename)),digest=createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+          fs.appendFileSync(process.env.GITHUB_ENV,`MACHINE_TARBALL=${file}\nMACHINE_PACKAGE_SHA256=${digest}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,`package_sha256=${digest}\n`);
+          JS
+      - name: Real installed producer execution and export
+        id: produce
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -m 700 "$RUNNER_TEMP/redue-machine-transfer"
+          TRANSFER_DIR=$(node -e 'console.log(require("fs").realpathSync(process.argv[1]))' "$RUNNER_TEMP/redue-machine-transfer")
+          node test/acceptance/portable-machine.mjs --role producer --tarball "$MACHINE_TARBALL" --sha256 "$MACHINE_PACKAGE_SHA256" --source "$GITHUB_SHA" --output "$TRANSFER_DIR" > "$RUNNER_TEMP/redue-machine-producer.json"
+          cat "$RUNNER_TEMP/redue-machine-producer.json"
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import path from 'node:path';
+          const temp=process.env.RUNNER_TEMP,report=JSON.parse(fs.readFileSync(path.join(temp,'redue-machine-producer.json')));
+          if(!/^[a-f0-9]{64}$/.test(report.evidence_digest)||report.models_launched!==0)throw Error('Failed producer gate');
+          // Payload <=2MiB; at most two known files. Reserve ZIP overhead well below
+          // owner-approved 10MiB total storage. No final/signer archive exists here.
+          const dir=path.join(temp,'redue-machine-transfer'),files=['manifest.json','redue-portable-evidence.json'];
+          if(fs.readdirSync(dir).sort().join('|')!==files.join('|'))throw Error('Unexpected transfer content');
+          const size=files.reduce((total,file)=>total+fs.statSync(path.join(dir,file)).size,0);
+          if(size>2*1024*1024)throw Error('Reserved storage budget exceeded');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,`evidence_digest=${report.evidence_digest}\n`);
+          JS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        id: transfer
+        with:
+          name: portable-machine-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/redue-machine-transfer/manifest.json
+            ${{ runner.temp }}/redue-machine-transfer/redue-portable-evidence.json
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: false
+          compression-level: 0
+  receiver:
+    needs: producer
+    if: github.repository == 'msiric/redue' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/dev/portable-evidence'
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.13.0'
+      - name: Independently install and pack identical source
+        shell: bash
+        env:
+          EXPECTED_PACKAGE_SHA256: ${{ needs.producer.outputs.package_sha256 }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          npm ci --no-audit --no-fund
+          mkdir -m 700 "$RUNNER_TEMP/redue-machine-package"
+          npm pack --json --pack-destination "$RUNNER_TEMP/redue-machine-package" > "$RUNNER_TEMP/redue-machine-pack.json"
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import path from 'node:path';import {createHash} from 'node:crypto';
+          const temp=process.env.RUNNER_TEMP,pack=JSON.parse(fs.readFileSync(path.join(temp,'redue-machine-pack.json')));
+          if(pack.length!==1||path.basename(pack[0].filename)!==pack[0].filename)throw Error('Unexpected pack identity');
+          const file=fs.realpathSync(path.join(temp,'redue-machine-package',pack[0].filename)),digest=createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+          if(digest!==process.env.EXPECTED_PACKAGE_SHA256)throw Error('Independent package bytes differ: no recipient installation/check');
+          fs.appendFileSync(process.env.GITHUB_ENV,`MACHINE_TARBALL=${file}\nMACHINE_PACKAGE_SHA256=${digest}\n`);
+          JS
+      - name: Require exactly one producer artifact ID
+        env:
+          SELECTED_ARTIFACT_ID: ${{ needs.producer.outputs.artifact_id }}
+        run: node -e 'if(!/^[1-9][0-9]{0,15}$/.test(process.env.SELECTED_ARTIFACT_ID||""))throw Error("Missing or ambiguous producer artifact ID")'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: ${{ needs.producer.outputs.artifact_id }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/redue-machine-transfer
+      - name: Explicit controlled-fixture acceptance and local reevaluation
+        shell: bash
+        env:
+          CONTROLLED_EVIDENCE_DIGEST: ${{ needs.producer.outputs.evidence_digest }}
+        run: |
+          set -euo pipefail
+          chmod 700 "$RUNNER_TEMP/redue-machine-transfer"
+          TRANSFER_DIR=$(node -e 'console.log(require("fs").realpathSync(process.argv[1]))' "$RUNNER_TEMP/redue-machine-transfer")
+          node test/acceptance/portable-machine.mjs --role receiver --tarball "$MACHINE_TARBALL" --sha256 "$MACHINE_PACKAGE_SHA256" --source "$GITHUB_SHA" --input "$TRANSFER_DIR" --controlled-accept-digest "$CONTROLLED_EVIDENCE_DIGEST"

@@ -21,6 +21,9 @@ import {atomicJson,commitReceipt,receiptRevision} from './state-store.mjs';
 import {timing,profiling,mark,traceContext} from './decision-profile.mjs';
 import {readCachedStatus,unavailableCached} from './cached-state.mjs';
 import {renderRun} from './presentation.mjs';
+import {readPortableCatalog,portableCatalogMatches} from './portable-catalog.mjs';
+import {capturePortableFacts,portableCallerProof,samePortableFacts,portableInterpretation} from './portable-facts.mjs';
+import {createPortableBudget,portableDecisionDeadlineMs} from './portable-budget.mjs';
 
 mark('cli.loaded');
 const here=path.dirname(fileURLToPath(import.meta.url));
@@ -148,7 +151,7 @@ async function decisionCall(message,timeout) {
     return value;
   }
 }
-const cached=()=>readCachedStatus(state,config.checks);
+const cached=()=>readCachedStatus(state,config.checks,{configFile,root});
 async function testRunBoundary(phase) {
   if(process.env.VSTATE_TEST_FAULTS!=='1'||process.env.VSTATE_TEST_RUN_BOUNDARY!==phase)return;
   const release=path.join(state,'test-run-release');
@@ -156,6 +159,14 @@ async function testRunBoundary(phase) {
   const until=Date.now()+5000;
   while(!fs.existsSync(release)&&Date.now()<until)await new Promise(resolve=>setTimeout(resolve,10));
   if(!fs.existsSync(release))throw Error('test run boundary was not released');
+}
+async function testPortableCallerBoundary(phase) {
+  if(process.env.VSTATE_TEST_FAULTS!=='1'||process.env.VSTATE_TEST_PORTABLE_CALLER_BARRIER!==phase)return;
+  const release=path.join(state,'test-portable-caller-release');
+  fs.writeFileSync(path.join(state,'test-portable-caller-paused'),phase);
+  const until=Date.now()+5000;
+  while(!fs.existsSync(release)&&Date.now()<until)await new Promise(resolve=>setTimeout(resolve,10));
+  if(!fs.existsSync(release))throw Error('portable caller test boundary was not released');
 }
 async function execute() {
   const totalStarted=performance.now();
@@ -250,6 +261,14 @@ async function execute() {
     }
     const snap=before?.snapshots?.[name];
     if(!snap||!snap.observationHealthy)captureIssues.push('start checkpoint unavailable');
+    const portableRequested=process.argv.includes('--portable');
+    // Persisted plans intentionally replace argv with identities. Bind the real
+    // already-validated selected argv back only for this owned capture.
+    const portablePlan={...plan,command,probes:selected.probes||[]};
+    const portableCatalogStart=portableRequested?readPortableCatalog(state,{configFile,root}):null;
+    let portableStart=null,portableEnd=null,portableIssue=null;
+    if(portableRequested)try{portableStart=capturePortableFacts(portablePlan,snap,environmentBefore,createPortableBudget());}
+    catch(error){portableIssue=error.code||'PORTABLE_CAPTURE_UNAVAILABLE';}
     await testRunBoundary('before-launch');
     const started=Date.now(),executionStarted=performance.now();
     const invocation=await new Promise(resolve=>{
@@ -294,6 +313,11 @@ async function execute() {
     const afterContextStarted=performance.now(),environmentAfter=contextHashes()[name];
     timing('cli.context_after',afterContextStarted);
     const probeAfter=unobservedDirectRun?null:((callerCertificate?validateDirectRunCertificate(plan,selected,before?.snapshots?.[name]):null)??probeHash(probePlan));
+    // Portable discovery is inside the same observed interval. The final
+    // checkpoint must include events caused during this validation too.
+    if(portableRequested)try{portableEnd=capturePortableFacts(portablePlan,snap,environmentAfter,createPortableBudget());}
+    catch(error){portableIssue=error.code||'PORTABLE_CAPTURE_UNAVAILABLE';}
+    if(portableRequested)await testRunBoundary('after-portable-validation');
     const endSnapshotStarted=performance.now();
     if(!unobservedDirectRun){
       try{after=await call({action:'snapshot',name,contextHashes:contextHashes()},captureTimeout);}
@@ -301,9 +325,15 @@ async function execute() {
       timing('cli.end_checkpoint',endSnapshotStarted,{available:after?.snapshots?.[name]?1:0});
     }
     const end=after?.snapshots?.[name];
+    // The end index must cover exactly the manifest validated inside the
+    // interval; never fill a missing portable measurement after the boundary.
+    if(portableEnd&&end?.files&&JSON.stringify(snap.files)!==JSON.stringify(end.files))
+      portableIssue='PORTABLE_BOUNDARY_CHANGED';
     if(!unobservedDirectRun&&(!end||!end.observationHealthy))captureIssues.push('end checkpoint unavailable');
     if(JSON.stringify(environmentBefore)!==JSON.stringify(environmentAfter))
       captureIssues.push('declared environment changed during execution');
+    if(portableRequested&&JSON.stringify(environmentBefore)!==JSON.stringify(contextHashes()[name]))
+      captureIssues.push('declared environment changed during portable validation');
     if(!unobservedDirectRun&&(!probeBefore||!probeAfter||probeBefore!==snap?.probeHash||probeAfter!==end?.probeHash))
       captureIssues.push('declared state probe unavailable or changed');
     if(before?.observation?.generation!==after?.observation?.generation)
@@ -315,6 +345,9 @@ async function execute() {
     if(!snap||!end||snap.planId!==end.planId||snap.fingerprint!==end.fingerprint||
       snap.revision!==end.revision)captureIssues.push('declared inputs changed or were not observed');
     const stable=captureIssues.length===0;
+    const portableCatalogEnd=portableRequested?readPortableCatalog(state,{configFile,root}):null;
+    const resolvedCatalogRevision=portableRequested&&!portableCatalogStart.error&&!portableCatalogEnd.error&&
+      portableCatalogStart.revision===portableCatalogEnd.revision?portableCatalogStart.revision:null;
     const receipt={result,invocation,target,stable,fingerprintVersion:1,
       resolutionLinks:plan.resolutionLinks||[],
       coverage:{qualified:plan.unresolved.length===0,unresolved:plan.unresolved},
@@ -326,6 +359,9 @@ async function execute() {
       planId:snap?.planId??plan.id,fingerprint:snap?.fingerprint??null,
       provider:plan.provider,environmentHashes:environmentBefore,
       ...(observedContext?{observedContext,verificationRecipe:directInterpretation}:{}),
+      ...(portableRequested?{portable:{schema:1,interpretation:portableInterpretation,
+        complete:invocation.status==='exited'&&['PASS','FAIL'].includes(result)&&!portableIssue&&stable&&plan.unresolved.length===0&&samePortableFacts(portableStart,portableEnd),
+        facts:portableStart,resolvedCatalogRevision,reason:portableIssue||(!samePortableFacts(portableStart,portableEnd)?'PORTABLE_BOUNDARY_CHANGED':null)}}:{}),
       files:snap?.files??null,observerGeneration:before?.observation?.generation??null,
       startRevision:snap?.revision??null,endRevision:end?.revision??null};
     const persistenceStarted=performance.now();
@@ -433,11 +469,40 @@ async function main(){
       timing('cli.direct_context',started,{interpretation:directInterpretation,
         observedNpmDigest:observedNpmContext(),proxyShapes});
     }
-    let value;try{value=await decisionCall({action:'sync',contextHashes:contextHashes()},
-      Number(process.env.VSTATE_SYNC_TIMEOUT_MS||decisionDeadlineMs));
+    const catalog=readPortableCatalog(state,{configFile,root}),portableProofs={};
+    const needsPortableProof=!catalog.error&&catalog.records.some(record=>record.acceptance!=='untrusted');
+    let value;try{
+    // The content projection may replace physical executable identity only
+    // after proof and request context have been bound to one stable caller
+    // interval. Preserve the raw local identity throughout that interval.
+    const callerBefore=contextHashes();
+    if(needsPortableProof){
+      // All selected imported checks share one finite caller inspection budget.
+      // Expired checks get no proof; no imported payload chooses the deadline.
+      const portableBudget=createPortableBudget();
+      const plans=JSON.parse(fs.readFileSync(path.join(state,'plans-v1.json'))).plans;
+      for(const selected of config.checks){
+        const plan=plans[selected.name];
+        if(catalog.records.some(record=>record.check===selected.name&&record.acceptance!=='untrusted'))try{
+          if(plan?.selectedConfigHash!==digest(JSON.stringify(selected)))throw Error('configuration mismatch');
+          portableProofs[selected.name]=portableCallerProof({...plan,command:selected.command,probes:selected.probes||[]},portableBudget);
+        }catch{portableProofs[selected.name]=null;}
+      }
+    }
+    if(needsPortableProof)await testPortableCallerBoundary('after-proof');
+    const callerRequest=contextHashes();
+    if(needsPortableProof&&JSON.stringify(callerBefore)!==JSON.stringify(callerRequest))
+      throw Object.assign(Error('caller context changed during portable proof; no reuse is authorized'),{code:'PORTABLE_CALLER_CONTEXT_CHANGED'});
+    value=await decisionCall({action:'sync',contextHashes:callerRequest,portableProofs},
+      Number(process.env.VSTATE_SYNC_TIMEOUT_MS||(needsPortableProof?portableDecisionDeadlineMs:decisionDeadlineMs)));
+    if(needsPortableProof)await testPortableCallerBoundary('before-publication');
+    if(needsPortableProof&&JSON.stringify(callerBefore)!==JSON.stringify(contextHashes()))
+      throw Object.assign(Error('caller context changed during synchronized evaluation; no reuse is authorized'),{code:'PORTABLE_CALLER_CONTEXT_CHANGED'});
       // A client upgrade can encounter an older running observer. Its successful
       // control response does not establish that it evaluated the latest receipt.
-      if(value.receipt_revision===null){
+      if(!portableCatalogMatches(state,{configFile,root},value.portable_revision??(catalog.revision==='none'?'none':null))){
+        value=unavailableCached(state,'portable evidence selection changed or observer requires restart; no reuse is authorized',config.checks);process.exitCode=2;
+      }else if(value.receipt_revision===null){
         value=unavailableCached(state,'latest receipt selection unavailable; inspect receipt state before reuse',config.checks);
       }else if(typeof value.receipt_revision!=='string'){
         value=unavailableCached(state,'observer cannot confirm latest receipt selection; stop and start the observer after upgrading',config.checks);
@@ -446,7 +511,9 @@ async function main(){
         value=unavailableCached(state,'receipt selection changed during synchronization; retry synchronized status',config.checks);
         process.exitCode=2;
       }}
-    catch(e){value=unavailableCached(state,e.message,config.checks);process.exitCode=2;}
+    catch(e){value=unavailableCached(state,e.message,config.checks);
+      if(e.code==='PORTABLE_CALLER_CONTEXT_CHANGED')value.checks=value.checks.map(row=>({...row,reason_code:e.code}));
+      process.exitCode=2;}
     timing('cli.synchronized_status',started,{available:value.observation?.healthy?1:0});
     if(action==='sync')console.log(JSON.stringify(value));
     else for(const row of value.checks)console.log(`${row.name}: ${row.freshness}/${row.result||'NO RESULT'} — ${row.reason}`);

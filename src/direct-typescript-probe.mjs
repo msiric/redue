@@ -7,6 +7,8 @@ import {realObservedPath} from './path-identity.mjs';
 import path from 'node:path';
 import {queriesMatch} from './typescript-list.mjs';
 import {timing,mark} from './decision-profile.mjs';
+import {portableDiscovery} from './portable-facts.mjs';
+import {portableRuntime} from './portable-runtime.mjs';
 const hash=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 try{
   const [rootArg,script]=process.argv.slice(2),root=realObservedPath(rootArg);
@@ -15,6 +17,17 @@ try{
   const implementationStarted=performance.now();
   const compiler=directProject(root,script);
   timing('direct_probe.implementation',implementationStarted,{version:compiler.version});
+  if(process.argv.includes('--redue-portable')){
+    const runtimeStarted=performance.now();mark('portable_probe.runtime_start');
+    const runtime=portableRuntime();timing('portable_probe.runtime_complete',runtimeStarted);
+    const discoveryStarted=performance.now();mark('portable_probe.discovery_start');
+    const facts=typeScriptInputFacts(root,compiler.tsRoot,compiler.entry,{portable:true});
+    timing('portable_probe.discovery_complete',discoveryStarted,{queries:facts.queries.length});
+    process.stdout.write(JSON.stringify({schema:1,runtime,
+      compiler:{version:compiler.version,sha256:compiler.digest,entry:path.relative(root,compiler.entry).split(path.sep).join('/')},
+      discovery:portableDiscovery(root,facts)}));
+    process.exit(0);
+  }
   const context={interpretation:directInterpretation,compiler:compiler.digest,
     entry:compiler.entry,node:[realObservedPath(process.execPath),process.version]};
   const contextHash=hash(context);
@@ -53,4 +66,4 @@ try{
     const {queries,...inputs}=typeScriptInputFacts(root,compiler.tsRoot,compiler.entry);
     probeResult(hash({root,script,...inputs,...context}),contextHash,queries);
   }
-}catch(e){console.error(`VSTATE_REASON:${e.code&&/^[a-z-]+$/.test(e.code)?e.code:'typescript-contract-unavailable'}`);process.exitCode=2;}
+}catch(e){console.error(`VSTATE_REASON:${e.code&&(/^[a-z-]+$/.test(e.code)||process.argv.includes('--redue-portable')&&/^PORTABLE_[A-Z_]+$/.test(e.code))?e.code:'typescript-contract-unavailable'}`);process.exitCode=2;}
