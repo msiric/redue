@@ -4717,3 +4717,71 @@ separate release preparation. This containment supplies no sound-origin route,
 G2 acceptance, G4 completion, cold-latency fix, or publication authority. Existing
 native fixture failures and prior signed/package outcomes remain historical;
 no wrapped released false-CURRENT claim is introduced.
+
+## Approved sealed-input recipe: narrow enforcement design review
+
+The owner subsequently approved bounded work on an explicit sealed-input recipe.
+This record is a source/design review before any new profile application or run;
+it supplies no working seal, native admission or current evidence claim. Existing
+portable origin containment remains necessary.
+
+The current disabled Claude recipient proposal writes to checkout and REDUE
+state. It denies selected config/runtime/owner leaves but explicitly retains its
+configuration-parent-replacement blocker. A stage inside those write grants is
+not established immutable. The smallest reviewed direction is one freshly
+materialized tree under a dedicated protected parent outside checkout/state,
+credential/config/code denials and native temporary-write defaults. Preparation
+is trusted, reviewed, pre-agent and data-only; it creates independent inodes,
+refuses unreviewed links/loaders/outside inputs, closes all writer handles and
+publishes an exclusive bounded descriptor. Mode0700/chmod, endpoint hashes and
+same-UID ownership alone are not a seal. No untrusted pre-existing mapping or
+unsandboxed writer to these new inputs may survive into execution; the matched
+VM host/preparer/observer remains trusted and must not write this tree afterward.
+
+Claude's proposed delta is restrictive: whole staged-parent denyWrite and
+immutable settings/recipe/descriptor/compiler/code parent protections, while
+retaining credential denyRead/scrub, strict sandbox/fail-if-unavailable, no
+unsandboxed fallback, empty excluded commands, no network/extra socket, Bash-only
+fixed operation and denied read-only fallback families/other tools. Closed,
+reviewed settings inputs are required; project/local source selection and
+managed startup authority cannot be assumed harmless. Do not remove an existing
+credential denial to make staging readable or transplant the diagnostic's
+post-cache exception into a different agent route.
+
+The actual src/cli.mjs run path directly spawns the configured compiler from
+the caller CLI with plan.cwd; it does not delegate verification execution to an
+observer RPC. A fixed native model Bash -> REDUE CLI -> compiler lineage can
+therefore use the normal inherited sandbox. The prior hosted native diagnostic
+observed bounded controls in a Node collector's child, supporting this lineage
+for its own reviewed profile; it does not empirically seal new stage paths.
+The observer separately starts trusted built-in probes and re-reads plans. It
+must not acquire a new arbitrary-executor or unsandboxed staging-writer socket.
+Once staged-parent writes are denied, an already sandboxed CLI cannot also be
+the materializer. For the first verification-only slice, finish trusted
+preparation before starting the agent; later edits require a fresh trusted
+preparation boundary, not an invisible writer escape.
+
+The invocation/receipt must bind actual staged cwd/argv, reviewed TS5.5.2/Node
+identities, contents, membership, absences and resolution topology under a new
+interpretation. It must not claim that live-checkout or npm execution occurred.
+Recipient decisions still independently evaluate their current supported facts.
+Compiler/runtime and ancestor library resolution outside the copied project are
+not sealed merely by copying source files.
+
+Copilot's existing proposal remains less established: workspace/state read-write,
+prefix/Node read-only, broad shell(redue:*) plus cat/ls grants and no actual
+model-tool sealing/credential proof. A curated stage-parent readonlyPath and
+supported narrowly bound REDUE operation are a separate disabled proposal
+correction. Claude's PASS does not certify Copilot; the pending included-capacity
+fact does not require another login attempt.
+
+Required actual admission checks use only nonsensitive stage fixtures: attempts
+to write/chmod/unlink/replace the stage and its protected parent, create aliases
+and obtain a writable shared mapping must fail at the chosen native tool
+boundary; intended direct compiler reads/exit must remain observable. They must
+also distinguish fresh independent stage inodes from a mutable original mapping.
+Source construction and harmless mocks cannot substitute for those observations.
+No such check, model, native process, profile change or CI run was performed in
+this design review. Bounded stage storage/materialization/validation/enforcement
+and cleanup costs still require measurement; the existing deadline and cold-cost
+limitations are not changed.
