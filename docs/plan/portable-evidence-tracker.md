@@ -3,7 +3,64 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — recipient cost identified; ordinary boundary under review
+## Current checkpoint — warm recipient phase improved; ordinary interval work remains unqualified
+
+Hosted native Claude diagnostic38257021786 remains closed PASS for its six named
+synthetic assertions only. No repeated diagnostic, login or model trial. Alpha.11
+is unpublished; source08307d4/artifactf6e368bd remain frozen historical exact mechanics.
+
+Independent runtime review4367acf GO plus74/74 shared regressions preceded one
+fixed installed-candidate [comparison38279556323](https://github.com/msiric/redue/actions/runs/38279556323).
+Sourcef4abdd318091ac7c17119d872e189e1cf2f7a8f3, tarball
+`redue-cli-0.1.0-alpha.11.tgz`, SHA-256
+84edcfebbc980dacc026aac66d9f3094718267521397a15a79f015f6eb2ce871.
+This is different unreleased content from f6e368bd, never a substituted identity.
+Owner-local bundle `.local/portable-evidence/candidate-alpha11-f4abdd3-38279556323`
+verifies all four source/manifest/checksum/tar files; ZIP162355bytes fits300KiB
+reservation and confirmed10MiB included storage. Source/runtime tests and six
+queries/three observer sessions pass. New Linux/Windows exact bytes are NOT_RUN.
+
+The before/after standard macos-26 jobs both report Darwin25.6.0/ARM64/Node22.13.0;
+they are separate VMs, not an identical-load randomized comparison. Before six
+queries: mean37,244.049ms/median36,091.025ms/max42,103.605ms. After six:
+mean29,485.998ms/median30,080.855ms/max38,233.218ms. Repeated queries(n3):
+before median36,427.273ms/max38,573.658ms; after median21,605.619ms/max24,021.205ms.
+First-per-observer queries(n3) remain expensive: after median37,601.512ms/max38,233.218ms,
+above35s model-preflight budget. No timeout was increased and no cold fix claimed.
+Three private daemon cache revalidations take median4.2ms/max6.3ms; eleven full
+inspections remain, including both origin boundaries and every independent caller.
+Cached OS content never supplies PASS, receipt selection, caller or project facts.
+All six responses were agent-independent imported CURRENT/PASS/eligible with the
+same origin and zero recipient compiler executions. These are CLI mechanics, not
+actual model reuse or complete-workflow savings. Raw GH ZIP logs supplied the
+structured result when gh run view omitted its long line; no raw log was retained.
+Private result SHA-256221052bdfb6ff06a97f6c5456e7cf6af82b534ff5f9f9e1f2caed2a2722b849f.
+
+Ordinary boundary branch/worktree `dev/portable-ordinary-boundary` / sibling
+`redue-portable-ordinary-boundary` integrates reviewed runtime but remains under
+construction. Pinned debuggerb1c00772 still rejects portable qualification;
+its59 consumed builtin libraries are inside the checkout, while424 ancestor
+queries need real interval coverage. Owner approves CI-only filtered observation
+(D10), no owner's-Mac broad watches or expanded native-agent permissions.
+Independent source review reproduced @parcel2.5.6 EventList cancellation of
+create→delete for in-root and ancestor candidates. History-only endpoint/replay
+shortcut is NO-GO; no wrapped false-CURRENT or affected-user claim. All locally
+derived membership/query paths need raw occurrence coverage for a new interpretation.
+The bounded native collector/filter leaf is source-reviewed and built, NEVERstarted.
+The protected capability reader's resource race/revocation corrections pass seven
+independent static controls; hostile same-UID protection still requires the trusted
+CI provisioning and explicit native deny-write boundary. Wrapper/deadline/protocol,
+actual CI delivery, origin/recipient integration and new ordinary-project acceptance
+are pending. No provisional helper can grant reuse. Prior failed/mock/static attempts
+are retained and separate from actual observations.
+
+Copilot's included Actions billing fact remains the pending external capacity fact;
+account existence/personal use are settled. Fresh authenticated origin/artifact/trust
+bindings and actual cross-agent/two-machine reuse remain incomplete, as do final
+V01–V22/candidate economics. No G2/finalG3/G4 pass or owner release readiness.
+Day0=2026-10-10 21:24UTC;72h calibration2026-10-13 21:24UTC unchanged.
+
+## Historical checkpoint — recipient cost identified; ordinary boundary under review
 
 The hosted Claude diagnostic38257021786 remains closed PASS only for its six
 synthetic native assertions; it is not portable agent reuse and needs no repeat.
