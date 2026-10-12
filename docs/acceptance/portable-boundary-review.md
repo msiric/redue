@@ -5013,3 +5013,43 @@ claim. A normal push to the specified task branch triggers the one mechanics
 run; an additional manual dispatch would be a separate attempt. Actual VM kernel
 and preparer observations must be recorded, not inferred from the runner label.
 The reviewer ran no real preparer, compiler, native agent, observer, model or CI.
+
+## Source hardlink groups: bounded materialization direction
+
+Conceptual GO, not implementation/run admission, for a source-only complete
+hardlink-group extension. The first fixed public-project child refused TREE_FILE
+with handled74 before staging. The separate preserved metadata diagnosisSHA
+956e85cfdcfd5a268d0a812058b7b5304d42bd11f8133f30bd09a2e7791bcf55
+names two esbuild regular source paths with nlink2 and reports no contents printed,
+compiler executions or models. That static report does not itself establish
+complete physical group membership or authorize relaxing all regular-file checks.
+The earlier PORTABLE_SYMLINK/zero-child prerequisite refusal remains separate.
+
+A proposed group must consist entirely of locally declared, actually distinct
+directory entries. Count physical parent dev/ino plus the exact observed basename;
+case/Unicode alias spellings cannot count the same entry twice to conceal an
+outside link. Before any body read, all regular members must pass UID, mode,
+physical fingerprint, ancestor and stable global nlink checks, with unique entry
+count equal to nlink. Missing/outside/incomplete groups, links, nonregular/setid
+objects or unowned members refuse. Revalidate group entries and physical bindings
+around body reads/copies and after materialization. Existing quiescent trusted
+pre-agent and preparer read-confinement prerequisites remain; this is not atomic
+protection against hostile same-UID name swaps or writable mappings.
+
+Destination files must retain independent fresh inodes with nlink1 and no source
+inode inheritance. Source and materialized manifests are factually distinct:
+index.mjs includes installed nlink>1 in its typed hash. Preserve the exact source
+digest and independently validate each single-link staged digest with the same
+sorted path set. A shim digest also binds its target digest, so the materialized
+shim hash must use the materialized target hash. Do not normalize legacy provider
+hashes, reinterpret receipts or call the original namespace preserved. Version
+the changed materialization/summary interpretation and exact parent protocol;
+explicit source/materialized manifest digests remain audit, not seal/current proof.
+
+No read/write permissions, body/file/directory/transport/time budgets, compiler
+recipe or execution authority should expand. All sealed/executable/reuse flags
+remain false, failures retain partial stages and legacy portableManifest remains
+unchanged. The reported hosted27-test preparer mechanics success is preparer-only;
+runner labels without actual kernel/filesystem evidence do not establish a matched
+sealed/native-agent recipe. The reviewer inspected source and static diagnosis
+only and performed no additional preparation or native/CI/model operation.
