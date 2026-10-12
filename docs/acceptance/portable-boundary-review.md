@@ -2951,3 +2951,66 @@ enforcement. It retains all status/identity assertions and scoped cleanup, with
 Windows explicitly unsupported for that POSIX fixture. Conclusion: GO for the
 additive disabled data proposal only. No host settings, VM, model, observer or
 credential operation was performed by this reviewer for this correction.
+
+## D9 programmatic diagnostic: finite startup-source review
+
+The owner permits a conditional single hosted native diagnostic, at most four
+turns and120seconds, after its real credential/startup inputs and included
+capacity are established. No such run is performed here. This changes the
+previous manual-console capability requirement, not the G2/G4 evidence gates.
+
+The already retained official187/a59 native bytes were independently rehashed.
+Pinned public-code conclusions are specific to those bytes. Empty setting-sources
+still selects flagSettings and policySettings (nvt194807472). The settings loader
+merges policy after flags. With an environment OAuth token, qs196583840 supplies
+subscriptionType from an optional environment field or null; Uj200757695 allows
+remote settings when OAuth exists and that metadata is null. A fresh config and
+absent local managed files therefore do not establish remote-policy absence.
+Setting a fabricated subscription tier to suppress that path is not permitted.
+
+Safe mode also does not close this boundary: dl193563478 recognizes the flag,
+Vl196896175 permits managed hooks/status-line/file-suggestion customization, and
+n9r196897750 retains policy hooks even with the local disableAllHooks flag.
+[Current official CLI documentation](https://code.claude.com/docs/en/cli-reference)
+explicitly retains the same managed-policy exception. A newer pin is not
+justified merely by the misleading abbreviated description of safe mode.
+
+OAuth environment protection has a useful narrower positive source result.
+aO196884965 (subprocessEnv) deletes CLAUDE_CODE_OAUTH_TOKEN and related background
+authentication fields from its returned environment independently of the
+sandbox/scrub flag. Xae200557818 uses that object for Bash spawning, but later
+spreads environment overrides. Its getEnvironmentOverrides implementation copies
+session variables. Hook spawning likewise adds plugin/passed environment fields
+after aO. Consequently this is not unconditional scrubbing after every override.
+With closed, reviewed hook/plugin/session inputs it proves the host token is not
+forwarded by the ordinary path; intact effective credentials.envVars deny adds
+the separate pre-sandbox env -u removal. The documented subprocess scrub feature
+already exists in187; downloading a newer binary solely for its name is unnecessary.
+No real token is exposed to a child to discover whether these rules work.
+
+Six pure controls using three exact pinned source fragments pass: empty sources
+retain managed policy; local hooks-disable and safe mode preserve a synthetic
+managed hook; a policy-level hooks-disable suppresses it; aO removes a mock OAuth
+value without changing its mock parent; subsequent overrides can reintroduce
+that mock key. Fragments are retained privately with native SHA and byte-range
+digests; these are code interpretation controls, not native enforcement. No
+native/authentication/model or network process was launched for them.
+
+No supported pre-hook policy inventory was established among the finite reviewed
+native commands. doctor210656361 explicitly can spawn .mcp.json stdio servers
+and inspects the updater. auth status reports authentication metadata, while
+global preAction210587893 has already initialized settings/MDM and remote
+settings before the action. The config subcommand reviewed at210655407 reports
+auto-mode configuration, not the complete applicable remote managed policy.
+None supplies a safe source-independent policy-absence certificate.
+
+The exact remaining owner/provider input is an authoritative current fact that
+the intended account/token has no applicable remote managed policy, or its
+applicable policy snapshot reviewed for hooks, status-line/file-suggestion
+commands, helpers, plugins/MCP and strict sandbox/credential settings. Retain all
+actual local source/identity checks too. This input must not be replaced by file
+absence, proposal data, a fake tier or an unreviewed native startup. Normal
+owner OAuth provisioning and included-quota confirmation remain separate. If
+these inputs are unknown, refuse the secret-bearing route before launch. The
+author's still-disabled diagnostic code/assets are a separate pending review;
+this finite source conclusion is neither activation nor an empirical VM claim.
