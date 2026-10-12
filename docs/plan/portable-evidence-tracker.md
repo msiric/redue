@@ -3,7 +3,42 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — reviewed manual workflow registration; owner-only inputs isolated
+## Current CI checkpoint — reviewed code regressions and package pass; model prerequisites pending
+
+Reviewed test-only diagnostic source de37055d6436f870c907e35fbc65be69e9301452 is
+normally pushed to dev/portable-ci-preparation; PR13 stays draft. Product38199960090
+passes allfour jobs,569tests each: macOS542PASS/27skip, Linux22/24 each530PASS/39skip,
+nativeWindows344PASS/225skip, zero failures. Exact-package38199960095 passes allthree
+platforms. Independently downloaded merge-source13ba3eb267ddd7000d4adebd376954990fb3b8b7
+has tree9a1081a601bf63de05e6f7df8f11d11959448e67 equal to de37055. Actual tarball
+SHA-256b8122c3bdcedf42a374ba3a87681ca7654360bc6c10daa64b5ac93a79ca7b190
+remains unchanged, distinct from frozen8695b612/publicalpha.10. These are
+platform/installed mechanics and regressions, not model or two-agent acceptance.
+
+Earlier38196115475 Windows failures/cancellation and38199273160's one bounded
+non-reproduction are preserved. Three capped traces are UNKNOWN. This later full
+PASS does not establish the original stall's cause or a runtime fix. No further
+unchanged CI/capture is needed. Runtime/bin and accepted signing/trust bindings
+remain unchanged. The owner request is already pending; environment read still
+finds0environments. No secret, native hosted diagnostic, model or new origin ran.
+
+Remaining task blockers: hosted Claude personal-policy/current included-quota and
+protected OAuth provisioning; separate Copilot Actions four-credit billing fact;
+a fresh authenticated model-produced origin and concrete producer acceptance
+following review, never substitution of the expired old artifact. Preserve the
+hosted pair, closed preflights,$0cap,10MiB/one-day storage and Day0/72h calibration.
+G2/finalG3/G4 are incomplete; this is not READY_FOR_OWNER_RELEASE_REVIEW. No useful
+model operation is authorized by static/source/configuration evidence alone.
+
+Next: accept only actual owner-only facts/provisioning; revalidate exact registered
+workflow/hash/source and one-operation ledger, then the bounded native diagnostic.
+Its PASS unlocks separately gated recipient evaluation, not G2 completion. Until
+then do not repeat the owner request, create another host/controller, broaden scope
+or launch missing-precondition models. This documentation checkpoint is committed
+locally; defer its docs-only push until the next meaningful reviewed change, avoiding
+another full cumulative-PR CI run. Tested code de37055 is already on the remote.
+
+## Historical checkpoint — reviewed manual workflow registration; owner-only inputs isolated
 
 Registration PR14 adds only a manual workflow to currentmainb4f2860. Commit68f1416,
 SHA-256a5f4e589823844144203e98151d315cd785f6d7d09212a720749618789e43e72,

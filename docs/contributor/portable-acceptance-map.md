@@ -6,10 +6,11 @@ evidenced. Actual portable cross-agent/receiving-agent reuse is not established.
 promote test-source presence to a gate PASS. The integration tracker owns current
 run/commit results and the independent review record.
 
-Latest combined preparation6d89bdf product38189432507 passes538tests per job:
-macOS511PASS27skip, Windows322PASS216skip, Linux22/24 each499PASS39skip,
-zero failures. Exact package38189432506 passes macOS/Linux/nativeWindows;
-downloaded source6cc4cd5 has the same tree and SHA-256b8122c3b… . These bytes
+Latest reviewed preparation de37055 product38199960090 passes569tests per job:
+macOS542PASS27skip, Windows344PASS225skip, Linux22/24 each530PASS39skip,
+zero failures. Exact package38199960095 passes macOS/Linux/nativeWindows;
+downloaded merge-source13ba3eb has the same tree as de37055 and SHA-256b8122c3b… .
+These bytes
 remain separate from frozen d04b872/8695b612… and public alpha.10. The new
 coherently hashed incomplete-origin signer control independently exercises V13/
 V22 completeness;12/12 validator controls pass. Actual model handoff, final
