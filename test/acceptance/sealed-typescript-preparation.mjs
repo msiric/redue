@@ -29,8 +29,8 @@ function dataManifest(value){
   }return rows;
 }
 const freeze=value=>{if(value&&typeof value==='object'){for(const item of Object.values(value))freeze(item);Object.freeze(value);}return value;};
-const result=(started,value)=>freeze({schema:1,scope:'TRUSTED_PRE_AGENT_PREPARATION_ONLY',
-  sealed:false,executable:false,reuseEligible:false,elapsedMs:performance.now()-started,...value});
+const result=(started,value)=>{const elapsed=performance.now()-started;return freeze({schema:1,scope:'TRUSTED_PRE_AGENT_PREPARATION_ONLY',
+  sealed:false,executable:false,reuseEligible:false,elapsedMs:Number.isFinite(elapsed)&&elapsed>=0?elapsed:null,...value});};
 const exact=(value,keys)=>value&&typeof value==='object'&&!Array.isArray(value)&&
   Object.keys(value).length===keys.length&&keys.every(key=>Object.hasOwn(value,key));
 const identity=file=>{const stat=fs.lstatSync(file,{bigint:true});
@@ -59,12 +59,15 @@ function treeOutput(tree,proposal,manifest){
     Array.isArray(tree.files)&&canonical(tree.files)===canonical(manifest)&&tree.manifestDigest===hash(canonical(manifest))&&
     Array.isArray(tree.physical)&&tree.physical.length===manifest.length&&tree.physical.every((row,at)=>
       Array.isArray(row)&&row.length===3&&row[0]===manifest[at][0]&&typeof row[1]==='string'&&/^\d+:\d+$/.test(row[1])&&
-      typeof row[2]==='string'&&/^(?:\d+:){7}\d+$/.test(row[2]));
+      typeof row[2]==='string'&&/^(?:\d+:){7}\d+$/.test(row[2])&&row[2].startsWith(row[1]+':'));
 }
 export function prepareSealedTypeScriptInputs(options){
   const started=performance.now();
-  const remaining=()=>{const ms=Math.floor(SEALED_PREPARATION_LIMITS.milliseconds-(performance.now()-started));
-    if(ms<1)fail('PREPARATION_DEADLINE');return ms;};
+  let previous=started,exhausted=!Number.isFinite(started)||started<0;
+  const remaining=()=>{const now=performance.now();
+    if(exhausted||!Number.isFinite(now)||now<previous){exhausted=true;fail('PREPARATION_DEADLINE');}
+    previous=now;const ms=Math.floor(SEALED_PREPARATION_LIMITS.milliseconds-(now-started));
+    if(ms<1){exhausted=true;fail('PREPARATION_DEADLINE');}return ms;};
   if(!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==3||
     !['source','parent','manifest'].every(key=>Object.hasOwn(options,key)&&
       Object.hasOwn(Object.getOwnPropertyDescriptor(options,key),'value')))fail('PREPARATION_OPTIONS');
@@ -93,13 +96,15 @@ export function prepareSealedTypeScriptInputs(options){
     // Fixed child emits exactly one stringify frame. Re-encoding detects
     // duplicate fields and unexpected framing before any result is admitted.
     if(JSON.stringify(output)+'\n'!==child.stdout)fail('PREPARATION_OUTPUT_UNKNOWN');
-    if(child.status===1&&exact(output,['schema','ok','reason_code'])&&output.schema===1&&output.ok===false&&
+    if(child.status===74&&exact(output,['schema','ok','reason_code'])&&output.schema===1&&output.ok===false&&
       PREPARATION_REASON_CODES.includes(output.reason_code))return result(started,{...audit,outcome:'REFUSED',reason:output.reason_code});
     if(child.status!==0||!exact(output,['schema','ok','materialization'])||output.schema!==1||output.ok!==true||
       !treeOutput(output.materialization,proposal,manifest))fail('PREPARATION_OUTPUT_UNKNOWN');
     const tree=output.materialization;
-    if(binding(proposal)!==before||identity(tree.root)!==tree.identity+':'+String(fs.lstatSync(tree.root,{bigint:true}).mode)+':'+String(process.getuid())||
-      fs.realpathSync(tree.root)!==tree.root)fail('PREPARATION_BINDING_CHANGED');
+    const stage=fs.lstatSync(tree.root,{bigint:true});
+    if(binding(proposal)!==before||!stage.isDirectory()||stage.isSymbolicLink()||stage.uid!==BigInt(process.getuid())||
+      (stage.mode&0o7777n)!==0o700n||`${stage.dev}:${stage.ino}`!==tree.identity||fs.realpathSync(tree.root)!==tree.root)
+      fail('PREPARATION_BINDING_CHANGED');
     remaining();
     // Data only: current bindings still do not certify compiler namespace or a
     // native write seal. No actual command or observation authority travels.
