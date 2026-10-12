@@ -121,7 +121,8 @@ export function derivePortableAncestorQueries(root,queries){
         if(!within(prefix,observed.watchRoot))fail('PORTABLE_ANCESTOR_PATH');}
       prefixes.push(observed.watchRoot);
       scopes.set(file,{ancestorDepth,relativePath,candidate:file,watchRoot:observed.watchRoot,
-        prefixes:prefixes.reverse(),watchRootIdentity:guards.get(observed.watchRoot),queryKinds:[]});
+        prefixes:prefixes.reverse(),watchRootIdentity:guards.get(observed.watchRoot),
+        presentDirectories:observed.present.map(([file,value])=>({path:file,identity:value})),queryKinds:[]});
     }
     scopes.get(file).queryKinds.push(kind);
   }
@@ -139,11 +140,32 @@ export function derivePortableAncestorQueries(root,queries){
   const order=(a,b)=>canonical(a)<canonical(b)?-1:canonical(a)>canonical(b)?1:0;
   normalized.sort(order);
   const scopeRows=[...scopes.values()].map(scope=>({...scope,queryKinds:scope.queryKinds.sort()})).sort((a,b)=>order([a.ancestorDepth,a.relativePath],[b.ancestorDepth,b.relativePath]));
+  const required=new Map();
+  const requireRoot=(file,scopeIndex,role)=>{
+    if(!required.has(file))required.set(file,{path:file,identity:guards.get(file),scopeIndexes:[],roles:[]});
+    const row=required.get(file);
+    if(!row.identity)fail('PORTABLE_ANCESTOR_CHANGED');
+    if(!row.scopeIndexes.includes(scopeIndex))row.scopeIndexes.push(scopeIndex);
+    if(!row.roles.includes(role))row.roles.push(role);
+  };
+  for(const [scopeIndex,scope] of scopeRows.entries()){
+    requireRoot(scope.watchRoot,scopeIndex,'candidate-prefix');
+    // Endpoint identities cannot establish an interval for replacement of a
+    // subscription root. Require its present ancestors' parents through '/',
+    // rather than assuming a child subscription has WatchRoot semantics.
+    for(const present of scope.presentDirectories){
+      const parent=path.dirname(present.path);
+      requireRoot(parent,scopeIndex,parent===present.path?'filesystem-root':'present-prefix-replacement');
+    }
+  }
+  const requiredWatchRoots=[...required.values()].map(row=>({...row,roles:row.roles.sort(),scopeIndexes:row.scopeIndexes.sort((a,b)=>a-b)}))
+    .sort((a,b)=>order(a.path,b.path));
   const chainDepth=parents.length,queryDigest=sha({interpretation:ancestorQueriesInterpretation,chainDepth,queries:normalized});
   const logicalScopes=scopeRows.map(({ancestorDepth,relativePath,queryKinds})=>({ancestorDepth,relativePath,queryKinds}));
   return freeze({schema:1,interpretation:ancestorQueriesInterpretation,chainDepth,queries:normalized,queryDigest,
-    scopeDigest:sha({interpretation:ancestorQueriesInterpretation,chainDepth,scopes:logicalScopes}),
-    rootIdentity:identity(rootState.stat),scopes:scopeRows,reuseEligible:false});
+    scopeDigest:sha({interpretation:ancestorQueriesInterpretation,chainDepth,scopes:logicalScopes,
+      replacementCoverage:'present-parents-to-filesystem-root'}),
+    rootIdentity:identity(rootState.stat),scopes:scopeRows,requiredWatchRoots,reuseEligible:false});
 }
 // Backend must supply canonical event paths. Valid unrelated paths are discarded
 // without retention; unnamed/malformed paths mean observation uncertainty.

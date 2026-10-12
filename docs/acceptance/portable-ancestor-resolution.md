@@ -120,3 +120,55 @@ creation/removal/rename, parent replacement, same-parent change-and-restore,
 watcher-gap, and cross-checkout query-equivalence controls before any support claim.
 No interpretation, source runtime, package bytes, permissions, or trust policy was
 changed for this finding.
+
+## Derived parent requirements and worker integration proposal
+
+The non-authoritative leaf now returns private `requiredWatchRoots`, physical
+identities, scope indexes and fixed roles. These cover the candidate's nearest
+present directory **and the proper parent of every present path component through
+the filesystem root**. Present `node_modules` is not treated as an adequate
+subscription root by itself. A replaced/restored container can retain the same
+final logical answers and original inode; its interval events still disqualify.
+No watcher is started by this helper, and its result remains `reuseEligible:false`.
+
+The reviewed installed `@parcel/watcher` 2.5.6
+[FSEvents source](https://raw.githubusercontent.com/parcel-bundler/watcher/v2.5.6/src/macos/FSEventsBackend.cc)
+creates a FileEvents stream without WatchRoot. It requires an existing directory,
+uses metadata queries to classify some coalesced events, and reports dropped-event
+uncertainty. Therefore the integration must not infer root-replacement continuity
+from a child-root subscription. Native processing temporarily receives paths and
+may inspect their metadata before the JavaScript callback; it does not read file
+bodies in this path. No broad native subscription was exercised for this review.
+
+Proposed narrow integration, owned by the integration lane:
+
+1. The coordinator derives the plan from current local reviewed compiler queries
+   and independently validates a protected CI provisioning record. That record,
+   located outside agent-writable checkout/state, must bind the approved public or
+   synthetic project, matched host profile and observation scope. The module,
+   environment labels, imported values and CLI flags cannot mint this authority.
+2. Extend the existing observation worker boundary with this locally minted plan,
+   scope digest, private physical guard identities and generation. Any subscription
+   minimization must demonstrably cover **all** `requiredWatchRoots`; choosing `/`
+   on an approved CI VM is an explicit broad subscription with narrow filtering,
+   not a new permission for the owner Mac or agent.
+3. In the worker, apply `portableAncestorEventMatch` before IPC, journals or
+   diagnostic retention. Valid unrelated events are discarded. Relevant events
+   transmit only fixed scope indexes, an increasing interval serial and known
+   event classes; unknown paths/backend failures transmit fixed uncertainty codes,
+   without raw paths. Existing `history-worker.mjs` sends unfiltered changes today,
+   so it cannot be reused unchanged for this broader scope.
+4. Live delivery and required history completion must settle a start boundary and
+   an end boundary with the same generation/guard, no pending relevant work and no
+   uncertainty. Worker readiness, subscription errors, disappearance/replacement,
+   dropped history, cancellation, EOF and failed catch-up remain fail-closed.
+   Reconciliation cannot retroactively repair a missing origin interval. Persisted
+   portable evidence carries the normalized query meaning, not this worker's
+   subscriptions, cursors, private paths or authority.
+
+This is an API/coverage proposal rather than a daemon implementation or backend
+continuity proof. Candidate creation/removal and container replacement/restoration
+controls in the leaf compare actual owned filesystem states and expected filter
+results. They are not real FSEvents coverage, authenticated imports, model trials,
+or cross-machine acceptance. The root integration and its independent reviewer
+must establish the latter boundaries before enabling the CI route.

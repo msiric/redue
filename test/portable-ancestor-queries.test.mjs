@@ -114,3 +114,37 @@ test('ordinary readDirectory options and results retain exact normalized meaning
   const changed=structuredClone(query);changed[3].undefinedArguments=[];
   assert.notEqual(first.queryDigest,derivePortableAncestorQueries(f.root,[...f.queries,changed]).queryDigest);
 });
+
+test('present container replacement requires parent coverage through filesystem root',posix,t=>{
+  const f=fixture(t),container=path.join(f.parent,'node_modules');fs.mkdirSync(container);
+  const plan=derivePortableAncestorQueries(f.root,[...f.queries,['directoryExists',container,true]]),scope=plan.scopes.find(row=>row.relativePath==='node_modules');
+  assert.equal(scope.watchRoot,container,'local existence is separate from required replacement coverage');
+  const roots=plan.requiredWatchRoots.map(row=>row.path);
+  assert(roots.includes(container));assert(roots.includes(f.parent));assert(roots.includes(path.parse(f.root).root));
+  for(const row of plan.requiredWatchRoots){assert.match(row.identity.dev,/^\d+$/);assert.match(row.identity.ino,/^\d+$/);assert(row.scopeIndexes.length>0);assert(Object.isFrozen(row));}
+  assert(plan.requiredWatchRoots.find(row=>row.path===f.parent).roles.includes('present-prefix-replacement'));
+  assert.equal(plan.reuseEligible,false);
+});
+test('replaced and restored container roots retain endpoint facts but require relevant events',posix,t=>{
+  const f=fixture(t),container=path.join(f.parent,'node_modules');fs.mkdirSync(container);
+  const queries=[...f.queries,['directoryExists',container,true]],before=derivePortableAncestorQueries(f.root,queries),scope=before.scopes.find(row=>row.relativePath==='node_modules');
+  fs.renameSync(container,container+'-held');fs.mkdirSync(container);
+  const replaced=derivePortableAncestorQueries(f.root,queries);
+  assert.equal(replaced.queryDigest,before.queryDigest,'same logical answers are not physical continuity');
+  assert.notDeepEqual(replaced.scopes.find(row=>row.relativePath==='node_modules').watchRootIdentity,scope.watchRootIdentity);
+  assert.equal(portableAncestorEventMatch(scope,container),'relevant');
+  assert.equal(portableAncestorEventMatch(scope,f.parent),'relevant');
+  fs.rmdirSync(container);fs.renameSync(container+'-held',container);
+  const restored=derivePortableAncestorQueries(f.root,queries);
+  assert.deepEqual(restored.scopes.find(row=>row.relativePath==='node_modules').watchRootIdentity,scope.watchRootIdentity);
+  assert.equal(restored.queryDigest,before.queryDigest);assert.equal(restored.reuseEligible,false,'restored endpoint must not erase interval events');
+  assert(before.requiredWatchRoots.some(row=>row.path===f.parent),'explicit parent requirement survives restored facts');
+});
+test('ancestor replacement and unknown events cannot be hidden by candidate-only filtering',posix,t=>{
+  const f=fixture(t),plan=derivePortableAncestorQueries(f.root,f.queries),scope=plan.scopes[0];
+  assert.equal(portableAncestorEventMatch(scope,f.base),'relevant');
+  assert.equal(portableAncestorEventMatch(scope,path.parse(f.root).root),'relevant');
+  assert.equal(portableAncestorEventMatch(scope,null),'unknown');
+  assert.equal(portableAncestorEventMatch(scope,f.parent+'/../../uncanonical'),'unknown');
+  assert.equal(portableAncestorEventMatch(scope,path.join(f.base,'unrelated-sibling')),'irrelevant');
+});
