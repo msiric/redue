@@ -2873,3 +2873,61 @@ noninteractive same-Bash invocation has been demonstrated for the pinned native
 CLI. Local manual PASS therefore supplies neither hosted VM authority nor an
 automated model launch prerequisite by itself. No native or model action was
 performed for this source review.
+
+## Held authenticated recipient fixture lifecycle
+
+Independent review covers author commits00e1ccb,39b1cdb and57c4a1c, limited to
+the existing machine recipient acceptance helper and its new synthetic lifecycle
+tests. The exact final two-file overlay was tested against root359916f in an
+owned archive with the existing dependencies linked read-only for that run and
+pinned Node22.13.0. The dependency link was removed afterwards. No installed
+artifact, native observer, signature verification, authenticated import, model,
+hosted VM or CI trial was performed. The expired earlier signed artifact is not
+treated as currently available or accepted by these mock controls.
+
+The synchronous legacy route retains its unrelated edit, restart/inheritance,
+relevant STALE and no-equivalent-local-run assertions. The new awaited route
+allows only trusted engineering preparation/supervision callbacks selected by
+local code; imported data cannot select callbacks or execution authority. Its
+callback context exposes paths, a historical independently returned eligible
+baseline, a bounded status operation and an AbortSignal, without a general
+executor or fabricated host-doctor authority. prepare completes before the
+observer starts and before trust provisioning/import. Actual existing local
+configuration, ownership, authenticated import and synchronized applicability
+checks remain required; synthetic responses do not establish those real gates.
+
+The initial proposal did not bind compiled runtime bytes/physical identity, or
+check immutable authority on successful callback completion. Final source binds
+the validated runtime, config/root/state/owner, exact registry and CLI identity
+before/after status and before publishing successful supervision. Any observed
+authority failure is latched: catching it and restoring the file cannot revive
+query or successful-completion authority. Registry replacement and no-query
+authority changes are refused too. A legitimate source edit may finish STALE;
+prepared_eligible is a baseline observation, not continuing CURRENT or final
+reuse authority. These interval checks do not fix the disabled proposal's
+continuous declaration-write boundary described above.
+
+One independent39b counterexample advanced the mock monotonic clock during the
+last file read after callback completion. Its expected TIMEOUT rejection was
+missing. The57c successor checks abort/expiry after the final binding barrier;
+the same counterexample passes. Three additional independent controls pass
+final-binding cancellation, caught/restored exact-registry replacement and
+runtime mutation during a status operation without returning that response.
+The four targeted author suites plus these four independent controls pass
+154/154, zero failures/skips, in2,933.34ms. Retained owned review TAP identities:
+pre-fix98362ad1…, post-fix7c3dc4f1…, final aaa711d9…. Final helper SHA-256 is
+719acc04c2c815f909f2ba5361e2e0518eb041f1da5c4cef41988cd0135304bd.
+Author preparation failures and original negative outcomes remain retained.
+
+The300-second cap is a cooperative monotonic callback/acceptance bound, not
+arbitrary-JavaScript preemption or a hard all-process wall-clock limit. Existing
+synchronous setup/status children retain separate120-second limits and can
+delay timer delivery; expiry observed afterwards withholds success. Trusted
+callbacks must consume the signal and supervise their own children. Their
+returned data is not automatically sanitized model-trace evidence. Strict held
+cleanup requires the approved CLI's stop response ok:true and an absent observer
+lock; failed cleanup or changed CLI refuses closed success. It does not certify
+arbitrary callback-child reaping or run a changed executable to obtain cleanup.
+Conclusion: GO for this bounded test-helper lifecycle extraction, with those
+limits and the permanently disabled native receiver retained. No G2/G4 or
+receiving-agent reuse is established by this review.
