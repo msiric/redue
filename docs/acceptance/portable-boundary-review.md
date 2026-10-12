@@ -3192,3 +3192,33 @@ GO only after the actual no-policy/current included-quota facts. Neither reviewe
 nor root ran native authentication, generated a token, read/copied credentials,
 changed settings or created the protected GitHub environment. Metadata verification
 reports keychain-item presence; it proves neither quota nor native enforcement.
+
+### Fixed Windows regression diagnostic review
+
+The opt-in fixture changes at `f1662966455afffda1bf60b3bfdfeb006c7b32a7`
+preserve the original status/selection assertions, default child environment,
+runtime and30/45/180s bounds. Timing files are owned siblings of fixture roots,
+outside project/state, and opt-in fields expose static phases, counts and process
+outcomes rather than argv, paths, environment values or captured output. These
+changes do not establish a cause for the two observed Windows timeouts.
+
+The isolated manual-only workflow, SHA-256
+`53b6b0888194edd879ce4f4f920f83403f4d5f8213001864e58a539e7813522d`,
+checks out that exact source on Windows2025/Node22.23.3. It admits the fixed
+repository/actor/dedicated ref and first attempt, with contents:read,12 minutes,
+no secrets, uploads, cache, signing or model route. Its two fixed cases execute
+once each. continue-on-error allows the second case to produce evidence, while
+the final always-step checks original step outcomes and fails if either did not
+succeed. It is a bounded diagnostic, not an all-platform or native-model gate.
+
+The initial reporter used size-before-readFileSync and therefore did not enforce
+its byte bound against replacement/growth or nonregular paths. The correction
+reuses the existing reviewed readBoundedPortableFile with1MiB limit and reports
+only TRACE_READ_UNKNOWN on refusal. Phase filtering is format/known-family
+filtering, not a fixed phase whitelist. Independent YAML/static and exact embedded
+JavaScript syntax checks pass, as do four controlled projection cases: positive,
+private-field exclusion, read refusal and513-row rejection. The first reviewer
+YAML fixture passed a Buffer instead of a string and failed before controls;
+correcting only that input type passed. No compiler, observer, native, model or CI
+was launched by this reviewer. Conclusion: GO for the one scoped diagnostic;
+retain actual outcomes without attributing the earlier timeouts to host load.
