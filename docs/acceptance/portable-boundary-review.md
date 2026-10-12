@@ -5877,3 +5877,39 @@ namespace/sealed/reuse flags false are therefore necessary. Node internal loader
 bypasses, CLI/API equivalence, first-load implementation binding, staged namespace
 validation, stable execution and recipient currentness remain separate gates.
 This review authorizes helper integration only; no sealed origin or reuse follows.
+
+
+## Fixed staged API-program probe: engineering observations only
+
+GO for8dc3b49564596a7e6c2a1b37ad17d46c189c2e77,
+sourceSHAbf6b17dcd0abc15ec76a487fd8ef0ea0527456d23f2cd628c373198b5642522f,
+for bounded API-input discovery, not a verification/typecheck command or reusable
+certificate. Fixed directProject verification requires the whole reviewed5.5.2
+package and exact entry/digest, selected canonical cwd and empty selected API
+cache before load. The journal is installed before first require. Forwarding
+feeds the existing single parsed-config/host/program graph; the trusted parsed
+guard rejects the reviewed unsupported options/references before host/program.
+Config/program readFile requests outside the root are refused before forwarding
+body reads, rather than converted to missing answers. Ordered graph results and
+duplicates are retained; outside files and physical aliases are refused before
+publishing. This does not establish Node-loader confinement or query completeness.
+
+Twenty-three authored fake controls passed23/23 in191.33ms. Eight own fake
+countercontrols passed8/8 in65.31ms: package admission and failed first-load errors
+preserve original exceptions and restore wrappers; relative outside config reads
+make zero underlying body calls; inside relative reads forward unchanged and
+correctly mark the journal incomplete; outside base/build-info/config paths
+create zero hosts/programs; late cwd change refuses; unsupported raw observations
+remain incomplete with all authority flags false. Exact helper code was evaluated
+with fake imports only. No real TypeScript API/compiler/native/model/CI was run.
+
+Conditional use still requires the separately reviewed restrictive process and
+profile, fresh actual staged cwd, complete stage/code/runtime currentness checks
+before/after, bounded parent supervision and sanitized thrown errors/output.
+The helper cannot approve an unreviewed launch harness. Actual API config and
+createProgram discovery do run when invoked; wording about no compiler execution
+must mean no verification/typecheck command, not absence of API execution. The
+fixed option list is not a universal options policy; physical read confinement,
+loader bypasses, full query arguments, CLI/API equivalence, namespace completeness,
+stable execution and recipient comparison remain unresolved. Every native-view,
+namespace/sealed/reuse flag remains false; origin containment remains unchanged.
