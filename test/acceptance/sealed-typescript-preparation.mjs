@@ -11,9 +11,10 @@ import {PREPARATION_REASON_CODES} from './sealed-typescript-preparation-child.mj
 export const SEALED_PREPARATION_LIMITS=Object.freeze({milliseconds:120000,inputBytes:8*1024*1024,outputBytes:8*1024*1024});
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const hash=value=>createHash('sha256').update(value).digest('hex');
-const signals=new Set(['SIGHUP','SIGINT','SIGQUIT','SIGILL','SIGTRAP','SIGABRT','SIGIOT','SIGBUS','SIGFPE','SIGKILL',
+export const SEALED_PREPARATION_SIGNALS=Object.freeze(['SIGHUP','SIGINT','SIGQUIT','SIGILL','SIGTRAP','SIGABRT','SIGIOT','SIGBUS','SIGFPE','SIGKILL',
   'SIGUSR1','SIGSEGV','SIGUSR2','SIGPIPE','SIGALRM','SIGTERM','SIGCHLD','SIGCONT','SIGSTOP','SIGTSTP','SIGTTIN',
   'SIGTTOU','SIGURG','SIGXCPU','SIGXFSZ','SIGVTALRM','SIGPROF','SIGWINCH','SIGIO','SIGINFO','SIGSYS']);
+const signals=new Set(SEALED_PREPARATION_SIGNALS);
 export function preparationDataManifest(value){
   if(!Array.isArray(value)||Object.getPrototypeOf(value)!==Array.prototype||value.length<1||value.length>100000||
     Reflect.ownKeys(value).length!==value.length+1)fail('PREPARATION_SCHEMA');

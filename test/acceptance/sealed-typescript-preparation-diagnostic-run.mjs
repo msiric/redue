@@ -1,6 +1,6 @@
 // One fixed restricted diagnostic child; no materialization or recipe authority.
 import fs from 'node:fs';import path from 'node:path';import {createHash} from 'node:crypto';import {spawnSync} from 'node:child_process';
-import {preparationDataManifest,SEALED_PREPARATION_LIMITS} from './sealed-typescript-preparation.mjs';
+import {preparationDataManifest,SEALED_PREPARATION_LIMITS,SEALED_PREPARATION_SIGNALS} from './sealed-typescript-preparation.mjs';
 import {sealedPreparationDiagnosticProfile} from './sealed-typescript-preparation-diagnostic-profile.mjs';
 import {PREPARATION_DIAGNOSTIC_LIMITS} from './sealed-typescript-preparation-diagnostic.mjs';
 const hash=b=>createHash('sha256').update(b).digest('hex'),fail=()=>{throw Error('DIAGNOSTIC_DATA_INVALID');};
@@ -19,7 +19,8 @@ export function parsePreparationDiagnosticFrames(bytes){
    if(!row.stats[group]||typeof row.stats[group]!=='object'||Array.isArray(row.stats[group]))fail();
    for(const [kind,values] of Object.entries(row.stats[group])){
     if(!methods.has(kind)||!Array.isArray(values)||values.length!==5||
-     values.some(n=>!Number.isFinite(n)||n<0)||![0,3,4].every(i=>Number.isSafeInteger(values[i]))||values[3]>values[0]||values[2]>values[1])fail();
+     values.some(n=>!Number.isFinite(n)||n<0)||![0,3,4].every(i=>Number.isSafeInteger(values[i]))||values[0]<1||values[3]>values[0]||values[2]>values[1]||
+     !['readSync','writeSync'].includes(kind)&&values[4]!==0)fail();
     const old=frames.at(-1)?.stats[group][kind];if(old&&values.some((n,i)=>n<old[i]))fail();
    }
    for(const kind of Object.keys(frames.at(-1)?.stats[group]||{}))if(!Object.hasOwn(row.stats[group],kind))fail();
@@ -49,7 +50,7 @@ export function diagnoseSealedTypeScriptPreparation(options){
   input=JSON.stringify({root:p.source,parent:p.parent,manifest});
  if(Buffer.byteLength(input)>SEALED_PREPARATION_LIMITS.inputBytes)fail();const before=binding(p);remaining();
  const child=spawnSync('/usr/bin/sandbox-exec',['-p',p.profile,p.node,p.child],{cwd:p.parent,env:{},input,timeout:remaining(),killSignal:'SIGKILL',maxBuffer:SEALED_PREPARATION_LIMITS.outputBytes});
- const signals=new Set(['SIGKILL','SIGTERM','SIGABRT','SIGSEGV','SIGBUS','SIGPIPE','SIGINT']),exit=Number.isInteger(child.status)&&child.status>=0&&child.status<=255?child.status:null;
+ const signals=new Set(SEALED_PREPARATION_SIGNALS),exit=Number.isInteger(child.status)&&child.status>=0&&child.status<=255?child.status:null;
  let frames=[],collection='UNKNOWN',bindingsCurrent=false,deadline='UNKNOWN',summaryValid=false;
  try{frames=parsePreparationDiagnosticFrames(child.stderr);collection=frames.length?'STRUCTURED_METRICS_ONLY':'MISSING';}catch{}
  try{const text=new TextDecoder('utf8',{fatal:true}).decode(child.stdout),out=JSON.parse(text);
@@ -60,10 +61,14 @@ export function diagnoseSealedTypeScriptPreparation(options){
  try{bindingsCurrent=binding(p)===before;}catch{}
  try{remaining();deadline='WITHIN_LIMIT';}catch{deadline='EXCEEDED_OR_UNKNOWN';}
  // Raw stderr/stdout/spawn errors never leave this fixed diagnostic boundary.
- return {schema:1,scope:'PREPARATION_DIAGNOSTIC_ONLY',outcome:'UNKNOWN',sealing:'NOT_TESTED',reuseEligible:false,
+ const result={schema:1,scope:'PREPARATION_DIAGNOSTIC_ONLY',outcome:'UNKNOWN',sealing:'NOT_TESTED',reuseEligible:false,
   diagnosticOperationFinished:summaryValid&&exit===0&&!child.signal&&!child.error&&bindingsCurrent&&deadline==='WITHIN_LIMIT'&&frames.at(-1)?.final===true,
   childExit:exit,childSignal:child.signal===null?null:signals.has(child.signal)?child.signal:'UNKNOWN_SIGNAL',
   childReaped:Number.isInteger(child.pid)&&child.pid>0&&(exit!==null||signals.has(child.signal)),
   frames,collection,summaryValid,bindingsCurrent,deadline,elapsedMs:Number.isFinite(previous-started)?previous-started:null,
   profileSha256:p.sha256,code:p.code,partialStageDisposition:'RETAINED',compilerExecutions:0,models:0};
+ const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
+ freeze(result);
+ try{remaining();return Object.freeze({...result,elapsedMs:previous-started});}
+ catch{return Object.freeze({...result,diagnosticOperationFinished:false,deadline:'EXCEEDED_OR_UNKNOWN',elapsedMs:null});}
 }
