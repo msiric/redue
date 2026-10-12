@@ -28,6 +28,18 @@ export function parsePreparationDiagnosticFrames(bytes){
   previous=row.elapsedMs;frames.push(row);
  }return frames;
 }
+export function collectPreparationDiagnosticFrames(bytes){
+ try{return {frames:parsePreparationDiagnosticFrames(bytes),complete:true,classification:'COMPLETE_FIXED_STREAM'};}catch{}
+ if(!(bytes instanceof Uint8Array)||bytes.length>PREPARATION_DIAGNOSTIC_LIMITS.bytes)
+  return {frames:[],complete:false,classification:'OUTPUT_LIMIT_OR_TYPE'};
+ let frames=[];
+ // Never decode, retain or skip an unvalidated suffix. The bounded prefix is
+ // partial diagnostic evidence only; it can never satisfy completion.
+ for(let at=0;at<bytes.length;at++)if(bytes[at]===10){
+  try{frames=parsePreparationDiagnosticFrames(bytes.subarray(0,at+1));}catch{break;}
+ }
+ return {frames,complete:false,classification:'INVALID_OR_TRUNCATED_SUFFIX'};
+}
 function binding(p){const ids=new Map();
  for(const file of [p.source,p.parent,p.node,...p.code.map(([file])=>file)])for(let current=file;;current=path.dirname(current)){
   const st=fs.lstatSync(current,{bigint:true});if(st.isSymbolicLink()||fs.realpathSync(current)!==current)fail();
@@ -51,8 +63,9 @@ export function diagnoseSealedTypeScriptPreparation(options){
  if(Buffer.byteLength(input)>SEALED_PREPARATION_LIMITS.inputBytes)fail();const before=binding(p);remaining();
  const child=spawnSync('/usr/bin/sandbox-exec',['-p',p.profile,p.node,p.child],{cwd:p.parent,env:{},input,timeout:remaining(),killSignal:'SIGKILL',maxBuffer:SEALED_PREPARATION_LIMITS.outputBytes});
  const signals=new Set(SEALED_PREPARATION_SIGNALS),exit=Number.isInteger(child.status)&&child.status>=0&&child.status<=255?child.status:null;
- let frames=[],collection='UNKNOWN',bindingsCurrent=false,deadline='UNKNOWN',summaryValid=false;
- try{frames=parsePreparationDiagnosticFrames(child.stderr);collection=frames.length?'STRUCTURED_METRICS_ONLY':'MISSING';}catch{}
+ const observed=collectPreparationDiagnosticFrames(child.stderr),frames=observed.frames;
+ const collection=observed.complete?(frames.length?'STRUCTURED_METRICS_ONLY':'MISSING'):'PARTIAL_'+observed.classification;
+ let bindingsCurrent=false,deadline='UNKNOWN',summaryValid=false;
  try{const text=new TextDecoder('utf8',{fatal:true,ignoreBOM:true}).decode(child.stdout),out=JSON.parse(text);
   summaryValid=JSON.stringify(out)+'\n'===text&&exact(out,['schema','scope','outcome','frames','bytes','sealed','reuseEligible'])&&
    out.schema===1&&out.scope==='PREPARATION_DIAGNOSTIC_ONLY'&&out.outcome==='DATA_OPERATION_FINISHED_NOT_SEALED'&&
@@ -63,7 +76,7 @@ export function diagnoseSealedTypeScriptPreparation(options){
  // Raw stderr/stdout/spawn errors never leave this fixed diagnostic boundary.
  const reaped=Number.isInteger(child.pid)&&child.pid>0&&(exit!==null||signals.has(child.signal));
  const result={schema:1,scope:'PREPARATION_DIAGNOSTIC_ONLY',outcome:'UNKNOWN',sealing:'NOT_TESTED',reuseEligible:false,
-  diagnosticOperationFinished:reaped&&summaryValid&&exit===0&&!child.signal&&!child.error&&bindingsCurrent&&deadline==='WITHIN_LIMIT'&&frames.at(-1)?.final===true,
+  diagnosticOperationFinished:observed.complete&&reaped&&summaryValid&&exit===0&&!child.signal&&!child.error&&bindingsCurrent&&deadline==='WITHIN_LIMIT'&&frames.at(-1)?.final===true,
   childExit:exit,childSignal:child.signal===null?null:signals.has(child.signal)?child.signal:'UNKNOWN_SIGNAL',
   childReaped:reaped,
   frames,collection,summaryValid,bindingsCurrent,deadline,elapsedMs:Number.isFinite(previous-started)?previous-started:null,

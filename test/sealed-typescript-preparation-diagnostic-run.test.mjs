@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {parsePreparationDiagnosticFrames} from './acceptance/sealed-typescript-preparation-diagnostic-run.mjs';
+import {parsePreparationDiagnosticFrames,collectPreparationDiagnosticFrames} from './acceptance/sealed-typescript-preparation-diagnostic-run.mjs';
 const row=()=>({schema:1,scope:'PREPARATION_OPERATION_DIAGNOSTIC_ONLY',elapsedMs:100,final:false,stats:{source:{lstatSync:[1,2,2,0,0]},stage:{},boundary:{}}});
 const encode=rows=>Buffer.from(rows.map(r=>JSON.stringify(r)+'\n').join(''));
 test('fixed diagnostic parser retains complete finite cumulative rows only',()=>{const a=row(),b=row();b.final=true;b.elapsedMs=200;b.stats.source.lstatSync=[2,3,2,1,0];assert.deepEqual(parsePreparationDiagnosticFrames(encode([a,b])),[a,b]);assert.deepEqual(parsePreparationDiagnosticFrames(Buffer.alloc(0)),[]);});
@@ -11,4 +11,12 @@ test('duplicates/malformed UTF8/extra frames/truncation and output limits refuse
 });
 test('decreasing or vanished counters and frames following a final result refuse',()=>{
  const a=row(),b=row();b.elapsedMs=200;for(const mutate of [r=>r.elapsedMs=50,r=>r.stats.source.lstatSync=[0,0,0,0,0],r=>r.stats.source={},r=>a.final=true]){mutate(b);assert.throws(()=>parsePreparationDiagnosticFrames(encode([a,b])),/DIAGNOSTIC_DATA_INVALID/);a.final=false;b.elapsedMs=200;b.stats.source={lstatSync:[1,2,2,0,0]};}
+});
+test('a killed partial stream retains only its validated complete prefix',()=>{
+ const first=row(),valid=encode([first]),tail=Buffer.from('{"schema":1,"SECRET_SUFFIX');
+ const result=collectPreparationDiagnosticFrames(Buffer.concat([valid,tail]));
+ assert.equal(result.complete,false);assert.deepEqual(result.frames,[first]);assert(!JSON.stringify(result).includes('SECRET'));
+ const malformed=Buffer.concat([valid,Buffer.from('MALFORMED\n'),valid]);
+ assert.deepEqual(collectPreparationDiagnosticFrames(malformed).frames,[first]);
+ assert.deepEqual(collectPreparationDiagnosticFrames(Buffer.alloc(65537)).frames,[]);
 });
