@@ -39,10 +39,10 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$REVIEWED_SOURCE"
           test "$(uname -m)" = 'arm64'
-          test "$(node --version)" = 'v22.13.0'
           while IFS= read -r key; do
             case "$key" in NODE_OPTIONS|NODE_PATH|BASH_ENV|ENV|LD_*|DYLD_*|OPENSSL_*|CLAUDE_*|ANTHROPIC_*) exit 2;; esac
           done < <(compgen -e)
+          test "$(node --version)" = 'v22.13.0'
           export REDUE_CHECKED_SOURCE="$REVIEWED_SOURCE"
           node test/acceptance/portable-claude-diagnostic.mjs --check-prerequisites --source "$REVIEWED_SOURCE"
           base="$(mktemp -d /private/tmp/redue-claude-diagnostic-XXXXXX)"
