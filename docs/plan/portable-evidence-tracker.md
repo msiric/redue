@@ -3,7 +3,39 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current native diagnostic — actual hosted result UNKNOWN; classification repair under review
+## Current native lane — retry event identified; enforcement remains UNKNOWN
+
+The owner authorized continued bounded diagnosis and autonomous routine work.
+Normal protected-environment review was completed through GitHub's documented
+pending-deployments API as configured reviewer msiric, using that explicit owner
+approval. No protection rule was changed or bypassed. The single follow-up
+[run38246645326](https://github.com/msiric/redue/actions/runs/38246645326), source
+ed4219aa6eef8f3addd97fd8a1510ef51396215d / workflow7deb7d2, completedUNKNOWN.
+Actual native initialization was validated. Its first rejected event was
+api_retry AFTER_VALIDATED_INIT. No assistant message/tool/checker result was
+observed. Nativeexit143/signalnull, livecontrols/source/reaping/cleanup/persistence
+true, delta[0,0,0], job15,157ms and collection2,652.174ms. Private actual report:
+`.local/portable-evidence/native-diagnostic-38246645326-final.json`.
+The earlier38242312293 event subtype remains NOT_CAPTURED; do not relabel it.
+Zero assistant messages does not prove zero model requests.
+
+The actual retry event establishes neither an HTTP status nor an account/billing/
+connectivity cause: those fields were not retained. After the two different
+attempts, independent evidence review precedes further execution. A second small
+observation-only repair85425a5 projects only the five pinned187 F7r categories
+and bounded numeric protocol fields, never messages/URLs/environment/token values.
+It still rejects/stops and cannot produce PASS from the retry event. Root17mock
+controls pass; independent review pending. No unchanged diagnostic retry, new
+permission/authentication route, raw transcript or publication is authorized by
+this observation. Native enforcement and recipient model acceptance stayUNKNOWN.
+
+The original account/capacity timestamp remains unchanged; protected nonsecret
+source binding was the only variable change and is separately recorded. $0,
+4turns/120s and all prior resource/trust boundaries remain. Copilot capacity is
+independent and pending. G2/finalG3/G4 incomplete. Continue only a reviewed,
+new-evidence diagnostic refinement under standing authority, never a blind loop.
+
+## Historical native diagnostic — actual hosted result UNKNOWN; classification repair under review
 
 The owner approved the required environment review. The single hosted
 [run 38242312293](https://github.com/msiric/redue/actions/runs/38242312293)
