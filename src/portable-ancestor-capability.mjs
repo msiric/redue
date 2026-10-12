@@ -67,3 +67,7 @@ export function ancestorObservationCapabilityCurrent(token){
  }catch{}
  minted.delete(token);return false; // recovery requires a separately established generation
 }
+export function ancestorObservationResources(token){
+ if(!ancestorObservationCapabilityCurrent(token))fail('PORTABLE_ANCESTOR_CAPABILITY_UNAVAILABLE');
+ const {root,state,file}=minted.get(token);return Object.freeze({root,state,file});
+}

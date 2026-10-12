@@ -254,3 +254,45 @@ Known Data-prefix recognition also folds ASCII case conservatively. Short
 matching prefix produce uncertainty, not applicability. A clearly differing ASCII
 prefix such as `/System/Library` remains disjoint. This closes the refusal guard;
 it does not establish a physical alias interpretation or real provider delivery.
+
+## CI-only provider implementation checkpoint
+
+Owner D10 approves filtered observation only on the disposable standard runner
+VMs. The integration branch `dev/portable-ordinary-boundary` now contains a
+fixed raw FSEvents collector and a private parent wrapper. This supplements the
+existing engine; it is not yet connected to portable origin completeness or
+recipient applicability. The ordinary project therefore remains unsupported.
+
+The final build-only collector is 80,984 bytes, SHA-256
+`39cc3829f4fe640ad35baf87794e2e98d4812ee8afd3193f94dad5a11aa66389`,
+from C++ source SHA-256
+`a322b31d6c686b009fea2067b2c97f57068b50c99affb156b87df217175075a2`.
+The build records Apple clang21, C++17/O2/ARM64/blocks/macOS13 minimum. It has not
+been launched on the owner's Mac. Earlier leaf/binary identities remain history.
+
+The wrapper requires the exact portable runtime profile and unprivileged
+UID/EUID/GID/EGID, a freshly minted protected CI capability outside checkout/state,
+current local resource identities and the exact non-setid helper bytes. Only
+locally discovered query paths select native filters. Membership queries include
+descendants; existence questions retain exact paths and ancestor replacement.
+Potential Data-volume aliases withdraw authority rather than inventing physical
+mapping. Unknown flags, dropped events, malformed protocol, partial output,
+capability mutation, missing acknowledgments or unknown child reaping remain
+conservative. Only scope IDs and serials leave the callback filter.
+
+77 deterministic/pure/process-mock controls pass. They start no real collector,
+model or native-agent operation. The initial helper import was blocked by a
+missing local `yaml` dependency; ordinary locked installation repaired that
+fixture before the read-only prerequisite check. One author C++ compile error was
+corrected before final source/build freezing. Neither is native enforcement or
+product applicability evidence.
+
+The prepared task-only `portable-preflight.yml` has contents:read, pinned checkout
+and Node setup, one standard macos-26 job, no secrets, model, signing, upload or
+trust changes. Its fixed provider trial tests start, one transient source
+membership change-and-restore, one missing ancestor package creation/removal,
+and provisioning-byte mutation refusal. It does not claim an existing-container
+swap or agent enforcement. Failed assertions remain FAIL; unavailable capture
+remains UNKNOWN. Cleanup requires actual owned-child close, independently of a
+clean observation interval. Unknown reaping leaves the owned files intact for
+that VM. Independent review precedes dispatch; no CI result is implied here.
