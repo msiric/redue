@@ -51,6 +51,15 @@ f8fe190/rootb374f97. Its source-only workflow pin passed8e034e0/root1456c1a.
 Root17mocks pass84.2ms. These are harness/source results, not native enforcement.
 One preflight GitHub read returned502 before mutations/ledger/model, followed by
 a successful ordinary read; it is distinct from the captured ClaudeHTTP401.
+Independent actual-result/wiring review f7a47ca/rootb9e60c8 confirms the HTTP401
+classification and unchanged nonempty-token route, without reading credentials.
+A fresh metadata read at 2026-10-12T12:33:15.680347+00:00 still finds the OAuth secret updated only
+2026-10-12T11:09:43Z, before the refusal. No repaired input is established. The
+single owner credential-replacement request is already pending; do not repeat it
+or launch a model until the actual prerequisite changes. Known Claude auth block
+began at the recorded refusal2026-10-12T12:26:22Z; earlier causes stayuncaptured.
+No blocked-hour total is inferred. This resume checkpoint performs only read-only
+metadata and review integration, not another diagnostic or preparation milestone.
 All three hosted attempts and one-operation ledgers are preserved. No publication,
 new signing/origin/trust or recipient model acceptance. Copilot included Actions
 billing remains separate/pending. G2/finalG3/G4 incomplete; Day0/checkpoint unchanged.
