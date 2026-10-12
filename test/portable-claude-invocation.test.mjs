@@ -189,3 +189,13 @@ test('disabled recipient closes pinned read-only fallback without granting inspe
  for(const name of ['ACTIONS_RUNTIME_TOKEN','ACTIONS_ID_TOKEN_REQUEST_TOKEN'])assert.ok(p.settings_proposed.sandbox.credentials.envVars.some(x=>x.name===name&&x.mode==='deny'));
  assert.throws(()=>requireClaudeReceiverActivation(p),{code:'CLAUDE_RECEIVER_ACTIVATION_NOT_APPROVED'});
 });
+
+
+test('recipient tool literal matches controlled guidance portable config and state route',()=>{
+ const p=prepareClaudeReceiverInvocation(options);
+ const route="redue --config 'redue.config.json' --state-dir '../redue-state'";
+ assert.deepEqual(p.settings_proposed.permissions.allow,[`Bash(${route} status --sync --json)`,`Bash(${route} run typecheck)`]);
+ assert.equal(p.cwd,`${options.base}/Checkout 空间`);
+ assert.deepEqual(p.settings_proposed.sandbox.network.allowUnixSockets,[`${options.base}/redue-state/observer.sock`]);
+ assert.throws(()=>requireClaudeReceiverActivation(p),{code:'CLAUDE_RECEIVER_ACTIVATION_NOT_APPROVED'});
+});

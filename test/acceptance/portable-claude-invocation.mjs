@@ -35,7 +35,9 @@ export function prepareClaudeReceiverInvocation(options) {
   const prefix = path.join(base, 'prefix');
   const hostConfig = path.join(base, 'claude-host');
   const settingsFile = path.join(hostConfig, 'settings.json');
-  const command = `redue --config ${shellData(config)} --state-dir ${shellData(state)}`;
+  // Match the controlled installed guidance's root-relative route exactly;
+  // permission matching does not make absolute/relative argv equivalent.
+  const command = `redue --config ${shellData(path.basename(config))} --state-dir ${shellData(path.relative(root,state))}`;
   const settings = {
     disableAllHooks: true,
     enabledPlugins: {},
