@@ -34,5 +34,5 @@ export function buildPortableAncestorFSEvents(output,options={}){
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)){
   if(![4,5].includes(process.argv.length)||process.argv[2]!=='--output'||process.argv.length===5&&process.argv[4]!=='--diagnostic')fail('ANCESTOR_BUILD_USAGE');
-  console.log(JSON.stringify(buildPortableAncestorFSEvents(process.argv[3],{diagnostic:process.argv.length===5}))); 
+  console.log(JSON.stringify(buildPortableAncestorFSEvents(process.argv[3],{diagnostic:process.argv.length===5})));
 }
