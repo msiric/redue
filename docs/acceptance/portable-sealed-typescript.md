@@ -12,7 +12,33 @@ requires reviewed TS5.5.2 and the existing matched Darwin25.6/ARM64/official
 Node22.13 profile. A local proposal cannot certify that profile or its enforcement.
 Existing commands, user configurations and receipts are unchanged.
 
-## Current checkpoint — instrumented staging deadline; necessary-work review
+## Current checkpoint — prepared tree; compiler guard diagnosis
+
+Integration branch `dev/portable-sealed-typescript`, preserved HEAD35408dc.
+One real public-project preparation completed:33345 files/340640366bytes,
+66570.596ms including9459.249ms manifest work, exit0/reaped. It is
+MATERIALIZED_NOT_SEALED. The fsync-only ephemeral-stage correction retains full
+readback/membership/physical checks and does not alter receipt durability.
+
+Two fixed compiler fixtures remain UNKNOWN: the live-audit fixture exhausted its
+30s budget; the prepared-snapshot fixture finished14.537s with one childexit0 but
+bindingsCurrent:false. No failed guard was captured. A subsequent independently
+reviewed no-dispatch pair finished10.003s with all nine component equality
+booleans true. This is not a cause assignment or continuous-stability proof.
+RecordSHA267f2fe0947240e372997020f666b4683e2cbcdf39697a0a3846def466e0c334;
+outerACKSHAf166a39b6b9292780c8a266dc1628c7dde3ad85c3c8c9df5c30b69011c323327.
+
+Next is independent review of a fixed instrumented snapshot fixture that retains
+strict admission and reports the exact lost guard role. No unchanged score retry.
+A owns a bounded test-only filesystem-capture leaf; root owns shared interfaces;
+C independently reviews critical boundaries. Actual native stage enforcement,
+compiler namespace completeness and portable origin authority remain unestablished.
+Closed hosted Claude prerequisite stays scopedPASS; Copilot included Actions
+capacity remains pending. G1/G2/G3/prepublicationG4 remain incomplete. Existing
+origin containment, alpha.11 frozen bytes/unpublished status, receipts and prior
+failed/UNKNOWN attempts remain unchanged. No model, signing, new trust or release.
+
+## Historical checkpoint — instrumented staging deadline; necessary-work review
 
 At 2026-10-12 22:11UTC, one independently reviewed diagnostic at
 87d339b7d1a7897529a755262c564d02c28d684a returned UNKNOWN under the unchanged
