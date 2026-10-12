@@ -3409,3 +3409,40 @@ checkout pin. Grants, actor/ref/environment, secret handoff and four-turn/120s
 bounds are unchanged. GO for this narrow parser and pin correction; actual
 operations remain the coordinator's responsibility under current owner authority
 and prerequisites. This review establishes no native PASS or completed gate.
+
+### Hosted checker observations with unresolved final startup guard
+
+Independent protected report38251411464, SHA-256
+`ed3c192eaf7e0249d6660b3c46af62b0218d7cbbead94b92441fde1625f98a0e`,
+retains all six named checker assertions PASS and observed supervisor child
+exit0/signal:null. Matching native tool-use/result IDs, a matching separate socket
+collection and protocol delta[1,0,0] establish the actual checker observation.
+Native exit0, two assistant messages/two reported turns/eight admitted progress
+frames, controls, immutable manifest currency, reaping, cleanup and persistence
+are true. Overall collection remains UNKNOWN because the post-collection startup
+source guard reported DIAGNOSTIC_STARTUP_SOURCE_PRESENT. Its role was not retained.
+Do not guess a cache, credential store or managed policy, or convert manifest
+currency into proof that all startup-authority sources remained absent. The
+named observations are not a complete final diagnostic gate or G2 completion.
+
+Correction `3e5e9460fb2289972cfff19183030b8e0c7f70e9`, helper SHA-256
+`4cd11fb3293e094511e442038caa8c8ddc45b51e0636d3548e96df09a7b1d795`,
+adds metadata-only fixed role and BEFORE_NATIVE/AFTER_NATIVE projection to the
+existing refusal. All10 paths and lstat order remain equal: system managed JSON,
+drop-in directory and plist, OS-user plist, isolated remote settings/credential
+store, project .claude/MCP/instruction file and the fixed remote API-key path.
+No contents are opened; presence and non-ENOENT errors still refuse. The output
+boundary validates membership in the exact10-role set, rather than accepting
+arbitrary exception strings. AFTER_NATIVE denotes the post-collection guard;
+process reaping remains a separate observed field. No startup exception is waived.
+
+Independent19/19 pure/mocks pass (92.179958ms), plus40 presence/errno differential
+cases across all roles and28 fixed-role/phase projection cases. Private canaries
+are withheld, and settings/resource/time/turn limits equal7870dd1. All filesystem
+guard calls in these tests are mocked; this reviewer read no actual protected
+startup path metadata or body and launched no native/auth/model/CI operation.
+Prepared workflow commit `35a5ddf67012d7092c8a87235e6819f0ce145e6b`, SHA-256
+`5f2c9f936b46d8e7759784b8fd610342333df072cefa08c6e6c4fc3e52f1ab6f`,
+is byte-proven identical to d8cd842 except for the7870dd1 to3e5e946 source pin.
+Conclusion: GO for the metadata observation correction and pin only. The genuine
+final-guard UNKNOWN and all limited successful observations remain preserved.
