@@ -5704,3 +5704,48 @@ collections, not the cause of prior c2b UNKNOWN or an origin interval. Matching
 final outer acknowledgement remains required. Any route-zero result is still
 NOT independently acknowledged compiler execution, namespace equivalence,
 stable native seal, receipt or reuse authority.
+
+
+## Actual instrumented snapshot route: narrow zero exit only
+
+Independent read-only record review confirmed saved
+SHA3e90cfe8e791bb160900eb62726e514e4810045e1e9ef7153a71e77798f92d00
+and matching outerSHAf42f8b64aec6ecb86f725e951ddc262d1eb7b9d2aa27d5c8195a9dd968039ee1.
+Both are owned regular single-link0600. The actual narrow outcome is
+PREPARED_SNAPSHOT_ROUTE_EXIT_ZERO_NOT_SEALED with one dispatch, child0/no signal,
+observed reap, no stdout/stderr bytes, all ten equality booleans true and
+bindingsCurrent=true. It records33345files/4532directories/77links and
+14848.777709ms. Source provenance remains historical only/live matching false,
+compiler execution NOT_INDEPENDENTLY_ACKNOWLEDGED, sealed/reuse false. The pending
+saved observation is paired with its actual final outer acknowledgement.
+
+Also verified no-dispatch guard-pair saved
+SHA267f2fe0947240e372997020f666b4683e2cbcdf39697a0a3846def466e0c334
+and outerSHAf166a39b6b9292780c8a266dc1628c7dde3ad85c3c8c9df5c30b69011c323327,
+owned regular single-link0600, all nine comparisons true,10003.204291ms,
+zero dispatch/execution and overall UNKNOWN. These outcomes establish only their
+actual sampled scope. Earlier UNKNOWNs retain their original causes/uncertainty;
+no earlier mismatch is retroassigned, and no additional score retry is needed.
+No seal, native-agent enforcement, original namespace equivalence, portable origin,
+receipt, G2 or reuse authority is promoted. No causal/time-saving claim follows.
+The reviewer read only scoped records; no compiler/native/model/CI operation ran.
+
+## Sealed capture strategy: source ordering requirements, not implementation GO
+
+Current typeScriptInputFacts requires the TS API before configuration parsing and
+before compilerFiles. The latter's remember() asks raw queryAnswer before TSsys;
+EPERM/EACCES throws in the raw helper while TSsys may catch it and produce its
+semantic false/undefined/empty/fallback result. Legacy helpers/default behavior
+must remain unchanged. The proposed sealed-only strategy must establish actual
+stage cwd and the restricted filesystem view and forwarding recorder before the
+first verified TS API load, including cached realpath/native and config-phase I/O.
+
+Preserve both actual TSsys answers and tagged underlying DENIED/MISSING/OTHER
+observations, never reinterpreting a denial as absence. Scope nested readDirectory
+and cached calls, tag module-load versus config/program facts, restore forwarding
+in finally and retain bounded/privacy-safe protocols. Caller and revalidation
+must use the exact same constrained staged view, not a permissive daemon. API
+program discovery is not independently proved equivalent to all actual CLI
+queries or a successful typecheck. Exact implementation/schema/bounds/restoration
+and native profile/currentness need review before any capture invocation; this
+source direction alone grants no execution, sealing or receipt authority.
