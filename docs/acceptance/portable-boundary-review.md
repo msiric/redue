@@ -3276,3 +3276,18 @@ change. Known/unknown privacy canaries are withheld and the first classification
 remains latched. Conclusion: GO for the diagnostic-only correction, not a new
 native operation, model trial, event acceptance or retrospective cause claim.
 No native/auth/CI/listener/checker operation occurred in this review.
+
+### Prepared capture revision: source pin only
+
+Independent byte comparison of workflow commit
+`7deb7d26e9a51c05592043a7304ce384760850d8` against the original registration
+proves exactly one substitution: checkout source da0b108 becomes
+`ed4219aa6eef8f3addd97fd8a1510ef51396215d`. Workflow SHA-256 is
+`08ffcc4030772089175f35167b507602b7399e7368d21f343ea79a92fc934fa0`;
+the selected helper is exactly the reviewed111e54cc… bytes. All triggers, actor,
+ref, protected environment, OAuth step, permissions, turn/time limits and grants
+are unchanged. No repeated tests were needed for this byte-identical wrapper
+apart from the pin. GO for preparation only: the consumed first hosted attempt
+remains UNKNOWN, and no additional job allowance, owner policy/source-fact update,
+dispatch, trust or native enforcement is established here. No native/model/CI
+operation was performed by this reviewer.
