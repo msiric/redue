@@ -145,6 +145,22 @@ test('native hook evidence and unknown system authority events irrevocably withh
  }
 });
 
+test('rejected system event capture classifies only pinned static names and cannot admit events or leak values',()=>{
+ for(const subtype of ['status','session_state_changed','turn_starting','notification','hook_started','PRIVATE_CANARY',null,{},'status\nPRIVATE_CANARY']){
+  for(const beforeInit of [true,false]){
+   const event={type:'system',subtype,status:'PRIVATE_CANARY',permissionMode:'PRIVATE_CANARY',text:'PRIVATE_CANARY',session_id:'PRIVATE_CANARY'};
+   const t=trace([...(beforeInit?[]:[init]),event,init,assistant(),result(),final]);
+   assert.deepEqual(t.rejected_system_event,{subtype_code:['status','session_state_changed','turn_starting','notification','hook_started'].includes(subtype)?subtype:'UNREVIEWED_SUBTYPE',phase:beforeInit?'BEFORE_VALIDATED_INIT':'AFTER_VALIDATED_INIT'});
+   assert.equal(diagnosticOutcome(t,complete).collection_status,'UNKNOWN');
+   assert.equal(JSON.stringify(t).includes('PRIVATE_CANARY'),false);
+  }
+ }
+ const first=trace([init,{type:'system',subtype:'status'},{type:'system',subtype:'hook_started'}]);
+ assert.equal(first.rejected_system_event.subtype_code,'status');
+ assert.equal(first.error,'NATIVE_SYSTEM_CONTEXT_UNKNOWN');
+ assert.equal(trace().rejected_system_event,null);
+});
+
 test('pinned native read-only families are explicitly denied before fallback without changing grants',()=>{
  const s=plan.settings;
  assert.deepEqual(s.permissions.allow,[`Bash(${plan.command})`]);

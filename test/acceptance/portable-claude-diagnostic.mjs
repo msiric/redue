@@ -19,6 +19,9 @@ const NAMES=['custom_env_sentinel_absent','synthetic_protected_read_denied','syn
 const EXPECTED=['ABSENT','DENIED_PERMISSION_ERROR','DENIED_PERMISSION_ERROR','EXPECTED_RESPONSE','DENIED_PERMISSION_ERROR','DENIED_PERMISSION_ERROR'];
 const CODES=new Set(['ABSENT','PRESENT','ACCESS_SUCCEEDED','DENIED_PERMISSION_ERROR','UNKNOWN_OR_UNAVAILABLE','EXPECTED_RESPONSE','UNEXPECTED_RESPONSE']);
 const SIGNALS=new Set(['SIGHUP','SIGINT','SIGQUIT','SIGILL','SIGTRAP','SIGABRT','SIGIOT','SIGBUS','SIGFPE','SIGKILL','SIGUSR1','SIGSEGV','SIGUSR2','SIGPIPE','SIGALRM','SIGTERM','SIGCHLD','SIGCONT','SIGSTOP','SIGTSTP','SIGTTIN','SIGTTOU','SIGURG','SIGXCPU','SIGXFSZ','SIGVTALRM','SIGPROF','SIGWINCH','SIGIO','SIGINFO','SIGSYS']);
+// Classification only, never an acceptance list. Literal emitted subtype names
+// extracted from reviewed native187 SHA a59a16ba; no event values are retained.
+const PINNED_SYSTEM_SUBTYPES=new Set('task_notification task_progress task_updated task_started model_refusal_fallback post_turn_summary model_consent_fallback model_fallback notification hook_started hook_progress hook_response compact_boundary worker_shutting_down thinking_tokens mirror_error file_snapshot informational permission_retry bridge_status scheduled_task_fire stop_hook_summary turn_duration away_summary memory_saved agents_killed local_command api_error memory_recall init session_state_changed task_summary permission_denied turn_starting status api_retry elicitation_complete plugin_install commands_changed bridge_state'.split(' '));
 let readDeadline=Infinity;
 const checkDeadline=()=>{if(Date.now()>=readDeadline)fail('DIAGNOSTIC_JOB_DEADLINE');};
 const fail=code=>{throw Object.assign(Error('Native diagnostic prerequisite unavailable'),{code});};
@@ -45,7 +48,7 @@ function collectionFromText(content){
  return candidates.length===1?candidates[0]:null;
 }
 export function createNativeDiagnosticTrace({command,cwd}){
- let init=false,error=null,tool=null,result=null,final=null;const assistantIDs=new Set();
+ let init=false,error=null,tool=null,result=null,final=null,rejectedSystemEvent=null;const assistantIDs=new Set();
  const reject=code=>{error??=code;};
  const consume=value=>{
   if(!value||typeof value!=='object'||Array.isArray(value)){reject('NATIVE_STREAM_MALFORMED');return;}
@@ -78,11 +81,14 @@ export function createNativeDiagnosticTrace({command,cwd}){
   }
   // Pinned187 emits these hook subtypes (ASCII source202123653). Even a
   // supplied no-policy statement cannot green contradictory native evidence.
-  if(value.type==='system'){reject(['hook_started','hook_progress','hook_response'].includes(value.subtype)?'NATIVE_STARTUP_HOOK_OBSERVED':'NATIVE_SYSTEM_CONTEXT_UNKNOWN');return;}
+  if(value.type==='system'){
+   rejectedSystemEvent??={subtype_code:PINNED_SYSTEM_SUBTYPES.has(value.subtype)?value.subtype:'UNREVIEWED_SUBTYPE',phase:init?'AFTER_VALIDATED_INIT':'BEFORE_VALIDATED_INIT'};
+   reject(['hook_started','hook_progress','hook_response'].includes(value.subtype)?'NATIVE_STARTUP_HOOK_OBSERVED':'NATIVE_SYSTEM_CONTEXT_UNKNOWN');return;
+  }
   // Never publish model text, auth/init payloads, error strings or unknown events.
   if(value.type!=='rate_limit_event')reject('NATIVE_STREAM_UNKNOWN');
  };
- return {consume,snapshot:()=>({init,error,assistant_turns:assistantIDs.size,tool,result,final})};
+ return {consume,snapshot:()=>({init,error,assistant_turns:assistantIDs.size,tool,result,final,rejected_system_event:rejectedSystemEvent})};
 }
 export function diagnosticOutcome(trace,{nativeExit=null,nativeSignal=null,timedOut=false,controlsBefore=false,controlsAfter=false,sourceCurrent=false,probeDelta=null,collectionMatches=false,reaped=false,cleanupComplete=false}={}){
  const assertion=trace.result?.collection?.assertion_outcome??'UNKNOWN';
@@ -279,6 +285,7 @@ async function executePreparedDiagnostic({plan,manifest,env,jobStartedMs,signal}
  const report={schema:1,scope:'NATIVE_PROGRAMMATIC_SYNTHETIC_DIAGNOSTIC_ONLY',...projected,source:manifest.source,native_version:REVIEWED_CLAUDE_NATIVE.version,native_sha256:REVIEWED_CLAUDE_NATIVE.sha256,
   controls_before:pre,controls_after:post,source_current:sourceCurrent,actual_probe_protocol_delta:probeDelta,collection_matches_tool_result:collectionMatches,
   native_launch_attempted:observed!==undefined,native_process_spawn_observed:observed?.native_process_spawn_observed??false,model_response_observed:trace.assistant_turns>0,observed_assistant_messages:trace.assistant_turns,model_turns_reported:trace.final?.turns??null,
+  native_init_validated:trace.init===true,rejected_system_event:trace.rejected_system_event??null,
   tool_use_id:trace.tool?.id??null,tool_result_id:trace.result?.id??null,checker:trace.result?.collection??null,
   owned_native_reaped:reaped,owned_listener_cleanup:cleanup,milliseconds:performance.now()-started,job_milliseconds:Date.now()-jobStartedMs,
   checker_real_credentials_opened:false,native_parent_oauth_used:'EXPECTED_NOT_MEASURED',portable_applicability:'NOT_TESTED',agent_reuse:'NOT_TESTED',raw_transcript_retained:false,raw_stderr_retained:false};
