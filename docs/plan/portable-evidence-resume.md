@@ -6,7 +6,45 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — reviewed conditional hosted diagnostic; installed preparation repaired
+## Current checkpoint — reviewed manual workflow registration; owner-only inputs isolated
+
+Registration PR14 adds only a manual workflow to currentmainb4f2860. Commit68f1416,
+SHA-256a5f4e589823844144203e98151d315cd785f6d7d09212a720749618789e43e72,
+pins the reviewed task source da0b1080f3edcc68f3d4067cb51f961759e68312. Independent
+review8ebab74/root33c9f0d confirms exact template derivation, 15/15 frozen mocks,
+manual-only/ref/actor/attempt1 guards, contents:read and4turns/120s. Registration
+cannot launch a model. Normal PR revision checks are pending; merge uses the
+standing in-scope authorization only after they pass. No secret, environment,
+signing, trust or model action has occurred.
+
+The current owner checklist now provides the exact reviewed private setup-token
+procedure, preserved isolated Keychain namespace and verified workspace/binary/
+settings. C required and root applied the explicit isolated cwd. Actual personal
+Pro/Max/no applicable policy, current included quota/extra usage disabled and owner
+protected-environment OAuth provisioning remain prerequisites. A single consolidated
+owner request was sent; Copilot's four-credit Actions billing fact is unchanged
+and separate. No new personal console VM, account or terminal controller is needed.
+
+Exact-package38196115474 passes allthree platforms. Independently downloaded bytes
+SHA-256b8122c3bdcedf42a374ba3a87681ca7654360bc6c10daa64b5ac93a79ca7b190
+remain unchanged; actual merge-source0b6f865 has treefd1ec204 equal to da0b108.
+This is preparation acceptance, not publicalpha.10 or frozen8695b612. Product
+38196115475 passes macOS535/562 (27skip) and Linux22 523/562 (39skip), Linux24 job
+PASS/count not retained. Windows failed the nested5.5.2 all-suite180s bound and
+an old-npm run120s bound, then the job was cancelled at25minutes. Raw records are
+retained; phase/cause remains unestablished. B owns bounded source/log diagnosis;
+no blind rerun, test weakening or production-deadline increase follows.
+
+The corrected installed preparation still passes8commands with no local run/import,
+models or native host. Three owned stage prefixes were removed only after absent
+observer locks; checkout/state/history and original failed records remain preserved.
+Artifact usage46active/4,782,339bytes plus224KiB reserve remains below10MiB.
+G2/finalG3/G4 remain incomplete. Day0=2026-10-10 21:24UTC/72h checkpointOct13 21:24UTC
+and$0 limits are unchanged. Next: finish registration checks/merge; diagnose the
+Windows phase with bounded instrumentation if needed; accept owner-only facts and
+provisioning before the one native diagnostic. No missing gate launches a model.
+
+## Historical checkpoint — reviewed conditional hosted diagnostic; installed preparation repaired
 
 Native diagnostic author04ee1ca is independently reviewed by C5d02938/root3f31084.
 The proposal stays outside `.github`, with no credentials or hosted inference.

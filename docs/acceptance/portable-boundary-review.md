@@ -3176,3 +3176,19 @@ neither can trigger this manual-only diagnostic. A later dispatch requires the
 registered workflow on its selected dedicated ref, current provisioning/facts
 and the coordinator's one-operation ledger. Registration alone supplies none of
 those facts and demonstrates no native enforcement or acceptance-gate completion.
+
+### Owner-only token procedure — narrow independent review
+
+C freshly rehashed nativea59/settings5628 and the existing guarded launcher,
+confirming canonical owned single-link expected-mode files. Pinned187 registers
+setup-token as its subscription-auth subcommand, not print/inference. The proposed
+command preserves the existing Keychain namespace selector, config/GH locations,
+all-tools-denied settings and strict empty MCP; empty setting sources is stricter
+than the existing project's/local loading. C identified one startup-context gap:
+a direct command inherited arbitrary terminal cwd. Root corrected it to a subshell
+cd into the existing verified BASE/workspace, not the obsolete credential namespace.
+The resulting shell syntax passes bash -n. Source/filesystem review is conditional
+GO only after the actual no-policy/current included-quota facts. Neither reviewer
+nor root ran native authentication, generated a token, read/copied credentials,
+changed settings or created the protected GitHub environment. Metadata verification
+reports keychain-item presence; it proves neither quota nor native enforcement.

@@ -12,21 +12,72 @@ checks passed, actual checker exit0 and final persistence/cleanup are independen
 reviewed. Do not rerun the local diagnostic or full checker. Real credential-body
 denial and hosted receiver/model behavior are not established by this result.
 
-1. **Hosted native Claude provisioning — not ready for an owner action yet.**
-   The existing workflow is secret-free/data-only, not a reviewed secret-bearing
-   execution route. No secret should be created or added yet. The disabled
-   receiver invocation is being aligned with actual187/pinnedbinary; it keeps
-   machine-specific effective controls, account/source and expected-evidence
-   preflights mandatory. Once an exact runnable route is independently reviewed,
-   provide one consolidated supported OAuth/owner-secret procedure. Do not copy
-   local credentials or transfer this Mac's enforcement authority to a VM.
-2. **Copilot Actions included-capacity fact.** Confirm the applicable entitlement
-   permits the personally owned repository's documented `GITHUB_TOKEN` route,
-   with at least four included AI credits available and no additional-charge
-   route under the $0 cap. The scope-limited API returned404 and the saved
-   browser permission was denied; neither establishes seat/quota/billing facts.
-   Company permission for personal use and account existence are already settled.
-   No token value, new subscription, API billing or broader access is requested.
+1. **Hosted native Claude diagnostic — independently reviewed, registration PR14.**
+   The [manual-only workflow PR](https://github.com/msiric/redue/pull/14) pins
+   `da0b1080f3edcc68f3d4067cb51f961759e68312`; exact workflow SHA-256 is
+   `a5f4e589823844144203e98151d315cd785f6d7d09212a720749618789e43e72`.
+   It uses native2.1.187, one standard macOS26 job, at most4turns/120s,
+   contents:read, no artifact upload/signing and the selected dedicated ref.
+   Registration/merge alone never launches a model. The source/mock review is
+   conditional, not hosted enforcement evidence.
+
+   Only the following owner inputs remain:
+   - Confirm the intended token's actual personal Pro/Max account has no
+     Team/Enterprise membership or applicable managed policy, and this bounded
+     job fits current included subscription quota with extra usage/charges disabled.
+     If policy applies or either fact is unknown, report it; do not attest none.
+   - In [repository environment settings](https://github.com/msiric/redue/settings/environments),
+     create `portable-evidence-claude` with required owner review and only the
+     selected branch `dev/portable-claude-diagnostic`. Set the two nonsecret
+     variables using the exact schema in [diagnostic procedure](portable-claude-diagnostic.md):
+     `REDUE_CLAUDE_INCLUDED_DIAGNOSTIC_CAPACITY=4-turn-120s-included-only`
+     and `REDUE_CLAUDE_ACCOUNT_POLICY_FACT`. Source is the full da0b108 commit
+     above; use the true account kind (`personal-pro` or `personal-max`) and actual
+     current UTC review time. The statement expires after24hours. Do not enable
+     self-review prevention if it would exclude the sole required owner/dispatcher;
+     it is owner review, not a substitute for independent code review.
+   - Privately generate a subscription OAuth token with the verified native command
+     below, then add only environment secret `CLAUDE_CODE_OAUTH_TOKEN` through
+     GitHub's owner interface. Never send the token in chat or copy a login store.
+     No Claude GitHub App, PAT, API key or new account is needed for this direct
+     native CLI workflow. Deleting the secret does not revoke the provider token.
+
+   Only after the policy/quota facts above are established, run this in the owner's
+   private terminal. It preserves the existing isolated Keychain namespace,
+   all-tools-denied profile and empty project/local setting sources. The old tmp
+   string is a credential namespace identifier, **not** a launch directory:
+
+   ```sh
+   (
+   /usr/bin/python3 "/Users/mariosiric/Library/Application Support/REDUE/portable-evidence/native-claude-2.1.187/launch-claude.py" --verify && \
+   cd "/Users/mariosiric/Library/Application Support/REDUE/portable-evidence/native-claude-2.1.187/workspace" && \
+   CLAUDE_CONFIG_DIR="/Users/mariosiric/Library/Application Support/REDUE/portable-evidence/native-claude-2.1.187/claude-config" \
+   CLAUDE_SECURESTORAGE_CONFIG_DIR="/private/tmp/redue-claude-noauth-ckwXOM/claude-config" \
+   GH_CONFIG_DIR="/Users/mariosiric/Library/Application Support/REDUE/portable-evidence/native-claude-2.1.187/gh-config" \
+   DISABLE_UPDATES=1 \
+   "/Users/mariosiric/Library/Application Support/REDUE/portable-evidence/native-claude-2.1.187/bin/claude" \
+     --permission-mode dontAsk --tools Bash --strict-mcp-config \
+     --mcp-config '{"mcpServers":{}}' --setting-sources '' \
+     --settings "/Users/mariosiric/Library/Application Support/REDUE/portable-evidence/native-claude-2.1.187/settings.json" setup-token
+   )
+   ```
+
+   Binary/config/settings/namespace metadata were freshly verified without native
+   launch or reading credentials. Stop on an unexpected policy/account gate;
+   never accept wider authority to obtain a token. The token command is owner-only,
+   not executed by the coordinator. Its supported authentication purpose is described
+   in the [official Actions OAuth instructions](https://code.claude.com/docs/en/github-actions).
+   The next unlocked operation is the one bounded synthetic native diagnostic.
+   Actual structured assertions, checker exit/signal and native tool trace must
+   pass before a separately gated portable recipient model trial. It does not
+   itself complete G2 or authorize a changed producer/signing/trust policy.
+2. **Copilot Actions included-capacity fact — unchanged separate prerequisite.**
+   Confirm the applicable entitlement permits the personally owned repository's
+   documented `GITHUB_TOKEN` route with at least four included AI credits and no
+   additional-charge route under the $0 cap. Personal-use permission and account
+   existence are settled; desktop/CLI access does not establish Actions billing.
+   No PAT, new account, API billing or broader access is requested. This unlocks
+   only the predeclared bounded producer trial after its own fail-closed preflight.
 
 No fresh command/hash consent is needed for routine repairs or tests within the
 amendment. Real access, capacity and fail-closed model gates still need evidence.
