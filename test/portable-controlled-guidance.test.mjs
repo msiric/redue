@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {writeControlledPortableGuidance,inspectControlledPortableGuidance} from './acceptance/portable-controlled-guidance.mjs';
+import {writeControlledPortableGuidance,inspectControlledPortableGuidance,REVIEWED_CLAUDE_POLICY_SHA256} from './acceptance/portable-controlled-guidance.mjs';
 
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const fixtureTest=(name,fn)=>test(name,{skip:process.platform==='win32'?'POSIX ownership fixture; matched macOS proposal only':false},fn);
@@ -200,4 +200,17 @@ fixtureTest('Claude import is exact local data; old pointer-only or external imp
   }
   fs.writeFileSync(claude,bytes);assert.equal(inspectControlledPortableGuidance(selected).integrity,'intact');
   assert(fs.readFileSync(path.join(f.root,'AGENTS.md')).equals(copilot));assert(fs.readFileSync(path.join(f.root,'REDUE_PORTABLE_AGENT.md')).equals(policy));
+});
+
+
+fixtureTest('Claude policy import closure rejects unreviewed nested imports even with a recomputed caller digest',t=>{
+ const f=fixture(t);assert.equal(f.policySha256,REVIEWED_CLAUDE_POLICY_SHA256);
+ const original=fs.readFileSync(f.policyFile);
+ for(const suffix of ['\n@unreviewed.md\n','\n@../outside.md\n','\n@/nonsecret/outside.md\n']){
+  const bytes=Buffer.concat([original,Buffer.from(suffix)]);fs.writeFileSync(f.policyFile,bytes);
+  assert.throws(()=>writeControlledPortableGuidance(options(f,{policySha256:sha(bytes)})),{code:'CONTROLLED_GUIDANCE_POLICY_UNREVIEWED'});
+  assert.throws(()=>inspectControlledPortableGuidance(options(f,{policySha256:sha(bytes)})),{code:'CONTROLLED_GUIDANCE_POLICY_UNREVIEWED'});
+  for(const name of ['CLAUDE.md','AGENTS.md','REDUE_PORTABLE_AGENT.md'])assert.equal(fs.existsSync(path.join(f.root,name)),false);
+ }
+ fs.writeFileSync(f.policyFile,original);assert.equal(writeControlledPortableGuidance(options(f,{hosts:['claude']})).applied,false);
 });

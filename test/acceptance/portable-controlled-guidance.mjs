@@ -7,6 +7,9 @@ import {readBoundedPortableFile} from '../../src/portable-command.mjs';
 
 const FILES={copilot:'AGENTS.md',claude:'CLAUDE.md'};
 const POLICY='REDUE_PORTABLE_AGENT.md';
+// Reviewed installed shared policy has no native memory imports. Exact bytes
+// close recursive @ loading without granting a general import/parser policy.
+export const REVIEWED_CLAUDE_POLICY_SHA256='db8e2e02895e8ebf39ee0ba23420ed0e0a8525c17246a0c73d3f161aac9c9f32';
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const fingerprint=s=>[s.dev,s.ino,s.size,s.mtimeNs,s.ctimeNs].map(String).join(':');
 const identity=s=>[s.dev,s.ino].map(String).join(':');
@@ -50,6 +53,7 @@ function prepareControlledGuidance(options,{inspection=false}={}){
   const configSource=sourceSnapshot(config,65536),ownerSource=sourceSnapshot(ownerFile,8192),policySource=sourceSnapshot(policyFile,65536),
     configBytes=configSource.bytes,ownerBytes=ownerSource.bytes,policy=policySource.bytes;
   if(hash(policy)!==policySha256||!policy.toString('utf8').startsWith('---\nname: redue-verification\n'))fail();
+  if(hosts.includes('claude')&&policySha256!==REVIEWED_CLAUDE_POLICY_SHA256)fail('CONTROLLED_GUIDANCE_POLICY_UNREVIEWED');
   let owner,selected;
   try{owner=JSON.parse(ownerBytes);selected=JSON.parse(configBytes);}catch{fail();}
   const expected={schema:1,kind:'vstate-product-alpha',config:path.join(state,'project-runtime-v1.json'),root,state};
