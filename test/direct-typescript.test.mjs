@@ -11,17 +11,20 @@ import os from 'node:os';
 import {spawnSync,execFileSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import {findExecutable} from '../src/executable-lookup.mjs';
+import {createDirectFixtureDiagnostics} from './acceptance/direct-fixture-diagnostics.mjs';
 
 const require=createRequire(import.meta.url),bin=path.resolve('bin/redue.mjs');
 const compilerPackage=process.env.REDUE_TEST_COMPILER_PACKAGE||'typescript';
 const sourceTypeScript=path.dirname(require.resolve(compilerPackage+'/package.json'));
 const compilerVersion=JSON.parse(fs.readFileSync(path.join(sourceTypeScript,'package.json'))).version;
+const diagnostics=new Map();
 const put=(file,value)=>{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,value);};
 function project(t,{manager='npm',declaredManager=null,
   scripts={typecheck:'tsc --noEmit',test:'vitest run',
   lint:'eslint .',build:'vite build'},workspaces=false}={}){
   const base=fs.mkdtempSync(path.join(os.tmpdir(),'vstate-onboarding-')),
     root=path.join(base,'project'),state=path.join(base,'vstate-state');
+  const diagnostic=createDirectFixtureDiagnostics(base);diagnostics.set(root,diagnostic);
   fs.mkdirSync(root);put(path.join(root,'package.json'),JSON.stringify({name:'public-ts-fixture',
     version:'1.0.0',scripts,...(declaredManager?{packageManager:declaredManager}:{}),
     ...(workspaces?{workspaces:['packages/*']}:{})}));
@@ -33,15 +36,15 @@ function project(t,{manager='npm',declaredManager=null,
   put(path.join(root,'src/main.ts'),'export const value: number = 1;\n');
   put(path.join(root,'.gitignore'),'node_modules/\n');
   fs.mkdirSync(path.join(root,'node_modules','.bin'),{recursive:true});
-  fs.cpSync(sourceTypeScript,path.join(root,'node_modules','typescript'),{recursive:true});
+  diagnostic.step('fixture.compiler_copy',()=>fs.cpSync(sourceTypeScript,path.join(root,'node_modules','typescript'),{recursive:true}));
   if(process.platform==='win32')fs.copyFileSync(path.resolve('node_modules/.bin/tsc.cmd'),
     path.join(root,'node_modules','.bin','tsc.cmd'));
   else fs.symlinkSync('../typescript/bin/tsc',path.join(root,'node_modules','.bin','tsc'));
-  execFileSync('git',['init','-q'],{cwd:root});
-  execFileSync('git',['add','package.json','tsconfig.json','src','.gitignore',
+  diagnostic.step('fixture.git_init',()=>execFileSync('git',['init','-q'],{cwd:root}));
+  diagnostic.step('fixture.git_add',()=>execFileSync('git',['add','package.json','tsconfig.json','src','.gitignore',
     ...(manager==='npm'?['package-lock.json']:manager==='yarn'?['yarn.lock']:
-      ['pnpm-lock.yaml'])],{cwd:root});
-  t.after(()=>{try{invoke(root,state,'stop');}catch{}fs.rmSync(base,{recursive:true,force:true});});
+      ['pnpm-lock.yaml'])],{cwd:root}));
+  t.after(()=>{try{invoke(root,state,'stop');}catch{}diagnostic.step('fixture.cleanup',()=>fs.rmSync(base,{recursive:true,force:true}));diagnostics.delete(root);});
   return {root,state,config:path.join(root,'redue.config.json')};
 }
 function invoke(root,state,...args){
@@ -50,11 +53,14 @@ function invoke(root,state,...args){
   // Node test worker markers are also fixture-only, not ordinary shell context.
   const env=Object.fromEntries(Object.entries(process.env)
     .filter(([key])=>!/^npm_config_/i.test(key)&&!['NODE_TEST_CONTEXT','NODE_TEST_WORKER_ID'].includes(key)));
-  return spawnSync(process.execPath,[bin,'--state-dir',state,...args],
-    {cwd:root,env,encoding:'utf8',timeout:30000});
+  return command(root,state,args,env,30000);
+}
+function command(root,state,args,env,timeout){
+  const run=childEnv=>spawnSync(process.execPath,[bin,'--state-dir',state,...args],{cwd:root,env:childEnv,encoding:'utf8',timeout});
+  return diagnostics.get(root)?.command(args[0],env,run)??run(env);
 }
 function good(root,state,...args){const result=invoke(root,state,...args);
-  assert.equal(result.status,0,`${args.join(' ')}: ${result.stderr}\n${result.stdout}`);
+  assert.equal(result.status,0,`${args.join(' ')}: ${result.error?.code||result.signal||''}\n${result.stderr}\n${result.stdout}`);
   return result.stdout;}
 const sync=(root,state)=>JSON.parse(good(root,state,'status','--sync','--json'));
 
@@ -100,8 +106,7 @@ test('real direct compiler evidence crosses proxy contexts, but not relevant inp
   const baseEnv=Object.fromEntries(Object.entries(process.env).filter(([key])=>!/^npm_config_/i.test(key)&&!['NODE_TEST_CONTEXT','NODE_TEST_WORKER_ID'].includes(key)));
   const contextA={npm_config_proxy:'http://127.0.0.1:3128',NPM_CONFIG_PROXY:'http://127.0.0.1:3128'},
     contextB={npm_config_proxy:'http://127.0.0.1:4321',NPM_CONFIG_PROXY:'http://127.0.0.1:4321'};
-  const call=(args,context=contextA)=>spawnSync(process.execPath,[bin,'--state-dir',state,...args],
-    {cwd:root,env:{...baseEnv,...context},encoding:'utf8',timeout:45000});
+  const call=(args,context=contextA)=>command(root,state,args,{...baseEnv,...context},45000);
   const status=(context=contextA)=>{const r=call(['status','--sync','--json'],context);assert.equal(r.status,0,r.stderr);return JSON.parse(r.stdout).checks[0];};
   const run=()=>{const r=call(['run','typecheck']);assert.equal(r.status,0,r.stderr+r.stdout);};
   run();const a=status();assert.equal(a.freshness,'CURRENT',JSON.stringify(a));assert.equal(a.reuse_eligible,true);
@@ -186,8 +191,7 @@ test('arbitrary proxy-reading command retains strict context and receives no dir
     coverageReview:Object.fromEntries(categories.map(k=>[k,'Owned fixture: exact Node expression reads one declared environment key, no files or services']))}]}));
   good(root,state,'start');
   const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!/^npm_config_/i.test(key)));
-  const call=(args,proxy)=>spawnSync(process.execPath,[bin,'--state-dir',state,...args],
-    {cwd:root,env:{...env,npm_config_proxy:proxy},encoding:'utf8',timeout:30000});
+  const call=(args,proxy)=>command(root,state,args,{...env,npm_config_proxy:proxy},30000);
   const run=call(['run','proxy-reader'],'a');assert.equal(run.status,0,run.stderr);
   const a=JSON.parse(call(['status','--sync','--json'],'a').stdout).checks[0];
   assert.equal(a.reuse_eligible,true);

@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
+import {emitDirectSuiteDiagnostic} from './acceptance/direct-fixture-diagnostics.mjs';
 test('TypeScript 5.5.2 obeys the existing direct and guarded-discovery contract',()=>{
  const compiler=path.resolve('test/fixtures/typescript-5-5-2/node_modules/typescript');
  assert.equal(JSON.parse(fs.readFileSync(path.join(compiler,'package.json'))).version,'5.5.2',
@@ -37,10 +38,13 @@ test('TypeScript 5.5.2 obeys the existing direct and guarded-discovery contract'
   ['test/macos-direct-probe.test.mjs','recording'],
  ];
  for(const [file,group] of groups){
+  const diagnosticGroup=group?'mac-'+group:'direct-all',started=performance.now();
+  emitDirectSuiteDiagnostic('suite.begin',{group:diagnosticGroup});
   const r=spawnSync(process.execPath,['--test','--test-reporter=tap','--test-concurrency=1',
    file],{
    env:{...cleanEnv,...(group?{REDUE_TEST_DIRECT_GROUP:group}:{}),REDUE_TEST_COMPILER_PACKAGE:compiler},
    encoding:'utf8',timeout:180000,maxBuffer:8e6});
+  emitDirectSuiteDiagnostic('suite.end',{group:diagnosticGroup,ms:performance.now()-started,status:r.status,signal:r.signal??null,errorCode:r.error?.code??null});
   assert.equal(r.status,0,`${file} ${group||'all'}: ${r.error?.code||r.signal||''}\n${r.stdout}${r.stderr}`);
   assert.match(r.stdout,/# tests [1-9][0-9]*/,'nested suite must actually execute');
  }
