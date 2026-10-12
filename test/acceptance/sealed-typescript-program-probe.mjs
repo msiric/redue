@@ -3,7 +3,8 @@
 // runtime/implementation currency and source/stage ownership BEFORE invoking.
 // This helper cannot prove that view or confine Node loader body reads. Public fs
 // wrappers miss internalModuleStat/internalModuleReadJSON; CLI deferred checking
-// is not equivalent to this API input graph. No compiler execution occurs here.
+// is not equivalent to this API input graph. Calling this executes API discovery,
+// not the configured verification/typecheck command.
 // First-load, actual cwd and verified package admission below are prerequisites,
 // not a substitute for that independent boundary. No imported loader/callback.
 import fs from 'node:fs';

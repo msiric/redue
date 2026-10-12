@@ -309,3 +309,21 @@ existing pretest install. Its official locked `npm ci` installed one dependency;
 only that failed case was rerun and passed143.558s. No toolchain substitution,
 options change, model, native seal or new portable authority follows. Independent
 critical-interface review is required before using this helper in sealed probes.
+
+## Restricted API observation proposal
+
+The reviewed data journal and semantic adapter are engineering observations only:
+loader bypasses/query completeness remain unestablished. The fixed staged-program
+probe verifies canonical TS5.5.2 before first API load, requires actual staged cwd
+and fresh API cache, reuses one shared config/program traversal and rejects outside
+config/source bodies and unsupported parsed options. It executes API discovery
+when called, not the verification command. No result can confer namespace/seal or
+reuse authority.
+
+The proposed fixed child/profile adds readonly access to eight exact locally bound
+code leaves plus their ancestor metadata; no whole-repository read, new write,
+network or imported-command scope. Constructor/three pure controls pass50.88ms.
+Initial0PASS/3mock failures omitted URL/Buffer from the mock realm; corrected
+fixture supplies Node globals without changing profile rules. This proposal still
+requires independent process/profile/currentness/deadline review before execution.
+The existing prepared tree and all failed/UNKNOWN records remain preserved.
