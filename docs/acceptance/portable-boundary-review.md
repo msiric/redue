@@ -3925,3 +3925,80 @@ conservative case-folded comparisons can address NODE_MODULES aliases on a
 case-insensitive filesystem without assuming arbitrary Unicode canonicalization.
 No broad subscription, history capability, private ancestor authority or ordinary
 project reuse has been enabled by this review.
+
+### Candidate phase comparison bundle
+
+Source GO for the revised profiling workflow SHA256
+`c2315f3337127a31f7f9f49fb2d878a75b2f5922ca3af91f2147eead25dab6a5`,
+helper`059dd8b6efa46fd10ee94290380ce62aaac281f4b80e06d1bdaf7788371ef769`
+and certificate-test
+`4e2a0a3864da7ccf3cc6432d93cfa5b8c81b8709dba33d2adf90977bc0e1dd32`.
+One manual task-ref job checks out its actual SHA, packs once, records/verifies
+one manifest/checksum/source/tar bundle, passes explicit source and artifact
+SHA256 to the same six-query/three-session helper, and uploads only that bundle
+with1-day retention. Contents/actions remain read-only; exact actor/ref/first
+attempt, Node22.13/macOS26 and12-minute job bounds remain. There is no model,
+signing, publication, accepted-producer or trust-registry operation. The250KiB
+gate bounds payload file sizes; archive overhead and actual uploaded artifact
+metadata must remain included in the confirmed storage accounting.
+
+The new six-argument interface validates exact flag order,40/64 hexadecimal
+identities, artifact hash/version and source.txt beside both manifest and tar.
+Old two-argument frozen08307d4/f6e behavior remains. Review found a leftover
+hardcoded08307d4 source assertion that would reject every new candidate before
+sampling; it was corrected to expectedSource before GO. Added timing fields are
+fixed known phases and numeric keys; private/unknown fields remain discarded.
+Status-before-assert retention and conservative stop/cleanup behavior remain.
+
+Independent31 extracted-source mock controls pass:18 existing privacy/status/
+cleanup controls plus13 candidate argument/hash/source/version and new phase
+projection controls. YAML scope assertions, both Node syntax checks and diff
+check pass. Two extraction-preparation errors (wrong relative output directory
+and old substring marker) were corrected in reviewer scaffolding; intermediate
+old18-control output was not counted as validation of the changed projection.
+No product CLI, listener, HTTP, native agent, model or CI run was launched by
+this reviewer. Parent's final real proof controls6/6 remain separate evidence.
+
+The certificate test removes a redundant second caller full inspection while
+retaining the independent caller proof used against forged content. Its140s
+aggregate child harness and150s test cap accommodate separate bounded probe
+operations; they do not alter production30s process/25s cache/45s IPC or the35s
+host-preflight bound. Cold session-start costs and setup work must remain visible;
+no measured optimization or final-candidate readiness is inferred before the
+actual declared sample.
+
+### CI ancestor capability resource binding
+
+Conditional source/data GO for capability-reader snapshot SHA256
+`946ae2e6dd16c66274110f228825b79e93ba363722a1b7e202eddea00eddb05f`
+in the isolated ordinary-boundary worktree. It accepts only exact bounded
+nonsecret provisioning schema, selected CI context, canonical ASCII nonsymlink
+resources outside checkout/state, owned0600 single-link descriptor-bound file,
+protected ancestry and owned private parent. Root/state physical identities are
+bound to the provisioning body; final root/state ancestry rereads now detect
+replacement during the capability descriptor read. Only private WeakMap tokens
+are current: copied/serialized lookalikes grant nothing. Invalid currency now
+irreversibly revokes the token rather than reviving after resource restoration.
+Public token data is interpretation plus digest, not capability body or paths.
+
+Independent static filesystem controls initially reproduced3 failures/4 passes:
+root and state replacement during file read minted stale tokens, and root
+replacement caused false currency that became true after restoring the original
+root. Those are prerelease helper findings, not released applicability outcomes.
+After the root author's resource barrier and revocation correction, the same7
+controls pass77.34ms on Node22.13. Prior snapshot and failing TAP remain preserved
+in reviewer-local evidence. These tests use only owned nonsensitive temporary
+files; no subscription, FSEvents operation, CI capability, model or agent process
+was exercised.
+
+Integration remains conditional. Owned0700/0600 is provisioning provenance,
+not authentication against hostile same-UID code. A trusted reviewed workflow
+must select/provision a fixed non-temp protected authority location unavailable
+to the native agent's write permissions, with explicit parent write denial before
+model work. Source/run fields bind that file to supplied trusted CI context;
+environment labels and a self-authored JSON body do not independently authenticate
+actual loaded source. The proposed packaged native-helper hardpin and source/
+workflow checks must be established at integration. No imported path/capability,
+GITHUB_ACTIONS label alone, writable implicit-temp replica or restored revoked
+token may start observation. This review neither activates the native observer
+nor substitutes endpoint identity for interval coverage.
