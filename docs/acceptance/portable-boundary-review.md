@@ -3014,3 +3014,18 @@ owner OAuth provisioning and included-quota confirmation remain separate. If
 these inputs are unknown, refuse the secret-bearing route before launch. The
 author's still-disabled diagnostic code/assets are a separate pending review;
 this finite source conclusion is neither activation nor an empirical VM claim.
+
+## Coherent incomplete-origin signer control — independent integration review
+
+B's d204523/root5022cbb adds only13test lines. The new fixture changes
+origin.complete to false, regenerates the envelope subject/semantic digest and
+manifest raw digest, retains nonnull facts and all other positive bindings, then
+requires the exact approved Python data validator to fail without publishing a
+signing predicate. It therefore isolates completeness from the existing broken-
+integrity mutation. Root independently checked the fixture/validator bindings
+and ran all12controls:12PASS,526.036ms on Node22.13.0. B's in-memory guard-removal
+experiment lets the coherent negative through while both versions reject the old
+integrity-broken negative; production validation remains correct. This repairs a
+regression blind spot, not a discovered product defect. The approved workflow
+bytes/hash, signing authority, runtime, trust and imported outcomes are unchanged.
+These pure validator tests do not establish native/model or new live CI evidence.

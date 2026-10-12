@@ -1,12 +1,22 @@
 # Portable-evidence acceptance pointers
 
-Current conclusion, 2026-10-11: technical controls and one-machine installed
+Current conclusion, 2026-10-12: technical controls and one-machine installed
 relocation/upgrade and one live authenticated matched-machine CLI recipient are
 evidenced. Actual portable cross-agent/receiving-agent reuse is not established. This map identifies controls and missing proof; it does not
 promote test-source presence to a gate PASS. The integration tracker owns current
 run/commit results and the independent review record.
 
-Current exact candidate validation: package matrix38101767565 at source
+Latest combined preparation6d89bdf product38189432507 passes538tests per job:
+macOS511PASS27skip, Windows322PASS216skip, Linux22/24 each499PASS39skip,
+zero failures. Exact package38189432506 passes macOS/Linux/nativeWindows;
+downloaded source6cc4cd5 has the same tree and SHA-256b8122c3b… . These bytes
+remain separate from frozen d04b872/8695b612… and public alpha.10. The new
+coherently hashed incomplete-origin signer control independently exercises V13/
+V22 completeness;12/12 validator controls pass. Actual model handoff, final
+release identity and complete economics remain distinct gates. The old signed
+origin artifact is expired; retained results do not authorize its substitution.
+
+Historical exact candidate validation: package matrix38101767565 at source
 05c1d869d40903c4663710e1967901e18ca8fc0b passes pack/macOS/Linux/nativeWindows.
 Downloaded four-file artifact verifies80files/158,546bytes and SHA-256
 b8122c3bdcedf42a374ba3a87681ca7654360bc6c10daa64b5ac93a79ca7b190,
@@ -15,7 +25,7 @@ MacOS includes real installed portable origin/separate recipient mechanics;
 platform-specific installed-policy controls report macOS8PASS, Windows/Linux
 1PASS7skip. No installed-script label establishes actual model behavior.
 
-Current product38101769601 at the same source has481tests/job:macOS454PASS27skip,
+Historical product38101769601 at the same source has481tests/job:macOS454PASS27skip,
 Windows305PASS176skip, Linux22/24 both442PASS39skip; zero failure/cancellation.
 Its Windows independent repackSHAdae6d9…/159,489bytes is separate from the exact
 b812 package matrix. Candidatealpha10 metadata is not publicalpha10 identity.
