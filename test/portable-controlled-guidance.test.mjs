@@ -22,7 +22,7 @@ function fixture(t){
 }
 function options(f,extra={}){const {base,...selected}=f;return {...selected,...extra};}
 
-fixtureTest('preview makes no writes; both hosts load identical installed policy and explicit state route',t=>{
+fixtureTest('preview makes no writes; both hosts reference same policy and Claude imports it locally',t=>{
   const f=fixture(t),p=writeControlledPortableGuidance(options(f));
   assert.equal(p.applied,false);assert.equal(p.model_launches,0);assert.equal(p.behavioral_verification,false);
   for(const file of p.files)assert(!fs.existsSync(path.join(f.root,file)));
@@ -31,7 +31,11 @@ fixtureTest('preview makes no writes; both hosts load identical installed policy
   assert(guide.startsWith(fs.readFileSync(f.policyFile,'utf8')));
   assert.match(guide,/--config 'redue.config.json' --state-dir '\.\.\/redue-state' status --sync --json/);
   assert.equal(guide.includes('run typecheck --portable'),false);
-  assert.equal(fs.readFileSync(path.join(f.root,'AGENTS.md'),'utf8'),fs.readFileSync(path.join(f.root,'CLAUDE.md'),'utf8'));
+  const copilot=fs.readFileSync(path.join(f.root,'AGENTS.md'),'utf8'),claude=fs.readFileSync(path.join(f.root,'CLAUDE.md'),'utf8');
+  assert.equal(claude,copilot+'\n@REDUE_PORTABLE_AGENT.md\n');
+  assert.equal(copilot.includes('@REDUE_PORTABLE_AGENT.md'),false);
+  assert.match(claude,/^@REDUE_PORTABLE_AGENT\.md$/m);
+  assert.equal(claude.includes('```'),false);assert.equal(claude.includes(f.base),false);
   assert(!guide.includes(f.base));
   assert.throws(()=>writeControlledPortableGuidance(options(f,{apply:true})),{code:'CONTROLLED_GUIDANCE_EXISTS'});
 });
@@ -183,4 +187,17 @@ fixtureTest('inspection requires compiled runtime without turning metadata into 
   fs.renameSync(file,file+'.old');fs.writeFileSync(file,original,{mode:0o600});
   const after=inspectControlledPortableGuidance(selected);assert.equal(after.runtime_sha256,before.runtime_sha256);assert.notEqual(after.bindings.files.runtime,before.bindings.files.runtime);
   fs.unlinkSync(file);assert.throws(()=>inspectControlledPortableGuidance(selected),{code:'ENOENT'});
+});
+
+fixtureTest('Claude import is exact local data; old pointer-only or external import never gains intact authority',t=>{
+  const f=inspectorFixture(t),selected=options(f);writeControlledPortableGuidance({...selected,apply:true});
+  const claude=path.join(f.root,'CLAUDE.md'),bytes=fs.readFileSync(claude,'utf8'),copilot=fs.readFileSync(path.join(f.root,'AGENTS.md'));
+  const policy=fs.readFileSync(path.join(f.root,'REDUE_PORTABLE_AGENT.md'));
+  for(const changed of [bytes.replace('\n@REDUE_PORTABLE_AGENT.md\n',''),bytes.replace('@REDUE_PORTABLE_AGENT.md','@../unapproved.md'),bytes.replace('@REDUE_PORTABLE_AGENT.md','@https://unapproved.invalid/policy')]){
+    fs.writeFileSync(claude,changed);assert.throws(()=>inspectControlledPortableGuidance(selected),{code:'CONTROLLED_GUIDANCE_CONTENT'});
+    assert.throws(()=>writeControlledPortableGuidance({...selected,apply:false}),{code:'CONTROLLED_GUIDANCE_EXISTS'});
+    assert.equal(fs.readFileSync(claude,'utf8'),changed,'Existing edited instructions are never repaired silently');
+  }
+  fs.writeFileSync(claude,bytes);assert.equal(inspectControlledPortableGuidance(selected).integrity,'intact');
+  assert(fs.readFileSync(path.join(f.root,'AGENTS.md')).equals(copilot));assert(fs.readFileSync(path.join(f.root,'REDUE_PORTABLE_AGENT.md')).equals(policy));
 });
