@@ -4785,3 +4785,68 @@ No such check, model, native process, profile change or CI run was performed in
 this design review. Bounded stage storage/materialization/validation/enforcement
 and cleanup costs still require measurement; the existing deadline and cold-cost
 limitations are not changed.
+
+## Sealed-input data materializer: independent finite review
+
+GO for the data-only leaf037f6da18ce202f621599445fec83fbcecff62fe plus
+486926901dce4aa4a2a096cfcac2989086e1d022, with no authority to seal, execute or
+reuse. Exact source SHA-256 changes from
+03e515420d20f9367064d064f7cb1b13cec8c83f15546c092bbaa23b1e4b34eb to
+31193dd584c95520373d5bae323899a3223bda3362aee5ee0524961c9eda4306.
+The API requires locally derived manifest data, disjoint owned placement and
+new independent files; its frozen return remains sealed=false/reuseEligible=false.
+Typed manifest values, modes/content and the single reviewed internal .bin shim
+are preserved without executing project code. Limits are64MiB per file,
+512MiB logical content per attempt,100000 files/directories and bounded paths;
+several validation passes read content, so512MiB is not a total I/O bound.
+
+Three independently controlled nonsensitive cases reproduced on a byte-exact
+archive of037f6da (3/3 in69.49ms): an ancestor was swapped before the leaf stat/open
+and restored immediately afterward, allowing an owned outside-root canary body
+read before TREE_CHANGED; a parent swap immediately before failure cleanup caused
+recursive removal of a different owned nonsensitive tree; a case alias admitted
+a physically nested parent despite lexical disjointness. These are controlled
+filesystem scheduling injections, not a hostile deployment or released exploit.
+Initial reviewer fixtures had an overly early swap (TREE_PATH before reading)
+and a mistaken assumption that realpath canonicalizes alias casing; those test
+preparation failures were retained and corrected without changing author source.
+
+The successor eliminates recursive failure cleanup completely and retains
+partial stages. It uses incremental opendir walking and checks entry/directory
+budgets before retaining names, replacing bulk readdir allocation. Physical
+ancestor dev/ino checks in both directions reject the tested case-alias nesting.
+It explicitly requires trusted, quiescent pre-agent preparation and a separately
+reviewed preparer filesystem boundary; it does not call path rechecks atomic
+read confinement. The outside-read case remains reproducible and is disclosed.
+The successor is not a credential/privacy sandbox.
+
+Independently running the exact archived successor's32 controls passed32/32 in
+217.34ms, including existing fileHash/portableManifest compatibility and a file
+above8MiB. Three independently authored successor controls passed3/3 in61.40ms:
+the disclosed read-before-refusal limitation, zero recursive cleanup with both
+partial and other owned trees preserved, and physical nesting refusal before
+materialization. A temporary read-only dependency link was created only in the
+private reviewer archive and removed afterward. All actual reads/writes were
+owned nonsensitive fixtures; no real credential, compiler, native observer/agent,
+model or CI operation ran in this review.
+
+Integration still needs a fixed reviewed preparation child that fails closed
+when its filesystem enforcement is unavailable: source-body reads limited to
+the physical project plus explicit reviewed code/runtime/compiler loader inputs,
+writes only in the dedicated empty stage parent, no network/socket/auth input,
+and no arbitrary executor. Metadata traversal is not permission for outside
+body reads. A raced alias into a home/credential or unrelated path must be denied
+before reading by that boundary. Do not add broad home/root data access for a
+loader failure. Preparation must finish/reap before the native agent receives
+read-only stage access and whole-parent write denial, with no surviving writer
+handles/mappings/children. Retained failed stages require separate bounded
+per-job disk accounting and ownership-safe reclamation; per-attempt limits do
+not supply a cumulative quota.
+
+Equal file manifests establish only named copied content, not original empty
+directories or all existence/membership/resolution answers. The recipe descriptor
+must freshly establish staged namespace semantics and its actual invocation,
+with conservative handling of differences from the intended obligation. No
+old@2 facts, imported manifest, observer token or data-materializer result can
+fill that gap. Actual preparation/native sealing and ordinary recipient matching
+remain unproved; existing portable containment remains in force.
