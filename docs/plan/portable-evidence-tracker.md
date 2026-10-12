@@ -3,7 +3,36 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — FSEvents interval NO-GO; bounded vnode test-only work
+## Current checkpoint — vnode startup UNKNOWN; source correction under review
+
+One fixed CI-only vnode fixture attempt [38294279844](https://github.com/msiric/redue/actions/runs/38294279844)
+used sourcee3c8c02fe5a575c5a0f9b8620beffc5029398522. It returned UNKNOWN before
+any mutation case: the native child exited74 without an accepted ready response.
+The mapper exited0/protocol-clean; both children were actually reaped and owned
+files cleaned. Complete1254.088ms is not economic timing. No compiler/model,
+signing, uploads, producer-trust or agent-permission changes occurred.
+Private scoped result `.local/portable-evidence/vnode-38294279844.json`, SHA256
+05c875881aac1d957167cd1486db4203da298c28e2b341330097e4bb26f4a78b.
+Actual test-only native binary142b405b/62680B differs from the local build.
+
+The fixed driver had independent30 pure/9 VM controls and108 local shared controls
+passing; these are not actual native enforcement or interval acceptance. The
+startup reason was discarded by the first driver. Bounded fixed-code reporting
+is under review; no protected content is retained. Pinned XNU source review
+identified an overly strict EV_RECEIPT flag expectation in the test-only helper:
+returned receipt preserves the original request flags and adds EV_ERROR. The
+actual first attempt cannot establish this as its cause. Correcting that exact
+ABI expectation requires pure controls/independent review before a different run.
+FSEvents interval NO-GO remains; no ordinary-engine qualification is enabled.
+
+Hosted Claude diagnostic remains closed PASS in its actual scope. Ordinary
+debugger portable qualification still rejects the ancestor interval boundary.
+Warm recipient median21.606s/cold37.602s stay distinct;35s model gate remains
+unchanged and fail-closed. Copilot included Actions capacity fact is pending.
+Alpha.11 stays unpublished, original bytes/receipts/history preserved. Day0 and
+72h checkpoint unchanged; G2/G3/prepublicationG4 are incomplete.
+
+## Prior checkpoint — FSEvents interval NO-GO; bounded vnode test-only work
 
 The original CI provider38287392906 FAIL is retained. Fixed ROOT/OWNED delivery
 diagnostic38289084959 collected late matching events in both classes; neither
