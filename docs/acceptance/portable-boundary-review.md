@@ -5166,3 +5166,35 @@ if link creation succeeds, alongside stage/ancestor replacement and shared-RW
 mapping refusal. No pre-existing writable mapping/handle may cross trusted
 preparation into the agent phase. Source-derived subpath/ancestor rules alone do
 not establish these kernel checks or complete TypeScript resolution semantics.
+
+## Declared-input preparation harness correction
+
+GO for the source-only harness correction to select the actual unique typecheck
+check's inputs plus additive node_modules/** using existing InputIndex with
+includeInstalled:true/trackGit:false. The public configSHA
+961684311dd517f018380fce51db2ccfe6a4900ea86c0740d2453b94eb8f706b
+has checks as an array; inputs belong to checks.find(name==='typecheck'), not an
+absent top-level config.inputs field. Require exactly one matching check and the
+current config/source revision binding before invoking the reviewed fixed child.
+No compiler options, installed dependencies, hooks, scripts or input declarations
+are modified. Additive matching is an independent OR, so the source node_modules
+exclusion does not remove the explicitly selected installation.
+
+Preserved refusalSHA14bb83c572d7b6b2b6b80f22650764f285f9519366e0fffd6ba9010eb5f0590f
+records the mistaken broad ** selection33790 versus prior33345, zero children/
+stages/compiler/models. Corrected read-only recordSHA
+5c73baf0494e2d4f8f225d078999914487558680e2e135fee2852b7cfc6fb8fc
+records exact current declared patterns, the unchanged additive installation,
+33345 selected rows and zero children/stages/compiler/models. The445-row count
+difference and historical count are diagnostics, not a command to force a match
+or proof of compiler namespace equivalence. The correction excludes files outside
+declared source and the additive installation through existing matcher semantics;
+later unexpected compiler body/query requirements must still refuse qualification.
+
+Four independent matcher-only controls passed4/4 in90.14ms: real selected inputs,
+independent installed union including non-code/native/bin paths, generated code/
+JSON retention, undeclared documentation/resource/Git exclusions and zero filesystem
+calls during matching. The reviewer read only current config/static records and
+source, did not scan/copy project bodies or execute a child/compiler/native/model/
+CI operation. This correction permits only the already reviewed data preparation;
+namespace, seal, executable and reuse authority remain false.
