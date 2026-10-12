@@ -75,23 +75,56 @@ export function provisionExactCIRegistry({state,root,configFile,bytes,sha256,app
  }finally{if(fd!==undefined)fs.closeSync(fd);}
  if(!readBoundedPortableFile(target,{limit:65536}).equals(bytes)||fingerprint(written)!==fingerprint(fs.lstatSync(target,{bigint:true}))||!unchanged())fail('CI_MACHINE_OWNERSHIP');
 }
-export function runCIMachineRecipient(options){
+// The live resource never escapes an awaited trusted engineering supervisor.
+// Imported data cannot select callbacks, execute code, authorize a model or
+// change trust. Abrupt host termination still needs its owner's process cleanup.
+function openCIMachineRecipientPhase(options){
  const checked=ciMachinePreflight(options),o=checked.options,base=o['--base'],root=path.join(base,'Checkout 空间'),state=path.join(base,'redue-state'),prefix=path.join(base,'prefix'),calls=[];
- if(!o['--apply'])return {schema:1,applied:false,preconditions:'READY_NOT_APPROVED',models_launched:0,producer_accepted:false,calls};
+ const preview={schema:1,applied:false,preconditions:'READY_NOT_APPROVED',models_launched:0,producer_accepted:false,calls};
+ if(!o['--apply'])return {preview};
  if(process.platform!=='darwin'||process.arch!=='arm64'||process.version!=='v22.13.0'||os.release()!=='25.6.0')fail('CI_MACHINE_PROFILE');
  const exec=(kind,file,args,{cwd=base,allowFailure=false}={})=>{const start=performance.now(),r=childProcess.spawnSync(file,args,{cwd,env:process.env,encoding:'utf8',timeout:120000,maxBuffer:8*1024*1024});
- calls.push({kind,milliseconds:performance.now()-start,status:r.status,error_code:r.error?.code??null});if(!allowFailure&&(r.status!==0||r.error))fail('CI_MACHINE_COMMAND');return r;};
- let started=false;const config=path.join(root,'redue.config.json'),cli=path.join(prefix,'lib/node_modules/@redue/cli/bin/redue.mjs');
- const redue=(...args)=>exec('redue',process.execPath,[cli,'--config',config,'--state-dir',state,...args],{cwd:root}),json=(...args)=>parsePortableJson(redue(...args,'--json').stdout);
+ calls.push({kind,milliseconds:performance.now()-start,status:r.status,error_code:r.error?.code??null});if(!allowFailure&&(r.status!==0||r.error||r.signal))fail('CI_MACHINE_COMMAND');return r;};
+ let started=false,lifecycle='preparing',host,configBytes,configIdentity,rootIdentity,cliDigest,stateIdentity,ownerBytes,ownerIdentity;
+ const config=path.join(root,'redue.config.json'),cli=path.join(prefix,'lib/node_modules/@redue/cli/bin/redue.mjs');
+ const verifyCLI=()=>{if(sha(readBoundedPortableFile(cli,{limit:65536}))!==cliDigest)fail('CI_MACHINE_CLI_CHANGED');};
+ const redue=(...args)=>{verifyCLI();return exec('redue',process.execPath,[cli,'--config',config,'--state-dir',state,...args],{cwd:root});},json=(...args)=>parsePortableJson(redue(...args,'--json').stdout);
+ const close=(strict=false)=>{
+  if(lifecycle==='closed')return;lifecycle='closed';if(!started)return;started=false;
+  verifyCLI();const stopped=exec('owned-stop',process.execPath,[cli,'--config',config,'--state-dir',state,'stop'],{cwd:root,allowFailure:true});
+  if(strict){
+   if(stopped.status!==0||stopped.error||stopped.signal)fail('CI_MACHINE_CLEANUP');
+   let answer;try{answer=parsePortableJson(stopped.stdout);}catch{fail('CI_MACHINE_CLEANUP');}
+   if(answer.ok!==true)fail('CI_MACHINE_CLEANUP');
+   try{fs.lstatSync(path.join(state,'observer.lock'));fail('CI_MACHINE_CLEANUP');}catch(error){if(error.code!=='ENOENT')throw error;}
+  }
+ };
  try{
-  const host=readMachineHostFacts(base);exec('install','npm',['install','--global','--prefix',prefix,'--registry=https://registry.npmjs.org','--no-audit','--no-fund',o['--tarball']]);
+  host=readMachineHostFacts(base,{spawn:childProcess.spawnSync});exec('install','npm',['install','--global','--prefix',prefix,'--registry=https://registry.npmjs.org','--no-audit','--no-fund',o['--tarball']]);
+  cliDigest=sha(readBoundedPortableFile(cli,{limit:65536}));
   const installed=path.dirname(path.dirname(cli)),script=`import fs from 'node:fs';import path from 'node:path';import {pathToFileURL} from 'node:url';import {createHash} from 'node:crypto';import {spawnSync} from 'node:child_process';const h=v=>createHash('sha256').update(v).digest('hex'),node=fs.realpathSync(process.execPath),s=fs.statSync(node,{bigint:true});const b=spawnSync('/usr/sbin/sysctl',['-n','kern.bootsessionuuid'],{encoding:'utf8',timeout:3000,maxBuffer:4096});if(b.status!==0||!(/^[a-fA-F0-9-]{36}$/.test(b.stdout.trim())))throw Error('BOOT');const {portableRuntime}=await import(pathToFileURL(path.join(process.argv[1],'src/portable-runtime.mjs')));console.log(JSON.stringify({runtime:portableRuntime(),boot:h(b.stdout.trim()),physical:h(JSON.stringify({dev:String(s.dev),file:node,ino:String(s.ino),mtime:String(s.mtimeNs)}))}));`;
   const proof=parsePortableJson(exec('reviewed-runtime',process.execPath,['--input-type=module','-e',script,installed]).stdout);
   if(canonical(proof.runtime)!==canonical(checked.manifest.profile.runtime)||proof.boot===checked.manifest.boot_identity||proof.physical===checked.manifest.node_physical_identity)fail('CI_MACHINE_INDEPENDENT_PROFILE');
   writeControlledPortableProject(root);exec('dependencies','npm',['install','--registry=https://registry.npmjs.org','--no-audit','--no-fund'],{cwd:root});exec('checkout','git',['init','-q'],{cwd:root});
   const preview=json('init','--recipe','typescript-direct','--check','typecheck','--dry-run');if(preview.written!==false||preview.checks[0]?.level!=='ready')fail('CI_MACHINE_SETUP');
-  redue('init','--recipe','typescript-direct','--check','typecheck');started=true;redue('start');
+  redue('init','--recipe','typescript-direct','--check','typecheck');
+  configBytes=readBoundedPortableFile(config,{limit:65536});configIdentity=fingerprint(fs.lstatSync(config,{bigint:true}));rootIdentity=directory(root);lifecycle='prepared';
+ }catch(error){error.machine_recipient_calls=calls;close();throw error;}
+ const active=()=>{if(lifecycle!=='eligible')fail('CI_MACHINE_LIFECYCLE');};
+ const bindings=()=>{
+  verifyCLI();if(directory(root)!==rootIdentity||!readBoundedPortableFile(config,{limit:65536}).equals(configBytes)||fingerprint(fs.lstatSync(config,{bigint:true}))!==configIdentity)fail('CI_MACHINE_PREPARATION_CHANGED');
+  if(ownerBytes){const ownerFile=path.join(state,'vstate-owner-v1.json');if(directory(state)!==stateIdentity||!readBoundedPortableFile(ownerFile,{limit:8192}).equals(ownerBytes)||fingerprint(fs.lstatSync(ownerFile,{bigint:true}))!==ownerIdentity)fail('CI_MACHINE_OWNERSHIP');}
+ };
+ const paths=Object.freeze({base,root,state,prefix,config,cli});
+ return {paths,calls,close,activate(){
+  if(lifecycle!=='prepared')fail('CI_MACHINE_LIFECYCLE');
+  // Guidance preparation must not replace the selected config or initialize a
+  // different state/observer/history before the fresh owned baseline.
+  bindings();
+  try{fs.lstatSync(state);fail('CI_MACHINE_PREPARATION_CHANGED');}catch(error){if(error.code!=='ENOENT')throw error;}
+  started=true;lifecycle='observing';redue('start');
   readCIRecipientProject({configFile:config,root,state,cliEntry:cli});
+  const ownerFile=path.join(state,'vstate-owner-v1.json');ownerBytes=readBoundedPortableFile(ownerFile,{limit:8192});ownerIdentity=fingerprint(fs.lstatSync(ownerFile,{bigint:true}));stateIdentity=directory(state);
   requireFreshCIObserver(json('status','--sync'));
   // Re-read selected exact inputs after setup. Base is now intentionally occupied;
   // raw registry must still match before the only explicit new-state policy copy.
@@ -100,14 +133,70 @@ export function runCIMachineRecipient(options){
   const result=runCIRecipient({'--cli-entry':cli,'--cli-sha256':sha(readBoundedPortableFile(cli,{limit:65536})),'--config':config,'--state':state,'--root':root,
    '--artifact':path.join(o['--input'],'redue-portable-evidence.json'),'--policy-digest':o['--policy-digest'],'--source':o['--source'],'--signer':o['--source'],
    '--gh-executable':o['--gh-executable'],'--gh-sha256':o['--gh-sha256'],'--apply':true});
-  fs.writeFileSync(path.join(root,'notes.md'),'Unrelated documentation.\n');const unrelated=json('status','--sync');requireImportedEligibility(unrelated,{digest:checked.envelope.digest,originRunId:checked.manifest.origin_run_id});
-  redue('stop');started=false;redue('start');started=true;const inherited=json('status','--sync');requireImportedEligibility(inherited,{digest:checked.envelope.digest,originRunId:checked.manifest.origin_run_id});
-  fs.writeFileSync(path.join(root,'src/a.ts'),'export const value: number = 2;\n');const changed=json('status','--sync').checks.find(c=>c.name==='typecheck');
+
+  lifecycle='eligible';return {...result,host_facts:host,independent_boot:true,raw_node_identity_differs:true,setup_calls:calls,
+    scope:'Authenticated controlled noLib CLI preparation; supervising actions require separate authority.'};
+ },status(){active();bindings();const value=json('status','--sync');bindings();return value;},restart(){
+  active();redue('stop');started=true;redue('start');
+ }};
+}
+export function runCIMachineRecipient(options){
+ const phase=openCIMachineRecipientPhase(options);if(phase.preview)return phase.preview;
+ const {root,state}=phase.paths;
+ try{
+  const result=phase.activate(),identity={digest:result.evidence_digest,originRunId:result.origin_run_id};
+  fs.writeFileSync(path.join(root,'notes.md'),'Unrelated documentation.\n');requireImportedEligibility(phase.status(),identity);
+  phase.restart();requireImportedEligibility(phase.status(),identity);
+  fs.writeFileSync(path.join(root,'src/a.ts'),'export const value: number = 2;\n');const changed=phase.status().checks.find(c=>c.name==='typecheck');
   if(changed?.freshness!=='STALE'||changed.reuse_eligible!==false||fs.existsSync(path.join(state,'runs-v1')))fail('CI_MACHINE_INVALIDATION');
-  return {...result,host_facts:host,independent_boot:true,raw_node_identity_differs:true,setup_calls:calls,unrelated_reuse:true,restart_inherited:true,relevant_edit_stale:true,
-    equivalent_receiver_execution:false,scope:'Authenticated controlled noLib CLI handoff; no agent models or useful-project/field claim.'};
- }catch(error){error.machine_recipient_calls=calls;throw error;}
- finally{if(started)exec('owned-stop',process.execPath,[cli,'--config',config,'--state-dir',state,'stop'],{cwd:root,allowFailure:true});}
+  return {...result,unrelated_reuse:true,restart_inherited:true,relevant_edit_stale:true,equivalent_receiver_execution:false,
+    scope:'Authenticated controlled noLib CLI handoff; no agent models or useful-project/field claim.'};
+ }catch(error){error.machine_recipient_calls=phase.calls;throw error;}
+ finally{phase.close();}
+}
+// Awaited callbacks share this cap; existing synchronous child hard deadlines
+// remain in force. Trusted callbacks must yield and consume the supplied signal
+// for their own children; this is not preemption of arbitrary JS or sandboxing.
+export const heldCIMachineRecipientTimeoutMs=300000;
+export async function withHeldCIMachineRecipient(options,{prepare,supervise,signal,timeoutMs=heldCIMachineRecipientTimeoutMs}={}){
+ if(typeof prepare!=='function'||typeof supervise!=='function'||signal!==undefined&&!(signal instanceof AbortSignal)||
+   !Number.isSafeInteger(timeoutMs)||timeoutMs<1||timeoutMs>heldCIMachineRecipientTimeoutMs)fail('CI_MACHINE_SUPERVISOR');
+ if(signal?.aborted)fail('CI_MACHINE_ABORTED');
+ const controller=new AbortController(),deadline=performance.now()+timeoutMs;
+ const abort=()=>controller.abort(Object.assign(Error('Owned recipient supervision cancelled'),{code:'CI_MACHINE_ABORTED'}));
+ signal?.addEventListener('abort',abort,{once:true});let phase,failure;
+ const awaitBound=callback=>{
+  if(signal?.aborted)abort();if(controller.signal.aborted)throw controller.signal.reason;
+  const remaining=Math.ceil(deadline-performance.now());if(remaining<=0)fail('CI_MACHINE_TIMEOUT');
+  let timer,ended;
+  const waiting=new Promise((resolve,reject)=>{
+   ended=()=>reject(controller.signal.reason);timer=setTimeout(()=>controller.abort(Object.assign(Error('Owned recipient supervision deadline exhausted'),{code:'CI_MACHINE_TIMEOUT'})),remaining);
+   controller.signal.addEventListener('abort',ended,{once:true});
+   Promise.resolve().then(()=>{if(controller.signal.aborted)throw controller.signal.reason;return callback();}).then(resolve,reject);
+  });
+  return waiting.finally(()=>{clearTimeout(timer);controller.signal.removeEventListener('abort',ended);});
+ };
+ try{
+  phase=openCIMachineRecipientPhase(options);if(phase.preview)return phase.preview;
+  // Caller-owned reviewed instruction setup finishes BEFORE observer/import.
+  // This helper never fabricates doctor output or installed-policy authority.
+  await awaitBound(()=>prepare(phase.paths,Object.freeze({signal:controller.signal})));
+  if(signal?.aborted)abort();if(controller.signal.aborted)throw controller.signal.reason;
+  if(performance.now()>=deadline)fail('CI_MACHINE_TIMEOUT');
+  const preparation=phase.activate(),baseline=phase.status();
+  requireImportedEligibility(baseline,{digest:preparation.evidence_digest,originRunId:preparation.origin_run_id});
+  if(baseline.checks.find(c=>c.name==='typecheck')?.imported_evidence?.acceptance!=='github-ci-v1'||fs.existsSync(path.join(phase.paths.state,'runs-v1')))fail('CI_MACHINE_INVALIDATION');
+  const supervision=await awaitBound(()=>supervise(Object.freeze({paths:phase.paths,baseline,signal:controller.signal,status:()=>{
+   if(controller.signal.aborted)throw controller.signal.reason;return phase.status();
+  }})));
+  if(signal?.aborted)abort();if(controller.signal.aborted)throw controller.signal.reason;
+  if(performance.now()>=deadline)fail('CI_MACHINE_TIMEOUT');
+  return {schema:1,prepared_eligible:true,supervised_lifecycle_closed:true,preparation,supervision};
+ }catch(error){failure=error;error.machine_recipient_calls=phase?.calls??[];throw error;}
+ finally{
+  signal?.removeEventListener('abort',abort);if(!controller.signal.aborted)controller.abort(Object.assign(Error('Owned recipient supervision ended'),{code:'CI_MACHINE_CLOSED'}));
+  try{if(phase&&!phase.preview)phase.close(true);}catch(error){error.machine_recipient_calls=phase.calls;if(failure)failure.cleanup_code=error.code??'CI_MACHINE_CLEANUP';else throw error;}
+ }
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href){try{console.log(JSON.stringify(runCIMachineRecipient(ciMachineOptions(process.argv.slice(2)))));}
  catch(e){console.error(JSON.stringify({schema:1,code:e.code??'CI_MACHINE_ASSERTION',models_launched:0,calls:e.machine_recipient_calls??[],recipient_calls:e.recipient_calls??[]}));process.exitCode=1;}}
