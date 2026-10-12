@@ -3507,3 +3507,29 @@ is byte-identical to35a5ddf except its3e5e946 to49b3f44 source pin. Settings,
 argv, environment, turns, deadlines, resource grants and secret scope remain
 unchanged. Conclusion: qualified GO for the frozen-route criterion and pin,
 not a historical native PASS, general no-policy certificate or completed G2 gate.
+
+### Hosted native diagnostic prerequisite: actual bounded PASS
+
+Independent protected final report38257021786, SHA-256
+`69f65799ab0e8ab950b44b1bc8e9cc91088d429201e07ce28a9fb38f359bdb3b`,
+records overall diagnostic PASS under reviewed source49b3f44 and workflowdc9728.
+All six named assertions pass; the separate supervisor observed checker exit0,
+no signal and no timeout. Native exit0/no signal, matching native tool-use/result
+ID `toolu_01UKWNfAjf66RLQZgFdcVPAk`, independently matched socket collection and
+protocol delta[1,0,0] retain actual execution evidence rather than model prose.
+Two assistant messages/two reported turns and eight bounded progress frames are
+within the approved limits. Live controls, immutable manifest currency, native
+reaping, listener cleanup and final persistence are true. No startup refusal is
+reported; the actual cache classification is EXACT_NATIVE_EMPTY_SENTINEL under
+NATIVE187_FRESH_PRINT_ONE_FETCH_EMPTY_SENTINEL_V1/FROZEN_DIAGNOSTIC_ONLY. Observed
+collection time is7770.914458ms; total job20544ms; the authenticated job succeeded.
+
+This satisfies the narrow native diagnostic prerequisite, not the release goal.
+portable_applicability and agent_reuse explicitly remain NOT_TESTED. Synthetic
+sentinel removal/read/write/socket/loopback checks do not read real credential
+bodies or establish universal filesystem/credential authority; native parent
+OAuth use remains EXPECTED_NOT_MEASURED. The conditional owner-input and frozen
+route qualifications above remain part of this conclusion. Earlier UNKNOWN
+attempts, including the historical unobserved cache content, stay unchanged.
+No raw transcript/stderr/log was retained, and this reviewer performed no new
+native/auth/model/CI operation or test for this read-only final-evidence audit.
