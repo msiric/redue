@@ -87,19 +87,19 @@ test('changed source during copy and changed copied bytes cannot publish a verif
 }));
 test('destination mutation before final digest validation refuses',supported,()=>withFixture(f=>{
   f.write('a.ts');const manifest=f.rows(['a.ts']);let changed=false;
-  patch('fsyncSync',original=>fd=>{original(fd);if(!changed){changed=true;const stage=fs.readdirSync(f.parent)[0];fs.writeFileSync(path.join(f.parent,stage,'a.ts'),'altered copied bytes');}},()=>assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest}),{code:'TREE_DIGEST'}));assert(changed);
+  patch('fchmodSync',original=>(fd,mode)=>{original(fd,mode);if(!changed){changed=true;const stage=fs.readdirSync(f.parent)[0];fs.writeFileSync(path.join(f.parent,stage,'a.ts'),'altered copied bytes');}},()=>assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest}),{code:'TREE_DIGEST'}));assert(changed);
 }));
 test('parent replacement is refused without ambiguous deletion',supported,()=>withFixture(f=>{
   f.write('a.ts');const manifest=f.rows(['a.ts']);let changed=false;
-  patch('fsyncSync',original=>fd=>{original(fd);if(!changed){changed=true;fs.renameSync(f.parent,f.parent+'.old');fs.mkdirSync(f.parent,{mode:0o700});}},()=>assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest}),{code:'TREE_CHANGED'}));assert(changed);assert.equal(fs.readdirSync(f.parent+'.old').length,1);assert.deepEqual(fs.readdirSync(f.parent),[]);
+  patch('fchmodSync',original=>(fd,mode)=>{original(fd,mode);if(!changed){changed=true;fs.renameSync(f.parent,f.parent+'.old');fs.mkdirSync(f.parent,{mode:0o700});}},()=>assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest}),{code:'TREE_CHANGED'}));assert(changed);assert.equal(fs.readdirSync(f.parent+'.old').length,1);assert.deepEqual(fs.readdirSync(f.parent),[]);
 }));
 test('staging parent permission changes during copying are refused',supported,()=>withFixture(f=>{
   f.write('a.ts');const manifest=f.rows(['a.ts']);let changed=false;
-  patch('fsyncSync',original=>fd=>{original(fd);if(!changed){changed=true;fs.chmodSync(f.parent,0o755);}},()=>assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest}),{code:'TREE_CHANGED'}));assert(changed);
+  patch('fchmodSync',original=>(fd,mode)=>{original(fd,mode);if(!changed){changed=true;fs.chmodSync(f.parent,0o755);}},()=>assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest}),{code:'TREE_CHANGED'}));assert(changed);
 }));
 test('extra files or directories in the fresh stage cannot be hidden behind manifest equality',supported,()=>withFixture(f=>{
   f.write('a.ts');const manifest=f.rows(['a.ts']);let changed=false;
-  patch('fsyncSync',original=>fd=>{original(fd);if(!changed){changed=true;const stage=fs.readdirSync(f.parent)[0];fs.mkdirSync(path.join(f.parent,stage,'unexpected'));}},()=>assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest}),{code:'TREE_CHANGED'}));assert(changed);
+  patch('fchmodSync',original=>(fd,mode)=>{original(fd,mode);if(!changed){changed=true;const stage=fs.readdirSync(f.parent)[0];fs.mkdirSync(path.join(f.parent,stage,'unexpected'));}},()=>assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest}),{code:'TREE_CHANGED'}));assert(changed);
 }));
 test('file/count bounds reject before materialization without copying sparse oversize bytes',supported,()=>withFixture(f=>{
   const file=f.write('large');const fd=fs.openSync(file,'r+');try{fs.ftruncateSync(fd,TYPESCRIPT_TREE_LIMITS.fileBytes+1);}finally{fs.closeSync(fd);}
@@ -109,7 +109,7 @@ test('file/count bounds reject before materialization without copying sparse ove
 test('failure retains partial stages and never invokes recursive pathname cleanup',supported,()=>withFixture(f=>{
   f.write('a.ts');const manifest=f.rows(['a.ts']);let changed=false,removals=0;
   patch('rmSync',original=>(...args)=>{removals++;return original(...args);},()=>
-    patch('fsyncSync',original=>fd=>{original(fd);if(!changed){changed=true;const stage=fs.readdirSync(f.parent)[0];fs.writeFileSync(path.join(f.parent,stage,'a.ts'),'changed');}},()=>
+    patch('fchmodSync',original=>(fd,mode)=>{original(fd,mode);if(!changed){changed=true;const stage=fs.readdirSync(f.parent)[0];fs.writeFileSync(path.join(f.parent,stage,'a.ts'),'changed');}},()=>
       assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest}),{code:'TREE_DIGEST'})));
   assert.equal(removals,0);assert.equal(fs.readdirSync(f.parent).length,1);
 }));
@@ -200,7 +200,7 @@ test('removed and restored alias during a copy remains a changed source group',s
 }));
 test('copied files cannot acquire shared destination inodes',supported,()=>withFixture(f=>{
   f.write('a.ts');const manifest=f.rows(['a.ts']);let changed=false;
-  patch('fsyncSync',original=>fd=>{original(fd);if(!changed){changed=true;const stage=fs.readdirSync(f.parent)[0];fs.linkSync(path.join(f.parent,stage,'a.ts'),path.join(f.parent,stage,'extra'));}},()=>assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest}),{code:'TREE_FILE'}));assert(changed);
+  patch('fchmodSync',original=>(fd,mode)=>{original(fd,mode);if(!changed){changed=true;const stage=fs.readdirSync(f.parent)[0];fs.linkSync(path.join(f.parent,stage,'a.ts'),path.join(f.parent,stage,'extra'));}},()=>assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest}),{code:'TREE_FILE'}));assert(changed);
 }));
 test('an npm shim binds source alias content and independently regenerated copied content',supported,async()=>{
   const {sealedTypeScriptManifest}=await import('../src/sealed-typescript-manifest.mjs'),{fileHash}=await import('../src/index.mjs');
@@ -226,7 +226,7 @@ test('metadata-aware hostile ancestor swaps can still read outside before refusi
 test('source directory case rename during copying fails final exact namespace check',supported,t=>withFixture(f=>{
   const rel='node_modules/pkg/a';f.write(rel);const original=path.join(f.root,'node_modules/pkg'),alias=path.join(f.root,'node_modules/PKG');
   if(!fs.existsSync(alias)){t.skip('Requires case-insensitive filesystem');return;}const manifest=f.rows([rel]);let changed=false;
-  patch('fsyncSync',originalSync=>fd=>{originalSync(fd);if(!changed){changed=true;fs.renameSync(original,alias);}},()=>assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest}),{code:'TREE_FILE'}));assert(changed);
+  patch('fchmodSync',originalSync=>(fd,mode)=>{originalSync(fd,mode);if(!changed){changed=true;fs.renameSync(original,alias);}},()=>assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest}),{code:'TREE_FILE'}));assert(changed);
 }));
 test('metadata namespace enumeration is bounded before any source body reads',supported,()=>withFixture(f=>{
   f.write('a.ts');const manifest=f.rows(['a.ts']);let reads=0,entries=0;
@@ -234,4 +234,13 @@ test('metadata namespace enumeration is bounded before any source body reads',su
     patch('opendirSync',original=>(file,...args)=>{const directory=original(file,...args);if(file===f.root)directory.readSync=()=>{entries++;return{name:'undeclared'};};return directory;},()=>
       assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest}),{code:'TREE_LIMIT'})));
   assert.equal(entries,TYPESCRIPT_TREE_LIMITS.files+TYPESCRIPT_TREE_LIMITS.directories+1);assert.equal(reads,0);assert.deepEqual(fs.readdirSync(f.parent),[]);
+}));
+
+test('ephemeral copies need no per-file fsync and still independently read back every copied file',supported,()=>withFixture(f=>{
+  f.write('a.ts');f.write('node_modules/pkg/b');const manifest=f.rows(['a.ts','node_modules/pkg/b']);let synchronizations=0,copiedOpens=0;
+  patch('fsyncSync',()=>()=>{synchronizations++;throw Error('Unexpected stage durability operation');},()=>
+    patch('openSync',original=>(file,...args)=>{if(String(file).startsWith(f.parent+path.sep)&&((args[0]&fs.constants.O_WRONLY)===0))copiedOpens++;return original(file,...args);},()=>{
+      const result=materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest});assert.deepEqual(result.sourceFiles,manifest);assert.deepEqual(result.materializedFiles,manifest);assert.equal(result.sealed,false);assert.equal(result.reuseEligible,false);
+    }));
+  assert.equal(synchronizations,0);assert.equal(copiedOpens,manifest.length*2,'each fresh copy is fully hashed after copying and again before publication');
 }));

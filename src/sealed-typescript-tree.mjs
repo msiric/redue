@@ -5,6 +5,9 @@
 // Requires a trusted, quiescent PRE-AGENT preparation phase and a separately
 // reviewed preparer filesystem boundary. Path/fingerprint checks detect races;
 // they are NOT atomic read confinement or credential/privacy isolation.
+// This private stage is ephemeral: no crash durability/recovery is promised.
+// A prior summary cannot authorize lost/incomplete copies after a crash; fresh
+// checked preparation and recipient validation remain necessary.
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
@@ -134,7 +137,7 @@ function materialize(options){
       try{descriptor=fs.openSync(file,fs.constants.O_WRONLY|fs.constants.O_CREAT|fs.constants.O_EXCL|fs.constants.O_NOFOLLOW,0o600);const created=fs.fstatSync(descriptor,{bigint:true});
         if(!created.isFile()||created.nlink!==1n||created.uid!==uid()||sourceIdentities.has(identity(created))||destinationIdentities.has(identity(created)))fail('TREE_CHANGED');destinationIdentities.add(identity(created));
         inspectFile(record.file,record.digest,{sourceRecord:record,write:buffer=>{let offset=0;while(offset<buffer.length){const count=fs.writeSync(descriptor,buffer,offset,buffer.length-offset);if(!count)fail('TREE_CHANGED');offset+=count;}}});
-        fs.fchmodSync(descriptor,record.mode);fs.fsyncSync(descriptor);checkStage();const after=fs.fstatSync(descriptor,{bigint:true});if(identity(after)!==identity(created)||fingerprint(after)!==fingerprint(fs.lstatSync(file,{bigint:true})))fail('TREE_CHANGED');
+        fs.fchmodSync(descriptor,record.mode);checkStage();const after=fs.fstatSync(descriptor,{bigint:true});if(identity(after)!==identity(created)||fingerprint(after)!==fingerprint(fs.lstatSync(file,{bigint:true})))fail('TREE_CHANGED');
       }finally{if(descriptor!==undefined)fs.closeSync(descriptor);}checkStage();sameDirectories(rootParents);recheck(record);const digest=materializedManifest.get(record.rel);destination.push({rel:record.rel,digest,...inspectFile(file,digest)});
     }
     for(const record of source.filter(record=>record.target!==undefined)){
