@@ -10,7 +10,7 @@ if(available){const args=process.platform==='darwin'?['clang++']:[];
 process.on('exit',()=>fs.rmSync(base,{recursive:true,force:true}));
 const pure={skip:available?false:'Pure C++ compiler unavailable; native collector not started'};
 const run=(mode,input='')=>{const r=spawnSync(binary,[mode],{input,encoding:'utf8',timeout:1000,maxBuffer:1024*1024});assert.equal(r.error,undefined);assert.equal(r.signal,null);return {...r,rows:r.stdout.trim()?r.stdout.trim().split('\n').map(JSON.parse):[]};};
-const frame=(items)=>`INIT ${items.length}\n`+items.map(([id,p])=>`${id} ${Buffer.byteLength(p)}\n${p}\n`).join('');
+const frame=(items)=>`INIT ${items.length}\n`+items.map(([id,p,mode=0])=>`${id} ${Buffer.byteLength(p)} ${mode}\n${p}\n`).join('');
 const candidate='/private/tmp/project/node_modules/@typescript/lib-es2022/index.d.ts';
 test('framed local scope initialization accepts exact bytes and stable IDs',pure,()=>{
   const r=run('initialization',frame([[0,candidate],[17,candidate]]));assert.equal(r.status,0);assert.deepEqual(r.rows,[{count:2,ids:[0,17]}]);
@@ -20,7 +20,7 @@ for(const [name,value] of [
   ['bad ID',frame([[8192,candidate]])],['relative',frame([[0,'node_modules/package']])],['root',frame([[0,'/']])],
   ['Unicode',frame([[0,'/private/tmp/\u212a/node_modules/p']])],['traversal',frame([[0,'/private/tmp/../node_modules/p']])],
   ['tab',frame([[0,'/private/tmp/a\tb']])],['newline',frame([[0,'/private/tmp/a\nb']])],['NUL',frame([[0,'/private/tmp/a\0b']])],
-  ['truncated','INIT 1\n0 100\n/x\n'],['wrong framing','INIT 1\n0 2\n/xy\n'],['oversize path',frame([[0,'/'+ 'x'.repeat(4096)]])],
+  ['truncated','INIT 1\n0 100 0\n/x\n'],['wrong framing','INIT 1\n0 2 0\n/xy\n'],['oversize path',frame([[0,'/'+ 'x'.repeat(4096)]])],
 ])test(`framed scope rejects ${name} before any stream exists`,pure,()=>{const r=run('initialization',value);assert.equal(r.status,64);assert.deepEqual(r.rows,[{code:'PROTOCOL'}]);});
 test('fixed requests preserve numeric identity and reject arbitrary commands',pure,()=>{
   for(const [line,expected] of [['barrier 0',{id:0,close:false}],['close 9007199254740991',{id:9007199254740991,close:true}]])assert.deepEqual(run('request',line).rows,[expected]);
@@ -28,11 +28,11 @@ test('fixed requests preserve numeric identity and reject arbitrary commands',pu
 });
 test('separate create/remove occurrences are never cancellation-aggregated',pure,()=>{
   const r=run('transient');assert.equal(r.status,0);assert.equal(r.rows.length,3);
-  assert.deepEqual(r.rows.slice(0,2).map(row=>[row.type,row.serial,row.scopeIds]),[['occurrence',1,[0,1]],['occurrence',2,[0,1]]]);assert.equal(r.rows[2].serial,2);assert.equal(r.rows[2].uncertain,false);
+  assert.deepEqual(r.rows.slice(0,2).map(row=>[row.type,row.serial,row.scopeIds]),[['occurrence',1,[0]],['occurrence',2,[0]]]);assert.equal(r.rows[2].serial,2);assert.equal(r.rows[2].uncertain,false);
   assert(!r.stdout.includes('/private/'),'no event pathname emitted');
 });
 test('coalesced create-and-remove and ancestor replacements remain relevant',pure,()=>{
-  for(const mode of ['coalesced','ancestor']){const r=run(mode);assert.equal(r.rows[0].type,'occurrence');assert.deepEqual(r.rows[0].scopeIds,[0,1]);assert.equal(r.rows[1].serial,1);}
+  for(const mode of ['coalesced','ancestor']){const r=run(mode);assert.equal(r.rows[0].type,'occurrence');assert.deepEqual(r.rows[0].scopeIds,mode==='ancestor'?[0,1]:[0]);assert.equal(r.rows[1].serial,1);}
 });
 test('ASCII case aliases match while Unicode ambiguity withholds authority',pure,()=>{
   assert.equal(run('case').rows[0].type,'occurrence');
@@ -66,4 +66,19 @@ test('request replay or regression cannot reuse an earlier barrier response',pur
   assert.equal(run('request-loop','barrier 1\nbarrier 2\nclose 3\n').status,0);
   assert.equal(run('request-loop','barrier 2\nclose 2\n').status,64);
   assert.equal(run('request-loop','barrier 2\nbarrier 1\n').status,64);
+});
+test('mode framing refuses malformed bits and admits locally derived membership mode',pure,()=>{
+  for(const mode of [2,9,'x','01','-1'])assert.equal(run('initialization',frame([[0,candidate,mode]])).status,64);
+  assert.equal(run('initialization',frame([[0,candidate,1]])).status,0);
+});
+test('exact containers discard unrelated children; membership scopes retain them',pure,()=>{
+  assert.deepEqual(run('child-exact').rows,[{schema:1,type:'barrier',request:1,serial:0,uncertain:false}]);
+  const rows=run('child-membership').rows;assert.equal(rows[0].type,'occurrence');assert.deepEqual(rows[0].scopeIds,[3]);assert.equal(rows[1].serial,1);
+});
+test('potential Data firmlink aliases are unknown, never stripped into matching authority',pure,()=>{
+  const rows=run('firmlink').rows;assert.equal(rows[0].code,'FSEVENTS_PATH');assert.equal(rows.at(-1).uncertain,true);
+  assert.equal(run('firmlink-root').rows.at(-1).uncertain,true);
+  assert.equal(run('firmlink-unicode').rows.at(-1).uncertain,true);
+  assert.equal(run('firmlink-exact-child').rows.at(-1).uncertain,false);
+  assert.deepEqual(run('firmlink-unrelated').rows,[{schema:1,type:'barrier',request:1,serial:0,uncertain:false}]);
 });

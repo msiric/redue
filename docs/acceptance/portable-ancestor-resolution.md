@@ -187,9 +187,13 @@ on a dedicated serial dispatch queue. It is not enabled and has never been start
 on the owner Mac. Locally compiled production bytes are retained only for review.
 
 Its bounded private initialization is `INIT COUNT\n`, followed by each
-`SCOPE_ID BYTE_LENGTH\n`, exactly that many ASCII canonical absolute path bytes,
+`SCOPE_ID BYTE_LENGTH DESCENDANTS\n`, exactly that many ASCII canonical absolute path bytes,
 and a newline. Maximums are 8,192 unique IDs, 4,096 path bytes and 8 MiB total.
-Multiple IDs may identify the same path. Only subsequent `barrier ID\n` and
+Multiple IDs may identify the same path. `DESCENDANTS` is exactly `0` or `1`,
+derived only from current local query kinds: membership questions
+(`readDirectory`, `directories`, `entries`) use `1`; other kinds use `0`.
+Unknown kinds do not default to broader scope. Existence-only container child
+events are discarded; exact-target and ancestor replacement events remain covered. Only subsequent `barrier ID\n` and
 `close ID\n` requests are supported, with strictly increasing safe-integer IDs.
 No imported values select the executable or initialize its scopes.
 
@@ -238,3 +242,9 @@ in the final manifest; Parcel cancellation elision therefore also matters inside
 the owned checkout. This conservative prefix coverage can include harmless edits,
 and is not a claimed latency improvement. It remains `reuseEligible:false` and
 does not alter envelope or receipt interpretation by itself.
+
+Potential `/System/Volumes/Data` aliases are a refusal guard, not a physical
+equivalence rule. When the logical tail could overlap a scope or has unresolved
+Unicode ambiguity, the filter reports uncertainty. A clearly disjoint tail is
+discarded. The prefix is never stripped to grant relevance or applicability;
+actual metadata-bound aliases and CI delivery remain unestablished.

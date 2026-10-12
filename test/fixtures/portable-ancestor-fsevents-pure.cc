@@ -8,7 +8,7 @@ int main(int argc,char** argv){
     try{const auto scopes=initialization(std::cin);std::cout<<"{\"count\":"<<scopes.size()<<",\"ids\":[";bool first=true;for(const auto& s:scopes){if(!first)std::cout<<',';first=false;std::cout<<s.id;}std::cout<<"]}\n";return 0;}catch(...){std::cout<<"{\"code\":\"PROTOCOL\"}\n";return 64;}
   }
   if(mode=="limits"){
-    std::ostringstream input;input<<"INIT 8192\n";const std::string value="/"+std::string(4095,'x');for(size_t i=0;i<8192;i++)input<<i<<" 4096\n"<<value<<'\n';
+    std::ostringstream input;input<<"INIT 8192\n";const std::string value="/"+std::string(4095,'x');for(size_t i=0;i<8192;i++)input<<i<<" 4096 0\n"<<value<<'\n';
     std::istringstream bytes(input.str());try{initialization(bytes);return 1;}catch(...){std::cout<<"{\"code\":\"PROTOCOL\"}\n";return 64;}
   }
   if(mode=="request-loop"){
@@ -17,7 +17,7 @@ int main(int argc,char** argv){
   if(mode=="request"){
     std::string line;std::getline(std::cin,line);try{const auto r=request(line);std::cout<<"{\"id\":"<<r.id<<",\"close\":"<<(r.close?"true":"false")<<"}\n";return 0;}catch(...){std::cout<<"{\"code\":\"PROTOCOL\"}\n";return 64;}
   }
-  std::vector<Scope> scopes={{0,"/private/tmp/project-parent/node_modules/@typescript/lib-es2022/index.d.ts"},{1,"/private/tmp/project-parent/node_modules"}};
+  std::vector<Scope> scopes={{0,"/private/tmp/project-parent/node_modules/@typescript/lib-es2022/index.d.ts",false},{1,"/private/tmp/project-parent/node_modules",false}};
   Collector collector(scopes,[](const std::string& row){std::cout<<row<<'\n';});
   if(mode=="transient"){
     collector.occurrence(scopes[0].path,0x100,1);collector.occurrence(scopes[0].path,0x200,2);
@@ -26,6 +26,15 @@ int main(int argc,char** argv){
   else if(mode=="unrelated")collector.occurrence("/private/tmp/unrelated/source-private.ts",0x100,1);
   else if(mode=="unicode")collector.occurrence("/private/tmp/project-parent/node_modules/@typescript/lib-es2022/inde\xe2\x84\xaa.d.ts",0x100,1);
   else if(mode=="unrelated-unicode")collector.occurrence("/unrelated/\xe6\x96\x87/source.ts",0x100,1);
+  else if(mode=="child-exact")collector.occurrence("/private/tmp/project-parent/node_modules/unrelated-package/source.ts",0x100,1);
+  else if(mode=="child-membership"){
+    Collector membership({{3,"/private/tmp/project-parent/node_modules",true}},[](const std::string& row){std::cout<<row<<'\n';});
+    membership.occurrence("/private/tmp/project-parent/node_modules/unrelated-package/source.ts",0x100,1);membership.boundary("barrier",1);return 0;
+  }else if(mode=="firmlink")collector.occurrence("/System/Volumes/Data/private/tmp/project-parent/node_modules/@typescript/lib-es2022/index.d.ts",0x100,1);
+  else if(mode=="firmlink-root")collector.occurrence("/System/Volumes/Data",0x100,1);
+  else if(mode=="firmlink-exact-child")collector.occurrence("/System/Volumes/Data/private/tmp/project-parent/node_modules/unrelated-package/source.ts",0x100,1);
+  else if(mode=="firmlink-unicode")collector.occurrence("/System/Volumes/Data/private/tmp/project-parent/node_modules/@typescript/lib-es2022/inde\xe2\x84\xaa.d.ts/child",0x100,1);
+  else if(mode=="firmlink-unrelated")collector.occurrence("/System/Volumes/Data/unrelated/source.ts",0x100,1);
   else if(mode=="del")collector.occurrence(scopes[0].path+char(127),0x100,1);
   else if(mode=="malformed")collector.occurrence("/private/tmp/project-parent/../node_modules",0x100,1);
   else if(mode=="overflow-path")collector.occurrence(std::string(5000,'x'),0x100,1);

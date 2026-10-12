@@ -121,7 +121,7 @@ export function derivePortableAncestorQueries(root,queries){
         if(!within(prefix,observed.watchRoot))fail('PORTABLE_ANCESTOR_PATH');}
       prefixes.push(observed.watchRoot);
       scopes.set(file,{ancestorDepth,relativePath,candidate:file,watchRoot:observed.watchRoot,
-        prefixes:prefixes.reverse(),watchRootIdentity:guards.get(observed.watchRoot),
+        descendants:false,prefixes:prefixes.reverse(),watchRootIdentity:guards.get(observed.watchRoot),
         presentDirectories:observed.present.map(([file,value])=>({path:file,identity:value})),queryKinds:[]});
     }
     scopes.get(file).queryKinds.push(kind);
@@ -175,11 +175,17 @@ export function portableAncestorEventMatch(scope,eventPath){
   // folding conservatively matches APFS aliases; Unicode ambiguity is not proof.
   if(!/^[\x20-\x7e]+$/.test(scope.candidate)||!safeAbsolute(eventPath))return 'unknown';
   const candidate=scope.candidate.split('/').slice(1),event=eventPath==='/'?[]:eventPath.split('/').slice(1);
-  for(let at=0;at<Math.min(candidate.length,event.length);at++){
-    if(!/^[\x20-\x7e]+$/.test(event[at]))return 'unknown';
-    if(candidate[at].toLowerCase()!==event[at].toLowerCase())return 'irrelevant';
-  }
-  return 'relevant';
+  const classify=parts=>{
+    for(let at=0;at<Math.min(candidate.length,parts.length);at++){
+      if(!/^[\x20-\x7e]+$/.test(parts[at]))return 'unknown';
+      if(candidate[at].toLowerCase()!==parts[at].toLowerCase())return 'irrelevant';
+    }
+    return parts.length>candidate.length&&scope.descendants!==true?'irrelevant':'relevant';
+  };
+  // Refusal only: a potential Data-volume alias is not a physical mapping or
+  // permission to normalize the event into applicable evidence.
+  if(event.slice(0,3).join('/')==='System/Volumes/Data'&&classify(event.slice(3))!=='irrelevant')return 'unknown';
+  return classify(event);
 }
 
 export const rawQueryScopesInterpretation='redue-raw-query-scopes@1';
@@ -204,12 +210,12 @@ export function derivePortableRawQueryScopes(root,queries){
   if(scopes.size>ancestorQueryLimits.queries)fail('PORTABLE_ANCESTOR_LIMIT');
   const rows=[...scopes.values()].map(scope=>({...scope,queryKinds:scope.queryKinds.sort()}))
     .sort((a,b)=>canonical(a.logical)<canonical(b.logical)?-1:canonical(a.logical)>canonical(b.logical)?1:0)
-    .map((scope,id)=>({id,...scope}));
+    .map((scope,id)=>({id,...scope,descendants:scope.queryKinds.some(kind=>['readDirectory','directories','entries'].includes(kind))}));
   const now=inspectPath(root);
   if(!now.exists||!now.stat.isDirectory()||canonical(identity(now.stat))!==canonical(ancestor.rootIdentity))fail('PORTABLE_ANCESTOR_CHANGED');
   return freeze({schema:1,interpretation:rawQueryScopesInterpretation,chainDepth:ancestor.chainDepth,
     queryDigest:ancestor.queryDigest,scopeDigest:sha({interpretation:rawQueryScopesInterpretation,
       chainDepth:ancestor.chainDepth,queryDigest:ancestor.queryDigest,
-      scopes:rows.map(({id,logical,queryKinds})=>({id,logical,queryKinds}))}),
+      scopes:rows.map(({id,logical,queryKinds,descendants})=>({id,logical,queryKinds,descendants}))}),
     rootIdentity:ancestor.rootIdentity,requiredWatchRoots:ancestor.requiredWatchRoots,scopes:rows,reuseEligible:false});
 }

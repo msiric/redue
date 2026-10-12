@@ -20,7 +20,7 @@
 namespace redue_ancestor {
 constexpr size_t maxScopes=8192,maxPath=4096,maxInit=8*1024*1024,maxBatch=65536;
 constexpr uint64_t maxSerial=9007199254740991ULL;
-struct Scope { uint32_t id;std::string path; };
+struct Scope { uint32_t id;std::string path;bool descendants; };
 struct ProtocolError:std::runtime_error { explicit ProtocolError():std::runtime_error("PROTOCOL"){} };
 bool asciiCanonical(const std::string& path) {
   if(path.empty()||path.size()>maxPath||path[0]!='/'||(path.size()>1&&path.back()=='/'))return false;
@@ -53,13 +53,24 @@ std::vector<std::string> components(const std::string& path){
   return result;
 }
 enum class Match { irrelevant,relevant,unknown };
-Match match(const std::string& candidate,const std::string& event){
+Match match(const std::string& candidate,const std::string& event,bool descendants){
   if(!asciiCanonical(candidate)||event.empty()||event.size()>maxPath||event[0]!='/'||
       (event.size()>1&&event.back()=='/')||!utf8(event))return Match::unknown;
   for(size_t i=0;i<event.size();i++){const unsigned char c=event[i];if(c<32||c==127||c=='\\'||c==':')return Match::unknown;}
   const auto wanted=components(candidate),actual=components(event);
   for(const auto& item:actual)if(item.empty()||item=="."||item=="..")return Match::unknown;
   if(event.find("//")!=std::string::npos)return Match::unknown;
+  if(actual.size()>=3&&actual[0]=="System"&&actual[1]=="Volumes"&&actual[2]=="Data"){
+    const std::vector<std::string> alias(actual.begin()+3,actual.end());
+    bool possible=true,ambiguous=false;
+    for(size_t i=0;i<std::min(wanted.size(),alias.size());i++){
+      std::string component=alias[i];bool unknown=false;for(unsigned char c:component)if(c>127)unknown=true;
+      if(unknown){ambiguous=true;break;}for(char& c:component)if(c>='A'&&c<='Z')c+=32;
+      std::string expected=wanted[i];for(char& c:expected)if(c>='A'&&c<='Z')c+=32;
+      if(component!=expected){possible=false;break;}
+    }
+    if(possible&&(ambiguous||!(alias.size()>wanted.size()&&!descendants)))return Match::unknown;
+  }
   const size_t count=std::min(wanted.size(),actual.size());
   for(size_t i=0;i<count;i++){
     bool nonascii=false;for(const unsigned char c:actual[i])if(c>127)nonascii=true;
@@ -67,7 +78,7 @@ Match match(const std::string& candidate,const std::string& event){
     auto fold=[](std::string s){for(char& c:s)if(c>='A'&&c<='Z')c+=32;return s;};
     if(fold(actual[i])!=fold(wanted[i]))return Match::irrelevant;
   }
-  return Match::relevant;
+  return actual.size()>wanted.size()&&!descendants?Match::irrelevant:Match::relevant;
 }
 std::string boundedLine(std::istream& input,size_t cap,size_t& bytes){
   std::string line;char c;
@@ -76,20 +87,20 @@ std::string boundedLine(std::istream& input,size_t cap,size_t& bytes){
 }
 uint64_t number(const std::string& text,uint64_t maximum){
   if(text.empty()||(text.size()>1&&text[0]=='0'))throw ProtocolError();uint64_t n=0;
-  for(char c:text){if(c<'0'||c>'9'||n>(maximum-uint64_t(c-'0'))/10)throw ProtocolError();n=n*10+uint64_t(c-'0');}return n;
+  for(char c:text){if(c<'0'||c>'9'||uint64_t(c-'0')>maximum||n>(maximum-uint64_t(c-'0'))/10)throw ProtocolError();n=n*10+uint64_t(c-'0');}if(n>maximum)throw ProtocolError();return n;
 }
 std::vector<Scope> initialization(std::istream& input){
   size_t bytes=0;const auto head=boundedLine(input,64,bytes);
   if(head.rfind("INIT ",0)!=0)throw ProtocolError();const size_t count=number(head.substr(5),maxScopes);
   if(count==0)throw ProtocolError();std::vector<Scope> scopes;std::vector<bool> ids(maxScopes,false);
   for(size_t i=0;i<count;i++){
-    const auto header=boundedLine(input,64,bytes);const auto space=header.find(' ');
-    if(space==std::string::npos||header.find(' ',space+1)!=std::string::npos)throw ProtocolError();
-    const auto id=number(header.substr(0,space),maxScopes-1),length=number(header.substr(space+1),maxPath);
+    const auto header=boundedLine(input,64,bytes);const auto space=header.find(' '),second=header.find(' ',space==std::string::npos?0:space+1);
+    if(space==std::string::npos||second==std::string::npos||header.find(' ',second+1)!=std::string::npos)throw ProtocolError();
+    const auto id=number(header.substr(0,space),maxScopes-1),length=number(header.substr(space+1,second-space-1),maxPath),mode=number(header.substr(second+1),1);
     if(length==0||bytes+length+1>maxInit||ids[id])throw ProtocolError();ids[id]=true;
     std::string path(length,'\0');if(!input.read(path.data(),length))throw ProtocolError();bytes+=length;
     char end;if(!input.get(end)||end!='\n')throw ProtocolError();bytes++;
-    if(!asciiCanonical(path)||path=="/")throw ProtocolError();scopes.push_back({uint32_t(id),path});
+    if(!asciiCanonical(path)||path=="/")throw ProtocolError();scopes.push_back({uint32_t(id),path,mode==1});
   }return scopes;
 }
 struct Request { bool close;uint64_t id; };
@@ -122,7 +133,7 @@ public:
     if(flags&~uint32_t(0x7fffff)){uncertaintyLocked("FSEVENTS_FLAGS");return;}
     if(eventId==0||eventId==std::numeric_limits<uint64_t>::max()){uncertaintyLocked("FSEVENTS_ID");return;}
     std::vector<uint32_t> ids;bool unknown=false;
-    for(const auto& scope:scopes){const auto result=match(scope.path,event);if(result==Match::relevant)ids.push_back(scope.id);else if(result==Match::unknown)unknown=true;}
+    for(const auto& scope:scopes){const auto result=match(scope.path,event,scope.descendants);if(result==Match::relevant)ids.push_back(scope.id);else if(result==Match::unknown)unknown=true;}
     if(unknown)uncertaintyLocked("FSEVENTS_PATH");
     if(ids.empty())return;
     if(serial==maxSerial){uncertaintyLocked("FSEVENTS_SERIAL");return;}serial++;

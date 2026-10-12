@@ -47,7 +47,7 @@ test('exact present node_modules directory container is preserved, not exempted'
 test('absent prefix creation/removal/rename and container replacement events are relevant',posix,t=>{
   const f=fixture(t),scope=derivePortableAncestorQueries(f.root,f.queries).scopes[0];
   for(const prefix of scope.prefixes)assert.equal(portableAncestorEventMatch(scope,prefix),'relevant');
-  assert.equal(portableAncestorEventMatch(scope,path.join(f.candidate,'child')),'relevant');
+  assert.equal(portableAncestorEventMatch(scope,path.join(f.candidate,'child')),'irrelevant');
   assert.equal(portableAncestorEventMatch(scope,path.dirname(f.parent)),'relevant','coalesced ancestor can cover candidate');
   assert.equal(portableAncestorEventMatch(scope,path.join(f.parent,'unrelated.txt')),'irrelevant');
   assert.equal(portableAncestorEventMatch(scope,path.join(path.dirname(f.parent),'other-project/file')),'irrelevant');
@@ -194,4 +194,21 @@ test('raw plans retain strict external refusals and ASCII native path prerequisi
   assert.throws(()=>derivePortableRawQueryScopes(f.root,[...f.queries,['fileExists',path.join(f.root,'src/\u212a.ts'),null]]),code('PORTABLE_ANCESTOR_PATH'));
   fs.mkdirSync(path.dirname(f.candidate),{recursive:true});fs.writeFileSync(f.candidate,'owned');
   assert.throws(()=>derivePortableRawQueryScopes(f.root,f.queries),code('PORTABLE_ANCESTOR_PRESENT'));
+});
+test('descendant mode is derived only from known directory membership kinds',posix,t=>{
+  const f=fixture(t),container=path.join(f.parent,'node_modules');fs.mkdirSync(container);
+  const queries=[...f.queries,['directoryExists',container,true],['entries',path.join(f.root,'src'),[['a.ts','f']]]];
+  const plan=derivePortableRawQueryScopes(f.root,queries),exact=plan.scopes.find(s=>s.candidate===container),membership=plan.scopes.find(s=>s.candidate===path.join(f.root,'src'));
+  assert.equal(exact.descendants,false);assert.equal(portableAncestorEventMatch(exact,path.join(container,'unrelated-package/source.ts')),'irrelevant');
+  assert.equal(membership.descendants,true);assert.equal(portableAncestorEventMatch(membership,path.join(f.root,'src/unlisted.ts')),'relevant');
+  const mixed=derivePortableRawQueryScopes(f.root,[...queries,['fileExists',path.join(f.root,'src'),false]]).scopes.find(s=>s.candidate===path.join(f.root,'src'));
+  assert.equal(mixed.descendants,true);assert.deepEqual(mixed.queryKinds,['entries','fileExists']);
+});
+test('Data-volume aliases with potential scope overlap are refused without physical mapping',posix,t=>{
+  const f=fixture(t),plan=derivePortableRawQueryScopes(f.root,f.queries),scope=plan.scopes.find(s=>s.candidate===f.candidate);
+  assert.equal(portableAncestorEventMatch(scope,'/System/Volumes/Data'+f.candidate),'unknown');
+  assert.equal(portableAncestorEventMatch(scope,'/System/Volumes/Data'),'unknown');
+  assert.equal(portableAncestorEventMatch(scope,'/System/Volumes/Data/unrelated/path'),'irrelevant');
+  const rootScope=derivePortableRawQueryScopes(f.root,[...f.queries,['entries',f.root,[]]]).scopes.find(s=>s.candidate===f.root);
+  assert.equal(portableAncestorEventMatch(rootScope,'/System/Volumes/Data'+path.join(f.root,'src/new.ts')),'unknown');
 });
