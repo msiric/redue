@@ -9,6 +9,11 @@ import {fileURLToPath} from 'node:url';
 import {renderNativeDiagnosticAssets,sha} from './portable-native-diagnostic-assets.mjs';
 import {REVIEWED_CLAUDE_NATIVE} from './portable-claude-invocation.mjs';
 export const LIMITS=Object.freeze({turns:4,totalMs:120000,cleanupMs:5000,lineBytes:65536,streamBytes:2*1024*1024});
+// Finite pinned187 EOn family closure: qQd(+m9i/f9i/Hkn), nto(+Ikn),
+// XQd/QQd, ZQd cases, eZd and tZd. Native deny precedence is before fallback.
+// These are DENY rules, never broad allow grants; the exact absolute Node
+// collector remains the only configured allow. Source review is version-bound.
+export const PINNED_READONLY_BASH_HEADS=Object.freeze(["[[","alias","arch","base64","basename","cal","cat","cd","claude","cmp","column","comm","cut","date","df","diff","dirname","docker","du","echo","egrep","expand","expr","false","fd","fdfind","fgrep","file","find","fmt","fold","free","git","grep","groups","head","help","hexdump","history","hostname","id","ifconfig","ip","jq","locale","ls","lsof","man","md5sum","netstat","nl","node","nproc","numfmt","od","paste","pgrep","pr","printf","ps","pwd","pyright","python","python3","readlink","realpath","rev","rg","sed","seq","sha1sum","sha256sum","sleep","sort","ss","stat","strings","tac","tail","test","tput","tr","tree","true","tsort","type","uname","unexpand","uniq","uptime","wc","which","whoami","xargs"]);
 export const NODE_SHA='5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc';
 const NAMES=['custom_env_sentinel_absent','synthetic_protected_read_denied','synthetic_outside_write_denied','one_synthetic_socket_allowed','other_synthetic_socket_denied','owned_direct_loopback_denied'];
 const EXPECTED=['ABSENT','DENIED_PERMISSION_ERROR','DENIED_PERMISSION_ERROR','EXPECTED_RESPONSE','DENIED_PERMISSION_ERROR','DENIED_PERMISSION_ERROR'];
@@ -125,7 +130,7 @@ export function collectNativeDiagnostic(create,{command,cwd,timeoutMs=115000,cle
 }
 export function buildDiagnosticSettings({base,node,native}){
  const assets=renderNativeDiagnosticAssets({base,node}),settingsFile=path.join(assets.host,'settings.json'),command=`${quote(node)} ${quote(assets.collector)}`;
- return {assets,command,settingsFile,settings:{disableAllHooks:true,enabledPlugins:{},permissions:{allow:[`Bash(${command})`],deny:['Agent','Task','Read','Edit','Write','Glob','Grep','WebFetch','WebSearch','LSP','Skill']},
+ return {assets,command,settingsFile,settings:{disableAllHooks:true,enabledPlugins:{},permissions:{allow:[`Bash(${command})`],deny:['Agent','Task','Read','Edit','Write','Glob','Grep','WebFetch','WebSearch','LSP','Skill',...PINNED_READONLY_BASH_HEADS.map(head=>`Bash(${head}:*)`)]},
   sandbox:{enabled:true,failIfUnavailable:true,allowUnsandboxedCommands:false,autoAllowBashIfSandboxed:false,excludedCommands:[],
    filesystem:{allowWrite:[],denyRead:[assets.host,'~/Library/Keychains','~/.ssh','~/.aws','~/.npmrc','~/.claude','~/.config','~/.git-credentials'],denyWrite:[base,node,path.dirname(node),native,path.dirname(native),'~/Library/Keychains']},
    network:{allowedDomains:[],deniedDomains:['*'],strictAllowlist:true,allowUnixSockets:[assets.socket],allowAllUnixSockets:false,allowLocalBinding:false},

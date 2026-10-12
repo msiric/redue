@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
 import {PassThrough} from 'node:stream';
 import {renderNativeDiagnosticAssets,normalizedNativeDiagnosticAsset,nativeDiagnosticTemplateDigests,sha} from './acceptance/portable-native-diagnostic-assets.mjs';
-import {buildDiagnosticSettings,nativeDiagnosticArgv,nativeDiagnosticEnvironment,createNativeDiagnosticTrace,sanitizeCollection,diagnosticOutcome,collectNativeDiagnostic,requireNativeDiagnosticActivation,requireDiagnosticWorkflow} from './acceptance/portable-claude-diagnostic.mjs';
+import {buildDiagnosticSettings,nativeDiagnosticArgv,nativeDiagnosticEnvironment,createNativeDiagnosticTrace,sanitizeCollection,diagnosticOutcome,collectNativeDiagnostic,requireNativeDiagnosticActivation,requireDiagnosticWorkflow,PINNED_READONLY_BASH_HEADS} from './acceptance/portable-claude-diagnostic.mjs';
 const bindings={base:'/private/tmp/redue-claude-diagnostic-Abc123',node:'/approved/runtime/bin/node'};
 const plan=buildDiagnosticSettings({...bindings,native:'/approved/native/claude'});
 const init={type:'system',subtype:'init',cwd:plan.assets.code,claude_code_version:'2.1.187',apiKeySource:'none',permissionMode:'dontAsk',tools:['Bash'],mcp_servers:[],plugins:[]};
@@ -143,4 +143,15 @@ test('native hook evidence and unknown system authority events irrevocably withh
   assert.equal(t.error,subtype==='unknown_policy_event'?'NATIVE_SYSTEM_CONTEXT_UNKNOWN':'NATIVE_STARTUP_HOOK_OBSERVED');
   assert.equal(diagnosticOutcome(t,complete).collection_status,'UNKNOWN');assert.equal(JSON.stringify(t).includes('PRIVATE_CANARY'),false);
  }
+});
+
+test('pinned native read-only families are explicitly denied before fallback without changing grants',()=>{
+ const s=plan.settings;
+ assert.deepEqual(s.permissions.allow,[`Bash(${plan.command})`]);
+ assert.equal(new Set(PINNED_READONLY_BASH_HEADS).size,PINNED_READONLY_BASH_HEADS.length);
+ for(const head of PINNED_READONLY_BASH_HEADS)assert.ok(s.permissions.deny.includes(`Bash(${head}:*)`));
+ for(const head of ['cat','ls','pwd','git','docker','rg','sed','jq','xargs','[[','node','python','printf','sleep'])assert.ok(PINNED_READONLY_BASH_HEADS.includes(head));
+ assert.equal(PINNED_READONLY_BASH_HEADS.some(head=>head.startsWith('/')||head==='*'),false);
+ assert.ok(plan.command.startsWith("'/approved/runtime/bin/node' "));assert.equal(s.permissions.deny.includes(`Bash(${plan.command})`),false);
+ assert.deepEqual(s.sandbox.network.allowUnixSockets,[plan.assets.socket]);assert.deepEqual(s.sandbox.filesystem.allowWrite,[]);
 });

@@ -12,7 +12,7 @@ assistant `tool_use` for the literal collector command and a native user
 match the tool result. Model prose cannot establish success. Actual checker OS
 close/exit/signal, six assertion rows, native process outcome and lifecycle remain
 separate. Negative assertions survive incomplete cleanup. Missing/malformed data,
-changed files, missing live controls or timeout yield UNKNOWN. Fourteen pure/mock
+changed files, missing live controls or timeout yield UNKNOWN. Fifteen pure/mock
 controls passed; no native, model or real probe ran during those controls.
 
 The [assets](../../test/acceptance/portable-native-diagnostic-assets.mjs) retain the
@@ -49,10 +49,13 @@ and denies protected host and
 Keychain reads, and permits only the single reporting socket. Implicit native
 temporary-directory access is not claimed removed. The six assertions establish
 only their named operations, not universal filesystem or real credential-body
-denial. A literal Bash rule
+denial. The pinned native read-only fallback would otherwise permit additional Bash
+commands independently of the literal allow. The finite `EOn` command-head
+families are therefore explicitly denied using supported Bash prefix-denial
+rules before that fallback. These deny rules add no grants. A literal allow
 uses native command normalization; the independently observed tool command must
 also equal the submitted literal. Stream inspection is evidence checking, **not**
-a preventative permission boundary. Normalization and credential/startup closure
+a preventative permission boundary. Finite-family denial completeness, normalization and credential/startup closure
 remain subject to independent critical review before deployment.
 
 Pinned source shows `aO` removing OAuth from subprocess environments, followed by
