@@ -1,9 +1,11 @@
 # Portable ancestor resolution boundary
 
-Current conclusion: the pinned public debugger project is rejected with
+Current conclusion: the pinned public debugger project remains rejected with
 `PORTABLE_EXTERNAL_INPUT`. Its builtin compiler libraries are already inside the
-checkout. Ancestor resolution absence, and the observation interval supporting
-that absence, are the remaining boundary. This record proposes review scope; it
+checkout. The first real raw-provider barrier missed a known transient; a fixed
+ROOT/OWNED comparison observed late delivery in both modes. No @3 interval
+authority or complete origin is enabled. Ancestor resolution absence and its
+continuous observation remain the boundary. This record proposes review scope; it
 does not enable a namespace, grant observation authority, or establish a released
 false-CURRENT defect.
 
@@ -335,3 +337,32 @@ A missing actual close retains owned files and UNKNOWN. Five independent harmles
 VM harness controls and the native/query/build controls passed before dispatch;
 these are not actual stream observations. The unchanged production binary still
 has the known failed continuity result.
+
+
+## Actual fixed delivery comparison — no interval authority
+
+[Run38289084959](https://github.com/msiric/redue/actions/runs/38289084959),
+sourceebccf99e46cf79f72e800ed9dc439b90c6a95989, collected all fixed observations
+with no model or compiler. Both ROOT and OWNED streams report serial0 immediately
+after held-marker creation, serial1 by500ms, then unchanged at2s. Both report
+serial1 immediately after transient creation/removal and serial2 by500ms, then
+unchanged at2s. The marker remained present through transient observations.
+Both child processes exited0/no signal, reaped/protocol-clean; owned files cleanup
+completed. Complete diagnostic9502.386ms is not verification or economic timing.
+
+The VM reports Darwin25.6.0/ARM64/Node22.13.0, filesystem type26, and the fixture
+device equals the filesystem-root device. The diagnostic source hash isdc93cf87;
+actual CI-built executable15a4eda787ae08c5fde28607bd0acef183e2c6f87b8be03f840469c162d881b7
+(81,528 bytes) differs from the local diagnostic build7e819ccf. Both retain
+separate identities; the production39cc binary is unchanged. Private structured
+record `.local/portable-evidence/ancestor-delivery-38289084959.json`, SHA256
+871ec945f07ba817debc1c1aa95d36369edb7c8374e195021858f8f3dc738d16.
+Independent actual review87af5fd preserves the original failed immediate barrier.
+
+This sample establishes later matching delivery in both stream classes, not a
+root-only routing failure or a proven deeper kernel/service/queue cause. Longer
+waits are not currency. The next bounded source-reviewed diagnostic compares
+no-drain versus explicit serial callback-queue drain after FlushSync, exclusively
+in a diagnostic compile. It can close already queued callback work; it cannot
+prove kernel/service ingress. No qualifying engine integration follows from a
+quiet sample or successful cleanup.
