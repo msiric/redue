@@ -55,7 +55,9 @@ export function prepareClaudeReceiverInvocation(options) {
       filesystem: {
         allowWrite: [root, state],
         denyRead: [hostConfig, settingsFile, '~/Library/Keychains', '~/.ssh', '~/.aws', '~/.npmrc', '~/.claude', '~/.config', '~/.git-credentials'],
-        denyWrite: [hostConfig, settingsFile, prefix, claudeExecutable, '~/Library/Keychains', path.join(state, 'portable-producers-v1.json')],
+        denyWrite: [hostConfig, settingsFile, prefix, claudeExecutable, '~/Library/Keychains',
+          config, path.join(state, 'project-runtime-v1.json'), path.join(state, 'vstate-owner-v1.json'),
+          path.join(state, 'portable-producers-v1.json')],
       },
       network: {
         allowedDomains: [], deniedDomains: ['*'], strictAllowlist: true,
@@ -72,6 +74,7 @@ export function prepareClaudeReceiverInvocation(options) {
     blockers: ['HOSTED_WORKFLOW_AND_AUTH_ENVIRONMENT_NOT_PROVISIONED',
       'MATCHED_VM_CREDENTIAL_ISOLATION_NOT_VERIFIED', 'MATCHED_VM_NATIVE_MODEL_TOOL_BOUNDARY_NOT_VERIFIED',
       'MATCHED_VM_NATIVE_CODE_AND_STARTUP_POLICY_NOT_VERIFIED',
+      'MATCHED_VM_CONFIGURATION_PARENT_REPLACEMENT_NOT_VERIFIED',
       'MATCHED_VM_SUBSCRIPTION_AUTH_AND_INCLUDED_CAPACITY_NOT_ESTABLISHED',
       'CURRENT_PRODUCER_POLICY_AND_EXACT_ORIGIN_REQUIRED',
       'MATCHED_RECIPIENT_AND_EXPECTED_EVIDENCE_PREFLIGHT_REQUIRED'],

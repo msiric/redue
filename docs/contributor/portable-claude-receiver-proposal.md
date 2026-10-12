@@ -93,8 +93,11 @@ workflow; the disabled data proposal does not create another host architecture.
 constructs data only from the caller-selected recipient base. It launches zero
 processes, reads no secrets, writes no settings and always reports PROPOSAL_ONLY.
 Its activation function always refuses; boolean approval/help/static-key fields
-cannot activate it. Six deterministic tests cover scope/budgets/no-bypass and
-refusal. This is proposal validation, not native host enforcement.
+cannot activate it. Seven pure controls cover scope/budgets/no-bypass, exact
+configuration protection and refusal. An isolated ordinary-CLI control checks
+that unchanged cached/synchronized status preserves read-only config, compiled
+plan and owner-declaration bytes and physical identities without executing a
+check. These controls are not native host enforcement.
 
 The proposed argv uses print/stream-json, at most 8 turns and a 300-second parent cap, dontAsk,
 Bash-only tools, empty strict MCP config and a local --settings file. The reviewed187 target supports the native sandbox/credential schema; its constructor's flags and settings remain unexecuted on the matched VM. A version/hash match or local manual-Bash proof does not validate the hosted print/model-tool path, effective settings or turn limits. No bare, injected system policy, dangerous permission
@@ -107,6 +110,13 @@ commands, restrict its one state socket and reject tool-network access. Only exa
 inspection/REDUE commands are proposed; other tools/MCP/hooks/plugins are excluded.
 Subscription and GitHub credential-deny entries use the reviewed187 schema, but their effective behavior on the secret-bearing matched VM is still unverified. Host settings/installations/producer-policy writes are not agent-owned.
 The proposal adds no broader filesystem/socket/network grant. Keychain/settings read denials and existing host-config/prefix write denials remain; the selected native executable leaf is write-protected. Its dedicated parent, physical path and startup policy still require matched-VM review; the lexical constructor does not protect or approve an arbitrary parent. No secret value occurs in argv/settings or a model-readable file.
+Public `redue.config.json`, compiled `project-runtime-v1.json` and
+`vstate-owner-v1.json` have exact write denials while remaining readable by the
+normal CLI. This prevents the proposal from deliberately granting configuration
+rewrites to the agent. Parent replacement and actual native enforcement remain
+explicit matched-VM gates; a leaf rule or interval hash alone does not establish
+those protections. Project/state writes needed for execution and receipt recording
+remain proposed, and activation remains disabled.
 
 [Current native sandbox documentation](https://code.claude.com/docs/en/sandboxing)
 states that shell commands inherit credentials unless protected; other tools may

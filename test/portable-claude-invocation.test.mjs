@@ -1,5 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import {spawnSync} from 'node:child_process';
 import { prepareClaudeReceiverInvocation, requireClaudeReceiverActivation, REVIEWED_CLAUDE_NATIVE } from './acceptance/portable-claude-invocation.mjs';
 
 const options = {
@@ -99,3 +103,75 @@ test('credential/settings/native leaves stay protected without widening parent g
   assert.equal(f.denyWrite.includes('/private/tmp/approved-native'), false);
   assert.ok(p.blockers.includes('MATCHED_VM_NATIVE_CODE_AND_STARTUP_POLICY_NOT_VERIFIED'));
 });
+
+test('public configuration, compiled plan and owner declaration are write-denied without broad parent denial', () => {
+  const p = prepareClaudeReceiverInvocation(options), s = p.settings_proposed.sandbox;
+  const root = `${options.base}/Checkout 空间`, state = `${options.base}/redue-state`;
+  const protectedFiles = [`${root}/redue.config.json`, `${state}/project-runtime-v1.json`, `${state}/vstate-owner-v1.json`];
+  for (const file of protectedFiles) {
+    assert.ok(s.filesystem.denyWrite.includes(file));
+    assert.equal(s.filesystem.denyRead.includes(file), false, 'normal CLI ownership/config reads remain necessary');
+  }
+  assert.deepEqual(s.filesystem.allowWrite, [root, state]);
+  assert.equal(s.filesystem.denyWrite.includes(root), false);
+  assert.equal(s.filesystem.denyWrite.includes(state), false);
+  assert.deepEqual(s.network.allowUnixSockets, [`${state}/observer.sock`]);
+  assert.deepEqual(s.network.allowedDomains, []);
+  assert.deepEqual(s.excludedCommands, []);
+  assert.ok(p.blockers.includes('MATCHED_VM_CONFIGURATION_PARENT_REPLACEMENT_NOT_VERIFIED'));
+  assert.equal(p.disabled, true);
+  assert.throws(() => requireClaudeReceiverActivation({ ...p, filesProtected: true, parentCountercheckPassed: true }),
+    { code: 'CLAUDE_RECEIVER_ACTIVATION_NOT_APPROVED' });
+});
+
+test('unchanged ordinary cached and synchronized status preserve configuration/plan/owner bytes and physical identity',
+  {skip: process.platform === 'win32'}, t => {
+    // This is normal CLI writer compatibility on an owned fixture, not native
+    // sandbox enforcement, a portable contract or a model trial. No check runs.
+    const tmp = process.platform === 'darwin' ? '/private/tmp' : fs.realpathSync(os.tmpdir());
+    const base = fs.mkdtempSync(path.join(tmp, 'redue-config-read-')), root = path.join(base, 'root');
+    t.after(() => fs.rmSync(base, {recursive:true,force:true}));
+    const state = path.join(base, 'redue-state'), config = path.join(root, 'redue.config.json');
+    const entry = path.resolve('bin/redue.mjs');
+    fs.mkdirSync(root);
+    fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({name:'redue-owned-config-read',private:true,scripts:{}}));
+    fs.writeFileSync(config, JSON.stringify({schema:1,root:'.',checks:[{
+      name:'typecheck',command:['@node','-e','process.exit(0)'],inputs:['package.json'],
+    }]}));
+    const git = spawnSync('git', ['init','-q'], {cwd:root,encoding:'utf8',timeout:5000});
+    assert.equal(git.status, 0, 'owned ordinary fixture needs its own Git root');
+    const cli = (...args) => spawnSync(process.execPath, [entry, '--config', config, '--state-dir', state, ...args],
+      {cwd:root,encoding:'utf8',timeout:20000,maxBuffer:1024*1024});
+    const ok = (...args) => {
+      const r = cli(...args);
+      assert.equal(r.error, undefined);
+      if (r.status !== 0 && fs.existsSync(path.join(state, 'observer.log')))
+        t.diagnostic(fs.readFileSync(path.join(state, 'observer.log'), 'utf8').replaceAll(base, '<owned-fixture>').slice(-4096));
+      assert.equal(r.status, 0, `ordinary CLI ${args.join(' ')} did not complete: ${r.stderr.replaceAll(base, '<owned-fixture>')}`);
+      return JSON.parse(r.stdout);
+    };
+    const files = [config, path.join(state, 'project-runtime-v1.json'), path.join(state, 'vstate-owner-v1.json')];
+    const snapshot = file => {
+      const s = fs.lstatSync(file, {bigint:true});
+      return {bytes:fs.readFileSync(file).toString('hex'), physical:[s.dev,s.ino,s.mode,s.size,s.mtimeNs,s.ctimeNs].map(String)};
+    };
+    let started = false;
+    try {
+      started = true; const start = ok('start', '--json');
+      assert.equal(start.ready, true);
+      for (const file of files) fs.chmodSync(file, 0o444);
+      const before = files.map(snapshot);
+      const cached = ok('status', '--json'), current = ok('status', '--sync', '--json');
+      assert.equal(current.observation.healthy, true);
+      for (const response of [cached,current]) {
+        assert.equal(response.checks[0].result, null);
+        assert.equal(response.checks[0].reuse_eligible, false);
+      }
+      assert.deepEqual(files.map(snapshot), before);
+      assert.equal(fs.existsSync(path.join(state, 'runs-v1')), false);
+    } finally {
+      if (started) cli('stop');
+      for (const file of files) if (fs.existsSync(file)) fs.chmodSync(file, 0o600);
+      fs.rmSync(base, {recursive:true,force:true});
+    }
+  });
