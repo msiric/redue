@@ -3,7 +3,56 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — native diagnostic and alpha.11 exact installed mechanics PASS
+## Current checkpoint — recipient cost identified; ordinary boundary under review
+
+The hosted Claude diagnostic38257021786 remains closed PASS only for its six
+synthetic native assertions; it is not portable agent reuse and needs no repeat.
+Alpha.11 stays unpublished. Frozen source08307d4/artifactf6e368bd retain their
+separate identity and successful platform mechanics; runtime WIP is not those bytes.
+
+Fixed no-model hosted sample [38273261352](https://github.com/msiric/redue/actions/runs/38273261352)
+used that exact artifact: six unchanged queries/three observer sessions, all eligible,
+mean37,244.049ms, median36,091.025ms, maximum42,103.605ms. Correlated phases establish
+TWO protected-cache inspections per query, caller plus daemon; each reads/hashes
+5,820,973,056bytes/13members. Cache median16,897.55ms (n14 including two origin
+boundaries); compiler inspection55.1ms (n111), discovery240.95ms (n14), catch-up97.3ms
+(n9), trust/applicability2.4ms (n9). No inferred network cause or timeout change.
+Private fixed result/summary: `.local/portable-evidence/recipient-profile-38273261352*.json`;
+result SHA-25684acdd9993a81a9c1a72427e0ea0e5e0dfa244441925d891b2d0cd12d9b60aa1.
+The same six-query local controlled sample has median5,683.858ms/max5,856.891ms;
+this is a different host, not a portable speedup. First-per-session means observer
+cold, not OS page-cache cold. A failed initial fixture established zero samples;
+its original files/receipt remain separately retained.
+
+Root owns a narrow private daemon runtime certificate WIP; full caller hashing,
+compiler/context/loaded-image checks, root/input/history/catalog/receipt guards and
+finite fallbacks remain. No persistent/client/imported certificate authority.
+Real built-in full/warm/caller/forged-content/malformed-input controls6PASS14.2s;
+actual daemon bad-proof/client-poison/restart control1PASS26.0s. Earlier fixture
+and mock scheduling failures are retained in private TAP records, not native or
+product correctness claims. Independent runtime review4367acf GO and74/74 shared regressions are complete.
+A fixed same-label candidate before/after sample is prepared after independent
+workflow/helper review; exact after measurements remain pending, no speed claim.
+
+On pinned vscode-js-debugb1c00772, all59 consumed built-in libraries are inside the
+checkout. The blocked boundary is424 outside ancestor resolution queries, not
+missing default-library files. An owned actual compiler A/B/A control shows ancestor
+library replacement can change outcome. It is not a REDUE false-CURRENT reproduction.
+Owner now approves narrowly filtered CI-only ancestor observation, including required
+parent subscriptions through `/`; no owner's-Mac watcher authority or agent permissions
+expand. Agent A owns the exact query-only leaf; C independently reviews it. The leaf
+remains explicitly non-authoritative until an adequate interval barrier is implemented.
+See [boundary evidence](../acceptance/portable-ancestor-resolution.md).
+
+No model has launched. Actual cross-agent/two-machine acceptance, fresh authenticated
+origin/artifact/trust bindings and complete-path final economics remain incomplete.
+Copilot's four Actions credits' included-billing fact remains pending; account existence
+and personal-use approval are settled. Claude account/secret/setup/native diagnostic are
+complete. Failed preconditions still launch zero models. G2/finalG3/G4 are not passed.
+Day0 remains2026-10-10 21:24UTC;72h calibration2026-10-13 21:24UTC is unchanged.
+No fabricated whole-goal blocked-time total or release readiness is claimed.
+
+## Historical checkpoint — native diagnostic and alpha.11 exact installed mechanics PASS
 
 Actual hosted native Claude2.1.187 diagnostic
 [38257021786](https://github.com/msiric/redue/actions/runs/38257021786) passed all

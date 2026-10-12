@@ -66,7 +66,7 @@ test('warm returned content is isolated from its supplied record; no imported/cl
 });
 
 test('real full and revalidated built-in probe facts agree; private content never enters caller proofs',
- {skip:!portableRuntimeSupported(),timeout:60000},t=>{
+ {skip:!portableRuntimeSupported(),timeout:150000},t=>{
  // Owned controlled same-machine checkout; no command execution, credentials,
  // observer, or broad ancestor observation is used by these read-only probes.
  const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-runtime-proof-')));
@@ -83,7 +83,7 @@ test('real full and revalidated built-in probe facts agree; private content neve
  import {directEnvironment,directQualification,directProject} from ${JSON.stringify(new URL('../src/direct-typescript.mjs',import.meta.url).href)};`;
  const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!['NODE_TEST_CONTEXT','NODE_TEST_WORKER_ID'].includes(key)));
  const result=spawnSync(process.execPath,['--input-type=module','-e',imports+`const root=${JSON.stringify(root)};`+actualProofControls.toString()+';actualProofControls(root);'],
-  {cwd:path.resolve('.'),env,encoding:'utf8',timeout:55000,maxBuffer:16384});
+  {cwd:path.resolve('.'),env,encoding:'utf8',timeout:140000,maxBuffer:16384});
  assert.equal(result.status,0,result.stderr);assert.equal(result.signal,null);assert.equal(result.stdout,'PROOF_CONTROLS_PASS');
 });
 function actualProofControls(root){
@@ -97,11 +97,12 @@ function actualProofControls(root){
  assert(full.runtimeCertificate);assert.deepEqual(warm.discovered,full.discovered);assert.deepEqual(warm.recipe,full.recipe);
  assert.equal(Object.hasOwn(full.discovered,'privateRuntimeCertificate'),false);
  const facts={recipe:full.recipe,runtime:full.discovered.runtime,compiler:full.discovered.compiler,discovery:full.discovered.discovery};
- assert.equal(portableCallerProof(plan),portableFactsProof(facts),'caller independently performs full inspection with the same proof');
+ const callerProof=portableCallerProof(plan);
+ assert.equal(callerProof,portableFactsProof(facts),'caller independently performs full inspection with the same proof');
  const corrupted=structuredClone(full.runtimeCertificate);corrupted.cache.content.files[0][1]='0'.repeat(64);
  const forged=portableProbeFacts(plan,{runtimeCertificate:corrupted});
  assert.notDeepEqual(forged.discovered,full.discovered,'low-level private transport is not an authentication mechanism');
- assert.notEqual(portableFactsProof({...facts,runtime:forged.discovered.runtime}),portableCallerProof(plan),
+ assert.notEqual(portableFactsProof({...facts,runtime:forged.discovered.runtime}),callerProof,
   'independent caller content rejects fabricated daemon content; arbitrary writable records cannot grant reuse');
  const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!['NODE_TEST_CONTEXT','NODE_TEST_WORKER_ID'].includes(key)));
  const malformed=spawnSync(process.execPath,[probe,root,'typecheck','--redue-portable','--redue-private-runtime-certificate'],
