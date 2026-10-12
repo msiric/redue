@@ -210,7 +210,9 @@ The initial implementation is opt-in and non-authoritative until independently
 reviewed enforcement and actual native-boundary prerequisites pass. Existing
 configured checks and historical records are not converted. Existing permissions,
 producer trust, signing scope, $0 spending and publication boundaries are unchanged.
-Staging/setup/economics remain unmeasured. G0–G4 and Day0 are unchanged; this is an
+One owned public-project staging sample and local mechanism measurements are now
+recorded in the tracker; full setup/portable-workflow economics remain unmeasured.
+G0–G4 and Day0 are unchanged; this is an
 approved implementation direction, not gate completion or release approval.
 
 ### 3.4 Recipient evaluation
