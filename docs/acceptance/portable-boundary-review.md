@@ -3324,3 +3324,16 @@ retry cannot attach metadata to a different first rejected system event.
 Conclusion: GO for the observation-only correction. It supplies no additional
 native allowance, request outcome, enforcement, capacity or G2/G4 claim. No
 native/auth/model/CI/checker/listener operation occurred in this review.
+
+The subsequent workflow preparation
+`babf43bd0ed25fb6e9567e14ae5a23178084436f` was independently compared with both
+7deb7d2 and the original a5f registration. Only the checkout pin changes to
+`85425a5ca5a1a1df8eb1c7e1f56ca7cd5405a107`; selected helper bytes equal the
+reviewed7817ba17… SHA above. Workflow SHA-256 is
+`159acc8c945a329fb2a0785366e8cb377ec79d78bec9553047d0eefc149773a3`.
+Every other byte is unchanged, including manual trigger, actor/ref/environment,
+OAuth step, read permissions, four turns,120s and all resource limits. GO for
+the source-pin preparation only. Any actual operation rests on the owner's
+standing authority and current prerequisites, not this review or a native PASS.
+No model/native/CI action occurred and no tests were repeated for the unchanged
+wrapper.
