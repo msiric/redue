@@ -34,9 +34,9 @@ function sourceSnapshot(file,limit){
   return {bytes,physical:before};
 }
 
-export function writeControlledPortableGuidance(options){
+function prepareControlledGuidance(options,{inspection=false}={}){
   if(process.platform==='win32')fail('CONTROLLED_GUIDANCE_UNSUPPORTED');
-  if(!options||Object.keys(options).some(k=>!['root','state','prefix','policyFile','policySha256','hosts','role','apply'].includes(k)))fail();
+  if(!options||Object.keys(options).some(k=>!(inspection?['root','state','prefix','policyFile','policySha256','hosts','role']:['root','state','prefix','policyFile','policySha256','hosts','role','apply']).includes(k)))fail();
   const {root,state,prefix,policyFile,policySha256,hosts,role,apply=false}=options;
   if(!Array.isArray(hosts)||!hosts.length||hosts.length>2||new Set(hosts).size!==hosts.length||
     hosts.some(h=>!Object.hasOwn(FILES,h))||!['producer','receiver'].includes(role)||
@@ -71,6 +71,11 @@ export function writeControlledPortableGuidance(options){
   const content=new Map([[POLICY,Buffer.concat([policy,Buffer.from(routing)])]]);
   for(const host of hosts)content.set(FILES[host],Buffer.from(
     `This controlled project uses REDUE for configured verification decisions.\nRead ${POLICY} for the installed shared policy and the explicit local config/state\nselection before those decisions. Preserve independent fresh-execution obligations.\n`));
+  return {root,roots,apply,content,validate,config,ownerFile,policyFile,policySha256,hosts,role,stateRelative,
+    sources:[[config,65536,configSource],[ownerFile,8192,ownerSource],[policyFile,65536,policySource]]};
+}
+export function writeControlledPortableGuidance(options){
+  const {root,roots,apply,content,validate,config,policySha256,hosts,role,stateRelative}=prepareControlledGuidance(options);
   for(const name of content.keys())absent(path.join(root,name));
   validate();
   const created=[];
@@ -98,4 +103,53 @@ export function writeControlledPortableGuidance(options){
     files:[...content.keys()],policy_sha256:policySha256,hosts:[...hosts],role,model_launches:0,
     behavioral_verification:false,route:{config:path.basename(config),state:stateRelative,check:'typecheck'},
     note:'Setup changes precede the new in-context evidence baseline. No receipt is erased or assumed CURRENT.'};
+}
+
+// Verify only this explicit test-fixture mechanism. An intact generic instruction
+// is not a product-managed skill, an approval, proof of host loading, or CURRENT.
+export function inspectControlledPortableGuidance(options){
+ try{
+  const prepared=prepareControlledGuidance(options,{inspection:true}),
+    {root,content,validate,config,policySha256,hosts,role,stateRelative,sources}=prepared;
+  const snapshots=new Map(),directories={root:options.root,state:options.state,prefix:options.prefix,git:path.join(options.root,'.git')};
+  const directoryBinding=file=>{directory(file);const stat=fs.lstatSync(file,{bigint:true});return hash(JSON.stringify([stat.dev,stat.ino,stat.uid,stat.mode].map(String)));};
+  const directoryBindings=Object.fromEntries(Object.entries(directories).map(([name,file])=>[name,directoryBinding(file)]));
+  const readOwned=(file,limit)=>{
+    const before=fs.lstatSync(file,{bigint:true});
+    if(typeof process.getuid==='function'&&before.uid!==BigInt(process.getuid())||(before.mode&0o022n)!==0n)
+      fail('CONTROLLED_GUIDANCE_UNSAFE');
+    const snapshot=sourceSnapshot(file,limit),after=fs.lstatSync(file,{bigint:true});
+    if(before.uid!==after.uid||before.mode!==after.mode||fingerprint(before)!==fingerprint(after))fail('CONTROLLED_GUIDANCE_CHANGED');
+    return {...snapshot,ownedPhysical:JSON.stringify([after.uid,after.mode].map(String))};
+  };
+  for(const [file,limit,source] of sources){
+    const now=readOwned(file,limit);
+    if(now.physical!==source.physical||!now.bytes.equals(source.bytes))fail('CONTROLLED_GUIDANCE_CHANGED');
+    snapshots.set(file,{limit,source:now});
+  }
+  const runtimeFile=path.join(options.state,'project-runtime-v1.json'),runtimeSource=readOwned(runtimeFile,65536);
+  let runtime;try{runtime=JSON.parse(runtimeSource.bytes);}catch{fail('CONTROLLED_GUIDANCE_RUNTIME');}
+  if(runtime.schema!==1||runtime.provider!=='declared-project@1'||runtime.root!==options.root||runtime.state!==options.state)fail('CONTROLLED_GUIDANCE_RUNTIME');
+  snapshots.set(runtimeFile,{limit:65536,source:runtimeSource});
+  const files=[];
+  for(const [name,bytes] of content){
+    const file=path.join(root,name),source=readOwned(file,65536);
+    if(!source.bytes.equals(bytes))fail('CONTROLLED_GUIDANCE_CONTENT');
+    snapshots.set(file,{limit:65536,source});files.push({path:name,sha256:hash(bytes)});
+  }
+  validate();
+  for(const [file,{limit,source}] of snapshots){
+    const now=readOwned(file,limit);
+    if(now.physical!==source.physical||now.ownedPhysical!==source.ownedPhysical||!now.bytes.equals(source.bytes))fail('CONTROLLED_GUIDANCE_CHANGED');
+  }
+  validate();
+  for(const [name,file] of Object.entries(directories))if(directoryBinding(file)!==directoryBindings[name])fail('CONTROLLED_GUIDANCE_CHANGED');
+  const bindings=Object.freeze({directories:Object.freeze(directoryBindings),files:Object.freeze(Object.fromEntries(
+    [...snapshots].map(([file,{source}])=>[file===config?'config':file===prepared.ownerFile?'owner':file===prepared.policyFile?'installed_policy':file===runtimeFile?'runtime':path.basename(file),hash(source.physical+source.ownedPhysical)])))});
+  return Object.freeze({schema:1,mechanism:'controlled-generic-project-instructions',integrity:'intact',
+    policy_sha256:policySha256,config_sha256:hash(sources[0][2].bytes),owner_sha256:hash(sources[1][2].bytes),runtime_sha256:hash(runtimeSource.bytes),
+    bindings,files:Object.freeze(files.map(file=>Object.freeze(file))),hosts:Object.freeze([...hosts]),role,
+    route:Object.freeze({config:path.basename(config),state:stateRelative,check:'typecheck'}),
+    model_launches:0,behavior_verified:false,behavioral_verification:false});
+ }catch(error){fail(typeof error.code==='string'&&/^[A-Z][A-Z0-9_]{1,63}$/.test(error.code)?error.code:'CONTROLLED_GUIDANCE_INVALID');}
 }
