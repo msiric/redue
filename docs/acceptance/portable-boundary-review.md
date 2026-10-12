@@ -3804,3 +3804,44 @@ promise or savings claim follows. G2/final G3/G4, final real-agent whole-flow co
 owner publication and postpublication-byte/install checks remain incomplete.
 This audit launched no test, native/auth/model/CI process and made no package or
 policy change.
+
+
+### One fixed hosted recipient phase profile: source GO
+
+Independent GO covers helper SHA-256
+`9d53fe079be47687b203fa8795d761408fd531133fca3df851611a18da66ec01`
+and task-branch workflow
+`a76a2f1b10ddcfa53a033e58f9c116361b10b60313e49221c5a23bdc1a3a0745`.
+The manual-only workflow restricts repo/actor/ref/attempt1, one macos26 job,
+Node22.13 and12 minutes. Its normal read-only artifact action selects run38266596921
+and fixed artifact name, then verifies frozen f6e alpha11, source08307d4 and
+four-file membership before installation. Standard contents/actions read scope
+adds no model credential, upload/cache/signing, producer trust or repack. Checkout
+uses the selected workflow commit; this review certifies source preparation,
+not any dispatched run or measured speedup.
+
+The helper fixes an unchanged controlled noLib project and three owned observer
+sessions with two synchronized queries each: six sampled queries and two explicit
+restarts. Setup/origin/export/import/cleanup costs remain separate, with no query
+retry. Status projection is retained before exit/currentness assertions, including
+nonzero response/failure paths. Traces use the existing bounded descriptor reader
+at1MiB/4096 lines, fixed phase/numeric/boolean sets and UUID/static trace labels;
+malformed/refused traces yield static failure. Stop requires machine JSON ok=true
+and absent owned endpoints; cleanup failure latches, prevents teardown and retains
+the fixture rather than claiming confirmed stop from endpoint absence alone.
+No arbitrary descendant-reaping claim is made.
+
+Eighteen independent extracted-source mocked controls pass for nonzero/null/
+malformed status retention, stop refusals, safe known projection, unknown/private
+field rejection, malformed traces and cleanup confirmation. They execute no CLI,
+native process, listener or HTTP request. The original mutable draft's unbounded
+trace read, broad numeric-key projection, pre-retention assertion and unconditional
+teardown were corrected before this GO. One attempted extraction observed source
+editing and failed to find its old block; no product operation occurred.
+
+The120s helper command cap and30/25/45s portable engine limits remain unchanged.
+Profiling explicitly introduces diagnostic environment flags inherited by the
+reviewed compiler; it is instrumentation, not a claim of unmodified environment.
+No ordinary-project, applicability, agent behavior or value claim follows from
+this phase sample. Cold/session-start work must remain visible, and cached runtime
+optimization remains a separate implementation/review task.
