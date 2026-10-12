@@ -42,7 +42,7 @@ function fixture(){
   const require=file=>{calls.load++;assert.equal(file,entry);assert.notEqual(fileSystem.readFileSync,originalRead,'journal installed before first fake require');return ts;};
   require.resolve=file=>file;require.cache={};const originalRead=fileSystem.readFileSync;
   const process={cwd(){return root;}};
-  const directProject=(actual,script,settings)=>{calls.admission++;assert.equal(calls.load,0);assert.equal(actual,root);assert.equal(script,'typecheck');assert.deepEqual(settings,{verify:true});return admitted;};
+  const directProject=(actual,script,settings)=>{calls.admission++;calls.script=script;assert.equal(calls.load,0);assert.equal(actual,root);assert(['typecheck','test:types'].includes(script));assert.deepEqual(settings,{verify:true});return admitted;};
   const probe=construct(fileSystem,path,()=>require,directProject,compilerProgramFiles,captureSealedTypeScriptDiscovery,createSealedTypeScriptForwarding,process,Buffer);
   return {probe,calls,options,parsed,returned,fileSystem,ts,require,admitted,process,originalRead};
 }
@@ -63,6 +63,18 @@ test('fixed admission/firstload and same shared fake graph preserve actual built
 test('summary retains original returned graph ordering and duplicates',()=>{
   const item=fixture();item.returned.splice(0,2,root+'/z.ts',root+'/a.ts',root+'/z.ts');
   assert.deepEqual(item.probe({root,script:'typecheck'}).files,['z.ts','a.ts','z.ts']);
+});
+
+test('approved test:types script is a scalar metadata name, with no npm/shell invocation',()=>{
+  const item=fixture(),result=item.probe({root,script:'test:types'});
+  assert.equal(item.calls.script,'test:types');assert.deepEqual([item.calls.admission,item.calls.load,item.calls.program],[1,1,1]);
+  assert.equal(result.reuseEligible,false);assert.equal(result.nativeViewVerified,false);
+});
+
+test('unsafe, empty, oversized and non-scalar script identifiers fail before admission or first load',()=>{
+  for(const script of ['', 'x'.repeat(129), '../test:types', 'test/types', 'test types', 'test;types', '$(types)', '`types`', 'test\\types', 'test\n:types', 'test\u0000:types', true, {}, null]){
+    const item=fixture();throwsCode(()=>item.probe({root,script}),'SEALED_PROBE_OPTIONS');assert.deepEqual([item.calls.admission,item.calls.load],[0,0]);
+  }
 });
 
 for(const property of ['plugins','incremental','composite'])test(`${property} is refused before host/program without changing parsed configuration`,()=>{

@@ -25,7 +25,7 @@ export function probeSealedTypeScriptProgram(options){
   if(!options||typeof options!=='object'||![null,Object.prototype].includes(Object.getPrototypeOf(options))||
       Reflect.ownKeys(options).length!==2||!['root','script'].every(key=>Object.hasOwn(options,key)&&Object.hasOwn(Object.getOwnPropertyDescriptor(options,key),'value')))fail('SEALED_PROBE_OPTIONS');
   const {root,script}=options;
-  if(!canonical(root)||typeof script!=='string'||!/^[-A-Za-z0-9_.]{1,128}$/.test(script))fail('SEALED_PROBE_OPTIONS');
+  if(!canonical(root)||typeof script!=='string'||!/^[-A-Za-z0-9_.:]{1,128}$/.test(script))fail('SEALED_PROBE_OPTIONS');
   if(process.cwd()!==root||fs.realpathSync(root)!==root||!fs.lstatSync(root).isDirectory())fail('SEALED_PROBE_CWD');
   // Existing admission checks the real environment and reviewed whole package;
   // no verify:false path or caller-selected implementation is exposed here.
