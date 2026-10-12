@@ -3598,3 +3598,59 @@ review. Copilot guidance and all tool permissions remain unchanged. Loading
 instructions does not establish native enforcement, continuing source currency,
 model compliance or receiving-agent reuse. No native/auth/model/CI operation was
 performed.
+
+
+### Controlled guidance and host preflight: exact import closure
+
+Final independent GO covers the writer/inspector changes81b2bbd/e51158a and
+successors6f367eb/d3fbe99/d626532. The read-only inspector verifies explicitly
+selected owned config/state/owner/installed policy/compiled runtime and exact
+generated guidance. Bounded descriptor reads and repeated physical snapshots
+refuse unsafe leaves and changes during inspection; returned content digests and
+physical-binding hashes detect same-byte replacement across inspections without
+mistaking normal directory content churn for authority replacement. It returns
+no instruction body or private absolute path, managed installation, native-loading
+proof, CURRENT decision or reuse authority. Compiled runtime metadata validation
+is intentionally distinct from the engine's direct-compiler applicability check.
+
+Independent nonsensitive counterexample on e51158a appended an active nested
+@unreviewed.md to installed policy, recomputed caller SHA and received published
+instructions plus integrity=intact. No nested target/native process was executed.
+This was a prerelease validator gap, not an exploit of the known frozen policy.
+6f367eb fixes it by requiring installed policy SHA-256
+`db8e2e02895e8ebf39ee0ba23420ed0e0a8525c17246a0c73d3f161aac9c9f32`
+whenever hosts includes Claude. Preview, publication and inspection now refuse
+that counterexample before creating guidance. Exact CLAUDE.md has the single
+unquoted local import; Copilot/shared-policy/routing bytes are otherwise retained.
+No general Markdown/import authority is introduced. Existing edited instructions
+are refused rather than overwritten.
+
+The recipient's two literal tool allows now match the writer's root-relative
+config/state route, with root cwd and socket/filesystem paths unchanged. The
+explicit Claude-only generic preflight requires before/after inspector equality,
+actual CLI/version/doctor/config/state checks and product integration
+installed=false/integrity=absent. It cannot override conflict, unknown or intact
+managed states. Missing/edited guidance, changed runtime or same-byte owner
+replacement withholds trial launch. The existing managed route stays strict.
+Native activation still always refuses; effective startup, credential isolation,
+matched VM and parent-replacement gates remain. This is verification-obligation
+preparation, not ordinary code-edit access or empirical instruction adherence.
+
+On the isolated exact d626532 archive, guidance/invocation/preflight/agent-trial
+controls independently completed38 PASS,1 Windows-only skip,0 failure/cancellation
+in1126.891334ms; diagnostic controls completed22 PASS in100.689709ms. Combined
+unique count60 PASS/1 skip. Ten additional reviewer adversarial controls pass for
+Claude/mixed-host preview/apply/inspection refusal, absent destinations and
+unchanged Copilot-only explicit digest selection. Initial staging used a not-yet-
+created exec cwd and was refused before process creation; staging was corrected
+from the existing review worktree. No src/bin changes, native/auth/model/CI
+operations, artifact changes or framework expansion occurred.
+
+Exact final helper SHA-256 values:
+`7abc12203cc5d89b71755688fe05f85e5d24110a45047cac52b2261082668e9b`
+(controlled guidance),
+`a50fc7a59f497650f157e66983f58256d71a71d28f5ae2a2d8fbe411250eecac`
+(host preflight), and
+`58a09a206c1fe1532999abd7c0f5278cce63594a6cc832d20ef001dc0843024e`
+(disabled recipient invocation). No diagnostic-only negative-cache rule was
+transplanted into the ordinary receiving-agent route.
