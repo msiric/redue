@@ -3764,3 +3764,43 @@ only/native diagnostic evidence retain their own identities and limits. External
 participation remains a disclosed field-validation gap, not fabricated acceptance.
 No new test, registry request, native/auth/model/CI operation or package mutation
 was performed by this reviewer.
+
+
+### Alpha11 terminal exact-package matrix: installed mechanics PASS
+
+Independent read-only final records for run38266596921 have SHA-256
+`f8c3b4ea92137c1b9cf973cff64607519a44b00284fe7513939058c015660418`
+(acceptance) and
+`a36dcede5b2a703856ccc5e4cfacbda484241a87908cf1ea65d9faa738f2c674`
+(Mac mechanics), both owned regular single-link mode600. They bind source08307d4
+and the inspected alpha11 artifactf6e368bd. Installed Linux job114870332375,
+Windows114870332412 and Mac114870332525 conclude success with exact SHA confirmation,
+ordinary/unavailable recording mechanics, alpha10 same-prefix upgrade,
+Codex/Claude policy update/removal and edited-managed-content refusal. Immutable
+receipt/config/state and evidence through owned uninstall are preserved;
+after-setup freshness is truthfully STALE on all three platforms. This final
+result supersedes only the earlier matrix-pending status, not historical failures.
+
+Mac ARM64/Node22.13 records healthy origin CURRENT/PASS/eligible with run
+`237a415f-6e3e-4f02-a0ec-2a503f8ccaf6`. Separate-checkout manual-digest import
+establishes healthy imported CURRENT/PASS/eligible with the same origin and digest
+`cec9bfe112f7cb871d4bded970dca17c66b092fbd402978a2aca9b4ec6b5ce6f`.
+The recipient has no local run ID; source assertions verify no recipient runs-v1
+before/after import. Cached status is healthy UNVERIFIED/null result/not eligible.
+An unrelated edit preserves the same imported identity and CURRENT decision;
+a relevant edit gives STALE/null result/not eligible/PORTABLE_FACTS_DIFFER.
+Origin immutable bytes and prior history are preserved before disposable teardown.
+Expected edited-content exit2 refusals are controls, not failed matrix jobs.
+
+These are actual exact-installed mechanics and same-host caller-aware
+applicability results, not three-platform portable qualification or agent reuse.
+No economics flag, native model, independent-machine experiment or authenticated
+CI origin is used in this Mac sequence. The report explicitly says models/two
+machines NOT RUN and economics NOT_MEASURED_IN_THIS_RUN. Its queried operation
+costs remain visible: recipient synchronized statuses34375.326166,37567.483042 and
+39013.186583ms. These approach/exceed the existing host-preflight35000ms child cap;
+future preflights can conservatively time out. No deadline relaxation, latency
+promise or savings claim follows. G2/final G3/G4, final real-agent whole-flow cost,
+owner publication and postpublication-byte/install checks remain incomplete.
+This audit launched no test, native/auth/model/CI process and made no package or
+policy change.
