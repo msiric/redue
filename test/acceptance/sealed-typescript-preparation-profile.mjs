@@ -38,7 +38,7 @@ export function sealedPreparationProfile(options){
   if(hash(fs.readFileSync(node))!=='5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc')
     fail('PREPARATION_RUNTIME_UNREVIEWED');
   const files=['./sealed-typescript-preparation-child.mjs','../../src/sealed-typescript-tree.mjs',
-    '../../src/portable-envelope.mjs','../../src/path-identity.mjs','../../package.json']
+    '../../src/portable-envelope.mjs','../../src/path-identity.mjs','../../src/sealed-typescript-shim.mjs','../../package.json']
     .map(relative=>checked(fileURLToPath(new URL(relative,import.meta.url)),'file'));
   const metadata=[...new Set([source,parent,node,...files].flatMap(file=>[file,...parents(file)]))].sort();
   const literals=values=>values.map(value=>'(literal '+quote(value)+')').join('\n  ');

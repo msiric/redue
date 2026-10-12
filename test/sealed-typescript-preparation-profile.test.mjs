@@ -16,7 +16,7 @@ test('fixed profile confines source/body/code reads and stage writes with no mod
   assert(!proposal.profile.includes('(allow file-read*)'));
   assert.match(proposal.profile,/\(allow file-write\* \(subpath/);
   assert.equal(proposal.sealed,false);assert.equal(proposal.reuseEligible,false);
-  assert.equal(proposal.code.length,5);assert(proposal.code.every(([,sha])=>/^[0-9a-f]{64}$/.test(sha)));
+  assert.equal(proposal.code.length,6);assert(proposal.code.every(([,sha])=>/^[0-9a-f]{64}$/.test(sha)));
   assert.equal(proposal.preparationEnvironment,'empty-no-authentication-no-model-no-project-code');
   assert.deepEqual(fs.readdirSync(parent),[],'profile construction does not prepare or execute');
 });
