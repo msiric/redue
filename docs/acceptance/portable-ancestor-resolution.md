@@ -248,3 +248,9 @@ equivalence rule. When the logical tail could overlap a scope or has unresolved
 Unicode ambiguity, the filter reports uncertainty. A clearly disjoint tail is
 discarded. The prefix is never stripped to grant relevance or applicability;
 actual metadata-bound aliases and CI delivery remain unestablished.
+
+Known Data-prefix recognition also folds ASCII case conservatively. Short
+`/System` or `/System/Volumes` notices and Unicode ambiguity in a potentially
+matching prefix produce uncertainty, not applicability. A clearly differing ASCII
+prefix such as `/System/Library` remains disjoint. This closes the refusal guard;
+it does not establish a physical alias interpretation or real provider delivery.

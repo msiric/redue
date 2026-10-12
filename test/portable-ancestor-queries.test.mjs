@@ -212,3 +212,12 @@ test('Data-volume aliases with potential scope overlap are refused without physi
   const rootScope=derivePortableRawQueryScopes(f.root,[...f.queries,['entries',f.root,[]]]).scopes.find(s=>s.candidate===f.root);
   assert.equal(portableAncestorEventMatch(rootScope,'/System/Volumes/Data'+path.join(f.root,'src/new.ts')),'unknown');
 });
+test('potential Data prefix matching folds ASCII and refuses short or Unicode ambiguity',posix,t=>{
+  const f=fixture(t),scope=derivePortableRawQueryScopes(f.root,f.queries).scopes.find(s=>s.candidate===f.candidate);
+  for(const prefix of ['/system/volumes/data','/SYSTEM/VOLUMES/DATA','/SyStEm/vOlUmEs/DaTa'])
+    assert.equal(portableAncestorEventMatch(scope,prefix+f.candidate),'unknown');
+  for(const prefix of ['/System','/System/Volumes','/system/volumes','/Sy\u212atem/Volumes/Data','/System/Vol\u212aumes/Data','/System/Volumes/Da\u212ata'])
+    assert.equal(portableAncestorEventMatch(scope,prefix),'unknown');
+  for(const event of ['/System/Library','/SYSTEM/Library/source.ts','/system/volumes/data/unrelated','/System/Volumer/Data/private/tmp'])
+    assert.equal(portableAncestorEventMatch(scope,event),'irrelevant');
+});

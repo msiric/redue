@@ -19,6 +19,13 @@ int main(int argc,char** argv){
   }
   std::vector<Scope> scopes={{0,"/private/tmp/project-parent/node_modules/@typescript/lib-es2022/index.d.ts",false},{1,"/private/tmp/project-parent/node_modules",false}};
   Collector collector(scopes,[](const std::string& row){std::cout<<row<<'\n';});
+  if(mode=="alias-prefixes"){
+    const std::vector<std::string> names={"/system/volumes/data", "/SYSTEM/VOLUMES/DATA", "/SyStEm/vOlUmEs/DaTa", "/System", "/System/Volumes", "/System/volumes", "/Sy\xe2\x84\xaa" "tem/Volumes/Data", "/System/Vol\xe2\x84\xaa" "umes/Data", "/System/Volumes/Da\xe2\x84\xaa" "ta"};
+    for(size_t i=0;i<names.size();i++){Collector each(scopes,[](const std::string& row){std::cout<<row<<'\n';});each.occurrence(names[i]+(i<3?scopes[0].path:""),0x100,1);each.boundary("barrier",i);}return 0;
+  }
+  if(mode=="alias-disjoint"){
+    for(const std::string event:{"/System/Library", "/SYSTEM/Library/source.ts", "/system/volumes/data/unrelated", "/System/Volumer/Data/private/tmp"}){Collector each(scopes,[](const std::string& row){std::cout<<row<<'\n';});each.occurrence(event,0x100,1);each.boundary("barrier",1);}return 0;
+  }
   if(mode=="transient"){
     collector.occurrence(scopes[0].path,0x100,1);collector.occurrence(scopes[0].path,0x200,2);
   }else if(mode=="coalesced")collector.occurrence(scopes[0].path,0x300,1);

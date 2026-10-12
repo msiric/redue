@@ -82,3 +82,8 @@ test('potential Data firmlink aliases are unknown, never stripped into matching 
   assert.equal(run('firmlink-exact-child').rows.at(-1).uncertain,false);
   assert.deepEqual(run('firmlink-unrelated').rows,[{schema:1,type:'barrier',request:1,serial:0,uncertain:false}]);
 });
+test('mixed-case, short and ambiguous Unicode Data prefixes are uncertainty only',pure,()=>{
+  const rows=run('alias-prefixes').rows;assert.equal(rows.length,18);
+  for(let at=0;at<rows.length;at+=2){assert.equal(rows[at].code,'FSEVENTS_PATH');assert.equal(rows[at+1].uncertain,true);assert.equal(rows[at+1].serial,0);}
+  const disjoint=run('alias-disjoint').rows;assert.equal(disjoint.length,4);assert(disjoint.every(row=>row.type==='barrier'&&row.serial===0&&row.uncertain===false));
+});

@@ -60,7 +60,16 @@ Match match(const std::string& candidate,const std::string& event,bool descendan
   const auto wanted=components(candidate),actual=components(event);
   for(const auto& item:actual)if(item.empty()||item=="."||item=="..")return Match::unknown;
   if(event.find("//")!=std::string::npos)return Match::unknown;
-  if(actual.size()>=3&&actual[0]=="System"&&actual[1]=="Volumes"&&actual[2]=="Data"){
+  auto fold=[](std::string s){for(char& c:s)if(c>='A'&&c<='Z')c+=32;return s;};
+  const std::vector<std::string> dataPrefix={"system","volumes","data"};
+  bool potentialPrefix=!actual.empty();
+  for(size_t i=0;i<std::min(actual.size(),dataPrefix.size());i++){
+    bool ambiguous=false;for(unsigned char c:actual[i])if(c>127)ambiguous=true;
+    if(ambiguous)return Match::unknown;
+    if(fold(actual[i])!=dataPrefix[i]){potentialPrefix=false;break;}
+  }
+  if(potentialPrefix){
+    if(actual.size()<dataPrefix.size())return Match::unknown;
     const std::vector<std::string> alias(actual.begin()+3,actual.end());
     bool possible=true,ambiguous=false;
     for(size_t i=0;i<std::min(wanted.size(),alias.size());i++){
@@ -75,7 +84,6 @@ Match match(const std::string& candidate,const std::string& event,bool descendan
   for(size_t i=0;i<count;i++){
     bool nonascii=false;for(const unsigned char c:actual[i])if(c>127)nonascii=true;
     if(nonascii)return Match::unknown;
-    auto fold=[](std::string s){for(char& c:s)if(c>='A'&&c<='Z')c+=32;return s;};
     if(fold(actual[i])!=fold(wanted[i]))return Match::irrelevant;
   }
   return actual.size()>wanted.size()&&!descendants?Match::irrelevant:Match::relevant;

@@ -184,7 +184,12 @@ export function portableAncestorEventMatch(scope,eventPath){
   };
   // Refusal only: a potential Data-volume alias is not a physical mapping or
   // permission to normalize the event into applicable evidence.
-  if(event.slice(0,3).join('/')==='System/Volumes/Data'&&classify(event.slice(3))!=='irrelevant')return 'unknown';
+  const dataPrefix=['system','volumes','data'];let potentialPrefix=event.length>0;
+  for(let at=0;at<Math.min(event.length,dataPrefix.length);at++){
+    if(!/^[\x20-\x7e]+$/.test(event[at]))return 'unknown';
+    if(event[at].toLowerCase()!==dataPrefix[at]){potentialPrefix=false;break;}
+  }
+  if(potentialPrefix&&(event.length<3||classify(event.slice(3))!=='irrelevant'))return 'unknown';
   return classify(event);
 }
 
