@@ -1,28 +1,16 @@
 # Portable evidence: remaining owner setup
 
-## Current owner action — replace the rejected subscription token
+## Current native status — no further owner token action requested
 
-Hosted native run [38248933839](https://github.com/msiric/redue/actions/runs/38248933839)
-reported HTTP401 / authentication_failed before any observed assistant or checker
-call. No further unchanged attempt will run. Environment protections, account facts
-and capacity are already provisioned; do not repeat those setup questions.
-
-The freshly verified owner-only command is:
-
-```sh
-/bin/bash "/Users/mariosiric/Documents/redue/.local/portable-evidence/claude-owner-setup-token-reviewed.sh"
-```
-
-Use its subscription `setup-token` flow, then privately replace **only**
-`CLAUDE_CODE_OAUTH_TOKEN` in the existing
-[portable-evidence-claude environment](https://github.com/msiric/redue/settings/environments).
-Paste only the generated token in GitHub's secret field, never in chat or a file.
-No new account, API key, billing, auth transport or permission is requested. Root
-will revalidate and operate the existing bounded diagnostic after actual metadata
-changes. Missing/failed evidence remainsUNKNOWN. Copilot's included Actions billing
-fact is unchanged and separate; this token action does not unblock it.
-
-The sections below retain historical setup and approvals; do not repeat them.
+The owner replaced the OAuth secret at2026-10-12T12:38:00Z. Metadata gates pass;
+values were never read. Follow-up [run38250370384](https://github.com/msiric/redue/actions/runs/38250370384)
+stopped on the pinned `thinking_tokens` transport event, with no observed401.
+Native enforcement remainsUNKNOWN. Do not regenerate tokens or repeat account
+setup for this parser refusal. Root is implementing/reviewing the small strict
+progress-event handler under standing authority; all security assertions remain.
+The original authentication refusal and credential procedure are preserved in the
+[resume](../plan/portable-evidence-resume.md). Copilot Actions included billing is
+unchanged and separate; don't confuse it with Claude subscription provisioning.
 
 ## Historical owner-dependent inputs
 

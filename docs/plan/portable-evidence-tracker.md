@@ -3,7 +3,36 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current native lane — HTTP401 authentication refusal; no further unchanged attempt
+## Current native lane — secret replaced; pinned thinking-progress repair under review
+
+The owner replaced the protected OAuth secret at2026-10-12T12:38:00Z; only metadata
+was read. Fresh environment/ref/source/account/capacity gates passed. The unchanged
+reviewed runtime's bounded [run38250370384](https://github.com/msiric/redue/actions/runs/38250370384)
+completedUNKNOWN: validated native init, first rejected thinking_tokens AFTER,
+no observed assistant/tool/checker result, delta[0,0,0]. Noapi_retry/401 appeared
+before the stop; this is not an OAuth validity certificate or retrospective fix.
+Nativeexit143/signalnull, source/livecontrols/reap/listenercleanup/persistence true,
+collection3444.185ms/job19463ms. Private exact report:
+`.local/portable-evidence/native-diagnostic-38250370384-final.json`.
+No repeated credential action is requested; don't regenerate tokens for this
+parser refusal. The known authentication input block12:26:22→12:38:00 is distinct
+from current protocol work; it is not a whole-goal blocked-time total.
+
+Pinned187 public emitters210399315/682 generate thinking_tokens as live numeric
+progress, with no permission/policy/hook authority. Small repair7870dd1 admits
+only exact six-key bounded progress in the validated native session, before final
+and without any prior error; only a count is retained. Missing init, invalid/mixed
+session, unexpected fields, nonfinite/out-of-bound numbers and4096-event overflow
+stayUNKNOWN. Progress is not assistant/tool/checker evidence or a PASS basis.
+Hooks, api_retry and unknown events still stop. Root18mocksPASS89.6ms; independent
+critical review pending, as is its source-only workflow pind8cd842/SHAa0c5c5f34022f8011dc68307de214f4b66b597bd0918a501d7819fa19046c0ea.
+No runtime/bin, checker assertions, credentials, permissions, cost limits or
+producer-trust changes. After independent GO and fresh gates, one bounded native
+attempt may proceed under standing authority, with normal required GitHub review.
+All earlier attempts remain preserved; no G2/recipient model reuse is established.
+Copilot included Actions billing stays separate/pending. No publication.
+
+## Historical native lane — HTTP401 authentication refusal; no further unchanged attempt
 
 The bounded cause-capture [run38248933839](https://github.com/msiric/redue/actions/runs/38248933839)
 completedUNKNOWN on source85425a5ca5a1a1df8eb1c7e1f56ca7cd5405a107 / workflow

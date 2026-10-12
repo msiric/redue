@@ -1,20 +1,16 @@
 # Bounded native Claude diagnostic proposal
 
-This native route is **ATTEMPTED / UNKNOWN — AUTHENTICATION REFUSED**:
-[latest run38248933839](https://github.com/msiric/redue/actions/runs/38248933839).
-Actual validated initialization was followed by `api_retry` with HTTP401 and
-fixed category `authentication_failed`; no assistant/tool/checker result was
-observed. Stop unchanged attempts. Token expiration, revocation or malformed
-provisioning is not distinguished by that result. Hosted enforcement remains
-UNKNOWN; successful lifecycle cleanup is not checker success.
+This native route is **ATTEMPTED / UNKNOWN — PINNED PROGRESS EVENT**:
+[latest run38250370384](https://github.com/msiric/redue/actions/runs/38250370384).
+The owner replaced the protected OAuth secret; fresh metadata gates passed.
+The unchanged native parser stopped after validated init on `thinking_tokens`,
+with no observed401/API retry and no tool/checker result. This is not a token
+validity certificate or enforcement PASS. No new token setup is requested.
 
-The independently reviewed observation-only repair85425a5 and workflowbabf43b
-retain rejection, four turns/120 seconds and all permissions. Native secret input
-is nonempty and preserved by the reviewed route without exposing its value.
-The owner must replace only `CLAUDE_CODE_OAUTH_TOKEN` in the existing protected
-`portable-evidence-claude` environment through the supported subscription-token
-procedure; no new account/policy setup is requested. Previous runs38242312293
-and38246645326 retain their original UNKNOWN results and uncaptured fields.
+Source7870dd1's strict numeric-progress admission and source-only workflowd8cd842
+are under independent review. Progress receives no instruction/permission/evidence
+authority; other system events, errors and failed assertions remain conservative.
+All prior attempts and their exact unknown/failure fields are preserved.
 
 [Registration PR14](https://github.com/msiric/redue/pull/14) passed all four checks
 and merged as da6b87f67ae8e80b6ce92a0636fac8a9c11261b7. The dedicated
