@@ -4222,3 +4222,63 @@ workflow, timeout or resource grant was changed and no new run was launched.
 If reliable continuous coverage cannot be established, the FSEvents-only design
 must withhold complete portable origins rather than declare endpoint stability
 authoritative.
+
+### Fixed root-versus-owned delivery diagnostic preparation
+
+Diagnostic-only GO for native leaf `3c1786b`/`d32b895` integrated as
+`04c59c5`/`cd3a130`, source SHA256
+`dc93cf87fbfe350cfb183d09d4bcd9bb9a3925308a5a03134a6d68c03ce0fe23`.
+The production build still has exactly the reviewed39cc digest and80,984 bytes.
+Only a compile-time DIAGNOSTIC build accepts the root/owned selector and canonical
+ASCII non-root path. Production argv remains empty and stream root remains `/`.
+The conditional code preserves framing, filtering, callback queue, FlushSync,
+serials and refusal semantics; it supplies no new observation authority.
+
+Frozen driver SHA256 is
+`e134aed104fc8f00a1fc726fe95ff5e36e7baef013eaeac0494075155be5bdb7`;
+workflow SHA256 is
+`6d25de14a3ac43480beede808a751550ede1e9f00e28181414f0facc559fe468`.
+Fresh capability resources determine the exact owned-root argument, never
+imported or arbitrary caller paths. The explicit build must report diagnostic
+mode, the exact dc93 source and not-started state; its actual executable digest
+is checked before startup and subsequent barriers and recorded with compile
+identity. Standard runner prerequisites, exact Node hash, owned fixture/capability
+paths and unchanged strict private protocol remain required.
+
+ROOT and OWNED run sequentially. Each reports an action baseline plus fixed
+immediate,0.5s and2s observations for held-marker creation and a transient
+create/remove. Review identified that deleting the marker during the transient
+action could falsely attribute marker delivery to the transient case. The
+corrected driver keeps it held until all transient observations finish. Actual
+reaping precedes reset of owned marker files between streams. Every observation
+remains separate; a late change cannot erase a missed immediate event. A marker
+not observed before the transient case remains visible in the result and is not
+a proof that subscription startup completed.
+
+Review also found that deadline cancellation alone could allow the next stream
+to start afterward. The correction checks irreversible expiry and monotonic90s
+time before each launch, mutation and sample; expiry admits only bounded close
+and reaping. Final elapsed time also forces UNKNOWN at the bound even if timer
+delivery was delayed. Unobserved child-close retains owned files and refuses
+collection completion. The workflow remains one manual initial attempt on the
+fixed task ref/actor, contents-read only, five-minute external cap, pinned
+actions and no secrets, model, signing, cache or artifact upload.
+
+Independent native/query/build pure controls pass65/65 in1315.06ms; C++ pure mode
+excludes the real stream. Five additional VM controls execute the actual driver
+with fake filesystem, clock and child processes, passing61.19ms: marker
+deletion cannot masquerade as transient delivery, expiry prevents a new OWNED
+launch, exact root arguments stay bound and output stays diagnostic-only, ready
+plus unknown private data refuses without leaking payload, and missing actual
+close keeps files and blocks a second stream. Initial reviewer fixture failures
+were counting the newly added baseline rows as samples and comparing arrays from
+different VM prototypes; those fixture corrections did not change author code.
+Node syntax and diff whitespace checks pass.
+
+This GO permits only the bounded diagnostic comparison. The reviewer ran no
+real stream, model or CI job. Healthy collected observations are expressly
+`DIAGNOSTIC_COLLECTED_NOT_INTERVAL_ACCEPTANCE`, not PASS, a subscription fence or
+@3 origin completeness. Unknowns remain UNKNOWN. Even a delayed marker or
+transient occurrence cannot establish all earlier filesystem events were
+covered. The failed first trial and current production interval-authority NO-GO
+remain intact pending actual diagnostic evidence and a sound continuous fence.
