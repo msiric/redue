@@ -22,11 +22,12 @@ function watch(binary,binding,cap,targets){
   const bytes=Buffer.from(file);frames.push(Buffer.from(`${id} ${bytes.length} ${s.dev} ${s.ino} ${s.mode}\n`),bytes,Buffer.from('\n'));
  }
  if(!ancestorObservationCapabilityCurrent(cap)||sha(fs.readFileSync(binary))!==binding.executableSha256)fail('BINARY_CHANGED');
- const child=spawn(binary,[],{cwd:resources.state,env:process.env,stdio:['pipe','pipe','ignore']});
+ const child=spawn(binary,[],{cwd:resources.state,env:process.env,stdio:['pipe','pipe','pipe']});
  const counts=Array(targets.length).fill(0);
- let exit=null,pending=null,serial=0,dirty=[],buffer='',bytes=0,rows=0,failed=false,closing=false,closed=false,next=0;
+ let exit=null,pending=null,serial=0,dirty=[],buffer='',bytes=0,rows=0,failed=false,closing=false,closed=false,next=0,reason='NOT_OBSERVED',stderr='';
  const done=new Promise(resolve=>child.once('close',(code,signal)=>{exit={code,signal};resolve(exit);if(!closed||buffer)gap();}));
  function gap(){if(failed)return;failed=true;if(pending){clearTimeout(pending.timer);pending.reject(Error('VNODE_UNAVAILABLE'));pending=null;}child.kill('SIGKILL');}
+ child.stderr.on('data',chunk=>{stderr+=chunk.toString('utf8');if(Buffer.byteLength(stderr)>64){stderr='OVERSIZE';gap();}});
  const current=()=>ancestorObservationCapabilityCurrent(cap)&&sha(fs.readFileSync(binary))===binding.executableSha256;
  child.once('error',gap);child.stdin.on('error',gap);
  child.stdout.on('data',chunk=>{
@@ -35,7 +36,7 @@ function watch(binary,binding,cap,targets){
    try{const row=parsePortableJson(line);if(row.schema!==1)throw Error();
     if(row.type==='uncertainty'){
      if(!equalKeys(row,['schema','type','code'])||!['VNODE_EVENT','VNODE_SERIAL','VNODE_DRAIN_LIMIT','VNODE_DRAIN','VNODE_RESOURCE','VNODE_TARGET','VNODE_IDENTITY','VNODE_REGISTRATION','VNODE_CLOSE'].includes(row.code))throw Error();
-     gap();return;
+     if(reason==='NOT_OBSERVED')reason=row.code;gap();return;
     }
     if(row.type==='occurrence'){
      if(!equalKeys(row,['schema','type','scopeIds','serial'])||row.serial!==serial+1||!Array.isArray(row.scopeIds)||row.scopeIds.length!==1||!Number.isInteger(row.scopeIds[0])||row.scopeIds[0]<0||row.scopeIds[0]>=targets.length)throw Error();
@@ -43,7 +44,7 @@ function watch(binary,binding,cap,targets){
     }
     if(!equalKeys(row,['schema','type','request','serial','dirtyIds','uncertain'])||row.serial!==serial||row.uncertain!==false||JSON.stringify(row.dirtyIds)!==JSON.stringify(dirty)||!pending||row.type!==pending.type||row.request!==pending.request||closing!==(row.type==='closed'))throw Error();
     if(row.type==='closed')closed=true;clearTimeout(pending.timer);const wait=pending;pending=null;wait.resolve({serial,dirtyIds:[...dirty],scopeCounts:[...counts],healthy:true});
-   }catch{gap();return;}
+   }catch{if(reason==='NOT_OBSERVED')reason='INVALID_PROTOCOL';gap();return;}
   }
  });
  const wait=(type,request)=>new Promise((resolve,reject)=>{if(failed||pending){reject(Error('VNODE_UNAVAILABLE'));return;}
@@ -54,7 +55,7 @@ function watch(binary,binding,cap,targets){
   if(failed||!current()){gap();fail('VNODE_UNAVAILABLE');}return value;
  }
  async function close(){if(!current())gap();if(!failed&&!closed){closing=true;const id=++next,promise=wait('closed',id);child.stdin.write('close '+id+'\n');try{await promise;}catch{gap();}}
-  child.stdin.end();await reap();return {code:exit?.code??null,signal:exit?.signal??null,reaped:exit!==null,protocol_clean:closed&&!failed&&!buffer&&exit?.code===0&&exit?.signal===null&&current()};
+  child.stdin.end();await reap();return {code:exit?.code??null,signal:exit?.signal??null,reaped:exit!==null,reason_code:reason,stderr_code:stderr===''?'NONE':stderr==='VNODE_PROTOCOL_OR_IO\n'?'VNODE_PROTOCOL_OR_IO':'UNRECOGNIZED_STATIC_ERROR',protocol_clean:closed&&!failed&&!buffer&&exit?.code===0&&exit?.signal===null&&current()};
  }
  return {ready:ready.then(value=>{if(failed||!current()){gap();fail('VNODE_UNAVAILABLE');}return value;}),barrier,close,abort:async()=>{gap();return await reap();}};
 }
@@ -93,7 +94,7 @@ try{
   runId:process.env.GITHUB_RUN_ID,attempt:1,root,state,rootIdentity:[String(r.dev),String(r.ino)],stateIdentity:[String(s.dev),String(s.ino)],scope:'locally-derived-ancestor-npm-resolution-only',retention:'scope-ids-and-serials-only'}),{flag:'wx',mode:0o600});
  admitted();
  const cap=readAncestorObservationCapability(path.join(authority,'scope.json'),{root,state}),binary=path.join(base,'guard'),binding=buildPortableVnodeGuard(binary);
- if(binding.sourceSha256!=='f87172afa3012658894f856490e32e1cab75c7cd52b97d432f9707af85fdbb0a'||binding.mode!=='test-only-vnode'||binding.started!==false)fail('BINARY_BINDING');
+ if(binding.sourceSha256!=='f914138709256ea4a429d961727d127dda84c435bf6fdf8a546712748c2a6fa5'||binding.mode!=='test-only-vnode'||binding.started!==false)fail('BINARY_BINDING');
  report.binding=binding;report.profile={node:process.version,os:os.release(),architecture:process.arch,filesystem_type:fs.statfsSync(root).type};
  admitted();reapKnown=false;mapping=mapper(file);mapperLaunched=true;await mapping.ready;
  admitted();guard=watch(binary,binding,cap,[src,file,base,root]);guardLaunched=true;await guard.ready;
