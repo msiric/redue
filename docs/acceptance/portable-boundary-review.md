@@ -4958,3 +4958,58 @@ This admission is limited to data preparation. File manifests are not complete
 staged namespace evidence; native agent stage-parent/ancestor protection,
 actual staged compiler execution, matched recipient facts and supported sealed
 interpretation remain separate. Portable origin containment is not lifted.
+
+## Compact preparation summary and bounded nested npm shims
+
+GO for the data-only preparation scope frozen at5d366102083495bca53c08ffe87f3f9831e9053a.
+The parentdc3945e requires schema2 and the exact materialization-summary@1
+fields, input manifest digest/count, bounded SHA-256 physicalDigest, bytes and
+false authority flags. Actual staged-root directory/UID/mode/dev/ino/canonical
+checks, current source/parent/Node/code binding and the final120s monotonic budget
+remain required. Parent source SHA-256 is
+94a439501819ef3cc3960bc6363f986fdb0d5ae7dc14eb39da289232d7a8fd3e;
+child source SHA-256 is955f8f66f9e45658f1c161cc0bf5cc7f0b8bf364a80d15c3ddb2bd80e98ddcc4.
+The physicalDigest is audit data from the trusted fixed child, not current
+per-file validation, a write seal or complete namespace evidence. Old full-array
+protocol fields now refuse. No input/output8MiB or512MiB logical copy cap increased.
+
+The sealed-specific manifest7823e84/7195e29 and copierd4d4139 use one shared
+canonical shim restriction: a relative single-file npm .bin link remains inside
+its owning node_modules container and names a manifest-listed regular target.
+External/cross-container/noncanonical paths, target links and ancestor aliases
+remain refused. The fixed preparer profile5d36610 adds only the exact read-only
+shared helper code literal, which is included in current code hashing. Legacy
+portableManifest is unchanged. Known quiescent pre-agent inputs and the separately
+reviewed read boundary remain prerequisites; path checks are not hostile-writer
+atomic isolation. Neither representation certifies original or copied namespace.
+
+The preserved prerequisite recordSHA484ace316c9b3cb1d47a74237516247b9a99469647e5466e0587ec3b9d3b2452
+reports PORTABLE_SYMLINK for33,345 selected files and77 links, including18 nested
+links, with zero data-child launches/compiler executions/models. This is the
+legacy manifest prerequisite refusal, not a failed real copy. Full-array stdout
+overflow was anticipated, not observed. No historical failure was overwritten.
+
+Independent archived tree/shim/manifest/child/namespace controls passed93/93
+in345.77ms. Ten independent parent/child VM controls passed10/10 in89.63ms:
+strict summary/schema/count/digest/flag/frame admission, stage type/identity,
+handled74/invented-code privacy, source/parent/runtime/code changes, monotonic
+deadline withdrawal and precise signal/reaping fields. A mock33,345-row child
+result compacted below1KiB without rows/private paths and retained false flags.
+An initial extra-control syntax error was confined to the reviewer fixture and
+retained; no source changed to repair it. Three independent profile constructor
+controls passed3/3 in116.17ms without a sandbox child.
+
+The namespace alias precisione8f22d9 retains differing in-tree realpath answers
+and marks ALIAS_TOPOLOGY_REQUIRES_LOCAL_VALIDATION without claiming a link. All
+namespaceVerified/sealed/reuseEligible flags remain false, including when other
+unresolved rows are empty. It does not replace actual compiler filesystem semantics.
+
+GO for the unregistered fixture-only workflow proposal4c3fa1b: exact checkout5d36610,
+one macos-26/arm64/Node22.13 job capped at3min, contents:read, fixed repository/
+actor/task ref/run_attempt1 and only the22 child/3 profile/2 preparer-boundary
+tests. YAML fixed-scope checks pass. There is no npm/script setup, public-project
+copy, credentials, inference, upload/cache/signing or native-agent enforcement
+claim. A normal push to the specified task branch triggers the one mechanics
+run; an additional manual dispatch would be a separate attempt. Actual VM kernel
+and preparer observations must be recorded, not inferred from the runner label.
+The reviewer ran no real preparer, compiler, native agent, observer, model or CI.
