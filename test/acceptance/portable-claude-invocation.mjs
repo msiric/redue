@@ -2,10 +2,8 @@
 // its pure data controls run on a different CI host.
 import {posix as path} from 'node:path';
 
-export const REVIEWED_CLAUDE_NATIVE = Object.freeze({
-  version: '2.1.187',
-  sha256: 'a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3',
-});
+import {REVIEWED_CLAUDE_NATIVE,PINNED_READONLY_BASH_HEADS} from './portable-claude-native-profile.mjs';
+export {REVIEWED_CLAUDE_NATIVE} from './portable-claude-native-profile.mjs';
 const BASE = /^\/private\/tmp\/redue-ci-recipient-[A-Za-z0-9]{8}$/;
 
 function fail() {
@@ -42,9 +40,11 @@ export function prepareClaudeReceiverInvocation(options) {
     disableAllHooks: true,
     enabledPlugins: {},
     permissions: {
-      allow: ['Bash(pwd)', 'Bash(ls)', 'Bash(cat package.json)', 'Bash(cat tsconfig.json)', 'Bash(cat src/a.ts)', 'Bash(cat src/globals.d.ts)',
-        `Bash(${command} status --sync --json)`, `Bash(${command} run typecheck)`],
-      deny: ['WebFetch', 'WebSearch', 'Agent', 'Task', 'LSP', 'Read', 'Edit', 'Write', 'Glob', 'Grep'],
+      // Fixed experiment operations only. Native187's read-only fallback must
+      // not silently permit commands outside these literal tool requests.
+      allow: [`Bash(${command} status --sync --json)`, `Bash(${command} run typecheck)`],
+      deny: ['WebFetch', 'WebSearch', 'Agent', 'Task', 'LSP', 'Read', 'Edit', 'Write', 'Glob', 'Grep', 'Skill',
+        ...PINNED_READONLY_BASH_HEADS.map(head=>`Bash(${head}:*)`)],
     },
     sandbox: {
       enabled: true,
@@ -64,7 +64,7 @@ export function prepareClaudeReceiverInvocation(options) {
         allowUnixSockets: [socket], allowAllUnixSockets: false, allowLocalBinding: false,
       },
       credentials: {
-        envVars: ['CLAUDE_CODE_OAUTH_TOKEN', 'ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'GITHUB_TOKEN', 'GH_TOKEN', 'NPM_TOKEN']
+        envVars: ['CLAUDE_CODE_OAUTH_TOKEN', 'ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'GITHUB_TOKEN', 'GH_TOKEN', 'NPM_TOKEN', 'ACTIONS_RUNTIME_TOKEN', 'ACTIONS_ID_TOKEN_REQUEST_TOKEN']
           .map(name => ({ name, mode: 'deny' })),
       },
     },

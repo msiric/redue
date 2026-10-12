@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import {spawnSync} from 'node:child_process';
+import {PINNED_READONLY_BASH_HEADS} from './acceptance/portable-claude-native-profile.mjs';
 import { prepareClaudeReceiverInvocation, requireClaudeReceiverActivation, REVIEWED_CLAUDE_NATIVE } from './acceptance/portable-claude-invocation.mjs';
 
 const options = {
@@ -175,3 +176,16 @@ test('unchanged ordinary cached and synchronized status preserve configuration/p
       fs.rmSync(base, {recursive:true,force:true});
     }
   });
+
+
+test('disabled recipient closes pinned read-only fallback without granting inspection or broader tools',()=>{
+ const p=prepareClaudeReceiverInvocation(options),permissions=p.settings_proposed.permissions;
+ assert.equal(permissions.allow.length,2);
+ assert.ok(permissions.allow[0].endsWith(' status --sync --json)'));
+ assert.ok(permissions.allow[1].endsWith(' run typecheck)'));
+ assert.ok(permissions.deny.includes('Skill'));
+ for(const head of PINNED_READONLY_BASH_HEADS)assert.ok(permissions.deny.includes(`Bash(${head}:*)`));
+ assert.equal(permissions.deny.some(x=>x.startsWith('Bash(redue')),false);
+ for(const name of ['ACTIONS_RUNTIME_TOKEN','ACTIONS_ID_TOKEN_REQUEST_TOKEN'])assert.ok(p.settings_proposed.sandbox.credentials.envVars.some(x=>x.name===name&&x.mode==='deny'));
+ assert.throws(()=>requireClaudeReceiverActivation(p),{code:'CLAUDE_RECEIVER_ACTIVATION_NOT_APPROVED'});
+});
