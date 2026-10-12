@@ -4353,3 +4353,48 @@ binding and CI-only resource restriction remain; no imported paths or disk
 seeding. This is conditional design review for a bounded spike, not code/provider
 acceptance or permission to monitor owner-Mac ancestors. The reviewer opened no
 event descriptors, started no real stream and ran no native/model/CI operation.
+
+### Diagnostic-only queued-callback fence comparison
+
+Independent source/mock GO for leaf `0976407`, integrated `3e3f12a`, native
+source SHA256
+`a7e766b3df8431441f9333df75deb15f36270ac3b4cc142fc57c2ddcd9b1528a`.
+Only DIAGNOSTIC_DRAIN builds add a serial queue sync directly after FlushSync,
+before ready and request boundaries. A compile guard refuses drain without
+DIAGNOSTIC. Main is outside the callback queue and holds no collector/output
+mutex across sync. Production behavior and executable remain39cc/80,984 bytes;
+no production observer or origin-completeness behavior changed.
+
+Build options accept only descriptor-backed literal booleans for the two named
+options on a plain/null-prototype object. Unknown/symbol keys, getters, truthy
+values and drain without diagnostic refuse before compilation. No caller flags
+or paths select a new production stream. The two diagnostic modes use fixed
+compiler flags and separate actual executable hashes; neither is launched by
+builder code. Source/current output readback and ownership interval checks remain.
+
+Frozen comparison driver SHA256
+`07a2d79b7395d7f9e83368a10d81258428226ad98da2b8ff965d51253e03e1e9`
+and manual workflow SHA256
+`9836d06d5a1ee20b842ac73fb0aa0c85a932c549cacfeb3dbae89f614be001f5`
+run fixed NO_DRAIN then QUEUE_DRAIN variants, both ROOT with the same capability
+root/state and membership scope. Each keeps the eight baseline/sample rows for
+held-marker creation and separate transient creation/removal. The marker remains
+held through transient samples; fixture reset occurs only after actual reaping.
+Mode/source/not-started checks bind each build. The90s expiry latch and monotonic
+checks guard both compilation admissions, launches, mutations and samples;
+cleanup remains bounded and unobserved child close keeps owned files. Standard
+workflow actor/ref/initial-attempt/source protections, five-minute external bound
+and absence of secrets/model/signing/storage actions remain unchanged.
+
+Independent execution of seven selected affected suites passes80/80 controls
+in1415.73ms. Five independent VM controls execute the actual revised driver with
+fake children, clock and filesystem, passing57.37ms: separated marker/transient
+data, no later variant after expiry, fixed capability-root arguments, private
+unknown-row refusal without leakage and unknown-reap retention. No real
+FSEvents stream, native-agent action, model or CI operation ran in this review.
+
+Queue sync completes earlier-submitted serial callback work, not kernel/service
+ingress. The comparison may test that narrower ordering hypothesis; it cannot
+retrospectively establish the cause of previous late events or mint an interval
+certificate. Actual prior FAIL, measured late delivery and production @3
+continuous-coverage NO-GO remain until independently sufficient interval evidence.
