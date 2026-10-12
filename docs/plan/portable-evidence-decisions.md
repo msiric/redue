@@ -334,3 +334,30 @@ reviews. Credential provisioning, enforced human-only authentication and any
 actual API approval denial still require owner action; don't change credentials
 or transport to evade them. The protected account statement's timestamp and
 account/capacity facts remain immutable under a routine source-pin update.
+
+### D9 CI-only ancestor-resolution observation — owner approved 2026-10-12
+
+The owner approved filtered ancestor-resolution observation only on the already
+approved standard CI VMs for owned synthetic or public-project experiments.
+This is a material extension of observer scope, not an agent permission change.
+The owner's Mac/private parent directories remain excluded; no sandbox, proxy,
+network, socket, account, producer-trust or spending boundary is relaxed.
+
+The [ancestor-resolution finding](../acceptance/portable-ancestor-resolution.md)
+remains the evidence basis: local consumed builtin libraries are covered, while
+outside failed lookup candidates cannot be discarded. A pure derivation helper
+may normalize locally captured ancestor `node_modules` questions and derive exact
+candidate/prefix/container event filters. It does not subscribe, approve an
+import-supplied pathname, read outside file bodies, or grant reuse eligibility.
+Unrelated canonical event paths must be discarded before retention; unnamed or
+malformed backend events mean uncertainty. Actual filtered subscriptions still
+require independently reviewed CI provisioning and continuous start/end observation
+proof, protected outside agent-writable checkout/state. An environment label,
+CLI/import flag, or bare boolean is not that proof.
+
+Any necessary `/private/tmp`, `/private` or `/` parent subscription is restricted
+to that reviewed CI scope. Actual watch roots derive from local compiler queries
+and current canonical filesystem topology, not imported data or guessed disk
+layouts. Missing coverage, replacement, pending events or history gaps remain
+non-reusable. This decision enables implementation/review preparation, not an
+unrecorded local-Mac subscription or a portable model-handoff success claim.
