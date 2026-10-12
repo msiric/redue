@@ -65,11 +65,17 @@ export function compilerFiles(tsRoot,cwd) {
 // then supply forwarding sys methods from that same restricted filesystem view.
 // Returned file names alone establish neither query completeness nor eligibility.
 export function compilerProgramFiles(ts,cwd,{readFile,fileExists,directoryExists,
-  getDirectories,readDirectory,realpath}) {
+  getDirectories,readDirectory,realpath},{validateParsed}={}) {
   const parsed=ts.getParsedCommandLineOfConfigFile(path.join(cwd,'tsconfig.json'),{},
     {...ts.sys,readFile,fileExists,directoryExists,getDirectories,readDirectory,
       onUnRecoverableConfigFileDiagnostic(){}});
   if(!parsed||parsed.errors?.length)throw Error('TypeScript configuration unavailable');
+  // This is a trusted local synchronous guard, never selected by imported data.
+  // It validates the SAME parsed config before any program/host is constructed.
+  if(validateParsed!==undefined){
+    if(typeof validateParsed!=='function'||Object.getPrototypeOf(validateParsed)!==Function.prototype||
+      validateParsed(parsed)!==undefined)throw Error('TypeScript parsed guard unavailable');
+  }
   const host=ts.createCompilerHost(parsed.options);
   Object.assign(host,{readFile,fileExists,directoryExists,getDirectories,realpath,
     getSourceFile(file,languageVersion,onError){
