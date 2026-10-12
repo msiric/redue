@@ -100,7 +100,7 @@ export function portableProbeFailureCode(probe){
   if(probe.error?.code==='ETIMEDOUT')return 'PORTABLE_PROBE_TIMEOUT';
   return probe.stderr?.match(/^VSTATE_REASON:(PORTABLE_[A-Z_]+)$/m)?.[1]||'PORTABLE_PROBE_UNAVAILABLE';
 }
-export function portableProbeFacts(plan,{budget}={}){
+export function portableProbeFacts(plan,{budget,runtimeCertificate=null}={}){
   let timeout=Math.min(portableProbeDeadlineMs,budget?.remaining()??portableProbeDeadlineMs);
   if(!Number.isSafeInteger(timeout)||timeout<1)fail('PORTABLE_PROBE_TIMEOUT');
   const recipe=portableRecipe(plan);
@@ -108,18 +108,20 @@ export function portableProbeFacts(plan,{budget}={}){
   if(!Number.isSafeInteger(timeout)||timeout<1)fail('PORTABLE_PROBE_TIMEOUT');
   const probe=traceScope({work:profiling?traceId():undefined},()=>{
     const started=performance.now();mark('portable_probe.launch',{deadlineMs:timeout});
-    const result=spawnSync(plan.probes[0][0],[...plan.probes[0].slice(1),'--redue-portable'],
-      {cwd:plan.cwd,env:traceEnvironment(),encoding:'utf8',timeout,maxBuffer:8*1024*1024,stdio:['ignore','pipe','pipe']});
+    const privateInput=runtimeCertificate===null?null:JSON.stringify(runtimeCertificate);
+    if(privateInput!==null&&Buffer.byteLength(privateInput)>128*1024)fail('PORTABLE_PROBE_UNAVAILABLE');
+    const result=spawnSync(plan.probes[0][0],[...plan.probes[0].slice(1),'--redue-portable',...(privateInput===null?[]:['--redue-private-runtime-certificate'])],
+      {cwd:plan.cwd,env:traceEnvironment(),encoding:'utf8',input:privateInput??undefined,timeout,maxBuffer:8*1024*1024,stdio:[privateInput===null?'ignore':'pipe','pipe','pipe']});
     timing('portable_probe.complete',started,{available:!result.error&&!result.signal&&result.status===0?1:0,
       timedOut:result.error?.code==='ETIMEDOUT'?1:0});return result;
   });
   if(probe.error||probe.signal||probe.status!==0){
     fail(portableProbeFailureCode(probe));
   }
-  const discovered=JSON.parse(probe.stdout);
+  const {privateRuntimeCertificate,...discovered}=JSON.parse(probe.stdout);
   if(discovered.schema!==1)fail('PORTABLE_INTERPRETATION_UNSUPPORTED');
   budget?.remaining();
-  return {recipe,discovered};
+  return {recipe,discovered,runtimeCertificate:privateRuntimeCertificate??null};
 }
 export function portableCallerProof(plan,budget){
   const {recipe,discovered}=portableProbeFacts(plan,{budget});
@@ -132,17 +134,22 @@ export function portableApplicabilityContext(context,runtime){
   // environment hashes stay immutable and remain the start/end stability guard.
   return {...context,__vstate_node_identity__:sha(canonical(runtime))};
 }
-export function capturePortableFacts(plan,snapshot,context,budget){
+export function capturePortableValidation(plan,snapshot,context,budget,runtimeCertificate=null){
   budget?.remaining();
   if(snapshot?.observationHealthy!==true||!snapshot.files)fail('PORTABLE_OBSERVATION_INCOMPLETE');
-  const files=portableManifest(plan.root,snapshot.files),{recipe,discovered}=portableProbeFacts(plan,{budget});
+  const manifestStarted=performance.now(),files=portableManifest(plan.root,snapshot.files);
+  timing('portable_facts.manifest',manifestStarted,{files:files.length});
+  const {recipe,discovered,runtimeCertificate:learned}=portableProbeFacts(plan,{budget,runtimeCertificate});
   for(const [rel] of [...discovered.discovery.configs,...discovered.discovery.files])
     if(!Object.hasOwn(snapshot.files,rel))fail('PORTABLE_COVERAGE_UNSUPPORTED');
   const facts={schema:1,recipe,platform:{os:process.platform,arch:process.arch,release:os.release()},
     runtime:discovered.runtime,compiler:discovered.compiler,
     context:portableApplicabilityContext(context,discovered.runtime),files,discovery:discovered.discovery};
-  budget?.remaining();return facts;
+  budget?.remaining();return {facts,runtimeCertificate:learned};
 }
 export const portableFactsProof=facts=>sha(canonical({recipe:facts.recipe,discovered:{schema:1,runtime:facts.runtime,compiler:facts.compiler,discovery:facts.discovery}}));
 export const samePortableFacts=(a,b)=>a!==null&&b!==null&&canonical(a)===canonical(b);
 export const portableFactsDigest=facts=>digestPayload(facts);
+
+// Public/origin/caller capture never accepts cached runtime authority.
+export function capturePortableFacts(plan,snapshot,context,budget){return capturePortableValidation(plan,snapshot,context,budget).facts;}

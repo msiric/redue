@@ -17,7 +17,7 @@ import {assertOwnedStatePlacement} from './owned-state.mjs';
 import {atomicJson,readReceipts,readReceiptSnapshot,receiptRevision} from './state-store.mjs';
 import {history} from './observation.mjs';
 import {readPortableCatalog} from './portable-catalog.mjs';
-import {capturePortableFacts,portableFactsProof,portableInterpretation} from './portable-facts.mjs';
+import {capturePortableValidation,portableFactsProof,portableInterpretation} from './portable-facts.mjs';
 import {createPortableBudget} from './portable-budget.mjs';
 import {decidePortableEvidence} from './portable-applicability.mjs';
 import {inputKey,planGuard} from './decision-validation.mjs';
@@ -49,6 +49,12 @@ let pending=new Set(), pendingChecks=new Set(), flushTimer, planDirty=false, pla
 let decisionRequests=0;
 let decisionSequence=0;
 let inputEventSerial=new Map();
+const portableRuntimeCertificates=new Map(); // private, generation-local, never serialized
+function frozenPrivateRecord(value){
+  const copy=JSON.parse(JSON.stringify(value));
+  const freeze=item=>{if(item&&typeof item==='object'){for(const child of Object.values(item))freeze(child);Object.freeze(item);}};
+  freeze(copy);return copy;
+}
 let diagnosticInputEvents=0;
 let synchronizing=null;
 let installedRecheck=null;
@@ -486,6 +492,7 @@ function buildInWorker(forceCold=false,reuse=null) {
 }
 async function refreshPlan({forceCold=false,reuse=false}={}) {
   if(planning||stopping)return;
+  portableRuntimeCertificates.clear();
   const totalStarted=performance.now();
   const previousProbes=new Map([...(index?.checks||[])].map(([name,row])=>[name,row.probeCache]));
   const reusable=reuse&&healthy&&!planDirty&&!external.size&&validatedPlan&&
@@ -650,7 +657,7 @@ function flush() {
       (historyDisabled||fs.existsSync(snapshotPath));
     if(healthy)reason=null;
     lastObservation=Date.now();
-  } catch(e) {healthy=false;reason=`input inspection unavailable: ${e.message}`;
+  } catch(e) {portableRuntimeCertificates.clear();healthy=false;reason=`input inspection unavailable: ${e.message}`;
     metrics.gaps++;event('observation_gap',{classification:'input_inspection'});
     setTimeout(()=>{if(!stopping)refreshPlan();},1000);}
   publish();
@@ -689,7 +696,7 @@ function notification(type,filename) {
     micromatch.isMatch(rel,workspacePatterns,{dot:true})&&
     fs.existsSync(path.join(root,rel,'package.json'))&&
     triggerChanged(rel+'/package.json'))planDirty=true;}
-  catch(e){if(e.code!=='ENOENT') {healthy=false;reason='filesystem event path unavailable';publish();return;}}
+  catch(e){if(e.code!=='ENOENT') {portableRuntimeCertificates.clear();healthy=false;reason='filesystem event path unavailable';publish();return;}}
   if(index&&[...index.checks.values()].some(row=>row.plan.patterns.includes(rel+'/package.json'))&&
     !fs.existsSync(path.join(root,rel))&&triggerChanged(rel+'/package.json'))planDirty=true;
   if(planTrigger(rel))
@@ -706,7 +713,7 @@ function notification(type,filename) {
     for(const [prefix,names] of index.prefixes)
       if(prefix.startsWith(rel+'/'))for(const name of names)markInputEvent(name,rel,type);
   }
-  if(pending.size>50000){healthy=false;reason='observation backlog overflow';metrics.gaps++;
+  if(pending.size>50000){portableRuntimeCertificates.clear();healthy=false;reason='observation backlog overflow';metrics.gaps++;
     event('observation_gap',{classification:'backlog_overflow'});publish();
     pending.clear();setTimeout(()=>refreshPlan(),100);return;}
   clearTimeout(flushTimer);flushTimer=setTimeout(flush,60);
@@ -743,6 +750,7 @@ function externalGap(entry,classification,error) {
   observationGap(`external_${classification}`,error);
 }
 function observationGap(classification,error) {
+  portableRuntimeCertificates.clear();
   if(planning)gapDuringPlan=true;
   // Once continuity is uncertain, a cursor is no longer authority. Do not
   // retry native history in this observer generation after reconciliation.
@@ -954,21 +962,27 @@ async function request(message) {
     timing('daemon.request_probes',probeStarted,{checks:index?.checks.size||0});
     // Recipient discovery uses only its own configured built-in probe and index.
     // Imported payloads never choose executable paths, inputs, or probe authority.
+    const catalogStarted=performance.now();
     const catalog=readPortableCatalog(state,{configFile,root}),portableDecisions={};
+    timing('daemon.portable_catalog_read',catalogStarted,{records:catalog.records?.length??0});
     const validations=new Map();
     if(message.action==='sync'&&!catalog.error&&index&&healthy&&!planning&&!recovering&&!planDirty){
       const portableBudget=createPortableBudget();
       for(const [name,row] of index.checks){
         if(!catalog.records.some(record=>record.check===name&&record.acceptance!=='untrusted'))continue;
         const beginning={index,key:inputKey(row),serial:inputEventSerial.get(name)||0};
-        let facts=null,error=null;
+        let facts=null,error=null,learnedCertificate=null;const validationStarted=performance.now();
         try{
           if(!/^[a-f0-9]{64}$/.test(message.portableProofs?.[name]||''))throw Error('caller validation missing');
-          facts=capturePortableFacts(row.plan,{files:combinedFiles(name),observationHealthy:true},message.contextHashes?.[name],portableBudget);
+          const prior=portableRuntimeCertificates.get(name);
+          const inspection=capturePortableValidation(row.plan,{files:combinedFiles(name),observationHealthy:true},message.contextHashes?.[name],portableBudget,
+            prior?.plan===row.plan.id?prior.certificate:null);
+          facts=inspection.facts;learnedCertificate=inspection.runtimeCertificate;
           if(portableFactsProof(facts)!==message.portableProofs[name])throw Error('caller and recipient contexts differ');
           portableBudget.remaining();
-        }catch(e){error=e.code||'PORTABLE_CALLER_UNVERIFIED';facts=null;}
-        validations.set(name,{beginning,facts,error});
+        }catch(e){error=e.code||'PORTABLE_CALLER_UNVERIFIED';facts=null;portableRuntimeCertificates.delete(name);}
+        timing('daemon.portable_input_validation',validationStarted,{available:error?0:1});
+        validations.set(name,{beginning,facts,error,learnedCertificate});
       }
       // Synchronous child work delays event delivery; catch up before using it.
       try{await catchUp();if(flushTimer||pending.size||planDirty)flush();}
@@ -976,12 +990,17 @@ async function request(message) {
       refreshReceipts();
       const local=new Map(localRows(message.contextHashes,synchronizedInstalled,process.platform==='win32'&&healthy&&!planning&&!planDirty).map(row=>[row.name,row]));
       const currentCatalog=readPortableCatalog(state,{configFile,root});
-      for(const [name,{beginning,facts,error}] of validations){
+      for(const [name,{beginning,facts,error,learnedCertificate}] of validations){
         const row=index?.checks.get(name),selected=receipts[name],item=local.get(name);
         const unchanged=!currentCatalog.error&&currentCatalog.revision===catalog.revision&&
           index===beginning.index&&row&&inputKey(row)===beginning.key&&
           (inputEventSerial.get(name)||0)===beginning.serial&&!pendingChecks.has(name)&&
           healthy&&!planning&&!recovering&&!planDirty&&!index.unavailable;
+        if(unchanged&&!error&&learnedCertificate){
+          // Clone the successful internal result; later callers cannot mutate it.
+          portableRuntimeCertificates.set(name,{plan:row.plan.id,certificate:frozenPrivateRecord(learnedCertificate)});
+        }else portableRuntimeCertificates.delete(name);
+        const selectionStarted=performance.now();
         portableDecisions[name]={...decidePortableEvidence({check:name,facts,
           prerequisites:{understood:!error,complete:!!facts,callerValidated:!error,
             observationHealthy:!!unchanged},snapshot:currentCatalog,
@@ -990,6 +1009,7 @@ async function request(message) {
             facts:selected.portable?.interpretation===portableInterpretation&&selected.portable?.complete===true?selected.portable.facts:null,
             resolvedCatalogRevision:selected.portable?.resolvedCatalogRevision??null}:null}),catalog_revision:currentCatalog.revision,receipt_revision:receiptStateRevision,
           input_key:row?inputKey(row):null,input_event_serial:inputEventSerial.get(name)||0};
+        timing('daemon.portable_trust_selection',selectionStarted);
       }
     }
     if(message.action==='sync'&&process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_PORTABLE_PUBLICATION_BARRIER==='1'){

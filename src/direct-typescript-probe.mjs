@@ -8,7 +8,7 @@ import path from 'node:path';
 import {queriesMatch} from './typescript-list.mjs';
 import {timing,mark} from './decision-profile.mjs';
 import {portableDiscovery} from './portable-facts.mjs';
-import {portableRuntime} from './portable-runtime.mjs';
+import {portableRuntimeInspection} from './portable-runtime.mjs';
 const hash=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 try{
   const [rootArg,script]=process.argv.slice(2),root=realObservedPath(rootArg);
@@ -19,13 +19,21 @@ try{
   timing('direct_probe.implementation',implementationStarted,{version:compiler.version});
   if(process.argv.includes('--redue-portable')){
     const runtimeStarted=performance.now();mark('portable_probe.runtime_start');
-    const runtime=portableRuntime();timing('portable_probe.runtime_complete',runtimeStarted);
+    let certificate=null;
+    if(process.argv.includes('--redue-private-runtime-certificate')){
+      const chunks=[];let bytes=0;for await(const chunk of process.stdin){
+        bytes+=chunk.length;if(bytes>128*1024)throw Error('private certificate too large');chunks.push(chunk);
+      }
+      try{certificate=JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{}
+    }
+    const inspected=portableRuntimeInspection({certificate}),runtime=inspected.runtime;
+    timing('portable_probe.runtime_complete',runtimeStarted,{revalidated:inspected.inspection==='revalidated'?1:0});
     const discoveryStarted=performance.now();mark('portable_probe.discovery_start');
     const facts=typeScriptInputFacts(root,compiler.tsRoot,compiler.entry,{portable:true});
     timing('portable_probe.discovery_complete',discoveryStarted,{queries:facts.queries.length});
     process.stdout.write(JSON.stringify({schema:1,runtime,
       compiler:{version:compiler.version,sha256:compiler.digest,entry:path.relative(root,compiler.entry).split(path.sep).join('/')},
-      discovery:portableDiscovery(root,facts)}));
+      discovery:portableDiscovery(root,facts),privateRuntimeCertificate:inspected.certificate}));
     process.exit(0);
   }
   const context={interpretation:directInterpretation,compiler:compiler.digest,

@@ -4,7 +4,7 @@ import os from 'node:os';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {sha} from './plan.mjs';
-import {inspectCacheContents} from './portable-runtime-cache.mjs';
+import {inspectCacheProfile} from './portable-runtime-cache.mjs';
 import {inspectDefaultOpenSSL} from './portable-openssl-config.mjs';
 import {mark,timing} from './decision-profile.mjs';
 
@@ -37,7 +37,7 @@ function bytes(file){
 function unchanged(item){
   if(JSON.stringify(fingerprint(item.before))!==JSON.stringify(fingerprint(fs.lstatSync(item.file,{bigint:true}))))fail();
 }
-export function portableRuntime(){
+export function portableRuntimeInspection({certificate=null}={}){
   if(!portableRuntimeSupported()||process.getuid?.()===0||
     process.getuid?.()!==process.geteuid?.()||process.getgid?.()!==process.getegid?.())fail();
   const runtimeStarted=performance.now();mark('portable_runtime.start');
@@ -50,8 +50,11 @@ export function portableRuntime(){
   let native,cache;
   try{native=createRequire(import.meta.url)(helper);cache=native.inspect();}catch{fail();}
   const openssl=inspectDefaultOpenSSL();mark('portable_runtime.openssl_complete');
-  const content=inspectCacheContents(cache);mark('portable_runtime.cache_complete');
+  const imagesBefore=process.report.getReport().sharedObjects,imagesDigest=sha(JSON.stringify([...imagesBefore].sort()));
+  const candidate=certificate?.schema===1&&certificate.loadedImagesDigest===imagesDigest?certificate.cache:null;
+  const inspected=inspectCacheProfile(cache,{certificate:candidate}),content=inspected.content;mark('portable_runtime.cache_complete');
   const objects=process.report.getReport().sharedObjects,seen=new Set(),virtual=[],readable=[];
+  if(sha(JSON.stringify([...objects].sort()))!==imagesDigest)fail();
   const allowed=new Map([[binary,node],[helper,helperBytes]]);
   for(const file of ['/usr/lib/system/libsystem_kernel.dylib','/usr/lib/system/libsystem_platform.dylib','/usr/lib/system/libsystem_pthread.dylib']){
     if(fs.realpathSync(file)!==file)fail();const item=bytes(file);
@@ -65,11 +68,16 @@ export function portableRuntime(){
   if(seen.size!==allowed.size)fail();
   for(const item of allowed.values())unchanged(item);
   const after=native.inspect();
-  if(JSON.stringify(after)!==JSON.stringify(cache)||JSON.stringify(inspectDefaultOpenSSL())!==JSON.stringify(openssl))fail();
+  if(JSON.stringify(after)!==JSON.stringify(cache)||JSON.stringify(inspectDefaultOpenSSL())!==JSON.stringify(openssl)||
+    sha(JSON.stringify([...process.report.getReport().sharedObjects].sort()))!==imagesDigest)fail();
   const sharedObjects=[['portable-runtime-profile',sha(portableRuntimeInterpretation)],
     ['openssl-default',sha(JSON.stringify(openssl))],['dyld-virtual-images',sha(JSON.stringify(virtual.sort()))],
     ...content.files.map(([suffix,digest])=>['dyld-cache-'+suffix,digest]),...readable]
     .sort(([a],[b])=>a<b?-1:a>b?1:0);
   timing('portable_runtime.complete',runtimeStarted,{loadedImages:objects.length});
-  return {version:process.version,sha256:node.digest,sharedObjects};
+  return {runtime:{version:process.version,sha256:node.digest,sharedObjects},
+    certificate:{schema:1,loadedImagesDigest:imagesDigest,cache:inspected.certificate},inspection:inspected.inspection};
 }
+
+// Origin and caller proofs retain independent full inspection.
+export function portableRuntime(){return portableRuntimeInspection().runtime;}

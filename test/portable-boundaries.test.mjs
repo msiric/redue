@@ -12,6 +12,8 @@ import {portableCommand} from '../src/portable-command.mjs';
 import {decidePortableEvidence} from '../src/portable-applicability.mjs';
 import {createRequire} from 'node:module';
 import {spawn,spawnSync} from 'node:child_process';
+import net from 'node:net';
+import {controlEndpoint} from '../src/control-endpoint.mjs';
 import {fileURLToPath} from 'node:url';
 import {commitReceipt} from '../src/state-store.mjs';
 import {acquireRunLock} from '../src/run-lock.mjs';
@@ -592,6 +594,51 @@ function observedCompiler(t,{copiedNode=false}={}){
   return {base,root,state,put,call,selected,paused,env,bin,node,
     ownObserver:(state,call)=>cleanupCalls.push({state,call})};
 }
+
+test('actual daemon cannot learn client certificates or failed proofs; warm validation remains caller-independent',
+ {skip:!portableRuntimeSupported(),timeout:120000},async t=>{
+ const f=observedCompiler(t);f.call('run','typecheck','--portable');const baseline=f.selected();
+ assert.equal(baseline.portable.complete,true);
+ const envelope=path.join(f.base,'certificate-origin.json');
+ const exported=JSON.parse(f.call('evidence','export','typecheck','--output',envelope,'--json'));
+ const root=path.join(f.base,'recipient'),state=path.join(f.base,'redue-recipient');
+ fs.cpSync(f.root,root,{recursive:true,dereference:false,verbatimSymlinks:true});
+ const trace=path.join(f.base,'runtime-phases.jsonl');fs.writeFileSync(trace,'',{mode:0o600});
+ const env={...f.env,REDUE_DECISION_PROFILE:'1',REDUE_DECISION_PROFILE_FILE:trace};
+ const call=(...words)=>{const r=spawnSync(process.execPath,[f.bin,'--state-dir',state,...words],{cwd:root,env,encoding:'utf8',timeout:60000});
+  assert.equal(r.status,0,r.stderr);return ['status','evidence'].includes(words[0])?JSON.parse(r.stdout):r.stdout;};
+ f.ownObserver(state,call);call('start');
+ const until=Date.now()+10000;while(!fs.existsSync(path.join(state,'plans-v1.json'))&&Date.now()<until)await new Promise(r=>setTimeout(r,10));
+ assert(fs.existsSync(path.join(state,'plans-v1.json')));
+ call('evidence','import',envelope,'--check','typecheck','--accept-digest',exported.digest,'--apply','--json');
+ const raw=message=>new Promise((resolve,reject)=>{
+  const client=net.createConnection(controlEndpoint(state).address);let text='';
+  const timer=setTimeout(()=>{client.destroy();reject(Error('owned control test timed out'));},30000);
+  client.on('connect',()=>client.write(JSON.stringify(message)+'\n'));
+  client.on('data',chunk=>{text+=chunk;if(Buffer.byteLength(text)>1024*1024){client.destroy();clearTimeout(timer);reject(Error('bounded control response exceeded'));}});
+  client.on('end',()=>{clearTimeout(timer);try{resolve(JSON.parse(text));}catch(e){reject(e);}});
+  client.on('error',e=>{clearTimeout(timer);reject(e);});
+ });
+ const forged={schema:1,loadedImagesDigest:'0'.repeat(64),cache:{schema:1,content:{files:[['base','0'.repeat(64)]]}}};
+ const rejected=await raw({action:'sync',contextHashes:{typecheck:baseline.environmentHashes},portableProofs:{typecheck:'0'.repeat(64)},
+  runtimeCertificate:forged,privateRuntimeCertificate:forged});
+ assert.equal(rejected.checks[0].reuse_eligible,false);assert.notEqual(rejected.checks[0].freshness,'CURRENT');
+ const phases=()=>fs.readFileSync(trace,'utf8').trim().split('\n').filter(x=>x.startsWith('REDUE_TIMING ')).map(x=>JSON.parse(x.slice(13)));
+ let offset=phases().length;
+ const first=call('status','--sync','--json').checks[0];assert.equal(first.reuse_eligible,true);assert.equal(first.imported_evidence.origin_run_id,baseline.invocation.runId);
+ let delta=phases().slice(offset);assert.equal(delta.filter(r=>r.phase==='portable_cache.complete').length,2,'failed proof minted no reusable certificate');
+ assert.equal(delta.filter(r=>r.phase==='portable_cache.revalidated').length,0);
+ offset=phases().length;const warm=call('status','--sync','--json').checks[0];
+ assert.equal(warm.reuse_eligible,true);assert.deepEqual(warm.imported_evidence,first.imported_evidence);
+ delta=phases().slice(offset);assert.equal(delta.filter(r=>r.phase==='portable_cache.complete').length,1,'caller still inspects all runtime content');
+ assert.equal(delta.filter(r=>r.phase==='portable_cache.revalidated').length,1,'only privately learned observer content is revalidated');
+ assert.equal(fs.existsSync(path.join(state,'runs-v1')),false,'certificate reuse is not verification execution');
+ assert(!JSON.stringify(warm).includes('privateRuntimeCertificate'));
+ call('stop');call('start');offset=phases().length;
+ assert.equal(call('status','--sync','--json').checks[0].reuse_eligible,true);
+ delta=phases().slice(offset);assert.equal(delta.filter(r=>r.phase==='portable_cache.complete').length,2,'restart cannot restore a disk/client certificate');
+ assert.equal(delta.filter(r=>r.phase==='portable_cache.revalidated').length,0);
+});
 
 test('actual portable inspection cancellation and ending change-and-restore preserve non-reuse',
   {skip:!portableRuntimeSupported(),timeout:150000},async t=>{

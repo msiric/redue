@@ -78,7 +78,7 @@ function unchanged(member){
   if(!equalStat(member.stat,fs.fstatSync(member.descriptor,{bigint:true}))||
     !equalStat(member.stat,fs.lstatSync(member.file,{bigint:true})))fail();
 }
-export function inspectCacheContents(cache){
+export function inspectCacheProfile(cache,{certificate=null}={}){
   if(cache?.overridden!==false||cache?.interposed!==false||!path.isAbsolute(cache.file??'')||
     cache.file!=='/System/Volumes/Preboot/Cryptexes/OS/System/Library/dyld/dyld_shared_cache_arm64e')fail();
   // The native path must identify this reviewed protected OS location; never
@@ -102,6 +102,24 @@ export function inspectCacheContents(cache){
         !header.subarray(0,16).equals(MAGIC)||hex(header.subarray(88,104))!==member.uuid)fail();
     }
     mark('portable_cache.members',{members:openedFiles.length,totalBytes:Number(total)});
+    // This record is private transport from a successful local full inspection,
+    // never an imported/persisted/client-supplied authority. The daemon alone
+    // retains it; every use reopens the fixed native paths and all headers.
+    const identity=stat=>['dev','ino','uid','mode','size','mtimeNs','ctimeNs'].map(k=>String(stat[k]));
+    const guard={native:cache,parents:parents.map(([file,stat])=>[file,identity(stat)]),
+      members:openedFiles.map((file,i)=>[members[i].suffix,members[i].uuid,identity(file.stat)])};
+    const sameGuard=certificate?.schema===1&&JSON.stringify(certificate.guard)===JSON.stringify(guard);
+    const content=certificate?.content;
+    const supportedContent=sameGuard&&content?.interpretation==='darwin-arm64e-full-cache-content@1'&&
+      content.totalBytes===Number(total)&&Array.isArray(content.files)&&content.files.length===members.length&&
+      content.files.every((pair,i)=>Array.isArray(pair)&&pair.length===2&&pair[0]===(members[i].suffix||'base')&&/^[a-f0-9]{64}$/.test(pair[1]));
+    if(supportedContent){
+      for(const member of openedFiles)unchanged(member);unchangedParents(parents);
+      if(performance.now()-started>portableCacheDeadlineMs)fail();
+      const current={interpretation:content.interpretation,files:content.files.map(pair=>[...pair]),totalBytes:content.totalBytes};
+      timing('portable_cache.revalidated',started,{members:members.length,totalBytes:Number(total),hashedBytes:0});
+      return {content:current,certificate:{schema:1,guard,content:current},inspection:'revalidated'};
+    }
     const chunk=Buffer.alloc(8*1024*1024),files=[];let completedBytes=0;
     for(let i=0;i<openedFiles.length;i++){
       const member=openedFiles[i],hash=createHash('sha256'),memberStarted=performance.now();
@@ -125,7 +143,11 @@ export function inspectCacheContents(cache){
     unchangedParents(parents);
     if(performance.now()-started>portableCacheDeadlineMs)fail();
     timing('portable_cache.complete',started,{members:files.length,totalBytes:Number(total)});
-    return {interpretation:'darwin-arm64e-full-cache-content@1',files,totalBytes:Number(total)};
+    const learnedContent={interpretation:'darwin-arm64e-full-cache-content@1',files,totalBytes:Number(total)};
+    return {content:learnedContent,certificate:{schema:1,guard,content:learnedContent},inspection:'full'};
   }catch{fail();}
   finally{for(const member of openedFiles)fs.closeSync(member.descriptor);}
 }
+
+// Original callers always perform full inspection; no cache is read from disk.
+export function inspectCacheContents(cache){return inspectCacheProfile(cache).content;}
