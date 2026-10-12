@@ -43,9 +43,13 @@ and GH directories, disables updates, and excludes GH/runner/OIDC credentials. T
 is retained only in the child environment for standard Actions orphan tracking;
 it is never included in the report. Native reaping and listener cleanup are
 reported individually; UNKNOWN does not claim all descendants were cleaned.
-The sandbox is required, has no unsandboxed fallback or excluded commands, gives
-no write grants, protects code/native/runtime parents, denies protected host and
-Keychain reads, and permits only the single reporting socket. A literal Bash rule
+The sandbox is required, has no unsandboxed fallback or excluded commands, adds
+no explicit filesystem `allowWrite` entries, protects code/native/runtime parents,
+and denies protected host and
+Keychain reads, and permits only the single reporting socket. Implicit native
+temporary-directory access is not claimed removed. The six assertions establish
+only their named operations, not universal filesystem or real credential-body
+denial. A literal Bash rule
 uses native command normalization; the independently observed tool command must
 also equal the submitted literal. Stream inspection is evidence checking, **not**
 a preventative permission boundary. Normalization and credential/startup closure
