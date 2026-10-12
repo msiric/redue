@@ -366,3 +366,22 @@ no-drain versus explicit serial callback-queue drain after FlushSync, exclusivel
 in a diagnostic compile. It can close already queued callback work; it cannot
 prove kernel/service ingress. No qualifying engine integration follows from a
 quiet sample or successful cleanup.
+The next fixed diagnostic comparison adds a separate
+`REDUE_ANCESTOR_DIAGNOSTIC_DRAIN` build, allowed only together with the diagnostic
+selector. On the control thread it calls `dispatch_sync` on the serial callback
+queue immediately after each `FSEventStreamFlushSync`, before ready or barrier
+reporting. No callback or collector/output lock is held at that fence. This waits
+for already queued callbacks; it cannot establish that kernel or service ingress
+has completed. A delay or clean diagnostic result still cannot authorize an
+observation interval.
+
+The build helper permits only fixed literal boolean options and fixed CLI flags;
+unknown options and getters are refused. Production SHA-256 remains
+`39cc3829f4fe640ad35baf87794e2e98d4812ee8afd3193f94dad5a11aa66389`
+(80,984 bytes), and the diagnostic build without the drain remains
+`7e819ccf8682d50afa7e52dc0c56b125dd068d0d9ec197377e75bb0373310eed`
+(81,528 bytes). The drain build is
+`acbc5fac2c4c817b75a5ce639ecb76bfec89f29cb4634cf9e323742f23d348de`
+(81,768 bytes), from source SHA-256
+`a7e766b3df8431441f9333df75deb15f36270ac3b4cc142fc57c2ddcd9b1528a`.
+All three were built with Apple clang 21.0.0, and none was started locally.

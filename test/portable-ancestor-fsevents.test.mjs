@@ -55,7 +55,7 @@ test('a later clean occurrence or barrier cannot clear uncertainty',pure,()=>{
 test('production source has fixed stream and barrier ordering, not a generic executor',()=>{
   const text=fs.readFileSync(new URL('../src/portable-ancestor-fsevents.cc',import.meta.url),'utf8');
   assert.match(text,/CFSTR\("\/"\)/);assert.match(text,/kFSEventStreamCreateFlagFileEvents\|kFSEventStreamCreateFlagWatchRoot\|kFSEventStreamCreateFlagNoDefer/);
-  assert.match(text,/FSEventStreamFlushSync\(stream\);collector\.boundary/);
+  assert.match(text,/FSEventStreamFlushSync\(stream\);[\s\S]*collector\.boundary/);
   assert(!/\b(?:stat|lstat|open|readFile|system|execvp|fork)\s*\(/.test(text));
 });
 test('aggregate initialization and serial limits fail closed',pure,()=>{
@@ -97,4 +97,10 @@ test('production preprocessor branch retains root-only argc and no diagnostic ar
   const text=fs.readFileSync(new URL('../src/portable-ancestor-fsevents.cc',import.meta.url),'utf8');
   assert.match(text,/#ifdef REDUE_ANCESTOR_DIAGNOSTIC[\s\S]*#else\n  if\(argc!=1\)return 64;/);
   assert.match(text,/CFStringRef streamRoot=CFSTR\("\/"\);/);
+});
+test('diagnostic queue drain is guarded and outside callbacks before boundary reports',()=>{
+  const text=fs.readFileSync(new URL('../src/portable-ancestor-fsevents.cc',import.meta.url),'utf8');
+  assert.match(text,/#if defined\(REDUE_ANCESTOR_DIAGNOSTIC_DRAIN\) && !defined\(REDUE_ANCESTOR_DIAGNOSTIC\)/);
+  assert.equal((text.match(/#ifdef REDUE_ANCESTOR_DIAGNOSTIC_DRAIN\n\s+dispatch_sync\(queue,\^\{\}\);/g)||[]).length,2);
+  const callback=text.slice(text.indexOf('void callback('),text.indexOf('int main('));assert(!callback.includes('dispatch_sync'));
 });

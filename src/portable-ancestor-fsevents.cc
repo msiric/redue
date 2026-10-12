@@ -11,6 +11,9 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#if defined(REDUE_ANCESTOR_DIAGNOSTIC_DRAIN) && !defined(REDUE_ANCESTOR_DIAGNOSTIC)
+#error Diagnostic drain requires diagnostic build
+#endif
 #ifndef REDUE_ANCESTOR_PURE_TEST
 #include <CoreServices/CoreServices.h>
 #include <dispatch/dispatch.h>
@@ -219,10 +222,17 @@ int main(int argc,char** argv){
   // delivers already occurred callbacks; the parent enforces a hard deadline.
   int exitCode=0;Requests requests;uint64_t closeId=0;bool closed=false;
   try{
-    FSEventStreamFlushSync(stream);collector.boundary("ready",0);
+    FSEventStreamFlushSync(stream);
+#ifdef REDUE_ANCESTOR_DIAGNOSTIC_DRAIN
+    dispatch_sync(queue,^{}); // Diagnostic only: already queued callback fence.
+#endif
+    collector.boundary("ready",0);
     size_t bytes=0;
     for(;;){const auto next=requests.next(boundedLine(std::cin,64,bytes));
       FSEventStreamFlushSync(stream);
+#ifdef REDUE_ANCESTOR_DIAGNOSTIC_DRAIN
+      dispatch_sync(queue,^{}); // No collector/output lock is held on main.
+#endif
       if(next.close){closeId=next.id;closed=true;break;}
       collector.boundary("barrier",next.id);
     }
