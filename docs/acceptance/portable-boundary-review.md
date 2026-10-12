@@ -5828,3 +5828,52 @@ three own before/after VM differential controls passed3/3 in49.82ms, preserving
 graph/query facts and call order, raw EPERM before TSsys fallback and bad-config
 refusal before program creation. No expensive actual TypeScript test was rerun
 by the reviewer, and no sealed capture/namespace/CLI equivalence is approved yet.
+
+
+## Parsed-config guard and scoped discovery journal
+
+GO for b47445df52e96915e6f9cd47def380d46bc8df23, shared traversal source
+SHA032575ac085029d6dbfe584ab38942b947697568abbebd8e757842a3016b459b.
+The optional trusted synchronous validateParsed callback sees the SAME parsed
+configuration once and runs before host/program construction. Missing legacy
+callback behavior is unchanged. Invalid configurations suppress the callback;
+throwing, asynchronous or nonempty-return callbacks suppress host/program creation.
+The guard runs AFTER configuration parsing: it neither prevents nor certifies
+config-phase reads or extends resolution. Restricted filesystem view and scoped
+recording must already be established before the first verified API load.
+
+GO for data-only journal5ff266b,
+SHA43eb721beca1d6c670836eae434e8ebcf1ba731dd7e596631f1ea2399d903f10,
+and forwarding4224639702907b9ee9b4e1fe64e218f71ceddd95,
+SHA5775324ca01490ff1cf8e651976aa4a324813211249472e61b6d22379ff317eb.
+The journal forwards the original synchronous functions and exact result/error
+identities, restores installed descriptors, separately retains raw DENIED versus
+MISSING and actual semantic return summaries, hashes outside paths/values and
+withholds complete logging on unsupported methods/metadata, mutations or bounds.
+The adapter captures exactly six original ts.sys functions, preserves system
+receiver and all argument slots/options/undefined markers, and creates no second
+compiler graph. It neither loads TypeScript nor selects an execution authority.
+
+Independently ran26 authored fake journal controls,16 authored fake forwarding
+controls,7 fake traversal controls and3 own old/new VM differential controls:
+52/52 PASS198.30ms. Six additional independent fake adversarial controls passed
+6/6 in49.22ms, covering config/guard ordering and rejection, raw denial versus
+absence with identical semantic false, restored descriptors on success/error,
+closed cached-wrapper behavior and semantic option preservation. Archived source
+and own controlsSHA76606036ad9e92bc3589a824c9af3930fe2498e06ebbba4565dde448e012f675
+are retained under the owned raw-wrapper-review evidence directory. No actual
+TypeScript API, compiler, native policy, model, preparer or CI process ran in this
+review; all filesystem operations inside the capture controls were injected fakes.
+
+Two limitations were deliberately reproduced, not waived. A cached native
+wrapper can forward later calls after the capture closes; these calls are absent
+from the frozen completed snapshot. Trusted callbacks must leak no work and the
+fresh restricted probe process must end without extending that scope. Semantic
+readDirectory frames omit argument tuples although forwarding preserves them
+exactly; the journal is not a replayable full query record. Any future capture
+that needs those tuples must retain them separately under its own reviewed contract.
+FORWARDED_CALLS_ONLY, module-loader/query completeness NOT_ESTABLISHED and all
+namespace/sealed/reuse flags false are therefore necessary. Node internal loader
+bypasses, CLI/API equivalence, first-load implementation binding, staged namespace
+validation, stable execution and recipient currentness remain separate gates.
+This review authorizes helper integration only; no sealed origin or reuse follows.
