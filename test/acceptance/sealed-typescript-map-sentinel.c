@@ -17,6 +17,12 @@
  * https://github.com/apple-oss-distributions/xnu/blob/xnu-12377.1.9/bsd/kern/kern_mman.c
  * https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/mmap.2.html
  * The compiled SDK exposes O_NOFOLLOW_ANY (no symlink in the path).
+ * xnu-12377.1.9 bsd/vfs/vfs_vnops.c lines392-395 rejects combining
+ * O_NOFOLLOW_ANY with O_NOFOLLOW; lines544-546 applies NAMEI_NOFOLLOW_ANY
+ * to the non-create lookup. Retain ANY without the conflicting terminal flag.
+ * https://github.com/apple-oss-distributions/xnu/blob/xnu-12377.1.9/bsd/vfs/vfs_vnops.c#L392-L395
+ * This is a source-based fixture repair, not proof that the running kernel
+ * matches that source branch or that it caused the observed startup EINVAL.
  *
  * MAP_PRIVATE CoW is not underlying-file mutation and is not a denial gate.
  * Existing writable descriptors/mappings cannot be inferred absent here:
@@ -48,7 +54,8 @@ static const char workspace_path[] = "__REVIEWED_WRITABLE_WORKSPACE_MAP_CANARY__
 static const char staged_path[] = "__REVIEWED_STAGED_MAP_CANARY__";
 static const unsigned char marker[] = "REDUE_SEALED_SYNTHETIC_CANARY\n";
 #define MARKER_BYTES (sizeof(marker) - 1)
-#define OPEN_GUARDS (O_NOFOLLOW | O_NOFOLLOW_ANY | O_NONBLOCK | O_CLOEXEC)
+#define OPEN_GUARDS (O_NOFOLLOW_ANY | O_NONBLOCK | O_CLOEXEC)
+_Static_assert((OPEN_GUARDS & O_NOFOLLOW) == 0, "Conflicting nofollow flags are forbidden");
 #define ROW_COUNT 7
 struct row { const char *name, *classification, *errno_code; };
 static struct row rows[ROW_COUNT] = {

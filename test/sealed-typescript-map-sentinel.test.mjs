@@ -12,11 +12,21 @@ test('fixed mapper is a two-placeholder argc1 source proposal, with no imported 
   assert.match(code,/strstr\(value, "__REVIEWED_"\) != NULL/);
 });
 test('native read prerequisites require guarded regular single-link owned bounded marker files',()=>{
-  assert.match(code,/#define OPEN_GUARDS \(O_NOFOLLOW \| O_NOFOLLOW_ANY \| O_NONBLOCK \| O_CLOEXEC\)/);
+  assert.match(code,/#define OPEN_GUARDS \(O_NOFOLLOW_ANY \| O_NONBLOCK \| O_CLOEXEC\)/);
   assert.match(code,/S_ISREG\(value->st_mode\).*value->st_uid == getuid\(\).*value->st_nlink == 1/s);
   assert.match(code,/value->st_size == \(off_t\)MARKER_BYTES/);assert.match(code,/getuid\(\) == 0 \|\| geteuid\(\) != getuid\(\) \|\| getegid\(\) != getgid\(\)/);
   assert.match(code,/workspace_snapshot.st_dev == staged_snapshot.st_dev && workspace_snapshot.st_ino == staged_snapshot.st_ino/);
   assert.match(code,/same_fingerprint\(before, &descriptor\).*same_fingerprint\(before, &named\)/s);
+});
+test('fixed open guard keeps all-component nofollow without the source-proven conflicting terminal flag',()=>{
+  const guards=code.match(/^#define OPEN_GUARDS \(([^\n]+)\)$/m)[1].split('|').map(value=>value.trim());
+  assert.deepEqual(guards,['O_NOFOLLOW_ANY','O_NONBLOCK','O_CLOEXEC']);
+  assert.equal(guards.includes('O_NOFOLLOW'),false);
+  assert.match(code,/_Static_assert\(\(OPEN_GUARDS & O_NOFOLLOW\) == 0,/);
+  assert.match(source,/vfs_vnops\.c lines392-395 rejects combining/);
+  assert.match(source,/lines544-546 applies NAMEI_NOFOLLOW_ANY/);
+  assert.match(source,/not proof that the running kernel/);
+  assert.equal((code.match(/\bopen\([^;]+OPEN_GUARDS\)/g)||[]).length,3);
 });
 test('workspace control actually requests shared RW mapping and verifies changed/restored file bytes',()=>{
   assert.match(code,/mmap\(NULL, MARKER_BYTES, PROT_READ \| PROT_WRITE, MAP_SHARED, fd, 0\)/);
