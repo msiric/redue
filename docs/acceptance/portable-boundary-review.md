@@ -3845,3 +3845,83 @@ reviewed compiler; it is instrumentation, not a claim of unmodified environment.
 No ordinary-project, applicability, agent behavior or value claim follows from
 this phase sample. Cold/session-start work must remain visible, and cached runtime
 optimization remains a separate implementation/review task.
+
+### Private protected-runtime inspection and ancestor scope review
+
+Source GO for the reviewed runtime optimization snapshot at root6ea54d8 plus
+five source edits and the new boundary control. The tracked implementation/
+boundary diff SHA256 is
+`7c68d5445e9995ea4359c5bfd624ecc0fe722383748d30043886b7a70ca63dfb`;
+new certificate-test SHA256 is
+`ce4d134735858f6acff272c71c3bc58f9de813ff67b8197521923f220811647e`.
+This is an implementation review, not measured hosted speedup or new release
+acceptance. Portable process/cache/IPC deadlines remain30/25/45s.
+
+The daemon owns a generation-local Map and clones/freezes records only after
+successful independent caller-proof equality and current index/input/event/
+catalog/health barriers. Imported catalogs, saved state and message certificate
+fields never seed it. Every caller remains a full inspection; origin/public
+capture remains full. Internal child certificate output is removed before public
+facts/proofs, receipt/export interpretation remains unchanged, and the certificate
+cannot select inspected paths. Low-level transport alone is deliberately not
+certificate authentication: fabricated body hashes can reach the low-level
+inspector, but independent full caller proof prevents daemon acceptance.
+
+Warm inspection rereads the fixed protected native cache path, complete bounded
+base/member headers, membership/native UUID, root protection and all member and
+parent fingerprints before returning prior body hashes. Node/helper/readable
+system-image bytes, OpenSSL state, loaded-image coverage, compiler and discovery
+remain fresh. The final loaded-image reread and cache clearing on plan refresh,
+observation gaps and direct input/path/backlog failures are present; restart
+cannot restore private learned content. This retains the trusted nonprivileged OS
+boundary and does not claim defense against compromised root/OS or arbitrary
+same-UID imported certificate provenance.
+
+Independent controls:5/5 current source cache controls pass134.29ms and6/6
+extracted runtime-function mocks pass51.99ms on Node22.13. They cover later
+loaded-image additions, final native/OpenSSL changes, mismatched loaded-image
+certificates forcing full work, and public runtime separation. The first mock
+extraction failed6/6 because a second `import.meta` remained in the VM wrapper;
+replacing both occurrences fixed only reviewer scaffolding. No native runtime,
+observer or model was launched by this reviewer. Parent actual built-in proof
+controls6/6 pass14.194s, actual daemon authority1/1 pass26.087s, and shared
+boundary/receipt controls74/74 pass193.383s; source and retained TAP were reviewed
+without duplicate heavy runs. The actual daemon test observes failed/forged
+client input withholding, first query two full inspections, warm query one full
+caller plus one private revalidation, restart two full inspections, stable
+imported origin and no local verification run. Earlier fixture environment,
+entry-path and start-output parsing failures remain separately retained.
+
+Source/data-only GO for ancestor leaf `bcf72d8` plus `5b6da8a`:23/23 independently
+copied exact controls pass103.03ms. It preserves all local query answers and
+ancestor depth, rejects outside consumed bodies/positive files/unsupported
+queries/symlinks, binds physical endpoint metadata, and explicitly returns
+present-directory and proper-parent coverage requirements through filesystem
+root. Its immutable projection always has reuseEligible=false. Present-container
+watchRoot is not silently treated as complete replacement coverage. This grants
+neither subscription nor interval/receipt authority.
+
+History-only ancestor integration is NOT endorsed. In reviewed
+@parcel/watcher2.5.6, EventList::getEvents omits an entry with both isCreated and
+isDeleted; FSEventsCallback can accumulate separate create/remove occurrences.
+Consequently a formerly absent library candidate created and deleted during
+execution may disappear before JavaScript scope filtering. Matching final
+absence plus successful replay cannot establish that interval. This is a source
+counterexample to the proposed provider use, not a reproduced released
+false-CURRENT outcome. Reviewed provider source hashes are
+`d483e955a012b05ce84795b7616636e05471eaa850d20664af8c03e2026b68d8`
+(Event.hh) and
+`f4cca563cc34c2609201218c94648dda10668edb413b077ac670be7da19e1549`
+(FSEventsBackend.cc).
+
+A separate raw FSEvents design still needs implementation review and actual
+CI-only interval controls: latch relevant raw occurrences before cancellation,
+filter before retention/IPC, irreversible uncertainty for dropped/wrapped/root/
+mount errors, start and end synchronization outside the callback queue, and
+case-alias-safe candidate/prefix matching. Apple SDK FSEvents.h documents that
+FlushSync returns only after callbacks for prior events, but a barrier cannot
+recover discarded events. An ASCII-restricted controlled namespace with
+conservative case-folded comparisons can address NODE_MODULES aliases on a
+case-insensitive filesystem without assuming arbitrary Unicode canonicalization.
+No broad subscription, history capability, private ancestor authority or ordinary
+project reuse has been enabled by this review.
