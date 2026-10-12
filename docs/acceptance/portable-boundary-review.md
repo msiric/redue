@@ -5528,3 +5528,39 @@ compilerExecutions stays NOT_INDEPENDENTLY_ACKNOWLEDGED. Missing/ambiguous outco
 remain UNKNOWN. Sandbox lookup EPERM is not original ENOENT, and no old summary,
 source-only guard, fixture outcome or materialization grants namespace-equivalence,
 native-agent protection, a seal, an origin interval, receipt or reuse authority.
+
+
+## Actual read-only fixture: deadline remains UNKNOWN
+
+Independent read-only review of the saved local fixture record confirmed
+SHAfb4a76d487fd8f36decd11588fa55db107715b89c2e6a8d4b3fb0f4a1985bfb0,
+owned regular single-link0600/1233bytes. Matching outer acknowledgement is
+SHA97d04b2482ce8a0cb6e65f71600859b73be52972580873bd1075da025b1aaa00,
+owned regular single-link0600/415bytes, and binds the saved hash. Both say UNKNOWN /
+FIXTURE_DEADLINE. One dispatch returned child status0, no signal and observed
+reaping, with no retained stdout/stderr bytes. Compiler execution remains not
+independently acknowledged. Final currentness and elapsed duration were not
+established. No validation-phase cause or compiler/recipe success follows from
+this result. The reviewer read only these scoped records and canonical plan text,
+and did not repeat the fixture or execute a compiler/native/model/CI operation.
+
+## Prepared-tree obligation versus live-source currentness
+
+Canonical Section3.3.1 and D12 authorize an explicit prepared stable-tree recipe,
+not conversion of the original live-checkout/npm obligation. Before/after full
+live-source matching was an extra promise of this particular fixture. It is not
+inherently a compiler input where the selected argv, cwd and configuration resolve
+inside the exact prepared tree. A future stage-only mechanical fixture may omit
+that full live-source audit only by explicitly narrowing its claim: preparation
+source selection/config/manifest provenance remains historical, with no statement
+that the live checkout is still current or semantically equivalent.
+
+Do not omit fresh full staged namespace/content/physical/parent/runtime/profile/
+code checks or actual stable-input enforcement. Outside resolution, library
+replacement, aliases and lookup-denial semantics remain unresolved. A sandbox
+EPERM is not the original namespace's ENOENT. An old preparation summary or a
+command zero exit is never a seal or receipt. Future recipient/caller applicability
+must independently establish fresh locally selected source/context equivalence to
+the explicit staged recipe under its supported interpretation; source selection
+and the complete obligation remain required. Existing origin containment stays
+false. This conceptual distinction grants no further compiler/native invocation.
