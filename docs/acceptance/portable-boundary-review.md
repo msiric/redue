@@ -4514,3 +4514,69 @@ Even six actual fixture successes would not establish all recursive membership
 coverage, arbitrary file mutation semantics, continuous @3 origins, recipient
 reuse, host safety or overall G2/G4. Prior failed immediate FSEvents coverage and
 measured late delivery remain preserved.
+
+### Vnode startup UNKNOWN and exact XNU flag correction
+
+Independent read-only review of38294279844 accepts protected report SHA256
+`05c875881aac1d957167cd1486db4203da298c28e2b341330097e4bb26f4a78b`,
+source `e3c8c02fe5a575c5a0f9b8620beffc5029398522`. Result is UNKNOWN with zero
+cases. Guard actually exits74/no signal and is reaped, protocol-clean false;
+mapper exits0/no signal, reaped and protocol-clean. Owned cleanup is true,
+elapsed1254.088ms. Actual native test executable is
+`142b405bb383cf24c6fa6de275c016fe4559bcaa87d2f8f747cf83ffef9c168e`,
+62,680 bytes, built with clang21.0.0 from f871 source. Its builder's started:false
+field describes build behavior, not absence of the actual later guard launch.
+There are no verification compiler or model executions; the native clang build
+is separately recorded. No vnode registration/delivery case was established.
+
+The first driver discarded validated uncertainty codes and native fixed stderr,
+so receipt failure, initialization/parser failure and other startup refusals
+remain unclassified. Exit74 cannot uniquely establish the source of refusal.
+No retrospective cause is assigned after finding the following source defect.
+
+Independent pinned Apple XNU review at commit
+`f6217f891ac0bb64f3d375211650a4c1ff8ca1ea`, kern_event.c SHA256
+`d6bd6351f97713c24d05235179d67ec6947be0114dec1298f77e4deb457b618d`,
+confirms the full route: legacy64 copyin masks EV_SYSFLAGS only, preserving0x61;
+fresh registration copies that state into the knote; apply_touch does not strip
+those flags; vnode filling and legacy copyout retain them. Successful receipt
+adds EV_ERROR/data0 to the original request. Thus exact ordinary flags are0x61
+and receipt flags0x4061 for this fixed registration. The old0x4000 receipt and
+0/0x20 delivery expectations were incorrect for that implementation. The
+[pinned public source](https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/kern/kern_event.c)
+is not a verified byte identity of the runner kernel or proof that first-run
+actual flags matched; unexpected runtime forms must remain UNKNOWN.
+
+Source/mock-only GO for exact correction leaf `9961d165`, integrated `9340b55`,
+native source SHA256
+`f914138709256ea4a429d961727d127dda84c435bf6fdf8a546712748c2a6fa5`.
+It accepts only exact0x4061 receipt with correct fd/filter/data0 and exact0x61
+ordinary delivery. Missing, extra, EOF/error flags and wrong filter/data still
+refuse. Native ABI assertions bind these expressions. This is a finite
+source-informed predicate correction, not a permissive flag mask or production
+engine change.
+
+Frozen driver SHA256
+`c7e6c1da692b8f92af7853eaf07f4664e414cc29e43c29909c285b214a60df52`
+adds bounded64-byte stderr projection to NONE, the exact fixed
+VNODE_PROTOCOL_OR_IO token or UNRECOGNIZED_STATIC_ERROR, and records only the
+first validated uncertainty/static error classification. Review corrected the
+initial reporting delta that could overwrite an earlier accepted cause with
+later INVALID_PROTOCOL. No raw stderr values, paths or unknown payloads appear
+in reports; stop/PASS/FAIL behavior and all prior admission/cleanup gates remain.
+The workflow remains exact e9dd bytes with the same fixed resources and budget.
+
+Independent native-pure suite passes30/30 in805.49ms. Twelve actual-driver VM
+controls pass55.40ms, including prior nine boundaries, first-error retention
+across a later malformed chunk, private-stderr canary non-disclosure and exact
+fixed stderr recognition. Syntax/whitespace checks pass. These mocks create no
+OS watcher or native process. The reviewer launched no real guard, event fd,
+model or CI run. GO is solely for the materially corrected fixed diagnostic,
+not an unchanged retry or interval authority.
+
+The pre-dirty MAP_SHARED case must still be judged from its actual final
+barrier. A missing hint is irreversible FAIL even if other cases or cleanup
+succeed. A passing single fixture would not establish a note for every later
+CPU store: EV_CLEAR clears event state, not mapped-page protections or pageout
+scheduling. Arbitrary mapped change/restore completeness and @3 ordinary
+contract acceptance remain unproved; no assertion or resource scope is weakened.
