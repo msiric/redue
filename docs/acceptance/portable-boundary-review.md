@@ -4601,7 +4601,7 @@ Both children actually exit0/no signal, are reaped and protocol-clean; owned
 cleanup is true. Elapsed2034.906ms is diagnostic duration, not economics. Native
 source is f914 and actual executable SHA256
 `17d58b9f67260dc04f80cbab4084791d561e99202af61103c7afc1aeb52833c5`,
-62,680 bytes, clang21.0.0. There are no verification/compiler/model executions;
+62,680 bytes, clang21.0.0. There are no verification or model executions;
 the native build is separately recorded. No further unchanged FSEvents/vnode
 experiments, delay workaround or weaker assertion is justified.
 
