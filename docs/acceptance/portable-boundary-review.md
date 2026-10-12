@@ -5601,3 +5601,44 @@ PREPARED_SNAPSHOT_ROUTE_EXIT_ZERO_NOT_SEALED is no independently acknowledged
 compiler execution, native-agent protection, namespace equivalence, seal, receipt
 or reuse authority. Reviewer source/mocks performed no real phase walk, compiler,
 preparer, native agent, model or CI operation and raised no deadline or permissions.
+
+
+## Actual component sample and snapshot mismatch: no cause assigned
+
+Independent read-only review confirmed component record
+SHA01ea67ad1c9942cde06fe523c6a56a093418f1e23df4d4a89b5f50665bc44c5a,
+with matching outerSHA8841bee1f50c976e37ee65a7371f3cc0afd468b7f2d6805c0c1a115ec42641a5.
+Both are owned regular single-link0600. Four callbacks completed with zero
+compiler dispatch/execution and overall UNKNOWN. Single observed component times
+were code72.551ms, live selected/installed source9857.792ms, full stage6685.825ms
+and compiler/runtime profile68.730ms; sequence elapsed16695.479ms. This is not a
+whole before/after cycle, causal attribution for the earlier deadline or a seal.
+
+Snapshot recordSHA821b673b58874fef758b09f991d235f1046f9bb3fa8c707b88ca6eb6964c136c
+matches outerSHAdd1962ff870a3f2fe38c3e4699e3dd5f16a332ee4f8e65f9dc7588ba5aee1ab2;
+both owned regular single-link0600. It remains UNKNOWN with bindingsCurrent=false,
+14537.30225ms, one dispatch, child0/no signal/observed reap, no stdout/stderr bytes,
+and33345files/4532directories/77links. No failed guard role was retained and no
+compiler repeat is justified by guessing it. In the exact source each successful
+inspect call requires the same immutable expected manifest digest, so the content-
+digest conjunct is equal; code rows, full stage physical or general bindings can
+still explain the false conjunction, without a specific actual cause established.
+
+Source review found codeBinding hashes insertion-order enumeration rows and full
+ancestor-directory fingerprints including size/mtime/ctime. Four pure known-row
+controls passed4/4 in50.46ms: reordered rows change the original digest but not
+an order-independent full-row multiset; duplicates remain represented; directory
+size/time change differs from identity change; same-body inode replacement and
+new empty-directory topology still differ. These are diagnostic counterexamples,
+not an actual fixture cause or permission to weaken currentness guards.
+
+Smallest next direction is one no-dispatch read-only pair of unchanged guard
+collections, reporting only fixed component equality booleans: original code
+order/full-row multiset, file/link content+physical, directory identity/topology
+versus full metadata, stage manifest/full physical, and Node/profile/config/parent
+roles. Sort whole canonical rows and preserve duplicates for diagnostic comparison.
+No raw paths, bodies, timestamps, inode values or environment are output. Keep
+original strict classification/allUNKNOWN and actual finalization bounds; normalized
+comparisons are observations, never an admission rule. Missing/failed components
+stay unknown. Exact code still requires independent review before measurement.
+No reviewer compiler, native/model/CI operation or real component walk occurred.
