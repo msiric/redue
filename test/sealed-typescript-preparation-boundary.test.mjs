@@ -17,9 +17,12 @@ function fixture(t){const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdi
   t.after(()=>fs.rmSync(base,{recursive:true,force:true}));return{base,source,parent,outside};}
 function output(child){
   // Never surface raw child stderr or body data, even on assertion failure.
-  assert.equal(child.status,0,'restricted child failed or sandbox did not start');
-  assert.equal(child.signal,null);assert.equal(child.error,undefined);
-  assert.equal(child.stderr,'');return JSON.parse(child.stdout);
+  assert(child.status===0,'PREPARATION_STARTUP_OR_CHILD_FAILED_UNKNOWN');
+  assert(child.signal===null,'PREPARATION_CHILD_SIGNAL_UNKNOWN');
+  assert(child.error===undefined,'PREPARATION_LAUNCH_ERROR_UNKNOWN');
+  assert(child.stderr==='','PREPARATION_UNEXPECTED_STDERR_UNKNOWN');
+  let result;try{result=JSON.parse(child.stdout);}catch{assert.fail('PREPARATION_OUTPUT_PARSE_UNKNOWN');}
+  assert(result&&typeof result==='object'&&!Array.isArray(result),'PREPARATION_OUTPUT_SCHEMA_UNKNOWN');return result;
 }
 test('fixed child materializes ordinary owned input under the restrictive preparation profile',supported,t=>{
   const f=fixture(t),proposal=sealedPreparationProfile({source:f.source,parent:f.parent}),file=path.join(f.source,'a.ts'),
