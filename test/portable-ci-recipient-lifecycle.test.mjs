@@ -10,6 +10,7 @@ import {createHash,randomUUID} from 'node:crypto';
 import {canonical,encodeEnvelope,PORTABLE_INTERPRETATION} from '../src/portable-envelope.mjs';
 import {directEnvironment} from '../src/direct-typescript.mjs';
 import {runCIMachineRecipient,withHeldCIMachineRecipient} from './acceptance/portable-ci-machine-recipient.mjs';
+import {writeControlledPortableGuidance} from './acceptance/portable-controlled-guidance.mjs';
 const hash=value=>createHash('sha256').update(value).digest('hex'),owned={skip:typeof process.getuid!=='function'};
 function fixture(t){
  const base=fs.realpathSync(fs.mkdtempSync('/tmp/redue-ci-recipient-')),data=fs.realpathSync(fs.mkdtempSync('/tmp/redue-ci-data-'));
@@ -43,11 +44,11 @@ function fixture(t){
   if(file==='/usr/bin/plutil')return reply({FilesystemType:'apfs',Writable:true});
   if(file==='/usr/bin/sw_vers')return reply(args[0]==='-productVersion'?'26.6.2':'25G83');
   if(file==='npm'){
-   if(args.includes('--global')){fs.mkdirSync(path.dirname(cli),{recursive:true});fs.writeFileSync(cli,'controlled CLI; never executed');}
+   if(args.includes('--global')){fs.mkdirSync(path.dirname(cli),{recursive:true});fs.writeFileSync(cli,'controlled CLI; never executed');const policy=path.join(prefix,'lib/node_modules/@redue/cli/src/agent-policy.md');fs.mkdirSync(path.dirname(policy),{recursive:true});fs.writeFileSync(policy,fs.readFileSync(new URL('../src/agent-policy.md',import.meta.url)));}
    else {const compiler=path.join(root,'node_modules/typescript/lib/tsc.js');fs.mkdirSync(path.dirname(compiler),{recursive:true});fs.writeFileSync(path.join(root,'node_modules/typescript/package.json'),canonical({name:'typescript',version:'5.6.3'}));fs.writeFileSync(compiler,'controlled compiler path; never executed');}
    return reply('');
   }
-  if(file==='git')return reply('');
+  if(file==='git'){fs.mkdirSync(path.join(root,'.git'),{mode:0o700});return reply('');}
   if(file===process.execPath&&args.includes('--input-type=module'))return reply({runtime:profile.runtime,boot:hash('receiver boot'),physical:hash('receiver node')});
   assert.equal(file,process.execPath);assert.equal(args[0],cli,'only owned installed CLI subprocesses may be requested');assert(!args.includes('run'),'no equivalent compiler command');
   const command=args[5];f.events.push(command);
@@ -68,28 +69,27 @@ function fixture(t){
  });return f;
 }
 const imports=f=>f.calls.filter(c=>c.args.includes('import'));
-test('held phase awaits preparation before baseline, exposes read-only status, and always stops',owned,async t=>{
+test('held phase awaits preparation before eligible baseline, exposes read-only status, and always stops',owned,async t=>{
  const f=fixture(t);let captured;
- const report=await withHeldCIMachineRecipient(f.options,{prepare:async paths=>{assert(!f.running);assert(!f.imported);assert(!fs.existsSync(paths.state));await Promise.resolve();fs.writeFileSync(path.join(paths.root,'AGENTS.md'),'Controlled instruction setup before baseline.\n');f.events.push('prepare-done');},supervise:async context=>{captured=context;assert(f.running);assert(f.imported);assert(Object.isFrozen(context));assert(Object.isFrozen(context.paths));assert.deepEqual(Object.keys(context).sort(),['baseline','paths','signal','status']);assert.equal(context.baseline.checks[0].imported_evidence.digest,f.envelope.digest);assert(!Object.hasOwn(context,'doctor'));assert(!fs.existsSync(path.join(context.paths.root,'notes.md')));assert(fs.readFileSync(path.join(context.paths.root,'src/a.ts'),'utf8').includes('= 1;'));await Promise.resolve();assert(f.running);assert.equal(context.status().checks[0].freshness,'CURRENT');return 'completed';}});
- assert.equal(report.supervision,'completed');assert.equal(report.preparation.models_launched,0);assert.equal(f.running,false);assert.equal(f.stopCount,1);assert(f.events.indexOf('prepare-done')<f.events.indexOf('start'));assert(f.events.indexOf('prepare-done')<f.events.indexOf('evidence'));assert(!fs.existsSync(path.join(f.state,'runs-v1')));
+ const report=await withHeldCIMachineRecipient(f.options,{prepare:async paths=>{assert(f.running);assert(!f.imported);assert(fs.existsSync(paths.state));await Promise.resolve();fs.writeFileSync(path.join(paths.root,'AGENTS.md'),'Controlled instruction setup before baseline.\n');f.events.push('prepare-done');},supervise:async context=>{captured=context;assert(f.running);assert(f.imported);assert(Object.isFrozen(context));assert(Object.isFrozen(context.paths));assert.deepEqual(Object.keys(context).sort(),['baseline','paths','signal','status']);assert.equal(context.baseline.checks[0].imported_evidence.digest,f.envelope.digest);assert(!Object.hasOwn(context,'doctor'));assert(!fs.existsSync(path.join(context.paths.root,'notes.md')));assert(fs.readFileSync(path.join(context.paths.root,'src/a.ts'),'utf8').includes('= 1;'));await Promise.resolve();assert(f.running);assert.equal(context.status().checks[0].freshness,'CURRENT');return 'completed';}});
+ assert.equal(report.supervision,'completed');assert.equal(report.preparation.models_launched,0);assert.equal(f.running,false);assert.equal(f.stopCount,1);assert(f.events.indexOf('start')<f.events.indexOf('prepare-done'));assert(f.events.indexOf('prepare-done')<f.events.indexOf('evidence'));assert(!fs.existsSync(path.join(f.state,'runs-v1')));
  const before=f.calls.length;assert.throws(()=>captured.status(),{code:'CI_MACHINE_CLOSED'});assert.equal(f.calls.length,before,'escaped status capability cannot launch after lifecycle ends');
 });
 test('preview invokes neither callback and performs zero subprocesses',owned,async t=>{const f=fixture(t);let callbacks=0;const options={...f.options};delete options['--apply'];const report=await withHeldCIMachineRecipient(options,{prepare:()=>callbacks++,supervise:()=>callbacks++});assert.equal(report.applied,false);assert.equal(callbacks,0);assert.equal(f.calls.length,0);assert.deepEqual(fs.readdirSync(f.base),[]);});
 test('missing supervisor fails before any process or setup',async()=>{await assert.rejects(withHeldCIMachineRecipient({},{}),{code:'CI_MACHINE_SUPERVISOR'});});
-for(const fault of ['prepare-error','replaced-config','changed-config','initialized-state','cli-change','setup','start','held-eligibility','local-run','registry-change'])test(`held ${fault} failed gate never invokes supervisor`,owned,async t=>{
+for(const fault of ['prepare-error','replaced-config','changed-config','replaced-state','setup','start','held-eligibility','local-run','registry-change'])test(`held ${fault} failed gate never invokes supervisor`,owned,async t=>{
  const f=fixture(t);let supervised=0;f.fault=fault;
  const prepare=()=>{
   if(fault==='prepare-error')throw Object.assign(Error('Controlled preparation failure'),{code:'PREPARE_FAILED'});
   if(fault==='replaced-config'){const bytes=fs.readFileSync(f.config);fs.renameSync(f.config,f.config+'.original');fs.writeFileSync(f.config,bytes);}
   if(fault==='changed-config')fs.appendFileSync(f.config,' ');
-  if(fault==='initialized-state')fs.mkdirSync(f.state);
-  if(fault==='cli-change')fs.appendFileSync(f.cli,' changed');
+  if(fault==='replaced-state'){fs.renameSync(f.state,f.state+'.old');fs.mkdirSync(f.state,{mode:0o700});}
   if(fault==='registry-change')fs.appendFileSync(f.registryFile,' ');
  };
- const codes={'prepare-error':'PREPARE_FAILED','replaced-config':'CI_MACHINE_PREPARATION_CHANGED','changed-config':'CI_MACHINE_PREPARATION_CHANGED','initialized-state':'CI_MACHINE_PREPARATION_CHANGED','cli-change':'CI_MACHINE_CLI_CHANGED',setup:'CI_MACHINE_SETUP',start:'CI_MACHINE_COMMAND','held-eligibility':'ERR_ASSERTION','local-run':'CI_MACHINE_INVALIDATION','registry-change':'CI_MACHINE_REGISTRY'};
+ const codes={'prepare-error':'PREPARE_FAILED','replaced-config':'CI_MACHINE_PREPARATION_CHANGED','changed-config':'CI_MACHINE_PREPARATION_CHANGED','replaced-state':'CI_MACHINE_OWNERSHIP',setup:'CI_MACHINE_SETUP',start:'CI_MACHINE_COMMAND','held-eligibility':'ERR_ASSERTION','local-run':'CI_MACHINE_INVALIDATION','registry-change':'CI_MACHINE_REGISTRY'};
  await assert.rejects(withHeldCIMachineRecipient(f.options,{prepare,supervise:()=>supervised++}),{code:codes[fault]});assert.equal(supervised,0);assert.equal(f.running,false);
- if(['prepare-error','replaced-config','changed-config','initialized-state','cli-change','setup'].includes(fault)){assert.equal(f.startCount,0);assert.equal(imports(f).length,0);}
- if(['start','registry-change'].includes(fault)){assert.equal(f.stopCount,1);assert.equal(imports(f).length,0);}
+ if(fault==='setup'){assert.equal(f.startCount,0);assert.equal(imports(f).length,0);}
+ if(['prepare-error','replaced-config','changed-config','replaced-state','start','registry-change'].includes(fault)){assert.equal(f.startCount,1);assert.equal(f.stopCount,1);assert.equal(imports(f).length,0);}
 });
 for(const fault of ['exception','cancellation'])test(`supervisor ${fault} preserves failure and stops owned observer`,owned,async t=>{const f=fixture(t),error=Object.assign(Error('Controlled supervisor end'),{code:fault==='cancellation'?'ABORT_ERR':'SUPERVISOR_FAILED'});if(fault==='cancellation')error.name='AbortError';await assert.rejects(withHeldCIMachineRecipient(f.options,{prepare:()=>{},supervise:async()=>{assert(f.running);await Promise.resolve();throw error;}}),e=>e===error);assert.equal(f.running,false);assert.equal(f.stopCount,1);assert(Array.isArray(error.machine_recipient_calls));});
 test('failed cleanup does not report a successful closed held lifecycle',owned,async t=>{const f=fixture(t);await assert.rejects(withHeldCIMachineRecipient(f.options,{prepare:()=>{},supervise:()=>{f.fault='cleanup';return 'completed';}}),{code:'CI_MACHINE_CLEANUP'});assert.equal(f.stopCount,1);});
@@ -107,11 +107,11 @@ test('cleanup failure retains the original supervisor failure separately',owned,
 
 test('pre-aborted supervisor launches zero setup, import and callback processes',owned,async t=>{const f=fixture(t),controller=new AbortController();controller.abort();let calls=0;await assert.rejects(withHeldCIMachineRecipient(f.options,{signal:controller.signal,prepare:()=>calls++,supervise:()=>calls++}),{code:'CI_MACHINE_ABORTED'});assert.equal(calls,0);assert.equal(f.calls.length,0);assert.deepEqual(fs.readdirSync(f.base),[]);});
 for(const timeoutMs of [0,-1,300001,Infinity,NaN,1.5])test(`invalid or above-approved supervisor bound ${timeoutMs} never launches setup`,async()=>{await assert.rejects(withHeldCIMachineRecipient({}, {timeoutMs,prepare:()=>{},supervise:()=>{}}),{code:'CI_MACHINE_SUPERVISOR'});});
-test('never-settling preparation is bounded and cannot start observer or supervisor',owned,async t=>{const f=fixture(t);t.mock.timers.enable({apis:['setTimeout']});let supervised=0,preparedSignal,entered;const ready=new Promise(resolve=>entered=resolve),work=withHeldCIMachineRecipient(f.options,{prepare:(_paths,{signal})=>{preparedSignal=signal;entered();return new Promise(()=>{});},supervise:()=>supervised++});await ready;t.mock.timers.tick(300000);await assert.rejects(work,{code:'CI_MACHINE_TIMEOUT'});assert.equal(preparedSignal.aborted,true);assert.equal(f.startCount,0);assert.equal(supervised,0);assert.equal(imports(f).length,0);});
+test('never-settling preparation is bounded and stops initialized observer without import or supervisor',owned,async t=>{const f=fixture(t);t.mock.timers.enable({apis:['setTimeout']});let supervised=0,preparedSignal,entered;const ready=new Promise(resolve=>entered=resolve),work=withHeldCIMachineRecipient(f.options,{prepare:(_paths,{signal})=>{preparedSignal=signal;entered();return new Promise(()=>{});},supervise:()=>supervised++});await ready;t.mock.timers.tick(300000);await assert.rejects(work,{code:'CI_MACHINE_TIMEOUT'});assert.equal(preparedSignal.aborted,true);assert.equal(f.startCount,1);assert.equal(f.stopCount,1);assert.equal(f.running,false);assert.equal(supervised,0);assert.equal(imports(f).length,0);});
 test('never-settling held supervisor expires, aborts and stops rather than reporting success',owned,async t=>{const f=fixture(t);t.mock.timers.enable({apis:['setTimeout']});let context,entered;const ready=new Promise(resolve=>entered=resolve),work=withHeldCIMachineRecipient(f.options,{prepare:()=>{},supervise:value=>{context=value;assert(f.running);entered();return new Promise(()=>{});}});await ready;t.mock.timers.tick(300000);await assert.rejects(work,{code:'CI_MACHINE_TIMEOUT'});assert.equal(context.signal.aborted,true);assert.equal(f.running,false);assert.equal(f.stopCount,1);const before=f.calls.length;assert.throws(()=>context.status(),{code:'CI_MACHINE_TIMEOUT'});assert.equal(f.calls.length,before);});
 test('caller cancellation during awaited supervisor stops its exact owned observer',owned,async t=>{const f=fixture(t),controller=new AbortController();let context;await assert.rejects(withHeldCIMachineRecipient(f.options,{signal:controller.signal,prepare:()=>{},supervise:value=>{context=value;controller.abort();return new Promise(()=>{});}}),{code:'CI_MACHINE_ABORTED'});assert.equal(context.signal.aborted,true);assert.equal(f.running,false);assert.equal(f.stopCount,1);});
 
-test('caller cancellation in preparation cannot establish an observer or call supervisor',owned,async t=>{const f=fixture(t),controller=new AbortController();let supervised=0;await assert.rejects(withHeldCIMachineRecipient(f.options,{signal:controller.signal,prepare:()=>{controller.abort();return new Promise(()=>{});},supervise:()=>supervised++}),{code:'CI_MACHINE_ABORTED'});assert.equal(f.startCount,0);assert.equal(supervised,0);assert.equal(imports(f).length,0);});
+test('caller cancellation in preparation stops initialized observer without import or supervisor',owned,async t=>{const f=fixture(t),controller=new AbortController();let supervised=0;await assert.rejects(withHeldCIMachineRecipient(f.options,{signal:controller.signal,prepare:()=>{controller.abort();return new Promise(()=>{});},supervise:()=>supervised++}),{code:'CI_MACHINE_ABORTED'});assert.equal(f.startCount,1);assert.equal(f.stopCount,1);assert.equal(f.running,false);assert.equal(supervised,0);assert.equal(imports(f).length,0);});
 test('settled callback after the monotonic deadline cannot report success',owned,async t=>{const f=fixture(t);let now=performance.now();t.mock.method(performance,'now',()=>now);await assert.rejects(withHeldCIMachineRecipient(f.options,{timeoutMs:1000,prepare:()=>{},supervise:()=>{now+=1001;return 'late';}}),{code:'CI_MACHINE_TIMEOUT'});assert.equal(f.running,false);assert.equal(f.stopCount,1);});
 
 test('successful stop exit with unavailable response is not a completed held cleanup',owned,async t=>{const f=fixture(t);await assert.rejects(withHeldCIMachineRecipient(f.options,{prepare:()=>{},supervise:()=>{f.fault='cleanup-soft-failure';return 'completed';}}),{code:'CI_MACHINE_CLEANUP'});assert.equal(f.stopCount,1);});
@@ -130,3 +130,39 @@ test('caught and restored authority violation remains latched until owner ends l
 test('legitimate relevant source edit can close supervision without claiming final CURRENT',owned,async t=>{const f=fixture(t),report=await withHeldCIMachineRecipient(f.options,{prepare:()=>{},supervise:context=>{fs.writeFileSync(path.join(f.root,'src/a.ts'),'export const value: number = 2;\n');assert.equal(context.status().checks[0].freshness,'STALE');return {freshness:'STALE'};}});assert.equal(report.prepared_eligible,true);assert.equal(report.supervision.freshness,'STALE');assert(!Object.hasOwn(report,'recipient_reuse_eligible'));assert.equal(f.running,false);});
 
 test('deadline observed during final filesystem barrier cannot publish successful supervision',owned,async t=>{const f=fixture(t);let now=performance.now(),armed=false;t.mock.method(performance,'now',()=>now);const read=fs.readSync;t.mock.method(fs,'readSync',(...args)=>{const result=read(...args);if(armed){armed=false;now+=1001;}return result;});await assert.rejects(withHeldCIMachineRecipient(f.options,{timeoutMs:1000,prepare:()=>{},supervise:()=>{armed=true;return 'completed';}}),{code:'CI_MACHINE_TIMEOUT'});assert.equal(f.running,false);assert.equal(f.stopCount,1);});
+
+// The real shared guidance writer executes on a controlled, nonexecuting CLI
+// fixture. This checks lifecycle integration, not installed/native enforcement.
+test('shared guidance writer uses actual initialized owner before eligible baseline',owned,async t=>{
+ const f=fixture(t);let prepared=false;
+ const report=await withHeldCIMachineRecipient(f.options,{prepare:paths=>{
+  assert(f.running);assert.equal(f.imported,false);assert.equal(imports(f).length,0);
+  const ownerFile=path.join(paths.state,'vstate-owner-v1.json'),before=fs.readFileSync(ownerFile),identity=fs.statSync(ownerFile).ino;
+  const policyFile=path.join(paths.prefix,'lib/node_modules/@redue/cli/src/agent-policy.md');
+  const opts={root:paths.root,state:paths.state,prefix:paths.prefix,policyFile,policySha256:hash(fs.readFileSync(policyFile)),hosts:['claude'],role:'receiver'};
+  assert.equal(writeControlledPortableGuidance(opts).applied,false);
+  assert.equal(writeControlledPortableGuidance({...opts,apply:true}).applied,true);
+  assert(fs.readFileSync(path.join(paths.root,'CLAUDE.md'),'utf8').includes('REDUE_PORTABLE_AGENT.md'));
+  assert(fs.readFileSync(ownerFile).equals(before));assert.equal(fs.statSync(ownerFile).ino,identity);
+  f.events.push('shared-guidance');prepared=true;
+ },supervise:context=>{assert(prepared);assert.equal(context.baseline.checks[0].freshness,'CURRENT');return 'controlled';}});
+ assert.equal(report.supervision,'controlled');assert(f.events.indexOf('start')<f.events.indexOf('shared-guidance'));
+ assert(f.events.indexOf('shared-guidance')<f.events.indexOf('evidence'));assert.equal(f.running,false);assert.equal(f.stopCount,1);
+});
+for(const fault of ['owner','runtime','local-run','local-receipt','import-selector','pending-import'])test(`preparation ${fault} cannot introduce authority/history before import`,owned,async t=>{
+ const f=fixture(t);let supervised=0;
+ const code={owner:'CI_MACHINE_OWNERSHIP',runtime:'CI_MACHINE_RUNTIME_CHANGED','local-run':'CI_RECIPIENT_LOCAL_EXECUTION','local-receipt':'CI_RECIPIENT_LOCAL_EXECUTION','import-selector':'CI_MACHINE_HISTORY','pending-import':'CI_RECIPIENT_OWNERSHIP'}[fault];
+ await assert.rejects(withHeldCIMachineRecipient(f.options,{prepare:paths=>{
+  if(fault==='owner'||fault==='runtime'){const file=path.join(paths.state,fault==='owner'?'vstate-owner-v1.json':'project-runtime-v1.json'),bytes=fs.readFileSync(file);fs.renameSync(file,file+'.old');fs.writeFileSync(file,bytes);}
+  if(fault==='local-run'){fs.mkdirSync(path.join(paths.state,'runs-v1'));fs.writeFileSync(path.join(paths.state,'runs-v1','new.json'),'{}');}
+  if(fault==='local-receipt')fs.writeFileSync(path.join(paths.state,'receipts-v1.json'),canonical({schema:1,checks:{typecheck:{}}}));
+  if(fault==='import-selector')fs.writeFileSync(path.join(paths.state,'portable-imports-v1.json'),canonical({schema:1,records:[]}));
+  if(fault==='pending-import')fs.writeFileSync(path.join(paths.state,'portable-import-pending-v1.json'),'{}');
+ },supervise:()=>supervised++}),{code});
+ assert.equal(supervised,0);assert.equal(imports(f).length,0);assert.equal(f.stopCount,1);assert.equal(f.running,false);
+});
+test('CLI replacement during preparation refuses execution and cannot claim observer cleanup',owned,async t=>{
+ const f=fixture(t);let supervised=0;
+ await assert.rejects(withHeldCIMachineRecipient(f.options,{prepare:()=>fs.appendFileSync(f.cli,' changed'),supervise:()=>supervised++}),error=>error.code==='CI_MACHINE_CLI_CHANGED'&&error.cleanup_code==='CI_MACHINE_CLI_CHANGED');
+ assert.equal(supervised,0);assert.equal(imports(f).length,0);assert.equal(f.stopCount,0);assert.equal(f.running,true,'No unsafe fallback or reaping claim after CLI authority loss');
+});

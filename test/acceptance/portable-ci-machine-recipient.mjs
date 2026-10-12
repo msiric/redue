@@ -120,11 +120,11 @@ function openCIMachineRecipientPhase(options){
    if(registryIdentity){const file=path.join(state,'portable-producers-v1.json');if(!readBoundedPortableFile(file,{limit:65536}).equals(checked.registryBytes)||fingerprint(fs.lstatSync(file,{bigint:true}))!==registryIdentity)fail('CI_MACHINE_REGISTRY');}
   }catch(error){authorityError=error;throw error;}
  };
- const paths=Object.freeze({base,root,state,prefix,config,cli});
- return {paths,calls,close,activate(){
-  if(lifecycle!=='prepared')fail('CI_MACHINE_LIFECYCLE');
-  // Guidance preparation must not replace the selected config or initialize a
-  // different state/observer/history before the fresh owned baseline.
+ // The existing installed CLI creates the real state/runtime/owner before
+ // caller-owned guidance preparation. No check executes and no import or
+ // eligibility baseline is established here; the shared writer requires this
+ // actual ownership rather than a synthetic marker or an artifact-supplied path.
+ try{
   bindings();
   try{fs.lstatSync(state);fail('CI_MACHINE_PREPARATION_CHANGED');}catch(error){if(error.code!=='ENOENT')throw error;}
   started=true;lifecycle='observing';redue('start');
@@ -132,7 +132,15 @@ function openCIMachineRecipientPhase(options){
   runtimeBytes=readBoundedPortableFile(runtimeFile,{limit:65536});runtimeIdentity=fingerprint(fs.lstatSync(runtimeFile,{bigint:true}));
   if(canonical(parsePortableJson(runtimeBytes))!==canonical(project.runtime))fail('CI_MACHINE_RUNTIME_CHANGED');
   const ownerFile=path.join(state,'vstate-owner-v1.json');ownerBytes=readBoundedPortableFile(ownerFile,{limit:8192});ownerIdentity=fingerprint(fs.lstatSync(ownerFile,{bigint:true}));stateIdentity=directory(state);
-  requireFreshCIObserver(json('status','--sync'));
+  bindings();lifecycle='prepared';
+ }catch(error){error.machine_recipient_calls=calls;close();throw error;}
+ const paths=Object.freeze({base,root,state,prefix,config,cli});
+ return {paths,calls,close,activate(){
+  if(lifecycle!=='prepared')fail('CI_MACHINE_LIFECYCLE');
+  // Preparation may add reviewed instructions, but cannot replace authority or
+  // introduce local execution/import history before the fresh imported baseline.
+  bindings();readCIRecipientProject({configFile:config,root,state,cliEntry:cli});
+  requireFreshCIObserver(json('status','--sync'));bindings();
   // Re-read selected exact inputs after setup. Base is now intentionally occupied;
   // raw registry must still match before the only explicit new-state policy copy.
   const current=readBoundedPortableFile(o['--registry'],{limit:65536});if(!current.equals(checked.registryBytes))fail('CI_MACHINE_REGISTRY');
@@ -188,7 +196,7 @@ export async function withHeldCIMachineRecipient(options,{prepare,supervise,sign
  };
  try{
   phase=openCIMachineRecipientPhase(options);if(phase.preview)return phase.preview;
-  // Caller-owned reviewed instruction setup finishes BEFORE observer/import.
+  // Caller-owned reviewed instruction setup finishes BEFORE eligibility/import.
   // This helper never fabricates doctor output or installed-policy authority.
   await awaitBound(()=>prepare(phase.paths,Object.freeze({signal:controller.signal})));
   if(signal?.aborted)abort();if(controller.signal.aborted)throw controller.signal.reason;
