@@ -3446,3 +3446,64 @@ Prepared workflow commit `35a5ddf67012d7092c8a87235e6819f0ce145e6b`, SHA-256
 is byte-proven identical to d8cd842 except for the7870dd1 to3e5e946 source pin.
 Conclusion: GO for the metadata observation correction and pin only. The genuine
 final-guard UNKNOWN and all limited successful observations remain preserved.
+
+### Remote-settings role and frozen-route empty-sentinel criterion
+
+Protected final report38252736249, SHA-256
+`fbb3deb9d7e4d0aabd6f75b0542abe860a3ef6fea8cab4ee9a409c88253f6903`,
+independently confirms the same six named PASS/observed checker and native exit0,
+matching tool IDs/socket collection/protocol[1,0,0], two reported turns and
+successful lifecycle. The actual final refusal is ISOLATED_REMOTE_SETTINGS at
+AFTER_NATIVE. Presence establishes neither file type nor content nor benign
+policy. Its bytes were not captured. Keep this historical overall UNKNOWN;
+no later source interpretation supplies its missing content retrospectively.
+
+A final empty cache alone is insufficient for arbitrary native sessions: Ano
+can apply settings in memory, cache them, and later overwrite them. The finite
+pinned187 closure is narrower. Independent references corroborate one mutually
+exclusive preAction bLn call. Its nonawait branch is explicitly accounted for:
+utp returns only its first accepted response, and failed retries apply nothing.
+Gje settings application is confined to Ano. K3e callers are interactive login
+callbacks or a main onboarding branch with so assigned only inside !print; the
+c3a alias is the local-JSX login module, with other lxe callbacks limited to
+login/usage/upgrade/remote-control UI. These are unreachable under the fixed
+non-slash print prompt, closed stdin, no SDK/bridge/UI inputs and sole literal
+Bash collector. Automatic OAuth refresh has no independent K3e/Ano caller. The
+background poll is a standard one-hour setInterval, outside the120s route. Fresh
+prelaunch cache absence excludes stale settings; qpe is disabled in this pin.
+
+W_a rejects nonempty raw settings if iCe yields null, and iCe yields null when
+the parsed object has no own keys. Thus salvaging cannot serialize an accepted
+effective nonempty policy as{}. Under the sole application/writer, observing
+the native exact two-byte{} sentinel after successful reaping establishes its
+accepted empty response even when that one fetch completed asynchronously.
+This reasoning depends on the entire frozen route, current authoritative owner
+no-policy/account fact and closed customization inputs. Ownership alone is not
+authentication against arbitrary same-UID writers or malicious policy hooks.
+Do not extend the criterion to interactive/login/long-lived/multi-fetch sessions.
+
+Candidate `49b3f44fc9d8b0c74dab6ae3432252f7642a06a0`, helper SHA-256
+`93aa3a0ccc8d92161d6c1b7d898216af0c6c7e3423e01d5e3c43ed40d39fb105`,
+implements only that narrow post criterion. Prelaunch retains all10 absence
+guards; postlaunch retains every other source refusal. Only an exact current-UID
+600, single-link regular canonical file with stable descriptor/path fingerprints
+and exact two-byte{} can qualify. Missing, nonempty, malformed, unsafe or changed
+cache stays UNKNOWN; no general policy or credential body is parsed. readOwned
+now caps each read to remaining limit plus one, so even growth cannot read beyond
+three bytes for this sentinel. Caller wiring requires validated error-free native
+init, exit0/no signal, observed reaping, no timeout, remaining bounded lifetime,
+live controls and immutable manifest currency before invoking the criterion.
+All independent checker/tool/result/lifecycle proofs still remain necessary.
+
+Independent22/22 controls pass on this POSIX host (105.877ms); the filesystem
+controls explicitly declare Windows skips. They cover owned nonsecret sentinel
+fixtures, all other role refusals, nonempty no-read cases,
+replacement/growth/truncation/fstat and parent-indirection controls. No actual
+protected source or credential body was read by this reviewer; no native/auth,
+model or CI operation occurred. Prepared workflow
+`dc9728aea9a7fc76db6d342f32c18eb12630639b`, SHA-256
+`1171946b2ee119f2c047c7b23422989738a1873dd7994f75dfb1859ba5fac85c`,
+is byte-identical to35a5ddf except its3e5e946 to49b3f44 source pin. Settings,
+argv, environment, turns, deadlines, resource grants and secret scope remain
+unchanged. Conclusion: qualified GO for the frozen-route criterion and pin,
+not a historical native PASS, general no-policy certificate or completed G2 gate.
