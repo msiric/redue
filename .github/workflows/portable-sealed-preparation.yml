@@ -1,0 +1,39 @@
+# Unregistered proposal: fixed, storage-free preparation mechanics only.
+# No native agent, credentials, inference, signing or evidence authority.
+name: Fixed sealed-input preparation mechanics
+on:
+  push:
+    branches: [dev/portable-sealed-preparation-ci]
+    paths: [.github/workflows/portable-sealed-preparation.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: redue-sealed-preparation-mechanics
+  cancel-in-progress: false
+jobs:
+  preparation:
+    if: github.repository == 'msiric/redue' && github.ref == 'refs/heads/dev/portable-sealed-preparation-ci' && github.actor == 'msiric' && github.run_attempt == 1
+    runs-on: macos-26
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 5d366102083495bca53c08ffe87f3f9831e9053a
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.13.0'
+      - name: Verify fixed source and non-model profile; run two local preparation cases
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '5d366102083495bca53c08ffe87f3f9831e9053a'
+          test "$(uname -m)" = arm64
+          test "$(node --version)" = v22.13.0
+          node --test --test-concurrency=1 \
+            test/sealed-typescript-preparation-child.test.mjs \
+            test/sealed-typescript-preparation-profile.test.mjs \
+            test/sealed-typescript-preparation-boundary.test.mjs
+      # Fixed fixture-only test. No npm install/scripts, public project copy,
+      # uploads, caching, secret environment, OIDC, signing or model session.
