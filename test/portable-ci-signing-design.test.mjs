@@ -68,3 +68,16 @@ for(const kind of ['duplicate','wrong-source','changed-subject','unknown-manifes
   if(kind==='incomplete'){const changed=structuredClone(f.envelope);changed.statement.predicate.origin.complete=false;fs.writeFileSync(file,canonical(changed));}
   const r=f.run();assert.ifError(r.error);assert.equal(r.signal,null);assert(Number.isInteger(r.status));assert.notEqual(r.status,0);assert(!fs.existsSync(path.join(f.base,'redue-sign-predicate.json')));
  });
+
+// The older incomplete mutation deliberately also breaks digest integrity. This
+// coherent control protects origin completeness independently of those guards.
+test('signer rejects a coherent incomplete origin despite valid integrity bindings',signerPlatform,t=>{
+ const f=fixture(t),predicate=structuredClone(f.envelope.statement.predicate);predicate.origin.complete=false;
+ const envelope=encodeEnvelope(predicate),raw=canonical(envelope);
+ fs.writeFileSync(path.join(f.dir,'redue-portable-evidence.json'),raw);
+ fs.writeFileSync(path.join(f.dir,'manifest.json'),canonical({...f.manifest,evidence_digest:envelope.digest,evidence_sha256:hash(raw)}));
+ assert.notEqual(envelope.digest,f.envelope.digest);assert.equal(envelope.statement.predicate.origin.complete,false);
+ assert.notEqual(envelope.statement.predicate.facts,null,'Incomplete origin is isolated from the missing-facts guard');
+ const r=f.run();assert.ifError(r.error);assert.equal(r.signal,null);assert(Number.isInteger(r.status));assert.notEqual(r.status,0);
+ assert(!fs.existsSync(path.join(f.base,'redue-sign-predicate.json')),'No signing predicate is created for the incomplete origin');
+});
