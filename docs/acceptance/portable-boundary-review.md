@@ -3337,3 +3337,32 @@ the source-pin preparation only. Any actual operation rests on the owner's
 standing authority and current prerequisites, not this review or a native PASS.
 No model/native/CI action occurred and no tests were repeated for the unchanged
 wrapper.
+
+### Third hosted capture: authentication rejection established
+
+Independent read of protected run38248933839 final report, SHA-256
+`9f641cb664f139efc25bd0f2b866fce8ba9d9ef10ab04389e5df2c233b4346d4`,
+confirms validated init followed by rejected api_retry AFTER_VALIDATED_INIT:
+authentication_failed, HTTP401, attempt1, max_retries10 and delayUNAVAILABLE.
+No assistant message, tool/result ID, checker or protocol connection was observed.
+Native exit143/signal:null is preserved; live controls, source currency, reaping,
+listener cleanup and persistence are true; total job time is15843ms. Collection
+and enforcement remain UNKNOWN. This establishes the native-reported request
+authentication rejection, not an invalid account, subscription or quota, and
+does not retroactively assign this cause to the first two attempts.
+
+The reviewed85425a5 source and159acc8c workflow preserve a nonempty environment
+OAuth token from the sole secret-bearing host step into the native environment.
+Missing/empty input refuses before launch; GH/provider/preload overrides remain
+excluded. These source and prior mock observations do not reveal token contents,
+prove its validity or turn native_parent_oauth_used:EXPECTED_NOT_MEASURED into a
+credential-use measurement. No real secret value was accessed for this review.
+
+Stop repeating the unchanged rejected authentication input. The exact remaining
+owner action is to privately verify or replace the intended current subscription
+setup-token secret in the selected protected environment, confirm its intended
+approved account and current no-policy/included-capacity facts, and report only
+completion. Do not copy login stores, publish the value or introduce an API/PAT
+fallback. A future action needs an actual repaired/changed authentication input
+under the owner's authority; this review performs or authorizes no further run.
+No native/auth/model/CI operation or additional test was conducted by this reviewer.
