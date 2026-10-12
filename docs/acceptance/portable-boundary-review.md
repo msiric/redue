@@ -3689,3 +3689,41 @@ truthful no-receipt UNVERIFIED state. No full portable profile, native enforceme
 CURRENT imported applicability or G2 receiving-agent reuse follows. This audit
 performed no installation, native/auth/model/CI operation, protected-body read
 or additional test.
+
+
+### Prospective alpha11 exact-package preparation
+
+Independent source GO for8534f5fd5d76ba33e88e8b03bebca2cd99fd3d69:
+package.json and both lockfile root version fields select0.1.0-alpha.11; all
+other package/dependency fields, src/bin and shared policy stay unchanged. The
+changelog explicitly calls this unreleased, retains pending actual two-agent/
+two-machine reuse and full economics, and makes no time-saving/publication claim.
+No alpha11 artifact, unused registry coordinate or platform result is established
+by changing metadata.
+
+The existing exact-package workflow now performs one fixed public-registry HTTPS
+HEAD before packing. Exact package name and alpha version syntax are checked;
+only HTTP404 permits packing, with a15000ms absolute request timer that destroys
+the request on expiry. Existing versions, redirects, unavailable/error statuses
+and network uncertainty fail closed; no alternate registry, authentication,
+TLS/proxy change or response-body authority is introduced. Fourteen independent
+mocked controls against the extracted workflow code pass, including invalid
+name/version making zero requests, timeout and network error, and integer404
+versus string/missing/null status refusal. No actual HTTP request was made.
+The initial reviewer mock misclassified invalid-package plus404 as positive;
+correcting only that expectation retained the product's pre-request refusal.
+
+The workflow retains contents:read, pinned actions, one pack plus three standard
+installed-platform jobs, existing source/byte checks, one-day retention and the
+192KiB payload/224KiB archive reservation. No signing, model, policy, publication
+or secret authority is added. The coordinator-reported5,263,735 active bytes plus
+one229,376-byte reservation totals5,493,111, below10MiB; this is an execution-time
+storage condition, not an independently refreshed inventory by this review.
+Because the workflow path matches its existing pull_request filter, a push to an
+open PR may automatically start the matrix. Select one actual handle and avoid
+an additional unaccounted manual duplicate. A404 check does not reserve a future
+publication coordinate; publication and the final release gates remain separate.
+Local registry failures remain unavailable/unknown with no asserted TLS or auth
+cause. Conclusion: GO for normal source preparation and one accounted matrix,
+not publication, current registry availability, alpha11 platform PASS or G4
+completion. No native/auth/model/CI operation occurred in this review.
