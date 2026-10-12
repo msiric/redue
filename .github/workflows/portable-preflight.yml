@@ -1,6 +1,6 @@
 # One bounded CI-only raw-event provider attempt. No models, tokens, signing,
 # uploads, imported authority, or changes to native-agent permissions.
-name: Portable ordinary-query fixed delivery diagnosis
+name: Portable ordinary-query fixed callback-queue diagnosis
 on:
   workflow_dispatch:
 permissions:
@@ -28,5 +28,5 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --test --test-concurrency=1 test/portable-ancestor-queries.test.mjs test/portable-ancestor-fsevents.test.mjs test/portable-ancestor-protocol.test.mjs test/portable-ancestor-capability.test.mjs test/portable-ancestor-observer.test.mjs
-      - name: One fixed root-versus-owned delivery diagnostic only
+      - name: One fixed callback-queue delivery diagnostic only
         run: node test/acceptance/portable-ancestor-delivery.mjs

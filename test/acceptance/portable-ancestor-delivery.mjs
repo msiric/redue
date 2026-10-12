@@ -67,13 +67,18 @@ try{
   runId:process.env.GITHUB_RUN_ID,attempt:1,root,state,rootIdentity:[String(r.dev),String(r.ino)],stateIdentity:[String(s.dev),String(s.ino)],
   scope:'locally-derived-ancestor-npm-resolution-only',retention:'scope-ids-and-serials-only'}),{flag:'wx',mode:0o600});
  const cap=readAncestorObservationCapability(file,{root,state}),derived=derivePortableRawQueryScopes(root,[['entries',src,[]]]);
- const binary=path.join(base,'diagnostic-collector'),binding=buildPortableAncestorFSEvents(binary,{diagnostic:true});
- if(binding.mode!=='diagnostic'||binding.sourceSha256!=='dc93cf87fbfe350cfb183d09d4bcd9bb9a3925308a5a03134a6d68c03ce0fe23'||binding.started!==false)fail('DIAGNOSTIC_BINDING');
- report.binding={sourceSha256:binding.sourceSha256,executableSha256:binding.executableSha256,bytes:binding.bytes,flags:binding.flags,compilerVersion:binding.compilerVersion};
- report.profile={node:process.version,os:os.release(),architecture:process.arch,filesystem_type:fs.statfsSync(root).type,same_device_as_filesystem_root:r.dev===fs.statSync('/',{bigint:true}).dev};
- for(const kind of ['root','owned']){
+ const bindings=new Map();report.bindings=[];
+ for(const variant of ['NO_DRAIN','QUEUE_DRAIN']){
   if(expired||performance.now()-started>=90000)fail('PARENT_DEADLINE');
-  const trial={kind,observations:[],close:null};report.streams.push(trial);
+  const binary=path.join(base,'diagnostic-'+variant),binding=buildPortableAncestorFSEvents(binary,{diagnostic:true,diagnosticDrain:variant==='QUEUE_DRAIN'});
+  if(binding.mode!==(variant==='QUEUE_DRAIN'?'diagnostic-drain':'diagnostic')||binding.sourceSha256!=='a7e766b3df8431441f9333df75deb15f36270ac3b4cc142fc57c2ddcd9b1528a'||binding.started!==false)fail('DIAGNOSTIC_BINDING');
+  bindings.set(variant,{binary,binding});report.bindings.push({variant,sourceSha256:binding.sourceSha256,executableSha256:binding.executableSha256,bytes:binding.bytes,flags:binding.flags,compilerVersion:binding.compilerVersion});
+ }
+ report.profile={node:process.version,os:os.release(),architecture:process.arch,filesystem_type:fs.statfsSync(root).type,same_device_as_filesystem_root:r.dev===fs.statSync('/',{bigint:true}).dev};
+ for(const variant of ['NO_DRAIN','QUEUE_DRAIN']){
+  const kind='root',{binary,binding}=bindings.get(variant);
+  if(expired||performance.now()-started>=90000)fail('PARENT_DEADLINE');
+  const trial={kind,variant,observations:[],close:null};report.streams.push(trial);
   reapKnown=false;current=startDiagnostic(binary,binding,cap,derived.scopes,kind);
   try{
    await current.ready;const baseline=await current.barrier();trial.start=baseline;
