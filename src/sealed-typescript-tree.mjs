@@ -45,25 +45,29 @@ function manifestRows(value){if(!Array.isArray(value)||value.length<1||value.len
   const names=new Set(rows.map(([rel])=>rel));for(const [rel] of rows){let parent=path.posix.dirname(rel);while(parent!=='.'){if(names.has(parent))fail('TREE_MANIFEST');parent=path.posix.dirname(parent);}}
   return rows;
 }
-function safeRegular(stat){if(!stat.isFile()||stat.isSymbolicLink()||stat.uid!==uid()||stat.nlink!==1n||(stat.mode&0o7000n)!==0n)fail('TREE_FILE');
+function safeRegular(stat,source=false){if(!stat.isFile()||stat.isSymbolicLink()||stat.uid!==uid()||stat.nlink<1n||(!source&&stat.nlink!==1n)||(stat.mode&0o7000n)!==0n)fail('TREE_FILE');
   if(stat.size>BigInt(TYPESCRIPT_TREE_LIMITS.fileBytes))fail('TREE_LIMIT');}
-function typedRegular(mode,content){return hash(`file:${mode}:${content}`);}
-function inspectFile(file,expected,write){const parents=directories(path.dirname(file)),before=fs.lstatSync(file,{bigint:true});safeRegular(before);
-  let descriptor;try{descriptor=fs.openSync(file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW|(fs.constants.O_NONBLOCK??0));const opened=fs.fstatSync(descriptor,{bigint:true});safeRegular(opened);
+function typedRegular(mode,content,nlink=1n,installed=false){return hash(`file:${mode}:${installed&&nlink>1n?`${nlink}:`:''}${content}`);}
+function inspectFile(file,expected,{write,sourceRecord}={}){const parents=directories(path.dirname(file)),before=fs.lstatSync(file,{bigint:true});safeRegular(before,!!sourceRecord);
+  if(sourceRecord){recheck(sourceRecord);if(fingerprint(before)!==sourceRecord.fingerprint)fail('TREE_CHANGED');}
+  let descriptor;try{descriptor=fs.openSync(file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW|(fs.constants.O_NONBLOCK??0));const opened=fs.fstatSync(descriptor,{bigint:true});safeRegular(opened,!!sourceRecord);
     if(fingerprint(before)!==fingerprint(opened))fail('TREE_CHANGED');sameDirectories(parents);
     const digest=createHash('sha256'),buffer=Buffer.allocUnsafe(65536);let offset=0;
     while(offset<Number(opened.size)){const count=fs.readSync(descriptor,buffer,0,Math.min(buffer.length,Number(opened.size)-offset),offset);if(!count)fail('TREE_CHANGED');digest.update(buffer.subarray(0,count));write?.(buffer.subarray(0,count));offset+=count;}
     if(fs.readSync(descriptor,buffer,0,1,offset)!==0)fail('TREE_CHANGED');
     const after=fs.lstatSync(file,{bigint:true});sameDirectories(parents);
     if(fingerprint(opened)!==fingerprint(fs.fstatSync(descriptor,{bigint:true}))||fingerprint(opened)!==fingerprint(after))fail('TREE_CHANGED');
-    const typed=typedRegular(opened.mode,digest.digest('hex'));if(typed!==expected)fail('TREE_DIGEST');return{file,parents,fingerprint:fingerprint(after),identity:identity(after),mode:Number(after.mode&0o777n),bytes:offset};
+    const rawDigest=digest.digest('hex'),typed=typedRegular(opened.mode,rawDigest,opened.nlink,!!sourceRecord&&sourceRecord.rel.startsWith('node_modules/'));
+    if(typed!==expected)fail('TREE_DIGEST');return{file,parents,fingerprint:fingerprint(after),identity:identity(after),mode:Number(after.mode&0o777n),bytes:offset,materializedDigest:typedRegular(opened.mode,rawDigest)};
   }finally{if(descriptor!==undefined)fs.closeSync(descriptor);}
 }
-function shim(root,rel,expected,manifest){const file=path.join(root,rel),parents=directories(path.dirname(file)),before=fs.lstatSync(file,{bigint:true});
+function shimDigest(rel,target,targetRel,manifest){return hash(canonical({kind:'npm-file-shim',target:targetRel,content:manifest.get(targetRel),links:[{path:rel,targetHash:hash(target)}]}));}
+function shim(root,rel,expected,manifest,sourceRecords=null){const file=path.join(root,rel),parents=directories(path.dirname(file)),before=fs.lstatSync(file,{bigint:true});
   if(!before.isSymbolicLink()||before.uid!==uid()||before.nlink!==1n)fail('TREE_SYMLINK');
   const target=fs.readlinkSync(file),{physical,relative:targetRel}=sealedNpmShimTarget(root,rel,target);
-  if(!relative(targetRel)||!manifest.has(targetRel))fail('TREE_SYMLINK');directories(path.dirname(physical));const targetStat=fs.lstatSync(physical,{bigint:true});safeRegular(targetStat);
-  const actual=hash(canonical({kind:'npm-file-shim',target:targetRel,content:manifest.get(targetRel),links:[{path:rel,targetHash:hash(target)}]}));
+  if(!relative(targetRel)||!manifest.has(targetRel))fail('TREE_SYMLINK');directories(path.dirname(physical));const targetStat=fs.lstatSync(physical,{bigint:true});safeRegular(targetStat,!!sourceRecords);
+  if(sourceRecords){const targetRecord=sourceRecords.get(targetRel);if(!targetRecord||targetRecord.symbolic)fail('TREE_FILE');recheck(targetRecord);if(fingerprint(targetStat)!==targetRecord.fingerprint)fail('TREE_CHANGED');}
+  const actual=shimDigest(rel,target,targetRel,manifest);
   if(actual!==expected)fail('TREE_DIGEST');sameDirectories(parents);const after=fs.lstatSync(file,{bigint:true});
   if(fingerprint(before)!==fingerprint(after)||fs.readlinkSync(file)!==target)fail('TREE_CHANGED');
   return{file,parents,fingerprint:fingerprint(after),identity:identity(after),target,targetRel,bytes:0};
@@ -81,11 +85,44 @@ function materialize(options){
   if(containsPhysical(parentParents,rootStat)||containsPhysical(rootParents,parentStat))fail('TREE_PLACEMENT');
   if(rootStat.uid!==uid()||parentStat.uid!==uid()||(parentStat.mode&0o777n)!==0o700n)fail('TREE_OWNERSHIP');
   if(!onlyChild(parent,null))fail('TREE_PARENT_OCCUPIED');sameDirectories(parentParents);
-  const source=[];let bytes=0;for(const [rel,digest] of rows){const file=path.join(root,rel),stat=fs.lstatSync(file,{bigint:true});
-    const record=stat.isSymbolicLink()?shim(root,rel,digest,manifest):inspectFile(file,digest);
-    bytes+=record.bytes;if(bytes>TYPESCRIPT_TREE_LIMITS.totalBytes)fail('TREE_LIMIT');source.push({rel,digest,...record});}
-  sameDirectories(rootParents);sameDirectories(parentParents);
-  let stage=null,stageId=null;const destination=[];const madeDirectories=new Map(),sourceIdentities=new Set(source.map(record=>record.identity));
+  // Metadata for the COMPLETE local manifest precedes every source body read.
+  // Count real directory entries, not case-alias spellings of the same name.
+  const source=[],byName=new Map(),groups=new Map(),parentNames=new Map();let bytes=0;
+  for(const [rel,digest] of rows){const file=path.join(root,rel),parents=directories(path.dirname(file)),stat=fs.lstatSync(file,{bigint:true});
+    if(stat.isSymbolicLink()){if(stat.uid!==uid()||stat.nlink!==1n)fail('TREE_SYMLINK');}
+    else{safeRegular(stat,true);bytes+=Number(stat.size);if(bytes>TYPESCRIPT_TREE_LIMITS.totalBytes)fail('TREE_LIMIT');}
+    const parentFile=path.dirname(file),parentStat=fs.lstatSync(parentFile,{bigint:true}),basename=path.basename(file);
+    if(!parentStat.isDirectory()||parentStat.isSymbolicLink())fail('TREE_PATH');sameDirectories(parents);
+    const record={rel,digest,file,parents,fingerprint:fingerprint(stat),identity:identity(stat),nlink:stat.nlink,
+      entryKey:`${identity(parentStat)}:${basename}`,bytes:Number(stat.isFile()?stat.size:0n),symbolic:stat.isSymbolicLink()};
+    source.push(record);byName.set(rel,record);
+    let directory=root;for(const component of rel.split('/')){if(!parentNames.has(directory))parentNames.set(directory,new Set());parentNames.get(directory).add(component);directory=path.join(directory,component);}
+    if(!record.symbolic){if(!groups.has(record.identity))groups.set(record.identity,[]);groups.get(record.identity).push(record);}
+  }
+  const checkNames=()=>{let enumerated=0;for(const [directory,wanted] of parentNames){const found=new Set(),opened=fs.opendirSync(directory);
+    try{let entry;while((entry=opened.readSync())!==null){if(++enumerated>TYPESCRIPT_TREE_LIMITS.files+TYPESCRIPT_TREE_LIMITS.directories)fail('TREE_LIMIT');if(wanted.has(entry.name))found.add(entry.name);}}
+    finally{opened.closeSync();}if(found.size!==wanted.size)fail('TREE_FILE');}};checkNames();
+  const entryKeys=new Set();for(const record of source){if(entryKeys.has(record.entryKey))fail('TREE_FILE');entryKeys.add(record.entryKey);recheck(record);}
+  // A complete count is meaningful only under the stated trusted/quiescent
+  // preparation prerequisite; it is not a hostile-writer alias-exclusion proof.
+  const sourceAliasGroups=[];for(const members of groups.values()){
+    const first=members[0];if(BigInt(members.length)!==first.nlink||members.some(record=>record.nlink!==first.nlink||record.fingerprint!==first.fingerprint))fail('TREE_FILE');
+    if(members.length>1)sourceAliasGroups.push(members.map(record=>record.rel).sort());
+  }
+  sourceAliasGroups.sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0);
+  const checkSources=()=>{sameDirectories(rootParents);for(const record of source)recheck(record);};
+  checkSources();sameDirectories(parentParents);
+  for(const record of source){
+    if(record.symbolic)Object.assign(record,shim(root,record.rel,record.digest,manifest,byName));
+    else Object.assign(record,inspectFile(record.file,record.digest,{sourceRecord:record}));
+  }
+  checkSources();sameDirectories(parentParents);
+  // Source installed hashes retain their nlink term. Fresh copies deliberately
+  // have independent single-link hashes; shims bind that new target digest.
+  const materializedManifest=new Map(source.filter(record=>!record.symbolic).map(record=>[record.rel,record.materializedDigest]));
+  for(const record of source.filter(record=>record.symbolic))materializedManifest.set(record.rel,shimDigest(record.rel,record.target,record.targetRel,materializedManifest));
+  const materializedRows=rows.map(([rel])=>[rel,materializedManifest.get(rel)]);
+  let stage=null,stageId=null;const destination=[];const destinationIdentities=new Set();const madeDirectories=new Map(),sourceIdentities=new Set(source.map(record=>record.identity));
   const ensureDirectory=rel=>{let current=stage;for(const part of rel.split('/').filter(Boolean)){current=path.join(current,part);if(!madeDirectories.has(current)){
       if(madeDirectories.size>=TYPESCRIPT_TREE_LIMITS.directories)fail('TREE_LIMIT');fs.mkdirSync(current,{mode:0o700});const stat=fs.lstatSync(current,{bigint:true});if(!stat.isDirectory()||stat.uid!==uid()||stat.isSymbolicLink())fail('TREE_CHANGED');madeDirectories.set(current,directoryIdentity(stat));}
       const stat=fs.lstatSync(current,{bigint:true});if(directoryIdentity(stat)!==madeDirectories.get(current)||!stat.isDirectory()||stat.isSymbolicLink())fail('TREE_CHANGED');}};
@@ -93,17 +130,19 @@ function materialize(options){
   const checkDirectories=()=>{for(const [file,id] of madeDirectories){const st=fs.lstatSync(file,{bigint:true});if(!st.isDirectory()||st.isSymbolicLink()||directoryIdentity(st)!==id||st.uid!==uid())fail('TREE_CHANGED');}};
   try{stage=fs.mkdtempSync(path.join(parent,'redue-materialization-'));fs.chmodSync(stage,0o700);stageId=identity(fs.lstatSync(stage,{bigint:true}));
     for(const record of source.filter(record=>record.target===undefined)){
-      checkStage();recheck(record);const directory=path.posix.dirname(record.rel);if(directory!=='.')ensureDirectory(directory);const file=path.join(stage,record.rel);let descriptor;
+      checkStage();sameDirectories(rootParents);recheck(record);const directory=path.posix.dirname(record.rel);if(directory!=='.')ensureDirectory(directory);const file=path.join(stage,record.rel);let descriptor;
       try{descriptor=fs.openSync(file,fs.constants.O_WRONLY|fs.constants.O_CREAT|fs.constants.O_EXCL|fs.constants.O_NOFOLLOW,0o600);const created=fs.fstatSync(descriptor,{bigint:true});
-        if(!created.isFile()||created.nlink!==1n||created.uid!==uid()||sourceIdentities.has(identity(created)))fail('TREE_CHANGED');
-        inspectFile(record.file,record.digest,buffer=>{let offset=0;while(offset<buffer.length){const count=fs.writeSync(descriptor,buffer,offset,buffer.length-offset);if(!count)fail('TREE_CHANGED');offset+=count;}});
+        if(!created.isFile()||created.nlink!==1n||created.uid!==uid()||sourceIdentities.has(identity(created))||destinationIdentities.has(identity(created)))fail('TREE_CHANGED');destinationIdentities.add(identity(created));
+        inspectFile(record.file,record.digest,{sourceRecord:record,write:buffer=>{let offset=0;while(offset<buffer.length){const count=fs.writeSync(descriptor,buffer,offset,buffer.length-offset);if(!count)fail('TREE_CHANGED');offset+=count;}}});
         fs.fchmodSync(descriptor,record.mode);fs.fsyncSync(descriptor);checkStage();const after=fs.fstatSync(descriptor,{bigint:true});if(identity(after)!==identity(created)||fingerprint(after)!==fingerprint(fs.lstatSync(file,{bigint:true})))fail('TREE_CHANGED');
-      }finally{if(descriptor!==undefined)fs.closeSync(descriptor);}checkStage();destination.push({rel:record.rel,digest:record.digest,...inspectFile(file,record.digest)});
+      }finally{if(descriptor!==undefined)fs.closeSync(descriptor);}checkStage();sameDirectories(rootParents);recheck(record);const digest=materializedManifest.get(record.rel);destination.push({rel:record.rel,digest,...inspectFile(file,digest)});
     }
     for(const record of source.filter(record=>record.target!==undefined)){
-      checkStage();recheck(record);ensureDirectory(path.posix.dirname(record.rel));const file=path.join(stage,record.rel);fs.symlinkSync(record.target,file);checkStage();
-      const copied=shim(stage,record.rel,record.digest,manifest);if(sourceIdentities.has(copied.identity))fail('TREE_CHANGED');destination.push({rel:record.rel,digest:record.digest,...copied});}
-    for(const record of source)recheck(record);for(const record of destination){recheck(record);if(record.target===undefined)inspectFile(record.file,record.digest);else shim(stage,record.rel,record.digest,manifest);}
+      checkStage();sameDirectories(rootParents);recheck(record);ensureDirectory(path.posix.dirname(record.rel));const file=path.join(stage,record.rel);fs.symlinkSync(record.target,file);checkStage();
+      const digest=materializedManifest.get(record.rel),copied=shim(stage,record.rel,digest,materializedManifest);
+      if(sourceIdentities.has(copied.identity)||destinationIdentities.has(copied.identity))fail('TREE_CHANGED');destinationIdentities.add(copied.identity);destination.push({rel:record.rel,digest,...copied});sameDirectories(rootParents);recheck(record);}
+    checkSources();for(const record of source){if(record.symbolic)shim(root,record.rel,record.digest,manifest,byName);else inspectFile(record.file,record.digest,{sourceRecord:record});}
+    checkSources();for(const record of destination){recheck(record);if(record.target===undefined)inspectFile(record.file,record.digest);else shim(stage,record.rel,record.digest,materializedManifest);}
     sameDirectories(rootParents);checkStage();
     // Bounded enumeration only; never allocate an unbounded directory listing.
     const actual=[];let entries=0,directoryCount=0;const walk=directory=>{const opened=fs.opendirSync(directory);try{let entry;
@@ -115,7 +154,9 @@ function materialize(options){
       }
     }finally{opened.closeSync();}};walk(stage);actual.sort();
     if(canonical(actual)!==canonical(rows.map(([rel])=>rel)))fail('TREE_CHANGED');checkStage();checkDirectories();for(const record of destination)recheck(record);
-    return freeze({schema:1,interpretation:'redue-typescript-materialization@1',root:stage,manifestDigest:hash(canonical(rows)),files:rows,bytes,
+    checkNames();checkSources();
+    return freeze({schema:1,interpretation:'redue-typescript-materialization@2',root:stage,sourceManifestDigest:hash(canonical(rows)),sourceFiles:rows,
+      materializedManifestDigest:hash(canonical(materializedRows)),materializedFiles:materializedRows,sourceAliasGroups,sourceAliasGroupsDigest:hash(canonical(sourceAliasGroups)),bytes,
       identity:stageId,physical:destination.sort((a,b)=>a.rel<b.rel?-1:a.rel>b.rel?1:0).map(record=>[record.rel,record.identity,record.fingerprint]),sealed:false,reuseEligible:false});
   }catch(error){
     // Always retain a failed partial stage. A pathname-based recursive cleanup
