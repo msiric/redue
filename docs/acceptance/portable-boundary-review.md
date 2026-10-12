@@ -3569,3 +3569,32 @@ and was refused with DIAGNOSTIC_BINDING; correcting only that fixture to the
 existing six-alphanumeric contract enabled the comparison. Conclusion: GO for
 this permanently disabled test-only cleanup, without activation, trust, scope
 or release-readiness approval. No native/auth/model/CI operation was performed.
+
+
+### Controlled Claude shared-policy memory import: source criterion
+
+Pinned native187/a59 source BLd/S4i/I4 at198573984–198576481 supports the
+unquoted text `@REDUE_PORTABLE_AGENT.md` in project CLAUDE.md. Relative imports
+resolve against the containing memory file. S4i reads memory directly and I4
+recursively expands imports, independently of Bash/Read tool grants. Code spans,
+fenced-code tokens and comments are skipped. Project/local source selection and
+claudeMdExcludes still affect loading. Current official [memory documentation](https://code.claude.com/docs/en/memory)
+corroborates relative resolution and code-token exclusion; the pinned implementation
+is the version-specific basis here.
+
+Ten independent pure controls against extracted BLd, SHA-256
+`63f236750a4f329dcd94368d761ed7317e34a151b9bc3d2fb8c028f9d616796f`,
+pass using prepared Markdown tokens and local-path dependencies. They are not
+native lexer, launch or behavior tests. Extra and parent-directory imports remain
+syntactically accepted, and native I4 follows symlinks. Therefore the proposed
+Claude-only render requires exact expected CLAUDE.md bytes containing just the
+one import, a canonical owned same-workspace regular single-link target bound
+to the installed shared-policy bytes plus approved routing, and refusal of any
+additional or nested unreviewed import. The current installed policy's recipe
+mention containing @ is in code text, not an active memory import.
+
+This is GO for the narrow source criterion, pending final writer/inspector diff
+review. Copilot guidance and all tool permissions remain unchanged. Loading
+instructions does not establish native enforcement, continuing source currency,
+model compliance or receiving-agent reuse. No native/auth/model/CI operation was
+performed.
