@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
+import {writeControlledPortableGuidance} from './acceptance/portable-controlled-guidance.mjs';
 import {collectPortableHostPreflight,portablePreconditionMatches,runPortableGatedTrial} from './acceptance/portable-host-preflight.mjs';
 
 const cwd=path.resolve(os.tmpdir(),'REDUE path Ω with spaces');
@@ -109,4 +111,72 @@ test('failed evidence recording refuses launch even after a successful preflight
   await assert.rejects(runPortableGatedTrial({preflight:()=>collect(),expected:'eligible',
     record:()=>{throw Error('cannot preserve precondition evidence');},launch:()=>{launched=true;}}));
   assert.equal(launched,false);
+});
+
+
+function controlledFixture(t){
+ const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-controlled-preflight-')));
+ t.after(()=>fs.rmSync(base,{recursive:true,force:true}));fs.chmodSync(base,0o700);
+ const root=path.join(base,'Checkout 空间'),state=path.join(base,'redue-state'),prefix=path.join(base,'prefix');
+ for(const p of [root,state,prefix,path.join(root,'.git')])fs.mkdirSync(p,{mode:0o700});
+ const policyFile=path.join(prefix,'lib/node_modules/@redue/cli/src/agent-policy.md');fs.mkdirSync(path.dirname(policyFile),{recursive:true,mode:0o700});
+ const policy=fs.readFileSync(new URL('../src/agent-policy.md',import.meta.url));fs.writeFileSync(policyFile,policy,{mode:0o600});
+ const config=path.join(root,'redue.config.json'),runtime=path.join(state,'project-runtime-v1.json'),owner=path.join(state,'vstate-owner-v1.json');
+ fs.writeFileSync(config,JSON.stringify({schema:1,checks:[{name:'typecheck',qualification:'npm-typescript-direct-v1'}]}),{mode:0o600});
+ fs.writeFileSync(runtime,JSON.stringify({schema:1,provider:'declared-project@1',root,state,checks:[]}),{mode:0o600});
+ fs.writeFileSync(owner,JSON.stringify({schema:1,kind:'vstate-product-alpha',config:runtime,root,state}),{mode:0o600});
+ const options={root,state,prefix,policyFile,policySha256:createHash('sha256').update(policy).digest('hex'),hosts:['claude'],role:'receiver'};
+ writeControlledPortableGuidance({...options,apply:true});
+ return {options,config,root,state,owner,runtime};
+}
+function controlledCollect(f,{host='claude',integrity='absent',installed=false,version='pinned test host',change=()=>{},guidance=f.options}={}){
+ const commands=[];
+ const report=collectPortableHostPreflight({host,config:f.config,state:f.state,check:'typecheck',cwd:f.root,cli:'redue',controlledGuidance:guidance,
+  execute:(_file,args)=>{
+   commands.push(args);
+   if(args.includes('--version'))return {status:0,stdout:'candidate version'};
+   if(args.includes('doctor'))return {status:0,stdout:JSON.stringify({schema:1,command:{matches_invocation:true},project:{config:f.config,state:f.state},
+    control:{reachable:true,classification:'reachable'},state_access:{status:'readable'},hosts:[{host,executable:'pinned native',version,installed,integrity}]})};
+   change(args);return {status:0,stdout:JSON.stringify(status())};
+  }});
+ return {report,commands};
+}
+const controlledTest=(name,fn)=>test(name,{skip:process.platform==='win32'?'Controlled matched-mac fixture requires POSIX ownership':false},fn);
+controlledTest('explicit exact generic guidance is distinct from managed integration and still needs host/resource/evidence gates',t=>{
+ const f=controlledFixture(t),{report,commands}=controlledCollect(f);
+ assert.equal(report.prerequisites.ready,true);
+ assert.equal(report.prerequisites.integration_mechanism,'controlled-generic-project-instructions');
+ assert.equal(report.prerequisites.product_integration_integrity,'absent');
+ assert.equal(report.behavior_verified,false);assert.equal(report.boundary.verified_by_helper,false);
+ assert.equal(portablePreconditionMatches(report,'eligible',{evidenceId:digest,runId:'origin-1',state:f.state}),true);
+ assert.equal(commands.filter(a=>a.includes('status')).length,1);assert.ok(commands.at(-1).includes('--sync'));
+ assert.ok(commands.every(a=>!a.includes('run')&&!a.includes('start')));
+});
+controlledTest('generic fixture cannot override edited managed instructions, missing host or arbitrary claimed approval',async t=>{
+ const f=controlledFixture(t);
+ const reports=['conflict','unknown','intact'].map(integrity=>controlledCollect(f,{integrity,installed:integrity==='intact'}).report);
+ reports.push(controlledCollect(f,{version:null}).report);
+ for(const guidance of [{...f.options,approved:true},{...f.options,root:f.state},{...f.options,state:f.root},{...f.options,hosts:['codex']}]){
+  const result=controlledCollect(f,{guidance});assert.equal(result.commands.length,0);reports.push(result.report);
+ }
+ reports.push(controlledCollect(f,{host:'codex'}).report);
+ let launches=0;
+ for(const report of reports){
+  const gated=await runPortableGatedTrial({preflight:()=>report,expected:'eligible',requirements:{evidenceId:digest,state:f.state},record:()=>{},launch:()=>launches++});
+  assert.equal(gated.launched,false);assert.equal(report.prerequisites.ready,false);
+ }
+ assert.equal(launches,0);
+});
+controlledTest('instruction, runtime and byte-identical owner replacement during sync withhold the model trial',async t=>{
+ for(const role of ['instruction','runtime','owner']){
+  const f=controlledFixture(t),file=role==='instruction'?path.join(f.root,'CLAUDE.md'):f[role];
+  const {report}=controlledCollect(f,{change:()=>{
+   if(role==='owner'){const next=path.join(f.state,'replacement.json');fs.writeFileSync(next,fs.readFileSync(file),{mode:0o600});fs.renameSync(next,file);}
+   else fs.writeFileSync(file,'Changed nonsecret fixture.');
+  }});
+  assert.equal(report.prerequisites.ready,false);assert.equal(report.prerequisites.reason,'controlled_guidance_changed');
+  assert.equal(portablePreconditionMatches(report,'eligible',{evidenceId:digest,state:f.state}),false);
+  let launches=0;const gated=await runPortableGatedTrial({preflight:()=>report,expected:'eligible',record:()=>{},launch:()=>launches++});
+  assert.equal(gated.launched,false);assert.equal(launches,0);
+ }
 });
