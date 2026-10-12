@@ -19,6 +19,20 @@ test('a thrown operation restores originals and does not certify success',()=>{
  assert.throws(()=>measurePreparationOperations({root:'/r',parent:'/p'},()=>io.lstatSync('/r/a'),f=>frames.push(f),{io,clock:()=>n+=5000}),{code:'EPERM'});
  assert.equal(io.openSync,original);assert(!frames.join('').includes('NONSECRET'));assert.equal(JSON.parse(frames.at(-1)).stats.source.lstatSync[3],1);
 });
+test('retained directory methods restore on success, close and thrown operations',()=>{
+ for(const failed of [false,true]){const io=fake(),dir={readSync(){return null;},closeSync(){}},read=dir.readSync,close=dir.closeSync;io.opendirSync=()=>dir;
+  const operation=()=>{io.opendirSync('/r');if(failed)throw Object.assign(Error('NONSECRET'),{code:'EPERM'});return dir;};
+  if(failed)assert.throws(()=>measurePreparationOperations({root:'/r',parent:'/p'},operation,()=>{}, {io,clock:()=>0}),{code:'EPERM'});
+  else assert.equal(measurePreparationOperations({root:'/r',parent:'/p'},operation,()=>{}, {io,clock:()=>0}).result,dir);
+  assert.equal(dir.readSync,read);assert.equal(dir.closeSync,close);
+ }
+});
+test('observer failure never masks operation result or thrown failure',()=>{
+ const io=fake();let n=0;const emit=()=>{throw Error('NONSECRET_OBSERVER_ERROR');};
+ const r=measurePreparationOperations({root:'/r',parent:'/p'},()=>{io.lstatSync('/r');return 7;},emit,{io,clock:()=>n+=5000});
+ assert.equal(r.result,7);assert.equal(r.streamValid,false);
+ assert.throws(()=>measurePreparationOperations({root:'/r',parent:'/p'},()=>{io.lstatSync('/r');throw Object.assign(Error('NONSECRET_OPERATION'),{code:'EPERM'});},emit,{io,clock:()=>n+=5000}),{code:'EPERM'});
+});
 test('bounded frames and bytes retain no authority and invalid clocks suppress diagnostic values',()=>{
  const io=fake(),frames=[];let n=0;
  const r=measurePreparationOperations({root:'/r',parent:'/p'},()=>{for(let i=0;i<1000;i++)io.lstatSync('/r/a');},f=>frames.push(f),{io,clock:()=>n+=5000});

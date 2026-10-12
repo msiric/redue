@@ -9,15 +9,15 @@ const known=new Set(PREPARATION_REASON_CODES);
 const round=value=>Math.round(value*1000)/1000;
 const inside=(file,root)=>typeof file==='string'&&(file===root||file.startsWith(root+'/'));
 export function measurePreparationOperations({root,parent},operation,emit,{clock=()=>performance.now(),io=fs}={}){
- const start=clock(),stats={source:{},stage:{},boundary:{}},fds=new Map(),restores=[];
- let valid=Number.isFinite(start)&&start>=0,previous=start,last=start,frames=0,bytes=0;
+ const start=clock(),stats={source:{},stage:{},boundary:{}},fds=new Map(),restores=[],directories=new Set();
+ let valid=Number.isFinite(start)&&start>=0,streamValid=true,previous=start,last=start,frames=0,bytes=0;
  const now=()=>{const n=clock();if(!Number.isFinite(n)||n<previous)valid=false;previous=n;return n;};
  const group=arg=>typeof arg==='number'?(fds.get(arg)||'boundary'):inside(arg,root)?'source':inside(arg,parent)?'stage':'boundary';
  const snapshot=final=>{
-  const n=now();if(!valid||frames>=PREPARATION_DIAGNOSTIC_LIMITS.frames||!final&&n-last<PREPARATION_DIAGNOSTIC_LIMITS.intervalMs)return;
+  const n=now();if(!valid||!streamValid||frames>=PREPARATION_DIAGNOSTIC_LIMITS.frames||!final&&n-last<PREPARATION_DIAGNOSTIC_LIMITS.intervalMs)return;
   const record={schema:1,scope:'PREPARATION_OPERATION_DIAGNOSTIC_ONLY',elapsedMs:round(n-start),final,stats};
   const frame=JSON.stringify(record)+'\n';if(Buffer.byteLength(frame)>PREPARATION_DIAGNOSTIC_LIMITS.bytes-bytes)return;
-  bytes+=Buffer.byteLength(frame);frames++;last=n;emit(frame);
+  bytes+=Buffer.byteLength(frame);frames++;last=n;try{emit(frame);}catch{streamValid=false;}
  };
  const measured=(kind,selected,call)=>{const before=now();let failed=false,result;
   try{return result=call();}catch(error){failed=true;throw error;}finally{
@@ -31,18 +31,27 @@ export function measurePreparationOperations({root,parent},operation,emit,{clock
    io[kind]=function(...args){const selected=group(args[0]);return measured(kind,selected,()=>{
     const value=original.apply(io,args);if(kind==='openSync'&&Number.isSafeInteger(value))fds.set(value,selected);
     if(kind==='closeSync')fds.delete(args[0]);
-    if(kind==='opendirSync')for(const name of ['readSync','closeSync']){const originalMethod=value[name].bind(value);
-     value[name]=(...callArgs)=>measured('directory'+name,selected,()=>originalMethod(...callArgs));}
+    if(kind==='opendirSync'){
+     const originals={readSync:value.readSync,closeSync:value.closeSync};
+     const restore=()=>{value.readSync=originals.readSync;value.closeSync=originals.closeSync;directories.delete(restore);};
+     directories.add(restore);
+     value.readSync=(...callArgs)=>measured('directoryreadSync',selected,()=>originals.readSync.apply(value,callArgs));
+     value.closeSync=(...callArgs)=>{try{return measured('directorycloseSync',selected,()=>originals.closeSync.apply(value,callArgs));}finally{restore();}};
+    }
     return value;});};restores.push(()=>io[kind]=original);
   }
-  const result=operation();snapshot(true);return{result,clockValid:valid,frames,bytes};
- }finally{for(const restore of restores.reverse())restore();}
+  const result=operation();snapshot(true);return{result,clockValid:valid,streamValid,frames,bytes};
+ }finally{
+  for(const restore of directories)restore();for(const restore of restores.reverse())restore();
+  // Retain final failure counters when possible, never replacing its error.
+  try{if(frames===0||last!==previous)snapshot(true);}catch{}
+ }
 }
 async function main(){let code=74;
  try{if(process.argv.length!==2)throw Object.assign(Error('PREPARATION_ARGUMENTS'),{code:'PREPARATION_ARGUMENTS'});
   const options=parsePreparationInput(await consumePreparationInput(process.stdin));
   const measured=measurePreparationOperations(options,()=>materializeSealedTypeScriptTree(options),frame=>process.stderr.write(frame));
-  code=measured.clockValid?0:74;
+  code=measured.clockValid&&measured.streamValid?0:74;
   process.stdout.write(JSON.stringify({schema:1,scope:'PREPARATION_DIAGNOSTIC_ONLY',outcome:code===0?'DATA_OPERATION_FINISHED_NOT_SEALED':'UNKNOWN',
    frames:measured.frames,bytes:measured.bytes,sealed:false,reuseEligible:false})+'\n');
  }catch(error){process.stdout.write(JSON.stringify({schema:1,scope:'PREPARATION_DIAGNOSTIC_ONLY',outcome:'UNKNOWN',
