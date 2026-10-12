@@ -12,7 +12,7 @@ assistant `tool_use` for the literal collector command and a native user
 match the tool result. Model prose cannot establish success. Actual checker OS
 close/exit/signal, six assertion rows, native process outcome and lifecycle remain
 separate. Negative assertions survive incomplete cleanup. Missing/malformed data,
-changed files, missing live controls or timeout yield UNKNOWN. Thirteen pure/mock
+changed files, missing live controls or timeout yield UNKNOWN. Fourteen pure/mock
 controls passed; no native, model or real probe ran during those controls.
 
 The [assets](../../test/acceptance/portable-native-diagnostic-assets.mjs) retain the

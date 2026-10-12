@@ -71,8 +71,11 @@ export function createNativeDiagnosticTrace({command,cwd}){
    if(final||!Number.isInteger(value.num_turns)||value.num_turns<1||value.num_turns>4||typeof value.is_error!=='boolean'){reject('NATIVE_FINAL_RESULT');return;}
    final={turns:value.num_turns,success:value.subtype==='success'&&value.is_error===false};return;
   }
+  // Pinned187 emits these hook subtypes (ASCII source202123653). Even a
+  // supplied no-policy statement cannot green contradictory native evidence.
+  if(value.type==='system'){reject(['hook_started','hook_progress','hook_response'].includes(value.subtype)?'NATIVE_STARTUP_HOOK_OBSERVED':'NATIVE_SYSTEM_CONTEXT_UNKNOWN');return;}
   // Never publish model text, auth/init payloads, error strings or unknown events.
-  if(!['system','rate_limit_event'].includes(value.type))reject('NATIVE_STREAM_UNKNOWN');
+  if(value.type!=='rate_limit_event')reject('NATIVE_STREAM_UNKNOWN');
  };
  return {consume,snapshot:()=>({init,error,assistant_turns:assistantIDs.size,tool,result,final})};
 }

@@ -136,3 +136,11 @@ test('mock cancellation before launch creates no child; during launch reaps and 
  live.abort();const stopped=await pending;assert.equal(stopped.trace.error,'NATIVE_CANCELLED');assert.equal(stopped.owned_native_reaped,true);assert.deepEqual(c.kills,['SIGTERM']);
  assert.equal(diagnosticOutcome(stopped.trace,{...complete,nativeSignal:stopped.native_signal}).collection_status,'UNKNOWN');
 });
+
+test('native hook evidence and unknown system authority events irrevocably withhold PASS',()=>{
+ for(const subtype of ['hook_started','hook_progress','hook_response','unknown_policy_event']){
+  const t=trace([init,{type:'system',subtype,private_field:'PRIVATE_CANARY'},assistant(),result(),final]);
+  assert.equal(t.error,subtype==='unknown_policy_event'?'NATIVE_SYSTEM_CONTEXT_UNKNOWN':'NATIVE_STARTUP_HOOK_OBSERVED');
+  assert.equal(diagnosticOutcome(t,complete).collection_status,'UNKNOWN');assert.equal(JSON.stringify(t).includes('PRIVATE_CANARY'),false);
+ }
+});
