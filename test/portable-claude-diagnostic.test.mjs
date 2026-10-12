@@ -49,8 +49,8 @@ test('four turns, one text prompt and no queue/resume/background/bare/SDK activa
 });
 test('curated host env preserves proxies but cannot forward runner/GH/provider/preload credentials',()=>{
  // Inert lexical data only; no authentication-key value is put in a real process.
- const env={HOME:'/owner',PATH:'/usr/bin',CLAUDE_CODE_OAUTH_TOKEN:'MOCK_DATA_ONLY_NOT_A_CREDENTIAL',GITHUB_TOKEN:'PRIVATE_CANARY',GH_TOKEN:'PRIVATE_CANARY',ACTIONS_RUNTIME_TOKEN:'PRIVATE_CANARY',ACTIONS_ID_TOKEN_REQUEST_TOKEN:'PRIVATE_CANARY',HTTPS_PROXY:'https://proxy.example.test:443'};
- const projected=nativeDiagnosticEnvironment(env,{host:plan.assets.host});assert.equal(projected.HTTPS_PROXY,env.HTTPS_PROXY);
+ const env={HOME:'/owner',PATH:'/usr/bin',RUNNER_TRACKING_ID:'nonsecret-owned-runner-marker',CLAUDE_CODE_OAUTH_TOKEN:'MOCK_DATA_ONLY_NOT_A_CREDENTIAL',GITHUB_TOKEN:'PRIVATE_CANARY',GH_TOKEN:'PRIVATE_CANARY',ACTIONS_RUNTIME_TOKEN:'PRIVATE_CANARY',ACTIONS_ID_TOKEN_REQUEST_TOKEN:'PRIVATE_CANARY',HTTPS_PROXY:'https://proxy.example.test:443'};
+ const projected=nativeDiagnosticEnvironment(env,{host:plan.assets.host});assert.equal(projected.HTTPS_PROXY,env.HTTPS_PROXY);assert.equal(projected.RUNNER_TRACKING_ID,env.RUNNER_TRACKING_ID);
  for(const k of ['GITHUB_TOKEN','GH_TOKEN','ACTIONS_RUNTIME_TOKEN','ACTIONS_ID_TOKEN_REQUEST_TOKEN'])assert.equal(Object.hasOwn(projected,k),false);
  assert.equal(projected.CLAUDE_CODE_OAUTH_TOKEN,env.CLAUDE_CODE_OAUTH_TOKEN);assert.equal(projected.DISABLE_UPDATES,'1');
  for(const key of ['ANTHROPIC_API_KEY','ANTHROPIC_AUTH_TOKEN','ANTHROPIC_PROFILE','ANTHROPIC_CUSTOM_HEADERS','CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR','CLAUDE_BG_AUTH_SNAPSHOT_PATH','CLAUDE_CODE_USE_VERTEX','CLAUDE_SECURESTORAGE_CONFIG_DIR','NODE_OPTIONS','OPENSSL_CONF','DYLD_INSERT_LIBRARIES','BASH_ENV'])

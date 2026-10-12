@@ -39,7 +39,10 @@ OIDC/signing jobs, copied login files, bare/SDK routes, terminal input, retries 
 input queues. The fixed print prompt has closed stdin and `--max-turns 4`.
 
 The native environment preserves proxy settings and normal HOME, isolates config
-and GH directories, disables updates, and excludes GH/runner/OIDC credentials.
+and GH directories, disables updates, and excludes GH/runner/OIDC credentials. The nonsecret `RUNNER_TRACKING_ID`
+is retained only in the child environment for standard Actions orphan tracking;
+it is never included in the report. Native reaping and listener cleanup are
+reported individually; UNKNOWN does not claim all descendants were cleaned.
 The sandbox is required, has no unsandboxed fallback or excluded commands, gives
 no write grants, protects code/native/runtime parents, denies protected host and
 Keychain reads, and permits only the single reporting socket. A literal Bash rule

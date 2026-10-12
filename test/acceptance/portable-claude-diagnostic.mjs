@@ -132,7 +132,7 @@ export const FORBIDDEN_ENV=Object.freeze(['ANTHROPIC_API_KEY','ANTHROPIC_AUTH_TO
 export function nativeDiagnosticEnvironment(env,{host}){
  if(FORBIDDEN_ENV.some(k=>Object.hasOwn(env,k))||Object.keys(env).some(k=>k.startsWith('DYLD_')||k.startsWith('OPENSSL_')||k.startsWith('CLAUDE_')&&k!=='CLAUDE_CODE_OAUTH_TOKEN'))fail('DIAGNOSTIC_AUTH_OR_RUNTIME_OVERRIDE');
  if(typeof env.CLAUDE_CODE_OAUTH_TOKEN!=='string'||!env.CLAUDE_CODE_OAUTH_TOKEN)fail('DIAGNOSTIC_OAUTH_MISSING');
- const out={};for(const key of ['HOME','USER','LOGNAME','TMPDIR','PATH','SHELL','LANG','LC_ALL','HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','NO_PROXY','http_proxy','https_proxy','all_proxy','no_proxy'])if(Object.hasOwn(env,key))out[key]=env[key];
+ const out={};for(const key of ['HOME','USER','LOGNAME','TMPDIR','PATH','SHELL','LANG','LC_ALL','RUNNER_TRACKING_ID','HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','NO_PROXY','http_proxy','https_proxy','all_proxy','no_proxy'])if(Object.hasOwn(env,key))out[key]=env[key];
  return {...out,CLAUDE_CONFIG_DIR:path.join(host,'claude-config'),GH_CONFIG_DIR:path.join(host,'gh-config'),DISABLE_UPDATES:'1',CLAUDE_CODE_OAUTH_TOKEN:env.CLAUDE_CODE_OAUTH_TOKEN,REDUE_PREFLIGHT_SENTINEL:'nonsecret-boundary-sentinel'};
 }
 export function nativeDiagnosticArgv({settingsFile,command}){
