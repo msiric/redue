@@ -290,3 +290,24 @@ remain consequential owner decisions. Original failures/approvals remain history
 The native manual route is allowed; a denied Terminal-control route is not.
 No old owner-supplied output is relabelled assistant-measured. Goal objective,
 G0–G4, Day0, zero additional spending and exact producer bindings are unchanged.
+
+
+## D9 — Hosted native programmatic enforcement diagnostic
+
+Owner amendment recorded2026-10-12 and implemented in canonical Section6.6.
+Keep the approved standard hosted pair; the console-enabled receiver proposal is
+superseded, not a blocker. Native identity and independently matched machine
+profiles remain. Native version may be independently reviewed/repinned where
+needed; no mock, SDK/controller, terminal/remote-access substitution.
+
+One initial hosted diagnostic may use at most4agentic turns/120s under established
+included Claude subscription capacity/$0, after non-model binary/effective-policy/
+credential-protection/resource/startup/auth gates. It performs only the reviewed
+synthetic checker and collection. Real credentials must be protected before any
+tool child; do not read/print them to establish protection. Structured assertions,
+actual OS exit/signal and native tool trace are required; UNKNOWN/FAIL remain so.
+No secret is provisioned by engineering. A runnable independently reviewed
+workflow precedes one consolidated owner provisioning checklist. Diagnostic PASS
+is not recipient reuse/G2; actual producer, artifact, policy and applicability
+bindings remain unchanged. Copilot billing fact remains independently pending.
+The prior local manual six-check PASS remains valid only for its actual scope.

@@ -512,6 +512,45 @@ permitted preparation, consolidate unavoidable owner actions, and keep all
 unblocked implementation/review tasks moving. Original Day0, profile decisions,
 spending/storage limits, immutable receipts and gates remain in force.
 
+
+### 6.6 Owner-approved hosted native diagnostic method
+
+Recorded2026-10-12: keep D4's approved standard GitHub-hosted producer/receiver
+pair. A console-capable personal VM is not the next prerequisite. The actual
+receiver's native command boundary must demonstrate enforcement; neither manual
+`!` nor native2.1.187 is a permanent product requirement. Preserve the successful
+local checker only as local evidence.
+
+Use a documented native programmatic route; independently review/pin a newer
+native version only if necessary. Prefer a supported deterministic native
+preflight. If native enforcement requires a model-triggered tool operation,
+the owner authorizes **one initial hosted diagnostic job, at most four agentic
+turns and two minutes of execution**, using only established subscription-included
+Claude capacity at $0 additional spend. It may request only the narrowly reviewed
+checker and necessary result handling, using synthetic canaries. This is an
+explicit exception to earlier zero-inference enforcement-preflight requirements,
+not ordinary repository work, unrestricted tools or G2 completion.
+
+Before that diagnostic, independently verify/review pinned binary, actual
+effective configuration, fail-closed sandbox/no unsandboxed retry/no excluded
+commands, credential protection, exact filesystem/socket/network scope, controlled
+startup and no unreviewed hooks/plugins/MCP, and authentication/included capacity.
+Source/config review is not empirical native enforcement. Never expose a real
+credential to an unverified command boundary to test its protection; stop if
+necessary protection cannot be established. Require structured checker assertions,
+actual exit/signal and native tool-execution evidence. Missing results remain
+UNKNOWN and failed assertions FAIL; model prose or cleanup cannot certify success.
+
+No terminal automation, remote desktop, tunnel, standalone-sandbox substitution,
+mock agent or SDK substitution is authorized. Secret provisioning remains an
+owner account action through a reviewed runnable workflow; no local-login copying,
+secret logging, API-billing fallback, new spending or managed-policy weakening.
+Successful diagnostic only unlocks a separately gated recipient agent trial.
+All actual two-agent/two-machine G2 and recipient CURRENT requirements remain.
+Copilot Actions included-capacity confirmation stays separate. Routine repairs,
+identities and review continue under Section6.5; no further filename/hash approval
+is needed. The active goal/objective, Day0, calibration and release gate are unchanged.
+
 ---
 
 ## 7. Acceptance and adversarial testing

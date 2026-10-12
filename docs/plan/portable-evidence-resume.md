@@ -6,7 +6,52 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — native boundary passed; macOS test fixture corrected
+## Current checkpoint — approved hosted diagnostic implementation
+
+The owner retained the standard GitHub-hosted pair and approved D9/Section6.6:
+prefer supported deterministic native preflight; if needed, one programmatic
+native-Claude diagnostic job, at most4turns/120s, included subscription/$0 after
+non-model binary/effective-policy/credential-protection/resource/startup/auth gates.
+This supersedes the proposed personal console VM and manual-only prerequisite.
+Local six-assertion187 PASS stays local; actual model/machine acceptance is not
+credited. No credentials/secret workflow/model or signing action has run.
+
+Existing goal service now reports active with the same objective; no replacement
+goal or forecast reset. D owns the disabled runnable native diagnostic proposal,
+harness and mock controls; C independently reviews its security/evidence boundary;
+root owns integration, canonical tracker/decisions and fixed-source CI. B's held
+recipient phase is reviewed/integrated; imported-data callbacks remain prohibited.
+No model trial starts merely from static settings, source review or local PASS.
+
+Task branch6d89bdf is normally pushed to `origin/dev/portable-ci-preparation`;
+draftPR13 updated with precise limits. Signer d04b872/main b4f2860 unchanged.
+Latest exact-package38189432506 passes all three platforms; product38189432507
+is in progress for combined helper/protection changes. Root affected123/123 pass;
+independent held154/154 and protection7/7 pass. Previous359916f product/all-platform
+package passes and failed/UNKNOWN attempts are preserved below. Exact package
+identity will be independently downloaded from the current run, never substituted
+for frozen8695b612 or public alpha.10. No release/publication/auto-upgrade.
+
+Codex0.162.1/current74c6a6d binary reports ChatGPT login with API/access/WIF key
+presence absent. Flat supported no-model route is `codex sandbox -P PROFILE
+--include-managed-config -- COMMAND`; no ready portable fixture/profile or trial
+cap survives prior teardown. Genuine setup uses default macOS project state;
+there is no state-home override. No model/sockets/profile/state creation occurred
+in this inventory. Historical debugger state or ENOENT from old help syntax is
+not current acceptance or permission denial. Codex acceptance remains separate.
+
+Copilot's first Actions four-credit included billing fact is still pending; no
+unchanged broad account request is repeated. Claude secret provisioning waits
+for the exact independently reviewed runnable workflow; never copy local login
+stores. The old signed origin artifact expired; do not substitute a new origin or
+relax trust. Fresh producer/recipient evidence and all V01–V22/G2/finalG3/G4 remain
+required. External use NOT_STARTED. Day0=2026-10-10 21:24UTC and72h calibration
+2026-10-13 21:24UTC unchanged. New spending=$0, storage10MiB/one-day retention;
+last audit45active artifacts4,621,875bytes plus224KiB reserve4,851,251 <10MiB.
+Next: implement/review the supported native diagnostic and inspect current CI;
+then provide one concrete owner-only auth/capacity checklist for the runnable route.
+
+## Historical checkpoint — native boundary passed; macOS test fixture corrected
 
 The actual owner-operated Claude2.1.187 result passes all six fixed synthetic
 assertions with supervised checker exit0/no signal and final persisted PASS.
