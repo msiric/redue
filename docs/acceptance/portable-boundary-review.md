@@ -5053,3 +5053,57 @@ unchanged. The reported hosted27-test preparer mechanics success is preparer-onl
 runner labels without actual kernel/filesystem evidence do not establish a matched
 sealed/native-agent recipe. The reviewer inspected source and static diagnosis
 only and performed no additional preparation or native/CI/model operation.
+
+## Retained parent mocks and disabled native stage-parent policy
+
+The ten independent compact schema2 parent/child VM controls are now retained
+as test/sealed-typescript-preparation.test.mjs. On frozen5d36610 with only that
+test overlaid they passed10/10 in95.47ms. All filesystem/profile/child behavior
+is mocked in memory; only reviewed module source is read. The test checks the
+fixed sandbox-exec/profile/Node/child argv, empty env/SIGKILL, schema/count/digest/
+false flags, stage directory type/mode/UID/dev/ino, physical-audit-only semantics,
+finite74 refusal, current bindings, framing, final budget and signal/reaping
+fields. The33,345-row compact-child example is also wholly mocked. Schema3 must
+receive an explicit successor expectation; these schema2 tests do not admit it.
+
+GO for pure disabled policy overlayc359f590ee88d297a82d4dc67cd6704e611ce693.
+It composes the existing fixed native187 receiver proposal, adds only the exact
+base/sealed-inputs parent to denyWrite, preserves every existing allow/read/
+credential/network/argv limit and adds explicit unresolved seal/namespace gates.
+The overlay deep-freezes data, refuses getter/symbol/foreign-stage inputs, and
+retains disabled/inferencePermitted/physicalBindingsVerified/namespaceVerified/
+sealed/reuseEligible false. Three independent archived controls passed3/3 in54.74ms.
+This is not a settings application, stage identity verification or launch route.
+
+The existing public native binary independently hashes to
+a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3.
+Its bounded source c2i@198193012, m2i@198193137 and w0d@198195039 emits an exact
+non-glob subtree file-write denial plus literal create/unlink denials for its
+ancestor directory entries, excluding '/'. Thus the narrow delta need not deny
+the entire home tree or grant a new ancestor path. Three extracted non-glob rule
+controls passed3/3 in52.78ms, including coexistence with a temp write allowance.
+These isolate already expanded paths/default-list behavior; they do not certify
+actual effective native policy or empirical syscall denial.
+
+For integration, select a fresh locally provisioned stage outside checkout/state
+and credential read-denial ancestry; bind its actual canonical physical parents,
+independent inodes and descriptor/compiler/code/current settings before use.
+Finish/reap the trusted preparer and exclude surviving untrusted write handles/
+mappings before native access. Preserve all prior credential scrub/read denials,
+strict sandbox/no fallback/excluded commands, exact command admission and fixed
+network/socket authority. Any new descriptor or code leaf needs its exact immutable
+write protection. Observe nonsensitive write/chmod/unlink/rename/ancestor-replace/
+hardlink/shared-mapping refusal at the native command boundary before calling it
+sealed. Modes, hashes and constructor data alone remain insufficient.
+
+Default TS5.5.2 libraries and ancestor resolution remain a distinct requirement.
+Ancestor entry guards do not freeze sibling ancestor/node_modules creation or
+its existing contents. Derive all seven actual staged compiler filesystem query
+kinds, retaining absent candidates, empty directories and membership/topology;
+either place every relevant candidate in the enforced tree or conservatively
+require separate exact candidate protections/current namespace validation.
+Unexpected external positive files/body reads remain unsupported; no outside
+read grant, ignored query, daemon-view substitution or timeout increase is
+authorized by this overlay. D12 covers the restrictive proposal and current
+approved VM scope; broader authority or a new executor is not implied. No native
+process, compiler, model, CI job or settings write occurred in this review.
