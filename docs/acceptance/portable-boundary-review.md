@@ -3654,3 +3654,38 @@ Exact final helper SHA-256 values:
 `58a09a206c1fe1532999abd7c0f5278cce63594a6cc832d20ef001dc0843024e`
 (disabled recipient invocation). No diagnostic-only negative-cache rule was
 transplanted into the ordinary receiving-agent route.
+
+
+### Installed generic preflight: mechanical compatibility only
+
+Independent read-only audit of protected result SHA-256
+`fc95651fc4ad9e51bca3a34e26d0473b41c62c53124973c7f21758a5be50a571`
+and cleanup
+`b4959e120cc8dfdb2fd9d9d3a6d0840f09aa6709dd21bc26067e3c1ec2359a00`
+confirms the coordinator's fixed local installed fixture classification. Both
+records are owned regular single-link mode600 files. The result binds helper
+d626532 and exact existing b812 candidate; independently rehashing the preserved
+candidate reproduced b812. It records no regeneration, read-only preview,
+successful controlled-guidance publication and expected UNVERIFIED matching:
+preflight exit0/matched=true/prerequisites.ready=true, eligibility=false,
+null result/reuse=false, controlled-generic-intact and managed integration absent.
+Three preflight commands and measured Claude187 version establish this mechanical
+route, with no verification execution or model launch. The snapshot is unchanged;
+native enforcement, matched-machine acceptance and agent reuse remain NOT_TESTED.
+
+Cleanup reports owned observer stop0 and retained historical state. Fresh metadata
+confirms observer.lock, observer.sock, runs-v1 and run.lock absent; this does not
+assert arbitrary descendant reaping. Initial long-path fixture record
+`3a5b7a8cf09b181ef91aa8113c853e9e5375f480b8ac4d73212308ca0cbc6811`
+retains start/stop2, only compiled runtime and cause=NOT_ESTABLISHED, with no raw
+stderr. The existing start guard rejects filesystem sockets above100 UTF-8 bytes;
+the failed fixture's120 bytes versus the later successful82 provides a static
+explanation, not independently captured stderr or definitive retrospective cause.
+No runtime/security waiver occurred. A reviewer metadata-inventory snippet first
+had a syntax typo and was corrected; it did not launch a product process.
+
+Conclusion: installed CLI/generic preflight compatibility is demonstrated for the
+truthful no-receipt UNVERIFIED state. No full portable profile, native enforcement,
+CURRENT imported applicability or G2 receiving-agent reuse follows. This audit
+performed no installation, native/auth/model/CI operation, protected-body read
+or additional test.
