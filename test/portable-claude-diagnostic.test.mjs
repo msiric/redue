@@ -3,8 +3,10 @@ import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
 import {PassThrough} from 'node:stream';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import {renderNativeDiagnosticAssets,normalizedNativeDiagnosticAsset,nativeDiagnosticTemplateDigests,sha} from './acceptance/portable-native-diagnostic-assets.mjs';
-import {buildDiagnosticSettings,nativeDiagnosticArgv,nativeDiagnosticEnvironment,createNativeDiagnosticTrace,sanitizeCollection,diagnosticOutcome,collectNativeDiagnostic,requireNativeDiagnosticActivation,requireDiagnosticWorkflow,PINNED_READONLY_BASH_HEADS,selectedStartupSourcesAbsent} from './acceptance/portable-claude-diagnostic.mjs';
+import {buildDiagnosticSettings,nativeDiagnosticArgv,nativeDiagnosticEnvironment,createNativeDiagnosticTrace,sanitizeCollection,diagnosticOutcome,collectNativeDiagnostic,requireNativeDiagnosticActivation,requireDiagnosticWorkflow,PINNED_READONLY_BASH_HEADS,selectedStartupSourcesAbsent,classifyNativeRemoteSentinel,validateNativePostStartupSources,POST_REMOTE_SENTINEL_RULE} from './acceptance/portable-claude-diagnostic.mjs';
 const bindings={base:'/private/tmp/redue-claude-diagnostic-Abc123',node:'/approved/runtime/bin/node'};
 const plan=buildDiagnosticSettings({...bindings,native:'/approved/native/claude'});
 const sessionID='12345678-1234-4234-8234-123456789abc';
@@ -222,4 +224,70 @@ test('startup-source refusal reports only a fixed role without reading bodies or
    assert.throws(()=>selectedStartupSourcesAbsent(plan.assets),{code:'EPERM',startupSourceRole:roles[0]});
   }
  }finally{fs.lstatSync=original;}
+});
+
+test('empty remote-cache observation is exact and owned; nonempty/unsafe files receive no policy or gate authority',{skip:process.platform==='win32'?'Native macOS diagnostic POSIX filesystem control':false},()=>{
+ const host=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-native-empty-cache-')));fs.chmodSync(host,0o700);
+ const dir=path.join(host,'claude-config');fs.mkdirSync(dir,{mode:0o700});const file=path.join(dir,'remote-settings.json');
+ const observed=[];const original=fs.readSync;
+ try{
+  assert.equal(classifyNativeRemoteSentinel({host}),'UNKNOWN');
+  fs.writeFileSync(file,'{}',{mode:0o600});
+  fs.readSync=(fd,buf,offset,length,pos)=>{observed.push(length);return original(fd,buf,offset,length,pos);};
+  assert.equal(classifyNativeRemoteSentinel({host}),'EXACT_NATIVE_EMPTY_SENTINEL');assert.ok(observed.every(n=>n<=3));
+  for(const bytes of ['','[]','  ','{ }','{}\n','{"env":{"TOKEN":"PRIVATE_CANARY"}}']){
+   observed.length=0;fs.writeFileSync(file,bytes);assert.equal(classifyNativeRemoteSentinel({host}),'NOT_REVIEWED_EMPTY_SENTINEL');
+   if(bytes.length!==2)assert.equal(observed.length,0);
+  }
+  fs.writeFileSync(file,'{}');fs.chmodSync(file,0o644);observed.length=0;assert.equal(classifyNativeRemoteSentinel({host}),'NOT_REVIEWED_EMPTY_SENTINEL');assert.equal(observed.length,0);
+  fs.chmodSync(file,0o600);const linked=path.join(host,'link');fs.linkSync(file,linked);assert.equal(classifyNativeRemoteSentinel({host}),'NOT_REVIEWED_EMPTY_SENTINEL');fs.unlinkSync(linked);
+  fs.unlinkSync(file);fs.symlinkSync(path.join(host,'MISSING_NONSECRET_TARGET'),file);observed.length=0;assert.equal(classifyNativeRemoteSentinel({host}),'NOT_REVIEWED_EMPTY_SENTINEL');assert.equal(observed.length,0);
+  fs.unlinkSync(file);fs.mkdirSync(file);assert.equal(classifyNativeRemoteSentinel({host}),'NOT_REVIEWED_EMPTY_SENTINEL');
+ }finally{fs.readSync=original;fs.rmSync(host,{recursive:true,force:true});}
+});
+
+test('post-native policy guard requires the exact negative sentinel and preserves every other source refusal',{skip:process.platform==='win32'?'Native macOS diagnostic POSIX filesystem control':false},()=>{
+ const host=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-native-post-cache-')));fs.chmodSync(host,0o700);
+ const dir=path.join(host,'claude-config');fs.mkdirSync(dir,{mode:0o700});const file=path.join(dir,'remote-settings.json'),code=path.join(host,'code');fs.mkdirSync(code,{mode:0o700});
+ const original=fs.lstatSync,missing=()=>{throw Object.assign(Error('MOCK_MISSING'),{code:'ENOENT'});};
+ const external=p=>p.startsWith('/Library/')||p.startsWith('/home/claude/');
+ try{
+  fs.lstatSync=p=>external(p)?missing():original(p);
+  assert.throws(()=>validateNativePostStartupSources({host,code}),{code:'DIAGNOSTIC_REMOTE_POLICY_UNESTABLISHED',remoteCacheClass:'ABSENT'});
+  fs.writeFileSync(file,'{}',{mode:0o600});
+  assert.throws(()=>selectedStartupSourcesAbsent({host,code}),{code:'DIAGNOSTIC_STARTUP_SOURCE_PRESENT',startupSourceRole:'ISOLATED_REMOTE_SETTINGS'});
+  assert.equal(validateNativePostStartupSources({host,code}),'EXACT_NATIVE_EMPTY_SENTINEL');assert.equal(POST_REMOTE_SENTINEL_RULE,'NATIVE187_FRESH_PRINT_ONE_FETCH_EMPTY_SENTINEL_V1');
+  for(const [role,p] of [['SYSTEM_MANAGED_JSON','/Library/Application Support/ClaudeCode/managed-settings.json'],['SYSTEM_MANAGED_DIRECTORY','/Library/Application Support/ClaudeCode/managed-settings.d'],['SYSTEM_MANAGED_PLIST','/Library/Managed Preferences/com.anthropic.claudecode.plist'],['USER_MANAGED_PLIST',`/Library/Managed Preferences/${os.userInfo().username}/com.anthropic.claudecode.plist`],['REMOTE_API_KEY_PATH','/home/claude/.claude/remote/.api_key']]){
+   fs.lstatSync=f=>f===p?{}:external(f)?missing():original(f);assert.throws(()=>validateNativePostStartupSources({host,code}),{code:'DIAGNOSTIC_STARTUP_SOURCE_PRESENT',startupSourceRole:role});
+  }
+  fs.lstatSync=p=>external(p)?missing():original(p);
+  for(const [role,p] of [['ISOLATED_CREDENTIAL_STORE',path.join(dir,'.credentials.json')],['PROJECT_CLAUDE_DIRECTORY',path.join(code,'.claude')],['PROJECT_MCP_FILE',path.join(code,'.mcp.json')],['PROJECT_INSTRUCTION_FILE',path.join(code,'CLAUDE.md')]]){
+   fs.writeFileSync(p,'NONSECRET_MOCK',{mode:0o600});assert.throws(()=>validateNativePostStartupSources({host,code}),{code:'DIAGNOSTIC_STARTUP_SOURCE_PRESENT',startupSourceRole:role});fs.unlinkSync(p);
+  }
+  for(const bytes of ['[]','  ','{ }','{}\n','{"permissions":{"allow":["Bash"]}}']){
+   fs.writeFileSync(file,bytes);assert.throws(()=>validateNativePostStartupSources({host,code}),{code:'DIAGNOSTIC_STARTUP_SOURCE_PRESENT',startupSourceRole:'ISOLATED_REMOTE_SETTINGS',remoteCacheClass:'NOT_REVIEWED_EMPTY_SENTINEL'});
+  }
+ }finally{fs.lstatSync=original;fs.rmSync(host,{recursive:true,force:true});}
+});
+
+
+test('empty sentinel refuses replacement, growth, truncation and parent indirection',{skip:process.platform==='win32'?'Native macOS diagnostic POSIX filesystem control':false},()=>{
+ const host=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-native-cache-race-')));fs.chmodSync(host,0o700);
+ const dir=path.join(host,'claude-config');fs.mkdirSync(dir,{mode:0o700});const file=path.join(dir,'remote-settings.json');
+ const originalRead=fs.readSync,originalStat=fs.fstatSync;
+ try{
+  fs.writeFileSync(file,'{}',{mode:0o600});let changed=false;
+  fs.readSync=(...args)=>{if(!changed){changed=true;fs.appendFileSync(file,'X');}return originalRead(...args);};
+  assert.equal(classifyNativeRemoteSentinel({host}),'UNKNOWN');fs.readSync=originalRead;
+  fs.writeFileSync(file,'{}');changed=false;
+  fs.readSync=(...args)=>{if(!changed){changed=true;fs.truncateSync(file,0);}return originalRead(...args);};
+  assert.equal(classifyNativeRemoteSentinel({host}),'UNKNOWN');fs.readSync=originalRead;
+  fs.writeFileSync(file,'{}');changed=false;
+  fs.readSync=(...args)=>{if(!changed){changed=true;fs.renameSync(file,path.join(dir,'old'));fs.writeFileSync(file,'{}',{mode:0o600});}return originalRead(...args);};
+  assert.equal(classifyNativeRemoteSentinel({host}),'UNKNOWN');fs.readSync=originalRead;
+  fs.fstatSync=(...args)=>{const st=originalStat(...args);return Object.assign(Object.create(Object.getPrototypeOf(st)),st,{ino:st.ino+1});};
+  assert.equal(classifyNativeRemoteSentinel({host}),'UNKNOWN');fs.fstatSync=originalStat;
+  fs.renameSync(dir,path.join(host,'actual'));fs.symlinkSync(path.join(host,'actual'),dir);
+  assert.equal(classifyNativeRemoteSentinel({host}),'UNKNOWN');
+ }finally{fs.readSync=originalRead;fs.fstatSync=originalStat;fs.rmSync(host,{recursive:true,force:true});}
 });
