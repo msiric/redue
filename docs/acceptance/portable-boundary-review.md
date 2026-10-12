@@ -2832,3 +2832,44 @@ macOS acceptance or a new clean full matrix. Conclusion: GO for the narrow fixtu
 correction, retaining all failed history and current-binding requirements. No CI
 rerun, native host/model trial, runtime change or assertion relaxation was performed
 by this reviewer. Corrected hosted acceptance remains a later actual result.
+
+## Disabled receiver declaration-write boundary
+
+Source-only review of the disabled187 receiver proposal identifies an additional
+activation prerequisite. Its current sandbox allows writes to the project and
+state, while denying writes to the producer registry, installation prefix,
+selected host settings and native executable. It does not yet deny writes to
+the public redue.config.json or compiled project-runtime-v1.json declarations.
+No activated VM/model route, exploitation or affected-user population is claimed.
+
+bin/redue.mjs accepts explicit check.probes and combines them with built-in probes
+in the compiled runtime. It refuses regenerating a changed public configuration
+while an observer PID is alive; that does not prevent direct writes to runtime.
+plan-worker.mjs reads that runtime file on a rebuild and may rediscover a changed
+plan. declared-plan.mjs checks that probe argv arrays contain nonempty strings;
+daemon.mjs subsequently executes every declared probe in its full-probe loop.
+The direct compiler qualification can correctly mark extra probes unresolved,
+but that withholds reusable evidence rather than forbidding those probe launches.
+selectedConfigHash compares current declarations with the current plan, not an
+immutable owner-approved execution-authority digest.
+
+Generic owner-configured probes are existing product behavior. The narrower
+future receiver must continuously prevent agent changes to those authority
+declarations, including protected-file replacement through writable parents.
+Review additive exact declaration/ownership-file write denials and physical
+identity/content bindings before activation; preserve ordinary receipt writes
+and the existing direct compiler scope. A trusted callback's before/after status
+validation is an interval check, not continuous enforcement against a daemon
+reading an intervening mutation. Keep requireClaudeReceiverActivation permanently
+refusing until the actual matched-host authority boundary is established. No
+core implementation, proposed settings or host permission was changed here.
+
+Retained pinned187 source establishes that manual Bash and model Bash share the
+native Bash execution implementation, while manual dispatch bypasses ordinary
+command permission approval. A source-bound, actual no-model test on the target
+VM can establish executor prerequisites before a first model trial; it cannot
+certify model command permissions or another tool path. No supported equivalent
+noninteractive same-Bash invocation has been demonstrated for the pinned native
+CLI. Local manual PASS therefore supplies neither hosted VM authority nor an
+automated model launch prerequisite by itself. No native or model action was
+performed for this source review.
