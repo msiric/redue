@@ -4002,3 +4002,60 @@ workflow checks must be established at integration. No imported path/capability,
 GITHUB_ACTIONS label alone, writable implicit-temp replica or restored revoked
 token may start observation. This review neither activates the native observer
 nor substitutes endpoint identity for interval coverage.
+
+### Raw occurrence provider leaf and in-root membership coverage
+
+Source-only GO for raw-provider leaf `5a125ad` plus `d806c9f`. Final C++ source
+SHA256 is
+`ebdb7387ae79fbf8c2ca81d33fc3acde249013b89791853611068e06d3fd8ab6`;
+retained production build SHA256 is
+`5c43ba4fc39416c3657af878eff645e514bb19705165f2aa9f648f86550a5b9b`
+(79,992 bytes). This reviewer rehashed, but never started, that production binary.
+The build uses the reviewed source and fixed trusted system compiler/flags;
+parent runtime provenance and protected launch identity remain separate gates.
+
+The native leaf creates only the fixed '/' FileEvents/WatchRoot/NoDefer stream,
+filters each raw callback before retention, and emits only static uncertainty,
+locally supplied scope IDs and monotonic serial/request fields. It performs no
+file-body reads, stat/traversal, imported execution or pathname logging. Raw
+create/remove occurrences are not cancellation-aggregated. A serial dispatch
+queue receives callbacks; main-thread FlushSync is outside that queue, and ready/
+barrier acknowledgements follow synchronization. Close flushes, stops/invalidates
+and drains before acknowledging. Drop/wrap/root/mount/history/unknown provider
+flags, malformed paths and overflow permanently withdraw authority. Bounded
+framing/output and a hard parent timeout/reap remain necessary; a blocked output
+or native flush cannot be treated as a successful timely barrier.
+
+Independent exact-source controls51/51 pass962.44ms, including27 pure C++
+filter/framing/serial controls and24 query projection controls. The C++ test build
+excludes CoreServices and production main; it starts no stream. Initial exact
+5a controls51/51 passed1295.97ms. Review found DEL127 classified differently from
+the JavaScript ASCII guard; d806 now makes it uncertainty and retains that case
+in the malformed-path controls. ASCII case aliases are conservative matches;
+potentially matching Unicode ambiguity is uncertainty. Actual standard-VM path
+and firmlink alias delivery is not established by string-filter tests.
+
+Three additional independent pure controls compile the actual extracted Parcel
+EventList class, omitting only its unrelated JavaScript conversion interface.
+They confirm that create→remove is elided for both checkout and ancestor paths,
+while remove→create of an existing path retains an event. No FSEvents watcher,
+configured compiler or wrapped verification is involved. This establishes the
+provider counterexample, not a released false-CURRENT reproduction.
+
+New portable interval interpretation must cover in-root directory membership as
+well as named absent ancestor candidates. A transient source/declaration created,
+consumed through readDirectory/entries/directories and removed can restore the
+endpoint membership list without a preexisting named absent-file query. Derive
+supplementary raw prefix scopes locally from all seven reviewed in-root filesystem
+query kinds, including the checkout root when actually queried; reject unknown
+kinds or unsupported paths instead of omitting them. Keep outside authority
+limited to the separately approved ancestor namespace and preserve ordinary root
+observation. Matching endpoints alone do not become interval evidence.
+
+This GO does not enable observation or certify complete portable origins. Exact
+protected capability, packaged executable/source pins, parent protocol/lifecycle
+and generation/scope/serial start/end checks still need integration review. Real
+CI-only controls must establish transient create/remove, membership addition,
+parent replacement/restoration, case alias delivery and conservative gaps before
+any @3 complete/reuse claim. No owner-Mac broad subscription, model, CI dispatch,
+new resource grant or trust-policy change was performed by this reviewer.
