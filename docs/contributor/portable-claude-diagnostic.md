@@ -12,7 +12,7 @@ assistant `tool_use` for the literal collector command and a native user
 match the tool result. Model prose cannot establish success. Actual checker OS
 close/exit/signal, six assertion rows, native process outcome and lifecycle remain
 separate. Negative assertions survive incomplete cleanup. Missing/malformed data,
-changed files, missing live controls or timeout yield UNKNOWN. Twelve pure/mock
+changed files, missing live controls or timeout yield UNKNOWN. Thirteen pure/mock
 controls passed; no native, model or real probe ran during those controls.
 
 The [assets](../../test/acceptance/portable-native-diagnostic-assets.mjs) retain the
@@ -30,7 +30,9 @@ The [workflow](portable-claude-diagnostic-workflow.yml), outside `.github`, fixe
 `msiric/redue`, owner `msiric`, manual dispatch on
 `dev/portable-claude-diagnostic`, macOS26/arm64, Node22.13.0 and native2.1.187
 SHA-256 `a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3`.
-Its unresolved integrated source pin fails before the secret step. Native bytes
+Only run-attempt1 is admitted; a missing attempt or a rerun refuses. A fresh
+dispatch still needs the root-owned one-operation ledger. Its unresolved
+integrated source pin fails before the secret step. Native bytes
 come from the public release URL used by the [official installer](https://claude.ai/install.sh),
 with the pinned checksum checked before execution. There are no uploads, caches,
 OIDC/signing jobs, copied login files, bare/SDK routes, terminal input, retries or

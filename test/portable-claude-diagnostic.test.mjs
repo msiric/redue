@@ -107,7 +107,7 @@ test('mock startup error, partial output, timeout and oversized output remain UN
 });
 
 const source='a'.repeat(40);
-const workflowEnv=()=>({GITHUB_ACTIONS:'true',GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_REPOSITORY:'msiric/redue',GITHUB_REF:'refs/heads/dev/portable-claude-diagnostic',GITHUB_ACTOR:'msiric',REDUE_CHECKED_SOURCE:source,REDUE_CLAUDE_INCLUDED_DIAGNOSTIC_CAPACITY:'4-turn-120s-included-only'});
+const workflowEnv=()=>({GITHUB_ACTIONS:'true',GITHUB_RUN_ATTEMPT:'1',GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_REPOSITORY:'msiric/redue',GITHUB_REF:'refs/heads/dev/portable-claude-diagnostic',GITHUB_ACTOR:'msiric',REDUE_CHECKED_SOURCE:source,REDUE_CLAUDE_INCLUDED_DIAGNOSTIC_CAPACITY:'4-turn-120s-included-only'});
 function ownerFact(){return {schema:1,scope:'OWNER_ATTESTED_PERSONAL_SUBSCRIPTION_NO_MANAGED_POLICY',owner:'msiric',repository:'msiric/redue',ref:'refs/heads/dev/portable-claude-diagnostic',source,native_sha256:'a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3',account_kind:'personal-pro',organization_membership:'none',applicable_managed_policy:'none',reviewed_at:new Date().toISOString().replace(/\.\d{3}Z$/,'Z'),included_capacity:'4-turn-120s-included-only'};}
 test('exact owner policy statement is conditional provenance, not boolean permission or empirical enforcement',()=>{
  const env={...workflowEnv(),REDUE_CLAUDE_ACCOUNT_POLICY_FACT:JSON.stringify(ownerFact())};
@@ -115,7 +115,7 @@ test('exact owner policy statement is conditional provenance, not boolean permis
  for(const fact of [null,[],true,{}, {...ownerFact(),account_kind:'team'}, {...ownerFact(),organization_membership:'enterprise'}, {...ownerFact(),applicable_managed_policy:'unknown'}, {...ownerFact(),source:'b'.repeat(40)}, {...ownerFact(),native_sha256:'b'.repeat(64)}, {...ownerFact(),reviewed_at:'2000-01-01T00:00:00Z'}, {...ownerFact(),approved:true}])
   assert.throws(()=>requireNativeDiagnosticActivation({env:{...env,REDUE_CLAUDE_ACCOUNT_POLICY_FACT:JSON.stringify(fact)},source}));
  assert.throws(()=>requireNativeDiagnosticActivation({env:workflowEnv(),source}),{code:'DIAGNOSTIC_OWNER_POLICY_FACT_MISSING'});
- for(const changed of [{GITHUB_EVENT_NAME:'pull_request'},{GITHUB_REF:'refs/heads/main'},{GITHUB_ACTOR:'other'},{REDUE_CHECKED_SOURCE:'b'.repeat(40)},{REDUE_CLAUDE_INCLUDED_DIAGNOSTIC_CAPACITY:'unlimited'}])
+ for(const changed of [{GITHUB_RUN_ATTEMPT:undefined},{GITHUB_RUN_ATTEMPT:'2'},{GITHUB_EVENT_NAME:'pull_request'},{GITHUB_REF:'refs/heads/main'},{GITHUB_ACTOR:'other'},{REDUE_CHECKED_SOURCE:'b'.repeat(40)},{REDUE_CLAUDE_INCLUDED_DIAGNOSTIC_CAPACITY:'unlimited'}])
   assert.throws(()=>requireDiagnosticWorkflow({...env,...changed},source),{code:'DIAGNOSTIC_WORKFLOW_OR_CAPACITY'});
 });
 test('mock malformed native trace stops and escalates promptly without waiting full execution budget',async()=>{
@@ -125,4 +125,14 @@ test('mock malformed native trace stops and escalates promptly without waiting f
  const r=await collectNativeDiagnostic(()=>c,{command:plan.command,cwd:plan.assets.code,timeoutMs:1000,cleanupMs:20});
  assert.equal(r.trace.error,'NATIVE_STREAM_MALFORMED');assert.deepEqual(c.kills,['SIGTERM','SIGKILL']);assert.equal(r.owned_native_reaped,true);assert.ok(r.milliseconds<500);
  assert.equal(r.native_process_spawn_observed,false);
+});
+
+test('mock cancellation before launch creates no child; during launch reaps and never qualifies',async()=>{
+ const first=new AbortController();first.abort();let calls=0;
+ const denied=await collectNativeDiagnostic(()=>{calls++;throw Error();},{command:plan.command,cwd:plan.assets.code,timeoutMs:100,cleanupMs:20,signal:first.signal});
+ assert.equal(calls,0);assert.equal(denied.trace.error,'NATIVE_CANCELLED');assert.equal(denied.native_process_spawn_observed,false);
+ const live=new AbortController();let c;
+ const pending=collectNativeDiagnostic(()=>c=mockChild([],{hang:true}),{command:plan.command,cwd:plan.assets.code,timeoutMs:100,cleanupMs:20,signal:live.signal});
+ live.abort();const stopped=await pending;assert.equal(stopped.trace.error,'NATIVE_CANCELLED');assert.equal(stopped.owned_native_reaped,true);assert.deepEqual(c.kills,['SIGTERM']);
+ assert.equal(diagnosticOutcome(stopped.trace,{...complete,nativeSignal:stopped.native_signal}).collection_status,'UNKNOWN');
 });

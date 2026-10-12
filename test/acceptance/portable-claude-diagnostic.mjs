@@ -87,7 +87,7 @@ export function diagnosticOutcome(trace,{nativeExit=null,nativeSignal=null,timed
 }
 // Lexical mock seam only: the entrypoint cannot accept an alternate executable,
 // prompt, command or permission policy. No raw stdout/stderr is returned.
-export function collectNativeDiagnostic(create,{command,cwd,timeoutMs=115000,cleanupMs=5000}={}) {
+export function collectNativeDiagnostic(create,{command,cwd,timeoutMs=115000,cleanupMs=5000,signal}={}) {
  if(!Number.isInteger(timeoutMs)||timeoutMs<1||timeoutMs>115000||!Number.isInteger(cleanupMs)||cleanupMs<1||cleanupMs>5000)fail('DIAGNOSTIC_LIMIT');
  return new Promise(resolve=>{
   const trace=createNativeDiagnosticTrace({command,cwd});let child,pending=Buffer.alloc(0),total=0,done=false,timedOut=false,ioError=null,reaped=false,killTimer,spawnObserved=false;
@@ -95,14 +95,16 @@ export function collectNativeDiagnostic(create,{command,cwd,timeoutMs=115000,cle
   const stop=()=>{if(child&&child.exitCode===null&&child.signalCode===null){try{child.kill('SIGTERM');}catch{}
     if(!killTimer)killTimer=setTimeout(()=>{if(!done&&child.exitCode===null&&child.signalCode===null)try{child.kill('SIGKILL');}catch{}},Math.min(500,cleanupMs));}};
   const finish=(exit,signal,observed=false)=>{
-   if(done)return;done=true;clearTimeout(deadline);clearTimeout(killTimer);clearTimeout(lastWait);
+   if(done)return;done=true;signal?.removeEventListener('abort',cancel);clearTimeout(deadline);clearTimeout(killTimer);clearTimeout(lastWait);
    if(pending.length)ioError??='NATIVE_STREAM_INCOMPLETE';const snapshot=trace.snapshot();snapshot.error??=ioError;
    resolve({trace:snapshot,native_exit_code:Number.isInteger(exit)?exit:null,native_signal:SIGNALS.has(signal)?signal:null,
     native_process_spawn_observed:spawnObserved,native_exit_observed:observed,owned_native_reaped:reaped,timed_out:timedOut,milliseconds:performance.now()-started,
     stdout_bytes:total,raw_stdout_retained:false,raw_stderr_retained:false});
   };
+  const cancel=()=>{ioError??='NATIVE_CANCELLED';stop();};
   const deadline=setTimeout(()=>{timedOut=true;stop();},timeoutMs);
   const lastWait=setTimeout(()=>finish(null,null),timeoutMs+cleanupMs);
+  if(signal?.aborted){ioError='NATIVE_CANCELLED';finish(null,null);return;}signal?.addEventListener('abort',cancel,{once:true});
   try {
    child=create();child.on('spawn',()=>{spawnObserved=true;});child.stdout.on('data',chunk=>{
     if(done)return;if(!Buffer.isBuffer(chunk))chunk=Buffer.from(chunk);
@@ -230,7 +232,7 @@ export function selectedStartupSourcesAbsent({host,code}){
 }
 export function requireDiagnosticWorkflow(env,source){
  if(!/^[a-f0-9]{40}$/.test(source??'')||env.GITHUB_ACTIONS!=='true'||env.GITHUB_EVENT_NAME!=='workflow_dispatch'||env.GITHUB_REPOSITORY!=='msiric/redue'||
-  env.GITHUB_REF!=='refs/heads/dev/portable-claude-diagnostic'||env.GITHUB_ACTOR!=='msiric'||env.REDUE_CHECKED_SOURCE!==source||
+  env.GITHUB_RUN_ATTEMPT!=='1'||env.GITHUB_REF!=='refs/heads/dev/portable-claude-diagnostic'||env.GITHUB_ACTOR!=='msiric'||env.REDUE_CHECKED_SOURCE!==source||
   env.REDUE_CLAUDE_INCLUDED_DIAGNOSTIC_CAPACITY!=='4-turn-120s-included-only')fail('DIAGNOSTIC_WORKFLOW_OR_CAPACITY');
 }
 function currentManifest(manifest){
@@ -240,18 +242,18 @@ function currentManifest(manifest){
 }
 // Native execution is conditional on the exact owner statement and workflow gates.
 // These authenticate operator intent in a pinned protected workflow, not policy truth.
-async function executePreparedDiagnostic({plan,manifest,env,jobStartedMs}){
+async function executePreparedDiagnostic({plan,manifest,env,jobStartedMs,signal}){
  const remaining=()=>LIMITS.totalMs-(Date.now()-jobStartedMs),started=performance.now();
  if(!Number.isSafeInteger(jobStartedMs)||jobStartedMs>Date.now()||remaining()<=LIMITS.cleanupMs+1000)fail('DIAGNOSTIC_JOB_DEADLINE');
  readDeadline=jobStartedMs+LIMITS.totalMs;
  const nativeEnv=nativeDiagnosticEnvironment(env,{host:plan.assets.host});let fixture,observed,pre=false,post=false,sourceCurrent=false,reaped=false,cleanup=false,probeDelta=null,collectionMatches=false,error=null,before;
  try{
-  currentManifest(manifest);selectedStartupSourcesAbsent(plan.assets,env);fixture=await openOwnedDiagnosticFixture(plan);pre=await fixture.controls();before=fixture.snapshot().counts;
+  if(signal?.aborted)fail('NATIVE_CANCELLED');currentManifest(manifest);selectedStartupSourcesAbsent(plan.assets,env);fixture=await openOwnedDiagnosticFixture(plan);pre=await fixture.controls();before=fixture.snapshot().counts;
   if(remaining()<=LIMITS.cleanupMs+1000)fail('DIAGNOSTIC_JOB_DEADLINE');
   observed=await collectNativeDiagnostic(()=>{
    const child=spawn(manifest.native,nativeDiagnosticArgv(plan),{cwd:plan.assets.code,env:nativeEnv,detached:true,stdio:['ignore','pipe','pipe']});
    child.kill=signal=>{if(child.exitCode!==null||child.signalCode!==null||!Number.isInteger(child.pid))return false;try{process.kill(-child.pid,signal);return true;}catch{return false;}};return child;
-  },{command:plan.command,cwd:plan.assets.code,timeoutMs:Math.min(115000,Math.floor(remaining()-LIMITS.cleanupMs)),cleanupMs:Math.min(5000,Math.max(1,Math.floor(remaining())))});
+  },{command:plan.command,cwd:plan.assets.code,timeoutMs:Math.min(115000,Math.floor(remaining()-LIMITS.cleanupMs)),cleanupMs:Math.min(5000,Math.max(1,Math.floor(remaining()))),signal});
   reaped=observed.owned_native_reaped;const snap=fixture.snapshot();probeDelta=snap.counts.map((n,i)=>n-before[i]);
   collectionMatches=Boolean(snap.collected&&JSON.stringify(snap.collected)===JSON.stringify(observed.trace.result?.collection));
   error=snap.error;post=await fixture.controls();sourceCurrent=currentManifest(manifest);selectedStartupSourcesAbsent(plan.assets,env);
@@ -298,7 +300,7 @@ export function runPreparedDiagnosticAfterReview(context){
  const ownerFact=requireNativeDiagnosticActivation({env:context.env,source:context.manifest.source});
  return executePreparedDiagnostic(context).then(report=>({...report,account_policy_fact:ownerFact}));
 }
-async function main(){
+async function main(signal){
  const args=process.argv.slice(2);if(!['--check-prerequisites','--prepare','--run'].includes(args[0])||args.length!==3||args[1]!=='--source')fail('DIAGNOSTIC_ARGUMENTS');
  const source=args[2],env=process.env;requireNativeDiagnosticActivation({env,source});
  const jobStartedMs=Number(env.REDUE_DIAGNOSTIC_JOB_STARTED_MS);if(!Number.isSafeInteger(jobStartedMs)||jobStartedMs>Date.now()||Date.now()-jobStartedMs>=LIMITS.totalMs-LIMITS.cleanupMs)fail('DIAGNOSTIC_JOB_DEADLINE');
@@ -313,9 +315,12 @@ async function main(){
  if(manifest?.schema!==1||manifest.scope!=='PREPARED_ONLY_NO_NATIVE_OR_MODEL'||manifest.source!==source||manifest.base!==base||manifest.node!==expected[0]||manifest.native!==native||
   !Array.isArray(manifest.files)||manifest.files.length!==expected.length||manifest.files.some((r,i)=>r.file!==expected[i]||typeof r.digest!=='string'||typeof r.fingerprint!=='string'))fail('DIAGNOSTIC_MANIFEST');
  if(manifest.files[0].digest!==NODE_SHA||manifest.files[1].digest!==REVIEWED_CLAUDE_NATIVE.sha256||manifest.files[2].digest!==plan.assets.checkerSHA||manifest.files[3].digest!==plan.assets.collectorSHA||manifest.files[4].digest!==sha(JSON.stringify(plan.settings)+'\n'))fail('DIAGNOSTIC_MANIFEST');
- return runPreparedDiagnosticAfterReview({plan,manifest,env,jobStartedMs});
+ return runPreparedDiagnosticAfterReview({plan,manifest,env,jobStartedMs,signal});
 }
 if(process.argv[1]&&fileURLToPath(import.meta.url)===path.resolve(process.argv[1])){
- main().then(report=>{console.log(JSON.stringify(report));process.exitCode=report.collection_status==='PASS'||['PREPARED_ONLY','OWNER_INPUTS_ACCEPTED_NOT_EMPIRICAL_ENFORCEMENT'].includes(report.status)?0:2;})
- .catch(()=>{console.log(JSON.stringify({schema:1,status:'PRECONDITION_OR_LIFECYCLE_UNAVAILABLE',collection_status:'UNKNOWN',native_processes_launched:'NOT_INFERRED_FROM_FAILURE',raw_transcript_retained:false}));process.exitCode=2;});
+ const cancellation=new AbortController(),cancel=()=>cancellation.abort();
+ for(const sig of ['SIGTERM','SIGINT','SIGHUP'])process.on(sig,cancel);
+ main(cancellation.signal).then(report=>{console.log(JSON.stringify(report));process.exitCode=report.collection_status==='PASS'||['PREPARED_ONLY','OWNER_INPUTS_ACCEPTED_NOT_EMPIRICAL_ENFORCEMENT'].includes(report.status)?0:2;})
+ .catch(()=>{console.log(JSON.stringify({schema:1,status:'PRECONDITION_OR_LIFECYCLE_UNAVAILABLE',collection_status:'UNKNOWN',native_processes_launched:'NOT_INFERRED_FROM_FAILURE',raw_transcript_retained:false}));process.exitCode=2;})
+ .finally(()=>{for(const sig of ['SIGTERM','SIGINT','SIGHUP'])process.removeListener(sig,cancel);});
 }

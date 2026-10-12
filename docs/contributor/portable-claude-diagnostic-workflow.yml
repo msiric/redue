@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   diagnostic:
-    if: github.repository == 'msiric/redue' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/dev/portable-claude-diagnostic' && github.actor == 'msiric'
+    if: github.repository == 'msiric/redue' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/dev/portable-claude-diagnostic' && github.actor == 'msiric' && github.run_attempt == 1
     runs-on: macos-26
     timeout-minutes: 2
     environment: portable-evidence-claude
@@ -24,6 +24,7 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$REVIEWED_SOURCE" =~ ^[a-f0-9]{40}$ ]]
+          test "$GITHUB_RUN_ATTEMPT" = 1
           printf 'REDUE_DIAGNOSTIC_JOB_STARTED_MS=%s\n' "$(($(date +%s)*1000))" >> "$GITHUB_ENV"
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
