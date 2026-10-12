@@ -172,3 +172,56 @@ controls in the leaf compare actual owned filesystem states and expected filter
 results. They are not real FSEvents coverage, authenticated imports, model trials,
 or cross-machine acceptance. The root integration and its independent reviewer
 must establish the latter boundaries before enabling the CI route.
+
+## Raw provider leaf — not interval acceptance
+
+Independent review found that Parcel's `EventList::getEvents` omits an entry marked
+both created and deleted. Consequently, successful filtered Parcel history is not
+sufficient proof of continuously absent resolution candidates. The proposed worker
+must not use that lossy aggregation as authority.
+
+The new `src/portable-ancestor-fsevents.cc` leaf captures raw FSEvents occurrences,
+without Parcel cancellation aggregation, `stat`, directory traversal or file-body
+reads. It creates only the fixed `/` stream with FileEvents, WatchRoot and NoDefer
+on a dedicated serial dispatch queue. It is not enabled and has never been started
+on the owner Mac. Locally compiled production bytes are retained only for review.
+
+Its bounded private initialization is `INIT COUNT\n`, followed by each
+`SCOPE_ID BYTE_LENGTH\n`, exactly that many ASCII canonical absolute path bytes,
+and a newline. Maximums are 8,192 unique IDs, 4,096 path bytes and 8 MiB total.
+Multiple IDs may identify the same path. Only subsequent `barrier ID\n` and
+`close ID\n` requests are supported, with strictly increasing safe-integer IDs.
+No imported values select the executable or initialize its scopes.
+
+The parent must mint protected CI scope authority before launch. Child output is
+fixed JSON: `ready`, `occurrence` with scope IDs and a monotonic safe-integer serial,
+`uncertainty` with a fixed code, and `barrier`/`closed` with request, serial and
+uncertain state. No event path is emitted. Uncertainty is irreversible; overflow,
+EOF, output failure, abandonment or timeout must withdraw authority in the parent.
+The child output is capped at 32,768 rows/4 MiB, with a 65,536-byte row limit.
+The parent's bounded reader and hard child deadline remain necessary.
+
+Raw candidate, prefix and descendant events are retained before any cancellation
+logic. ASCII case-folding conservatively catches APFS aliases. Unicode ambiguity
+in a potentially matching component yields uncertainty; a preceding mismatched
+ASCII component can establish irrelevance. Invalid paths, unknown flags, drops,
+wrap, root changes, mounts/unmounts and unexpected history events remain uncertain,
+even if no candidate occurrence is otherwise emitted. The matching JavaScript
+leaf has the same conservative case treatment; it grants no interval authority.
+
+Apple's [FlushSync API](https://developer.apple.com/documentation/coreservices/1445629-fseventstreamflushsync)
+and the installed SDK header specify delivery of callbacks for events already
+occurred when the call was made, after a started stream. The collector calls it
+on the main control thread, outside its callback queue. `ready` follows the initial
+flush; each barrier follows its flush. Close flushes, stops/invalidates and drains
+the queue before its final acknowledgement. A blocked native operation cannot
+produce a timely success; the parent must terminate it conservatively, never
+reuse an earlier barrier after loss. This does not assert atomicity with later
+project edits or prove real provider coverage.
+
+The pure C++/Node controls do not instantiate an FSEvents stream. They establish
+framing/filter/serial/latch behavior, including raw create/remove, coalescing and
+case aliases. Actual filtered CI subscription, change-and-restore delivery,
+start/end integration and independent critical review remain required before any
+origin or recipient reuse claim. No agent permissions, trust policy or configured
+compiler execution has changed.

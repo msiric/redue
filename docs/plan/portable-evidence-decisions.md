@@ -335,7 +335,7 @@ actual API approval denial still require owner action; don't change credentials
 or transport to evade them. The protected account statement's timestamp and
 account/capacity facts remain immutable under a routine source-pin update.
 
-### D9 CI-only ancestor-resolution observation — owner approved 2026-10-12
+## D10 — CI-only ancestor-resolution observation — owner approved 2026-10-12
 
 The owner approved filtered ancestor-resolution observation only on the already
 approved standard CI VMs for owned synthetic or public-project experiments.

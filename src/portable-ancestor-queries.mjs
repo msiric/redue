@@ -171,6 +171,13 @@ export function derivePortableAncestorQueries(root,queries){
 // without retention; unnamed/malformed paths mean observation uncertainty.
 export function portableAncestorEventMatch(scope,eventPath){
   if(!scope||!safeAbsolute(scope.candidate)||!safeAbsolute(scope.watchRoot)||!within(scope.candidate,scope.watchRoot))return 'unknown';
-  if(!safeAbsolute(eventPath))return 'unknown';
-  return within(eventPath,scope.candidate)||within(scope.candidate,eventPath)?'relevant':'irrelevant';
+  // Initial CI provider profile has ASCII canonical candidate/root names. Case
+  // folding conservatively matches APFS aliases; Unicode ambiguity is not proof.
+  if(!/^[\x20-\x7e]+$/.test(scope.candidate)||!safeAbsolute(eventPath))return 'unknown';
+  const candidate=scope.candidate.split('/').slice(1),event=eventPath==='/'?[]:eventPath.split('/').slice(1);
+  for(let at=0;at<Math.min(candidate.length,event.length);at++){
+    if(!/^[\x20-\x7e]+$/.test(event[at]))return 'unknown';
+    if(candidate[at].toLowerCase()!==event[at].toLowerCase())return 'irrelevant';
+  }
+  return 'relevant';
 }

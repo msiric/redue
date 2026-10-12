@@ -148,3 +148,9 @@ test('ancestor replacement and unknown events cannot be hidden by candidate-only
   assert.equal(portableAncestorEventMatch(scope,f.parent+'/../../uncanonical'),'unknown');
   assert.equal(portableAncestorEventMatch(scope,path.join(f.base,'unrelated-sibling')),'irrelevant');
 });
+test('ASCII case aliases are relevant and Unicode alias ambiguity remains unknown',posix,t=>{
+  const f=fixture(t),scope=derivePortableAncestorQueries(f.root,f.queries).scopes[0];
+  assert.equal(portableAncestorEventMatch(scope,f.candidate.toUpperCase()),'relevant');
+  assert.equal(portableAncestorEventMatch(scope,f.candidate.replace('index','inde\u212a')),'unknown');
+  assert.equal(portableAncestorEventMatch(scope,'/unrelated/\u212a'),'irrelevant');
+});
