@@ -49,8 +49,10 @@ paths/check names and must not be uploaded automatically.
 ## Imported evidence (unreleased portable candidate)
 
 The published alpha.10 interface has no portable-evidence support. In a reviewed
-portable candidate, a recipient's successful caller-aware query can select
-imported evidence:
+portable candidate, `PORTABLE_ORIGIN_INTERVAL_UNSUPPORTED` currently withholds
+imported reuse even after successful trust and input inspection. Historical
+outcomes remain readable; a successful status exit does not authorize reuse.
+The following is a historical schema illustration, not a supported live decision:
 
 ```json
 {

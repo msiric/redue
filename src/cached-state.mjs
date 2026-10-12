@@ -1,4 +1,5 @@
 // The same fail-conservative cached reader serves the CLI and execution layer.
+import {containPortableStatus} from './portable-origin-interval.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {processAlive} from './process-liveness.mjs';
@@ -42,7 +43,7 @@ export function readCachedStatus(state,checks=[],expected) {
       return unavailableCached(state,'receipt selection changed; synchronize status to evaluate the latest outcome',checks);
     if(Date.now()>=value.updated_at&&Date.now()<=value.expires_at&&
       value.expires_at-value.updated_at<=3000){
-      if(processAlive(value.pid))return value;
+      if(processAlive(value.pid))return containPortableStatus(value,catalog);
       return unavailableCached(state,'observer process unavailable',checks);}
   }catch{}
   return unavailableCached(state,'observer heartbeat expired or unavailable',checks);

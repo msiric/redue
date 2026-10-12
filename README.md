@@ -5,6 +5,11 @@ Npm commands still execute and record historical outcomes, but remain UNVERIFIED
 [Why this changed and how to upgrade without deleting receipts](docs/user/npm-launcher-notice.md).
 Alpha.2 users should also review the [receipt correction](docs/user/receipt-selection-notice.md).
 
+Unreleased portable-evidence work currently withholds imported reuse because
+continuous origin observation is unsupported for a demonstrated mapped-input
+change/restore case. Historical outcomes remain intact. This is not a released
+package defect claim. [Candidate safety status](docs/user/portable-evidence.md).
+
 **Know what still holds. Redo what's due.**
 
 You ran the checks. Then the code changed—or a new coding agent started with no

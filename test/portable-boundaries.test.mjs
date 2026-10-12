@@ -483,7 +483,7 @@ test('owner replacement after export persistence removes only the owned incomple
 
 function recipientDecision(records,local=null,revision=digest('catalog')){
   return decidePortableEvidence({check:'typecheck',facts:portableFixture().facts,
-    prerequisites:{understood:true,observationHealthy:true,callerValidated:true,complete:true},
+    prerequisites:{originIntervalSupported:true,understood:true,observationHealthy:true,callerValidated:true,complete:true},
     snapshot:{records,revision},local});
 }
 function candidate(p,acceptance='manual-digest-v1'){

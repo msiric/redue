@@ -23,6 +23,7 @@ import {readCachedStatus,unavailableCached} from './cached-state.mjs';
 import {renderRun} from './presentation.mjs';
 import {readPortableCatalog,portableCatalogMatches} from './portable-catalog.mjs';
 import {capturePortableFacts,portableCallerProof,samePortableFacts,portableInterpretation} from './portable-facts.mjs';
+import {containPortableStatus} from './portable-origin-interval.mjs';
 import {createPortableBudget,portableDecisionDeadlineMs} from './portable-budget.mjs';
 
 mark('cli.loaded');
@@ -514,6 +515,7 @@ async function main(){
     catch(e){value=unavailableCached(state,e.message,config.checks);
       if(e.code==='PORTABLE_CALLER_CONTEXT_CHANGED')value.checks=value.checks.map(row=>({...row,reason_code:e.code}));
       process.exitCode=2;}
+    value=containPortableStatus(value,catalog);
     timing('cli.synchronized_status',started,{available:value.observation?.healthy?1:0});
     if(action==='sync')console.log(JSON.stringify(value));
     else for(const row of value.checks)console.log(`${row.name}: ${row.freshness}/${row.result||'NO RESULT'} — ${row.reason}`);

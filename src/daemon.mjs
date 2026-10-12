@@ -19,6 +19,7 @@ import {history} from './observation.mjs';
 import {readPortableCatalog} from './portable-catalog.mjs';
 import {capturePortableValidation,portableFactsProof,portableInterpretation} from './portable-facts.mjs';
 import {createPortableBudget} from './portable-budget.mjs';
+import {portableOriginIntervalSupported} from './portable-origin-interval.mjs';
 import {decidePortableEvidence} from './portable-applicability.mjs';
 import {inputKey,planGuard} from './decision-validation.mjs';
 import {timing,mark,traceBase,traceContext,traceScope,traceEnvironment,traceId} from './decision-profile.mjs';
@@ -1002,7 +1003,7 @@ async function request(message) {
         }else portableRuntimeCertificates.delete(name);
         const selectionStarted=performance.now();
         portableDecisions[name]={...decidePortableEvidence({check:name,facts,
-          prerequisites:{understood:!error,complete:!!facts,callerValidated:!error,
+          prerequisites:{originIntervalSupported:portableOriginIntervalSupported(),understood:!error,complete:!!facts,callerValidated:!error,
             observationHealthy:!!unchanged},snapshot:currentCatalog,
           local:selected?{present:true,result:selected.result??null,stable:selected.stable===true,
             invocationStatus:selected.invocation?.status??null,applicability:item?.freshness||'UNVERIFIED',

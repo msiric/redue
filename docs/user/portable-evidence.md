@@ -5,6 +5,25 @@ This guide describes the portable-evidence candidate, not the published alpha.10
 package. Use an explicitly reviewed candidate tarball and record its source commit
 and SHA-256. Do not automatically update the fixed pilot installation.
 
+**Current safety status: portable reuse is withheld.** The unreleased candidate
+returns `PORTABLE_ORIGIN_INTERVAL_UNSUPPORTED`: its reviewed observation paths
+do not establish every change-and-restore interval of an already dirty mapped
+compiler input. No supported interval capability is currently implemented.
+This also applies to controlled `noLib` origins, not just ancestor library lookup.
+The real native counterexample and its limits are retained in the
+[boundary review](../acceptance/portable-boundary-review.md).
+
+Configured commands still execute and record their true outcomes. `--portable`
+records an incomplete portable origin; a successful process can remain locally
+usable under its existing local contract while supplying no reusable portable
+claim. Existing exports, accepted producer identities, signatures and immutable
+PASS/FAIL records remain inspectable history. They cannot authorize imported
+reuse under the current local interval policy. Repeating a run, restarting an
+observer or raising a timeout does not resolve this unsupported boundary.
+No released package defect or wrapped false-CURRENT reproduction is asserted by
+the native fixture. The remaining procedure documents the inspection/handoff
+surface, not a ready portable support claim.
+
 The first engineering slice uses independent checkouts on the same supported
 host/runtime profile. It is not a two-machine or cross-agent acceptance claim.
 Those claims require the actual matched environments and host trials in
@@ -80,10 +99,10 @@ alone do not establish equivalence. The source profile is implemented; independe
 machine and agent acceptance remain separate gates. Earlier candidate `@1`
 exports are not reinterpreted or upgraded in place: current inspection/import
 refuses the unsupported `@1` interpretation. Retain those files and immutable
-local outcomes; record fresh portable evidence with the reviewed `@2` candidate
-when needed. An interpretation upgrade does not modify an old receipt.
+local outcomes. The current interval policy withholds `@2` qualification;
+a new supported capability, not another baseline run, is needed. An interpretation upgrade does not modify an old receipt.
 
-The current installed portability experiment is narrower: TypeScript 5.6.3,
+The historical installed portability experiment used: TypeScript 5.6.3,
 Node 22.13.0 and the same macOS ARM64 runtime, using a controlled `noLib` project
 with observed global declarations. Ordinary default-library discovery can query
 outside the checkout and currently withholds portable qualification. Do not
@@ -93,7 +112,7 @@ cross-machine support claim.
 
 ## Record, preview and export
 
-In the origin checkout, record a fresh real execution with portable origin capture:
+In the origin checkout, record the configured execution and inspect its incomplete portable origin:
 
 ```sh
 redue --config redue.config.json run typecheck --portable
@@ -108,7 +127,8 @@ gain missing origin facts from today's files, and importing cannot repair a run
 with a missing healthy start or unstable interval. Preserve the history; establish
 a fresh baseline only when the verification obligation and export require it.
 
-For a portable reuse candidate, require the preview's `origin.complete: true`.
+A future supported portable reuse candidate must require the preview's `origin.complete: true`.
+Current runs cannot establish that property under the unsupported interval policy.
 Local CURRENT/PASS does not establish that portable origin capture succeeded.
 An incomplete origin can still export its historical outcome, with no complete
 facts, but importing or later synchronization cannot repair it into reusable

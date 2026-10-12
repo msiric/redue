@@ -1,5 +1,6 @@
 // Portable comparison is an extra, versioned representation of the existing
 // direct contract. It is not an execution receipt or an alternative input engine.
+import {requirePortableOriginInterval} from './portable-origin-interval.mjs';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -124,6 +125,7 @@ export function portableProbeFacts(plan,{budget,runtimeCertificate=null}={}){
   return {recipe,discovered,runtimeCertificate:privateRuntimeCertificate??null};
 }
 export function portableCallerProof(plan,budget){
+  budget?.remaining();requirePortableOriginInterval();
   const {recipe,discovered}=portableProbeFacts(plan,{budget});
   const proof=sha(canonical({recipe,discovered}));budget?.remaining();return proof;
 }
@@ -137,6 +139,7 @@ export function portableApplicabilityContext(context,runtime){
 export function capturePortableValidation(plan,snapshot,context,budget,runtimeCertificate=null){
   budget?.remaining();
   if(snapshot?.observationHealthy!==true||!snapshot.files)fail('PORTABLE_OBSERVATION_INCOMPLETE');
+  requirePortableOriginInterval();
   const manifestStarted=performance.now(),files=portableManifest(plan.root,snapshot.files);
   timing('portable_facts.manifest',manifestStarted,{files:files.length});
   const {recipe,discovered,runtimeCertificate:learned}=portableProbeFacts(plan,{budget,runtimeCertificate});

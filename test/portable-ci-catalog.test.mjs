@@ -57,7 +57,7 @@ function fixture(t){
   importEvidence({...importOptions,bytes,ciAuthorization:token,apply:true});
   t.after(()=>fs.rmSync(directory,{recursive:true,force:true}));
   const decide=catalog=>decidePortableEvidence({check:'typecheck',facts:captured,snapshot:catalog,
-    prerequisites:{understood:true,observationHealthy:true,callerValidated:true,complete:true}});
+    prerequisites:{originIntervalSupported:true,understood:true,observationHealthy:true,callerValidated:true,complete:true}});
   return {state,expected,pass,fail,policyFile,registry,registryBytes,decide,differentPolicyDigest:snapshot.policies[1].digest,calls:()=>verifierCalls};
 }
 

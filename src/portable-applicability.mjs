@@ -5,6 +5,7 @@
 // capture under the current interpretation. resolvedCatalogRevision is supplied
 // only when the identical catalog was independently bound at BOTH run boundaries;
 // it is not inferred from arrival time, local execution, or a successful process.
+import {portableOriginIntervalReason} from './portable-origin-interval.mjs';
 import {canonical,parseEnvelope} from './portable-envelope.mjs';
 const HEX=/^[a-f0-9]{64}$/;
 const plain=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
@@ -31,6 +32,7 @@ export function decidePortableEvidence({check,facts,prerequisites,snapshot,local
   if(typeof check!=='string'||!check||!plain(snapshot)||!Array.isArray(snapshot.records)||
     snapshot.records.length>32||(typeof snapshot.revision!=='string'||!snapshot.revision)||snapshot.error)
     return decision('PORTABLE_CATALOG_UNAVAILABLE',{blockLocal:true});
+  if(prerequisites?.originIntervalSupported!==true)return decision(portableOriginIntervalReason,{blockLocal:true});
   if(!plain(prerequisites)||['understood','observationHealthy','callerValidated','complete']
     .some(key=>prerequisites[key]!==true))return decision('PORTABLE_RECIPIENT_UNVERIFIED');
   let recipient;

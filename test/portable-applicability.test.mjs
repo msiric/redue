@@ -18,7 +18,7 @@ function record({result='PASS',complete=true,input=facts(),acceptance='manual-di
   return {digest:envelope.digest,check,acceptance,envelope};
 }
 function options(records=[record()]){return {check:'compiler',facts:facts(),
-  prerequisites:{understood:true,observationHealthy:true,callerValidated:true,complete:true},
+  prerequisites:{originIntervalSupported:true,understood:true,observationHealthy:true,callerValidated:true,complete:true},
   snapshot:{revision:hash('catalog'),records},local:null};}
 function local(extra={}){return {present:true,result:'PASS',stable:true,invocationStatus:'exited',
   applicability:'CURRENT',facts:facts(),resolvedCatalogRevision:null,...extra};}
@@ -35,7 +35,7 @@ test('recipient validation prerequisites and unavailable/null revisions fail clo
   const good=options();
   for(const key of Object.keys(good.prerequisites)){
     const d=decidePortableEvidence({...good,prerequisites:{...good.prerequisites,[key]:false}});
-    assert.equal(d.reuse_eligible,false);assert.equal(d.reason,'PORTABLE_RECIPIENT_UNVERIFIED');
+    assert.equal(d.reuse_eligible,false);assert.equal(d.reason,key==='originIntervalSupported'?'PORTABLE_ORIGIN_INTERVAL_UNSUPPORTED':'PORTABLE_RECIPIENT_UNVERIFIED');
   }
   for(const snapshot of [{...good.snapshot,error:{code:'incomplete'}},{...good.snapshot,revision:null},
     {...good.snapshot,revision:''},{records:[]}]){
