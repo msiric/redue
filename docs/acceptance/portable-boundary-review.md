@@ -5963,3 +5963,35 @@ structured lookup data only: directProject still requires exact tsc --noEmit
 and absent pre/post hooks, with no shell/npm/extra command route. Every other
 probe guard and all false-authority contracts remain unchanged. This closes the
 static identifier mismatch, not the pending exact parent-launch review.
+
+
+## First fixed API-observation parent: strict-schema blocker
+
+NO-GO for private fixed parent
+SHA98f0c607eb10a02fe3457a3df9d62b3348bf1c54c93ea124d4f5394cd0e6c0d8
+before any actual API dispatch. Its partial apiValid predicate does not validate
+the exact child/observation/journal schemas, then retains the observation wholesale.
+Independent injected VM controls reproduced three invalid inputs classified as
+STAGED_API_OBSERVATIONS_COLLECTED_NOT_SEALED: missing journal structure/frames;
+extra private-canary payload fields persisted; contradictory or malformed
+observationStatus/loggingComplete/frames/callsObserved. This is a preparatory
+parser/privacy defect, not an actual leak or accepted reusable certificate.
+
+Seven controls passed7/7 in63.75ms, including those three defect reproductions.
+The other controls confirmed missing/BOM/duplicate-key output remains UNKNOWN
+without observations, broken/reverse/final clocks remain UNKNOWN, currentness/
+close/readback uncertainty cannot acknowledge collection, and valid SIGBUS with
+positive PID preserves reaping separately from UNKNOWN outcome. The first local
+mock run failed before controls because the test import used an extra parent
+segment; that preparation failure is retained separately from corrected results.
+No real filesystem fixture, child, API/compiler/native/model or CI operation ran.
+
+Required repair: validate exact publisher keys/types/static enums/counts/hashes/
+relative paths and frame structure, or retain only a strictly validated bounded
+projection; no unvalidated observation value may be retained on failure. Missing
+structure must remain NONE/UNKNOWN. Keep 30s latched parent deadline,8MiB caps,
+whole stage/code/Node/config/parent checks, finite status/signals, positive-PID
+reaping and exclusive held-FD/readback/final-outer-ACK publication unchanged.
+The apiDispatchAttempts truthfield also currently updates after spawnSync returns;
+if it counts attempted calls, it must update before the call so a thrown spawn
+cannot be reported as zero attempts. No authority or timeout increase is needed.
