@@ -325,3 +325,13 @@ reporting only matched scope IDs and static outcomes. No production applicabilit
 or continuity change is authorized by this diagnostic selector. Preserve the
 first failure, fixed sample boundaries and conservative result until the actual
 provider behavior is established.
+
+The fixed follow-up supervisor retains both per-action baselines and each
+immediate/500ms/2000ms observation for ROOT and OWNED streams. The held marker
+remains intact throughout transient observations, avoiding a marker-deletion
+confound. Diagnostic waits establish no observation authority. Expiry prevents
+another launch or new fixture mutations; only owned close/reap and cleanup remain.
+A missing actual close retains owned files and UNKNOWN. Five independent harmless
+VM harness controls and the native/query/build controls passed before dispatch;
+these are not actual stream observations. The unchanged production binary still
+has the known failed continuity result.
