@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 2
     environment: portable-evidence-claude
     env:
-      REVIEWED_SOURCE: da0b1080f3edcc68f3d4067cb51f961759e68312
+      REVIEWED_SOURCE: ed4219aa6eef8f3addd97fd8a1510ef51396215d
       REDUE_CLAUDE_ACCOUNT_POLICY_FACT: ${{ vars.REDUE_CLAUDE_ACCOUNT_POLICY_FACT }}
       REDUE_CLAUDE_INCLUDED_DIAGNOSTIC_CAPACITY: ${{ vars.REDUE_CLAUDE_INCLUDED_DIAGNOSTIC_CAPACITY }}
     steps:
