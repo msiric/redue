@@ -6,34 +6,45 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-recipient-decision`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — raw provider FAIL; qualification remains withheld
+## Current checkpoint — FSEvents interval NO-GO; bounded vnode test-only work
 
-Actual CI-only provider [38287392906](https://github.com/msiric/redue/actions/runs/38287392906)
-on sourceeb0d68ed18a6a323c4ba8436e337be799c942ede failed
-MEMBERSHIP_INTERVAL_NOT_OBSERVED. START and immediate post-create/delete barriers
-reported healthy/serial0; the known transient was not observed. Only this first
-case ran; ancestor and provisioning cases did not run. Actual child exit0/no
-signal/reaped/protocol-clean and owned cleanup do not establish interval coverage.
-Complete trial118.689ms; Darwin25.6.0/ARM64/Node22.13.0, image20260907.0351.1,
-filesystem type26. Zero models/compilers/signing/uploads/trust changes.
-Private structured result `.local/portable-evidence/ancestor-provider-38287392906.json`,
-SHA256b5a9e168b7c1110a883ef7718eeca25b185650853c6e248ef7c7cbfed8ca6114.
-Independent actual-result reviewffddc9e classifies the current root/'/' +FlushSync
-barrier NO-GO for @3 completeness. Delivery lag, routing and upstream behavior
-remain unmeasured; the failure is preserved rather than repaired by a wait.
-Root owns a separately reviewed fixed root-versus-owned delivery diagnostic;
-its immediate/.5s/2s observations cannot mint interval authority or overwrite
-this FAIL. No real stream has run on the owner's Mac. The ordinary debugger
-remains PORTABLE_EXTERNAL_INPUT; new origin/recipient integration is not enabled.
+The original CI provider38287392906 FAIL is retained. Fixed ROOT/OWNED delivery
+diagnostic38289084959 collected late matching events in both classes; neither
+established immediate continuity. Explicit diagnostic serial queue drain in
+[38290903554](https://github.com/msiric/redue/actions/runs/38290903554),
+source091b56ef35f72da576647f25ea3eaada5d3983a5, also failed to advance immediately
+relative to each action baseline; later samples advanced. Drain's first action
+baseline was already1 after START0, with an unexplained pre-action occurrence.
+Do not attribute all later increments uniquely to a mutation or a deeper kernel/
+service/queue phase. Both actual children exited0/no signal/reaped/protocol-clean;
+owned cleanup completed. Complete diagnostic11412.776ms is not economic timing.
+Zero models, compilers, uploads, signing, new trust or publication.
 
-Recipient performance result remains: warm(n3) median21.606s versus36.427s;
-first queries(n3) median37.602s remain above35s. Full independent caller inspection,
-trust, newest-receipt selection and all freshness requirements remain.
-Hosted Claude diagnostic is closed PASS in its original six-assertion scope.
-Copilot included Actions capacity remains the separate pending external fact;
-no repeat account/login request. Alpha.11 unpublished; all frozen artifacts and
-historical failures remain distinct. G2/G3/finalG4 not complete.
-Day0 and72h calibration remain unchanged.
+Private result `.local/portable-evidence/ancestor-queue-38290903554.json`, SHA256
+cf0851abafb56329260f4fd6ed22638d2c4529aa99b41ad01448b3ddc4f96231.
+Actual CI diagnostic binaries15a4eda7/81528B and4c329089/81784B remain distinct
+from local builds. Sourcea7e766b3; production39cc/80984B is byte-identical and
+unwired. Independent actual review9666179 retains NO-GO for @3 completeness.
+No more FSEvents attempts or wait-based currency. The ordinary debugger still
+rejects PORTABLE_EXTERNAL_INPUT; its59 libraries are inside the checkout.
+
+Root's integration worktree/branch is `redue-portable-ordinary-boundary` /
+`dev/portable-ordinary-boundary`. A owns only a test-only vnode guard/build/pure
+fixture; root owns its fixed CI acceptance; C independently reviews boundaries.
+The proposed direct kernel registration is limited to exact existing locally
+derived leaves/directories and approved ancestor parents, with O_EVTONLY and no
+body reads. No recursive assumption, RLIMIT increase, truncation, imported seed
+or scope expansion. Registration/drain/identity failure remains uncertainty.
+Pre-existing MAP_SHARED/no-close-before-final-drain, hardlink mutations, restored
+parent replacements and FD exhaustion are required counterexamples before any
+ordinary-project interval claim. No vnode stream has been started on the owner's
+Mac or CI; no qualifying engine integration is enabled.
+
+Completed hosted Claude diagnostic remains PASS only in its original scope.
+Measured warm recipient median21.606s remains separate from cold median37.602s
+above35s. Copilot included Actions billing fact remains pending; no repeat
+account/login question. Alpha.11 remains unpublished; all frozen bytes/receipts
+are preserved. G2/G3/finalG4 incomplete; Day0/72h checkpoint unchanged.
 
 ## Prior measured checkpoint — warm recipient phase improved; ordinary interval work remains unqualified
 
