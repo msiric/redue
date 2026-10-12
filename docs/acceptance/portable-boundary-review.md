@@ -3015,6 +3015,36 @@ these inputs are unknown, refuse the secret-bearing route before launch. The
 author's still-disabled diagnostic code/assets are a separate pending review;
 this finite source conclusion is neither activation nor an empirical VM claim.
 
+Finite pinned187 permission-source follow-up: gDe204078641 calls hSo for allow
+without stripAllEnvVars. aq204073891 strips only its actual U6t known-safe
+assignment list; broad nWp environment stripping is selected for deny/ask
+matching. Fourteen independent pure source cases retain seven execution-altering
+leading assignment names and their seven env-wrapper forms: NODE_OPTIONS,
+NODE_PATH, BASH_ENV, ENV, LD_PRELOAD, LD_LIBRARY_PATH and DYLD_INSERT_LIBRARIES.
+Those names are absent from U6t and the normalized candidates retain their
+prefixes. A trailing collector argument also remains different. No Node preload
+or native tool was executed. These are actual pinned normalization primitives,
+not an empirical whole-tool authorization result.
+
+The no-wildcard rule is classified exact and the exact case compares the rule
+command with its candidate. Native normalization can still strip redirections
+and known wrappers; the literal rule is not a claim that native matching compares
+only original bytes. Preserve dontAsk, autoAllowBashIfSandboxed:false, strict
+sandbox/no exclusions, prelaunch secret/source/resource restrictions and the
+fixed immutable collector. A reactive streamed-command rejection does not
+authorize a command already dispatched. No broad prefix, trailing-argument or
+additional shell-command grant is introduced by the proposed literal rule.
+
+The new rendered checker/collector templates were independently compared with
+the actual retained original579af20e…/29ebbcde… files. Only exact host, Node,
+code-path and checker-hash bindings were replaced. Both normalized bodies match:
+checker e55a30e93e4658605d2a018fbda603426c085549d522d51d898e6f2a70e57e92;
+collector187b4a16b8663f5f206d30b76d107b5d6b5f16e882e828b49c5533c2dd5c8090.
+This independently checks unchanged assertions/process collection rather than
+relying solely on a render/normalize round-trip of the author's own template.
+Original files remain unchanged. The authenticated workflow remains unregistered
+and unexecuted; its completed lifecycle proposal requires separate final review.
+
 ## Coherent incomplete-origin signer control — independent integration review
 
 B's d204523/root5022cbb adds only13test lines. The new fixture changes
