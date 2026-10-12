@@ -54,7 +54,13 @@ function fixture(t){
   const command=args[5];f.events.push(command);
   if(command==='init'){if(args.includes('--dry-run'))return reply({written:false,checks:[{level:f.fault==='setup'?'unsupported':'ready'}]});fs.writeFileSync(config,canonical(publicConfig()));return reply('');}
   if(command==='start'){start();return f.fault==='start'||f.fault==='restart'&&f.startCount===2?{status:1,stdout:'',stderr:'controlled start failure'}:reply('');}
-  if(command==='stop'){f.stopCount++;if(f.fault==='cleanup')return {status:1,stdout:'',stderr:'controlled stop failure'};if(f.fault==='cleanup-soft-failure')return reply({ok:false,state:'observer_unavailable'});f.running=false;return reply({ok:true});}
+  if(command==='stop'){
+   f.stopCount++;if(f.fault==='cleanup')return {status:1,stdout:'',stderr:'controlled stop failure'};
+   const value=f.fault==='cleanup-soft-failure'?{ok:false,state:'observer_unavailable'}:{ok:true};
+   if(value.ok)f.running=false;
+   // Match installed printLifecycle: human text is the default, never JSON.
+   return reply(args.includes('--json')?value:value.ok?'Observer stopped. Historical evidence is retained.\n':'Observer unavailable: not running. Previous evidence is not CURRENT.\n');
+  }
   if(command==='evidence'){
    assert.equal(args[6],'import');if(!args.includes('--apply'))return reply({apply:false,producer_verified:false,producer_accepted:false,digest:envelope.digest});
    f.imported=true;return reply({producer_verified:true,producer_accepted:true,reuse_eligible:false,acceptance:'github-ci-v1',digest:envelope.digest});
@@ -165,4 +171,11 @@ test('CLI replacement during preparation refuses execution and cannot claim obse
  const f=fixture(t);let supervised=0;
  await assert.rejects(withHeldCIMachineRecipient(f.options,{prepare:()=>fs.appendFileSync(f.cli,' changed'),supervise:()=>supervised++}),error=>error.code==='CI_MACHINE_CLI_CHANGED'&&error.cleanup_code==='CI_MACHINE_CLI_CHANGED');
  assert.equal(supervised,0);assert.equal(imports(f).length,0);assert.equal(f.stopCount,0);assert.equal(f.running,true,'No unsafe fallback or reaping claim after CLI authority loss');
+});
+
+test('held owned cleanup explicitly requests machine JSON from installed lifecycle API',owned,async t=>{
+ const f=fixture(t);await withHeldCIMachineRecipient(f.options,{prepare:()=>{},supervise:()=> 'completed'});
+ const stops=f.calls.filter(call=>call.args[5]==='stop');assert.equal(stops.length,1);
+ assert.deepEqual(stops[0].args,[f.cli,'--config',f.config,'--state-dir',f.state,'stop','--json']);
+ assert.equal(f.running,false);assert.equal(f.stopCount,1);
 });

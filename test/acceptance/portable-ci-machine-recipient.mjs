@@ -91,7 +91,7 @@ function openCIMachineRecipientPhase(options){
  const redue=(...args)=>{verifyCLI();return exec('redue',process.execPath,[cli,'--config',config,'--state-dir',state,...args],{cwd:root});},json=(...args)=>parsePortableJson(redue(...args,'--json').stdout);
  const close=(strict=false)=>{
   if(lifecycle==='closed')return;lifecycle='closed';if(!started)return;started=false;
-  verifyCLI();const stopped=exec('owned-stop',process.execPath,[cli,'--config',config,'--state-dir',state,'stop'],{cwd:root,allowFailure:true});
+  verifyCLI();const stopped=exec('owned-stop',process.execPath,[cli,'--config',config,'--state-dir',state,'stop','--json'],{cwd:root,allowFailure:true});
   if(strict){
    if(stopped.status!==0||stopped.error||stopped.signal)fail('CI_MACHINE_CLEANUP');
    let answer;try{answer=parsePortableJson(stopped.stdout);}catch{fail('CI_MACHINE_CLEANUP');}
