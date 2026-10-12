@@ -22,6 +22,29 @@ test('preserves only a single internal npm-file shim with manifest-listed regula
   const target='node_modules/typescript/bin/tsc',rel='node_modules/.bin/tsc',digest=hash(canonical({kind:'npm-file-shim',target,content:f.typed(target),links:[{path:rel,targetHash:hash('../typescript/bin/tsc')}]}));
   const result=materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest:[[rel,digest],[target,f.typed(target)]]});assert.equal(fs.readlinkSync(path.join(result.root,rel)),'../typescript/bin/tsc');assert.equal(fs.readFileSync(path.join(result.root,rel),'utf8'),'console.log(1)\n');assert.notEqual(fs.lstatSync(path.join(result.root,rel)).ino,fs.lstatSync(path.join(f.root,rel)).ino);
 }));
+test('preserves nested installed npm bin shim within its exact owning container',supported,()=>withFixture(f=>{
+  const target='node_modules/tool/node_modules/semver/bin/semver.js',rel='node_modules/tool/node_modules/.bin/semver',link='../semver/bin/semver.js';
+  f.write(target,'console.log(1)\n',0o755);fs.mkdirSync(path.dirname(path.join(f.root,rel)),{recursive:true});fs.symlinkSync(link,path.join(f.root,rel));
+  const digest=hash(canonical({kind:'npm-file-shim',target,content:f.typed(target),links:[{path:rel,targetHash:hash(link)}]}));
+  const result=materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest:[[rel,digest],[target,f.typed(target)]]});
+  assert.equal(fs.readlinkSync(path.join(result.root,rel)),link);assert.equal(fs.readFileSync(path.join(result.root,rel),'utf8'),'console.log(1)\n');
+  assert.notEqual(fs.lstatSync(path.join(result.root,rel)).ino,fs.lstatSync(path.join(f.root,rel)).ino);assert.equal(result.sealed,false);assert.equal(result.reuseEligible,false);
+}));
+test('nested bin shims cannot cross containers, source prefixes or canonical target syntax',supported,()=>withFixture(f=>{
+  const rel='node_modules/tool/node_modules/.bin/tool';f.write('node_modules/other/cli.js');f.write('source.ts');f.write('node_modules/tool/node_modules/pkg/cli.js');fs.mkdirSync(path.dirname(path.join(f.root,rel)),{recursive:true});
+  for(const link of ['../../../other/cli.js','../../../../source.ts','../pkg/./cli.js','../pkg/sub/../cli.js','../pkg//cli.js','../.bin/plain']){
+    fs.symlinkSync(link,path.join(f.root,rel));const manifest=[[rel,hForRefusal()],...f.rows(['node_modules/other/cli.js','node_modules/tool/node_modules/pkg/cli.js','source.ts'])].sort(([a],[b])=>a<b?-1:a>b?1:0);
+    assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest}),{code:'TREE_SYMLINK'});fs.unlinkSync(path.join(f.root,rel));assert.deepEqual(fs.readdirSync(f.parent),[]);
+  }
+  function hForRefusal(){return'a'.repeat(64);}
+}));
+test('nested internal target ancestor aliases and link chains remain unsupported',supported,()=>withFixture(f=>{
+  const rel='node_modules/tool/node_modules/.bin/tool',target='node_modules/tool/node_modules/pkg/cli.js';f.write(target);fs.mkdirSync(path.dirname(path.join(f.root,rel)),{recursive:true});
+  const pkg=path.dirname(path.join(f.root,target));fs.renameSync(pkg,pkg+'.saved');fs.symlinkSync(pkg+'.saved',pkg);fs.symlinkSync('../pkg/cli.js',path.join(f.root,rel));
+  assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest:[[rel,'a'.repeat(64)],[target,'b'.repeat(64)]]}),{code:'TREE_PATH'});
+  fs.unlinkSync(pkg);fs.renameSync(pkg+'.saved',pkg);fs.unlinkSync(path.join(f.root,target));fs.symlinkSync('other.js',path.join(f.root,target));
+  assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest:[[rel,'a'.repeat(64)],[target,'b'.repeat(64)]]}),{code:'TREE_FILE'});assert.deepEqual(fs.readdirSync(f.parent),[]);
+}));
 for(const rel of ['/a.ts','../a.ts','a/../b.ts','a//b.ts','a/./b.ts','a.ts/','a\\b.ts','a:b.ts','a\0b.ts','\ud800.ts'])test(`refuses unsafe manifest path ${JSON.stringify(rel)}`,supported,()=>withFixture(f=>{assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest:[[rel,'a'.repeat(64)]]}),{code:'TREE_MANIFEST'});assert.deepEqual(fs.readdirSync(f.parent),[]);}));
 test('refuses sortedness/duplicates/prefix collisions and non-data manifest fields',supported,()=>withFixture(f=>{
   for(const manifest of [[],[['b','a'.repeat(64)],['a','b'.repeat(64)]],[['a','a'.repeat(64)],['a','a'.repeat(64)]],[['a','a'.repeat(64)],['a/b','a'.repeat(64)]],[["a",'x']],new Array(1)])assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest}),{code:'TREE_MANIFEST'});
@@ -114,6 +137,15 @@ test('uses the existing portableManifest representation on both original and fre
     const manifest=portableManifest(f.root,observed),result=materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest});
     const copied=Object.fromEntries(Object.keys(observed).map(rel=>[rel,fileHash(result.root,rel,rel.startsWith('node_modules/')).hash]));
     assert.deepEqual(portableManifest(result.root,copied),manifest);
+  });
+});
+test('nested shim materialization exactly matches the new explicit sealed manifest',supported,async()=>{
+  const {sealedTypeScriptManifest}=await import('../src/sealed-typescript-manifest.mjs'),{fileHash}=await import('../src/index.mjs');
+  return withFixture(f=>{const target='node_modules/tool/node_modules/semver/bin/semver.js',rel='node_modules/tool/node_modules/.bin/semver';
+    f.write('a.ts');f.write(target,'console.log(1)\n',0o755);fs.mkdirSync(path.dirname(path.join(f.root,rel)),{recursive:true});fs.symlinkSync('../semver/bin/semver.js',path.join(f.root,rel));
+    const names=['a.ts',rel,target],observed=Object.fromEntries(names.map(name=>[name,fileHash(f.root,name,name.startsWith('node_modules/')).hash]));
+    const manifest=sealedTypeScriptManifest(f.root,observed),result=materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest});
+    const copied=Object.fromEntries(names.map(name=>[name,fileHash(result.root,name,name.startsWith('node_modules/')).hash]));assert.deepEqual(sealedTypeScriptManifest(result.root,copied),manifest);
   });
 });
 test('streams a compiler-sized file above the envelope read cap without raising it',supported,()=>withFixture(f=>{

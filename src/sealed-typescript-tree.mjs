@@ -10,6 +10,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {canonical} from './portable-envelope.mjs';
 import {withinPath} from './path-identity.mjs';
+import {sealedNpmShimTarget} from './sealed-typescript-shim.mjs';
 
 export const TYPESCRIPT_TREE_LIMITS=Object.freeze({files:100000,fileBytes:64*1024*1024,
   totalBytes:512*1024*1024,pathBytes:4096,depth:64,directories:100000});
@@ -59,9 +60,8 @@ function inspectFile(file,expected,write){const parents=directories(path.dirname
   }finally{if(descriptor!==undefined)fs.closeSync(descriptor);}
 }
 function shim(root,rel,expected,manifest){const file=path.join(root,rel),parents=directories(path.dirname(file)),before=fs.lstatSync(file,{bigint:true});
-  if(!rel.startsWith('node_modules/.bin/')||rel.slice('node_modules/.bin/'.length).includes('/')||!before.isSymbolicLink()||before.uid!==uid()||before.nlink!==1n)fail('TREE_SYMLINK');
-  const target=fs.readlinkSync(file);if(typeof target!=='string'||path.isAbsolute(target)||/[\u0000-\u001f\u007f\\:]/u.test(target))fail('TREE_SYMLINK');
-  const physical=path.resolve(path.dirname(file),target);if(!withinPath(physical,root))fail('TREE_SYMLINK');const targetRel=path.relative(root,physical).split(path.sep).join('/');
+  if(!before.isSymbolicLink()||before.uid!==uid()||before.nlink!==1n)fail('TREE_SYMLINK');
+  const target=fs.readlinkSync(file),{physical,relative:targetRel}=sealedNpmShimTarget(root,rel,target);
   if(!relative(targetRel)||!manifest.has(targetRel))fail('TREE_SYMLINK');directories(path.dirname(physical));const targetStat=fs.lstatSync(physical,{bigint:true});safeRegular(targetStat);
   const actual=hash(canonical({kind:'npm-file-shim',target:targetRel,content:manifest.get(targetRel),links:[{path:rel,targetHash:hash(target)}]}));
   if(actual!==expected)fail('TREE_DIGEST');sameDirectories(parents);const after=fs.lstatSync(file,{bigint:true});
