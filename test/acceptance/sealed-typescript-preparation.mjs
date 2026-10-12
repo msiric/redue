@@ -51,14 +51,22 @@ function binding(proposal){
   return canonical({directories,node,code:proposal.code});
 }
 function treeOutput(tree,proposal,manifest){
-  return exact(tree,['schema','interpretation','root','manifestDigest','fileCount','physicalDigest','bytes','identity','sealed','reuseEligible'])&&
-    tree.schema===1&&tree.interpretation==='redue-typescript-materialization-summary@1'&&tree.sealed===false&&tree.reuseEligible===false&&
+  return exact(tree,['schema','interpretation','root','sourceManifestDigest','materializedManifestDigest','fileCount','physicalDigest',
+    'sourceAliasGroupsDigest','sourceAliasGroupCount','sourceAliasEntryCount','bytes','identity','sealed','reuseEligible'])&&
+    tree.schema===1&&tree.interpretation==='redue-typescript-materialization-summary@2'&&tree.sealed===false&&tree.reuseEligible===false&&
     typeof tree.root==='string'&&path.dirname(tree.root)===proposal.parent&&
     /^redue-materialization-[A-Za-z0-9]{6}$/.test(path.basename(tree.root))&&
     Number.isSafeInteger(tree.bytes)&&tree.bytes>=0&&tree.bytes<=512*1024*1024&&
     typeof tree.identity==='string'&&/^\d+:\d+$/.test(tree.identity)&&
-    tree.fileCount===manifest.length&&tree.manifestDigest===hash(canonical(manifest))&&
-    typeof tree.physicalDigest==='string'&&/^[a-f0-9]{64}$/.test(tree.physicalDigest);
+    tree.fileCount===manifest.length&&tree.sourceManifestDigest===hash(canonical(manifest))&&
+    ['materializedManifestDigest','physicalDigest','sourceAliasGroupsDigest'].every(key=>
+      typeof tree[key]==='string'&&/^[a-f0-9]{64}$/.test(tree[key]))&&
+    Number.isSafeInteger(tree.sourceAliasGroupCount)&&tree.sourceAliasGroupCount>=0&&
+    tree.sourceAliasGroupCount<=Math.floor(manifest.length/2)&&
+    Number.isSafeInteger(tree.sourceAliasEntryCount)&&tree.sourceAliasEntryCount>=tree.sourceAliasGroupCount*2&&
+    tree.sourceAliasEntryCount<=manifest.length&&
+    (tree.sourceAliasGroupCount>0||tree.sourceAliasEntryCount===0&&
+      tree.sourceAliasGroupsDigest===hash(canonical([]))&&tree.materializedManifestDigest===tree.sourceManifestDigest);
 }
 export function prepareSealedTypeScriptInputs(options){
   const started=performance.now();
@@ -107,9 +115,9 @@ export function prepareSealedTypeScriptInputs(options){
     // Fixed child emits exactly one stringify frame. Re-encoding detects
     // duplicate fields and unexpected framing before any result is admitted.
     if(JSON.stringify(output)+'\n'!==child.stdout)fail('PREPARATION_OUTPUT_UNKNOWN');
-    if(child.status===74&&exact(output,['schema','ok','reason_code'])&&output.schema===2&&output.ok===false&&
+    if(child.status===74&&exact(output,['schema','ok','reason_code'])&&output.schema===3&&output.ok===false&&
       PREPARATION_REASON_CODES.includes(output.reason_code))return result({...audit,outcome:'REFUSED',reason:output.reason_code});
-    if(child.status!==0||!exact(output,['schema','ok','materialization'])||output.schema!==2||output.ok!==true||
+    if(child.status!==0||!exact(output,['schema','ok','materialization'])||output.schema!==3||output.ok!==true||
       !treeOutput(output.materialization,proposal,manifest))fail('PREPARATION_OUTPUT_UNKNOWN');
     const tree=output.materialization;
     const stage=fs.lstatSync(tree.root,{bigint:true});
@@ -117,6 +125,7 @@ export function prepareSealedTypeScriptInputs(options){
       (stage.mode&0o7777n)!==0o700n||`${stage.dev}:${stage.ino}`!==tree.identity||fs.realpathSync(tree.root)!==tree.root)
       fail('PREPARATION_BINDING_CHANGED');
     remaining();
+    // Digests/counts are fixed-child audit data, not parent per-file inspection.
     // Data only: current bindings still do not certify compiler namespace or a
     // native write seal. No actual command or observation authority travels.
     return result({...audit,outcome:'MATERIALIZED_NOT_SEALED',reason:'SEALED_RECIPE_ENFORCEMENT_PENDING',materialization:tree});
