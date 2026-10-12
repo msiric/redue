@@ -181,3 +181,35 @@ export function portableAncestorEventMatch(scope,eventPath){
   }
   return 'relevant';
 }
+
+export const rawQueryScopesInterpretation='redue-raw-query-scopes@1';
+// Cover every locally observed question, including directory membership. A
+// transient added-and-removed source can affect compilation without appearing in
+// a named absence tuple. Prefix coverage is deliberately conservative.
+export function derivePortableRawQueryScopes(root,queries){
+  const original=cloneData(queries),ancestor=derivePortableAncestorQueries(root,original);
+  const external=new Map(ancestor.scopes.map(scope=>[scope.candidate,scope]));
+  const scopes=new Map();
+  for(const [kind,candidate] of original){
+    if(!/^[\x20-\x7e]+$/.test(candidate))fail('PORTABLE_ANCESTOR_PATH');
+    if(!scopes.has(candidate)){
+      const outside=external.get(candidate);
+      const logical=within(candidate,root)?{namespace:'project',relativePath:rootRelative(root,candidate)}:
+        outside?{namespace:ancestorQueriesInterpretation,ancestorDepth:outside.ancestorDepth,relativePath:outside.relativePath}:null;
+      if(!logical)fail('PORTABLE_ANCESTOR_EXTERNAL_QUERY');
+      scopes.set(candidate,{candidate,watchRoot:outside?.watchRoot??root,logical,queryKinds:[]});
+    }
+    const row=scopes.get(candidate);if(!row.queryKinds.includes(kind))row.queryKinds.push(kind);
+  }
+  if(scopes.size>ancestorQueryLimits.queries)fail('PORTABLE_ANCESTOR_LIMIT');
+  const rows=[...scopes.values()].map(scope=>({...scope,queryKinds:scope.queryKinds.sort()}))
+    .sort((a,b)=>canonical(a.logical)<canonical(b.logical)?-1:canonical(a.logical)>canonical(b.logical)?1:0)
+    .map((scope,id)=>({id,...scope}));
+  const now=inspectPath(root);
+  if(!now.exists||!now.stat.isDirectory()||canonical(identity(now.stat))!==canonical(ancestor.rootIdentity))fail('PORTABLE_ANCESTOR_CHANGED');
+  return freeze({schema:1,interpretation:rawQueryScopesInterpretation,chainDepth:ancestor.chainDepth,
+    queryDigest:ancestor.queryDigest,scopeDigest:sha({interpretation:rawQueryScopesInterpretation,
+      chainDepth:ancestor.chainDepth,queryDigest:ancestor.queryDigest,
+      scopes:rows.map(({id,logical,queryKinds})=>({id,logical,queryKinds}))}),
+    rootIdentity:ancestor.rootIdentity,requiredWatchRoots:ancestor.requiredWatchRoots,scopes:rows,reuseEligible:false});
+}

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {derivePortableAncestorQueries,portableAncestorEventMatch,ancestorQueriesInterpretation,ancestorQueryLimits} from '../src/portable-ancestor-queries.mjs';
+import {derivePortableAncestorQueries,derivePortableRawQueryScopes,portableAncestorEventMatch,ancestorQueriesInterpretation,rawQueryScopesInterpretation,ancestorQueryLimits} from '../src/portable-ancestor-queries.mjs';
 const posix={skip:process.platform==='win32'?'Initial local POSIX namespace helper; no Windows optimization enabled':false};
 const code=expected=>error=>error.code===expected;
 function fixture(t,depth=0){
@@ -153,4 +153,45 @@ test('ASCII case aliases are relevant and Unicode alias ambiguity remains unknow
   assert.equal(portableAncestorEventMatch(scope,f.candidate.toUpperCase()),'relevant');
   assert.equal(portableAncestorEventMatch(scope,f.candidate.replace('index','inde\u212a')),'unknown');
   assert.equal(portableAncestorEventMatch(scope,'/unrelated/\u212a'),'irrelevant');
+});
+
+test('raw scopes include all local question paths and merge kinds without borrowed authority',posix,t=>{
+  const f=fixture(t),directory=path.join(f.root,'src'),source=path.join(directory,'a.ts');
+  const queries=[...f.queries,['fileExists',source,true],['directories',directory,[]],['entries',directory,[['a.ts','f']]],
+    ['readDirectory',f.root,[source],{tsRoot:path.join(f.root,'node_modules/typescript'),args:[['.ts'],null,['src/**/*']],argsVersion:1,undefinedArguments:[1]}]];
+  const plan=derivePortableRawQueryScopes(f.root,queries);
+  assert.equal(plan.interpretation,rawQueryScopesInterpretation);assert.equal(plan.reuseEligible,false);
+  assert.equal(plan.scopes.length,4);assert.deepEqual(plan.scopes.map(scope=>scope.id),[0,1,2,3]);
+  const scope=plan.scopes.find(scope=>scope.candidate===source);assert.deepEqual(scope.queryKinds,['fileExists','readFile']);assert.deepEqual(scope.logical,{namespace:'project',relativePath:'src/a.ts'});
+  assert.deepEqual(plan.scopes.find(scope=>scope.candidate===directory).queryKinds,['directories','entries']);
+  assert.deepEqual(plan.scopes.find(scope=>scope.candidate===f.root).logical,{namespace:'project',relativePath:'.'});
+  assert.equal(plan.scopes.find(scope=>scope.candidate===f.candidate).logical.namespace,ancestorQueriesInterpretation);
+  assert(Object.isFrozen(plan.scopes[0]));
+});
+test('membership scope sees transient unnamed source add/remove despite identical endpoint answers',posix,t=>{
+  const f=fixture(t),directory=path.join(f.root,'src');
+  const queries=[...f.queries,['readDirectory',directory,[path.join(directory,'a.ts')],{tsRoot:path.join(f.root,'node_modules/typescript'),args:[['.ts'],null,null],argsVersion:1,undefinedArguments:[1,2]}]];
+  const before=derivePortableRawQueryScopes(f.root,queries),membership=before.scopes.find(scope=>scope.candidate===directory);
+  const added=path.join(directory,'new-unlisted-source.ts');fs.writeFileSync(added,'export const newlyConsumed=1;');
+  assert.equal(portableAncestorEventMatch(membership,added),'relevant');fs.unlinkSync(added);
+  assert.equal(portableAncestorEventMatch(membership,added),'relevant');
+  const after=derivePortableRawQueryScopes(f.root,queries);assert.equal(after.scopeDigest,before.scopeDigest);assert.equal(after.reuseEligible,false,'restored membership needs actual raw interval events');
+});
+test('raw scope identity binds every question answer, membership option and namespace',posix,t=>{
+  const f=fixture(t),base=derivePortableRawQueryScopes(f.root,f.queries);
+  const answer=structuredClone(f.queries);answer[0][2]='b'.repeat(64);assert.notEqual(derivePortableRawQueryScopes(f.root,answer).scopeDigest,base.scopeDigest);
+  const added=[...f.queries,['fileExists',path.join(f.root,'src/missing.ts'),null]];assert.notEqual(derivePortableRawQueryScopes(f.root,added).scopeDigest,base.scopeDigest);
+  assert.notEqual(derivePortableAncestorQueries(f.root,f.queries).scopeDigest,base.scopeDigest,'new raw scope interpretation cannot borrow ancestor-only scope authority');
+});
+test('independent same-chain raw plans preserve portable scope IDs but not private paths',posix,t=>{
+  const a=fixture(t),b=fixture(t),first=derivePortableRawQueryScopes(a.root,a.queries),second=derivePortableRawQueryScopes(b.root,b.queries);
+  assert.equal(first.scopeDigest,second.scopeDigest);assert.deepEqual(first.scopes.map(({id,logical,queryKinds})=>({id,logical,queryKinds})),second.scopes.map(({id,logical,queryKinds})=>({id,logical,queryKinds})));
+  assert.notDeepEqual(first.rootIdentity,second.rootIdentity);assert.notEqual(first.scopes[0].candidate,second.scopes[0].candidate);
+});
+test('raw plans retain strict external refusals and ASCII native path prerequisite',posix,t=>{
+  const f=fixture(t);
+  assert.throws(()=>derivePortableRawQueryScopes(f.root,[['readFile',f.candidate,'a'.repeat(64)]]),code('PORTABLE_ANCESTOR_EXTERNAL_QUERY'));
+  assert.throws(()=>derivePortableRawQueryScopes(f.root,[...f.queries,['fileExists',path.join(f.root,'src/\u212a.ts'),null]]),code('PORTABLE_ANCESTOR_PATH'));
+  fs.mkdirSync(path.dirname(f.candidate),{recursive:true});fs.writeFileSync(f.candidate,'owned');
+  assert.throws(()=>derivePortableRawQueryScopes(f.root,f.queries),code('PORTABLE_ANCESTOR_PRESENT'));
 });

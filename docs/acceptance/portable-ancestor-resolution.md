@@ -225,3 +225,16 @@ case aliases. Actual filtered CI subscription, change-and-restore delivery,
 start/end integration and independent critical review remain required before any
 origin or recipient reuse claim. No agent permissions, trust policy or configured
 compiler execution has changed.
+
+The raw scope derivation also covers **every in-root compiler filesystem query
+path**, not only external absence candidates. `derivePortableRawQueryScopes`
+reuses the strict local query validation, merges kinds for identical private
+paths, and assigns deterministic IDs from project-relative or ancestor logical
+namespaces. Its separate interpretation and scope digest bind the complete query
+meaning, membership options and path/kind set. Directory membership prefixes
+(`readDirectory`, `directories`, `entries`) deliberately include unnamed transient
+additions below them. Such a file can be consumed and removed without appearing
+in the final manifest; Parcel cancellation elision therefore also matters inside
+the owned checkout. This conservative prefix coverage can include harmless edits,
+and is not a claimed latency improvement. It remains `reuseEligible:false` and
+does not alter envelope or receipt interpretation by itself.
