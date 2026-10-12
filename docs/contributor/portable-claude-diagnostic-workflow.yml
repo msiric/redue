@@ -39,11 +39,8 @@ jobs:
           test "$(git rev-parse HEAD)" = "$REVIEWED_SOURCE"
           test "$(uname -m)" = 'arm64'
           test "$(node --version)" = 'v22.13.0'
-          for key in NODE_OPTIONS NODE_PATH BASH_ENV ENV LD_PRELOAD LD_LIBRARY_PATH; do
-            if [[ -v "$key" ]]; then exit 2; fi
-          done
           while IFS= read -r key; do
-            case "$key" in DYLD_*|OPENSSL_*|CLAUDE_*|ANTHROPIC_*) exit 2;; esac
+            case "$key" in NODE_OPTIONS|NODE_PATH|BASH_ENV|ENV|LD_*|DYLD_*|OPENSSL_*|CLAUDE_*|ANTHROPIC_*) exit 2;; esac
           done < <(compgen -e)
           export REDUE_CHECKED_SOURCE="$REVIEWED_SOURCE"
           node test/acceptance/portable-claude-diagnostic.mjs --check-prerequisites --source "$REVIEWED_SOURCE"
@@ -65,11 +62,11 @@ jobs:
         run: |
           set -euo pipefail
           # No owner token is printed, copied to a file, or released to another step.
-          for key in NODE_OPTIONS NODE_PATH BASH_ENV ENV LD_PRELOAD LD_LIBRARY_PATH; do
-            if [[ -v "$key" ]]; then exit 2; fi
-          done
           while IFS= read -r key; do
-            case "$key" in DYLD_*|OPENSSL_*|ANTHROPIC_*) exit 2;; esac
+            case "$key" in
+              CLAUDE_CODE_OAUTH_TOKEN) ;;
+              NODE_OPTIONS|NODE_PATH|BASH_ENV|ENV|LD_*|DYLD_*|OPENSSL_*|CLAUDE_*|ANTHROPIC_*) exit 2;;
+            esac
           done < <(compgen -e)
           export REDUE_CHECKED_SOURCE="$REVIEWED_SOURCE"
           node test/acceptance/portable-claude-diagnostic.mjs --run --source "$REVIEWED_SOURCE"
