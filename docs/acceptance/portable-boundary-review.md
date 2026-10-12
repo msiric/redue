@@ -5198,3 +5198,49 @@ calls during matching. The reviewer read only current config/static records and
 source, did not scan/copy project bodies or execute a child/compiler/native/model/
 CI operation. This correction permits only the already reviewed data preparation;
 namespace, seal, executable and reuse authority remain false.
+
+## Apple alias/mapping hooks: required native observations
+
+This is source review, not empirical seal admission. Pinned Apple XNU
+f6217f891ac0bb64f3d375211650a4c1ff8ca1ea's link path checks a MAC hook with
+both the source vnode and destination directory/name before creating the link.
+Its destination must be absent and on the same mount; source/destination vnode
+authorization is also required. [vfs_syscalls.c,5660–5690](https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/vfs/vfs_syscalls.c#L5660)
+
+The MAC framework passes link, rename, mode and write checks to installed policy
+hooks, including both source and destination rename contexts. This does not expose
+the proprietary sandbox policy's exact pathname/alias interpretation or prove
+that native187's proposed subpath rule denies each operation on the actual runner.
+[mac_vfs.c](https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/security/mac_vfs.c#L1433)
+
+For file-backed MAP_SHARED, requested writable access requires a writable file
+descriptor. Mapping also invokes a MAC hook with a reducible maximum-protection
+set. MAP_PRIVATE can allow writable copy-on-write memory without mutating the
+backing file. The mprotect path explicitly explains limits of that MAC check:
+it cannot generally recover the vnode or substitute for mapping revocation.
+Thus a new pathname denial cannot be assumed to revoke existing writable mappings.
+[kern_mman.c,590–640](https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/kern/kern_mman.c#L590),
+[mprotect,1189–1203](https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/kern/kern_mman.c#L1189)
+The separate mapping hook permits policy to reduce, never enlarge, maximum
+protections; it is not an observed sandbox result.
+[mac_file.c,166–177](https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/security/mac_file.c#L166)
+
+Required native nonsensitive checks remain exact stage/body write, mode change,
+unlink, rename, stage-parent/ancestor replacement and symlink/case alias access.
+Attempt an outside hardlink to the staged file; if it unexpectedly succeeds,
+retain FAIL and independently attempt a write through that alias. Missing alias
+after a denied link is NOT_PERFORMED, not a denial. EPERM/EACCES qualify the tested
+denial; missing/EXDEV/unsupported/unknown errors cannot qualify it. Preserve actual
+stage bytes and physical identity checks and independent operation outcomes.
+Acquire MAP_SHARED writable access through the actual native boundary, also testing
+read-only shared mapping followed by write-protection escalation where supported.
+Private CoW is not shared-file mutation. Missing mapping implementation leaves
+the overall gate UNKNOWN rather than silently qualifying a partial sentinel.
+
+Fresh independent staging inodes, trusted preparer closure/reaping and exclusion
+of surviving untrusted writable descriptors/mappings remain prerequisites, not
+things an endpoint digest or one post-denial syscall can certify. No whole-home
+read/write grant, new arbitrary executor, global setting or copied authority is
+justified by this source. The selected source version is not asserted identical
+to the matched runner kernel. No native/compiler/model/CI/preparer operation was
+performed by the reviewer; observer experiments are not resumed.
