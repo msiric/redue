@@ -87,7 +87,7 @@ export function diagnosticOutcome(trace,{nativeExit=null,nativeSignal=null,timed
 }
 // Lexical mock seam only: the entrypoint cannot accept an alternate executable,
 // prompt, command or permission policy. No raw stdout/stderr is returned.
-export function collectNativeDiagnostic(create,{command,cwd,timeoutMs=115000,cleanupMs=5000,signal}={}) {
+export function collectNativeDiagnostic(create,{command,cwd,timeoutMs=115000,cleanupMs=5000,signal:abortSignal}={}) {
  if(!Number.isInteger(timeoutMs)||timeoutMs<1||timeoutMs>115000||!Number.isInteger(cleanupMs)||cleanupMs<1||cleanupMs>5000)fail('DIAGNOSTIC_LIMIT');
  return new Promise(resolve=>{
   const trace=createNativeDiagnosticTrace({command,cwd});let child,pending=Buffer.alloc(0),total=0,done=false,timedOut=false,ioError=null,reaped=false,killTimer,spawnObserved=false;
@@ -95,7 +95,7 @@ export function collectNativeDiagnostic(create,{command,cwd,timeoutMs=115000,cle
   const stop=()=>{if(child&&child.exitCode===null&&child.signalCode===null){try{child.kill('SIGTERM');}catch{}
     if(!killTimer)killTimer=setTimeout(()=>{if(!done&&child.exitCode===null&&child.signalCode===null)try{child.kill('SIGKILL');}catch{}},Math.min(500,cleanupMs));}};
   const finish=(exit,signal,observed=false)=>{
-   if(done)return;done=true;signal?.removeEventListener('abort',cancel);clearTimeout(deadline);clearTimeout(killTimer);clearTimeout(lastWait);
+   if(done)return;done=true;abortSignal?.removeEventListener('abort',cancel);clearTimeout(deadline);clearTimeout(killTimer);clearTimeout(lastWait);
    if(pending.length)ioError??='NATIVE_STREAM_INCOMPLETE';const snapshot=trace.snapshot();snapshot.error??=ioError;
    resolve({trace:snapshot,native_exit_code:Number.isInteger(exit)?exit:null,native_signal:SIGNALS.has(signal)?signal:null,
     native_process_spawn_observed:spawnObserved,native_exit_observed:observed,owned_native_reaped:reaped,timed_out:timedOut,milliseconds:performance.now()-started,
@@ -104,7 +104,7 @@ export function collectNativeDiagnostic(create,{command,cwd,timeoutMs=115000,cle
   const cancel=()=>{ioError??='NATIVE_CANCELLED';stop();};
   const deadline=setTimeout(()=>{timedOut=true;stop();},timeoutMs);
   const lastWait=setTimeout(()=>finish(null,null),timeoutMs+cleanupMs);
-  if(signal?.aborted){ioError='NATIVE_CANCELLED';finish(null,null);return;}signal?.addEventListener('abort',cancel,{once:true});
+  if(abortSignal?.aborted){ioError='NATIVE_CANCELLED';finish(null,null);return;}abortSignal?.addEventListener('abort',cancel,{once:true});
   try {
    child=create();child.on('spawn',()=>{spawnObserved=true;});child.stdout.on('data',chunk=>{
     if(done)return;if(!Buffer.isBuffer(chunk))chunk=Buffer.from(chunk);
