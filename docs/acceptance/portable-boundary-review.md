@@ -5244,3 +5244,45 @@ read/write grant, new arbitrary executor, global setting or copied authority is
 justified by this source. The selected source version is not asserted identical
 to the matched runner kernel. No native/compiler/model/CI/preparer operation was
 performed by the reviewer; observer experiments are not resumed.
+
+## Fixed preparation diagnostic: source-only admission
+
+GO for diagnostic child/profile2bc2b35098c31b14962820ecd403c2776be4e26f,
+childSHA723420f830b5f9effe589d7f95bf46f5d9ae6bbefebb6803e5b5aba1980e913e,
+pending separate bounded-driver review before any actual attempt. It performs
+the same fixed data materialization through the existing EOF/input grammar and
+preparer resources. Its profile adds only one exact read-only diagnostic-code
+literal/hash; normal child/parent remain unchanged. No imported path/code/callback
+can select operations. Static source/stage/boundary primitive aggregates emit at
+4s cadence, bounded32frames/64KiB, with no arguments, paths, bodies, environments
+or raw errors. FS-call time excludes CPU hashing/JS/serialization and cannot be
+reported as complete preparation phase wall time or net savings.
+
+Four independent5dd counterexamples were preserved: directory instance methods
+remained wrapped after measurement; throwing publication masked a completed open
+before its handle reached the caller; publication replaced the operation error;
+and failure before cadence lost the final accumulated counters. Intermediate1484
+repaired those but retained two more mock counterexamples: validity was returned
+before a capped final snapshot's clock failure, and a throwing failure-result
+writer rejected main. These are unrun diagnostic-proposal defects, not causes
+assigned to the preceding real-project timeout.
+
+The final code restores open directory instance methods on close/finalization
+and restores primitive methods on success/failure. Publication failure latches
+without altering primitive results/errors, final failure counters are retained
+when safely possible, clock failures remain invalid, and validity is reported
+after restoration/fallback publication. Success/failure stdout uses a nonthrowing
+writer; stream error handlers set74 without raw stack output. Missing collection
+still does not qualify; even finished diagnostic data remains unsealed/nonreusable.
+
+Independent archived final mocks passed8/8 in53.21ms and five independent former
+countercase controls passed5/5 in51.10ms. Earlier frozen5dd/1484 controls remain
+retained. All filesystem/stream/clock operations here were mocked; no real
+preparer, compiler, native agent, model or CI operation occurred.
+
+The coming driver must retain exact code/Node/source/config/current physical
+bindings, empty environment and unchanged120s/SIGKILL/resource caps, parse only
+bounded static frame/method/group/number shapes, and retain safe partial metrics
+on killed/failed children without raw stderr. Invalid clocks/reporting or a kill
+stay UNKNOWN; no timeout increase, validation deletion, partial cleanup, sealed
+recipe/current authority or performance benefit is admitted by this source GO.
