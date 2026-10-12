@@ -3045,6 +3045,56 @@ relying solely on a render/normalize round-trip of the author's own template.
 Original files remain unchanged. The authenticated workflow remains unregistered
 and unexecuted; its completed lifecycle proposal requires separate final review.
 
+### D9 final conditional proposal review
+
+The final five-file author stack through `04ee1caed47e7506f4b211e401eff87cc4cc0aa3`
+was independently reviewed without native, OAuth, model, fixture-listener or CI
+execution. Its fifteen pure/mock controls pass (79.857542ms). The workflow remains
+outside `.github`, with an unresolved integrated-source pin, a protected owner
+account/policy statement, included-capacity requirement and normal private OAuth
+provisioning. Conclusion: **GO for integration of this conditional, unregistered
+proposal; no deployment or empirical enforcement claim.** The current route
+admits only the authoritative no-applicable-managed-policy case, not an unknown
+policy or a fabricated subscription tier.
+
+The initial literal Bash allow did not exclude pinned187's implicit read-only
+fallback. The successor adds supported prefix DENY rules for all94 independently
+extracted command heads, with no added grants. A separate source reviewer
+corroborated the recursive table/spread union. Actual pinned deny/normalization
+primitives and the permission-ordering function pass564 cases (94 heads times
+six bare, quoted, wrapper and execution-altering-environment forms), before the
+read-only fallback is reached. The exact quoted absolute Node collector remains
+admitted; three controlled compound AST cases deny their other command. Parsing
+and non-authority branch adapters are explicitly controlled in these tests;
+they are not whole native parser or sandbox observations. The pinned sed safety
+branch returns ask/passthrough, and the automatic-mode branch returns passthrough
+under the selected dontAsk mode. The first reviewer fragment-extraction fixture
+included a trailing async token and failed compilation; its corrected function
+boundary passed. That was test preparation, not an observed native defect.
+
+The coherent route retains the original checker/supervisor assertion bodies,
+one literal command, closed stdin, four turns, first run-attempt only, total120s
+and bounded cleanup. Real OAuth reaches only the curated native-host environment;
+runner/GH/OIDC credentials are excluded, and the nonsecret runner tracking marker
+is preserved without reporting it. Reviewed closed startup/session inputs and
+the source-derived credential removal remain prelaunch conditions. Hook/system
+contradictions in the native stream irreversibly withhold success; reactive
+refusal does not undo a hook or replace the owner policy fact. A fresh dispatch
+also needs the integration owner's one-operation ledger.
+
+Only a matching native assistant Bash tool-use ID, native tool result, independently
+collected checker report, observed checker OS close, six assertions, live controls,
+unchanged identities and completed lifecycle can support the diagnostic result.
+Failed assertions survive collection uncertainty; missing data remains UNKNOWN.
+Cancellation is bounded for the owned native group, but UNKNOWN does not claim
+all native Bash descendants were cleaned. The private pending result preserves
+assertions/status independently of a terminal copy; final completion is checked
+after persistence. No raw transcript, stderr, token or model prose is retained.
+No explicit allowWrite entries is not universal filesystem immutability: implicit
+native temporary access remains disclosed. Six named synthetic operations neither
+open real credential bodies nor establish REDUE applicability, receiving-agent
+reuse, VM equivalence, G2/G4 completion or a release-ready artifact.
+
 ## Coherent incomplete-origin signer control — independent integration review
 
 B's d204523/root5022cbb adds only13test lines. The new fixture changes
