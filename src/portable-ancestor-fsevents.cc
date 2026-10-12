@@ -36,6 +36,13 @@ bool asciiCanonical(const std::string& path) {
   }
   return true;
 }
+#if defined(REDUE_ANCESTOR_DIAGNOSTIC) || defined(REDUE_ANCESTOR_PURE_TEST)
+struct DiagnosticRoot { bool owned;std::string path; };
+DiagnosticRoot diagnosticArguments(const std::vector<std::string>& args){
+  if(args.size()!=2||(args[0]!="root"&&args[0]!="owned")||!asciiCanonical(args[1])||args[1]=="/")throw ProtocolError();
+  return {args[0]=="owned",args[1]};
+}
+#endif
 bool utf8(const std::string& text){
   for(size_t i=0;i<text.size();){const unsigned char c=text[i++];
     if(c<128)continue;unsigned count;uint32_t value,min;
@@ -178,12 +185,26 @@ void callback(ConstFSEventStreamRef,void* context,size_t count,void* paths,const
   }catch(...){_exit(74);}
 }
 }
-int main(int argc,char**){
+int main(int argc,char** argv){
   using namespace redue_ancestor;
-  if(argc!=1)return 64;signal(SIGPIPE,SIG_IGN);
+#ifdef REDUE_ANCESTOR_DIAGNOSTIC
+  if(argc!=3||strnlen(argv[1],17)>16||strnlen(argv[2],maxPath+1)>maxPath)return 64;
+  DiagnosticRoot diagnostic;try{diagnostic=diagnosticArguments({argv[1],argv[2]});}catch(...){return 64;}
+#else
+  if(argc!=1)return 64;
+#endif
+  signal(SIGPIPE,SIG_IGN);
   std::vector<Scope> scopes;try{scopes=initialization(std::cin);}catch(...){output("{\"schema\":1,\"type\":\"uncertainty\",\"code\":\"PROTOCOL\"}");return 64;}
   Collector collector(std::move(scopes),output);
-  const void* roots[]={CFSTR("/")};const CFArrayRef rootsArray=CFArrayCreate(nullptr,roots,1,&kCFTypeArrayCallBacks);
+  CFStringRef streamRoot=CFSTR("/");
+#ifdef REDUE_ANCESTOR_DIAGNOSTIC
+  if(diagnostic.owned)streamRoot=CFStringCreateWithCString(nullptr,diagnostic.path.c_str(),kCFStringEncodingASCII);
+  if(!streamRoot){collector.uncertainty("FSEVENTS_START");return 70;}
+#endif
+  const void* roots[]={streamRoot};const CFArrayRef rootsArray=CFArrayCreate(nullptr,roots,1,&kCFTypeArrayCallBacks);
+#ifdef REDUE_ANCESTOR_DIAGNOSTIC
+  if(diagnostic.owned)CFRelease(streamRoot);
+#endif
   if(!rootsArray){collector.uncertainty("FSEVENTS_START");return 70;}
   FSEventStreamContext context={0,&collector,nullptr,nullptr,nullptr};
   const auto stream=FSEventStreamCreate(nullptr,callback,&context,rootsArray,kFSEventStreamEventIdSinceNow,0.001,

@@ -4,6 +4,10 @@ using namespace redue_ancestor;
 int main(int argc,char** argv){
   if(argc!=2)return 64;
   const std::string mode=argv[1];
+  if(mode=="diagnostic-args"){
+    std::vector<std::string> args;std::string line;while(std::getline(std::cin,line)){args.push_back(line);if(args.size()>2)break;}
+    try{const auto result=diagnosticArguments(args);std::cout<<"{\"owned\":"<<(result.owned?"true":"false")<<"}\n";return 0;}catch(...){return 64;}
+  }
   if(mode=="initialization"){
     try{const auto scopes=initialization(std::cin);std::cout<<"{\"count\":"<<scopes.size()<<",\"ids\":[";bool first=true;for(const auto& s:scopes){if(!first)std::cout<<',';first=false;std::cout<<s.id;}std::cout<<"]}\n";return 0;}catch(...){std::cout<<"{\"code\":\"PROTOCOL\"}\n";return 64;}
   }

@@ -87,3 +87,14 @@ test('mixed-case, short and ambiguous Unicode Data prefixes are uncertainty only
   for(let at=0;at<rows.length;at+=2){assert.equal(rows[at].code,'FSEVENTS_PATH');assert.equal(rows[at+1].uncertain,true);assert.equal(rows[at+1].serial,0);}
   const disjoint=run('alias-disjoint').rows;assert.equal(disjoint.length,4);assert(disjoint.every(row=>row.type==='barrier'&&row.serial===0&&row.uncertain===false));
 });
+test('diagnostic-only stream selection is fixed enum plus canonical owned ASCII root',pure,()=>{
+  assert.deepEqual(run('diagnostic-args','root\n/private/tmp/owned-project\n').rows,[{owned:false}]);
+  assert.deepEqual(run('diagnostic-args','owned\n/private/tmp/owned-project\n').rows,[{owned:true}]);
+  for(const input of ['other\n/private/tmp/p\n','owned\n/\n','owned\nrelative\n','owned\n/private/tmp/../p\n','owned\n/private/tmp/\u212a\n','owned\n/private/tmp/p\nextra\n','root\n'])
+    assert.equal(run('diagnostic-args',input).status,64);
+});
+test('production preprocessor branch retains root-only argc and no diagnostic argument path',()=>{
+  const text=fs.readFileSync(new URL('../src/portable-ancestor-fsevents.cc',import.meta.url),'utf8');
+  assert.match(text,/#ifdef REDUE_ANCESTOR_DIAGNOSTIC[\s\S]*#else\n  if\(argc!=1\)return 64;/);
+  assert.match(text,/CFStringRef streamRoot=CFSTR\("\/"\);/);
+});

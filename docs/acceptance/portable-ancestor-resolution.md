@@ -296,3 +296,32 @@ swap or agent enforcement. Failed assertions remain FAIL; unavailable capture
 remains UNKNOWN. Cleanup requires actual owned-child close, independently of a
 clean observation interval. Unknown reaping leaves the owned files intact for
 that VM. Independent review precedes dispatch; no CI result is implied here.
+## First actual provider trial and diagnostic-only build
+
+Approved CI run `38287392906`, source
+`eb0d68ed18a6a323c4ba8436e337be799c942ede`, failed
+`MEMBERSHIP_INTERVAL_NOT_OBSERVED`: start and immediate post-create/delete barrier
+both reported healthy serial zero. It completed in 118.689 ms; close exited zero,
+was reaped and clean. No compiler or model ran. The ancestor/provisioning tests
+were not reached. A clean close does not establish that the mutation was observed.
+
+Cause is unresolved. Apple's SDK describes flushing events buffered by the
+service and callback delivery; current evidence cannot distinguish startup/delivery
+lag, volume/root coverage, or another path representation. No delay, marker or
+later successful sample establishes interval authority by itself.
+
+A separate diagnostic-only build adds `REDUE_ANCESTOR_DIAGNOSTIC`. It accepts
+exactly `root OWNED_ROOT` or `owned OWNED_ROOT`, where the parent-provisioned root
+must be canonical ASCII and not `/`. The former watches `/`; the latter watches
+that one owned root. It shares the callback, filter, bounded initialization,
+barrier/close protocol and uncertainty handling. It does not add subscriptions to
+the production collector, unrelated callback counters, event paths or body reads.
+The normal binary retains argc-one/root-only semantics. The build helper accepts
+only the explicit boolean diagnostic option, not arbitrary compiler flags.
+
+Both variants were built locally but never started. A fixed, independently
+reviewed CI-only supervisor may compare those two cases on owned synthetic paths,
+reporting only matched scope IDs and static outcomes. No production applicability
+or continuity change is authorized by this diagnostic selector. Preserve the
+first failure, fixed sample boundaries and conservative result until the actual
+provider behavior is established.

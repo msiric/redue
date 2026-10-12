@@ -3,7 +3,9 @@ import fs from 'node:fs';import path from 'node:path';import {spawnSync} from 'n
 import {readBoundedPortableFile} from '../src/portable-command.mjs';
 import {createHash} from 'node:crypto';import {fileURLToPath} from 'node:url';
 const fail=code=>{throw Object.assign(Error(code),{code});};
-export function buildPortableAncestorFSEvents(output){
+export function buildPortableAncestorFSEvents(output,options={}){
+  if(!options||typeof options!=='object'||Array.isArray(options)||Object.keys(options).some(key=>key!=='diagnostic')||Object.hasOwn(options,'diagnostic')&&typeof options.diagnostic!=='boolean')fail('ANCESTOR_BUILD_USAGE');
+  const diagnostic=options.diagnostic===true;
   if(process.platform!=='darwin'||process.arch!=='arm64'||!path.isAbsolute(output)||path.resolve(output)!==output)fail('ANCESTOR_BUILD_PLATFORM');
   const parent=path.dirname(output);let part=path.parse(parent).root;const identities=[];
   for(const item of parent.slice(part.length).split(path.sep).filter(Boolean)){part=path.join(part,item);const stat=fs.lstatSync(part);if(!stat.isDirectory()||stat.isSymbolicLink())fail('ANCESTOR_BUILD_PATH');identities.push([part,stat.dev,stat.ino]);}
@@ -14,7 +16,7 @@ export function buildPortableAncestorFSEvents(output){
   const sourceBytes=readBoundedPortableFile(source);
   const compilerVersion=spawnSync('/usr/bin/xcrun',['clang++','--version'],{encoding:'utf8',timeout:5000,maxBuffer:65536});
   if(compilerVersion.error||compilerVersion.signal||compilerVersion.status!==0)fail('ANCESTOR_BUILD_FAILED');
-  const flags=['-std=c++17','-O2','-fblocks','-arch','arm64','-mmacosx-version-min=13.0'];
+  const flags=['-std=c++17','-O2','-fblocks','-arch','arm64','-mmacosx-version-min=13.0',...(diagnostic?['-DREDUE_ANCESTOR_DIAGNOSTIC']:[])];
   const temporary=fs.mkdtempSync(path.join(parent,'.ancestor-build-'));fs.chmodSync(temporary,0o700);
   try{
     const compiled=path.join(temporary,'collector');
@@ -27,10 +29,10 @@ export function buildPortableAncestorFSEvents(output){
     if(!bytes.equals(readBoundedPortableFile(output)))fail('ANCESTOR_BUILD_CHANGED');
     for(const [file,dev,ino] of identities){const stat=fs.lstatSync(file);if(!stat.isDirectory()||stat.isSymbolicLink()||stat.dev!==dev||stat.ino!==ino)fail('ANCESTOR_BUILD_CHANGED');}
     const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
-    return {schema:1,sourceSha256:sha(sourceBytes),executableSha256:sha(bytes),bytes:bytes.length,compilerVersion:compilerVersion.stdout.split('\n')[0].slice(0,256),flags,started:false};
+    return {schema:1,mode:diagnostic?'diagnostic':'production',sourceSha256:sha(sourceBytes),executableSha256:sha(bytes),bytes:bytes.length,compilerVersion:compilerVersion.stdout.split('\n')[0].slice(0,256),flags,started:false};
   }finally{fs.rmSync(temporary,{recursive:true,force:true});}
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)){
-  if(process.argv.length!==4||process.argv[2]!=='--output')fail('ANCESTOR_BUILD_USAGE');
-  console.log(JSON.stringify(buildPortableAncestorFSEvents(process.argv[3])));
+  if(![4,5].includes(process.argv.length)||process.argv[2]!=='--output'||process.argv.length===5&&process.argv[4]!=='--diagnostic')fail('ANCESTOR_BUILD_USAGE');
+  console.log(JSON.stringify(buildPortableAncestorFSEvents(process.argv[3],{diagnostic:process.argv.length===5}))); 
 }
