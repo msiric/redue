@@ -22,6 +22,15 @@ const SIGNALS=new Set(['SIGHUP','SIGINT','SIGQUIT','SIGILL','SIGTRAP','SIGABRT',
 // Classification only, never an acceptance list. Literal emitted subtype names
 // extracted from reviewed native187 SHA a59a16ba; no event values are retained.
 const PINNED_SYSTEM_SUBTYPES=new Set('task_notification task_progress task_updated task_started model_refusal_fallback post_turn_summary model_consent_fallback model_fallback notification hook_started hook_progress hook_response compact_boundary worker_shutting_down thinking_tokens mirror_error file_snapshot informational permission_retry bridge_status scheduled_task_fire stop_hook_summary turn_duration away_summary memory_saved agents_killed local_command api_error memory_recall init session_state_changed task_summary permission_denied turn_starting status api_retry elicitation_complete plugin_install commands_changed bridge_state'.split(' '));
+// Native187 F7r at198672601 emits only these categories. The retry emitter at
+// 210402886 supplies numeric protocol fields; never copy its error payload.
+const PINNED_RETRY_CATEGORIES=new Set(['overloaded','rate_limit','authentication_failed','server_error','unknown']);
+function classifyRejectedRetry(value){
+ const bounded=(v,max,min=0)=>Number.isInteger(v)&&v>=min&&v<=max?v:'UNAVAILABLE';
+ return {category:PINNED_RETRY_CATEGORIES.has(value.error)?value.error:'UNREVIEWED_CATEGORY',
+  http_status:value.error_status===null?null:bounded(value.error_status,599,100),
+  attempt:bounded(value.attempt,1000,1),max_retries:bounded(value.max_retries,1000),retry_delay_ms:bounded(value.retry_delay_ms,120000)};
+}
 let readDeadline=Infinity;
 const checkDeadline=()=>{if(Date.now()>=readDeadline)fail('DIAGNOSTIC_JOB_DEADLINE');};
 const fail=code=>{throw Object.assign(Error('Native diagnostic prerequisite unavailable'),{code});};
@@ -83,6 +92,7 @@ export function createNativeDiagnosticTrace({command,cwd}){
   // supplied no-policy statement cannot green contradictory native evidence.
   if(value.type==='system'){
    rejectedSystemEvent??={subtype_code:PINNED_SYSTEM_SUBTYPES.has(value.subtype)?value.subtype:'UNREVIEWED_SUBTYPE',phase:init?'AFTER_VALIDATED_INIT':'BEFORE_VALIDATED_INIT'};
+   if(value.subtype==='api_retry'&&rejectedSystemEvent.subtype_code==='api_retry'&&!Object.hasOwn(rejectedSystemEvent,'api_retry'))rejectedSystemEvent.api_retry=classifyRejectedRetry(value);
    reject(['hook_started','hook_progress','hook_response'].includes(value.subtype)?'NATIVE_STARTUP_HOOK_OBSERVED':'NATIVE_SYSTEM_CONTEXT_UNKNOWN');return;
   }
   // Never publish model text, auth/init payloads, error strings or unknown events.

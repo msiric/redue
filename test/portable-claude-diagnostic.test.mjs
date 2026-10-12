@@ -171,3 +171,19 @@ test('pinned native read-only families are explicitly denied before fallback wit
  assert.ok(plan.command.startsWith("'/approved/runtime/bin/node' "));assert.equal(s.permissions.deny.includes(`Bash(${plan.command})`),false);
  assert.deepEqual(s.sandbox.network.allowUnixSockets,[plan.assets.socket]);assert.deepEqual(s.sandbox.filesystem.allowWrite,[]);
 });
+
+test('rejected API retry reports pinned categories and bounded protocol numbers without accepting retries',()=>{
+ for(const error of ['overloaded','rate_limit','authentication_failed','server_error','unknown','PRIVATE_CANARY',null,{},'https://PRIVATE_CANARY']){
+  const t=trace([init,{type:'system',subtype:'api_retry',attempt:1,max_retries:10,retry_delay_ms:500,error_status:401,error,private_field:'PRIVATE_CANARY'},assistant(),result(),final]);
+  assert.deepEqual(t.rejected_system_event,{subtype_code:'api_retry',phase:'AFTER_VALIDATED_INIT',api_retry:{category:['overloaded','rate_limit','authentication_failed','server_error','unknown'].includes(error)?error:'UNREVIEWED_CATEGORY',http_status:401,attempt:1,max_retries:10,retry_delay_ms:500}});
+  assert.equal(t.error,'NATIVE_SYSTEM_CONTEXT_UNKNOWN');assert.equal(diagnosticOutcome(t,complete).collection_status,'UNKNOWN');
+  assert.equal(JSON.stringify(t).includes('PRIVATE_CANARY'),false);
+ }
+ for(const error_status of [null,{},'PRIVATE_CANARY',true,0,99,600,Infinity,NaN]){
+  const t=trace([{type:'system',subtype:'api_retry',error:'unknown',error_status,attempt:'PRIVATE_CANARY',max_retries:1001,retry_delay_ms:-1}]);
+  assert.deepEqual(t.rejected_system_event.api_retry,{category:'unknown',http_status:error_status===null?null:'UNAVAILABLE',attempt:'UNAVAILABLE',max_retries:'UNAVAILABLE',retry_delay_ms:'UNAVAILABLE'});
+  assert.equal(t.rejected_system_event.phase,'BEFORE_VALIDATED_INIT');assert.equal(JSON.stringify(t).includes('PRIVATE_CANARY'),false);
+ }
+ const t=trace([init,{type:'system',subtype:'api_retry',error:'server_error',error_status:503,attempt:1,max_retries:2,retry_delay_ms:0},{type:'system',subtype:'api_retry',error:'authentication_failed',error_status:401,attempt:2,max_retries:2,retry_delay_ms:0}]);
+ assert.equal(t.rejected_system_event.api_retry.http_status,503);
+});
