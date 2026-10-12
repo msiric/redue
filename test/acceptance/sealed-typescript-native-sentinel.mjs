@@ -66,12 +66,12 @@ function report(checks,unperformed){return{schema:1,scope:'SYNTHETIC_STAGED_TREE
   native_tool_boundary:'REQUIRES_ACTUAL_NATIVE_HOST_TRACE_AND_LIVE_FIXTURE_GATES',real_credentials_opened:false,
   compiler_executions:0,model_actions_requested:0,network_actions_requested:0,sealed:false,reuseEligible:false};}
 export function sealedTypeScriptSentinelIO(fileSystem=fs){
-  const snapshots=new Map();let fixtureReady=false;
+  const snapshots=new Map();let fixtureReady=false,cleanupUncertain=false;
   const physical=stat=>['dev','ino','mode','uid','nlink','size','mtimeNs','ctimeNs'].map(key=>String(stat[key])).join(':');
   const protectedFiles=[SEALED_SENTINEL_BINDINGS.writeCanary,SEALED_SENTINEL_BINDINGS.chmodCanary,SEALED_SENTINEL_BINDINGS.unlinkCanary,SEALED_SENTINEL_BINDINGS.renameCanary,SEALED_SENTINEL_BINDINGS.hardlinkCanary];
   const fixedDirectories=[SEALED_SENTINEL_BINDINGS.stageParent,SEALED_SENTINEL_BINDINGS.stage,SEALED_SENTINEL_BINDINGS.allowedWorkspace];
-  const opened=async(file,flags,action)=>{let handle,result;try{handle=await fileSystem.open(file,flags,0o600);result=await action(handle);}
-    catch(error){result=classifySealedSentinelError(error);}finally{if(handle)try{await handle.close();}catch{result='UNKNOWN_OR_UNAVAILABLE';}}return result;};
+  const opened=async(file,flags,action,preserveSuccessfulAction=false)=>{let handle,result;try{handle=await fileSystem.open(file,flags,0o600);result=await action(handle);}
+    catch(error){result=classifySealedSentinelError(error);}finally{if(handle)try{await handle.close();}catch{cleanupUncertain=true;if(result!=='ASSERTION_FAILED'&&!(preserveSuccessfulAction&&result==='ACCESS_SUCCEEDED'))result='UNKNOWN_OR_UNAVAILABLE';}}return result;};
   const readCanary=async(file,capture=false)=>opened(file,F.O_RDONLY|F.O_NOFOLLOW|F.O_NONBLOCK,async handle=>{
     const before=await handle.stat({bigint:true});if(!before.isFile()||before.nlink!==1n||before.uid!==BigInt(process.getuid())||before.size!==BigInt(CANARY.length)||(before.mode&0o7777n)!==0o644n||!capture&&physical(before)!==snapshots.get(file))return'ASSERTION_FAILED';
     const buffer=Buffer.alloc(CANARY.length+1),{bytesRead}=await handle.read(buffer,0,buffer.length,0),after=await handle.stat({bigint:true});
@@ -80,7 +80,7 @@ export function sealedTypeScriptSentinelIO(fileSystem=fs){
   });
   const write=async(file)=>opened(file,F.O_WRONLY|F.O_NOFOLLOW|F.O_NONBLOCK,async handle=>{
     const {bytesWritten}=await handle.write(Buffer.from('!'),0,1,0);return bytesWritten===1?'ACCESS_SUCCEEDED':'ASSERTION_FAILED';
-  });
+  },file!==SEALED_SENTINEL_BINDINGS.allowedWrite);
   const operation=async fn=>{try{await fn();return'ACCESS_SUCCEEDED';}catch(error){return classifySealedSentinelError(error);}};
   return{
     fixtureProbe:async()=>{if(typeof process.getuid!=='function'||F.O_NOFOLLOW===undefined||F.O_NONBLOCK===undefined)return'UNKNOWN_OR_UNAVAILABLE';
@@ -92,7 +92,7 @@ export function sealedTypeScriptSentinelIO(fileSystem=fs){
           try{await fileSystem.lstat(missing);return'ASSERTION_FAILED';}catch(error){if(error?.code!=='ENOENT')return'UNKNOWN_OR_UNAVAILABLE';}}
         fixtureReady=true;return'FIXTURE_MATCHED';
       }catch{return'UNKNOWN_OR_UNAVAILABLE';}},
-    stageIntegrityProbe:async()=>{if(!fixtureReady)return'UNKNOWN_OR_UNAVAILABLE';try{for(const directory of fixedDirectories){const stat=await fileSystem.lstat(directory,{bigint:true});if(!stat.isDirectory()||stat.isSymbolicLink()||physical(stat)!==snapshots.get(directory))return'ASSERTION_FAILED';}
+    stageIntegrityProbe:async()=>{if(!fixtureReady||cleanupUncertain)return'UNKNOWN_OR_UNAVAILABLE';try{for(const directory of fixedDirectories){const stat=await fileSystem.lstat(directory,{bigint:true});if(!stat.isDirectory()||stat.isSymbolicLink()||physical(stat)!==snapshots.get(directory))return'ASSERTION_FAILED';}
       for(const file of protectedFiles){const outcome=await readCanary(file);if(outcome!=='FIXTURE_MATCHED')return outcome;}return'FIXTURE_MATCHED';}catch{return'UNKNOWN_OR_UNAVAILABLE';}},
     allowedWriteProbe:()=>write(SEALED_SENTINEL_BINDINGS.allowedWrite),writeProbe:()=>write(SEALED_SENTINEL_BINDINGS.writeCanary),
     chmodProbe:()=>operation(()=>fileSystem.chmod(SEALED_SENTINEL_BINDINGS.chmodCanary,0o600)),

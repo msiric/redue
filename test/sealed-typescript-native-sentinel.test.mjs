@@ -94,3 +94,24 @@ test('mock close error remains UNKNOWN rather than fabricated permission denial'
   const f=fixtureMock(),open=f.mock.open;f.mock.open=async(...args)=>{const handle=await open(...args);handle.close=async()=>{throw f.error('EPERM');};return handle;};
   const io=sealedTypeScriptSentinelIO(f.mock);assert.equal(await io.allowedWriteProbe(),'UNKNOWN_OR_UNAVAILABLE');
 });
+
+test('successful protected write stays FAIL when descriptor close and final audit are uncertain',supported,async()=>{
+  const f=fixtureMock(),open=f.mock.open;f.mock.open=async(file,flags)=>{
+    if(file===B.writeCanary&&(flags&F.O_WRONLY)!==0)return{write:async()=>({bytesWritten:1}),close:async()=>{throw f.error('EPERM');}};
+    return open(file,flags);
+  };
+  const report=await runSealedTypeScriptNativeSentinel(sealedTypeScriptSentinelIO(f.mock));assert.equal(report.result,'FAIL');
+  assert.equal(report.checks.find(row=>row.name==='stage_file_write_denied').reason_code,'ACCESS_SUCCEEDED');
+  assert.equal(report.checks.find(row=>row.name==='stage_fixture_identity_and_bytes_preserved').reason_code,'UNKNOWN_OR_UNAVAILABLE');
+});
+test('successful alias write is retained despite close uncertainty',supported,async()=>{
+  const f=fixtureMock(),open=f.mock.open;f.mock.link=async(a,b)=>{const state=f.states.get(a);state.stat.nlink=2n;f.states.set(b,state);};
+  f.mock.open=async(file,flags)=>file===B.outsideAlias?{write:async()=>({bytesWritten:1}),close:async()=>{throw f.error('EIO');}}:open(file,flags);
+  const report=await runSealedTypeScriptNativeSentinel(sealedTypeScriptSentinelIO(f.mock));assert.equal(report.result,'FAIL');
+  assert.equal(report.checks.find(row=>row.name==='outside_hardlink_creation_denied').reason_code,'ACCESS_SUCCEEDED');
+  assert.equal(report.checks.find(row=>row.name==='write_through_created_alias_denied').reason_code,'ACCESS_SUCCEEDED');
+});
+test('an observed failed write assertion is not erased by close failure',supported,async()=>{
+  const f=fixtureMock(),open=f.mock.open;f.mock.open=async(file,flags)=>file===B.writeCanary&&(flags&F.O_WRONLY)!==0?{write:async()=>({bytesWritten:0}),close:async()=>{throw f.error('EIO');}}:open(file,flags);
+  const report=await runSealedTypeScriptNativeSentinel(sealedTypeScriptSentinelIO(f.mock));assert.equal(report.result,'FAIL');assert.equal(report.checks.find(row=>row.name==='stage_file_write_denied').reason_code,'ASSERTION_FAILED');
+});
