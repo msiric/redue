@@ -9,8 +9,14 @@ live controls, source currency, listener cleanup and final persistence passed;
 these do not replace checker success. Native exit143/signalnull is reported
 without inferring its cause. Raw event subtype/order was not retained.
 
-The one-job allowance is consumed. A classification-only repair is under
-independent review; no event is newly accepted and no further run has launched.
+The one-job allowance is consumed. The classification-only repair at
+`ed4219aa6eef8f3addd97fd8a1510ef51396215d` passed independent review, sixteen mock
+controls and92 differential cases. Its prepared workflow
+[7deb7d2](https://github.com/msiric/redue/blob/7deb7d26e9a51c05592043a7304ce384760850d8/.github/workflows/portable-claude-diagnostic.yml)
+changes only that source pin; no event is newly accepted. The live dispatch ref
+and protected variables remain unchanged, and no further run has launched.
+A new single bounded-job allowance remains required; authentication provisioning
+need not be repeated.
 
 [Registration PR14](https://github.com/msiric/redue/pull/14) passed all four checks
 and merged as da6b87f67ae8e80b6ce92a0636fac8a9c11261b7. The dedicated

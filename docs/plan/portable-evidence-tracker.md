@@ -27,9 +27,22 @@ exit143 can reconstruct them. A classification-only helper repair now records
 only pinned literal subtype names (others use a fixed unknown code), and whether
 the first rejected event preceded validated init. No event is newly admitted;
 rejection, termination, checker assertions, permissions, OAuth handling and PASS
-criteria are unchanged. Root's sixteen pure/mock controls pass. Independent
-critical review is pending before a new source is proposed for another bounded
-attempt. Those tests do not establish native enforcement.
+criteria are unchanged. Root's sixteen pure/mock controls pass. Independent review bd0d4b8/root14716c8
+also passes sixteen controls and92 differential cases with unchanged rejection,
+settings and outcome rules. Reviewed helper source ed4219aa6eef8f3addd97fd8a1510ef51396215d,
+SHA-256111e54cc2f76c1cb5c540fb266d606c712a521736e3ef0bc4ed75291ef31f683,
+is normally pushed on dev/portable-native-event-capture. Prepared workflow
+7deb7d26e9a51c05592043a7304ce384760850d8 is normally pushed on
+ dev/portable-native-event-workflow, SHA-25608ffcc4030772089175f35167b507602b7399e7368d21f343ea79a92fc934fa0.
+Independent preparation review200f926/rootf0cbd27 confirms its sole change is the
+source pin; all limits, permissions, token scope and boundaries remain unchanged.
+The live dispatch ref and protected owner facts have not changed. No new native
+or model operation has occurred. These mock/source checks do not establish native
+enforcement. A single additional bounded job requires an owner allowance because
+the previous one-job limit was consumed; do not ask for login or repeated setup.
+After that allowance, update only the reviewed source binding, preserve account
+facts/timestamp, verify the normal protected environment gate, and dispatch once.
+If owner facts expire, fail closed rather than fabricating a fresh attestation.
 
 Copilot's included Actions billing fact remains a separate pending prerequisite.
 G2/final G3/G4 are incomplete; no recipient model trial or publication is unlocked.
