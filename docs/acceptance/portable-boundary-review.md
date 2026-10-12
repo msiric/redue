@@ -4442,3 +4442,75 @@ counterexample, not a reproduced vnode defect. Held-fd parent replacement and
 restoration, failed registration, unknown event/EOF/error and FD/drain exhaustion
 remain conservative failures. No watcher, native/model/CI operation or code
 change was performed by this reviewer.
+
+### Test-only fixed vnode prototype and CI fixture review
+
+Diagnostic-only source/mock GO for native leaf `d8fe7bd`, integrated `1d77150`,
+source SHA256
+`f87172afa3012658894f856490e32e1cab75c7cd52b97d432f9707af85fdbb0a`.
+These four new files are test-only; no shipped observer or origin engine changes.
+The prototype frames at most256 canonical ASCII target paths with exact
+dev/inode/fullmode. Only regular files or directories are admitted. Native opens
+O_EVTONLY|O_NOFOLLOW|O_CLOEXEC, checks descriptor identity, requires an exact
+EV_RECEIPT registration acknowledgment for every target and holds descriptors
+without rearming. It checks fixed FD headroom and actual open failures, never
+raises RLIMIT or truncates the scope. The seven supported NOTE bits accumulate
+dirty IDs/serials. Unknown bits/events, registration errors, EOF, unexpected
+filter/data and resource failure withdraw the boundary.
+
+Every drain uses zero timeout with fixed event-count and50ms limits checked
+before and after syscalls; no sleep/quiet-period authority is introduced. Close
+acknowledgment follows descriptor/queue closure and any close error is uncertain.
+Only fixed IDs, serials, dirty sets and static uncertainty are emitted, without
+file bodies or raw event paths. This is a primitive for reviewed fixed existing
+vnodes, not recursive watching or complete compiler-scope integration.
+
+Frozen driver SHA256 is
+`c47eacf45cd94abb23df9e4d8e506338892e83397db2bd640dcb4ef28a41c7eb`;
+manual workflow SHA256 is
+`e9dd9d33fdbff1157555cc7847be307cb8ae5b4cfaa14f58f192c68b1a136f94`.
+Exact standard runner/Node/environment/capability gates bind a new owned fixture
+and the reviewed native build. The four targets are its source directory, one
+consumed leaf, owned fixture parent and project root. No outside private target
+or body is accessed. Source/mode/not-started build checks and actual executable
+digest remain explicit; production39cc is unrelated and unchanged.
+
+Fixed cases cover read-only control, membership create/delete, ancestor-prefix
+create/delete, same-inode hardlink write/restore, preexisting dirty MAP_SHARED
+write/restore and root rename/restore. Review corrected two diagnostic weaknesses:
+Python now faults/dirties the mapping with same-byte A before READY/registration;
+and each positive case requires a new occurrence on its specific expected vnode,
+not merely an increase from any parent. The mapping remains open without
+flush/msync/unmap through the mmap case's actual B/A byte observations and final
+barrier; only afterward is it closed. A missed hint is FAIL even when later
+cleanup or an unrelated parent event succeeds. The experiment is expressly
+`FIXTURE_HINTS_OBSERVED_NOT_CONTRACT_ACCEPTANCE`, never CURRENT or applicability.
+
+Three admission/currency corrections preserve the prior observer safeguards:
+check deadline after mapper readiness before guard launch, recheck capability
+and binary after frame derivation before spawn, and include current binding in
+final clean closure. Ninety-second cancellation/monotonic admissions, separate
+five-second protocol/reap bounds, actual child-close evidence and unknown-reap
+file retention remain. Accepted assertion FAIL is irreversible through later
+errors or deadline expiry. The unchanged manual initial-attempt task workflow
+has pinned actions, contents-read permission, five-minute external cap and no
+model credentials, signing, cache or artifact upload.
+
+Independent native-pure controls pass30/30 in1234.00ms. Pure compilation excludes
+OS registration and real vnode operations. Nine additional VM controls execute
+the exact driver with fake filesystem, mapper and guard children, passing56.44ms:
+full fixed mock collection, missed mmap FAIL, wrong-parent rejection, persistent
+FAIL through later error, unknown-reap retention, private unknown-event refusal,
+zero guard launches after frame-time authority revocation, no positive final
+closure after revocation and no launch after mapper-readiness deadline expiry.
+Initial independent mocks failed because a non-bigint lstat fixture incorrectly
+returned BigInt mode; correcting the fixture changed no author code. Node syntax
+and whitespace checks pass.
+
+This GO permits only the bounded approved CI fixture. The reviewer opened no
+O_EVTONLY descriptors, launched no real guard, native agent, model or CI run.
+Actual registration/delivery and mapped/hardlink event behavior remain unproved.
+Even six actual fixture successes would not establish all recursive membership
+coverage, arbitrary file mutation semantics, continuous @3 origins, recipient
+reuse, host safety or overall G2/G4. Prior failed immediate FSEvents coverage and
+measured late delivery remain preserved.
