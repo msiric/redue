@@ -5338,3 +5338,64 @@ Collected method durations remain diagnostic aggregates with instrumentation and
 unmeasured hashing/JS/serialization costs. They are not total phase wall time,
 an isolated causal explanation, net benefit or preparation/sealed recipe success.
 The unchanged deadline may still produce UNKNOWN with a retained incomplete tree.
+
+## Disabled stage sentinel: preserve violations through cleanup uncertainty
+
+GO for disabled corebc61c1d3f043a01413ad93029b3eace28638d139,
+sourceSHAfce06801e0421de329c0b8f9bd484f19c65efd588b39dcb4809f0a13dfcd7dcf,
+not an actual checker/native/model launch. Checked-in placeholders reject the
+real route. Rendering/physical fixture/current code/Node/profile/native trace
+and parent deadlines remain separately required. No stdin/options/imported paths
+select operations; only the fixed nonsensitive fixture is probed. Readable fresh
+nlink1/mode644 markers and a permitted owned workspace-write control gate all
+destructive stage operations. Only EPERM/EACCES qualify tested denials; missing,
+EXDEV, unsupported and unknown errors do not. Denied hardlink creation skips alias
+write as NOT_PERFORMED, never a fabricated denial from the nonexistent alias.
+
+Two independent27f mock counterexamples reproduced close-error failure erasure:
+successful protected write plus unknown close/final audit became overall UNKNOWN,
+and a successful link retained FAIL while its separately successful alias write
+became UNKNOWN. The successor retains ACCESS_SUCCEEDED/ASSERTION_FAILED for
+protected/alias actions, while independent cleanup uncertainty makes the final
+audit UNKNOWN. Earlier FAIL remains FAIL. Positive fixture/allowed-workspace close
+uncertainty still stops all destructive operations. No host/syscall evidence was
+assigned to these purely mocked proposal defects.
+
+Independent archived successor mocks passed36/36 in57.96ms; three independent
+former-countercase/prerequisite controls passed3/3 in43.49ms. Original33 mocks and
+two old countercases are retained. No actual filesystem assertion, checker,
+mapper, compiler, native agent, model or CI operation was performed.
+
+Nominal implemented denials still produce overall UNKNOWN because MAP_SHARED is
+NOT_IMPLEMENTED; case/symlink operation aliases and complete native-stage admission
+are not supplied by this core. Its stage parent is protected-stage-parent, while
+the c359 receiver overlay names sealed-inputs. Actual future settings must protect
+the exact selected synthetic parent and checker/code ancestors, retain intended
+allowed-workspace control access and existing credentials/network/strict sandbox
+constraints. Do not treat the unchanged overlay or source route check as observed
+binary, policy, fixture or sealed-tree authority. All sealing/reuse flags stay false.
+
+## Ephemeral copy fsync: narrow direction only
+
+Conceptual/source GO to omit only per-copy file fsync from the private ephemeral
+data stage, pending exact leaf/test review before any retry. The current call sits
+after fchmod and before post-open/path checks and independent full readback. It
+does not exclude writers, revoke mappings or certify origin/namespace intervals.
+The materialization has no power-loss durable-stage/recovery claim and does not
+fsync its newly created parent directory entries. Existing receipt/state durability
+operations are outside this proposal and must remain unchanged.
+
+Preserve file modes, source and copied content readbacks, physical/open/path
+fingerprints, independent nlink1 destination inodes, full final manifest/namespace/
+alias/ancestor validation, fixed bounds and retained partials. Crash/restart may
+not accept an old summary as authority for an incomplete/lost tree: fresh full
+physical/content/namespace/profile validation or fresh preparation is required.
+Move race-fixture injection from fsync to immediately after successful fchmod at
+the existing pre-fstat/readback boundary, retaining exact refusal assertions and
+the old evidence. Add a no-fsync/full-readback control. No timeout increase or
+compiler/native-agent execution is admitted by this direction.
+
+The reported diagnostic filesystem-method aggregate and wall-minus-method residual
+are not measured kernel-only or CPU-only time, causal savings or a successful
+preparation. Instrumentation affects the workload; evidence must remain scoped
+to the actual fixed diagnostic and its UNKNOWN result.
