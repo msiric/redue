@@ -14,7 +14,7 @@ test('fixed mapper is a two-placeholder argc1 source proposal, with no imported 
 test('native read prerequisites require guarded regular single-link owned bounded marker files',()=>{
   assert.match(code,/#define OPEN_GUARDS \(O_NOFOLLOW \| O_NOFOLLOW_ANY \| O_NONBLOCK \| O_CLOEXEC\)/);
   assert.match(code,/S_ISREG\(value->st_mode\).*value->st_uid == getuid\(\).*value->st_nlink == 1/s);
-  assert.match(code,/value->st_size == \(off_t\)MARKER_BYTES/);assert.match(code,/getuid\(\) == 0 \|\| geteuid\(\) != getuid\(\)/);
+  assert.match(code,/value->st_size == \(off_t\)MARKER_BYTES/);assert.match(code,/getuid\(\) == 0 \|\| geteuid\(\) != getuid\(\) \|\| getegid\(\) != getgid\(\)/);
   assert.match(code,/workspace_snapshot.st_dev == staged_snapshot.st_dev && workspace_snapshot.st_ino == staged_snapshot.st_ino/);
   assert.match(code,/same_fingerprint\(before, &descriptor\).*same_fingerprint\(before, &named\)/s);
 });
@@ -53,4 +53,36 @@ test('review/build proposal explicitly withholds compile/run/native/sealing auth
   assert.match(source,/SOURCE-ONLY, DISABLED/);assert.match(source,/pin substituted-source and binary SHA-256 before any native invocation/);
   assert.match(source,/no caller compiler flags or dynamic -D paths/);assert.match(source,/no inherited RW handles are separate/);
   assert.match(source,/descriptor\/VM constraints, NOT evidence of sandbox denial/);assert.match(source,/MAP_PRIVATE CoW.*not a denial gate/);
+});
+
+// Evaluate only the two author-owned side-effect-free C Boolean expressions as
+// JavaScript booleans. This proves a finite decision table, NOT C compilation,
+// syscall results, SDK ABI, native permissions or the process execution route.
+function booleanPredicate(name,parameters){
+  const match=code.match(new RegExp(`static bool ${name}\\(([^)]*)\\) \\{\\s*return ([^;]+);\\s*\\}`));assert(match);
+  assert.deepEqual(match[1].split(',').map(value=>value.trim()),parameters.map(value=>'bool '+value));
+  const expression=match[2],tokens=expression.match(/[A-Za-z_][A-Za-z0-9_]*|&&|\|\||!|\(|\)/g)||[];
+  assert.equal(tokens.join(''),expression.replace(/\s/g,''));for(const token of tokens)if(/^[A-Za-z_]/.test(token))assert(parameters.includes(token));
+  return Function(...parameters,'return '+expression);
+}
+const knownFailure=booleanPredicate('workspace_known_failure',['changed_known','changed','restored_known','restored','metadata_known','identity_held']);
+const unknown=booleanPredicate('workspace_unknown',['changed_known','restored_known','metadata_known','changed_sync_ok','restored_sync_ok']);
+test('known wrong restored bytes and known identity mismatch remain failures despite other uncertainty',()=>{
+  assert.equal(knownFailure(false,false,true,false,false,false),true,'observed wrong restore survives missing changed/metadata observations');
+  assert.equal(knownFailure(false,false,false,false,true,false),true,'known identity mismatch survives both unavailable byte reads');
+  assert.equal(knownFailure(true,false,false,false,false,false),true,'known wrong changed byte survives every other unavailable observation');
+  assert.equal(unknown(true,true,true,false,false),true,'sync failures remain uncertainty, which must not outrank a known failure');
+  const body=code.slice(code.indexOf('static bool workspace_control('),code.indexOf('static void staged_checks('));
+  assert(body.indexOf('if (workspace_known_failure(')<body.indexOf('else if (workspace_unknown('));
+});
+test('metadata/read failure alone is UNKNOWN, never a fabricated wrong identity or byte',()=>{
+  assert.equal(knownFailure(true,true,true,true,false,false),false);assert.equal(unknown(true,true,false,true,true),true);
+  assert.equal(knownFailure(false,false,false,false,false,false),false);assert.equal(unknown(false,false,false,true,true),true);
+  assert.match(code,/const bool metadata_known = descriptor_result == 0 && named_result == 0;/);
+  assert.match(code,/const bool identity_held = metadata_known && valid_file/);assert.match(code,/const bool changed_known = changed_count >= 0;/);assert.match(code,/const bool restored_known = restored_count >= 0;/);
+});
+test('complete finite Boolean observation table distinguishes known violations from absent observations',()=>{
+  for(let bits=0;bits<64;bits++){const values=Array.from({length:6},(_,index)=>!!(bits&(1<<index)));let violations=0;
+    for(let at=0;at<6;at+=2)if(values[at]&&values[at+1]===false)violations++;assert.equal(knownFailure(...values),violations>0);}
+  for(let bits=0;bits<32;bits++){const values=Array.from({length:5},(_,index)=>!!(bits&(1<<index)));assert.equal(unknown(...values),values.filter(value=>value===false).length>0);}
 });

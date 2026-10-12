@@ -128,6 +128,14 @@ static int fixture_open(const char *name, struct stat *snapshot, int *error) {
       !exact_marker(fd) || !fixture_current(fd, name, snapshot)) { *error = errno; if (close(fd) != 0) cleanup_failed(errno); return -1; }
   return fd;
 }
+// Known observations cannot be erased by a DIFFERENT failed syscall. These
+// predicates operate on facts captured independently, not inferred errno alone.
+static bool workspace_known_failure(bool changed_known, bool changed, bool restored_known, bool restored, bool metadata_known, bool identity_held) {
+  return (changed_known && !changed) || (restored_known && !restored) || (metadata_known && !identity_held);
+}
+static bool workspace_unknown(bool changed_known, bool restored_known, bool metadata_known, bool changed_sync_ok, bool restored_sync_ok) {
+  return !changed_known || !restored_known || !metadata_known || !changed_sync_ok || !restored_sync_ok;
+}
 static bool workspace_control(int readonly, const struct stat *snapshot) {
   if (!fixture_current(readonly, workspace_path, snapshot)) { observe(1, "UNKNOWN_OR_UNAVAILABLE", 0); return false; }
   const int fd = open(workspace_path, O_RDWR | OPEN_GUARDS);
@@ -143,16 +151,27 @@ static bool workspace_control(int readonly, const struct stat *snapshot) {
   bytes[0] = '!';
   const int changed_sync = msync(mapping, MARKER_BYTES, MS_SYNC); const int changed_error = changed_sync == 0 ? 0 : errno;
   unsigned char observed = 0; const ssize_t changed_count = pread(readonly, &observed, 1, 0);
-  const int changed_read_error = changed_count < 0 ? errno : 0; const bool changed = changed_count == 1 && observed == '!';
+  const int changed_read_error = changed_count < 0 ? errno : 0; const bool changed_known = changed_count >= 0;
+  const bool changed = changed_count == 1 && observed == '!';
   bytes[0] = marker[0];
   const int restored_sync = msync(mapping, MARKER_BYTES, MS_SYNC); const int restored_error = restored_sync == 0 ? 0 : errno;
-  const bool restored = exact_marker(readonly); const int restored_read_error = restored ? 0 : errno;
+  unsigned char restored_bytes[MARKER_BYTES + 1]; const ssize_t restored_count = pread(readonly, restored_bytes, sizeof(restored_bytes), 0);
+  const int restored_read_error = restored_count < 0 ? errno : 0; const bool restored_known = restored_count >= 0;
+  const bool restored = restored_count == (ssize_t)MARKER_BYTES && memcmp(restored_bytes, marker, MARKER_BYTES) == 0;
   struct stat after, named_after;
-  const bool identity_held = fstat(fd, &after) == 0 && lstat(workspace_path, &named_after) == 0 && valid_file(&after) &&
-    valid_file(&named_after) && same_identity(snapshot, &after) && same_fingerprint(&after, &named_after);
-  if (changed_read_error != 0 || restored_read_error != 0) observe(1, "UNKNOWN_OR_UNAVAILABLE", changed_read_error != 0 ? changed_read_error : restored_read_error);
-  else if (changed_sync != 0 || restored_sync != 0) observe(1, "UNKNOWN_OR_UNAVAILABLE", changed_error != 0 ? changed_error : restored_error);
-  else if (!changed || !restored || !identity_held) { observe(1, "ASSERTION_FAILED", 0); failed = true; }
+  const int descriptor_result = fstat(fd, &after); const int descriptor_error = descriptor_result == 0 ? 0 : errno;
+  const int named_result = lstat(workspace_path, &named_after); const int named_error = named_result == 0 ? 0 : errno;
+  const bool metadata_known = descriptor_result == 0 && named_result == 0;
+  const bool identity_held = metadata_known && valid_file(&after) && valid_file(&named_after) &&
+    same_identity(snapshot, &after) && same_fingerprint(&after, &named_after);
+  const int metadata_error = descriptor_error != 0 ? descriptor_error : named_error;
+  const int observation_error = changed_read_error != 0 ? changed_read_error : restored_read_error != 0 ? restored_read_error :
+    metadata_error != 0 ? metadata_error : changed_error != 0 ? changed_error : restored_error;
+  if (workspace_known_failure(changed_known, changed, restored_known, restored, metadata_known, identity_held)) {
+    observe(1, "ASSERTION_FAILED", observation_error); failed = true;
+  } else if (workspace_unknown(changed_known, restored_known, metadata_known, changed_sync == 0, restored_sync == 0)) {
+    observe(1, "UNKNOWN_OR_UNAVAILABLE", observation_error);
+  }
   else { observe(1, "SHARED_CHANGE_AND_RESTORE_OBSERVED", 0); complete = true; }
 done:
   if (mapping != MAP_FAILED && munmap(mapping, MARKER_BYTES) != 0) cleanup_failed(errno);
@@ -195,7 +214,7 @@ static int output(void) {
 }
 int main(int argc, char **argv) {
   (void)argv;
-  if (argc != 1 || !canonical_path(workspace_path) || !canonical_path(staged_path) || strcmp(workspace_path, staged_path) == 0 || getuid() == 0 || geteuid() != getuid()) {
+  if (argc != 1 || !canonical_path(workspace_path) || !canonical_path(staged_path) || strcmp(workspace_path, staged_path) == 0 || getuid() == 0 || geteuid() != getuid() || getegid() != getgid()) {
     observe(0, "EXACT_REVIEWED_FIXTURE_ROUTE_REQUIRED", 0); return output();
   }
   struct stat workspace_snapshot, staged_snapshot;
