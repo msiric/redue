@@ -3109,3 +3109,37 @@ integrity-broken negative; production validation remains correct. This repairs a
 regression blind spot, not a discovered product defect. The approved workflow
 bytes/hash, signing authority, runtime, trust and imported outcomes are unchanged.
 These pure validator tests do not establish native/model or new live CI evidence.
+
+## Recipient preparation and installed cleanup — independent integration review
+
+B4d99cf1/root79e3bf6 corrects the shared-writer ordering mismatch without
+fabricating state ownership: installed start creates owner/runtime first;
+trusted guidance preparation finishes before fresh-history checks, authentication,
+import and the eligible baseline. Physical/raw authority bindings, latched
+failures and strict cleanup remain. Source review by root and C found no new
+boundary defect. Its shared-writer unit control uses a mocked CLI, not a real
+installation or native host.
+
+Root then exercised exact installed b8122c3b bytes. The first private harness
+import had one extra parent segment and launched nothing. The ordinary npm
+installation hit its120s limit before any observer; public registry HEAD separately
+returned curl35/no HTTP response. Neither proves publisher authentication failure.
+An ordinary offline-cache installation succeeded and actual init/start/preview/
+apply/fresh-status passed, with real owner bytes/inode preserved and no runs or
+import. Cleanup then exposed a test-helper API mismatch: `stop` defaults to human
+text, but strict cleanup parsed JSON without requesting it. The real observer
+stopped and its lock was absent; the original failed collection is preserved.
+
+B126e3c3/root2a74328 adds only `--json` to owned stop and makes its mock faithfully
+return human text when absent. The new pre-fix control fails with CI_MACHINE_CLEANUP;
+the corrected control succeeds while still requiring ok:true and lock absence.
+Root independently reviewed the real CLI printLifecycle branch and ran seven
+affected suites:158tests/157PASS/one platform skip/zero failures,800.320ms.
+The corrected exact-installed eight-command procedure passes: healthy fresh
+UNVERIFIED, no local outcome, unchanged owner bytes/inode, genuine shared guidance,
+JSON stop ok:true and absent observer lock. Private result SHA-256
+fdab8cba811c811329f49c96cf7278218887fb6a0469fb77acd62f90a0f8c3c5.
+This establishes installed preparation/cleanup mechanics only: models0,
+native processes0, no authenticated import or recipient reuse. All preceding
+failed attempts remain separate. Runtime/bin, signing bytes, producer trust,
+historical receipts and normal installations are unchanged.
