@@ -4651,3 +4651,69 @@ input and a sound portable-origin route still gate G2; actual native six-asserti
 PASS is only its bounded host prerequisite. General interval/ordinary acceptance
 and publication remain incomplete. The reviewer ran no new compiler, event fd,
 stream, native agent, model or CI operation for this actual/source review.
+
+## Independent portable-origin containment review (2026-10-12)
+
+GO for the conservative portable-only containment in
+adc9a12981de72cfdcaf8ed7db02002fc3128f79 followed by
+7a5168626082a432a02e01783424f5d50590db01. The binary Git diff from
+4deb137 to 7a51686 has SHA-256
+f6c612db15d76eccda530b3ceb77a2b6b01adde9c78dc25ffeee9c2b9e572c98.
+This implements refusal, not a replacement continuous-observation capability.
+
+The local origin policy returns false unconditionally. Capture and caller proof
+refuse before expensive manifest/runtime/discovery work; prior budget and missing
+observation refusals remain intact. The daemon supplies that local false
+prerequisite rather than accepting request, import or environment claims.
+Conditional comparison fixtures explicitly assume a supported prerequisite only
+inside pure tests; they do not provide a production activation flag.
+
+Current recipient selection withholds imported reuse, including older-observer
+green answers and apparent local fallback for a check with accepted imports.
+Unavailable cached paths also withdraw nested portable green, not only the outer
+row. Current/failed/stale/unverified counters are recomputed. Historical outcomes,
+invocation identities and selected historical metadata are not rewritten.
+The unsupported pure decision revalidates at most 32 accepted records with the
+same integrity/schema parser and retains PASS/FAIL as frozen historical summaries;
+it performs no recipient fact comparison, applicability selection or reuse.
+Ordinary checks with no accepted portable catalog remain on their existing local
+contract. Configured commands still execute, and human/JSON run summaries disclose
+incomplete portable capture separately from the real command result.
+
+Independent affected suites (origin interval, applicability, CI catalog and
+portable budget) passed 46/46 in 5436.17 ms on Node22.13.0. The ordinary integration
+control performed two actual configured TypeScript invocations: PASS then FAIL.
+Both receipts have portable.complete=false with the explicit unsupported reason;
+the first immutable receipt remains byte-identical, and restart preserves the
+selected latest FAIL. The normal REDUE observer was started/restarted/stopped and
+may exercise its existing native Parcel watcher. This review did not run an
+experimental ancestor/vnode collector, native agent, model or CI job.
+
+Seven separately authored adversarial controls passed 7/7 in 248.66 ms. They cover
+cached imported early refusal, direct unavailable cache, expired heartbeat,
+unrelated ordinary cache, plan-access refusal before inspection, a healthy
+older-observer local fallback backed by an actual accepted owned catalog, and
+historical-only selection with a recipient-facts trap and duplicate-record
+refusal. The accepted-catalog control preserves receipt, status, selector and
+imported-envelope bytes plus inode/timestamps while withdrawing both outer and
+nested eligibility; an unrelated ordinary row remains CURRENT. The private
+control source SHA-256 is
+a34085b7f65375e6b52c5d245dfbfe15242f60fb04b5e815aff8fd41062981ca.
+These controls did not reproduce a pre-fix failure; the earlier nested-cache and
+history concerns were source findings corrected before the independent run.
+
+Author setup failures involving an invalid state basename and an overlong Unix
+socket path occurred before verification and remain separate from the successful
+configured containment control. Runtime-certificate assertions retain independent
+full facts inspection and forged-content comparison while now explicitly refusing
+unsupported caller authority; their author's recorded runs are not added to the
+independent counts above.
+
+Required follow-up is consistent current guidance: the later “Fresh local
+execution after an import” section must not promise that repeating --portable can
+resolve the unsupported interval or perform the now-refused boundary validation.
+Affected broader regression and any newly selected package-byte checks remain
+separate release preparation. This containment supplies no sound-origin route,
+G2 acceptance, G4 completion, cold-latency fix, or publication authority. Existing
+native fixture failures and prior signed/package outcomes remain historical;
+no wrapped released false-CURRENT claim is introduced.
