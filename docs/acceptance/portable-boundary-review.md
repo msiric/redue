@@ -3366,3 +3366,46 @@ completion. Do not copy login stores, publish the value or introduce an API/PAT
 fallback. A future action needs an actual repaired/changed authentication input
 under the owner's authority; this review performs or authorizes no further run.
 No native/auth/model/CI operation or additional test was conducted by this reviewer.
+
+### Changed authentication input and bounded thinking-progress framing
+
+Protected report38250370384, SHA-256
+`0272afed5728638530ac6adc71e00a5fe70cf59986102dec91025692583e1858`,
+records source85425a5 and rejected thinking_tokens AFTER_VALIDATED_INIT following
+the owner-reported secret change. No api_retry/401 was observed before this
+stop, but that absence is not proof of token validity or a retrospective repair
+of the prior401. No assistant message, tool/result ID, checker or protocol
+connection was observed. Source/live controls/reaping/cleanup/persistence are
+true; native exit143/signal:null, elapsed3444.184625ms and job19463ms remain
+distinct. The result is still UNKNOWN, with enforcement and agent reuse untested.
+
+Correction `7870dd172b5d059cffe312b3741c4da02d880dae`, helper SHA-256
+`1c9b010fc6032c41f7ed066b7684d816296c7d1bd2acb1ec992ee0c93c42505e`,
+admits one tightly constrained framing event rather than ignoring system events.
+Pinned187 emitters210399315/210399682 yield exactly type, subtype,
+estimated_tokens, estimated_tokens_delta, uuid and session_id from live estimate
+or signature-delta arithmetic. Those yields contain no permission/policy/hook
+mutation. Admission requires that exact six-key shape, a validated-init session
+with strong UUID syntax and matching session ID, finite0..1e6 total/delta with
+delta no greater than total, no prior error, no final result, and at most4096
+frames. Only the count survives; values and IDs are discarded. The source can
+reset its estimate per block, so no fabricated monotonic-total claim is added.
+
+Independent18/18 pure/mocks pass (101.354917ms), plus24 malformed-frame cases,
+four accepted numeric boundary cases that remain UNKNOWN without other proof,
+and eight differential cases preserving other event rejection. Missing keys,
+extra authority/private fields, malformed/mismatched UUIDs and numeric violations
+do not qualify. Prior errors remain latched; hooks, API retries and other system
+events still stop. Settings and all resource/time/turn limits equal85425a5.
+This is transport framing compatibility, not model/tool/credential/enforcement
+or portable-evidence authority. No real native/auth/model/CI operation occurred
+in this review.
+
+The accompanying prepared workflow commit
+`d8cd8428c44ba7182c60605c241b9e73b3f24d5c`, SHA-256
+`a0c5c5f34022f8011dc68307de214f4b66b597bd0918a501d7819fa19046c0ea`,
+is independently byte-proven identical to babf43b except for the85425a5 to7870dd1
+checkout pin. Grants, actor/ref/environment, secret handoff and four-turn/120s
+bounds are unchanged. GO for this narrow parser and pin correction; actual
+operations remain the coordinator's responsibility under current owner authority
+and prerequisites. This review establishes no native PASS or completed gate.
