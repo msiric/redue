@@ -4282,3 +4282,74 @@ real stream, model or CI job. Healthy collected observations are expressly
 transient occurrence cannot establish all earlier filesystem events were
 covered. The failed first trial and current production interval-authority NO-GO
 remain intact pending actual diagnostic evidence and a sound continuous fence.
+
+### Actual delivery comparison and bounded alternative design review
+
+Independent read-only review accepts diagnostic38289084959, source
+`ebccf99e46cf79f72e800ed9dc439b90c6a95989`, report SHA256
+`871ec945f07ba817debc1c1aa95d36369edb7c8374e195021858f8f3dc738d16`.
+For BOTH ROOT and OWNED, held-marker creation has serial0 immediately and serial1
+at0.5s; transient creation/removal has serial1 immediately and serial2 at0.5s.
+The2s samples do not advance either serial. ROOT immediate samples complete at
+3.267/2.903ms; OWNED at1.353/2.818ms. This establishes sampled late delivery,
+without locating kernel ingress, service buffering or queued callback processing.
+The root-only routing explanation is insufficient for both streams' observations.
+No historical failure is retrospectively assigned a deeper cause.
+
+Both streams close exit0/no signal, observed reaped and protocol-clean. Owned
+cleanup is true; total elapsed9502.386ms. Profile is Darwin25.6/arm64/Node22.13,
+filesystem type26, same device as filesystem root. Actual runner diagnostic
+executable SHA256
+`15a4eda787ae08c5fde28607bd0acef183e2c6f87b8be03f840469c162d881b7`
+is81,528 bytes with clang21.0.0 and the diagnostic define; it differs from the
+local diagnostic build, and is not the unchanged production39cc executable.
+There are no compiler/model executions or interval authority. The original
+first-trial FAIL and @3 integration NO-GO remain.
+
+A smaller supported next diagnostic, before changing provider, is an explicit
+`dispatch_sync(queue, ^{})` after FlushSync and before the diagnostic ready or
+barrier. Installed dispatch queue header SHA256
+`7a765cdd34958f2be27cab43482889a9b3ae45646ecf018fef83cc05a1392f06`
+and Apple's [serial queue documentation](https://developer.apple.com/documentation/dispatch/dispatch_queue_create)
+/[sync documentation](https://developer.apple.com/documentation/dispatch/dispatchqueue/sync(execute:)-3segw?language=objc)
+establish serial FIFO execution and completion of synchronous submitted work.
+Main is outside the callback queue and holds no collector mutex across the sync.
+A no-op sync therefore waits for callback work already submitted before it.
+The current callback iterates batch items with individual collector locks; a
+boundary mutex alone cannot guarantee the batch has completed. This is a
+possible ordering gap, not the established cause of the real late samples.
+Sync cannot flush kernel/service ingress or callbacks submitted afterward.
+Compile-only diagnostic comparison must preserve production bytes, existing
+no-drain results, fixed observations and bounded parent kill/reap; no interval
+acceptance follows from a better immediate sample. No code was changed here.
+
+If needed afterward, supplementary kqueue is a supportable test-only design for
+the SAME bounded existing vnodes. SDK event/fcntl headers bind EVFILT_VNODE,
+EV_CLEAR and O_EVTONLY|O_NOFOLLOW. Apple's
+[kqueue guidance](https://developer.apple.com/library/archive/documentation/Darwin/Conceptual/FSEvents_ProgGuide/KernelQueues/KernelQueues.html)
+requires descriptors for watched objects and handles both syscall and returned
+event errors. Public Apple [XNU vnode filter source](https://github.com/apple-oss-distributions/xnu/blob/main/bsd/vfs/vfs_vnops.c)
+ORs requested hints into pending vnode flags. This supports accumulated mutation
+flags instead of create/delete cancellation; public main source is not a verified
+identity match to this runner kernel or proof of complete APFS event emission.
+
+Kqueue is not recursive. Complete derived coverage must include required existing
+membership directories, queried leaves and replacement ancestors; a single
+prefix-directory fd cannot cover arbitrary nested membership mutations. Missing
+candidates need their nearest existing parent. Parent NOTE_WRITE cannot identify
+the child that changed, so unchanged endpoints must not erase it or turn it into
+a candidate-specific event. Retain conservative fixed scope uncertainty; if the
+approved semantics forbid uncertainty from unrelated parent activity, this API
+cannot provide child-name filtering alone. Outside positive files/body reads
+remain unsupported. No extra unreviewed recursive enumeration is implied.
+
+All descriptors must be physically bound, all watches acknowledged before the
+qualifying start facts/execution, and held through final facts and bounded
+zero-timeout drain. Register errors, missing coverage, EV_ERROR/EOF/revoke,
+unknown flags, insufficient fixed FD/time budget and unobserved cleanup withdraw
+authority. No silent scope truncation, RLIMIT increase, watch-reset, time-based
+fence or endpoint-only recovery is acceptable. Capability/generation/scope
+binding and CI-only resource restriction remain; no imported paths or disk
+seeding. This is conditional design review for a bounded spike, not code/provider
+acceptance or permission to monitor owner-Mac ancestors. The reviewer opened no
+event descriptors, started no real stream and ran no native/model/CI operation.
