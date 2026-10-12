@@ -5642,3 +5642,37 @@ original strict classification/allUNKNOWN and actual finalization bounds; normal
 comparisons are observations, never an admission rule. Missing/failed components
 stay unknown. Exact code still requires independent review before measurement.
 No reviewer compiler, native/model/CI operation or real component walk occurred.
+
+
+## Exact no-dispatch guard-pair diagnostic source GO
+
+GO for private harnessSHA62d08f068055be8d943639ff4589a1538ab4230a31bcafd445e39628a1bd1fc1,
+one fixed read-only before/after pair under30s. It retains the reviewed stage-only
+scope, full stage content/namespace/physical inspection, runtime/config/parent
+bindings, fixed profile construction, monotonic deadline and held-descriptor
+publication. No compiler/native/model/checker is dispatched. Outcome is always
+UNKNOWN and interpretationAuthority is NONE. Existing strict admission is unchanged.
+
+The only new output projection is nine equality booleans: original code order,
+full canonical-row multiset, code file/link identity+content, directory identity/
+link count, full directory metadata, stage manifest, stage physical, runtime/
+config parents and exact profile. Full-row normalization sorts canonical strings
+and preserves duplicate multiplicity. Directory identity excludes timestamps/size
+only for diagnostic separation, never as an admission criterion. Paths, bodies,
+inode/timestamp values and environment stay private inside collections; no raw
+rows appear in public or saved diagnostics.
+
+Seven independent VM controls passed7/7 in55.83ms: projection/privacy/zero dispatch,
+order-only differences and duplicates, directory metadata versus identity,
+same-content inode replacement and empty-directory topology, independent stage/
+runtime/profile changes, invalid seed/persistence/close uncertainty and final
+budget failure/no reopen. The first mock incorrectly assumed sourceManifest still
+existed and corrupted its source splice (0PASS/6fixture failures); a conditional
+mock span fixed this without changing the reviewed harness. No real guard walk,
+compiler, preparer, native agent, model or CI ran in review.
+
+The pair may classify differences in its own two collections. It cannot
+retroactively identify the c2b mismatch, establish continuous stability, weaken
+namespace/physical protection or grant a seal, receipt or reuse authority. Saved
+observations still need the matching final outer acknowledgement; failures remain
+UNKNOWN and no normalization can replace the original strict guard.
