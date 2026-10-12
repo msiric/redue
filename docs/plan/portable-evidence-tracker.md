@@ -3,48 +3,51 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — real-project preparation refusal; hardlink repair under review
+## Current checkpoint — reviewed source-alias preparation; actual staging timeout
 
-At 2026-10-12 21:12UTC, integration branch `dev/portable-sealed-typescript`
-was clean at fea95d1; independent hardlink-direction review5b53389 is integrated
-as1481fb3. The owner-approved D12 direction remains a disabled opt-in proposal:
-new origin authority is withheld and accepted imports remain history-only.
-No existing command, receipts, producer policy or credentials are changed.
+At 2026-10-12 21:33UTC, the coherent data-only source was9082f65030b1f87dc4c98e48471a50747cd60ba6
+on `dev/portable-sealed-typescript`. Leaf31863bf/child7d067af/parent335c14d
+have independent review58b0fd9 (integrated9082f65): materialization@2 and
+protocol3/summary@2 preserve separate source/materialized digests, complete
+source hardlink groups and fresh single-link copies. Current origin containment
+still admits no capability; imports remain validated historical outcomes only.
 
-The exact public debugger sourceb1c0077 has33,345 locally declared files and77
-internal npm links, including18 nested shims. The first legacy representation
-refused PORTABLE_SYMLINK with zero child launches. After independently reviewed
-sealed-specific representation/compact protocol, one actual fixed restricted
-preparation at runtime5d36610 refused TREE_FILE, child74/reaped, with the owned
-parent still empty. Metadata-only diagnosis identified two esbuild regular files
-sharing nlink2. No compiler or model launched. Complete refusal path10111.05ms
-includes9798.51ms source-manifest work and310.83ms preparation; this is not
-successful staging cost, reuse economics or a native sealing result.
+All134 affected controls passed, including four actual restrictive local preparer
+fixtures; they are not native-agent sealing, compiler or portable acceptance.
+The separately approved hosted fixture mechanics27/27 PASS remain preparer-only.
+A broad-glob harness precondition found33790 instead of33345 paths and launched
+zero children/stages. Read-only diagnosis and independent700c235 corrected the
+harness to real selected check inputs + additive ALL node_modules/**, retaining
+33345 declared paths without changing options/dependencies/source or hiding real
+installed files. Path count is diagnostic, never authority.
 
-The bounded hosted mechanics run38306972841 passed27/27 on macos-26-arm64.
-It ran only fixed preparer fixtures, with no installation, source project copy,
-model, signing, artifact upload or secrets. Kernel/filesystem were not recorded;
-the label alone cannot establish the matched recipe profile. Current affected
-local suite passed101/101. Parent/child protocol and namespace classifications
-are data mechanics; a physical digest is audit, not current per-file validation.
+One corrected public-project attempt at9082f65 reached the unchanged120s limit:
+UNKNOWN/PREPARATION_DEADLINE, actualSIGKILL/reaped, zero compiler/model launches.
+Complete128450.60ms includes8435.04ms manifest work. The retained partial stage
+has20618 regular files/2307 directories/0links/237549566bytes. This establishes
+unfinished staging, not the responsible per-operation cost or a usable tree.
+No partial was removed and no receipt/state was touched. Private resultSHA
+4384da57f7a02d3a49a333c72d0029f4d17027d97695a12c9e9e2bc6929eebf3;
+partial metadataSHA6bfdfffe84f9717f3e784494786d43efea12c6ca508560b0c83ccb0f321da91e.
 
-Root owns shared interfaces and the parent; A is implementing source-complete
-hardlink materialization@2 in its isolated worktree. C has conceptual GO only:
-all actually distinct source entries must be verified before body reads, their
-count must equal nlink, and every destination is a fresh single-link inode.
-Source and materialized typed digests differ and must both remain explicit,
-including shim target rebinding. Legacy provider hashes are never normalized.
-Independent implementation/protocol review precedes a materially changed real
-copy. Native stage-parent write/rename/hardlink/MAP_SHARED denial and complete
-staged compiler query validation remain NOT_RUN.
+Root's test-only fixed diagnostic5dd1316 awaits independent review before use:
+static aggregate source/stage/boundary operation counts/times, no paths/bodies/env,
+bounded32frames/64KiB and unchanged fixed120s/empty-environment prep scope.
+Normal child/protocol unchanged. Do not raise deadlines or omit validation to
+fit. A owns a synthetic native stage checker (pure controls only, mapping still
+NOT_IMPLEMENTED); C reviews Apple alias/mapping constraints and critical changes.
+Root owns shared interfaces and policy. Disabled exact stage-parent policyc359f59
+passed independent reviewb5163f4; source-derived ancestor guards do not prove seal
+or protect unrelated ancestor resolution candidates.
 
-Next: finish/review leaf@2; version fixed compact protocol consistently; run
-focused regressions; then attempt one reviewed data-only real-project preparation.
-Proceed to native enforcement and staged namespace only on actual prerequisites.
-Hosted Claude's prior diagnostic remains scopedPASS; Copilot Actions included
-capacity remains PENDING. G1/G2/G3/prepublicationG4 are incomplete. Alpha.11 frozen
-artifacts remain unchanged/unpublished. Day0 and the72h checkpoint are unchanged;
-no reset, fabricated blocked duration or portable acceptance claim is made.
+Next: review/run one bounded diagnostic to locate unfinished copy cost; finish
+reviewed synthetic stage/mapping prerequisite and complete actual staged compiler
+namespace before any native/model origin claim. Claude's previous hosted six-check
+diagnostic stays CLOSED/scopedPASS. Copilot Actions included capacity remains
+PENDING. G1/G2/G3/prepublicationG4 are incomplete. Alpha.11 frozen artifacts remain
+unchanged/unpublished; alpha.10 pilot untouched. Day0 and72h checkpoint unchanged;
+blocked duration/forecast completion are not fabricated. No new trust/signing,
+model, main merge, package publication or permission expansion has occurred.
 
 ## Prior checkpoint — approved sealed-input implementation; no new authority yet
 
@@ -1673,9 +1676,9 @@ Agreed Day 0: 2026-10-10 21:24 UTC (owner confirmed). First substantive review: 
 | Gate | Current status | Evidence / outstanding prerequisite |
 | --- | --- | --- |
 | G0 | Resource facts still partial | Day 0/caps/cadence and standard public runners approved; source/native preflight reviewed. Two independent macos-26 inventory jobs passed; 10 MiB included storage confirmed. Signer workflow enablement approved; exact data-only producer policy/provisioning approved in D5; local native subscription onboarding succeeded; local and hosted named synthetic native security gates passed with independent review; recipient-specific boundary and Copilot Actions included-billing prerequisite remain unresolved. |
-| G1 | Final alpha.11 same-machine technical slice passes | Exact source08307d4/artifactf6e368bd… installed noLib origin/export/import independently returns eligible imported PASS; unrelated edit CURRENT/relevant edit STALE, conservative cached status and policy ownership pass. Not useful-project, model or two-machine acceptance. |
+| G1 | Incomplete: current origin authority withheld | Historical08307d4/f6e368bd controlled relocation positives remain evidence, but mapped-input counterexample withdraws unrestricted origin completeness. Containment preserves history only. New explicit sealed recipe preparation is implemented/reviewed; actual full staging timed out, native sealing/namespace pending. |
 | G2 | Actual recipient/model reuse not run | Both hosted complete runtime prototypes supported; independent21-record comparison passes. Approved amended pair has hosted synthetic native diagnostic PASS; real recipient/project boundary, current origin/trust/profile and Copilot included-billing fact remain pending. No failed prerequisite launches models. |
-| G3 | Positive authenticated data-only route demonstrated | Owner-approved exact corrected workflow run38123365552 accepts the signed38096670987 origin and independently establishes importedCURRENT/PASS/eligible, with no equivalent receiver execution. Unrelated/restart preservation and relevantSTALE pass. Existing trust negatives and final candidate binding remain separate review requirements; no model claim. |
+| G3 | Incomplete: historical authenticated data route demonstrated | Owner-approved exact corrected workflow run38123365552 accepts the signed38096670987 origin and independently establishes importedCURRENT/PASS/eligible, with no equivalent receiver execution. Unrelated/restart preservation and relevantSTALE pass. That historical origin interpretation now cannot authorize reuse. Fresh sound origin, scope/policy bindings and final candidate acceptance remain required; no model claim. |
 | G4 prepublication | Not ready | Independent critical implementation/helper reviews complete; alpha.11 exact bytes pass three-platform installed acceptance. Actual final-bound G1–G3/behavioral V01–V22 and complete-path economics remain outstanding; no publication. |
 | Publication / postpublication | Pending owner approval | No main merge, release tag or npm operation in this milestone. |
 | External usage | Not started | Owner-approved willing participants separate from technical gates. |
@@ -1685,10 +1688,10 @@ Integration owner: root (Lane A). One writer per shared interface: root owns CLI
 | Task | Owner / independent reviewer | Branch and owned interface | Current evidence / next action |
 | --- | --- | --- | --- |
 | PE-01 resources/profile | Owner + C / integration | Local G0 record + storage-free workflow | Standard macos-26/storage/signing enablement approved. Both full prototypes supported; independent21-record comparison passes; D5 exact data-only trust approved and live recipient passes; local Claude subscription onboarding succeeded, local synthetic native gate passed; matched hosted provisioning/enforcement and Copilot capacity pending. |
-| PE-02 minimum decisions | A/B / C | `portable-evidence-decisions.md` | D1–D3 independently challenged; no known critical defect within constrained same-host slice. Cross-machine identity remains separately reviewed work. |
-| PE-03 fresh origin + export | A / C | Core/CLI | Real within-interval capture passes; old origin cannot be repaired; ownership/selection and event guards independently tested. |
+| PE-02 minimum decisions | Root / C | `portable-evidence-decisions.md` | D12 explicit stable-tree recipe approved; mapped-input origin completeness finding contained. Fresh interpretation needs actual enforcement/namespace proof, not observer replays. |
+| PE-03 fresh origin + export | Root + A / C | Core/CLI and isolated materializer | New portable origins withheld. Reviewed data materialization/protocol@2 does not grant authority; actual staging timeout preserved; fixed diagnostics under review. Old origins cannot be repaired. |
 | PE-04 safe envelope/inspect/import | B / C | Envelope/store/pure decision | Strict bounded parsing, explicit exact-digest acceptance, durable separate import selection, lost-selector FAIL replay controls pass. |
-| PE-05 relocation slice | A / C | Recipient/catalog/cached | Actual independently initialized checkout returns eligible imported PASS with no runs-v1. Relevant edit, newer unstable selection and publication races prevent reuse. |
+| PE-05 relocation slice | Root / C | Recipient/catalog/cached | Historical separate-checkout positives and negatives retained; current contained imported records cannot authorize CURRENT. Sound sealed origin and recipient reevaluation remain pending. |
 | PE-06 host handoff | D / C | Policy/JSON/preflight | Installed/imported reporting guide; no-model gate and safe instruction updates pass. Actual portable model behavior NOT RUN. |
 | PE-07 machine profile | A / C | Runtime + preflight | Both d04b872 full runtime prototypes supported after finite budgets retaining all-member validation. Independent21-record comparison passes; authenticated data-only recipient eligibility passed38123365552; actual agent reuse pending, old10s failures preserved. |
 | PE-08 producer trust | B / C | CI authentication preparation | Exact policy/tool/artifact authentication hardening under review; no automatic acceptance. |
@@ -1739,21 +1742,19 @@ Current active artifacts are4,826,222bytes at the verified checkpoint; recheck b
 
 ## Daily progress — 2026-10-12 UTC (current)
 
-The owner-operated local six-assertion Claude boundary passed with actual checker
-exit0; this remains local synthetic evidence, not hosted or agent reuse. D9 now
-keeps the approved hosted pair and permits one bounded native programmatic
-diagnostic after independent credential/startup review. D implements the exact
-checker/result lifecycle and mock controls; C reviews the critical boundary;
-B audits remaining deterministic V01–V22 gaps; root integrates. No authenticated
-native process, hosted inference or new signing/trust has run.
-
-Combined preparation6d89bdf product38189432507 and exact-package38189432506
-pass every configured platform job. The downloaded source6cc4cd5 has the same
-tree; b8122c3b exact bytes are distinct from frozen8695b612 and public alpha.10.
-The earlier macOS baseline timeout and opt-in trace ownership failure remain
-recorded; their test-only correction preserves production limits and assertions.
-Copilot included Actions capacity and reviewed Claude owner secret remain separate
-prerequisites. G2/finalG3/G4 stay incomplete; no date or scope reset.
+Hosted Claude's six-check prerequisite is CLOSED/scopedPASS. Recipient runtime
+profiling separated full cache-content passes from compiler/catch-up/trust; warm
+prototype median36.427→21.606s, cold37.602s remains over35s and is not a model
+PASS. Ordinary project still cannot qualify after the actual mapped-change
+counterexample; unrestricted origin authority is contained, not declared faster.
+D12 stable-tree direction is approved. Materialization@2/protocol3 and restricted
+fixtures pass independent review; the first corrected real stage timed out120s
+and retained incomplete data with zero compiler/models. Fixed redacted operation
+diagnostics are under review before another changed attempt. No failed gate
+launched a model, no frozen alpha.11 bytes or pilot receipts changed. G1–G4 remain
+incomplete; Copilot included Actions charging fact is pending. Additional spending
+remains$0 and no dates are reset. Next depends on a sound enforced stable tree,
+complete local queries and fresh reviewed origin/trust bindings.
 
 ## Daily progress — 2026-10-11 UTC (historical)
 

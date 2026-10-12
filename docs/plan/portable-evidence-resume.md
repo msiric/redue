@@ -6,48 +6,51 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree on `dev/portable-sealed-typescript`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — real-project preparation refusal; hardlink repair under review
+## Current checkpoint — reviewed source-alias preparation; actual staging timeout
 
-At 2026-10-12 21:12UTC, integration branch `dev/portable-sealed-typescript`
-was clean at fea95d1; independent hardlink-direction review5b53389 is integrated
-as1481fb3. The owner-approved D12 direction remains a disabled opt-in proposal:
-new origin authority is withheld and accepted imports remain history-only.
-No existing command, receipts, producer policy or credentials are changed.
+At 2026-10-12 21:33UTC, the coherent data-only source was9082f65030b1f87dc4c98e48471a50747cd60ba6
+on `dev/portable-sealed-typescript`. Leaf31863bf/child7d067af/parent335c14d
+have independent review58b0fd9 (integrated9082f65): materialization@2 and
+protocol3/summary@2 preserve separate source/materialized digests, complete
+source hardlink groups and fresh single-link copies. Current origin containment
+still admits no capability; imports remain validated historical outcomes only.
 
-The exact public debugger sourceb1c0077 has33,345 locally declared files and77
-internal npm links, including18 nested shims. The first legacy representation
-refused PORTABLE_SYMLINK with zero child launches. After independently reviewed
-sealed-specific representation/compact protocol, one actual fixed restricted
-preparation at runtime5d36610 refused TREE_FILE, child74/reaped, with the owned
-parent still empty. Metadata-only diagnosis identified two esbuild regular files
-sharing nlink2. No compiler or model launched. Complete refusal path10111.05ms
-includes9798.51ms source-manifest work and310.83ms preparation; this is not
-successful staging cost, reuse economics or a native sealing result.
+All134 affected controls passed, including four actual restrictive local preparer
+fixtures; they are not native-agent sealing, compiler or portable acceptance.
+The separately approved hosted fixture mechanics27/27 PASS remain preparer-only.
+A broad-glob harness precondition found33790 instead of33345 paths and launched
+zero children/stages. Read-only diagnosis and independent700c235 corrected the
+harness to real selected check inputs + additive ALL node_modules/**, retaining
+33345 declared paths without changing options/dependencies/source or hiding real
+installed files. Path count is diagnostic, never authority.
 
-The bounded hosted mechanics run38306972841 passed27/27 on macos-26-arm64.
-It ran only fixed preparer fixtures, with no installation, source project copy,
-model, signing, artifact upload or secrets. Kernel/filesystem were not recorded;
-the label alone cannot establish the matched recipe profile. Current affected
-local suite passed101/101. Parent/child protocol and namespace classifications
-are data mechanics; a physical digest is audit, not current per-file validation.
+One corrected public-project attempt at9082f65 reached the unchanged120s limit:
+UNKNOWN/PREPARATION_DEADLINE, actualSIGKILL/reaped, zero compiler/model launches.
+Complete128450.60ms includes8435.04ms manifest work. The retained partial stage
+has20618 regular files/2307 directories/0links/237549566bytes. This establishes
+unfinished staging, not the responsible per-operation cost or a usable tree.
+No partial was removed and no receipt/state was touched. Private resultSHA
+4384da57f7a02d3a49a333c72d0029f4d17027d97695a12c9e9e2bc6929eebf3;
+partial metadataSHA6bfdfffe84f9717f3e784494786d43efea12c6ca508560b0c83ccb0f321da91e.
 
-Root owns shared interfaces and the parent; A is implementing source-complete
-hardlink materialization@2 in its isolated worktree. C has conceptual GO only:
-all actually distinct source entries must be verified before body reads, their
-count must equal nlink, and every destination is a fresh single-link inode.
-Source and materialized typed digests differ and must both remain explicit,
-including shim target rebinding. Legacy provider hashes are never normalized.
-Independent implementation/protocol review precedes a materially changed real
-copy. Native stage-parent write/rename/hardlink/MAP_SHARED denial and complete
-staged compiler query validation remain NOT_RUN.
+Root's test-only fixed diagnostic5dd1316 awaits independent review before use:
+static aggregate source/stage/boundary operation counts/times, no paths/bodies/env,
+bounded32frames/64KiB and unchanged fixed120s/empty-environment prep scope.
+Normal child/protocol unchanged. Do not raise deadlines or omit validation to
+fit. A owns a synthetic native stage checker (pure controls only, mapping still
+NOT_IMPLEMENTED); C reviews Apple alias/mapping constraints and critical changes.
+Root owns shared interfaces and policy. Disabled exact stage-parent policyc359f59
+passed independent reviewb5163f4; source-derived ancestor guards do not prove seal
+or protect unrelated ancestor resolution candidates.
 
-Next: finish/review leaf@2; version fixed compact protocol consistently; run
-focused regressions; then attempt one reviewed data-only real-project preparation.
-Proceed to native enforcement and staged namespace only on actual prerequisites.
-Hosted Claude's prior diagnostic remains scopedPASS; Copilot Actions included
-capacity remains PENDING. G1/G2/G3/prepublicationG4 are incomplete. Alpha.11 frozen
-artifacts remain unchanged/unpublished. Day0 and the72h checkpoint are unchanged;
-no reset, fabricated blocked duration or portable acceptance claim is made.
+Next: review/run one bounded diagnostic to locate unfinished copy cost; finish
+reviewed synthetic stage/mapping prerequisite and complete actual staged compiler
+namespace before any native/model origin claim. Claude's previous hosted six-check
+diagnostic stays CLOSED/scopedPASS. Copilot Actions included capacity remains
+PENDING. G1/G2/G3/prepublicationG4 are incomplete. Alpha.11 frozen artifacts remain
+unchanged/unpublished; alpha.10 pilot untouched. Day0 and72h checkpoint unchanged;
+blocked duration/forecast completion are not fabricated. No new trust/signing,
+model, main merge, package publication or permission expansion has occurred.
 
 ## Prior checkpoint — approved sealed-input implementation; no new authority yet
 

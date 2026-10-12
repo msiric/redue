@@ -109,6 +109,39 @@ separately. Actual native sealed recipe/compiler execution remains NOT_RUN.
 | sealed-debugger-tree-file-diagnosis.json |956e85cfdcfd5a268d0a812058b7b5304d42bd11f8133f30bd09a2e7791bcf55|
 | hosted-preparer-38306972841.json |849951e5f5bcae835e56a2e31c4b6e011518760b33d213008f6ceec1c8e39c23|
 
+## Reviewed source-alias successor and actual incomplete preparation
+
+Materialization@2 (leaf31863bf) + fixed child7d067af/protocol3/summary@2 + parent
+335c14d passed independent58b0fd9 review. Source groups retain exact installed
+nlink hashes; copied files and shim targets have their own single-link digest.
+The source-count and audit summary cannot establish a seal. All134 affected
+controls passed, including four actual local restrictive preparation fixtures.
+
+The first new harness wrongly selected broad** instead of the actual declared
+check input list; it found33790 paths and stopped before any stage/child. Four
+independent matcher controls reviewed the repair: real selected check source
+patterns + additive node_modules/** preserve ALL installed inputs and yield33345
+paths. No compiler options, dependency layout or source changed. Count is only a
+prerequisite diagnostic. The two read-only records remain separate from execution.
+
+One corrected attempt at9082f65030b1f87dc4c98e48471a50747cd60ba6 returned
+UNKNOWN/PREPARATION_DEADLINE under the unchanged120s cap, childSIGKILL/reaped.
+Complete128450.60ms includes8435.04ms manifest work. A metadata-only inspection
+found20618 regular files,2307 directories,0links and237549566bytes in the retained
+partial stage. These facts establish unfinished copying, not its exact blocking
+operation, correctness, successful stage economics or native authority. No
+compiler/model executed, no receipt/observer state was touched, no partial deleted.
+A separately reviewed fixed diagnostic will capture aggregate operation counts/
+times within the same scope before any justified correction. No timeout increase
+or removed guard is a performance result.
+
+| Private record | SHA-256 |
+| --- | --- |
+| sealed-debugger-pathset-refusal-9082f65.json |14bb83c572d7b6b2b6b80f22650764f285f9519366e0fffd6ba9010eb5f0590f|
+| sealed-debugger-pathset-correction-9082f65.json |5c73baf0494e2d4f8f225d078999914487558680e2e135fee2852b7cfc6fb8fc|
+| sealed-debugger-preparation-v2-9082f65.json |4384da57f7a02d3a49a333c72d0029f4d17027d97695a12c9e9e2bc6929eebf3|
+| sealed-debugger-partial-v2-9082f65.json |6bfdfffe84f9717f3e784494786d43efea12c6ca508560b0c83ccb0f321da91e|
+
 ## Remaining authority gates
 
 Finish the hardlink-successor implementation/protocol review, enforce trusted/quiescent preparation
