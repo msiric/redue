@@ -65,7 +65,7 @@ function treeOutput(tree,proposal,manifest){
     tree.sourceAliasGroupCount<=Math.floor(manifest.length/2)&&
     Number.isSafeInteger(tree.sourceAliasEntryCount)&&tree.sourceAliasEntryCount>=tree.sourceAliasGroupCount*2&&
     tree.sourceAliasEntryCount<=manifest.length&&
-    (tree.sourceAliasGroupCount>0||tree.sourceAliasEntryCount===0&&
+    (tree.sourceAliasGroupCount>0?tree.sourceAliasGroupsDigest!==hash(canonical([])):tree.sourceAliasEntryCount===0&&
       tree.sourceAliasGroupsDigest===hash(canonical([]))&&tree.materializedManifestDigest===tree.sourceManifestDigest);
 }
 export function prepareSealedTypeScriptInputs(options){

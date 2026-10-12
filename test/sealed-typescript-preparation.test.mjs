@@ -44,7 +44,7 @@ test('source alias audit is bounded and separate from materialized or reusable a
  assert.equal(good.value.reuseEligible,false);
  for(const patch of [{sourceAliasGroupCount:2},{sourceAliasGroupCount:-1},{sourceAliasGroupCount:0.5},
    {sourceAliasEntryCount:1},{sourceAliasEntryCount:3},{sourceAliasEntryCount:'2'},
-   {sourceAliasGroupsDigest:'invalid'},{sourceAliasGroups:[]}])
+   {sourceAliasGroupsDigest:'invalid'},{sourceAliasGroupsDigest:digest(canonical([]))},{sourceAliasGroups:[]}])
    assert.equal(run({manifest,tree:t=>{tree(t);Object.assign(t,patch);}}).value.outcome,'UNKNOWN');
 });
 test('current source parent runtime and code binding remains mandatory',()=>{for(const scenario of [{sourceChanged:true},{parentChanged:true},{nodeChanged:true},{nodeReplaced:true},{codeChanged:true}])assert.equal(run(scenario).value.reason,'PREPARATION_BINDING_CHANGED');});
