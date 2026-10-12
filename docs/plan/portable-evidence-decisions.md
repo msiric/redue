@@ -311,3 +311,26 @@ workflow precedes one consolidated owner provisioning checklist. Diagnostic PASS
 is not recipient reuse/G2; actual producer, artifact, policy and applicability
 bindings remain unchanged. Copilot billing fact remains independently pending.
 The prior local manual six-check PASS remains valid only for its actual scope.
+
+### D9 continued routine diagnostic authority — owner confirmed 2026-10-12
+
+After the first hosted UNKNOWN result and independently reviewed classification
+repair, the owner explicitly approved another bounded diagnostic and confirmed
+full standing authorization without repeated routine questions. Apply D8 to
+in-scope fixture/protocol repairs and further diagnostics only after their real
+prerequisites, included capacity and independent security/evidence review hold.
+Keep each diagnostic at four turns /120seconds,$0; preserve every attempt and
+review evidence after materially different failures before any new operation.
+This supplies no Copilot billing fact, broader trust/resources, publication or
+waiver of a native policy denial.
+
+Required GitHub review can use its documented pending-deployments API through the
+already authorized configured reviewer msiric for an owner-approved reviewed run.
+The existing prevent_self_review:false setting intentionally permits the sole
+owner dispatcher/reviewer. Do not alter protections, use an administrator bypass
+or describe coordinator source review as independent. Root used normal approval
+for38246645326 only after actual owner approval and independentbd0d4b8/200f926
+reviews. Credential provisioning, enforced human-only authentication and any
+actual API approval denial still require owner action; don't change credentials
+or transport to evade them. The protected account statement's timestamp and
+account/capacity facts remain immutable under a routine source-pin update.
