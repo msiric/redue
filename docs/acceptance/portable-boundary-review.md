@@ -4170,3 +4170,55 @@ against arbitrary hostile same-UID processes. No qualifying engine integration,
 @3 origin completeness, ordinary-project eligibility, G2 reuse or G4 usability
 acceptance follows from these source/mock controls. Actual raw delivery and
 continuous interval behavior still require the bounded runner result.
+
+### First real raw-provider trial: interval coverage failed
+
+Independent read-only review of run38287392906 accepts the actual FAIL report
+SHA256 `b5a9e168b7c1110a883ef7718eeca25b185650853c6e248ef7c7cbfed8ca6114`,
+source `eb0d68ed18a6a323c4ba8436e337be799c942ede`. Startup is healthy with serial0.
+The immediate checkout membership create/remove barrier is healthy but unchanged,
+and the trial stops with `MEMBERSHIP_INTERVAL_NOT_OBSERVED`. No ancestor or
+provisioning mutation case ran. Actual close is exit0/no signal, reaped and
+protocol-clean; owned fixture cleanup is true. Elapsed time is118.689ms.
+There are no compiler or model executions. Clean process/protocol closure is not
+proof that the provider covered the known filesystem mutation.
+
+The installed Apple SDK header SHA256
+`493ab211ffd5683e83b3ec77b9924730a7df44a39738b560b8a28465b1c48a90`
+explicitly describes FlushSync as invoking callbacks for events already occurred
+before the call; its overview also describes flushing service-buffered events,
+and stream latency starts after the service hears kernel events. Apple's
+[programming guide](https://developer.apple.com/library/archive/documentation/Darwin/Conceptual/FSEvents_ProgGuide/UsingtheFSEventsFramework/UsingtheFSEventsFramework.html)
+describes pending-event flushing and distinguishes host and device streams.
+The chosen host stream watches `/`, uses SinceNow and a serial dispatch callback
+queue, then calls FlushSync outside that queue. No reviewer local stream was
+started. The SDK promise cannot replace this failed operational coverage check.
+
+Actual report retains no raw callback paths, global callback counts or volume
+routing metadata. Consequently startup/delivery ingress lag, root/Data-volume
+routing, filtering or service coalescing are competing explanations; none is
+established. In particular, no late event was measured. A delivered potential
+Data-prefix overlap would make the reviewed filter uncertain, so a healthy
+unchanged barrier does not itself demonstrate that such an alias was delivered.
+This is a failed experimental provider assumption, not a wrapped released
+false-CURRENT reproduction or compiler/security failure.
+
+The current `/` plus FlushSync barrier is NO-GO for portable continuous-interval
+authority or @3 complete origins. Endpoint answers, protocol health, quiet time,
+longer timeouts and a successful cleanup cannot repair that missing proof. The
+prior source/mock GO remains scoped to running the fixed experiment.
+
+A minimal proposed diagnostic is one fixed comparison of the unchanged `/`
+stream with an exact owned-directory stream, a subset of the approved scope.
+Use a stable nonsensitive owned marker to distinguish callback delivery from
+Start/FlushSync success, then one transient add/remove per stream. Retain the
+immediate result and two predeclared delayed observations, without success-driven
+retries. Keep only filtered scope IDs and static stream classes, not outside
+raw paths or global activity counters. Late receipt would diagnose lag; receipt
+only on the exact directory would implicate routing. Neither outcome by itself
+proves an end-of-execution fence or licenses portable completeness. Startup and
+observation costs must remain visible. This is a recommendation only: no helper,
+workflow, timeout or resource grant was changed and no new run was launched.
+If reliable continuous coverage cannot be established, the FSEvents-only design
+must withhold complete portable origins rather than declare endpoint stability
+authoritative.
