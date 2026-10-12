@@ -4059,3 +4059,114 @@ CI-only controls must establish transient create/remove, membership addition,
 parent replacement/restoration, case alias delivery and conservative gaps before
 any @3 complete/reuse claim. No owner-Mac broad subscription, model, CI dispatch,
 new resource grant or trust-policy change was performed by this reviewer.
+
+### Hosted private-runtime phase result and complete raw query projection
+
+Independent read-only result review accepts the finite profiling outcome for
+run38279556323, source`f4abdd318091ac7c17119d872e189e1cf2f7a8f3` and owned
+candidate SHA256
+`84edcfebbc980dacc026aac66d9f3094718267521397a15a79f015f6eb2ce871`.
+Preserved tar is160,448 bytes/80 entries and the four-file bundle is169,209 bytes;
+source.txt and manifest/checksums bind it to that task source. It contains no
+ancestor files. This is a new prospective alpha11 candidate, distinct from frozen
+f6e bytes, not a published release. Sanitized result SHA256 is
+`221052bdfb6ff06a97f6c5456e7cf6af82b534ff5f9f9e1f2caed2a2722b849f`;
+summary SHA256 is
+`b538fbc320c5f7b55929a53bb4b316b6e5d8004606e1758f2299cf001afff127`.
+
+All six declared recipient queries across three observer sessions return healthy
+CURRENT/PASS/imported reuse eligibility, null local invocation and the same
+origin`b2eb050a-0cc2-401d-8686-fd1e87005298`/import digest
+`23a648460143520057765ff1f34fcb2077f335fecf0347b68cec59df5a51115e`.
+All25 recorded commands exit0 with no signal/timeout; retained status observations
+precede assertions. Failure is null and cleanup reports both owned observers
+stopped. There are zero models, no signing/refreshed authenticated handoff and no
+ordinary-project result. Setup and origin work are separately recorded.
+
+Recomputed six-query mean29.486s/median30.081s/max38.233s agrees with the summary.
+Three warm second queries have median21.606s/max24.021s; three first queries per
+observer session have median37.602s/max38.233s, all above the unchanged35s host
+preflight command bound. Therefore cold usability remains unresolved. Session
+cold is not an OS page-cache cold experiment: origin setup already inspected
+runtime content. The trace has11 full cache inspections (two origin boundaries
+and nine query inspections) plus three private revalidations, median4.2ms with
+zero body hash bytes; independent caller full inspection remains. No savings or
+net user benefit is inferred from those counts alone.
+
+The before sample38273261352 uses frozen08307d4/f6e on a separate VM; six-query
+mean37.244s/median36.091s/max42.104s and14 full cache inspections remain historical
+measures. Both report Darwin25.6.0/arm64/Node22.13, but matching labels are not a
+paired-machine/runtime-content proof or controlled causal performance estimate.
+The after sample demonstrates the intended warm inspection mechanism while
+retaining cold costs; it does not close G2, ordinary-project acceptance or overall
+G4 economics. This reviewer made no additional hosted or product run.
+
+Source/data-only GO for raw-scope successor`e6dcd2b`:56/56 exact copied pure
+controls pass1324.43ms (29 query projection and27 native-pure controls). Every
+validated query path from the seven existing filesystem kinds becomes a locally
+derived private prefix scope, including membership directories and checkout root
+when queried. Deduplication merges sorted kinds; logical namespace sorting gives
+stable IDs across same-chain clones. The separate raw interpretation binds the
+complete query digest, answers/options, chain and logical scope/kind list;
+physical paths remain local and all results remain reuseEligible=false. External
+body/positive-file and unsupported path refusals remain. This is projection GO,
+not observer-wrapper, native interval or portable-origin completeness acceptance.
+
+### Raw observer protocol and fixed CI provider experiment review
+
+Source/mock-only GO for the frozen ordinary observer commit `92471c8`, with
+provider harness SHA256
+`3f26d057aca1c8bb683467952c5a61ce59306640458ad0295e2c86c743087359`
+and manual workflow SHA256
+`e5d2f17c99f009bb81b6a91b64868da37a9834de0d7c6e3df009c6ff7e0bdda8`.
+The workflow admits only the named repository/actor/task ref, manual dispatch and
+initial attempt, uses pinned checkout/setup-node, contents-read only and a
+five-minute job. It has no secret environment, model, signing, cache or upload.
+Source HEAD must match the dispatched SHA before one fixed provider trial.
+
+Final native source SHA256 is
+`a322b31d6c686b009fea2067b2c97f57068b50c99affb156b87df217175075a2`;
+the hard-pinned arm64 executable is80,984 bytes, SHA256
+`39cc3829f4fe640ad35baf87794e2e98d4812ee8afd3193f94dad5a11aa66389`.
+Independent byte inspection finds no `/Users/mariosiric` path in that executable.
+The `0ac0065` successor conservatively refuses mixed-case, short and Unicode
+potential Data-volume aliases; it does not strip prefixes into relevant events.
+Membership-descendant scope is derived only from the three directory membership
+query kinds. Existence queries retain exact-target/ancestor replacement coverage
+and discard unrelated container descendants. Native framing binds that mode and
+rejects malformed/overflowing numeric values. All seven validated local query
+kinds remain represented; imports cannot seed observed paths.
+
+Independent execution of the six exact pure/mock suites passes77/77 controls in
+1567.38ms. The C++ test binary excludes CoreServices and native stream startup.
+An additional18 independent observer controls pass68.73ms: unsupported profile,
+root/mismatched UID/GID, set-id or foreign-owned helper, unprotected authority
+path and pre-spawn races refuse; ready-plus-corruption and post-ready authority
+changes cannot return a usable handle; partial trailing protocol data cannot
+become clean closure; missing actual child-close cannot claim reaping.
+
+Four independent VM controls execute the actual provider harness with mocked
+filesystem, observer and clock, passing45.98ms. They establish that an observed
+assertion FAIL survives deadline expiry, otherwise positive deadline expiry is
+UNKNOWN, unknown child reaping retains owned files, and a completed fixed mock
+cleans up. Review found and corrected the prior final deadline assignment that
+overwrote FAIL with UNKNOWN. Earlier reviewer mock-context preparation failures
+remain separate from provider or runtime failures.
+
+The trial covers startup, one transient checkout membership add/remove, one
+absent ancestor candidate create/remove and provisioning-file mutation refusal.
+It does not test replacement/restoration of a previously present container or
+establish general alias delivery. The90s parent cancellation timer invokes owned
+abort/reaping; individual ready/barrier and cleanup waits remain bounded at5s.
+The five-minute job is the external bound, not evidence of an exact90s total
+including cleanup. Clean interval closure and observed child reaping are distinct;
+revoked provisioning cannot regain clean status. Unknown reaping retains fixture
+files. Static filesystem-type metadata is descriptive only.
+
+This GO permits the already approved CI-only, scope-filtered provider experiment.
+The reviewer launched no real FSEvents collector, native agent, model or CI run.
+Protected owner files and trusted workflow bindings are not authentication
+against arbitrary hostile same-UID processes. No qualifying engine integration,
+@3 origin completeness, ordinary-project eligibility, G2 reuse or G4 usability
+acceptance follows from these source/mock controls. Actual raw delivery and
+continuous interval behavior still require the bounded runner result.
