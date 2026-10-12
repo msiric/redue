@@ -3143,3 +3143,36 @@ This establishes installed preparation/cleanup mechanics only: models0,
 native processes0, no authenticated import or recipient reuse. All preceding
 failed attempts remain separate. Runtime/bin, signing bytes, producer trust,
 historical receipts and normal installations are unchanged.
+
+### Manual-only workflow registration review
+
+The isolated registration branch adds only
+`.github/workflows/portable-claude-diagnostic.yml` to the inspected origin/main
+baseline. Candidate SHA-256 is
+`a5f4e589823844144203e98151d315cd785f6d7d09212a720749618789e43e72`.
+Independent byte comparison against frozen template
+`977154c61c2771643ea3d874c6a90ad92de8b125bdb3322d5c2e2ca2ad7fd54d`
+confirms only two introductory comments and the unresolved source placeholder
+changed. The concrete checkout pin is
+`da0b1080f3edcc68f3d4067cb51f961759e68312`; its diagnostic, assets and tests are
+byte-identical to independently reviewed04ee. The workflow revision and that
+checkout source remain distinct identities.
+
+YAML and static checks pass: workflow_dispatch is the sole trigger; one macOS26
+job is bounded to two minutes; permissions are contents:read; exact repository,
+actor, dedicated ref and run-attempt1 guards remain; the protected environment
+and its current owner-policy/capacity facts remain prerequisites. Only the native
+host step references OAuth. Missing facts fail before the public native download
+and the secret-bearing step. No upload, cache, OIDC, signing, automatic execution,
+terminal input or retry route was introduced.
+
+Frozen exact-source controls pass15/15 (77.928708ms), using only mocks and lexical
+data. The initial reviewer extraction omitted the invocation module and failed
+import resolution before controls ran; adding that unchanged exact-source module
+restored the import closure. This is a reviewer preparation failure, not an
+engine or workflow failure. No native/auth/model/listener/CI operation occurred
+in this review. Conclusion: GO for the normal one-file registration PR and merge;
+neither can trigger this manual-only diagnostic. A later dispatch requires the
+registered workflow on its selected dedicated ref, current provisioning/facts
+and the coordinator's one-operation ledger. Registration alone supplies none of
+those facts and demonstrates no native enforcement or acceptance-gate completion.
