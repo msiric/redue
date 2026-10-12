@@ -6,7 +6,40 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — approved hosted diagnostic implementation
+## Current checkpoint — reviewed conditional hosted diagnostic; installed preparation repaired
+
+Native diagnostic author04ee1ca is independently reviewed by C5d02938/root3f31084.
+The proposal stays outside `.github`, with no credentials or hosted inference.
+Pinned187's implicit read-only Bash fallback required94 denial-only prefix rules;
+independent564 matching and3 compound controls plus15mocks pass. Dangerous preload
+assignments do not gain allow normalization. The original six checker assertions
+and supervisor bodies are unchanged. Source review is not native enforcement.
+
+The remaining Claude inputs are the authoritative personal Pro/Max/no applicable
+managed-policy fact, included quota with extra charges disabled, and owner-provided
+OAuth through a protected environment. GitHub read confirms no environment exists
+in this repository yet. No safe native pre-hook command certifies remote policy;
+do not infer it from fresh files or use a fabricated tier. Copilot's four-credit
+included Actions billing fact remains separate and unchanged. The standard hosted
+pair remains selected; no console VM, terminal controller or account substitute.
+
+Recipient preparation fixes B4d99cf1/root79e3bf6 and B126e3c3/root2a74328 are reviewed.
+Real installed start creates ownership before the shared guidance writer; guidance
+still precedes authentication/import/eligible baseline. Strict cleanup requests
+`stop --json`, preserving ok:true plus lock-absence checks. Root affected suites:
+158tests/157PASS/one platform skip/zero failures. Actual installed b8122c3b procedure
+passes8commands with real owner bytes/inode preserved, healthy fresh UNVERIFIED,
+no local run/import/model/native invocation and confirmed observer stop. The wrong
+private harness import,120s npm timeout and prior human-output cleanup parse failure
+are retained. Public registry HEAD curl35/no HTTP is connectivity evidence only,
+not publisher-authentication failure; ordinary offline cache installation succeeded.
+
+Runtime/bin and approved signing/trust bytes remain unchanged. G2/finalG3/G4 are
+incomplete. Next: sync the coherent reviewed preparation branch normally, pin and
+review the bounded workflow registration, then consolidate the owner-only inputs.
+No model trial begins until its actual prerequisites pass.
+
+## Historical checkpoint — approved hosted diagnostic implementation
 
 The owner retained the standard GitHub-hosted pair and approved D9/Section6.6:
 prefer supported deterministic native preflight; if needed, one programmatic

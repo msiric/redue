@@ -17,7 +17,7 @@
 | Contingency budget | Through Day 42; not an automatic extension |
 | First forecast checkpoint | 72 hours after the agreed start |
 | Execution model | Four bounded, concurrent agent lanes; one integration owner; independent review |
-| Day 0 | Owner to record the actual start date and time |
+| Day 0 | 2026-10-10 21:24 UTC, owner agreed; blocked time tracked separately |
 
 **Operating decision:** pursue a genuine two-agent, two-machine implementation of one supported verification contract. Reuse REDUE's existing evidence engine. Parallelize independent work, automate feedback, and remove avoidable waiting. Do not accelerate by weakening what eligible evidence means.
 
