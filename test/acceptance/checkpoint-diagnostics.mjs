@@ -16,6 +16,9 @@ const timingPhases=new Set(['cli.start_checkpoint','cli.end_checkpoint','cli.pre
   'server.decision_start','server.request_complete','daemon.request_catch_up','daemon.request_probes',
   'daemon.request_total','daemon.probe_launch','daemon.probe_complete','daemon.probe_context_validation']);
 const integer=value=>Number.isSafeInteger(value)&&value>=0?value:null;
+// Profiling starts before state ownership is established. Keep its test-only
+// file beside the state directory so diagnostics cannot populate unowned state.
+export const checkpointTimingFile=f=>f.state+'-checkpoint-timing.jsonl';
 function boundedText(file){
   let fd;try{const before=fs.lstatSync(file);if(!before.isFile()||before.isSymbolicLink()||before.size>limit)return null;
     fd=fs.openSync(file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW|(fs.constants.O_NONBLOCK||0));
@@ -50,5 +53,5 @@ export function checkpointBaselineDiagnostics(f,baseline){
     if(selected?.schema===1)receipt=selected?.checks?.typecheck??null;}catch{}
   const parse=lines=>lines.flatMap(line=>{try{return [JSON.parse(line.replace(/^REDUE_TIMING /,''))];}catch{return [];}});
   return summarizeCheckpointBaseline({baseline,receipt,journal:parse(boundedLines(path.join(f.state,'events.jsonl'))),
-    timings:parse(boundedLines(path.join(f.state,'checkpoint-timing.jsonl')))});
+    timings:parse(boundedLines(checkpointTimingFile(f)))});
 }

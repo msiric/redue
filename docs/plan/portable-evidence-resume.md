@@ -6,7 +6,60 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — local native synthetic boundary passed
+## Current checkpoint — native boundary passed; macOS test fixture corrected
+
+The actual owner-operated Claude2.1.187 result passes all six fixed synthetic
+assertions with supervised checker exit0/no signal and final persisted PASS.
+This closes only the local synthetic boundary prerequisite. Credential bodies,
+model-tool behavior, hosted authentication/enforcement and actual portable
+cross-agent reuse remain untested; no native retry or owner action is needed for
+this completed local checker. Detailed identities and preserved prior failures
+are in the immediately following historical checkpoint and independent review.
+
+Preparation8d738c7 was normally pushed to `origin/dev/portable-ci-preparation`;
+PR13 remains draft. The signer ref stays d04b872 and origin/main stays b4f2860.
+Exact-package CI38185767699 passed macOS/Linux/native Windows. Downloaded
+artifact11719795947 independently validates tarball SHA-256
+`b8122c3bdcedf42a374ba3a87681ca7654360bc6c10daa64b5ac93a79ca7b190`,
+source2cd850d tree equal to8d738c7. This unreleased preparation package remains
+separate from frozen d04b872/8695b612 and public alpha.10.
+
+Product CI38185767714 passed Linux22/24 and native Windows, but macOS test45
+failed its healthy baseline: UNVERIFIED/PASS, stable:false, end checkpoint
+unavailable. Journal shows root-replay history timeout at300ms before any
+intentional fault. The worker subphase/cause is UNKNOWN; this is conservative
+withholding, not stale green. Mac totals489tests/461PASS/1FAIL/27skip are retained.
+The fixture unnecessarily imposed300ms before start/run; its later explicit
+`history-fault=fail` throws immediately. The test-only correction uses the
+unchanged production5000ms deadline and preserves all original assertions and
+faults. A separate hang/stop regression retains its original deadline behavior.
+
+One unmodified local test without profiling passed; it does not erase CI failure.
+Enabling opt-in diagnostics exposed a separate pre-ownership fixture failure:
+its trace populated unowned state before start. The trace now lives beside state,
+inside the disposable test parent; ownership refusal and bounded/redacted reads
+are unchanged. Corrected diagnostic-enabled macOS gap/recovery/restart test
+passes; four diagnostic controls, three queued-edit/certificate/newer-selection
+controls and the separate hung-history/stop control pass. C independently reviews
+the exact three-file diff, all76 direct assertions unchanged, four pure controls
+PASS. These are test mechanics, not native or model behavior.
+
+Next: commit this reviewed fixture correction, push only the preparation branch,
+and inspect CI for that revision. No runtime/bin, signing, trust, credentials,
+receipts or stable installations change. Storage audit44active artifacts uses
+4,461,410bytes; one224KiB reservation gives4,690,786bytes <confirmed10MiB,
+with one-day retention. Never retry the same failure merely to obtain green.
+
+The signed data-only origin artifact expired at2026-10-11 23:56:31UTC; retained
+prior authentication/machine evidence remains valid historical acceptance, but
+an expired artifact must not be substituted or silently re-signed for a new trial.
+Copilot Actions four-credit included-capacity fact remains pending; no unchanged
+request is repeated. A secret-bearing native hosted route is not enabled; prepare
+its exact supported boundary before asking for provisioning. Model gates remain
+fail-closed. G2/finalG3/G4 are incomplete, not release-ready; publication pending.
+Day0/72h calibration and all scope/security/$0 limits are unchanged.
+
+## Historical checkpoint — local native synthetic boundary passed
 
 The owner-operated pinned Claude2.1.187 run completed allsix unchanged synthetic
 assertions: custom environment sentinel absent, protected nonsecret read denied,

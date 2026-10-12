@@ -3,7 +3,60 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — local native synthetic boundary passed
+## Current checkpoint — native boundary passed; macOS test fixture corrected
+
+The actual owner-operated Claude2.1.187 result passes all six fixed synthetic
+assertions with supervised checker exit0/no signal and final persisted PASS.
+This closes only the local synthetic boundary prerequisite. Credential bodies,
+model-tool behavior, hosted authentication/enforcement and actual portable
+cross-agent reuse remain untested; no native retry or owner action is needed for
+this completed local checker. Detailed identities and preserved prior failures
+are in the immediately following historical checkpoint and independent review.
+
+Preparation8d738c7 was normally pushed to `origin/dev/portable-ci-preparation`;
+PR13 remains draft. The signer ref stays d04b872 and origin/main stays b4f2860.
+Exact-package CI38185767699 passed macOS/Linux/native Windows. Downloaded
+artifact11719795947 independently validates tarball SHA-256
+`b8122c3bdcedf42a374ba3a87681ca7654360bc6c10daa64b5ac93a79ca7b190`,
+source2cd850d tree equal to8d738c7. This unreleased preparation package remains
+separate from frozen d04b872/8695b612 and public alpha.10.
+
+Product CI38185767714 passed Linux22/24 and native Windows, but macOS test45
+failed its healthy baseline: UNVERIFIED/PASS, stable:false, end checkpoint
+unavailable. Journal shows root-replay history timeout at300ms before any
+intentional fault. The worker subphase/cause is UNKNOWN; this is conservative
+withholding, not stale green. Mac totals489tests/461PASS/1FAIL/27skip are retained.
+The fixture unnecessarily imposed300ms before start/run; its later explicit
+`history-fault=fail` throws immediately. The test-only correction uses the
+unchanged production5000ms deadline and preserves all original assertions and
+faults. A separate hang/stop regression retains its original deadline behavior.
+
+One unmodified local test without profiling passed; it does not erase CI failure.
+Enabling opt-in diagnostics exposed a separate pre-ownership fixture failure:
+its trace populated unowned state before start. The trace now lives beside state,
+inside the disposable test parent; ownership refusal and bounded/redacted reads
+are unchanged. Corrected diagnostic-enabled macOS gap/recovery/restart test
+passes; four diagnostic controls, three queued-edit/certificate/newer-selection
+controls and the separate hung-history/stop control pass. C independently reviews
+the exact three-file diff, all76 direct assertions unchanged, four pure controls
+PASS. These are test mechanics, not native or model behavior.
+
+Next: commit this reviewed fixture correction, push only the preparation branch,
+and inspect CI for that revision. No runtime/bin, signing, trust, credentials,
+receipts or stable installations change. Storage audit44active artifacts uses
+4,461,410bytes; one224KiB reservation gives4,690,786bytes <confirmed10MiB,
+with one-day retention. Never retry the same failure merely to obtain green.
+
+The signed data-only origin artifact expired at2026-10-11 23:56:31UTC; retained
+prior authentication/machine evidence remains valid historical acceptance, but
+an expired artifact must not be substituted or silently re-signed for a new trial.
+Copilot Actions four-credit included-capacity fact remains pending; no unchanged
+request is repeated. A secret-bearing native hosted route is not enabled; prepare
+its exact supported boundary before asking for provisioning. Model gates remain
+fail-closed. G2/finalG3/G4 are incomplete, not release-ready; publication pending.
+Day0/72h calibration and all scope/security/$0 limits are unchanged.
+
+## Historical checkpoint — local native synthetic boundary passed
 
 The owner-operated pinned Claude2.1.187 run completed allsix unchanged synthetic
 assertions: custom environment sentinel absent, protected nonsecret read denied,
@@ -729,11 +782,11 @@ synthetic-operation approval follows that prerequisite. Copilot Actions included
 credits remain owner-confirmation pending. G2/finalG3/G4 remain incomplete;
 publication and external natural usage remain pending/not started.
 
-Agreed Day 0: 2026-10-10 21:24 UTC (owner confirmed). First substantive review: 2026-10-13 21:24 UTC. Daily concise progress summaries. Additional metered spending is $0/day and $0 total for the first 72 hours; only established subscription-included capacity is allowed. Standard public GitHub-hosted validation VMs are now approved: two independent macos-26 ARM64 profile jobs first. Owner confirmed 10 MiB included artifact storage, one-day retention and no paid usage; exact signing enablement is approved, and exact data-only producer trust/provisioning are approved in D5; actual authenticated data-only recipient applicability passed38123365552. Owner approved existing Claude subscription and Copilot personal-use entitlement. Isolated local Claude subscription onboarding succeeded; effective native security, hosted OAuth provisioning and Copilot seat/policy/billing checks remain prerequisites. Explicit demonstration-pair amendment D4: Copilot CLI producer VM A → native Claude Code receiver VM B on independently matched approved macOS runners; Codex acceptance stays separate. Provisioning and blocked time count from kickoff; dates will not be reset. Initial targets remain Day 14 demonstration / Day 28 prepublication readiness, uncalibrated until the real G1 slice.
+Agreed Day 0: 2026-10-10 21:24 UTC (owner confirmed). First substantive review: 2026-10-13 21:24 UTC. Daily concise progress summaries. Additional metered spending is $0/day and $0 total for the first 72 hours; only established subscription-included capacity is allowed. Standard public GitHub-hosted validation VMs are now approved: two independent macos-26 ARM64 profile jobs first. Owner confirmed 10 MiB included artifact storage, one-day retention and no paid usage; exact signing enablement is approved, and exact data-only producer trust/provisioning are approved in D5; actual authenticated data-only recipient applicability passed38123365552. Owner approved existing Claude subscription and Copilot personal-use entitlement. Isolated local Claude subscription onboarding succeeded; local synthetic native security passed; hosted OAuth/enforcement and Copilot seat/policy/billing checks remain prerequisites. Explicit demonstration-pair amendment D4: Copilot CLI producer VM A → native Claude Code receiver VM B on independently matched approved macOS runners; Codex acceptance stays separate. Provisioning and blocked time count from kickoff; dates will not be reset. Initial targets remain Day 14 demonstration / Day 28 prepublication readiness, uncalibrated until the real G1 slice.
 
 | Gate | Current status | Evidence / outstanding prerequisite |
 | --- | --- | --- |
-| G0 | Partial | Day 0/caps/cadence and standard public runners approved; source/native preflight reviewed. Two independent macos-26 inventory jobs passed; 10 MiB included storage confirmed. Signer workflow enablement approved; exact data-only producer policy/provisioning approved in D5; local native subscription onboarding succeeded; relocated native security gate, hosted OAuth provisioning and Copilot seat/policy/billing prerequisites remain unresolved. |
+| G0 | Partial | Day 0/caps/cadence and standard public runners approved; source/native preflight reviewed. Two independent macos-26 inventory jobs passed; 10 MiB included storage confirmed. Signer workflow enablement approved; exact data-only producer policy/provisioning approved in D5; local native subscription onboarding succeeded; local six-assertion native security gate passed; matched hosted OAuth/enforcement and Copilot seat/policy/billing prerequisites remain unresolved. |
 | G1 | Same-machine technical slice passes | Exact d04b872 installed noLib origin/export/import independently returns eligible PASS; unrelated edit CURRENT/relevant edit STALE and policy ownership pass. Not useful-project, model or final profile acceptance. |
 | G2 | Actual recipient/model reuse not run | Both hosted complete runtime prototypes supported; independent21-record comparison passes. Approved amended pair has effective native boundary/hosted provisioning and Copilot seat/policy/billing prerequisites pending; no failed prerequisite launches models. |
 | G3 | Positive authenticated data-only route demonstrated | Owner-approved exact corrected workflow run38123365552 accepts the signed38096670987 origin and independently establishes importedCURRENT/PASS/eligible, with no equivalent receiver execution. Unrelated/restart preservation and relevantSTALE pass. Existing trust negatives and final candidate binding remain separate review requirements; no model claim. |
@@ -745,7 +798,7 @@ Integration owner: root (Lane A). One writer per shared interface: root owns CLI
 
 | Task | Owner / independent reviewer | Branch and owned interface | Current evidence / next action |
 | --- | --- | --- | --- |
-| PE-01 resources/profile | Owner + C / integration | Local G0 record + storage-free workflow | Standard macos-26/storage/signing enablement approved. Both full prototypes supported; independent21-record comparison passes; D5 exact data-only trust approved and live recipient passes; local Claude subscription onboarding succeeded, effective relocated native gate/hosted provisioning and Copilot capacity pending. |
+| PE-01 resources/profile | Owner + C / integration | Local G0 record + storage-free workflow | Standard macos-26/storage/signing enablement approved. Both full prototypes supported; independent21-record comparison passes; D5 exact data-only trust approved and live recipient passes; local Claude subscription onboarding succeeded, local synthetic native gate passed; matched hosted provisioning/enforcement and Copilot capacity pending. |
 | PE-02 minimum decisions | A/B / C | `portable-evidence-decisions.md` | D1–D3 independently challenged; no known critical defect within constrained same-host slice. Cross-machine identity remains separately reviewed work. |
 | PE-03 fresh origin + export | A / C | Core/CLI | Real within-interval capture passes; old origin cannot be repaired; ownership/selection and event guards independently tested. |
 | PE-04 safe envelope/inspect/import | B / C | Envelope/store/pure decision | Strict bounded parsing, explicit exact-digest acceptance, durable separate import selection, lost-selector FAIL replay controls pass. |
