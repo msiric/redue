@@ -3,23 +3,34 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current ordinary-boundary work — CI-only provider prerequisite pending
+## Current checkpoint — raw provider FAIL; qualification remains withheld
 
-Owner D10 permits narrowly filtered raw query observation only on the approved
-standard GitHub macOS VMs, never broad subscriptions on the owner's Mac. The
-active integration worktree is `/Users/mariosiric/Documents/redue-portable-ordinary-boundary`,
-branch `dev/portable-ordinary-boundary`; root owns all shared interfaces. The
-ordinary debugger's 59 builtin libraries remain inside its unchanged checkout;
-424 ancestor questions and transient membership are the remaining limitation.
-A reviewed raw-event leaf avoids Parcel's create/delete elision; its wrapper
-requires a freshly minted exact CI capability, reviewed runtime profile,
-nonprivileged caller, pinned non-setid helper and bounded protocol/cleanup.
-Current 77 deterministic/pure/process-mock controls pass; these start no real
-stream and establish no native enforcement, interval authority or portable CURRENT.
-Independent final boundary/workflow review precedes one fixed provider attempt.
-No model, signing, upload, producer-trust change or publication is involved.
-The earlier frozen and performance artifacts keep separate identities.
+Actual CI-only provider [38287392906](https://github.com/msiric/redue/actions/runs/38287392906)
+on sourceeb0d68ed18a6a323c4ba8436e337be799c942ede failed
+MEMBERSHIP_INTERVAL_NOT_OBSERVED. START and immediate post-create/delete barriers
+reported healthy/serial0; the known transient was not observed. Only this first
+case ran; ancestor and provisioning cases did not run. Actual child exit0/no
+signal/reaped/protocol-clean and owned cleanup do not establish interval coverage.
+Complete trial118.689ms; Darwin25.6.0/ARM64/Node22.13.0, image20260907.0351.1,
+filesystem type26. Zero models/compilers/signing/uploads/trust changes.
+Private structured result `.local/portable-evidence/ancestor-provider-38287392906.json`,
+SHA256b5a9e168b7c1110a883ef7718eeca25b185650853c6e248ef7c7cbfed8ca6114.
+Independent actual-result reviewffddc9e classifies the current root/'/' +FlushSync
+barrier NO-GO for @3 completeness. Delivery lag, routing and upstream behavior
+remain unmeasured; the failure is preserved rather than repaired by a wait.
+Root owns a separately reviewed fixed root-versus-owned delivery diagnostic;
+its immediate/.5s/2s observations cannot mint interval authority or overwrite
+this FAIL. No real stream has run on the owner's Mac. The ordinary debugger
+remains PORTABLE_EXTERNAL_INPUT; new origin/recipient integration is not enabled.
 
+Recipient performance result remains: warm(n3) median21.606s versus36.427s;
+first queries(n3) median37.602s remain above35s. Full independent caller inspection,
+trust, newest-receipt selection and all freshness requirements remain.
+Hosted Claude diagnostic is closed PASS in its original six-assertion scope.
+Copilot included Actions capacity remains the separate pending external fact;
+no repeat account/login request. Alpha.11 unpublished; all frozen artifacts and
+historical failures remain distinct. G2/G3/finalG4 not complete.
+Day0 and72h calibration remain unchanged.
 
 ## Prior measured checkpoint — warm recipient phase improved; ordinary interval work remains unqualified
 
