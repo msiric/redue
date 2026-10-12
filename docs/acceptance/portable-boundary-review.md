@@ -4398,3 +4398,47 @@ ingress. The comparison may test that narrower ordering hypothesis; it cannot
 retrospectively establish the cause of previous late events or mint an interval
 certificate. Actual prior FAIL, measured late delivery and production @3
 continuous-coverage NO-GO remain until independently sufficient interval evidence.
+
+### Actual queued-callback comparison leaves interval authority unsupported
+
+Independent read-only review accepts run38290903554, source
+`091b56ef35f72da576647f25ea3eaada5d3983a5`, report SHA256
+`cf0851abafb56329260f4fd6ed22638d2c4529aa99b41ad01448b3ddc4f96231`.
+NO_DRAIN held-marker action baseline0 has immediate serial0 and0.5s serial1;
+transient action baseline1 has immediate1 and0.5s2. QUEUE_DRAIN starts serial0
+but its held-marker ACTION_BASELINE is already1, before that marker write; its
+immediate sample remains1 and0.5s becomes2. Transient action baseline2 remains2
+immediately and becomes3 at0.5s. Both variants'2s samples stay unchanged.
+
+The explicit queued-callback fence therefore did not establish immediate coverage
+relative to either action baseline. The extra drain-variant pre-action scoped
+occurrence has no retained identity or cause. No individual later increment is
+unconditionally assigned to the current filesystem mutation, and the comparison
+does not locate the kernel, service or dispatch boundary of the delay. It is
+collected diagnostic data, not an interval acceptance or explanation of every
+historical failure. Further FSEvents retries are not needed to preserve NO-GO.
+
+Actual baseline executable remains15a4/81,528 bytes. Actual runner drain
+executable is
+`4c3290891b9dd271a434860dbe1f892cdfa66fba226346692f07ce769b05f707`,
+81,784 bytes, clang21.0.0 and both diagnostic defines; native source is a7e766.
+Both streams close exit0/no signal, observed reaped and protocol-clean; owned
+cleanup is true, elapsed11412.776ms. Profile remains Darwin25.6/arm64/Node22.13,
+filesystem26, same device as filesystem root. There are no compiler/models and
+interval_authority remains false. Production39cc and prior first-trial FAIL are
+unchanged. No qualifying engine integration is accepted.
+
+The proposed supplementary vnode prototype remains test-only until its exact
+source and resource plan are reviewed. In addition to bounded FD admission,
+physical identity, acknowledged registration and nonrecursive directory/ancestor
+coverage, real adversarial acceptance must include hardlink mutation of the
+watched inode and memory-mapped change/restore. The mapped case must include a
+MAP_SHARED mapping created before registration, then memory A→B→A with no msync,
+munmap or close until after final facts/drain; otherwise a later close/pageout
+notification can hide the unsupported interval. Actual consumed bytes must be
+compared, not just timestamps. An unobserved mutation withholds @3 completeness
+even when ordinary Node write/create/remove fixtures succeed. This is a required
+counterexample, not a reproduced vnode defect. Held-fd parent replacement and
+restoration, failed registration, unknown event/EOF/error and FD/drain exhaustion
+remain conservative failures. No watcher, native/model/CI operation or code
+change was performed by this reviewer.
