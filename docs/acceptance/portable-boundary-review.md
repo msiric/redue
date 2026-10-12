@@ -4850,3 +4850,60 @@ with conservative handling of differences from the intended obligation. No
 old@2 facts, imported manifest, observer token or data-materializer result can
 fill that gap. Actual preparation/native sealing and ordinary recipient matching
 remain unproved; existing portable containment remains in force.
+
+## Fixed preparer profile and bounded child: source versus actual observations
+
+Root28d690fe introduces a nonauthoritative TS5.5.2 recipe preview and a fixed
+test-only Darwin/ARM64/Node22.13 preparation profile;47f49d3 imports the fixed
+child. The preview selects a distinct staged cwd/argv and required compatibility
+profile, not an actual matched-runtime certificate. It converts no existing
+check/config and returns sealed/executable/reuse false. The preparation profile
+denies default access, permits only its selected source/stage, fixed Node/code
+and explicit protected OS runtime reads plus exact ancestor metadata, and grants
+writes only to its stage parent and /dev/null. It supplies no network/Mach/fork
+grant or general executor. The caller must bind the source/parent/input and
+current code/runtime; a profile string does not certify their lifetime or seal.
+
+The fixed child SHA-256 is
+c89df84cdc2f8cb43c30c9329361d63fbb59c8644837537407cb4c198fe8fbb8.
+It admits at most8MiB and waits for EOF before its narrow three-key JSON grammar
+can call the data leaf; decoded duplicate keys, extra values, malformed UTF8 and
+unknown fields refuse. It imports only the reviewed leaf and node:url, executes
+no compiler, and reports static failure codes without raw OS errors. Independent
+profile-constructor and child controls passed25/25 in342.18ms, including harmless
+negative/partial-input Node subprocesses. The reviewer launched no sandbox-exec,
+native agent, compiler, model or CI operation.
+
+The initial two root-owned real preparer tests failed at startup and remain
+UNKNOWN. A separately redacted same-profile startup diagnostic reported SIGABRT,
+no numeric exit, no output/error streams and no cause. Root's transient broad-read
+/usr/bin/true sanity is not this profile's fallback or enforcement evidence.
+Pinned Node22.13 startup has several pre-JS CHECK/abort paths, so the signal
+alone cannot identify dyld, threads, Mach or a specific denied operation.
+
+The source-led narrow correction1aad059 adds only
+`(allow file-read* (literal "/"))`. The pinned publisher regression documents a
+root-inode dyld abort and this literal remedy, with a separate outside-home
+negative case. [Sandbox-runtime root carve-out regression](https://raw.githubusercontent.com/anthropics/sandbox-runtime/24eb39e94a6de386e83d126c52317d8e0fa49522/test/sandbox/allow-read.test.ts)
+Literal root is not a descendant/body or write grant; it permits the root
+directory object/listing. No home-subpath, Mach, network or native-agent profile
+grant was added. This was GO for a materially changed bounded preparer diagnostic,
+not retrospective cause attribution.
+
+Root's retained `preparer-boundary-root-inode.tap` reports2/2 actual local controls
+PASS267.856ms: the fixed child copies the intended nonsensitive file; a resolved
+outside alias and direct outside read are denied; source/outside writes are
+denied; stage writes succeed. The fixtures are owned nonsensitive temporary data.
+This is actual local preparation enforcement only, not native Claude/Copilot
+sealing, matched-VM acceptance, compiler execution or portable continuity.
+The changed profile source SHA-256 is
+7b2efd7871c8d7e0c95be1d2b4d6d5c70ea1dfbe5bd722a61a0e5ef78d81ef7d.
+The test-output privacy finding was corrected in54aedc9: boolean/static checks
+and caught parse errors withhold raw stderr/spawn-error/JSON excerpts on failure.
+No grant was broadened to obtain that correction.
+
+The real-project parent wrapperae0d4e9 is separately awaiting review. Required
+hardening remains total monotonic budget/current Node/code/source/parent binding
+and finite exact output/truth fields; its proposed materialization cannot yet be
+called sealed/executable/reusable. Any later native stage-parent enforcement and
+complete staged namespace evidence remain independent prerequisites.
