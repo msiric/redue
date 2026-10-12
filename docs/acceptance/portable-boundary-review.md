@@ -5399,3 +5399,43 @@ The reported diagnostic filesystem-method aggregate and wall-minus-method residu
 are not measured kernel-only or CPU-only time, causal savings or a successful
 preparation. Instrumentation affects the workload; evidence must remain scoped
 to the actual fixed diagnostic and its UNKNOWN result.
+
+
+## Ephemeral materialization: exact fsync-only successor
+
+GO for data-only leaf 6b530a9eaa2374b35c80ad6e2da2c8f23a13bc42,
+source SHA34fa860570d282badcb00731c7861fd53d3026a82549596a8bad82e56256a932.
+It removes only the per-copy fsync after successful fchmod. Source and copied
+content readbacks, alias/namespace/physical checks, independent single-link
+inodes, final validation, fixed bounds and partial retention remain intact.
+Seven race controls now inject after fchmod at the same pre-fstat/readback
+boundary and preserve their refusal assertions. Receipt/state durability code is
+unchanged. The ephemeral stage promises no crash durability or recovery; an old
+summary cannot authorize a lost, incomplete or changed stage after restart.
+
+Independent archived tree/shim/manifest suites passed61/61 in234.11ms. Six own
+owned-fixture controls passed6/6 in77.68ms, including zero fsync calls, independent
+copied-body readbacks and post-fchmod copied-body corruption refusal. These were
+harmless local materializer data tests, not a compiler, agent, model or CI run.
+The review admits only the fixed data copy under unchanged120s/source/config/
+private-parent bounds. It supplies no sealing, namespace-equivalence or reuse
+proof. A later parent-reported successful normal copy is separate evidence; no
+causal savings claim follows from comparing it with an instrumented timeout.
+
+## Staged compiler profile: preliminary prelaunch findings
+
+Exact ff0c49f49508d34963d1d61e4ec700c9c96e9d5f profile construction remains
+nonauthoritative. Existing directProject reads the package/script/environment,
+resolves canonical stage-local TypeScript and hashes the whole implementation
+before importing any compiler API. The proposed profile permits stage reads,
+protected runtime reads and only /dev/null writes; no stage-write, fork or network
+grant was found. This does not establish original ancestor-resolution namespace
+semantics: protected outside lookups may fail with EPERM instead of ENOENT.
+
+Five exact VM controls passed5/5 in47.45ms. One independent control with three
+scenarios reproduced admission of mismatched effective UID/GID and a setuid Node
+mode. Require matching UID/EUID and GID/EGID, nonroot UID and nonsetid Node before
+any fixture launch. These are unexecuted proposal gaps, not actual host failures.
+A launch also needs fresh full stage/source/config/runtime/parent bindings,
+fixed stage cwd/argv/validated environment, bounded output and observed child
+reaping. No compiler, native-agent or model was launched by this review.
