@@ -4907,3 +4907,54 @@ hardening remains total monotonic budget/current Node/code/source/parent binding
 and finite exact output/truth fields; its proposed materialization cannot yet be
 called sealed/executable/reusable. Any later native stage-parent enforcement and
 complete staged namespace evidence remain independent prerequisites.
+
+## Fixed preparation parent: final source and mock admission
+
+GO for400548735eba174a6c3e233762d01cff2e6fea20, exact parent source SHA-256
+ad0cc551cfbf6226a98fe460194dd6c067ff2929df816875349d499cd3fb7396,
+as one fixed restricted data-only preparation operation. This is not a CLI,
+daemon, signer or applicability activation. One approved public-project copy
+may use the reviewed empty-env preparer profile under its existing quiescent
+phase, input/output8MiB and total120s budget, retaining failed partial stages.
+All sealed/executable/reuse fields remain false; stage storage accounting and
+later ownership-safe reclamation are still the provisioning job's obligation.
+
+The final parent binds actual source/parent/Node/code paths and ancestor physical
+identities, hashes Node/code before and after collection, rejects changed
+bindings and requires an owned nonsymlink directory mode0700 with the reported
+dev/ino. Output requires exact frame/schema/interpretation/manifest/digest and
+consistent physical tuple prefixes; unknown truth fields, duplicate keys or
+additional frames refuse. Data is deeply frozen. Child74 static refusals are
+retained, invented codes are hidden, and observed finite POSIX signals retain
+their names; unrecognized signals use UNKNOWN_SIGNAL without a false reaping
+claim. None of these checks is hostile-same-UID atomic confinement or a write seal.
+
+The monotonic budget begins before option work, is consumed across profile/input
+and current-binding checks, supplies only the remaining spawn timeout and uses
+SIGKILL. Invalid/reversed/exhausted clocks latch refusal. Deep freezing precedes
+one final validated clock sample used for both classification and elapsed time;
+final budget failure withdraws materialization and reports UNKNOWN/null elapsed.
+The parent does not emit raw child streams, spawn errors or arbitrary reason
+values. A killed/failed child and retained data cannot authorize a later compiler.
+
+Independent mock controls preserved three prerelease e3b684a counterexamples:
+handled child74 was misclassified, a regular-file staged root passed the old
+identity expression, and inconsistent physical identity/fingerprint tuples passed.
+The intermediate0d7ab18 repaired those but still admitted a result when the clock
+crossed120s only in the final result calculation. These were controlled fake-child
+responses/clock scheduling, not observed sandbox or real-project defects.
+
+Ten final independent VM/mock controls passed10/10 in65.94ms. They cover immutable
+false-flag success/fixed empty environment/SIGKILL, exact74 refusal/invented-code
+privacy, invalid stage type/tuple, source/parent/Node-content/byte-identical Node
+replacement/code currency, extra truth/duplicate/frame rejection, clock failures
+with zero children, both intermediate and final-finalizer deadline counterexamples,
+and known/unknown signal observation. An initial mock fixture failed before any
+child because cross-realm objects were correctly rejected by canonical; only
+the test's JSON realm bridge was corrected and the failure retained. The reviewer
+spawned no real preparer, compiler, native agent, observer, model or CI job.
+
+This admission is limited to data preparation. File manifests are not complete
+staged namespace evidence; native agent stage-parent/ancestor protection,
+actual staged compiler execution, matched recipient facts and supported sealed
+interpretation remain separate. Portable origin containment is not lifted.
