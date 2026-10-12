@@ -51,22 +51,32 @@ export function compilerFiles(tsRoot,cwd) {
       ['readDirectory',full,[...result].sort(),options]);
     return result;
   };
+  const files=compilerProgramFiles(ts,cwd,{readFile,fileExists,directoryExists,
+    getDirectories,readDirectory,realpath(file){remember('realpath',file);return ts.sys.realpath(file);}});
+  // Stable answers are necessary even at first capture; a concurrent edit
+  // cannot become the basis for a reusable discovery result.
+  const facts=[...queries.values()];
+  return {files,queries:queriesMatch(facts)?facts:null};
+}
+
+// Shared program traversal for locally verified compiler probes. This function
+// does not load a compiler or authorize caller-provided/imported code. A sealed
+// probe must install its scoped observation BEFORE the first verified TS load,
+// then supply forwarding sys methods from that same restricted filesystem view.
+// Returned file names alone establish neither query completeness nor eligibility.
+export function compilerProgramFiles(ts,cwd,{readFile,fileExists,directoryExists,
+  getDirectories,readDirectory,realpath}) {
   const parsed=ts.getParsedCommandLineOfConfigFile(path.join(cwd,'tsconfig.json'),{},
     {...ts.sys,readFile,fileExists,directoryExists,getDirectories,readDirectory,
       onUnRecoverableConfigFileDiagnostic(){}});
   if(!parsed||parsed.errors?.length)throw Error('TypeScript configuration unavailable');
   const host=ts.createCompilerHost(parsed.options);
-  Object.assign(host,{readFile,fileExists,directoryExists,getDirectories,
-    realpath(file){remember('realpath',file);return ts.sys.realpath(file);},
+  Object.assign(host,{readFile,fileExists,directoryExists,getDirectories,realpath,
     getSourceFile(file,languageVersion,onError){
       const text=readFile(file);return text===undefined?undefined:
         ts.createSourceFile(file,text,languageVersion);
     }});
   const program=ts.createProgram({rootNames:parsed.fileNames,options:parsed.options,
     projectReferences:parsed.projectReferences,host});
-  const files=program.getSourceFiles().map(file=>path.resolve(file.fileName));
-  // Stable answers are necessary even at first capture; a concurrent edit
-  // cannot become the basis for a reusable discovery result.
-  const facts=[...queries.values()];
-  return {files,queries:queriesMatch(facts)?facts:null};
+  return program.getSourceFiles().map(file=>path.resolve(file.fileName));
 }

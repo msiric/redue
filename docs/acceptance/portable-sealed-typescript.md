@@ -281,3 +281,21 @@ Hosted Claude's prior six-check diagnostic stays closed PASS only in its actual
 scope. Copilot included Actions capacity remains pending. No new agent trial,
 cross-machine reuse, staging economics or G1–G4 completion is claimed. Frozen
 alpha.11 artifacts remain distinct, unchanged and unpublished.
+
+## Shared discovery traversal, pending independent review
+
+The sealed-only probe needs observation installed before the first verified TS
+load. `compilerProgramFiles(ts,cwd,forwardingMethods)` extracts the existing
+config/createCompilerHost/createProgram traversal, allowing reuse without another
+input graph. Legacy `compilerFiles` still performs the same raw `queryAnswer`
+and stable `queriesMatch`; denial still throws before ts.sys fallback. This does
+not make API discovery equal to all CLI diagnostics or confer completeness.
+
+Five deterministic fake-compiler controls passed51.09ms after the first VM test
+failed to substitute import.meta in its mock (4PASS/1fixture failure, preserved).
+Affected direct regressions returned12PASS/1missing-fixture failure in35.09s; the
+5.5.2 isolated dependency was absent because direct invocation omitted the
+existing pretest install. Its official locked `npm ci` installed one dependency;
+only that failed case was rerun and passed143.558s. No toolchain substitution,
+options change, model, native seal or new portable authority follows. Independent
+critical-interface review is required before using this helper in sealed probes.
