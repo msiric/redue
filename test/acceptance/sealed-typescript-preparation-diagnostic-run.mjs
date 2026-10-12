@@ -33,7 +33,7 @@ export function collectPreparationDiagnosticFrames(bytes){
  if(!(bytes instanceof Uint8Array)||bytes.length>PREPARATION_DIAGNOSTIC_LIMITS.bytes)
   return {frames:[],complete:false,classification:'OUTPUT_LIMIT_OR_TYPE'};
  let frames=[];
- // Never decode, retain or skip an unvalidated suffix. The bounded prefix is
+ // Never retain, output or skip an unvalidated suffix. The bounded prefix is
  // partial diagnostic evidence only; it can never satisfy completion.
  for(let at=0;at<bytes.length;at++)if(bytes[at]===10){
   try{frames=parsePreparationDiagnosticFrames(bytes.subarray(0,at+1));}catch{break;}

@@ -12,6 +12,39 @@ requires reviewed TS5.5.2 and the existing matched Darwin25.6/ARM64/official
 Node22.13 profile. A local proposal cannot certify that profile or its enforcement.
 Existing commands, user configurations and receipts are unchanged.
 
+## Current checkpoint — instrumented staging deadline; necessary-work review
+
+At 2026-10-12 22:11UTC, one independently reviewed diagnostic at
+87d339b7d1a7897529a755262c564d02c28d684a returned UNKNOWN under the unchanged
+120s preparation cap. The child was SIGKILLed and reaped; zero compiler/model
+executions. Complete128179.497ms includes8070.513ms manifest work. All29 validated
+metric frames are retained, along with the incomplete owned stage. The last
+sample at116047.127ms records14701 stage fsync calls consuming66515.072ms;
+source/boundary lstat calls consume8977.656/10771.335ms. These aggregate syscall
+times identify per-file synchronization as the largest measured operation, not
+all CPU/serialization cost, atomic phase timings or successful preparation.
+Private resultSHA a202900a7d922ea175eb4b45e17e692c96ab3d48a8f29bce523fd60a83f2aa79.
+
+Diagnostic child2bc2b35/driver87d339b have independent reviews c4e7986/a554c1b,
+now integrated. No elapsed-budget increase, omitted content/namespace validation,
+new origin authority or empirical performance improvement follows. A is reviewing
+whether per-file durable synchronization is necessary for this private ephemeral
+stage; C must independently review its claim/crash boundary before any correction
+or changed actual attempt. Existing durable receipt persistence remains untouched.
+
+C also found a synthetic sentinel outcome-erasure defect: a close failure could
+mask a successful prohibited write. A repaired it atbc61c1d; independent review
+is pending. Native stage sealing remains UNKNOWN, with writable mappings and
+exact actual native bindings still required. Closed hosted Claude six-check
+prerequisite is not repeated or promoted to stage enforcement. Copilot included
+Actions capacity remains pending. G1/G2/G3/prepublicationG4 stay incomplete;
+alpha.11 artifacts unchanged/unpublished and origin containment enabled.
+
+Next: finish the independent sentinel and staging-work reviews, implement only a
+justified guard-preserving correction, then complete actual staged namespace and
+native seal prerequisites before model/origin claims. Day0 and72h checkpoint
+remain unchanged; prior failed/UNKNOWN attempts and partial trees are preserved.
+
 ## Concrete implementation and review
 
 - Root integrates `dev/portable-sealed-typescript` from containmentb3b4985 in
