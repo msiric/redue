@@ -1,41 +1,38 @@
 # Bounded native Claude diagnostic proposal
 
-Current conclusion: **six named hosted assertions PASS; full diagnostic UNKNOWN**.
+Current conclusion: **hosted synthetic command-boundary diagnostic PASS**.
 
-Actual hosted [run38252736249](https://github.com/msiric/redue/actions/runs/38252736249)
-on source3e5e946/workflow35a5ddf establishes the six named synthetic assertions
-PASS, checker/native exit0/no signal, two turns and matching tool/result
-`toolu_018MP73qNiKcfBKm69KddWAz`. Independent socket collection matches;
-protocol[1,0,0], controls/source/reaping/cleanup/persistence pass. Collection
-9,380.947ms, complete job27,397ms. Overall UNKNOWN remains: the final guard
-identified ISOLATED_REMOTE_SETTINGS / AFTER_NATIVE. Its bytes were not captured;
-never retrospectively describe that historical cache as empty. Private exact
-report SHA-256 fbb3deb9d7e4d0aabd6f75b0542abe860a3ef6fea8cab4ee9a409c88253f6903.
+Reviewed source49b3f44 and workflowdc9728a completed the single bounded
+[hosted run38257021786](https://github.com/msiric/redue/actions/runs/38257021786)
+with final collection_statusPASS / CHECKER_COLLECTION_COMPLETE. Actual native
+Claude2.1.187 requested the exact Bash collector; matching tool/result
+`toolu_01UKWNfAjf66RLQZgFdcVPAk` and independent socket collection agree. All six
+named synthetic assertions PASS. Checker/native exit0, no signal, two reported
+turns/eight numeric progress frames, protocol[1,0,0], live controls/source/reaping/
+listener cleanup/final persistence pass. Collection7,770.914458ms; complete
+job20,544ms. The strictly validated post cache is EXACT_NATIVE_EMPTY_SENTINEL
+under NATIVE187_FRESH_PRINT_ONE_FETCH_EMPTY_SENTINEL_V1, frozen diagnostic only.
+No protected credential body or raw transcript was read/retained. Private final
+report `.local/portable-evidence/native-diagnostic-38257021786-final.json`,
+SHA-25669f65799ab0e8ab950b44b1bc8e9cc91088d429201e07ce28a9fb38f359bdb3b.
+Normal configured required-review API was used under standing owner authority;
+protections/permissions were not altered or bypassed. No uploads/signing/spending.
 
-Repair49b3f44 (helper SHA-256
-93aa3a0ccc8d92161d6c1b7d898216af0c6c7e3423e01d5e3c43ed40d39fb105)
-retains fresh startup absence and every other source refusal. Only after the
-frozen pinned187 print process exits0/reaps within its bounded lifetime, with
-unchanged source and live controls, may the post guard accept the canonical
-owned0600/single-link/regular two-byte empty sentinel. Missing, malformed,
-nonempty, replaced or unsafe files withhold acceptance. No policy body is parsed
-or published. Full lifetime/source closure is required: one successful preAction
-fetch, failed retries apply no settings, print excludes login callbacks and
-one-hour polling cannot occur within120 seconds. An accepted nonempty policy
-cannot be salvaged into that empty serialized sentinel. This is not a generic
-remote-policy verifier or protection against arbitrary same-user writers.
+Independent critical review8144d7e/root7a3e167 validated the source lifetime
+closure, bounded reader and exact workflow pin;22 independent pure/mock controls
+PASS105.877ms. Root22 controlsPASS99.2ms and affected invocation/guidance16PASS/
+1skip separately. Actual final report review is pending. Previous UNKNOWN results
+retain their exact limited fields, including the earlier uncaptured cache body.
 
-22 pure/mock controls PASS99.2ms; they are not native enforcement. Independent
-critical review is pending before enabling prepared workflowdc9728a,
-SHA-2561171946b2ee119f2c047c7b23422989738a1873dd7994f75dfb1859ba5fac85c.
-Only its source pin changes; permissions/settings/argv/runtime/account/capacity,
-4turn120s/$0 and no-artifact/signing scope remain fixed. Fresh protected metadata
-shows no active diagnostic, secret updated12:38:00Z and unchanged account fact
-11:09:43Z. No repeated owner setup is requested. One delegated public-source task
-hit model capacity; root proceeded sequentially with the existing independent
-reviewer, without capacity bypass. G2/finalG3/G4 remain incomplete; Copilot Actions
-included capacity and a fresh exact signed origin remain separate gates. Day0
-and calibration checkpoint are unchanged. No publication or main merge.
+This closes only the hosted diagnostic's named synthetic operations, not generic
+native security, actual real-credential-body access, portable applicability or
+recipient reuse. G2/finalG3/G4 remain incomplete. The recipient stays disabled
+until its different project/state/probe/controlled-guidance boundary, current
+origin/trust, in-context expected evidence and included capacity are established.
+Copilot Actions4 included AI credits remain owner-confirmation pending; expired
+old signed origin cannot be substituted. Root continues narrow recipient-proposal
+security cleanup/review without model execution. No new owner login/hash action
+is needed for this completed diagnostic. Day0/calibration unchanged; no publication.
 
 [Registration PR14](https://github.com/msiric/redue/pull/14) passed all four checks
 and merged as da6b87f67ae8e80b6ce92a0636fac8a9c11261b7. The dedicated

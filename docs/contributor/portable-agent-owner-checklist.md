@@ -1,6 +1,26 @@
 # Portable evidence: remaining owner setup
 
-## Current native status — no further owner token action requested
+## Current owner actions
+
+The protected Claude account facts, environment, included4turn/120s diagnostic
+capacity and OAuth secret are provisioned. [Hosted diagnostic38257021786](https://github.com/msiric/redue/actions/runs/38257021786)
+completed PASS for its six named synthetic assertions with actual native tool,
+checker/native exit0 and final lifecycle/persistence. Do not repeat login, setup,
+local manual checks or this completed diagnostic. It is not recipient reuse.
+The coordinator is reviewing the separately gated recipient setup; no new
+routine helper/source-pin approval is needed under standing authority.
+
+The unchanged owner-only billing fact is Copilot Actions: confirm whether the
+planned first4 AI credits use included entitlement with $0 additional charges.
+Personal-use approval and account existence are already settled. No PAT,
+credential copying, new account or billing change is requested. This blocks the
+producer model trial only. Fresh producer origin/trust and recipient capacity
+will be consolidated only after a concrete reviewed runnable proposal exists;
+no expired artifact or diagnostic-only approval can stand in for those gates.
+
+## Historical preparation and approvals
+
+## Historical provisioning status — no further owner token action requested
 
 The owner replaced the OAuth secret at2026-10-12T12:38:00Z. Metadata gates pass;
 values were never read. Follow-up [run38250370384](https://github.com/msiric/redue/actions/runs/38250370384)
@@ -97,8 +117,6 @@ No fresh command/hash consent is needed for routine repairs or tests within the
 amendment. Real access, capacity and fail-closed model gates still need evidence.
 The sections below preserve historical attempts and approvals; their earlier
 single-attempt or exact-approval wording does not override this current section.
-
-## Historical preparation and approvals
 
 ### Preserved relocation checkpoint
 

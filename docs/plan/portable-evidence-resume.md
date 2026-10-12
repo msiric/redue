@@ -6,7 +6,41 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current native lane — empty-policy sentinel repair awaiting independent review
+## Current native lane — hosted synthetic command-boundary diagnostic PASS
+
+Reviewed source49b3f44 and workflowdc9728a completed the single bounded
+[hosted run38257021786](https://github.com/msiric/redue/actions/runs/38257021786)
+with final collection_statusPASS / CHECKER_COLLECTION_COMPLETE. Actual native
+Claude2.1.187 requested the exact Bash collector; matching tool/result
+`toolu_01UKWNfAjf66RLQZgFdcVPAk` and independent socket collection agree. All six
+named synthetic assertions PASS. Checker/native exit0, no signal, two reported
+turns/eight numeric progress frames, protocol[1,0,0], live controls/source/reaping/
+listener cleanup/final persistence pass. Collection7,770.914458ms; complete
+job20,544ms. The strictly validated post cache is EXACT_NATIVE_EMPTY_SENTINEL
+under NATIVE187_FRESH_PRINT_ONE_FETCH_EMPTY_SENTINEL_V1, frozen diagnostic only.
+No protected credential body or raw transcript was read/retained. Private final
+report `.local/portable-evidence/native-diagnostic-38257021786-final.json`,
+SHA-25669f65799ab0e8ab950b44b1bc8e9cc91088d429201e07ce28a9fb38f359bdb3b.
+Normal configured required-review API was used under standing owner authority;
+protections/permissions were not altered or bypassed. No uploads/signing/spending.
+
+Independent critical review8144d7e/root7a3e167 validated the source lifetime
+closure, bounded reader and exact workflow pin;22 independent pure/mock controls
+PASS105.877ms. Root22 controlsPASS99.2ms and affected invocation/guidance16PASS/
+1skip separately. Actual final report review is pending. Previous UNKNOWN results
+retain their exact limited fields, including the earlier uncaptured cache body.
+
+This closes only the hosted diagnostic's named synthetic operations, not generic
+native security, actual real-credential-body access, portable applicability or
+recipient reuse. G2/finalG3/G4 remain incomplete. The recipient stays disabled
+until its different project/state/probe/controlled-guidance boundary, current
+origin/trust, in-context expected evidence and included capacity are established.
+Copilot Actions4 included AI credits remain owner-confirmation pending; expired
+old signed origin cannot be substituted. Root continues narrow recipient-proposal
+security cleanup/review without model execution. No new owner login/hash action
+is needed for this completed diagnostic. Day0/calibration unchanged; no publication.
+
+## Historical native lane — empty-policy sentinel repair awaiting independent review
 
 Actual hosted [run38252736249](https://github.com/msiric/redue/actions/runs/38252736249)
 on source3e5e946/workflow35a5ddf establishes the six named synthetic assertions
