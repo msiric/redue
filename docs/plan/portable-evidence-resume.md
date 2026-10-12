@@ -14,7 +14,7 @@ At 2026-10-12 22:11UTC, one independently reviewed diagnostic at
 executions. Complete128179.497ms includes8070.513ms manifest work. All29 validated
 metric frames are retained, along with the incomplete owned stage. The last
 sample at116047.127ms records14701 stage fsync calls consuming66515.072ms;
-source/boundary lstat calls consume8977.656/10771.335ms. These aggregate syscall
+source/boundary lstat calls consume8977.656/10771.335ms. These aggregate recorded filesystem-method
 times identify per-file synchronization as the largest measured operation, not
 all CPU/serialization cost, atomic phase timings or successful preparation.
 Private resultSHA a202900a7d922ea175eb4b45e17e692c96ab3d48a8f29bce523fd60a83f2aa79.
@@ -28,15 +28,31 @@ or changed actual attempt. Existing durable receipt persistence remains untouche
 
 C also found a synthetic sentinel outcome-erasure defect: a close failure could
 mask a successful prohibited write. A repaired it atbc61c1d; independent review
-is pending. Native stage sealing remains UNKNOWN, with writable mappings and
+is completed with disabled-core source GO. Native stage sealing remains UNKNOWN, with writable mappings and
 exact actual native bindings still required. Closed hosted Claude six-check
 prerequisite is not repeated or promoted to stage enforcement. Copilot included
 Actions capacity remains pending. G1/G2/G3/prepublicationG4 stay incomplete;
 alpha.11 artifacts unchanged/unpublished and origin containment enabled.
 
-Next: finish the independent sentinel and staging-work reviews, implement only a
-justified guard-preserving correction, then complete actual staged namespace and
-native seal prerequisites before model/origin claims. Day0 and72h checkpoint
+Reviewed leaf6b530a9 is integrated as5c5b6c9. It omits only ephemeral-stage
+per-file fsync; readback, fchmod, content, alias, membership and ancestor checks
+remain. Independent61 affected +6 adversarial controls passed; integration132
+controls passed498ms. One normal fixed preparation then completed in66570.596ms
+(including9459.249ms manifest),33345 files/340640366bytes, source alias1group/2entries,
+exit0/reaped. It is MATERIALIZED_NOT_SEALED, not CURRENT or native enforcement.
+Private recordSHA f6be47bd48571a9cc0a904fe6043466018e15f6590587694c745fe57415c9828.
+This single successful sample is not a matched performance distribution or causal
+speedup. No durability/recovery claim is added; old stage summaries cannot confer
+restart authority. Actual receipt/state durable persistence is unchanged.
+
+The synthetic sentinel successorbc61 has independent disabled-core GO and36
+integrated mocks. Its full nominal outcome remains UNKNOWN because mapping and
+actual native bindings are incomplete. Root's fixed read-only compiler fixture
+proposalff0c49f has5 pure controls and awaits independent review; it executes
+nothing on construction and does not establish native-agent enforcement.
+
+Next: finish the fixed compiler/mapping boundary review, verify current staged
+membership/namespace, and establish native seal prerequisites before model/origin claims. Day0 and72h checkpoint
 remain unchanged; prior failed/UNKNOWN attempts and partial trees are preserved.
 
 ## Prior checkpoint — reviewed source-alias preparation; actual staging timeout
