@@ -3533,3 +3533,39 @@ route qualifications above remain part of this conclusion. Earlier UNKNOWN
 attempts, including the historical unobserved cache content, stay unchanged.
 No raw transcript/stderr/log was retained, and this reviewer performed no new
 native/auth/model/CI operation or test for this read-only final-evidence audit.
+
+
+### Disabled recipient: shared pinned profile and narrower commands
+
+Independent review of `0b37463446557578e5a4acf7478eb14c819e9f41` confirms
+shared native187 identity and the exact previously reviewed 94 read-only Bash
+heads. The shared metadata leaf has no process/filesystem side effects; its
+exports are frozen and create no circular import. Diagnostic construction is
+unchanged from hosted source49b3f44: settings/assets, arguments, environment,
+limits and grants compare identically. Exact SHA-256 leaves are
+`5feec095db8bbf22ee4fa23082d89ed6824e7b777238e2d0854d53d1e2a4169f`
+(shared profile),
+`a7af09aa23d9a298ea499c12e5a7a60f111aca5a65801d1a3598ba44adde353e`
+(recipient invocation), and
+`f418feefd816a6fc8d2fead5eb9f074aa39d3e8f54646f555aedb2c96596dc1e`
+(diagnostic).
+
+The disabled recipient removes pwd/ls/cat grants, permits only the existing
+literal REDUE status and typecheck-run commands, and adds all reviewed fallback
+family denials, Skill denial and two runner credential-name denials. Existing
+filesystem/network restrictions, configuration-parent replacement blocker,
+matched-host/account/evidence preconditions and unconditional activation
+refusal remain. src/bin do not change. This narrows the proposed task to a
+verification obligation; it does not establish ordinary code inspection/edit
+access, effective VM enforcement or receiving-agent reuse. The frozen diagnostic
+empty-cache rule gains no authority over future ordinary recipient sessions.
+
+On an isolated exact-source archive, pinned Node22.13 independently completed
+31 affected controls:31 PASS,0 failure/skip/cancellation,1059.962959ms. They include
+ordinary owned-fixture CLI writer compatibility, not a native sandbox/model
+trial. Thirteen additional reviewer pure differential checks pass. The initial
+reviewer differential fixture used an unsupported Unicode diagnostic-base suffix
+and was refused with DIAGNOSTIC_BINDING; correcting only that fixture to the
+existing six-alphanumeric contract enabled the comparison. Conclusion: GO for
+this permanently disabled test-only cleanup, without activation, trust, scope
+or release-readiness approval. No native/auth/model/CI operation was performed.
