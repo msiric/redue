@@ -30,18 +30,39 @@ remain unchanged; actual merge-source0b6f865 has treefd1ec204 equal to da0b108.
 This is preparation acceptance, not publicalpha.10 or frozen8695b612. Product
 38196115475 passes macOS535/562 (27skip) and Linux22 523/562 (39skip), Linux24 job
 PASS/count not retained. Windows failed the nested5.5.2 all-suite180s bound and
-an old-npm run120s bound, then the job was cancelled at25minutes. Raw records are
-retained; phase/cause remains unestablished. B owns bounded source/log diagnosis;
-no blind rerun, test weakening or production-deadline increase follows.
+the old-npm case (134144.7ms total, run.status:null; its CLI guard is30s,
+actual failed-command duration/error/signal not retained), then cancellation at
+25minutes. Raw records are
+retained; phase/cause remains unestablished. B a5b3d79/rootf166296 adds opt-in test-only
+owned sibling progress/profile diagnostics; root7/7 controlsPASS89.7ms, default
+environment/assertions and30/45/180s bounds preserved. C656ae06/root26aabbe
+reviews the exact53b6b088 workflow and repairs its reporter to reuse the existing
+bounded reader. One fixed storage-free Windows capture38199273160 passes both
+predeclared cases once: 5.5.2 suite118225.7ms (nested direct107962.3ms), main old-
+receipt29736.0ms. No timeouts reproduced. The reporter retains252 usable phase
+rows across9AVAILABLE files and three TRACE_COUNT_UNKNOWN records; those are
+incomplete evidence, never silently dropped or called full capture. The standalone
+old-receipt trace is capped, so its CLI/probe/checkpoint decomposition is unavailable.
+Its retained progress has15completedCLIcommands, allstatus0/no error/signal;
+converted-direct run5780.4ms. The other capped fixtures cannot be assigned to exact
+nested cases from the suppressed successful child output. Available252rows are
+not the missing compiler decomposition or economics. Underlying cause remainsUNRESOLVED;
+no runtime fix, blind rerun, weaker assertion or longer production deadline follows.
 
 The corrected installed preparation still passes8commands with no local run/import,
 models or native host. Three owned stage prefixes were removed only after absent
 observer locks; checkout/state/history and original failed records remain preserved.
 Artifact usage46active/4,782,339bytes plus224KiB reserve remains below10MiB.
 G2/finalG3/G4 remain incomplete. Day0=2026-10-10 21:24UTC/72h checkpointOct13 21:24UTC
-and$0 limits are unchanged. Next: diagnose the Windows phase with bounded test-only
-instrumentation (B owns fixture/helper interfaces); accept owner-only facts and
-provisioning before the one native diagnostic. No missing gate launches a model.
+and$0 limits are unchanged. Next: retain the one captured non-reproduction and
+its unknown traces; accept owner-only facts and provisioning before the one native
+diagnostic. Do not repeat the unchanged owner request or launch a missing-gate model.
+Owner-only native-policy/quota/OAuth and Copilot Actions-capacity tasks stay blocked
+separately; no other model or new origin/trust/signing action is inferred. The one
+Windows capture is complete and is not to be repeated to seek a favorable sample.
+The current helper source is reviewed da0b108, workflow merge/refda6b87f; later
+root test-diagnostic commits do not silently replace either identity. Task branch
+commits remain separately identified from frozen8695b612/publicalpha.10 bytes.
 
 ## Historical checkpoint — reviewed conditional hosted diagnostic; installed preparation repaired
 

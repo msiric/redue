@@ -3222,3 +3222,20 @@ YAML fixture passed a Buffer instead of a string and failed before controls;
 correcting only that input type passed. No compiler, observer, native, model or CI
 was launched by this reviewer. Conclusion: GO for the one scoped diagnostic;
 retain actual outcomes without attributing the earlier timeouts to host load.
+
+### Actual fixed Windows capture — evidence interpretation
+
+One storage-free job38199273160 on exact workflow398388e/sourcef166296 passed
+both planned cases without retries. The5.5.2 suite took118225.7ms (nested direct
+107962.3ms); the selected5.6.3 old-receipt case took29736.0ms. This does not erase
+the two timeouts and25-minute cancellation in38196115475 or establish a full
+Windows product PASS. B independently analyzed the retained private fixed log:
+12trace files,9AVAILABLE/252projected rows and3TRACE_COUNT_UNKNOWN. The standalone
+old-receipt trace is one capped file; progress still establishes15successfulCLI
+commands/no error/signal and the formerly failing direct-run opportunity5780.4ms.
+Its detailed phases are unavailable. Two other capped files belong to nested5.5.2
+real-direct/old-receipt fixtures collectively, but exact UUID-to-case mapping is
+not retained. Available proxy-reader/startup rows are not a TypeScript-run cost
+profile. Original timeout phase/cause staysUNRESOLVED; no runtime correction,
+longer bound, weaker assertion, repeated job, native/model test or savings claim
+follows. Test diagnostics are opt-in; engine/bin and immutable receipts unchanged.
