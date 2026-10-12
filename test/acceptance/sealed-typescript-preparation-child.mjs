@@ -42,15 +42,24 @@ export async function consumePreparationInput(input){
   // No parse or filesystem work until the stream completed, including EOF.
   return buffer.subarray(0,length);
 }
+// Only the locally produced data primitive supplies this full result. This
+// projection carries audit identities, never raw path/physical arrays or any
+// sealing, namespace or reuse authorization.
+export function summarizePreparationMaterialization(materialization){
+  return {schema:1,interpretation:'redue-typescript-materialization-summary@2',root:materialization.root,
+    sourceManifestDigest:materialization.sourceManifestDigest,materializedManifestDigest:materialization.materializedManifestDigest,
+    fileCount:materialization.sourceFiles.length,
+    physicalDigest:createHash('sha256').update(JSON.stringify(materialization.physical)).digest('hex'),
+    sourceAliasGroupsDigest:materialization.sourceAliasGroupsDigest,sourceAliasGroupCount:materialization.sourceAliasGroups.length,
+    sourceAliasEntryCount:materialization.sourceAliasGroups.reduce((count,group)=>count+group.length,0),
+    bytes:materialization.bytes,identity:materialization.identity,sealed:false,reuseEligible:false};
+}
 async function main(){let response,failed=false;
   try{if(process.argv.length!==2)fail('PREPARATION_ARGUMENTS');const bytes=await consumePreparationInput(process.stdin);
     const options=parsePreparationInput(bytes),materialization=materializeSealedTypeScriptTree(options);
-    const summary={schema:1,interpretation:'redue-typescript-materialization-summary@1',root:materialization.root,
-      manifestDigest:materialization.manifestDigest,fileCount:materialization.files.length,
-      physicalDigest:createHash('sha256').update(JSON.stringify(materialization.physical)).digest('hex'),bytes:materialization.bytes,
-      identity:materialization.identity,sealed:false,reuseEligible:false};
-    response=JSON.stringify({schema:2,ok:true,materialization:summary});if(Buffer.byteLength(response)>PREPARATION_BYTES)fail('PREPARATION_OUTPUT');
-  }catch(error){failed=true;response=JSON.stringify({schema:2,ok:false,reason_code:safeCode(error)});}
+    const summary=summarizePreparationMaterialization(materialization);
+    response=JSON.stringify({schema:3,ok:true,materialization:summary});if(Buffer.byteLength(response)>PREPARATION_BYTES)fail('PREPARATION_OUTPUT');
+  }catch(error){failed=true;response=JSON.stringify({schema:3,ok:false,reason_code:safeCode(error)});}
   process.exitCode=failed?74:0;process.stdout.on('error',()=>{});
   try{await new Promise((resolve,reject)=>process.stdout.write(response+'\n',error=>error?reject(error):resolve()));}catch{process.exitCode=74;}
 }
