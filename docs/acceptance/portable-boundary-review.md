@@ -5286,3 +5286,55 @@ bounded static frame/method/group/number shapes, and retain safe partial metrics
 on killed/failed children without raw stderr. Invalid clocks/reporting or a kill
 stay UNKNOWN; no timeout increase, validation deletion, partial cleanup, sealed
 recipe/current authority or performance benefit is admitted by this source GO.
+
+## Fixed diagnostic driver: final source and mock GO
+
+GO for87d339b7d1a7897529a755262c564d02c28d684a with reviewed child2bc2b35,
+driverSHA9802f27ec436ff3745e25901848d0cd5395bed4e32c9cae1ac9604870e8f3038,
+as one fixed120s instrumented public-project data preparation attempt. The source
+selection/config/revision, current Node/code/ancestor identities/hashes and empty
+owned parent must be current under the existing trusted/quiescent prep boundary.
+No compiler/native agent/model/CI, seal/reuse or origin containment activation
+follows. Failed existing partials remain retained; per-attempt storage bounds
+do not become a cumulative cleanup/quota guarantee.
+
+The driver preserves the fixed sandbox-exec/profile/Node/diagnostic-child argv,
+empty env, remaining120s/SIGKILL and existing8MiB input/output limits. Config
+content/inode and source/parent/Node/code physical ancestry are bound before/after.
+The metrics parser requires exact UTF-8/JSON frames,32frame/64KiB limits, fixed
+groups/methods and finite cumulative five-number tuples. Present counters require
+positive call counts and only read/write methods may report byte totals. Duplicate
+fields, BOM, missing methods, decreasing counts, unknown fields/values, malformed
+suffix or extra frames after final never qualify completion. An incomplete/killed
+stream retains only validated complete prefix rows; invalid suffix bytes are not
+retained/output or skipped to accept subsequent data. Oversize input retains none.
+
+The diagnosticOperationFinished field requires a complete stream, positive PID/
+observed reaping, actual exit0/no signal/error, exact fixed stdout summary/final
+metrics, current bindings and final validated deadline. Overall outcome remains
+UNKNOWN/sealing NOT_TESTED/reuseEligible false even when that narrow field is true.
+All finite normal-parent POSIX signals retain their names; unknown names are
+withheld. Result/frames are deeply frozen before the last validated clock sample;
+exhaustion/reversal/nonfinite time withdraws finished truth and returns null elapsed.
+Raw streams, spawn errors and arbitrary reason values do not leave this boundary.
+
+Independent frozen author suites passed25/25 in106.09ms. Nine independent driver/
+parser VM controls passed9/9 in62.60ms and are retained as
+test/sealed-typescript-preparation-diagnostic-driver.test.mjs; the tracked test
+overlay passed9/9 in62.11ms. Controls cover the fixed route and UNKNOWN authority,
+post-child source/config-content/config-inode/Node-content/Node-inode/code/alias
+mutations, missing/failed/unknown streams, pid0, exact signals, first/final clocks,
+impossible counters, BOM in both streams and safe killed-prefix retention.
+
+Frozenfeb8 controls preserve the prior signal-loss/impossible-counter/final-budget
+counterexamples; a corrected mock finish assertion additionally exposed pid0 and
+stdout-BOM admission. The earlier fixture assertion typo skipped that one check;
+the final retained test checks every failed/missing case. These were unrun driver
+proposal defects, not actual staging timeout causes. The reviewer used only
+in-memory filesystem/profile/spawn/clock mocks and known module source, launching
+no real child/preparer/compiler/native/model/CI operation.
+
+Collected method durations remain diagnostic aggregates with instrumentation and
+unmeasured hashing/JS/serialization costs. They are not total phase wall time,
+an isolated causal explanation, net benefit or preparation/sealed recipe success.
+The unchanged deadline may still produce UNKNOWN with a retained incomplete tree.
