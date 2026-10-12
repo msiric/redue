@@ -6,39 +6,82 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue` worktree on `dev/portable-evidence`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current native lane — hosted synthetic command-boundary diagnostic PASS
+## Current checkpoint — native diagnostic and alpha.11 exact installed mechanics PASS
 
-Reviewed source49b3f44 and workflowdc9728a completed the single bounded
-[hosted run38257021786](https://github.com/msiric/redue/actions/runs/38257021786)
-with final collection_statusPASS / CHECKER_COLLECTION_COMPLETE. Actual native
-Claude2.1.187 requested the exact Bash collector; matching tool/result
-`toolu_01UKWNfAjf66RLQZgFdcVPAk` and independent socket collection agree. All six
-named synthetic assertions PASS. Checker/native exit0, no signal, two reported
-turns/eight numeric progress frames, protocol[1,0,0], live controls/source/reaping/
-listener cleanup/final persistence pass. Collection7,770.914458ms; complete
-job20,544ms. The strictly validated post cache is EXACT_NATIVE_EMPTY_SENTINEL
-under NATIVE187_FRESH_PRINT_ONE_FETCH_EMPTY_SENTINEL_V1, frozen diagnostic only.
-No protected credential body or raw transcript was read/retained. Private final
-report `.local/portable-evidence/native-diagnostic-38257021786-final.json`,
-SHA-25669f65799ab0e8ab950b44b1bc8e9cc91088d429201e07ce28a9fb38f359bdb3b.
-Normal configured required-review API was used under standing owner authority;
-protections/permissions were not altered or bypassed. No uploads/signing/spending.
+Actual hosted native Claude2.1.187 diagnostic
+[38257021786](https://github.com/msiric/redue/actions/runs/38257021786) passed all
+six named synthetic boundary assertions, with matching native tool/result and
+independent socket collection, checker/native exit0 and complete persistence.
+Independent actual-result review1445b52 and source closure7a3e167 are complete.
+This is scoped native diagnostic evidence, not portable applicability or agent reuse.
+Previous UNKNOWN attempts and the local manual checker remain historical records.
 
-Independent critical review8144d7e/root7a3e167 validated the source lifetime
-closure, bounded reader and exact workflow pin;22 independent pure/mock controls
-PASS105.877ms. Root22 controlsPASS99.2ms and affected invocation/guidance16PASS/
-1skip separately. Actual final report review is pending. Previous UNKNOWN results
-retain their exact limited fields, including the earlier uncaptured cache body.
+Controlled Claude guidance now uses a reviewed local memory import, hard-pinned
+shared policy, exact config/state command bindings and an explicit read-only generic
+preflight. Critical review0527a3c covers the closed import/protection/routing boundary;
+57 targeted controls pass with one Windows-only branch skipped locally. The actual
+installed no-model preflight uses preserved b812 candidate and isolated
+`.local/pe-generic-d626`: managed integration intentionally absent, generic guidance
+intact, real observer healthy, selected config/state correct, no receipt and
+UNVERIFIED/non-eligible as expected. Independent806d9f0 classifies that mechanical
+result; no check or model executed. The owned observer is stopped; state/history
+remain. The earlier long-path fixture failed before establishing an observer and
+retains its separate record; its precise stderr was not captured.
 
-This closes only the hosted diagnostic's named synthetic operations, not generic
-native security, actual real-credential-body access, portable applicability or
-recipient reuse. G2/finalG3/G4 remain incomplete. The recipient stays disabled
-until its different project/state/probe/controlled-guidance boundary, current
-origin/trust, in-context expected evidence and included capacity are established.
-Copilot Actions4 included AI credits remain owner-confirmation pending; expired
-old signed origin cannot be substituted. Root continues narrow recipient-proposal
-security cleanup/review without model execution. No new owner login/hash action
-is needed for this completed diagnostic. Day0/calibration unchanged; no publication.
+Prospective unpublished alpha.11 source08307d4 is normally pushed only to
+`dev/portable-native-event-capture`; the signing ref remains unchanged atd04b872.
+Independent source/version gate review2a29e12 passes14 mocked HEAD controls.
+One [exact-package matrix38266596921](https://github.com/msiric/redue/actions/runs/38266596921)
+confirmed registry404 before packing once. Actual filename
+`redue-cli-0.1.0-alpha.11.tgz`, SHA-256
+`f6e368bd8171412b301f3f5dee3ceebea14da3b3418968504a7a49428e5876a0`.
+Owner-local four-file manifest/checksum/source bundle:
+`.local/portable-evidence/candidate-alpha11-08307d4-38266596921`.
+Tarball158970bytes/80files; intended source/docs, Apache-2.0 and executable redue
+verified; independent d7795ed/all80 payload-file agreement confirms source and
+63 unchanged src/bin leaves. The matrix completed PASS on macOS, Linux and native
+Windows. Actual alpha.10→alpha.11 same-prefix upgrades preserve immutable receipts,
+config/state and user text; edited managed content refuses update/removal. Setup
+legitimately returns STALE on all three platforms rather than promising continuity.
+Mac controlled noLib origin and independent same-machine checkout establish
+imported CURRENT/PASS/eligible; cached status is UNVERIFIED/non-eligible, unrelated
+edit preserves imported CURRENT and relevant edit is STALE/non-eligible. The
+recipient executed no compiler. These are scripted mechanical results, not actual
+agent decisions or two-machine reuse. Independent terminal-result review
+a2ee9ff confirms the actual records and these limits. Per-command timings are
+retained, but this run has no matched plain-compiler/transport/model comparison
+and establishes no economic benefit. The three recipient synchronized queries
+took34,375.326/37,567.483/39,013.187ms (n3, mean36,985.332ms). The current
+host-preflight subprocess cap is35,000ms: future in-context gates may timeout
+conservatively. The responsible phase was not established. No deadline, runtime,
+security rule or eligibility requirement was changed to manufacture a pass.
+
+Private structured results in the same bundle: `acceptance.json`, SHA-256
+`f8c3b4ea92137c1b9cf973cff64607519a44b00284fe7513939058c015660418`;
+`macos-installed-mechanics.json`, SHA-256
+`a36dcede5b2a703856ccc5e4cfacbda484241a87908cf1ea65d9faa738f2c674`.
+Raw logs were parsed in memory, not retained; public summaries carry only reviewed
+static fields. The actual ZIP160887bytes fits the224KiB reservation and included
+10MiB limit; one-day retention. The dispatch ledger is COMPLETED_PASS. No candidate
+publication, signing, new trust, account changes or additional model calls.
+The older b812 and frozen8695 artifacts retain separate identities.
+
+G1's separate-checkout technical slice and historical authenticated data-only
+machine route remain evidenced; final G2/G3/G4 are incomplete. Actual portable
+cross-agent/two-machine reuse, final current signed origin/trust/profile, recipient
+model boundary and final alpha.11/actual-agent complete-path economics remain
+unestablished; the earlier frozen8695 measured sample remains historical cost
+evidence, not a saving claim. Copilot Actions'
+first4 AI credits still need the actual included-billing fact; account existence and
+personal-use approval are settled. Claude setup/login/secret and the completed
+native diagnostic need no repetition. The recipient remains disabled and failed
+preconditions launch zero models. External field usage NOT_STARTED.
+
+Day0 remains2026-10-10 21:24UTC; calibration2026-10-13 21:24UTC is a checkpoint,
+not the final goal or a reason to wait. The captured Claude authentication block
+12:26:22→12:38:00UTC is a lane interval, not a fabricated whole-goal blocked total.
+Day14/28 forecasts remain conditional on actual model/final-origin gates. No
+READY_FOR_OWNER_RELEASE_REVIEW or public-alpha completion is claimed.
 
 ## Historical native lane — empty-policy sentinel repair awaiting independent review
 
