@@ -40,10 +40,20 @@ Independent source/mocks review4b70ff6 and actual-pair reviewcca04b2 are integra
 
 Next: complete reviewed sealed-only FS observation before first TS load under the
 same restricted view. A owns that test-only leaf; root owns shared interfaces;
-C independently reviews critical boundaries. A fixed mapping source has compiled
-into a pinned local binary only; its exact restricted fixture awaits review and
-has not executed. Actual native stage enforcement, compiler namespace completeness
-and portable origin authority remain unestablished.
+C independently reviews critical boundaries. The first local mapping fixture remains UNKNOWN: fresh-file preconditionEINVAL,
+no mapping assertions. Primary XNU source independently identifies a conflicting
+O_NOFOLLOW_ANY|O_NOFOLLOW pair; the reviewed correction retains all-component
+O_NOFOLLOW_ANY. It changes no permissions or identity assertions. A changed fixed
+kernel-only fixture then observed all seven expected classifications: real RW
+MAP_SHARED change/restore in the permitted workspace; staged writable-descriptor
+EPERM; readonly-descriptor mprotect/mapEACCES; preserved bytes/identity and closed
+handles. Complete442.304ms/exit74/reaped; globalUNKNOWN and all authorityfalse.
+RecordSHA2ffd49d880f1c14302739fabe8dbc9613e0f7a5beb6269bd6eba949f8d79d813;
+outerACKSHA2dff05c850b1deaf07e04a8d94c67acd04e73fd77b1312ecfe9361c1e4553c4f.
+This local kernel mechanism is not the native-agent boundary, a seal or a proof
+of no inherited writable handles. Earlier UNKNOWN has no retroactive phase cause.
+Actual native stage enforcement, compiler namespace completeness and portable
+origin authority remain unestablished.
 Closed hosted Claude prerequisite stays scopedPASS; Copilot included Actions
 capacity remains pending. G1/G2/G3/prepublicationG4 remain incomplete. Existing
 origin containment, alpha.11 frozen bytes/unpublished status, receipts and prior
