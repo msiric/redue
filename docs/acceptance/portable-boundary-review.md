@@ -5676,3 +5676,31 @@ retroactively identify the c2b mismatch, establish continuous stability, weaken
 namespace/physical protection or grant a seal, receipt or reuse authority. Saved
 observations still need the matching final outer acknowledgement; failures remain
 UNKNOWN and no normalization can replace the original strict guard.
+
+
+## Instrumented fixed snapshot route: original admission retained
+
+GO for exact private harnessSHAc630fe0d50925979d6d241b064ac1855028593082332bca0a44ae45854837128,
+one changed fixed local read-only snapshot dispatch under unchanged30s/1MiB and
+profile/argv/cwd/environment. Its diff returns code and stage physical rows only
+internally, adds ten fixed equality booleans and preserves the original ordered-
+code digest, stage manifest/full physical and runtime-parent conjunction. Sorted
+multiset and file/link/directory projections cannot admit a run when that strict
+conjunction fails. No raw rows, paths, inode/timestamp values, bodies or environment
+are added to equality reporting. Historical preparation provenance and false
+live-source/native/seal/reuse claims remain unchanged.
+
+Seven independent VM controls passed7/7 in50.74ms: bounded Boolean/privacy
+projection and narrow candidate, order-only difference still UNKNOWN, directory
+metadata/duplicate refusal, stage-file physical versus link/directory separation,
+runtime mismatch/failed spawn/nonzero exit UNKNOWN, invalid/late clock and
+persistence/close failure. Private source and fixed mocked controls are archived
+under the reviewer's instrumented-snapshot-c630 evidence directory; no private
+host-specific harness or paths are added to tracked source. No real compiler,
+preparer, native agent, model, filesystem guard collection or CI ran in review.
+
+The earlier no-dispatch pair being all true establishes only its own sampled
+collections, not the cause of prior c2b UNKNOWN or an origin interval. Matching
+final outer acknowledgement remains required. Any route-zero result is still
+NOT independently acknowledged compiler execution, namespace equivalence,
+stable native seal, receipt or reuse authority.
