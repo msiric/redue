@@ -3727,3 +3727,40 @@ Local registry failures remain unavailable/unknown with no asserted TLS or auth
 cause. Conclusion: GO for normal source preparation and one accounted matrix,
 not publication, current registry availability, alpha11 platform PASS or G4
 completion. No native/auth/model/CI operation occurred in this review.
+
+
+### Actual alpha11 candidate: preserved packed bytes
+
+Independent read-only archive inspection of the candidate from run38266596921
+confirms `redue-cli-0.1.0-alpha.11.tgz`, SHA-256
+`f6e368bd8171412b301f3f5dee3ceebea14da3b3418968504a7a49428e5876a0`,
+158970 compressed bytes,80 regular payload files/588965 unpacked bytes. The
+manifest coordinate, filename, size, file list and per-file sizes, SHA1/SHA512
+integrity and SHA256SUMS agree. source.txt binds
+`08307d4ccf5a43d2339c4cb634dd0129c0fcc964`; all80 payload files compare exactly
+with that source commit. Four transferred files total167730 bytes, below192KiB.
+Package license is Apache-2.0. No private state/test/dependency artifact paths or
+owner absolute-path content are present. Tar content was inspected in memory,
+without extraction, installation or execution.
+
+The preserved b812 alpha10 candidate independently still hashes to b812.
+Only package.json and CHANGELOG.md payload bytes differ; all63 src/bin leaves
+are identical. The candidate remains unpublished and distinct from b812 and the
+published/frozen8695 alpha10 package. The coordinator reports successful unused-
+version/pack and Linux installation at this checkpoint; Mac/Windows are still
+pending. This audit does not manufacture their terminal results or a whole-matrix
+PASS, and the earlier local registry failures remain historical.
+
+The pending matrix covers exact installed ordinary CLI, managed Codex/Claude
+instruction update/removal safeguards, real same-prefix alpha10 upgrade with
+config/state/immutable history preservation, and a Mac same-host portable
+record/export/manual import/unrelated/STALE sequence. It does not run models,
+a two-machine receiving agent, authenticated final-origin acceptance or the
+optional complete economics sequence. Final G1–G3 demonstration on the documented
+implementation/profile, exact alpha11 end-to-end binding, truthful claims,
+independent critical review and owner-approved publication/public-byte/install/
+tag verification remain release requirements. Earlier frozen8695 costs and data-
+only/native diagnostic evidence retain their own identities and limits. External
+participation remains a disclosed field-validation gap, not fabricated acceptance.
+No new test, registry request, native/auth/model/CI operation or package mutation
+was performed by this reviewer.
