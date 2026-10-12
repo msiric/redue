@@ -4580,3 +4580,74 @@ succeed. A passing single fixture would not establish a note for every later
 CPU store: EV_CLEAR clears event state, not mapped-page protections or pageout
 scheduling. Arbitrary mapped change/restore completeness and @3 ordinary
 contract acceptance remain unproved; no assertion or resource scope is weakened.
+
+### Corrected vnode fixture exposes mapped-input interval gap
+
+Independent read-only review accepts actual run38295197761, source
+`3768433fd3942fadc54e104cd639045baf18116c`, protected result SHA256
+`20b0ce266eb13ead254ff083851c5c945576a89e1358dd188dcf464b5bbefd39`.
+All six fixed cases completed. Read-only stays quiet; membership target0,
+ancestor parent2, hardlink leaf1 and root-rename target3 have expected occurrences.
+The already-dirty MAP_SHARED case actually observes B bytes and restored A while
+the mapping stays open through its after barrier, but serial remains3 and leaf1
+count remains1. Its expected-scope assertion fails. Result/assertion_outcome are
+FAIL, not UNKNOWN and not repaired by later events or cleanup.
+
+A precision correction: after root rename the vector is `[1,1,2,1]`. Leaf1 is
+still1; fixture-parent2 rises1→2 and root3 rises0→1, giving serial5. There is no
+late leaf occurrence in the report to attribute to mmap. The first coordinator
+summary misread the parent count as the leaf count; the actual JSON is preserved.
+Both children actually exit0/no signal, are reaped and protocol-clean; owned
+cleanup is true. Elapsed2034.906ms is diagnostic duration, not economics. Native
+source is f914 and actual executable SHA256
+`17d58b9f67260dc04f80cbab4084791d561e99202af61103c7afc1aeb52833c5`,
+62,680 bytes, clang21.0.0. There are no verification/compiler/model executions;
+the native build is separately recorded. No further unchanged FSEvents/vnode
+experiments, delay workaround or weaker assertion is justified.
+
+This is an actual missed mutation on the fixed protected nonsensitive fixture,
+not an actual wrapped REDUE false-CURRENT or affected released-user reproduction.
+It establishes NO-GO for this vnode primitive as unrestricted consumed-file
+continuous authority and for ordinary @3 completeness. Positive directory/
+hardlink cases remain finite observations and do not rescue the mapped case.
+
+A source-only review also extends the concern to existing unreleased @2 origin
+claims, including controlled noLib inputs inside checkout. src/cli.mjs starts
+with a healthy observer snapshot, captures portable facts separately before the
+real compiler, captures facts separately afterward, then checks the end snapshot,
+manifest/context/probe equality, generation/plan/revision/fingerprint and input
+event serial. Its portable.complete additionally requires exited PASS/FAIL, no
+portableIssue, stable and identical boundary facts. Those facts are independent
+discovery captures, not a transcript of verification reads. src/daemon.mjs
+catchUp replays @parcel history; failed-history reconciliation hashes current
+endpoints. Neither path establishes how to recover an unreported mapped A→B→A
+from equal endpoints. The current capture prerequisites contain no exclusion or
+isolation proof for an already-dirty mapping. Disabling default libraries changes
+resolution scope, not this in-root consumed-file issue.
+
+This source concern does not prove a specific historic signed run or local
+receipt was false. Its successful outcomes, authentication, exact bytes and
+recorded decision fields remain historical evidence. The mapped fixture does not
+measure the wrapped engine's replay, so no new released defect or reproducer is
+asserted. It does show that health/endpoint equality alone cannot substantiate
+unrestricted continuous-origin semantics under current prerequisites.
+
+The smallest separately reviewable conservative containment is portable-only
+capability refusal while this matched-profile interval contract is unsupported:
+new origins remain complete=false with an explicit unsupported-interval reason;
+current reuse admission must also require locally supported origin semantics
+before reauthorizing existing accepted @2 records. Preserve immutable receipts,
+statements and historical PASS/FAIL; do not rewrite signed facts, relax trust or
+suppress ordinary compiler execution. This recommendation is not an implemented
+fix and does not solve broader local CURRENT semantics by itself. It introduces
+no new execution architecture, body authority or @3 acceptance.
+
+Unblocked necessary work is truthful current documentation and deterministic
+controls for that containment. If the reviewed runtime-cache84ed candidate stays
+selected, its outstanding Linux/Windows exact-byte checks can use the existing
+frozen bundle rather than a repack or repeated Mac performance profile. Cold
+37.602s remains above unchanged35s and is not fixed. Copilot included-capacity
+input and a sound portable-origin route still gate G2; actual native six-assertion
+PASS is only its bounded host prerequisite. General interval/ordinary acceptance
+and publication remain incomplete. The reviewer ran no new compiler, event fd,
+stream, native agent, model or CI operation for this actual/source review.
