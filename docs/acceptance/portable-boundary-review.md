@@ -2931,3 +2931,23 @@ arbitrary callback-child reaping or run a changed executable to obtain cleanup.
 Conclusion: GO for this bounded test-helper lifecycle extraction, with those
 limits and the permanently disabled native receiver retained. No G2/G4 or
 receiving-agent reuse is established by this review.
+
+The related disabled-proposal correction5414fec adds only exact write denials
+for public redue.config.json, compiled project-runtime-v1.json and the existing
+vstate-owner-v1.json declaration. All old read/write denials remain; project/state
+write grants and socket/network scope are unchanged. None of those declarations
+is made unreadable to the normal CLI. The new explicit
+MATCHED_VM_CONFIGURATION_PARENT_REPLACEMENT_NOT_VERIFIED blocker and permanently
+refusing activation preserve the unresolved actual native parent-replacement
+and enforcement gates; the constructor does not claim that leaf rules alone
+protect a writable parent.
+
+Seven selected pure controls pass independently in54.21ms on pinned Node22.13.
+The new ordinary CLI compatibility fixture was source reviewed and was not run
+by this reviewer. Its author reports an owned, read-only-file cached/synchronized
+status check preserving config/runtime/owner bytes and physical identities with
+no recorded check; that demonstrates writer compatibility, not native sandbox
+enforcement. It retains all status/identity assertions and scoped cleanup, with
+Windows explicitly unsupported for that POSIX fixture. Conclusion: GO for the
+additive disabled data proposal only. No host settings, VM, model, observer or
+credential operation was performed by this reviewer for this correction.
