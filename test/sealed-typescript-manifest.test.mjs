@@ -23,9 +23,9 @@ test('unlisted, external and chained nested shims do not gain a declared input',
   fs.mkdirSync(path.dirname(path.join(root,shim)),{recursive:true});
   fs.symlinkSync('/dev/null',path.join(root,shim));
   assert.throws(()=>sealedTypeScriptManifest(root,{[shim]:'a'.repeat(64)}),{code:'PORTABLE_SYMLINK'});
-  fs.unlinkSync(path.join(root,shim));fs.symlinkSync('../missing.js',path.join(root,shim));
+  fs.unlinkSync(path.join(root,shim));fs.symlinkSync('../tool/missing.js',path.join(root,shim));
   assert.throws(()=>sealedTypeScriptManifest(root,{[shim]:'a'.repeat(64)}),{code:'PORTABLE_COVERAGE_UNSUPPORTED'});
-  const alias='node_modules/example/node_modules/alias.js';fs.symlinkSync('../missing.js',path.join(root,alias));
-  fs.unlinkSync(path.join(root,shim));fs.symlinkSync('../alias.js',path.join(root,shim));
+  const alias='node_modules/example/node_modules/tool/alias.js';fs.mkdirSync(path.dirname(path.join(root,alias)));fs.symlinkSync('../missing.js',path.join(root,alias));
+  fs.unlinkSync(path.join(root,shim));fs.symlinkSync('../tool/alias.js',path.join(root,shim));
   assert.throws(()=>sealedTypeScriptManifest(root,{[shim]:'a'.repeat(64),[alias]:'b'.repeat(64)}),{code:'PORTABLE_SYMLINK'});
 });
