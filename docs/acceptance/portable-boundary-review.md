@@ -5439,3 +5439,22 @@ any fixture launch. These are unexecuted proposal gaps, not actual host failures
 A launch also needs fresh full stage/source/config/runtime/parent bindings,
 fixed stage cwd/argv/validated environment, bounded output and observed child
 reaping. No compiler, native-agent or model was launched by this review.
+
+
+## Staged compiler profile: principal repair source GO
+
+GO for exact2d39c876bc9a9d4e9f156aa77174b34325de233b as a read-only test
+profile constructor. It now requires nonroot UID and matching real/effective UID
+and GID and refuses either Node setid bit. Five archived exact VM controls and
+one independent former-countercase control (effective UID, effective GID, setuid,
+setgid) passed. The combined TAP has11 tests because the independent file repeats
+five baseline controls; it is not11 unique independent tests. Duration62.70ms.
+The earlier ff0c construction countercases remain preserved as development
+findings, not host execution defects.
+
+No compiler launch is admitted by construction alone. Fresh full source/stage/
+config/runtime/parent bindings, exact stage cwd/argv/validated environment,
+bounded supervision/output and observed reaping remain required for the fixed
+read-only fixture. Native-agent enforcement, absence/alias topology equivalence,
+origin intervals, sealing and reuse stay unverified. In particular, sandbox
+outside-lookup EPERM cannot be silently reinterpreted as original ENOENT.
