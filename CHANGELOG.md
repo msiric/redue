@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.0-alpha.11 — unreleased portable-evidence candidate
+
+- Add explicit export, inspection and import for the bounded direct-TypeScript
+  contract. Evidence is a historical execution record; the recipient independently
+  establishes applicability using its own inputs, context and healthy observation.
+- Keep producer acceptance separate from import and enforce integrity, complete
+  origin facts, conflicting evidence and newer local outcome protections. Never
+  copy observer state or execute artifact-provided commands.
+- Provide a reviewed authenticated CI producer/artifact route and conservative
+  compatibility and installed onboarding guidance. Normal local receipts, commands
+  and explicit fresh-verification obligations remain available.
+- Two-machine data-only applicability and the hosted native Claude synthetic
+  command-boundary diagnostic have passed separately. Actual two-agent/two-machine
+  reuse and complete portable-workflow economics remain pending; no universal
+  portability, agent compliance or net time-saving claim is made.
+- This candidate is not published. Release remains gated by REDUE-PE-001 and
+  owner approval; installing it must not automatically upgrade the fixed pilot.
+
 ## 0.1.0-alpha.10 — 2026-10-10
 
 - Combine guarded caller-discovery reuse and cheaper non-reusable recording on
