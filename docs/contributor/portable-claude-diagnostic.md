@@ -1,17 +1,41 @@
 # Bounded native Claude diagnostic proposal
 
-This native route has **six actual synthetic assertions PASS / overall UNKNOWN**:
-[latest run38251411464](https://github.com/msiric/redue/actions/runs/38251411464).
-Actual native tool/result and independent socket reports agree; checker and native
-exit0/no signal, two turns, unchanged source/live controls and cleanup/persistence
-all pass. The final startup-source absence guard still refuses because a protected
-path appeared after the native run. Its fixed role was not captured. Do not waive
-this refusal, infer benign cache/policy contents or count this as recipient reuse.
+Current conclusion: **six named hosted assertions PASS; full diagnostic UNKNOWN**.
 
-A metadata-only fixed-role/phase repair3e5e946 is under independent review. It
-reads no bodies and preserves every guard. No further token or owner setup is
-requested; root continues bounded diagnosis under standing authority. Historical
-attempts retain their exact UNKNOWN fields. Security/resource scope is unchanged.
+Actual hosted [run38252736249](https://github.com/msiric/redue/actions/runs/38252736249)
+on source3e5e946/workflow35a5ddf establishes the six named synthetic assertions
+PASS, checker/native exit0/no signal, two turns and matching tool/result
+`toolu_018MP73qNiKcfBKm69KddWAz`. Independent socket collection matches;
+protocol[1,0,0], controls/source/reaping/cleanup/persistence pass. Collection
+9,380.947ms, complete job27,397ms. Overall UNKNOWN remains: the final guard
+identified ISOLATED_REMOTE_SETTINGS / AFTER_NATIVE. Its bytes were not captured;
+never retrospectively describe that historical cache as empty. Private exact
+report SHA-256 fbb3deb9d7e4d0aabd6f75b0542abe860a3ef6fea8cab4ee9a409c88253f6903.
+
+Repair49b3f44 (helper SHA-256
+93aa3a0ccc8d92161d6c1b7d898216af0c6c7e3423e01d5e3c43ed40d39fb105)
+retains fresh startup absence and every other source refusal. Only after the
+frozen pinned187 print process exits0/reaps within its bounded lifetime, with
+unchanged source and live controls, may the post guard accept the canonical
+owned0600/single-link/regular two-byte empty sentinel. Missing, malformed,
+nonempty, replaced or unsafe files withhold acceptance. No policy body is parsed
+or published. Full lifetime/source closure is required: one successful preAction
+fetch, failed retries apply no settings, print excludes login callbacks and
+one-hour polling cannot occur within120 seconds. An accepted nonempty policy
+cannot be salvaged into that empty serialized sentinel. This is not a generic
+remote-policy verifier or protection against arbitrary same-user writers.
+
+22 pure/mock controls PASS99.2ms; they are not native enforcement. Independent
+critical review is pending before enabling prepared workflowdc9728a,
+SHA-2561171946b2ee119f2c047c7b23422989738a1873dd7994f75dfb1859ba5fac85c.
+Only its source pin changes; permissions/settings/argv/runtime/account/capacity,
+4turn120s/$0 and no-artifact/signing scope remain fixed. Fresh protected metadata
+shows no active diagnostic, secret updated12:38:00Z and unchanged account fact
+11:09:43Z. No repeated owner setup is requested. One delegated public-source task
+hit model capacity; root proceeded sequentially with the existing independent
+reviewer, without capacity bypass. G2/finalG3/G4 remain incomplete; Copilot Actions
+included capacity and a fresh exact signed origin remain separate gates. Day0
+and calibration checkpoint are unchanged. No publication or main merge.
 
 [Registration PR14](https://github.com/msiric/redue/pull/14) passed all four checks
 and merged as da6b87f67ae8e80b6ce92a0636fac8a9c11261b7. The dedicated
