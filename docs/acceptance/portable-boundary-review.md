@@ -5951,3 +5951,15 @@ script regex before API load. No actual attempt is authorized from this review
 until its minimal data-identifier successor and the exact bounded/currentness/
 parser/publication parent have been reviewed. Colon is potentially safe as
 structured script lookup data; it must not introduce a shell/npm invocation.
+
+
+Source-only successor GO a3bbad5a9bb5fe2cfca25929ccbd7f598663692d changes ONLY
+the bounded ASCII script metadata regex to admit colon. A's pre-comment-merge
+helperSHA7d944cf05daf62dd97de770e4e4004a09262392e1d27514a110d62eb3bd528d6
+is separately identified from root's prior comment clarification. Independently
+25/25 fake controls passed191.91ms, including actual selected test:types and14
+unsafe/non-scalar/oversized names refused before admission/load. The script is
+structured lookup data only: directProject still requires exact tsc --noEmit
+and absent pre/post hooks, with no shell/npm/extra command route. Every other
+probe guard and all false-authority contracts remain unchanged. This closes the
+static identifier mismatch, not the pending exact parent-launch review.
