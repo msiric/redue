@@ -37,6 +37,11 @@ test('source or destination ancestor aliases and overlapping placement refuse',s
   const alias=path.join(f.base,'alias');fs.symlinkSync(f.parent,alias);assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:alias,manifest}),{code:'TREE_PATH'});
   fs.chmodSync(f.parent,0o755);assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest}),{code:'TREE_OWNERSHIP'});
 }));
+test('physical case-alias containment is rejected even if lexical paths differ',supported,()=>withFixture(f=>{
+  f.write('a.ts');const inside=path.join(f.root,'private-stage');fs.mkdirSync(inside,{mode:0o700});const alias=path.join(f.base,'PROJECT','private-stage');
+  if(!fs.existsSync(alias))return;assert.equal(fs.statSync(alias).ino,fs.statSync(inside).ino);
+  assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:alias,manifest:f.rows(['a.ts'])}),{code:'TREE_PLACEMENT'});assert.deepEqual(fs.readdirSync(inside),[]);
+}));
 test('source digest mismatch fails before any stage exists',supported,()=>withFixture(f=>{f.write('a.ts');assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest:[['a.ts','a'.repeat(64)]]}),{code:'TREE_DIGEST'});assert.deepEqual(fs.readdirSync(f.parent),[]);}));
 test('dedicated parent must be fresh and preserves preexisting owner files',supported,()=>withFixture(f=>{f.write('a.ts');fs.writeFileSync(path.join(f.parent,'owner-file'),'preserve');assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest:f.rows(['a.ts'])}),{code:'TREE_PARENT_OCCUPIED'});assert.equal(fs.readFileSync(path.join(f.parent,'owner-file'),'utf8'),'preserve');}));
 test('source hardlinks/special permission bits and non-file objects are conservative',supported,()=>withFixture(f=>{
@@ -77,6 +82,29 @@ test('file/count bounds reject before materialization without copying sparse ove
   const file=f.write('large');const fd=fs.openSync(file,'r+');try{fs.ftruncateSync(fd,TYPESCRIPT_TREE_LIMITS.fileBytes+1);}finally{fs.closeSync(fd);}
   assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest:[['large','a'.repeat(64)]]}),{code:'TREE_LIMIT'});
   assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest:new Array(TYPESCRIPT_TREE_LIMITS.files+1)}),{code:'TREE_MANIFEST'});assert.deepEqual(fs.readdirSync(f.parent),[]);
+}));
+test('failure retains partial stages and never invokes recursive pathname cleanup',supported,()=>withFixture(f=>{
+  f.write('a.ts');const manifest=f.rows(['a.ts']);let changed=false,removals=0;
+  patch('rmSync',original=>(...args)=>{removals++;return original(...args);},()=>
+    patch('fsyncSync',original=>fd=>{original(fd);if(!changed){changed=true;const stage=fs.readdirSync(f.parent)[0];fs.writeFileSync(path.join(f.parent,stage,'a.ts'),'changed');}},()=>
+      assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest}),{code:'TREE_DIGEST'})));
+  assert.equal(removals,0);assert.equal(fs.readdirSync(f.parent).length,1);
+}));
+test('final stage enumeration uses bounded iterator reads, never bulk readdir',supported,()=>withFixture(f=>{
+  f.write('a.ts');f.write('nested/b.ts');const manifest=f.rows(['a.ts','nested/b.ts']);let iteratorReads=0;
+  patch('readdirSync',()=>()=>{throw Error('BULK_DIRECTORY_FORBIDDEN');},()=>
+    patch('opendirSync',original=>(file,...args)=>{const directory=original(file,...args),read=directory.readSync.bind(directory);directory.readSync=()=>{iteratorReads++;return read();};return directory;},()=>{
+      const result=materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest});assert.deepEqual(result.files,manifest);
+    }));assert(iteratorReads>0);
+}));
+test('ancestor checks detect but do not isolate an outside read during hostile alias restoration',supported,()=>withFixture(f=>{
+  const file=f.write('sub/a.ts','original input\n'),manifest=f.rows(['sub/a.ts']),sub=path.dirname(file),outside=path.join(f.base,'outside');fs.mkdirSync(outside);fs.writeFileSync(path.join(outside,'a.ts'),'NONSECRET outside canary\n');
+  let lstats=0,swapped=false,outsideFd=null,seen=false;
+  patch('lstatSync',original=>(target,...args)=>{if(target===file&&++lstats===2){fs.renameSync(sub,sub+'.saved');fs.symlinkSync(outside,sub);swapped=true;}return original(target,...args);},()=>
+    patch('openSync',original=>(target,...args)=>{const fd=original(target,...args);if(target===file&&swapped){outsideFd=fd;fs.unlinkSync(sub);fs.renameSync(sub+'.saved',sub);swapped=false;}return fd;},()=>
+      patch('readSync',original=>(fd,buffer,...args)=>{const count=original(fd,buffer,...args);if(fd===outsideFd&&count>0&&buffer.subarray(0,count).toString().includes('NONSECRET outside canary'))seen=true;return count;},()=>
+        assert.throws(()=>materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest}),{code:'TREE_CHANGED'}))));
+  assert.equal(seen,true,'preserved limitation: leaf is not a hostile-writer read sandbox');assert.deepEqual(fs.readdirSync(f.parent),[]);
 }));
 test('uses the existing portableManifest representation on both original and fresh copy',supported,async()=>{
   const {portableManifest}=await import('../src/portable-facts.mjs'),{fileHash}=await import('../src/index.mjs');

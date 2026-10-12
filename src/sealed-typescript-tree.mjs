@@ -2,6 +2,9 @@
 // Fresh inodes and ownership do NOT seal this tree against same-UID writers.
 // Internal caller MUST independently derive this manifest from local inputs;
 // an imported manifest is never execution or filesystem authority.
+// Requires a trusted, quiescent PRE-AGENT preparation phase and a separately
+// reviewed preparer filesystem boundary. Path/fingerprint checks detect races;
+// they are NOT atomic read confinement or credential/privacy isolation.
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
@@ -72,6 +75,10 @@ function materialize(options){
   const selected=exactOptions(options),root=absolute(selected.root),parent=absolute(selected.parent),rows=manifestRows(selected.manifest),manifest=new Map(rows);
   if(withinPath(parent,root)||withinPath(root,parent))fail('TREE_PLACEMENT');
   const rootParents=directories(root),parentParents=directories(parent),rootStat=fs.lstatSync(root,{bigint:true}),parentStat=fs.lstatSync(parent,{bigint:true});
+  // Case aliases (and other existing physical aliases) can defeat lexical
+  // containment even when realpath preserves their spelling.
+  const containsPhysical=(rows,stat)=>rows.some(([,id])=>id.split(':').slice(0,2).join(':')===identity(stat));
+  if(containsPhysical(parentParents,rootStat)||containsPhysical(rootParents,parentStat))fail('TREE_PLACEMENT');
   if(rootStat.uid!==uid()||parentStat.uid!==uid()||(parentStat.mode&0o777n)!==0o700n)fail('TREE_OWNERSHIP');
   if(!onlyChild(parent,null))fail('TREE_PARENT_OCCUPIED');sameDirectories(parentParents);
   const source=[];let bytes=0;for(const [rel,digest] of rows){const file=path.join(root,rel),stat=fs.lstatSync(file,{bigint:true});
@@ -98,16 +105,23 @@ function materialize(options){
       const copied=shim(stage,record.rel,record.digest,manifest);if(sourceIdentities.has(copied.identity))fail('TREE_CHANGED');destination.push({rel:record.rel,digest:record.digest,...copied});}
     for(const record of source)recheck(record);for(const record of destination){recheck(record);if(record.target===undefined)inspectFile(record.file,record.digest);else shim(stage,record.rel,record.digest,manifest);}
     sameDirectories(rootParents);checkStage();
-    // Enumerate only the newly owned stage, so extras cannot be called a copy.
-    const actual=[];const walk=directory=>{for(const name of fs.readdirSync(directory)){const file=path.join(directory,name),stat=fs.lstatSync(file,{bigint:true});if(stat.isDirectory()){
-          if(!madeDirectories.has(file)||actual.length+madeDirectories.size>TYPESCRIPT_TREE_LIMITS.files+TYPESCRIPT_TREE_LIMITS.directories)fail('TREE_CHANGED');walk(file);
-        }else{actual.push(path.relative(stage,file).split(path.sep).join('/'));if(actual.length>rows.length)fail('TREE_CHANGED');}}};walk(stage);actual.sort();
+    // Bounded enumeration only; never allocate an unbounded directory listing.
+    const actual=[];let entries=0,directoryCount=0;const walk=directory=>{const opened=fs.opendirSync(directory);try{let entry;
+      while((entry=opened.readSync())!==null){
+        if(++entries>TYPESCRIPT_TREE_LIMITS.files+TYPESCRIPT_TREE_LIMITS.directories)fail('TREE_LIMIT');
+        const file=path.join(directory,entry.name),stat=fs.lstatSync(file,{bigint:true});if(stat.isDirectory()){
+          if(++directoryCount>TYPESCRIPT_TREE_LIMITS.directories)fail('TREE_LIMIT');if(!madeDirectories.has(file))fail('TREE_CHANGED');walk(file);
+        }else{const rel=path.relative(stage,file).split(path.sep).join('/');if(!manifest.has(rel)||actual.length>=rows.length)fail('TREE_CHANGED');actual.push(rel);}
+      }
+    }finally{opened.closeSync();}};walk(stage);actual.sort();
     if(canonical(actual)!==canonical(rows.map(([rel])=>rel)))fail('TREE_CHANGED');checkStage();checkDirectories();for(const record of destination)recheck(record);
     return freeze({schema:1,interpretation:'redue-typescript-materialization@1',root:stage,manifestDigest:hash(canonical(rows)),files:rows,bytes,
       identity:stageId,physical:destination.sort((a,b)=>a.rel<b.rel?-1:a.rel>b.rel?1:0).map(record=>[record.rel,record.identity,record.fingerprint]),sealed:false,reuseEligible:false});
   }catch(error){
-    // Refuse ambiguous ownership instead of deleting another writer's tree.
-    if(stage&&stageId)try{checkStage();checkDirectories();for(const record of destination)recheck(record);fs.rmSync(stage,{recursive:true});}catch{/* Private partial tree retained for owner inspection. */}
+    // Always retain a failed partial stage. A pathname-based recursive cleanup
+    // could cross a replaced ancestor after its last validation. The caller
+    // must inspect/reclaim remnants separately under its reviewed ownership
+    // boundary; these byte limits are per attempt, not a cumulative disk quota.
     if(error?.code?.startsWith('TREE_'))throw error;fail('TREE_UNAVAILABLE');
   }
 }
