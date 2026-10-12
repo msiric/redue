@@ -53,7 +53,8 @@ export function classifySealedTypeScriptNamespace(options){
       // This hash binds JSON.stringify(UTF8 text), unlike the raw-byte SHA in
       // configs/files and the typed mode/content hash in portableManifest.
     }else if(kind==='realpath'){
-      if(answer!==null)reference(answer,'realpath-answer',refs);else negative.push({index,kind,...target,answer});
+      if(answer!==null){reference(answer,'realpath-answer',refs);if(answer!==file)reasons.add('ALIAS_TOPOLOGY_REQUIRES_LOCAL_VALIDATION');}
+      else negative.push({index,kind,...target,answer});
     }else if(kind==='directories'||kind==='entries'){
       if(answer!==null&&!Array.isArray(answer))fail('NAMESPACE_SCHEMA');if(answer===null)negative.push({index,kind,...target,answer});
       else{const names=new Set();for(const entry of answer){const name=kind==='entries'?entry?.[0]:entry;
