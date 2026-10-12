@@ -1,6 +1,11 @@
 # Bounded native Claude diagnostic proposal
 
-This native route is **unregistered / NOT RUN**. It prepares the owner's approved
+This native route is **registered / NOT RUN**. [Registration PR14](https://github.com/msiric/redue/pull/14)
+passed allfour revision checks and merged as da6b87f67ae8e80b6ce92a0636fac8a9c11261b7.
+The dedicated `dev/portable-claude-diagnostic` ref contains the exact registered
+workflow SHA-256a5f4e589823844144203e98151d315cd785f6d7d09212a720749618789e43e72,
+checkout source da0b1080f3edcc68f3d4067cb51f961759e68312. It has not been dispatched;
+owner facts/protected OAuth remain prerequisites. It prepares the approved
 one hosted macOS diagnostic: one job, four agentic turns, 120 seconds including
 checkout/download/preparation/drain, and $0 additional spending. It neither runs
 project verification nor establishes portable applicability or reuse. The two
@@ -26,13 +31,15 @@ one-second absolute limit. Only permission errors establish denials; absent or
 closed endpoints do not. Real credential bodies are never opened by the checker.
 This does not claim that the authenticated native parent avoids using OAuth.
 
-The [workflow](portable-claude-diagnostic-workflow.yml), outside `.github`, fixes
+The [preserved proposal](portable-claude-diagnostic-workflow.yml) remains outside `.github`;
+its [registered workflow](https://github.com/msiric/redue/blob/da6b87f67ae8e80b6ce92a0636fac8a9c11261b7/.github/workflows/portable-claude-diagnostic.yml) fixes
 `msiric/redue`, owner `msiric`, manual dispatch on
 `dev/portable-claude-diagnostic`, macOS26/arm64, Node22.13.0 and native2.1.187
 SHA-256 `a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3`.
 Only run-attempt1 is admitted; a missing attempt or a rerun refuses. A fresh
-dispatch still needs the root-owned one-operation ledger. Its unresolved
-integrated source pin fails before the secret step. Native bytes
+dispatch still needs the root-owned one-operation ledger. The proposal
+placeholder is replaced only in the registered file by the reviewed da0b108 source;
+missing/invalid owner facts still fail before the secret step. Native bytes
 come from the public release URL used by the [official installer](https://claude.ai/install.sh),
 with the pinned checksum checked before execution. There are no uploads, caches,
 OIDC/signing jobs, copied login files, bare/SDK routes, terminal input, retries or

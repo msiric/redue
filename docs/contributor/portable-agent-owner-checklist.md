@@ -12,13 +12,15 @@ checks passed, actual checker exit0 and final persistence/cleanup are independen
 reviewed. Do not rerun the local diagnostic or full checker. Real credential-body
 denial and hosted receiver/model behavior are not established by this result.
 
-1. **Hosted native Claude diagnostic — independently reviewed, registration PR14.**
+1. **Hosted native Claude diagnostic — reviewed and registered by merged PR14.**
    The [manual-only workflow PR](https://github.com/msiric/redue/pull/14) pins
    `da0b1080f3edcc68f3d4067cb51f961759e68312`; exact workflow SHA-256 is
    `a5f4e589823844144203e98151d315cd785f6d7d09212a720749618789e43e72`.
    It uses native2.1.187, one standard macOS26 job, at most4turns/120s,
    contents:read, no artifact upload/signing and the selected dedicated ref.
-   Registration/merge alone never launches a model. The source/mock review is
+   Registration/merge alone never launches a model. PR14 passed allfour revision
+   checks and merged as `da6b87f67ae8e80b6ce92a0636fac8a9c11261b7`; the dedicated
+   dispatch ref contains that exact workflow. No dispatch has occurred. The source/mock review is
    conditional, not hosted enforcement evidence.
 
    Only the following owner inputs remain:

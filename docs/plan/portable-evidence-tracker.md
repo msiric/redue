@@ -10,9 +10,11 @@ SHA-256a5f4e589823844144203e98151d315cd785f6d7d09212a720749618789e43e72,
 pins the reviewed task source da0b1080f3edcc68f3d4067cb51f961759e68312. Independent
 review8ebab74/root33c9f0d confirms exact template derivation, 15/15 frozen mocks,
 manual-only/ref/actor/attempt1 guards, contents:read and4turns/120s. Registration
-cannot launch a model. Normal PR revision checks are pending; merge uses the
-standing in-scope authorization only after they pass. No secret, environment,
-signing, trust or model action has occurred.
+cannot launch a model. Allfour PR14 revision checks pass; normal merge completed
+asda6b87f67ae8e80b6ce92a0636fac8a9c11261b7 under the standing authority. The dedicated
+dispatch branch is normally pushed from that merge and its complete file hash
+independently verified. Actions registers workflow381736700 asactive. No dispatch,
+secret, environment, signing, trust or model action has occurred.
 
 The current owner checklist now provides the exact reviewed private setup-token
 procedure, preserved isolated Keychain namespace and verified workspace/binary/
@@ -37,8 +39,8 @@ models or native host. Three owned stage prefixes were removed only after absent
 observer locks; checkout/state/history and original failed records remain preserved.
 Artifact usage46active/4,782,339bytes plus224KiB reserve remains below10MiB.
 G2/finalG3/G4 remain incomplete. Day0=2026-10-10 21:24UTC/72h checkpointOct13 21:24UTC
-and$0 limits are unchanged. Next: finish registration checks/merge; diagnose the
-Windows phase with bounded instrumentation if needed; accept owner-only facts and
+and$0 limits are unchanged. Next: diagnose the Windows phase with bounded test-only
+instrumentation (B owns fixture/helper interfaces); accept owner-only facts and
 provisioning before the one native diagnostic. No missing gate launches a model.
 
 ## Historical checkpoint — reviewed conditional hosted diagnostic; installed preparation repaired
