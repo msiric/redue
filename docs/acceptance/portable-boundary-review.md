@@ -5478,3 +5478,53 @@ finalization/persistence and truthful dispatch/observed-exit fields. Ambiguous
 sandbox/Node startup failure stays UNKNOWN rather than typecheck FAIL. Keep the
 30s bound; fresh full validation cost is observable and must not be hidden.
 This finding does not invalidate the separate2d39c87 constructor source GO.
+
+
+## Disabled C mapping helper: exact observation repair
+
+GO for SOURCE-ONLY mapper3b3fdd003abb4f3f8cb6d5d74fc6c30c2894d657,
+sourceSHAf274279da3a48602fd1b1b4332a14b1fea5f778393c2be148ded8d81e0ed100c.
+It adds matching real/effective GID and captures byte-read and metadata success
+independently. Known wrong bytes or known identity mismatch latch FAIL before
+unrelated sync/read/metadata uncertainty; unavailable metadata/read alone remains
+UNKNOWN. Cleanup stays separate from operation observations. Readonly-descriptor
+VM constraints remain distinct from actual sandbox permission denial.
+
+Ten archived source/finite-Boolean controls passed10/10 in49.32ms. This evaluates
+whitelisted side-effect-free Boolean expressions, not C compilation, ABI, syscalls
+or native enforcement. No C executable was built or run. Placeholders still
+block the route; exact baked fixture paths, reviewed SDK/toolchain/source and
+binary identities, fresh current physical/principal bindings and bounded parent
+supervision require separate review. All helper outcomes remain FAIL or UNKNOWN
+with false sealing/reuse flags. The original07f source findings remain historical.
+
+## Fixed read-only command fixture: exact final source GO
+
+GO for private harnessSHAbcc70147757eda863b589e3fd1100582a6e94a6746e576c62fb6d670ff2d9fe9,
+limited to one fixed local read-only dispatch under unchanged30s/1MiB and the
+reviewed profile. Fresh full selected-source plus whole-installed manifest,
+full stage content/namespace/physical checks, source/config/runtime/code/ancestor
+bindings and before/after comparisons are now present. Fixed local signal data
+removes the unbound test-module import closure. Git calls use remaining budget;
+invalid initial clocks latch refusal. No environment rewrite or arbitrary
+command selector was added.
+
+The intermediate78b9 source admitted a NaN initial clock/timeout and performed a
+post-close pathname r+ rewrite. Two independent VM controls reproduced those
+unrun proposal findings in43.77ms. The final version uses one held exclusive
+nofollow read/write descriptor, bounded exact readback and physical identity
+checks; no pathname reopen remains. Its saved record explicitly awaits final
+outer acknowledgement. Close/persistence/final-budget failure yields UNKNOWN.
+
+Seven independent VM controls passed7/7 in47.99ms: invalid seed/zero dispatch,
+late budget/no reopen, failed spawn/dispatch only, nonzero outcome/timed Git,
+changed code, close error and output replacement. Full inspection functions were
+mocked only to isolate supervision; source review separately checked their real
+wiring. No reviewer preparer/compiler/native/model/CI operation occurred.
+
+READONLY_COMMAND_EXIT_ZERO_NOT_SEALED acknowledges only the fixed command's
+observed zero exit with current bindings and matching final outer completion.
+compilerExecutions stays NOT_INDEPENDENTLY_ACKNOWLEDGED. Missing/ambiguous outcomes
+remain UNKNOWN. Sandbox lookup EPERM is not original ENOENT, and no old summary,
+source-only guard, fixture outcome or materialization grants namespace-equivalence,
+native-agent protection, a seal, an origin interval, receipt or reuse authority.
