@@ -3,7 +3,33 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Blocked audit — owner-only acceptance inputs unchanged across three goal turns
+## Current native diagnostic — owner provisioning verified; one run awaiting review
+
+On 2026-10-12, the owner completed the protected Claude setup. Read-only GitHub
+metadata confirms the required msiric review, the sole dedicated branch policy,
+the two expected nonsecret variables, and OAuth secret presence (value never read).
+The exact owner statement passes the reviewed activation validator; its digest is
+cc4228e4d5d5c6a57538ff23f034b34d82ee27592157e62c7b2b3c29c45fb7ef.
+Registered workflow SHA-256 a5f4e589823844144203e98151d315cd785f6d7d09212a720749618789e43e72
+and pinned helper/assets/source da0b1080f3edcc68f3d4067cb51f961759e68312 remain unchanged.
+
+No prior diagnostic existed. The single approved dispatch is
+[38242312293](https://github.com/msiric/redue/actions/runs/38242312293), created at
+2026-10-12 11:23:15 UTC on da6b87f67ae8e80b6ce92a0636fac8a9c11261b7.
+It is waiting for the required portable-evidence-claude environment review;
+no model has started. The private exclusive one-operation ledger is
+`.local/portable-evidence/native-diagnostic-dispatch.json`. Do not dispatch again.
+After owner review, collect this same run's actual structured checker and native
+tool/exit/lifecycle evidence. Keep four turns, total 120 seconds, $0 additional
+spending, no uploads/signing/trust changes. Metadata validation is not empirical
+enforcement; diagnostic PASS would unlock separately gated recipient work, not G2.
+
+The prior three-turn blocked audit below is historical: Claude provisioning now
+unblocks this lane. Copilot's Actions included-credit fact remains separate and
+pending; no repeated account request is needed. G2/final G3/G4 remain incomplete.
+Day 0 and the 72-hour calibration are unchanged. No publication is authorized.
+
+## Historical blocked audit — owner-only acceptance inputs unchanged across three goal turns
 
 The previous two goal turns made real progress (registration/diagnostics, then
 completed platform acceptance). In allthree turns the same native policy/quota/

@@ -1,15 +1,19 @@
 # Bounded native Claude diagnostic proposal
 
-This native route is **registered / NOT RUN**. [Registration PR14](https://github.com/msiric/redue/pull/14)
-passed allfour revision checks and merged as da6b87f67ae8e80b6ce92a0636fac8a9c11261b7.
-The dedicated `dev/portable-claude-diagnostic` ref contains the exact registered
-workflow SHA-256a5f4e589823844144203e98151d315cd785f6d7d09212a720749618789e43e72,
-checkout source da0b1080f3edcc68f3d4067cb51f961759e68312. It has not been dispatched;
-owner facts/protected OAuth remain prerequisites. It prepares the approved
-one hosted macOS diagnostic: one job, four agentic turns, 120 seconds including
-checkout/download/preparation/drain, and $0 additional spending. It neither runs
-project verification nor establishes portable applicability or reuse. The two
-independent matched GitHub-hosted machines remain the demonstration pair.
+This native route is **DISPATCHED / WAITING FOR OWNER ENVIRONMENT REVIEW**:
+[run 38242312293](https://github.com/msiric/redue/actions/runs/38242312293).
+Protected account/capacity facts and secret metadata passed the fresh prerequisite
+checks on 2026-10-12; the secret value was never read. Required owner review is
+pending, so native enforcement remains NOT TESTED. Do not dispatch a second run.
+
+[Registration PR14](https://github.com/msiric/redue/pull/14) passed all four checks
+and merged as da6b87f67ae8e80b6ce92a0636fac8a9c11261b7. The dedicated
+`dev/portable-claude-diagnostic` ref retains workflow SHA-256
+`a5f4e589823844144203e98151d315cd785f6d7d09212a720749618789e43e72` and
+checkout source `da0b1080f3edcc68f3d4067cb51f961759e68312`. One hosted macOS job
+has four agentic turns and a 120-second total bound including preparation and drain,
+with $0 additional spending. It does not establish portable applicability or reuse.
+The two independent matched GitHub-hosted machines remain the demonstration pair.
 
 The [helper](../../test/acceptance/portable-claude-diagnostic.mjs) requires one native
 assistant `tool_use` for the literal collector command and a native user
@@ -73,7 +77,7 @@ subscription OAuth route. No tier override or policy bypass is proposed. The
 selected local-file absence check uses the OS account name and is metadata only.
 There is no reviewed native pre-hook command to report remote policy safely.
 
-The remaining owner inputs, after coherent workflow review, are:
+Historical provisioning requirements (fulfilled for the current dispatch; do not repeat setup):
 
 1. Confirm the actual token belongs to a personal Pro/Max account without
    Team/Enterprise membership or applicable managed policy; otherwise provide
