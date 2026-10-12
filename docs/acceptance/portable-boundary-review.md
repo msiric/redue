@@ -5564,3 +5564,40 @@ must independently establish fresh locally selected source/context equivalence t
 the explicit staged recipe under its supported interpretation; source selection
 and the complete obligation remain required. Existing origin containment stays
 false. This conceptual distinction grants no further compiler/native invocation.
+
+
+## Fixed component diagnostic and prepared-snapshot claim
+
+GO for phase-only private harnessSHAeaf2a23afc42407dd19334bafdfa0aa1b226a8647f39c120ff21705aca1eaf82,
+one read-only code/source/stage/profile component measurement under30s, no
+compiler/agent/checker/model dispatch. Initialef67 raw before/after component
+clock reads did not participate in the validated monotonic sequence. The repair
+uses remaining() and validated last at each boundary; invalid/reversed/exhausted
+clocks latch and admit no later callback. Output remains UNKNOWN and component
+observations cannot establish whole-cycle currentness, a seal or origin authority.
+
+Six independent VM controls passed6/6 in53.39ms: all four callbacks with zero
+dispatch, invalid seed, invalid preboundary with no callback, invalid postboundary
+with no subsequent component, static exception privacy and persistence/close
+uncertainty. The first reviewer overlay accidentally removed measure()/phases,
+causing1PASS/5fixture failures; correcting the replacement span preserved the
+real supervision code. No real measurement or filesystem component walk ran.
+
+GO for snapshot-only private harnessSHAc2b0b18903884d18c35a6744b2ac9d77339200f66a5546faa9897e0aa13c7205,
+one fixed local read-only prepared-snapshot dispatch under unchanged30s/1MiB and
+the reviewed kernel profile. Its exact diff removes live-source Git/config/body
+reads and full live-manifest re-audits, binds the staged tsconfig instead, and
+labels liveSourceMatchingClaimed=false and sourceProvenance=HISTORICAL_PREPARATION_RECORD_ONLY.
+All full stage-content/namespace/physical, parent/Node/code before/after checks,
+fixed stage argv/cwd/validated unchanged environment and publication supervision
+remain. Original bcc UNKNOWN is preserved, not converted or retried under its
+old claim. Namespace/enforcement and future fresh recipient source equivalence
+remain separate required gates.
+
+Eight independent VM controls passed8/8 in49.56ms, retaining seed/late-budget,
+spawn/exit truth, code currentness, persistence/readback/close and the historical-
+only scope. Saved observations require matching final outer completion. A narrow
+PREPARED_SNAPSHOT_ROUTE_EXIT_ZERO_NOT_SEALED is no independently acknowledged
+compiler execution, native-agent protection, namespace equivalence, seal, receipt
+or reuse authority. Reviewer source/mocks performed no real phase walk, compiler,
+preparer, native agent, model or CI operation and raised no deadline or permissions.
