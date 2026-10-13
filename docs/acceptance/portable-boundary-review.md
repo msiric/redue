@@ -6575,3 +6575,32 @@ distributed notifications, IOKit/device/AF_SYSTEM and selected sysctl-write
 operations. These are existing generator defaults, not a sterile no-fork profile;
 none was exercised by the constructor. Do not add invented OS body reallows or
 turn source composition into a minimal startup-read set, seal or goal completion.
+
+## First source-evaluation failure and finite reporter review
+
+Root's first approved opt-in composition test failed at expected-zero assertion:
+actual child status74, retained TAP177.769917ms. Constructor succeeded, but the
+child's original static catch did not retain a cause. This was no sandbox/native/
+model operation and establishes neither successful closure evaluation nor Bun
+equivalence. No first-phase/closure cause is assigned from that status alone.
+
+Source/mock GO f9c673d32ad73036e81e99a4f447e01b2d9dafb4, changed companion-test
+SHAb5a592af4e247f9bc6f6394a3ec958848468aeaf26b8412f428b88a9bdca9438.
+Constructor, exact native fragments and initializer order are unchanged. One VM
+invocation retains the aggregate1000ms limit; parent5000ms/4096B/SIGKILL and fixed
+nonsecret cwd/HOME/TMPDIR remain unchanged. Finite phase tags track the fixed
+source/init/generator/classification route. Only bounded own/prototype data
+descriptors supply finite error classes/codes and whole-match identifiers from
+an explicit public-source name set; accessors and unreviewed names remain opaque.
+Parent accepts exact success/failure keys and emits only static sanitized failure
+strings, never raw profile/error message/stack/stdout/stderr/environment values.
+
+Seven selected pure reporter controls passed7/7 in47.65ms; four independent
+prototype/getter, whole-match redaction, primitive/coercion and exact-schema/false
+authority controls passed4/4 in42.22ms. Reviewer did not evaluate native fragments
+or execute the optional child. One changed bounded source-composition diagnostic
+is source-review GO under pinned Node22.13, not sandbox/native startup GO. COMPILE
+is the initial control tag spanning code-read/hash/context/compile and initial
+definitions; it does not independently identify a failing syscall or parser.
+Any new observation belongs to that new attempt and cannot retroassign the
+first unknown cause or establish enforcement, a seal or goal completion.
