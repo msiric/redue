@@ -3,24 +3,25 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — measured validation cost; native seal still unproved
+## Current checkpoint — engineering build complete; native seal still open
 
-2026-10-13 12:16UTC, integration `c12b05a`. Current [resume](portable-evidence-resume.md)
-records exact identities, actual timing and preserved failed/UNKNOWN attempts.
+2026-10-13 12:32UTC, source `bb934ad`. Exact evidence/limits in current
+[resume](portable-evidence-resume.md). Earlier UNKNOWNs/failures remain preserved.
 
 | Task | Owner/status | Evidence and next gate |
 | --- | --- | --- |
-| Director smoke | Root/native roles COMPLETE | Same original primary/pane; actual task/result/source/fresh review/decision/next task; automatic TOML enforcement unverified |
-| DIR-NEXT-010/011 | Independent ACCEPT / integrated | Exact private launcher binding and original endpoint snapshots; no native authority |
-| DIR-NEXT-012 | Independent ACCEPT / integrated |144 mocks +84 fault controls; pure readback correction21 +297 independent controls; failed68b758f retained |
-| Actual engineering capture | Root / overall UNKNOWN |110 markers complete; launcher23.717s, eight dependency bundles23.656s, compiler54ms exit0; parent30.021s stopped during final currency |
-| DIR-NEXT-013 | Native implementer ACTIVE | Small currentness composition only if all private/content/late guards retained; existing separate worker worktree; fresh review required |
-| DIR-NEXT-014 | Native researcher ACTIVE | Exact missing stage assertions/source composition inventory; read-only |
-| Native seal / G1–G4 | NOT ESTABLISHED | Missing assertions, enclosing parent/credential/handles and actual machine/agent evidence remain required |
+| Director smoke | COMPLETE | Same primary/pane; useful assignment/result/source/fresh review/decision/next task; automatic role/OS enforcement unverified |
+| DIR-NEXT-010/011/012 | Independent ACCEPT / integrated | Exact private binding, endpoint snapshots, fixed diagnostics/pure bounded readback; no native authority |
+| DIR-NEXT-013 | Engineering-only ACCEPT / integrated `54a14e3` |374 author/default +427 independent; known hostile unchanged-metadata detection loss excluded; no receipt/seal use |
+| Complete engineering observation | Root PASS / not native acceptance |15145.139ms, within30s; 3+1 compiler builds exit0; persistence/final-barrier/TAP1PASS; no launcher/helper/native/model execution |
+| DIR-NEXT-015 | ACCEPT / integrated `0ddc648` | Five-row strict data parser;46 default +1020 independent; globalUNKNOWN/FAIL only |
+| DIR-NEXT-016 | ACCEPT / integrated `bb934ad` | Corrected disabled static source pin only;69+12 independent/root69PASS; source identity ≠ enforcement |
+| DIR-NEXT-017 | Native implementer ACTIVE | Seven-row mapper result/lifecycle data-only reader; isolated stage-results worktree; fresh review required |
+| Native seal / G1–G4 | NOT ESTABLISHED | Missing composition, parent/credential/handles and actual machine/agent evidence remain required |
 
-No higher deadline, environment stripping, native/model/signing/trust/publication
-operation. Earlier failedsource/timed-outactual evidence preserved. Original Claude
-scopedPASS closed; GitHub-admin/Copilot included-capacity prerequisites unchanged.
+No new deadline, environment stripping, native/model/signing/trust/publication
+operation. Original Claude scopedPASS closed; GitHub-admin/Copilot capacity facts
+unchanged. Alpha.11 frozen; field usage/economics not established.
 
 ## Historical checkpoint — pre-Node source/build accepted; observation pending
 

@@ -6,55 +6,77 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree on `dev/portable-sealed-typescript`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — measured launcher validation; native seal still unproved
+## Current checkpoint — complete engineering build observed; native seal still open
 
-2026-10-13 12:16UTC, integration runtime `c12b05a`; original goal/Herdr primary
-`w1:pD`/`redue-director` preserved. Source/mock acceptance is not sealing acceptance.
-Root remains integration owner; DIR-NEXT-013 owns source changes in the existing
-separate import worktree, DIR-NEXT-014 is read-only assertion inventory.
+2026-10-13 12:32UTC, integration `bb934ad` (source); original goal/Herdr primary
+`w1:pD`/`redue-director` preserved. Root is sole integration owner; native roles
+actually read their guidance, automatic profile/OS enforcement remains unverified.
+DIR-NEXT-017 now owns only the mapping-result parser/tests in the existing isolated
+stage-results worktree; no second coordinator or new orchestrator.
 
-DIR-NEXT-011 endpoint snapshot correction `bf5bf64` received independent ACCEPT:
-48 source/model PASS/one actual SKIP, 11 stat fields/both original-baseline calls/
-54 failure-latch controls. This is endpoint evidence, not interval immutability.
-DIR-NEXT-012 `c12b05a` received independent ACCEPT:144 default controls plus84
-independent logging-fault comparisons; original hashes/guards/order/5s child cap
-and false authority retained. Root's failed pure readback `68b758f` is preserved:
-three partial-counter contradictions and257-row overflow reproduced. Successor
-`4df92d1` independent ACCEPT:21 tests +297 adversarial controls, including all110
-single-marker omissions and55 balanced-interval removals. Root combined165PASS
-100.9395ms. Pure readback cannot certify parent collection or native enforcement.
+DIR-NEXT-012 source `c12b05a` independently ACCEPT144 default +84 fault controls;
+root pure readback failed `68b758f` is preserved (partial-counter contradictions/
+257-row overflow). Successor `4df92d1` ACCEPT21 +297 independent controls; root
+combined165PASS100.9395ms. These are source/mock/pure collection tests, not native
+acceptance. Existing logger still silently swallows append failure/reopens its path.
 
-One new actual bounded engineering capture at `c12b05a` now identifies the cost:
-110 internal markers COMPLETE, fixed launcher build23716.835ms, eight dependency
-bundles23656.337ms. Their non-overlapping assets/source/copy components total
-3398.110/6697.201/13554.844ms. Nested boundary durations must not be added again.
-The one launcher compiler subprocess was actually observed exit0, no signal/error,
-53.830ms. Build result LAUNCHER_BUILT_NOT_EXECUTED is not native/seal authority.
-Wrapper prelaunch preparation6080.659ms; build completion29797.926ms; next mark
-launcherCurrency/before29798.383ms. Parent timed out30021.377ms, exit1, reaped;
-no process-group members returned by the later owned-group check. The enclosing
-observation remains UNKNOWN; complete diagnostic collection is not complete
-observation. Final launcher currency/persistence/result not collected. TAP15B only.
+The preceding actual engineering capture at `c12b05a` completed110 internal marks
+but timed out30021.377ms during final launcher currency. Whole launcher23716.835ms;
+eight repeated dependency bundles23656.337ms; compiler53.830ms exit0. OverallUNKNOWN
+retained, not retrospectively repaired. Private profile SHA
+`d488fedbb9f5d653b4c7633ca8723e8aa481b736de59208322264fbb4c1be452`,
+readback `8cc5ddbd05a3211c655141b55c38e9ee6b4cb97742eef9f36dbcedc41d5e8594`;
+parent `e4993d1f610781e808a5c957cbc8d3042d954c668048ec1db283df2285d817cf`.
+The earlier two UNKNOWN timeouts/failed source candidates remain preserved too.
 
-Private profile16381B SHA `d488fedbb9f5d653b4c7633ca8723e8aa481b736de59208322264fbb4c1be452`;
-redacted readback SHA `8cc5ddbd05a3211c655141b55c38e9ee6b4cb97742eef9f36dbcedc41d5e8594`;
-parent record SHA `e4993d1f610781e808a5c957cbc8d3042d954c668048ec1db283df2285d817cf`;
-wrapper trace SHA `d85168567b67d78ae3c11512f82b3be959c9aa08d99c278b6ce46393630801d9`.
-WX0600/no-follow creation and bounded stable descriptor/named readback were checked
-for this owned quiescent engineering collection. Existing profiler still reopens
-its path and swallows failures; no hostile-parent/availability guarantee follows.
-Real inherited environment unchanged except opt-in diagnostic selectors;30s parent
-and5s compiler limits retained. No fixed launcher/helper/typecheck/native/model ran.
-Earlier two UNKNOWN timeouts and failed source revisions remain historical records.
+DIR-NEXT-013 worker `3beb384` fresh independent ACCEPT374 mocks/one actual SKIP +
+427 independent controls; integrated `54a14e3`. Root266PASS/one actual SKIP104.108ms.
+Within ONE exchange-assets call only, complete native bytes are hashed once;
+active-only late all-row/fixture/SDK/root metadata barriers replace two recursive
+full rereads. Both new-row full-read rounds/private derivations/outer boundaries/
+permanent failure invalidation/final named barriers remain. No cross-call cache,
+timer authority or deadline change. Reviewer independently reproduced8 unchanged-
+metadata posthash mutations: composed currency observed, next full hash UNKNOWN.
+That loss of detection is explicitly outside the trusted, quiescent engineering
+scope. This mechanism must never certify hostile-path equivalence, sealed inputs,
+or a portable receipt. Original full native verifier remains available unchanged.
 
-DIR-NEXT-013: implement one narrow, independently reviewed composition of repeated
-currentness work if all current file/membership/private derivation/late barriers
-can be retained. No timer/cache authority, deadline increase or blind retry.
-DIR-NEXT-014: inventory exact missing stage assertions, source-only, no new scope.
-Original hosted Claude diagnostic stays CLOSED scoped PASS. GitHub admin denial
+One new actual observation at `54a14e3` PASSED within the existing cap: parent exit0,
+reaped, no timeout,15145.139ms. Saved pre-persistence report records three prerequisite
+build attempts/results/processes and one launcher attempt/result/process, all exit0;
+four JS copies/one launcher source. Wrapper52 phase rows end finalRecordBarrier/after
+14997.435ms; TAP1PASS/0FAIL. Saved snapshot deliberately remains PRE_PERSISTENCE,
+not forged into post-cleanup authority. Internal110 markers COMPLETE: launcher
+8469.924ms, dependency bundles8413.114ms, compiler50.359ms exit0. These single actual
+engineering observations are not a product benchmark or whole-agent/economic claim.
+No fixed launcher/helper/typecheck/native/model/receipt/seal execution occurred.
+
+Private exact evidence: profile SHA
+`41233a572fd067118a1fce76e139526a80b8c5a55d7de5517a3f284e5f8ec8c2`;
+TAP `193a1e70047aba5a6f2b8a407140b2ab60895a21168b1e8fb44c6d7617647e70`;
+saved report `38b21ca75f9d416c0daeb57185084da948b04fb833b9ffb71f204c91fc1f1c39`;
+parent `331207e39e130e26a0e267a4041eb6c439d52bf6548ba5b73db6d05a7d258538`;
+readback `349fb73d8e96f05cb38068ecba6378d18ec996b9d54a77f0005742b3df5b6447`.
+Owned quiescent directory/WX0600/no-follow/stable bounded descriptor readback checked;
+this is not hostile-ancestor confinement. No owned group members returned afterwards.
+Actual real inherited environment unchanged except diagnostics selectors. Expired
+process-local private mints cannot be adopted from these serialized records.
+
+DIR-NEXT-015 `3ea828f` → root `0ddc648`: strict five-row stage-exchange data reader,
+independent ACCEPT46 tests +1020 controls (625 canonical combinations), root46PASS
+62.260ms. Four rows can be observed only with supplied expected close74/no signal/
+timeout; missing whole-base row keeps globalUNKNOWN, validatedFAIL remains latched.
+No data/lifecycle input authenticates tool provenance or native enforcement.
+DIR-NEXT-016 `ed91807` → `bb934ad`: only stale disabled composition exchange pin
+507dc→actual06e5 corrected; author initial6PASS2FAIL retained, independent69+12PASS,
+root69PASS64.684ms. No commands/settings/permissions enabled. Source pin match is
+not binary or native authority. DIR-NEXT-017 now implements the seven-row mapping
+reader only; OS descriptor constraints must not be relabeled sandbox denial.
+
+Original hosted Claude scoped diagnostic remains CLOSED PASS. GitHub admin denial
 and Copilot included Actions four-credit fact remain lane-specific pending; no
 repeat request/bypass. G0partial/sealedG1/G2/finalG3/prepubG4 incomplete; alpha.11
-frozen/unpublished. Day0/calibration unchanged; no invented blocked time or field use.
+frozen/unpublished. Day0/calibration unchanged; no invented blocked time/field use.
 
 ## Historical checkpoint — pre-Node source/build reviewed; observation pending
 

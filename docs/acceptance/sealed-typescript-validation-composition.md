@@ -1,7 +1,7 @@
 # Same-call engineering validation composition — DIR-NEXT-013
 
-Candidate source change; independent review and actual post-change engineering
-observation are pending. This is not a native enforcement or portable-evidence
+Reviewed source change, integrated at `54a14e3`; one post-change engineering
+observation completed within the unchanged30-second cap. This is not a native enforcement or portable-evidence
 acceptance result. The recipe/launcher remain disabled and every authority field
 remains false.
 
@@ -76,3 +76,21 @@ explicitly skipped unless separately selected by the director.
 
 No compiler invocation, child environment, deadline, sandbox, producer trust,
 recipe, receipt selection, or runtime applicability semantics are changed.
+
+## Actual engineering checkpoint — 2026-10-13 12:32UTC
+
+Fresh independent review accepted exact worker3beb384 within the trusted, quiescent
+engineering scope only:374 default PASS/one actual SKIP plus427 independent controls.
+Eight hostile unchanged-metadata counterexamples were reproduced and remain outside
+that scope; this change must not certify a sealed interval or portable receipt.
+Root integrated at54a14e3 and ran266 PASS/one actual SKIP104.108ms.
+
+One bounded actual engineering procedure then completed15145.139ms, parent exit0,
+reaped without timeout; TAP1PASS/0FAIL. Three prerequisite compiler processes and
+one launcher compiler process were observed exit0. Full launcher8469.924ms versus
+23716.835ms in the preceding single capture; eight dependency bundles8413.114ms
+versus23656.337ms. These observations isolate engineering preparation cost; they
+are not a repeated performance distribution or verification-economics claim.
+No fixed launcher, helper, TypeScript check, native host or model executed. Exact
+private evidence identities and earlierUNKNOWN failures are retained in the current
+portable-evidence resume. Serialized records cannot revive process-local mints.
