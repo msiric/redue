@@ -8,13 +8,12 @@ const reason=new Set(['RESULT_INVALID','MULTIPLE_RESULTS','LIFECYCLE_INVALID','H
 const signals=new Set(['SIGHUP','SIGINT','SIGQUIT','SIGILL','SIGTRAP','SIGABRT','SIGBUS','SIGFPE','SIGKILL','SIGSEGV','SIGPIPE','SIGALRM','SIGTERM','SIGXCPU','SIGXFSZ','SIGSYS']);
 const fields=['schema','scope','outcome','helperResult','implementedAssertionsOutcome','checks','lifecycleOutcome','exitCode','signal','timedOut','reason_code','observations','nativeEnforcement','noInheritedWritableHandlesVerified','sealed','reuseEligible','collectionComplete','sourceProvenance'];
 const fail=()=>{throw Object.assign(Error('NATIVE_BASE_RESULT_INVALID'),{code:'NATIVE_BASE_RESULT_INVALID'});};
-function collection(content){
+function collection(content,isError){
  const pieces=typeof content==='string'?[content]:Array.isArray(content)&&content.every(p=>p?.type==='text'&&typeof p.text==='string')?content.map(p=>p.text):null;
- // Exactly one complete collector document. Native nonzero-exit wrappers are
- // not guessed or stripped. An unreviewed wrapper is UNKNOWN until its pinned
- // formatter contract is reviewed; arbitrary extra lines cannot disappear.
+ // Pinned native187 JL/d_o/qye nonzero Bash format only. No arbitrary line
+ // scanning, hidden stderr, truncation marker or extra document is discarded.
  if(!pieces||pieces.length!==1||Buffer.byteLength(pieces[0])>8192)fail();
- const v=parsePortableJson(pieces[0]);if(v?.scope!=='BASE_EXCHANGE_RESULT_DATA_ONLY')fail();
+ let text=pieces[0],wrapper=null;const prefix=/^Exit code (1|74)\n/.exec(text);if(prefix){wrapper=Number(prefix[1]);text=text.slice(prefix[0].length);}const v=parsePortableJson(text);if(v?.scope!=='BASE_EXCHANGE_RESULT_DATA_ONLY')fail();
  if(Object.keys(v).length!==fields.length||!fields.every(key=>Object.hasOwn(v,key))||v.schema!==1||!['FAIL','UNKNOWN'].includes(v.outcome)||
   !['FAIL','UNKNOWN',null].includes(v.helperResult)||!['FAIL','UNKNOWN','ALL_IMPLEMENTED_ROWS_OBSERVED'].includes(v.implementedAssertionsOutcome)||
   !['SIGNALLED','EXPECTED_CHILD_EXIT_74_OBSERVED','OTHER_CHILD_EXIT_OBSERVED','UNKNOWN'].includes(v.lifecycleOutcome)||
@@ -30,7 +29,7 @@ function collection(content){
   v.collectionComplete&&!['RESULT_INVALID',expected?'HELPER_RESULT_OBSERVED_WITH_MISSING_ASSERTIONS':'LIFECYCLE_UNAVAILABLE'].includes(v.reason_code))fail();
  const observed=v.collectionComplete&&expected&&helper?.checks.slice(0,5).every(row=>row.result==='PASS'&&row.attempted)&&v.reason_code==='HELPER_RESULT_OBSERVED_WITH_MISSING_ASSERTIONS';
  if(v.implementedAssertionsOutcome!==(failed?'FAIL':observed?'ALL_IMPLEMENTED_ROWS_OBSERVED':'UNKNOWN')||!v.collectionComplete&&v.reason_code!=='CHILD_COLLECTION_INCOMPLETE')fail();
- return Object.freeze({...v,checks:helper?.checks??null});
+ return Object.freeze({observed:Object.freeze({...v,checks:helper?.checks??null}),wrapperConsistent:wrapper===null||isError===true&&wrapper===(v.outcome==='FAIL'?1:74)});
 }
 export function createSealedTypeScriptNativeBaseTrace({command,cwd}){
  // Caller must derive this from its live private reviewed command proposal.
@@ -57,7 +56,7 @@ export function createSealedTypeScriptNativeBaseTrace({command,cwd}){
    if(value.parent_tool_use_id!==null||value.message?.role!=='user'||!Array.isArray(value.message.content)){reject('NATIVE_USER_INVALID');return;}
    for(const item of value.message.content){if(!['tool_result','text'].includes(item?.type)){reject('NATIVE_USER_CONTENT_UNREVIEWED');return;}if(item.type==='tool_result'){
     if(!init||!tool||result||item.tool_use_id!==tool.id||item.is_error!==undefined&&typeof item.is_error!=='boolean'){reject('NATIVE_RESULT_ID_INVALID');return;}
-    try{const observed=collection(item.content);result={id:item.tool_use_id,tool_is_error:item.is_error===true,collection:observed};if(observed.outcome==='FAIL')knownFail??=observed;}catch{reject('NATIVE_RESULT_INVALID');}
+    try{const classified=collection(item.content,item.is_error),observed=classified.observed;if(observed.outcome==='FAIL')knownFail??=observed;if(!classified.wrapperConsistent){reject('NATIVE_RESULT_INVALID');return;}result={id:item.tool_use_id,tool_is_error:item.is_error===true,collection:observed};}catch{reject('NATIVE_RESULT_INVALID');}
    }}return;
   }
   if(value.type==='result'){
