@@ -9,6 +9,7 @@ import {verifySealedTypeScriptSyntheticFixture} from './sealed-typescript-synthe
 import {prepareSealedTypeScriptBaseExchangeSource} from './sealed-typescript-base-exchange-source.mjs';
 import {prepareSealedTypeScriptNativeAssetsProposal} from './sealed-typescript-native-assets-proposal.mjs';
 import {buildSealedTypeScriptNativeAssets,verifySealedTypeScriptNativeAssetsBuild,sealedAssetsBuildCompleted,sealedAssetsBuildProcessSummary} from './sealed-typescript-native-assets-build.mjs';
+const mintedAssets=new WeakMap();
 const sha=value=>createHash('sha256').update(value).digest('hex'),guard=value=>{if(!value)throw Error('BASE_EXCHANGE_ASSETS_UNKNOWN');};
 const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
 const mark=stat=>['dev','ino','mode','uid','gid','nlink','size','mtimeNs','ctimeNs'].map(key=>String(stat[key])).join(':');
@@ -25,7 +26,7 @@ function current(row){const after=bounded(row.file,row.limit,row.digest);guard(a
 function rootIdentity(file){guard(fs.realpathSync(file)===file);const stat=fs.lstatSync(file,{bigint:true});guard(stat.isDirectory()&&!stat.isSymbolicLink()&&stat.uid===BigInt(process.getuid())&&(stat.mode&0o7777n)===0o700n);return{inode:stat.dev+':'+stat.ino,identity:parentMark(stat),parents:parents(file)};}
 export function buildSealedTypeScriptBaseExchangeAssets(options){
  if(!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==2||!['pair','hostFixture'].every(key=>Object.hasOwn(options,key)&&Object.hasOwn(Object.getOwnPropertyDescriptor(options,key),'value')))throw Object.assign(Error('BASE_EXCHANGE_ASSETS_OPTIONS'),{code:'BASE_EXCHANGE_ASSETS_OPTIONS'});
- const {pair,hostFixture}=options,builds=[];let reason='PAIR_UNAVAILABLE',report=null,hostDispatchAttempts=0,thirdDispatchAttempts=0;
+ const {pair,hostFixture}=options,builds=[];let reason='PAIR_UNAVAILABLE',report=null,mintedRecord=null,hostDispatchAttempts=0,thirdDispatchAttempts=0;
  try{const initialPair=verifySealedTypeScriptBaseExchangePair(pair);guard(initialPair.outcome==='BASE_EXCHANGE_PAIR_CURRENTLY_OBSERVED');reason='HOST_UNAVAILABLE';const host=verifySealedTypeScriptSyntheticFixture(hostFixture);guard(host.outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED'&&host.scope==='FIXED_CI_SYNTHETIC_FIXTURE_MECHANICS_ONLY');
   const base=host.base;guard(/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}$/.test(base)&&base!==initialPair.baseA&&base!==initialPair.baseB);
   const roots=[initialPair.baseA,initialPair.baseB,base].map(file=>[file,rootIdentity(file)]);guard(new Set(roots.map(([,row])=>row.inode)).size===3);
@@ -40,7 +41,23 @@ export function buildSealedTypeScriptBaseExchangeAssets(options){
   // Later row hashing/boundaries must not hide a changed earlier new file.
   // This is an observed metadata barrier, not atomic hostile-writer protection.
   for(const row of [source,binary])namedCurrent(row);
+  mintedRecord={pair,hostFixture,hostBuild,initialPair,roots,source,binary};
   report={base,source:{file,sha256:source.digest,mark:source.mark,lineage:source.lineage},binary:{file:output,sha256:binary.digest,mark:binary.mark,lineage:binary.lineage},templateSha256:rendered.templateSha256};
  }catch{/* Only static phase codes and actual process summaries escape. Partial H remains. */}
- return freeze({schema:1,scope:'OBSERVED_BASE_EXCHANGE_BUILD_DATA_ONLY',outcome:report?'BUILT_NOT_EXECUTED':'UNKNOWN',reason_code:report?'BUILT_NOT_EXECUTED':reason,report,builds,dispatchAttemptCount:hostDispatchAttempts===null?null:hostDispatchAttempts+thirdDispatchAttempts,dispatchResultCount:builds.length,observedProcessCount:builds.filter(row=>row.pidObserved===true).length,commands:[],compilerCheckExecutions:0,helperExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false});
+ const result=freeze({schema:1,scope:'OBSERVED_BASE_EXCHANGE_BUILD_DATA_ONLY',outcome:report?'BUILT_NOT_EXECUTED':'UNKNOWN',reason_code:report?'BUILT_NOT_EXECUTED':reason,report,builds,dispatchAttemptCount:hostDispatchAttempts===null?null:hostDispatchAttempts+thirdDispatchAttempts,dispatchResultCount:builds.length,observedProcessCount:builds.filter(row=>row.pidObserved===true).length,commands:[],compilerCheckExecutions:0,helperExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false});
+ if(report)mintedAssets.set(result,mintedRecord);return result;
+}
+
+// Read-only currency of an in-process successful build mint. Serialized report
+// fields cannot adopt, select or authorize a different A/B/H namespace. Changes
+// permanently invalidate this mint; no continuing native/seal authority exists.
+export function verifySealedTypeScriptBaseExchangeAssets(build){
+ const record=mintedAssets.get(build),unknown=()=>freeze({schema:1,scope:'OBSERVED_BASE_EXCHANGE_BUILD_DATA_ONLY',outcome:'UNKNOWN',commands:[],sealed:false,reuseEligible:false});
+ if(!record||record.invalid)return unknown();
+ try{const boundary=()=>{guard(JSON.stringify(verifySealedTypeScriptBaseExchangePair(record.pair))===JSON.stringify(record.initialPair)&&verifySealedTypeScriptSyntheticFixture(record.hostFixture).outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED');for(const [file,before] of record.roots)guard(JSON.stringify(rootIdentity(file))===JSON.stringify(before));};
+  boundary();guard(verifySealedTypeScriptNativeAssetsBuild(record.hostBuild).outcome==='ASSETS_BUILD_CURRENTLY_OBSERVED');current(record.source);current(record.binary);boundary();
+  guard(verifySealedTypeScriptNativeAssetsBuild(record.hostBuild).outcome==='ASSETS_BUILD_CURRENTLY_OBSERVED');current(record.source);current(record.binary);boundary();
+  for(const row of [record.source,record.binary])namedCurrent(row);
+  return freeze({schema:1,scope:'OBSERVED_BASE_EXCHANGE_BUILD_DATA_ONLY',outcome:'BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED',baseA:record.initialPair.baseA,baseB:record.initialPair.baseB,hostBase:record.roots[2][0],commands:[],sealed:false,reuseEligible:false});
+ }catch{record.invalid=true;return unknown();}
 }
