@@ -18,6 +18,7 @@ function current(row){const after=bounded(row.file,row.owner,row.limit,row.diges
 test('fixed reviewed C helpers build in fresh owned fixture; built assets are not native/seal authority',{
  skip:process.env.REDUE_SYNTHETIC_ASSETS_BUILD==='1'?false:'Reviewed engineering build not selected; no process or fixture'
 },t=>{
+ let result;try{
  // Preserve original runtime admission before constructing the opt-in fixture;
  // reusable leaf independently rechecks it for its live-fixture caller.
  guard(process.platform==='darwin'&&process.arch==='arm64'&&process.version==='v22.13.0'&&process.getuid()>0&&process.getuid()===process.geteuid()&&process.getgid()===process.getegid());
@@ -25,7 +26,8 @@ test('fixed reviewed C helpers build in fresh owned fixture; built assets are no
  bounded(node,process.getuid(),128*1024*1024,'5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc');
  const bootstrap=createSealedTypeScriptCIBootstrap();
  const fixture=bootstrap.outcome==='CI_SYNTHETIC_BOOTSTRAP_PREPARED'?prepareSealedTypeScriptCISyntheticFixture(bootstrap):null;
- const result=buildSealedTypeScriptNativeAssets({fixture});
+ result=buildSealedTypeScriptNativeAssets({fixture});
+ }catch{result={outcome:'UNKNOWN',report:{schema:1,scope:'LOCAL_SYNTHETIC_ASSETS_BUILD_UNKNOWN',base:null,builds:[],compilerCheckExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false}};}
  const observations=result.report.builds,ownerReport=result.report;let finished=result.outcome==='ASSETS_BUILT_NOT_EXECUTED';
  t.diagnostic(JSON.stringify(finished?{scope:ownerReport.scope,builds:observations,baseSha256:sha(ownerReport.base),binaries:ownerReport.binaries.map(row=>row.sha256),compilerCheckExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false}:{scope:'LOCAL_SYNTHETIC_ASSETS_BUILD_UNKNOWN',builds:observations,ownedFixture:'PRESERVED_NOT_ADOPTABLE_FROM_RECORD',compilerCheckExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false}));
  try{const reportDir=path.resolve('.local/portable-evidence');guard(fs.realpathSync(reportDir)===reportDir);const directory=fs.lstatSync(reportDir);guard(directory.isDirectory()&&!directory.isSymbolicLink()&&directory.uid===process.getuid()&&(directory.mode&0o22)===0);const stem=ownerReport.base?path.basename(ownerReport.base):'no-fixture-'+randomBytes(4).toString('hex');const reportFile=reportDir+'/synthetic-assets-build-'+stem+'.json';const body=JSON.stringify({...ownerReport,fixtureTokenSerialized:false,recordAdoptionAuthority:false})+'\n';fs.writeFileSync(reportFile,body,{mode:0o600,flag:'wx'});bounded(reportFile,process.getuid(),1024*1024,sha(body));t.diagnostic(JSON.stringify({scope:'OWNER_LOCAL_BUILD_RECORD',recordName:path.basename(reportFile),sha256:sha(body),saved:true,sealed:false,reuseEligible:false}));}catch{finished=false;t.diagnostic('{"scope":"OWNER_LOCAL_BUILD_RECORD","saved":false,"result":"UNKNOWN"}');}
