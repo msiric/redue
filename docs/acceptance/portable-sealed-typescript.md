@@ -12,39 +12,45 @@ requires reviewed TS5.5.2 and the existing matched Darwin25.6/ARM64/official
 Node22.13 profile. A local proposal cannot certify that profile or its enforcement.
 Existing commands, user configurations and receipts are unchanged.
 
-## Current checkpoint — exact generator diagnostics; startup review
+## Current checkpoint — source profile-size failure established
 
-At2026-10-13 02:26UTC, integration0121ecd includes the bounded original-source
-constructor and finite classification diagnostics. Prior source-evaluation
-attempts remain UNKNOWN: the first child74 had no retained phase; the second
-child74 reached CLASSIFY with PROFILE_CLASSIFICATION_UNKNOWN (129.554ms test,
-174.784ms complete). Their private records are preserved. Initialization and
-profile generation were observed only in the second attempt; no native/Bun
-composition or enforcement follows. The unchanged64KiB classifier is now
-instrumented with finite type/size/root-read/public-subpath/network flags;
-independent review must precede a changed diagnostic. No raw profile/env/error
-values are published. A owns this test leaf; C owns independent boundary review.
+At2026-10-13 02:28UTC, integration9fcaaae includes the independently reviewed
+finite classifier (20f18a0; testSHAfd9e05c4e6ca685e46b523eb368c8ef71652018063c87e9b470e71d2842e6516).
+Its one changed actual source-evaluation observed STRING88592bytes, exceeding
+unchanged65536bound; root-literal and fixed public-read predicates were true,
+network wildcard false. Actual child74/test132.086ms/complete177.625ms. Only this
+attempt's cause is established; earlier missing-phase and CLASSIFY UNKNOWN
+records remain unchanged. Private record:
+`.local/portable-evidence/claude187-source-composition-predicates-20f18a0.tap`,
+SHAab2558415878b05aa396076283d6c9de36b07f7a2803b56fa23fdf682d32e871.
+No sandbox/Claude/Bun/compiler/model/CI process followed that failed gate.
 
-Root's fixed engineering Node--version startup driver has not run. Review found
-unbounded reads, path-bearing failure reports and uncertain cleanup; corrections
-bound runtime/launcher/source bodies, reject setid/changed artifacts, redact
-failures and preserve fixtures when child completion or identity is unknown.
-No broad OS read allowance, settings write, Claude/model/CI/compiler execution,
-new trust or signing is authorized by source/mock success.108 earlier synthetic
-controls remain mechanics-only; full native read/alias/mapping/atomic enforcement
-and complete compiler namespace validation are outstanding.
+Independent source review supports relocating the generator's empty engineering
+fixture to fresh owned canonical short/private/tmp placement matching the hosted
+layout. Exact code/options/65KiB/VM1s/parent5s4KiB acceptance stay unchanged;
+A owns the repair, C must review exact bytes before a changed attempt. No permission
+or real execution environment is rewritten to obtain a result. Root's fixed
+engineering Node--version startup driver78337d6 remains unrun pending independent
+source/mock review. Its predecessor NO-GOs and finite repairs (bounded reads,
+setid refusal, redacted failures, raw process-domain checks and currentness/reap
+cleanup guards) are retained. Source/mock success cannot certify a native seal.
+A also owns a data-only fixed existing C/Node-render/build proposal; no C build
+has run. The earlier108 synthetic controls remain mechanics-only. Native
+read/alias/mapping/atomic enforcement and compiler namespace completeness remain
+outstanding; the partial914-file API graph is not promoted to completeness.
 
-Hosted Claude's six-check prerequisite stays CLOSED scopedPASS. Copilot included
-Actions capacity stays pending; no repeated account request. G1/current sealed
-interpretation,G2/finalG3 and prepublicationG4 remain incomplete. Frozenalpha.11
-still hashesf6e368bd8171412b301f3f5dee3ceebea14da3b3418968504a7a49428e5876a0;
-no rebuild/publication/state/receipt change. Last registry read failed curl35
-“Recv failure: Socket is not connected”; current registry tags/publication were
-not rechecked, and no auth/DNS/port cause is inferred. Day0/72h remain
-2026-10-10 21:24UTC /2026-10-13 21:24UTC. Full sealed-path economics and actual
-cross-agent/two-machine reuse remain unestablished. Next: resolve the finite
-classification prerequisite, independently review the fixed startup route,
-then collect only its narrow engineering observations before native claims.
+Hosted Claude six-check prerequisite remains CLOSED scopedPASS. Copilot included
+Actions capacity remains pending without another account request. G1/current
+sealed interpretation,G2/finalG3 and prepublicationG4 remain incomplete. Frozen
+alpha.11 rehash stillf6e368bd8171412b301f3f5dee3ceebea14da3b3418968504a7a49428e5876a0;
+no rebuild, publication, trust, signing, config/state or receipt change. Last
+registry read failedcurl35 “Recv failure: Socket is not connected”; live tags
+and publication were not rechecked, and no auth/DNS/occupied-port cause is inferred.
+Day0/72h remain2026-10-10 21:24UTC /2026-10-13 21:24UTC. Full sealed-path economics
+and cross-agent/two-machine reuse remain unestablished. Root owns integration,
+A exact fixture/code leaves, C independent critical review; B capacity unavailable.
+Next commands: reviewed changed source-classifier test, then independently
+reviewed fixed engineering startup only after its in-process gate passes.
 
 ## Historical checkpoint — read-boundary and native canary implementation
 
