@@ -6345,3 +6345,34 @@ and the stale UTF8 label with rendered-binary/physical-currency NOT_VERIFIED.
 Seven pure controls passed7/7 in50.88ms. Commands[]/deferred parent destruction,
 all false authority, preservation and missing assertion obligations remain intact.
 No mapper build/native/compiler/model/CI or credential/settings operation occurred.
+
+## Disabled closed-read canary profiles
+
+Source-only GO for 07368be896baa988fc2d003944ad71b40ab5c70c,
+helper SHA442ec6579a90a8c910cb7ff4e5acae8f2f5f588add879b7c39ed8b82c3eef9c7.
+Its seven fixed reads include the two exact nonsecret workspace control bodies;
+it does not reallow the checkout or broad OS library directories. Three author
+controls plus four independent pure controls passed7/7 in50.89ms. The proposed
+root denial retains original credential/env/network/strict restrictions, removes
+all command allows and remains disabled with no seal, namespace or reuse claim.
+
+Source-only GO for successor7c93f3393f7f6864ef61e9171a53306e7882ea13,
+helper SHAd171a31ea942d81f7f93134a26f73bf0b1ccb826edf9bcb878debd82f3397f3d.
+Inventory reads now cover exactly sealed-inputs and the nonsecret canary directory,
+plus five fixed executable/code leaves including the proposed exchange helper.
+Native187 allowRead applies subpath semantics; this requires an independently
+minted fresh synthetic-only inventory before any use. It must never be applied
+to the real prepared stage or an existing host namespace. Commands[] and all
+authority flags remain empty/false; the future compiler read view is separate.
+Three author and four independent exact-source pure controls passed7/7 in51.07ms,
+checking inherited restrictions, exact read roots/no checkout grant, unsupported
+caller authority options and deep freezing. No settings or native operation ran.
+
+The existing portableRuntimeInspection identity checks are not a minimal startup
+access specification. They inspect Node/helper, default OpenSSL config, three
+readable system libraries and the complete shared-cache members after startup;
+they do not enumerate every dyld/Bash/Node kernel read needed before execution.
+These paths are review candidates, not permission grants or an exhaustive closed
+read view. Root-inode/global directory metadata exceptions also do not establish
+body-read closure. OS startup remains explicitly unresolved; no broad OS-library
+reallow, nested sandbox assumption or source-only native seal follows from this GO.
