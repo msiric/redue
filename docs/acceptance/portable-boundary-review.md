@@ -7143,3 +7143,46 @@ The reviewer performed no actual bootstrap, fixture creation, build, helper,
 native, compiler, model or CI operation. This GO permits one fixed engineering
 three-C build only, preserving partial resources and requiring separate current
 resource, binary, profile, protocol and lifecycle review before any helper use.
+
+
+### Actual fixed three-build observation; native boundary remains pending
+
+Read-only independent classification of the one reviewed de6e9f9 build confirms
+TAP SHA256 `9920e89cb82f8f559d1903beaeaaad6049a50bf0fd1800ffe28b58a6525fc766`
+and owner-record SHA256
+`b1da6a33199e411f0b25299405af0b8357d7021c9295a8e092ddba2203a21894`.
+Both retained files are 0600 regular single-link files. TAP and JSON agree on
+three dispatch attempts, three returned results and three observed clang
+processes, each completed with status zero, null signal, no spawn error and zero
+stdout/stderr bytes. The result is `BUILT_NOT_EXECUTED`; all helper, native-agent,
+TypeScript verification and model execution counters remain zero, runnable
+commands are empty, and sealed/reuse flags remain false. Test duration was
+1473.770791 ms; total duration was 1521.064459 ms. This is one build observation,
+not a performance or stable-input enforcement result.
+
+The public whole-base template pin is
+`bbf33beb65f373261c2227eb18a526d0212099526efd86668a281618199d1e98`.
+The record reports rendered source SHA256
+`93585f21c3ae197c837dad109e63dec205928c396c81ff42372ddaa2e194348b`
+and compiled whole-base helper SHA256
+`08e8540c51e729e8b2872e1ec33d505ede5357217747ef8e4c4d881896091feb`.
+These were inspected as saved build data only; the reviewer did not execute or
+adopt the retained helper. The private pair, H fixture and build mints died with
+the test process. Serialized locations, file identities and hashes do not revive
+them or authorize a subsequent caller.
+
+The next useful implementation/review lane is a fresh same-process native caller
+canary supervisor using the supported reviewed Claude route. It must mint and
+build A/B/H internally, preserve strict synthetic A/B inventories and separate
+H auth/code, and bind exact current native/runtime/physical assets, effective
+closed read/write and credential policy, fixed command admission, bounded
+protocol, immutable FAIL observations and actual lifecycle before launch. The
+missing whole-BASE swap boundary is a useful first named assertion; this build
+and earlier engineering sandbox results cannot prove it under the native agent.
+No repetitive engineering CLI score trial is needed. Local native observations
+must remain local-only. Matched-host tool inventory still has zero jobs after
+the recorded dispatch 403; only the owner's requested normal UI route is pending.
+Copilot data-only prerequisite work remains possible, but unsupported native
+ALL-writer protection and credential filtering cannot be filled with policy
+labels or a readonly compiler child. No new permissions, credential operation,
+helper execution, model, native or CI operation was performed by this review.
