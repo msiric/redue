@@ -15,7 +15,8 @@ D13 adds coordination only; existing objective, gates, trust and budget remain.
 | Role discovery | Native researcher: complete | Explicit files read; installed0.162.1 supports profiles for spawning; live automatic profile selection unverified, no OS read-only claim |
 | DIR-NEXT-002 | Native implementer: REFUSED before launch | Unchanged environment violates existing key guards; zero compiler/native/model/receipt operations; private bounded-readback refusal record retained |
 | DIR-NEXT-003 | Fresh reviewer: ACCEPT | Exact manifest/installed hashes; no scope/permission/objective override; installation is not enforcement |
-| DIR-NEXT-004 | Native researcher: active | One next native source-level prerequisite; no credential/process/model or changes |
+| DIR-NEXT-004 | Native researcher: complete | Identified after-Node preload gap and unchanged missing-row protocol; source-only, no credentials/native actions |
+| DIR-NEXT-005 | Native implementer: active | Disabled fixed pre-Node launcher/bindings; one worker writer; fresh independent review required before use |
 | Herdr attach | OWNER_REQUIRED saved folder trust | Owned existing pane, same primary-thread resume, native UI blocked before inference; no input/trust applied; no second coordinator |
 
 Runtime: Herdr client/server0.9.1; Codex/client and daemon0.162.1; existing

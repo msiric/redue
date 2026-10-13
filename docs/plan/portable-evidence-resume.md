@@ -38,8 +38,10 @@ Values were not read or printed; zero attempts/executions, no stripping or retri
 Its private refusal record SHA
 `01eb4895ad45d1b4cc95c7aaa7ac971b3d0d4707c52478301553b2328d632479`
 was bounded-readback verified. DIR-NEXT-003 independent review ACCEPTed the exact installed configuration/roles.
-DIR-NEXT-004 native researcher now inspects the one next source-level native
-prerequisite; root owns integration/docs, no competing writer.
+DIR-NEXT-004 native researcher completed the source question: current guards run
+after Node startup. DIR-NEXT-005 implementer now owns the disabled fixed pre-Node
+launcher source/binding task in the existing worker worktree. Root owns integration/
+docs and requires fresh review before adoption; no competing interface writer.
 
 An available owned Herdr shell was used for a supported resume of the SAME primary
 thread. Its native client is BLOCKED before inference at saved folder trust for
@@ -71,8 +73,8 @@ Copilot included Actions four-credit billing remains pending separately. Alpha.1
 is unchanged/frozen/unpublished with SHA
 `f6e368bd8171412b301f3f5dee3ceebea14da3b3418968504a7a49428e5876a0`.
 Day0 October10 21:24UTC/calibration October13 21:24UTC unchanged; no invented blocked
-time, forecast or field usage. Next: finish the bounded native prerequisite source question,
-then assign the highest-value permitted sealed/native parent implementation. No model
+time, forecast or field usage. Next: review DIR-NEXT-005 at its fixed revision, preserving the missing stage
+assertions and enclosing-parent/native/auth prerequisites. No model
 trial before real preconditions. Exact private runtime record:
 `.local/portable-evidence/director-runtime-resume.json` (owner-only, not published).
 
