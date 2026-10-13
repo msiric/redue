@@ -6079,3 +6079,31 @@ uncoded shared traversal errors still become generic unavailable. Parent preflig
 success is not proof of child admission or first failure phase. A sanitized code
 under uncertain currentness remains reported child data, never collection or
 namespace/seal/reuse qualification. The first actual UNKNOWN remains unchanged.
+
+
+## Actual reason capture: competing collection budgets
+
+Independently verified actual fixed reason saved record
+SHA11a4d5587098af3a690bac225402226b9f5ab6afb9c272867cd45172bb1dcf74
+and outerSHAcbadc5bb000407bcd82a87d14781556f7e854db43148242b05ffc8af4e9dd6af:
+owned regular0600/single-link, matching saved-record acknowledgement, UNKNOWN,
+11021.713667ms, child74/no signal/reaped,190 stdout bytes/zero stderr, all12
+comparison booleans true, no retained observation, zero verification/model counts,
+sealed/reuse false. The accepted finite child reason is SEALED_PROBE_SUMMARY_LIMIT.
+The original strict7b UNKNOWN is preserved without assigning it this later reason.
+
+Source inspection identifies a collection-boundary problem: the journal permits
+nearly8MiB, while the probe must put that journal plus graph/config names and
+header under the same8MiB response cap. The known reason selects a summary-limit
+branch; it does not prove a failed verification/typecheck, whole graph/alias
+validation or namespace completeness. No verification command ran in this API
+route. The actual reason says nothing about uncollected private frames or values.
+
+Conceptual GO for reducing only the journal's retained-byte budget to4MiB, while
+forwarding all original calls unchanged, counting calls and preserving explicit
+JOURNAL_LIMIT/loggingComplete false on omitted frames. Response/frame/value/hash/
+file limits,30s parent deadline and all false-authority contracts must remain
+unchanged. This is bounded partial logging, not reduced compiler validation or
+complete-query evidence. Exact frozen source/tests and changed parent code pins
+still require review before an actual followup. Reviewer performed scoped record
+reads/source inspection only, with no API/compiler/native/model/CI execution.
