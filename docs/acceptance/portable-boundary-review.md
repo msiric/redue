@@ -7058,3 +7058,25 @@ unconditional token exclusion and managed/startup facts remain required before
 real-token tools. No-model ! forwarding is not model-shell equivalence or a verified
 programmatic preflight. Included capacity is independently pending; this audit
 requests no new login/account, alternate provider, signing or trust authority.
+
+Initial H-only assets proposal ef440fe is source/mock NO-GO pending two finite
+repairs (no actual build/use occurred). Its old build extension correctly mints
+only successful results in a private WeakMap, binds original fixed rows/SDK/dirs/
+fixture, rehashes and adds a late all-row metadata/parent barrier, and permanently
+invalidates on failure. Serialized records cannot seed it. New helper's pair/H
+private gates, logical/physical collision checks, fixed thirdC build in H only,
+5s/4096B/empty-except-TMPDIR scope and false authority are otherwise retained.
+
+New-source final currency is incomplete: source is fully checked before the final
+binary read, then only pair/H/root and old-row guards remain. Replacing new source
+during that last binary read can publish BUILT_NOT_EXECUTED with an old source mark.
+Apply the existing late metadata+parent barrier to both new rows after sequential
+hashes/boundaries. This remains trusted/quiescent detection, not atomic confinement.
+Also cBuildProcessCount equals result-record count, including a failed spawn with
+pidObservedfalse; separate dispatch/result count from actual observed child events.
+Three independent exact-whole mocks passed3/3 in49.66ms reproducing stale-source
+success, normal H-only disabled behavior and3count/2observed-PID failed spawn.
+Eighteen original author whole-source/mock controls passed18/18 in56.84ms but did
+not cover those intervals. No real fixture/bootstrap/write/build/native/model/CI
+operation. One initial reviewer invocation targeted the absent new test in the
+review worktree; the controlled test was then read/run at its author worktree.
