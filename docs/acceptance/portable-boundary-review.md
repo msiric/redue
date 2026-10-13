@@ -6985,3 +6985,27 @@ commands[]/disabled/inferencefalse/nativeNOT_TESTED/sealedfalse/reusefalse remai
 actual supported native entry/effective configuration, runtime/startup, parent
 protection, handles and six-row observations still require separate reviewed
 provisioning and evidence. This GO is settings data only, never launch authority.
+
+Fixed data-renderer source/mock GO4af4c54,
+helperSHA1a66abed15ecff05ee41266ff3e3a5230fc109164a0e74ecafce83525d1c16f6.
+Pair db0032c6db94a594175b4f595b3cd40aa359bc41d39f7f3dd4a4a3e30893758a
+and C bbf33beb65f373261c2227eb18a526d0212099526efd86668a281618199d1e98
+change prior comments only: A/B stay strictly synthetic, all public assets in H;
+pair inventory and C operations are unchanged. Actual private pair observation
+precedes all path/binding/template reads; identical private observation is required
+after rendering. The64KiB canonical/owned/single-link/unsafe-mode-denying template
+reader binds hash/UTF8/full FD/name/parent identities and close success. Exactly
+two fixed ASCII paths and22 bounded decimal stat fields replace24 unique tokens.
+Signed nanoseconds floor into signed64-bit seconds and0..999999999 nanos; minimum
+LL seconds avoids an overflowing positive literal. Dev accepts a conservative
+nonnegative31-bit subset, not full signed dev_t; negatives safely refuse.
+
+Thirty-nine combined author source/in-memory controls passed39/39 in61.32ms.
+Four independent controls passed4/4 in53.54ms: timestamp floor/min/max exact
+roundtrips, changed post-render private snapshot, negative/injected numeric fields
+refusing before template read, and growth/read-time parent replacement refusal.
+No actual pair bootstrap, C rendering from live resources, build/helper/native,
+settings/auth/model/CI operation. Returned frozen source/hash/bindings are data,
+commands[]/nativeNOT_ESTABLISHED/handlesfalse/sealedfalse/reusefalse. Future actual
+H code/binary/tool/resource/currentness/native profile and protocol gates require
+their own review; neither source body nor serialized bindings authorize a route.
