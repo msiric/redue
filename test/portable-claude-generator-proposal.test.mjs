@@ -48,6 +48,26 @@ for(const [fault,code] of [['full-hash','GENERATOR_SOURCE_IDENTITY'],['span-hash
   failCode(()=>adapt(fake)({native:publicNative}),code);
 });
 
+// Finite diagnostics only. Do not emit exception messages, stack, profiles,
+// environment values or arbitrary reference names. No exception getters run.
+const REFERENCE_NAMES=Object.freeze(['gbc','_bc','kLe','esr','ybc','aYt','lYt','No','Tbc','Sbc','x','oo','t3o','Q','bbc','Ebc','ft','b','DUi','_Lt','PUi','Fwn','MUi','WUi','nGr','p0d','yLt','m0d','Uwn','a$','l$e','qwn','kO','$wn','JF','Gwe','A0d','c2i','m2i','v0d','w0d','k0d','z0','u2i','d2i','jhe','p2i','g2i','Object','WeakMap','Math','JSON','Set','process','require','Buffer','String','RegExp','Error']);
+function safeErrorData(error,key){
+  if(!error||typeof error!=='object')return null;let at=error;
+  for(let depth=0;at&&depth<4;depth++){const descriptor=Object.getOwnPropertyDescriptor(at,key);if(descriptor)return Object.hasOwn(descriptor,'value')?descriptor.value:null;at=Object.getPrototypeOf(at);}return null;
+}
+function generatorFailureObservation(error,phase){
+  const phases=['COMPILE','INITIALIZE','GENERATE','CLASSIFY'],name=safeErrorData(error,'name'),code=safeErrorData(error,'code');
+  let reason_code='UNKNOWN_OR_UNAVAILABLE',identifier='NONE';
+  if(code==='ERR_SCRIPT_EXECUTION_TIMEOUT')reason_code='VM_TIMEOUT';
+  else if(code==='GENERATOR_SOURCE_IDENTITY')reason_code='SOURCE_IDENTITY_MISMATCH';
+  else if(code==='GENERATOR_PROFILE_UNKNOWN')reason_code='PROFILE_CLASSIFICATION_UNKNOWN';
+  else if(name==='ReferenceError'){reason_code='REFERENCE_ERROR';const message=safeErrorData(error,'message');
+    if(typeof message==='string'&&message.length<=256){const match=/^([A-Za-z_$][A-Za-z0-9_$]{0,31}) is not defined$/.exec(message)??/^Cannot access '([A-Za-z_$][A-Za-z0-9_$]{0,31})' before initialization$/.exec(message);
+      if(match&&REFERENCE_NAMES.includes(match[1]))identifier=match[1];}}
+  else if(name==='SyntaxError')reason_code='SYNTAX_ERROR';else if(name==='TypeError')reason_code='TYPE_ERROR';
+  return {schema:1,result:'UNKNOWN',phase:phases.includes(phase)?phase:'COMPILE',reason_code,identifier,nativeLaunches:0,sealed:false,reuseEligible:false};
+}
+
 // Evaluation remains opt-in for the source-review checkpoint. This is not a
 // permission token for a native startup; no policy is installed or enforced.
 const evaluation={skip:publicNative&&process.env.REDUE_GENERATOR_SOURCE_EVALUATION==='1'?false:'Separate reviewed source-evaluation checkpoint not requested'};
@@ -55,15 +75,26 @@ test('reviewed exact closure evaluates with four actual builtins in fixed no-sec
   const proposal=prepare({native:publicNative}),home=base+'/home',cwd=base+'/public-cwd';fs.mkdirSync(home,{mode:0o700});fs.mkdirSync(cwd,{mode:0o700});
   const codeFile=base+'/generator-source.js';fs.writeFileSync(codeFile,proposal.source,{mode:0o600,flag:'wx'});
   const child=`import fs from 'node:fs';import vm from 'node:vm';import {createRequire} from 'node:module';import {createHash} from 'node:crypto';
-const actualRequire=createRequire(import.meta.url),allowed=new Set(['fs','path','os','child_process']);
-try{const code=fs.readFileSync(process.argv[1],'utf8');if(createHash('sha256').update(code).digest('hex')!==process.argv[2])throw Error('SOURCE_CHANGED');
-const context=vm.createContext({process,require:name=>{if(!allowed.has(name))throw Error('UNREVIEWED_BUILTIN');return actualRequire(name);}});
-const profile=new vm.Script(code+';g2i();k0d({readConfig:{denyOnly:["/"],allowWithinDeny:["/redue-engineering-public/node"]},writeConfig:{allowOnly:[],denyWithinAllow:[]},needsNetworkRestriction:true,allowUnixSockets:[],allowAllUnixSockets:false,allowLocalBinding:false,allowMachLookup:[],allowPty:false,allowGitConfig:false,enableWeakerNetworkIsolation:false,allowAppleEvents:false,logTag:"REDUE_ENGINEERING_SOURCE_ONLY"})').runInContext(context,{timeout:1000});
-if(typeof profile!=='string'||Buffer.byteLength(profile)>65536||!profile.includes('(allow file-read* (literal "/"))')||!profile.includes('(subpath "/redue-engineering-public/node")')||profile.includes('(allow network*)'))throw Error('PROFILE_UNKNOWN');
-console.log(JSON.stringify({schema:1,result:'SOURCE_COMPOSITION_OBSERVED',profileSha256:createHash('sha256').update(profile).digest('hex'),profileBytes:Buffer.byteLength(profile),nativeLaunches:0,nativeEnforcement:'NOT_ESTABLISHED',bunEquivalence:'NOT_ESTABLISHED',sealed:false,reuseEligible:false}));
-}catch{console.log(JSON.stringify({schema:1,result:'UNKNOWN',reason:'GENERATOR_SOURCE_EVALUATION_UNKNOWN',nativeLaunches:0,sealed:false,reuseEligible:false}));process.exitCode=74;}`;
+const REFERENCE_NAMES=${JSON.stringify(REFERENCE_NAMES)};
+${safeErrorData.toString()}
+${generatorFailureObservation.toString()}
+const phase={value:'COMPILE'};
+try{const actualRequire=createRequire(import.meta.url),allowed=new Set(['fs','path','os','child_process']);
+const code=fs.readFileSync(process.argv[1],'utf8');if(createHash('sha256').update(code).digest('hex')!==process.argv[2])throw Object.assign(Error(),{code:'GENERATOR_SOURCE_IDENTITY'});
+const context=vm.createContext({process,__redueGeneratorPhase:phase,require:name=>{if(!allowed.has(name))throw Error();return actualRequire(name);}});
+const script=new vm.Script(code+';__redueGeneratorPhase.value="INITIALIZE";g2i();__redueGeneratorPhase.value="GENERATE";k0d({readConfig:{denyOnly:["/"],allowWithinDeny:["/redue-engineering-public/node"]},writeConfig:{allowOnly:[],denyWithinAllow:[]},needsNetworkRestriction:true,allowUnixSockets:[],allowAllUnixSockets:false,allowLocalBinding:false,allowMachLookup:[],allowPty:false,allowGitConfig:false,enableWeakerNetworkIsolation:false,allowAppleEvents:false,logTag:"REDUE_ENGINEERING_SOURCE_ONLY"})');
+const profile=script.runInContext(context,{timeout:1000});phase.value='CLASSIFY';
+if(typeof profile!=='string'||Buffer.byteLength(profile)>65536||!profile.includes('(allow file-read* (literal "/"))')||!profile.includes('(subpath "/redue-engineering-public/node")')||profile.includes('(allow network*)'))throw Object.assign(Error(),{code:'GENERATOR_PROFILE_UNKNOWN'});
+console.log(JSON.stringify({schema:1,result:'SOURCE_COMPOSITION_OBSERVED',phase:'CLASSIFY',profileSha256:createHash('sha256').update(profile).digest('hex'),profileBytes:Buffer.byteLength(profile),nativeLaunches:0,nativeEnforcement:'NOT_ESTABLISHED',bunEquivalence:'NOT_ESTABLISHED',sealed:false,reuseEligible:false}));
+}catch(error){console.log(JSON.stringify(generatorFailureObservation(error,phase.value)));process.exitCode=74;}`;
   const result=spawnSync(process.execPath,['--input-type=module','--eval',child,codeFile,proposal.sourceSha256],{cwd,env:{HOME:home,TMPDIR:base},encoding:'utf8',timeout:5000,maxBuffer:4096,killSignal:'SIGKILL'});
-  assert.equal(result.error,undefined);assert.equal(result.signal,null);assert.equal(result.status,0);assert.equal(result.stderr,'');const observed=JSON.parse(result.stdout);assert.equal(observed.result,'SOURCE_COMPOSITION_OBSERVED');assert.equal(observed.nativeLaunches,0);assert.equal(observed.nativeEnforcement,'NOT_ESTABLISHED');assert.equal(observed.bunEquivalence,'NOT_ESTABLISHED');assert.equal(observed.sealed,false);assert.equal(observed.reuseEligible,false);
+  assert(result.error===undefined,'BOUNDED_SOURCE_CHILD_UNAVAILABLE');assert(result.signal===null,'BOUNDED_SOURCE_CHILD_SIGNALED');assert(result.stderr==='','BOUNDED_SOURCE_CHILD_STDERR_UNKNOWN');
+  let observed;try{observed=JSON.parse(result.stdout);}catch{assert.fail('BOUNDED_SOURCE_CHILD_PROTOCOL_UNKNOWN');}
+  if(result.status!==0){const safe=observed&&Object.keys(observed).sort().join(',')==='identifier,nativeLaunches,phase,reason_code,result,reuseEligible,schema,sealed'&&observed.schema===1&&observed.nativeLaunches===0&&observed.sealed===false&&observed.reuseEligible===false&&observed.result==='UNKNOWN'&&['COMPILE','INITIALIZE','GENERATE','CLASSIFY'].includes(observed.phase)&&['VM_TIMEOUT','SOURCE_IDENTITY_MISMATCH','PROFILE_CLASSIFICATION_UNKNOWN','REFERENCE_ERROR','SYNTAX_ERROR','TYPE_ERROR','UNKNOWN_OR_UNAVAILABLE'].includes(observed.reason_code)&&['NONE',...REFERENCE_NAMES].includes(observed.identifier);
+    assert.fail(safe?'SOURCE_EVALUATION_'+observed.phase+'_'+observed.reason_code+'_'+observed.identifier:'BOUNDED_SOURCE_CHILD_UNKNOWN');}
+  const validSuccess=observed&&Object.keys(observed).sort().join(',')==='bunEquivalence,nativeEnforcement,nativeLaunches,phase,profileBytes,profileSha256,result,reuseEligible,schema,sealed'&&observed.schema===1&&observed.result==='SOURCE_COMPOSITION_OBSERVED'&&observed.phase==='CLASSIFY'&&/^[a-f0-9]{64}$/.test(observed.profileSha256)&&Number.isInteger(observed.profileBytes)&&observed.profileBytes>0&&observed.profileBytes<=65536&&observed.nativeLaunches===0&&observed.nativeEnforcement==='NOT_ESTABLISHED'&&observed.bunEquivalence==='NOT_ESTABLISHED'&&observed.sealed===false&&observed.reuseEligible===false;
+  assert(validSuccess,'BOUNDED_SOURCE_CHILD_PROTOCOL_UNKNOWN');
+  assert.equal(observed.result,'SOURCE_COMPOSITION_OBSERVED');assert.equal(observed.phase,'CLASSIFY');assert.equal(observed.nativeLaunches,0);assert.equal(observed.nativeEnforcement,'NOT_ESTABLISHED');assert.equal(observed.bunEquivalence,'NOT_ESTABLISHED');assert.equal(observed.sealed,false);assert.equal(observed.reuseEligible,false);
   assert(!result.stdout.includes(base));assert(!result.stdout.includes('file-read'));assert(!result.stdout.includes('REDUE_ENGINEERING_SOURCE_ONLY'));
 }));
 
@@ -71,4 +102,25 @@ console.log(JSON.stringify({schema:1,result:'SOURCE_COMPOSITION_OBSERVED',profil
 test('external failures carrying known code still become static sanitized error',()=>{
   const construct=adapt({...fs,realpathSync(){throw Object.assign(Error('NONSECRET_PATH_OR_PROFILE_DETAIL'),{code:'GENERATOR_SOURCE_CHANGED'});}});
   failCode(()=>construct({native:'/NONSECRET-native'}),'GENERATOR_SOURCE_CHANGED');
+});
+
+
+for(const phase of ['COMPILE','INITIALIZE','GENERATE','CLASSIFY'])test('finite reporter retains '+phase+' without raw ReferenceError text',()=>{
+  const known=generatorFailureObservation(new ReferenceError('JF is not defined'),phase);assert.equal(known.phase,phase);assert.equal(known.reason_code,'REFERENCE_ERROR');assert.equal(known.identifier,'JF');
+  const privateName=generatorFailureObservation(new ReferenceError('NONSECRET_PRIVATE_IDENTIFIER is not defined'),phase);assert.equal(privateName.identifier,'NONE');assert(!JSON.stringify(privateName).includes('NONSECRET'));
+});
+test('finite source errors and VM timeout ignore raw messages and profile/path/env-shaped values',()=>{
+  for(const [error,expected] of [[new SyntaxError('NONSECRET_PROFILE_BODY'),'SYNTAX_ERROR'],[new TypeError('/NONSECRET/path ENV=VALUE'),'TYPE_ERROR'],[Object.assign(Error('NONSECRET'),{code:'ERR_SCRIPT_EXECUTION_TIMEOUT'}),'VM_TIMEOUT'],[Object.assign(Error('NONSECRET'),{code:'GENERATOR_SOURCE_IDENTITY'}),'SOURCE_IDENTITY_MISMATCH'],[Object.assign(Error('NONSECRET'),{code:'GENERATOR_PROFILE_UNKNOWN'}),'PROFILE_CLASSIFICATION_UNKNOWN'],[Error('NONSECRET_UNKNOWN'),'UNKNOWN_OR_UNAVAILABLE']]){
+    const result=generatorFailureObservation(error,'GENERATE');assert.equal(result.reason_code,expected);assert.equal(result.identifier,'NONE');assert(!JSON.stringify(result).includes('NONSECRET'));assert.equal(result.sealed,false);assert.equal(result.reuseEligible,false);
+  }
+});
+test('reporter skips accessors, long messages, partial matches and unknown phases',()=>{
+  let getters=0;const getter={};for(const key of ['name','code','message'])Object.defineProperty(getter,key,{get(){getters++;return'NONSECRET';}});
+  assert.equal(generatorFailureObservation(getter,'NONSECRET_PHASE').phase,'COMPILE');assert.equal(getters,0);
+  for(const text of ['JF is not defined /NONSECRET/path','x'.repeat(300)+'JF is not defined',"Cannot access 'NONSECRET' before initialization"]){const result=generatorFailureObservation(new ReferenceError(text),'INITIALIZE');assert.equal(result.identifier,'NONE');assert(!JSON.stringify(result).includes('NONSECRET'));}
+});
+test('phase tags preserve one aggregate VM budget and unchanged bounded child limits',()=>{
+  const text=fs.readFileSync(new URL(import.meta.url),'utf8');const section=text.slice(text.indexOf('  const child=`'),text.indexOf("for(const phase of ['COMPILE'"));
+  assert.equal((section.match(/runInContext\(context,\{timeout:1000\}\)/g)??[]).length,1);assert(section.includes('timeout:5000,maxBuffer:4096'));assert(section.includes("killSignal:'SIGKILL'"));
+  assert(section.includes('__redueGeneratorPhase.value="INITIALIZE"'));assert(section.includes('__redueGeneratorPhase.value="GENERATE"'));assert(section.includes("phase.value='CLASSIFY'"));
 });
