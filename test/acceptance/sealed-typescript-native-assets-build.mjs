@@ -25,7 +25,7 @@ const freeze=value=>{if(value&&typeof value==='object'){for(const child of Objec
 export function buildSealedTypeScriptNativeAssets(options){
  if(!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==1||!Object.hasOwn(options,'fixture')||!Object.hasOwn(Object.getOwnPropertyDescriptor(options,'fixture'),'value'))throw Object.assign(Error('BUILD_OPTIONS'),{code:'BUILD_OPTIONS'});
  const {fixture}=options;
- const observations=[];let finished=false,mintedRecord=null,ownerReport={schema:1,scope:'LOCAL_SYNTHETIC_ASSETS_BUILD_UNKNOWN',base:null,builds:observations,compilerCheckExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false};
+ const observations=[];let finished=false,mintedRecord=null,dispatchAttemptCount=0,ownerReport={schema:1,scope:'LOCAL_SYNTHETIC_ASSETS_BUILD_UNKNOWN',base:null,builds:observations,compilerCheckExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false};
  try{
   const observed=verifySealedTypeScriptSyntheticFixture(fixture);guard(observed.outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED'&&observed.scope==='FIXED_CI_SYNTHETIC_FIXTURE_MECHANICS_ONLY'&&observed.receiverBasePolicyMatch===true);
   ownerReport.base=fixture.base;
@@ -46,7 +46,7 @@ export function buildSealedTypeScriptNativeAssets(options){
   for(const operation of proposal.proposedBuilds){
    guard(verifySealedTypeScriptSyntheticFixture(fixture).outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED');current(compiler);current(linker);for(const row of [...headers,...sources,copied])current(row);
    guard(ownedDirectory(base)===baseIdentity&&identities.every(([file,before])=>ownedDirectory(file)===before)&&parentMark(fs.lstatSync(tool.sdk,{bigint:true}))===sdkIdentity);
-   const result=spawnSync(operation.executable,operation.argv,{cwd:base+'/prefix/native-probes',env:{TMPDIR:base},timeout:5000,maxBuffer:4096,killSignal:'SIGKILL',encoding:'utf8'});
+   dispatchAttemptCount++;const result=spawnSync(operation.executable,operation.argv,{cwd:base+'/prefix/native-probes',env:{TMPDIR:base},timeout:5000,maxBuffer:4096,killSignal:'SIGKILL',encoding:'utf8'});
    observations.push(sealedAssetsBuildProcessSummary(result));guard(sealedAssetsBuildCompleted(result));const output=operation.argv.at(-1);const binary=bounded(output,process.getuid(),2*1024*1024);
    guard(binary.arm64Header);current(binary);artifacts.push(binary);
   }
@@ -56,7 +56,7 @@ export function buildSealedTypeScriptNativeAssets(options){
   mintedRecord={fixture,base,baseIdentity,identities,sdk:tool.sdk,sdkIdentity,rows:[runtime,compiler,linker,...headers,...sources,copied,...artifacts]};
   finished=true;
  }catch{/* Static UNKNOWN report retains partial build observations, no raw error. */}
- const result=freeze({schema:1,outcome:finished?'ASSETS_BUILT_NOT_EXECUTED':'UNKNOWN',report:ownerReport,commands:[],recordAdoptionAuthority:false,compilerCheckExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false});
+ const result=freeze({schema:1,outcome:finished?'ASSETS_BUILT_NOT_EXECUTED':'UNKNOWN',report:ownerReport,dispatchAttemptCount,commands:[],recordAdoptionAuthority:false,compilerCheckExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false});
  if(finished)mintedBuilds.set(result,mintedRecord);return result;
 }
 
