@@ -36,7 +36,7 @@ function unchanged(before){const after=binding(before.file,before.expected,befor
 function ownedDir(file){const s=fs.lstatSync(file,{bigint:true});guard(s.isDirectory()&&!s.isSymbolicLink()&&s.uid===BigInt(process.getuid())&&(s.mode&0o7777n)===0o700n&&fs.realpathSync(file)===file,'STARTUP_PARENT_UNKNOWN');return {file,mark:dirMark(s)};}
 function dirCurrent(row){guard(ownedDir(row.file).mark===row.mark,'STARTUP_PARENT_CHANGED');}
 const signals=new Set(['SIGKILL','SIGABRT','SIGSEGV','SIGTERM','SIGBUS','SIGILL','SIGINT']);
-function processObservation(result){const pid=Number.isInteger(result.pid)&&result.pid>0,status=Number.isInteger(result.status)&&result.status>=0&&result.status<=255?result.status:null,signal=result.signal===null?null:signals.has(result.signal)?result.signal:'UNKNOWN';return {pidObserved:pid,status,signal,spawnError:result.error?reason(result.error):'NONE',reaped:pid&&!result.error&&(status!==null||signals.has(signal))};}
+function processObservation(result){const pid=Number.isInteger(result.pid)&&result.pid>0,status=Number.isInteger(result.status)&&result.status>=0&&result.status<=255?result.status:null,signal=result.signal===null?null:signals.has(result.signal)?result.signal:'UNKNOWN';return {pidObserved:pid,status,signal,spawnError:result.error?reason(result.error):'NONE',reaped:pid&&!result.error&&((status!==null&&signal===null)||(status===null&&signals.has(signal)))};}
 
 test('fixed native-derived read view starts only pinned Node --version; engineering observation, never authority',{
   skip:process.env.REDUE_GENERATOR_STARTUP==='1'?false:'Reviewed engineering startup not selected; no process launched'
@@ -78,6 +78,7 @@ const profile=script.runInContext(context,{timeout:1000});if(typeof profile!=='s
 test('finite process and failure reporting never exposes private messages or unknown status',()=>{
   const good=processObservation({pid:1,status:0,signal:null});assert.deepEqual(good,{pidObserved:true,status:0,signal:null,spawnError:'NONE',reaped:true});
   for(const status of [-1,256,'PRIVATE_STATUS',NaN]){const r=processObservation({pid:1,status,signal:null});assert.equal(r.status,null);assert.equal(r.reaped,false);}
+  for(const signal of ['UNKNOWN','SIGKILL'])assert.equal(processObservation({pid:1,status:0,signal}).reaped,false);assert.equal(processObservation({pid:1,status:null,signal:'SIGKILL'}).reaped,true);
   const error=Object.assign(Error('PRIVATE_PATH_VALUE'),{code:'EACCES'});assert.equal(reason(error),'EACCES');assert.equal(processObservation({pid:1,status:null,signal:'SIGKILL',error}).reaped,false);
   let getters=0;const accessor={};Object.defineProperty(accessor,'code',{get(){getters++;return'PRIVATE';}});assert.equal(reason(accessor),'UNKNOWN');assert.equal(getters,0);assert(!JSON.stringify(processObservation({pid:1,status:0,signal:'PRIVATE_SIGNAL'})).includes('PRIVATE'));
 });
