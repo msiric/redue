@@ -30,6 +30,18 @@ export async function observeSealedTypeScriptBaseCollectorLauncher({cwd,uid,file
    (s.mode&0o22n)===0n&&filesystem.realpathSync(local)===local);
   guard(mark(filesystem.lstatSync(local,{bigint:true}))===mark(s));return s;
  };
+ // Bounded ancestor metadata only: no body reads or directory enumeration.
+ // This observed lineage barrier is not atomic hostile-ancestor confinement.
+ const ancestorLineage=()=>{
+  const rows=[];
+  for(let at=path.dirname(local);;at=path.dirname(at)){
+   guard(rows.length<64);const s=filesystem.lstatSync(at,{bigint:true});
+   guard(s.isDirectory()&&!s.isSymbolicLink()&&filesystem.realpathSync(at)===at);
+   guard(identity(filesystem.lstatSync(at,{bigint:true}))===identity(s));rows.push([at,identity(s)]);
+   if(at===path.dirname(at))return rows;
+  }
+ };
+ const lineageCurrent=before=>{guard(before&&JSON.stringify(ancestorLineage())===JSON.stringify(before));};
  const phaseCostsMs={};
  const report={schema:1,scope:'ENGINEERING_FRESH_BASE_COLLECTOR_LAUNCHER_BUILD_ONLY',
   prerequisiteSetup:'FRESH_PAIR_H_AND_THREE_C_BUILDS_REQUIRED',buildSequenceOutcome:'UNKNOWN',phaseCostsMs,
@@ -37,11 +49,16 @@ export async function observeSealedTypeScriptBaseCollectorLauncher({cwd,uid,file
   launcherBuild:null,launcherCurrency:null,prerequisiteBuilderCalled:false,copierCalled:false,launcherBuilderCalled:false,
   compilerBuildOutcome:'UNKNOWN',helperExecutions:0,nativeAgentLaunches:0,models:0,compilerCheckExecutions:0,receiptWrites:0,
   nativeEnforcement:'NOT_ESTABLISHED',noInheritedWritableHandlesVerified:false,sealed:false,reuseEligible:false};
- let selector,persistenceStarted=false;
+ let selector,selectorLineage,persistenceStarted=false;
  const phase=async(name,action)=>{
   const start=tick();
-  if(selector&&!persistenceStarted)guard(mark(directory())===mark(selector));
-  try{const value=await action();if(selector&&!persistenceStarted)guard(mark(directory())===mark(selector));
+  try{if(selector&&!persistenceStarted)guard(mark(directory())===mark(selector));
+  lineageCurrent(selectorLineage);
+  // Filesystem validation can consume or invalidate the clock budget. Sample
+  // only after it finishes, immediately before the corresponding action.
+  remaining();
+  const value=await action();if(selector&&!persistenceStarted)guard(mark(directory())===mark(selector));
+   lineageCurrent(selectorLineage);
    phaseCostsMs[name]=tick()-start;return value;}
   catch{try{tick();}catch{/* Keep a finite historical phase duration even when late. */}
    phaseCostsMs[name]=clockUnavailable?null:last-start;throw Error('OBSERVATION_PHASE_UNKNOWN');}
@@ -70,6 +87,7 @@ export async function observeSealedTypeScriptBaseCollectorLauncher({cwd,uid,file
   row.pidObserved===true&&Number.isInteger(row.status)&&row.status>0&&row.status<=255&&row.signal===null&&row.spawnError==='NONE'));
  try{
   remaining();selector=directory(); // RAW local guard BEFORE any platform probe/import/fixture/build.
+  selectorLineage=ancestorLineage();guard(mark(directory())===mark(selector));lineageCurrent(selectorLineage);
   remaining();guard(filesystem.constants.O_NOFOLLOW!==undefined&&filesystem.constants.O_NONBLOCK!==undefined);
   await phase('preconditions',()=>{guard(platformReady()===true);});
   const operations=await phase('operationImports',loadOperations);
@@ -105,13 +123,13 @@ export async function observeSealedTypeScriptBaseCollectorLauncher({cwd,uid,file
  report.observationCompleted=false;report.recordVerified=false;
  let recordName=null,recordSha256=null,namedSnapshot;
  try{
-  remaining();const parentBefore=directory();
+  remaining();const parentBefore=directory(),saveLineage=ancestorLineage();lineageCurrent(selectorLineage);
   // Retain even early refusals without requiring a newly minted fixture label.
   const file=path.join(local,'base-collector-launcher-observation-'+uuid()+'.json'),body=Buffer.from(JSON.stringify(report)+'\n');
   guard(body.length<=65536&&filesystem.constants.O_NOFOLLOW!==undefined&&filesystem.constants.O_NONBLOCK!==undefined);
   persistenceStarted=true;
   await phase('persistence',()=>{filesystem.writeFileSync(file,body,{mode:0o600,flag:'wx'});});
-  const parent=directory();guard(identity(parent)===identity(parentBefore));
+  const parent=directory();guard(identity(parent)===identity(parentBefore));lineageCurrent(saveLineage);
   await phase('recordReadback',()=>{
    const named=filesystem.lstatSync(file,{bigint:true});namedSnapshot=named;
    const regular=s=>s.isFile()&&!s.isSymbolicLink()&&s.uid===BigInt(uid)&&s.nlink===1n&&(s.mode&0o7777n)===0o600n&&s.size===BigInt(body.length);
@@ -123,7 +141,7 @@ export async function observeSealedTypeScriptBaseCollectorLauncher({cwd,uid,file
     while(at<read.length){remaining();const n=filesystem.readSync(fd,read,at,read.length-at,at);remaining();guard(Number.isInteger(n)&&n>=0&&n<=read.length-at);if(n===0)break;at+=n;}
     guard(at===body.length&&read.subarray(0,at).equals(body)&&mark(filesystem.fstatSync(fd,{bigint:true}))===mark(opened));remaining();
    }finally{filesystem.closeSync(fd);}
-   remaining();guard(mark(filesystem.lstatSync(file,{bigint:true}))===mark(named)&&mark(directory())===mark(parent));remaining();
+   remaining();lineageCurrent(saveLineage);guard(mark(filesystem.lstatSync(file,{bigint:true}))===mark(named)&&mark(directory())===mark(parent));remaining();
   });
   recordName=path.basename(file);recordSha256=sha(body);
   const summary=JSON.stringify({scope:report.scope,buildSequenceOutcome:report.buildSequenceOutcome,compilerBuildOutcome:report.compilerBuildOutcome,
@@ -131,7 +149,7 @@ export async function observeSealedTypeScriptBaseCollectorLauncher({cwd,uid,file
    elapsedMs:totalElapsedMs,elapsedMsScope:'PRE_PUBLICATION_SNAPSHOT',observationStatus:'PENDING_FINAL_BUDGET_CHECK',
    observationCompleted:false,recordVerified:false,helperExecutions:0,nativeAgentLaunches:0,models:0,compilerCheckExecutions:0,receiptWrites:0,sealed:false,reuseEligible:false});
   remaining();await phase('publication',()=>diagnostic(summary));
-  await phase('finalRecordBarrier',()=>{guard(mark(filesystem.lstatSync(file,{bigint:true}))===mark(namedSnapshot)&&mark(directory())===mark(parent));});
+  await phase('finalRecordBarrier',()=>{lineageCurrent(saveLineage);guard(mark(filesystem.lstatSync(file,{bigint:true}))===mark(namedSnapshot)&&mark(directory())===mark(parent));});
   tick();recordVerified=true;
  }catch{
   completed=false;recordVerified=false;

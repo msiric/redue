@@ -7,7 +7,8 @@ const cwd='/mock/owned',local=cwd+'/.local/portable-evidence',a='/private/tmp/re
 const metadata=(kind,extra={})=>({dev:1n,ino:kind==='directory'?2n:3n,mode:kind==='directory'?0o40755n:0o100600n,uid:501n,gid:20n,nlink:kind==='directory'?2n:1n,size:0n,mtimeNs:1n,ctimeNs:1n,
  isDirectory:()=>kind==='directory',isFile:()=>kind==='file',isSymbolicLink:()=>kind==='symlink',...extra});
 function mock(){
- const state={time:0,parent:metadata('directory'),body:null,file:null,read:false,clockThrows:false},calls={operations:[],diagnostics:[],writes:[],closes:[],platform:0,imports:0};
+ const ancestors=new Map(['/mock/owned/.local','/mock/owned','/mock','/'].map((file,index)=>[file,metadata('directory',{ino:BigInt(10+index),uid:index===3?0n:501n})]));
+ const state={time:0,parent:metadata('directory'),ancestors,body:null,file:null,read:false,clockThrows:false},calls={operations:[],diagnostics:[],writes:[],closes:[],ancestorReads:[],platform:0,imports:0};
  const processRow={pidObserved:true,status:0,signal:null,spawnError:'NONE',completed:true,stdoutBytes:0,stderrBytes:0};
  const pair={outcome:'BASE_EXCHANGE_PAIR_PREPARED',baseA:a,baseB:b},host={outcome:'CI_SYNTHETIC_BOOTSTRAP_PREPARED',base:h},hostFixture={outcome:'SYNTHETIC_FIXTURE_PREPARED'};
  const assets={outcome:'BUILT_NOT_EXECUTED',dispatchAttemptCount:3,dispatchResultCount:3,observedProcessCount:3,builds:[{...processRow},{...processRow},{...processRow}],commands:[],sealed:false,reuseEligible:false};
@@ -25,7 +26,7 @@ function mock(){
  };
  for(const [name,operation]of Object.entries(operations))operations[name]=(...args)=>{calls.operations.push(name);state.time++;return operation(...args);};
  const filesystem={constants:{O_RDONLY:0,O_NOFOLLOW:256,O_NONBLOCK:4},realpathSync:file=>file,
- lstatSync(file,options){assert.deepEqual(options,{bigint:true});if(file===local)return{...state.parent};assert.equal(file,state.file);return metadata('file',{size:BigInt(state.body.length)});},
+ lstatSync(file,options){assert.deepEqual(options,{bigint:true});if(file===local)return{...state.parent};if(ancestors.has(file)){calls.ancestorReads.push(file);return{...ancestors.get(file)};}assert.equal(file,state.file);return metadata('file',{size:BigInt(state.body.length)});},
  writeFileSync(file,body,options){assert.deepEqual(options,{mode:0o600,flag:'wx'});assert.equal(calls.writes.length,0);calls.writes.push(file);state.body=Buffer.from(body);state.file=file;
  state.parent={...state.parent,mtimeNs:2n,ctimeNs:2n,size:1n};state.time+=2;},
  openSync(file,flags){assert.equal(file,state.file);assert.equal(flags,260);return 42;},
@@ -179,3 +180,64 @@ test('finite late compiler build duration remains historical while overall obser
  assert(Number.isFinite(observed.phaseCostsMs.prerequisiteThreeBuilds));assert(observed.phaseCostsMs.prerequisiteThreeBuilds>=29990);
  assert.equal(observed.report.counters.prerequisiteBuildAttempts,3);assert.equal(observed.report.counters.launcherBuildAttempts,0);
 });
+
+for(const [target,previous,baseAttempts]of [['buildAssets','prepareHostFixture',0],['buildLauncher','verifyCopies',3]])
+ test('reviewer pre-action metadata delay must prevent '+target+' callback',async()=>{
+  const m=mock(),operation=m.operations[previous],stat=m.filesystem.lstatSync;let armed=false,localReads=0;
+  m.operations[previous]=(...args)=>{const value=operation(...args);armed=true;return value;};
+  m.filesystem.lstatSync=(file,...args)=>{const value=stat(file,...args);if(armed&&file===local&&++localReads===3)m.state.time=30001;return value;};
+  const observed=await m.run();unknown(observed,m);assert.equal(observed.observationStatus,'BUDGET_EXCEEDED');
+  assert(!m.calls.operations.includes(target));assert.equal(observed.report.counters.prerequisiteBuildAttempts,baseAttempts);
+  assert(observed.phaseCostsMs[target==='buildAssets'?'prerequisiteThreeBuilds':'oneLauncherBuild']>=29990);
+  assert.equal(observed.report.counters.launcherBuildAttempts,0);
+ });
+test('reviewer ancestor replacement during publication fails despite unchanged leaf identity and canonical path',async()=>{
+ const m=mock(),emit=m.options.diagnostic;m.options.diagnostic=text=>{emit(text);m.state.ancestors.get('/mock/owned/.local').ino=99n;};
+ const observed=await m.run();unknown(observed,m);assert.equal(observed.report.counters.compilerBuildAttempts,4);
+ assert.equal(observed.report.compilerBuildOutcome,'EXIT_ZERO');assert.equal(m.calls.writes.length,1);
+ assert(m.calls.ancestorReads.includes('/mock/owned/.local'));assert.equal(m.state.parent.ino,2n);
+});
+
+for(const [name,alter]of [
+ ['symlink',m=>{m.state.ancestors.set('/mock/owned/.local',metadata('symlink'));}],
+ ['not a directory',m=>{m.state.ancestors.set('/mock/owned/.local',metadata('file'));}],
+ ['noncanonical',m=>{const canonical=m.filesystem.realpathSync;m.filesystem.realpathSync=file=>file==='/mock/owned/.local'?'/mock/alias':canonical(file);}]
+])test('unsafe selector ancestor '+name+' refuses before any probe/import/fixture/build/write',async()=>{
+ const m=mock();alter(m);const observed=await m.run();unknown(observed,m);
+ assert.equal(m.calls.platform,0);assert.equal(m.calls.imports,0);assert.equal(m.calls.operations.length,0);assert.equal(m.calls.writes.length,0);
+ assert.equal(observed.report.counters.compilerBuildAttempts,0);
+});
+for(const boundary of ['before save','after FD close','during publication','final record barrier'])
+ test('ancestor identity replacement '+boundary+' retains historical builds and refuses unchanged-leaf record authority',async()=>{
+  const m=mock(),replace=()=>{m.state.ancestors.get('/mock/owned/.local').ino=99n;};
+  if(boundary==='before save')m.options.uuid=()=>{replace();return'fixed-mock-id';};
+  if(boundary==='after FD close'){const close=m.filesystem.closeSync;m.filesystem.closeSync=(...args)=>{close(...args);replace();};}
+  if(boundary==='during publication'){const emit=m.options.diagnostic;m.options.diagnostic=text=>{emit(text);replace();};}
+  if(boundary==='final record barrier'){const stat=m.filesystem.lstatSync;let fileReads=0;
+   m.filesystem.lstatSync=(file,...args)=>{const value=stat(file,...args);if(file===m.state.file&&++fileReads===3)replace();return value;};}
+  const observed=await m.run();unknown(observed,m);assert.equal(observed.report.counters.compilerBuildAttempts,4);
+  assert.equal(observed.report.compilerBuildOutcome,'EXIT_ZERO');assert.equal(m.state.parent.ino,2n);
+  assert.equal(m.calls.writes.length,boundary==='before save'?0:1);
+  assert(m.calls.ancestorReads.includes('/mock/owned/.local'));assert(m.calls.ancestorReads.includes('/'));
+ });
+for(const field of ['dev','mode','uid','gid'])test('ancestor '+field+' drift after FD close refuses even with the same inode/leaf',async()=>{
+ const m=mock(),close=m.filesystem.closeSync;m.filesystem.closeSync=(...args)=>{close(...args);m.state.ancestors.get('/mock/owned/.local')[field]+=1n;};
+ const observed=await m.run();unknown(observed,m);assert.equal(m.state.parent.ino,2n);assert.equal(m.calls.writes.length,1);
+ assert.equal(observed.report.counters.compilerBuildAttempts,4);
+});
+test('ancestor lineage is bounded to 64 rows per pass, with metadata only and zero probe/build on overflow',async()=>{
+ const m=mock();m.options.cwd='/mock/'+Array.from({length:70},(_,at)=>'deep'+at).join('/');let ancestorMetadataReads=0;
+ m.filesystem.lstatSync=(file,options)=>{assert.deepEqual(options,{bigint:true});if(file.endsWith('/.local/portable-evidence'))return{...m.state.parent};
+  ancestorMetadataReads++;return metadata('directory',{ino:BigInt(file.length+10)});};
+ const observed=await m.run();unknown(observed,m);assert(ancestorMetadataReads<=256);assert(ancestorMetadataReads>=128);
+ assert.equal(m.calls.platform,0);assert.equal(m.calls.imports,0);assert.equal(m.calls.operations.length,0);assert.equal(m.calls.writes.length,0);
+});
+for(const [name,time]of [['expired',30001],['invalid',NaN],['backward',-1]])
+ test('pre-action ancestor metadata '+name+' clock prevents record write after successful mocked builds',async()=>{
+  const m=mock(),stat=m.filesystem.lstatSync;let armed=false;
+  m.options.uuid=()=>{armed=true;return'fixed-mock-id';};
+  m.filesystem.lstatSync=(file,...args)=>{const value=stat(file,...args);if(armed&&file==='/mock/owned/.local')m.state.time=time;return value;};
+  const observed=await m.run();unknown(observed,m);assert.equal(m.calls.writes.length,0);
+  assert.equal(observed.report.counters.compilerBuildAttempts,4);assert.equal(observed.report.compilerBuildOutcome,'EXIT_ZERO');
+  assert.equal(observed.observationStatus,name==='expired'?'BUDGET_EXCEEDED':'CLOCK_UNAVAILABLE');
+ });
