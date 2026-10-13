@@ -3,6 +3,22 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
+
+## Execution status — BLOCKED at 2026-10-13 22:39UTC
+
+Three consecutive checks confirm the same missing hosted inventory operation; no
+run handle exists. Fresh independent dependency audit061 at54f2418 found no safe
+small downstream binding before actual native-view/origin evidence. The prior
+dispatch403 is neither retried nor bypassed. Remaining action: owner normal Actions
+UI, `portable-preflight.yml`, branch `dev/portable-sealed-host-preflight` at8f49e77.
+Resume by collecting that run and independently comparing both actual VM profiles;
+then satisfy the existing native/account gates. Copilot included Actions capacity
+remains a separate pending fact. No new resource or account request is introduced.
+
+Integration/source and review records are preserved; the original objective,
+Day0, G0–G4 gates and release boundary remain unchanged. This is a capability
+block, not product acceptance or a test failure. Alpha.11 stays unpublished.
+
 ## Current checkpoint — reviewed inventory ready for actual host facts
 
 2026-10-13 22:32UTC, reviewed inventory integrated as `f97538e`; dedicated
