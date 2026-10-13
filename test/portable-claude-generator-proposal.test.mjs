@@ -68,6 +68,26 @@ function generatorFailureObservation(error,phase){
   return {schema:1,result:'UNKNOWN',phase:phases.includes(phase)?phase:'COMPILE',reason_code,identifier,nativeLaunches:0,sealed:false,reuseEligible:false};
 }
 
+// Keep the original success predicates and65536-byte bound unchanged. A finite
+// redacted diagnostic identifies which predicate is unmet; no SBPL is retained.
+function generatedProfileClassification(profile){
+  if(typeof profile!=='string')return {profileType:'OTHER',profileBytes:null,byteStatus:'NOT_APPLICABLE',rootLiteralRead:null,publicReadSubpath:null,networkWildcard:null,passed:false};
+  // Bound diagnostic work on unrecognized outputs; fixed valid generator source
+  // normally returns far less. This is not a relaxed acceptance size bound.
+  if(profile.length>262144)return {profileType:'STRING',profileBytes:null,byteStatus:'EXCEEDS_65536',rootLiteralRead:null,publicReadSubpath:null,networkWildcard:null,passed:false};
+  const profileBytes=Buffer.byteLength(profile),rootLiteralRead=profile.includes('(allow file-read* (literal "/"))'),publicReadSubpath=profile.includes('(subpath "/redue-engineering-public/node")'),networkWildcard=profile.includes('(allow network*)');
+  return {profileType:'STRING',profileBytes,byteStatus:profileBytes<=65536?'WITHIN_65536':'EXCEEDS_65536',rootLiteralRead,publicReadSubpath,networkWildcard,passed:profileBytes<=65536&&rootLiteralRead&&publicReadSubpath&&!networkWildcard};
+}
+function classificationShape(value){
+  const keys=['profileType','profileBytes','byteStatus','rootLiteralRead','publicReadSubpath','networkWildcard','passed'];
+  if(!value||Object.getPrototypeOf(value)!==Object.prototype||Reflect.ownKeys(value).length!==keys.length||!keys.every(key=>Object.hasOwn(value,key)&&Object.hasOwn(Object.getOwnPropertyDescriptor(value,key),'value')))return false;
+  if(value.profileType==='OTHER')return value.profileBytes===null&&value.byteStatus==='NOT_APPLICABLE'&&['rootLiteralRead','publicReadSubpath','networkWildcard'].every(key=>value[key]===null)&&value.passed===false;
+  if(value.profileType!=='STRING')return false;
+  if(value.profileBytes===null)return value.byteStatus==='EXCEEDS_65536'&&['rootLiteralRead','publicReadSubpath','networkWildcard'].every(key=>value[key]===null)&&value.passed===false;
+  if(!Number.isInteger(value.profileBytes)||value.profileBytes<0||value.profileBytes>786432||!['rootLiteralRead','publicReadSubpath','networkWildcard'].every(key=>typeof value[key]==='boolean'))return false;
+  return value.byteStatus===(value.profileBytes<=65536?'WITHIN_65536':'EXCEEDS_65536')&&value.passed===(value.profileBytes<=65536&&value.rootLiteralRead&&value.publicReadSubpath&&!value.networkWildcard);
+}
+
 // Evaluation remains opt-in for the source-review checkpoint. This is not a
 // permission token for a native startup; no policy is installed or enforced.
 const evaluation={skip:publicNative&&process.env.REDUE_GENERATOR_SOURCE_EVALUATION==='1'?false:'Separate reviewed source-evaluation checkpoint not requested'};
@@ -78,21 +98,23 @@ test('reviewed exact closure evaluates with four actual builtins in fixed no-sec
 const REFERENCE_NAMES=${JSON.stringify(REFERENCE_NAMES)};
 ${safeErrorData.toString()}
 ${generatorFailureObservation.toString()}
+${generatedProfileClassification.toString()}
+let classification=null;
 const phase={value:'COMPILE'};
 try{const actualRequire=createRequire(import.meta.url),allowed=new Set(['fs','path','os','child_process']);
 const code=fs.readFileSync(process.argv[1],'utf8');if(createHash('sha256').update(code).digest('hex')!==process.argv[2])throw Object.assign(Error(),{code:'GENERATOR_SOURCE_IDENTITY'});
 const context=vm.createContext({process,__redueGeneratorPhase:phase,require:name=>{if(!allowed.has(name))throw Error();return actualRequire(name);}});
 const script=new vm.Script(code+';__redueGeneratorPhase.value="INITIALIZE";g2i();__redueGeneratorPhase.value="GENERATE";k0d({readConfig:{denyOnly:["/"],allowWithinDeny:["/redue-engineering-public/node"]},writeConfig:{allowOnly:[],denyWithinAllow:[]},needsNetworkRestriction:true,allowUnixSockets:[],allowAllUnixSockets:false,allowLocalBinding:false,allowMachLookup:[],allowPty:false,allowGitConfig:false,enableWeakerNetworkIsolation:false,allowAppleEvents:false,logTag:"REDUE_ENGINEERING_SOURCE_ONLY"})');
 const profile=script.runInContext(context,{timeout:1000});phase.value='CLASSIFY';
-if(typeof profile!=='string'||Buffer.byteLength(profile)>65536||!profile.includes('(allow file-read* (literal "/"))')||!profile.includes('(subpath "/redue-engineering-public/node")')||profile.includes('(allow network*)'))throw Object.assign(Error(),{code:'GENERATOR_PROFILE_UNKNOWN'});
-console.log(JSON.stringify({schema:1,result:'SOURCE_COMPOSITION_OBSERVED',phase:'CLASSIFY',profileSha256:createHash('sha256').update(profile).digest('hex'),profileBytes:Buffer.byteLength(profile),nativeLaunches:0,nativeEnforcement:'NOT_ESTABLISHED',bunEquivalence:'NOT_ESTABLISHED',sealed:false,reuseEligible:false}));
-}catch(error){console.log(JSON.stringify(generatorFailureObservation(error,phase.value)));process.exitCode=74;}`;
+classification=generatedProfileClassification(profile);if(!classification.passed)throw Object.assign(Error(),{code:'GENERATOR_PROFILE_UNKNOWN'});
+console.log(JSON.stringify({schema:1,result:'SOURCE_COMPOSITION_OBSERVED',phase:'CLASSIFY',profileSha256:createHash('sha256').update(profile).digest('hex'),profileBytes:classification.profileBytes,classification,nativeLaunches:0,nativeEnforcement:'NOT_ESTABLISHED',bunEquivalence:'NOT_ESTABLISHED',sealed:false,reuseEligible:false}));
+}catch(error){console.log(JSON.stringify({...generatorFailureObservation(error,phase.value),classification}));process.exitCode=74;}`;
   const result=spawnSync(process.execPath,['--input-type=module','--eval',child,codeFile,proposal.sourceSha256],{cwd,env:{HOME:home,TMPDIR:base},encoding:'utf8',timeout:5000,maxBuffer:4096,killSignal:'SIGKILL'});
   assert(result.error===undefined,'BOUNDED_SOURCE_CHILD_UNAVAILABLE');assert(result.signal===null,'BOUNDED_SOURCE_CHILD_SIGNALED');assert(result.stderr==='','BOUNDED_SOURCE_CHILD_STDERR_UNKNOWN');
   let observed;try{observed=JSON.parse(result.stdout);}catch{assert.fail('BOUNDED_SOURCE_CHILD_PROTOCOL_UNKNOWN');}
-  if(result.status!==0){const safe=observed&&Object.keys(observed).sort().join(',')==='identifier,nativeLaunches,phase,reason_code,result,reuseEligible,schema,sealed'&&observed.schema===1&&observed.nativeLaunches===0&&observed.sealed===false&&observed.reuseEligible===false&&observed.result==='UNKNOWN'&&['COMPILE','INITIALIZE','GENERATE','CLASSIFY'].includes(observed.phase)&&['VM_TIMEOUT','SOURCE_IDENTITY_MISMATCH','PROFILE_CLASSIFICATION_UNKNOWN','REFERENCE_ERROR','SYNTAX_ERROR','TYPE_ERROR','UNKNOWN_OR_UNAVAILABLE'].includes(observed.reason_code)&&['NONE',...REFERENCE_NAMES].includes(observed.identifier);
-    assert.fail(safe?'SOURCE_EVALUATION_'+observed.phase+'_'+observed.reason_code+'_'+observed.identifier:'BOUNDED_SOURCE_CHILD_UNKNOWN');}
-  const validSuccess=observed&&Object.keys(observed).sort().join(',')==='bunEquivalence,nativeEnforcement,nativeLaunches,phase,profileBytes,profileSha256,result,reuseEligible,schema,sealed'&&observed.schema===1&&observed.result==='SOURCE_COMPOSITION_OBSERVED'&&observed.phase==='CLASSIFY'&&/^[a-f0-9]{64}$/.test(observed.profileSha256)&&Number.isInteger(observed.profileBytes)&&observed.profileBytes>0&&observed.profileBytes<=65536&&observed.nativeLaunches===0&&observed.nativeEnforcement==='NOT_ESTABLISHED'&&observed.bunEquivalence==='NOT_ESTABLISHED'&&observed.sealed===false&&observed.reuseEligible===false;
+  if(result.status!==0){const safe=observed&&Object.keys(observed).sort().join(',')==='classification,identifier,nativeLaunches,phase,reason_code,result,reuseEligible,schema,sealed'&&observed.schema===1&&observed.nativeLaunches===0&&observed.sealed===false&&observed.reuseEligible===false&&observed.result==='UNKNOWN'&&['COMPILE','INITIALIZE','GENERATE','CLASSIFY'].includes(observed.phase)&&['VM_TIMEOUT','SOURCE_IDENTITY_MISMATCH','PROFILE_CLASSIFICATION_UNKNOWN','REFERENCE_ERROR','SYNTAX_ERROR','TYPE_ERROR','UNKNOWN_OR_UNAVAILABLE'].includes(observed.reason_code)&&['NONE',...REFERENCE_NAMES].includes(observed.identifier)&&(observed.classification===null||classificationShape(observed.classification));
+    assert.fail(safe?'SOURCE_EVALUATION_'+observed.phase+'_'+observed.reason_code+'_'+observed.identifier+'_'+JSON.stringify(observed.classification):'BOUNDED_SOURCE_CHILD_UNKNOWN');}
+  const validSuccess=observed&&Object.keys(observed).sort().join(',')==='bunEquivalence,classification,nativeEnforcement,nativeLaunches,phase,profileBytes,profileSha256,result,reuseEligible,schema,sealed'&&observed.schema===1&&observed.result==='SOURCE_COMPOSITION_OBSERVED'&&observed.phase==='CLASSIFY'&&/^[a-f0-9]{64}$/.test(observed.profileSha256)&&Number.isInteger(observed.profileBytes)&&observed.profileBytes>0&&observed.profileBytes<=65536&&observed.nativeLaunches===0&&observed.nativeEnforcement==='NOT_ESTABLISHED'&&observed.bunEquivalence==='NOT_ESTABLISHED'&&observed.sealed===false&&observed.reuseEligible===false&&classificationShape(observed.classification)&&observed.classification.passed===true;
   assert(validSuccess,'BOUNDED_SOURCE_CHILD_PROTOCOL_UNKNOWN');
   assert.equal(observed.result,'SOURCE_COMPOSITION_OBSERVED');assert.equal(observed.phase,'CLASSIFY');assert.equal(observed.nativeLaunches,0);assert.equal(observed.nativeEnforcement,'NOT_ESTABLISHED');assert.equal(observed.bunEquivalence,'NOT_ESTABLISHED');assert.equal(observed.sealed,false);assert.equal(observed.reuseEligible,false);
   assert(!result.stdout.includes(base));assert(!result.stdout.includes('file-read'));assert(!result.stdout.includes('REDUE_ENGINEERING_SOURCE_ONLY'));
@@ -123,4 +145,23 @@ test('phase tags preserve one aggregate VM budget and unchanged bounded child li
   const text=fs.readFileSync(new URL(import.meta.url),'utf8');const section=text.slice(text.indexOf('  const child=`'),text.indexOf("for(const phase of ['COMPILE'"));
   assert.equal((section.match(/runInContext\(context,\{timeout:1000\}\)/g)??[]).length,1);assert(section.includes('timeout:5000,maxBuffer:4096'));assert(section.includes("killSignal:'SIGKILL'"));
   assert(section.includes('__redueGeneratorPhase.value="INITIALIZE"'));assert(section.includes('__redueGeneratorPhase.value="GENERATE"'));assert(section.includes("phase.value='CLASSIFY'"));
+});
+
+
+test('finite classification diagnoses each original predicate without altering size/network/read acceptance',()=>{
+  const original='(allow file-read* (literal "/"))\n(subpath "/redue-engineering-public/node")';
+  const good=generatedProfileClassification(original);assert.equal(good.passed,true);assert.equal(good.byteStatus,'WITHIN_65536');assert(classificationShape(good));
+  const cases=[['type',null,'OTHER'],['root',original.replace('(allow file-read* (literal "/"))',''),'rootLiteralRead'],['public',original.replace('(subpath "/redue-engineering-public/node")',''),'publicReadSubpath'],['network',original+'\n(allow network*)','networkWildcard'],['bytes',original+'X'.repeat(65536),'EXCEEDS_65536']];
+  for(const [name,value,field] of cases){const result=generatedProfileClassification(value);assert.equal(result.passed,false,name);assert(classificationShape(result));if(name==='type')assert.equal(result.profileType,field);else if(name==='bytes')assert.equal(result.byteStatus,field);else assert.equal(result[field],name==='network');}
+});
+test('classification byte threshold remains65536 exactly and larger bounded samples never become success',()=>{
+  const original='(allow file-read* (literal "/"))\n(subpath "/redue-engineering-public/node")',exact=original+'X'.repeat(65536-Buffer.byteLength(original));
+  assert.equal(generatedProfileClassification(exact).passed,true);const beyond=generatedProfileClassification(exact+'X');assert.equal(beyond.profileBytes,65537);assert.equal(beyond.passed,false);assert.equal(beyond.byteStatus,'EXCEEDS_65536');
+  const capped=generatedProfileClassification('X'.repeat(262145));assert.equal(capped.profileBytes,null);assert.equal(capped.rootLiteralRead,null);assert.equal(capped.passed,false);assert(classificationShape(capped));
+});
+test('classification result omits profile/env/path bodies and does not invoke nonstring coercion',()=>{
+  let coerced=0;const value={toString(){coerced++;throw Error('NONSECRET');}};assert.equal(generatedProfileClassification(value).profileType,'OTHER');assert.equal(coerced,0);
+  const classified=generatedProfileClassification('NONSECRET_BODY ENV=VALUE /NONSECRET/path');assert(!JSON.stringify(classified).includes('NONSECRET'));assert(!JSON.stringify(classified).includes('VALUE'));
+  assert.equal(classificationShape({...classified,private:'NONSECRET'}),false);assert.equal(classificationShape({...classified,profileBytes:-1}),false);assert.equal(classificationShape({...classified,passed:true}),false);assert.equal(classificationShape({...classified,byteStatus:'NOT_APPLICABLE'}),false);
+  let getters=0;const getter={...classified};Object.defineProperty(getter,'passed',{get(){getters++;return true;}});assert.equal(classificationShape(getter),false);assert.equal(getters,0);
 });
