@@ -7186,3 +7186,62 @@ Copilot data-only prerequisite work remains possible, but unsupported native
 ALL-writer protection and credential filtering cannot be filled with policy
 labels or a readonly compiler child. No new permissions, credential operation,
 helper execution, model, native or CI operation was performed by this review.
+
+
+### Fresh native whole-base supervisor: reusable route and remaining prerequisites
+
+Source-only review inspected diagnostic helper SHA256
+`f418feefd816a6fc8d2fead5eb9f074aa39d3e8f54646f555aedb2c96596dc1e`,
+paired-policy SHA256
+`45cd4884696768fe272d811887f094e0ba41f3eb29b1d8b189e3c5a546797362`
+and repaired H-build SHA256
+`f772d542cfba92d9eb1614388c220018e747683bbd0f2628090996d9f68d3254`.
+The supported native print/stream-json route supplies useful bounded supervision
+and init/tool-ID/result/final validation patterns: four turns, closed stdin,
+Bash only, dontAsk, empty strict MCP, disabled hooks/plugins, no persistence,
+preventive exact-command admission plus finite readonly-family denies, and
+native close/cleanup observations. The old entrypoint cannot be reused directly:
+its activation is tied to the protected hosted workflow, its environment requires
+OAuth env and refuses other CLAUDE selectors, and its collector recognizes the
+six-check/socket protocol and checker exit zero. The paired policy still has no
+command admission and the build mint proves current public build bytes only.
+
+A local copy-free subscription route is source-compatible with H separation,
+conditionally: retain normal HOME/USER and the exact previously approved secure
+storage selector in the native parent, while placing fresh CLAUDE_CONFIG_DIR and
+GH_CONFIG_DIR in H. Public native187 SHA256 a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3
+has d7/vM at byte offsets 195650120/195650276, separating the credential namespace
+from config-directory selection. Owner-local launcher source SHA256
+`eebb1e5518853abb139482434d26dfd5f16e7e846444fb9ec51a95216b78a135`
+already preserves that selector without copying credentials. This is source
+compatibility, not fresh authentication/capacity or effective tool isolation.
+The selector also selects an obsolete plaintext fallback path: unavailable
+Keychain must stop, never recreate/copy fallback credentials or switch account.
+No launcher, security command, auth store, credential body or native process was
+executed/read by this assessment.
+
+Required corrections before dispatch are concrete. A new fixed local environment
+constructor must accept only the reviewed selector, reject all other auth/runtime
+and provider overrides, and preserve child credential denial; the old hosted
+constructor cannot simply be relaxed. Paired settings protect H/claude-host,
+whereas the hosted environment constructs host/claude-config and host/gh-config:
+the supervisor must bind and protect its actual geometry, settings, code, runtime
+and parent identities. Private A/B/H and build currency must be minted and checked
+inside the same process, with no recorded-location adoption or inherited writable
+pair handles. Physical/case/firmlink/auth disjointness, parent replacement,
+native startup/managed-policy and included-capacity prerequisites remain pending.
+AllowRead overrides root denial: never reallow whole H, home or auth directories
+as a startup repair. Native metadata/temp exceptions remain disclosed.
+
+Use one fixed absolute whole-base C command, cwd A workspace and closed stdin;
+its preventive permission rule and runtime guards require separate exact review.
+The strict C protocol must preserve valid FAIL before native/process/currentness
+uncertainty; expected helper exit74 and global UNKNOWN are not old checker-zero
+semantics. Matching native tool IDs can prove a reported tool occurrence, but
+C JSON alone cannot prove independent helper OS close or descendant reaping.
+The paired policy has no collector socket or Node-collector grant: either keep
+that lifecycle limitation explicit, or independently review a fixed trusted
+collector adaptation before making a stronger claim. The old exact-empty remote
+cache exception is frozen diagnostic-only and must not be transplanted to this
+local Keychain route. No setting, command, credential copy, model or execution
+authority was enabled by this source review.
