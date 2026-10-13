@@ -34,16 +34,49 @@ export function directEnvironmentIssue(env=process.env){
   }
   return null;
 }
-export function directCompiler(root,{verify=true}={}){
+// Fixed narrowing rule for the disabled sealed preparation probe only. There is
+// no caller-defined exclusion, callback or verification bypass. The enclosing
+// immutable native read view remains required; these named metadata checks are
+// not atomic confinement against concurrent namespace replacement.
+function sealedNamespaceGuard(root){
+ const reject=()=>fail('SEALED_PROBE_GIT_UNSUPPORTED');
+ const lexical=file=>{if(typeof file!=='string'||!path.isAbsolute(file)||path.resolve(file)!==file||Buffer.byteLength(file)>4096||/[\u0000-\u001f\u007f]/u.test(file))reject();
+  if(file.replaceAll('\\','/').split('/').some(part=>part.toLowerCase()==='.git'))reject();if(!withinPath(file,root))reject();};
+ lexical(root);
+ const named=(file,directory)=>{lexical(file);let current=root;const parts=path.relative(root,file).split(path.sep).filter(Boolean),names=[root];
+  for(const part of parts){current=path.join(current,part);names.push(current);}
+  for(let at=0;at<names.length;at++){const name=names[at];lexical(name);const stat=fs.lstatSync(name);
+   if(stat.isSymbolicLink()||at===names.length-1&&!directory&&stat.nlink!==1||at<names.length-1&&!stat.isDirectory()||at===names.length-1&&!(directory?stat.isDirectory():stat.isFile()))reject();
+   const actual=realObservedPath(name);lexical(actual);if(actual!==name)reject();}
+ };
+ return{directory:file=>named(file,true),file:file=>named(file,false)};
+}
+function sealedCompilerFiles(tsRoot,guard){
+ const files=[];let count=0,directories=0;
+ const walk=(dir,relative='')=>{if(++directories>100000||relative.split('/').length>64)fail('direct-typescript-implementation-unreviewed');guard.directory(dir);
+  const opened=fs.opendirSync(dir);try{let entry;while((entry=opened.readSync())!==null){
+   if(++count>200000||typeof entry.name!=='string'||!entry.name||entry.name.includes('/')||entry.name.includes('\\')||entry.name==='.'||entry.name==='..')fail('direct-typescript-implementation-unreviewed');
+   const name=relative?relative+'/'+entry.name:entry.name,full=path.join(dir,entry.name);
+   if(entry.isDirectory()){guard.directory(full);walk(full,name);}else if(entry.isFile()){guard.file(full);if(files.length>=100000)fail('direct-typescript-implementation-unreviewed');files.push([name,full]);}
+   else fail('direct-typescript-implementation-unreviewed');
+  }}finally{opened.closeSync();}};walk(tsRoot);return files;
+}
+export function directCompiler(root,{verify=true,sealedNamespace=false}={}){
+  if(![true,false].includes(sealedNamespace)||sealedNamespace&&verify!==true)fail('direct-typescript-implementation-unreviewed');
+  const guard=sealedNamespace?sealedNamespaceGuard(root):null;
+  // Validate expected local candidates BEFORE Node resolution, which can perform
+  // internal package-JSON reads before returning a resolved manifest path.
+  if(guard){guard.directory(root);guard.file(path.join(root,'package.json'));guard.directory(path.join(root,'node_modules'));guard.directory(path.join(root,'node_modules/typescript'));guard.file(path.join(root,'node_modules/typescript/package.json'));}
   root=realObservedPath(root);
   const manifest=createRequire(path.join(root,'package.json')).resolve('typescript/package.json');
+  if(guard){if(manifest!==path.join(root,'node_modules/typescript/package.json'))fail('direct-typescript-layout-unsupported');guard.file(manifest);}
   const tsRoot=path.dirname(realObservedPath(manifest));
   if(!withinPath(tsRoot,root)||tsRoot!==realObservedPath(path.join(root,'node_modules/typescript')))
     fail('direct-typescript-layout-unsupported');
   const version=JSON.parse(fs.readFileSync(manifest)).version,spec=reviewed[version];
   if(!spec)fail('direct-typescript-version-unsupported');
   if(verify){
-    const files=[];
+    const files=guard?sealedCompilerFiles(tsRoot,guard):[];
     const walk=(dir,relative='')=>{
       for(const entry of fs.readdirSync(dir,{withFileTypes:true})){
         const name=relative?relative+'/'+entry.name:entry.name,full=path.join(dir,entry.name);
@@ -51,14 +84,16 @@ export function directCompiler(root,{verify=true}={}){
         else if(entry.isFile())files.push([name,full]);
         else fail('direct-typescript-implementation-unreviewed');
       }
-    };walk(tsRoot);
+    };if(!guard)walk(tsRoot);
     const digest=createHash('sha256');
-    for(const [name,file] of files.sort(([a],[b])=>a<b?-1:a>b?1:0))digest.update(name+'\0'+hash(fs.readFileSync(file))+'\0');
+    for(const [name,file] of files.sort(([a],[b])=>a<b?-1:a>b?1:0)){if(guard)guard.file(file);digest.update(name+'\0'+hash(fs.readFileSync(file))+'\0');}
     if(digest.digest('hex')!==spec.digest)fail('direct-typescript-implementation-unreviewed');
   }
   return {tsRoot,version,entry:path.join(tsRoot,spec.entry),digest:spec.digest};
 }
-export function directProject(root,script,{verify=true}={}){
+export function directProject(root,script,{verify=true,sealedNamespace=false}={}){
+  if(![true,false].includes(sealedNamespace)||sealedNamespace&&verify!==true)fail('direct-typescript-implementation-unreviewed');
+  if(sealedNamespace){const guard=sealedNamespaceGuard(root);guard.directory(root);guard.file(path.join(root,'package.json'));}
   const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json')));
   if(pkg.workspaces||pkg.packageManager&&!/^npm@/.test(pkg.packageManager)||
     !['package-lock.json','npm-shrinkwrap.json'].some(file=>fs.existsSync(path.join(root,file)))||
@@ -67,7 +102,7 @@ export function directProject(root,script,{verify=true}={}){
   if(pkg.scripts?.[script]?.trim()!=='tsc --noEmit'||pkg.scripts?.['pre'+script]||pkg.scripts?.['post'+script])
     fail('typecheck-script-changed');
   const issue=directEnvironmentIssue();if(issue)fail(issue);
-  return directCompiler(root,{verify});
+  return directCompiler(root,sealedNamespace?{verify,sealedNamespace:true}:{verify});
 }
 // Provenance only: retain a digest, never proxy URLs/credentials or a raw dump.
 // No npm process runs in this recipe; these keys are not compiler applicability.

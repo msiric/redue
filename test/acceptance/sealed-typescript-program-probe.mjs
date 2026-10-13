@@ -51,7 +51,7 @@ export function probeSealedTypeScriptProgram(options){
   // no verify:false path or caller-selected implementation is exposed here.
   bodyPath(path.join(root,'package.json'),'SEALED_PROBE_CONFIG_OUTSIDE');
   bodyPath(path.join(root,'node_modules/typescript/package.json'),'SEALED_PROBE_COMPILER');
-  const compiler=directProject(root,script,{verify:true}),tsRoot=path.join(root,'node_modules/typescript');
+  const compiler=directProject(root,script,{verify:true,sealedNamespace:true}),tsRoot=path.join(root,'node_modules/typescript');
   if(compiler.version!=='5.5.2'||compiler.digest!==compilerDigest||compiler.tsRoot!==tsRoot||
       compiler.entry!==path.join(tsRoot,'lib/tsc.js'))fail('SEALED_PROBE_COMPILER');
   const entry=path.join(tsRoot,'lib/typescript.js'),require=createRequire(path.join(root,'package.json'));

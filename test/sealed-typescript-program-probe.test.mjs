@@ -43,7 +43,7 @@ function fixture(capture=captureSealedTypeScriptDiscovery){
   const require=file=>{calls.load++;assert.equal(file,entry);assert.notEqual(fileSystem.readFileSync,originalRead,'journal installed before first fake require');return ts;};
   require.resolve=file=>file;require.cache={};const originalRead=fileSystem.readFileSync;
   const process={cwd(){return root;}};
-  const directProject=(actual,script,settings)=>{calls.admission++;calls.script=script;assert.equal(calls.load,0);assert.equal(actual,root);assert(['typecheck','test:types'].includes(script));assert.deepEqual(settings,{verify:true});return admitted;};
+  const directProject=(actual,script,settings)=>{calls.admission++;calls.script=script;assert.equal(calls.load,0);assert.equal(actual,root);assert(['typecheck','test:types'].includes(script));assert.deepEqual(settings,{verify:true,sealedNamespace:true});return admitted;};
   const probe=construct(fileSystem,path,()=>require,directProject,compilerProgramFiles,capture,createSealedTypeScriptForwarding,process,Buffer);
   return {probe,calls,options,parsed,returned,fileSystem,ts,require,admitted,process,originalRead};
 }
