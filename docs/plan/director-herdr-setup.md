@@ -1,6 +1,9 @@
 # REDUE director loop — Herdr installation and startup
 
-**Prepared:** 2026-10-13. **Status:** staged setup package, NOT installed or running on the owner's Mac.
+**Prepared:** 2026-10-13. **Status:** installed project-local setup with an actual
+coordination loop exercised in the existing primary Herdr/Codex thread. The current
+[resume](portable-evidence-resume.md) records revisions, native role loading and
+unexercised persistence controls; installation alone is not runtime acceptance.
 
 This supplement adapts the existing Codex director kit to a Herdr-managed session.
 It takes precedence over generic startup suggestions in PLAN.md; it does not change
