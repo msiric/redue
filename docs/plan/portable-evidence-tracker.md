@@ -3,7 +3,50 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — reviewed loop and actual engineering control
+## Current checkpoint — reviewed transport and source-only startup
+
+2026-10-13 21:20UTC, integration `6de7e2e` (startup witness `9dd0a32`).
+Same original Herdr director and goal; one integration owner. 054B received fresh
+independent ACCEPT at exact `4708878`, then both transport commits were integrated.
+Original timing failures remain retained. Monotonic deadline overruns cannot become
+green; escalation occurs before bounded cleanup ends; only actual close establishes
+reaping. Mock/transport acceptance is not native enforcement. Root exact combined
+10-suite run:569PASS/one explicit OS SKIP,517.271ms; TAP SHA
+`0a1157063d715a3baee4d5a1c58ed19514f8f7317a1da7e26562cd35cc526a5d`.
+
+056 startup source witness received independent ACCEPT before integration. It binds
+fresh owned HOME/config/PATH-helper inputs and reviewed stock startup source;
+controlled native shell startup remains NOT_EMPIRICALLY_OBSERVED. One actual
+same-process fresh fixture/build/startup/currentness constructor exited0 in1613.876ms
+(body only, excluding CLI startup/import); native/helper/compiler-check/model were
+NOT executed. Record SHA
+`f43448edc45d5ccc427476177fedb764e7393d7fca37f9203772e92cda5c7270`.
+The fixed C compilation is setup, not a verification or sealing event. Process-ended
+private identities cannot be recovered from JSON. Prior053 build record preserved.
+
+Next concrete task057 owns the usable fixed native diagnostic entry in an isolated
+worktree, combining fresh private preparation, actual protected activation/env/argv,
+bounded collection and post-close checks. Independent prerequisite review is active.
+No native/model/CI operation has started. Source/currentness flags cannot substitute
+for empirical enforcement, complete credential protections or origin stability.
+
+Fresh GitHub reads report repository admin/push and environment metadata available;
+these do not prove dispatch/write capability. The exact prior workflow403 remains
+unrepeated. Inventory branch75613f9 still has no run. Existing protected OAuth secret
+presence is confirmed without reading its value. The nonsecret owner policy fact is
+reviewed2026-10-12T11:09:43Z, stale under its unchanged24h gate; no timestamp or
+account facts were autonomously refreshed. No login/secret setup is requested based
+on presence alone. Copilot included Actions4-credit/$0 fact remains pending.
+
+G0partial; sealedG1/G2/G3/prepublicationG4 INCOMPLETE. Historical hosted Claude
+six-check prerequisite stays CLOSED scopedPASS. Actual portable cross-agent/
+two-machine reuse NOT ESTABLISHED; sealed complete-path economics NOT MEASURED;
+external usage NOT STARTED. Alpha.11/fixed pilot/receipts unchanged. No new signing,
+trust, permission, account or public action. Day0 unchanged; meaningful72h calibration
+is due21:24UTC, not an instruction to wait or weaken gates. External blocked durations
+are recorded per task; no fabricated aggregate blocked-time total.
+
+## Historical checkpoint — 20:11UTC
 
 2026-10-13 20:11UTC, integration `442f305`. The original Herdr director is
 RUNNING in its existing pane; task ownership and the active goal are unchanged.
