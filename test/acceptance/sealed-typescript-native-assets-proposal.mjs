@@ -6,7 +6,7 @@ import {verifySealedTypeScriptSyntheticFixture} from './sealed-typescript-synthe
 const pins=Object.freeze({
   checker:'d206de2e8fa469768aecec6e7bf276a935a0071c470aa5b1ad053de6dd649671',
   mapper:'14ed107ff8e48e539c172c49aee88830f44eac0d037463d97b45fc54d8e3b070',
-  exchange:'507dc2fb45adb9d7df293eccf18874fbfb101d4b25f2ace932899be6f2198d72'});
+  exchange:'06e5da5dca906063762410f40bea9b7f99662cb6a62934ee50749a7b41162e48'});
 const names={checker:'sealed-typescript-native-sentinel.mjs',mapper:'sealed-typescript-map-sentinel.c',exchange:'sealed-typescript-exchange-sentinel.c'};
 const sha=value=>createHash('sha256').update(value).digest('hex');
 const error=code=>Object.assign(Error(code),{code});

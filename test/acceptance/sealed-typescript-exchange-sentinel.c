@@ -38,6 +38,7 @@ _Static_assert(RENAME_SWAP == 0x2 && RENAME_NOFOLLOW_ANY == 0x10, "Reviewed exch
 _Static_assert((GUARDS & O_NOFOLLOW) == 0, "ANY conflicts with terminal NOFOLLOW");
 static const char marker[] = "REDUE_SEALED_SYNTHETIC_CANARY\n";
 static const char *stage_names[] = {"write-canary.txt","chmod-canary.txt","unlink-canary.txt","rename-canary.txt","hardlink-canary.txt","map-canary.txt"};
+struct stage_snapshot { struct stat directory,markers[6]; };
 static const char *workspace_names[] = {"write-canary.txt","map-canary.txt","stage-parent-exchange","exchange-control-a","exchange-control-b"};
 /* Known mismatches/grants always outrank later I/O or cleanup uncertainty. */
 enum observation { MATCH, UNKNOWN, MISMATCH };
@@ -63,10 +64,11 @@ static enum observation owned_directory(const char *file, struct stat *result) {
   if (lstat(file,result)) return UNKNOWN;
   return S_ISDIR(result->st_mode) && result->st_uid==getuid() && (result->st_mode&07777)==0700 ? MATCH : MISMATCH;
 }
-static enum observation marker_file(const char *folder,const char *name) {
+static enum observation marker_file(const char *folder,const char *name,struct stat *snapshot,const struct stat *expected) {
   char file[1024];if (snprintf(file,sizeof(file),"%s/%s",folder,name)<0 || strlen(folder)+strlen(name)+2>sizeof(file)) return UNKNOWN;
   struct stat named,before,after,after_named;enum observation result=MATCH;
   if (lstat(file,&named)) return UNKNOWN;
+  if (expected&&!same_file(&named,expected)) return MISMATCH;
   if (!S_ISREG(named.st_mode)||named.st_uid!=getuid()||named.st_nlink!=1||(named.st_mode&07777)!=0644||named.st_size!=(off_t)(sizeof(marker)-1)) return MISMATCH;
   int fd=open(file,O_RDONLY|GUARDS);if(fd<0)return UNKNOWN;
   int before_known=fstat(fd,&before)==0;
@@ -78,13 +80,16 @@ static enum observation marker_file(const char *folder,const char *name) {
     if(before_known&&!same_file(&before,&after))result=merge(result,MISMATCH);
   }
   if(lstat(file,&after_named))result=merge(result,UNKNOWN);else if(!same_file(&named,&after_named))result=merge(result,MISMATCH);
-  if(close(fd))result=merge(result,UNKNOWN);return result;
+  if(close(fd))result=merge(result,UNKNOWN);
+  if(result==MATCH&&snapshot)*snapshot=named;return result;
 }
-static enum observation inventory(const char *file,const char **names,size_t count) {
+static enum observation inventory(const char *file,const char **names,size_t count,struct stat *snapshot,const struct stat *expected) {
   struct stat named,opened,after;enum observation result=owned_directory(file,&named);if(result!=MATCH)return result;
+  if(expected&&!same_file(&named,expected))return MISMATCH;
   int fd=open(file,O_RDONLY|O_DIRECTORY|GUARDS);if(fd<0)return UNKNOWN;
   if(fstat(fd,&opened)){close(fd);return UNKNOWN;}
   if(!same_identity(&named,&opened)){close(fd);return MISMATCH;}
+  if((snapshot||expected)&&!same_file(&named,&opened)){close(fd);return MISMATCH;}
   DIR *dir=fdopendir(fd);if(!dir){close(fd);return UNKNOWN;}
   unsigned int seen=0;size_t retained=0;
   for(;;){errno=0;struct dirent *entry=readdir(dir);if(!entry){if(errno)result=merge(result,UNKNOWN);break;}
@@ -94,24 +99,48 @@ static enum observation inventory(const char *file,const char **names,size_t cou
     if(at==count || (seen&(1u<<at))){result=merge(result,MISMATCH);break;}seen|=1u<<at;
   }
   if(result==MATCH && seen!=(1u<<count)-1)result=MISMATCH;
-  if(lstat(file,&after))result=merge(result,UNKNOWN);else if(!same_identity(&named,&after))result=merge(result,MISMATCH);
-  if(closedir(dir))result=merge(result,UNKNOWN);return result;
+  if(snapshot||expected){if(fstat(fd,&after))result=merge(result,UNKNOWN);else if(!same_file(&named,&after))result=merge(result,MISMATCH);}
+  if(lstat(file,&after))result=merge(result,UNKNOWN);else if(!same_identity(&named,&after)||((snapshot||expected)&&!same_file(&named,&after)))result=merge(result,MISMATCH);
+  if(closedir(dir))result=merge(result,UNKNOWN);
+  if(snapshot||expected){if(lstat(file,&after))result=merge(result,UNKNOWN);else if(!same_file(&named,&after))result=merge(result,MISMATCH);}
+  if(result==MATCH&&snapshot)*snapshot=named;return result;
 }
-static enum observation fixture(struct stat dirs[4],const struct stat *expected) {
+/* Final named metadata barrier after all other fixture reads. The prior bounded
+ * descriptor reads checked fixed marker bytes; snapshots observe endpoints,
+ * not interval immutability or atomic confinement from a hostile writer. */
+static enum observation stage_current(const struct stage_snapshot *expected) {
+  struct stat now;enum observation result=owned_directory(STAGE,&now);
+  if(result==MATCH&&!same_file(&now,&expected->directory))result=MISMATCH;
+  for(size_t i=0;i<6;i++){char file[1024];
+    if(snprintf(file,sizeof(file),"%s/%s",STAGE,stage_names[i])<0||strlen(STAGE)+strlen(stage_names[i])+2>sizeof(file)){result=merge(result,UNKNOWN);continue;}
+    if(lstat(file,&now))result=merge(result,UNKNOWN);else if(!same_file(&now,&expected->markers[i]))result=merge(result,MISMATCH);
+  }
+  if(lstat(STAGE,&now))result=merge(result,UNKNOWN);else if(!same_file(&now,&expected->directory))result=merge(result,MISMATCH);
+  return result;
+}
+static enum observation fixture(struct stat dirs[4],struct stage_snapshot *stage,const struct stat *expected,const struct stage_snapshot *expected_stage) {
   struct stat base,checkout,workspace;enum observation result=owned_directory(BASE,&base);
   result=merge(result,owned_directory(BASE "/Checkout 空间",&checkout));result=merge(result,owned_directory(WORKSPACE,&workspace));
   const char *parent_names[]={"redue-materialization-Canary"},*single[]={"identity-canary.txt"};
-  result=merge(result,inventory(WORKSPACE,workspace_names,5));result=merge(result,inventory(PARENT,parent_names,1));result=merge(result,inventory(STAGE,stage_names,6));
+  result=merge(result,inventory(WORKSPACE,workspace_names,5,NULL,NULL));result=merge(result,inventory(PARENT,parent_names,1,NULL,NULL));
+  enum observation stage_inventory=inventory(STAGE,stage_names,6,&stage->directory,expected_stage?&expected_stage->directory:NULL);
+  result=merge(result,stage_inventory);
   const char *four[]={PARENT,PARTNER,LEFT,RIGHT};
   for(size_t i=0;i<4;i++){enum observation one=owned_directory(four[i],&dirs[i]);
     if(one==MATCH&&expected&&!same_identity(&dirs[i],&expected[i]))one=MISMATCH;
-    result=merge(result,one);if(i)result=merge(result,inventory(four[i],single,1));}
+    result=merge(result,one);if(i)result=merge(result,inventory(four[i],single,1,NULL,NULL));}
+  /* Compare each successfully named marker before unrelated uncertainty can
+   * return. Only an entirely matched initial snapshot permits any control. */
+  if(stage_inventory==MATCH){
+    for(size_t i=0;i<6;i++)result=merge(result,marker_file(STAGE,stage_names[i],&stage->markers[i],expected_stage?&expected_stage->markers[i]:NULL));
+    if(expected_stage)result=merge(result,stage_current(expected_stage));
+  }
   if(result!=MATCH)return result;
   for(size_t i=0;i<4;i++)for(size_t j=0;j<i;j++)if(dirs[i].st_dev==dirs[j].st_dev&&dirs[i].st_ino==dirs[j].st_ino)result=MISMATCH;
   for(size_t i=0;i<4;i++)if(dirs[i].st_dev!=workspace.st_dev)result=MISMATCH;
-  for(size_t i=0;i<6;i++)result=merge(result,marker_file(STAGE,stage_names[i]));
-  result=merge(result,marker_file(WORKSPACE,"write-canary.txt"));result=merge(result,marker_file(WORKSPACE,"map-canary.txt"));
-  for(size_t i=1;i<4;i++)result=merge(result,marker_file(four[i],"identity-canary.txt"));
+  result=merge(result,marker_file(WORKSPACE,"write-canary.txt",NULL,NULL));result=merge(result,marker_file(WORKSPACE,"map-canary.txt",NULL,NULL));
+  for(size_t i=1;i<4;i++)result=merge(result,marker_file(four[i],"identity-canary.txt",NULL,NULL));
+  result=merge(result,stage_current(stage));
   return result;
 }
 static enum observation identities_at(const char *a,const struct stat *expected_a,const char *b,const struct stat *expected_b) {
@@ -141,12 +170,12 @@ static void emit(enum observation initial,enum observation workspace,int attempt
   printf("{\"name\":\"base_atomic_exchange_denied\",\"result\":\"NOT_IMPLEMENTED\",\"reason_code\":\"NOT_IMPLEMENTED\",\"attempted\":false}],\"nativeEnforcement\":\"NOT_ESTABLISHED\",\"noInheritedWritableHandlesVerified\":false,\"sealed\":false,\"reuseEligible\":false}\n");
 }
 int main(int argc,char **argv) {
-  (void)argv;struct stat dirs[4],current[4];enum observation initial=UNKNOWN,workspace=UNKNOWN,final=UNKNOWN;int attempted=0,granted=0,denied=0,final_checked=0;
+  (void)argv;struct stat dirs[4],current[4];struct stage_snapshot initial_stage,current_stage;enum observation initial=UNKNOWN,workspace=UNKNOWN,final=UNKNOWN;int attempted=0,granted=0,denied=0,final_checked=0;
   if(argc!=1||!valid_base()||getuid()==0||getuid()!=geteuid()||getgid()!=getegid()){emit(initial,workspace,attempted,granted,denied,final_checked,final);return 74;}
-  initial=fixture(dirs,NULL);if(initial==MATCH)workspace=control(dirs);
-  if(workspace==MATCH){final_checked=1;enum observation again=fixture(current,dirs);
+  initial=fixture(dirs,&initial_stage,NULL,NULL);if(initial==MATCH)workspace=control(dirs);
+  if(workspace==MATCH){final_checked=1;enum observation again=fixture(current,&current_stage,dirs,&initial_stage);
     if(again==MATCH){attempted=1;if(!renameatx_np(AT_FDCWD,PARENT,AT_FDCWD,PARTNER,EXCHANGE_FLAGS))granted=1;else{int error=errno;denied=error==EPERM||error==EACCES;}
-      final=fixture(current,dirs);
+      final=fixture(current,&current_stage,dirs,&initial_stage);
     }else final=again;
   }
   emit(initial,workspace,attempted,granted,denied,final_checked,final);return 74;
