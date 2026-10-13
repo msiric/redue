@@ -20,11 +20,12 @@ export function sealedAssetsBuildCompleted(r){return Number.isInteger(r.pid)&&r.
 const safeSignals=new Set(['SIGKILL','SIGTERM','SIGABRT','SIGSEGV','SIGBUS','SIGILL','SIGINT']);
 export function sealedAssetsBuildProcessSummary(r){return {pidObserved:Number.isInteger(r.pid)&&r.pid>0,status:Number.isInteger(r.status)&&r.status>=0&&r.status<=255?r.status:null,signal:r.signal===null?null:safeSignals.has(r.signal)?r.signal:'UNKNOWN',spawnError:r.error?'UNKNOWN':'NONE',completed:sealedAssetsBuildCompleted(r),stdoutBytes:Buffer.byteLength(r.stdout??''),stderrBytes:Buffer.byteLength(r.stderr??'')};}
 
+const mintedBuilds=new WeakMap();
 const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
 export function buildSealedTypeScriptNativeAssets(options){
  if(!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==1||!Object.hasOwn(options,'fixture')||!Object.hasOwn(Object.getOwnPropertyDescriptor(options,'fixture'),'value'))throw Object.assign(Error('BUILD_OPTIONS'),{code:'BUILD_OPTIONS'});
  const {fixture}=options;
- const observations=[];let finished=false,ownerReport={schema:1,scope:'LOCAL_SYNTHETIC_ASSETS_BUILD_UNKNOWN',base:null,builds:observations,compilerCheckExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false};
+ const observations=[];let finished=false,mintedRecord=null,ownerReport={schema:1,scope:'LOCAL_SYNTHETIC_ASSETS_BUILD_UNKNOWN',base:null,builds:observations,compilerCheckExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false};
  try{
   const observed=verifySealedTypeScriptSyntheticFixture(fixture);guard(observed.outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED'&&observed.scope==='FIXED_CI_SYNTHETIC_FIXTURE_MECHANICS_ONLY'&&observed.receiverBasePolicyMatch===true);
   ownerReport.base=fixture.base;
@@ -52,7 +53,23 @@ export function buildSealedTypeScriptNativeAssets(options){
   for(const row of [runtime,compiler,linker,...headers,...sources,copied,...artifacts])current(row);guard(verifySealedTypeScriptSyntheticFixture(fixture).outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED'&&ownedDirectory(base)===baseIdentity&&identities.every(([file,before])=>ownedDirectory(file)===before));
   const report={schema:1,scope:'LOCAL_SYNTHETIC_ASSETS_BUILT_NOT_EXECUTED',base,baseIdentity,sources:sources.map(row=>({file:row.file,sha256:row.digest})),binaries:artifacts.map(row=>({file:row.file,sha256:row.digest})),nodeSha256:copied.digest,builds:observations,templateSha256:proposal.sources.map(row=>row.templateSha256),fixtureCurrent:true,compilerCheckExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false};
   ownerReport=report;
+  mintedRecord={fixture,base,baseIdentity,identities,sdk:tool.sdk,sdkIdentity,rows:[runtime,compiler,linker,...headers,...sources,copied,...artifacts]};
   finished=true;
  }catch{/* Static UNKNOWN report retains partial build observations, no raw error. */}
- return freeze({schema:1,outcome:finished?'ASSETS_BUILT_NOT_EXECUTED':'UNKNOWN',report:ownerReport,commands:[],recordAdoptionAuthority:false,compilerCheckExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false});
+ const result=freeze({schema:1,outcome:finished?'ASSETS_BUILT_NOT_EXECUTED':'UNKNOWN',report:ownerReport,commands:[],recordAdoptionAuthority:false,compilerCheckExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false});
+ if(finished)mintedBuilds.set(result,mintedRecord);return result;
+}
+
+// Read-only, one privately minted build only. Not a receipt, certificate, cached
+// applicability decision or persistent-record adoption route. Observed failure
+// irreversibly invalidates this mint; restored labels cannot revive it.
+export function verifySealedTypeScriptNativeAssetsBuild(build){
+ const record=mintedBuilds.get(build);const unknown=()=>freeze({schema:1,scope:'OBSERVED_BUILD_DATA_ONLY',outcome:'UNKNOWN',commands:[],sealed:false,reuseEligible:false});
+ if(!record||record.invalid)return unknown();
+ try{const boundary=()=>guard(verifySealedTypeScriptSyntheticFixture(record.fixture).outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED'&&ownedDirectory(record.base)===record.baseIdentity&&record.identities.every(([file,before])=>ownedDirectory(file)===before)&&fs.realpathSync(record.sdk)===record.sdk&&parentMark(fs.lstatSync(record.sdk,{bigint:true}))===record.sdkIdentity);
+  boundary();for(const row of record.rows)current(row);boundary();
+  // Catch changes after a row's hash while later fixed rows were validated.
+  for(const row of record.rows)guard(mark(fs.lstatSync(row.file,{bigint:true}))===row.mark&&JSON.stringify(parents(row.file))===JSON.stringify(row.lineage));boundary();
+  return freeze({schema:1,scope:'OBSERVED_BUILD_DATA_ONLY',outcome:'ASSETS_BUILD_CURRENTLY_OBSERVED',base:record.base,commands:[],sealed:false,reuseEligible:false});
+ }catch{record.invalid=true;return unknown();}
 }
