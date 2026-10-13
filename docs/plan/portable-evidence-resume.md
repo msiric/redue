@@ -6,7 +6,41 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree on `dev/portable-sealed-typescript`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — reviewed transport and source-only startup
+## Current checkpoint — fixed diagnostic integrated, actual launch gated
+
+2026-10-13 21:53UTC, integration `d6f3a55` after fresh independent057B ACCEPT.
+The fixed native metadata diagnostic is now implemented; no native/model run occurred.
+It creates fresh private fixture/build/startup state in one process, applies exact
+nonbare environment/argv/settings, validates protected activation and currency, then
+uses bounded transport and one-shot interpretation. Source-controlled startup stays
+separate from enforcement; collected metadata may remain UNKNOWN. No seal, receipt,
+portable applicability or agent-reuse authority is granted.
+
+Fresh review of predecessor1c62d93 found unconditional managed skills/agents/styles
+loading despite empty user/project setting sources:2PASS/3FAIL. Repairf7c5ee2 requires
+metadata-only managed .claude absence before/after, with permanent invalidation.
+Identical independent assertions now5PASS; fresh late/EPERM controls3PASS. Original
+failures are preserved. Review SHA
+`5ee3b69310acced883670a62dd0f63b8bc284a474bbc95dd2c62301c62e7bcde`.
+Root combined11-suite run604PASS/one explicit OS SKIP,518.579ms; TAP SHA
+`d8cf23fe9d72d2bc28b80ed8968d952e9be98c8383fc24fe69a48c1b328bd295`.
+The original bare@1 constructor remains honest historical source-only evidence;
+@2 NONbare preserves the explicit OAuth source route without claiming actual login.
+
+Task059 now owns minimal protected-workflow wiring as a data-only proposal in an
+isolated existing worktree. No dispatch, uploads, signing, new trust or permissions.
+The old hosted six-check PASS stays CLOSED and will not be repeated. Actual launch
+still needs the reviewed workflow route, runner toolchain/profile facts and a fresh
+protected account/capacity statement. No failed prerequisite launches a model.
+GitHub reads/task-branch pushes work; prior dispatch403 is unrepeated. The inventory
+branch has no run; Copilot included Actions billing fact remains independently pending.
+
+G0partial; sealedG1/G2/G3/prepublicationG4 incomplete. No actual sealed compiler
+execution or portable agent/two-machine reuse; complete-path economics NOT MEASURED;
+external usage NOT STARTED. Day0 and72-hour calibration stand; forecast conditional/
+high-risk. Alpha.11, pilot, existing credentials and immutable receipts unchanged.
+
+## Historical checkpoint — 21:20UTC
 
 2026-10-13 21:20UTC, integration `6de7e2e` (startup witness `9dd0a32`).
 Same original Herdr director and goal; one integration owner. 054B received fresh
@@ -54,6 +88,7 @@ subscription OAuth. A versioned nonbare startup repair is in progress; no run us
 the incompatible combination. Source witness data stays historical/source-only.
 See the tracker’s72-hour calibration for the unchanged Day0, gate gaps, blocked
 lanes and conditional/high-risk forecast. No new publication is authorized.
+
 
 ## Historical checkpoint — 20:11UTC
 
