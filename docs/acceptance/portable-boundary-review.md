@@ -6960,3 +6960,28 @@ in a separate owned H is the simpler subsequent direction; obsolete finalization
 comments can be updated without relaxing inventories. That exact renderer/profile/
 resource interface requires its own review before any use. Inventory dispatch403
 produced zero jobs; this review authorizes no alternative dispatch route.
+
+Disabled split-policy source/mock GO65f24a4+09c4d5e,
+helperSHA45cd4884696768fe272d811887f094e0ba41f3eb29b1d8b189e3c5a546797362.
+Actual private current pair and H fixture verification occurs before reading
+resource paths and again after composition. Lexically distinct H owns host code/
+configuration; A/B retain their closed synthetic inventories. Physical/case/auth
+disjointness and current code/settings/resource bindings remain explicit blockers,
+not conclusions from differing strings or brands. Proposal clones the reviewed
+closed-read settings, removes command/socket allows, limits explicit writes to A's
+canary workspace and reads to A stageParent/workspace, Bash and the fixed H C leaf,
+and adds stage/C write denials. All credential/read/readonly-Bash-family denials,
+hook/plugin and sandbox failure/unsandboxed/network safeguards remain unchanged.
+Native metadata/root/startup exceptions are disclosed and not edited; explicit
+allowWrite reduction does not certify removal of implicit native exceptions or
+universal read/write protection. No sibling or /private/tmp body grant is added.
+
+Four independent exact-source controls passed4/4 in47.15ms: full settings equality
+except precisely intended reductions/additive denials, either late private-currency
+failure, H collision with either pair base, and symbol/accessor/imported-grant
+refusal before private checks/getters. Eight related pure controls passed8/8 in51.55ms.
+No actual fixture preparation/settings write/native/account/model/CI operation.
+commands[]/disabled/inferencefalse/nativeNOT_TESTED/sealedfalse/reusefalse remain;
+actual supported native entry/effective configuration, runtime/startup, parent
+protection, handles and six-row observations still require separate reviewed
+provisioning and evidence. This GO is settings data only, never launch authority.
