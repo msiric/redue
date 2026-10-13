@@ -6107,3 +6107,34 @@ unchanged. This is bounded partial logging, not reduced compiler validation or
 complete-query evidence. Exact frozen source/tests and changed parent code pins
 still require review before an actual followup. Reviewer performed scoped record
 reads/source inspection only, with no API/compiler/native/model/CI execution.
+
+
+## Reduced journal retention: exact bounded followup
+
+GO a750e3995287ce1bd631462064b9999ba8d58592 plus fake old-budget regression
+9a9a28dc5cc8033fc7ffaf285c6f96ac96098012 for the reduced logger source
+SHA81adf1b91765efcf62b36a1c66389a5f2387c0a6246cac43126312cd9c638a06.
+Only journalBytes8-to-4MiB and its explanatory comment change. Every call still
+forwards unchanged; frame/value/hash/count/path limits and all graph validation
+remain intact. Omitted retained frames set JOURNAL_LIMIT/loggingComplete false.
+This is deliberately partial observation retention, never complete-query proof.
+
+Exact fixed budget parent
+SHA8f26b2bd3a83404b69811d9cab384863d67e8280571c13f85f9b2d7ea30997b3
+rebinds the new journal pin/new result stem and adds only finite apiValidation
+classification: STRICT_OBSERVATIONS, STRICT_FAILURE, SEALED_OBSERVATION_SCHEMA,
+SEALED_OBSERVATION_SIZE or INVALID_RESPONSE. It does not retain rejected child
+values or raw error data. Response and persistence caps stay8MiB; parent deadline
+stays30s; environment/grants/code-stage-runtime guards/reaping/held-FD/final ACK
+remain unchanged. Subject to those current preconditions, GO for one changed
+bounded API engineering diagnostic, with no seal/reuse/native-agent authority.
+
+Independently86 affected authored fake controls passed86/86 in378.29ms. The exact
+old8/new4 countercase forwards identical2500 calls and1800 graph names; old
+collection throws SUMMARY_LIMIT, new collection fits8MiB while remaining
+INCOMPLETE/JOURNAL_LIMIT/all false. Fourteen own parent VM controls passed14/14
+in76.49ms: strict payload refusal, finite validation reasons, unchanged clocks,
+context/currentness, failed-spawn counts, finite reaping and uncertain publication.
+No actual API/compiler/native/process/model/CI operation ran in this review.
+The older summary-limit UNKNOWN remains preserved; this source review makes no
+claim about the next actual outcome or complete discovery/namespace equivalence.
