@@ -7359,3 +7359,49 @@ last new-row hashes and boundary, then finish with BOTH new named-file/parent
 barriers. This combines the old verifier's own late all-row guard with the new
 rows without changing receipts, capabilities, body scopes or authority. Initial
 build facts remain historical and must not be rewritten by failed currency.
+
+
+### Corrected private collector and original-host/new-asset currency composition
+
+Independent source/mock GO for corrected collector/classifier SHA256
+`e9c8fdb40201c25e84bef78b8b04b00850e738e663234183966d45f65006bdb3`.
+It now distinguishes an observed positive-PID spawn and valid close tuple from a
+failed-spawn close; only an actual owned child close supports reaped. Stream
+errors are handled statically with owned kill and later close observed separately.
+Final monotonic time checks catch queued late close even before timer callbacks;
+nonfinite, negative, reversed or throwing clock observations withhold exit
+qualification, and an invalid seed creates zero children. The fixed 14000/14500
+millisecond supervision and 4096-byte stdout/stderr bounds remain. Valid complete
+FAIL prefix data can survive output, I/O, stderr or time uncertainty; nominal rows
+cannot qualify through those conditions. Private raw bytes never become public
+output, and collection/lifecycle booleans authenticate no native provenance or
+all-descendant cleanup.
+
+Six independent controls passed (49.84 ms): all three preceding regressions,
+invalid/throwing seed and final clocks, missing PID and invalid close tuples, and
+valid FAIL versus nominal-row classification under four uncertainty classes.
+The 14 author mock controls passed (52.05 ms). The first independent run had
+5 PASS/1 failed test assertion because its generic PRIVATE canary matched the
+intentional static scope PRIVATE_INPUT_ONLY. Its initial test is retained; a
+unique canary repaired only that assertion, with no author source change.
+
+Independent source/mock GO for A c182740 readonly assets verifier, SHA256
+`3aba55fcf1f9dd04e26b280b0c530b9d63997937ca618fcbbf61d0a36caea039`.
+One final original-host-build check now follows the last new-source/binary hashes
+and pair/H boundary, then BOTH new named-file/parent checks finish the barrier.
+The exact prior mutation schedule now returns UNKNOWN immediately and stays
+invalid after restored visible currency. Two independent controls passed
+(52.77 ms), including serialization/prototype non-adoption; the two author suites
+passed 41 controls with one actual-build SKIP (65.15 ms). Private currency remains
+bound to the original successful build, original pair and H fixture; it cannot
+be minted from saved data, and failed currency does not rewrite historical build
+observations. This is finite observed currentness under trusted/quiescent setup,
+not atomic hostile-parent protection. No recursive verification framework, new
+body grant, permission, signing/trust or execution authority is introduced.
+
+Together with the corrected disabled command plan and strict six-row parser,
+these source interfaces may be integrated for the separately reviewed supervisor.
+There is no actual helper, C build, fixture/bootstrap, native, compiler, model,
+credential or CI operation in this review. Actual native/auth/effective-policy,
+fixed supervisor, protocol provenance and lifecycle review remain required before
+dispatch; no seal or reuse conclusion follows from this source/mock GO.
