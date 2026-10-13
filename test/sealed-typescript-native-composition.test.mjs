@@ -7,6 +7,9 @@ test('fixed binding proposal reuses protected parent and approved checkout write
   const input=options(),result=prepare(input),stageParent=input.base+'/sealed-inputs',writable=input.base+'/Checkout 空间';
   assert.equal(result.checkerBindings.stageParent,stageParent);assert(result.checkerBindings.stage.startsWith(stageParent+'/redue-materialization-'));
   assert(result.checkerBindings.allowedWorkspace.startsWith(writable+'/'));assert(result.mapperBindings.workspace.startsWith(writable+'/'));assert(result.mapperBindings.stage.startsWith(stageParent+'/'));
+  assert.equal(result.checkerBindings.caseWriteCanary,input.base+'/SEALED-INPUTS/redue-materialization-Canary/write-canary.txt');
+  assert.equal(result.checkerBindings.parentSymlinkAlias,writable+'/.sealed-native-canaries/stage-parent-alias');
+  assert.equal(result.checkerBindings.parentSymlinkWriteCanary,writable+'/.sealed-native-canaries/stage-parent-alias/redue-materialization-Canary/write-canary.txt');
   assert.deepEqual(result.proposedCommands,[[input.node,input.base+'/prefix/native-probes/sealed-typescript-native-sentinel.mjs'],[input.base+'/prefix/native-probes/sealed-typescript-map-sentinel']]);
   assert.deepEqual(result.commands,[]);
   assert.equal(result.nativeSettings.expectedProtectedCodeRoot,input.base+'/prefix');assert.equal(result.nativeSettings.expectedProtectedParent,stageParent);
@@ -19,7 +22,7 @@ test('data construction grants no route, settings mutation, filesystem/native/mo
 });
 test('missing case/symlink/atomic-parent/mapping assertions and current mapper binary verification remain explicit',()=>{
   const result=prepare(options());assert(result.prerequisites.includes('MAPPER_RENDERED_BINARY_AND_PHYSICAL_CURRENCY_NOT_VERIFIED'));
-  assert.deepEqual(result.missingAssertions,['STAGE_CASE_ALIAS_WRITE_DENIAL_NOT_IMPLEMENTED','STAGE_SYMLINK_PARENT_ALIAS_WRITE_DENIAL_NOT_IMPLEMENTED','STAGE_PARENT_ATOMIC_EXCHANGE_DENIAL_NOT_IMPLEMENTED','MAP_SHARED_COMPOSITION_NOT_OBSERVED']);
+  assert.deepEqual(result.missingAssertions,['STAGE_CASE_ALIAS_WRITE_DENIAL_NOT_OBSERVED','STAGE_SYMLINK_PARENT_ALIAS_WRITE_DENIAL_NOT_OBSERVED','STAGE_PARENT_ATOMIC_EXCHANGE_DENIAL_NOT_IMPLEMENTED','MAP_SHARED_COMPOSITION_NOT_OBSERVED']);
   assert.equal(result.classificationRules.parentOperation,'RENAME_AWAY_ONLY_NOT_ATOMIC_EXCHANGE');assert.equal(result.classificationRules.readonlyMappingError,'OS_DESCRIPTOR_CONSTRAINT_NOT_SANDBOX_DENIAL');
 });
 test('source and binary digests are only explicit local references, never inferred verified from hashes',()=>{

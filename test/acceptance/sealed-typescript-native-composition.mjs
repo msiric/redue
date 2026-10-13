@@ -20,7 +20,10 @@ export function prepareSealedTypeScriptNativeComposition(options){
   const bindings={node,checker,stageParent,stage,
     writeCanary:stage+'/write-canary.txt',chmodCanary:stage+'/chmod-canary.txt',unlinkCanary:stage+'/unlink-canary.txt',
     renameCanary:stage+'/rename-canary.txt',renameDestination:stage+'/rename-destination.txt',hardlinkCanary:stage+'/hardlink-canary.txt',
-    parentReplacement:base+'/sealed-inputs-replaced',allowedWorkspace:workspace,allowedWrite:workspace+'/write-canary.txt',outsideAlias:workspace+'/stage-alias.txt'};
+    parentReplacement:base+'/sealed-inputs-replaced',allowedWorkspace:workspace,allowedWrite:workspace+'/write-canary.txt',outsideAlias:workspace+'/stage-alias.txt',
+    caseWriteCanary:base+'/SEALED-INPUTS/redue-materialization-Canary/write-canary.txt',
+    parentSymlinkAlias:workspace+'/stage-parent-alias',
+    parentSymlinkWriteCanary:workspace+'/stage-parent-alias/redue-materialization-Canary/write-canary.txt'};
   return freeze({schema:1,scope:'SEALED_NATIVE_STAGE_COMPOSITION_PROPOSAL_ONLY',disabled:true,
     checkerBindings:bindings,mapperBindings:{workspace:workspace+'/map-canary.txt',stage:stage+'/map-canary.txt'},
     // The checker contains a destructive rename of this WHOLE parent. Do not
@@ -46,8 +49,8 @@ export function prepareSealedTypeScriptNativeComposition(options){
       'CURRENT_PROTECTED_STAGE_PARENT_AND_ANCESTOR_IDENTITIES',
       'NODE_FIXED_BINDINGS_RENDERED_AND_INDEPENDENTLY_REVIEWED',
       'MAPPER_RENDERED_BINARY_AND_PHYSICAL_CURRENCY_NOT_VERIFIED'],
-    missingAssertions:['STAGE_CASE_ALIAS_WRITE_DENIAL_NOT_IMPLEMENTED',
-      'STAGE_SYMLINK_PARENT_ALIAS_WRITE_DENIAL_NOT_IMPLEMENTED',
+    missingAssertions:['STAGE_CASE_ALIAS_WRITE_DENIAL_NOT_OBSERVED',
+      'STAGE_SYMLINK_PARENT_ALIAS_WRITE_DENIAL_NOT_OBSERVED',
       'STAGE_PARENT_ATOMIC_EXCHANGE_DENIAL_NOT_IMPLEMENTED',
       'MAP_SHARED_COMPOSITION_NOT_OBSERVED'],
     classificationRules:{permissionDenial:['EPERM','EACCES'],missingOrCrossDevice:'UNKNOWN',
