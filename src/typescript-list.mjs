@@ -76,6 +76,7 @@ export function compilerProgramFiles(ts,cwd,{readFile,fileExists,directoryExists
   if(checking&&ts.version!=='5.5.2')throw Error('TypeScript checking implementation unavailable');
   const parsed=ts.getParsedCommandLineOfConfigFile(path.join(cwd,'tsconfig.json'),checking?{noEmit:true}:{},
     {...ts.sys,readFile,fileExists,directoryExists,getDirectories,readDirectory,
+      ...(checking?{realpath}:{}),
       onUnRecoverableConfigFileDiagnostic(){}});
   if(!parsed||parsed.errors?.length)throw Error('TypeScript configuration unavailable');
   // This is a trusted local synchronous guard, never selected by imported data.

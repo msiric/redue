@@ -256,3 +256,87 @@ test('bounded partial journal leaves room for graph metadata without dropping fo
   assert.equal(result.observationStatus,'INCOMPLETE');assert(Buffer.byteLength(JSON.stringify(result))<=8*1024*1024);
   for(const key of ['nativeViewVerified','namespaceVerified','sealed','reuseEligible'])assert.equal(result[key],false);
 });
+
+const gitCode='SEALED_PROBE_GIT_UNSUPPORTED';
+const gitSpellings=['.git','.Git','.GIT'];
+for(const phase of ['config','program'])test(`sealed ${phase} Git body requests refuse before the underlying read, including normalization/case`,()=>{
+ for(const spelling of gitSpellings)for(const rel of [spelling+'/config','src/../'+spelling+'/config',spelling+'/../a.ts']){
+  const item=fixture(),target=root+'/'+rel;
+  if(phase==='config')item.ts.getParsedCommandLineOfConfigFile=function(_file,_overrides,host){host.readFile(target);const options=item.calls.parsedOptions={...item.options,noEmit:true};return {...item.parsed,options};};
+  else item.ts.createProgram=function({host}){host.readFile(target);return checkingProgram(item.calls,item.returned);};
+  throwsCode(()=>item.probe({root,script:'typecheck'}),gitCode);assert(!item.calls.body.includes(target));assert.equal(item.fileSystem.readFileSync,item.originalRead);
+ }
+});
+test('all six semantic methods reject even absent Git candidates before forwarding or fabricated absence',()=>{
+ for(const method of ['readFile','fileExists','directoryExists','getDirectories','readDirectory','realpath'])for(const spelling of gitSpellings){
+  const item=fixture();let forwarded=0;item.ts.sys[method]=function(){forwarded++;return method==='fileExists'?false:undefined;};
+  item.ts.getParsedCommandLineOfConfigFile=function(_file,_overrides,host){host[method](root+'/'+spelling+'/missing',undefined,undefined,['**/*']);const options=item.calls.parsedOptions={...item.options,noEmit:true};return {...item.parsed,options};};
+  throwsCode(()=>item.probe({root,script:'typecheck'}),gitCode);assert.equal(forwarded,0);assert.deepEqual(item.calls.body,[]);assert.equal(item.calls.host,0);
+ }
+});
+test('Git refusal remains latched if config parsing or diagnostic checking catches the exception',()=>{
+ for(const phase of ['config','diagnostic']){
+  const item=fixture();let caught=false;
+  if(phase==='config')item.ts.getParsedCommandLineOfConfigFile=function(_file,_overrides,host){try{host.fileExists(root+'/.GiT/absent');}catch{caught=true;}const options=item.calls.parsedOptions={...item.options,noEmit:true};return {...item.parsed,options};};
+  else{const old=item.ts.createProgram;item.ts.createProgram=function(o){const p=old.call(this,o);p.getSemanticDiagnostics=function(){try{o.host.fileExists(root+'/.git/absent');}catch{caught=true;}try{o.host.readFile(root+'/later-nongit.ts');}catch{}return [];};return p;};}
+  throwsCode(()=>item.probe({root,script:'typecheck'}),gitCode);assert(caught);assert(!item.calls.body.includes(root+'/later-nongit.ts'));assert.equal(item.fileSystem.readFileSync,item.originalRead);
+ }
+});
+test('Git refusal survives a swallowed guard followed by malformed config or an unrelated thrown error',()=>{
+ for(const after of ['parse-error','throw']){const item=fixture();item.ts.getParsedCommandLineOfConfigFile=function(_file,_overrides,host){try{host.fileExists(root+'/.git/absent');}catch{}if(after==='throw')throw Object.assign(Error('NONSECRET'),{code:'OTHER'});return {...item.parsed,errors:[{}]};};throwsCode(()=>item.probe({root,script:'typecheck'}),gitCode);}
+});
+test('explicit parsed files/raw files/include/extends and known path options cannot select the omitted namespace',()=>{
+ const variants=[item=>item.parsed.fileNames=[root+'/.git/a.ts'],item=>item.parsed.raw={files:['.Git/a.ts']},item=>item.parsed.raw={include:['.git/**/*']},item=>item.parsed.raw={extends:'.GIT/base.json'},item=>item.parsed.raw={extends:['.git/base.json']}];
+ for(const key of ['configFilePath','baseUrl','pathsBasePath','rootDir','outDir','declarationDir','outFile','tsBuildInfoFile'])variants.push(item=>item.options[key]=root+'/.GiT/path');
+ for(const key of ['rootDirs','typeRoots'])variants.push(item=>item.options[key]=[root+'/.git/path']);
+ variants.push(item=>item.options.paths={x:['.Git/*']});
+ for(const mutate of variants){const item=fixture();mutate(item);throwsCode(()=>item.probe({root,script:'typecheck'}),gitCode);assert.equal(item.calls.host,0);assert.equal(item.calls.program,0);assert(!item.calls.body.some(file=>file.toLowerCase().includes('/.git/')));}
+});
+test('explicit dotted wildcard includes refuse before readDirectory can enumerate Git candidates',()=>{
+ for(const spec of ['.g?t/**/*','**/.*/*','**/.??*/*','src/../.Git/**/*','','**','src/**']){
+  const item=fixture();let enumerated=0;item.ts.sys.readDirectory=function(){enumerated++;return [];};item.ts.getParsedCommandLineOfConfigFile=function(_file,_overrides,host){host.readDirectory(root,['.ts'],undefined,[spec]);const options=item.calls.parsedOptions={...item.options,noEmit:true};return {...item.parsed,options};};
+  throwsCode(()=>item.probe({root,script:'typecheck'}),gitCode);assert.equal(enumerated,0);assert.deepEqual(item.calls.body,[]);
+ }
+ for(const specs of [undefined,null,[],{}]){const item=fixture();let enumerated=0;item.ts.sys.readDirectory=function(){enumerated++;return [];};item.ts.getParsedCommandLineOfConfigFile=function(_file,_overrides,host){host.readDirectory(root,['.ts'],undefined,specs);const options=item.calls.parsedOptions={...item.options,noEmit:true};return {...item.parsed,options};};throwsCode(()=>item.probe({root,script:'typecheck'}),gitCode);assert.equal(enumerated,0);}
+});
+test('ordinary pinned include shapes and Git exclusion specs retain exact forwarding and config',()=>{
+ for(const specs of [['**/*'],['src'],['src/**/*.ts'],['**/.githooks/*.ts']]){
+  const item=fixture(),old=item.ts.getParsedCommandLineOfConfigFile;let requested;
+  item.ts.sys.readDirectory=function(...args){requested=args;return [root+'/a.ts'];};
+  item.ts.getParsedCommandLineOfConfigFile=function(...args){args[2].readDirectory(root,['.ts'],['.git/**/*'],specs);return Reflect.apply(old,this,args);};
+  const result=item.probe({root,script:'typecheck'});assert.equal(requested[3],specs);assert.deepEqual(requested[2],['.git/**/*']);assert.equal(result.interpretation,'redue-sealed-typescript-program-probe@2');assert.equal(result.reuseEligible,false);
+ }
+});
+test('unexpected returned Git graph/readDirectory/getDirectories/realpath paths refuse before body consumption',()=>{
+ for(const method of ['readDirectory','getDirectories','realpath']){
+  const item=fixture();item.ts.sys[method]=()=>method==='readDirectory'?[root+'/.GiT/a.ts']:method==='getDirectories'?['.GIT']:root+'/.Git/a.ts';
+  item.ts.getParsedCommandLineOfConfigFile=function(_file,_overrides,host){host[method](root,['.ts'],undefined,['**/*']);const options=item.calls.parsedOptions={...item.options,noEmit:true};return {...item.parsed,options};};
+  throwsCode(()=>item.probe({root,script:'typecheck'}),gitCode);assert.deepEqual(item.calls.body,[]);
+ }
+ const item=fixture();item.returned.push(root+'/.GiT/late.ts');throwsCode(()=>item.probe({root,script:'typecheck'}),gitCode);assert(!item.calls.body.includes(root+'/.GiT/late.ts'));
+});
+test('resolved symbolic aliases into Git or outside cannot cause config/source bodies to be read',()=>{
+ for(const phase of ['config','program'])for(const actual of [root+'/.Git/private.ts','/outside/private.ts']){
+  const item=fixture(),target=root+'/alias.ts',oldRealpath=item.fileSystem.realpathSync;
+  item.fileSystem.realpathSync=function(file){return file===target?actual:oldRealpath(file);};Object.defineProperty(item.fileSystem.realpathSync,'native',{value:function(file){return file;},configurable:true});
+  if(phase==='config')item.ts.getParsedCommandLineOfConfigFile=function(_file,_overrides,host){host.readFile(target);const options=item.calls.parsedOptions={...item.options,noEmit:true};return {...item.parsed,options};};else item.ts.createProgram=function({host}){host.readFile(target);return checkingProgram(item.calls,item.returned);};
+  throwsCode(()=>item.probe({root,script:'typecheck'}),actual.includes('.Git')?gitCode:phase==='config'?'SEALED_PROBE_CONFIG_OUTSIDE':'SEALED_PROBE_SOURCE_OUTSIDE');assert(!item.calls.body.includes(target));
+ }
+});
+test('package metadata aliases into Git refuse before direct admission can read them',()=>{
+ for(const target of [root+'/package.json',tsRoot+'/package.json']){
+  const item=fixture();item.fileSystem.realpathSync=function(file){return file===target?root+'/.git/config':file;};Object.defineProperty(item.fileSystem.realpathSync,'native',{value:function(file){return file;},configurable:true});
+  throwsCode(()=>item.probe({root,script:'typecheck'}),gitCode);assert.equal(item.calls.admission,0);assert.equal(item.calls.load,0);assert.deepEqual(item.calls.body,[]);
+ }
+});
+test('physical path denial is preserved and missing nonGit paths still reach the real sys behavior',()=>{
+ for(const code of ['EPERM','EACCES']){const item=fixture(),error=Object.assign(Error('NONSECRET'),{code});item.fileSystem.realpathSync=function(file){if(file===root+'/a.ts')throw error;return file;};Object.defineProperty(item.fileSystem.realpathSync,'native',{value:function(file){return file;},configurable:true});assert.throws(()=>item.probe({root,script:'typecheck'}),e=>e===error);assert(!item.calls.body.includes(root+'/a.ts'));}
+ for(const code of ['ENOENT','ENOTDIR']){const item=fixture();let forwarded=0;item.fileSystem.realpathSync=function(file){if(file===root+'/missing.ts')throw Object.assign(Error('NONSECRET'),{code});return file;};Object.defineProperty(item.fileSystem.realpathSync,'native',{value:function(file){return file;},configurable:true});item.ts.sys.fileExists=function(){forwarded++;return false;};const old=item.ts.createProgram;item.ts.createProgram=function(o){assert.equal(o.host.fileExists(root+'/missing.ts'),false);return old.call(this,o);};const result=item.probe({root,script:'typecheck'});assert.equal(forwarded,1);assert.equal(result.reuseEligible,false);}
+});
+test('similar nonGit component names remain ordinary and guard rejection creates no authority',()=>{
+ const item=fixture();item.returned.splice(0,2,root+'/.gitignore.ts',root+'/.githooks/a.ts',root+'/git/a.ts');const result=item.probe({root,script:'typecheck'});assert.deepEqual(result.files,['.gitignore.ts','.githooks/a.ts','git/a.ts']);assert.equal(result.interpretation,'redue-sealed-typescript-program-probe@2');for(const flag of ['nativeViewVerified','namespaceVerified','sealed','reuseEligible'])assert.equal(result[flag],false);
+});
+
+test('known path option aliases into Git refuse before host creation even without a later body request',()=>{
+ const item=fixture(),target=root+'/alias',original=item.fileSystem.realpathSync;item.options.baseUrl=target;item.fileSystem.realpathSync=function(file){return file===target?root+'/.GiT':original(file);};Object.defineProperty(item.fileSystem.realpathSync,'native',{value:function(file){return file;},configurable:true});throwsCode(()=>item.probe({root,script:'typecheck'}),gitCode);assert.equal(item.calls.host,0);assert(!item.calls.body.includes(target));
+});

@@ -20,3 +20,15 @@ test('unknown modes, accessor settings and wrong selected version refuse before 
  }
  let getters=0;const f=fixture(),settings={};Object.defineProperty(settings,'checkingMode',{get(){getters++;return 'sealed-noemit-cli-5.5.2@1';}});assert.throws(()=>compilerProgramFiles(f.ts,'/stage',f.methods,settings));assert.equal(getters,0);
 });
+
+test('default configuration host retains its original sys realpath or original lack of that property',()=>{
+ for(const present of [false,true]){const f=fixture(),original=function(file){return file;};if(present)f.ts.sys.realpath=original;
+  compilerProgramFiles(f.ts,'/stage',f.methods);assert.equal(Object.hasOwn(f.parsedHost,'realpath'),present);if(present)assert.equal(f.parsedHost.realpath,original);assert.equal(f.program.host.realpath,f.methods.realpath);
+ }
+});
+test('sealed checking configuration uses the same supplied realpath guard before any host/program construction',()=>{
+ const f=fixture(),denied=Object.assign(Error('NONSECRET'),{code:'SEALED_PROBE_GIT_UNSUPPORTED'});f.ts.version='5.5.2';let calls=0,hosts=0;
+ f.methods.realpath=function(file){calls++;assert.equal(file,'/stage/.git/absent');throw denied;};f.ts.sys.realpath=()=>{assert.fail('UNGUARDED_SYS_REALPATH');};
+ f.ts.getParsedCommandLineOfConfigFile=function(_file,options,host){assert.deepEqual(options,{noEmit:true});assert.equal(host.realpath,f.methods.realpath);host.realpath('/stage/.git/absent');};f.ts.createCompilerHost=()=>{hosts++;};
+ assert.throws(()=>compilerProgramFiles(f.ts,'/stage',f.methods,{checkingMode:'sealed-noemit-cli-5.5.2@1'}),error=>error===denied);assert.equal(calls,1);assert.equal(hosts,0);
+});

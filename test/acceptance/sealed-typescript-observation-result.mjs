@@ -90,7 +90,7 @@ export function validateSealedTypeScriptObservationResult(input){
   const data=object(input,['schema','scope','observation','compilerVerificationExecuted','nativeAgentEnforcement','sealed','reuseEligible']);
   const result={schema:literal(data.schema,1),scope:literal(data.scope,'FIXED_STAGED_API_OBSERVATIONS_ONLY')};
   const observed=object(data.observation,['schema','interpretation','compiler','files','configs','observationStatus','journal','graphCompleteness','apiCLICompleteness','nativeViewVerified','namespaceVerified','sealed','reuseEligible']);
-  const observation={schema:literal(observed.schema,1),interpretation:literal(observed.interpretation,'redue-sealed-typescript-program-probe@1')};
+  const observation={schema:literal(observed.schema,1),interpretation:literal(observed.interpretation,'redue-sealed-typescript-program-probe@2')};
   const compiler=object(observed.compiler,['version','sha256','entry']);observation.compiler={version:literal(compiler.version,'5.5.2'),sha256:literal(compiler.sha256,'953b4844b5f6edc745be844b6c367c227b59029b73c4182f508f90cc47e21816'),entry:literal(compiler.entry,'node_modules/typescript/lib/typescript.js')};
   observation.files=array(observed.files,limits.files,value=>relative(value),1);observation.configs=array(observed.configs,limits.configs,value=>relative(value));
   if(new Set(observation.configs).size!==observation.configs.length)fail();
