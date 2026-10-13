@@ -6041,3 +6041,41 @@ model or CI operation was run by the reviewer. The selected route can collect
 scoped API observations; it cannot establish CLI equivalence, complete namespace,
 stable execution, a native-agent seal, reusable receipt or origin authority.
 The prior98f NO-GO and all other historical UNKNOWN outcomes remain preserved.
+
+
+## Actual strict API attempt and finite reason-channel followup
+
+Independently checked actual strict7b saved record
+SHA060afe2cfc0dcc6efaa706612f0b271c2ecf7c33a3023a59ac75288e15d633dd
+and paired outerSHA59a02fba866d217022caee2468c32a3611ba66a25055438085cdbf004bebfb61:
+both owned regular0600/single-link, matching saved-record hash, UNKNOWN,
+11559.126083ms, one dispatch, child74/no signal/reaped,198 stdout bytes/zero
+stderr, all12 equality booleans true, no API observation. Verification/model
+counts zero, sealed/reuse false. Pending saved record requires the paired outer
+ACK; exact cause and failure phase are not inferred from output length or exit74.
+No new API/compiler operation was performed by the reviewer to inspect this result.
+
+GO for reason-only child9f3c856731f17329dea51fadf4ad1d2f2317127c,
+SHA9ad490d8b86a7411f5bde9c6ef8373c484776c6eb539e70326da1ea7a4e983b2,
+and exact fixed reason parent
+SHA4404cadb172e487eecf14b6df7ed2717acf88674a6f01b97ac15484fef1d6d46
+for one changed bounded engineering diagnostic, subject to unchanged current
+preconditions. Child failure emits only an own-data code in a finite whitelist,
+otherwise a fixed unavailable reason; messages/paths/body/environment values
+never cross that channel. Parent accepts only exact seven-field failure shape,
+fixed false markers and known enums, keeps outcome UNKNOWN/no API observation,
+and retains stdout digest rather than raw failure data. Success-shaped observations
+still require the reviewed strict projection. New file stem preserves prior outputs.
+
+Six authored fake child controls passed6/6 in73.39ms;13 independent parent VM
+controls passed13/13 in71.73ms, including previous parser/clock/currentness/reap/
+close/readback cases plus finite failures, private extras, authority/scope/status
+changes, duplicate keys and invalid UTF-8. No real child, API/compiler/native/model
+or CI operation ran in this review. Profile, grants, environment,30s deadline,
+8MiB bounds, pre/post bindings and held-FD/final-ACK publication are unchanged.
+
+This channel does not guarantee a cause: lower-case directProject codes and
+uncoded shared traversal errors still become generic unavailable. Parent preflight
+success is not proof of child admission or first failure phase. A sanitized code
+under uncertain currentness remains reported child data, never collection or
+namespace/seal/reuse qualification. The first actual UNKNOWN remains unchanged.
