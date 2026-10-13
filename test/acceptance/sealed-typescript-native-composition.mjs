@@ -23,13 +23,21 @@ export function prepareSealedTypeScriptNativeComposition(options){
     parentReplacement:base+'/sealed-inputs-replaced',allowedWorkspace:workspace,allowedWrite:workspace+'/write-canary.txt',outsideAlias:workspace+'/stage-alias.txt'};
   return freeze({schema:1,scope:'SEALED_NATIVE_STAGE_COMPOSITION_PROPOSAL_ONLY',disabled:true,
     checkerBindings:bindings,mapperBindings:{workspace:workspace+'/map-canary.txt',stage:stage+'/map-canary.txt'},
-    commands:[[node,checker],[mapper]],
+    // The checker contains a destructive rename of this WHOLE parent. Do not
+    // expose runnable commands: it may also contain an existing prepared stage.
+    // A caller's label/digest/boolean cannot prove a synthetic-only namespace.
+    commands:[],proposedCommands:[[node,checker],[mapper]],
+    nativeRouteAdmission:'REFUSED_PENDING_SYNTHETIC_ONLY_INVENTORY',
+    parentDestructiveAssertions:'DEFERRED_RESOURCE_PRESERVATION',
+    preservation:{preparedStages:'MUST_NOT_RENAME_REPLACE_OR_MODIFY',stateAndReceipts:'MUST_REMAIN_UNTOUCHED',freshnessClaim:'CALLER_LABEL_OR_BOOLEAN_IS_NOT_PROOF'},
     artifacts:{node:{version:'v22.13.0',sha256:'5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc'},
       checker:{renderedSha256:checkerSha256},mapper:{templateSha256:'45da4c9ae98b6d7f893a5edb133c2e8401be477e92432bfbf76d4608bfec69ef',renderedSourceSha256:mapperRenderedSourceSha256,binarySha256:mapperBinarySha256}},
     nativeSettings:{file:base+'/claude-host/settings.json',sha256:settingsSha256,
       expectedProtectedParent:stageParent,expectedWritableRoot:base+'/Checkout 空间',expectedProtectedCodeRoot:base+'/prefix',effectiveMatch:'NOT_OBSERVED'},
     originalSixCheckClosure:'SEPARATE_UNCHANGED',assertionComposition:'UNKNOWN',
-    prerequisites:['CURRENT_PROTECTED_ARTIFACT_RUNTIME_AND_SETTINGS_BYTES',
+    prerequisites:['FRESH_SYNTHETIC_ONLY_BASE_NO_PREEXISTING_STAGE_STATE_OR_RECEIPTS',
+      'BOUNDED_AUTHORITATIVE_PARENT_INVENTORY_BEFORE_DESTRUCTIVE_ASSERTION',
+      'CURRENT_PROTECTED_ARTIFACT_RUNTIME_AND_SETTINGS_BYTES',
       'EXACT_TWO_NATIVE_BASH_TOOL_ROUTES_UNDER_SAME_EFFECTIVE_SANDBOX_AND_CREDENTIAL_DENIAL',
       'READABLE_FRESH_SINGLE_LINK_OWNED_MARKERS_AND_DIFFERENT_WORKSPACE_STAGE_INODES',
       'EQUAL_REAL_EFFECTIVE_UID_AND_GID', 'SAME_DEVICE_FOR_STAGE_FILE_AND_OUTSIDE_HARDLINK_DESTINATION',

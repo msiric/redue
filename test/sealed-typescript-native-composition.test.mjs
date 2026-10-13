@@ -7,14 +7,15 @@ test('fixed binding proposal reuses protected parent and approved checkout write
   const input=options(),result=prepare(input),stageParent=input.base+'/sealed-inputs',writable=input.base+'/Checkout 空间';
   assert.equal(result.checkerBindings.stageParent,stageParent);assert(result.checkerBindings.stage.startsWith(stageParent+'/redue-materialization-'));
   assert(result.checkerBindings.allowedWorkspace.startsWith(writable+'/'));assert(result.mapperBindings.workspace.startsWith(writable+'/'));assert(result.mapperBindings.stage.startsWith(stageParent+'/'));
-  assert.deepEqual(result.commands,[[input.node,input.base+'/prefix/native-probes/sealed-typescript-native-sentinel.mjs'],[input.base+'/prefix/native-probes/sealed-typescript-map-sentinel']]);
+  assert.deepEqual(result.proposedCommands,[[input.node,input.base+'/prefix/native-probes/sealed-typescript-native-sentinel.mjs'],[input.base+'/prefix/native-probes/sealed-typescript-map-sentinel']]);
+  assert.deepEqual(result.commands,[]);
   assert.equal(result.nativeSettings.expectedProtectedCodeRoot,input.base+'/prefix');assert.equal(result.nativeSettings.expectedProtectedParent,stageParent);
   assert.equal(result.nativeSettings.sha256,input.settingsSha256);assert.equal(result.nativeSettings.effectiveMatch,'NOT_OBSERVED');
 });
 test('data construction grants no route, settings mutation, filesystem/native/model or sealing authority',()=>{
   const result=prepare(options());assert.equal(result.disabled,true);assert.equal(result.nativeLaunches,0);assert.equal(result.modelLaunches,0);assert.equal(result.filesystemAuthorityAdded,false);
   assert.equal(result.originalSixCheckClosure,'SEPARATE_UNCHANGED');assert.equal(result.assertionComposition,'UNKNOWN');assert.equal(result.sealed,false);assert.equal(result.reuseEligible,false);
-  assert.equal(Object.hasOwn(result,'settings_proposed'),false);assert.equal(Object.hasOwn(result,'allowWrite'),false);assert(Object.isFrozen(result.commands[0]));
+  assert.equal(Object.hasOwn(result,'settings_proposed'),false);assert.equal(Object.hasOwn(result,'allowWrite'),false);assert(Object.isFrozen(result.proposedCommands[0]));
 });
 test('missing case/symlink/atomic-parent/mapping assertions and mapper UTF8 mismatch remain explicit',()=>{
   const result=prepare(options());assert(result.prerequisites.includes('MAPPER_FIXED_UTF8_WORKSPACE_NOT_ADMITTED'));
@@ -34,4 +35,11 @@ test('bad node spelling, digest shape and getters refuse without calling supplie
   for(const node of ['relative','/reviewed/../node','/reviewed/node/','/reviewed/\ud800','/reviewed/\u0000'])reject({...options(),node});
   for(const value of ['', 'A'.repeat(64),'x'.repeat(65),true])reject({...options(),mapperBinarySha256:value});
   let calls=0;const value=options();Object.defineProperty(value,'node',{get(){calls++;return'/reviewed/node';}});reject(value);assert.equal(calls,0);
+});
+test('whole-parent destructive assertion is always deferred without an authoritative fresh synthetic-only inventory',()=>{
+  const result=prepare(options());assert.deepEqual(result.commands,[]);
+  assert.equal(result.nativeRouteAdmission,'REFUSED_PENDING_SYNTHETIC_ONLY_INVENTORY');assert.equal(result.parentDestructiveAssertions,'DEFERRED_RESOURCE_PRESERVATION');
+  assert.equal(result.preservation.preparedStages,'MUST_NOT_RENAME_REPLACE_OR_MODIFY');assert.equal(result.preservation.stateAndReceipts,'MUST_REMAIN_UNTOUCHED');
+  assert(result.prerequisites.includes('FRESH_SYNTHETIC_ONLY_BASE_NO_PREEXISTING_STAGE_STATE_OR_RECEIPTS'));assert(result.prerequisites.includes('BOUNDED_AUTHORITATIVE_PARENT_INVENTORY_BEFORE_DESTRUCTIVE_ASSERTION'));
+  for(const claim of [{fresh:true},{syntheticOnly:true},{noRealStage:true},{parentEntries:[]},{preparedStagePresent:false}])reject({...options(),...claim});
 });
