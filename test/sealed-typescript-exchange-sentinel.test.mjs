@@ -70,3 +70,13 @@ test('current parent comparisons occur per successfully captured stat before unr
   assert.equal([UNKNOWN,classify(MATCH,false),MATCH,MATCH].reduce(merge,MATCH),MISMATCH,'Known changed parent cannot be masked by unavailable marker/other metadata');
   assert.equal([UNKNOWN,classify(UNKNOWN,false),MATCH,MATCH].reduce(merge,MATCH),UNKNOWN,'No captured parent is not asserted changed');
 });
+
+
+test('successful post-descriptor metadata compares known named baseline even if initial descriptor stat was unavailable',()=>{
+  assert.match(source,/if\(!same_file\(&named,&after\)\)result=merge\(result,MISMATCH\)/);
+  assert.match(source,/if\(before_known&&!same_file\(&before,&after\)\)result=merge\(result,MISMATCH\)/);
+  const MATCH=0,UNKNOWN=1,MISMATCH=2,merge=(a,b)=>a===MISMATCH||b===MISMATCH?MISMATCH:a===UNKNOWN||b===UNKNOWN?UNKNOWN:MATCH;
+  const post=(state,afterKnown,equalsNamed)=>afterKnown&&!equalsNamed?merge(state,MISMATCH):afterKnown?state:merge(state,UNKNOWN);
+  for(const mismatch of ['dev','ino','type','uid','mode'])assert.equal(merge(post(UNKNOWN,true,false),UNKNOWN),MISMATCH,mismatch+' known post mismatch survives unavailable initial stat and close');
+  assert.equal(post(UNKNOWN,true,true),UNKNOWN);assert.equal(post(UNKNOWN,false,false),UNKNOWN,'Unavailable later metadata is not invented wrong identity');
+});

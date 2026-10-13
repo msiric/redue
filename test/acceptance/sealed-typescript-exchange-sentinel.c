@@ -73,7 +73,10 @@ static enum observation marker_file(const char *folder,const char *name) {
   if(!before_known)result=UNKNOWN;else if(!same_file(&named,&before))result=MISMATCH;
   if(result==MATCH){char bytes[sizeof(marker)];ssize_t count=pread(fd,bytes,sizeof(bytes),0);
     if(count<0)result=UNKNOWN;else if(count!=(ssize_t)(sizeof(marker)-1)||memcmp(bytes,marker,sizeof(marker)-1))result=MISMATCH;}
-  if(fstat(fd,&after))result=merge(result,UNKNOWN);else if(before_known&&!same_file(&before,&after))result=merge(result,MISMATCH);
+  if(fstat(fd,&after))result=merge(result,UNKNOWN);else {
+    if(!same_file(&named,&after))result=merge(result,MISMATCH);
+    if(before_known&&!same_file(&before,&after))result=merge(result,MISMATCH);
+  }
   if(lstat(file,&after_named))result=merge(result,UNKNOWN);else if(!same_file(&named,&after_named))result=merge(result,MISMATCH);
   if(close(fd))result=merge(result,UNKNOWN);return result;
 }
