@@ -12,8 +12,8 @@ const guard=c=>{if(!c)throw Error('BASE_BUILD_OBSERVATION_UNKNOWN');};
 function lineage(file){const rows=[];for(let at=path.dirname(file);;at=path.dirname(at)){const s=fs.lstatSync(at,{bigint:true});guard(s.isDirectory()&&!s.isSymbolicLink());rows.push([at,dirMark(s)]);if(at===path.dirname(at))return rows;}}
 function save(report){
  const dir=path.resolve('.local/portable-evidence'),s=fs.lstatSync(dir,{bigint:true});guard(fs.realpathSync(dir)===dir&&s.isDirectory()&&!s.isSymbolicLink()&&s.uid===BigInt(process.getuid())&&(s.mode&0o22n)===0n);
- guard(typeof report.hostBase==='string'&&/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}$/.test(report.hostBase));
- const file=dir+'/base-exchange-build-'+path.basename(report.hostBase)+'.json',bytes=Buffer.from(JSON.stringify(report)+'\n');guard(bytes.length<=65536);const before=lineage(file);
+ const ownedLabel=[report.hostBase,report.baseA,report.baseB].find(value=>typeof value==='string'&&/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}$/.test(value));guard(ownedLabel);
+ const file=dir+'/base-exchange-build-'+path.basename(ownedLabel)+'.json',bytes=Buffer.from(JSON.stringify(report)+'\n');guard(bytes.length<=65536);const before=lineage(file);
  fs.writeFileSync(file,bytes,{mode:0o600,flag:'wx'});const named=fs.lstatSync(file,{bigint:true});guard(named.isFile()&&!named.isSymbolicLink()&&named.uid===BigInt(process.getuid())&&named.nlink===1n&&(named.mode&0o7777n)===0o600n&&named.size===BigInt(bytes.length));
  const fd=fs.openSync(file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK);try{guard(mark(fs.fstatSync(fd,{bigint:true}))===mark(named));const read=Buffer.alloc(bytes.length);let at=0;while(at<read.length){const asked=read.length-at,n=fs.readSync(fd,read,at,asked,at);guard(Number.isInteger(n)&&n>0&&n<=asked);at+=n;}guard(read.equals(bytes)&&mark(fs.fstatSync(fd,{bigint:true}))===mark(named));}finally{fs.closeSync(fd);}
  guard(mark(fs.lstatSync(file,{bigint:true}))===mark(named)&&JSON.stringify(lineage(file))===JSON.stringify(before));return {recordName:path.basename(file),sha256:sha(bytes)};
@@ -21,10 +21,10 @@ function save(report){
 test('fresh private pair and separate host build only; no helper execution or authority',{
  skip:process.env.REDUE_BASE_ASSETS_BUILD==='1'?false:'Actual fixed build not selected; no fixture or process'
 },t=>{
- let report={schema:1,scope:'BASE_ASSETS_BUILD_OBSERVATION_UNKNOWN',hostBase:null,pairOutcome:null,build:null,helperExecutions:0,nativeAgentLaunches:0,models:0,compilerCheckExecutions:0,sealed:false,reuseEligible:false},finished=false;
+ let report={schema:1,scope:'BASE_ASSETS_BUILD_OBSERVATION_UNKNOWN',hostBase:null,baseA:null,baseB:null,pairOutcome:null,build:null,helperExecutions:0,nativeAgentLaunches:0,models:0,compilerCheckExecutions:0,sealed:false,reuseEligible:false},finished=false;
  try{
   guard(process.platform==='darwin'&&process.arch==='arm64'&&process.version==='v22.13.0'&&process.getuid()>0&&process.getuid()===process.geteuid()&&process.getgid()===process.getegid());
-  const pair=prepareSealedTypeScriptBaseExchangePair();report.pairOutcome=pair.outcome;guard(pair.outcome==='BASE_EXCHANGE_PAIR_PREPARED');
+  const pair=prepareSealedTypeScriptBaseExchangePair();report.pairOutcome=pair.outcome;report.baseA=pair.baseA;report.baseB=pair.baseB;guard(pair.outcome==='BASE_EXCHANGE_PAIR_PREPARED');
   const host=createSealedTypeScriptCIBootstrap();if(typeof host.base==='string'&&/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}$/.test(host.base))report.hostBase=host.base;guard(host.outcome==='CI_SYNTHETIC_BOOTSTRAP_PREPARED');const hostFixture=prepareSealedTypeScriptCISyntheticFixture(host);guard(hostFixture.outcome==='SYNTHETIC_FIXTURE_PREPARED');
   const result=buildSealedTypeScriptBaseExchangeAssets({pair,hostFixture});report.build=result;guard(result.outcome==='BUILT_NOT_EXECUTED');guard(result.dispatchAttemptCount===3&&result.dispatchResultCount===3&&result.observedProcessCount===3);
   guard(result.builds.every(row=>row.completed&&row.status===0&&row.signal===null&&row.spawnError==='NONE'));
