@@ -6833,3 +6833,33 @@ pre-read FD identity and before/after physical parent lineage pattern, with fixe
 fresh base/checkout/home identity checks around generation/application. These
 checks remain trusted/quiescent, not atomic hostile-parent confinement. No scope,
 grant, sandbox semantics or disabled/native-authority change is proposed.
+
+Exact engineering successor source/mock GOc6810f6,
+testSHA2e69e7e7fab60305c20dd05570bad151ad7752126920081d622de2b59f6ff073.
+The existing strict duplicate-key JSON reader is bounded4096B before decoding;
+pinned C emitter reason/result/attempted/skipped/header relations gate retention.
+Valid FAIL is latched before process/currentness checks and retained in a bounded
+diagnostic even when owner-record persistence is UNKNOWN. Unvalidated data never
+supplies assertions. Pre-read opened-FD identity and after-read/named/physical
+parent lineage are checked; fixed owned0700 base/checkout/workspace/stageParent/
+home identities surround generation/application and execution. No hostile-parent
+atomic confinement follows from these trusted/quiescent checks.
+
+Nine independent whole-driver memory-FS/mock-spawn controls passed9/9 in61.70ms:
+fixed argc1 launcher/caps/empty-secret environment and exact saved-byte hash;
+valid failure survives stderr, known signal, parent replacement and persistence
+failure; duplicates/contradictions retain no invented rows; directory mutation
+prevents helper dispatch; pre-read FD mismatch refuses target body/dispatch.
+Initial reviewer test expected zero total reads but correctly observed the static
+owner-report readback (8pass/1fixture-failure); target-body counter correction
+preserved source unchanged. Four author pure controls passed4 with actual route
+skipped in48.66ms. No actual bootstrap/build/generator evaluation/helper/sandbox,
+Claude/model/TS or CI operation occurred during review.
+
+One fixed engineering entry/ABI attempt is source-review GO under its own exact
+source-composition/currentness/profile gates. The configured writable workspace
+is narrower than the synthetic native proposal; original generator defaults are
+not fabricated away. It does not install native-agent settings or assert policy
+equivalence. Helper overall UNKNOWN/FAIL and base-atomic NOT_IMPLEMENTED remain;
+four implemented PASS rows could close only named engineering observations.
+No seal, inherited-RW absence, full compiler namespace or reuse authority follows.
