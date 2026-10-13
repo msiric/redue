@@ -120,6 +120,17 @@ function inspectDirectoryInventory(root){
  walk('');rows.sort(([a],[b])=>sorted(a,b));records.sort((a,b)=>sorted(a.file,b.file));sameDirectories(rootParents);for(const record of records)if(fingerprint(fs.lstatSync(record.file,{bigint:true}))!==record.fingerprint)fail('TREE_DIRECTORY_CHANGED');sameDirectories(rootParents);
  return{value:validateSealedTypeScriptDirectoryInventory({schema:1,interpretation:directoryInterpretation,directories:rows,digest:directoryDigest(rows),directoryCount:rows.length,entryCount:entries}),records,rootParents};
 }
+// A closing metadata group follows all terminal source/stage validation work.
+// Full inventories remain authoritative for names/types; these retained complete
+// records also bind membership-sensitive directory fingerprints (not merely
+// inode/mode/UID). This detects late changes before this barrier under the same
+// trusted/quiescent prerequisite, and is NOT atomic hostile-writer confinement.
+function closeDirectoryInventories(snapshots){
+ for(const snapshot of snapshots)sameDirectories(snapshot.rootParents);
+ for(const snapshot of snapshots)for(const record of snapshot.records)
+  if(fingerprint(fs.lstatSync(record.file,{bigint:true}))!==record.fingerprint)fail('TREE_DIRECTORY_CHANGED');
+ for(const snapshot of snapshots)sameDirectories(snapshot.rootParents);
+}
 function directoryInventoryCurrent(root,before){const after=inspectDirectoryInventory(root);if(canonical(after.value)!==canonical(before.value)||canonical(after.records)!==canonical(before.records))fail('TREE_DIRECTORY_CHANGED');sameDirectories(before.rootParents);return after;}
 export function captureSealedTypeScriptDirectoryInventory(root){try{return inspectDirectoryInventory(root).value;}catch(error){if(error?.code?.startsWith('TREE_'))throw error;fail('TREE_UNAVAILABLE');}}
 
@@ -215,7 +226,7 @@ function materialize(options,fullDirectories=false){
     checkNames();checkSources();
     const copiedDirectories=directorySnapshot?inspectDirectoryInventory(stage):null;
     if(copiedDirectories&&canonical(copiedDirectories.value)!==canonical(directorySnapshot.value))fail('TREE_DIRECTORY_CHANGED');
-    if(directorySnapshot){directoryInventoryCurrent(root,directorySnapshot);directoryInventoryCurrent(stage,copiedDirectories);checkSources();checkStage();checkDirectories();for(const record of destination)recheck(record);}
+    if(directorySnapshot){directoryInventoryCurrent(root,directorySnapshot);directoryInventoryCurrent(stage,copiedDirectories);checkSources();checkStage();checkDirectories();for(const record of destination)recheck(record);closeDirectoryInventories([directorySnapshot,copiedDirectories]);}
     const directoryFacts=directorySnapshot?{sourceDirectories:directorySnapshot.value.directories,materializedDirectories:copiedDirectories.value.directories,sourceDirectoryInventoryDigest:directorySnapshot.value.digest,materializedDirectoryInventoryDigest:copiedDirectories.value.digest,directoryCount:directorySnapshot.value.directoryCount,directoryEntryCount:directorySnapshot.value.entryCount}:{};
     return freeze({schema:1,interpretation:fullDirectories?'redue-typescript-materialization@3':'redue-typescript-materialization@2',...directoryFacts,root:stage,sourceManifestDigest:hash(canonical(rows)),sourceFiles:rows,
       materializedManifestDigest:hash(canonical(materializedRows)),materializedFiles:materializedRows,sourceAliasGroups,sourceAliasGroupsDigest:hash(canonical(sourceAliasGroups)),bytes,

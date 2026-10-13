@@ -365,3 +365,28 @@ test('directory inventory refuses canonical aliases and overdeep owned topology'
  f.write('a.ts');const alias=path.join(f.base,'alias');fs.symlinkSync(f.root,alias);assert.throws(()=>captureSealedTypeScriptDirectoryInventory(alias),{code:'TREE_PATH'});
  let current=f.root;for(let i=0;i<=TYPESCRIPT_TREE_LIMITS.depth;i++){current=path.join(current,'d');fs.mkdirSync(current);}assert.throws(()=>captureSealedTypeScriptDirectoryInventory(f.root),{code:'TREE_DIRECTORY_LIMIT'});
 }));
+
+// Independent review counterexamples: terminal directoryIdentity checks alone
+// missed membership additions after the last complete inventory traversal.
+test('@3 rejects stage empty-directory membership added after the second stage inventory walk',supported,()=>withFixture(f=>{
+ f.write('a.ts');fs.mkdirSync(path.join(f.root,'empty'));const options=fullOptions(f,['a.ts']);let stageEmptyWalks=0,changed=false;
+ patch('opendirSync',original=>(file,...args)=>{
+  if(typeof file==='string'&&file.startsWith(f.parent+'/redue-materialization-')&&file.endsWith('/empty'))stageEmptyWalks++;
+  if(!changed&&stageEmptyWalks===3&&file===path.join(f.root,'empty')){changed=true;const stage=path.join(f.parent,fs.readdirSync(f.parent)[0]);fs.writeFileSync(path.join(stage,'empty/late-member'),'NONSECRET');}
+  return original(file,...args);
+ },()=>assert.throws(()=>materializeSealedTypeScriptTreeWithDirectories(options),{code:'TREE_DIRECTORY_CHANGED'}));
+ assert(changed);assert.equal(stageEmptyWalks,3);assert.equal(fs.readdirSync(f.parent).length,1);
+}));
+test('@3 rejects source empty-directory membership added during the terminal staged directory check',supported,()=>withFixture(f=>{
+ f.write('a.ts');fs.mkdirSync(path.join(f.root,'empty'));const options=fullOptions(f,['a.ts']);let stageEmptyWalks=0,finalSourceWalk=false,changed=false;
+ patch('opendirSync',original=>(file,...args)=>{
+  if(typeof file==='string'&&file.startsWith(f.parent+'/redue-materialization-')&&file.endsWith('/empty'))stageEmptyWalks++;
+  if(stageEmptyWalks===3&&file===path.join(f.root,'empty'))finalSourceWalk=true;
+  return original(file,...args);
+ },()=>patch('lstatSync',original=>(file,...args)=>{
+  const stat=original(file,...args);
+  if(finalSourceWalk&&!changed&&typeof file==='string'&&file.startsWith(f.parent+'/redue-materialization-')&&file.endsWith('/empty')){changed=true;fs.writeFileSync(path.join(f.root,'empty/late-member'),'NONSECRET');}
+  return stat;
+ },()=>assert.throws(()=>materializeSealedTypeScriptTreeWithDirectories(options),{code:'TREE_DIRECTORY_CHANGED'})));
+ assert(changed);assert.equal(stageEmptyWalks,3);assert.equal(fs.readdirSync(f.parent).length,1);
+}));
