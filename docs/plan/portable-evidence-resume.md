@@ -6,7 +6,59 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree on `dev/portable-sealed-typescript`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — combined preparation timed out; precise repair under review
+## Current checkpoint — reviewed preparation completes; selected-view guard active
+
+2026-10-13 16:32UTC, integration source `d74f83a`. Same primary Herdr director
+`w1:pD` / `redue-director`; root remains sole integration owner. Installed roles
+are explicitly read by native assignments; automatic TOML role selection and
+reviewer OS isolation are not claimed. No new coordinator/pane/server restart,
+permission, trust, account or publication change.
+
+037 `4c97002` → `6ec4209`: fresh independent ACCEPT608PASS/one default SKIP,
+51 extra controls, six copy checks and six import orders; root608PASS/one SKIP
+323.084ms. Full-entry verification remains; same-call private composition closes
+before final copied/new-file checks. Failure/reentry/async/thenable/retained callback
+refusals remain. Trusted/quiescent engineering only, not hostile-write atomicity.
+
+One actual successor engineering observation at6ec4209 completed24030.586ms within
+the unchanged30s parent budget: six C attempts/results/PIDs all exit0, six synced
+copies, one campaign-launcher build. Parent reaped, no owned process group observed
+afterward.55 retained phases and bounded stable FD/named readbacks. No compiled
+helper/launcher, TypeScript check, native/model or receipt executed. Saved
+PRE_PERSISTENCE false-completion fields remain immutable. Parent SHA
+`5bbf68e0cc0bd7ebe35994dc1920c4b44f37410ecec8ad180e06c64c4f91ef0b`;
+readback SHA `7e83a7db9979bd67058e31fff801fdeaed2d1432bed21bec541cff3fe9bbf011`.
+The prior30s timeout is preserved below; incomplete baseline cannot establish a
+complete-path speedup. This single build observation is not product economics.
+
+035B `e391a38` → `d74f83a` supersedes preserved rejectedfa5d469/303c70c:
+sealed-only expected compiler namespace validation before resolution/body hashing,
+Git/alias/hardlink/error refusal before reads, whole-package verification retained.
+Fresh independent ACCEPT180PASS plus113 controls; root180PASS821.583ms.
+Ordinary default admission remains unchanged. Synthetic old pre-admission body-read
+counterexamples remain owner-local; no protected Git body was read. Post-enumeration
+insertion still requires the enclosing immutable native read view; no atomic
+membership claim. Probe interpretation@2 rejects obsolete@1 observations.
+Actual affected shared regressions after integration:30PASS/0FAIL/0SKIP,
+285566.001ms. TAP SHA
+`dbc31fd5030051439bcd383d9804086741752556cff164c671538803512419a6`.
+
+DIR-NEXT-038: import-worktree implementer owns one fixed selected-input preparation
+operation. Metadata-first non-Git source membership before selection and closing
+content/membership barriers; existing InputIndex fixed selection semantics, complete
+actual-stage inventory, fresh interpretation. No generic ignore, arbitrary imported
+inventory authority or ordinary coldScan change. Source/mock only; no debugger body
+scan/copy/compiler/native/model/CI yet. DIR-NEXT-039: independent read-only researcher
+identifies the next concrete native-admission assertion, without duplicating038.
+
+Original hosted Claude diagnostic stays CLOSED scopedPASS. Existing GitHub admin403
+and Copilot included Actions billing fact remain lane-specific owner prerequisites,
+not repeated requests. G0partial/sealedG1/G2/G3/prepubG4 incomplete; actual portable
+cross-agent/two-machine reuse NOT ESTABLISHED. Alpha.11 frozen/unpublished and pilot
+receipts untouched. Field use NOT STARTED; complete sealed-path economics NOT
+MEASURED. Day0/calibration unchanged; no invented blocked-time total or reset date.
+
+## Historical checkpoint — combined preparation timed out; precise repair under review
 
 2026-10-13 15:24UTC, source `825ae91`. Same primary Herdr director confirmed
 working/interactive-ready; root alone integrates. Client/server0.9.1 match; no restart,

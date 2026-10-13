@@ -3,7 +3,25 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — combined preparation UNKNOWN; source repair active
+## Current checkpoint — reviewed preparation observed; product authority pending
+
+2026-10-13 16:32UTC, integration `d74f83a`; current [resume](portable-evidence-resume.md)
+binds source, tests, private evidence and limits. Same sole director; no owner relay.
+
+| Task | Status | Observed result / next gate |
+| --- | --- | --- |
+|035B before-body admission | ACCEPT / integratedd74f83a |180 root tests +113 independent controls; shared30PASS; immutable read-view still required |
+|037 scoped preparation composition | ACCEPT / integrated6ec4209 |608 root tests/one SKIP + fresh51 controls; final copied/new-file checks after scope close |
+| Combined engineering observation | COMPLETE engineering-only |24030.586ms, six C builds exit0, reaped; prior timeout retained; no helper/native/model/receipt |
+|038 selected-input view | Import implementer ACTIVE |Metadata-first fixed selector, private membership/content barriers; review before actual preparation |
+|039 next native-admission gap | Independent researcher ACTIVE |Read-only precise assertion/interface audit; no native/auth/CI operation |
+| Product sealedG1/G2/G3/G4 | INCOMPLETE |Configured sealed run and real portable machine/agent reuse unestablished |
+
+Alpha.11/pilot unchanged; original Claude scoped prerequisite stays closed. Existing
+admin/Copilot capacity facts remain distinct. Day0/calibration unchanged; complete
+product-path economics and external usage remain unestablished.
+
+## Historical checkpoint — combined preparation UNKNOWN; source repair active
 
 2026-10-13 15:24UTC, source `825ae91`; exact records and limitations in current
 [resume](portable-evidence-resume.md). Same existing director; no owner relay.

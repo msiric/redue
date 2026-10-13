@@ -14,19 +14,22 @@ Existing commands, user configurations and receipts are unchanged.
 
 ## Current evidence summary
 
-At source `825ae91`, fixed source/copies/launcher and exact disabled native command
-have independent source/mock review. One combined engineering provisioning attempt
-hit30s and was reaped; retained38 phase frames identify17.8s in copies+currency
-before launcher construction. Final build/compile counters UNKNOWN, no helper/native/
-model/receipt executed. Source diagnosis identified repeated full validation; scoped composition repair is
-active, with no deadline increase or unchanged retry. Two prior late-validation defects are repaired; failures retained.
-Ordinary selected-view audit requires membership/Git-consumption guards rather than
-copying unconsumed Git metadata. First Git-guard candidate fa5d469 is withheld after
-fresh synthetic pre-admission body-read counterexamples; repair/review is active. Sealed recipe remains preview-only; actual sealed
-execution and portable cross-agent/two-machine reuse NOT ESTABLISHED. See the one
-current [resume](../plan/portable-evidence-resume.md) and
-[tracker](../plan/portable-evidence-tracker.md) for identities, owners and gates.
-Historical reports below are not current gate certificates.
+At integration source `d74f83a`, sealed-only compiler admission refuses Git/alias
+and other unsupported namespace conditions before implementation body reads;
+ordinary admission stays unchanged. Fresh independent review and180 root controls
+pass; actual shared-path regressions30PASS. The reviewed same-call engineering
+composition at6ec4209 produced one complete six-C-build observation in24030.586ms
+under the unchanged30s cap. Prior timeout and synthetic pre-admission defects are
+preserved, not relabelled. No helper/launcher/TypeScript/native/model/receipt was
+executed; trusted/quiescent preparation is not native sealing.
+
+The fixed selected-input prepared-view guard is in progress: initial/closing source
+membership and selected-content validation, complete actual-stage inventory, and
+explicit unsupported Git-consumption paths. Native admission, configured sealed
+execution and portable cross-agent/two-machine reuse remain NOT ESTABLISHED.
+See the one current [resume](../plan/portable-evidence-resume.md) and
+[tracker](../plan/portable-evidence-tracker.md) for exact identities/owners/gates.
+Historical records below are not current gate certificates.
 
 ## Historical checkpoint — phase captured; disabled launcher proposal reviewed
 
