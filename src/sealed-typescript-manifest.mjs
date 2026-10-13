@@ -1,11 +1,12 @@
-// Representation for the explicit, still-disabled sealed recipe only. Legacy
-// portableManifest remains strict. This is not source discovery or admission.
+// Representation and fixed local preparation for the still-disabled sealed
+// recipe only. Legacy portableManifest remains strict; no result is admission.
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {canonical} from './portable-envelope.mjs';
 import {portableManifest,portableRelative} from './portable-facts.mjs';
-import {fileHash} from './index.mjs';
+import {fileHash,InputIndex} from './index.mjs';
+import {SEALED_TYPESCRIPT_SELECTION,captureSealedTypeScriptSelection,bindSealedTypeScriptSelection,invalidateSealedTypeScriptSelection,checkSealedTypeScriptSelectionInput,materializeSealedTypeScriptSelectedView} from './sealed-typescript-tree.mjs';
 import {sealedNpmShimTarget} from './sealed-typescript-shim.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const hash=value=>createHash('sha256').update(value).digest('hex');
@@ -35,3 +36,17 @@ export function sealedTypeScriptManifest(root,observed){
 // file-only index. The @3 copy route rejects undeclared leaf membership before
 // reading file bodies. Inventory data never authorize a source root/import.
 export {captureSealedTypeScriptDirectoryInventory as sealedTypeScriptDirectoryInventory} from './sealed-typescript-tree.mjs';
+
+// One local fixed selector, not imported callback code or a trust label. This
+// remains trusted/quiescent pre-agent preparation under a separate FS boundary.
+export function prepareSealedTypeScriptSelectedView(options){
+ const keys=['root','parent','sourcePatterns'];if(!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==keys.length||!keys.every(key=>Object.hasOwn(Object.getOwnPropertyDescriptor(options,key)??{},'value')))fail('TREE_SELECTION_OPTIONS');
+ const supplied=options.sourcePatterns,expected=SEALED_TYPESCRIPT_SELECTION.sourcePatterns;
+ if(!Array.isArray(supplied)||Object.getPrototypeOf(supplied)!==Array.prototype||supplied.length!==expected.length||Reflect.ownKeys(supplied).length!==supplied.length+1||!expected.every((value,at)=>{const entry=Object.getOwnPropertyDescriptor(supplied,String(at));return entry&&Object.hasOwn(entry,'value')&&entry.value===value;}))fail('TREE_SELECTION_UNSUPPORTED');
+ const patterns=[...expected];
+ const capture=captureSealedTypeScriptSelection({root:options.root,parent:options.parent});
+ try{const index=new InputIndex({root:options.root,plans:{preparation:{id:SEALED_TYPESCRIPT_SELECTION.planId,patterns,sourcePatterns:patterns,additivePatterns:[...SEALED_TYPESCRIPT_SELECTION.additivePatterns]}}},{trackGit:false,includeInstalled:true}),check=index.checks.get('preparation'),names=capture.candidates.map(([rel])=>rel).filter(rel=>index.candidates(rel).has('preparation')&&index.matches(check,rel));bindSealedTypeScriptSelection(capture,names);
+ for(const rel of names){checkSealedTypeScriptSelectionInput(capture,rel);index.record(rel,'fixed sealed local selection');if(index.unavailable)fail('TREE_SELECTION_UNAVAILABLE');}
+ const manifest=sealedTypeScriptManifest(options.root,Object.fromEntries(index.files));return materializeSealedTypeScriptSelectedView(capture,manifest);
+ }catch(error){invalidateSealedTypeScriptSelection(capture);if(error?.code?.startsWith('TREE_'))throw error;fail('TREE_SELECTION_UNAVAILABLE');}
+}

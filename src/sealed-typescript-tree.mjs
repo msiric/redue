@@ -248,3 +248,74 @@ export function materializeSealedTypeScriptTree(options){
 export function materializeSealedTypeScriptTreeWithDirectories(options){
  try{return materialize(options,true);}catch(error){if(typeof error?.code==='string'&&error.code.startsWith('TREE_'))throw error;fail('TREE_UNAVAILABLE');}
 }
+
+// Fixed selected-input preparation only. These private captures do not travel,
+// certify a native seal, or authorize imported paths. Old @2/@3 are unchanged.
+// Endpoint fingerprints cannot prove an unobserved hostile change-and-restore
+// interval. An enclosing immutable native view remains a separate prerequisite.
+export const SEALED_TYPESCRIPT_SELECTION=freeze({interpretation:'redue-typescript-selected-inputs@1',
+ planId:'owned-declared-plus-installed-data-preparation',sourcePatterns:['package.json','package-lock.json','tsconfig.json','**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,json,jsonc}','!node_modules/**','!.git/**'],
+ additivePatterns:['node_modules/**'],trackGit:false,includeInstalled:true});
+const selections=new WeakMap(),gitPath=value=>value.split('/').some(part=>part.toLowerCase()==='.git');
+const selectedNamespace=value=>value.directories.filter(([rel])=>!gitPath(rel)).map(([rel,entries])=>[rel,entries.filter(([name])=>name.toLowerCase()!=='.git')]);
+function selectionState(capture,phase){const state=selections.get(capture);if(!state||state.phase!==phase){if(state)state.phase='INVALID';fail('TREE_SELECTION_OPTIONS');}return state;}
+function selectionCurrent(state){const current=inspectDirectoryInventory(state.root);
+ if(canonical(selectedNamespace(current.value))!==canonical(selectedNamespace(state.snapshot.value)))fail('TREE_SELECTION_CHANGED');
+ const selected=new Set(state.names||[]),currentRecords=new Map(current.records.map(record=>[record.file,record.fingerprint]));
+ for(const record of state.snapshot.records){const rel=path.relative(state.root,record.file).split(path.sep).join('/');
+  if(gitPath(rel))continue;const isDirectory=state.directoryNames.has(rel);
+  if((isDirectory||selected.has(rel))&&currentRecords.get(record.file)!==record.fingerprint)fail('TREE_SELECTION_CHANGED');}
+ sameDirectories(state.snapshot.rootParents);return current;
+}
+function selectedInput(state,rel){const record=state.inputRecords.get(rel);if(!record)fail('TREE_SELECTION_OPTIONS');recheck(record);
+ const actual=fs.realpathSync(record.file);if(record.target===undefined&&actual!==record.file||gitPath(actual))fail('TREE_SELECTION_UNSUPPORTED');
+ if(record.target!==undefined){const target=state.inputRecords.get(record.targetRel);if(!target||target.symbolic)fail('TREE_SELECTION_UNSUPPORTED');recheck(target);if(fs.realpathSync(target.file)!==target.file)fail('TREE_SELECTION_UNSUPPORTED');}
+}
+export function captureSealedTypeScriptSelection(options){try{
+ plainData(options,['root','parent']);const root=absolute(options.root),parent=absolute(options.parent);
+ if(gitPath(root)||withinPath(parent,root)||withinPath(root,parent))fail('TREE_SELECTION_UNSUPPORTED');
+ const rootParents=directories(root),parentParents=directories(parent),rootStat=fs.lstatSync(root,{bigint:true}),parentStat=fs.lstatSync(parent,{bigint:true});
+ const physicalContains=(rows,stat)=>rows.some(([,id])=>id.split(':').slice(0,2).join(':')===identity(stat));
+ if(physicalContains(parentParents,rootStat)||physicalContains(rootParents,parentStat))fail('TREE_PLACEMENT');
+ if(rootStat.uid!==uid()||parentStat.uid!==uid()||(parentStat.mode&0o777n)!==0o700n)fail('TREE_OWNERSHIP');if(!onlyChild(parent,null))fail('TREE_PARENT_OCCUPIED');
+ const snapshot=inspectDirectoryInventory(root),namespace=selectedNamespace(snapshot.value),candidates=namespace.flatMap(([rel,entries])=>entries.filter(([,kind])=>kind!=='directory').map(([name,kind])=>[rel?rel+'/'+name:name,kind])).sort(([a],[b])=>sorted(a,b));
+ const capture=freeze({schema:1,interpretation:'redue-typescript-selection-capture@1',candidates,sealed:false,reuseEligible:false});
+ selections.set(capture,{root,parent,snapshot,directoryNames:new Set(namespace.map(([rel])=>rel)),phase:'CAPTURED'});sameDirectories(rootParents);sameDirectories(parentParents);return capture;
+ }catch(error){if(error?.code?.startsWith('TREE_'))throw error;fail('TREE_SELECTION_UNAVAILABLE');}
+}
+export function bindSealedTypeScriptSelection(capture,names){
+ const state=selectionState(capture,'CAPTURED');state.phase='BINDING';try{
+  dataArray(names,TYPESCRIPT_TREE_LIMITS.files);if(!names.length)fail('TREE_MANIFEST');let previous='';const candidates=new Map(capture.candidates);
+  for(const rel of names){if(!relative(rel)||rel<=previous||gitPath(rel)||!candidates.has(rel))fail('TREE_SELECTION_OPTIONS');previous=rel;}
+  state.names=[...names];selectionCurrent(state);const records=new Map(),groups=new Map();let bytes=0;
+  for(const rel of names){const file=path.join(state.root,rel),parents=directories(path.dirname(file)),stat=fs.lstatSync(file,{bigint:true});
+   const symbolic=stat.isSymbolicLink();if(symbolic){if(stat.uid!==uid()||stat.nlink!==1n)fail('TREE_SYMLINK');}else{safeRegular(stat,true);bytes+=Number(stat.size);if(bytes>TYPESCRIPT_TREE_LIMITS.totalBytes)fail('TREE_LIMIT');}
+   const record={rel,file,parents,fingerprint:fingerprint(stat),identity:identity(stat),nlink:stat.nlink,symbolic};records.set(rel,record);
+   if(!symbolic){if(!groups.has(record.identity))groups.set(record.identity,[]);groups.get(record.identity).push(record);}
+  }
+  for(const members of groups.values())if(BigInt(members.length)!==members[0].nlink||members.some(record=>record.nlink!==members[0].nlink||record.fingerprint!==members[0].fingerprint))fail('TREE_FILE');
+  for(const record of records.values())if(record.symbolic){const target=fs.readlinkSync(record.file),resolved=sealedNpmShimTarget(state.root,record.rel,target);
+   if(gitPath(resolved.relative)||!records.has(resolved.relative)||records.get(resolved.relative).symbolic)fail('TREE_SYMLINK');Object.assign(record,{target,targetRel:resolved.relative});}
+  state.inputRecords=records;for(const rel of names)selectedInput(state,rel);selectionCurrent(state);
+  if(state.phase!=='BINDING')fail('TREE_SELECTION_OPTIONS');state.phase='READING';
+ }catch(error){state.phase='INVALID';if(error?.code?.startsWith('TREE_'))throw error;fail('TREE_SELECTION_UNAVAILABLE');}
+}
+export function invalidateSealedTypeScriptSelection(capture){const state=selections.get(capture);if(!state)fail('TREE_SELECTION_OPTIONS');state.phase='INVALID';}
+export function checkSealedTypeScriptSelectionInput(capture,rel){const state=selectionState(capture,'READING');state.phase='CHECKING';try{selectedInput(state,rel);if(state.phase!=='CHECKING')fail('TREE_SELECTION_OPTIONS');state.phase='READING';}catch(error){state.phase='INVALID';if(error?.code?.startsWith('TREE_'))throw error;fail('TREE_SELECTION_UNAVAILABLE');}}
+export function materializeSealedTypeScriptSelectedView(capture,manifest){
+ const state=selectionState(capture,'READING');state.phase='COPYING';try{
+  const rows=manifestRows(manifest);if(canonical(rows.map(([rel])=>rel))!==canonical(state.names))fail('TREE_SELECTION_OPTIONS');selectionCurrent(state);for(const rel of state.names)selectedInput(state,rel);
+  const materialized=materialize({root:state.root,parent:state.parent,manifest:rows}),stage=inspectDirectoryInventory(materialized.root);
+  const expected=new Map([['',new Map()]]),kinds=new Map(capture.candidates);
+  for(const rel of state.names){const parts=rel.split('/');let dir='';for(let at=0;at<parts.length;at++){const name=parts[at],last=at===parts.length-1;expected.get(dir).set(name,last?kinds.get(rel):'directory');if(!last){dir=dir?dir+'/'+name:name;if(!expected.has(dir))expected.set(dir,new Map());}}}
+  const expectedRows=[...expected].sort(([a],[b])=>sorted(a,b)).map(([rel,entries])=>[rel,[...entries].sort(([a],[b])=>sorted(a,b))]);
+  if(canonical(stage.value.directories)!==canonical(expectedRows))fail('TREE_SELECTION_CHANGED');selectionCurrent(state);for(const rel of state.names)selectedInput(state,rel);closeDirectoryInventories([stage]);selectionCurrent(state);
+  // Close retained original selected/directory metadata after the last stage
+  // work. Unselected body timestamps are deliberately not verification inputs.
+  const records=state.snapshot.records.filter(record=>{const rel=path.relative(state.root,record.file).split(path.sep).join('/');return !gitPath(rel)&&(state.directoryNames.has(rel)||state.inputRecords.has(rel));});
+  closeDirectoryInventories([{rootParents:state.snapshot.rootParents,records},stage]);
+  if(state.phase!=='COPYING')fail('TREE_SELECTION_OPTIONS');state.phase='SPENT';
+  return freeze({...materialized,interpretation:'redue-typescript-selected-prepared-view@1',selectionDefinitionSha256:hash(canonical(SEALED_TYPESCRIPT_SELECTION)),stageDirectoryInventory:stage.value,
+   sourceNamespaceEquivalent:false,nativeViewVerified:false,sealed:false,reuseEligible:false});
+ }catch(error){state.phase='INVALID';if(error?.code?.startsWith('TREE_'))throw error;fail('TREE_SELECTION_UNAVAILABLE');}
+}
