@@ -82,6 +82,7 @@ const selectedSourceFiles=Object.freeze(['./sealed-typescript-selected-preparati
  '../../src/portable-envelope.mjs',
  '../../src/portable-facts.mjs',
  '../../src/portable-origin-interval.mjs',
+ '../../src/sealed-typescript-contract.mjs',
  '../../src/sealed-typescript-manifest.mjs',
  '../../src/sealed-typescript-shim.mjs',
  '../../src/sealed-typescript-tree.mjs',
@@ -173,7 +174,7 @@ const selectedDependencies=Object.freeze([
 ]);
 const selectedDependencyDigest='4390d1bfc866f05ff62168fd455ea698904907d35b2341c01ba48629904a516a';
 const selectedMembershipDigest='ed24f4ab1b61b8cc18ad1281d964d856acc59bab6f978a47e4a2e5d25f18f9a4';
-const selectedSourceDigest='53141d181676c95e7f6fa5536b1b2533df167146326ca1b8d72689843281ecfd';
+const selectedSourceDigest='bc3edc6024e2d79264ab6bdd72b04bc584e67e154c38db790682a669c326c10b';
 const selectedFingerprint=stat=>['dev','ino','mode','uid','nlink','size','mtimeNs','ctimeNs'].map(key=>String(stat[key])).join(':');
 function selectedPackages(checkout){
  const membership=[],metadata=[];let count=0;
