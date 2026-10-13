@@ -6703,3 +6703,25 @@ Native fragments/options/65536 acceptance and VM1000ms/parent5000ms/4096B limits
 remain unchanged. That optional evaluation was not run by reviewer or required
 again after662's own distinct context passed its prerequisite. Short placement
 does not reinterpret the prior88592B failure or constitute a permission grant.
+
+Source-assessment GO45c8300 (integrated274494e), directory-metadata note only.
+Independently rehashed the prepared public TypeScript5.5.2 tsc.js to
+390875cd26ab0e496c55804c26c93adab850c0b48573a14967bc479538179c73
+and checked cited system, resolver, automatic-types and diagnostic2688 paths.
+Stat-based directory answers gate actual resolution attempts; directory enumeration
+returns names/types separately from file body access. Realpath catch returns the
+original path, not an absence/canonicalization proof. Sys case detection probes its
+own implementation spelling, so API and CLI answers are not presumed identical.
+
+The note's no-types/typeRoots:["/"] root enumeration route is a hypothetical
+source-supported limitation, not an executed debugger/native counterexample.
+Automatic type enumeration returns explicit types first; the selected config's
+four declared type names and current outside-option guard exclude that particular
+route. They do not establish exhaustive full CLI query/PASS independence. A root
+literal read could admit root enumeration; actual policy behavior remains unproved.
+Outside directory answers, aliases, default-library ancestor resolution and deferred
+CLI work require exact same-view closure, not projection to irrelevant/absent.
+The historical388 retained EPERM frames and914-file partial API graph remain
+engineering observations without exhaustive denial, API/CLI or reuse authority.
+Reviewer performed only document/public source/config reads; no API, compiler,
+sandbox/native, model or CI execution and no permission/implementation change.
