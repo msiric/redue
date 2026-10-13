@@ -3,22 +3,25 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — observation accepted; actual timeout retained
+## Current checkpoint — reviewed loop active; native seal still unproved
 
-2026-10-13 10:49UTC, integration `2e567e8`. See the current
-[resume](portable-evidence-resume.md) for exact identities and limits.
+2026-10-13 11:24UTC, integration `ccb8f12`. Current [resume](portable-evidence-resume.md)
+records exact hashes, actual timing, failed candidates and scope limits.
 
 | Task | Owner/status | Evidence and next gate |
 | --- | --- | --- |
-| DIR-NEXT-005/006 | Independently ACCEPTed / integrated | Fixed pre-Node source and engineering builder; existing source identities retained; no native authority |
-| DIR-NEXT-007 | Independently ACCEPTed engineering wrapper / actual UNKNOWN | Failed `0de35f0` preserved; successor `994b1ed`;112 mocks +56 independent controls; actual30s timeout with only15byte TAP, phase/counts unknown |
-| DIR-NEXT-008 | Implementer ACTIVE; root integration owner | Bounded static phase capture before/after blocking actions; no actual retry before fresh review; same deadlines/authority |
-| Native seal / G1–G4 | NOT ESTABLISHED | Missing stage assertion/enclosing-parent/native/auth/handles remain required; mocks/builds are not enforcement |
-| Herdr | Live primary director / smoke PASS | Same goal/thread and owned pane; explicit native roles; no duplicate coordinator |
+| Director smoke | Root/native roles COMPLETE | Actual same primary live `w1:pD`; assignment/result/source/fresh review/repair/decision/next task; no automatic TOML enforcement claim |
+| DIR-NEXT-007 | Reviewed wrapper / actual UNKNOWN | Failed deadline/ancestor revision retained; corrected112 +56 mocks; first30s actual timeout emitted no phases |
+| DIR-NEXT-008 | Fresh ACCEPT / integrated `76db3b7` | Failed `ce90d88` cleanup retained; `c1ce208`:147 mocks +65 independent controls; one actual instrumented timeout stops within marked `oneLauncherBuild`, internal phase/counts unknown |
+| DIR-NEXT-010 | Fresh ACCEPT / integrated `ccb8f12` | Private exact launcher binding;88 mocks +10 independent groups; root ESM initialization +124 mocks; proposal disabled/no native authority |
+| DIR-NEXT-011 | Implementer ACTIVE / root integration | Existing stage-helper initial/final stage+six-marker identity snapshot, no new probe/policy; aggregate UNKNOWN; fresh review required |
+| Native seal / G1–G4 | NOT ESTABLISHED | Missing assertions, enclosing-parent loader/auth/capacity/handles and real native/machine/agent evidence remain required |
 
-No model trial launches on missing preconditions. Claude hosted prerequisite remains
-CLOSED scoped PASS; GitHub-admin/Copilot-capacity blockers unchanged. No publication,
-signing/trust expansion, deadline increase or environment stripping.
+Actual engineering attempts kept the unchanged30s budget and recorded UNKNOWN;
+no native/model/check ran, no stripped environment, no blind retry/deadline increase.
+Original hosted Claude scopedPASS is closed. GitHub-admin/Copilot-capacity blockers
+unchanged; no publication/signing/trust expansion; frozenalpha.11 preserved.
+
 
 ## Historical checkpoint — pre-Node source/build accepted; observation pending
 

@@ -6,42 +6,58 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree on `dev/portable-sealed-typescript`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — reviewed observation; actual build timed out UNKNOWN
+## Current checkpoint — director live; build phase isolated; source work continues
 
-2026-10-13 10:49UTC, integration `2e567e8`, clean before this checkpoint.
-Worker `0de35f0` and independent CHANGES_REQUIRED remain in history: validation
-could consume the deadline before dispatch, and ancestor replacement was not
-observed. Successor `994b1ed` has fresh independent ACCEPT; root integrated both
-commits (`2f08fb5`/`2e567e8`), preserving the failed revision. Author/root112 mocks
-PASS/one actual SKIP; reviewer56 additional controls PASS. The corrected wrapper
-samples the budget after metadata checks immediately before actions and checks
-bounded ancestor identities across persistence/publication. This is engineering
-wrapper acceptance, not hostile atomic confinement or native enforcement.
+2026-10-13 11:24UTC, integration `ccb8f12628521e214e1ce60a3dda4bb4ca44ec8f`.
+Herdr `w1:pD`/`redue-director` live viewport displays this SAME original primary
+thread's current tools and progress; original goal remains ACTIVE. Kit manifest
+and installed role/config hashes remain exact. Implementer/reviewer/researcher
+instructions explicitly loaded; automatic TOML/OS read-only enforcement unverified.
+No duplicate pane worker, server restart, bridge or global policy change.
+Completed smoke and exact controls are in [director-loop-smoke](director-loop-smoke.md).
+No Herdr owner action remains; detach/sleep/reboot controls NOT RUN.
 
-One actual selected engineering observation then exceeded the unchanged30s outer
-limit. Owned parent was reaped; complete parent elapsed30008.807ms, exit1,
-`timed_out:true`. Its private TAP has only `TAP version 13` (15bytes), SHA
-`7cb03ab03edf5190a8aa546c78285344395fad3d42d4011cd224f934aef96b3f`.
-No phase, compiler count, new artifact identity or build success was collected.
-Result **UNKNOWN**, not compiler FAIL or PASS. A later exact Node-wrapper process
-query returned no match; this does not prove every possible descendant was reaped.
-Partial owned files are preserved, not broadly deleted or adopted as capabilities.
-The prelaunch key-only startup scan passed; no environment was stripped. No fixed
-launcher/helper, compiler check, native agent, model, receipt or seal executed.
+DIR-NEXT-007 failed `0de35f0` deadline/ancestor cases preserved; `994b1ed` independently
+ACCEPTed (112 mocks +56 independent controls). Root's first actual engineering build
+at `2e567e8` timed out30s with only15byte TAP, no phase/counters. UNKNOWN retained;
+private timeout record SHA `43c56323ba99c5b230052956740418a294751a8986db4ed288f7a28586d2001d`.
+DIR-NEXT-008 `ce90d88` received CHANGES_REQUIRED: throwing diagnostics skipped its
+capture FD cleanup (51/52 independent controls passed). Author reproduced RED;
+successor `c1ce208` uses unconditional cleanup, contained publishers and unchanged
+30s/5s limits. Fresh final review ACCEPT147 mocks +65 independent controls; root147
+PASS/one actual SKIP140.686ms. Both commits preserved/integrated `f9c440a`/`76db3b7`.
+Wrapper SHA `e22e56f475ef395c88bfb7713d97869da2298977e7998f408f506b9789734da4`;
+mocks `ce341816b0185fe10e5f2b3944f71c1e287a1b1e90cfdb53633844fe574f5e42`.
 
-DIR-NEXT-008 implementer owns bounded static phase capture in the existing worker
-worktree; root owns integration/docs. Do not repeat the actual build until a new
-reviewed capture mechanism can identify a blocked phase. Keep30s total/5s compiler
-limits; failed capture/deadline remains UNKNOWN, no retrospective authority.
-Observation SHA `08d628da032d7f39414cdc7a502eaab63315cc5fa00d983da479dd7cda82579e`,
-mocks `03749f8a2d6a2be06e2262f624a7b354c4756ef8977f14b6a959b058b3d0b59b`.
+One new reviewed actual observation captured37 static phase marks. Prerequisite
+build/preparation/copy validation completion marks reached7050.556ms; last mark
+`oneLauncherBuild/before`7050.836ms. Parent timed out30007.074ms, reaped, cleanup4.629ms.
+Internal subphase and fourth compiler dispatch/result **NOT OBSERVED**. Overall
+UNKNOWN; no new adoptable build identity or native/seal/reuse authority. Trace3020B
+SHA `a8e96ae6bf7bde8402f5a6e6c086afd71df3f080ccf3784e5cc8c9baaed765ea`;
+parent record SHA `e3301e1c67437386a78574284c513e8b498e656828279bf0c3f9c14b2cd3b505`.
+Both TAPs contain only `TAP version 13`, SHA `7cb03ab03edf5190a8aa546c78285344395fad3d42d4011cd224f934aef96b3f`.
+Do not infer compiler counts or blame hashing from these marks. No blind retry or
+deadline increase. Partial owned namespaces remain preserved, not adopted/deleted.
 
-Herdr owned `w1:pD`/`redue-director` remains the SAME primary coordinator and goal;
-smoke loop completed, explicit roles loaded, automatic TOML/OS role enforcement
-unverified. No Herdr owner action remains. Existing original hosted Claude scoped
-PASS is closed, not repeated. GitHub admin denial and Copilot included Actions
-capacity remain lane-specific external prerequisites. G0partial/sealedG1/G2/G3/
-prepubG4 remain incomplete; alpha.11 frozen/unpublished; Day0/calibration unchanged.
+DIR-NEXT-010 worker `f2db416` independently ACCEPTed88 mocks +10 independent groups;
+root integrated `ccb8f12`, resolving exactly the two expected add/add files to
+reviewed replacement bytes. Full command ESM graph initialized in root;124 targeted
+mocks PASS82.015ms. Disabled proposal now admits only current privately linked
+launcher, no direct Node fallback; one exact executable read leaf added, other
+restrictions unchanged. No settings applied/native/model/code execution.
+Its static graph has repeated validations; counts are not measured phase attribution.
+DIR-NEXT-011 implementer owns existing stage-helper initial/final stage and six-marker
+identity snapshot repair. Root/researcher inspected the missing initial comparison;
+this is an unreleased assertion gap, not a released defect. Keep aggregate UNKNOWN,
+missing assertions, pre-main/native/auth/handles gates; fresh review before use.
+
+Original hosted Claude diagnostic remains CLOSED scoped PASS. GitHub admin denial,
+Copilot included Actions four-credit fact and their source/native prerequisites stay
+lane-specific pending, no repeated request/bypass. G0partial/sealedG1/G2/finalG3/
+prepubG4 incomplete; alpha.11 frozen/unpublished. Day0 October10 21:24UTC/calibration
+October13 21:24UTC unchanged. No invented blocked time, forecast or field usage.
+
 
 ## Historical checkpoint — pre-Node source/build reviewed; observation pending
 

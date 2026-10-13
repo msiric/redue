@@ -12,18 +12,26 @@ requires reviewed TS5.5.2 and the existing matched Darwin25.6/ARM64/official
 Node22.13 profile. A local proposal cannot certify that profile or its enforcement.
 Existing commands, user configurations and receipts are unchanged.
 
-## Current checkpoint — actual engineering build timeout is UNKNOWN
+## Current checkpoint — phase captured; disabled launcher proposal reviewed
 
-Integration `2e567e8`,2026-10-13 10:49UTC. Fresh review ACCEPTed `994b1ed` after
-preserved `0de35f0` deadline/ancestor findings. Root112 mock controls and reviewer56
-additional controls pass. These validate wrapper mechanics, not actual sealing.
-One real selected engineering setup/build exceeded30s; only15byte TAP was saved,
-SHA `7cb03ab03edf5190a8aa546c78285344395fad3d42d4011cd224f934aef96b3f`.
-Parent reaped, elapsed30008.807ms; phase/counts/compiler outcome unknown. No fixed
-code/native/model/check executed. Do not infer cause from elapsed time or signal.
-DIR-NEXT-008 adds bounded phase capture before another reviewed attempt; deadlines,
-currentness and missing native-stage assertions remain unchanged. See current
-[resume](../plan/portable-evidence-resume.md). Earlier failures and reviews follow.
+Integration `ccb8f12`,2026-10-13 11:24UTC. Observation successor `c1ce208` has fresh
+ACCEPT147 mocks +65 independent controls after a preserved throwing-diagnostic FD
+cleanup finding. Root integrated and reran147 PASS/one real SKIP140.686ms.
+One actual instrumented observation again hit30s, but retained37 static phase marks:
+last `oneLauncherBuild/before`7050.836ms; parent30007.074ms/reaped. Inner validation vs
+compile cause/counts unknown; no adoptable artifact identity, native execution or
+sealing established. Trace SHA `a8e96ae6bf7bde8402f5a6e6c086afd71df3f080ccf3784e5cc8c9baaed765ea`.
+First no-phase timeout and failed source revisions remain preserved. No blind retry.
+
+Disabled native command `f2db416` has fresh independent ACCEPT88 mocks +10 groups;
+root integrated `ccb8f12`, actual full ESM initialization and124 targeted mocks PASS.
+It now requires current exact private launcher derivation and admits only that
+literal executable, retaining existing restrictions/no-authority flags. Settings
+are not applied. Current source work repairs the existing stage-helper missing
+initial/final stage+marker identity comparison; aggregate stays UNKNOWN. These are
+engineering/source improvements, not portable product acceptance. See current
+[resume](../plan/portable-evidence-resume.md); earlier failures follow.
+
 
 ## Historical checkpoint — fixed pre-Node source/build independently accepted
 
