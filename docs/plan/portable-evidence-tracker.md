@@ -3,7 +3,64 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — fresh pair build observed; native sealing still pending
+## Current checkpoint — fixed native collector components; execution remains gated
+
+At 2026-10-13 06:02 UTC, integration `9d23db6` includes the independently reviewed
+private A/B/H build-currentness verifier, strict six-row result parser, bounded
+child collector, exact disabled native command and fixed four-source collector
+renderer. Five integrated source/mock suites passed67/67 in67.136ms. Root's
+independent review of A's corrected renderer passed four additional controls;
+A independently reviewed Root's collector command. C's completed reviews remain
+valid for their exact bytes; its later provider-capacity failure is recorded, not
+retried through another model/billing route. Root and A completed the remaining
+non-author reviews sequentially.
+
+Preserved pre-use NO-GOs found late-validation ordering, fake reap after failed
+spawn, unhandled stream errors, incomplete clock guards and deferred stdout errors.
+All were repaired with bounded countercases before use. Earlier failed/UNKNOWN
+observations remain. The first independent-renderer command referenced its script
+relative to the wrong worktree: only author controls ran; the corrected absolute
+path then produced the actual four-control result. No native/model launch followed.
+
+The collector inherits the real native-filtered child environment. Its exact
+four source files and Node/helper paths are H-only; the disabled proposed policy
+adds only five code/runtime read leaves, retains root/credential/network/socket
+restrictions, denies writes to H, and admits one literal proposed command. No
+settings were applied. Flags/environment guards inside the entry run AFTER Node
+startup; preventative parent rejection, actual protected copies, pinned native
+and startup source validation, in-place auth/capacity, native tool/result matching,
+and fresh same-process supervision remain required. A copied file/manifest or
+serialized private capability cannot unlock execution. No recipe is sealed.
+
+Last actual observation remains the three-build `de6e9f9` record: all three clang
+processes exited0, test1473.771ms/complete1521.064ms, BUILT_NOT_EXECUTED. Retained
+TAPSHA `9920e89cb82f8f559d1903beaeaaad6049a50bf0fd1800ffe28b58a6525fc766`,
+owner recordSHA `b1da6a33199e411f0b25299405af0b8357d7021c9295a8e092ddba2203a21894`.
+The current C protocol has five implemented rows plus an explicit missing row;
+nominal output remains global UNKNOWN. No native seal, origin or reuse follows.
+
+Hosted Claude's completed six-check prerequisite remains CLOSED scoped PASS.
+GitHub branch pushes and run-list reads work; the one storage-free inventory
+normal dispatch was denied HTTP403 and the subsequent read returned no runs.
+The existing concrete owner UI dispatch request remains pending without retry.
+Protected-environment nonsecret fact/secret-metadata reads returned unavailable;
+this does not establish missing provisioning or authentication failure. Local
+native/config/approved namespace metadata exists, without symlinks; no Keychain
+or credential body was read, copied or tested. Copilot included Actions4 credits
+remain a separate pending fact; its native authority/credential/source gaps also
+remain open, so billing confirmation alone cannot start its model lane.
+
+G0 partial; current sealed G1, actual cross-agent/two-machine G2, finalG3 and
+prepublicationG4 incomplete. Day0 October10 21:24UTC and calibration October13
+21:24UTC unchanged, without invented blocked hours or forecasts. Alpha.11 stays
+frozen/unpublished (SHA `f6e368bd8171412b301f3f5dee3ceebea14da3b3418968504a7a49428e5876a0`);
+no live registry recheck, trust/signing/publication, configuration/receipt change
+or external usage. Next: prepare guarded H-only source copies and native parent
+preflight/structured tool adapter, with non-author review before any dispatch.
+Root integration/supervisor; A source leaves/review; C and B capacity unavailable.
+This is useful unblocked implementation, not completed product acceptance.
+
+## Historical checkpoint — fresh pair build observed; native sealing still pending
 
 At 2026-10-13 05:08 UTC, integration `48d08bc` retains the independently reviewed
 same-process synthetic A/B pair, separate host H, fixed source renderer, restricted
