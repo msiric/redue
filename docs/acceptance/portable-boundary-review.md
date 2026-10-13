@@ -7009,3 +7009,52 @@ settings/auth/model/CI operation. Returned frozen source/hash/bindings are data,
 commands[]/nativeNOT_ESTABLISHED/handlesfalse/sealedfalse/reusefalse. Future actual
 H code/binary/tool/resource/currentness/native profile and protocol gates require
 their own review; neither source body nor serialized bindings authorize a route.
+
+Bounded Copilot producer D12 audit: engineering boundary/credential/startup gates
+remain unimplemented, not just included seat/quota pending. Reviewed preparation
+helper SHA5e2c0d689d14c9882a2fabc6bdd97745a7d5375e9a752293cc8a9fbe39568478
+and rehashed retained public1.0.91 app.js (7593700B) to
+6d0149041a57d909979096bb0ca3b92c14d05b1a2768d21cce7e8461dc18300d.
+Only exact public source/documents were read; no provider request/download,
+auth/credential-store read, native/model/compiler/CI or setting operation.
+
+Implemented: inspectCopilot inventories three bounded commands, checks selected
+native bytes/parents and removes six named authentication env values from those
+inventory children. Readiness/enforcement/entitlement remain false. Disabled
+proposal includes sandbox/bypass/dev-tool/git/gh/keychain/network controls, private
+home/cache/log denials, shell-tool filtering and secret-env-vars data. No Copilot
+inference launcher/authenticated producer workflow exists. Existing machine/signer
+workflows invoke REDUE's controlled fixture directly with models0; their signed
+artifacts/mechanics are not Copilot-produced evidence or a new accepted origin.
+
+Missing stable-tree boundary: proposal grants RW entire workspace/state, RO only
+prefix/Node, with no prepared stage/parent/ancestor readonly protection or immutable
+config/project-runtime/owner/registry/producer-authority files. Shell(redue:*) and
+cat/ls allow broad stems/arguments, not fixed recipe/argv. Rules do not establish
+all-writer OS enforcement. Plan worker re-reads config (plan-worker.mjs16), and
+daemon launches row.plan.probes from its own context (daemon.mjs180). A readonly
+compiler child cannot compensate for parallel authorized writers or mutable
+upstream dispatch authority. No actual mutation or released false-CURRENT is
+asserted; route stays disabled and portable-origin containment remains withdrawn.
+
+Missing credential closure: public app startup near7527831 registers selected
+names via native settingsAddEnvVarNamesToFilterFromShellsAndMcp and
+processSecretFilterAddSecretEnvVarNames(process.env). User-requested ! near1410481
+calls processSecretFilterHandle before its native method; model shell.exec near
+1410398 is a separate native method. Actual behavior behind the native ABI is
+unproved; registration/config labels do not demonstrate real GITHUB_TOKEN removal
+before every model tool or hook. Inventory env removal is a different operation.
+Six names omit NPM_TOKEN/ACTIONS_RUNTIME_TOKEN/ACTIONS_ID_TOKEN_REQUEST_TOKEN;
+their actual presence is not asserted. Unexpected credential/runtime-preload env
+must stop before auth/model. Fresh config does not settle keychain/gh fallback,
+GH_CONFIG_DIR/credential files, managed policy or startup hooks. Pin-specific
+Actions auth compatibility/effective policy remains unobserved.
+
+Smallest next source work is a disabled version-bound stage/parent and trusted
+authority-file protection proposal, physically disjoint from producer RW roots;
+do not assume RO/RW overlap precedence or copy engineering SBPL semantics. Actual
+all-writer parent/case/alias/hardlink/mapping and same-view compiler/recipe proof,
+unconditional token exclusion and managed/startup facts remain required before
+real-token tools. No-model ! forwarding is not model-shell equivalence or a verified
+programmatic preflight. Included capacity is independently pending; this audit
+requests no new login/account, alternate provider, signing or trust authority.
