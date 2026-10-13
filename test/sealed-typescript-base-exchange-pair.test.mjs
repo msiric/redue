@@ -1,0 +1,34 @@
+// In-memory author-leaf controls only. No actual CI bootstrap/native/FS mutation.
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
+import {prepareSealedTypeScriptBaseExchangePair as actualPrepare,verifySealedTypeScriptBaseExchangePair as actualVerify} from './acceptance/sealed-typescript-base-exchange-pair.mjs';
+const source=fs.readFileSync(new URL('./acceptance/sealed-typescript-base-exchange-pair.mjs',import.meta.url),'utf8');
+function mock(){let next=10,calls=0,prepared=0,closed=0;const nodes=new Map();
+ const put=(file,type='d',uid=501n,mode=type==='d'?0o40700n:0o100644n)=>{nodes.set(file,{type,dev:1n,ino:BigInt(next++),mode,uid,gid:20n,nlink:type==='d'?2n:1n,size:type==='d'?0n:29n,mtimeNs:1n,ctimeNs:1n});};
+ put('/','d',0n,0o40755n);put('/private','d',0n,0o40755n);put('/private/tmp','d',0n,0o41777n);
+ const a='/private/tmp/redue-ci-recipient-11111111',b='/private/tmp/redue-ci-recipient-22222222';
+ const fixtures=new WeakSet();let fixture;
+ const bootstrap=()=>{calls++;const base=calls===1?a:b;put(base);return Object.freeze({outcome:'CI_SYNTHETIC_BOOTSTRAP_PREPARED',base});};
+ const prepare=boot=>{prepared++;const base=boot.base,work=base+'/Checkout 空间/.sealed-native-canaries',stage=base+'/sealed-inputs/redue-materialization-Canary';
+ for(const dir of [base+'/Checkout 空间',work,base+'/sealed-inputs',stage,...['exchange-control-a','exchange-control-b','stage-parent-exchange'].map(name=>work+'/'+name)])put(dir);
+ for(const file of [...['chmod','hardlink','map','rename','unlink','write'].map(name=>stage+'/'+name+'-canary.txt'),work+'/write-canary.txt',work+'/map-canary.txt',...['exchange-control-a','exchange-control-b','stage-parent-exchange'].map(name=>work+'/'+name+'/identity-canary.txt')])put(file,'f');
+ fixture=Object.freeze({outcome:'SYNTHETIC_FIXTURE_PREPARED',base});fixtures.add(fixture);return fixture;};
+ const io={realpathSync:file=>file,lstatSync(file){const node=nodes.get(file);if(!node)throw Error('MISSING');return {...node,isDirectory:()=>node.type==='d',isFile:()=>node.type==='f',isSymbolicLink:()=>node.type==='l'};},opendirSync(file){let at=0;const prefix=file+'/',names=[...nodes.keys()].filter(name=>name.startsWith(prefix)&&!name.slice(prefix.length).includes('/')).map(name=>name.slice(prefix.length));return{readSync:()=>at<names.length?{name:names[at++]}:null,closeSync(){closed++;}};}};
+ const api=Function('fs','createSealedTypeScriptCIBootstrap','prepareSealedTypeScriptCISyntheticFixture','verifySealedTypeScriptSyntheticFixture','process',source.replace(/^import .*;$/gm,'').replaceAll('export function ','function ')+'\nreturn {prepare:prepareSealedTypeScriptBaseExchangePair,verify:verifySealedTypeScriptBaseExchangePair};')(io,bootstrap,prepare,value=>({outcome:fixtures.has(value)?'SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED':'UNKNOWN'}),{getuid:()=>501,geteuid:()=>501,getgid:()=>20,getegid:()=>20});
+ return {api,nodes,put,a,b,counters:()=>({calls,prepared,closed}),io};
+}
+test('zeroarg only: no caller path/code/serialized mint/adoption option',()=>{for(const value of [null,{},true,'/private/tmp/redue-ci-recipient-11111111'])assert.throws(()=>actualPrepare(value),error=>error.code==='BASE_EXCHANGE_PAIR_OPTIONS');assert.equal(actualVerify({baseA:'/private/tmp/redue-ci-recipient-11111111'}).outcome,'UNKNOWN');});
+test('controlled two fresh bases yield immutable data and full current private pair, not native authority',()=>{const value=mock(),pair=value.api.prepare();assert.equal(pair.outcome,'BASE_EXCHANGE_PAIR_PREPARED');assert.equal(pair.baseA,value.a);assert.equal(pair.baseB,value.b);assert.notEqual(pair.bindings.baseA.ino,pair.bindings.baseB.ino);assert.deepEqual(pair.commands,[]);assert.equal(pair.nativeEnforcement,'NOT_ESTABLISHED');assert.equal(pair.sealed,false);assert.equal(pair.reuseEligible,false);assert(Object.isFrozen(pair.bindings.baseA));assert.equal(value.api.verify(pair).outcome,'BASE_EXCHANGE_PAIR_CURRENTLY_OBSERVED');assert.equal(value.counters().calls,2);assert.equal(value.counters().prepared,1);assert(value.counters().closed>0);});
+test('serialized pair cannot recover private proof or inspect/adopt existing namespaces',()=>{const value=mock(),pair=value.api.prepare(),before=value.counters();assert.equal(value.api.verify(JSON.parse(JSON.stringify(pair))).outcome,'UNKNOWN');assert.deepEqual(value.counters(),before);});
+for(const fault of ['state','auth','public-build','sibling-entry','symlink','hardlink','directory-owner','device','parent','inode','case-alias'])test('exact namespace/currentness rejects '+fault+' and never revives restored labels',()=>{const value=mock(),pair=value.api.prepare();assert.equal(pair.outcome,'BASE_EXCHANGE_PAIR_PREPARED');const before=new Map([...value.nodes].map(([file,row])=>[file,{...row}]));
+ if(['state','auth','public-build'].includes(fault))value.put(value.a+'/'+fault,'d');
+ if(fault==='sibling-entry')value.put(value.b+'/CANARY','f');
+ if(fault==='symlink')value.nodes.get(value.a+'/sealed-inputs').type='l';
+ if(fault==='hardlink')value.nodes.get(value.a+'/sealed-inputs/redue-materialization-Canary/map-canary.txt').nlink=2n;
+ if(fault==='directory-owner')value.nodes.get(value.b).uid=502n;
+ if(fault==='device')value.nodes.get(value.b).dev=2n;
+ if(fault==='parent')value.nodes.get('/private/tmp').mode=0o40777n;
+ if(fault==='inode')value.nodes.get(value.b).ino+=1n;
+ if(fault==='case-alias')value.nodes.get(value.b).ino=value.nodes.get(value.a).ino;
+ assert.equal(value.api.verify(pair).outcome,'UNKNOWN');value.nodes.clear();for(const [file,row] of before)value.nodes.set(file,row);assert.equal(value.api.verify(pair).outcome,'UNKNOWN');});
+test('opendir close uncertainty invalidates the private pair and remains UNKNOWN',()=>{const value=mock(),pair=value.api.prepare();const original=value.io.opendirSync;value.io.opendirSync=file=>{const dir=original(file);return{...dir,closeSync(){dir.closeSync();throw Error('NONSECRET_DETAIL');}};};assert.equal(value.api.verify(pair).outcome,'UNKNOWN');});
+test('no file body reads, compiler, callbacks, policy, process or automatic cleanup in pair leaf',()=>{assert.doesNotMatch(source,/fs\.(?:readFile|readSync|writeFile|spawn|exec|rmSync|chmod|rename)\s*\(|\bFunction\s*\(|\beval\s*\(/);});
