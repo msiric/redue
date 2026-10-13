@@ -42,7 +42,7 @@ export function prepareSealedTypeScriptNativeComposition(options){
     preservation:{preparedStages:'MUST_NOT_RENAME_REPLACE_OR_MODIFY',stateAndReceipts:'MUST_REMAIN_UNTOUCHED',freshnessClaim:'CALLER_LABEL_OR_BOOLEAN_IS_NOT_PROOF'},
     artifacts:{node:{version:'v22.13.0',sha256:'5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc'},
       checker:{renderedSha256:checkerSha256},mapper:{templateSha256:'14ed107ff8e48e539c172c49aee88830f44eac0d037463d97b45fc54d8e3b070',renderedSourceSha256:mapperRenderedSourceSha256,binarySha256:mapperBinarySha256},
-      exchange:{templateSha256:'507dc2fb45adb9d7df293eccf18874fbfb101d4b25f2ace932899be6f2198d72',renderedSourceSha256:exchangeRenderedSourceSha256,binarySha256:exchangeBinarySha256}},
+      exchange:{templateSha256:'06e5da5dca906063762410f40bea9b7f99662cb6a62934ee50749a7b41162e48',renderedSourceSha256:exchangeRenderedSourceSha256,binarySha256:exchangeBinarySha256}},
     nativeSettings:{file:base+'/claude-host/settings.json',sha256:settingsSha256,
       expectedProtectedParent:stageParent,expectedWritableRoot:base+'/Checkout 空间',expectedProtectedCodeRoot:base+'/prefix',effectiveMatch:'NOT_OBSERVED'},
     originalSixCheckClosure:'SEPARATE_UNCHANGED',assertionComposition:'UNKNOWN',

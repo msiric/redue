@@ -1,5 +1,6 @@
 // Pure constructor controls only; no rendering, native, mapping, model or CI.
 import test from 'node:test';import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';import {createHash} from 'node:crypto';
 import {prepareSealedTypeScriptNativeComposition as prepare} from './acceptance/sealed-typescript-native-composition.mjs';
 const options=()=>({base:'/private/tmp/redue-ci-recipient-Abcd1234',node:'/reviewed/node',checkerSha256:'a'.repeat(64),mapperRenderedSourceSha256:'b'.repeat(64),mapperBinarySha256:'c'.repeat(64),exchangeRenderedSourceSha256:'e'.repeat(64),exchangeBinarySha256:'f'.repeat(64),settingsSha256:'d'.repeat(64)});
 const reject=value=>assert.throws(()=>prepare(value),error=>error?.code==='SEALED_NATIVE_COMPOSITION_INVALID');
@@ -30,9 +31,16 @@ test('missing case/symlink/atomic-parent/mapping assertions and current mapper b
 test('source and binary digests are only explicit local references, never inferred verified from hashes',()=>{
   const result=prepare(options());assert.equal(result.artifacts.mapper.renderedSourceSha256,'b'.repeat(64));assert.equal(result.artifacts.mapper.binarySha256,'c'.repeat(64));
   assert.equal(result.artifacts.mapper.templateSha256,'14ed107ff8e48e539c172c49aee88830f44eac0d037463d97b45fc54d8e3b070');assert.equal(Object.hasOwn(result.artifacts,'verified'),false);
-  assert.equal(result.artifacts.exchange.templateSha256,'507dc2fb45adb9d7df293eccf18874fbfb101d4b25f2ace932899be6f2198d72');
+  assert.equal(result.artifacts.exchange.templateSha256,'06e5da5dca906063762410f40bea9b7f99662cb6a62934ee50749a7b41162e48');
   assert.equal(result.artifacts.exchange.renderedSourceSha256,'e'.repeat(64));assert.equal(result.artifacts.exchange.binarySha256,'f'.repeat(64));
   assert(result.prerequisites.includes('CURRENT_PROTECTED_ARTIFACT_RUNTIME_AND_SETTINGS_BYTES'));
+});
+test('disabled exchange template reference matches the actual reviewed source bytes',()=>{
+  const source=readFileSync(new URL('./acceptance/sealed-typescript-exchange-sentinel.c',import.meta.url));
+  const digest=createHash('sha256').update(source).digest('hex');
+  assert.equal(digest,'06e5da5dca906063762410f40bea9b7f99662cb6a62934ee50749a7b41162e48');
+  const result=prepare(options());assert.equal(result.artifacts.exchange.templateSha256,digest);
+  assert.equal(result.disabled,true);assert.deepEqual(result.commands,[]);assert.equal(result.nativeEnforcement,'NOT_OBSERVED');assert.equal(result.sealed,false);assert.equal(result.reuseEligible,false);
 });
 test('unknown path/argv/settings/grant options cannot extend the fixed scope',()=>{
   for(const extra of [{commands:[['arbitrary']]},{outsideAlias:'/elsewhere'},{settings:{allowWrite:['/']}},{apply:true},{nativeEnforcement:true}])reject({...options(),...extra});
