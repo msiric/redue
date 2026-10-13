@@ -32,9 +32,12 @@ function collection(content,isError){
  return Object.freeze({observed:Object.freeze({...v,checks:helper?.checks??null}),wrapperConsistent:wrapper===null||isError===true&&wrapper===(v.outcome==='FAIL'?1:74)});
 }
 export function createSealedTypeScriptNativeBaseTrace({command,cwd}){
- // Caller must derive this from its live private reviewed command proposal.
- const hosts=typeof command==='string'?/^'\/private\/tmp\/redue-ci-recipient-([a-f0-9]{8})\/runtime\/node-v22\.13\.0-darwin-arm64\/bin\/node' '\/private\/tmp\/redue-ci-recipient-([a-f0-9]{8})\/prefix\/native-probes\/base-exchange-collect\.mjs'$/.exec(command):null;
- if(!hosts||hosts[1]!==hosts[2]||typeof cwd!=='string'||!/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}\/Checkout 空间\/\.sealed-native-canaries$/.test(cwd))fail();
+ // Caller must derive the exact H launcher and A cwd from its live private
+ // reviewed proposal. Matching spelling alone does not prove their identities.
+ const launcher=typeof command==='string'?/^'\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}\/prefix\/native-probes\/base-exchange-collect-launch'$/.exec(command):null;
+ const workspace=typeof cwd==='string'?/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}\/Checkout 空间\/\.sealed-native-canaries$/.exec(cwd):null;
+ // JS $ also matches before a final newline; require the entire literal match.
+ if(!launcher||launcher[0]!==command||!workspace||workspace[0]!==cwd)fail();
  let init=false,error=null,session=null,tool=null,result=null,knownFail=null,final=null;const messages=new Set();
  const reject=code=>{error??=code;};
  const consume=value=>{
