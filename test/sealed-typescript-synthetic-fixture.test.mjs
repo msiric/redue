@@ -12,7 +12,7 @@ test('fresh owned local construction and verification yield only fixed synthetic
   const value=prepared(parent),result=verify(value);assert.equal(result.outcome,'SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED');
   assert.equal(path.dirname(value.base),parent);assert.match(path.basename(value.base),/^redue-ci-recipient-[a-f0-9]{8}$/);
   assert.equal(value.layout.stageParent,value.base+'/sealed-inputs');assert.equal(value.layout.workspace,value.base+'/Checkout 空间/.sealed-native-canaries');
-  assert.equal(value.knownCanaryFiles.length,8);assert.deepEqual(fs.readdirSync(value.base).sort(),['Checkout 空间','sealed-inputs']);
+  assert.equal(value.knownCanaryFiles.length,11);assert.deepEqual(fs.readdirSync(value.base).sort(),['Checkout 空间','sealed-inputs']);
   assert.equal(fs.existsSync(value.base+'/redue-state'),false);assert.equal(fs.existsSync(value.base+'/prefix'),false);assert.equal(fs.existsSync(value.base+'/claude-host'),false);
   assert.equal(value.receiverBasePolicyMatch,false,'Owned local parent is not admitted CI absolute base');assert.equal(value.ownedHandlesClosed,true);
   assert.equal(value.noInheritedWritableHandlesVerified,false);assert.equal(value.nativePolicyVerified,false);assert.equal(value.sealed,false);assert.equal(value.reuseEligible,false);assert(Object.isFrozen(value.layout));
@@ -124,7 +124,7 @@ test('mock fixed CI bootstrap and same-process preparation match receiver geomet
   const mock=ciMock(parent),token=boot(mock),fixture=ciPrepared(mock,token),seen=mock.verify(fixture);
   assert.equal(token.receiverBasePolicyMatch,true);assert.equal(fixture.receiverBasePolicyMatch,true);assert.equal(seen.outcome,'SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED');
   assert.equal(fixture.layout.checkout,token.base+'/Checkout 空间');assert.equal(fixture.layout.stageParent,token.base+'/sealed-inputs');
-  assert.equal(fixture.knownCanaryFiles.length,8);assert.equal(fixture.ownedHandlesClosed,true);
+  assert.equal(fixture.knownCanaryFiles.length,11);assert.equal(fixture.ownedHandlesClosed,true);
   for(const value of [token,fixture,seen]){assert.equal(value.noInheritedWritableHandlesVerified,false);assert.equal(value.nativePolicyVerified,false);assert.equal(value.sealed,false);assert.equal(value.reuseEligible,false);}
   assert(Object.isFrozen(token));assert(Object.isFrozen(fixture.layout));
 }));
@@ -230,5 +230,21 @@ test('mock occupied checkout symlink, group-write mode or unowned metadata is pr
     else fs.mkdirSync(checkout,{mode:kind==='mode'?0o770:0o700});
     if(kind==='owner'){const original=mock.fake.lstatSync;mock.fake.lstatSync=function(file,...args){const stat=Reflect.apply(original,this,[file,...args]);if(file.endsWith('/Checkout 空间'))stat.uid+=1n;return stat;};}
     ciUnknown(mock.prepare(token));assert.equal(fs.existsSync(base+'/sealed-inputs'),false);assert.equal(fs.lstatSync(checkout).isSymbolicLink(),kind==='symlink');
+  }
+}));
+
+
+test('synthetic exchange directories have exact fresh single-marker inventory and independent inodes',available,()=>local(parent=>{
+  const fixture=prepared(parent),dirs=[fixture.layout.exchangePartner,fixture.layout.exchangeControlA,fixture.layout.exchangeControlB],inodes=new Set();
+  for(const dir of dirs){assert.deepEqual(fs.readdirSync(dir),['identity-canary.txt']);const stat=fs.lstatSync(dir+'/identity-canary.txt');assert.equal(stat.nlink,1);inodes.add(stat.dev+':'+stat.ino);}
+  assert.equal(inodes.size,3);assert.equal(verify(fixture).outcome,'SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED');
+}));
+
+test('synthetic exchange inventory refuses preserved extra data and marker aliases',available,()=>local(parent=>{
+  for(const fault of ['extra','alias']){
+    const fixture=prepared(parent),target=fixture.layout.exchangePartner+'/identity-canary.txt';
+    if(fault==='extra')fs.writeFileSync(fixture.layout.exchangePartner+'/NONSECRET-preserved.txt','PRESERVED');
+    else fs.linkSync(target,fixture.layout.exchangeControlA+'/NONSECRET-alias.txt');
+    unknown(fixture);assert.equal(fs.existsSync(target),true);
   }
 }));

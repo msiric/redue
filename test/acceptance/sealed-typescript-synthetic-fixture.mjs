@@ -50,14 +50,14 @@ export function prepareSealedTypeScriptSyntheticFixture(options){
     const uid=principal();directory(parent,uid);const parentIdentity=directory(parent,uid),ancestors=parents(parent);
     const candidate=path.join(parent,'redue-ci-recipient-'+randomBytes(4).toString('hex'));fs.mkdirSync(candidate,{mode:0o700});base=candidate;
     if(directory(parent,uid).split(':').slice(0,4).join(':')!==parentIdentity.split(':').slice(0,4).join(':'))fail();sameParents(ancestors);
-    const checkout=base+'/Checkout 空间',workspace=checkout+'/.sealed-native-canaries',stageParent=base+'/sealed-inputs',stage=stageParent+'/redue-materialization-Canary';
-    for(const file of [checkout,workspace,stageParent,stage])fs.mkdirSync(file,{mode:0o700});
-    const files=[...expectedFiles.map(name=>stage+'/'+name),workspace+'/write-canary.txt',workspace+'/map-canary.txt'];
+    const paths=layout(base),{checkout,workspace,stageParent,stage,exchangePartner,exchangeControlA,exchangeControlB}=paths;
+    for(const file of [checkout,workspace,stageParent,stage,exchangePartner,exchangeControlA,exchangeControlB])fs.mkdirSync(file,{mode:0o700});
+    const files=canaryFiles(paths);
     writeMarkers(files);
-    const inventory=[[base,['Checkout 空间','sealed-inputs'].sort()],[checkout,['.sealed-native-canaries']],[workspace,['map-canary.txt','write-canary.txt']],[stageParent,['redue-materialization-Canary']],[stage,[...expectedFiles].sort()]];
+    const inventory=[[base,['Checkout 空间','sealed-inputs'].sort()],[checkout,['.sealed-native-canaries']],...syntheticInventory(paths)];
     const record={base,parent,parents:parents(base),inventory,files};const snapshot=inspect(record);
     const result=immutable({schema:1,scope:'OWNED_SYNTHETIC_FIXTURE_MECHANICS_ONLY',outcome:'SYNTHETIC_FIXTURE_PREPARED',base,
-      layout:{checkout,workspace,stageParent,stage},receiverBasePolicyMatch:/^\/private\/tmp\/redue-ci-recipient-[A-Za-z0-9]{8}$/.test(base),
+      layout:paths,receiverBasePolicyMatch:/^\/private\/tmp\/redue-ci-recipient-[A-Za-z0-9]{8}$/.test(base),
       knownCanaryFiles:files.map(file=>path.relative(base,file).split(path.sep).join('/')),ownedHandlesClosed:true,
       noInheritedWritableHandlesVerified:false,nativePolicyVerified:false,sealed:false,reuseEligible:false});
     minted.set(result,{...record,snapshot});return result;
@@ -93,7 +93,11 @@ function fixedCIParents(){
 }
 function sameCIParents(rows){if(JSON.stringify(fixedCIParents())!==JSON.stringify(rows))fail();}
 function absent(file){try{fs.lstatSync(file,{bigint:true});}catch(error){if(error?.code==='ENOENT')return;throw error;}fail();}
-function layout(base){const checkout=base+'/Checkout 空间',workspace=checkout+'/.sealed-native-canaries',stageParent=base+'/sealed-inputs';return {checkout,workspace,stageParent,stage:stageParent+'/redue-materialization-Canary'};}
+function layout(base){const checkout=base+'/Checkout 空间',workspace=checkout+'/.sealed-native-canaries',stageParent=base+'/sealed-inputs';
+  return {checkout,workspace,stageParent,stage:stageParent+'/redue-materialization-Canary',exchangePartner:workspace+'/stage-parent-exchange',exchangeControlA:workspace+'/exchange-control-a',exchangeControlB:workspace+'/exchange-control-b'};}
+function canaryFiles(paths){return [...expectedFiles.map(name=>paths.stage+'/'+name),paths.workspace+'/write-canary.txt',paths.workspace+'/map-canary.txt',...[paths.exchangePartner,paths.exchangeControlA,paths.exchangeControlB].map(file=>file+'/identity-canary.txt')];}
+function syntheticInventory(paths){return [[paths.workspace,['exchange-control-a','exchange-control-b','map-canary.txt','stage-parent-exchange','write-canary.txt']],
+  [paths.stageParent,['redue-materialization-Canary']],[paths.stage,[...expectedFiles].sort()],...[paths.exchangePartner,paths.exchangeControlA,paths.exchangeControlB].map(file=>[file,['identity-canary.txt']])];}
 function writeMarkers(files){
   for(const file of files){let fd,failure;
     try{fd=fs.openSync(file,fs.constants.O_WRONLY|fs.constants.O_CREAT|fs.constants.O_EXCL|fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK,0o644);
@@ -133,9 +137,9 @@ export function prepareSealedTypeScriptCISyntheticFixture(bootstrap){
     catch(error){if(error?.code!=='ENOENT')throw error;fs.mkdirSync(checkout,{mode:0o700});}
     const checkoutIdentity=ownedIdentity(checkout,uid);absent(workspace);
     sameCIParents(boot.ancestors);if(ownedIdentity(boot.base,uid)!==boot.baseIdentity)fail();
-    for(const file of [workspace,stageParent,stage])fs.mkdirSync(file,{mode:0o700});
-    const files=[...expectedFiles.map(name=>stage+'/'+name),workspace+'/write-canary.txt',workspace+'/map-canary.txt'];writeMarkers(files);
-    const inventory=[[workspace,['map-canary.txt','write-canary.txt']],[stageParent,['redue-materialization-Canary']],[stage,[...expectedFiles].sort()]];
+    for(const file of [workspace,stageParent,stage,paths.exchangePartner,paths.exchangeControlA,paths.exchangeControlB])fs.mkdirSync(file,{mode:0o700});
+    const files=canaryFiles(paths);writeMarkers(files);
+    const inventory=syntheticInventory(paths);
     const record={scope:ciScope,base:boot.base,ciAncestors:boot.ancestors,parents:parents(boot.base),absentPaths:[boot.base+'/sealed-inputs-replaced'],boundDirectories:[[boot.base,boot.baseIdentity],[checkout,checkoutIdentity]],inventory,files};
     sameCIParents(boot.ancestors);const snapshot=inspect(record);
     const result=immutable({schema:1,scope:ciScope,outcome:'SYNTHETIC_FIXTURE_PREPARED',base:boot.base,layout:paths,
