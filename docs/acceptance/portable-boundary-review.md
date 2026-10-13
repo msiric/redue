@@ -5995,3 +5995,49 @@ reaping and exclusive held-FD/readback/final-outer-ACK publication unchanged.
 The apiDispatchAttempts truthfield also currently updates after spawnSync returns;
 if it counts attempted calls, it must update before the call so a thrown spawn
 cannot be reported as zero attempts. No authority or timeout increase is needed.
+
+
+## Strict observation projection and repaired fixed parent
+
+Source GO979dcd74021e5648b974cd064db57fb001257157,
+validatorSHAb2c42a3d14b858b69d38b7440d8d739a9a050547999741094c062e0d1c1fd776.
+The reader creates a new frozen projection only after exact nested object/array
+schemas, bounded canonical paths/hashes/counts, finite phases/methods/typed
+summaries/errors/reasons and consistent logging/status/sequence assertions.
+Extra fields/getters/symbols/functions/custom arrays cannot survive projection.
+Unknown filesystem methods refuse the whole payload even if explicitly incomplete.
+All authority markers are fixed false/NOT_ESTABLISHED. Bounded duplicate-key and
+fatal UTF-8 parsing remains a separate mandatory parent step. A valid zero-call
+snapshot explicitly means zero forwarded observations, not execution completeness.
+Thirty-four authored pure controls passed34/34 in115.43ms; eight own countercontrols
+passed8/8 in53.43ms, including every prior98f malformed/private-payload defect.
+
+The first strict parentSHAcabea2a9b5ba06fbac9485a0d6735bbdcf188befc6076b084cfd0dbc72bdb23d
+correctly bound the validator and retained only its validated observation. One
+truthfield ordering defect remained: apiDispatchAttempts was set before evaluating
+remaining() in spawn options, so budget expiry could report one attempt without
+a call. Eight VM controls passed8/8 in65.25ms including that defect reproduction.
+A first live-file archive had already copied its7b successor, making the old-defect
+assertion fail; that preparation failure is preserved. Reconstructed old bytes
+were independently hash-verified equal to cabea before the old controls ran.
+
+GO exact fixed parent
+SHA7b0d24fb648c7a8535fe9ddd2ffc547149285d15e600093e9f58b57ca9d7c7f1
+for one fixed bounded read-only API engineering attempt, subject to its actual
+current preconditions. It samples remaining budget before latching the actual
+call attempt, then invokes the same fixed sandbox child. Eight independent VM
+controls passed8/8 in62.47ms: invalid/missing/extra child data is UNKNOWN with no
+retained observation; before-call expiry yields zero attempts; thrown call retains
+one; broken/reverse/final clocks, immutable-binding changes and close/readback
+uncertainty remain UNKNOWN. The child output/parser and private record caps remain
+8MiB and total budget30s. Whole stage/code/Node/config/parent before/after guards,
+positive-PID/finite status+signals, held exclusive descriptor readback and pending
+record requiring final outer ACK remain intact. Validator/code pins are checked
+before dispatch and currency after; no raw invalid payload or error value is saved.
+
+All review controls used injected fake filesystem/process/profile operations and
+actual public data parsers only. No real child, TS API/compiler, native policy,
+model or CI operation was run by the reviewer. The selected route can collect
+scoped API observations; it cannot establish CLI equivalence, complete namespace,
+stable execution, a native-agent seal, reusable receipt or origin authority.
+The prior98f NO-GO and all other historical UNKNOWN outcomes remain preserved.
