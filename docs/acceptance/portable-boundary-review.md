@@ -7245,3 +7245,38 @@ collector adaptation before making a stronger claim. The old exact-empty remote
 cache exception is frozen diagnostic-only and must not be transplanted to this
 local Keychain route. No setting, command, credential copy, model or execution
 authority was enabled by this source review.
+
+
+### Disabled fixed native command proposal: final currency ordering gap
+
+Independent source/mock NO-GO for the root draft
+`test/acceptance/sealed-typescript-native-base-command.mjs`, archived SHA256
+`9ad07bd6922f3455427ff911f401fd03a20f303902eb756bf3cfffda3d568fb3`. The draft remains disabled data: commands empty,
+no settings/auth/process operation, no seal/reuse/inference authority. Its
+private-capability-first shape, exact six own-value options, A/B/H cross-binding,
+quoted absolute no-argument C command, finite readonly-family denies, fresh
+H/claude-host config/GH geometry and whole-H write denial retain the intended
+narrow scope. It clones the paired settings without broad read/network/credential
+reallow. The quoted literal rule is consistent with previously reviewed native187
+matching primitives; it does not prove actual exclusive admission or effective
+native sandboxing. Native/global startup exceptions and auth/helper-close
+prerequisites remain explicit blockers.
+
+One ordering defect is independently reproduced using exact draft source and
+mock private-verification/policy functions: after the final assets check succeeds,
+the final paired-policy recheck invalidates assets currency; the constructor still
+returns the old binary hash. The existing final policy call follows the final
+source/binary currency verification. Move the final paired-policy check before
+the final assets check, and require the separately reviewed private assets
+verifier's late source/binary/parent barrier to run last. A controlled mutation
+during that last policy call must then refuse. This is a finite stale-data
+reproduction, not a claim of hostile-writer confinement or a native operation.
+The actual build module inspected at f772d542 also does not yet export the
+forthcoming verifier: a real constructor import/use awaits that separate leaf.
+
+Three independent controls passed (42.82 ms): the negative late-policy ordering
+reproduction, symbol/getter injections refusing before verification/policy calls,
+and exact preservation of read/network/credential restrictions and false flags.
+The five author mock controls passed (44.72 ms). These controls perform no
+fixture bootstrap, filesystem body operation, helper/build/native/compiler/model
+or CI execution. No execution GO is provided by this draft assessment.
