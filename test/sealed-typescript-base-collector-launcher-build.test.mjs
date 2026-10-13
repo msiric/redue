@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {buildSealedTypeScriptBaseCollectorLauncher as actual,verifySealedTypeScriptBaseCollectorLauncherBuild as actualCurrent} from './acceptance/sealed-typescript-base-exchange-assets.mjs';
+import {buildSealedTypeScriptBaseCollectorLauncher as actual,verifySealedTypeScriptBaseCollectorLauncherBuild as actualCurrent,sealedTypeScriptBaseCollectorLauncherBuildMatchesDerivation as actualMatches} from './acceptance/sealed-typescript-base-exchange-assets.mjs';
 import {sealedAssetsBuildCompleted,sealedAssetsBuildProcessSummary} from './acceptance/sealed-typescript-native-assets-build.mjs';
 const moduleSource=fs.readFileSync(new URL('./acceptance/sealed-typescript-base-exchange-assets.mjs',import.meta.url),'utf8');
 const sha=value=>createHash('sha256').update(value).digest('hex');
@@ -62,7 +62,7 @@ function mock(fault=null){
  if(fault==='assets-after-compile')state.valid.assets=false;if(fault==='copies-after-compile')state.valid.copies=false;
  return{pid:fault==='no-pid'?undefined:42,status:fault==='exit'?1:fault==='signal'?null:0,signal:fault==='signal'?'SIGKILL':null,stdout:'',stderr:''};};
  const code=moduleSource.replace(/^import .*;$/gm,'').replaceAll('export function ','function ').replace('const mintedAssets=new WeakMap();','const mintedAssets=controlledMint;')+
- '\nverifySealedTypeScriptBaseExchangeAssets=controlledAssetVerify;return {build:buildSealedTypeScriptBaseCollectorLauncher,verify:verifySealedTypeScriptBaseCollectorLauncherBuild};';
+ '\nverifySealedTypeScriptBaseExchangeAssets=controlledAssetVerify;return {build:buildSealedTypeScriptBaseCollectorLauncher,verify:verifySealedTypeScriptBaseCollectorLauncherBuild,matches:sealedTypeScriptBaseCollectorLauncherBuildMatchesDerivation};';
  const api=Function('fs','path','createHash','spawnSync','verifySealedTypeScriptBaseExchangePair','verifySealedTypeScriptSyntheticFixture','prepareSealedTypeScriptBaseExchangeSource',
  'prepareSealedTypeScriptNativeAssetsProposal','buildSealedTypeScriptNativeAssets','verifySealedTypeScriptNativeAssetsBuild','sealedAssetsBuildCompleted','sealedAssetsBuildProcessSummary',
  'verifySealedTypeScriptBaseCollectorSource','sealedTypeScriptBaseCollectorSourceMatchesAssets','verifySealedTypeScriptBaseCollectorCopies','sealedTypeScriptBaseCollectorCopiesMatchSource',
@@ -85,6 +85,25 @@ test('actual ESM cycle initializes assets/source/copies without building or adop
  assert.equal(copies.sealedTypeScriptBaseCollectorCopiesMatchSource({},{}),false);
  const result=actual({assets:{},source:{},copies:{}});assert.equal(result.outcome,'UNKNOWN');assert.equal(result.dispatchAttemptCount,0);falseAuthority(result);
  assert.equal(actualCurrent(JSON.parse(JSON.stringify(result))).outcome,'UNKNOWN');
+ assert.equal(actualMatches(result,{},{}),false);
+});
+
+test('boolean launcher linkage accepts only its exact original assets and source mint; query does not read files',()=>{
+ const m=mock(),built=m.build(m.options),before=m.state.checks;
+ assert.equal(m.matches(built,m.options.assets,m.options.source),true);
+ assert.equal(m.state.checks,before);
+ for(const value of [JSON.parse(JSON.stringify(built)),{get report(){throw Error('PRIVATE REPORT');}}]){
+  assert.equal(m.matches(value,m.options.assets,m.options.source),false);assert.equal(actualMatches(value,m.options.assets,m.options.source),false);}
+ const second=Object.freeze({...m.options.source});m.sourceBrands.add(second);
+ assert.equal(m.matches(built,m.options.assets,second),false);assert.equal(m.matches(built,{},m.options.source),false);
+ assert.equal(m.matches(built,m.options.assets,m.options.source,'extra'),false);assert.equal(m.matches(built,m.options.assets),false);
+ assert.equal(m.state.checks,before);assert.equal(m.state.calls.length,1);
+});
+test('observed launcher invalidation permanently disables its private identity linkage without rewriting build history',()=>{
+ const m=mock(),built=m.build(m.options);assert.equal(m.matches(built,m.options.assets,m.options.source),true);
+ const row=m.nodes.get(m.output),original=Buffer.from(row.body);row.body[0]^=1;assert.equal(m.verify(built).outcome,'UNKNOWN');
+ row.body=original;assert.equal(m.matches(built,m.options.assets,m.options.source),false);assert.equal(built.outcome,'LAUNCHER_BUILT_NOT_EXECUTED');
+ assert.equal(m.state.calls.length,1);
 });
 
 test('strict build interface accepts only original assets/source/copies brands, no caller operations',()=>{

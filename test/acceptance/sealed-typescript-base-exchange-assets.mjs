@@ -146,3 +146,10 @@ export function verifySealedTypeScriptBaseCollectorLauncherBuild(build){
   launcherSha256:record.binary.digest,launcherSourceSha256:record.source.digest});
  }catch{record.invalid=true;return unknown();}
 }
+
+// Boolean private identity linkage only; no mint getter or serialized adoption.
+// The caller must separately verify current launcher/source/assets/copy bytes.
+export function sealedTypeScriptBaseCollectorLauncherBuildMatchesDerivation(build,assets,source){
+ const record=mintedLauncherBuilds.get(build);
+ return arguments.length===3&&!!record&&!record.invalid&&record.assets===assets&&record.proposal===source;
+}
