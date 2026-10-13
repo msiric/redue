@@ -3,7 +3,34 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — prepared tree; compiler guard diagnosis
+## Current checkpoint — staged observation boundary under review
+
+Integration branch `dev/portable-sealed-typescript`; source `bc663bf` integrates
+strict observation projection after independent source review. All34 local pure
+controls pass; they are parser/harness evidence, not native enforcement. The
+private first API parent98f0 was refused before dispatch because its partial
+schema retained unvalidated child values. Its reviewed successor preparation
+keeps the30s/8MiB bounds, immutable bindings and all authorityfalse. One additional
+pre-call deadline/counter ordering defect was corrected before dispatch. The
+exact parent still requires independent review before its one real local sample.
+
+The ordinary debugger project's33345-file tree was materialized in66.571s;
+preparation is not sealing. One fixed snapshot command later completed in14.849s
+with all10 guard comparisons true, but no native-agent/seal/namespace authority.
+The changed local kernel mapper observed7 expected classifications in442.304ms;
+its overall result remains UNKNOWN. Prior failed/UNKNOWN attempts are preserved.
+See [current implementation evidence](../acceptance/portable-sealed-typescript.md)
+and [critical review](../acceptance/portable-boundary-review.md).
+
+Closed hosted Claude six-check prerequisite remains scopedPASS. The staged native
+checker/policy paths do not yet match; source-only fixture composition is underway.
+Copilot Actions included capacity remains pending. G1/G2/G3/prepublicationG4 stay
+incomplete; origin containment and frozen alpha.11 bytes remain unchanged. No
+model, signing, trust expansion, package publication or observer-state change.
+Day0/72h calibration remain2026-10-10 21:24UTC /2026-10-13 21:24UTC. Full portable
+setup/economics and actual staged native enforcement are not established.
+
+## Historical checkpoint — prepared tree; compiler guard diagnosis
 
 Integration branch `dev/portable-sealed-typescript`, preserved HEAD35408dc.
 One real public-project preparation completed:33345 files/340640366bytes,
