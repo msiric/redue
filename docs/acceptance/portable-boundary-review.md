@@ -6183,3 +6183,33 @@ parent/budget/currentness/persistence controls. No actual API/compiler, native
 policy/agent/experimental collector, model or CI operation ran in this review.
 This GO is a materially changed diagnostic repair; it does not authorize repeated
 unchanged attempts or turn any past UNKNOWN into completeness or reuse proof.
+
+
+## Actual staged API observations collected: engineering slice only
+
+Independently verified actuala84 saved
+SHA95c3be736476d67a66e3d217c07ca6316a54ff5c993d3104359b6add60011289
+and outerSHA5608b977cf79a71797280cb38326219a41d591bfde42b922c4a69e83f5ec5ac6:
+owned regular0600/single-link, matching saved-record ACK, narrow
+STAGED_API_OBSERVATIONS_COLLECTED_NOT_SEALED,12189.040833ms, child74/no signal/
+reaped, one dispatch, zero verification/model counts and all12 equality checks
+true. Independent strict parsing/projection of the child-observation shape passed.
+An initial review applied the integer-only portable parser to the WHOLE local
+report and correctly rejected fractional elapsedMs; that review-preparation error
+is preserved. The corrected review parsed hash-verified generated report JSON and
+strictly validated only its portable child-observation shape; no API trial ran.
+
+Aggregate counts independently agree:914 graph files (425 source,59 default TS
+libraries,429 other installed,1 other),1 config,39489 observed calls and14218
+retained frames. Logging is incomplete with FRAME_LIMIT,JOURNAL_LIMIT,
+UNSUPPORTED_FUNCTION_METADATA and UNSUPPORTED_METHOD. The retained frames contain
+388 outside raw EPERM denials and zero outside raw readFileSync frames. This says
+only what was retained; partial frames cannot prove all outside reads/denials or
+Node-loader coverage. Probe readFile body guards remain present but do not replace
+an independently enforced filesystem boundary. Detailed frames remain private.
+
+The engineering collection slice is closed, not namespace/CLI equivalence,
+stable sealed execution, reusable receipt or origin authority. Verification was
+not run; native-agent enforcement remains NOT_TESTED and namespace/sealed/reuse
+false. All previous UNKNOWN results and their distinct diagnostics are preserved.
+No real API/compiler/native/model/CI operation was performed by the reviewer.
