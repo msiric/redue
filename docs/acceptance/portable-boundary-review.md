@@ -6780,3 +6780,29 @@ check, Claude-agent/model launch, receipt, stable-input seal or reuse follows.
 Reviewer read only the scoped report/TAP/metadata, not executing or adopting the
 fixture/assets. A future current in-process fixture and separately reviewed route
 are still required; historical stored fixtureCurrent is not ongoing authority.
+
+Extracted build-leaf source/mock GO27b23e7+7bd04fa,
+SHA164f0d30d53a0f7dce4bf15ba0ea4a6345539ff168ad3ee1d6d85e412052bfd4.
+The moved fixed bounded-read/hash/parent/currentness, same-descriptor format,
+principal, SDK/header/Node/source and two clang process guards match reviewed39b.
+Only one own-value fixture option is accepted; actual private current CI mint
+verification precedes runtime/tool body reads. No caller command/env/flags/code
+surface or bootstrap is exposed. Returned frozen UNKNOWN/ASSETS_BUILT_NOT_EXECUTED
+is data, commands[] and all native/compiler/seal/reuse authority remain false.
+The caller must retain the live private mint; serialized reports cannot seed it.
+
+Eight independent whole-leaf memory-FS/mock-spawn controls passed8/8 in59.54ms:
+exact two vectors/env/caps/frozen result, setid/spawn-error/contradictory signal,
+bad header, source replacement, unminted fixture and imported env option refusal.
+Four default author controls passed4 with actual build skipped in49.19ms.
+No reviewer bootstrap, real filesystem write/copy, clang/helper/native/model/CI
+operation occurred. These results do not establish actual toolchain closure,
+hostile-parent confinement or future helper-execution authority.
+
+Refactored wrapper7bd remains review-pending: original39 retained internally
+validated bootstrap.base before fixture preparation; the extraction wrapper's
+block-local bootstrap and leaf's successful-current-only gate lose that known
+owned partial location when preparation throws/returns UNKNOWN. Preserve only
+the internally returned, fixed-geometry base in the static UNKNOWN owner record;
+never caller labels, token adoption or partial-fixture revival. No changed actual
+wrapper attempt is authorized by the leaf's source-only GO.
