@@ -25,8 +25,8 @@ increased. No old serialized fixture is adopted as execution authority.
 Independent review accepted the extracted live-fixture build and corrected its
 partial-failure record. It refused the exchange proposal for duplicate JSON,
 contradictory rows, hidden FAILs, and incomplete identity checks. `c6810f6` repairs
-those issues; four pure controls passed, actual execution remains unrun pending
-independent review. No runtime, installed settings, receipt, trust or signing
+those issues; four pure controls passed, independent review completed before the distinct
+engineering observation below. No runtime, installed settings, receipt, trust or signing
 change accompanies this engineering harness.
 
 Hosted Claude's completed six-check prerequisite remains CLOSED scoped PASS.
@@ -39,8 +39,32 @@ Last registry read failed curl 35 (socket connectivity); no authentication or DN
 cause inferred. GitHub fetch works; main is unchanged `da6b87f`. Root integrates,
 A owns compiler/source leaves, C independently reviews critical boundaries;
 B capacity unavailable. Day 0 and 72-hour checkpoint remain October 10/13
-21:24 UTC. External field usage NOT STARTED. Next: exact successor review, then
-one fresh engineering exchange observation only if all prerequisites pass.
+21:24 UTC. External field usage NOT STARTED. Next: independently review the new synthetic-only whole-base pair; inventory
+approved hosted public build tools without inference/storage; then provision the
+actual native canary boundary before unchanged full compiler execution.
+
+One reviewed engineering exchange observation (`c6810f6`) now completed:
+four implemented rows PASS, whole-base NOT_IMPLEMENTED, helper UNKNOWN (exit74,
+reaped, stderr empty). Test2832.336ms / complete2879.571ms. Private TAP SHA
+`7ed19b816959ce369d5d03b1c4ce61ec88c73819cabea2604bc05534102be596`;
+private owner JSON SHA
+`84e2a2a8bf85abf9197f4270fb782b831618622d2df64daa98b95e5dc414f7ba`.
+Independent review verified the retained bytes/rows and non-authoritative scope.
+Post-control fixture verification UNKNOWN is retained; the old preparation mint
+is never revived. The positive observation does not establish Claude/Bun,
+whole-base/case/symlink/mapping protection or portable origin applicability.
+
+Source review of the selected unchanged debugger confirms noEmit still invokes
+semantic diagnostics through emit handling. Its source-file graph is incomplete
+for that obligation; the earlier generic NodeNext diagnostic example also does
+not apply to this project's bundler mode. No old graph is promoted to a receipt.
+The whole-base proposal must exclude all authentication/state/unrelated files;
+a fresh separate privately minted pair is being implemented, not an old subset
+fixture being declared complete. No real prepared stage is moved. The hosted
+public-tool inventory proposal has one corrected path-classifier control; its
+initial regex assertion failure is retained (before any public-tool execution),
+then43.818ms PASS. It remains unrun pending independent review. No credentials,
+model, compiler execution, signing or artifact upload is in that inventory job.
 
 ## Historical checkpoint — source profile-size failure established
 
