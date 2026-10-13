@@ -6376,3 +6376,45 @@ These paths are review candidates, not permission grants or an exhaustive closed
 read view. Root-inode/global directory metadata exceptions also do not establish
 body-read closure. OS startup remains explicitly unresolved; no broad OS-library
 reallow, nested sandbox assumption or source-only native seal follows from this GO.
+
+## TypeScript 5.5.2 graph traversal does not close CLI discovery
+
+Fresh component hashes matched the reviewed public package: tsc.js
+390875cd26ab0e496c55804c26c93adab850c0b48573a14967bc479538179c73 and typescript.js
+99443f51ec16c0744880ee28b500544b88479a95b14d996f7e874a2ac54ca201.
+The shared compilerProgramFiles returns createProgram(...).getSourceFiles();
+it does not request diagnostics. CLI performCompilation (tsc.js128903) creates
+the program then calls emitFilesAndReportErrorsAndGetExitStatus. Its diagnostic
+pipeline125389-125426 requests syntactic/options/global/semantic diagnostics and
+emit even for the noEmit recipe. Lazy checker120014 and semantic path120130-120153
+then check source elements through getDiagnosticsWorker84116/checkSourceFileWorker84043.
+
+A concrete extra-question path exists in semantic import checking, without a
+compiler trial: checkImportDeclaration83364 calls resolveExternalModuleName for
+named imports. resolveExternalModule47991, unresolved Node16/NodeNext ESNext
+extensionless relative-import branch48156-48158, probes suggestedExtensions with
+host.fileExists, e.g. ./missing.mts then ./missing.ts. Graph resolver39903 does
+not add implicit extensions in EsmMode; extensionless candidate39915 returns
+without those suffix questions. The checker uses program.fileExists119356 and
+its original-host forwarding122069. CLI cache118399 can reuse previous questions
+but does not establish that these diagnostic-only candidates were previously asked.
+Equivalent API locations are loadModuleFromFile44435 and checker branch52922.
+
+Four independent pure controls evaluated only the exact extracted resolver and
+diagnostic expression with fake functions, not a loaded TypeScript API: ESM skip,
+non-ESM suffix lookup, post-graph diagnostic suffix lookup and nine missing
+candidates. They passed4/4 in46.90ms. This disproves generic graph-question
+completeness; it does not show that the actual debugger successful noEmit run
+took this branch, establish an exhaustive diagnostic read set, or demonstrate
+any released/wrapped falseCURRENT. Existing partial journal and all false
+CLI/API/namespace/seal/reuse claims remain unchanged. No actual compiler ran.
+
+A full protected materialized namespace can conservatively cover deferred
+in-tree bodies and membership only if it includes every entry, empty directory,
+negative fact and modeled link/topology under the actual compiler read view.
+File hashes or the API graph alone are insufficient. Native187 global directory
+metadata permits ambient outside answers, and exact allowed runtime/public code
+bodies are additional readable locations. Denied reads may affect TypeScript
+semantics and cannot be relabeled missing or irrelevant. Whole snapshot coverage
+therefore still needs actual closed-view/recipe and interval enforcement;
+historical source provenance never becomes fresh live-checkout equivalence.
