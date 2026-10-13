@@ -6541,3 +6541,37 @@ value before any future evaluation. Frozen data-only constructor and fixed
 engineering driver are not yet reviewed: no generator, settings, sandbox-exec,
 native startup or command GO follows from this preparation. Model/credential/
 seal/recipient and goal acceptance gates remain unchanged.
+
+Source/data-only GO0a412b9 for constructor
+SHAa972701169d08f0597ddfdc7e743134b792430db10d9ce3c0cbbd69768b41033.
+Twenty-four nonoverlapping spans remain in original order, including the whole
+interop prefix once and all selected initializer/global dependencies. Construction
+never evaluates them: it opens only the locally selected public distribution,
+checks exact215994048-byte fulla59 content and each span hash/UTF8, owned single-link
+regular metadata, nofollow/nonblock descriptors, parent identities and before/
+after named/FD fingerprints, then closes before returning frozen code data.
+Close/fault uncertainty returns a fresh static error without source/profile data.
+Trusted/quiescent ancestry limitations remain explicit; this is not an atomic
+private-body read sandbox or an imported path selector. Commands[]/disabled,
+native/Bun NOT_ESTABLISHED and sealed/reusefalse remain unchanged.
+
+Nine selected construction/read-only public-source controls passed9/9 in477.30ms;
+four independent controlled parent/leaf replacement, truncation and missing
+nofollow countercases passed4/4 in228.48ms. No source fragment/initializer was
+evaluated. Reviewer excluded the real temporary-file test and optional evaluation
+test; only exact public bytes were read and stat/read results were fault-injected.
+
+The exact optional test is source-review GO for one bounded source-composition
+evaluation in a separate pinned Node22.13 child: fixed owned cwd/HOME/TMPDIR,
+empty credential environment, hash-bound extracted code, only four actual builtin
+module dependencies, fixed safe logTag/options, parent5s/4KiB and VM1s bounds.
+It neither applies SBPL nor invokes Claude/sandbox-exec. A positive result can
+establish this source composition only, never Bun/native settings equivalence or
+enforcement. Initializers import child_process but the inspected route calls no
+spawn/exec method. The future startup driver still requires separate exact review.
+
+Generated k0d also grants process-exec/fork, default Mach/preferences/POSIX IPC,
+distributed notifications, IOKit/device/AF_SYSTEM and selected sysctl-write
+operations. These are existing generator defaults, not a sterile no-fork profile;
+none was exercised by the constructor. Do not add invented OS body reallows or
+turn source composition into a minimal startup-read set, seal or goal completion.
