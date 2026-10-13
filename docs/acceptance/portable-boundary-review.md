@@ -6900,3 +6900,30 @@ destructive whole-base authority: finalize a locally known public-only inventory
 with fresh private sibling, refuse unknown auth/settings/state/extras, retain
 known exchange grants/mismatches as FAIL and add no sibling-body/parent reallow.
 Exact paired resource/profile/source interface still needs review before use.
+
+Source/mock/static-workflow GOc96f350 host public-tool inventory,
+helperSHA98b077489d41220046a589ed5256fd95dbf373911890ece86f0dc030dd7945e0,
+branch-only workflow75613f9 SHA
+7e45d857f0302401f6c7417dca8647bf0b74c7dad530e21949ef45d3cbe4b9b3.
+YAML/static checks confirm manual-only exact repo/branch/actor/attempt1, one
+standard macos26 job capped2min, contentsread, pinned checkout/setup-node actions,
+exactc96 source revision and Node22.13.0. No environment credentials, OIDC,
+artifact/cache uploads, model/compiler/helper execution, signing or trust change.
+The source calls only three fixed root-system xcrun resolution commands with empty
+child env,5s/4096B/SIGKILL; returned paths never become executed tools. Canonical
+developer-tree classification precedes bounded root-owned tool/header body reads.
+Full hash/FD/name/parent checks surround each read; Node's official hash is required.
+Completed public facts can remain under UNKNOWN, never raw exception/env values.
+
+Ten independent whole-helper memory-FS/mock-resolver controls passed10/10 in54.00ms:
+exact three resolver vectors/caps/env and public-not-accepted output; setid,
+oversize, FD mismatch, parent replacement, header hardlink, signal/stderr, outside
+tool path and SDK alias refusals without outside credential body. One path control
+passed1/1 in44.23ms; workflow YAML/source/job/no-storage static assertions passed.
+No actual inventory/xcrun/compiler/helper/native/model/CI operation by reviewer.
+The earlier classifier fixture regex correction remains historical pre-dispatch.
+Inventory closes only observed selected public bytes and basic host facts, not
+complete SDK/linkage closure, accepted tool provenance, filesystem/kernel profile
+matching, native permissions or seal/reuse. No hostile-parent read confinement is
+claimed from trusted/quiescent ancestry checks; local SDK27 build results cannot
+stand in for the future standard VM's actual tool facts.
