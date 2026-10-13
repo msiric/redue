@@ -18,10 +18,11 @@ At source `825ae91`, fixed source/copies/launcher and exact disabled native comm
 have independent source/mock review. One combined engineering provisioning attempt
 hit30s and was reaped; retained38 phase frames identify17.8s in copies+currency
 before launcher construction. Final build/compile counters UNKNOWN, no helper/native/
-model/receipt executed. The source diagnosis is active; no deadline increased or
-unchanged retry. Two prior late-validation defects are repaired; failures retained.
+model/receipt executed. Source diagnosis identified repeated full validation; scoped composition repair is
+active, with no deadline increase or unchanged retry. Two prior late-validation defects are repaired; failures retained.
 Ordinary selected-view audit requires membership/Git-consumption guards rather than
-copying unconsumed Git metadata. Sealed recipe remains preview-only; actual sealed
+copying unconsumed Git metadata. First Git-guard candidate fa5d469 is withheld after
+fresh synthetic pre-admission body-read counterexamples; repair/review is active. Sealed recipe remains preview-only; actual sealed
 execution and portable cross-agent/two-machine reuse NOT ESTABLISHED. See the one
 current [resume](../plan/portable-evidence-resume.md) and
 [tracker](../plan/portable-evidence-tracker.md) for identities, owners and gates.

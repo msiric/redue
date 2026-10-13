@@ -13,8 +13,9 @@ recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gat
 |032 combined provisioning | REVIEWED/integrated8d60a7a, actualUNKNOWN | Root382PASS/two SKIP; one30s attempt timed out/reaped;38 phase frames, no helper/native/model |
 |033 exact native command | REVIEWED/integrated825ae91 |11 literal H leaves; independent99 controls; root107PASS; proposal stays disabled |
 |034 selected-view audit | COMPLETE/read-only |473 omitted leaves, not Git-only; prepared-tree obligation requires membership/Git guards |
-|035 Git-consumption guard | Import implementer ACTIVE | Sealed-only reason/versioned observation handling; fresh review required |
-|036 preparation diagnosis | Diagnostics reviewer ACTIVE/read-only | Copies+currency≈17.8s before launcher; inspect repeated full-validation path, no unchanged retry/deadline increase |
+|035 Git-consumption guard | CHANGES_REQUIRED / repair ACTIVE | fa5d469 pre-journal compiler hash reads synthetic Git file before rejection; withheld, no protected body read |
+|036 preparation diagnosis | CLOSED / read-only | Source graph72+48 full checks in copies; scoped design only, no runtime attribution |
+|037 preparation composition | Stage-results implementer ACTIVE | Sequential full-entry scopes plus late guards, no implicit joining; fresh review before use |
 | Product sealedG1/G2/G3/G4 | INCOMPLETE | No actual sealed execution or portable two-machine/agent reuse |
 
 No unperformed validation assumed unchanged, no private capability recovered from

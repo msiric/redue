@@ -44,12 +44,29 @@ Smallest proposed boundary is VERSIONED selected-input prepared view (@2 copy pl
 complete actual-stage inventory), not original source namespace/npm equivalence.
 Source-selection membership and explicit/negative Git-consumption guards still
 missing; incomplete old journal cannot certify unconsumed paths. No actual staging.
-035 import worker is sole production writer: sealed-only Git consumption guard,
-finite reason and @2 observation interpretation; ordinary API path unchanged.
-Fresh review before integration. 036 diagnostics reviewer owns READ-ONLY diagnosis
-of repeated engineering dependency validation/call-specific composition, preserving
-full entry checks, late metadata barriers, quiescent-only limitation and independent
-full validation. No deadline increase/cache/engine/publication work authorized.
+035 `fa5d469` is CHANGES_REQUIRED, withheld from integration. Source-only controls
+passed168, but fresh reviewer reproduced three pre-journal compiler-admission cases:
+ordinary .git/.Git/.GIT directories are read during whole-package hashing before
+digest rejection. No protected body was read: fixtures were synthetic. Earlier config
+realpath bypass was also reproduced/fixed. Import author now owns sealed-only
+before-body admission repair; successor requires fresh review. Ordinary behavior
+must remain unchanged; no compiler/native/model/CI operation is authorized by mocks.
+
+036 read-only source diagnosis CLOSED: graph-derived72 BaseAssets full validations
+per copy provision,48 per separate copy currency,60 before launcher's source/build.
+These are source counts, not measured syscall attribution. Small same-call
+composition is acceptable in principle ONLY with unchanged full entry validation,
+live private native barrier, every late row/fixture/root/SDK/ancestry check, permanent
+failure latch, no reentry/async/thenables/retained callbacks, and full independent
+verification. Consumer mint/return waits until scope closes, then all copied/new
+rows are checked AFTER closing original/native checks; naive wrapping was rejected
+by an independent ordering counterexample.56 existing composition mocks pass.
+
+037 stage-results worker owns engineering assets/copies composition + focused tests;
+no shared production writer overlap with035. Use sequential closed scopes rather
+than implicit joining/active predicates/nested consumer authority. Fresh review and
+actual prerequisites before any later bounded observation. No deadline increase,
+cache framework, engine semantics, native settings or publication work.
 
 Existing admin403/inventory action and Copilot included Actions billing fact remain
 lane-specific owner prerequisites; no repeat request/unchanged denial retry.
