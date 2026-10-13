@@ -126,7 +126,7 @@ test('mock expired deadline before spawn options produces zero attempts', async 
 
 test('mock deadline expiry evaluating spawn options is not counted as an attempt', async () => {
   const h = harness(); let ticks = 0;
-  h.options.now = () => ++ticks === 4 ? 30000 : 0;
+  h.options.now = () => ++ticks === 6 ? 30000 : 0;
   const observed = await h.run();
   assert.equal(h.calls.spawn.length, 0); assert.equal(observed.report.compilerInvocationAttempts, 0);
   assert.equal(observed.completed, false);
@@ -214,4 +214,123 @@ test('mock opened FD identity mismatch fails before reading and closes it', asyn
   h.filesystem.fstatSync = (...args) => ({...stat(...args), ino: 99n});
   const observed = await h.run(); unknownRecord(observed, h);
   assert.equal(h.calls.reads.length, 0); assert.equal(h.calls.closes.length, 1);
+});
+
+// Reviewer counterexamples target work after the historical compiler PASS.
+// Advancing only these injected operations cannot be treated as in-budget success.
+const advanceDuring = (h, phase, value) => {
+  if (phase === 'diagnostic publication') {
+    const publish = h.options.diagnostic;
+    h.options.diagnostic = text => { publish(text); h.state.time = value; };
+  } else if (phase === 'result validation') {
+    const select = h.options.selectProfile;
+    h.options.selectProfile = input => {
+      const result = select(input); if (h.calls.profile.length === 2) h.state.time = value;
+      return result;
+    };
+  } else {
+    const method = {write: 'writeFileSync', read: 'readSync', close: 'closeSync',
+      'final named stat': 'lstatSync', 'final parent stat': 'lstatSync'}[phase];
+    const operation = h.filesystem[method];
+    h.filesystem[method] = (...args) => {
+      const result = operation(...args);
+      if (phase === 'final named stat' ? args[0] !== local && h.state.afterRead :
+        phase === 'final parent stat' ? args[0] === local && h.state.afterRead : true) h.state.time = value;
+      return result;
+    };
+  }
+};
+for (const phase of ['result validation', 'write', 'read', 'close', 'final named stat', 'final parent stat', 'diagnostic publication']) {
+  for (const elapsed of [30000, 30001]) test('mock total budget refuses ' + elapsed + 'ms during ' + phase, async () => {
+    const h = harness(); advanceDuring(h, phase, elapsed); const observed = await h.run();
+    unknownRecord(observed, h);
+    assert.equal(observed.observationStatus, 'BUDGET_EXCEEDED'); assert.equal(observed.totalElapsedMs, elapsed);
+    assert.equal(observed.totalElapsedMsScope, 'THROUGH_DIAGNOSTIC_PUBLICATION');
+    assert.equal(observed.report.processResult, 'PASS'); assert.equal(observed.report.compilerInvocationAttempts, 1);
+    assert.equal(h.calls.diagnostics.at(-1).compilerInvocationAttempts, 1);
+    assert.equal(h.calls.diagnostics.at(-1).processResult, 'PASS');
+    for (const published of h.calls.diagnostics) {
+      assert.equal(published.observationCompleted, false); assert.equal(published.recordVerified, false);
+    }
+    if (phase !== 'result validation') {
+      assert.equal(observed.report.result, 'PASS'); assert.equal(h.calls.writes.length, 1);
+      const saved = JSON.parse(h.state.body);
+      assert.equal(saved.result, 'PASS'); assert.equal(saved.elapsedMs, 0);
+      assert.equal(saved.elapsedMsScope, 'PRE_PERSISTENCE_SNAPSHOT');
+      assert.equal(saved.observationStatus, 'PENDING_PERSISTENCE_AND_FINAL_BUDGET_CHECK');
+      assert.equal(saved.observationCompleted, false); assert.equal(saved.recordVerified, false);
+    } else {
+      assert.equal(observed.report.result, 'UNKNOWN'); assert.equal(h.calls.writes.length, 0);
+    }
+  });
+}
+
+for (const [name, value] of [['NaN', NaN], ['infinity', Infinity], ['non-number', '0'], ['backwards', 99]]) {
+  for (const phase of ['result validation', 'write', 'read', 'close', 'final parent stat', 'diagnostic publication']) {
+    test('mock invalid clock refuses ' + name + ' during ' + phase, async () => {
+      const h = harness(); h.state.time = 100; advanceDuring(h, phase, value);
+      const observed = await h.run(); unknownRecord(observed, h);
+      assert.equal(observed.observationStatus, 'CLOCK_UNAVAILABLE'); assert.equal(observed.totalElapsedMs, null);
+      assert.equal(observed.report.processResult, 'PASS'); assert.equal(observed.report.compilerInvocationAttempts, 1);
+      for (const published of h.calls.diagnostics) {
+        assert.equal(published.observationCompleted, false); assert.equal(published.recordVerified, false);
+      }
+    });
+  }
+}
+
+for (const value of [NaN, Infinity, '0']) test('mock invalid initial clock launches no compiler or record write: ' + String(value), async () => {
+  const h = harness(); h.state.time = value; const observed = await h.run(); unknownRecord(observed, h);
+  assert.equal(observed.observationStatus, 'CLOCK_UNAVAILABLE'); assert.equal(observed.totalElapsedMs, null);
+  assert.equal(h.calls.profile.length, 0); assert.equal(h.calls.spawn.length, 0); assert.equal(h.calls.writes.length, 0);
+});
+
+test('mock thrown clock during publication cannot certify success or lose historical attempt', async () => {
+  const h = harness(), publish = h.options.diagnostic;
+  h.options.now = () => { if (h.state.clockThrows) throw Error('PRIVATE CLOCK ERROR'); return h.state.time; };
+  h.options.diagnostic = text => { publish(text); h.state.clockThrows = true; };
+  const observed = await h.run(); unknownRecord(observed, h);
+  assert.equal(observed.observationStatus, 'CLOCK_UNAVAILABLE'); assert.equal(observed.totalElapsedMs, null);
+  assert.equal(observed.report.processResult, 'PASS'); assert.equal(observed.report.compilerInvocationAttempts, 1);
+  assert.equal(h.calls.writes.length, 1); assert(!h.state.body.includes('PRIVATE CLOCK ERROR'));
+});
+
+test('mock backwards clock latches despite a later valid sample', async () => {
+  const h = harness(); h.state.time = 100;
+  const read = h.filesystem.readSync;
+  h.filesystem.readSync = (...args) => { const n = read(...args); h.state.time = 99; return n; };
+  const close = h.filesystem.closeSync;
+  h.filesystem.closeSync = (...args) => { close(...args); h.state.time = 101; };
+  const observed = await h.run(); unknownRecord(observed, h);
+  assert.equal(observed.observationStatus, 'CLOCK_UNAVAILABLE'); assert.equal(observed.totalElapsedMs, null);
+});
+
+test('mock publication below total deadline can complete while saved bytes remain a historical snapshot', async () => {
+  const h = harness(); advanceDuring(h, 'diagnostic publication', 29999);
+  const observed = await h.run();
+  assert.equal(observed.completed, true); assert.equal(observed.recordVerified, true);
+  assert.equal(observed.observationStatus, 'PASS'); assert.equal(observed.totalElapsedMs, 29999);
+  assert.equal(JSON.parse(h.state.body).elapsedMsScope, 'PRE_PERSISTENCE_SNAPSHOT');
+  assert.equal(h.calls.diagnostics[0].observationStatus, 'PENDING_FINAL_BUDGET_CHECK');
+  assert.equal(h.calls.diagnostics[0].observationCompleted, false); assert.equal(h.calls.diagnostics[0].recordVerified, false);
+  assert.equal(h.calls.writes.length, 1); noAuthority(observed.report);
+});
+
+for (const [name, value, status] of [['late', 30101, 'BUDGET_EXCEEDED'], ['NaN', NaN, 'CLOCK_UNAVAILABLE'],
+  ['backwards', 99, 'CLOCK_UNAVAILABLE']]) test('mock ' + name + ' clock at process return retains process outcome without total success', async () => {
+  const h = harness(); h.state.time = 100; const spawn = h.options.spawn;
+  h.options.spawn = (...args) => { const child = spawn(...args); h.state.time = value; return child; };
+  const observed = await h.run(); unknownRecord(observed, h);
+  assert.equal(observed.observationStatus, status); assert.equal(observed.report.processResult, 'PASS');
+  assert.equal(observed.report.processObserved, true); assert.equal(observed.report.processReaped, true);
+  assert.equal(observed.report.compilerInvocationAttempts, 1); assert.equal(h.calls.writes.length, 0);
+  assert.equal(h.calls.diagnostics.at(-1).compilerInvocationAttempts, 1);
+  assert.equal(h.calls.diagnostics.at(-1).processResult, 'PASS');
+});
+
+test('mock thrown initial clock permits only an unknown diagnostic', async () => {
+  const h = harness(); h.options.now = () => { throw Error('PRIVATE INITIAL CLOCK ERROR'); };
+  const observed = await h.run(); unknownRecord(observed, h);
+  assert.equal(observed.observationStatus, 'CLOCK_UNAVAILABLE'); assert.equal(observed.totalElapsedMs, null);
+  assert.equal(h.calls.profile.length, 0); assert.equal(h.calls.spawn.length, 0); assert.equal(h.calls.writes.length, 0);
 });
