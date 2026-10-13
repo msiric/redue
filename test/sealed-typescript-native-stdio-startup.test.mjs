@@ -13,13 +13,13 @@ const publicProfile='# System-wide .profile for sh(1)\n\nif [ -x /usr/libexec/pa
 const publicBashrc='# System-wide .bashrc file for interactive bash(1) shells.\nif [ -z "$PS1" ]; then\n   return\nfi\n\nPS1=\'\\h:\\W \\u\\$ \'\n# Make bash check its window size after a process completes\nshopt -s checkwinsize\n\n[ -r "/etc/bashrc_$TERM_PROGRAM" ] && . "/etc/bashrc_$TERM_PROGRAM"\n';
 function mock(){
  let ino=1,fd=100;const nodes=new Map(),fds=new Map(),fixture=Object.freeze({kind:'PRIVATE_FIXTURE'}),build=Object.freeze({hostBase:base});
- const state={fixtureValid:true,buildValid:true,reads:[],writes:[],opens:[],closes:[],mkdirs:[],fault:null,afterRead:null,afterStat:null,afterBuild:null};
+ const state={fixtureValid:true,buildValid:true,reads:[],writes:[],opens:[],closes:[],mkdirs:[],fault:null,deniedPath:null,afterRead:null,afterStat:null,afterBuild:null};
  const put=(file,kind='d',body='',owner=501,mode=kind==='d'?0o40700n:0o100600n)=>{const p=nodes.get(path.posix.dirname(file));if(p){p.mtimeNs++;p.ctimeNs++;}return nodes.set(file,{kind,body:Buffer.from(body),uid:BigInt(owner),gid:20n,mode,dev:1n,ino:BigInt(ino++),nlink:1n,size:BigInt(Buffer.byteLength(body)),mtimeNs:1n,ctimeNs:1n});};
  const parents=file=>{for(let at=path.posix.dirname(file);;at=path.posix.dirname(at)){if(!nodes.has(at))put(at,'d','',0,at==='/private/tmp'?0o41777n:0o40755n);if(at===path.posix.dirname(at))return;}};
  for(const [file,body]of [['/private/etc/profile',publicProfile],['/private/etc/bashrc',publicBashrc],['/bin/bash','STOCK_BASH'],['/usr/libexec/path_helper','STOCK_PATH_HELPER']]){parents(file);put(file,'f',body,0,0o100444n);}
  parents(base);put(base);parents(base+'/prefix/native-probes');put(base+'/prefix');put(base+'/prefix/native-probes');
  put('/etc','l','private/etc',0,0o120755n);
- const stat=file=>{if(state.fault==='stat')throw Error('PRIVATE_DETAIL');const row=nodes.get(file);if(!row)throw Object.assign(Error('PRIVATE_DETAIL'),{code:state.fault==='absent-denied'?'EPERM':'ENOENT'});
+ const stat=file=>{if(file===state.deniedPath)throw Object.assign(Error('PRIVATE_DETAIL'),{code:'EPERM'});if(state.fault==='stat')throw Error('PRIVATE_DETAIL');const row=nodes.get(file);if(!row)throw Object.assign(Error('PRIVATE_DETAIL'),{code:state.fault==='absent-denied'?'EPERM':'ENOENT'});
   const out={...row,isFile:()=>row.kind==='f',isDirectory:()=>row.kind==='d',isSymbolicLink:()=>row.kind==='l'};state.afterStat?.(file);return out;};
  const io={constants:{O_RDONLY:0,O_WRONLY:4,O_CREAT:8,O_EXCL:16,O_NOFOLLOW:1,O_NONBLOCK:2},lstatSync:stat,
   realpathSync:file=>file==='/etc'?'/private/etc':state.fault==='realpath'?file+'-ALIAS':file,
@@ -64,7 +64,7 @@ test('stable mocks prepare only fresh fixed HOME/config/PATH tree and never read
  assert(m.state.reads.every(p=>Object.hasOwn(NATIVE_STDIO_STARTUP_BASIS.pins,p)||p===host+'/path-helper-root/etc/paths'));
  assert.equal(m.verify(v).outcome,'STARTUP_CURRENTLY_OBSERVED_SOURCE_ONLY');assert.equal(m.verify(v,'AFTER_NATIVE').outcome,'STARTUP_CURRENTLY_OBSERVED_SOURCE_ONLY');
  assert.equal(m.verify(structuredClone(v)).outcome,'UNKNOWN');assert.equal(m.fds.size,0);assert(Object.isFrozen(v.environmentBindings));
- assert(v.requiredArgv.includes('--bare'));assert.deepEqual(v.requiredAbsentEnvironmentKeys,['PS1','MANPATH','BASH_ENV','ENV','TERM_PROGRAM']);
+ assert(!v.requiredArgv.includes('--bare'));assert(v.forbiddenArgv.includes('--bare'));assert.deepEqual(v.requiredSettings,{autoMemoryEnabled:false,disableAllHooks:true,enabledPlugins:{}});assert.equal(v.interpretation,'redue-native187-isolated-bash-startup@2');assert.deepEqual(v.requiredAbsentEnvironmentKeys,['PS1','MANPATH','BASH_ENV','ENV','TERM_PROGRAM']);
 });
 for(const name of ['fixtureValid','buildValid'])test(`missing current private ${name} refuses before system/body reads`,()=>{const m=mock();m.state[name]=false;assert.equal(prepare(m).outcome,'UNKNOWN');assert.equal(m.state.opens.length,0);assert.equal(m.state.mkdirs.length,0);});
 for(const field of ['platform','arch','version'])test(`unsupported ${field} never provisions`,()=>{const m=mock();m.process[field]='OTHER';assert.equal(prepare(m).outcome,'UNKNOWN');assert.equal(m.state.opens.length,0);});
@@ -98,4 +98,19 @@ test('caught nested failed validation cannot escape the permanent invalidation l
 test('source has no execution, caller callback, cleanup/adoption or broad system-config body walk',()=>{
  assert.doesNotMatch(source,/spawn|execFile|execSync|child_process|process\.env|rmSync|copyFile|readFileSync|\/etc\/paths\.d\//);
  assert.match(source,/PATH_HELPER_ROOT/);assert.match(source,/NOT_EMPIRICALLY_OBSERVED/);
+});
+
+for(const file of ['/Library/Application Support/ClaudeCode/CLAUDE.md','/Library/Application Support/ClaudeCode/.claude'])test('nonbare managed instruction/rules metadata blocks without reading bodies',()=>{
+ const before=mock();before.put(file,'f','PROTECTED_NO_BODY_READ');assert.equal(prepare(before).outcome,'UNKNOWN');assert(!before.state.reads.includes(file));
+ const after=mock(),value=prepare(after);after.put(file,'f','PROTECTED_NO_BODY_READ');assert.equal(after.verify(value,'AFTER_NATIVE').outcome,'UNKNOWN');assert(!after.state.reads.includes(file));assert.equal(after.verify(value).outcome,'UNKNOWN');
+});
+
+for(const leaf of ['skills','agents','output-styles'])test(`occupied managed ${leaf} is rejected through ancestor metadata only`,()=>{
+ const m=mock(),root='/Library/Application Support/ClaudeCode/.claude';m.put(root,'d','',0,0o40755n);m.put(root+'/'+leaf,'d','',0,0o40755n);const v=prepare(m);assert.equal(v.outcome,'UNKNOWN');assert(!m.state.reads.some(file=>file.startsWith(root)));
+});
+test('late managed root appearance permanently invalidates private witness even after removal',()=>{
+ const m=mock(),v=prepare(m),root='/Library/Application Support/ClaudeCode/.claude';m.put(root,'d','',0,0o40755n);assert.equal(m.verify(v,'AFTER_NATIVE').outcome,'UNKNOWN');m.nodes.delete(root);assert.equal(m.verify(v,'AFTER_NATIVE').outcome,'UNKNOWN');assert(!m.state.reads.some(file=>file.startsWith(root)));
+});
+test('unknown managedroot metadata permission refuses and cannot later recover same witness',()=>{
+ const m=mock(),v=prepare(m),root='/Library/Application Support/ClaudeCode/.claude';const prior=m.state.reads.length;m.state.deniedPath=root;assert.equal(m.verify(v,'AFTER_NATIVE').outcome,'UNKNOWN');m.state.deniedPath=null;assert.equal(m.verify(v).outcome,'UNKNOWN');assert.equal(m.state.reads.length,prior); // Metadata failure is sufficient; no protected bodies opened.
 });

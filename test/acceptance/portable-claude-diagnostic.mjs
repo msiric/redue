@@ -379,6 +379,9 @@ function currentManifest(manifest){
   if(actual.digest!==row.digest||actual.fingerprint!==row.fingerprint)fail('DIAGNOSTIC_SOURCE_CHANGED');}
  safeParents(manifest.base);return true;
 }
+// Narrow shared IO aliases for fixed test-only diagnostics; no new CLI path or
+// execution permission. Callers retain their own deadline and literal path gates.
+export {readOwned as readOwnedDiagnosticFile,putExclusive as putOwnedDiagnosticFile,currentManifest as validateOwnedDiagnosticManifest};
 // Native execution is conditional on the exact owner statement and workflow gates.
 // These authenticate operator intent in a pinned protected workflow, not policy truth.
 async function executePreparedDiagnostic({plan,manifest,env,jobStartedMs,signal}){

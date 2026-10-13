@@ -33,8 +33,12 @@ const result=fields=>freeze({schema:1,scope:'FIXED_NATIVE187_ISOLATED_STARTUP_SO
 // fts_open0x100000720. MANPATH branch0x1000005b0 is conditional on presence.
 // This source/static-binary basis is versioned and does not certify the loader.
 export const NATIVE_STDIO_STARTUP_BASIS=freeze({
- interpretation:'redue-native187-isolated-bash-startup@1',
+ interpretation:'redue-native187-isolated-bash-startup@2',
  nativeSha256:'a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3',
+ // Independent058: --bare Ed/qs disables even explicit env subscription OAuth.
+ // Nonbare flagsettings autoMemoryEnabled:false is recognized by Kc.
+ nativeNonbareOAuthSource:{offset:196583840,bytes:619,sha256:'dc09a6a0899b9612f113dba10b2e51e7bc2e66fef0a11887bb5809292645783b'},
+ nativeAutoMemorySource:{offset:196837373,bytes:396,sha256:'890ff56288a7f4a6f86763f9dbaf434cb3a14cb5c19fb80ab2d60ac4daee596d'},
  appleBashCommit:'51bf3fc6f26e9517c3a2e4bc3d208f9b39b87178',
  appleShellCommandsCommit:'298787009e5432c5e4c378a077f98267077e3495',
  pathHelperSourceSha256:'8f1a55eb4b848b75447f3b3e7a5c8f63f6c23dc2a2dca01406b9cb4004d747f0',
@@ -80,10 +84,13 @@ function state(record,phase){
  for(const row of record.directories){const now=owned(row.file);guard(now.mark===row.mark&&JSON.stringify(now.parents)===JSON.stringify(row.parents));closing.push([row.file,mark(fs.lstatSync(row.file,{bigint:true}))]);}
  guard(directoryNames(record.home).length===0&&directoryNames(record.gh).length===0&&directoryNames(record.pathDirectory).length===0);
  for(const suffix of ['.bashrc','.bash_profile','.bash_login','.profile','.zshrc','.zprofile','.zshenv','.claude','.mcp.json','CLAUDE.md'])absent(record.home+'/'+suffix);
- // With --bare and no --add-dir, native187 Vl/eie disables main instruction,
- // memory and plugin startup. Keep those switches as required data, not claims
- // that a caller actually used them. Settings/no-hook/effective policy remain
- // independently required by the existing diagnostic transport.
+ // NONbare preserves the approved explicit subscription OAuth route. Empty
+ // setting-sources closes user/project/local instructions; the fixed settings
+ // must also disable auto-memory. Managed instruction/rules are metadata-only
+ // absent prerequisites, alongside existing administrative-source checks. The
+ // managed .claude root also closes unconditional nonbare skills/agents/styles
+ // loaders; empty user/project setting sources do not disable those loaders.
+ for(const file of ['/Library/Application Support/ClaudeCode/CLAUDE.md','/Library/Application Support/ClaudeCode/.claude'])absent(file);
  for(const suffix of ['plugins','session-env/.credentials.json'])absent(record.config+'/'+suffix);
  guard(directoryNames(record.snapshots).length===0);
  const sessions=directoryNames(record.sessions);guard(phase==='BEFORE_NATIVE'?sessions.length===0:sessions.length<=1&&sessions.every(n=>uuid.test(n)));
@@ -125,7 +132,7 @@ export function prepareNativeStdioStartup(options){
   reason='CLOSING_STARTUP_BINDING_UNAVAILABLE';current(record,'BEFORE_NATIVE');
   const value=result({outcome:'STARTUP_PREPARED_NOT_LAUNCHED',interpretation:NATIVE_STDIO_STARTUP_BASIS.interpretation,hostBase:base,sourceBasisCurrent:true,
    environmentBindings:{HOME:home,CLAUDE_CONFIG_DIR:config,GH_CONFIG_DIR:gh,SHELL:'/bin/bash',PATH:FIXED_PATH,PATH_HELPER_ROOT:root},
-   requiredAbsentEnvironmentKeys:['PS1','MANPATH','BASH_ENV','ENV','TERM_PROGRAM'],requiredArgv:['--bare','--setting-sources','','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--no-session-persistence'],
+   requiredAbsentEnvironmentKeys:['PS1','MANPATH','BASH_ENV','ENV','TERM_PROGRAM'],requiredSettings:{autoMemoryEnabled:false,disableAllHooks:true,enabledPlugins:{}},forbiddenArgv:['--bare','--add-dir','--plugin-dir'],requiredArgv:['--setting-sources','','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--no-session-persistence'],
    policyPreservation:'OAUTH_PROXY_CREDENTIAL_DENIALS_SANDBOX_AND_EXACT_COMMAND_REMAIN_SEPARATE_PREREQUISITES'});
   minted.set(value,record);return value;
  }catch{if(record)record.invalid=true;return result({outcome:'UNKNOWN',reason,sourceBasisCurrent:false});}
@@ -133,6 +140,6 @@ export function prepareNativeStdioStartup(options){
 export function verifyNativeStdioStartup(value,phase='BEFORE_NATIVE'){
  if(arguments.length<1||arguments.length>2||!['BEFORE_NATIVE','AFTER_NATIVE'].includes(phase))throw Error('NATIVE_STDIO_STARTUP_OPTIONS');
  const record=minted.get(value);if(!record||record.invalid)return result({outcome:'UNKNOWN',sourceBasisCurrent:false});
- try{current(record,phase);guard(!record.invalid);return result({outcome:'STARTUP_CURRENTLY_OBSERVED_SOURCE_ONLY',phase,interpretation:value.interpretation,hostBase:value.hostBase,sourceBasisCurrent:true,environmentBindings:value.environmentBindings,requiredArgv:value.requiredArgv,requiredAbsentEnvironmentKeys:value.requiredAbsentEnvironmentKeys});}
+ try{current(record,phase);guard(!record.invalid);return result({outcome:'STARTUP_CURRENTLY_OBSERVED_SOURCE_ONLY',phase,interpretation:value.interpretation,hostBase:value.hostBase,sourceBasisCurrent:true,environmentBindings:value.environmentBindings,requiredArgv:value.requiredArgv,forbiddenArgv:value.forbiddenArgv,requiredSettings:value.requiredSettings,requiredAbsentEnvironmentKeys:value.requiredAbsentEnvironmentKeys});}
  catch{record.invalid=true;return result({outcome:'UNKNOWN',sourceBasisCurrent:false});}
 }
