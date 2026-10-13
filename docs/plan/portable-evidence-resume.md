@@ -6,7 +6,52 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree on `dev/portable-sealed-typescript`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — ordinary staged graph collected; native seal pending
+## Current checkpoint — native read view and safe canary preparation
+
+At2026-10-13 01:09UTC, integration source6398476 contains the reviewed fresh
+synthetic fixture/bootstrap leaf (author de2fcd1, SHA26543512af07e9d7ed27ba25c9b863b2664898cd2b8f4b9986359f1f07ff41dd)
+and current UTF8 mapper composition bindings. Preparation uses a private
+same-process mint; serialized labels cannot authorize adoption. Existing host
+assets remain outside the bounded synthetic inventories and are not read or
+modified. Preexisting stages are refused/preserved. This is trusted/quiescent
+preparation, not proof of hostile-ancestor confinement or inherited-handle absence.
+
+Pinned native187 source review establishes a supported single-layer root body-read
+deny with exact reallows, plus global DIRECTORY metadata and existing ancestor
+create/unlink guards. It does not establish empirical alias/mapping protection.
+Disabled closed-read canary proposal07368be has independent source/pure GO:
+one Canarystage and exact Node/Bash/checker/mapper plus two nonsecret positive-
+control readback leaves. No root/home/base/checkout/OS-directory reallow, original
+credential/env/network/write/strict controls retained, commandallows removed.
+6398476 additionally names directory-enumeration requirements as unresolved.
+No settings/profile was applied and commands remain empty. Physical/case/firmlink
+disjointness, OS startup, full native read view and compiler completeness remain
+prerequisites; this canary proposal is not the recipient REDUE wrapper policy.
+
+Affected integration controls:95 synthetic preparation/source/pure/mocked native
+controls PASS173.791ms; separate127 discovery/reader/forwarding/namespace controls
+PASS364.412ms. Actual harmless local fixture checks are labelled separately from
+mock CI bootstrap and mock native assertions. No native/model/verification/CI
+job was run for this checkpoint. A owns missing case/symlink/atomic canary leaves;
+root owns policy/composition integration; C independently reviews those leaves,
+runtime read requirements and deferred compiler-input completeness. No capacity
+retry or agent-product substitution follows B's unavailable capacity.
+
+The914-file ordinary staged graph remains the limited engineering result below,
+not complete query capture, CLI verification or portable authority. Prior UNKNOWN
+attempts and partial stages are preserved. Hosted Claude's six-check prerequisite
+stays CLOSED scopedPASS; Copilot Actions included capacity remains pending.
+G1/current sealed interpretation,G2/finalG3 and prepublicationG4 remain incomplete.
+Origin containment, frozen/unpublished alpha.11, receipts and trust/signing scope
+are unchanged. Day0/72h checkpoint remain2026-10-10 21:24UTC /
+2026-10-13 21:24UTC; no invented blocked duration or forecast change.
+
+Next: finish independent canary/runtime/compiler read-boundary reviews, integrate
+only reviewed exact resources, then establish actual native prerequisites before
+any model-origin or recipient reuse claim. Do not rerun the closed six-check
+prerequisite or unchanged API collection. No owner resource decision is repeated.
+
+## Historical checkpoint — ordinary staged graph collected; native seal pending
 
 Integration branch `dev/portable-sealed-typescript`; source69c4757 has independent
 critical review. The restricted ordinary debugger API probe collected914 files:
