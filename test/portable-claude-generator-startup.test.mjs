@@ -4,12 +4,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {prepareClaude187GeneratorProposal} from './acceptance/portable-claude-generator-proposal.mjs';
 
-const native='/Users/mariosiric/Library/Application Support/REDUE/portable-evidence/native-claude-2.1.187/bin/claude';
-const node='/Users/mariosiric/.nvm/versions/node/v22.13.0/bin/node';
+// Kernel account record, not HOME or an imported/caller-selected code path.
+const ownerHome=os.userInfo().homedir;
+const native=path.join(ownerHome,'Library/Application Support/REDUE/portable-evidence/native-claude-2.1.187/bin/claude');
+const node=path.join(ownerHome,'.nvm/versions/node/v22.13.0/bin/node');
 const launcher='/usr/bin/sandbox-exec';
 const nodeSha='5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc';
 const launcherSha='c7d6609ce2b87a538ffd0d92b6be7de64dbc919b6845cc16b92f7c57e2658fdf';
