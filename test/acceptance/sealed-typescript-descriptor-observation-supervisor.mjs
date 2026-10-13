@@ -13,6 +13,9 @@ const cap=65536,sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const fail=()=>{throw Error('FIXED_DESCRIPTOR_SUPERVISOR_UNKNOWN');};
 const guard=value=>{if(!value)fail();};
 const inode=s=>[s.dev,s.ino,s.mode,s.uid,s.gid,s.nlink].map(String).join(':');
+// Owned artifact directory structure only; its nlink can change on our own
+// output creation. This is not compiler-input membership or file identity.
+const directoryIdentity=s=>[s.dev,s.ino,s.mode,s.uid,s.gid].map(String).join(':');
 const mark=s=>[inode(s),s.size,s.mtimeNs,s.ctimeNs].map(String).join(':');
 // Engineering-only admission on the pinned Darwin/ARM64/Node profile. The
 // actual env-i observation admitted only this UID-bound zero-encoding CF key.
@@ -93,8 +96,8 @@ function actualOperations(){
  const bound=(action,ms)=>new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('DEADLINE')),ms);Promise.resolve().then(action).then(value=>{clearTimeout(timer);resolve(value);},error=>{clearTimeout(timer);reject(error);});});
  const command=(file,args)=>new Promise((resolve,reject)=>execFile(file,args,{env:{},encoding:'utf8',timeout:500,maxBuffer:4096},(error,stdout)=>error?reject(error):resolve(stdout)));
  const processRow=async pid=>{try{return interpretDescriptorProcessLine(await command('/bin/ps',['-o','pid=,ppid=,pgid=,uid=,lstart=','-p',String(pid)]));}catch{return null;}};
- const lineage=async file=>{const rows=[];for(let at=path.dirname(file);;at=path.dirname(at)){const s=await fsp.lstat(at,{bigint:true});guard(s.isDirectory()&&!s.isSymbolicLink());guard((s.uid===0n||s.uid===BigInt(process.getuid()))&&(s.mode&0o0022n)===0n);rows.push([at,inode(s)]);if(at===path.dirname(at))return rows;}};
- const privateDirectory=async()=>{const dir=path.join(root,'.local/portable-evidence'),s=await fsp.lstat(dir,{bigint:true});guard(await fsp.realpath(dir)===dir&&s.isDirectory()&&!s.isSymbolicLink()&&s.uid===BigInt(process.getuid())&&(s.mode&0o7777n)===0o700n);return{dir,identity:inode(s),lineage:await lineage(path.join(dir,'leaf'))};};
+ const lineage=async file=>{const rows=[];for(let at=path.dirname(file);;at=path.dirname(at)){const s=await fsp.lstat(at,{bigint:true});guard(s.isDirectory()&&!s.isSymbolicLink());guard((s.uid===0n||s.uid===BigInt(process.getuid()))&&(s.mode&0o0022n)===0n);rows.push([at,directoryIdentity(s)]);if(at===path.dirname(at))return rows;}};
+ const privateDirectory=async()=>{const dir=path.join(root,'.local/portable-evidence'),s=await fsp.lstat(dir,{bigint:true});guard(await fsp.realpath(dir)===dir&&s.isDirectory()&&!s.isSymbolicLink()&&s.uid===BigInt(process.getuid())&&(s.mode&0o7777n)===0o700n);return{dir,identity:directoryIdentity(s),lineage:await lineage(path.join(dir,'leaf'))};};
  const currentDirectory=async row=>{const now=await privateDirectory();guard(row.dir===now.dir&&row.identity===now.identity&&JSON.stringify(row.lineage)===JSON.stringify(now.lineage));};
  const readPinned=async(file,pin,limit)=>{guard(await fsp.realpath(file)===file);const before=await fsp.lstat(file,{bigint:true}),parents=await lineage(file);guard(before.isFile()&&!before.isSymbolicLink()&&before.uid===BigInt(process.getuid())&&before.nlink===1n&&(before.mode&0o6022n)===0n&&before.size>0n&&before.size<=BigInt(limit));
   const fd=await fsp.open(file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK);try{guard(mark(await fd.stat({bigint:true}))===mark(before));const hash=createHash('sha256'),buffer=Buffer.alloc(65536);let at=0;
@@ -119,7 +122,7 @@ function actualOperations(){
     pending=pending.then(async()=>{guard(!cancelled&&c.fd);await named(c);guard(!cancelled&&c.fd);const write=await c.fd.write(bytes,0,bytes.length,at);guard(write.bytesWritten===bytes.length);}).catch(()=>{life.error=true;});});
    return await new Promise((resolve,reject)=>{child.once('spawn',()=>{life.spawnObserved=true;if(Number.isSafeInteger(child.pid)&&child.pid>0)life.spawnPID=child.pid;resolve({pid:child.pid});});child.once('error',reject);});},
   persist:async c=>{await pending;guard(!life.error);await c.fd.sync();await currentDirectory(c.directory);
-   const directoryFD=await fsp.open(c.directory.dir,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW|(fs.constants.O_DIRECTORY||0));try{guard(inode(await directoryFD.stat({bigint:true}))===c.directory.identity);await directoryFD.sync();await currentDirectory(c.directory);}finally{await directoryFD.close();}
+   const directoryFD=await fsp.open(c.directory.dir,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW|(fs.constants.O_DIRECTORY||0));try{guard(directoryIdentity(await directoryFD.stat({bigint:true}))===c.directory.identity);await directoryFD.sync();await currentDirectory(c.directory);}finally{await directoryFD.close();}
    await named(c);const bytes=await readback(c.fd,c,captureBytes);await c.fd.close();c.fd=null;
    const fd=await fsp.open(c.file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK);try{const namedBytes=await readback(fd,c,captureBytes);guard(namedBytes.equals(bytes));}finally{await fd.close();}await named(c);return{file:c.file,bytes,sha256:sha(bytes)};},
   ack:async(c,saved,final)=>{await named(c);guard(saved.sha256===sha(saved.bytes));

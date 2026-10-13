@@ -1,10 +1,11 @@
 // Harness tests ONLY: in-memory callbacks, no control selector, C compilation,
 // native agent, model, credential, network, sandbox or enforcement observation.
+import os from 'node:os';
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';import path from 'node:path';import {createHash} from 'node:crypto';import {fileURLToPath} from 'node:url';
 import {interpretDescriptorProcessLine,descriptorSignalEligible} from './acceptance/sealed-typescript-descriptor-observation-supervisor.mjs';
 const source=new URL('./acceptance/sealed-typescript-descriptor-observation-supervisor.mjs',import.meta.url),body=fs.readFileSync(source,'utf8');
 const context=vm.createContext({Buffer,Number,Object,JSON,Error,Promise,Map,Set,path,createHash,process:{getuid:()=>501,platform:'darwin',arch:'arm64',version:'v22.13.0'},fileURLToPath});
-vm.runInContext(body.slice(0,body.indexOf('// Direct invocation guard.')).replace(/^import .*;\n/gm,'').replaceAll('import.meta.url',JSON.stringify(source.href)).replaceAll('export ','')+'\nglobalThis.runHarness=observe;globalThis.environmentAllowed=descriptorSupervisorEnvironmentAllowed;',context);
+vm.runInContext(body.slice(0,body.indexOf('// Direct invocation guard.')).replace(/^import .*;\n/gm,'').replaceAll('import.meta.url',JSON.stringify(source.href)).replaceAll('export ','')+'\nglobalThis.runHarness=observe;globalThis.environmentAllowed=descriptorSupervisorEnvironmentAllowed;globalThis.directoryIdentity=directoryIdentity;globalThis.fileIdentity=inode;',context);
 const parent={pid:10,ppid:1,pgid:10,uid:501,start:'Mon Oct 12 12:00:00 2026'},main={pid:20,ppid:10,pgid:20,uid:501,start:'Mon Oct 12 12:00:01 2026'},worker={pid:30,ppid:20,pgid:30,uid:501,start:'Mon Oct 12 12:00:02 2026'};
 const falseAuthority={sealed:false,reuseEligible:false,nativeAgentLaunches:0,models:0,compilerCheckExecutions:0,receiptWrites:0,inferencePermitted:false,nativeEnforcement:'NOT_ESTABLISHED',noInheritedWritableHandlesVerified:false};
 function harness(options={}){
@@ -107,6 +108,28 @@ test('mock actual capture cancelled during its final named await closes the late
 });
 
 
+// Actual helper composition against harmless in-memory FS/FDs only.
+function captureDirectoryMock(fault=null){
+ let opened=false,closes=0,dirLinks=2n,fileLinks=1n,dirInode=1n,dirMode=0o40700n,dirOwner=501n;
+ const repo=path.dirname(path.dirname(path.dirname(fileURLToPath(source)))),dir=path.join(repo,'.local/portable-evidence'),file=path.join(dir,'owned-descriptor-control-MOCK.tap');
+ const stat=directory=>({dev:1n,ino:directory?dirInode:2n,mode:directory?dirMode:0o100600n,uid:directory?dirOwner:501n,gid:20n,nlink:directory?dirLinks:fileLinks,size:0n,mtimeNs:1n,ctimeNs:1n,
+  isDirectory:()=>directory,isFile:()=>!directory,isSymbolicLink:()=>false});
+ const fd={stat:async()=>stat(false),close:async()=>{closes++;}};
+ const mockFS={lstat:async at=>stat(at!==file),realpath:async at=>fault==='alias'&&opened&&at===dir?dir+'-ALIAS':at,
+  open:async()=>{opened=true;dirLinks=3n;if(fault==='replacement')dirInode++;if(fault==='mode')dirMode=0o40755n;if(fault==='owner')dirOwner=502n;if(fault==='file-hardlink')fileLinks=2n;return fd;}};
+ const code=body.slice(0,body.indexOf('// Direct invocation guard.')).replace(/^import .*;\n/gm,'').replaceAll('import.meta.url',JSON.stringify(source.href)).replaceAll('export ','');
+ const api=Function('fs','fsp','path','fileURLToPath','createHash','randomUUID','spawn','execFile','process','performance',code+';return actualOperations();')(
+  fs,mockFS,path,fileURLToPath,createHash,()=> 'MOCK',()=>{throw Error('NO_SPAWN');},()=>{throw Error('NO_COMMAND');},{getuid:()=>501},{now:()=>0});
+ return{api,state:()=>({opened,closes,dirLinks,fileLinks})};
+}
+test('mock own capture creation may change only its directory link count',async()=>{
+ const h=captureDirectoryMock(),capture=await h.api.openCapture();assert.equal(h.state().dirLinks,3n);assert.equal(h.state().closes,0);
+ await h.api.abandon(capture);assert.equal(h.state().closes,1);
+});
+for(const fault of ['replacement','mode','owner','alias','file-hardlink'])test('mock directory structural split preserves '+fault+' refusal',async()=>{
+ const h=captureDirectoryMock(fault);await assert.rejects(h.api.openCapture(),/FIXED_DESCRIPTOR_SUPERVISOR_UNKNOWN/);assert.equal(h.state().closes,1);
+});
+
 test('supervisor admits only selector and the exact UID-bound zero CF marker, without value logging',()=>{
  const expected=`0x${(501).toString(16).toUpperCase()}:0x0:0x0`,allowed=context.environmentAllowed;
  for(const env of [{},{REDUE_FIXED_DESCRIPTOR_SUPERVISOR:'1'},{__CF_USER_TEXT_ENCODING:expected},{REDUE_FIXED_DESCRIPTOR_SUPERVISOR:'1',__CF_USER_TEXT_ENCODING:expected}])assert.equal(allowed(env,501),true);
@@ -122,4 +145,14 @@ test('supervisor marker admission does not extend another runtime or architectur
  try{for(const delta of [{platform:'linux'},{arch:'x64'},{version:'v22.14.0'}]){
   context.process={...original,...delta};assert.equal(context.environmentAllowed({__CF_USER_TEXT_ENCODING:expected},501),false);
  }}finally{context.process=original;}
+});
+
+
+test('owned real filesystem control: output creation preserves directory structure, file hardlinks change file identity; NOT native evidence',t=>{
+ const directory=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-owned-directory-')));fs.chmodSync(directory,0o700);t.after(()=>fs.rmSync(directory,{recursive:true,force:true}));
+ const before=fs.lstatSync(directory,{bigint:true}),file=path.join(directory,'owned-nonsecret.txt'),alias=path.join(directory,'owned-alias.txt');
+ const fd=fs.openSync(file,fs.constants.O_WRONLY|fs.constants.O_CREAT|fs.constants.O_EXCL,0o600);fs.closeSync(fd);
+ const after=fs.lstatSync(directory,{bigint:true});assert.equal(context.directoryIdentity(before),context.directoryIdentity(after));
+ const original=fs.lstatSync(file,{bigint:true});assert.equal(original.nlink,1n);fs.linkSync(file,alias);const linked=fs.lstatSync(file,{bigint:true});
+ assert.equal(linked.nlink,2n);assert.notEqual(context.fileIdentity(original),context.fileIdentity(linked));
 });
