@@ -6483,3 +6483,28 @@ of a granted protected exchange: FAIL stays latched and all fresh synthetic
 resources must be retained. Fixed bounded inventories/marker readback require
 the separately reviewed synthetic-only directory body scope. Global result
 remains FAIL|UNKNOWN, with base exchange/native/seal/reuse unestablished.
+
+Source-only GO for the coherent772+9bd+fd46ead5311ba606c51f04d2cbafdf640e22676b
+successor, C SHA507dc2fb45adb9d7df293eccf18874fbfb101d4b25f2ace932899be6f2198d72.
+Each successful post-fstat now compares independently against the known named
+marker baseline, then the first descriptor baseline when available. Known
+wrong metadata survives unavailable first stat and close uncertainty; unavailable
+alone is never invented mismatch. Independently captured directory checks and
+the irreversible protected-grant latch remain intact. Eleven source/pure author
+controls, thirteen independent memory-fixture controls and four independent
+source/Boolean countercase controls passed28/28 in67.00ms. The countercases retain
+both predecessor masking conditions and exhaust the final failure predicate;
+they do not execute C or establish ABI/syscall semantics. An initial reviewer
+whitelist omitted the uppercase MISMATCH constant and refused evaluation
+(27PASS/1review-fixture failure); corrected test-only whitelist/source unchanged.
+
+No C render/build/native/real bootstrap/agent/compiler/model/CI operation occurred.
+Only the synthetic workspace positive control is restored. A granted protected
+exchange remains FAIL and is retained for diagnosis; parent must never treat
+that failed synthetic tree as preserved/fresh or use the real prepared tree.
+Intentional workspace-control timestamp changes also cannot silently revive the
+preparer's full-fingerprint WeakMap currentness token: any future outer collector
+must distinguish permitted-control changes from protected stage preservation,
+and an UNKNOWN private token is still irreversibly unknown. Exact rendered
+binary/resource currency, fresh inventory, closed native policy/route and bounded
+parent supervision remain independent prerequisites before an actual fixture.
