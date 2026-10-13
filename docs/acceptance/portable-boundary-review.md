@@ -6253,3 +6253,59 @@ replacement or alias access. Moving an ancestor can relocate a pathname-protecte
 child; endpoint identities alone cannot rule out replacement-and-restore. Treat
 that future seal obligation as unobserved, with no scope expansion or existing
 real-stage destruction. Current origin containment and all seal/reuse gates remain.
+
+
+## Pinned native187 recipe read-view design: one layer, qualified scope
+
+Read-only inspected only the selected public native binary, freshly matching
+SHAa59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3.
+No auth store, account/tool/model/native process or settings write occurred.
+Schema194692298 and198229227 support allowRead reallow within denyRead regions;
+HLt198249244 converts settings to filesystem/credential rules. L2i198215087 and
+B0d198215347 merge declared credential file denies into denyOnly before reallows.
+
+The source-supported minimum for a new bounded recipe is a tightened SINGLE
+native profile: retain every existing credential/config/read/write denial, env
+scrub, strict no-unsandboxed/no-exclusions policy, exact reviewed Bash admission,
+hook/plugin/MCP controls, network/socket restrictions and budgets. Add root
+read denial and reallow only the current canonical physically disjoint staged
+tree, exact Node/resolved shell/fixed public code files and reviewed OS-runtime/
+device startup paths. Do not reallow root, home, the whole recipient base,
+credential/config regions, wildcard paths or unreviewed libraries. New allows
+must be rejected for any credential overlap through lexical/physical/case/firmlink
+aliases; no overlapping reallow should be justified solely by precedence.
+This is proposed narrowing under D12, not an applied profile or observed seal.
+
+v0d198193837 emits an explicit literal-root startup exception and globally permits
+DIRECTORY metadata when reads are denied. Literal credential denies strictly
+beneath a broader allow are reemitted; equal/narrower reallows are not equivalently
+protected. Current official documentation describes newer path-specific/glob
+precedence; it cannot replace this pinned implementation proof.
+[Current sandbox documentation](https://code.claude.com/docs/en/sandboxing)
+The source also emits proper-parent literal unlink/create guards through
+m2i198193137/w0d198195039 after write-root rules. The prior ancestor test obligation
+therefore must not be read as a claim that SRT implements no ancestor protection.
+Actual alias/parent rename/exchange/hardlink/mapping protection is still unobserved.
+
+Native read view is not the engineering SBPL view: global directory metadata and
+OS-runtime body allowances remain observable. Fresh compiler/API/caller capture
+must use the EXACT actual native view, retain DENIED separately from MISSING,
+and refuse unsupported outside-input/namespace cases; do not reuse engineering
+absence facts or infer no ancestor resolution simply from write-protected stage.
+Default-library/ancestor and CLI/API/loader query completeness remain unresolved.
+
+No supported nested-macOS route was established. Installed Apple SDK27
+usr/include/sandbox.h24-27 documents that sandbox_init returns an error if already
+sandboxed. Pinned W2i198217409 passes weakerNested only to Linux, not the macOS
+f2i198203163 branch. Do not presume that a second sandbox-exec inside native Bash
+will enforce the engineering profile, nor change strict policy to bypass that
+problem. The narrow single native profile is the existing supported mechanism;
+empirical nonsecret native boundary tests/currentness still precede any seal.
+
+Six independent pure controls evaluated only exact selected source generators
+with literal mock paths/no filesystem expansion and passed6/6 in42.99ms: default
+broad reads, credential merging, root-deny/narrow reallow structure, global directory
+metadata, equal/narrow reallow risk and proper ancestor write guards. This proves
+source structure only, not SBPL/kernel or actual native enforcement. An initial
+Python extraction typo failed parsing before any source read; preserved as review
+preparation history. All model/receipt/origin/seal/reuse gates remain unchanged.
