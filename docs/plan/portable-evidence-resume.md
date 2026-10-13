@@ -29,7 +29,7 @@ PASS/one actual SKIP140.686ms. Both commits preserved/integrated `f9c440a`/`76db
 Wrapper SHA `e22e56f475ef395c88bfb7713d97869da2298977e7998f408f506b9789734da4`;
 mocks `ce341816b0185fe10e5f2b3944f71c1e287a1b1e90cfdb53633844fe574f5e42`.
 
-One new reviewed actual observation captured37 static phase marks. Prerequisite
+One new reviewed actual observation captured36 static phase marks. Prerequisite
 build/preparation/copy validation completion marks reached7050.556ms; last mark
 `oneLauncherBuild/before`7050.836ms. Parent timed out30007.074ms, reaped, cleanup4.629ms.
 Internal subphase and fourth compiler dispatch/result **NOT OBSERVED**. Overall

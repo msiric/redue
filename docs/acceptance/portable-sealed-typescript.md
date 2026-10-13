@@ -17,7 +17,7 @@ Existing commands, user configurations and receipts are unchanged.
 Integration `ccb8f12`,2026-10-13 11:24UTC. Observation successor `c1ce208` has fresh
 ACCEPT147 mocks +65 independent controls after a preserved throwing-diagnostic FD
 cleanup finding. Root integrated and reran147 PASS/one real SKIP140.686ms.
-One actual instrumented observation again hit30s, but retained37 static phase marks:
+One actual instrumented observation again hit30s, but retained36 static phase marks:
 last `oneLauncherBuild/before`7050.836ms; parent30007.074ms/reaped. Inner validation vs
 compile cause/counts unknown; no adoptable artifact identity, native execution or
 sealing established. Trace SHA `a8e96ae6bf7bde8402f5a6e6c086afd71df3f080ccf3784e5cc8c9baaed765ea`.
