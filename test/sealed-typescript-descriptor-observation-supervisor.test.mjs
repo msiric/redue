@@ -3,8 +3,8 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';import path from 'node:path';import {createHash} from 'node:crypto';import {fileURLToPath} from 'node:url';
 import {interpretDescriptorProcessLine,descriptorSignalEligible} from './acceptance/sealed-typescript-descriptor-observation-supervisor.mjs';
 const source=new URL('./acceptance/sealed-typescript-descriptor-observation-supervisor.mjs',import.meta.url),body=fs.readFileSync(source,'utf8');
-const context=vm.createContext({Buffer,Number,Object,JSON,Error,Promise,Map,Set,path,createHash,process:{getuid:()=>501},fileURLToPath});
-vm.runInContext(body.slice(0,body.indexOf('// Direct invocation guard.')).replace(/^import .*;\n/gm,'').replaceAll('import.meta.url',JSON.stringify(source.href)).replaceAll('export ','')+'\nglobalThis.runHarness=observe;',context);
+const context=vm.createContext({Buffer,Number,Object,JSON,Error,Promise,Map,Set,path,createHash,process:{getuid:()=>501,platform:'darwin',arch:'arm64',version:'v22.13.0'},fileURLToPath});
+vm.runInContext(body.slice(0,body.indexOf('// Direct invocation guard.')).replace(/^import .*;\n/gm,'').replaceAll('import.meta.url',JSON.stringify(source.href)).replaceAll('export ','')+'\nglobalThis.runHarness=observe;globalThis.environmentAllowed=descriptorSupervisorEnvironmentAllowed;',context);
 const parent={pid:10,ppid:1,pgid:10,uid:501,start:'Mon Oct 12 12:00:00 2026'},main={pid:20,ppid:10,pgid:20,uid:501,start:'Mon Oct 12 12:00:01 2026'},worker={pid:30,ppid:20,pgid:30,uid:501,start:'Mon Oct 12 12:00:02 2026'};
 const falseAuthority={sealed:false,reuseEligible:false,nativeAgentLaunches:0,models:0,compilerCheckExecutions:0,receiptWrites:0,inferencePermitted:false,nativeEnforcement:'NOT_ESTABLISHED',noInheritedWritableHandlesVerified:false};
 function harness(options={}){
@@ -62,8 +62,8 @@ test('mock residual group is UNKNOWN and cannot justify stale-leader signalling'
 for(const option of [{exitCode:74},{signal:'SIGKILL'},{stderr:1}])test('mock non-successful process outcome is not evidence',async()=>{assert.equal((await harness(option).result()).outcome,'UNKNOWN');});
 test('source routes are fixed and unselected entry precedes observation',()=>{
  assert(body.includes("env:{REDUE_STANDALONE_CAMPAIGN_DESCRIPTORS:'1'}"));assert(!body.includes('process.env.'+'NODE_OPTIONS'));assert(body.includes("env:{}"));
- assert(body.includes("fs.constants.O_EXCL|fs.constants.O_NOFOLLOW"));assert(body.includes('await directoryFD.sync()'));assert(body.includes("Object.keys(process.env).every(key=>key==='REDUE_FIXED_DESCRIPTOR_SUPERVISOR')"));assert(body.includes('await c.fd.sync()'));assert(body.includes('namedBytes.equals(bytes)'));
- assert(body.includes("if(process.env.REDUE_FIXED_DESCRIPTOR_SUPERVISOR!=='1')"));assert(body.includes("faac5b91e434694a07e43f645de343ef34cfcf54c73e3efe73502457612e1a16"));
+ assert(body.includes("fs.constants.O_EXCL|fs.constants.O_NOFOLLOW"));assert(body.includes('await directoryFD.sync()'));assert(body.includes("descriptorSupervisorEnvironmentAllowed(process.env,process.getuid())"));assert(body.includes('await c.fd.sync()'));assert(body.includes('namedBytes.equals(bytes)'));
+ assert(body.includes("if(process.env.REDUE_FIXED_DESCRIPTOR_SUPERVISOR!=='1')"));assert(body.includes("27954ebb40965a2fa3de917cd1b405068819b1ba5ea7bf54d9b98078cd4514ee"));
 });
 
 for(const option of ['launchCrossesDeadline','identityCrossesDeadline'])test('mock '+option+' retains actual launch/PID and freshly verifies cleanup',async()=>{
@@ -104,4 +104,22 @@ test('mock actual capture cancelled during its final named await closes the late
   fs,mockFS,path,fileURLToPath,createHash,()=> 'MOCK',()=>{throw Error('NO_SPAWN');},()=>{throw Error('NO_COMMAND');},{getuid:()=>501},{now:()=>0});
  const pending=api.openCapture();await new Promise(setImmediate);assert.equal(gateStarted,true);api.cancelLaunch();release();
  await assert.rejects(pending,/FIXED_DESCRIPTOR_SUPERVISOR_UNKNOWN/);assert.equal(closed,1);
+});
+
+
+test('supervisor admits only selector and the exact UID-bound zero CF marker, without value logging',()=>{
+ const expected=`0x${(501).toString(16).toUpperCase()}:0x0:0x0`,allowed=context.environmentAllowed;
+ for(const env of [{},{REDUE_FIXED_DESCRIPTOR_SUPERVISOR:'1'},{__CF_USER_TEXT_ENCODING:expected},{REDUE_FIXED_DESCRIPTOR_SUPERVISOR:'1',__CF_USER_TEXT_ENCODING:expected}])assert.equal(allowed(env,501),true);
+ for(const env of [{__CF_USER_TEXT_ENCODING:''},{__CF_USER_TEXT_ENCODING:'INVALID'},{__CF_USER_TEXT_ENCODING:expected.toLowerCase()},
+  {__CF_USER_TEXT_ENCODING:expected.replace(':0x0:0x0',':0x0:0x1')},{__CF_USER_TEXT_ENCODING:expected,NODE_OPTIONS:'--require NONSECRET'},
+  {__CF_USER_TEXT_ENCODING:expected,EXTRA:'NONSECRET'},{__cf_user_text_encoding:expected},{REDUE_FIXED_DESCRIPTOR_SUPERVISOR:'2'}])assert.equal(allowed(env,501),false);
+ assert.equal(allowed({__CF_USER_TEXT_ENCODING:expected},502),false);
+ for(const uid of [0,-1,1.5,Number.MAX_SAFE_INTEGER+1])assert.equal(allowed({},uid),false);
+});
+
+test('supervisor marker admission does not extend another runtime or architecture',()=>{
+ const original=context.process,expected=`0x${(501).toString(16).toUpperCase()}:0x0:0x0`;
+ try{for(const delta of [{platform:'linux'},{arch:'x64'},{version:'v22.14.0'}]){
+  context.process={...original,...delta};assert.equal(context.environmentAllowed({__CF_USER_TEXT_ENCODING:expected},501),false);
+ }}finally{context.process=original;}
 });

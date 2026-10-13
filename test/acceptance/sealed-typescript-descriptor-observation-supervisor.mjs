@@ -8,12 +8,22 @@ import {spawn,execFile} from 'node:child_process';
 const here=fileURLToPath(import.meta.url),root=path.dirname(path.dirname(path.dirname(here)));
 const node='/Users/mariosiric/.nvm/versions/node/v22.13.0/bin/node';
 const control=path.join(root,'test/acceptance/sealed-typescript-fixed-campaign-descriptor-control.mjs');
-const pins={node:'5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc',control:'faac5b91e434694a07e43f645de343ef34cfcf54c73e3efe73502457612e1a16'};
+const pins={node:'5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc',control:'27954ebb40965a2fa3de917cd1b405068819b1ba5ea7bf54d9b98078cd4514ee'};
 const cap=65536,sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const fail=()=>{throw Error('FIXED_DESCRIPTOR_SUPERVISOR_UNKNOWN');};
 const guard=value=>{if(!value)fail();};
 const inode=s=>[s.dev,s.ino,s.mode,s.uid,s.gid,s.nlink].map(String).join(':');
 const mark=s=>[inode(s),s.size,s.mtimeNs,s.ctimeNs].map(String).join(':');
+// Engineering-only admission on the pinned Darwin/ARM64/Node profile. The
+// actual env-i observation admitted only this UID-bound zero-encoding CF key.
+// CF-1153.18/CFRuntime.c:866 explains a potential initializer setenv; it does
+// not establish the initializer implementation of the current installed OS.
+export function descriptorSupervisorEnvironmentAllowed(env,uid){
+ if(process.platform!=='darwin'||process.arch!=='arm64'||process.version!=='v22.13.0'||!Number.isSafeInteger(uid)||uid<=0)return false;
+ const expected=`0x${uid.toString(16).toUpperCase()}:0x0:0x0`;
+ return Object.keys(env).every(key=>key==='REDUE_FIXED_DESCRIPTOR_SUPERVISOR'?env[key]==='1':
+  key==='__CF_USER_TEXT_ENCODING'&&env[key]===expected);
+}
 export function interpretDescriptorProcessLine(text){
  const matched=typeof text==='string'&&text.match(/^\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([A-Za-z]{3} [A-Za-z]{3}\s+\d{1,2} \d{2}:\d{2}:\d{2} \d{4})\s*$/);
  if(!matched)return null;const [pid,ppid,pgid,uid]=matched.slice(1,5).map(Number);
@@ -98,7 +108,7 @@ function actualOperations(){
   children:async pid=>{let output;try{output=await command('/usr/bin/pgrep',['-P',String(pid)]);}catch(error){if(error?.code===1)return[];throw error;}guard(/^\d+(?:\n\d+)*\n?$/.test(output));const ids=output.trim().split('\n').map(Number);guard(ids.length<=8&&ids.every(id=>Number.isSafeInteger(id)&&id>0));return ids;},
   groupExists:async pid=>{try{process.kill(-pid,0);return true;}catch(error){if(error.code==='ESRCH')return false;throw error;}},
   signalGroup:async pid=>{try{process.kill(-pid,'SIGKILL');}catch(error){if(error.code!=='ESRCH')throw error;}},wait:ms=>new Promise(resolve=>setTimeout(resolve,ms)),lifecycle:()=>({...life}),
-  preflight:async()=>{guard(process.argv.length===2&&path.resolve(process.argv[1])===here&&Object.keys(process.env).every(key=>key==='REDUE_FIXED_DESCRIPTOR_SUPERVISOR'));guard(process.platform==='darwin'&&process.arch==='arm64'&&process.version==='v22.13.0'&&process.execPath===node&&process.getuid()>0&&process.getuid()===process.geteuid());await readPinned(node,pins.node,128*1024*1024);await readPinned(control,pins.control,128*1024);await privateDirectory();},
+  preflight:async()=>{guard(process.argv.length===2&&path.resolve(process.argv[1])===here&&descriptorSupervisorEnvironmentAllowed(process.env,process.getuid()));guard(process.platform==='darwin'&&process.arch==='arm64'&&process.version==='v22.13.0'&&process.execPath===node&&process.getuid()>0&&process.getuid()===process.geteuid());await readPinned(node,pins.node,128*1024*1024);await readPinned(control,pins.control,128*1024);await privateDirectory();},
   openCapture:async()=>{const directory=await privateDirectory(),file=path.join(directory.dir,'owned-descriptor-control-'+randomUUID()+'.tap');await currentDirectory(directory);
    const fd=await fsp.open(file,fs.constants.O_RDWR|fs.constants.O_CREAT|fs.constants.O_EXCL|fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK,0o600);
    try{guard(!cancelled);const s=await fd.stat({bigint:true});guard(s.isFile()&&s.uid===BigInt(process.getuid())&&s.nlink===1n&&(s.mode&0o7777n)===0o600n&&s.size===0n);const c={file,fd,identity:inode(s),directory};await named(c);guard(!cancelled);return c;}catch(error){await fd.close();throw error;}},
