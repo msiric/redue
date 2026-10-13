@@ -11,6 +11,7 @@ import {prepareSealedTypeScriptNativeAssetsProposal} from './sealed-typescript-n
 import {verifySealedTypeScriptBaseCollectorSource,sealedTypeScriptBaseCollectorSourceMatchesAssets} from './sealed-typescript-base-collector-source.mjs';
 import {verifySealedTypeScriptBaseCollectorCopies,sealedTypeScriptBaseCollectorCopiesMatchSource} from './sealed-typescript-base-collector-copies.mjs';
 import {buildSealedTypeScriptNativeAssets,verifySealedTypeScriptNativeAssetsBuild,sealedAssetsBuildCompleted,sealedAssetsBuildProcessSummary} from './sealed-typescript-native-assets-build.mjs';
+import {mark as profileMark,profiling} from '../../src/decision-profile.mjs';
 const mintedAssets=new WeakMap();
 const sha=value=>createHash('sha256').update(value).digest('hex'),guard=value=>{if(!value)throw Error('BASE_EXCHANGE_ASSETS_UNKNOWN');};
 const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
@@ -77,26 +78,50 @@ const mintedLauncherBuilds=new WeakMap();
 const launcherAuthorityFalse=fields=>freeze({schema:1,scope:'FIXED_BASE_COLLECTOR_LAUNCHER_BUILD_DATA_ONLY',...fields,
  commands:[],recordAdoptionAuthority:false,compilerCheckExecutions:0,helperExecutions:0,nativeAgentLaunches:0,models:0,
  nativeEnforcement:'NOT_ESTABLISHED',noInheritedWritableHandlesVerified:false,sealed:false,reuseEligible:false});
-function launcherDependencies(record){
+// Existing best-effort diagnostics only. No availability claim or result gate:
+// the outer observer owns bounded readback and labels absent frames UNKNOWN.
+// Keep default/readonly currency uninstrumented; only this build passes true.
+function launcherDiagnostic(active,phase,fields={}){if(active&&profiling)try{profileMark(phase,fields);}catch{/* Never replace guards or process facts. */}}
+function launcherDependencies(record,diagnostics=false){
+ launcherDiagnostic(diagnostics,'launcher_dependencies_before');
  guard(sealedTypeScriptBaseCollectorSourceMatchesAssets(record.proposal,record.assets)&&sealedTypeScriptBaseCollectorCopiesMatchSource(record.copies,record.proposal));
- const assets=verifySealedTypeScriptBaseExchangeAssets(record.assets),source=verifySealedTypeScriptBaseCollectorSource(record.proposal),copies=verifySealedTypeScriptBaseCollectorCopies(record.copies);
+ launcherDiagnostic(diagnostics,'launcher_assets_currency_before');
+ const assets=verifySealedTypeScriptBaseExchangeAssets(record.assets);
+ launcherDiagnostic(diagnostics,'launcher_assets_currency_after',{outcome:assets.outcome==='BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED'?'BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED':'UNKNOWN'});
+ launcherDiagnostic(diagnostics,'launcher_source_currency_before');
+ const source=verifySealedTypeScriptBaseCollectorSource(record.proposal);
+ launcherDiagnostic(diagnostics,'launcher_source_currency_after',{outcome:source.outcome==='SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED'?'SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED':'UNKNOWN'});
+ launcherDiagnostic(diagnostics,'launcher_copies_currency_before');
+ const copies=verifySealedTypeScriptBaseCollectorCopies(record.copies);
+ launcherDiagnostic(diagnostics,'launcher_copies_currency_after',{outcome:copies.outcome==='COLLECTOR_COPIES_CURRENTLY_OBSERVED_NOT_EXECUTED'?'COLLECTOR_COPIES_CURRENTLY_OBSERVED_NOT_EXECUTED':'UNKNOWN'});
  guard(assets.outcome==='BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED'&&assets.scope==='OBSERVED_BASE_EXCHANGE_BUILD_DATA_ONLY'&&
   source.outcome==='SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED'&&source.scope==='DISABLED_FIXED_BASE_COLLECTOR_SOURCE_DATA_ONLY'&&
   copies.outcome==='COLLECTOR_COPIES_CURRENTLY_OBSERVED_NOT_EXECUTED'&&copies.scope==='FIXED_COLLECTOR_COPIES_DATA_ONLY');
  guard(assets.hostBase===source.hostBase&&copies.hostBase===source.hostBase&&assets.baseA===source.baseA&&assets.baseB===source.baseB&&
   copies.baseA===source.baseA&&copies.baseB===source.baseB&&JSON.stringify(copies.bindings)===JSON.stringify(source.bindings));
- return{assets,source,copies};
+ launcherDiagnostic(diagnostics,'launcher_dependencies_after');return{assets,source,copies};
 }
-function launcherBoundary(record){
- guard(JSON.stringify(launcherDependencies(record))===JSON.stringify(record.before));
+function launcherBoundary(record,diagnostics=false){
+ launcherDiagnostic(diagnostics,'launcher_boundary_before');
+ guard(JSON.stringify(launcherDependencies(record,diagnostics))===JSON.stringify(record.before));
  for(const [file,before]of record.roots)guard(JSON.stringify(rootIdentity(file))===JSON.stringify(before));
+ launcherDiagnostic(diagnostics,'launcher_boundary_after');
 }
-function launcherFilesCurrent(record){
- launcherBoundary(record);current(record.source);current(record.binary);launcherBoundary(record);
- current(record.source);current(record.binary);launcherBoundary(record);
+function launcherFilesCurrent(record,diagnostics=false){
+ launcherBoundary(record,diagnostics);
+ launcherDiagnostic(diagnostics,'launcher_source_current_before');current(record.source);launcherDiagnostic(diagnostics,'launcher_source_current_after');
+ launcherDiagnostic(diagnostics,'launcher_binary_current_before');current(record.binary);launcherDiagnostic(diagnostics,'launcher_binary_current_after');
+ launcherBoundary(record,diagnostics);
+ launcherDiagnostic(diagnostics,'launcher_source_current_before');current(record.source);launcherDiagnostic(diagnostics,'launcher_source_current_after');
+ launcherDiagnostic(diagnostics,'launcher_binary_current_before');current(record.binary);launcherDiagnostic(diagnostics,'launcher_binary_current_after');
+ launcherBoundary(record,diagnostics);
  // Later original-source/copy/runtime hashes must not conceal earlier new rows.
+ launcherDiagnostic(diagnostics,'launcher_final_roots_before');
  for(const [file,before]of record.roots)guard(JSON.stringify(rootIdentity(file))===JSON.stringify(before));
+ launcherDiagnostic(diagnostics,'launcher_final_roots_after');
+ launcherDiagnostic(diagnostics,'launcher_final_new_rows_before');
  for(const row of [record.source,record.binary])namedCurrent(row);
+ launcherDiagnostic(diagnostics,'launcher_final_new_rows_after');
 }
 function absent(file){try{fs.lstatSync(file,{bigint:true});}catch(error){guard(error?.code==='ENOENT');return;}guard(false);}
 export function buildSealedTypeScriptBaseCollectorLauncher(options){
@@ -105,9 +130,10 @@ export function buildSealedTypeScriptBaseCollectorLauncher(options){
   throw Object.assign(Error('BASE_COLLECTOR_LAUNCHER_BUILD_OPTIONS'),{code:'BASE_COLLECTOR_LAUNCHER_BUILD_OPTIONS'});
  const{assets,source:proposal,copies}=options,builds=[];
  let reason='PRIVATE_DERIVATION_UNAVAILABLE',report=null,record=null,dispatchAttemptCount=0,sourceWriteAttempts=0,sourceWriteCompleted=false;
+ launcherDiagnostic(true,'launcher_build_before');
  try{
   const original=mintedAssets.get(assets);guard(original&&!original.invalid);
-  const candidate={assets,proposal,copies},before=launcherDependencies(candidate),h=before.assets.hostBase;
+  const candidate={assets,proposal,copies},before=launcherDependencies(candidate,true),h=before.assets.hostBase;
   guard(typeof process.getuid==='function'&&process.getuid()>0&&['O_NOFOLLOW','O_NONBLOCK'].every(key=>fs.constants[key]!==undefined));
   guard(/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}$/.test(h)&&h!==before.assets.baseA&&h!==before.assets.baseB);
   const file=h+'/prefix/native-probes/base-exchange-collect-launch.c',output=file.slice(0,-2),rendered=proposal.proposedLauncher,bindings=before.source.bindings;
@@ -117,27 +143,43 @@ export function buildSealedTypeScriptBaseCollectorLauncher(options){
    bindings.node===h+'/runtime/node-v22.13.0-darwin-arm64/bin/node'&&bindings.nodeSha256==='5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc'&&
    bindings.entry===h+'/prefix/native-probes/base-exchange-collect.mjs'&&bindings.collectorSha256===proposal.proposedSources[3].sha256);
   const roots=[h,h+'/prefix',h+'/prefix/native-probes'].map(at=>[at,rootIdentity(at)]);
-  Object.assign(candidate,{before,roots});launcherBoundary(candidate);
+  Object.assign(candidate,{before,roots});launcherBoundary(candidate,true);
   // Retrieve fixed reviewed argv via the original private host fixture only.
+  launcherDiagnostic(true,'launcher_tool_proposal_before');
   const toolProposal=prepareSealedTypeScriptNativeAssetsProposal({fixture:original.hostFixture});
   guard(toolProposal.base===h&&toolProposal.bindings.node===bindings.node);
+  launcherDiagnostic(true,'launcher_tool_proposal_after');
   const operation=toolProposal.proposedBuilds[1],argv=[...operation.argv.slice(0,-3),file,'-o',output];
-  launcherBoundary(candidate);absent(file);absent(output);
-  reason='SOURCE_CREATE_UNAVAILABLE';sourceWriteAttempts++;fs.writeFileSync(file,rendered.source,{flag:'wx',mode:0o600});sourceWriteCompleted=true;
+  launcherBoundary(candidate,true);launcherDiagnostic(true,'launcher_new_paths_absent_before');absent(file);absent(output);launcherDiagnostic(true,'launcher_new_paths_absent_after');
+  reason='SOURCE_CREATE_UNAVAILABLE';launcherDiagnostic(true,'launcher_source_create_before',{sourceWriteAttempts});
+  sourceWriteAttempts++;fs.writeFileSync(file,rendered.source,{flag:'wx',mode:0o600});sourceWriteCompleted=true;
+  launcherDiagnostic(true,'launcher_source_create_after',{sourceWriteAttempts,sourceWriteCompleted:1});
+  launcherDiagnostic(true,'launcher_source_read_before');
   const newSource=bounded(file,65536,rendered.sha256);guard((fs.lstatSync(file,{bigint:true}).mode&0o7777n)===0o600n&&
    fs.lstatSync(file,{bigint:true}).size===BigInt(rendered.sourceBytes));
-  launcherBoundary(candidate);current(newSource);absent(output);launcherBoundary(candidate);namedCurrent(newSource);
+  launcherDiagnostic(true,'launcher_source_read_after');
+  launcherBoundary(candidate,true);launcherDiagnostic(true,'launcher_source_current_before');current(newSource);launcherDiagnostic(true,'launcher_source_current_after');
+  launcherDiagnostic(true,'launcher_output_absent_before');absent(output);launcherDiagnostic(true,'launcher_output_absent_after');
+  launcherBoundary(candidate,true);launcherDiagnostic(true,'launcher_source_named_before');namedCurrent(newSource);launcherDiagnostic(true,'launcher_source_named_after');
   const childOptions={cwd:h+'/prefix/native-probes',env:{TMPDIR:h},timeout:5000,maxBuffer:4096,killSignal:'SIGKILL',encoding:'utf8'};
-  reason='COMPILER_BUILD_UNAVAILABLE';dispatchAttemptCount++;const result=spawnSync(operation.executable,argv,childOptions);
-  builds.push(sealedAssetsBuildProcessSummary(result));guard(sealedAssetsBuildCompleted(result));
-  reason='LAUNCHER_OUTPUT_UNAVAILABLE';const binary=bounded(output,2*1024*1024);guard(binary.arm64Header);
-  Object.assign(candidate,{source:newSource,binary});reason='BOUNDARY_CHANGED';launcherFilesCurrent(candidate);
+  reason='COMPILER_BUILD_UNAVAILABLE';launcherDiagnostic(true,'launcher_compiler_before',{dispatchAttempts:dispatchAttemptCount,dispatchResults:builds.length,observedProcesses:0});
+  dispatchAttemptCount++;const result=spawnSync(operation.executable,argv,childOptions);
+  builds.push(sealedAssetsBuildProcessSummary(result));const observed=builds[0];
+  launcherDiagnostic(true,'launcher_compiler_after',{dispatchAttempts:dispatchAttemptCount,dispatchResults:builds.length,observedProcesses:observed.pidObserved?1:0,
+   status:observed.status,signal:observed.signal,spawnError:observed.spawnError,completed:observed.completed?1:0});
+  guard(sealedAssetsBuildCompleted(result));
+  reason='LAUNCHER_OUTPUT_UNAVAILABLE';launcherDiagnostic(true,'launcher_output_read_before');const binary=bounded(output,2*1024*1024);guard(binary.arm64Header);
+  launcherDiagnostic(true,'launcher_output_read_after');
+  Object.assign(candidate,{source:newSource,binary});reason='BOUNDARY_CHANGED';launcherFilesCurrent(candidate,true);
   record=candidate;report={base:h,bindings,source:{file,sha256:newSource.digest,mark:newSource.mark,lineage:newSource.lineage},
    binary:{file:output,sha256:binary.digest,mark:binary.mark,lineage:binary.lineage},templateSha256:rendered.templateSha256};
  }catch{/* Static phase/counters only. Every partial H artifact is retained. */}
  const result=launcherAuthorityFalse({outcome:report?'LAUNCHER_BUILT_NOT_EXECUTED':'UNKNOWN',reason_code:report?'BUILT_NOT_EXECUTED':reason,
   report,builds,sourceWriteAttempts,sourceWriteCompleted,dispatchAttemptCount,dispatchResultCount:builds.length,observedProcessCount:builds.filter(row=>row.pidObserved===true).length});
- if(record)mintedLauncherBuilds.set(result,record);return result;
+ if(record)mintedLauncherBuilds.set(result,record);
+ launcherDiagnostic(true,'launcher_build_after',{outcome:result.outcome,dispatchAttempts:result.dispatchAttemptCount,dispatchResults:result.dispatchResultCount,
+  observedProcesses:result.observedProcessCount,sourceWriteAttempts:result.sourceWriteAttempts,sourceWriteCompleted:result.sourceWriteCompleted?1:0});
+ return result;
 }
 export function verifySealedTypeScriptBaseCollectorLauncherBuild(build){
  const record=mintedLauncherBuilds.get(build),unknown=()=>launcherAuthorityFalse({outcome:'UNKNOWN'});if(!record||record.invalid)return unknown();

@@ -9,7 +9,7 @@ import {buildSealedTypeScriptBaseCollectorLauncher as actual,verifySealedTypeScr
 import {sealedAssetsBuildCompleted,sealedAssetsBuildProcessSummary} from './acceptance/sealed-typescript-native-assets-build.mjs';
 const moduleSource=fs.readFileSync(new URL('./acceptance/sealed-typescript-base-exchange-assets.mjs',import.meta.url),'utf8');
 const sha=value=>createHash('sha256').update(value).digest('hex');
-function mock(fault=null){
+function mock(fault=null,diagnostics={enabled:false}){
  const a='/private/tmp/redue-ci-recipient-11111111',b='/private/tmp/redue-ci-recipient-22222222',h='/private/tmp/redue-ci-recipient-33333333';
  const file=h+'/prefix/native-probes/base-exchange-collect-launch.c',output=file.slice(0,-2),body='/* fixed synthetic source */\nint main(void){return 74;}\n';
  const assets={},copies={},hostFixture={},bindings=Object.freeze({baseA:a,baseB:b,hostBase:h,node:h+'/runtime/node-v22.13.0-darwin-arm64/bin/node',
@@ -19,7 +19,7 @@ function mock(fault=null){
  proposedSources:[{},{},{},{sha256:bindings.collectorSha256}]});
  const sourceBrands=new Set([proposal]);
  const controlledMint=new WeakMap([[assets,{hostFixture}]]),nodes=new Map(),handles=new Map();
- const state={valid:{assets:true,source:true,copies:true},calls:[],writes:[],checks:0,toolCalls:0,oldBuildCalls:0,binaryReads:0,sourceReads:0,late:null};
+ const state={valid:{assets:true,source:true,copies:true},calls:[],writes:[],checks:0,toolCalls:0,oldBuildCalls:0,binaryReads:0,sourceReads:0,late:null,markAttempts:[],marks:[]};
  let ino=1,fd=100;
  const put=(name,type='d',bytes=Buffer.alloc(0),mode=type==='d'?0o40700n:0o100600n)=>nodes.set(name,{type,body:Buffer.from(bytes),dev:1n,ino:BigInt(ino++),mode,uid:501n,gid:20n,nlink:1n,size:BigInt(bytes.length),mtimeNs:1n,ctimeNs:1n});
  for(const name of ['/','/private','/private/tmp',h,h+'/prefix',h+'/prefix/native-probes'])put(name);
@@ -66,17 +66,80 @@ function mock(fault=null){
  const api=Function('fs','path','createHash','spawnSync','verifySealedTypeScriptBaseExchangePair','verifySealedTypeScriptSyntheticFixture','prepareSealedTypeScriptBaseExchangeSource',
  'prepareSealedTypeScriptNativeAssetsProposal','buildSealedTypeScriptNativeAssets','verifySealedTypeScriptNativeAssetsBuild','sealedAssetsBuildCompleted','sealedAssetsBuildProcessSummary',
  'verifySealedTypeScriptBaseCollectorSource','sealedTypeScriptBaseCollectorSourceMatchesAssets','verifySealedTypeScriptBaseCollectorCopies','sealedTypeScriptBaseCollectorCopiesMatchSource',
- 'process','controlledMint','controlledAssetVerify',code)(io,path.posix,createHash,spawn,()=>{throw Error('NO_PAIR_BUILD');},()=>{throw Error('NO_NEW_HOST');},()=>{throw Error('NO_OLD_RENDER');},
+ 'process','controlledMint','controlledAssetVerify','profiling','profileMark',code)(io,path.posix,createHash,spawn,()=>{throw Error('NO_PAIR_BUILD');},()=>{throw Error('NO_NEW_HOST');},()=>{throw Error('NO_OLD_RENDER');},
  options=>{state.toolCalls++;assert.equal(options.fixture,hostFixture);return{base:h,bindings:{node:bindings.node},proposedBuilds:[{},
  {executable:'/reviewed/clang',argv:['FIXED','-isysroot','/reviewed/SDK','old.c','-o','old']}]};},
  ()=>{state.oldBuildCalls++;throw Error('NO_OLD_BUILDS');},()=>{throw Error('NO_UNBOUND_BUILD');},sealedAssetsBuildCompleted,sealedAssetsBuildProcessSummary,
  value=>sourceBrands.has(value)?checked('source',sourceObservation):{outcome:'UNKNOWN'},(value,parent)=>sourceBrands.has(value)&&parent===assets,
  value=>value===copies?checked('copies',copyObservation):{outcome:'UNKNOWN'},(value,parent)=>value===copies&&parent===proposal,
- {getuid:()=>501},controlledMint,value=>value===assets?checked('assets',assetObservation):{outcome:'UNKNOWN'});
+ {getuid:()=>501},controlledMint,value=>value===assets?checked('assets',assetObservation):{outcome:'UNKNOWN'},diagnostics.enabled,
+ diagnostics.unavailable?undefined:(phase,fields)=>{state.markAttempts.push(phase);if(diagnostics.throws)throw Error('SYNTHETIC_MARK_FAILURE');state.marks.push({phase,...fields});});
  return{...api,options:{assets,source:proposal,copies},sourceBrands,state,nodes,file,output,h,a,b,handles};
 }
 const falseAuthority=value=>{assert.deepEqual(value.commands,[]);for(const key of ['compilerCheckExecutions','helperExecutions','nativeAgentLaunches','models'])assert.equal(value[key],0);
  for(const key of ['sealed','reuseEligible','noInheritedWritableHandlesVerified'])assert.equal(value[key],false);};
+
+test('default launcher build and readonly currency invoke no diagnostic hook or extra operation',()=>{
+ const m=mock(),built=m.build(m.options);assert.equal(built.outcome,'LAUNCHER_BUILT_NOT_EXECUTED');
+ assert.deepEqual(m.state.markAttempts,[]);assert.deepEqual(m.state.marks,[]);assert.equal(m.state.calls.length,1);
+ assert.equal(m.verify(built).outcome,'LAUNCHER_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED');assert.deepEqual(m.state.markAttempts,[]);
+});
+test('opt-in marks are fixed scalar projections, cover every currency boundary and preserve the exact build result',()=>{
+ const plain=mock(),expected=plain.build(plain.options),m=mock(null,{enabled:true}),result=m.build(m.options);
+ assert.deepEqual(result,expected);assert.equal(m.state.checks,plain.state.checks);assert.equal(m.state.sourceReads,plain.state.sourceReads);assert.equal(m.state.binaryReads,plain.state.binaryReads);
+ const names=['build','dependencies','assets_currency','source_currency','copies_currency','boundary','source_current','binary_current',
+  'final_roots','final_new_rows','tool_proposal','new_paths_absent','source_create','source_read','output_absent','source_named','compiler','output_read'];
+ const allowed=new Set(names.flatMap(name=>['before','after'].map(edge=>'launcher_'+name+'_'+edge)));
+ const enums=new Set(['BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED','SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED','COLLECTOR_COPIES_CURRENTLY_OBSERVED_NOT_EXECUTED',
+  'LAUNCHER_BUILT_NOT_EXECUTED','UNKNOWN','NONE','SIGKILL']);
+ for(const row of m.state.marks){assert(allowed.has(row.phase));for(const [key,value]of Object.entries(row))if(key!=='phase'){
+   assert(['outcome','dispatchAttempts','dispatchResults','observedProcesses','status','signal','spawnError','completed','sourceWriteAttempts','sourceWriteCompleted'].includes(key));
+   assert(value===null||Number.isInteger(value)&&value>=0||enums.has(value));}}
+ assert.equal(m.state.marks[0].phase,'launcher_build_before');assert.equal(m.state.marks.at(-1).phase,'launcher_build_after');
+ const before=m.state.marks.find(row=>row.phase==='launcher_compiler_before'),after=m.state.marks.find(row=>row.phase==='launcher_compiler_after');
+ assert.deepEqual(before,{phase:'launcher_compiler_before',dispatchAttempts:0,dispatchResults:0,observedProcesses:0});
+ assert.deepEqual(after,{phase:'launcher_compiler_after',dispatchAttempts:1,dispatchResults:1,observedProcesses:1,status:0,signal:null,spawnError:'NONE',completed:1});
+ assert.equal(m.state.marks.filter(row=>row.phase==='launcher_boundary_before').length,7);
+ assert.equal(m.state.marks.filter(row=>row.phase==='launcher_boundary_after').length,7);
+ assert.equal(m.state.marks.filter(row=>row.phase==='launcher_dependencies_before').length,8);
+ assert.equal(m.state.marks.filter(row=>row.phase==='launcher_dependencies_after').length,8);
+ assert.equal(m.state.marks.length,110,'single successful build has a bounded fixed sequence, with no verification optimization');
+ const lastBefore=m.state.marks.findIndex(row=>row.phase==='launcher_final_new_rows_before');assert(lastBefore>m.state.marks.findIndex(row=>row.phase==='launcher_output_read_after'));
+ assert.equal(m.state.marks[lastBefore+1].phase,'launcher_final_new_rows_after');assert(!JSON.stringify(m.state.marks).includes(m.h));
+ const markCount=m.state.markAttempts.length;m.verify(result);assert.equal(m.state.markAttempts.length,markCount,'readonly currency is outside this diagnostic seam');falseAuthority(result);
+ assert(!Object.hasOwn(result,'profileAvailable'));assert(!Object.hasOwn(result,'diagnosticOutcome'));
+});
+test('noncallable diagnostic hook is contained and does not turn lost logging into fabricated build failure or success',()=>{
+ for(const fault of [null,'copies-during-source-read','spawn-throws']){
+  const plain=mock(fault),expected=plain.build(plain.options),m=mock(fault,{enabled:true,unavailable:true}),result=m.build(m.options);
+  assert.deepEqual(result,expected);assert.deepEqual(m.state.calls,plain.state.calls);assert.equal(m.state.checks,plain.state.checks);
+  assert.deepEqual(m.state.marks,[]);assert(!Object.hasOwn(result,'profileAvailable'));falseAuthority(result);
+ }
+});
+for(const fault of [null,'existing-source','source-after-write','runtime-during-source-read','copies-during-source-read','spawn-throws','exit','signal','no-pid','header','parent-after-compile','copies-after-compile'])
+ test('unavailable/throwing marks do not change original '+(fault??'successful')+' guards, dispatch or durable counters',()=>{
+  const plain=mock(fault),expected=plain.build(plain.options),m=mock(fault,{enabled:true,throws:true}),result=m.build(m.options);
+  assert.deepEqual(result,expected);assert(m.state.markAttempts.length>0);assert.deepEqual(m.state.marks,[]);
+  for(const key of ['checks','sourceReads','binaryReads','toolCalls','oldBuildCalls'])assert.equal(m.state[key],plain.state[key]);
+  assert.deepEqual(m.state.calls,plain.state.calls);assert.deepEqual(m.state.writes,plain.state.writes);assert.equal(m.handles.size,0);falseAuthority(result);
+ });
+for(const fault of ['spawn-throws','signal','exit','no-pid'])test('diagnostic '+fault+' reports only real returned summary facts and never invents compiler after phase',()=>{
+ const m=mock(fault,{enabled:true}),result=m.build(m.options),after=m.state.marks.find(row=>row.phase==='launcher_compiler_after'),last=m.state.marks.at(-1);
+ assert.equal(last.phase,'launcher_build_after');assert.equal(last.dispatchAttempts,1);assert.equal(last.dispatchResults,result.dispatchResultCount);assert.equal(last.observedProcesses,result.observedProcessCount);
+ if(fault==='spawn-throws'){assert.equal(after,undefined);assert.equal(last.dispatchResults,0);assert.equal(last.observedProcesses,0);}
+ else{assert.equal(after.status,result.builds[0].status);assert.equal(after.signal,result.builds[0].signal);assert.equal(after.observedProcesses,result.observedProcessCount);}
+ assert.equal(last.outcome,'UNKNOWN');assert(!JSON.stringify(m.state.marks).includes('PRIVATE'));falseAuthority(result);
+});
+test('existing profiler still cannot distinguish persisted from unavailable sink; the builder claims no availability',()=>{
+ const logger=fs.readFileSync(new URL('../src/decision-profile.mjs',import.meta.url),'utf8').replace(/^import .*;$/gm,'').replaceAll('export ','');
+ const create=Function('fs','AsyncLocalStorage','randomUUID','process','performance',logger+';return {profiling,mark};');
+ class Context{getStore(){return undefined;}}
+ for(const failure of [false,true]){let attempts=0,persisted=0;
+  const api=create({appendFileSync(){attempts++;if(failure)throw Error('SYNTHETIC_SINK_FAILURE');persisted++;}},Context,()=> 'synthetic',
+   {env:{REDUE_DECISION_PROFILE:'1',REDUE_DECISION_PROFILE_FILE:'/mock/owned/prepared-profile'},memoryUsage:()=>({rss:0}),hrtime:{bigint:()=>1n},pid:42},{now:()=>1});
+  assert.equal(api.profiling,true);assert.equal(api.mark('launcher_build_before'),undefined);assert.equal(attempts,1);assert.equal(persisted,failure?0:1);
+ }
+});
 
 test('actual ESM cycle initializes assets/source/copies without building or adopting fabricated labels',async()=>{
  const source=await import('./acceptance/sealed-typescript-base-collector-source.mjs');
