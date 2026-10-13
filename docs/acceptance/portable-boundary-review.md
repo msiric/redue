@@ -6441,3 +6441,45 @@ This source GO authorizes no native command, real-stage destruction or seal;
 fresh synthetic inventory, rendered code/resource bindings and actual native
 read/write enforcement remain separate prerequisites. Sequential rename is not
 an atomic-exchange substitute, and endpoint fingerprints are not interval proof.
+
+## Atomic-exchange source review and preserved classification defects
+
+772e907356d0c5378545521c555790c7fe385889 remained NO-GO for the C diagnostic.
+Its identities_at compared expected identities only when both directory reads
+were MATCH: a known wrong left inode plus unavailable right metadata became
+UNKNOWN. Main also withheld every expected-directory comparison when an
+unrelated fixture observation was unavailable. Protected exchange grants already
+latched FAIL independently; the defect concerned known preservation mismatches.
+Successor9bd4652f2fb621fec46e11f59cbf4d540959eebc repaired those two gates by
+classifying each successfully captured directory before merging other uncertainty.
+
+9bd remained NO-GO pending the same finite correction in marker_file: a valid
+named baseline followed by unavailable first fstat and a successful mismatching
+post-fstat still skips comparison under before_known. A successful post-fstat
+must be compared independently with named, and with before when available;
+known mismatch must outrank read/close uncertainty. Countercases are source/pure
+Boolean checks, not C syscall tests. The preserved772 author8 plus memory10
+controls passed18/18 in57.03ms despite the gap. Successor10 source contracts,
+13 independent memory-fixture controls and3 countercase controls passed26/26
+in61.31ms, explicitly reproducing the remaining unsafe classification condition.
+
+The fixture namespace addition itself passed source/memory review: exactly three
+new owned synthetic directories, each with one fixed nonsecret identity marker;
+all eleven markers remain independently single-link, bounded and privately minted.
+Extra entry/duplicate inode/incomplete alias groups latch UNKNOWN; restoration
+does not revive the token. No actual /private/tmp bootstrap or owned filesystem
+fixture was run. These data-only mechanics do not grant a C/native route.
+
+The fixed argc1 source uses renameatx_np with SWAP|NOFOLLOW_ANY for the workspace
+positive control and restore, then the protected parent/exact workspace partner.
+Both are directories on the observed same device; no base/sibling exchange or
+sequential rename substitute exists. Local SDK27 sys/stdio.h defines flags0x2
+and0x10/macOS10.12 availability. Pinned [Apple XNU12377.1.9 source](https://raw.githubusercontent.com/apple-oss-distributions/xnu/xnu-12377.1.9/bsd/vfs/vfs_syscalls.c)
+8929-8941 applies no-follow-any to both lookups, and9658-9668 accepts that flag
+combination. This establishes source feasibility, not current kernel/filesystem
+support or actual native enforcement. Only EPERM/EACCES can qualify the operation
+denial; unsupported/EXDEV/missing remain UNKNOWN. There is no automatic repair
+of a granted protected exchange: FAIL stays latched and all fresh synthetic
+resources must be retained. Fixed bounded inventories/marker readback require
+the separately reviewed synthetic-only directory body scope. Global result
+remains FAIL|UNKNOWN, with base exchange/native/seal/reuse unestablished.
