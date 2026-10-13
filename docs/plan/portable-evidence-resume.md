@@ -51,11 +51,16 @@ canary and exact generator-source proposal; C owns independent critical review.
 B capacity remains unavailable, without capacity/model switching.
 
 Selected public nativea59 and29 retained source fragments match exact offsets/
-lengths/hashes under independent read-only review. A's subsequently frozen
-24-fragment constructor0a412b9 (shared common prefix once) awaits independent
-review before source evaluation or a fixed nonsecret engineering startup test.
-Source composition is not Bun equivalence or actual native enforcement. No
-invented broad OS read allowance, terminal controller or new host resource.
+lengths/hashes under independent read-only review. The24-fragment constructor
+0a412b9 (shared common prefix once) has independent source/data GO56f5c81, with13
+read-only/fault controls. The one reviewed empty/nonsecret Node22.13 source-eval
+attempt failed: actual childexit74, test128.001ms/total177.770ms. Retained TAP
+lacks phase/reason, so no cause or source-composition success is assigned.
+Private record: `.local/portable-evidence/claude187-source-composition-first-0a412b9.tap`.
+A owns a changed finite phase/error reporter; C must review it before another
+source-eval attempt. No identical retry, sandbox-exec, native/Bun, compiler,
+model or CI operation follows. Source composition is not Bun equivalence or
+native enforcement. No invented broad OS read allowance/controller/new resource.
 
 Hosted Claude's completed six-check prerequisite stays CLOSED scopedPASS;
 Copilot Actions included capacity remains pending. G1/current sealed
