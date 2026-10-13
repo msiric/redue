@@ -6927,3 +6927,36 @@ complete SDK/linkage closure, accepted tool provenance, filesystem/kernel profil
 matching, native permissions or seal/reuse. No hostile-parent read confinement is
 claimed from trusted/quiescent ancestry checks; local SDK27 build results cannot
 stand in for the future standard VM's actual tool facts.
+
+Prepared-data/source/mock GOac7c9e4 pair helper SHA
+7cce9327be0c1bcffbb9c960260d045b2baaebdad38658eef50d77770fa70792
+and fixed C template SHA
+70255ba20b16a3b3c91cdf9e58270335546a0c5bca5b57887eb865f52f2f1e50.
+Zero-argument preparation uses two private fresh bootstrap namespaces: A's exact
+recursive synthetic inventory/eleven checked markers and B's empty0700 directory.
+Full fingerprints, physical uniqueness, principal/parent/device/canonical checks
+and before/after rechecks form a private WeakMap proof; serialized/prototype labels
+cannot adopt it. Any unknown/addition/close/currentness failure permanently
+withholds that mint. Current v1 rejects all build/auth/settings/state extras,
+including later public build additions; it must not be used as a finalization gate.
+Trusted/quiescent preparation is explicit, not hostile-parent read confinement.
+
+The separate disabled argc1 C template requires baked full BASE/B fingerprints,
+metadata-only checks of both bases and a working workspace atomic swap/restore
+control before one SWAP|NOFOLLOW_ANY whole-base request. Sibling bodies/enumeration
+and parent body reallow are absent. Known side mismatch and successful protected
+grant dominate later uncertainty; granted BASE is not automatically restored.
+Its other native assertions remain NOT_IMPLEMENTED and global result UNKNOWN/FAIL,
+all seal/inherited-RW/reuse flags false. SDK/XNU source compatibility is not actual
+runner ABI or native enforcement. No renderer/compiled route exists from this GO.
+
+Twenty-three author source/in-memory controls passed23/23 in56.98ms. Four additional
+independent controls passed4/4 in50.38ms: cloned/prototype proof rejection, late
+sibling creation with directory timestamp change and permanent invalidation,
+retained own partial-location labels without mint, and physical alias/type refusal.
+No actual bootstrap, C render/build/helper/native/model/permission/CI operation.
+Keeping A/B strictly synthetic and placing public code/runtime/provisioning assets
+in a separate owned H is the simpler subsequent direction; obsolete finalization
+comments can be updated without relaxing inventories. That exact renderer/profile/
+resource interface requires its own review before any use. Inventory dispatch403
+produced zero jobs; this review authorizes no alternative dispatch route.
