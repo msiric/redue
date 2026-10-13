@@ -46,20 +46,24 @@ export function readNativeStdioProbeSource(){
 // C child's wait status, then exits with it. >=128 cannot distinguish a normal
 // high exit code from signal encoding and remains ambiguous. No exec supervisor.
 export function nativeStdioProbeCommand(hostBase){
- if(typeof hostBase!=='string'||!/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}$/.test(hostBase))throw Error('NATIVE_STDIO_BINDING_UNKNOWN');
+ return `${nativeStdioDirectCommand(hostBase)}\nredue_stdio_status=$?\nprintf '\\n{"schema":1,"scope":"NATIVE_STDIO_SHELL_STATUS_ONLY","status":%d}\\n' "$redue_stdio_status"\nexit "$redue_stdio_status"`;
+}
+export function nativeStdioDirectCommand(hostBase){
+ const match=typeof hostBase==='string'?/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}$/.exec(hostBase):null;
+ if(!match||match[0]!==hostBase)throw Error('NATIVE_STDIO_BINDING_UNKNOWN');
  const helper=hostBase+'/prefix/native-probes/native-stdio-probe';
- return `'${helper.replaceAll("'","'\\''")}'\nredue_stdio_status=$?\nprintf '\\n{"schema":1,"scope":"NATIVE_STDIO_SHELL_STATUS_ONLY","status":%d}\\n' "$redue_stdio_status"\nexit "$redue_stdio_status"`;
+ return `'${helper.replaceAll("'","'\\''")}'`;
 }
 
 // Only JSON data, not getters/prototypes or model-provided executable callbacks.
-function data(value,depth=0){
+function data(value,depth=0,allowNullPrototype=false){
  if(depth>12)return false;
  if(value===null||typeof value==='boolean')return true;
  if(typeof value==='number')return Number.isFinite(value);
  if(typeof value==='string')return value.length<=65536;
- if(typeof value!=='object'||!Array.isArray(value)&&Object.getPrototypeOf(value)!==Object.prototype)return false;
+ if(typeof value!=='object'||!Array.isArray(value)&&Object.getPrototypeOf(value)!==Object.prototype&&!(allowNullPrototype&&Object.getPrototypeOf(value)===null))return false;
  const keys=Reflect.ownKeys(value);if(keys.length>128)return false;
- return keys.every(key=>typeof key==='string'&&(Array.isArray(value)&&key==='length'||Object.hasOwn(Object.getOwnPropertyDescriptor(value,key)??{},'value')&&Object.getOwnPropertyDescriptor(value,key).enumerable===true&&data(Object.getOwnPropertyDescriptor(value,key).value,depth+1)));
+ return keys.every(key=>typeof key==='string'&&(Array.isArray(value)&&key==='length'||Object.hasOwn(Object.getOwnPropertyDescriptor(value,key)??{},'value')&&Object.getOwnPropertyDescriptor(value,key).enumerable===true&&data(Object.getOwnPropertyDescriptor(value,key).value,depth+1,allowNullPrototype)));
 }
 const exact=(value,keys)=>value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).length===keys.length&&keys.every(k=>Object.hasOwn(value,k));
 function sanitizeReport(value){
@@ -77,6 +81,11 @@ function sanitizeReport(value){
  if(value.fd0_matches_dev_null===true&&(value.dev_null.type!=='CHARACTER'||value.descriptors[0].type!=='CHARACTER'))return null;
  return JSON.parse(JSON.stringify(value));
 }
+// Shared fixed metadata schema only, never a command/process/enforcement claim.
+export function parseNativeStdioMetadata(bytes){
+ try{if(!(typeof bytes==='string'||bytes instanceof Uint8Array)||Buffer.byteLength(bytes)>4096)return null;return sanitizeReport(parsePortableJson(bytes));}catch{return null;}
+}
+export function isNativeStdioDiagnosticData(value){return data(value,0,true);}
 function collection(content){
  const pieces=typeof content==='string'?[content]:Array.isArray(content)&&content.every(v=>exact(v,['type','text'])&&v.type==='text'&&typeof v.text==='string')?content.map(v=>v.text):null;
  if(!pieces)return null;
