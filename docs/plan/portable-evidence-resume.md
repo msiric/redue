@@ -8,7 +8,7 @@ verify HEAD/status first. The planning baseline is history, never a rollback tar
 
 ## Current checkpoint — fixed campaign provisioning reviewed; native boundary pending
 
-2026-10-13 15:12UTC, integration source `3c66c74`. Root remains sole integration
+2026-10-13 15:09UTC, integration source `3c66c74`. Root remains sole integration
 owner in existing Herdr `w1:pD` / `redue-director`; no duplicate coordinator, goal,
 pane worker or orchestrator. Roles explicitly read installed guidance; automatic
 TOML profile selection and reviewer OS isolation remain unverified.

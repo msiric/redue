@@ -5,7 +5,7 @@ recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gat
 
 ## Current checkpoint — reviewed campaign pipeline; native seal still open
 
-2026-10-13 15:12UTC, integration source `3c66c74`; exact scope/evidence in current
+2026-10-13 15:09UTC, integration source `3c66c74`; exact scope/evidence in current
 [resume](portable-evidence-resume.md). Failures and UNKNOWNs remain preserved.
 
 | Task | Owner/status | Concrete result / next gate |
