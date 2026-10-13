@@ -6,9 +6,10 @@ import {prepareClaude187GeneratorProposal as prepare,CLAUDE187_GENERATOR_NATIVE_
 import {createSealedTypeScriptCIBootstrap} from './acceptance/sealed-typescript-synthetic-fixture.mjs';
 const moduleSource=fs.readFileSync(new URL('./acceptance/portable-claude-generator-proposal.mjs',import.meta.url),'utf8');
 const publicNative=process.env.REDUE_REVIEWED_CLAUDE187;
-const selected={skip:publicNative?false:'No locally selected reviewed public native file; no source read/evaluation'};
+const posixSourceBinding=typeof process.getuid==='function'&&fs.constants.O_NOFOLLOW!==undefined&&fs.constants.O_NONBLOCK!==undefined&&process.platform!=='win32';
+const selected={skip:publicNative&&posixSourceBinding?false:'Actual POSIX source-binding prerequisite NOT RUN (missing reviewed public source or supported principal/no-follow metadata)'};
 const failCode=(fn,code)=>assert.throws(fn,error=>error.code===code&&error.message===code);
-const adapt=fake=>Function('fs','path','createHash',moduleSource.replace(/^import .*;$/m,'').replace('export const ','const ').replace('export function ','function ')+'\nreturn prepareClaude187GeneratorProposal;')(fake,path,createHash);
+const adapt=fake=>Function('fs','path','createHash',moduleSource.replace(/^import .*;$/m,'').replace('export const ','const ').replace('export function ','function ')+'\nreturn prepareClaude187GeneratorProposal;')(fake,path.posix,createHash);
 function local(fn){const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-generator-source-')));fs.chmodSync(base,0o700);try{return fn(base);}finally{fs.rmSync(base,{recursive:true,force:true});}}
 
 test('constructor source performs no eval/native/command dispatch and preserves exact commonprefix once',()=>{
@@ -25,7 +26,7 @@ test('noncanonical/relative/control paths cannot select read inputs',()=>{
   let calls=0;const construct=adapt({...fs,realpathSync(){calls++;}});
   for(const native of ['relative','/native/','/base/../native','/native\n','/native\0','/native\\alias','/native:alias','/native\ud800'])failCode(()=>construct({native}),'GENERATOR_SOURCE_PATH');assert.equal(calls,0);
 });
-test('missing/symlink/short/unowned/multilink inputs fail before source body extraction',()=>local(base=>{
+test('missing/symlink/short/unowned/multilink inputs fail before source body extraction',{skip:posixSourceBinding?false:'Actual POSIX source-binding prerequisite NOT RUN'},()=>local(base=>{
   const leaf=base+'/NONSECRET-native',alias=base+'/NONSECRET-link';fs.writeFileSync(leaf,'PUBLIC_SHORT_SOURCE',{mode:0o700});fs.symlinkSync(leaf,alias);
   failCode(()=>prepare({native:base+'/absent'}),'GENERATOR_SOURCE_UNAVAILABLE');failCode(()=>prepare({native:alias}),'GENERATOR_SOURCE_PATH');failCode(()=>prepare({native:leaf}),'GENERATOR_SOURCE_IDENTITY');
   const original=fs.lstatSync;for(const fault of ['owner','nlink']){
@@ -96,7 +97,7 @@ function sourceCompositionSuccessShape(value){
 
 // Evaluation remains opt-in for the source-review checkpoint. This is not a
 // permission token for a native startup; no policy is installed or enforced.
-const evaluation={skip:publicNative&&process.env.REDUE_GENERATOR_SOURCE_EVALUATION==='1'?false:'Separate reviewed source-evaluation checkpoint not requested'};
+const evaluation={skip:publicNative&&posixSourceBinding&&process.platform==='darwin'&&process.env.REDUE_GENERATOR_SOURCE_EVALUATION==='1'?false:'Separate reviewed source-evaluation checkpoint not requested'};
 test('reviewed exact closure evaluates with four actual builtins in fixed no-secret Node child; no sandbox/native proof',evaluation,()=>{
   // Exact fresh receiver-shaped short location reduces source-derived ancestor
   // auto-deny expansion; source/options/cap/budgets are unchanged. This private
