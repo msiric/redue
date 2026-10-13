@@ -6604,3 +6604,28 @@ is the initial control tag spanning code-read/hash/context/compile and initial
 definitions; it does not independently identify a failing syscall or parser.
 Any new observation belongs to that new attempt and cannot retroassign the
 first unknown cause or establish enforcement, a seal or goal completion.
+
+The second reviewed source-composition attempt also exited74: its finite reporter
+retained CLASSIFY/PROFILE_CLASSIFICATION_UNKNOWN/NONE (TAP129.554ms test,
+174.784ms total), not a successful profile or a particular failed predicate.
+First-attempt cause remains unassigned; neither attempt involved sandbox/native/
+model/CI. No closure/Bun/enforcement or actual debugger conclusion follows.
+
+Source/mock GO coherent0471a61f6cc77041c7489029ce969b1af7dc796a plus
+20f18a030a953dd28c10a53caae95c7fa67eaa15,
+testSHAfd9e05c4e6ca685e46b523eb368c8ef71652018063c87e9b470e71d2842e6516.
+Original source/options,65536 success cap and one VM1000ms/parent5000ms/4096
+bounds are unchanged. Classification adds only STRING/OTHER, bounded byte
+count/null, finite byte status and read/network predicate booleans/null.
+Diagnostic work is capped262144 UTF16 units; oversized output stays rejected,
+never a larger acceptance allowance. Exact nested keys/own data descriptors,
+cross-field statuses and derived passed are checked. Initial0471 allowed
+contradictory header/nested counts;20f requires exact agreement before success.
+
+Eleven selected pure controls passed11/11 in51.90ms; three independent duplicate
+counts, symbols/accessors/cross-field contradictions and oversized/UTF8 privacy
+controls passed3/3 in43.78ms. Reviewer evaluated only authored small classifiers
+with synthetic data, not extracted native functions/source. One changed bounded
+source-composition diagnostic is source-review GO to identify the failed original
+predicate. Raw profile, path/env/error values remain unretained. Prior failures
+stay historical; startup783 is a separate pending engineering-driver review.
