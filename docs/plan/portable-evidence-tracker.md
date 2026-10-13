@@ -5,7 +5,7 @@ recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gat
 
 ## Current checkpoint — reviewed CLI and actual prepared project
 
-2026-10-13 19:05UTC, runtime `db99164`; exact results in current
+2026-10-13 19:13UTC, runtime `1c35001`; exact results in current
 [resume](portable-evidence-resume.md), limits in [acceptance](../acceptance/portable-sealed-typescript.md).
 
 | Task | Status | Actual result / next gate |
@@ -15,8 +15,8 @@ recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gat
 |045 current code closure | ACCEPT/integrated3c48b21 |103 exact leaves;217 root PASS/one SKIP; actual canonical constructor only |
 |042B descriptor data/control | ACCEPT/integrateddb99164 |234 root PASS/one OS SKIP; strict PID repair; no OS control yet |
 |046 actual native assertion | COMPLETE/source audit |Native Bash fd shapes UNKNOWN; no parent/seal claim from synthetic pipes |
-|047 metadata-only native probe | CHANGES_REQUIRED b53a10e;047B repair ACTIVE |Ten independent parser controls fail; no native/model; original failures retained |
-|048 owned OS observation capture | Frozen486e2da/fresh review ACTIVE |Fixed target,30s capture/persist plus5s cleanup; source/mocks only |
+|047B metadata-only native probe | ACCEPT431da90/integrated1c35001 |230 root PASS;27 fresh controls; syntax only, no helper/native/model |
+|048 owned OS observation capture | CHANGES_REQUIRED486e2da;048B repair ACTIVE |Two independent late-launch/identity controls fail; no actual OS selection |
 | Sealed product gates | INCOMPLETE |Native immutable origin, recipient authority, real agent/machine handoff outstanding |
 
 All failures retained; alpha.11/pilot unchanged. No signing, permission/trust expansion

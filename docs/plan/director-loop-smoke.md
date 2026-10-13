@@ -82,7 +82,10 @@ plus26 independent controls; root integrated `f0b60f0`/`49b1cb3` and94 PASS/one 
 SKIP79.232ms. Director then started the next task without owner relay. Subsequent
 source/build-wrapper review loops preserved actual findings and refused unsafe
 preconditions. These are engineering tests, not compiler/native/model acceptance.
-Current actual build observation timed out UNKNOWN, not hidden or retried blindly.
+Historical timed-out builds remain UNKNOWN. Later reviewed engineering builds
+completed and an actual sandboxed debugger preparation produced33345 files in
+81512.978ms, MATERIALIZED_NOT_SEALED. Fresh parser/supervisor review findings were
+returned to their authors automatically. No native/model or portable reuse claim.
 
 Unchecked runtime-profile, owner-pause, detach/sleep/reboot and recovery controls
 remain NOT RUN or unverified. No Herdr startup owner action remains. The existing

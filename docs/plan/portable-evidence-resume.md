@@ -8,7 +8,7 @@ verify HEAD/status first. The planning baseline is history, never a rollback tar
 
 ## Current checkpoint — real selected preparation; pending CLI integrated
 
-2026-10-13 19:05UTC, runtime `db99164`. Same original Herdr director/goal and
+2026-10-13 19:13UTC, runtime `1c35001`. Same original Herdr director/goal and
 integration owner. No native/model/signing/publication operation; scopes unchanged.
 
 041B `9be3de9` → `85409ca`: fresh ACCEPT218 tests plus16 identical predecessor/
@@ -45,16 +45,24 @@ failures; complete worker already rejected invalid PIDs. 042B `0d495ed` → `db9
 is fresh ACCEPT320 source tests/one SKIP plusfive same-input controls; root234PASS/
 one SKIP351.750ms. Fixed real-FIFO engineering control remains unselected; no C/OS
 control executed. Its report is diagnostic only, not durable persistence.
-048 fixed bounded observation supervisor/capture is frozen486e2da for fresh
-independent review, with ownership checks and no stale-PID kills; source/mocks only.
+048 fixed supervisor486e2da received CHANGES_REQUIRED: launch crossing the
+deadline lost the child lifecycle/PID and falsely reported no groups; identity
+lookup timeout also lost the cleanup PID. Independent1PASS/two expected-refusal
+FAIL; author22 PASS.048B repair active, retaining actual spawn/PID before awaited
+deadline checks and fresh metadata before signals. No actual OS control run.
 
 046 source audit COMPLETE: real native Bash stdio shapes are UNKNOWN. Node/libuv
 socketpairs and synthetic supplied FIFOs cannot establish them. 047 fixed metadata-
 only direct native C observer b53a10e received CHANGES_REQUIRED: foreign/missing
 session IDs, unbounded/missing tool timeout, invalid description and duplicate status
 keys were accepted by its parser. Ten expected-UNKNOWN controls failed,17 passed,
-focused94 passed; original results preserved. Author047B repairs in its isolated
-worktree; no compile, installation/native/model execution. No shim or endpoint repair in actual native
+focused94 passed; original results preserved. 047B431da90 now fresh ACCEPT: identical27 controls pass, original replay17PASS/
+10FAIL retained (not claimed as original persisted capture). Root integrated
+1c35001 and230PASS154.071ms; TAP SHA652f97b99c0e9cdfaf3041b18b3262beccb166d49c9188b117b3a488e271fb1a.
+Pinned C syntax-only checked sequence125.833ms exit0/reaped; record
+SHA455390e3ae2597ff81dc0d5301eaf9a72f5041c1ad1f42a6e05e808462be01a9.
+No built artifact/helper execution, installation/native/model operation. Existing
+crypto-only strict JSON parser is now required in the probe code closure. No shim or endpoint repair in actual native
 route; markers report shell status honestly, >=128 signal remains ambiguous.
 
 G0partial/sealedG1/G2/G3/prepublicationG4 still incomplete. Scoped hosted Claude

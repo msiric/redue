@@ -15,7 +15,7 @@ The unreleased CLI now offers explicit pending selection, not executable evidenc
 
 ## Current evidence summary
 
-Runtime `db99164`,2026-10-13 18:49UTC. Explicit `init --recipe typescript-sealed`
+Runtime `1c35001`,2026-10-13 19:13UTC. Explicit `init --recipe typescript-sealed`
 preview/selection creates a distinct disabled obligation. `run` refuses
 SEALED_RECIPE_ENFORCEMENT_PENDING before execution or receipt/state mutation.
 Fresh independent review found and fixed conflicting --check filtering; root25
@@ -33,9 +33,12 @@ origin completeness, native enforcement or complete-path economic acceptance.
 
 The fixed engineering real-FIFO descriptor control and strict PID data repair
 have fresh independent acceptance; actual OS selection awaits a bounded capture/
-cleanup supervisor. Native Bash endpoints remain UNKNOWN. The next fixed direct
-metadata-only native probe observes that fact without endpoint repair; it is
-currently source-only and independently review-gated. Premain loader, parent-held
+cleanup supervisor. Its first supervisor failed two independent late-launch/PID
+controls and is being repaired before any actual OS selection. Native Bash
+endpoints remain UNKNOWN. The fixed direct metadata-only native parser is now
+independently accepted:230 root source/mock tests and27 independent controls pass.
+Its original failures remain preserved. A syntax-only check passed without building
+or executing the helper; no native trial ran. Premain loader, parent-held
 handles and immutable compiler namespace/execution interval remain open.
 
 Actual cross-agent/two-machine portable reuse is NOT ESTABLISHED. Alpha.11 remains
