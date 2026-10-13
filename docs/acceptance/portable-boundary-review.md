@@ -6138,3 +6138,48 @@ context/currentness, failed-spawn counts, finite reaping and uncertain publicati
 No actual API/compiler/native/process/model/CI operation ran in this review.
 The older summary-limit UNKNOWN remains preserved; this source review makes no
 claim about the next actual outcome or complete discovery/namespace equivalence.
+
+
+## Actual schema refusal and explicitly omitted unsupported frames
+
+Independently verified actual8f budget saved record
+SHA9814ad4f9552b9ac6dcb03e71f2ef35347f211e1569ea682015aef022997e7c5
+and paired outerSHAdeca6454fc02e001007777d17596d956e5ce3cb6057f1920d92cbc71d3c24dbc:
+owned regular0600/single-link, matching record acknowledgement, UNKNOWN,
+11151.502667ms, child74/no signal/reaped,4237872 stdout bytes/zero stderr,
+SEALED_OBSERVATION_SCHEMA, no retained observation, all12 comparison booleans
+true, zero verification/model counts, sealed/reuse false. Prior summary-limit
+and generic UNKNOWN attempts remain preserved without assigning them this reason.
+
+Read-only pinned Node22.13 builtin fs source inspection independently confirmed
+Buffer-path openSync at446 and closeSync at481. Local reviewed official TS5.5.2
+source8673 calls readFileSync without an encoding, taking the Buffer path. The
+old journal could serialize an unreviewed close-shaped frame while the strict
+reader correctly refused it. This supports a concrete source-led compatibility
+repair; rejected whole-output reason alone does not identify the exact actual
+frame, running phase or deep cause. No reviewer Buffer-file or TS/API trial ran.
+
+GO69c47572b1f260ec921151a59a3de173bce95dc2,
+journalSHA4b1542835a76cd46c6b50636c5d0d7146abeff0dd65e7560a7c679a117f592d1.
+Unsupported calls still forward/count and preserve original results, errors and
+constructor behavior; only unreviewed frame shapes are omitted. UNSUPPORTED_METHOD
+irreversibly sets logging incomplete; sequence/count gaps remain explicit. No
+reader enum is expanded, underlying call or compiler validation skipped, or
+complete query/loader/namespace claim introduced. Injected unknown frames still
+refuse the entire payload. Retained observations are intentionally partial.
+
+GO exact fixed repin parent
+SHAa84a80dd6de4afe9e13a8a80752ce9ac9007ffa575d89bab76cd90aefa7559bc
+for one changed bounded engineering attempt, subject to existing current
+preconditions. Diff changes exactly the journal pin and result stem; profile,
+grants,30s/8MiB caps, before/after stage/code/runtime guards, reaping and exclusive
+held-FD/final ACK publication are unchanged. The mechanism remains nonauthoritative.
+
+Eighty-seven affected authored fake controls passed87/87 in377.09ms. Eighteen
+own/reused VM/fake controls passed18/18 in71.44ms, including nested fake Buffer
+read with all four calls preserved and only reviewed frames, exact unsupported
+error/constructor forwarding, injected unknown-frame refusal and prior strict
+parent/budget/currentness/persistence controls. No actual API/compiler, native
+policy/agent/experimental collector, model or CI operation ran in this review.
+This GO is a materially changed diagnostic repair; it does not authorize repeated
+unchanged attempts or turn any past UNKNOWN into completeness or reuse proof.
