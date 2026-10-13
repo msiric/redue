@@ -5,7 +5,7 @@ recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gat
 
 ## Current checkpoint — reviewed CLI and actual prepared project
 
-2026-10-13 19:13UTC, runtime `1c35001`; exact results in current
+2026-10-13 19:32UTC, runtime `d69590b`; exact results in current
 [resume](portable-evidence-resume.md), limits in [acceptance](../acceptance/portable-sealed-typescript.md).
 
 | Task | Status | Actual result / next gate |
@@ -16,7 +16,10 @@ recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gat
 |042B descriptor data/control | ACCEPT/integrateddb99164 |234 root PASS/one OS SKIP; strict PID repair; no OS control yet |
 |046 actual native assertion | COMPLETE/source audit |Native Bash fd shapes UNKNOWN; no parent/seal claim from synthetic pipes |
 |047B metadata-only native probe | ACCEPT431da90/integrated1c35001 |230 root PASS;27 fresh controls; syntax only, no helper/native/model |
-|048 owned OS observation capture | CHANGES_REQUIRED486e2da;048B repair ACTIVE |Two independent late-launch/identity controls fail; no actual OS selection |
+|048C owned OS observation capture | ACCEPT/integratedd69590b |85 root PASS/one SKIP; first actual attempt UNKNOWN before launch, preserved |
+|048D engineered startup admission | Isolated repair ACTIVE |Exact UID-bound Darwin marker only; no native/global/context exemption |
+|050 fixed native observer build/proposal | Frozen bba77f2/fresh review ACTIVE |One pinned build; disabled policy; source/mocks only |
+|051 native tool-exit semantics | COMPLETE/source audit |Single direct-command route requires complete normal raw result; actual stdio unobserved |
 | Sealed product gates | INCOMPLETE |Native immutable origin, recipient authority, real agent/machine handoff outstanding |
 
 All failures retained; alpha.11/pilot unchanged. No signing, permission/trust expansion

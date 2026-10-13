@@ -9,6 +9,15 @@ This supplement adapts the existing Codex director kit to a Herdr-managed sessio
 It takes precedence over generic startup suggestions in PLAN.md; it does not change
 REDUE-PE-001, its acceptance gates, the standing authorization, or host policy.
 
+Installed Codex CLI is 0.162.1. The current
+[official subagent documentation](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+describes project-local standalone role TOML files and the two selected `[agents]`
+settings. It also explains that live parent permission overrides are reapplied to
+children. These documented capabilities do not prove automatic profile selection
+in this already-running thread: actual workers explicitly read the role guidance,
+and the live permission mode remains authoritative. No client reload is required
+for the exercised instruction-based native delegation loop.
+
 ## Architecture: one coordinator, not two orchestration stacks
 
 - Herdr owns the persistent terminal containing the Codex director.

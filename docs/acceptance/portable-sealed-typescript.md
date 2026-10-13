@@ -15,7 +15,7 @@ The unreleased CLI now offers explicit pending selection, not executable evidenc
 
 ## Current evidence summary
 
-Runtime `1c35001`,2026-10-13 19:13UTC. Explicit `init --recipe typescript-sealed`
+Runtime `d69590b`,2026-10-13 19:32UTC. Explicit `init --recipe typescript-sealed`
 preview/selection creates a distinct disabled obligation. `run` refuses
 SEALED_RECIPE_ENFORCEMENT_PENDING before execution or receipt/state mutation.
 Fresh independent review found and fixed conflicting --check filtering; root25
@@ -33,8 +33,11 @@ origin completeness, native enforcement or complete-path economic acceptance.
 
 The fixed engineering real-FIFO descriptor control and strict PID data repair
 have fresh independent acceptance; actual OS selection awaits a bounded capture/
-cleanup supervisor. Its first supervisor failed two independent late-launch/PID
-controls and is being repaired before any actual OS selection. Native Bash
+cleanup supervisor. Its original deadline/PID and late-capture failures were
+repaired and independently accepted;85 root tests pass. The first actual attempt
+returned UNKNOWN before launching any control because macOS added a startup
+encoding marker to the constructed empty environment. Scoped repair is under
+review; no unchanged retry or permission change. Native Bash
 endpoints remain UNKNOWN. The fixed direct metadata-only native parser is now
 independently accepted:230 root source/mock tests and27 independent controls pass.
 Its original failures remain preserved. A syntax-only check passed without building

@@ -8,7 +8,7 @@ verify HEAD/status first. The planning baseline is history, never a rollback tar
 
 ## Current checkpoint — real selected preparation; pending CLI integrated
 
-2026-10-13 19:13UTC, runtime `1c35001`. Same original Herdr director/goal and
+2026-10-13 19:32UTC, runtime `d69590b`. Same original Herdr director/goal and
 integration owner. No native/model/signing/publication operation; scopes unchanged.
 
 041B `9be3de9` → `85409ca`: fresh ACCEPT218 tests plus16 identical predecessor/
@@ -45,11 +45,24 @@ failures; complete worker already rejected invalid PIDs. 042B `0d495ed` → `db9
 is fresh ACCEPT320 source tests/one SKIP plusfive same-input controls; root234PASS/
 one SKIP351.750ms. Fixed real-FIFO engineering control remains unselected; no C/OS
 control executed. Its report is diagnostic only, not durable persistence.
-048 fixed supervisor486e2da received CHANGES_REQUIRED: launch crossing the
-deadline lost the child lifecycle/PID and falsely reported no groups; identity
-lookup timeout also lost the cleanup PID. Independent1PASS/two expected-refusal
-FAIL; author22 PASS.048B repair active, retaining actual spawn/PID before awaited
-deadline checks and fresh metadata before signals. No actual OS control run.
+048 supervisor486e2da first lost spawned-child state across deadline failure.
+048B03e5b6e fixed that, but late final capture validation could still leak its FD.
+Original1PASS/two FAIL and4PASS/one FAIL controls are preserved.048Cd5e6dc4 is
+fresh ACCEPT with five same controls; integratedd69590b/root85PASS/one default
+SKIP396.886ms, TAPcc41a8b9c9d3a807cfb0e6727472bf02e77addb72f598004c769dd3a209aafc6.
+One actual fixed OS attempt then refused before launch: exit74/UNKNOWN,0.271ms,
+no child/control/compiler/capture. Record SHA65e943c9ce4f1294851e06e163708401abf6bd7d6825378278175a8663d5f4dc.
+Read-only startup classification finds only the requested selector and macOS-added
+__CF_USER_TEXT_ENCODING with current UID/zero-encoding shape; raw value not logged.
+048D now repairs only that engineered no-auth startup admission, after source review;
+no unchanged retry. Native/applicability context and permissions stay unchanged.
+The owned engineering output directory was canonical/owned but0755: tightened only
+that same inode to0700; recordc07963eecc7bb63dc8ae9cf1e2a003a47719a5a2d6ad623e2d4819968eb20386.
+A root integration command used one malformed commit ID; its shell incorrectly
+continued into old56-test source suites. The original TAPb5c1d986f9c4a5ecaaeb2b7e42bdb46abd0486fdeaeccc97024ac8eba6099725
+is PRE-INTEGRATION evidence, not048C acceptance. Corrected integration used
+fail-closed ref/file checks and produced the85-test result above. Zero models.
+
 
 046 source audit COMPLETE: real native Bash stdio shapes are UNKNOWN. Node/libuv
 socketpairs and synthetic supplied FIFOs cannot establish them. 047 fixed metadata-
@@ -64,6 +77,16 @@ SHA455390e3ae2597ff81dc0d5301eaf9a72f5041c1ad1f42a6e05e808462be01a9.
 No built artifact/helper execution, installation/native/model operation. Existing
 crypto-only strict JSON parser is now required in the probe code closure. No shim or endpoint repair in actual native
 route; markers report shell status honestly, >=128 signal remains ambiguous.
+
+049 source audit found the frozen old hosted workflow permits Node→collector,
+not the new direct C observer.050 fixed one-build/currentness and disabled policy
+proposal is frozenbba77f2 under fresh independent review; source/mocks only.
+051 pinned-native source audit predicts regular output-file stdout/stderr, which
+is incompatible with the FIFO-only campaign guard; not empirical native evidence.
+The compound shell marker is source-expected denied by retained printf restrictions.
+A single direct C command may yield narrowly source-derived foreground exit-zero
+through complete normal native tool-result fields; implementation/review still
+required. No kernel child-close/parent-handle/seal claim can be inferred.
 
 G0partial/sealedG1/G2/G3/prepublicationG4 still incomplete. Scoped hosted Claude
 six-check diagnostic remains CLOSED PASS. Existing admin403/Copilot Actions billing
