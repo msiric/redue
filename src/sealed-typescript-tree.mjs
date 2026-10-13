@@ -315,7 +315,9 @@ export function materializeSealedTypeScriptSelectedView(capture,manifest){
   const records=state.snapshot.records.filter(record=>{const rel=path.relative(state.root,record.file).split(path.sep).join('/');return !gitPath(rel)&&(state.directoryNames.has(rel)||state.inputRecords.has(rel));});
   closeDirectoryInventories([{rootParents:state.snapshot.rootParents,records},stage]);
   if(state.phase!=='COPYING')fail('TREE_SELECTION_OPTIONS');state.phase='SPENT';
-  return freeze({...materialized,interpretation:'redue-typescript-selected-prepared-view@1',selectionDefinitionSha256:hash(canonical(SEALED_TYPESCRIPT_SELECTION)),stageDirectoryInventory:stage.value,
+  // This leaf binds only the declared names supplied by its local caller. It
+  // cannot claim that those names were selected by the fixed InputIndex policy.
+  return freeze({...materialized,interpretation:'redue-typescript-declared-input-prepared-view@1',stageDirectoryInventory:stage.value,
    sourceNamespaceEquivalent:false,nativeViewVerified:false,sealed:false,reuseEligible:false});
  }catch(error){state.phase='INVALID';if(error?.code?.startsWith('TREE_'))throw error;fail('TREE_SELECTION_UNAVAILABLE');}
 }

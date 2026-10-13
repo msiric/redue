@@ -47,6 +47,9 @@ export function prepareSealedTypeScriptSelectedView(options){
  const capture=captureSealedTypeScriptSelection({root:options.root,parent:options.parent});
  try{const index=new InputIndex({root:options.root,plans:{preparation:{id:SEALED_TYPESCRIPT_SELECTION.planId,patterns,sourcePatterns:patterns,additivePatterns:[...SEALED_TYPESCRIPT_SELECTION.additivePatterns]}}},{trackGit:false,includeInstalled:true}),check=index.checks.get('preparation'),names=capture.candidates.map(([rel])=>rel).filter(rel=>index.candidates(rel).has('preparation')&&index.matches(check,rel));bindSealedTypeScriptSelection(capture,names);
  for(const rel of names){checkSealedTypeScriptSelectionInput(capture,rel);index.record(rel,'fixed sealed local selection');if(index.unavailable)fail('TREE_SELECTION_UNAVAILABLE');}
- const manifest=sealedTypeScriptManifest(options.root,Object.fromEntries(index.files));return materializeSealedTypeScriptSelectedView(capture,manifest);
+ const manifest=sealedTypeScriptManifest(options.root,Object.fromEntries(index.files)),view=materializeSealedTypeScriptSelectedView(capture,manifest);
+ // Only this exact fixed selector may attach the policy identity, after every
+ // selected record and source/stage closing guard completed successfully.
+ return Object.freeze({...view,interpretation:'redue-typescript-selected-prepared-view@1',selectionDefinitionSha256:hash(canonical(SEALED_TYPESCRIPT_SELECTION))});
  }catch(error){invalidateSealedTypeScriptSelection(capture);if(error?.code?.startsWith('TREE_'))throw error;fail('TREE_SELECTION_UNAVAILABLE');}
 }

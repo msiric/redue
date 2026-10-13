@@ -1,6 +1,6 @@
 // Owned harmless local data, not actual debugger/compiler/native/model evidence.
-import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import os from 'node:os';import path from 'node:path';
-import {canonical} from '../src/portable-envelope.mjs';import {InputIndex} from '../src/index.mjs';
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import {createHash} from 'node:crypto';
+import {canonical} from '../src/portable-envelope.mjs';import {InputIndex,fileHash} from '../src/index.mjs';
 import {sealedTypeScriptManifest,prepareSealedTypeScriptSelectedView} from '../src/sealed-typescript-manifest.mjs';
 import {SEALED_TYPESCRIPT_SELECTION,captureSealedTypeScriptSelection,bindSealedTypeScriptSelection,invalidateSealedTypeScriptSelection,checkSealedTypeScriptSelectionInput,materializeSealedTypeScriptSelectedView} from '../src/sealed-typescript-tree.mjs';
 const patterns=()=>[...SEALED_TYPESCRIPT_SELECTION.sourcePatterns];
@@ -12,8 +12,8 @@ const withFixture=fn=>{const f=fixture();try{return fn(f);}finally{f.remove();}}
 const patch=(key,replace,fn)=>{const original=fs[key];fs[key]=replace(original);try{return fn();}finally{fs[key]=original;}};
 function legacy(f){const index=new InputIndex({root:f.root,plans:{preparation:{id:SEALED_TYPESCRIPT_SELECTION.planId,patterns:patterns(),sourcePatterns:patterns(),additivePatterns:['node_modules/**']}}},{trackGit:false,includeInstalled:true});index.coldScan();assert.equal(index.unavailable,null);return sealedTypeScriptManifest(f.root,Object.fromEntries(index.files));}
 test('metadata-first fixed selection is equivalent to the retained coldScan selector on controlled nonGit data',()=>withFixture(f=>{
- f.put('src/extra.tsx');f.put('declarations/generated.d.ts');f.put('node_modules/other/data.dat');const expected=legacy(f),result=prepareSealedTypeScriptSelectedView(f.options());assert.deepEqual(result.sourceFiles,expected);assert.equal(result.interpretation,'redue-typescript-selected-prepared-view@1');assert.equal(result.stageDirectoryInventory.interpretation,'redue-typescript-directory-inventory@1');
- assert(!fs.existsSync(path.join(result.root,'unselected.txt')));for(const flag of ['sourceNamespaceEquivalent','nativeViewVerified','sealed','reuseEligible'])assert.equal(result[flag],false);assert(Object.isFrozen(result.stageDirectoryInventory));
+ f.put('src/extra.tsx');f.put('declarations/generated.d.ts');f.put('node_modules/other/data.dat');f.put('notes.txt');const expected=legacy(f),result=prepareSealedTypeScriptSelectedView(f.options());assert.deepEqual(result.sourceFiles,expected);assert.equal(result.interpretation,'redue-typescript-selected-prepared-view@1');assert.equal(result.stageDirectoryInventory.interpretation,'redue-typescript-directory-inventory@1');
+ assert.equal(result.selectionDefinitionSha256,createHash('sha256').update(canonical(SEALED_TYPESCRIPT_SELECTION)).digest('hex'));assert(!result.sourceFiles.some(([rel])=>rel==='notes.txt'));assert(!fs.existsSync(path.join(result.root,'unselected.txt')));for(const flag of ['sourceNamespaceEquivalent','nativeViewVerified','sealed','reuseEligible'])assert.equal(result[flag],false);assert(Object.isFrozen(result.stageDirectoryInventory));
 }));
 test('only actual staged ancestors exist; unselected empty source directories are not claimed equivalent',()=>withFixture(f=>{
  fs.mkdirSync(path.join(f.root,'empty/nested'),{recursive:true});const result=prepareSealedTypeScriptSelectedView(f.options());assert(!fs.existsSync(path.join(result.root,'empty')));assert(result.stageDirectoryInventory.directories.some(([rel])=>rel==='src'));assert.equal(result.sourceNamespaceEquivalent,false);
@@ -102,4 +102,10 @@ test('late stage membership after complete staged inventory is caught by closing
 test('a completed private selection cannot be used for a second copy or new input guard',()=>withFixture(f=>{
  const capture=captureSealedTypeScriptSelection({root:f.root,parent:f.parent}),names=capture.candidates.map(([rel])=>rel).filter(rel=>rel!=='unselected.txt');bindSealedTypeScriptSelection(capture,names);const manifest=legacy(f);const result=materializeSealedTypeScriptSelectedView(capture,manifest);assert.equal(result.reuseEligible,false);
  assert.throws(()=>materializeSealedTypeScriptSelectedView(capture,manifest),{code:'TREE_SELECTION_OPTIONS'});assert.throws(()=>checkSealedTypeScriptSelectionInput(capture,names[0]),{code:'TREE_SELECTION_OPTIONS'});
+}));
+
+for(const kind of ['omitted-matching','extra-nonmatching'])test(`low-level ${kind} inputs cannot claim the fixed selector policy`,()=>withFixture(f=>{
+ f.put('notes.txt');const capture=captureSealedTypeScriptSelection({root:f.root,parent:f.parent}),names=kind==='omitted-matching'?['src/a.ts']:legacy(f).map(([rel])=>rel).concat('notes.txt').sort();bindSealedTypeScriptSelection(capture,names);
+ const manifest=sealedTypeScriptManifest(f.root,Object.fromEntries(names.map(rel=>[rel,fileHash(f.root,rel,true).hash]))),result=materializeSealedTypeScriptSelectedView(capture,manifest);
+ assert.equal(result.interpretation,'redue-typescript-declared-input-prepared-view@1');assert(!Object.hasOwn(result,'selectionDefinitionSha256'));assert.deepEqual(result.sourceFiles,manifest);assert.equal(result.sealed,false);assert.equal(result.reuseEligible,false);
 }));
