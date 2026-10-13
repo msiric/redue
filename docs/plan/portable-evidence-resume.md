@@ -6,7 +6,55 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree on `dev/portable-sealed-typescript`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — engineering entry/build observations; sealed authority pending
+## Current checkpoint — fresh pair build observed; native sealing still pending
+
+At 2026-10-13 05:08 UTC, integration `48d08bc` retains the independently reviewed
+same-process synthetic A/B pair, separate host H, fixed source renderer, restricted
+disabled policy, and three-build observation. The one new actual build at
+`de6e9f9` completed three attempted/returned/observed clang processes, all exit 0,
+without helper execution. Test 1473.771 ms / complete 1521.064 ms; outcome
+BUILT_NOT_EXECUTED. Private TAP SHA
+`9920e89cb82f8f559d1903beaeaaad6049a50bf0fd1800ffe28b58a6525fc766`;
+owner record SHA
+`b1da6a33199e411f0b25299405af0b8357d7021c9295a8e092ddba2203a21894`.
+Independent review `14c7f8a` verified those exact retained observations. The
+expired private preparation/build brands cannot be adopted from these records.
+
+Earlier engineering exchange remains distinct: four implemented assertions PASS,
+whole-base NOT_IMPLEMENTED, helper UNKNOWN, exit 74. None of these observations
+establish native Claude enforcement, a sealed compiler input tree, a portable
+origin or agent reuse. Historical UNKNOWN/NO-GO results remain below. The final
+third-file late-change/count correction has independent six-control review;
+source/currentness evidence is never a verification receipt.
+
+Next bounded work: a fresh same-process native whole-base canary supervisor using
+the existing supported Claude programmatic route. Root owns integration/policy;
+A owns the fixed result parser and private build currency verifier; C independently
+reviews the native/auth/effective-boundary prerequisites. The current C emitter
+has six rows, five implemented plus one explicitly NOT_IMPLEMENTED; nominal
+observations must remain overall UNKNOWN, not a fabricated complete PASS.
+No native dispatch occurs before the actual prerequisites pass.
+
+Hosted Claude's original six-check prerequisite stays CLOSED scoped PASS.
+The separate public-tool inventory dispatch was denied once by GitHub HTTP403
+("Must have admin rights to Repository"); zero jobs ran. The concrete normal UI
+owner-dispatch request remains pending, without retry or alternate transport.
+Copilot included four-credit Actions billing remains pending. Independent source
+review additionally identifies mutable-config/state authority, staged-tree write
+scope, and all-channel credential filtering gaps in its disabled proposal; billing
+confirmation alone cannot launch it. No repeated account request is made.
+
+G0 remains partial; current sealed G1, actual cross-agent/two-machine G2, final
+G3 and prepublication G4 remain incomplete. Day 0 is October 10 21:24 UTC;
+calibration October 13 21:24 UTC, without invented blocked hours or date reset.
+Alpha.11 is frozen/unpublished, SHA
+`f6e368bd8171412b301f3f5dee3ceebea14da3b3418968504a7a49428e5876a0`.
+The last registry read failed curl35; live tags were not rechecked and no auth/DNS
+cause is claimed. No producer trust, signing, publication, real configuration,
+pilot receipts, model or native enforcement changed. External field usage
+NOT STARTED; complete sealed-path economics and final candidate acceptance pending.
+
+## Historical checkpoint — engineering entry/build observations; sealed authority pending
 
 At 2026-10-13 03:43 UTC, integration `c6810f6` includes reviewed fixed source
 composition, engineering Node startup, helper build, and strict failure-preserving
