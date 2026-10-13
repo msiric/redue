@@ -57,6 +57,9 @@ export function verifySealedTypeScriptBaseExchangeAssets(build){
  try{const boundary=()=>{guard(JSON.stringify(verifySealedTypeScriptBaseExchangePair(record.pair))===JSON.stringify(record.initialPair)&&verifySealedTypeScriptSyntheticFixture(record.hostFixture).outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED');for(const [file,before] of record.roots)guard(JSON.stringify(rootIdentity(file))===JSON.stringify(before));};
   boundary();guard(verifySealedTypeScriptNativeAssetsBuild(record.hostBuild).outcome==='ASSETS_BUILD_CURRENTLY_OBSERVED');current(record.source);current(record.binary);boundary();
   guard(verifySealedTypeScriptNativeAssetsBuild(record.hostBuild).outcome==='ASSETS_BUILD_CURRENTLY_OBSERVED');current(record.source);current(record.binary);boundary();
+  // The last new-file reads may invalidate an earlier original-host check.
+  // Compose its late all-row barrier before the final new-row metadata barrier.
+  guard(verifySealedTypeScriptNativeAssetsBuild(record.hostBuild).outcome==='ASSETS_BUILD_CURRENTLY_OBSERVED');
   for(const row of [record.source,record.binary])namedCurrent(row);
   return freeze({schema:1,scope:'OBSERVED_BASE_EXCHANGE_BUILD_DATA_ONLY',outcome:'BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED',baseA:record.initialPair.baseA,baseB:record.initialPair.baseB,hostBase:record.roots[2][0],commands:[],sealed:false,reuseEligible:false});
  }catch{record.invalid=true;return unknown();}
