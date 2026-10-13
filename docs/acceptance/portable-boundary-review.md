@@ -7318,3 +7318,44 @@ getter/symbol refusal plus snapshot immutability. These are source/pure/mocked
 checks only, with no native/helper/C build, compiler, model, credential or CI
 operation. The caller must independently bind actual private assets, exact command,
 native tool IDs and lifecycle before interpreting any observed result.
+
+
+### Private collector and assets-verifier composition: preserved initial NO-GOs
+
+The initial private child collector/classifier source SHA256
+`1b537d858d75d1b1bb235f87c4ed2faa9d9d215030e4ae20bea487a8b2777d1b`
+has three independently reproduced lifecycle defects: a failed spawn followed by
+close marks reaped despite no observed process; stdout/stderr error events have
+no handler and escape instead of becoming bounded static uncertainty; and a
+close delivered after the fixed budget while timer callbacks remain queued is
+reported untimed. Three exact-source EventEmitter/fake-timer controls passed
+(45.30 ms), asserting these initial defects rather than falsely recording a
+successful safe implementation. They perform no actual child creation. The
+classifier separately withholds all-implemented observation on overflow/stderr
+and missing spawn/reap, while preserving complete validated FAIL from retained
+private prefix bytes. Raw bytes remain private parser input only; outer collection
+fields alone authenticate no native evidence.
+
+Root's later collector repair adds observed positive-PID spawn plus valid close
+for reaping, stream error handlers and a final performance clock check. Those
+repairs remain pending final independent regression review here. The initial
+final-clock subtraction still needs finite/non-reversing/exception checks so
+NaN/reversed samples cannot be labeled complete and a throwing final sample cannot
+escape the close handler. No collector native executable or actual helper launch
+is approved by this draft record.
+
+A's initial readonly third-asset verifier at 35b87ee, source SHA256
+`b2a12ce662cfed5b2b8ffff35290de1474b879aac6cbd8f3aa29778584d0db13`,
+correctly rejects serialized/prototype clones and privately binds original A/B/H.
+A separate composition NO-GO is reproduced: its last original-host-build currency
+check precedes the final new-source/binary hashing and pair/H boundary reads.
+If one of those later reads invalidates original host asset currency, the first
+verification still returns CURRENT; the next check reports UNKNOWN. Two exact
+whole-mock controls passed (49.32 ms), covering that negative schedule and clone
+non-adoption. The old verifier in this seam is a controlled currency predicate;
+this is not an actual SDK/Node file mutation or filesystem-enforcement experiment.
+Required repair: perform the final original-host-build verification after the
+last new-row hashes and boundary, then finish with BOTH new named-file/parent
+barriers. This combines the old verifier's own late all-row guard with the new
+rows without changing receipts, capabilities, body scopes or authority. Initial
+build facts remain historical and must not be rewritten by failed currency.
