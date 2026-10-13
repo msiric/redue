@@ -8,6 +8,9 @@ import {createHash,randomUUID} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {renderNativeDiagnosticAssets,sha} from './portable-native-diagnostic-assets.mjs';
 import {REVIEWED_CLAUDE_NATIVE,PINNED_READONLY_BASH_HEADS} from './portable-claude-native-profile.mjs';
+import {parsePortableJson} from '../../src/portable-envelope.mjs';
+import {interpretDirectNativeStdioProbeTrace} from './sealed-typescript-native-stdio-direct-trace.mjs';
+import {isNativeStdioDiagnosticData,nativeStdioDirectCommand} from './sealed-typescript-native-stdio-probe.mjs';
 export {PINNED_READONLY_BASH_HEADS} from './portable-claude-native-profile.mjs';
 export const LIMITS=Object.freeze({turns:4,totalMs:120000,cleanupMs:5000,lineBytes:65536,streamBytes:2*1024*1024});
 // Finite pinned187 EOn family closure: qQd(+m9i/f9i/Hkn), nto(+Ikn),
@@ -124,37 +127,107 @@ export function diagnosticOutcome(trace,{nativeExit=null,nativeSignal=null,timed
 }
 // Lexical mock seam only: the entrypoint cannot accept an alternate executable,
 // prompt, command or permission policy. No raw stdout/stderr is returned.
-export function collectNativeDiagnostic(create,{command,cwd,timeoutMs=115000,cleanupMs=5000,signal:abortSignal}={}) {
+export function collectNativeDiagnostic(create,options={}) {
+ return collectNativeDiagnosticProcess(create,options);
+}
+// A fixed transport seam, not a runnable native entrypoint or execution grant.
+// The trusted controller must separately establish actual current startup/build/
+// resource prerequisites before calling it. Protected activation is still checked
+// here; a settings/proposal JSON label never supplies effective enforcement.
+const directCollections=new WeakMap();
+export function collectDirectNativeStdioDiagnostic(create,{binding,activation,...limits}={}) {
+ if(!isNativeStdioDiagnosticData(binding)||interpretDirectNativeStdioProbeTrace([],binding,{}).reason!=='NATIVE_TRACE_INCOMPLETE')fail('DIAGNOSTIC_DIRECT_BINDING');
+ if(!activation||Object.getPrototypeOf(activation)!==Object.prototype||Reflect.ownKeys(activation).length!==2||
+  !['env','source'].every(k=>Object.hasOwn(Object.getOwnPropertyDescriptor(activation,k)??{},'value')))fail('DIAGNOSTIC_DIRECT_ACTIVATION');
+ requireNativeDiagnosticActivation(activation);
+ if(Object.keys(limits).some(k=>!['timeoutMs','cleanupMs','signal'].includes(k)))fail('DIAGNOSTIC_DIRECT_OPTIONS');
+ const fixedBinding=JSON.parse(JSON.stringify(binding));
+ return collectNativeDiagnosticProcess(create,{...limits,command:nativeStdioDirectCommand(binding.hostBase),cwd:binding.hostBase+'/prefix/native-probes'},fixedBinding);
+}
+// Consume the live same-process collection exactly once AFTER the controller's
+// post-close currentness checks. Copied/serialized/foreign records cannot adopt
+// it. Raw frames never leave the private map and are discarded even on failure.
+export function interpretCollectedDirectNativeStdioDiagnostic(collection,completion){
+ const retained=directCollections.get(collection);if(retained)directCollections.delete(collection);
+ if(!retained)return Object.freeze({...interpretDirectNativeStdioProbeTrace([],{},{}),reason:'COLLECTED_NATIVE_STDIO_CONTEXT_UNAVAILABLE'});
+ try{
+  const current=isNativeStdioDiagnosticData(completion)?completion:{};
+  const interpreted=interpretDirectNativeStdioProbeTrace(retained.events,retained.binding,{...current,
+   nativeExit:collection.native_exit_code,nativeSignal:collection.native_signal,timedOut:collection.timed_out,reaped:collection.owned_native_reaped});
+  return collection.transport_error?Object.freeze({...interpreted,outcome:'UNKNOWN',reason:collection.transport_error}):interpreted;
+ }finally{retained.events.length=0;}
+}
+function parseDirectNativeFrame(line){
+ // Native cost/timing fields can be fractional. Check the actual JSON first,
+ // then reuse the existing strict key/Unicode/depth parser with ONLY number
+ // tokens neutralized outside strings. Duplicate decoded keys stay rejected;
+ // actual numeric semantics remain checked by the fixed trace interpreter.
+ const source=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(line),value=JSON.parse(source);
+ const tokens=/"(?:[^"\\\u0000-\u001f]|\\(?:["\\/bfnrt]|u[0-9a-fA-F]{4}))*"|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/g;
+ parsePortableJson(source.replace(tokens,token=>token[0]==='"'?token:'0'));
+ return value;
+}
+function collectNativeDiagnosticProcess(create,{command,cwd,timeoutMs=115000,cleanupMs=5000,signal:abortSignal}={},directBinding=null) {
  if(!Number.isInteger(timeoutMs)||timeoutMs<1||timeoutMs>115000||!Number.isInteger(cleanupMs)||cleanupMs<1||cleanupMs>5000)fail('DIAGNOSTIC_LIMIT');
  return new Promise(resolve=>{
-  const trace=createNativeDiagnosticTrace({command,cwd});let child,pending=Buffer.alloc(0),total=0,done=false,timedOut=false,ioError=null,reaped=false,killTimer,spawnObserved=false;
-  const started=performance.now();
-  const stop=()=>{if(child&&child.exitCode===null&&child.signalCode===null){try{child.kill('SIGTERM');}catch{}
-    if(!killTimer)killTimer=setTimeout(()=>{if(!done&&child.exitCode===null&&child.signalCode===null)try{child.kill('SIGKILL');}catch{}},Math.min(500,cleanupMs));}};
+  const events=[];let directError=null;
+  const trace=directBinding?{consume:value=>{if(events.length>=64){directError??='NATIVE_FRAME_LIMIT';return;}events.push(value);},snapshot:()=>({error:directError})}:createNativeDiagnosticTrace({command,cwd});
+  let child,pending=Buffer.alloc(0),total=0,done=false,timedOut=false,ioError=null,reaped=false,killTimer,spawnObserved=false;
+  const started=performance.now(),workEnd=started+timeoutMs,totalEnd=workEnd+cleanupMs;
+  let lastClock=started,stopping=false,killRequested=false,finishing=false;
+  const latchDeadline=()=>{
+   const now=performance.now();
+   if(!Number.isFinite(now)||!Number.isFinite(lastClock)||now<lastClock){ioError??='NATIVE_CLOCK_UNKNOWN';timedOut=true;return null;}
+   lastClock=now;if(now>=workEnd)timedOut=true;return now;
+  };
+  const alive=()=>child&&child.exitCode===null&&child.signalCode===null;
+  const forceKill=()=>{if(!done&&!killRequested&&alive()){killRequested=true;try{child.kill('SIGKILL');}catch{}}};
+  const stop=()=>{
+   if(done||stopping)return;stopping=true;const stoppedAt=latchDeadline();
+   const cleanupEnd=stoppedAt===null?null:Math.min(totalEnd,stoppedAt+cleanupMs);
+   if(alive())try{child.kill('SIGTERM');}catch{}
+   // Cleanup is capped from the first stop AND the original total deadline.
+   // Schedule escalation before its end, even for the supported1ms cap. Delayed
+   // callbacks also perform a final kill attempt; they never invent a close.
+   const now=latchDeadline(),remaining=now===null||cleanupEnd===null?0:Math.max(0,cleanupEnd-now);
+   clearTimeout(lastWait);lastWait=setTimeout(()=>{forceKill();finish(null,null);},remaining);
+   const escalation=Math.min(500,Math.floor(remaining/2));
+   if(escalation<1)forceKill();else killTimer=setTimeout(forceKill,escalation);
+  };
   const finish=(exit,signal,observed=false)=>{
-   if(done)return;done=true;abortSignal?.removeEventListener('abort',cancel);clearTimeout(deadline);clearTimeout(killTimer);clearTimeout(lastWait);
+   if(done||finishing)return;finishing=true;const finished=latchDeadline();if(!observed)forceKill();
+   done=true;abortSignal?.removeEventListener('abort',cancel);clearTimeout(deadline);clearTimeout(killTimer);clearTimeout(lastWait);
    if(pending.length)ioError??='NATIVE_STREAM_INCOMPLETE';const snapshot=trace.snapshot();snapshot.error??=ioError;
-   resolve({trace:snapshot,native_exit_code:Number.isInteger(exit)?exit:null,native_signal:SIGNALS.has(signal)?signal:null,
-    native_process_spawn_observed:spawnObserved,native_exit_observed:observed,owned_native_reaped:reaped,timed_out:timedOut,milliseconds:performance.now()-started,
-    stdout_bytes:total,raw_stdout_retained:false,raw_stderr_retained:false});
+   const processReport={native_exit_code:Number.isInteger(exit)?exit:null,native_signal:SIGNALS.has(signal)?signal:null,
+    native_process_spawn_observed:spawnObserved,native_exit_observed:observed,owned_native_reaped:reaped,timed_out:timedOut,milliseconds:finished===null?null:finished-started,
+    stdout_bytes:total,raw_stdout_retained:false,raw_stderr_retained:false};
+   if(!directBinding){resolve({trace:snapshot,...processReport});return;}
+   const invalidClose=observed&&(!(exit===null||Number.isInteger(exit)&&exit>=0&&exit<=255)||!(signal===null||SIGNALS.has(signal))||exit!==null&&signal!==null);
+   const collected=Object.freeze({scope:'LIVE_SINGLE_DIRECT_NATIVE_STDIO_TRANSPORT_ONLY',...processReport,
+    transport_error:snapshot.error??(invalidClose?'NATIVE_CLOSE_UNSUPPORTED':!spawnObserved?'NATIVE_SPAWN_NOT_OBSERVED':null),
+    raw_stdout_retained:true,raw_frames_returned:false,raw_frames_persisted:false,
+    collection_phase:'AWAITING_ONE_POST_CLOSE_INTERPRETATION',nativeEnforcement:'NOT_ESTABLISHED',sealed:false,reuseEligible:false});
+   directCollections.set(collected,{events,binding:directBinding});resolve(collected);
   };
   const cancel=()=>{ioError??='NATIVE_CANCELLED';stop();};
   const deadline=setTimeout(()=>{timedOut=true;stop();},timeoutMs);
-  const lastWait=setTimeout(()=>finish(null,null),timeoutMs+cleanupMs);
+  let lastWait=setTimeout(()=>{forceKill();finish(null,null);},timeoutMs+cleanupMs);
   if(abortSignal?.aborted){ioError='NATIVE_CANCELLED';finish(null,null);return;}abortSignal?.addEventListener('abort',cancel,{once:true});
+  if(latchDeadline()===null||timedOut){finish(null,null);return;}
   try {
-   child=create();child.on('spawn',()=>{spawnObserved=true;});child.stdout.on('data',chunk=>{
-    if(done)return;if(!Buffer.isBuffer(chunk))chunk=Buffer.from(chunk);
+   child=create();child.on('spawn',()=>{spawnObserved=true;if(stopping)forceKill();else if(latchDeadline()===null||timedOut)stop();});child.stdout.on('data',chunk=>{
+    if(done)return;if(latchDeadline()===null||timedOut){stop();return;}if(!Buffer.isBuffer(chunk))chunk=Buffer.from(chunk);
     total+=chunk.length;if(total>LIMITS.streamBytes||chunk.length>LIMITS.lineBytes-pending.length){ioError??='NATIVE_STREAM_LIMIT';stop();return;}
     pending=Buffer.concat([pending,chunk]);let newline;
     while((newline=pending.indexOf(10))!==-1){const line=pending.subarray(0,newline);pending=pending.subarray(newline+1);
-     try{trace.consume(JSON.parse(line.toString('utf8')));}catch{ioError??='NATIVE_STREAM_MALFORMED';}
+     try{trace.consume(directBinding?parseDirectNativeFrame(line):JSON.parse(line.toString('utf8')));}catch{ioError??='NATIVE_STREAM_MALFORMED';}
      if(ioError||trace.snapshot().error){stop();return;}
     }
    });
-   let stderrBytes=0;child.stderr.on('data',b=>{stderrBytes+=b.length;if(stderrBytes>LIMITS.streamBytes){ioError??='NATIVE_STDERR_LIMIT';stop();}});child.on('error',()=>{ioError??='NATIVE_START_FAILURE';finish(null,null);});
+   let stderrBytes=0;child.stderr.on('data',b=>{stderrBytes+=b.length;if(stderrBytes>LIMITS.streamBytes){ioError??='NATIVE_STDERR_LIMIT';stop();}else if(directBinding&&stderrBytes){ioError??='NATIVE_STDERR_PRESENT';stop();}});child.on('error',()=>{ioError??='NATIVE_START_FAILURE';stop();});
    child.on('close',(exit,signal)=>{reaped=true;finish(exit,signal,true);});
-  }catch{ioError??='NATIVE_START_FAILURE';finish(null,null);}
+   if(stopping)forceKill();else if(latchDeadline()===null||timedOut)stop();
+  }catch{ioError??='NATIVE_START_FAILURE';if(child)stop();else finish(null,null);}
  });
 }
 export function buildDiagnosticSettings({base,node,native}){
