@@ -7,6 +7,8 @@ import {createHash} from 'node:crypto';
 export const PREPARATION_BYTES=8*1024*1024;
 export const PREPARATION_REASON_CODES=Object.freeze(['TREE_PLATFORM','TREE_PATH','TREE_CHANGED','TREE_OPTIONS','TREE_MANIFEST','TREE_FILE','TREE_LIMIT','TREE_DIGEST','TREE_SYMLINK','TREE_PLACEMENT','TREE_OWNERSHIP','TREE_PARENT_OCCUPIED','TREE_UNAVAILABLE','TREE_DIRECTORY_MANIFEST','TREE_DIRECTORY_LIMIT','TREE_DIRECTORY_CHANGED','TREE_DIRECTORY_COVERAGE',
   'PREPARATION_ARGUMENTS','PREPARATION_INPUT','PREPARATION_INPUT_SIZE','PREPARATION_SCHEMA','PREPARATION_OUTPUT','PREPARATION_FAILED']);
+export const SELECTED_PREPARATION_REASON_CODES=Object.freeze([...PREPARATION_REASON_CODES,
+  'TREE_SELECTION_OPTIONS','TREE_SELECTION_CHANGED','TREE_SELECTION_UNSUPPORTED','TREE_SELECTION_UNAVAILABLE']);
 const knownCodes=new Set(PREPARATION_REASON_CODES);
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const safeCode=error=>knownCodes.has(error?.code)?error.code:'PREPARATION_FAILED';
@@ -15,6 +17,12 @@ const safeCode=error=>knownCodes.has(error?.code)?error.code:'PREPARATION_FAILED
 // fields (or an explicit fourth directory inventory), string roots and string pairs. No generic object parser,
 // reviver, getters, executable values or duplicate-key last-writer behavior.
 export function parsePreparationInput(bytes){
+  return parseInput(bytes,false);
+}
+export function parseSelectedPreparationInput(bytes){
+  return parseInput(bytes,true);
+}
+function parseInput(bytes,selected){
   if(!(bytes instanceof Uint8Array)||bytes.byteLength>PREPARATION_BYTES)fail('PREPARATION_INPUT_SIZE');
   let source;try{source=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(bytes);}catch{fail('PREPARATION_INPUT');}
   let cursor=0;const white=()=>{while(/[\x20\t\n\r]/.test(source[cursor]??'\0'))cursor++;};
@@ -39,9 +47,9 @@ export function parsePreparationInput(bytes){
     for(;;){const key=string(24);if(!keys.includes(key)||seen.has(key))fail('PREPARATION_SCHEMA');seen.add(key);require(':');value[key]=key==='directories'?inventoryRows():['schema','directoryCount','entryCount'].includes(key)?number():string(64);white();if(source[cursor]==='}'){cursor++;break;}require(',');}
     if(seen.size!==6)fail('PREPARATION_SCHEMA');try{return validateSealedTypeScriptDirectoryInventory(value);}catch{fail('PREPARATION_SCHEMA');}};
   require('{');const result=Object.create(null),seen=new Set();
-  for(;;){const key=string(24);if(!['root','manifest','parent','directoryInventory'].includes(key)||seen.has(key))fail('PREPARATION_SCHEMA');seen.add(key);require(':');
+  for(;;){const key=string(24);if(!(selected?['root','parent']:['root','manifest','parent','directoryInventory']).includes(key)||seen.has(key))fail('PREPARATION_SCHEMA');seen.add(key);require(':');
     result[key]=key==='manifest'?manifest():key==='directoryInventory'?inventory():string();white();if(source[cursor]==='}'){cursor++;break;}require(',');}
-  white();if(cursor!==source.length||(!['root','parent','manifest'].every(key=>seen.has(key))||seen.size!==3&&seen.size!==4))fail('PREPARATION_SCHEMA');return result;
+  white();if(cursor!==source.length||(selected?seen.size!==2:!['root','parent','manifest'].every(key=>seen.has(key))||seen.size!==3&&seen.size!==4))fail('PREPARATION_SCHEMA');return result;
 }
 export async function consumePreparationInput(input){
   const buffer=Buffer.alloc(PREPARATION_BYTES);let length=0;
