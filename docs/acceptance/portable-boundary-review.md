@@ -6806,3 +6806,30 @@ owned partial location when preparation throws/returns UNKNOWN. Preserve only
 the internally returned, fixed-geometry base in the static UNKNOWN owner record;
 never caller labels, token adoption or partial-fixture revival. No changed actual
 wrapper attempt is authorized by the leaf's source-only GO.
+
+Wrapper correction source/mock GOaf101dc,
+testSHAc36aa7823dd1854335995784234eae007f920ffdc10c38afd699d87da4318c9a.
+Only the internally returned fixed-hex bootstrap base is retained before prepare;
+thrown/UNKNOWN preparation keeps that location in static UNKNOWN owner records,
+without leaf-gate bypass, token adoption or partial-fixture revival. Two independent
+whole-wrapper memory-FS mocks passed2/2 in62.42ms, verifying both failure forms,
+exact saved bytes/hash and zero builds/authority. Initial reviewer Function seam
+included a test-only import.meta suffix and failed compilation before callbacks;
+limiting the seam to the exact driver section repaired only test preparation.
+
+Engineering exchange proposald7078ec is source/mock NO-GO before actual use.
+Its fixed source-derived scope and engineering-only labels do not establish native
+enforcement. Valid helper FAIL output is currently parsed only after a process
+guard; later stderr/signal/exit uncertainty can discard genuine failure rows.
+JSON.parse overwrites duplicate keys, and schema accepts contradictory row
+reason/result/attempted and header relations. Reuse strict bounded duplicate-key
+parsing and pinned emitter-consistent relations before retention, then latch valid
+FAIL separately from process/currentness/persistence uncertainty. Record failure
+must still disclose an already-validated failure without claiming saved bytes.
+Three independent exact-section synthetic controls passed3/3 in44.56ms, reproducing
+contradictory admission, duplicate overwrite and lost valid failure on stderr.
+No real helper/process/sandbox action occurred. File binding also needs the existing
+pre-read FD identity and before/after physical parent lineage pattern, with fixed
+fresh base/checkout/home identity checks around generation/application. These
+checks remain trusted/quiescent, not atomic hostile-parent confinement. No scope,
+grant, sandbox semantics or disabled/native-authority change is proposed.
