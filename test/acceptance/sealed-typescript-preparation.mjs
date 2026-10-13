@@ -7,6 +7,7 @@ import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {sealedPreparationProfile} from './sealed-typescript-preparation-profile.mjs';
 import {canonical} from '../../src/portable-envelope.mjs';
+import {validateSealedTypeScriptDirectoryInventory} from '../../src/sealed-typescript-tree.mjs';
 import {PREPARATION_REASON_CODES} from './sealed-typescript-preparation-child.mjs';
 export const SEALED_PREPARATION_LIMITS=Object.freeze({milliseconds:120000,inputBytes:8*1024*1024,outputBytes:8*1024*1024});
 const fail=code=>{throw Object.assign(Error(code),{code});};
@@ -51,10 +52,12 @@ function binding(proposal){
     proposal.code.some(([file,digest])=>hash(fs.readFileSync(file))!==digest))fail('PREPARATION_BINDING_CHANGED');
   return canonical({directories,node,code:proposal.code});
 }
-function treeOutput(tree,proposal,manifest){
+function treeOutput(tree,proposal,manifest,directoryInventory=null){
+  const directoryKeys=directoryInventory?['sourceDirectoryInventoryDigest','materializedDirectoryInventoryDigest','directoryCount','directoryEntryCount']:[];
   return exact(tree,['schema','interpretation','root','sourceManifestDigest','materializedManifestDigest','fileCount','physicalDigest',
-    'sourceAliasGroupsDigest','sourceAliasGroupCount','sourceAliasEntryCount','bytes','identity','sealed','reuseEligible'])&&
-    tree.schema===1&&tree.interpretation==='redue-typescript-materialization-summary@2'&&tree.sealed===false&&tree.reuseEligible===false&&
+    'sourceAliasGroupsDigest','sourceAliasGroupCount','sourceAliasEntryCount','bytes','identity','sealed','reuseEligible',...directoryKeys])&&
+    tree.schema===1&&tree.interpretation===(directoryInventory?'redue-typescript-materialization-summary@3':'redue-typescript-materialization-summary@2')&&
+    (!directoryInventory||tree.sourceDirectoryInventoryDigest===directoryInventory.digest&&tree.materializedDirectoryInventoryDigest===directoryInventory.digest&&tree.directoryCount===directoryInventory.directoryCount&&tree.directoryEntryCount===directoryInventory.entryCount)&&tree.sealed===false&&tree.reuseEligible===false&&
     typeof tree.root==='string'&&path.dirname(tree.root)===proposal.parent&&
     /^redue-materialization-[A-Za-z0-9]{6}$/.test(path.basename(tree.root))&&
     Number.isSafeInteger(tree.bytes)&&tree.bytes>=0&&tree.bytes<=512*1024*1024&&
@@ -88,13 +91,15 @@ export function prepareSealedTypeScriptInputs(options){
       sealed:false,executable:false,reuseEligible:false,elapsedMs:elapsed,...value});
   };
   remaining();
-  if(!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==3||
-    !['source','parent','manifest'].every(key=>Object.hasOwn(options,key)&&
+  const fullDirectories=!!options&&Object.hasOwn(options,'directoryInventory'),optionKeys=['source','parent','manifest',...(fullDirectories?['directoryInventory']:[])];
+  if(!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==optionKeys.length||
+    !optionKeys.every(key=>Object.hasOwn(options,key)&&
       Object.hasOwn(Object.getOwnPropertyDescriptor(options,key),'value')))fail('PREPARATION_OPTIONS');
   const {source,parent}=options,manifest=preparationDataManifest(options.manifest);
+  let directoryInventory=null;try{if(fullDirectories)directoryInventory=validateSealedTypeScriptDirectoryInventory(options.directoryInventory);}catch{fail('PREPARATION_SCHEMA');}
   const proposal=sealedPreparationProfile({source,parent});
   remaining();
-  const input=JSON.stringify({root:proposal.source,parent:proposal.parent,manifest});
+  const input=JSON.stringify({root:proposal.source,parent:proposal.parent,manifest,...(directoryInventory?{directoryInventory}:{})});
   if(Buffer.byteLength(input)>SEALED_PREPARATION_LIMITS.inputBytes)fail('PREPARATION_INPUT_SIZE');
   // Trusted code/runtime selection is fixed, outside the source/stage write
   // authority. Preserve audit hashes and refuse any changed code before launch.
@@ -116,10 +121,10 @@ export function prepareSealedTypeScriptInputs(options){
     // Fixed child emits exactly one stringify frame. Re-encoding detects
     // duplicate fields and unexpected framing before any result is admitted.
     if(JSON.stringify(output)+'\n'!==child.stdout)fail('PREPARATION_OUTPUT_UNKNOWN');
-    if(child.status===74&&exact(output,['schema','ok','reason_code'])&&output.schema===3&&output.ok===false&&
+    if(child.status===74&&exact(output,['schema','ok','reason_code'])&&output.schema===(directoryInventory?4:3)&&output.ok===false&&
       PREPARATION_REASON_CODES.includes(output.reason_code))return result({...audit,outcome:'REFUSED',reason:output.reason_code});
-    if(child.status!==0||!exact(output,['schema','ok','materialization'])||output.schema!==3||output.ok!==true||
-      !treeOutput(output.materialization,proposal,manifest))fail('PREPARATION_OUTPUT_UNKNOWN');
+    if(child.status!==0||!exact(output,['schema','ok','materialization'])||output.schema!==(directoryInventory?4:3)||output.ok!==true||
+      !treeOutput(output.materialization,proposal,manifest,directoryInventory))fail('PREPARATION_OUTPUT_UNKNOWN');
     const tree=output.materialization;
     const stage=fs.lstatSync(tree.root,{bigint:true});
     if(binding(proposal)!==before||!stage.isDirectory()||stage.isSymbolicLink()||stage.uid!==BigInt(process.getuid())||

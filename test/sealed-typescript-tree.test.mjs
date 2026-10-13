@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import {createHash} from 'node:crypto';
-import {materializeSealedTypeScriptTree,TYPESCRIPT_TREE_LIMITS} from '../src/sealed-typescript-tree.mjs';
+import {materializeSealedTypeScriptTree,materializeSealedTypeScriptTreeWithDirectories,captureSealedTypeScriptDirectoryInventory,validateSealedTypeScriptDirectoryInventory,TYPESCRIPT_TREE_LIMITS} from '../src/sealed-typescript-tree.mjs';
 import {canonical} from '../src/portable-envelope.mjs';
 const hash=value=>createHash('sha256').update(value).digest('hex');
 const supported={skip:typeof process.getuid==='function'&&fs.constants.O_NOFOLLOW!==undefined?false:'No reviewed no-follow/UID file primitives'};
@@ -243,4 +243,125 @@ test('ephemeral copies need no per-file fsync and still independently read back 
       const result=materializeSealedTypeScriptTree({root:f.root,parent:f.parent,manifest});assert.deepEqual(result.sourceFiles,manifest);assert.deepEqual(result.materializedFiles,manifest);assert.equal(result.sealed,false);assert.equal(result.reuseEligible,false);
     }));
   assert.equal(synchronizations,0);assert.equal(copiedOpens,manifest.length*2,'each fresh copy is fully hashed after copying and again before publication');
+}));
+
+// @3 is an explicit locally derived complete directory/leaf inventory. It is
+// still trusted/quiescent materialization, not hostile-writer read confinement.
+const inventory=directories=>({schema:1,interpretation:'redue-typescript-directory-inventory@1',directories,
+  digest:hash(canonical({interpretation:'redue-typescript-directory-inventory@1',directories})),directoryCount:directories.length,entryCount:directories.reduce((n,[,entries])=>n+entries.length,0)});
+const fullOptions=(f,names)=>({root:f.root,parent:f.parent,manifest:f.rows(names),directoryInventory:captureSealedTypeScriptDirectoryInventory(f.root)});
+test('@3 preserves complete directory names/types including nested empty directories separately from bytes',supported,()=>withFixture(f=>{
+ f.write('src/a.ts');fs.mkdirSync(path.join(f.root,'empty/nested'),{recursive:true});const options=fullOptions(f,['src/a.ts']),result=materializeSealedTypeScriptTreeWithDirectories(options);
+ assert.equal(result.interpretation,'redue-typescript-materialization@3');assert.deepEqual(result.sourceDirectories,[['',[['empty','directory'],['src','directory']]],['empty',[['nested','directory']]],['empty/nested',[]],['src',[['a.ts','file']]]]);
+ assert.deepEqual(result.materializedDirectories,result.sourceDirectories);assert.equal(result.directoryCount,4);assert.equal(result.directoryEntryCount,4);
+ assert.equal(result.sourceDirectoryInventoryDigest,options.directoryInventory.digest);assert.equal(result.materializedDirectoryInventoryDigest,options.directoryInventory.digest);assert.notEqual(result.sourceDirectoryInventoryDigest,result.sourceManifestDigest);
+ assert(fs.statSync(path.join(result.root,'empty/nested')).isDirectory());assert(Object.isFrozen(result.sourceDirectories[0][1]));assert.equal(result.sealed,false);assert.equal(result.reuseEligible,false);
+}));
+test('@2 remains file-only and cannot silently adopt full directory inventory',supported,()=>withFixture(f=>{
+ f.write('a.ts');fs.mkdirSync(path.join(f.root,'empty'));const options=fullOptions(f,['a.ts']);assert.throws(()=>materializeSealedTypeScriptTree(options),{code:'TREE_OPTIONS'});
+ const {directoryInventory,...old}=options,result=materializeSealedTypeScriptTree(old);assert.equal(result.interpretation,'redue-typescript-materialization@2');assert(!Object.hasOwn(result,'sourceDirectories'));assert(!fs.existsSync(path.join(result.root,'empty')));
+}));
+test('@3 incomplete declared leaf coverage refuses before source bodies or stage creation',supported,()=>withFixture(f=>{
+ f.write('a.ts');f.write('.git/config','SYNTHETIC_NONSECRET_NOT_TO_BE_READ');const options=fullOptions(f,['a.ts']);let bodyOpens=0;
+ patch('openSync',original=>(file,...args)=>{if(typeof file==='string'&&file.startsWith(f.root+'/'))bodyOpens++;return original(file,...args);},()=>assert.throws(()=>materializeSealedTypeScriptTreeWithDirectories(options),{code:'TREE_DIRECTORY_COVERAGE'}));
+ assert.equal(bodyOpens,0);assert.deepEqual(fs.readdirSync(f.parent),[]);
+}));
+test('@3 directory-only changes alter directory identity without changing selected file bytes',supported,()=>withFixture(f=>{
+ f.write('a.ts');const options=fullOptions(f,['a.ts']);fs.mkdirSync(path.join(f.root,'empty'));assert.notEqual(captureSealedTypeScriptDirectoryInventory(f.root).digest,options.directoryInventory.digest);
+ assert.throws(()=>materializeSealedTypeScriptTreeWithDirectories(options),{code:'TREE_DIRECTORY_CHANGED'});assert.deepEqual(fs.readdirSync(f.parent),[]);
+}));
+test('directory inventory validates canonical topology, ordering and exact data shapes before filesystem use',()=>{
+ const good=inventory([['',[['a.ts','file'],['d','directory']]],['d',[]]]);assert.deepEqual(validateSealedTypeScriptDirectoryInventory(good),good);
+ const bad=[{...good,schema:2},{...good,interpretation:'redue-typescript-directory-inventory@0'},{...good,extra:true},{...good,directoryCount:1},{...good,entryCount:1},{...good,digest:'a'.repeat(64)},
+  inventory([]),inventory([['d',[]]]),inventory([['',[]],['d',[]]]),inventory([['',[['d','directory']]]]),inventory([['',[['d','file']]],['d',[]]]),
+  inventory([['',[['z','file'],['a','file']]]]),inventory([['',[['a','file'],['a','file']]]]),inventory([['',[['x','directory']]],['x',[]],['x',[]]]),
+  inventory([['',[['x','pipe']]]]),inventory([['',[['../x','file']]]]),inventory([['',[['a/b','file']]]]),inventory([['',[['a\\b','file']]]]),inventory([['',[['x\0','file']]]]),{...inventory([['',[]]]),directories:[['',[['\ud800','file']]]],entryCount:1}];
+ for(const value of bad)assert.throws(()=>validateSealedTypeScriptDirectoryInventory(value),{code:'TREE_DIRECTORY_MANIFEST'});
+});
+test('directory inventory never invokes accessors or accepts inherited/sparse/custom arrays',()=>{
+ const good=inventory([['',[]]]);let invoked=0;const getter={...good};Object.defineProperty(getter,'directories',{get(){invoked++;return good.directories;}});
+ const nested=inventory([['',[]]]);Object.defineProperty(nested.directories[0],'0',{get(){invoked++;return'';}});
+ const inherited=Object.assign(Object.create({trust:true}),good),sparse={...good,directories:new Array(1)},custom={...good,directories:Object.assign([['',[]]],{other:true})};
+ for(const value of [getter,nested,inherited,sparse,custom])assert.throws(()=>validateSealedTypeScriptDirectoryInventory(value),{code:'TREE_DIRECTORY_MANIFEST'});assert.equal(invoked,0);
+});
+test('metadata capture never opens file contents or follows unsupported symbolic leaves',supported,()=>withFixture(f=>{
+ f.write('a.ts');fs.symlinkSync('/NONSECRET-OUTSIDE',path.join(f.root,'alias'));let opens=0;
+ const result=patch('openSync',original=>(...args)=>{opens++;return original(...args);},()=>captureSealedTypeScriptDirectoryInventory(f.root));
+ assert.equal(opens,0);assert.deepEqual(result.directories,[['',[['a.ts','file'],['alias','symlink']]]]);assert(Object.isFrozen(result));
+ assert.throws(()=>materializeSealedTypeScriptTreeWithDirectories({root:f.root,parent:f.parent,manifest:[...f.rows(['a.ts']),['alias','a'.repeat(64)]],directoryInventory:result}),{code:'TREE_SYMLINK'});
+}));
+for(const operation of ['opendirSync','lstatSync','realpathSync'])test(`inventory ${operation} permission denial is never treated as absence`,supported,()=>withFixture(f=>{
+ f.write('a.ts');patch(operation,original=>(file,...args)=>{if(file===f.root)throw Object.assign(Error('NONSECRET'),{code:'EPERM'});return original(file,...args);},()=>assert.throws(()=>captureSealedTypeScriptDirectoryInventory(f.root),{code:'TREE_UNAVAILABLE'}));
+}));
+test('directory symlink substitution and duplicate physical directories are refused',supported,()=>withFixture(f=>{
+ f.write('a.ts');fs.mkdirSync(path.join(f.root,'empty'));const options=fullOptions(f,['a.ts']);const empty=path.join(f.root,'empty');fs.rmdirSync(empty);fs.symlinkSync(f.base,empty);
+ assert.throws(()=>materializeSealedTypeScriptTreeWithDirectories(options),{code:'TREE_DIRECTORY_CHANGED'});assert.deepEqual(fs.readdirSync(f.parent),[]);
+ fs.unlinkSync(empty);fs.mkdirSync(empty);fs.mkdirSync(path.join(f.root,'other'));const originalStat=fs.lstatSync(empty,{bigint:true});
+ patch('lstatSync',original=>(file,...args)=>file===path.join(f.root,'other')?originalStat:original(file,...args),()=>assert.throws(()=>captureSealedTypeScriptDirectoryInventory(f.root),{code:'TREE_DIRECTORY_CHANGED'}));
+}));
+test('inventory iteration order is not authority and harmless reordering yields the same digest',supported,()=>withFixture(f=>{
+ f.write('z');f.write('a');fs.mkdirSync(path.join(f.root,'empty'));const before=captureSealedTypeScriptDirectoryInventory(f.root),options=fullOptions(f,['a','z']);
+ patch('opendirSync',original=>(file,...args)=>{const d=original(file,...args);if(file!==f.root)return d;const rows=[];let row;while((row=d.readSync())!==null)rows.push(row);rows.reverse();let i=0;return{readSync:()=>rows[i++]??null,closeSync:()=>d.closeSync()};},()=>{
+  // The synthetic order alternates, while directory names/types remain fixed.
+  assert.deepEqual(captureSealedTypeScriptDirectoryInventory(f.root),before);
+ });
+ assert.equal(materializeSealedTypeScriptTreeWithDirectories(options).sourceDirectoryInventoryDigest,before.digest);
+}));
+for(const mutation of ['add','remove','rename','restore'])test(`@3 detects ${mutation} directory membership during file reads`,supported,()=>withFixture(f=>{
+ f.write('a.ts');fs.mkdirSync(path.join(f.root,'empty'));const options=fullOptions(f,['a.ts']);let changed=false;
+ patch('readSync',original=>(...args)=>{const n=original(...args);if(!changed){changed=true;const empty=path.join(f.root,'empty');if(mutation==='add')fs.mkdirSync(path.join(f.root,'new'));if(mutation==='remove')fs.rmdirSync(empty);if(mutation==='rename')fs.renameSync(empty,empty+'2');if(mutation==='restore'){fs.mkdirSync(path.join(f.root,'transient'));fs.rmdirSync(path.join(f.root,'transient'));}}return n;},()=>assert.throws(()=>materializeSealedTypeScriptTreeWithDirectories(options),{code:'TREE_DIRECTORY_CHANGED'}));
+ assert(changed);assert.deepEqual(fs.readdirSync(f.parent),[]);
+}));
+test('@3 source empty-directory replacement with identical membership is detected',supported,()=>withFixture(f=>{
+ f.write('a.ts');fs.mkdirSync(path.join(f.root,'empty'));const options=fullOptions(f,['a.ts']);let changed=false;
+ patch('readSync',original=>(...args)=>{const n=original(...args);if(!changed){changed=true;const empty=path.join(f.root,'empty');fs.renameSync(empty,path.join(f.base,'retained-empty'));fs.mkdirSync(empty);}return n;},()=>assert.throws(()=>materializeSealedTypeScriptTreeWithDirectories(options),{code:'TREE_DIRECTORY_CHANGED'}));assert(changed);
+}));
+for(const mutation of ['remove','extra','replace'])test(`@3 detects ${mutation} staged empty directory and retains partial stage`,supported,()=>withFixture(f=>{
+ f.write('a.ts');fs.mkdirSync(path.join(f.root,'empty'));const options=fullOptions(f,['a.ts']);let changed=false;
+ patch('fchmodSync',original=>(...args)=>{const n=original(...args);if(!changed){changed=true;const stage=path.join(f.parent,fs.readdirSync(f.parent)[0]),empty=path.join(stage,'empty');if(mutation==='remove')fs.rmdirSync(empty);if(mutation==='extra')fs.mkdirSync(path.join(stage,'extra'));if(mutation==='replace'){fs.renameSync(empty,path.join(f.base,'retained-stage-empty'));fs.mkdirSync(empty,{mode:0o700});}}return n;},()=>assert.throws(()=>materializeSealedTypeScriptTreeWithDirectories(options),error=>['TREE_CHANGED','TREE_DIRECTORY_CHANGED','TREE_UNAVAILABLE'].includes(error.code)));assert(changed);assert.equal(fs.readdirSync(f.parent).length,1);
+}));
+test('inventory enumeration closes its descriptor on read failure and does not accept partial rows',supported,()=>withFixture(f=>{
+ f.write('a.ts');let closed=0;patch('opendirSync',original=>(file,...args)=>{const d=original(file,...args);if(file!==f.root)return d;return{readSync(){throw Object.assign(Error('READ'),{code:'EACCES'});},closeSync(){closed++;return d.closeSync();}};},()=>assert.throws(()=>captureSealedTypeScriptDirectoryInventory(f.root),{code:'TREE_UNAVAILABLE'}));assert.equal(closed,1);
+}));
+test('inventory count overflow is bounded without body reads and closes the iterator',supported,()=>withFixture(f=>{
+ f.write('a.ts');let calls=0,closed=0;patch('opendirSync',original=>(file,...args)=>{if(file!==f.root)return original(file,...args);return{readSync(){calls++;return{name:'a.ts'};},closeSync(){closed++;}};},()=>assert.throws(()=>captureSealedTypeScriptDirectoryInventory(f.root),{code:'TREE_DIRECTORY_LIMIT'}));assert.equal(calls,TYPESCRIPT_TREE_LIMITS.files+TYPESCRIPT_TREE_LIMITS.directories+1);assert.equal(closed,1);
+}));
+test('@3 preserves existing complete installed hardlink semantics without copying aliases',supported,()=>withFixture(f=>{
+ f.write('node_modules/pkg/a');fs.linkSync(path.join(f.root,'node_modules/pkg/a'),path.join(f.root,'node_modules/pkg/b'));fs.mkdirSync(path.join(f.root,'unused'));const options=fullOptions(f,['node_modules/pkg/a','node_modules/pkg/b']),result=materializeSealedTypeScriptTreeWithDirectories(options);
+ assert.deepEqual(result.sourceAliasGroups,[['node_modules/pkg/a','node_modules/pkg/b']]);assert.notEqual(fs.statSync(path.join(result.root,'node_modules/pkg/a')).ino,fs.statSync(path.join(result.root,'node_modules/pkg/b')).ino);assert.equal(result.directoryCount,4);assert.equal(result.sealed,false);
+}));
+
+test('@3 invalid options or inventory refuse before any path inspection',()=>{
+ let calls=0;patch('lstatSync',original=>(...args)=>{calls++;return original(...args);},()=>{
+  for(const options of [null,{root:'/NO',parent:'/NO2',manifest:[['a','a'.repeat(64)]]},{root:'/NO',parent:'/NO2',manifest:[['a','a'.repeat(64)]],directoryInventory:{trust:true}},
+   {root:'/NO',parent:'/NO2',manifest:[['a','a'.repeat(64)]],directoryInventory:inventory([['',[]]]),extra:true}])assert.throws(()=>materializeSealedTypeScriptTreeWithDirectories(options));
+ });assert.equal(calls,0);
+});
+test('file/directory collision and escaped topology cannot bind a copied namespace',()=>{
+ for(const rows of [[['',[['a','file']]],['a',[]]],[['',[['a','directory']]],['a',[['b','directory']]],['a/b',[]],['a/b/../c',[]]],
+  [['',[['a','directory']]],['a',[]],['z',[]]],[['',[['a','directory']]],['a',[['b','directory']]]]])assert.throws(()=>validateSealedTypeScriptDirectoryInventory(inventory(rows)),{code:'TREE_DIRECTORY_MANIFEST'});
+});
+test('full directory data are separately bounded and malformed counts cannot cause reads',()=>{
+ const good=inventory([['',[]]]);for(const patch of [{directoryCount:100001},{entryCount:200001},{directoryCount:-1},{entryCount:NaN},{digest:'A'.repeat(64)},{directoryCount:'1'}])assert.throws(()=>validateSealedTypeScriptDirectoryInventory({...good,...patch}),{code:'TREE_DIRECTORY_MANIFEST'});
+});
+test('@3 preserves fully declared internal npm shim topology and empty bin siblings',supported,()=>withFixture(f=>{
+ const target='node_modules/typescript/bin/tsc',rel='node_modules/.bin/tsc',link='../typescript/bin/tsc';f.write(target,'// nonsecret compiler fixture',0o755);fs.mkdirSync(path.join(f.root,'node_modules/.bin'));fs.mkdirSync(path.join(f.root,'node_modules/.bin/empty'));fs.symlinkSync(link,path.join(f.root,rel));
+ const manifest=[[rel,hash(canonical({kind:'npm-file-shim',target,content:f.typed(target),links:[{path:rel,targetHash:hash(link)}]}))],[target,f.typed(target)]],directoryInventory=captureSealedTypeScriptDirectoryInventory(f.root);
+ const result=materializeSealedTypeScriptTreeWithDirectories({root:f.root,parent:f.parent,manifest,directoryInventory});assert.equal(fs.readlinkSync(path.join(result.root,rel)),link);assert(fs.statSync(path.join(result.root,'node_modules/.bin/empty')).isDirectory());assert.equal(result.materializedDirectoryInventoryDigest,directoryInventory.digest);
+}));
+test('source membership mutation while the final copied inventory is read is rejected by the late source barrier',supported,()=>withFixture(f=>{
+ f.write('a.ts');fs.mkdirSync(path.join(f.root,'empty'));const options=fullOptions(f,['a.ts']);let changed=false;
+ patch('realpathSync',original=>(file,...args)=>{const value=original(file,...args);if(!changed&&typeof file==='string'&&file.startsWith(f.parent+'/redue-materialization-')&&file.endsWith('/empty')){changed=true;fs.mkdirSync(path.join(f.root,'late'));}return value;},()=>assert.throws(()=>materializeSealedTypeScriptTreeWithDirectories(options),{code:'TREE_DIRECTORY_CHANGED'}));assert(changed);
+}));
+test('stage membership mutation during the late source inventory recheck cannot publish success',supported,()=>withFixture(f=>{
+ f.write('a.ts');fs.mkdirSync(path.join(f.root,'empty'));const options=fullOptions(f,['a.ts']);let stageSeen=false,changed=false;
+ patch('realpathSync',original=>(file,...args)=>{const value=original(file,...args);if(typeof file==='string'&&file.startsWith(f.parent+'/redue-materialization-')&&file.endsWith('/empty'))stageSeen=true;
+  if(stageSeen&&!changed&&file===path.join(f.root,'empty')){changed=true;const stage=path.join(f.parent,fs.readdirSync(f.parent)[0]);fs.rmdirSync(path.join(stage,'empty'));}return value;},()=>assert.throws(()=>materializeSealedTypeScriptTreeWithDirectories(options),error=>['TREE_DIRECTORY_CHANGED','TREE_CHANGED','TREE_UNAVAILABLE'].includes(error.code)));assert(changed);
+}));
+test('metadata iterator close failure is UNKNOWN/refusal, not a complete inventory',supported,()=>withFixture(f=>{
+ f.write('a.ts');patch('opendirSync',original=>(file,...args)=>{const d=original(file,...args);if(file!==f.root)return d;return{readSync:()=>d.readSync(),closeSync(){d.closeSync();throw Object.assign(Error('NONSECRET'),{code:'EIO'});}};},()=>assert.throws(()=>captureSealedTypeScriptDirectoryInventory(f.root),{code:'TREE_UNAVAILABLE'}));
+}));
+test('directory inventory refuses canonical aliases and overdeep owned topology',supported,()=>withFixture(f=>{
+ f.write('a.ts');const alias=path.join(f.base,'alias');fs.symlinkSync(f.root,alias);assert.throws(()=>captureSealedTypeScriptDirectoryInventory(alias),{code:'TREE_PATH'});
+ let current=f.root;for(let i=0;i<=TYPESCRIPT_TREE_LIMITS.depth;i++){current=path.join(current,'d');fs.mkdirSync(current);}assert.throws(()=>captureSealedTypeScriptDirectoryInventory(f.root),{code:'TREE_DIRECTORY_LIMIT'});
 }));

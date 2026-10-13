@@ -1,3 +1,4 @@
+import fs from 'node:fs';import os from 'node:os';import path from 'node:path';
 import {createHash} from 'node:crypto';import test from 'node:test';import assert from 'node:assert/strict';import {Readable} from 'node:stream';import {spawn,spawnSync} from 'node:child_process';import {fileURLToPath} from 'node:url';
 import {parsePreparationInput,consumePreparationInput,PREPARATION_BYTES,summarizePreparationMaterialization} from './acceptance/sealed-typescript-preparation-child.mjs';
 const child=fileURLToPath(new URL('./acceptance/sealed-typescript-preparation-child.mjs',import.meta.url));
@@ -53,4 +54,38 @@ test('33,345-row local result produces bounded compact audit output without sour
   assert.equal(summary.fileCount,33345);assert.equal(summary.physicalDigest,digest(JSON.stringify(full.physical)));assert.equal(summary.sourceAliasEntryCount,2);
   assert(Buffer.byteLength(encoded)<PREPARATION_BYTES);assert(Buffer.byteLength(encoded)<2048);assert(!encoded.includes('node_modules/pkg/file-'));
   assert.equal(summary.sealed,false);assert.equal(summary.reuseEligible,false);
+});
+
+const dirs=[['',[['a.ts','file'],['empty','directory']]],['empty',[]]];
+const directoryData={schema:1,interpretation:'redue-typescript-directory-inventory@1',directories:dirs,
+ digest:digest(JSON.stringify({directories:dirs,interpretation:'redue-typescript-directory-inventory@1'})),directoryCount:2,entryCount:2};
+const fullInput=JSON.stringify({...JSON.parse(valid),directoryInventory:directoryData});
+test('restricted grammar admits explicit bounded directory data without reinterpreting legacy three-field requests',()=>{
+ const parsed=parsePreparationInput(bytes(fullInput));assert.deepEqual(parsed.directoryInventory,directoryData);assert(Object.isFrozen(parsed.directoryInventory));assert(!Object.hasOwn(parsePreparationInput(bytes(valid)),'directoryInventory'));
+});
+test('directory grammar rejects duplicate/unknown/nonnumeric/contradictory topology and malformed rows',()=>{
+ const raw=JSON.stringify(directoryData),wrap=inventory=>valid.slice(0,-1)+',"directoryInventory":'+inventory+'}';
+ for(const value of [raw.replace('"schema":1','"schema":1,"schema":1'),raw.replace('"schema":1','"schema":1,"trust":true'),
+  raw.replace('"entryCount":2','"entryCount":2.0'),raw.replace('"entryCount":2','"entryCount":-2'),raw.replace('"entryCount":2','"entryCount":2e0'),raw.replace('"entryCount":2','"entryCount":"2"'),
+  raw.replace('"directoryCount":2','"directoryCount":1'),raw.replace('"file"','"pipe"'),raw.replace('"directories":','"unknown":'),raw.replace('"a.ts","file"','"a.ts","file","extra"'),raw.replace('"empty",[]','"empty",[{}]'),raw.replace('"schema":1,',''),raw.replace('"empty","directory"','"empty","file"')])
+  assert.throws(()=>parsePreparationInput(bytes(wrap(value))),{code:'PREPARATION_SCHEMA'});
+ assert.throws(()=>parsePreparationInput(bytes(fullInput.slice(0,-1)+',"directoryInventory":'+raw+'}')),{code:'PREPARATION_SCHEMA'});
+});
+test('summary@3 binds compact directory identities and omits raw inventory arrays',()=>{
+ const full={...localFullFixture(),interpretation:'redue-typescript-materialization@3',sourceDirectoryInventoryDigest:'a'.repeat(64),materializedDirectoryInventoryDigest:'a'.repeat(64),directoryCount:2,directoryEntryCount:2,sourceDirectories:dirs,materializedDirectories:dirs};
+ const summary=summarizePreparationMaterialization(full);assert.equal(summary.interpretation,'redue-typescript-materialization-summary@3');assert.equal(summary.sourceDirectoryInventoryDigest,'a'.repeat(64));assert.equal(summary.materializedDirectoryInventoryDigest,'a'.repeat(64));assert.equal(summary.directoryCount,2);assert.equal(summary.directoryEntryCount,2);
+ for(const field of ['directories','sourceDirectories','materializedDirectories','sourceFiles','physical'])assert(!Object.hasOwn(summary,field));assert.equal(summary.sealed,false);assert.equal(summary.reuseEligible,false);
+});
+
+// Harmless owned-local materialization through the actual fixed child. No native
+// sandbox/TypeScript/model execution and no claim of preparer confinement here.
+test('actual explicit directory child preserves empty membership and publishes only schema4 compact data',t=>{
+ const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-directory-child-'))),root=path.join(base,'source'),parent=path.join(base,'stage');t.after(()=>fs.rmSync(base,{recursive:true,force:true}));fs.mkdirSync(root);fs.mkdirSync(parent,{mode:0o700});fs.mkdirSync(path.join(root,'empty'));fs.writeFileSync(path.join(root,'a.ts'),'NONSECRET compiler-free input');
+ const stat=fs.lstatSync(path.join(root,'a.ts'),{bigint:true}),manifest=[['a.ts',digest(`file:${stat.mode}:${digest(fs.readFileSync(path.join(root,'a.ts')))}`)]],childDirs=[['',[['a.ts','file'],['empty','directory']]],['empty',[]]],directoryInventory={schema:1,interpretation:'redue-typescript-directory-inventory@1',directories:childDirs,digest:digest(JSON.stringify({directories:childDirs,interpretation:'redue-typescript-directory-inventory@1'})),directoryCount:2,entryCount:2};
+ const result=invoke(JSON.stringify({root,parent,manifest,directoryInventory}));assert.equal(result.status,0);assert.equal(result.signal,null);assert.equal(result.stderr,'');const output=JSON.parse(result.stdout);assert.equal(output.schema,4);assert.equal(output.ok,true);const summary=output.materialization;assert.equal(summary.interpretation,'redue-typescript-materialization-summary@3');assert.equal(summary.sourceDirectoryInventoryDigest,directoryInventory.digest);assert.equal(summary.materializedDirectoryInventoryDigest,directoryInventory.digest);assert.equal(summary.directoryCount,2);assert.equal(summary.directoryEntryCount,2);assert(fs.statSync(path.join(summary.root,'empty')).isDirectory());assert.equal(summary.sealed,false);assert.equal(summary.reuseEligible,false);assert(!Object.hasOwn(summary,'sourceDirectories'));
+});
+test('actual child refuses incomplete full-root coverage with schema4 before stage creation',t=>{
+ const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-directory-child-'))),root=path.join(base,'source'),parent=path.join(base,'stage');t.after(()=>fs.rmSync(base,{recursive:true,force:true}));fs.mkdirSync(root);fs.mkdirSync(parent,{mode:0o700});fs.writeFileSync(path.join(root,'a.ts'),'NONSECRET');fs.writeFileSync(path.join(root,'omitted'),'NONSECRET omitted');
+ const stat=fs.lstatSync(path.join(root,'a.ts'),{bigint:true}),manifest=[['a.ts',digest(`file:${stat.mode}:${digest('NONSECRET')}`)]],childDirs=[['',[['a.ts','file'],['omitted','file']]]],directoryInventory={schema:1,interpretation:'redue-typescript-directory-inventory@1',directories:childDirs,digest:digest(JSON.stringify({directories:childDirs,interpretation:'redue-typescript-directory-inventory@1'})),directoryCount:1,entryCount:2};
+ const result=invoke(JSON.stringify({root,parent,manifest,directoryInventory}));assert.equal(result.status,74);assert.equal(result.signal,null);assert.equal(result.stderr,'');assert.deepEqual(JSON.parse(result.stdout),{schema:4,ok:false,reason_code:'TREE_DIRECTORY_COVERAGE'});assert.deepEqual(fs.readdirSync(parent),[]);
 });

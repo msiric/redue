@@ -2,7 +2,7 @@ import test from 'node:test';import assert from 'node:assert/strict';
 import fs from 'node:fs';import path from 'node:path';import os from 'node:os';
 import {fileHash} from '../src/index.mjs';
 import {portableManifest} from '../src/portable-facts.mjs';
-import {sealedTypeScriptManifest} from '../src/sealed-typescript-manifest.mjs';
+import {sealedTypeScriptManifest,sealedTypeScriptDirectoryInventory} from '../src/sealed-typescript-manifest.mjs';
 function fixture(t){const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-sealed-manifest-')));
   t.after(()=>fs.rmSync(root,{recursive:true,force:true}));return root;}
 test('retains nested single-file npm shim topology without extending legacy portable admission',t=>{
@@ -28,4 +28,11 @@ test('unlisted, external and chained nested shims do not gain a declared input',
   const alias='node_modules/example/node_modules/tool/alias.js';fs.mkdirSync(path.dirname(path.join(root,alias)));fs.symlinkSync('../missing.js',path.join(root,alias));
   fs.unlinkSync(path.join(root,shim));fs.symlinkSync('../tool/alias.js',path.join(root,shim));
   assert.throws(()=>sealedTypeScriptManifest(root,{[shim]:'a'.repeat(64),[alias]:'b'.repeat(64)}),{code:'PORTABLE_SYMLINK'});
+});
+
+test('explicit directory inventory includes empty directories and unselected names without changing file selection',t=>{
+ const root=fixture(t);fs.mkdirSync(path.join(root,'empty/nested'),{recursive:true});fs.writeFileSync(path.join(root,'a.ts'),'NONSECRET selected');fs.writeFileSync(path.join(root,'unselected.txt'),'NONSECRET unselected');
+ const observed={'a.ts':fileHash(root,'a.ts',true).hash},files=sealedTypeScriptManifest(root,observed),directories=sealedTypeScriptDirectoryInventory(root);
+ assert.deepEqual(files,[['a.ts',observed['a.ts']]]);assert.deepEqual(directories.directories,[['',[['a.ts','file'],['empty','directory'],['unselected.txt','file']]],['empty',[['nested','directory']]],['empty/nested',[]]]);
+ assert.equal(directories.interpretation,'redue-typescript-directory-inventory@1');assert.equal(directories.directoryCount,3);assert.equal(directories.entryCount,4);assert(!Object.hasOwn(directories,'root'));assert(!Object.hasOwn(directories,'sealed'));
 });

@@ -3,25 +3,28 @@
 // The canonical bridge fixes test VM realms only; real parent validation is unchanged.
 import fs from 'node:fs';import path from 'node:path';import vm from 'node:vm';import test from 'node:test';import assert from 'node:assert/strict';import crypto from 'node:crypto';
 import {canonical} from '../src/portable-envelope.mjs';
+import {validateSealedTypeScriptDirectoryInventory} from '../src/sealed-typescript-tree.mjs';
 import {PREPARATION_REASON_CODES,summarizePreparationMaterialization} from './acceptance/sealed-typescript-preparation-child.mjs';
 const digest=v=>crypto.createHash('sha256').update(v).digest('hex');
 function run(scenario={}){
  const manifest=scenario.manifest||[['a.ts','a'.repeat(64)]],source='/owned/source',parent='/owned/stage',node='/reviewed/node',file='/reviewed/child',stage=parent+'/redue-materialization-Ab12Cd';
+ const directories=[['',[['a.ts','file'],['empty','directory']]],['empty',[]]],directoryInventory={schema:1,interpretation:'redue-typescript-directory-inventory@1',directories,digest:digest(canonical({interpretation:'redue-typescript-directory-inventory@1',directories})),directoryCount:2,entryCount:2};
  const tree={schema:1,interpretation:'redue-typescript-materialization-summary@2',root:stage,sourceManifestDigest:digest(canonical(manifest)),materializedManifestDigest:digest(canonical(manifest)),sourceAliasGroupsDigest:digest(canonical([])),sourceAliasGroupCount:0,sourceAliasEntryCount:0,fileCount:manifest.length,physicalDigest:'b'.repeat(64),bytes:1,identity:'1:21',sealed:false,reuseEligible:false};
+ if(scenario.fullDirectories)Object.assign(tree,{interpretation:'redue-typescript-materialization-summary@3',sourceDirectoryInventoryDigest:directoryInventory.digest,materializedDirectoryInventoryDigest:directoryInventory.digest,directoryCount:2,directoryEntryCount:2});
  scenario.tree?.(tree);let spawned=0,clockAt=0,opts=null,invocation=null,after=false;
  const ino=new Map([[source,10],[parent,20],[node,30],[file,31],[stage,21]]);
  const mode=p=>p===stage&&scenario.stageFile?0o100600:p===stage&&scenario.stageWrongMode?0o40755:p===stage||p===parent?0o40700:p===node||p===file?0o100600:0o40755;
  const fakeFs={lstatSync:p=>({dev:1n,ino:BigInt(ino.get(p)||99)+((p===source&&scenario.sourceChanged||p===parent&&scenario.parentChanged||p===node&&scenario.nodeReplaced)&&after?1n:0n),mode:BigInt(mode(p)),uid:p===stage&&scenario.stageWrongOwner?502n:501n,isSymbolicLink:()=>false,isDirectory:()=>((mode(p)&0o170000)===0o40000)}),realpathSync:p=>p,readFileSync:p=>Buffer.from(p===node?(scenario.nodeChanged&&after?'MUTATED_NODE':'NODE'):scenario.codeChanged&&after?'MUTATED':'CODE')};
  const fakeCrypto=()=>{let bytes=Buffer.alloc(0);return{update(v){bytes=Buffer.concat([bytes,Buffer.from(v)]);return this;},digest(){return bytes.toString()==='NODE'?'5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc':digest(bytes);}};};
  const profile={source,parent,node,child:file,profile:'FIXED_TEST_PROFILE',sha256:digest('profile'),code:[[file,digest('CODE')]]};
- const fakeSpawn=(exe,args,options)=>{spawned++;opts=options;invocation={exe,args};after=true;const output=scenario.refusal?{schema:3,ok:false,reason_code:scenario.reason||'TREE_DIGEST'}:{schema:3,ok:true,materialization:tree};
+ const fakeSpawn=(exe,args,options)=>{spawned++;opts=options;invocation={exe,args};after=true;const output=scenario.refusal?{schema:scenario.fullDirectories?4:3,ok:false,reason_code:scenario.reason||'TREE_DIGEST'}:{schema:scenario.fullDirectories?4:3,ok:true,materialization:tree};
   return{pid:1234,status:scenario.refusal?74:0,signal:null,stderr:'',...scenario.child,stdout:scenario.stdout?.(output)||JSON.stringify(output)+'\n'};};
  const clock=()=>scenario.times?scenario.times[Math.min(clockAt++,scenario.times.length-1)]:0;
  let text=fs.readFileSync(new URL('./acceptance/sealed-typescript-preparation.mjs',import.meta.url),'utf8').replace(/^import .*;\n/gm,'').replaceAll('export const ','const ').replaceAll('export function ','function ');
  text+='\nglobalThis.invoke=prepareSealedTypeScriptInputs;';
  const canonicalBridge=value=>canonical(JSON.parse(JSON.stringify(value)));
- const context=vm.createContext({fs:fakeFs,path,createHash:fakeCrypto,spawnSync:fakeSpawn,sealedPreparationProfile:()=>profile,canonical:canonicalBridge,PREPARATION_REASON_CODES,performance:{now:clock},process:{getuid:()=>501},Buffer});vm.runInContext(text,context);
- context.input=JSON.stringify({source,parent,manifest});let value,error;try{value=vm.runInContext('invoke(JSON.parse(input))',context);}catch(e){error=e.code;}
+ const context=vm.createContext({fs:fakeFs,path,createHash:fakeCrypto,spawnSync:fakeSpawn,sealedPreparationProfile:()=>profile,canonical:canonicalBridge,validateSealedTypeScriptDirectoryInventory:value=>validateSealedTypeScriptDirectoryInventory(JSON.parse(JSON.stringify(value))),PREPARATION_REASON_CODES,performance:{now:clock},process:{getuid:()=>501},Buffer});vm.runInContext(text,context);
+ context.input=JSON.stringify({source,parent,manifest,...(scenario.fullDirectories?{directoryInventory}:{})});let value,error;try{value=vm.runInContext('invoke(JSON.parse(input))',context);}catch(e){error=e.code;}
  return {value,error,spawned,opts,invocation};
 }
 
@@ -60,4 +63,25 @@ test('large mock leaf yields a small schema3 summary without exposing physical r
  const context=vm.createContext({process:proc,Buffer,PREPARATION_BYTES:8*1024*1024,consumePreparationInput:async()=>Buffer.from('{}'),parsePreparationInput:()=>({}),materializeSealedTypeScriptTree:()=>materialization,summarizePreparationMaterialization,safeCode:e=>e.code,fail:code=>{throw{code};}});
  await vm.runInContext(main+';main()',context);const value=JSON.parse(output);
  assert.equal(proc.exitCode,0);assert.equal(value.schema,3);assert.equal(value.materialization.fileCount,33345);assert.equal(value.materialization.physicalDigest,digest(JSON.stringify(physical)));assert.equal(value.materialization.sealed,false);assert.equal(value.materialization.reuseEligible,false);assert(Buffer.byteLength(output)<1024);assert(!output.includes('NONSECRET'));assert(!Object.hasOwn(value.materialization,'physical'));assert(!Object.hasOwn(value.materialization,'sourceFiles'));assert(!Object.hasOwn(value.materialization,'materializedFiles'));assert.equal(value.materialization.sourceAliasGroupCount,0);assert.equal(value.materialization.sourceAliasEntryCount,0);
+});
+
+test('explicit complete-directory route binds summary@3 and schema4 to the selected local inventory',()=>{
+ const r=run({fullDirectories:true});assert.equal(r.value.outcome,'MATERIALIZED_NOT_SEALED');assert.equal(r.value.materialization.interpretation,'redue-typescript-materialization-summary@3');
+ assert.equal(r.value.materialization.directoryCount,2);assert.equal(r.value.materialization.directoryEntryCount,2);assert.equal(r.value.materialization.sourceDirectoryInventoryDigest,r.value.materialization.materializedDirectoryInventoryDigest);
+ const input=JSON.parse(r.opts.input);assert.equal(input.directoryInventory.interpretation,'redue-typescript-directory-inventory@1');assert.equal(input.directoryInventory.directoryCount,2);
+ assert.deepEqual(Object.keys(r.opts.env),[]);for(const key of ['sealed','executable','reuseEligible'])assert.equal(r.value[key],false);
+ assert(!Object.hasOwn(r.value.materialization,'directories'));assert(!Object.hasOwn(r.value.materialization,'sourceDirectories'));
+});
+test('complete-directory summary cannot be admitted with missing/mismatched/obsolete identities or counts',()=>{
+ for(const patch of [{sourceDirectoryInventoryDigest:'c'.repeat(64)},{materializedDirectoryInventoryDigest:'c'.repeat(64)},
+  {directoryCount:1},{directoryCount:'2'},{directoryEntryCount:1},{directoryEntryCount:2.5},{interpretation:'redue-typescript-materialization-summary@2'},{directories:[]},{sourceDirectories:[]}])
+  assert.equal(run({fullDirectories:true,tree:t=>Object.assign(t,patch)}).value.outcome,'UNKNOWN');
+ for(const key of ['sourceDirectoryInventoryDigest','materializedDirectoryInventoryDigest','directoryCount','directoryEntryCount'])assert.equal(run({fullDirectories:true,tree:t=>delete t[key]}).value.outcome,'UNKNOWN');
+});
+test('directory protocol is explicit: legacy requests reject schema4 while full requests reject schema3',()=>{
+ assert.equal(run({stdout:o=>JSON.stringify({...o,schema:4})+'\n'}).value.outcome,'UNKNOWN');
+ assert.equal(run({fullDirectories:true,stdout:o=>JSON.stringify({...o,schema:3})+'\n'}).value.outcome,'UNKNOWN');
+ assert.equal(run({fullDirectories:true,refusal:true,reason:'TREE_DIRECTORY_COVERAGE'}).value.outcome,'REFUSED');
+ assert.equal(run({fullDirectories:true,refusal:true,stdout:o=>JSON.stringify({...o,schema:3})+'\n'}).value.outcome,'UNKNOWN');
+ for(const scenario of [{sourceChanged:true},{parentChanged:true},{nodeChanged:true},{nodeReplaced:true},{codeChanged:true}])assert.equal(run({...scenario,fullDirectories:true}).value.reason,'PREPARATION_BINDING_CHANGED');
 });

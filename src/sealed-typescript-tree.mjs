@@ -34,9 +34,10 @@ function directories(file){let current=path.parse(file).root;const rows=[];
 }
 function sameDirectories(rows){for(const [file,id] of rows){const stat=fs.lstatSync(file,{bigint:true});if(!stat.isDirectory()||stat.isSymbolicLink()||directoryIdentity(stat)!==id)fail('TREE_CHANGED');}}
 function onlyChild(parent,name){const directory=fs.opendirSync(parent);try{const first=directory.readSync();return name===null?first===null:first?.name===name&&directory.readSync()===null;}finally{directory.closeSync();}}
-function exactOptions(options){if(!options||typeof options!=='object'||Array.isArray(options)||![null,Object.prototype].includes(Object.getPrototypeOf(options))||
-  Reflect.ownKeys(options).length!==3||!['root','manifest','parent'].every(key=>Object.hasOwn(options,key)))fail('TREE_OPTIONS');
-  const out={};for(const key of ['root','manifest','parent']){const descriptor=Object.getOwnPropertyDescriptor(options,key);if(!Object.hasOwn(descriptor,'value'))fail('TREE_OPTIONS');out[key]=descriptor.value;}return out;
+function exactOptions(options,fullDirectories=false){
+  const keys=fullDirectories?['root','manifest','parent','directoryInventory']:['root','manifest','parent'];if(!options||typeof options!=='object'||Array.isArray(options)||![null,Object.prototype].includes(Object.getPrototypeOf(options))||
+  Reflect.ownKeys(options).length!==keys.length||!keys.every(key=>Object.hasOwn(options,key)))fail('TREE_OPTIONS');
+  const out={};for(const key of keys){const descriptor=Object.getOwnPropertyDescriptor(options,key);if(!Object.hasOwn(descriptor,'value'))fail('TREE_OPTIONS');out[key]=descriptor.value;}return out;
 }
 function manifestRows(value){if(!Array.isArray(value)||value.length<1||value.length>TYPESCRIPT_TREE_LIMITS.files)fail('TREE_MANIFEST');
   if(Reflect.ownKeys(value).some(key=>key!=='length'&&(typeof key!=='string'||! /^(?:0|[1-9][0-9]*)$/.test(key)||Number(key)>=value.length)))fail('TREE_MANIFEST');
@@ -78,8 +79,53 @@ function shim(root,rel,expected,manifest,sourceRecords=null){const file=path.joi
 function recheck(record){sameDirectories(record.parents);const stat=fs.lstatSync(record.file,{bigint:true});if(fingerprint(stat)!==record.fingerprint||record.target!==undefined&&fs.readlinkSync(record.file)!==record.target)fail('TREE_CHANGED');}
 function freeze(value){if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;}
 
-function materialize(options){
-  const selected=exactOptions(options),root=absolute(selected.root),parent=absolute(selected.parent),rows=manifestRows(selected.manifest),manifest=new Map(rows);
+// Explicit full-root metadata/name inventory. No source bodies are read here;
+// no ignored namespace is silently removed. These data are not an import token
+// or a hostile-writer read boundary. Preparation still requires confinement.
+const directoryInterpretation='redue-typescript-directory-inventory@1';
+const directoryInventoryBytes=8*1024*1024;
+const directoryDigest=rows=>{try{return hash(canonical({interpretation:directoryInterpretation,directories:rows}));}catch{fail('TREE_DIRECTORY_LIMIT');}};
+const sorted=(a,b)=>a<b?-1:a>b?1:0;
+function plainData(value,keys){if(!value||![Object.prototype,null].includes(Object.getPrototypeOf(value))||Reflect.ownKeys(value).length!==keys.length||!keys.every(key=>Object.hasOwn(Object.getOwnPropertyDescriptor(value,key)??{},'value')))fail('TREE_DIRECTORY_MANIFEST');}
+function dataArray(value,max){if(!Array.isArray(value)||Object.getPrototypeOf(value)!==Array.prototype||value.length>max||Reflect.ownKeys(value).length!==value.length+1)fail('TREE_DIRECTORY_MANIFEST');for(let at=0;at<value.length;at++)if(!Object.hasOwn(Object.getOwnPropertyDescriptor(value,String(at))??{},'value'))fail('TREE_DIRECTORY_MANIFEST');return value;}
+export function validateSealedTypeScriptDirectoryInventory(value){
+ plainData(value,['schema','interpretation','directories','digest','directoryCount','entryCount']);
+ if(value.schema!==1||value.interpretation!==directoryInterpretation||!Number.isSafeInteger(value.directoryCount)||value.directoryCount<1||value.directoryCount>TYPESCRIPT_TREE_LIMITS.directories||!Number.isSafeInteger(value.entryCount)||value.entryCount<0||value.entryCount>TYPESCRIPT_TREE_LIMITS.files+TYPESCRIPT_TREE_LIMITS.directories||typeof value.digest!=='string'||! /^[a-f0-9]{64}$/.test(value.digest))fail('TREE_DIRECTORY_MANIFEST');
+ const rows=[],names=new Map();let previous=null,count=0,bytes=0;
+ for(const row of dataArray(value.directories,TYPESCRIPT_TREE_LIMITS.directories)){dataArray(row,2);if(row.length!==2)fail('TREE_DIRECTORY_MANIFEST');const [rel,entries]=row;
+  if(typeof rel!=='string'||rel!==''&&!relative(rel)||previous!==null&&rel<=previous||previous===null&&rel!=='')fail('TREE_DIRECTORY_MANIFEST');previous=rel;let last='';const copied=[];
+  bytes+=Buffer.byteLength(JSON.stringify(rel))+5;if(bytes>directoryInventoryBytes)fail('TREE_DIRECTORY_LIMIT');
+  for(const entry of dataArray(entries,TYPESCRIPT_TREE_LIMITS.files+TYPESCRIPT_TREE_LIMITS.directories)){dataArray(entry,2);if(entry.length!==2)fail('TREE_DIRECTORY_MANIFEST');const [name,kind]=entry;
+   if(!relative(name)||name.includes('/')||name<=last||!['directory','file','symlink'].includes(kind))fail('TREE_DIRECTORY_MANIFEST');last=name;if(++count>TYPESCRIPT_TREE_LIMITS.files+TYPESCRIPT_TREE_LIMITS.directories)fail('TREE_DIRECTORY_LIMIT');bytes+=Buffer.byteLength(JSON.stringify(entry))+1;if(bytes>directoryInventoryBytes)fail('TREE_DIRECTORY_LIMIT');copied.push([name,kind]);}
+  names.set(rel,new Map(copied));rows.push([rel,copied]);
+ }
+ if(rows.length!==value.directoryCount||count!==value.entryCount)fail('TREE_DIRECTORY_MANIFEST');
+ for(const [rel,entries]of rows){if(rel!==''){const parent=path.posix.dirname(rel)==='.'?'':path.posix.dirname(rel);if(names.get(parent)?.get(path.posix.basename(rel))!=='directory')fail('TREE_DIRECTORY_MANIFEST');}
+  for(const [name,kind]of entries)if(kind==='directory'&&!names.has(rel?rel+'/'+name:name))fail('TREE_DIRECTORY_MANIFEST');}
+ if(directoryDigest(rows)!==value.digest)fail('TREE_DIRECTORY_MANIFEST');
+ return freeze({schema:1,interpretation:directoryInterpretation,directories:rows,digest:value.digest,directoryCount:rows.length,entryCount:count});
+}
+function inspectDirectoryInventory(root){
+ absolute(root);const rootParents=directories(root),rootStat=fs.lstatSync(root,{bigint:true}),records=[],rows=[],physical=new Set();let entries=0,bytes=0;
+ const walk=rel=>{if(rel!==''&&!relative(rel)||rows.length>=TYPESCRIPT_TREE_LIMITS.directories)fail('TREE_DIRECTORY_LIMIT');const file=rel?path.join(root,rel):root,stat=fs.lstatSync(file,{bigint:true});
+  if(!stat.isDirectory()||stat.isSymbolicLink()||stat.uid!==uid()||stat.dev!==rootStat.dev||(stat.mode&0o7000n)!==0n||fs.realpathSync(file)!==file||physical.has(identity(stat)))fail('TREE_DIRECTORY_CHANGED');physical.add(identity(stat));
+  const children=[],record={file,fingerprint:fingerprint(stat)},opened=fs.opendirSync(file);records.push(record);rows.push([rel,children]);bytes+=Buffer.byteLength(JSON.stringify(rel))+5;if(bytes>directoryInventoryBytes)fail('TREE_DIRECTORY_LIMIT');
+  const descendants=[];try{let entry;while((entry=opened.readSync())!==null){if(++entries>TYPESCRIPT_TREE_LIMITS.files+TYPESCRIPT_TREE_LIMITS.directories)fail('TREE_DIRECTORY_LIMIT');if(!relative(entry.name)||entry.name.includes('/'))fail('TREE_DIRECTORY_MANIFEST');
+   const child=path.join(file,entry.name),s=fs.lstatSync(child,{bigint:true}),kind=s.isSymbolicLink()?'symlink':s.isDirectory()?'directory':s.isFile()?'file':null;if(!kind)fail('TREE_FILE');
+   bytes+=Buffer.byteLength(JSON.stringify([entry.name,kind]))+1;if(bytes>directoryInventoryBytes)fail('TREE_DIRECTORY_LIMIT');children.push([entry.name,kind]);if(kind==='directory')descendants.push(rel?rel+'/'+entry.name:entry.name);else records.push({file:child,fingerprint:fingerprint(s)});
+  }}finally{opened.closeSync();}
+  children.sort(([a],[b])=>sorted(a,b));if(children.some(([name],at)=>at>0&&name===children[at-1][0]))fail('TREE_DIRECTORY_CHANGED');
+  if(fingerprint(fs.lstatSync(file,{bigint:true}))!==record.fingerprint)fail('TREE_DIRECTORY_CHANGED');for(const child of descendants.sort(sorted))walk(child);
+ };
+ walk('');rows.sort(([a],[b])=>sorted(a,b));records.sort((a,b)=>sorted(a.file,b.file));sameDirectories(rootParents);for(const record of records)if(fingerprint(fs.lstatSync(record.file,{bigint:true}))!==record.fingerprint)fail('TREE_DIRECTORY_CHANGED');sameDirectories(rootParents);
+ return{value:validateSealedTypeScriptDirectoryInventory({schema:1,interpretation:directoryInterpretation,directories:rows,digest:directoryDigest(rows),directoryCount:rows.length,entryCount:entries}),records,rootParents};
+}
+function directoryInventoryCurrent(root,before){const after=inspectDirectoryInventory(root);if(canonical(after.value)!==canonical(before.value)||canonical(after.records)!==canonical(before.records))fail('TREE_DIRECTORY_CHANGED');sameDirectories(before.rootParents);return after;}
+export function captureSealedTypeScriptDirectoryInventory(root){try{return inspectDirectoryInventory(root).value;}catch(error){if(error?.code?.startsWith('TREE_'))throw error;fail('TREE_UNAVAILABLE');}}
+
+function materialize(options,fullDirectories=false){
+
+  const selected=exactOptions(options,fullDirectories),root=absolute(selected.root),parent=absolute(selected.parent),rows=manifestRows(selected.manifest),manifest=new Map(rows),declaredDirectories=fullDirectories?validateSealedTypeScriptDirectoryInventory(selected.directoryInventory):null;
   if(withinPath(parent,root)||withinPath(root,parent))fail('TREE_PLACEMENT');
   const rootParents=directories(root),parentParents=directories(parent),rootStat=fs.lstatSync(root,{bigint:true}),parentStat=fs.lstatSync(parent,{bigint:true});
   // Case aliases (and other existing physical aliases) can defeat lexical
@@ -88,6 +134,14 @@ function materialize(options){
   if(containsPhysical(parentParents,rootStat)||containsPhysical(rootParents,parentStat))fail('TREE_PLACEMENT');
   if(rootStat.uid!==uid()||parentStat.uid!==uid()||(parentStat.mode&0o777n)!==0o700n)fail('TREE_OWNERSHIP');
   if(!onlyChild(parent,null))fail('TREE_PARENT_OCCUPIED');sameDirectories(parentParents);
+  const directorySnapshot=fullDirectories?inspectDirectoryInventory(root):null;
+  if(directorySnapshot){if(canonical(directorySnapshot.value)!==canonical(declaredDirectories))fail('TREE_DIRECTORY_CHANGED');
+   // Refuse incomplete declarations; in particular an excluded .git tree is
+   // not silently copied or ignored. No undeclared body is opened.
+   const leaves=directorySnapshot.value.directories.flatMap(([rel,entries])=>entries.filter(([,kind])=>kind!=='directory').map(([name])=>rel?rel+'/'+name:name)).sort(sorted);
+   if(canonical(leaves)!==canonical(rows.map(([rel])=>rel)))fail('TREE_DIRECTORY_COVERAGE');
+  }
+
   // Metadata for the COMPLETE local manifest precedes every source body read.
   // Count real directory entries, not case-alias spellings of the same name.
   const source=[],byName=new Map(),groups=new Map(),parentNames=new Map();let bytes=0;
@@ -113,7 +167,7 @@ function materialize(options){
     if(members.length>1)sourceAliasGroups.push(members.map(record=>record.rel).sort());
   }
   sourceAliasGroups.sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0);
-  const checkSources=()=>{sameDirectories(rootParents);for(const record of source)recheck(record);};
+  const checkSources=()=>{sameDirectories(rootParents);if(directorySnapshot)directoryInventoryCurrent(root,directorySnapshot);for(const record of source)recheck(record);};
   checkSources();sameDirectories(parentParents);
   for(const record of source){
     if(record.symbolic)Object.assign(record,shim(root,record.rel,record.digest,manifest,byName));
@@ -132,6 +186,7 @@ function materialize(options){
   const checkStage=()=>{sameDirectories(parentParents);if(!onlyChild(parent,path.basename(stage)))fail('TREE_CHANGED');sameDirectories(parentParents);const stat=fs.lstatSync(stage,{bigint:true});if(!stat.isDirectory()||stat.isSymbolicLink()||stat.uid!==uid()||(stat.mode&0o777n)!==0o700n||identity(stat)!==stageId)fail('TREE_CHANGED');};
   const checkDirectories=()=>{for(const [file,id] of madeDirectories){const st=fs.lstatSync(file,{bigint:true});if(!st.isDirectory()||st.isSymbolicLink()||directoryIdentity(st)!==id||st.uid!==uid())fail('TREE_CHANGED');}};
   try{stage=fs.mkdtempSync(path.join(parent,'redue-materialization-'));fs.chmodSync(stage,0o700);stageId=identity(fs.lstatSync(stage,{bigint:true}));
+    if(directorySnapshot)for(const [rel]of directorySnapshot.value.directories)if(rel!==''){checkStage();ensureDirectory(rel);}
     for(const record of source.filter(record=>record.target===undefined)){
       checkStage();sameDirectories(rootParents);recheck(record);const directory=path.posix.dirname(record.rel);if(directory!=='.')ensureDirectory(directory);const file=path.join(stage,record.rel);let descriptor;
       try{descriptor=fs.openSync(file,fs.constants.O_WRONLY|fs.constants.O_CREAT|fs.constants.O_EXCL|fs.constants.O_NOFOLLOW,0o600);const created=fs.fstatSync(descriptor,{bigint:true});
@@ -158,7 +213,11 @@ function materialize(options){
     }finally{opened.closeSync();}};walk(stage);actual.sort();
     if(canonical(actual)!==canonical(rows.map(([rel])=>rel)))fail('TREE_CHANGED');checkStage();checkDirectories();for(const record of destination)recheck(record);
     checkNames();checkSources();
-    return freeze({schema:1,interpretation:'redue-typescript-materialization@2',root:stage,sourceManifestDigest:hash(canonical(rows)),sourceFiles:rows,
+    const copiedDirectories=directorySnapshot?inspectDirectoryInventory(stage):null;
+    if(copiedDirectories&&canonical(copiedDirectories.value)!==canonical(directorySnapshot.value))fail('TREE_DIRECTORY_CHANGED');
+    if(directorySnapshot){directoryInventoryCurrent(root,directorySnapshot);directoryInventoryCurrent(stage,copiedDirectories);checkSources();checkStage();checkDirectories();for(const record of destination)recheck(record);}
+    const directoryFacts=directorySnapshot?{sourceDirectories:directorySnapshot.value.directories,materializedDirectories:copiedDirectories.value.directories,sourceDirectoryInventoryDigest:directorySnapshot.value.digest,materializedDirectoryInventoryDigest:copiedDirectories.value.digest,directoryCount:directorySnapshot.value.directoryCount,directoryEntryCount:directorySnapshot.value.entryCount}:{};
+    return freeze({schema:1,interpretation:fullDirectories?'redue-typescript-materialization@3':'redue-typescript-materialization@2',...directoryFacts,root:stage,sourceManifestDigest:hash(canonical(rows)),sourceFiles:rows,
       materializedManifestDigest:hash(canonical(materializedRows)),materializedFiles:materializedRows,sourceAliasGroups,sourceAliasGroupsDigest:hash(canonical(sourceAliasGroups)),bytes,
       identity:stageId,physical:destination.sort((a,b)=>a.rel<b.rel?-1:a.rel>b.rel?1:0).map(record=>[record.rel,record.identity,record.fingerprint]),sealed:false,reuseEligible:false});
   }catch(error){
@@ -171,4 +230,10 @@ function materialize(options){
 }
 export function materializeSealedTypeScriptTree(options){
   try{return materialize(options);}catch(error){if(typeof error?.code==='string'&&error.code.startsWith('TREE_'))throw error;fail('TREE_UNAVAILABLE');}
+}
+
+// Explicit @3 opt-in: complete directory/leaf membership is required, including
+// empty directories. @2 remains file-only; neither route creates a native seal.
+export function materializeSealedTypeScriptTreeWithDirectories(options){
+ try{return materialize(options,true);}catch(error){if(typeof error?.code==='string'&&error.code.startsWith('TREE_'))throw error;fail('TREE_UNAVAILABLE');}
 }

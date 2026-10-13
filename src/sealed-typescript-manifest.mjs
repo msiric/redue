@@ -30,3 +30,8 @@ export function sealedTypeScriptManifest(root,observed){
   }
   return [...portableManifest(root,ordinary),...nested].sort(([a],[b])=>a<b?-1:a>b?1:0);
 }
+
+// Full-root metadata-only opt-in; no exclusions are silently inferred from a
+// file-only index. The @3 copy route rejects undeclared leaf membership before
+// reading file bodies. Inventory data never authorize a source root/import.
+export {captureSealedTypeScriptDirectoryInventory as sealedTypeScriptDirectoryInventory} from './sealed-typescript-tree.mjs';
