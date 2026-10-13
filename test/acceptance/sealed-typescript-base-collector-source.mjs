@@ -9,6 +9,7 @@ const pins=Object.freeze([
  ['./sealed-typescript-base-child-collection.mjs','test/acceptance/sealed-typescript-base-child-collection.mjs','e9c8fdb40201c25e84bef78b8b04b00850e738e663234183966d45f65006bdb3'],
  ['./sealed-typescript-base-exchange-result.mjs','test/acceptance/sealed-typescript-base-exchange-result.mjs','be2d30edf40597f52a6a9e919b5a3ee26e15bf0dc9f942badda0fb54db10b05d'],
  ['../../src/portable-envelope.mjs','src/portable-envelope.mjs','3a10d9546b5b71ceb99121412471f250676cb71a2c943532ddec39a3ac836482']]);
+const mintedSources=new WeakMap();
 const sha=value=>createHash('sha256').update(value).digest('hex'),limit=1024*1024;
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
@@ -35,7 +36,21 @@ export function prepareSealedTypeScriptBaseCollectorSource(build){
  const source=`// Fixed reviewed native tool collector; no caller-selected child/arguments.\nimport {spawn} from 'node:child_process';\nimport {collectSealedTypeScriptBaseChild,classifySealedTypeScriptBaseChild} from '../test/acceptance/sealed-typescript-base-child-collection.mjs';\nconst publish=result=>{process.exitCode=result.outcome==='FAIL'?1:74;try{process.stdout.write(JSON.stringify(result)+'\\n');}catch{}};\nlet classified=classifySealedTypeScriptBaseChild(null);\ntry{\n if(process.platform!=='darwin'||process.arch!=='arm64'||process.version!=='v22.13.0'||process.execPath!==${JSON.stringify(node)}||process.argv.length!==2||process.argv[1]!==${JSON.stringify(entry)}||Object.keys(process.env).some(key=>/^(?:NODE_OPTIONS|NODE_PATH|NODE_REPL_EXTERNAL_MODULE)$|^(?:DYLD_|LD_|OPENSSL_)/i.test(key)))throw Error();\n const collection=await collectSealedTypeScriptBaseChild(()=>spawn(${JSON.stringify(helper)},[],{cwd:${JSON.stringify(cwd)},stdio:['ignore','pipe','pipe']}));\n classified=classifySealedTypeScriptBaseChild(collection);\n}catch{}\npublish(classified);\n`;
  if(Buffer.byteLength(source)>65536)fail('BASE_COLLECTOR_BINDINGS');
  if(JSON.stringify(observed(build))!==JSON.stringify(before))fail('BASE_COLLECTOR_ASSETS_UNAVAILABLE');for(const row of rows)current(row);
- return freeze({schema:1,scope:'DISABLED_FIXED_BASE_COLLECTOR_SOURCE_DATA_ONLY',disabled:true,bindings:{baseA,baseB,hostBase,node,entry,helper,helperSha256:build.report.binary.sha256,nodeSha256:'5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc'},
+ const result=freeze({schema:1,scope:'DISABLED_FIXED_BASE_COLLECTOR_SOURCE_DATA_ONLY',disabled:true,bindings:{baseA,baseB,hostBase,node,entry,helper,helperSha256:build.report.binary.sha256,nodeSha256:'5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc'},
   proposedSources:[...rows.map((row,at)=>({file:hostBase+'/prefix/'+pins[at][1],source:row.source,sourceBytes:Buffer.byteLength(row.source),sha256:row.sha256})),{file:entry,source,sourceBytes:Buffer.byteLength(source),sha256:sha(source)}],commands:[],nativeLaunches:0,helperExecutions:0,models:0,inferencePermitted:false,nativeEnforcement:'NOT_ESTABLISHED',sealed:false,reuseEligible:false,
   blockers:['CURRENT_PINNED_NATIVE_EFFECTIVE_PROFILE_AUTH_AND_CAPACITY_REQUIRED','CURRENT_PROTECTED_SOURCE_AND_RUNTIME_COPIES_REQUIRED','TRUSTED_PARENT_SUPERVISION_REQUIRED','OTHER_STAGE_ASSERTIONS_NOT_IMPLEMENTED']});
+ mintedSources.set(result,{build,before,rows,bindings:result.bindings});return result;
 }
+
+// Private source derivation/currentness only. No protected copies exist by this
+// observation, no serialized proposal adopts the mint, and failures latch.
+export function verifySealedTypeScriptBaseCollectorSource(proposal){
+ const record=mintedSources.get(proposal),unknown=()=>freeze({schema:1,scope:'DISABLED_FIXED_BASE_COLLECTOR_SOURCE_DATA_ONLY',outcome:'UNKNOWN',commands:[],sealed:false,reuseEligible:false});
+ if(!record||record.invalid)return unknown();
+ try{if(JSON.stringify(observed(record.build))!==JSON.stringify(record.before))fail('BASE_COLLECTOR_ASSETS_UNAVAILABLE');
+  for(let at=0;at<pins.length;at++){const row=dependency(pins[at][0],pins[at][2]);if(row.mark!==record.rows[at].mark||JSON.stringify(row.lineage)!==JSON.stringify(record.rows[at].lineage))fail('BASE_COLLECTOR_SOURCE_CHANGED');}
+  if(JSON.stringify(observed(record.build))!==JSON.stringify(record.before))fail('BASE_COLLECTOR_ASSETS_UNAVAILABLE');for(const row of record.rows)current(row);
+  return freeze({schema:1,scope:'DISABLED_FIXED_BASE_COLLECTOR_SOURCE_DATA_ONLY',outcome:'SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED',baseA:record.bindings.baseA,baseB:record.bindings.baseB,hostBase:record.bindings.hostBase,bindings:record.bindings,commands:[],nativeEnforcement:'NOT_ESTABLISHED',sealed:false,reuseEligible:false});
+ }catch{record.invalid=true;return unknown();}
+}
+
