@@ -5,6 +5,8 @@
 // The caller can pass semantic forwarding methods into compilerProgramFiles;
 // this reuses its config/host/program graph rather than duplicating resolution.
 // Phase labels are engineering annotations, not proof of execution boundaries.
+// Reserve half the fixed8MiB child-response budget for graph/config metadata.
+// Overflow remains explicit partial logging, never complete query coverage.
 // Node's internalModuleStat/internalModuleReadJSON loader operations bypass these
 // public fs wrappers. Whole implementation/manifest binding remains mandatory;
 // no first-require or CLI/API query-completeness claim follows from this journal.
@@ -13,7 +15,7 @@
 // Finally restores wrappers, not arbitrary callback mutations or async children.
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-export const SEALED_DISCOVERY_LIMITS=Object.freeze({frames:32768,journalBytes:8*1024*1024,
+export const SEALED_DISCOVERY_LIMITS=Object.freeze({frames:32768,journalBytes:4*1024*1024,
   pathBytes:4096,valueBytes:64*1024*1024,hashedBytes:512*1024*1024,arrayEntries:100000,descriptors:256,depth:8});
 const phases=new Set(['load','config','program']);
 const semanticMethods=new Set(['readFile','fileExists','directoryExists','getDirectories','readDirectory','realpath']);

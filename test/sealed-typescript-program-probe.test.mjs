@@ -21,7 +21,7 @@ const construct=Function('fs','path','createRequire','directProject','compilerPr
 const root='/owned/stage',tsRoot=root+'/node_modules/typescript',entry=tsRoot+'/lib/typescript.js';
 const digest='953b4844b5f6edc745be844b6c367c227b59029b73c4182f508f90cc47e21816';
 const throwsCode=(fn,code)=>assert.throws(fn,error=>error?.code===code);
-function fixture(){
+function fixture(capture=captureSealedTypeScriptDiscovery){
   const calls={admission:0,load:0,parse:0,host:0,program:0,body:[]},options={},returned=[root+'/a.ts',tsRoot+'/lib/lib.d.ts'];
   const fileSystem={statSync(){return false;},lstatSync(){return {isDirectory(){return true;}};},realpathSync(file){return file;},
     readFileSync(file){calls.body.push(file);return Buffer.from('NONSECRET decoded');},readdirSync(){return [];}};
@@ -43,7 +43,7 @@ function fixture(){
   require.resolve=file=>file;require.cache={};const originalRead=fileSystem.readFileSync;
   const process={cwd(){return root;}};
   const directProject=(actual,script,settings)=>{calls.admission++;calls.script=script;assert.equal(calls.load,0);assert.equal(actual,root);assert(['typecheck','test:types'].includes(script));assert.deepEqual(settings,{verify:true});return admitted;};
-  const probe=construct(fileSystem,path,()=>require,directProject,compilerProgramFiles,captureSealedTypeScriptDiscovery,createSealedTypeScriptForwarding,process,Buffer);
+  const probe=construct(fileSystem,path,()=>require,directProject,compilerProgramFiles,capture,createSealedTypeScriptForwarding,process,Buffer);
   return {probe,calls,options,parsed,returned,fileSystem,ts,require,admitted,process,originalRead};
 }
 
@@ -163,4 +163,18 @@ test('no caller loader/command/verification bypass is accepted and source docume
   throwsCode(()=>item.probe({root,script:'typecheck',verify:false}),'SEALED_PROBE_OPTIONS');assert.equal(item.calls.load,0);
   assert.match(source,/internalModuleStat\/internalModuleReadJSON/);assert.match(source,/CLI deferred checking/);assert.match(source,/no body reread/i);
   assert.doesNotMatch(source,/spawnSync|execFile|child_process|setTimeout|process\.env\s*=/);
+});
+
+// The earlier full8MiB journal competes with the same whole-response budget.
+// This countercase uses only fake forwarding, not a real graph or timing claim.
+test('bounded partial journal leaves room for graph metadata without dropping forwarded calls',()=>{
+  const item=fixture(),file=root+'/'+'a'.repeat(3800);let calls=0;
+  item.ts.sys.fileExists=function(){calls++;return false;};
+  item.returned.splice(0,2,...Array.from({length:1800},(_,i)=>root+'/'+String(i).padStart(4,'0')+'x'.repeat(396)+'.ts'));
+  item.ts.createProgram=function({host}){for(let at=0;at<2500;at++)assert.equal(host.fileExists(file),false);return {getSourceFiles(){return item.returned.map(fileName=>({fileName}));}};};
+  const result=item.probe({root,script:'test:types'});assert.equal(calls,2500);assert.equal(result.files.length,1800);
+  assert(result.journal.callsObserved>=2500);assert(result.journal.frames.length<2500);
+  assert(result.journal.reasonCodes.includes('JOURNAL_LIMIT'));assert.equal(result.journal.loggingComplete,false);
+  assert.equal(result.observationStatus,'INCOMPLETE');assert(Buffer.byteLength(JSON.stringify(result))<=8*1024*1024);
+  for(const key of ['nativeViewVerified','namespaceVerified','sealed','reuseEligible'])assert.equal(result[key],false);
 });
