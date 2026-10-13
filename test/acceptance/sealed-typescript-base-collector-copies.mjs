@@ -43,3 +43,9 @@ export function verifySealedTypeScriptBaseCollectorCopies(copies){
   return authorityFalse({outcome:'COLLECTOR_COPIES_CURRENTLY_OBSERVED_NOT_EXECUTED',baseA:record.before.baseA,baseB:record.before.baseB,hostBase:record.before.hostBase,bindings:record.before.bindings});
  }catch{record.invalid=true;return unknown();}
 }
+
+// Identity linkage only; matching H/hash labels from another source mint cannot
+// select these copies. Currentness remains a separate mandatory observation.
+export function sealedTypeScriptBaseCollectorCopiesMatchSource(copies,proposal){
+ const record=mintedCopies.get(copies);return arguments.length===2&&!!record&&!record.invalid&&record.proposal===proposal;
+}

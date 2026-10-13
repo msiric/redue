@@ -65,3 +65,9 @@ export function verifySealedTypeScriptBaseCollectorSource(proposal){
  }catch{record.invalid=true;return unknown();}
 }
 
+
+// Identity linkage only: does not return or reconstruct the private asset mint.
+// Callers must independently require current source/assets observations.
+export function sealedTypeScriptBaseCollectorSourceMatchesAssets(proposal,assets){
+ const record=mintedSources.get(proposal);return arguments.length===2&&!!record&&!record.invalid&&record.build===assets;
+}

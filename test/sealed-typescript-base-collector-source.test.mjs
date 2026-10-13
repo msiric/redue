@@ -1,6 +1,6 @@
 // Authored source/virtual-FD/entry mocks only, no fixture/native/helper process.
 import {EventEmitter} from 'node:events';import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';import {createHash} from 'node:crypto';
-import {prepareSealedTypeScriptBaseCollectorSource as actual,verifySealedTypeScriptBaseCollectorSource as actualCurrent} from './acceptance/sealed-typescript-base-collector-source.mjs';
+import {prepareSealedTypeScriptBaseCollectorSource as actual,verifySealedTypeScriptBaseCollectorSource as actualCurrent,sealedTypeScriptBaseCollectorSourceMatchesAssets as actualMatch} from './acceptance/sealed-typescript-base-collector-source.mjs';
 const url=new URL('./acceptance/sealed-typescript-base-collector-source.mjs',import.meta.url),moduleSource=fs.readFileSync(url,'utf8');
 const files=['./sealed-typescript-base-child-collection.mjs','./sealed-typescript-base-exchange-result.mjs','../../src/portable-envelope.mjs','./sealed-typescript-base-collector-launcher.c'].map(rel=>fileURLToPath(new URL(rel,url)));
 const bodies=files.map(file=>Buffer.from(fs.readFileSync(file,'utf8').replaceAll('\r\n','\n'))),sha=body=>createHash('sha256').update(body).digest('hex');
@@ -11,8 +11,8 @@ function mock(verify=good,fault=null){let checks=0,reads=0,closes=0,fd=100,ino=1
  if(fault==='symlink')nodes.get(files[0]).type='l';if(fault==='multilink')nodes.get(files[0]).nlink=2n;if(fault==='oversize')nodes.get(files[0]).size=1048577n;
  const metadata=file=>{const n=nodes.get(file);assert(n);return{...n,isDirectory:()=>n.type==='d',isFile:()=>n.type==='f',isSymbolicLink:()=>n.type==='l'};};
  const io={constants:{O_RDONLY:0,O_NOFOLLOW:131072,O_NONBLOCK:4},realpathSync:file=>file,lstatSync:metadata,openSync(file){assert(files.includes(file));const value=fd++;handles.set(value,file);return value;},fstatSync:fd=>metadata(handles.get(fd)),readSync(fd,bytes,offset,length,position){reads++;const file=handles.get(fd),body=nodes.get(file).body;if(fault==='late-replace'&&file===files[2])nodes.get(files[0]).ino+=1n;const count=body.copy(bytes,offset,position,Math.min(position+length,body.length));if(fault==='bytes'&&file===files[0]&&count)bytes[offset]^=1;return count;},closeSync(fd){handles.delete(fd);closes++;if(fault==='close')throw Error('PRIVATE_SOURCE_OR_PATH');}};
- const api=Function('fs','path','fileURLToPath','createHash','verifySealedTypeScriptBaseExchangeAssets','process',moduleSource.replace(/^import .*;$/gm,'').replaceAll('import.meta.url',JSON.stringify(url.href)).replaceAll('export function ','function ')+'\nreturn {prepare:prepareSealedTypeScriptBaseCollectorSource,verify:verifySealedTypeScriptBaseCollectorSource};')(io,path,fileURLToPath,createHash,()=>verify(++checks),{getuid:()=>501});
- return{prepare:api.prepare,verify:api.verify,nodes,counters:()=>({checks,reads,closes,handles:handles.size})};}
+ const api=Function('fs','path','fileURLToPath','createHash','verifySealedTypeScriptBaseExchangeAssets','process',moduleSource.replace(/^import .*;$/gm,'').replaceAll('import.meta.url',JSON.stringify(url.href)).replaceAll('export function ','function ')+'\nreturn {prepare:prepareSealedTypeScriptBaseCollectorSource,verify:verifySealedTypeScriptBaseCollectorSource,matches:sealedTypeScriptBaseCollectorSourceMatchesAssets};')(io,path,fileURLToPath,createHash,()=>verify(++checks),{getuid:()=>501});
+ return{prepare:api.prepare,verify:api.verify,matches:api.matches,nodes,counters:()=>({checks,reads,closes,handles:handles.size})};}
 const failure=(fn,code)=>assert.throws(fn,error=>error.code===code&&error.message===code);
 test('unminted/serialized/accessor build reads no caller paths or source dependencies',()=>{let accessed=0;const value={};Object.defineProperty(value,'report',{get(){accessed++;throw Error('PRIVATE');}});failure(()=>actual(value),'BASE_COLLECTOR_ASSETS_UNAVAILABLE');assert.equal(accessed,0);const m=mock(()=>({outcome:'UNKNOWN'}));failure(()=>m.prepare(build),'BASE_COLLECTOR_ASSETS_UNAVAILABLE');assert.equal(m.counters().reads,0);failure(()=>actual(JSON.parse(JSON.stringify(build))),'BASE_COLLECTOR_ASSETS_UNAVAILABLE');});
 test('exact one private build is the entire constructor interface',()=>{failure(()=>actual(),'BASE_COLLECTOR_SOURCE_OPTIONS');failure(()=>actual(build,{}),'BASE_COLLECTOR_SOURCE_OPTIONS');failure(()=>actual({build,command:'OTHER',env:{}}),'BASE_COLLECTOR_ASSETS_UNAVAILABLE');});
@@ -86,4 +86,12 @@ test('preload-like value text and longer exact-key names preserve the inherited 
  const value=await entryMock(p=>{p.env.NODE_OPTIONS_EXTRA='NODE_OPTIONS=NONSECRET';p.env.SAFE='LD_PRELOAD=NONSECRET';});
  assert.equal(value.calls.length,1);assert.equal(value.process.env,value.env);
  assert(!value.output.join('').includes('NONSECRET'));assert.equal(JSON.parse(value.output[0]).outcome,'UNKNOWN');
+});
+
+test('source/asset bridge exposes only exact private identity, never public labels or a mint getter',()=>{
+ const m=mock(),proposal=m.prepare(build),sameLabels=JSON.parse(JSON.stringify(build));
+ assert.equal(m.matches(proposal,build),true);assert.equal(m.matches(proposal,sameLabels),false);
+ assert.equal(m.matches(JSON.parse(JSON.stringify(proposal)),build),false);assert.equal(actualMatch(proposal,build),false);
+ assert.equal(m.matches(proposal,build,{}),false);assert.equal(m.matches(null,build),false);
+ m.nodes.get(files[0]).ino+=1n;assert.equal(m.verify(proposal).outcome,'UNKNOWN');assert.equal(m.matches(proposal,build),false);
 });
