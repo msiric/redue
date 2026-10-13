@@ -6,6 +6,26 @@ Copilot entitlement for personal REDUE work, not additional spending. The
 demonstration uses Copilot CLI on VM A and native Claude Code on VM B; Codex
 acceptance is separate. See D4 in the durable decisions.
 
+## Current sealed-recipe prerequisites
+
+The owner account and personal-use permission are settled. Included Actions
+billing remains one external fact, but it is not the only missing prerequisite.
+The current helper is an **uninstalled legacy proposal**, not the D12 producer
+boundary. Independent source review found no prepared-tree/ancestor writer
+protection, broad REDUE shell stems, and missing protection for configuration,
+project-runtime, owner and producer-registry authority files. A read-only compiler
+child cannot protect against another permitted agent writer. Inventory token
+removal is not proof of native model-tool credential filtering, and potential
+runner-token names need explicit handling before authentication.
+
+Do not launch this proposal merely when quota is confirmed. Establish a reviewed
+version-bound producer policy, physical read/write separation or documented and
+empirically verified precedence, immutable dispatch authority, all permitted tool
+writer channels, controlled startup/managed policy, and native credential isolation.
+The exact source-only audit is in the
+[independent boundary record](../acceptance/portable-boundary-review.md).
+No model or authenticated Copilot workflow has run; no released defect is claimed.
+
 ## Actual installed controls
 
 On2026-10-11 the existing native Copilot CLI reports1.0.91. Its actual executable
