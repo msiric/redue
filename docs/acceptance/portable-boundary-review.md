@@ -7110,3 +7110,36 @@ UNKNOWN; all native/helper/compiler-check/model/seal/reuse authority remains fal
 Fresh private pair/H/current code/binary/runtime/argv/profile/protocol guards are
 still separate prerequisites for any later use. No SDK closure, hostile-writer
 atomic protection, matched-host native enforcement or trust is minted here.
+
+
+### Fixed three-build observation front (de6e9f9)
+
+Independent source/mock GO for `test/sealed-typescript-base-exchange-build-observation.test.mjs`
+at `de6e9f9`, SHA256
+`a079b13d8bb5d465eb2c7df2506e8686f1ecccf9a04ff6521ebd5846f4026d89`.
+The front selects the opt-in operation only after the fixed Darwin/ARM64/Node22.13
+and matching nonroot principal checks. It mints the private synthetic A/B pair
+and separate H fixture, then calls only the independently reviewed 2ae4ee1 build
+leaf. It asserts three dispatch attempts, three returned results, and three
+observed processes, with each completed zero exit, null signal and no spawn error.
+No helper binary, native agent, TypeScript check or model executes through this
+front. The result retains false seal/reuse flags and no runnable commands.
+
+Five independent whole-front controls passed (47.06 ms), using exact author
+source, an in-memory filesystem and fake fixture/build functions: positive exact
+record/readback checksum; partial pair and host-preparation locations with zero
+build calls; nonzero exit, signal and observed-process-count failures; record
+write, corrupt/short read, close, named-file replacement, parent replacement,
+wrong-mode and hardlink refusals; and principal rejection before any fixture mint.
+All uncertain persistence cases publish only static UNKNOWN without a saved
+checksum. Records are owner-local 0600 exclusive creations, capped at 64 KiB,
+with descriptor/named-file/parent checks and exact bounded readback. This is
+observed byte persistence, not crash durability or a hostile-parent confinement
+claim. A record or serialized location cannot adopt a private fixture or confer
+build-use authority.
+
+The real front's default invocation skipped the actual operation (44.94 ms).
+The reviewer performed no actual bootstrap, fixture creation, build, helper,
+native, compiler, model or CI operation. This GO permits one fixed engineering
+three-C build only, preserving partial resources and requiring separate current
+resource, binary, profile, protocol and lifecycle review before any helper use.
