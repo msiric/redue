@@ -3,15 +3,16 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — pre-Node guard accepted; native execution remains gated
+## Current checkpoint — pre-Node source/build accepted; observation pending
 
-2026-10-13 09:54UTC, integration `e753ff8`. See current
+2026-10-13 10:02UTC, integration `c4bc6ec`. See current
 [resume](portable-evidence-resume.md) for exact reviewed hashes and scope limits.
 
 | Task | Current owner/status | Evidence and next gate |
 | --- | --- | --- |
 | DIR-NEXT-005 | Implementer / fresh reviewer / root: ACCEPT | Fixed worker `547e600`;16 independent controls; root94 source/protocol PASS82.072ms +132 adjacent PASS/two actual SKIP93.636ms; syntax-only compile0 |
-| DIR-NEXT-006 | Implementer: ACTIVE; root sole integration owner | Fixed guarded launcher-only build linked to existing private source/copy/asset identity; no raw mint access/arbitrary compiler; fresh review before actual build |
+| DIR-NEXT-006 | Fresh independent ACCEPT / root integrated `c4bc6ec` | Worker `e076968`;144 source/mock PASS +16 independent controls; actual ESM import only; exact same source mint/copies/original assets, guarded fixed compiler; no native authority |
+| DIR-NEXT-007 | Implementer ACTIVE; root integration owner | Separate opt-in 30s observation wrapper: fresh3 prerequisite builds +new fourth; actual counters/costs, old observation untouched; no real build before fresh review |
 | Native seal | NOT ESTABLISHED | Pre-main/native/protected bytes/auth/capacity/handles remain required; six-row helper's missing assertion keeps nominal UNKNOWN |
 | Herdr | Live primary frontend verified | Exact owned viewport displays this primary's current tools/commentary, working/interactive-ready; same original goal/thread; no automatic approval/new coordinator |
 

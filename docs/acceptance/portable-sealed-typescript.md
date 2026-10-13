@@ -12,7 +12,7 @@ requires reviewed TS5.5.2 and the existing matched Darwin25.6/ARM64/official
 Node22.13 profile. A local proposal cannot certify that profile or its enforcement.
 Existing commands, user configurations and receipts are unchanged.
 
-## Current checkpoint — fixed pre-Node proposal independently accepted
+## Current checkpoint — fixed pre-Node source/build independently accepted
 
 Integration `e753ff8` (worker `547e600`),09:54UTC. Fixed launcher/source identity and
 currentness have fresh independent ACCEPT,16 extra controls;94 source/protocol and
@@ -24,7 +24,11 @@ The launcher checks keys before Node starts; its own loader, current protected
 native/source/runtime bytes, authentication/capacity and supervision are not proved
 by C main. Existing missing stage assertion keeps the six-row protocol UNKNOWN.
 No current sealed recipe is executable; no portable origin/reuse authority enabled.
-Guarded engineering build work is active with independent review before observation.
+Guarded engineering builder `e076968` is independently accepted and integrated
+`c4bc6ec`:144 source/mock plus16 independent controls, actual ESM initialization,
+no compiled artifact or enforcement. Separate opt-in observation wrapper is under
+implementation; source/copy/original-asset identity and unchanged compile limits
+remain mandatory. Actual observation awaits its fresh review/preconditions.
 Live Herdr coordination is verified separately and does not satisfy a product gate.
 All earlier FAIL/UNKNOWN and pre-use counterexamples remain below.
 

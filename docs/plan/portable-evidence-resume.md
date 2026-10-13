@@ -6,9 +6,9 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree on `dev/portable-sealed-typescript`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — pre-Node source guard reviewed; guarded build underway
+## Current checkpoint — pre-Node source/build reviewed; observation pending
 
-At 2026-10-13 09:54UTC, integration `e753ff8` includes worker `547e600` after fresh
+At 2026-10-13 10:02UTC, integration `c4bc6ec` includes worker `547e600` after fresh
 independent DIR-REVIEW-005 ACCEPT. The fixed C launcher rejects forbidden preload
 key presence (including empty/case variants) before `execve` of the exact pinned
 Node/collector; inherited environment is unchanged, refusal static/UNKNOWN74.
@@ -26,11 +26,22 @@ This closes a pre-Node code gap, not native enforcement: C main cannot prevent i
 own pre-main loader; enclosing-parent protection, protected current bytes, source/
 runtime/toolchain identity, auth/capacity, handles and supervision remain required.
 The six-row helper still has an explicit missing assertion and nominal UNKNOWN.
-DIR-NEXT-006 now owns one fixed engineering launcher build through existing private
-source/copy/original-asset mints, with a narrow matching query and reviewed compiler
-operation. No raw mint getter, caller-selected command, general cache/dispatcher,
-settings or authority activation. Worker writes only its assigned source/tests;
-root owns integration/docs. Fresh independent review required before actual build.
+DIR-NEXT-006 engineering builder `e076968` received fresh independent ACCEPT:
+144 source/mock controls plus16 independent cases, actual ESM-cycle import, no real
+build. Root inspected/integrated the exact six-file change at `c4bc6ec` and affected
+tests exited0. Original asset→source→copies object identity is mandatory, not H/hash
+labels; original protected runtime/toolchain remains current before/after the fixed
+compile and all late rows. No raw mint getter, arbitrary operation or execution
+authority. Source digest now `88b60905f59af6aedf62d80492bacc8e60ee8c58b1ed45d2abeed4c03a19c421`,
+assets `0a95c7c3cd9373884fb22d1d8b088033ef0052cc0f56470fea6a70f7e35c671a`,
+copies `70b129684c8896e7f7e1c4b134b46a29f9f84818f10c8b7e65a094b1579cc699`.
+Reviewer harness initially failed before assertions; corrected harness only. SDK
+closure/trusted-quiescent ancestry and native enforcement remain explicit limits.
+DIR-NEXT-007 now owns a separately selected observation wrapper; unchanged old copy
+observation is preserved. Fresh three builds are necessary to mint its prerequisites
+for the new fourth build, not a replay/adoption of an expired record. No actual new
+compile before wrapper independent review and real preconditions;30s total cap,
+true counters/saved pending timing, no helper/native/model execution.
 
 Herdr's owned live viewport now mirrors this SAME primary thread's exact recent
 review, source integration, tests and commentary; metadata reports working and
@@ -47,7 +58,7 @@ scoped PASS. GitHub admin denial and Copilot included Actions four-credit fact s
 lane-specific pending prerequisites; no repeat request/bypass. Current sealedG1,
 actual cross-agent/two-machineG2, finalG3/prepubG4 remain incomplete, economics and
 field usage unestablished. Alpha.11 frozen/unpublished bytes unchanged. Day0 and
-72h calibration unchanged. Next: review DIR-NEXT-006 fixed build revision, then one
+72h calibration unchanged. Next: review DIR-NEXT-007 fixed observation wrapper, then one
 permitted build observation if its real preconditions pass; no native/model trial
 before corresponding actual prerequisites.
 
