@@ -96,3 +96,51 @@ test('complete finite Boolean observation table distinguishes known violations f
     for(let at=0;at<6;at+=2)if(values[at]&&values[at+1]===false)violations++;assert.equal(knownFailure(...values),violations>0);}
   for(let bits=0;bits<32;bits++){const values=Array.from({length:5},(_,index)=>!!(bits&(1<<index)));assert.equal(unknown(...values),values.filter(value=>value===false).length>0);}
 });
+
+// Evaluate only two fixed side-effect-free byte predicates as JS integers. The
+// reference scan below supplies synthetic bytes and validates source structure;
+// it is not a C compilation, SDK/ABI check, native path or sandbox observation.
+function bytePredicate(name,parameters){
+  const match=code.match(new RegExp(`static bool ${name}\\(([^)]*)\\) \\{\\s*return ([^;]+);\\s*\\}`));assert(match);
+  assert.deepEqual(match[1].split(',').map(value=>value.trim()),parameters.map(value=>'unsigned char '+value));
+  const expression=match[2],tokens=expression.match(/0x[0-9a-f]+|[A-Za-z_][A-Za-z0-9_]*|&&|\|\||!=|>=|<=|==|>|<|!|\(|\)/g)||[];
+  assert.equal(tokens.join(''),expression.replace(/\s/g,''));for(const token of tokens)if(/^[A-Za-z_]/.test(token))assert(parameters.includes(token));
+  return Function(...parameters,'return '+expression);
+}
+const continuation=bytePredicate('utf8_continuation',['value']);
+const secondOK=bytePredicate('utf8_second_ok',['first','second']);
+function referenceEncoding(bytes){
+  for(let at=0;at<bytes.length;at++){
+    const first=bytes[at];if(first<0x80){if(first<32||first===127)return false;continue;}
+    let extra;if(first>=0xc2&&first<=0xdf)extra=1;else if(first>=0xe0&&first<=0xef)extra=2;else if(first>=0xf0&&first<=0xf4)extra=3;else return false;
+    if(bytes.length-at-1<extra||!secondOK(first,bytes[at+1]))return false;
+    for(let offset=2;offset<=extra;offset++)if(!continuation(bytes[at+offset]))return false;
+    if(first===0xc2&&bytes[at+1]<=0x9f)return false;at+=extra;
+  }return true;
+}
+function referenceCanonical(value){
+  const bytes=Buffer.from(value);if(bytes.length<2||bytes.length>4096||!value.startsWith('/')||value.includes('__REVIEWED_')||!referenceEncoding(bytes)||/[\\:]/u.test(value))return false;
+  return value.slice(1).split('/').every(part=>part!==''&&part!=='.'&&part!=='..');
+}
+test('source retains UTF8 bounds before indexing, all canonical/guard assertions and fixed route scope',()=>{
+  assert.match(code,/if \(!utf8_path_bytes\(\(const unsigned char \*\)value, length\)\) return false;/);
+  assert.match(code,/first >= 0xc2 && first <= 0xdf\) extra = 1/);assert.match(code,/first >= 0xe0 && first <= 0xef\) extra = 2/);assert.match(code,/first >= 0xf0 && first <= 0xf4\) extra = 3/);
+  assert.match(code,/length - at - 1 < extra \|\| !utf8_second_ok\(first, value\[at \+ 1\]\)/);
+  assert.match(code,/offset = 2; offset <= extra; offset\+\+.*!utf8_continuation\(value\[at \+ offset\]\)/);
+  assert.match(code,/first == 0xc2 && value\[at \+ 1\] <= 0x9f/);
+  assert.match(code,/c < 32 \|\| c == 127 \|\| c == '\\\\' \|\| c == ':'/);
+  assert.match(source,/Encoding checks do not prove path\/Unicode/);assert.doesNotMatch(code,/getenv|argv\s*\[/);
+});
+test('source byte predicates reject overlong/surrogate/out-of-range second bytes for all finite byte pairs',()=>{
+  for(let value=0;value<256;value++)assert.equal(continuation(value),value>=128&&value<=191);
+  for(let first=0;first<256;first++)for(let second=0;second<256;second++){
+    const allowed=second>=128&&second<=191&&!(first===224&&second<160)&&!(first===237&&second>159)&&!(first===240&&second<144)&&!(first===244&&second>143);
+    assert.equal(secondOK(first,second),allowed);
+  }
+});
+test('synthetic UTF8 path bytes admit approved checkout characters but reject malformed/control encodings',()=>{
+  assert.equal(referenceCanonical('/private/tmp/owned/Checkout 空间/.sealed-native-canaries/map-canary.txt'),true);
+  assert.equal(referenceCanonical('/owned/é/🧪/map-canary.txt'),true);
+  for(const bytes of [[0xc0,0xaf],[0xe0,0x80,0x80],[0xed,0xa0,0x80],[0xf4,0x90,0x80,0x80],[0xf5,0x80,0x80,0x80],[0xe6,0x9f],[0x80],[0x7f],[0xc2,0x85],[0x0a]])assert.equal(referenceEncoding(Buffer.from(bytes)),false);
+  for(const value of ['relative','/','/owned//file','/owned/./file','/owned/../file','/owned/file/','/owned\\file','/owned:file','/owned/\nfile','/owned/\u0085file','/owned/__REVIEWED_STAGE__','/'+'x'.repeat(4096)])assert.equal(referenceCanonical(value),false);
+});

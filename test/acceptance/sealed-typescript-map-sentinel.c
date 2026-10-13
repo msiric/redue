@@ -23,6 +23,9 @@
  * https://github.com/apple-oss-distributions/xnu/blob/xnu-12377.1.9/bsd/vfs/vfs_vnops.c#L392-L395
  * This is a source-based fixture repair, not proof that the running kernel
  * matches that source branch or that it caused the observed startup EINVAL.
+ * Canonical fixed names may contain valid UTF-8 (the approved owned checkout
+ * includes a Unicode component). Encoding checks do not prove path/Unicode
+ * equivalence: parent current physical/resource bindings remain mandatory.
  *
  * MAP_PRIVATE CoW is not underlying-file mutation and is not a denial gate.
  * Existing writable descriptors/mappings cannot be inferred absent here:
@@ -85,13 +88,38 @@ static void observe(size_t index, const char *classification, int error) {
 static void cleanup_failed(int error) {
   cleanup_known = false; if (cleanup_errno == 0) cleanup_errno = error;
 }
+static bool utf8_continuation(unsigned char value) {
+  return value >= 0x80 && value <= 0xbf;
+}
+static bool utf8_second_ok(unsigned char first, unsigned char second) {
+  return second >= 0x80 && second <= 0xbf && (first != 0xe0 || second >= 0xa0) &&
+    (first != 0xed || second <= 0x9f) && (first != 0xf0 || second >= 0x90) &&
+    (first != 0xf4 || second <= 0x8f);
+}
+static bool utf8_path_bytes(const unsigned char *value, size_t length) {
+  for (size_t at = 0; at < length; at++) {
+    const unsigned char first = value[at];
+    if (first < 0x80) { if (first < 32 || first == 127) return false; continue; }
+    size_t extra;
+    if (first >= 0xc2 && first <= 0xdf) extra = 1;
+    else if (first >= 0xe0 && first <= 0xef) extra = 2;
+    else if (first >= 0xf0 && first <= 0xf4) extra = 3;
+    else return false;
+    if (length - at - 1 < extra || !utf8_second_ok(first, value[at + 1])) return false;
+    for (size_t offset = 2; offset <= extra; offset++) if (!utf8_continuation(value[at + offset])) return false;
+    if (first == 0xc2 && value[at + 1] <= 0x9f) return false; /* C1 controls */
+    at += extra;
+  }
+  return true;
+}
 static bool canonical_path(const char *value) {
   const size_t length = strlen(value);
   if (length < 2 || length > 4096 || value[0] != '/' || strstr(value, "__REVIEWED_") != NULL) return false;
+  if (!utf8_path_bytes((const unsigned char *)value, length)) return false;
   size_t component = 1;
   for (size_t at = 1; at <= length; at++) {
     const unsigned char c = (unsigned char)value[at];
-    if (at < length && (c < 32 || c >= 127 || c == '\\' || c == ':')) return false;
+    if (at < length && (c < 32 || c == 127 || c == '\\' || c == ':')) return false;
     if (c == '/' || at == length) {
       const size_t count = at - component;
       if (count == 0 || (count == 1 && value[component] == '.') ||
