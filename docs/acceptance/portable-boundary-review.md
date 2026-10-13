@@ -6863,3 +6863,40 @@ not fabricated away. It does not install native-agent settings or assert policy
 equivalence. Helper overall UNKNOWN/FAIL and base-atomic NOT_IMPLEMENTED remain;
 four implemented PASS rows could close only named engineering observations.
 No seal, inherited-RW absence, full compiler namespace or reuse authority follows.
+
+Independently read/rehashed actualc681 exchange TAP
+7ed19b816959ce369d5d03b1c4ce61ec88c73819cabea2604bc05534102be596
+and owner record84e2a2a8bf85abf9197f4270fb782b831618622d2df64daa98b95e5dc414f7ba;
+saved-byte acknowledgement matches. Strict emitter validation of actual rows passed
+one readonly result control in45.80ms. Four implemented rows report PASS; base
+atomic is NOT_IMPLEMENTED, helper overall UNKNOWN and parent assertion scope is
+PASS_IMPLEMENTED_ROWS_ONLY. Generation exited0; helper exited74; both null signal,
+no error/reapedtrue/empty stderr. Test2832.335625ms/total2879.570666ms.
+Post-control fixture verification is explicitly UNKNOWN, not revived/adopted.
+No native-agent, model or TypeScript check occurred; this is local engineering
+entry/ABI observation only, not full seal or actual agent enforcement. Reviewer
+read scoped result/TAP and validated data only, with no actual helper execution.
+
+Source-note GOe1dbc86, selected TypeScript CLI closure assessment only. Rechecked
+pinned tsc.js390875cd...9c73 and raw staged config
+b686bac4abc2a8b17ca7a33ac1b5766c8a3bb7e09e5affb30bff5a3c9914a4f8.
+The CLI report pipeline ultimately calls emit; handleNoEmitOptions122142 requests
+semantic diagnostics despite noEmit, including when an earlier pipeline gate
+skips its first semantic call. Discovery getSourceFiles is not that work. Raw
+target bundler100 excludes the generic Node16/Next3|99 suggested-extension branch;
+no actual debugger branch or cause is assigned to the three failed API fixtures.
+Raw config inspection is not a newly parsed effective config. Whole protected
+namespace/membership/absence/empty directories/topology plus exact outside answers,
+runtime/cwd/environment and same actual caller view remain obligations. No API
+graph, partial388 denials or source inspection substitutes for full CLI acceptance.
+
+Highest-value next evidence is the actual matched native boundary, including
+remaining whole-base/case/symlink/hardlink/mapping and fixed read/write/runtime
+resource guards, followed by unchanged configured CLI in that final proved view.
+An additional engineering-k0d CLI route could close only a distinct feasibility/
+entry observation and cannot provide missing actual agent enforcement. A paired
+whole-base synthetic prototype must not reuse the old subset-inventory brand as
+destructive whole-base authority: finalize a locally known public-only inventory
+with fresh private sibling, refuse unknown auth/settings/state/extras, retain
+known exchange grants/mismatches as FAIL and add no sibling-body/parent reallow.
+Exact paired resource/profile/source interface still needs review before use.
