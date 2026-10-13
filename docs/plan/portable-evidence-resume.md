@@ -6,7 +6,71 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree on `dev/portable-sealed-typescript`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — paired artifacts built; checking-phase source integrated
+## Current checkpoint — fixed campaign provisioning reviewed; native boundary pending
+
+2026-10-13 15:12UTC, integration source `3c66c74`. Root remains sole integration
+owner in existing Herdr `w1:pD` / `redue-director`; no duplicate coordinator, goal,
+pane worker or orchestrator. Roles explicitly read installed guidance; automatic
+TOML profile selection and reviewer OS isolation remain unverified.
+
+- DIR-NEXT-026 `3a40509` → `17c5f06`: fixed four-route campaign, one14s/14.5s/15s
+  budget, expected exits74/74/1/74. Root272PASS; independent272+109 controls.
+  Source only: missing assertions keep aggregate UNKNOWN, all authority false.
+- DIR-NEXT-029 `8325e20` → `18fafd8` was CHANGES_REQUIRED: late dependency reads
+  could mutate an already checked copy. Fixed `54f49a3` → `fc6892d` places final
+  copied-file checks after all dependency checks. Root76PASS122.123ms;
+  independent76+356 controls and old/fixed counterexamples. Trusted/quiescent
+  engineering only; no actual copies/helper/native/model operation yet.
+- DIR-NEXT-028 `0d342d8` → `7efcba1` was CHANGES_REQUIRED: late empty-directory
+  additions escaped terminal identity-only checks. Fixed `d8a9132` → `16fbcad`
+  closes full source/stage directory fingerprints after terminal validation.
+  Root156PASS810.221ms; independent156+10 controls. Opt-in @3/schema4 requires
+  complete leaf coverage; @2 is unchanged. No implicit ignore/.git body reads.
+- DIR-NEXT-031 `0ea1628` → `3c66c74`: fixed campaign C launcher built only from
+  live private H toolchain/copies. Fresh independent ACCEPT371 tests+134 controls,
+  three fresh ESM orders. Root371PASS130.342ms. Actual compiler/helper/native
+  execution NOT RUN. Unchanged-metadata hostile writes can still escape same-call
+  engineering checks; next full validation rejects. No sealing claim.
+
+Actual shared-path regressions on Node22.13:28PASS/0FAIL/0SKIP,298134.652ms across
+list/program traversal/direct/direct552/macOS direct-probe tests. This is contract
+regression evidence, not portable/native acceptance or timing economics. TAP SHA
+`da6502f2a03e980e811e793c02f879739c372be6e20985383bb1314803473322`.
+Actual ordinary-project directory METADATA ONLY at pinned debugger b1c0077:
+4576directories,38393entries,33818leaves,28.git leaves;1246.811ms. Capture SHA
+`b00a421bc9dffc8fe31cee5f8be01894645999e71b5bdef7b7fe338db53f8a8f`.
+No source bodies/copy/compiler/native/model/receipt operation or @3 qualification.
+Full-leaf policy cannot silently omit/read/copy Git metadata to force acceptance.
+
+Last actual engineering five-build observation remains `eb6bc77`,11618.043ms,
+exit0/reaped; no helper/launcher/native/model/receipt ran. Earlier timeout/UNKNOWN
+records remain immutable. Original late-directory failing TAP preserved owner-local
+SHA `44b090f4ae05f2d26a2684629b874d3169a0eeed9ea893d26d5cc3945c90c52a`.
+Source031 root TAP SHA `0241aa026e0122136783974fd7a15713595f61fdb4c83a8f9411fd1cd1fe15f7`.
+These mock/source/build facts cannot substitute for empirical native enforcement.
+
+Active: DIR-NEXT-032 stage-results worker owns only fixed combined engineering
+observation/tests (fresh3+2+1 C builds, six current copies,30s body/parent,5s reap,
+default skip before FS). Fresh independent review before selecting a real run.
+DIR-NEXT-033 readback worker in import worktree owns only new disabled exact native
+campaign command/tests; no shared API writer or settings/credential/native action.
+Root docs/integration; diagnostics reviewer available for fresh nonauthor review.
+DIR-NEXT-030 research closed: Copilot1.0.91 source does not establish effective
+secret filtering/native confinement; old broad command/credential geometry is not
+D12 approval. Included Actions4-credit billing remains a SEPARATE pending fact.
+
+Original hosted Claude scoped diagnostic PASS stays CLOSED. Existing GitHub admin
+403 / inventory dispatch action and Copilot included-capacity fact remain unchanged;
+no repeated owner request or denial retry. G0partial/sealedG1/G2/G3/prepubG4 remain
+incomplete. Recipe preview-only; configured sealed execution, complete loader/
+namespace/parent-handle protection, recipient interpretation and actual cross-agent/
+two-machine reuse remain required. Alpha.11 frozen/unpublished bytes unchanged;
+no pack, signing/trust/publication, permission weakening or pilot receipt changes.
+External usage NOT STARTED; complete sealed-path economics NOT MEASURED.
+Day0 October10 21:24UTC/calibration October13 21:24UTC unchanged. Blocked lanes
+continue separately; no invented elapsed-blocked total or unconditional forecast.
+
+## Historical checkpoint — paired artifacts built; checking-phase source integrated
 
 2026-10-13 13:52UTC, integration `eb6bc77` (source). Original goal and primary
 Herdr director remain `w1:pD` / `redue-director`; root alone integrates. Installed

@@ -3,7 +3,31 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — paired build observed; native seal still open
+## Current checkpoint — reviewed campaign pipeline; native seal still open
+
+2026-10-13 15:12UTC, integration source `3c66c74`; exact scope/evidence in current
+[resume](portable-evidence-resume.md). Failures and UNKNOWNs remain preserved.
+
+| Task | Owner/status | Concrete result / next gate |
+| --- | --- | --- |
+| Herdr director loop | COMPLETE | Existing primary pane/thread, roles explicitly read; no automatic-profile or OS-isolation claim |
+| DIR-NEXT-026 | ACCEPT / `17c5f06` | Fixed four-route shared-deadline campaign;272 root controls; no real helper/native execution |
+| DIR-NEXT-029 | REVISE then ACCEPT / `fc6892d` | Final copied-file checks after dependencies;76 root tests+fresh counterexamples; engineering only |
+| DIR-NEXT-028 | REVISE then ACCEPT / `16fbcad` | Complete @3 directory inventory closing barrier;156 root tests; strict complete leaf coverage |
+| DIR-NEXT-031 | ACCEPT / `3c66c74` | Fixed private-derived campaign launcher;371 root tests, independent134 controls; not executed |
+| DIR-NEXT-032 | Stage-results implementer ACTIVE | Fresh combined6-build/copies observation,30s total; review before actual selection |
+| DIR-NEXT-033 | Readback implementer ACTIVE | New disabled exact native campaign command; no settings/native operation |
+| DIR-NEXT-030 | Research COMPLETE | Copilot credential/native enforcement prerequisites distinct from billing fact |
+| Shared regressions |28PASS/0FAIL |298134.652ms, not performance/native acceptance |
+| Ordinary directory metadata | CAPTURED, not qualified |4576dirs/33818leaves/28.git leaves; no Git-body read/copy workaround |
+| Product G1–G4 | INCOMPLETE | Configured sealed run, native protection, recipient interpretation and real machine/agent reuse pending |
+
+No new owner action for routine engineering. Existing GitHub admin/Copilot
+included-capacity prerequisites unchanged; original Claude diagnostic CLOSED scoped
+PASS. Alpha.11 frozen/unpublished, no trust/permission/signing/publication changes.
+Day0/calibration unchanged; field use and complete-path economics unestablished.
+
+## Historical checkpoint — paired build observed; native seal still open
 
 2026-10-13 13:52UTC, source `eb6bc77`. Exact evidence/limits in current
 [resume](portable-evidence-resume.md); previous failures remain preserved.
@@ -232,7 +256,7 @@ initial regex assertion failure is retained (before any public-tool execution),
 then43.818ms PASS. It remains unrun pending independent review. No credentials,
 model, compiler execution, signing or artifact upload is in that inventory job.
 
-### Current blocked lane and continuing work
+### Historical blocked lane and continuing work
 
 The independently reviewed storage-free hosted inventory branch
 `dev/portable-sealed-host-preflight` is pushed at `75613f9` with source pin
@@ -1182,7 +1206,7 @@ protected Claude environment and subscription OAuth setup; this unlocks only the
 one bounded native diagnostic after its fresh preconditions. Preserve all failed,
 unknown and positive records, frozen artifacts, trust and host/budget boundaries.
 
-## Current CI checkpoint — reviewed code regressions and package pass; model prerequisites pending
+## Historical CI checkpoint — reviewed code regressions and package pass; model prerequisites pending
 
 Reviewed test-only diagnostic source de37055d6436f870c907e35fbc65be69e9301452 is
 normally pushed to dev/portable-ci-preparation; PR13 stays draft. Product38199960090
@@ -2246,7 +2270,7 @@ Pre-attempt artifact allowance snapshot: 4,608,374 active bytes +5MiB signing re
 
 Current active artifacts are4,826,222bytes at the verified checkpoint; recheck before any later upload. Next: review disabled host proposals and exact current-policy proposal before recipient acceptance; no new producer/signing push. Actual recipient authority still requires current owner policy and effective receiving-host controls. Preserve prior failures and concrete deadline values. Account-existence question is answered: current resource condition is PENDING_OWNER_AUTH_WORKFLOW/CAPACITY_PROOF, not PENDING_OWNER_ACCOUNT. Amended pair still needs reviewed native OAuth workflow/owner secret, Copilot entitlement/policy/billing and exact producer-policy approval. No main/model/trust/public action is inferred.
 
-## Daily progress — 2026-10-12 UTC (current)
+## Daily progress — 2026-10-12 UTC (historical)
 
 Hosted Claude's six-check prerequisite is CLOSED/scopedPASS. Recipient runtime
 profiling separated full cache-content passes from compiler/catch-up/trust; warm
@@ -2417,7 +2441,7 @@ Test-only checkpoint diagnostics now use bounded256KiB regular no-follow/nonbloc
 
 Corrected coherent-source caller control:2beab5e8a4df80cd351402c27a915c7750d6841d actual1/1PASS43.121s. Origin4406bef3-dad6-4448-942b-e9b12aaff614/envelope digestd4d912e62f94ab86987654fe796033791eee5d9b1834f9ff82a1d9c2eb2ae789; recipientzero compiler runs. Stable positive, both raw-metadata mutation phases structuredreason_code/exit2/nonreuse,5s barrierexpiry and laterrecovery allasserted. Log/source record ownedreviewlocal/copied-node-corrected-2beab5e; only parsed in-memory responses, no raw transcript uploaded. This replaces the unreconciled historical claim for current acceptance, not the failedfull-suite result itself.
 
-## Current native-lane checkpoint — 2026-10-11 09:51UTC
+## Historical native-lane checkpoint — 2026-10-11 09:51UTC
 
 Root preserved owner-completed onboarding and integrated author9aa6262/92b1cc1/
 3ba1304/c674b2d plus independentf36527a review throughb90e92c. Public source is

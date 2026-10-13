@@ -12,7 +12,22 @@ requires reviewed TS5.5.2 and the existing matched Darwin25.6/ARM64/official
 Node22.13 profile. A local proposal cannot certify that profile or its enforcement.
 Existing commands, user configurations and receipts are unchanged.
 
-## Current checkpoint — phase captured; disabled launcher proposal reviewed
+## Current evidence summary
+
+At integration source `3c66c74`, fixed campaign source/copies/launcher and opt-in
+complete-directory materialization have fresh independent review and targeted
+regressions. Two late-validation defects were reproduced and repaired before use;
+original failures remain. The last actual engineering observation built five C
+artifacts in11618.043ms; no native/helper/model/receipt ran. Combined provisioning
+and exact native command binding are active tasks. Ordinary debugger directory
+metadata exposes undeclared Git leaves; no Git-body read/copy or qualified @3 claim.
+Sealed recipe still preview-only; actual sealed execution and portable cross-agent/
+two-machine reuse remain NOT ESTABLISHED. See the one current
+[resume](../plan/portable-evidence-resume.md) and
+[tracker](../plan/portable-evidence-tracker.md) for exact identities, owners and gates.
+Historical checkpoint reports below are not current gate certificates.
+
+## Historical checkpoint — phase captured; disabled launcher proposal reviewed
 
 Integration `bf5bf64`,2026-10-13 11:47UTC. Observation successor `c1ce208` has fresh
 ACCEPT147 mocks +65 independent controls after a preserved throwing-diagnostic FD
@@ -181,7 +196,7 @@ pilot receipts, model or native enforcement changed. External field usage
 NOT STARTED; complete sealed-path economics and final candidate acceptance pending.
 
 
-## Current checkpoint — engineering entry/build observations; sealed authority pending
+## Historical checkpoint — engineering entry/build observations; sealed authority pending
 
 At 2026-10-13 03:43 UTC, integration `c6810f6` includes reviewed fixed source
 composition, engineering Node startup, helper build, and strict failure-preserving
@@ -262,7 +277,7 @@ model, compiler execution, signing or artifact upload is in that inventory job.
   execution requires a new same-process privately minted synthetic fixture.
   Build/startup timings are separate paths, not summed end-to-end economics.
 
-### Current blocked lane and continuing work
+### Historical blocked lane and continuing work
 
 The independently reviewed storage-free hosted inventory branch
 `dev/portable-sealed-host-preflight` is pushed at `75613f9` with source pin
