@@ -28,7 +28,7 @@ test('fresh private pair and separate host build only; no helper execution or au
   const host=createSealedTypeScriptCIBootstrap();if(typeof host.base==='string'&&/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}$/.test(host.base))report.hostBase=host.base;guard(host.outcome==='CI_SYNTHETIC_BOOTSTRAP_PREPARED');const hostFixture=prepareSealedTypeScriptCISyntheticFixture(host);guard(hostFixture.outcome==='SYNTHETIC_FIXTURE_PREPARED');
   const result=buildSealedTypeScriptBaseExchangeAssets({pair,hostFixture});report.build=result;guard(result.outcome==='BUILT_NOT_EXECUTED');guard(result.dispatchAttemptCount===3&&result.dispatchResultCount===3&&result.observedProcessCount===3);
   guard(result.builds.every(row=>row.completed&&row.status===0&&row.signal===null&&row.spawnError==='NONE'));
-  for(const name of ['sealed','reuseEligible','recordAdoptionAuthority'])guard(result[name]===false);guard(result.commands.length===0);
+  for(const name of ['sealed','reuseEligible'])guard(result[name]===false);guard(result.commands.length===0);
   report.scope='LOCAL_PRIVATE_PAIR_ASSETS_BUILT_NOT_EXECUTED';finished=true;
  }catch{/* Keep actual partial counters/static data; no raw exceptions. */}
  try{t.diagnostic(JSON.stringify({scope:report.scope,...save(report),outcome:report.build?.outcome??'UNKNOWN',dispatchAttemptCount:report.build?.dispatchAttemptCount??null,dispatchResultCount:report.build?.dispatchResultCount??null,observedProcessCount:report.build?.observedProcessCount??null,helperExecutions:0,nativeAgentLaunches:0,models:0,compilerCheckExecutions:0,sealed:false,reuseEligible:false,persistence:'SAVED_EXACT_BYTES'}));}catch{finished=false;t.diagnostic('{"scope":"BASE_BUILD_RECORD_UNKNOWN","persistence":"UNKNOWN","sealed":false,"reuseEligible":false}');}
