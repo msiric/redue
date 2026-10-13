@@ -10,7 +10,7 @@ test('closed canary view reduces body reads without admitting any command',()=>{
   const before=prepareSealedClaudeReceiverPolicy({...options,stagedRoot:base+'/sealed-inputs/redue-materialization-Canary'});
   const after=prepare(options),expected=structuredClone(before.settings_proposed);
   expected.sandbox.filesystem.denyRead.push('/');
-  expected.sandbox.filesystem.allowRead=[after.stagedRoot,...after.readLeaves,...after.controlReadLeaves];
+  expected.sandbox.filesystem.allowRead=[...after.inventoryReadRoots,...after.readLeaves];
   expected.sandbox.filesystem.denyWrite.push(base+'/runtime',...after.readLeaves);
   expected.permissions.allow=[];
   assert.deepEqual(after.settings_proposed,expected);
@@ -20,19 +20,19 @@ test('closed canary view reduces body reads without admitting any command',()=>{
   assert.equal(after.actualNativeEnforcement,'NOT_TESTED');
   assert(Object.isFrozen(after.settings_proposed.sandbox.filesystem.allowRead));
 });
-test('body reallows are fixed leaves and one stage, not broad or credential regions',()=>{
+test('body reallows are fixed leaves and two fresh synthetic inventory namespaces, not host regions',()=>{
   const result=prepare(options),reads=result.settings_proposed.sandbox.filesystem.allowRead;
-  assert.deepEqual(reads,[base+'/sealed-inputs/redue-materialization-Canary',
+  assert.deepEqual(reads,[base+'/sealed-inputs',base+'/Checkout 空间/.sealed-native-canaries',
     base+'/runtime/node-v22.13.0-darwin-arm64/bin/node','/bin/bash',
     base+'/prefix/native-probes/sealed-typescript-native-sentinel.mjs',
     base+'/prefix/native-probes/sealed-typescript-map-sentinel',
-    base+'/Checkout 空间/.sealed-native-canaries/write-canary.txt',
-    base+'/Checkout 空间/.sealed-native-canaries/map-canary.txt']);
+    base+'/prefix/native-probes/sealed-typescript-exchange-sentinel']);
   for(const forbidden of ['/',base,base+'/Checkout 空间',base+'/claude-host',base+'/redue-state',
     '/System/Library','/usr/lib','~','~/.claude'])assert(!reads.includes(forbidden));
   assert(result.blockers.includes('REDUE_WRAPPER_CONFIG_AND_STATE_READ_OBLIGATIONS_NOT_MODELLED'));
   assert(result.blockers.includes('OS_RUNTIME_STARTUP_REQUIREMENTS_NOT_ESTABLISHED'));
-  assert(result.blockers.includes('CANARY_DIRECTORY_ENUMERATION_READ_REQUIREMENTS_NOT_ESTABLISHED'));
+  assert(result.blockers.includes('SYNTHETIC_ONLY_DIRECTORY_BODY_READ_SCOPE_NOT_VERIFIED'));
+  assert.equal(result.interpretation,'redue-native187-closed-read-canary@2');
 });
 test('no new resource arrays, authority booleans, alternate version or getters are accepted',()=>{
   for(const extra of [{allowRead:['/']},{readLeaves:['/']},{stagedRoot:'/'},{physicalBindingsVerified:true},
