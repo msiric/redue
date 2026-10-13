@@ -6,7 +6,41 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree on `dev/portable-sealed-typescript`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — fixed diagnostic integrated, actual launch gated
+## Current checkpoint — reviewed inventory ready for actual host facts
+
+2026-10-13 22:32UTC, reviewed inventory integrated as `f97538e`; dedicated
+`dev/portable-sealed-host-preflight` fast-forwarded and pushed to `8f49e77` after
+fresh remote comparison (0 remote-only / 5 local-only commits). The integration's
+separate ordinary-query workflow was left untouched. Exact source/test bytes match
+reviewed060B; root29PASS,86.736ms, TAP SHA
+`539af352b1f3ee4198b089aebfb683c6afcc0a05bea34c14363e2162796cef98`.
+
+Fresh independent060B ACCEPT includes49 independent controls and29 focused tests.
+Literal CLT clang/ld are observed separately from canonical xcrun-selected tools.
+Missing/changed/unsafe required tools retain partial public facts and UNKNOWN;
+all authority flags remain false. The predecessor utility finding and author/reviewer
+fixture failures remain retained, with review files preserved owner-locally.
+Review SHA `0e062c96f91e6cdaa2bc11591cc5150ca59afa7f62234ff15260fb1ecdd99bce`.
+
+Next task is actual public-tool inventory on the two approved standard macOS VMs.
+No run exists yet. The unchanged dispatch403 is not retried or bypassed: owner
+normal Actions UI must run `portable-preflight.yml` on
+`dev/portable-sealed-host-preflight`. This manual, read-only, storage-free workflow
+has two independent jobs and no model credentials, uploads, signing or compiler
+check. Matching labels cannot establish matching profiles. Interpret actual results
+before any native/model launch. The fixed native metadata proposal remains disabled;
+its protected nonsecret account/capacity fact also needs owner refresh when runnable.
+Existing secret presence is known; no login or credential-copying request.
+Copilot included Actions capacity remains separately PENDING.
+
+Same Herdr director/pane and existing goal; explicit native roles and fresh review
+continue. G0partial; sealedG1/G2/G3/prepublicationG4 incomplete. Actual sealed compiler
+execution, portable two-agent/two-machine reuse and complete-path economics remain
+unestablished. Historical hosted six-check native prerequisite stays CLOSED scoped
+PASS. No new native/model/CI execution, signing, trust, permissions or publication.
+Alpha.11, fixed pilot, current work and immutable receipts are preserved.
+
+## Historical checkpoint — 21:53UTC
 
 2026-10-13 21:53UTC, integration `d6f3a55` after fresh independent057B ACCEPT.
 The fixed native metadata diagnostic is now implemented; no native/model run occurred.
