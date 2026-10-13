@@ -42,6 +42,12 @@ test('engineering launcher collection is complete only for the full reviewed pat
   assert.equal(r.sealed,false);assert.equal(r.reuseEligible,false);assert(!JSON.stringify(r).includes('private_context'));
   for(const altered of [bodies.slice(1),bodies.slice(0,-1),bodies.filter((_,i)=>i!==2&&i!==3),[bodies[0],bodies.at(-1)]])
     assert.equal(summarizeSealedLauncherPhases(Buffer.from(altered.join(''))).collection,'UNKNOWN');
+  for(const counters of [{dispatchAttempts:0,dispatchResults:1},{dispatchResults:0,observedProcesses:1},
+    {dispatchAttempts:0,observedProcesses:1},{dispatchAttempts:1},{dispatchResults:0},{observedProcesses:0}]){
+    const changed=phases.map((p,i)=>launcherLine(p,i+1,p==='launcher_compiler_after'?counters:{}));
+    const r=summarizeSealedLauncherPhases(Buffer.from(changed.join('')));assert.equal(r.collection,'UNKNOWN');
+    assert(!r.rows.some(row=>row.phase==='launcher_compiler_after'));
+  }
 });
 test('partial launcher marks retain known exit facts while missing or contradictory collection stays UNKNOWN',()=>{
   for(const tail of ['',launcherLine('launcher_build_after',3,{dispatchAttempts:1,dispatchResults:1,observedProcesses:1,status:1,signal:null})]){
@@ -69,4 +75,9 @@ test('late malformed, truncated, decreasing clock or changed-process rows never 
     const r=summarizeSealedLauncherPhases(Buffer.from(before+tail));assert.equal(r.collection,'UNKNOWN');assert.equal(r.rows[0].phase,'launcher_build_before');
   }
   const extra=summarizeSealedLauncherPhases(Buffer.from(before+after+'REDUE_TIMING {bad\n'));assert.equal(extra.collection,'UNKNOWN');
+});
+test('257 physical records are rejected with or without a terminator; retained rows never exceed the bound',()=>{
+  const body=Array.from({length:257},(_,i)=>launcherLine('launcher_build_before',i+1)).join('');
+  for(const text of [body,body.trimEnd()]){const r=summarizeSealedLauncherPhases(Buffer.from(text));
+    assert.equal(r.collection,'UNKNOWN');assert.equal(r.available,false);assert.equal(r.rows.length,0);}
 });

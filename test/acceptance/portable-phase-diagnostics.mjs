@@ -62,11 +62,12 @@ export function summarizeSealedLauncherPhases(bytes){
     available:rows.length>0,rows,authority:false,sealed:false,reuseEligible:false});
   if(!Buffer.isBuffer(bytes)||bytes.length>65536)return result();
   let text;try{text=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(bytes);}catch{return result();}
-  const lines=text.split('\n');if(lines.length>257)return result();
+  const lines=text.split('\n');
   if(lines.at(-1)==='')lines.pop();else valid=false;
+  if(lines.length>256)return result();
   for(const line of lines){
     try{
-      if(line.length>2048||!line.startsWith('REDUE_TIMING '))throw Error();
+      if(Buffer.byteLength(line,'utf8')>2048||!line.startsWith('REDUE_TIMING '))throw Error();
       const raw=line.slice(13),source=JSON.parse(raw);
       // Existing logger emits flat JSON.stringify records. Exact roundtrip also
       // rejects duplicate keys, alternate numeric spellings and trailing data.
@@ -83,8 +84,9 @@ export function summarizeSealedLauncherPhases(bytes){
         (typeof source[key]!=='number'||!Number.isFinite(source[key])||source[key]<0))throw Error();
       for(const key of launcherCounts)if(Object.hasOwn(source,key)){
         if(!Number.isInteger(source[key])||source[key]<0||source[key]>1)throw Error();row[key]=source[key];}
-      if(launcherCounts.slice(0,3).every(k=>Object.hasOwn(source,k))&&
-        !(source.observedProcesses<=source.dispatchResults&&source.dispatchResults<=source.dispatchAttempts))throw Error();
+      const dispatchKeys=launcherCounts.slice(0,3);
+      if(dispatchKeys.some(k=>Object.hasOwn(source,k))&&(!dispatchKeys.every(k=>Object.hasOwn(source,k))||
+        !(source.observedProcesses<=source.dispatchResults&&source.dispatchResults<=source.dispatchAttempts)))throw Error();
       if(Object.hasOwn(source,'status')){if(source.status!==null&&(!Number.isInteger(source.status)||source.status<0||source.status>255))throw Error();row.status=source.status;}
       if(Object.hasOwn(source,'signal')){if(source.signal!==null&&!launcherSignals.has(source.signal))throw Error();row.signal=source.signal;}
       if(Object.hasOwn(source,'spawnError')){if(!['NONE','UNKNOWN'].includes(source.spawnError))throw Error();row.spawnError=source.spawnError;}
