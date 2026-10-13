@@ -6521,3 +6521,23 @@ case/symlink/parent exchange/mapping observations remain missing, and no whole
 fixture-unchanged promise is added. Caller hashes cannot authenticate rendered
 binary, native settings or resource currency. Seven pure controls passed7/7
 in51.71ms. No render/build/bootstrap/native/API/compiler/model/CI ran.
+
+## Native187 generator review preparation, not executable approval
+
+Read-only inspection of retained generator closure matched the full public binary
+a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3. All29
+function/initializer/additional-fragment records matched exact byte offsets,
+lengths, saved bytes and SHA256; held descriptor metadata stayed stable during
+the read. This establishes fragment provenance only, not complete initialized
+execution or Node/Bun equivalence. No fragment/function/initializer was evaluated.
+
+The functional k0d/v0d/w0d/JF closure also requires the exact interop prefix and
+g2i/c$e/Fwn/_Lt/nGr/MUi/WUi initializers/globals. These reference actual builtin
+modules, cwd/home/realpath and Math.random behavior; stubbed dependencies cannot
+be called the pinned native generator. The source emits root-inode/directory
+metadata and default Mach/preferences/IPC/device/sysctl permissions, not a
+sterile default-deny profile. Raw logTag interpolation requires a fixed safe
+value before any future evaluation. Frozen data-only constructor and fixed
+engineering driver are not yet reviewed: no generator, settings, sandbox-exec,
+native startup or command GO follows from this preparation. Model/credential/
+seal/recipient and goal acceptance gates remain unchanged.
