@@ -40,6 +40,8 @@ test('whole-parent destructive assertion is always deferred without an authorita
   const result=prepare(options());assert.deepEqual(result.commands,[]);
   assert.equal(result.nativeRouteAdmission,'REFUSED_PENDING_SYNTHETIC_ONLY_INVENTORY');assert.equal(result.parentDestructiveAssertions,'DEFERRED_RESOURCE_PRESERVATION');
   assert.equal(result.preservation.preparedStages,'MUST_NOT_RENAME_REPLACE_OR_MODIFY');assert.equal(result.preservation.stateAndReceipts,'MUST_REMAIN_UNTOUCHED');
-  assert(result.prerequisites.includes('FRESH_SYNTHETIC_ONLY_BASE_NO_PREEXISTING_STAGE_STATE_OR_RECEIPTS'));assert(result.prerequisites.includes('BOUNDED_AUTHORITATIVE_PARENT_INVENTORY_BEFORE_DESTRUCTIVE_ASSERTION'));
+  assert(result.prerequisites.includes('FRESH_SYNTHETIC_ONLY_STAGE_AND_CANARY_NAMESPACES'));
+  assert(result.prerequisites.includes('UNRELATED_HOST_STATE_RECEIPTS_AND_AUTH_ASSETS_UNINSPECTED_AND_PRESERVED'));
+  assert(result.prerequisites.includes('BOUNDED_AUTHORITATIVE_PARENT_INVENTORY_BEFORE_DESTRUCTIVE_ASSERTION'));
   for(const claim of [{fresh:true},{syntheticOnly:true},{noRealStage:true},{parentEntries:[]},{preparedStagePresent:false}])reject({...options(),...claim});
 });
