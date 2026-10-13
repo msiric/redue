@@ -20,9 +20,13 @@ export function prepareSealedTypeScriptClosedReadCanaryPolicy(options){
   const node=base+'/runtime/node-v22.13.0-darwin-arm64/bin/node';
   const readLeaves=[node,'/bin/bash',code+'/sealed-typescript-native-sentinel.mjs',
     code+'/sealed-typescript-map-sentinel'];
+  // Positive controls need their own nonsecret readback; allowing only these
+  // leaves does not expose the rest of the live checkout to compiler reads.
+  const controlReadLeaves=[base+'/Checkout 空间/.sealed-native-canaries/write-canary.txt',
+    base+'/Checkout 空间/.sealed-native-canaries/map-canary.txt'];
   const filesystem=settings.sandbox.filesystem;
   filesystem.denyRead.push('/');
-  filesystem.allowRead=[receiver.stagedRoot,...readLeaves];
+  filesystem.allowRead=[receiver.stagedRoot,...readLeaves,...controlReadLeaves];
   // No command admission until exact resources, effective read view and safe
   // synthetic inventory are independently established. In particular, this
   // profile cannot yet serve the REDUE wrapper/config/state read obligations.
@@ -32,8 +36,8 @@ export function prepareSealedTypeScriptClosedReadCanaryPolicy(options){
     interpretation:'redue-native187-closed-read-canary@1',disabled:true,
     nativeVersion:receiver.native_version_proposed,
     nativeSha256:receiver.executable_sha256_proposed,
-    stagedRoot:receiver.stagedRoot,readLeaves,settings_proposed:settings,
-    settingsDelta:{addedDenyRead:['/'],addedAllowRead:[receiver.stagedRoot,...readLeaves],
+    stagedRoot:receiver.stagedRoot,readLeaves,controlReadLeaves,settings_proposed:settings,
+    settingsDelta:{addedDenyRead:['/'],addedAllowRead:[receiver.stagedRoot,...readLeaves,...controlReadLeaves],
       addedDenyWrite:[base+'/runtime',...readLeaves],removedCommandAllows:receiver.settings_proposed.permissions.allow},
     commands:[],nativeLaunches:0,modelLaunches:0,
     runtimeReadScope:'NO_BROAD_OS_LIBRARY_REALLOW; STARTUP_NOT_ESTABLISHED',
