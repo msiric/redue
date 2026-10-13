@@ -12,7 +12,41 @@ requires reviewed TS5.5.2 and the existing matched Darwin25.6/ARM64/official
 Node22.13 profile. A local proposal cannot certify that profile or its enforcement.
 Existing commands, user configurations and receipts are unchanged.
 
-## Current checkpoint — read-boundary and native canary implementation
+## Current checkpoint — exact generator diagnostics; startup review
+
+At2026-10-13 02:26UTC, integration0121ecd includes the bounded original-source
+constructor and finite classification diagnostics. Prior source-evaluation
+attempts remain UNKNOWN: the first child74 had no retained phase; the second
+child74 reached CLASSIFY with PROFILE_CLASSIFICATION_UNKNOWN (129.554ms test,
+174.784ms complete). Their private records are preserved. Initialization and
+profile generation were observed only in the second attempt; no native/Bun
+composition or enforcement follows. The unchanged64KiB classifier is now
+instrumented with finite type/size/root-read/public-subpath/network flags;
+independent review must precede a changed diagnostic. No raw profile/env/error
+values are published. A owns this test leaf; C owns independent boundary review.
+
+Root's fixed engineering Node--version startup driver has not run. Review found
+unbounded reads, path-bearing failure reports and uncertain cleanup; corrections
+bound runtime/launcher/source bodies, reject setid/changed artifacts, redact
+failures and preserve fixtures when child completion or identity is unknown.
+No broad OS read allowance, settings write, Claude/model/CI/compiler execution,
+new trust or signing is authorized by source/mock success.108 earlier synthetic
+controls remain mechanics-only; full native read/alias/mapping/atomic enforcement
+and complete compiler namespace validation are outstanding.
+
+Hosted Claude's six-check prerequisite stays CLOSED scopedPASS. Copilot included
+Actions capacity stays pending; no repeated account request. G1/current sealed
+interpretation,G2/finalG3 and prepublicationG4 remain incomplete. Frozenalpha.11
+still hashesf6e368bd8171412b301f3f5dee3ceebea14da3b3418968504a7a49428e5876a0;
+no rebuild/publication/state/receipt change. Last registry read failed curl35
+“Recv failure: Socket is not connected”; current registry tags/publication were
+not rechecked, and no auth/DNS/port cause is inferred. Day0/72h remain
+2026-10-10 21:24UTC /2026-10-13 21:24UTC. Full sealed-path economics and actual
+cross-agent/two-machine reuse remain unestablished. Next: resolve the finite
+classification prerequisite, independently review the fixed startup route,
+then collect only its narrow engineering observations before native claims.
+
+## Historical checkpoint — read-boundary and native canary implementation
 
 At2026-10-13 01:35UTC, integration sourceddbe600 includes independent review of
 fresh synthetic preparation, tightened native read-view proposals, and fixed
