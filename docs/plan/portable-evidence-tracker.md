@@ -5,7 +5,7 @@ recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gat
 
 ## Current checkpoint — reviewed loop active; native seal still unproved
 
-2026-10-13 11:24UTC, integration `ccb8f12`. Current [resume](portable-evidence-resume.md)
+2026-10-13 11:47UTC, integration `bf5bf64`. Current [resume](portable-evidence-resume.md)
 records exact hashes, actual timing, failed candidates and scope limits.
 
 | Task | Owner/status | Evidence and next gate |
@@ -14,7 +14,8 @@ records exact hashes, actual timing, failed candidates and scope limits.
 | DIR-NEXT-007 | Reviewed wrapper / actual UNKNOWN | Failed deadline/ancestor revision retained; corrected112 +56 mocks; first30s actual timeout emitted no phases |
 | DIR-NEXT-008 | Fresh ACCEPT / integrated `76db3b7` | Failed `ce90d88` cleanup retained; `c1ce208`:147 mocks +65 independent controls; one actual instrumented timeout stops within marked `oneLauncherBuild`, internal phase/counts unknown |
 | DIR-NEXT-010 | Fresh ACCEPT / integrated `ccb8f12` | Private exact launcher binding;88 mocks +10 independent groups; root ESM initialization +124 mocks; proposal disabled/no native authority |
-| DIR-NEXT-011 | Implementer ACTIVE / root integration | Existing stage-helper initial/final stage+six-marker identity snapshot, no new probe/policy; aggregate UNKNOWN; fresh review required |
+| DIR-NEXT-011 | Fresh ACCEPT / integrated `bf5bf64` |48 source/model PASS/one real SKIP;11 fields +2 baseline calls +54 latch controls; endpoint-only, aggregate UNKNOWN |
+| DIR-NEXT-012 | Implementer ACTIVE | Existing opt-in diagnostics: internal phase/count seam only; failed/missing profiling UNKNOWN by outer readback; original guard/timeout/outcome semantics retained |
 | Native seal / G1–G4 | NOT ESTABLISHED | Missing assertions, enclosing-parent loader/auth/capacity/handles and real native/machine/agent evidence remain required |
 
 Actual engineering attempts kept the unchanged30s budget and recorded UNKNOWN;

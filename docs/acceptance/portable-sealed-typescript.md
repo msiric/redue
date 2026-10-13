@@ -14,7 +14,7 @@ Existing commands, user configurations and receipts are unchanged.
 
 ## Current checkpoint — phase captured; disabled launcher proposal reviewed
 
-Integration `ccb8f12`,2026-10-13 11:24UTC. Observation successor `c1ce208` has fresh
+Integration `bf5bf64`,2026-10-13 11:47UTC. Observation successor `c1ce208` has fresh
 ACCEPT147 mocks +65 independent controls after a preserved throwing-diagnostic FD
 cleanup finding. Root integrated and reran147 PASS/one real SKIP140.686ms.
 One actual instrumented observation again hit30s, but retained36 static phase marks:
@@ -27,8 +27,11 @@ Disabled native command `f2db416` has fresh independent ACCEPT88 mocks +10 group
 root integrated `ccb8f12`, actual full ESM initialization and124 targeted mocks PASS.
 It now requires current exact private launcher derivation and admits only that
 literal executable, retaining existing restrictions/no-authority flags. Settings
-are not applied. Current source work repairs the existing stage-helper missing
-initial/final stage+marker identity comparison; aggregate stays UNKNOWN. These are
+are not applied. Stage-helper `53b8da6` is now independently ACCEPTed/integrated `bf5bf64`:48 source
+checks plus11 field/two baseline/54 latch controls; initial/final stage+six-marker
+identity comparisons, aggregate UNKNOWN and exit74 retained. This is endpoint
+handling, not observed interval immutability. Internal diagnostic marks are the
+next task; no actual retry before review. These are
 engineering/source improvements, not portable product acceptance. See current
 [resume](../plan/portable-evidence-resume.md); earlier failures follow.
 

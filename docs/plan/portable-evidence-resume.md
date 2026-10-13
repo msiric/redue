@@ -8,7 +8,7 @@ verify HEAD/status first. The planning baseline is history, never a rollback tar
 
 ## Current checkpoint — director live; build phase isolated; source work continues
 
-2026-10-13 11:24UTC, integration `ccb8f12628521e214e1ce60a3dda4bb4ca44ec8f`.
+2026-10-13 11:47UTC, integration `bf5bf64` (runtime), prior source `ccb8f12`.
 Herdr `w1:pD`/`redue-director` live viewport displays this SAME original primary
 thread's current tools and progress; original goal remains ACTIVE. Kit manifest
 and installed role/config hashes remain exact. Implementer/reviewer/researcher
@@ -47,10 +47,23 @@ mocks PASS82.015ms. Disabled proposal now admits only current privately linked
 launcher, no direct Node fallback; one exact executable read leaf added, other
 restrictions unchanged. No settings applied/native/model/code execution.
 Its static graph has repeated validations; counts are not measured phase attribution.
-DIR-NEXT-011 implementer owns existing stage-helper initial/final stage and six-marker
-identity snapshot repair. Root/researcher inspected the missing initial comparison;
-this is an unreleased assertion gap, not a released defect. Keep aggregate UNKNOWN,
-missing assertions, pre-main/native/auth/handles gates; fresh review before use.
+DIR-NEXT-011 worker `53b8da6` received fresh independent ACCEPT; root inspected and
+integrated `bf5bf64`. Initial stage/six-marker snapshots and final named/descriptor
+comparisons preserve mismatches despite later uncertainty. Exchange C/pin SHA
+`06e5da5dca906063762410f40bea9b7f99662cb6a62934ee50749a7b41162e48`;
+only the required exchange template pin changed. Root48 source/model PASS/one real
+build SKIP57.749ms; reviewer48 PASS/one SKIP58.747ms plus11 stat-field controls,
+both later original-baseline calls and54 failure-latch combinations. Author's
+initial synthetic-reference15/1 failure was corrected to match C's early UNKNOWN,
+not removed. Two syntax-only invocations exit0; no binary/helper execution. This
+closes an unreleased endpoint-comparison gap, not interval/seal proof or a released
+product defect. Five-row aggregate UNKNOWN/base NOT_IMPLEMENTED/exit74 unchanged.
+DIR-NEXT-012 implementer owns static opt-in internal launcher-build phase/count
+marks using existing diagnostics. Existing profiler cannot distinguish append
+success/failure to its caller (independent source injection reproduced this); do
+not claim it was repaired. Builder guards/outcomes remain independent; outer bounded
+readback will classify missing/incomplete profiling UNKNOWN. No framework, cache,
+deadline increase or actual retry before source/readback review.
 
 Original hosted Claude diagnostic remains CLOSED scoped PASS. GitHub admin denial,
 Copilot included Actions four-credit fact and their source/native prerequisites stay
