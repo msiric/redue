@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import {createHash} from 'node:crypto';
 import {compilerProgramFiles} from '../src/typescript-list.mjs';
 import {captureSealedTypeScriptDiscovery} from './acceptance/sealed-typescript-discovery-journal.mjs';
 import {createSealedTypeScriptForwarding} from './acceptance/sealed-typescript-forwarding.mjs';
@@ -168,11 +169,19 @@ test('no caller loader/command/verification bypass is accepted and source docume
 // The earlier full8MiB journal competes with the same whole-response budget.
 // This countercase uses only fake forwarding, not a real graph or timing claim.
 test('bounded partial journal leaves room for graph metadata without dropping forwarded calls',()=>{
-  const item=fixture(),file=root+'/'+'a'.repeat(3800);let calls=0;
-  item.ts.sys.fileExists=function(){calls++;return false;};
-  item.returned.splice(0,2,...Array.from({length:1800},(_,i)=>root+'/'+String(i).padStart(4,'0')+'x'.repeat(396)+'.ts'));
-  item.ts.createProgram=function({host}){for(let at=0;at<2500;at++)assert.equal(host.fileExists(file),false);return {getSourceFiles(){return item.returned.map(fileName=>({fileName}));}};};
-  const result=item.probe({root,script:'test:types'});assert.equal(calls,2500);assert.equal(result.files.length,1800);
+  const journalSource=fs.readFileSync(new URL('./acceptance/sealed-typescript-discovery-journal.mjs',import.meta.url),'utf8');
+  assert(journalSource.includes('journalBytes:4*1024*1024'));
+  const previousCapture=Function('path','createHash',journalSource.replace(/^import .*;\n/gm,'').replaceAll('export const ','const ').replaceAll('export function ','function ').replace('journalBytes:4*1024*1024','journalBytes:8*1024*1024')+'\nreturn captureSealedTypeScriptDiscovery;')(path,createHash);
+  const configure=capture=>{
+    const item=fixture(capture),file=root+'/'+'a'.repeat(3800);let calls=0;
+    item.ts.sys.fileExists=function(){calls++;return false;};
+    item.returned.splice(0,2,...Array.from({length:1800},(_,i)=>root+'/'+String(i).padStart(4,'0')+'x'.repeat(396)+'.ts'));
+    item.ts.createProgram=function({host}){for(let at=0;at<2500;at++)assert.equal(host.fileExists(file),false);return {getSourceFiles(){return item.returned.map(fileName=>({fileName}));}};};
+    return {item,calls:()=>calls};
+  };
+  const previous=configure(previousCapture);throwsCode(()=>previous.item.probe({root,script:'test:types'}),'SEALED_PROBE_SUMMARY_LIMIT');assert.equal(previous.calls(),2500);
+  const current=configure(captureSealedTypeScriptDiscovery),result=current.item.probe({root,script:'test:types'});
+  assert.equal(current.calls(),2500);assert.equal(result.files.length,1800);
   assert(result.journal.callsObserved>=2500);assert(result.journal.frames.length<2500);
   assert(result.journal.reasonCodes.includes('JOURNAL_LIMIT'));assert.equal(result.journal.loggingComplete,false);
   assert.equal(result.observationStatus,'INCOMPLETE');assert(Buffer.byteLength(JSON.stringify(result))<=8*1024*1024);
