@@ -6,7 +6,52 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree on `dev/portable-sealed-typescript`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — native director loop accepted; Herdr client trust pending
+## Current checkpoint — pre-Node source guard reviewed; guarded build underway
+
+At 2026-10-13 09:54UTC, integration `e753ff8` includes worker `547e600` after fresh
+independent DIR-REVIEW-005 ACCEPT. The fixed C launcher rejects forbidden preload
+key presence (including empty/case variants) before `execve` of the exact pinned
+Node/collector; inherited environment is unchanged, refusal static/UNKNOWN74.
+Its pinned source participates in existing private source currentness and permanent
+invalidation. Four JS-copy and empty execution-command interfaces remain unchanged.
+Launcher template SHA `11a1092b2c94e723833e4b3cf2188b4db886f86adccbb3f962ce16ba019b4068`;
+source derivation SHA `613a5d307ac6ac683c1bf68dbf61ef20916c3ba17fbae2a2fb5fce6d324b2cd6`.
+Root inspected the exact diff/source, integrated it and ran94 source/protocol mocks
+PASS in82.072ms, plus132 adjacent mocks PASS/two opt-in observations SKIP in93.636ms;
+clang syntax-only exit0. Reviewer reproduced63+31 controls and16 independent controls.
+Its initial standalone harness reconstruction failed before assertions; repaired
+harness only, no candidate change. No launcher/helper/native/model execution.
+
+This closes a pre-Node code gap, not native enforcement: C main cannot prevent its
+own pre-main loader; enclosing-parent protection, protected current bytes, source/
+runtime/toolchain identity, auth/capacity, handles and supervision remain required.
+The six-row helper still has an explicit missing assertion and nominal UNKNOWN.
+DIR-NEXT-006 now owns one fixed engineering launcher build through existing private
+source/copy/original-asset mints, with a narrow matching query and reviewed compiler
+operation. No raw mint getter, caller-selected command, general cache/dispatcher,
+settings or authority activation. Worker writes only its assigned source/tests;
+root owns integration/docs. Fresh independent review required before actual build.
+
+Herdr's owned live viewport now mirrors this SAME primary thread's exact recent
+review, source integration, tests and commentary; metadata reports working and
+interactive-ready, without the prior trust prompt. No automatic approval input,
+new goal or second autonomous coordinator was sent. The cause/actor of the saved
+trust transition was not observed. Role guidance remains explicitly loaded;
+automatic TOML profile selection and role-declared OS read-only remain unverified.
+Private runtime resume retains identities; old pane/work and goal remain intact.
+No Herdr startup owner action remains. Detach/sleep/reboot tests remain NOT RUN.
+
+Existing preflight environment refusal is retained with zero compiler launches;
+no stripped variables or retry. Original hosted Claude diagnostic remains CLOSED
+scoped PASS. GitHub admin denial and Copilot included Actions four-credit fact stay
+lane-specific pending prerequisites; no repeat request/bypass. Current sealedG1,
+actual cross-agent/two-machineG2, finalG3/prepubG4 remain incomplete, economics and
+field usage unestablished. Alpha.11 frozen/unpublished bytes unchanged. Day0 and
+72h calibration unchanged. Next: review DIR-NEXT-006 fixed build revision, then one
+permitted build observation if its real preconditions pass; no native/model trial
+before corresponding actual prerequisites.
+
+## Historical checkpoint — native director loop accepted; Herdr client trust pending
 
 At 2026-10-13 09:24 UTC, integration `49b1cb3` preserves the existing active goal,
 objective, worktrees and task ownership. The supplied Herdr director kit was safely

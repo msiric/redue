@@ -12,7 +12,23 @@ requires reviewed TS5.5.2 and the existing matched Darwin25.6/ARM64/official
 Node22.13 profile. A local proposal cannot certify that profile or its enforcement.
 Existing commands, user configurations and receipts are unchanged.
 
-## Current checkpoint — engineering harness integrated; native seal still unproved
+## Current checkpoint — fixed pre-Node proposal independently accepted
+
+Integration `e753ff8` (worker `547e600`),09:54UTC. Fixed launcher/source identity and
+currentness have fresh independent ACCEPT,16 extra controls;94 source/protocol and
+132 adjacent mock controls pass, two actual observations skipped. Syntax-only clang
+exit0 is not a built or executed launcher. See current
+[resume](../plan/portable-evidence-resume.md) and exact task ownership in the tracker.
+
+The launcher checks keys before Node starts; its own loader, current protected
+native/source/runtime bytes, authentication/capacity and supervision are not proved
+by C main. Existing missing stage assertion keeps the six-row protocol UNKNOWN.
+No current sealed recipe is executable; no portable origin/reuse authority enabled.
+Guarded engineering build work is active with independent review before observation.
+Live Herdr coordination is verified separately and does not satisfy a product gate.
+All earlier FAIL/UNKNOWN and pre-use counterexamples remain below.
+
+## Historical checkpoint — engineering harness integrated; native seal still unproved
 
 Integration `49b1cb3`, 2026-10-13 09:24UTC. The current
 [resume](../plan/portable-evidence-resume.md) records actual director smoke evidence,

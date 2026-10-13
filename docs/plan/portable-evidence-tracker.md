@@ -3,7 +3,24 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — actual director smoke loop accepted
+## Current checkpoint — pre-Node guard accepted; native execution remains gated
+
+2026-10-13 09:54UTC, integration `e753ff8`. See current
+[resume](portable-evidence-resume.md) for exact reviewed hashes and scope limits.
+
+| Task | Current owner/status | Evidence and next gate |
+| --- | --- | --- |
+| DIR-NEXT-005 | Implementer / fresh reviewer / root: ACCEPT | Fixed worker `547e600`;16 independent controls; root94 source/protocol PASS82.072ms +132 adjacent PASS/two actual SKIP93.636ms; syntax-only compile0 |
+| DIR-NEXT-006 | Implementer: ACTIVE; root sole integration owner | Fixed guarded launcher-only build linked to existing private source/copy/asset identity; no raw mint access/arbitrary compiler; fresh review before actual build |
+| Native seal | NOT ESTABLISHED | Pre-main/native/protected bytes/auth/capacity/handles remain required; six-row helper's missing assertion keeps nominal UNKNOWN |
+| Herdr | Live primary frontend verified | Exact owned viewport displays this primary's current tools/commentary, working/interactive-ready; same original goal/thread; no automatic approval/new coordinator |
+
+One useful unblocked source task continues; no model launched on failed preconditions.
+GitHub admin denial/Copilot included credits remain per-lane external facts. Existing
+Claude hosted diagnostic stays scoped PASS. G0partial/sealedG1/G2/finalG3/prepubG4
+incomplete; alpha.11 unchanged/frozen/unpublished; no product acceptance from mocks.
+
+## Historical checkpoint — actual director smoke loop accepted
 
 2026-10-13 09:24UTC, integration `49b1cb3`. See the concise current
 [resume](portable-evidence-resume.md) for preserved source observations/blockers.
