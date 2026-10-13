@@ -14,20 +14,23 @@ Existing commands, user configurations and receipts are unchanged.
 
 ## Current evidence summary
 
-At integration source `d74f83a`, sealed-only compiler admission refuses Git/alias
-and other unsupported namespace conditions before implementation body reads;
-ordinary admission stays unchanged. Fresh independent review and180 root controls
-pass; actual shared-path regressions30PASS. The reviewed same-call engineering
-composition at6ec4209 produced one complete six-C-build observation in24030.586ms
-under the unchanged30s cap. Prior timeout and synthetic pre-admission defects are
-preserved, not relabelled. No helper/launcher/TypeScript/native/model/receipt was
-executed; trusted/quiescent preparation is not native sealing.
+At integration `255382c`, metadata-first fixed selection binds source membership,
+selected contents and complete actual-stage inventory. Fresh independent review
+found and repaired false fixed-policy labels on low-level subset/superset data:
+only the complete InputIndex wrapper now emits the fixed identity after closure.
+Root132 tests and fresh42 independent controls pass. No native/seal/reuse authority.
+The selected preparation child/profile integration is still in progress.
 
-The fixed selected-input prepared-view guard is in progress: initial/closing source
-membership and selected-content validation, complete actual-stage inventory, and
-explicit unsupported Git-consumption paths. Native admission, configured sealed
-execution and portable cross-agent/two-machine reuse remain NOT ESTABLISHED.
-See the one current [resume](../plan/portable-evidence-resume.md) and
+The campaign-only descriptor guard has a reviewed source finding (caught nested
+failure must poison outer verification); successor05a04e2 awaits fresh review.
+Permissions and old standalone collector behavior remain unchanged. Actual native
+stdio, loader, inherited parent handles and complete namespace remain unestablished.
+The last real engineering observation is still the six C builds at6ec4209,
+24030.586ms; no compiled helper/launcher/TypeScript/native/model/receipt executed.
+Prior timeout, Git-admission and selection counterexamples remain preserved.
+
+Configured sealed execution and portable cross-agent/two-machine reuse remain
+NOT ESTABLISHED. See current [resume](../plan/portable-evidence-resume.md) and
 [tracker](../plan/portable-evidence-tracker.md) for exact identities/owners/gates.
 Historical records below are not current gate certificates.
 

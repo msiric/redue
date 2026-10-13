@@ -6,7 +6,59 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree on `dev/portable-sealed-typescript`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — reviewed preparation completes; selected-view guard active
+## Current checkpoint — fixed selection repair integrated; native guard under review
+
+2026-10-13 17:10UTC, integration source `255382c`. Existing primary Herdr director
+and original goal continue; one integration owner, native bounded roles, no new
+pane/coordinator/permissions/publication. Day0 and72h checkpoint unchanged.
+
+038 `e3acf54` was CHANGES_REQUIRED: low-level subset/superset views falsely carried
+the fixed selection identity. Root independently reproduced omitted package/config
+matches with typed digests; reviewer independently reproduced omission and added
+nonmatching input, two expected assertions FAIL. No unsafe CURRENT or released
+contract defect: all sealing/reuse flags stayed false. Original failures retained.
+038B `54f5ee8` → `255382c` now identifies low-level declared-input data without a
+fixed-policy digest. Only the exact InputIndex wrapper labels the fixed selected
+view AFTER complete selection/recording/source-and-stage closure. No new imports
+or old@2/@3 behavior change. Fresh independent ACCEPT132PASS plus42 controls and
+three import orders; root132PASS762.161ms. Root TAP SHA
+`a616234ab6d1e7c476a27a36b70d6f143e155263c7773ec21da7d7337ee33200`.
+These are trusted/quiescent preparation mechanics, never hostile interval/seal proof.
+
+039 read-only audit CLOSED: current C launcher lacks a descriptor boundary.
+Selected SDK and versioned Apple XNU support exact-path SETEXEC|CLOEXEC_DEFAULT
+with precisely inheritedstdio0/1/2; this is C→Node closure only, not pre-main,
+parent-held writable handles or complete native namespace authority.
+040 `a4a7a59` is CHANGES_REQUIRED: controlled caught nested validation failure
+poisons private source state, but its outer call still reports observed currentness.
+Independent714PASS/one default SKIP plus45 controls and the failing counterexample;
+no compiler/native/model execution. Source-only successor `05a04e2` adds a final
+invalid-latch guard and regression,178 focused/715 extended PASS plusone default
+SKIP. Fresh nonauthor review is ACTIVE; not integrated yet. Separate campaign C
+and narrow SDK bindings leave old standalone collector and generated policy/read
+leaves unchanged. Best-effort refusal output may block/signal on pipe failure;
+actual parent exit/signal/timeout remains authoritative. Native stdio and/dev/null
+metadata admission, loader and parent-held handles are still unestablished.
+
+041 implementer owns selected preparation child/profile/parent plumbing in import
+worktree; reviewer040 reads stage-results only. Exact public code dependency
+closure must be bound (including actual uncalled transitive modules), no broad
+node_modules/ancestor read grant. Canonical public dependency leaves under existing
+approved REDUE checkouts with alias metadata/currentness checks are in scope;
+other targets refuse. Preserve120s/8MiB limits, empty no-auth environment, old six-code
+route and truthful data-only summaries. Source/harmless tests only; no actual debugger
+body scan/copy/compiler/native/model/CI until review and real prerequisites.
+
+Last actual engineering observation remains6ec4209: six C builds24030.586ms exit0,
+reaped under unchanged30s cap, no helper/launcher/TypeScript/native/model/receipt
+executed. Prior timeout, pre-admission Git and fixed-selection failures preserved.
+Original hosted Claude diagnostic CLOSED scopedPASS. Existing admin403/Copilot
+included Actions billing fact remain distinct external prerequisites, not repeated
+requests. G0partial/sealedG1/G2/G3/prepubG4 incomplete; actual portable cross-agent/
+two-machine reuse NOT ESTABLISHED. Alpha.11 frozen/unpublished, pilot untouched;
+external usage NOT STARTED, complete sealed-path economics NOT MEASURED.
+
+## Historical checkpoint — reviewed preparation completes; selected-view guard active
 
 2026-10-13 16:32UTC, integration source `d74f83a`. Same primary Herdr director
 `w1:pD` / `redue-director`; root remains sole integration owner. Installed roles

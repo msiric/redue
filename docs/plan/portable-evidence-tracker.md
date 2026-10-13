@@ -3,7 +3,25 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — reviewed preparation observed; product authority pending
+## Current checkpoint — selection identity corrected; two bounded tasks active
+
+2026-10-13 17:10UTC, integration `255382c`; exact evidence/limits in current
+[resume](portable-evidence-resume.md). Prior results remain historical, not gate passes.
+
+| Task | Status | Evidence / next gate |
+| --- | --- | --- |
+|038 initial fixed-selection data | REVISE / preserved09db33b |Root omitted-match + reviewer omission/superset counterexamples; no reusable evidence |
+|038B truthful fixed/declared distinction | ACCEPT / integrated255382c |132 root PASS; fresh42 controls/three imports; old@2/@3 unchanged |
+|039 native descriptor audit | COMPLETE/source only |Pinned Darwin SETEXEC+CLOEXEC semantics; stdio/loader/parent proof still required |
+|040 campaign-only descriptor guard | REVISE then successor05a04e2 under review |Caught nested failure must poison outer; same policy/read leaves, no native authority |
+|041 selected preparation binding | Implementer ACTIVE/import worktree |Finite current public module leaves, unchanged bounded empty-env prep path; review before actual staging |
+| Last real engineering build | Six builds complete6ec4209 |24030.586ms/reaped, no compiled helper execution or native/model operation |
+| Portable product gates | INCOMPLETE |Actual sealed execution, recipient interpretation and real agent/machine reuse outstanding |
+
+No new trust/signing/permissions/release action. Existing external facts unchanged;
+Claude scoped prerequisite closed. Alpha.11/pilot/Day0/calibration preserved.
+
+## Historical checkpoint — reviewed preparation observed; product authority pending
 
 2026-10-13 16:32UTC, integration `d74f83a`; current [resume](portable-evidence-resume.md)
 binds source, tests, private evidence and limits. Same sole director; no owner relay.
