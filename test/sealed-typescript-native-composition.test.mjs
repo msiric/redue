@@ -17,14 +17,14 @@ test('data construction grants no route, settings mutation, filesystem/native/mo
   assert.equal(result.originalSixCheckClosure,'SEPARATE_UNCHANGED');assert.equal(result.assertionComposition,'UNKNOWN');assert.equal(result.sealed,false);assert.equal(result.reuseEligible,false);
   assert.equal(Object.hasOwn(result,'settings_proposed'),false);assert.equal(Object.hasOwn(result,'allowWrite'),false);assert(Object.isFrozen(result.proposedCommands[0]));
 });
-test('missing case/symlink/atomic-parent/mapping assertions and mapper UTF8 mismatch remain explicit',()=>{
-  const result=prepare(options());assert(result.prerequisites.includes('MAPPER_FIXED_UTF8_WORKSPACE_NOT_ADMITTED'));
+test('missing case/symlink/atomic-parent/mapping assertions and current mapper binary verification remain explicit',()=>{
+  const result=prepare(options());assert(result.prerequisites.includes('MAPPER_RENDERED_BINARY_AND_PHYSICAL_CURRENCY_NOT_VERIFIED'));
   assert.deepEqual(result.missingAssertions,['STAGE_CASE_ALIAS_WRITE_DENIAL_NOT_IMPLEMENTED','STAGE_SYMLINK_PARENT_ALIAS_WRITE_DENIAL_NOT_IMPLEMENTED','STAGE_PARENT_ATOMIC_EXCHANGE_DENIAL_NOT_IMPLEMENTED','MAP_SHARED_COMPOSITION_NOT_OBSERVED']);
   assert.equal(result.classificationRules.parentOperation,'RENAME_AWAY_ONLY_NOT_ATOMIC_EXCHANGE');assert.equal(result.classificationRules.readonlyMappingError,'OS_DESCRIPTOR_CONSTRAINT_NOT_SANDBOX_DENIAL');
 });
 test('source and binary digests are only explicit local references, never inferred verified from hashes',()=>{
   const result=prepare(options());assert.equal(result.artifacts.mapper.renderedSourceSha256,'b'.repeat(64));assert.equal(result.artifacts.mapper.binarySha256,'c'.repeat(64));
-  assert.equal(result.artifacts.mapper.templateSha256,'45da4c9ae98b6d7f893a5edb133c2e8401be477e92432bfbf76d4608bfec69ef');assert.equal(Object.hasOwn(result.artifacts,'verified'),false);
+  assert.equal(result.artifacts.mapper.templateSha256,'14ed107ff8e48e539c172c49aee88830f44eac0d037463d97b45fc54d8e3b070');assert.equal(Object.hasOwn(result.artifacts,'verified'),false);
   assert(result.prerequisites.includes('CURRENT_PROTECTED_ARTIFACT_RUNTIME_AND_SETTINGS_BYTES'));
 });
 test('unknown path/argv/settings/grant options cannot extend the fixed scope',()=>{
