@@ -3,7 +3,43 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — source profile-size failure established
+## Current checkpoint — engineering entry/build observations; sealed authority pending
+
+At 2026-10-13 03:43 UTC, integration `c6810f6` includes reviewed fixed source
+composition, engineering Node startup, helper build, and strict failure-preserving
+exchange collection. One engineering Node `--version` request passed (test
+478.835 ms; complete 538.155 ms); two fixed C builds passed (test 1091.728 ms;
+complete 1141.863 ms). These are not native Claude, compiler execution, sealing,
+portable origin, or agent reuse evidence. The build outputs have not executed.
+
+Exact private records and review limitations are listed in the
+[sealed-input acceptance record](../acceptance/portable-sealed-typescript.md).
+The source classifier's 88,592-byte profile exceeded the unchanged 65,536-byte
+bound; that failure and earlier UNKNOWN results remain. A fresh short owned
+engineering fixture subsequently passed its distinct startup gate. No bound was
+increased. No old serialized fixture is adopted as execution authority.
+
+Independent review accepted the extracted live-fixture build and corrected its
+partial-failure record. It refused the exchange proposal for duplicate JSON,
+contradictory rows, hidden FAILs, and incomplete identity checks. `c6810f6` repairs
+those issues; four pure controls passed, actual execution remains unrun pending
+independent review. No runtime, installed settings, receipt, trust or signing
+change accompanies this engineering harness.
+
+Hosted Claude's completed six-check prerequisite remains CLOSED scoped PASS.
+G1/current sealed interpretation, G2/final G3 and prepublication G4 remain
+incomplete. Full compiler input/metadata closure, actual native canaries, and
+stable origin enforcement are outstanding. Copilot included Actions billing
+remains pending; no repeated request. Alpha.11 remains frozen/unpublished, SHA
+`f6e368bd8171412b301f3f5dee3ceebea14da3b3418968504a7a49428e5876a0`.
+Last registry read failed curl 35 (socket connectivity); no authentication or DNS
+cause inferred. GitHub fetch works; main is unchanged `da6b87f`. Root integrates,
+A owns compiler/source leaves, C independently reviews critical boundaries;
+B capacity unavailable. Day 0 and 72-hour checkpoint remain October 10/13
+21:24 UTC. External field usage NOT STARTED. Next: exact successor review, then
+one fresh engineering exchange observation only if all prerequisites pass.
+
+## Historical checkpoint — source profile-size failure established
 
 At2026-10-13 02:28UTC, integration9fcaaae includes the independently reviewed
 finite classifier (20f18a0; testSHAfd9e05c4e6ca685e46b523eb368c8ef71652018063c87e9b470e71d2842e6516).
@@ -18,7 +54,7 @@ No sandbox/Claude/Bun/compiler/model/CI process followed that failed gate.
 
 Independent source review supports relocating the generator's empty engineering
 fixture to fresh owned canonical short/private/tmp placement matching the hosted
-layout. Exact code/options/65KiB/VM1s/parent5s4KiB acceptance stay unchanged;
+layout. Exact code/options/64KiB/VM1s/parent5s4KiB acceptance stay unchanged;
 A owns the repair, C must review exact bytes before a changed attempt. No permission
 or real execution environment is rewritten to obtain a result. Root's fixed
 engineering Node--version startup driver78337d6 remains unrun pending independent
