@@ -6,7 +6,42 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree on `dev/portable-sealed-typescript`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — fixed selection repair integrated; native guard under review
+## Current checkpoint — preparation review repair; product admission active
+
+2026-10-13 17:50UTC, integration `f3cd33c` / runtime `6912ea4`. The original
+Herdr director is working in its existing pane; fresh kit verification checks all
+13 manifest files and three installed role bytes. Explicit native role assignments
+are exercised; automatic TOML selection and reviewer OS isolation are not claimed.
+No new pane, coordinator, goal, permission, signing or publication action.
+
+041 `cd5c556` is CHANGES_REQUIRED, not integrated: fresh reviewer independently
+reproduced four late source/parent/Node/stage identity replacements after cached
+samples. Data incorrectly reports MATERIALIZED_NOT_SEALED; all seal/reuse authority
+remains false. Existing214 tests and55 controls passed; four expected-refusal
+assertions failed. Source and TAP preserved owner-local (TAP SHA
+`49d1a1ad1dcdbdffa6f73ef319d83e23e71e6ee066dc66cac0894412fa8e2ea7`).
+041B author now repairs the complete final named group after body validation in
+the import worktree; fresh review required before actual preparation.
+
+042 source repair continues in stage-results: Node22.13/libuv ordinary spawn pipes
+use socketpairs, so a mock-positive pipe baseline would not exercise the accepted
+C FIFO guard faithfully. A fixed harmless C test-parent shim will supply actual
+FIFO stdio; accepted C guard and native permissions stay unchanged. This is
+engineering descriptor evidence only, not native Bash/seal/parent-handle proof.
+No OS control has run. Old socketpair draft `65e74d2` remains historical.
+
+043 read-only product-path map complete: sealed preparation remains disconnected
+from config/run. 044 implementer owns explicit sealed-recipe admission and a
+fail-closed pre-execution pending boundary in the new isolated recipe-admission
+worktree. No JSON proposal or old direct receipt can authorize staged execution.
+Root alone integrates; 041B,042,044 have disjoint writers. No owner relay required.
+
+G0partial/sealedG1/G2/G3/prepublicationG4 remain incomplete. The prior scoped Claude
+diagnostic is closed PASS. Existing admin403/Copilot billing fact are separate
+unchanged external prerequisites. Alpha.11, fixed pilot and receipts untouched;
+field use NOT STARTED, sealed complete-path economics NOT MEASURED.
+
+## Historical checkpoint — fixed selection repair integrated; native guard under review
 
 2026-10-13 17:24UTC, integration source `6912ea4`. Existing primary Herdr director
 and original goal continue; one integration owner, native bounded roles, no new

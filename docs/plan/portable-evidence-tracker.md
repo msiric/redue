@@ -3,7 +3,25 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — selection identity corrected; two bounded tasks active
+## Current checkpoint — fresh review returned; three bounded writers active
+
+2026-10-13 17:50UTC, integration `f3cd33c` / runtime `6912ea4`.
+Exact evidence and limits: current [resume](portable-evidence-resume.md).
+
+| Task | Status | Result / next gate |
+| --- | --- | --- |
+|041 selected preparation | CHANGES_REQUIRED / frozen cd5c556 |Four independent late identity controls fail; no seal/reuse authority; old evidence preserved |
+|041B final group closure | Import author ACTIVE |Repair named source/parent/Node/stage after body IO; independent successor review before preparation |
+|042 real FIFO descriptor control | Stage-results author ACTIVE |Correct Node/libuv socketpair mismatch with fixed test-only parent; source/mock only until review |
+|043 product-path audit | COMPLETE / source only |Sealed preview disconnected from actual config/run; no new authority |
+|044 explicit sealed admission | New isolated implementer ACTIVE |Actual CLI/plan identity; run blocked before probes/execution until native capability exists |
+| Director loop | RUNNING |Existing pane/thread; native delegation → returned source → fresh independent REVISE → author repair and next task |
+| Portable product gates | INCOMPLETE |Native sealed origin, recipient and actual cross-agent/two-machine evidence outstanding |
+
+No new permission/trust/signing/publication. Existing caps, Day0 and calibration
+unchanged. Prior tests and engineering builds remain historical, not gate passes.
+
+## Historical checkpoint — selection identity corrected; two bounded tasks active
 
 2026-10-13 17:24UTC, integration `6912ea4`; exact evidence/limits in current
 [resume](portable-evidence-resume.md). Prior results remain historical, not gate passes.
