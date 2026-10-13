@@ -65,8 +65,16 @@ export function compilerFiles(tsRoot,cwd) {
 // then supply forwarding sys methods from that same restricted filesystem view.
 // Returned file names alone establish neither query completeness nor eligibility.
 export function compilerProgramFiles(ts,cwd,{readFile,fileExists,directoryExists,
-  getDirectories,readDirectory,realpath},{validateParsed}={}) {
-  const parsed=ts.getParsedCommandLineOfConfigFile(path.join(cwd,'tsconfig.json'),{},
+  getDirectories,readDirectory,realpath},settings={}) {
+  // Fixed trusted-source mode only. It does not verify an implementation or
+  // authorize imported code; the sealed caller verifies the package BEFORE load.
+  if(!settings||Object.getPrototypeOf(settings)!==Object.prototype||Reflect.ownKeys(settings).some(key=>!['validateParsed','checkingMode'].includes(key)))throw Error('TypeScript traversal settings unavailable');
+  const readSetting=key=>{const d=Object.getOwnPropertyDescriptor(settings,key);if(d&&!Object.hasOwn(d,'value'))throw Error('TypeScript traversal settings unavailable');return d?.value;};
+  const validateParsed=readSetting('validateParsed'),checkingMode=readSetting('checkingMode');
+  if(checkingMode!==undefined&&checkingMode!=='sealed-noemit-cli-5.5.2@1')throw Error('TypeScript checking mode unavailable');
+  const checking=checkingMode!==undefined;
+  if(checking&&ts.version!=='5.5.2')throw Error('TypeScript checking implementation unavailable');
+  const parsed=ts.getParsedCommandLineOfConfigFile(path.join(cwd,'tsconfig.json'),checking?{noEmit:true}:{},
     {...ts.sys,readFile,fileExists,directoryExists,getDirectories,readDirectory,
       onUnRecoverableConfigFileDiagnostic(){}});
   if(!parsed||parsed.errors?.length)throw Error('TypeScript configuration unavailable');
@@ -76,7 +84,13 @@ export function compilerProgramFiles(ts,cwd,{readFile,fileExists,directoryExists
     if(typeof validateParsed!=='function'||Object.getPrototypeOf(validateParsed)!==Function.prototype||
       validateParsed(parsed)!==undefined)throw Error('TypeScript parsed guard unavailable');
   }
+  if(checking){
+    const options=parsed.options;
+    if(!options||typeof options!=='object'||!Object.hasOwn(Object.getOwnPropertyDescriptor(options,'noEmit')??{},'value')||options.noEmit!==true||options.incremental||options.composite||options.listFilesOnly||options.plugins?.length||parsed.projectReferences?.length)throw Error('TypeScript checking configuration unavailable');
+  }
   const host=ts.createCompilerHost(parsed.options);
+  // Pinned 5.5.2 CLI defaultJSDocParsingMode = ParseForTypeErrors (2).
+  if(checking)host.jsDocParsingMode=2;
   Object.assign(host,{readFile,fileExists,directoryExists,getDirectories,realpath,
     getSourceFile(file,languageVersion,onError){
       const text=readFile(file);return text===undefined?undefined:
@@ -84,5 +98,27 @@ export function compilerProgramFiles(ts,cwd,{readFile,fileExists,directoryExists
     }});
   const program=ts.createProgram({rootNames:parsed.fileNames,options:parsed.options,
     projectReferences:parsed.projectReferences,host});
+  if(checking){
+    const method=name=>{const d=Object.getOwnPropertyDescriptor(program,name);if(!d||!Object.hasOwn(d,'value')||typeof d.value!=='function'||Object.getPrototypeOf(d.value)!==Function.prototype)throw Error('TypeScript checking API unavailable');return (...args)=>Reflect.apply(d.value,program,args);};
+    const methods=Object.fromEntries(['getConfigFileParsingDiagnostics','getSyntacticDiagnostics','getOptionsDiagnostics','getGlobalDiagnostics','getSemanticDiagnostics','emit','getSourceFiles'].map(name=>[name,method(name)]));
+    let count=0;
+    const diagnostics=rows=>{if(!Array.isArray(rows)||Object.getPrototypeOf(rows)!==Array.prototype||rows.length>100000||Reflect.ownKeys(rows).length!==rows.length+1)throw Error('TypeScript checking diagnostics unavailable');for(let at=0;at<rows.length;at++){const d=Object.getOwnPropertyDescriptor(rows,String(at));if(!d||!Object.hasOwn(d,'value'))throw Error('TypeScript checking diagnostics unavailable');}count+=rows.length;if(count>100000)throw Error('TypeScript checking diagnostics unavailable');return rows.length;};
+    // Mirror emitFilesAndReportErrors' no-listFilesOnly ordering. Diagnostic
+    // objects/text never escape; type errors are observations, not probe failure.
+    const initial=diagnostics(methods.getConfigFileParsingDiagnostics());
+    diagnostics(methods.getSyntacticDiagnostics(undefined,undefined));
+    if(count===initial){diagnostics(methods.getOptionsDiagnostics(undefined));diagnostics(methods.getGlobalDiagnostics(undefined));if(count===initial)diagnostics(methods.getSemanticDiagnostics(undefined,undefined));}
+    // Under noEmit the official emit path still evaluates semantic diagnostics.
+    // Incremental/composite are refused; any unexpected output attempt is latched
+    // even if the compiler catches the callback exception. No file is written.
+    let outputAttempted=false;
+    const emitted=methods.emit(undefined,()=>{outputAttempted=true;throw Error('TypeScript checking output unavailable');},undefined,undefined,undefined);
+    if(outputAttempted||!emitted||typeof emitted!=='object')throw Error('TypeScript checking output unavailable');
+    const diagnosticDescriptor=Object.getOwnPropertyDescriptor(emitted,'diagnostics'),filesDescriptor=Object.getOwnPropertyDescriptor(emitted,'emittedFiles');
+    if(!diagnosticDescriptor||!Object.hasOwn(diagnosticDescriptor,'value')||filesDescriptor&&!Object.hasOwn(filesDescriptor,'value')||filesDescriptor?.value!==undefined&&(!Array.isArray(filesDescriptor.value)||filesDescriptor.value.length))throw Error('TypeScript checking output unavailable');
+    diagnostics(diagnosticDescriptor.value);
+    const files=methods.getSourceFiles();if(!Array.isArray(files)||Object.getPrototypeOf(files)!==Array.prototype)throw Error('TypeScript checking membership unavailable');
+    return files.map(file=>path.resolve(file.fileName));
+  }
   return program.getSourceFiles().map(file=>path.resolve(file.fileName));
 }

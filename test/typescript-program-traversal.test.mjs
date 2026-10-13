@@ -13,3 +13,10 @@ test('legacy unknown query kind remains rejected and receives no sealed exceptio
 
 test('trusted parsed guard runs once on the same configuration before host/program construction',()=>{const f=fixture();let seen,hosts=0;const original=f.ts.createCompilerHost;f.ts.createCompilerHost=o=>{hosts++;assert(seen);return original(o);};compilerProgramFiles(f.ts,'/stage',f.methods,{validateParsed(parsed){seen=parsed;assert.equal(hosts,0);assert.deepEqual(parsed.options,{noEmit:true});}});assert.equal(hosts,1);assert.equal(f.program.options,seen.options);});
 test('parsed guard rejection or asynchronous/nonempty return launches no host or program',()=>{for(const validateParsed of [()=>{throw Error('unsupported config');},async()=>{},()=>false,17]){const f=fixture();let hosts=0,programs=0;f.ts.createCompilerHost=()=>{hosts++;};f.ts.createProgram=()=>{programs++;};assert.throws(()=>compilerProgramFiles(f.ts,'/stage',f.methods,{validateParsed}));assert.equal(hosts,0);assert.equal(programs,0);}});
+test('default path has no checking-mode behavior or diagnostic API requirement',()=>{const f=fixture();f.ts.version='not-sealed';assert.deepEqual(compilerProgramFiles(f.ts,'/stage',f.methods),['/stage/a.ts']);assert.equal(Object.hasOwn(f.program.host,'jsDocParsingMode'),false);});
+test('unknown modes, accessor settings and wrong selected version refuse before parse/host/program',()=>{
+ for(const settings of [{checkingMode:'OTHER'},{checkingMode:null},{checkingMode:true},{checkingMode:'sealed-noemit-cli-5.5.2@1'}]){
+   const f=fixture();let calls=0;f.ts.getParsedCommandLineOfConfigFile=()=>{calls++;throw Error();};assert.throws(()=>compilerProgramFiles(f.ts,'/stage',f.methods,settings));assert.equal(calls,0);
+ }
+ let getters=0;const f=fixture(),settings={};Object.defineProperty(settings,'checkingMode',{get(){getters++;return 'sealed-noemit-cli-5.5.2@1';}});assert.throws(()=>compilerProgramFiles(f.ts,'/stage',f.methods,settings));assert.equal(getters,0);
+});

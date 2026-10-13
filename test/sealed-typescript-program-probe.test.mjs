@@ -23,7 +23,7 @@ const root='/owned/stage',tsRoot=root+'/node_modules/typescript',entry=tsRoot+'/
 const digest='953b4844b5f6edc745be844b6c367c227b59029b73c4182f508f90cc47e21816';
 const throwsCode=(fn,code)=>assert.throws(fn,error=>error?.code===code);
 function fixture(capture=captureSealedTypeScriptDiscovery){
-  const calls={admission:0,load:0,parse:0,host:0,program:0,body:[]},options={},returned=[root+'/a.ts',tsRoot+'/lib/lib.d.ts'];
+  const calls={admission:0,load:0,parse:0,host:0,program:0,body:[],checking:[]},options={},returned=[root+'/a.ts',tsRoot+'/lib/lib.d.ts'];
   const fileSystem={statSync(){return false;},lstatSync(){return {isDirectory(){return true;}};},realpathSync(file){return file;},
     readFileSync(file){calls.body.push(file);return Buffer.from('NONSECRET decoded');},readdirSync(){return [];}};
   Object.defineProperty(fileSystem.realpathSync,'native',{value:function(file){return file;},configurable:true});
@@ -33,11 +33,11 @@ function fixture(capture=captureSealedTypeScriptDiscovery){
   };
   const parsed={options,fileNames:[root+'/a.ts'],errors:[]};
   const ts={version:'5.5.2',sys:system,
-    getParsedCommandLineOfConfigFile(file,overrides,host){calls.parse++;assert.equal(file,root+'/tsconfig.json');host.readFile(file);return parsed;},
-    createCompilerHost(value){calls.host++;assert.equal(value,options);return {};},
+    getParsedCommandLineOfConfigFile(file,overrides,host){calls.parse++;assert.equal(file,root+'/tsconfig.json');assert.deepEqual(overrides,{noEmit:true});host.readFile(file);calls.parsedOptions={...options,...overrides};return {...parsed,options:calls.parsedOptions};},
+    createCompilerHost(value){calls.host++;assert.equal(value,calls.parsedOptions);return {};},
     createSourceFile(file,text){assert.equal(text,'NONSECRET decoded');return {fileName:file};},
-    createProgram({rootNames,options:value,host}){calls.program++;assert.equal(value,options);assert.equal(rootNames,parsed.fileNames);
-      host.getSourceFile(root+'/a.ts',1);host.getSourceFile(tsRoot+'/lib/lib.d.ts',1);return {getSourceFiles(){return returned.map(fileName=>({fileName}));}};},
+    createProgram({rootNames,options:value,host}){calls.program++;assert.equal(value,calls.parsedOptions);assert.equal(rootNames,parsed.fileNames);assert.equal(host.jsDocParsingMode,2);
+      host.getSourceFile(root+'/a.ts',1);host.getSourceFile(tsRoot+'/lib/lib.d.ts',1);return checkingProgram(calls,returned);},
   };
   const admitted={tsRoot,version:'5.5.2',entry:tsRoot+'/lib/tsc.js',digest};
   const require=file=>{calls.load++;assert.equal(file,entry);assert.notEqual(fileSystem.readFileSync,originalRead,'journal installed before first fake require');return ts;};
@@ -47,6 +47,15 @@ function fixture(capture=captureSealedTypeScriptDiscovery){
   const probe=construct(fileSystem,path,()=>require,directProject,compilerProgramFiles,capture,createSealedTypeScriptForwarding,process,Buffer);
   return {probe,calls,options,parsed,returned,fileSystem,ts,require,admitted,process,originalRead};
 }
+function checkingProgram(calls,returned){return{
+ getConfigFileParsingDiagnostics(){calls.checking.push('config');return [];},
+ getSyntacticDiagnostics(){calls.checking.push('syntactic');return [];},
+ getOptionsDiagnostics(){calls.checking.push('options');return [];},
+ getGlobalDiagnostics(){calls.checking.push('global');return [];},
+ getSemanticDiagnostics(){calls.checking.push('semantic');return [];},
+ emit(){calls.checking.push('emit');this.getSemanticDiagnostics(undefined,undefined);return {diagnostics:[]};},
+ getSourceFiles(){calls.checking.push('membership');return returned.map(fileName=>({fileName}));},
+};}
 
 test('fixed admission/firstload and same shared fake graph preserve actual builtin libs/config reads',()=>{
   const item=fixture();Object.freeze(item.options);const result=item.probe({root,script:'typecheck'});
@@ -60,6 +69,66 @@ test('fixed admission/firstload and same shared fake graph preserve actual built
   assert.equal(result.graphCompleteness,'NOT_ESTABLISHED');assert.equal(result.apiCLICompleteness,'NOT_ESTABLISHED');
   assert.equal(JSON.stringify(result).includes('NONSECRET decoded'),false);assert(Object.isFrozen(result.files));assert(Object.isFrozen(result.journal));
 });
+test('sealed checking applies CLI noEmit without changing config, uses JSDoc mode and samples membership last',()=>{
+ const item=fixture();item.options.noEmit=false;const before=JSON.stringify(item.options);
+ item.probe({root,script:'typecheck'});assert.equal(item.calls.parsedOptions.noEmit,true);assert.equal(JSON.stringify(item.options),before);
+ assert.deepEqual(item.calls.checking,['config','syntactic','options','global','semantic','emit','semantic','membership']);
+});
+test('deferred API checking reads and type-error observations stay under the same journal until final membership',()=>{
+ const item=fixture(),old=item.ts.createProgram;let observed=false;
+ item.ts.createProgram=function(options){const p=old.call(this,options);p.getSemanticDiagnostics=function(){
+   if(!observed){options.host.readFile(root+'/deferred.d.ts');item.returned.push(root+'/deferred.d.ts');observed=true;}
+   return [{messageText:'PRIVATE_DIAGNOSTIC_TEXT'}];};return p;};
+ const result=item.probe({root,script:'typecheck'});assert(result.files.includes('deferred.d.ts'));
+ assert(result.journal.frames.some(r=>r.category==='semantic'&&r.operation==='readFile'&&r.phase==='program'&&r.path.relative==='deferred.d.ts'));
+ assert(!JSON.stringify(result).includes('PRIVATE_DIAGNOSTIC_TEXT'));assert.equal(result.reuseEligible,false);assert.equal(result.apiCLICompleteness,'NOT_ESTABLISHED');
+});
+test('syntax and option diagnostic branches still enter noEmit checking without pretending to execute CLI',()=>{
+ for(const phase of ['getSyntacticDiagnostics','getOptionsDiagnostics']){
+   const item=fixture(),old=item.ts.createProgram;item.ts.createProgram=function(o){const p=old.call(this,o);p[phase]=function(){item.calls.checking.push(phase);return [{}];};return p;};
+   item.probe({root,script:'typecheck'});assert(item.calls.checking.includes('emit'));assert(item.calls.checking.includes('semantic'));assert.equal(item.calls.checking.at(-1),'membership');
+   if(phase==='getSyntacticDiagnostics')assert(!item.calls.checking.includes('global'));
+ }
+});
+test('checking denials/cancellation propagate without fabricated absence and restore wrappers',()=>{
+ for(const code of ['EPERM','EACCES','CANCELLED']){
+   const item=fixture(),old=item.ts.createProgram,error=Object.assign(Error('PRIVATE_ERROR'),{code});
+   item.ts.createProgram=function(o){const p=old.call(this,o);p.getSemanticDiagnostics=function(){if(code!=='CANCELLED')o.host.readFile(root+'/deferred.ts');throw error;};return p;};
+   if(code!=='CANCELLED'){const read=item.ts.sys.readFile;item.ts.sys.readFile=function(file){if(file.endsWith('/deferred.ts'))throw error;return read(file);};}
+   assert.throws(()=>item.probe({root,script:'typecheck'}),e=>e===error);assert.equal(item.fileSystem.readFileSync,item.originalRead);assert(!item.calls.checking.includes('membership'));
+ }
+});
+test('deferred checking preserves raw permission denial separately from a real sys undefined result',()=>{
+ const item=fixture(),old=item.ts.createProgram,read=item.fileSystem.readFileSync;
+ item.fileSystem.readFileSync=function(file){if(file===root+'/denied.d.ts')throw Object.assign(Error('PRIVATE_DENIED'),{code:'EPERM'});return read(file);};
+ item.ts.sys.readFile=function(file){try{return item.fileSystem.readFileSync(file).toString('utf8');}catch{return undefined;}};
+ item.ts.createProgram=function(o){const p=old.call(this,o);p.getSemanticDiagnostics=function(){assert.equal(o.host.readFile(root+'/denied.d.ts'),undefined);return [];};return p;};
+ const result=item.probe({root,script:'typecheck'}),frames=result.journal.frames.filter(r=>r.path.relative==='denied.d.ts');
+ assert(frames.some(r=>r.category==='fs'&&r.outcome.status==='DENIED'&&r.outcome.errno==='EPERM'));
+ assert(frames.some(r=>r.category==='semantic'&&r.outcome.status==='RETURNED'&&r.outcome.value.type==='undefined'));
+ assert(!JSON.stringify(result).includes('PRIVATE_DENIED'));assert.equal(result.namespaceVerified,false);
+});
+test('malformed diagnostic arrays and async APIs refuse before final graph sampling',()=>{
+ for(const value of [null,{},Promise.resolve([]),Array(1),Array(100001),Object.assign([],{extra:true})]){
+   const item=fixture(),old=item.ts.createProgram;item.ts.createProgram=function(o){const p=old.call(this,o);p.getSemanticDiagnostics=()=>value;return p;};
+   assert.throws(()=>item.probe({root,script:'typecheck'}),/checking diagnostics unavailable/);assert(!item.calls.checking.includes('membership'));assert.equal(item.fileSystem.readFileSync,item.originalRead);
+ }
+ const item=fixture(),old=item.ts.createProgram;item.ts.createProgram=function(o){const p=old.call(this,o);p.getSemanticDiagnostics=async()=>[];return p;};assert.throws(()=>item.probe({root,script:'typecheck'}),/checking API unavailable/);
+});
+test('unexpected emission or malformed emit summary is rejected even if compiler swallows the guard exception',()=>{
+ for(const emit of [function(_file,write){try{write(root+'/forbidden','PRIVATE');}catch{}return {diagnostics:[]};},function(){return {diagnostics:[],emittedFiles:['forbidden']};},function(){return {};},function(){return {diagnostics:Promise.resolve([])};}]){
+   const item=fixture(),old=item.ts.createProgram;item.ts.createProgram=function(o){const p=old.call(this,o);p.emit=emit;return p;};assert.throws(()=>item.probe({root,script:'typecheck'}));assert(!item.calls.checking.includes('membership'));assert.equal(item.fileSystem.readFileSync,item.originalRead);
+ }
+});
+test('checking API and emit-result accessors refuse without invoking them',()=>{
+ for(const where of ['API','emit']){
+   const item=fixture(),old=item.ts.createProgram;let getters=0;
+   item.ts.createProgram=function(o){const p=old.call(this,o);if(where==='API')Object.defineProperty(p,'getSemanticDiagnostics',{get(){getters++;throw Error('PRIVATE');}});
+     else p.emit=function(){return Object.defineProperty({},'diagnostics',{get(){getters++;throw Error('PRIVATE');}});};return p;};
+   assert.throws(()=>item.probe({root,script:'typecheck'}));assert.equal(getters,0);assert(!item.calls.checking.includes('membership'));
+ }
+});
+test('listFilesOnly remains unsupported before host rather than silently bypassing checking',()=>{const item=fixture();item.options.listFilesOnly=true;throwsCode(()=>item.probe({root,script:'typecheck'}),'SEALED_PROBE_CONFIG_UNSUPPORTED');assert.equal(item.calls.host,0);});
 
 test('summary retains original returned graph ordering and duplicates',()=>{
   const item=fixture();item.returned.splice(0,2,root+'/z.ts',root+'/a.ts',root+'/z.ts');
@@ -176,7 +245,7 @@ test('bounded partial journal leaves room for graph metadata without dropping fo
     const item=fixture(capture),file=root+'/'+'a'.repeat(3800);let calls=0;
     item.ts.sys.fileExists=function(){calls++;return false;};
     item.returned.splice(0,2,...Array.from({length:1800},(_,i)=>root+'/'+String(i).padStart(4,'0')+'x'.repeat(396)+'.ts'));
-    item.ts.createProgram=function({host}){for(let at=0;at<2500;at++)assert.equal(host.fileExists(file),false);return {getSourceFiles(){return item.returned.map(fileName=>({fileName}));}};};
+    item.ts.createProgram=function({host}){for(let at=0;at<2500;at++)assert.equal(host.fileExists(file),false);return checkingProgram(item.calls,item.returned);};
     return {item,calls:()=>calls};
   };
   const previous=configure(previousCapture);throwsCode(()=>previous.item.probe({root,script:'test:types'}),'SEALED_PROBE_SUMMARY_LIMIT');assert.equal(previous.calls(),2500);

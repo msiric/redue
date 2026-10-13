@@ -3,8 +3,8 @@
 // runtime/implementation currency and source/stage ownership BEFORE invoking.
 // This helper cannot prove that view or confine Node loader body reads. Public fs
 // wrappers miss internalModuleStat/internalModuleReadJSON; CLI deferred checking
-// is not equivalent to this API input graph. Calling this executes API discovery,
-// not the configured verification/typecheck command.
+// is observed through the pinned noEmit API path below, not proven equivalent.
+// Calling this performs API discovery/checking, not the configured CLI invocation.
 // First-load, actual cwd and verified package admission below are prerequisites,
 // not a substitute for that independent boundary. No imported loader/callback.
 import fs from 'node:fs';
@@ -57,7 +57,7 @@ export function probeSealedTypeScriptProgram(options){
     };
     const validateParsed=parsed=>{
       const selected=parsed.options||{};
-      if(selected.plugins?.length||selected.incremental||selected.composite||parsed.projectReferences?.length)fail('SEALED_PROBE_CONFIG_UNSUPPORTED');
+      if(selected.plugins?.length||selected.incremental||selected.composite||selected.listFilesOnly||parsed.projectReferences?.length)fail('SEALED_PROBE_CONFIG_UNSUPPORTED');
       const optionPath=value=>{
         if(typeof value!=='string'||Buffer.byteLength(value)>limits.path||/[\u0000-\u001f\u007f\\:]/u.test(value)||
             !inside(root,path.resolve(root,value)))fail('SEALED_PROBE_OPTION_OUTSIDE');
@@ -72,7 +72,7 @@ export function probeSealedTypeScriptProgram(options){
       }
       parsing=false;
     };
-    files=compilerProgramFiles(ts,root,methods,{validateParsed});
+    files=compilerProgramFiles(ts,root,methods,{validateParsed,checkingMode:'sealed-noemit-cli-5.5.2@1'});
   }});
   if(process.cwd()!==root||!Array.isArray(files)||files.length===0||files.length>limits.files)fail('SEALED_PROBE_FILES');
   const names=[],configNames=[];let summaryBytes=Buffer.byteLength(JSON.stringify(journal))+1024;
