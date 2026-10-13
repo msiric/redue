@@ -6,7 +6,64 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree on `dev/portable-sealed-typescript`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — preparation review repair; product admission active
+## Current checkpoint — real selected preparation; pending CLI integrated
+
+2026-10-13 19:05UTC, runtime `db99164`. Same original Herdr director/goal and
+integration owner. No native/model/signing/publication operation; scopes unchanged.
+
+041B `9be3de9` → `85409ca`: fresh ACCEPT218 tests plus16 identical predecessor/
+successor late-identity controls. Root217PASS/one intentional canonical-layout SKIP
+808.430ms (TAP `3a095f1ceadf44a27ddc36a3f98164de22842b367f2faa3d8b206591960e65f6`).
+Actual canonical102-leaf profile constructed, then harmless test-sandbox controls
+showed allowed reads/writes and EPERM outside reads/writes. Its actual fixed child
+prepared owned dummy data357.508ms, exit0/reaped. This is NOT native-agent proof.
+
+One actual reviewed selected preparation on the approved debugger HEADb1c00772
+(with retained owned untracked integration metadata; no pristine-tree claim)
+completed81512.978ms:33345files/340640366bytes, childexit0/reaped, empty no-auth
+preparation environment. Exact-profile controls passed before preparation.
+Outcome MATERIALIZED_NOT_SEALED; all executable/native-view/reuse flags false.
+Private record SHA `8cbf335d303580af73e6285d8c4c0d2dc648a42d623392dd9f26b7f03f27aa5c`.
+Static sealed-namespace whole-package inspection found the reviewed TS5.5.2 digest
+953b4844… and default library in that tree,61.862ms; no compiler API/check ran.
+Record SHA `24764f97b1790ee45404d7b1563e22e217a385e6d053cdd0a2de8eb5a7a9fb55`.
+One preparation sample is not complete-path economics or proof of origin stability.
+
+044 `93585e7` was REVISE: explicit --recipe typescript-sealed --check test could
+write ordinary npm-test configuration. Original two actual CLI failures preserved.
+044B `3a26a6e` → `a418620`: fresh ACCEPT25 tests +two predecessor controls/four CLI
+intent controls; root25PASS4134.062ms. Explicit sealed selection now reaches real
+config/plan identity; run refuses SEALED_RECIPE_ENFORCEMENT_PENDING before state,
+locks, probes, command or receipt mutation. Existing config/receipts never migrate.
+045 `3f845a8` → `3c48b21`: independently ACCEPT one required import-free code leaf,
+23-source/103-total exact closure. Root217PASS/one SKIP770.874ms; current canonical
+constructor103leaves86.048ms. Source digestbc3edc6024e2d79264ab6bdd72b04bc584e67e154c38db790682a669c326c10b;
+old102-leaf preparation records remain historic, not current code certificates.
+
+042 `e5cf16d` was REVISE for malformed driverPID data reporting, four independent
+failures; complete worker already rejected invalid PIDs. 042B `0d495ed` → `db99164`
+is fresh ACCEPT320 source tests/one SKIP plusfive same-input controls; root234PASS/
+one SKIP351.750ms. Fixed real-FIFO engineering control remains unselected; no C/OS
+control executed. Its report is diagnostic only, not durable persistence.
+048 fixed bounded observation supervisor/capture is frozen486e2da for fresh
+independent review, with ownership checks and no stale-PID kills; source/mocks only.
+
+046 source audit COMPLETE: real native Bash stdio shapes are UNKNOWN. Node/libuv
+socketpairs and synthetic supplied FIFOs cannot establish them. 047 fixed metadata-
+only direct native C observer b53a10e received CHANGES_REQUIRED: foreign/missing
+session IDs, unbounded/missing tool timeout, invalid description and duplicate status
+keys were accepted by its parser. Ten expected-UNKNOWN controls failed,17 passed,
+focused94 passed; original results preserved. Author047B repairs in its isolated
+worktree; no compile, installation/native/model execution. No shim or endpoint repair in actual native
+route; markers report shell status honestly, >=128 signal remains ambiguous.
+
+G0partial/sealedG1/G2/G3/prepublicationG4 still incomplete. Scoped hosted Claude
+six-check diagnostic remains CLOSED PASS. Existing admin403/Copilot Actions billing
+fact unchanged; no repeated owner request. Alpha.11/pilot/receipts unchanged;
+field use NOT STARTED, actual portable two-machine/two-agent reuse unestablished.
+Day0 and72h checkpoint unchanged; no invented total blocked duration or date reset.
+
+## Historical checkpoint — preparation review repair; product admission active
 
 2026-10-13 17:50UTC, integration `f3cd33c` / runtime `6912ea4`. The original
 Herdr director is working in its existing pane; fresh kit verification checks all

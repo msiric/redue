@@ -10,9 +10,40 @@ the reviewed local compiler verifies an explicitly prepared stable input tree.
 It does not claim live-checkout, npm launcher or lifecycle execution. The proposal
 requires reviewed TS5.5.2 and the existing matched Darwin25.6/ARM64/official
 Node22.13 profile. A local proposal cannot certify that profile or its enforcement.
-Existing commands, user configurations and receipts are unchanged.
+Existing checks, configurations and receipts are never silently converted.
+The unreleased CLI now offers explicit pending selection, not executable evidence.
 
 ## Current evidence summary
+
+Runtime `db99164`,2026-10-13 18:49UTC. Explicit `init --recipe typescript-sealed`
+preview/selection creates a distinct disabled obligation. `run` refuses
+SEALED_RECIPE_ENFORCEMENT_PENDING before execution or receipt/state mutation.
+Fresh independent review found and fixed conflicting --check filtering; root25
+checks pass. The finite public code closure is now exactly103 leaves after a
+separately reviewed import-free contract addition; no broad read grant.
+
+Reviewed selected preparation ran on the actual approved debugger checkout:
+33345files/340640366bytes in81512.978ms, fixed sandboxed child exit0/reaped.
+Exact-profile nonsecret controls permitted intended read/write and denied outside
+read/write with EPERM. The tree contains the reviewed whole TS5.5.2 implementation
+and its default library. No TypeScript API/check, native agent or model ran.
+All source namespace equivalence/native view/seal/executable/reuse claims remain
+false. These observations are preparation/static content evidence, not CURRENT,
+origin completeness, native enforcement or complete-path economic acceptance.
+
+The fixed engineering real-FIFO descriptor control and strict PID data repair
+have fresh independent acceptance; actual OS selection awaits a bounded capture/
+cleanup supervisor. Native Bash endpoints remain UNKNOWN. The next fixed direct
+metadata-only native probe observes that fact without endpoint repair; it is
+currently source-only and independently review-gated. Premain loader, parent-held
+handles and immutable compiler namespace/execution interval remain open.
+
+Actual cross-agent/two-machine portable reuse is NOT ESTABLISHED. Alpha.11 remains
+frozen/unpublished, pilot receipts preserved, external field use NOT STARTED.
+Current [resume](../plan/portable-evidence-resume.md) binds commits, exact private
+record/test hashes and ownership. Historical records below are not gate certificates.
+
+## Historical evidence summary — earlier code guards
 
 At integration `255382c`, metadata-first fixed selection binds source membership,
 selected contents and complete actual-stage inventory. Fresh independent review

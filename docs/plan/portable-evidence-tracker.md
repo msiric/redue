@@ -3,7 +3,26 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — fresh review returned; three bounded writers active
+## Current checkpoint — reviewed CLI and actual prepared project
+
+2026-10-13 19:05UTC, runtime `db99164`; exact results in current
+[resume](portable-evidence-resume.md), limits in [acceptance](../acceptance/portable-sealed-typescript.md).
+
+| Task | Status | Actual result / next gate |
+| --- | --- | --- |
+|041B selected preparation | ACCEPT/integrated85409ca |217 root PASS/one SKIP; real sandboxed debugger materialization81512.978ms, not sealed |
+|044B explicit sealed choice | ACCEPT/integrateda418620 |25 root PASS; conflicting selection fixed; actual configured execution still refused pending |
+|045 current code closure | ACCEPT/integrated3c48b21 |103 exact leaves;217 root PASS/one SKIP; actual canonical constructor only |
+|042B descriptor data/control | ACCEPT/integrateddb99164 |234 root PASS/one OS SKIP; strict PID repair; no OS control yet |
+|046 actual native assertion | COMPLETE/source audit |Native Bash fd shapes UNKNOWN; no parent/seal claim from synthetic pipes |
+|047 metadata-only native probe | CHANGES_REQUIRED b53a10e;047B repair ACTIVE |Ten independent parser controls fail; no native/model; original failures retained |
+|048 owned OS observation capture | Frozen486e2da/fresh review ACTIVE |Fixed target,30s capture/persist plus5s cleanup; source/mocks only |
+| Sealed product gates | INCOMPLETE |Native immutable origin, recipient authority, real agent/machine handoff outstanding |
+
+All failures retained; alpha.11/pilot unchanged. No signing, permission/trust expansion
+or public action. Existing external caps/admin facts unchanged; goal remains active.
+
+## Historical checkpoint — fresh review returned; three bounded writers active
 
 2026-10-13 17:50UTC, integration `f3cd33c` / runtime `6912ea4`.
 Exact evidence and limits: current [resume](portable-evidence-resume.md).
