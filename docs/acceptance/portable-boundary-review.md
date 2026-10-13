@@ -6629,3 +6629,44 @@ with synthetic data, not extracted native functions/source. One changed bounded
 source-composition diagnostic is source-review GO to identify the failed original
 predicate. Raw profile, path/env/error values remain unretained. Prior failures
 stay historical; startup783 is a separate pending engineering-driver review.
+
+Final engineering-driver source/mock GO662c1d6,
+testSHA30b0c704d64e48aed15f1500fd97b38d5d32ebafc1292a4275eabec255d5df01.
+Earlier driver defects (unbounded artifact reads, unsanitized failures, uncertain
+cleanup and invalid-status/signal normalization) were corrected before any actual
+startup. Bounded descriptor reads bind Node128MiB, launcher1MiB and generated
+source64KiB; setid files refuse. Finite process evidence requires positive PID and
+either valid exit/null signal or actual null status/known signal; errors,
+contradictions and substitutions preserve owned files. Cleanup checks actual
+reaping, source binding and owned directory identities, without recursive removal.
+Kernel-account home replaces tracked private username; it does not use env HOME.
+
+The driver's own fixed short context must pass exact source composition and
+currentness, strict profile transport, positive profile size<=65536, literal-root
+read, exact pinned Node read clause and no network wildcard before its single
+sandbox-exec Node--version request. This establishes composition in that context,
+not Claude/Bun equivalence or agent enforcement. A duplicate illustrative source
+evaluation is unnecessary. Native source content is rechecked within each bounded
+proposal read; cross-call physical continuity is not established. Trusted,
+quiescent preparation remains a prerequisite, not hostile-parent confinement.
+
+Ten independent whole-driver memory-FS/mock-spawn controls passed10/10 in50.28ms;
+readonly replay passed10/10 in51.59ms. They cover exact positive argv/env/caps,
+setid/oversize/short-read zero dispatch, unknown signal, invalid status with signal,
+timeout, thrown spawn, replacement retention, and missing Node read clause refusing
+the sandbox request. Reviewer did not bootstrap, evaluate extracted native code,
+apply a sandbox or execute Node--version. Earlier reviewer-facade/preparation
+failures remain private and were corrected without changing reviewed source.
+
+Independently read the owner's actual662 engineering-startup TAP: one startup
+request exited0/null signal with observed PID/reapedtrue, exact versiontrue,
+stdout9B/stderr0B; test478.835167ms/total538.155083ms. Generated profile SHA
+ef724ba098f5353634558f82ad004182dfd9c2ec6a8b1d5591465fd0e458e69a;
+its own composition gates passed before application. Lifecycle reports owned
+empty-directory cleanup/reapedtrue/NONE. This closes only that engineering Node
+loader observation. nativeLaunches0 means no Claude-agent launch, not no
+sandbox-exec request; models/compiler executions0. Native enforcement, Bun,
+full JS/compiler startup, credentials, stable-input seal and reuse remain
+NOT_ESTABLISHED/false. Prior generic source-composition failures stay historical:
+the20f attempt alone established88592B/EXCEEDS65536, with read predicates true
+and network wildcard false; no earlier unknown cause is retroassigned.
