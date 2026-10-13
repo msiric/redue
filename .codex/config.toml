@@ -1,0 +1,7 @@
+# REDUE director: project-local roles; existing host permissions take precedence.
+# Do not change the current sandbox or account/model/provider through this file.
+web_search = "live"
+
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 3

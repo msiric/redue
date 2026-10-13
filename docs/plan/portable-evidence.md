@@ -575,6 +575,19 @@ is needed. The active goal/objective, Day0, calibration and release gate are unc
 
 ---
 
+### 6.7 Herdr-aware director — D13
+
+Use the existing primary goal/thread with the project-local
+[director charter](director-role.md) and [Herdr setup](director-herdr-setup.md).
+This is coordination, not a new product objective or gate. Native bounded
+implementer, fresh reviewer and researcher tasks retain one integration owner
+and one writer per interface. Verify actual loaded guidance, effective host
+permissions and the complete task/review/decision/next-task loop. Preserve the
+standing authority and $0 additional spending; no duplicate pane workers,
+orchestrator, automatic approval-policy rewrite or public release. A replacement
+requires old-coordinator checkpoint/pause before handoff. See D13 in the existing
+[decisions](portable-evidence-decisions.md) and the current tracker/resume.
+
 ## 7. Acceptance and adversarial testing
 
 Maintain one versioned portability suite with an expanding boundary matrix. Preserve prior regression evidence, but do not create a new bespoke benchmark system for each task.

@@ -12,7 +12,26 @@ requires reviewed TS5.5.2 and the existing matched Darwin25.6/ARM64/official
 Node22.13 profile. A local proposal cannot certify that profile or its enforcement.
 Existing commands, user configurations and receipts are unchanged.
 
-## Current checkpoint — fixed native collector components; execution remains gated
+## Current checkpoint — engineering harness integrated; native seal still unproved
+
+Integration `49b1cb3`, 2026-10-13 09:24UTC. The current
+[resume](../plan/portable-evidence-resume.md) records actual director smoke evidence,
+source reviews, private observations and lane blockers. The actual four-code-copy/
+three-build observation is engineering-only, no copied code/native/compiler ran.
+The full staged CLI harness has fresh independent review after a real total-deadline
+NO-GO;94 mocksPASS/1realSKIP. Its next actual preflight refused unchanged environment
+key guards before launch, zero compiler attempts. No environment was stripped.
+
+Strict native trace/stream collection and a local copy-free environment proposal
+are reviewed source only. The six-row helper still explicitly lacks other native
+stage assertions; its nominal result cannot establish global PASS. Local native
+subscription source policy must be validated on its real path, not forced to mimic
+the hosted diagnostic's empty remote-settings file. No actual native dispatch.
+Herdr/Codex director installation and the real coordination loop do not satisfy a
+portable-evidence gate. Existing hosted six-check prerequisite remains scoped PASS;
+actual sealed G1/G2/G3/prepubG4 incomplete. Alpha.11 remains frozen/unpublished.
+
+## Historical checkpoint — fixed native collector components; execution remains gated
 
 At 2026-10-13 06:02 UTC, integration `9d23db6` includes the independently reviewed
 private A/B/H build-currentness verifier, strict six-row result parser, bounded

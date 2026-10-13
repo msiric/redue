@@ -381,3 +381,21 @@ helper's test success. Hosted Claude's earlier six-check diagnostic stays closed
 PASS within its actual scope, not new staged-parent enforcement. Copilot's included
 Actions charging fact remains pending. Continue data/source implementation without
 repeating account questions. Fresh origin/trust bindings remain separately gated.
+
+## D13 — Herdr-aware native director, coordination only
+
+Owner request October13 authorizes installing the verified director kit, promoting
+the existing primary thread and delegating native implementer/fresh reviewer/
+researcher tasks within approved included capacity. The existing goal/objective,
+canonical plan and operating authority remain; the kit's goal text is reference
+instructions, never a second `/goal` transaction. Root remains single integration
+owner and production interfaces have one assigned writer. No duplicate pane
+workers, orchestrator, server restart, billing/provider/account change or global
+policy weakening. Role file hashes are audit identities, not OS-enforcement proof.
+
+Actual smoke must include work, source/evidence inspection, fresh review, a director
+decision and next task without an owner relay. Preserve failures and refusals.
+Saved folder trust applies a broader common repository root and remains an owner
+interaction; never blindly answer an approval UI. A blocked resumed frontend does
+not establish a second working director. If a replacement session becomes needed,
+checkpoint/pause the old coordinator before transfer; retain its pane/work.

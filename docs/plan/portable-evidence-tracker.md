@@ -3,7 +3,34 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — fixed native collector components; execution remains gated
+## Current checkpoint — actual director smoke loop accepted
+
+2026-10-13 09:24UTC, integration `49b1cb3`. See the concise current
+[resume](portable-evidence-resume.md) for preserved source observations/blockers.
+D13 adds coordination only; existing objective, gates, trust and budget remain.
+
+| Task | Owner/status | Concrete evidence |
+| --- | --- | --- |
+| DIR-SMOKE-001 | Root director / native implementer / fresh reviewers: ACCEPT | `3eba47e` CHANGES_REQUIRED (four deadline countercases); `93f4bc1` final ACCEPT; root94PASS/1realSKIP79.232ms; reviewer26additional controls; integrated `f0b60f0`/`49b1cb3` |
+| Role discovery | Native researcher: complete | Explicit files read; installed0.162.1 supports profiles for spawning; live automatic profile selection unverified, no OS read-only claim |
+| DIR-NEXT-002 | Native implementer: REFUSED before launch | Unchanged environment violates existing key guards; zero compiler/native/model/receipt operations; private bounded-readback refusal record retained |
+| DIR-NEXT-003 | Fresh reviewer: ACCEPT | Exact manifest/installed hashes; no scope/permission/objective override; installation is not enforcement |
+| DIR-NEXT-004 | Native researcher: active | One next native source-level prerequisite; no credential/process/model or changes |
+| Herdr attach | OWNER_REQUIRED saved folder trust | Owned existing pane, same primary-thread resume, native UI blocked before inference; no input/trust applied; no second coordinator |
+
+Runtime: Herdr client/server0.9.1; Codex/client and daemon0.162.1; existing
+ChatGPT subscription. Native implementer/reviewer/researcher guidance actually read;
+automatic TOML role selection unverified. Actual inherited permissions unrestricted,
+approvalnever; task no-write constraints observed rather than asserted OS isolation.
+No model/provider/global policy override, pane-worker duplicate, new orchestrator,
+publication, signing/trust expansion, or server restart. Owner pause and detach/
+sleep/reboot unexercised. Startup zsh updater side effects UNKNOWN and preserved.
+
+Product gates are not smoke-loop gates: no sealed authority or real portable
+cross-agent acceptance follows from94 mocks. G0partial/G1sealed/G2/G3/prepubG4
+incomplete; alpha.11 frozen/unpublished. Existing resource blockers stay per lane.
+
+## Historical checkpoint — fixed native collector components; execution remains gated
 
 At 2026-10-13 06:02 UTC, integration `9d23db6` includes the independently reviewed
 private A/B/H build-currentness verifier, strict six-row result parser, bounded

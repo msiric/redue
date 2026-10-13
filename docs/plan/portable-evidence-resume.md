@@ -6,7 +6,77 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree on `dev/portable-sealed-typescript`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — fixed native collector components; execution remains gated
+## Current checkpoint — native director loop accepted; Herdr client trust pending
+
+At 2026-10-13 09:24 UTC, integration `49b1cb3` preserves the existing active goal,
+objective, worktrees and task ownership. The supplied Herdr director kit was safely
+extracted and its exact thirteen-file manifest verified (archive SHA
+`7ec6d06c9e419fd9cfb090023c563b362e7ec0a77450e095a9e7789d87415b39`).
+Project-local roles, charter, supported config and managed AGENTS block were merged
+without existing-file conflicts; no global sandbox/approval/account changes.
+Root is sole integration owner; native implementer, fresh reviewers and researcher
+read their exact installed role guidance. Automatic custom-profile selection and
+role-declared read-only OS enforcement are NOT established. Actual child sessions
+inherited existing unrestricted filesystem/network and approval `never`; reviewers
+obeyed explicit no-write task boundaries. Herdr client/server0.9.1 and Codex/client
+and daemon0.162.1 were checked. Existing ChatGPT subscription authentication was
+observed without credential values. No new orchestrator or pane workers were made.
+
+DIR-SMOKE-001 completed actual assignment → implementation → source inspection →
+fresh review → repair → fresh final review → integration → next task. Initial
+worker `3eba47e` passed46 injected controls but independent review found four
+persistence operations could exceed the30s total budget and still certify success.
+Director REVISE; worker `93f4bc1` fixes the deadline and preserves historical child
+outcomes without rewriting saved pending snapshots. Fresh final review ACCEPT:
+94 author controls plus26 independent controls; actual root integrated run94PASS,
+1realSKIP,79.232ms. Integrated commits `f0b60f0`/`49b1cb3`. No real compiler/native,
+model, receipt or seal authority follows from these mock/harness results.
+
+DIR-NEXT-002 started without owner relay, then refused before compiler launch:
+the unchanged environment contains disallowed Claude/authentication key names.
+Values were not read or printed; zero attempts/executions, no stripping or retries.
+Its private refusal record SHA
+`01eb4895ad45d1b4cc95c7aaa7ac971b3d0d4707c52478301553b2328d632479`
+was bounded-readback verified. DIR-NEXT-003 independent review ACCEPTed the exact installed configuration/roles.
+DIR-NEXT-004 native researcher now inspects the one next source-level native
+prerequisite; root owns integration/docs, no competing writer.
+
+An available owned Herdr shell was used for a supported resume of the SAME primary
+thread. Its native client is BLOCKED before inference at saved folder trust for
+the common repository root. No trust key/input was sent; no replacement goal or
+second autonomous coordinator started. Private resume retains exact pane/thread,
+requested command and startup identity. Physical terminal hosting is not RUNNING
+merely because the logical director loop passed. Detach/sleep/reboot and deliberate
+owner-pause tests NOT RUN. Two child first calls inadvertently used default zsh,
+which printed an unrelated npm-updater banner; both were interrupted and switched
+to explicit Bash/nonlogin. Startup side effects are UNKNOWN, not claimed absent.
+A single app-server read initialization timed out, with zero settings/model/goal
+mutations; no alternate bridge or retry followed.
+
+Since the preceding checkpoint, independently reviewed source work includes strict
+native trace/stream collection, local in-place auth-environment proposal and paired
+H-only code binding. Actual engineering copy observation made three clang builds
+and four source copies (test5648.541ms/complete5799.890ms); no copied code ran.
+Its protected record SHA
+`f85adb5416ec655c4324c2bcb242a5ecfa7e92ca1596a12f7a70cacb7b275d37`
+is not an adoptable private capability. Local subscription source review identified
+that legitimate personal auth may not fetch a remote-settings file; no fake empty
+file, credential operation or startup-policy bypass was introduced.
+
+Hosted Claude's earlier six-check diagnostic remains CLOSED scoped PASS. Current
+sealed recipe/native enforcement, actual cross-agent/two-machine G2 and final G3/
+prepublicationG4 remain incomplete. GitHub metadata/inventory operations returned
+403 admin-rights denial, not authentication or missing-secret proof; no retry.
+Copilot included Actions four-credit billing remains pending separately. Alpha.11
+is unchanged/frozen/unpublished with SHA
+`f6e368bd8171412b301f3f5dee3ceebea14da3b3418968504a7a49428e5876a0`.
+Day0 October10 21:24UTC/calibration October13 21:24UTC unchanged; no invented blocked
+time, forecast or field usage. Next: finish the bounded native prerequisite source question,
+then assign the highest-value permitted sealed/native parent implementation. No model
+trial before real preconditions. Exact private runtime record:
+`.local/portable-evidence/director-runtime-resume.json` (owner-only, not published).
+
+## Historical checkpoint — fixed native collector components; execution remains gated
 
 At 2026-10-13 06:02 UTC, integration `9d23db6` includes the independently reviewed
 private A/B/H build-currentness verifier, strict six-row result parser, bounded
