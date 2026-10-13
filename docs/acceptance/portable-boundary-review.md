@@ -7280,3 +7280,41 @@ and exact preservation of read/network/credential restrictions and false flags.
 The five author mock controls passed (44.72 ms). These controls perform no
 fixture bootstrap, filesystem body operation, helper/build/native/compiler/model
 or CI execution. No execution GO is provided by this draft assessment.
+
+
+### Reordered disabled command plan and strict whole-base result parser
+
+The corrected command-plan source SHA256 is
+`fd34d5ad1eb2f252c18aaa3130dd3db08c7f03fdf6e7f17b1b0db0ea63a12a14`.
+Final paired-policy verification now precedes final assets verification. The exact
+previous mutation schedule now refuses with the static unavailable code rather
+than returning stale binary metadata. Three independent controls passed
+(47.44 ms), and six author controls passed (49.68 ms). The preceding NO-GO and
+old successful stale-data reproduction remain recorded. Data-only source GO is
+conditional on the forthcoming private assets verifier receiving separate review
+before any production import/use. No auth adapter, launcher or actual command is
+enabled; commands remain empty and all execution/seal/reuse flags remain false.
+
+Independent source/data GO for A db57d9a strict result parser, SHA256
+`be2d30edf40597f52a6a9e919b5a3ee26e15bf0dc9f942badda0fb54db10b05d`.
+Source inspection matched the current C emitter: six exact ordered rows, five
+implemented assertions and one NOT_IMPLEMENTED row. The parser requires bounded
+4096-byte strict UTF8/duplicate-rejecting JSON, exact nine-field top schema and
+four-field row schemas, finite names/reasons/attempt relations, prerequisite
+branch consistency, false authority fields, and global FAIL iff a fully validated
+row reports FAIL. Partial or contradictory FAIL cannot enter the known-failure
+latch. Valid complete FAIL remains immutable through later malformed output,
+repeated nominal results or lifecycle uncertainty. Lifecycle data is validated
+separately; only one result with observed exit74/null signal/no timeout can label
+all five implemented rows observed. It can never yield global PASS or prove
+actual native/tool/source/authentication or independent lifecycle facts.
+
+The 17 author byte/lifecycle controls passed (55.86 ms). Five independent controls
+passed (51.73 ms): BOM/invalid UTF8/escaped duplicate keys/private-extra refusal,
+known granted-access failure persistence through nominal/malformed later output,
+84 lifecycle combinations retaining global UNKNOWN and false authority, impossible
+downstream grants after failed prerequisites rejected as invalid, and lifecycle
+getter/symbol refusal plus snapshot immutability. These are source/pure/mocked
+checks only, with no native/helper/C build, compiler, model, credential or CI
+operation. The caller must independently bind actual private assets, exact command,
+native tool IDs and lifecycle before interpreting any observed result.
