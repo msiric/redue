@@ -63,6 +63,31 @@ initial regex assertion failure is retained (before any public-tool execution),
 then43.818ms PASS. It remains unrun pending independent review. No credentials,
 model, compiler execution, signing or artifact upload is in that inventory job.
 
+### Current blocked lane and continuing work
+
+The independently reviewed storage-free hosted inventory branch
+`dev/portable-sealed-host-preflight` is pushed at `75613f9` with source pin
+`c96f350` and workflow SHA
+`7e45d857f0302401f6c7417dca8647bf0b74c7dad530e21949ef45d3cbe4b9b3`.
+One normal dispatch was rejected by GitHub HTTP403: “Must have admin rights to
+Repository.” No run exists, no model/storage/signing occurred, no alternate
+endpoint or repeated dispatch was attempted. Branch writes work. The owner has
+one concrete normal-UI dispatch request; no account-permission cause beyond the
+observed operation is inferred. This blocks hosted public-tool facts only.
+
+Local work continues: `ac7c9e4` adds an independently reviewed private fresh pair
+with exact synthetic-only A and empty B inventories. Unknown/auth/state/public
+build additions invalidate it; serialized records cannot revive private proof.
+Its separate whole-base C template remains unrendered/unbuilt/unexecuted. Native
+host resources and public code belong in a separate namespace H. Root's split
+policy proposal is disabled, keeps credential denial, narrows writes/reads/sockets,
+permits no command, and has no native-enforcement claim. Its two pure/mock controls
+passed with the pair/source controls (25PASS56.456ms); independent review is
+pending. A owns the private data-only C renderer, C its independent critical review.
+No imported origin, accepted producer, permissions, auth, receipt or alpha.11 bytes
+changed. The next useful work is this native boundary, not a second API graph or
+another compiler/status benchmark.
+
 ## Historical checkpoint — source profile-size failure established
 
 At2026-10-13 02:28UTC, integration9fcaaae includes the independently reviewed
@@ -1988,10 +2013,10 @@ Agreed Day 0: 2026-10-10 21:24 UTC (owner confirmed). First substantive review: 
 | Gate | Current status | Evidence / outstanding prerequisite |
 | --- | --- | --- |
 | G0 | Resource facts still partial | Day 0/caps/cadence and standard public runners approved; source/native preflight reviewed. Two independent macos-26 inventory jobs passed; 10 MiB included storage confirmed. Signer workflow enablement approved; exact data-only producer policy/provisioning approved in D5; local native subscription onboarding succeeded; local and hosted named synthetic native security gates passed with independent review; recipient-specific boundary and Copilot Actions included-billing prerequisite remain unresolved. |
-| G1 | Incomplete: current origin authority withheld | Historical08307d4/f6e368bd controlled relocation positives remain evidence, but mapped-input counterexample withdraws unrestricted origin completeness. Containment preserves history only. New explicit sealed recipe preparation is implemented/reviewed; actual full staging timed out, native sealing/namespace pending. |
+| G1 | Incomplete: current origin authority withheld | Historical08307d4/f6e368bd controlled relocation positives remain evidence, but mapped-input counterexample withdraws unrestricted origin completeness. Containment preserves history only. New explicit sealed recipe preparation is implemented/reviewed; actual selected-project ephemeral preparation completed (66,570.596ms), but that tree remains MATERIALIZED_NOT_SEALED; native sealing/full CLI namespace pending. |
 | G2 | Actual recipient/model reuse not run | Both hosted complete runtime prototypes supported; independent21-record comparison passes. Approved amended pair has hosted synthetic native diagnostic PASS; real recipient/project boundary, current origin/trust/profile and Copilot included-billing fact remain pending. No failed prerequisite launches models. |
 | G3 | Incomplete: historical authenticated data route demonstrated | Owner-approved exact corrected workflow run38123365552 accepts the signed38096670987 origin and independently establishes importedCURRENT/PASS/eligible, with no equivalent receiver execution. Unrelated/restart preservation and relevantSTALE pass. That historical origin interpretation now cannot authorize reuse. Fresh sound origin, scope/policy bindings and final candidate acceptance remain required; no model claim. |
-| G4 prepublication | Not ready | Independent critical implementation/helper reviews complete; alpha.11 exact bytes pass three-platform installed acceptance. Actual final-bound G1–G3/behavioral V01–V22 and complete-path economics remain outstanding; no publication. |
+| G4 prepublication | Not ready | Reviewed implementation/helper subsets and historical alpha.11 exact three-platform acceptance are preserved; current sealed runtime and native boundary still require final independent review and exact combined acceptance. Actual final-bound G1–G3/behavioral V01–V22 and complete-path economics remain outstanding; no publication. |
 | Publication / postpublication | Pending owner approval | No main merge, release tag or npm operation in this milestone. |
 | External usage | Not started | Owner-approved willing participants separate from technical gates. |
 

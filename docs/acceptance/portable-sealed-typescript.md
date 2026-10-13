@@ -93,6 +93,31 @@ model, compiler execution, signing or artifact upload is in that inventory job.
   execution requires a new same-process privately minted synthetic fixture.
   Build/startup timings are separate paths, not summed end-to-end economics.
 
+### Current blocked lane and continuing work
+
+The independently reviewed storage-free hosted inventory branch
+`dev/portable-sealed-host-preflight` is pushed at `75613f9` with source pin
+`c96f350` and workflow SHA
+`7e45d857f0302401f6c7417dca8647bf0b74c7dad530e21949ef45d3cbe4b9b3`.
+One normal dispatch was rejected by GitHub HTTP403: “Must have admin rights to
+Repository.” No run exists, no model/storage/signing occurred, no alternate
+endpoint or repeated dispatch was attempted. Branch writes work. The owner has
+one concrete normal-UI dispatch request; no account-permission cause beyond the
+observed operation is inferred. This blocks hosted public-tool facts only.
+
+Local work continues: `ac7c9e4` adds an independently reviewed private fresh pair
+with exact synthetic-only A and empty B inventories. Unknown/auth/state/public
+build additions invalidate it; serialized records cannot revive private proof.
+Its separate whole-base C template remains unrendered/unbuilt/unexecuted. Native
+host resources and public code belong in a separate namespace H. Root's split
+policy proposal is disabled, keeps credential denial, narrows writes/reads/sockets,
+permits no command, and has no native-enforcement claim. Its two pure/mock controls
+passed with the pair/source controls (25PASS56.456ms); independent review is
+pending. A owns the private data-only C renderer, C its independent critical review.
+No imported origin, accepted producer, permissions, auth, receipt or alpha.11 bytes
+changed. The next useful work is this native boundary, not a second API graph or
+another compiler/status benchmark.
+
 ## Historical checkpoint — source profile-size failure established
 
 At2026-10-13 02:28UTC, integration9fcaaae includes the independently reviewed
