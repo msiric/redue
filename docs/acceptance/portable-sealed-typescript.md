@@ -56,6 +56,12 @@ trust, permission, account or public action. Day0 unchanged; meaningful72h calib
 is due21:24UTC, not an instruction to wait or weaken gates. External blocked durations
 are recorded per task; no fabricated aggregate blocked-time total.
 
+Current057 launch gap:058 pinned-source review confirms--bare disables explicit
+subscription OAuth. A versioned nonbare startup repair is in progress; no run used
+the incompatible combination. Source witness data stays historical/source-only.
+See the tracker’s72-hour calibration for the unchanged Day0, gate gaps, blocked
+lanes and conditional/high-risk forecast. No new publication is authorized.
+
 ## Historical evidence summary — 20:11UTC
 
 2026-10-13 20:11UTC, integration `442f305`. The original Herdr director is

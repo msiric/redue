@@ -46,6 +46,44 @@ trust, permission, account or public action. Day0 unchanged; meaningful72h calib
 is due21:24UTC, not an instruction to wait or weaken gates. External blocked durations
 are recorded per task; no fabricated aggregate blocked-time total.
 
+## 72-hour calibration — 2026-10-13 21:24UTC
+
+Day0 remains2026-10-10 21:24UTC. This is the scheduled calibration, not completion
+or a wait instruction. Current reviewed integration6de7e2e plus checkpoint6ab8989
+is pushed normally; task057 remains active on the actual critical path.
+
+The old portable origin interpretations were withdrawn after concrete continuity
+counterexamples. The owner-approved sealed recipe is still pending execution:
+real preparation exists, but no actual stable-input origin/native seal or fresh
+portable recipient reuse has been established. Successful old data-only transfers
+and hosted six-check enforcement remain scoped historical evidence, not a new G1/G2
+pass. G0partial; current sealedG1/G2/G3/prepublicationG4 incomplete. External field
+usage NOT STARTED. Complete sealed-path economics NOT MEASURED; one340.6MB staged
+preparation took81.513s and must eventually be included rather than hidden.
+
+The next new diagnostic is not launch-ready: fresh source review058 confirms that
+056's required--bare suppresses explicit subscription OAuth. This does not invalidate
+its honestly source-only constructor result; it prevents using that witness for the
+approved authenticated launch.057 is repairing the nonbare source boundary; fresh
+independent review follows. Original parser/transport failures stay preserved.
+
+Lane blockers are distinct: pending Copilot included Actions billing fact;
+stale24h protected Claude account/capacity statement; inventory workflow dispatch's
+prior403 (not retried); and unestablished sealed origin/recipient implementation.
+GitHub reads and normal task-branch push now work. No account/login prerequisite is
+inferred from secret presence, and no protected fact timestamp was refreshed.
+These intervals overlap implementation; the record does not justify a cumulative
+blocked-hours deduction. Root also corrected an idle-worker message/trigger mistake;
+that engineering delay is not recorded as external blocked time.
+
+Forecast revision: Day14/Day28 remain targets, but there is currently no evidence-
+backed unconditional completion date. Demonstration is at high risk until the real
+sealed origin slice and authenticated independent host handoff work; release-ready
+forecast depends on that slice plus V01–V22, installed upgrades, independent review
+and whole-path economics. No gate is weakened or reset to preserve those dates.
+Next calibration follows actual native/origin evidence or a material blocker change,
+not another broad test campaign. Publication stays owner-gated; alpha.11 unchanged.
+
 ## Historical checkpoint — 20:11UTC
 
 2026-10-13 20:11UTC, integration `442f305`. The original Herdr director is
