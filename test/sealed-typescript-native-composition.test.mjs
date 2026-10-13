@@ -1,16 +1,18 @@
 // Pure constructor controls only; no rendering, native, mapping, model or CI.
 import test from 'node:test';import assert from 'node:assert/strict';
 import {prepareSealedTypeScriptNativeComposition as prepare} from './acceptance/sealed-typescript-native-composition.mjs';
-const options=()=>({base:'/private/tmp/redue-ci-recipient-Abcd1234',node:'/reviewed/node',checkerSha256:'a'.repeat(64),mapperRenderedSourceSha256:'b'.repeat(64),mapperBinarySha256:'c'.repeat(64),settingsSha256:'d'.repeat(64)});
+const options=()=>({base:'/private/tmp/redue-ci-recipient-Abcd1234',node:'/reviewed/node',checkerSha256:'a'.repeat(64),mapperRenderedSourceSha256:'b'.repeat(64),mapperBinarySha256:'c'.repeat(64),exchangeRenderedSourceSha256:'e'.repeat(64),exchangeBinarySha256:'f'.repeat(64),settingsSha256:'d'.repeat(64)});
 const reject=value=>assert.throws(()=>prepare(value),error=>error?.code==='SEALED_NATIVE_COMPOSITION_INVALID');
-test('fixed binding proposal reuses protected parent and approved checkout write root with two exact routes',()=>{
+test('fixed binding proposal orders three exact diagnostic routes with pristine exchange inventory first',()=>{
   const input=options(),result=prepare(input),stageParent=input.base+'/sealed-inputs',writable=input.base+'/Checkout 空间';
   assert.equal(result.checkerBindings.stageParent,stageParent);assert(result.checkerBindings.stage.startsWith(stageParent+'/redue-materialization-'));
   assert(result.checkerBindings.allowedWorkspace.startsWith(writable+'/'));assert(result.mapperBindings.workspace.startsWith(writable+'/'));assert(result.mapperBindings.stage.startsWith(stageParent+'/'));
   assert.equal(result.checkerBindings.caseWriteCanary,input.base+'/SEALED-INPUTS/redue-materialization-Canary/write-canary.txt');
   assert.equal(result.checkerBindings.parentSymlinkAlias,writable+'/.sealed-native-canaries/stage-parent-alias');
   assert.equal(result.checkerBindings.parentSymlinkWriteCanary,writable+'/.sealed-native-canaries/stage-parent-alias/redue-materialization-Canary/write-canary.txt');
-  assert.deepEqual(result.proposedCommands,[[input.node,input.base+'/prefix/native-probes/sealed-typescript-native-sentinel.mjs'],[input.base+'/prefix/native-probes/sealed-typescript-map-sentinel']]);
+  assert.deepEqual(result.exchangeBindings,{base:input.base});
+  assert.deepEqual(result.proposedCommands,[[input.base+'/prefix/native-probes/sealed-typescript-exchange-sentinel'],[input.node,input.base+'/prefix/native-probes/sealed-typescript-native-sentinel.mjs'],[input.base+'/prefix/native-probes/sealed-typescript-map-sentinel']]);
+  assert(result.prerequisites.includes('PRISTINE_EXCHANGE_CONTROL_INVENTORY_BEFORE_NODE_WORKSPACE_MUTATIONS'));
   assert.deepEqual(result.commands,[]);
   assert.equal(result.nativeSettings.expectedProtectedCodeRoot,input.base+'/prefix');assert.equal(result.nativeSettings.expectedProtectedParent,stageParent);
   assert.equal(result.nativeSettings.sha256,input.settingsSha256);assert.equal(result.nativeSettings.effectiveMatch,'NOT_OBSERVED');
@@ -22,12 +24,14 @@ test('data construction grants no route, settings mutation, filesystem/native/mo
 });
 test('missing case/symlink/atomic-parent/mapping assertions and current mapper binary verification remain explicit',()=>{
   const result=prepare(options());assert(result.prerequisites.includes('MAPPER_RENDERED_BINARY_AND_PHYSICAL_CURRENCY_NOT_VERIFIED'));
-  assert.deepEqual(result.missingAssertions,['STAGE_CASE_ALIAS_WRITE_DENIAL_NOT_OBSERVED','STAGE_SYMLINK_PARENT_ALIAS_WRITE_DENIAL_NOT_OBSERVED','STAGE_PARENT_ATOMIC_EXCHANGE_DENIAL_NOT_IMPLEMENTED','MAP_SHARED_COMPOSITION_NOT_OBSERVED']);
+  assert.deepEqual(result.missingAssertions,['STAGE_CASE_ALIAS_WRITE_DENIAL_NOT_OBSERVED','STAGE_SYMLINK_PARENT_ALIAS_WRITE_DENIAL_NOT_OBSERVED','STAGE_PARENT_ATOMIC_EXCHANGE_DENIAL_NOT_OBSERVED','WHOLE_BASE_ATOMIC_EXCHANGE_NOT_IMPLEMENTED','MAP_SHARED_COMPOSITION_NOT_OBSERVED']);
   assert.equal(result.classificationRules.parentOperation,'RENAME_AWAY_ONLY_NOT_ATOMIC_EXCHANGE');assert.equal(result.classificationRules.readonlyMappingError,'OS_DESCRIPTOR_CONSTRAINT_NOT_SANDBOX_DENIAL');
 });
 test('source and binary digests are only explicit local references, never inferred verified from hashes',()=>{
   const result=prepare(options());assert.equal(result.artifacts.mapper.renderedSourceSha256,'b'.repeat(64));assert.equal(result.artifacts.mapper.binarySha256,'c'.repeat(64));
   assert.equal(result.artifacts.mapper.templateSha256,'14ed107ff8e48e539c172c49aee88830f44eac0d037463d97b45fc54d8e3b070');assert.equal(Object.hasOwn(result.artifacts,'verified'),false);
+  assert.equal(result.artifacts.exchange.templateSha256,'507dc2fb45adb9d7df293eccf18874fbfb101d4b25f2ace932899be6f2198d72');
+  assert.equal(result.artifacts.exchange.renderedSourceSha256,'e'.repeat(64));assert.equal(result.artifacts.exchange.binarySha256,'f'.repeat(64));
   assert(result.prerequisites.includes('CURRENT_PROTECTED_ARTIFACT_RUNTIME_AND_SETTINGS_BYTES'));
 });
 test('unknown path/argv/settings/grant options cannot extend the fixed scope',()=>{
