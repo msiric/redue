@@ -8,12 +8,15 @@ verify HEAD/status first. The planning baseline is history, never a rollback tar
 
 ## Current checkpoint — complete engineering build observed; native seal still open
 
-2026-10-13 12:45UTC, integration `942dd82` (source); original goal/Herdr primary
+2026-10-13 13:00UTC, integration `ad07a79` (source); original goal/Herdr primary
 `w1:pD`/`redue-director` preserved. Root is sole integration owner; native roles
 actually read their guidance, automatic profile/OS enforcement remains unverified.
-DIR-NEXT-018 owns only the Node-stage data parser/tests in the existing import
-worktree. DIR-NEXT-019 is read-only collection-order research; no second coordinator
-or new orchestrator.
+DIR-NEXT-021 now owns fixed paired-stage engineering provisioning in the existing
+import worktree. Fresh reviewer prepares independently; no second coordinator or
+new orchestrator. Herdr0.9.1 client/server protocol22 compatible, no restart needed;
+owned live viewport again displays this exact primary thread/current tools. Metadata
+still reports the old shell cwd/session; tools explicitly target the verified
+REDUE integration worktree, and no new coordinator/session was started.
 
 DIR-NEXT-012 source `c12b05a` independently ACCEPT144 default +84 fault controls;
 root pure readback failed `68b758f` is preserved (partial-counter contradictions/
@@ -76,9 +79,29 @@ ACCEPT67 default +3115 source-derived branch/lifecycle controls; root67PASS73.88
 Strict seven-row mapping data reader never promotes read-only descriptor constraints
 to sandbox denial. SourceSHA `d19e3d1f33394b74c2771207d24ed3697ba1665e1e0d5f49564ecb80e0dcce13`;
 tests `58e6a91428a8d06a1bd9542b3c7638eba246ccde573a747a1ba16164d7a71828`.
-DIR-NEXT-018 Node checker data reader awaits exact candidate/fresh review; real
-checker exit is1, not74. DIR-NEXT-019 inventories current collection/fixture ordering
-without reviving a mint invalidated by control changes/restoration. No native trial.
+DIR-NEXT-018 `47d5de8` → `c428def` independently ACCEPT257 defaults +5088 controls;
+root257PASS128.321ms. Exact variable Node data protocol uses real exit1, not74, with
+no cleanup/provenance/native/seal authority. ReaderSHA `7c6f7685314deeac8de6974604b0dae8154286262e0e2cbc7a6fda41a84e6813`.
+Author first160PASS1FAIL was a fixture mutation leaving its boolean unchanged;
+contradiction repaired without weakening assertion. Original failed TAP is retained
+owner-local600, SHA `f2b6bd6165846144c3cf609692ea5556fc08e3b09bf59e7133341b80ae160b09`.
+DIR-NEXT-019 found an unrun/disabled integration mismatch: trace expected retired
+directNode while reviewed command proposal selects only H launcher. DIR-NEXT-020
+`1332d25` → `ad07a79` exact binding repair independently ACCEPT27 +888 controls;
+root66PASS83.461ms including command suite. Old Node/argv/shell/newline/outscope CWD
+refuse before factory; unchanged native context/session/turn/lifecycle guards remain.
+TraceSHA `64450bf058e5bbc1fb4f3ab4fc0a1d97246c3ad9a8194844f8f2cbc095061142`.
+No actual native failure or empirical enforcement was established by this repair.
+
+Next source gap is current paired sources lacking protected A-targeted code/binaries
+under H. Original H-targeted helper binaries cannot substitute. DIR-NEXT-021 is the
+one writer for private exact pair/assets/source binding, three fixed source copies
+and two fixed C engineering builds using existing guarded original toolchain. No
+author actual build before fresh review, no helper/native/model/permission change.
+Eventual fixed whole-base→stage-exchange→Node→mapper operation must have ONE shared
+14-second collection budget. Controls invalidate original mints even after restore;
+never revalidate/revive them or adopt old serialized observation records. Native
+parent/credential/no-inherited-handles/effective-boundary gates remain open.
 
 Original hosted Claude scoped diagnostic remains CLOSED PASS. GitHub admin denial
 and Copilot included Actions four-credit fact remain lane-specific pending; no
