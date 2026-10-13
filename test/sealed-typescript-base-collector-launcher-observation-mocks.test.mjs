@@ -163,6 +163,23 @@ test('capture is opt-in; ordinary injected observation performs no capture open 
  assert.equal(m.calls.captureWrites.length,0);assert.equal(m.calls.captureCloses.length,0);assert.equal(observed.phaseCapture.selected,false);
  assert.equal(observed.phaseCapture.outcome,'NOT_SELECTED');assert.equal(observed.phaseCapture.authority,false);
 });
+test('every diagnostic throwing still finalizes capture exactly once and returns UNKNOWN with historical compiler facts',async()=>{
+ const m=captureMock();let diagnosticCalls=0;m.options.diagnostic=()=>{diagnosticCalls++;throw Error('PRIVATE DIAGNOSTIC');};
+ const observed=await m.run();assert.equal(observed.completed,false);assert.equal(observed.recordVerified,false);assert.equal(observed.outcome,'UNKNOWN');
+ assert.equal(observed.observationStatus,'UNKNOWN');assert.equal(observed.report.counters.compilerBuildAttempts,4);
+ assert.equal(observed.report.counters.prerequisiteBuildResults,3);assert.equal(observed.report.counters.launcherBuildResults,1);
+ assert.equal(observed.report.compilerBuildOutcome,'EXIT_ZERO');assert.deepEqual(m.calls.captureCloses,[77]);assert.deepEqual(m.calls.closes,[42]);
+ assert(diagnosticCalls>=2);assert.equal(m.calls.writes.length,1);assert.equal(JSON.parse(m.state.body).recordVerified,false);
+ assert.equal(observed.phaseCapture.authority,false);assert(!m.state.trace.includes('PRIVATE DIAGNOSTIC'));noAuthority(observed.report);
+});
+for(const boundary of ['capture write','capture close'])test('throwing every refusal diagnostic after '+boundary+' failure cannot skip cleanup or replace UNKNOWN',async()=>{
+ const m=captureMock();m.options.diagnostic=()=>{throw Error('PRIVATE DIAGNOSTIC');};
+ if(boundary==='capture write')m.filesystem.writeSync=()=>{throw Error('PRIVATE WRITE');};
+ else{const close=m.filesystem.closeSync;m.filesystem.closeSync=fd=>{close(fd);if(fd===77)throw Error('PRIVATE CLOSE');};}
+ const observed=await m.run();assert.equal(observed.completed,false);assert.equal(observed.recordVerified,false);assert.equal(observed.outcome,'UNKNOWN');
+ assert.deepEqual(m.calls.captureCloses,[77]);assert.equal(observed.report.counters.compilerBuildAttempts,boundary==='capture write'?0:4);
+ if(boundary==='capture close')assert.equal(observed.report.compilerBuildOutcome,'EXIT_ZERO');assert.equal(observed.phaseCapture.authority,false);noAuthority(observed.report);
+});
 
 test('fresh same-process pipeline reports three prerequisite builds plus one new build and distinct 4/1 source writes',async()=>{
  const m=mock(),observed=await m.run();assert.deepEqual(m.calls.operations,expected);assert.equal(observed.completed,true);assert.equal(observed.recordVerified,true);

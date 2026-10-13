@@ -129,6 +129,10 @@ export async function observeSealedTypeScriptBaseCollectorLauncher({cwd,uid,file
  };
  const historicalFailure=()=>[report.prerequisiteBuild,report.launcherBuild].some(build=>build?.builds?.some(row=>
   row.pidObserved===true&&Number.isInteger(row.status)&&row.status>0&&row.status<=255&&row.signal===null&&row.spawnError==='NONE'));
+ let recordName=null,recordSha256=null,namedSnapshot,recordParentSnapshot;
+ // Once opened, the owned capture descriptor is finalized even if result
+ // processing or diagnostic publication exits exceptionally.
+ try{
  try{
   remaining();if(capture.selected){try{captureOpen();captureMark('testBody','entered');}catch{capture.failed=true;throw Error('OBSERVATION_PHASE_CAPTURE_UNKNOWN');}}
   captureMark('selectorSnapshot','validation');remaining();captureMark('selectorSnapshot','before');remaining();
@@ -167,7 +171,6 @@ export async function observeSealedTypeScriptBaseCollectorLauncher({cwd,uid,file
  report.counters=counters();report.phaseCostsMs={...phaseCostsMs};report.elapsedMs=clockUnavailable?null:totalElapsedMs;
  report.elapsedMsScope='PRE_PERSISTENCE_SNAPSHOT';report.phaseCostsScope='THROUGH_PRE_RECORD_VALIDATION';
  report.observationCompleted=false;report.recordVerified=false;report.phaseCapture=captureSnapshot();
- let recordName=null,recordSha256=null,namedSnapshot,recordParentSnapshot;
  try{
   remaining();const parentBefore=directory(),saveLineage=ancestorLineage();lineageCurrent(selectorLineage);
   // Retain even early refusals without requiring a newly minted fixture label.
@@ -199,10 +202,12 @@ export async function observeSealedTypeScriptBaseCollectorLauncher({cwd,uid,file
   tick();recordVerified=true;
  }catch{
   completed=false;recordVerified=false;
-  diagnostic(JSON.stringify({scope:'BASE_COLLECTOR_LAUNCHER_RECORD_UNKNOWN',compilerBuildOutcome:report.compilerBuildOutcome,...counters(),
-   observationCompleted:false,recordVerified:false,helperExecutions:0,nativeAgentLaunches:0,models:0,compilerCheckExecutions:0,receiptWrites:0,sealed:false,reuseEligible:false}));
+  try{diagnostic(JSON.stringify({scope:'BASE_COLLECTOR_LAUNCHER_RECORD_UNKNOWN',compilerBuildOutcome:report.compilerBuildOutcome,...counters(),
+   observationCompleted:false,recordVerified:false,helperExecutions:0,nativeAgentLaunches:0,models:0,compilerCheckExecutions:0,receiptWrites:0,sealed:false,reuseEligible:false}));}
+  catch{/* Unavailable refusal publication remains UNKNOWN; never skips cleanup. */}
   try{tick();}catch{/* Failed publication cannot repair budget/clock/currentness. */}
  }
+ }finally{
  if(capture.selected&&capture.fd!==undefined){
   const closeStarted=last;let closeFailed=false;
   try{const s=filesystem.fstatSync(capture.fd,{bigint:true});guard(captureRegular(s,capture.bytesWritten)&&mark(s)===capture.mark);
@@ -213,11 +218,13 @@ export async function observeSealedTypeScriptBaseCollectorLauncher({cwd,uid,file
    if(recordVerified)guard(mark(filesystem.lstatSync(path.join(local,recordName),{bigint:true}))===mark(namedSnapshot)&&mark(directory())===mark(recordParentSnapshot));
    remaining();}
   catch{capture.failed=true;completed=false;recordVerified=false;
-   diagnostic(JSON.stringify({scope:'BASE_COLLECTOR_LAUNCHER_RECORD_UNKNOWN',compilerBuildOutcome:report.compilerBuildOutcome,...counters(),
-    observationCompleted:false,recordVerified:false,helperExecutions:0,nativeAgentLaunches:0,models:0,compilerCheckExecutions:0,receiptWrites:0,sealed:false,reuseEligible:false,phaseCapture:captureSnapshot()}));
+   try{diagnostic(JSON.stringify({scope:'BASE_COLLECTOR_LAUNCHER_RECORD_UNKNOWN',compilerBuildOutcome:report.compilerBuildOutcome,...counters(),
+    observationCompleted:false,recordVerified:false,helperExecutions:0,nativeAgentLaunches:0,models:0,compilerCheckExecutions:0,receiptWrites:0,sealed:false,reuseEligible:false,phaseCapture:captureSnapshot()}));}
+   catch{/* Even the final refusal publisher can be unavailable. */}
    try{tick();}catch{/* Capture failure remains UNKNOWN. */}
   }
   phaseCostsMs.phaseCaptureClose=clockUnavailable?null:last-closeStarted;
+ }
  }
  const finalTimingScope=capture.selected?'THROUGH_PUBLICATION_FINAL_RECORD_BARRIER_AND_CAPTURE_CLOSE':'THROUGH_PUBLICATION_AND_FINAL_RECORD_BARRIER';
  return{completed,recordVerified,report,recordName,recordSha256,phaseCapture:captureSnapshot(),totalElapsedMs,totalElapsedMsScope:finalTimingScope,
