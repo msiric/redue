@@ -6,7 +6,44 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree on `dev/portable-sealed-typescript`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — real selected preparation; pending CLI integrated
+## Current checkpoint — reviewed loop and actual engineering control
+
+2026-10-13 20:11UTC, integration `442f305`. The original Herdr director is
+RUNNING in its existing pane; task ownership and the active goal are unchanged.
+Installed native implementer/reviewer/researcher guidance is exercised explicitly;
+automatic role-file selection and reviewer OS isolation are not claimed.
+
+048D/048E repairs are independently ACCEPTED and integrated. Root96PASS/one default
+SKIP; the actual owned engineering control then exited0, saved5944 bytes with
+verified SHA `1d68ed0282ebe1f2741641b4e492f556387045debea4918d02a30683be0511dc`,
+and confirmed owned-process cleanup. Four synthetic descriptor slots matched in
+the baseline and were absent/different after the fixed C-to-Node replacement.
+Inner control4099.868ms; supervisor4281.547ms before durable ACK. Full numeric
+supervisor duration was not retained; exit0 confirms its final deadline check.
+This is engineering evidence, NOT native-agent stdio or sealing. Both earlier
+UNKNOWN attempts and their zero/absent captures remain preserved.
+
+050 fixed pre-auth observer build/disabled proposal is independently ACCEPTED and
+integratedd19d124, root188PASS.052 initially required revision: incomplete normal
+native user metadata was refused. Original failures are retained.052B now requires
+actual UUID/timestamp framing without synthesizing it or granting freshness.
+Fresh independent source-faithful controls35PASS and broader443PASS/one SKIP;
+root443PASS/one SKIP194.091ms at442f305, TAP SHA
+`ed913ceff02ecebf24629dfbd6baf7c1a8f8104835eb936117805c60a74fc461`.
+The disabled single direct-command parser can report only source-derived command
+exit-zero; kernel child close/reaping, actual native enforcement and sealing stay
+unestablished. Old marker route and security denials are unchanged.
+
+Next active task053: independent researcher verifies the exact unblocked live-
+fixture/SDK/build prerequisites for one existing pre-auth metadata-helper build.
+No new controller, native/model/CI call, trust or permission change is authorized
+by a source/mock PASS. G0partial; sealedG1/G2/G3/prepublicationG4 incomplete.
+The hosted Claude six-check prerequisite remains CLOSED scopedPASS. Existing
+GitHub admin403 and Copilot included-Actions-capacity fact remain separate blockers;
+no repeated request. Alpha.11/pilot/receipts unchanged; complete sealed-path economics
+NOT MEASURED and actual portable agent/two-machine reuse NOT ESTABLISHED.
+
+## Historical checkpoint — real selected preparation; pending CLI integrated
 
 2026-10-13 19:32UTC, runtime `d69590b`. Same original Herdr director/goal and
 integration owner. No native/model/signing/publication operation; scopes unchanged.

@@ -90,3 +90,14 @@ returned to their authors automatically. No native/model or portable reuse claim
 Unchecked runtime-profile, owner-pause, detach/sleep/reboot and recovery controls
 remain NOT RUN or unverified. No Herdr startup owner action remains. The existing
 GitHub-admin and Copilot-capacity blockers remain separate product lanes.
+
+## Observed continuation — 2026-10-13 20:11UTC
+
+The same director inspected fresh independent052B ACCEPT, integrated exact source
+a60a9b6 as442f305, and reran443PASS/one intentional SKIP. Earlier reviewer failures
+and author repairs remain preserved. The separate048E fixed engineering OS control
+actually exited0, persisted matching bytes and confirmed owned process cleanup;
+its synthetic descriptor observations do not establish native-agent enforcement.
+Director decision: ACCEPT source/harness scope only. Task053 immediately assigned
+the native researcher to concrete live-fixture/build prerequisites, without owner
+relay, new pane or another coordinator. Product gates remain incomplete.
