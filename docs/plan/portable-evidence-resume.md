@@ -6,7 +6,44 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree on `dev/portable-sealed-typescript`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — pre-Node source/build reviewed; observation pending
+## Current checkpoint — reviewed observation; actual build timed out UNKNOWN
+
+2026-10-13 10:49UTC, integration `2e567e8`, clean before this checkpoint.
+Worker `0de35f0` and independent CHANGES_REQUIRED remain in history: validation
+could consume the deadline before dispatch, and ancestor replacement was not
+observed. Successor `994b1ed` has fresh independent ACCEPT; root integrated both
+commits (`2f08fb5`/`2e567e8`), preserving the failed revision. Author/root112 mocks
+PASS/one actual SKIP; reviewer56 additional controls PASS. The corrected wrapper
+samples the budget after metadata checks immediately before actions and checks
+bounded ancestor identities across persistence/publication. This is engineering
+wrapper acceptance, not hostile atomic confinement or native enforcement.
+
+One actual selected engineering observation then exceeded the unchanged30s outer
+limit. Owned parent was reaped; complete parent elapsed30008.807ms, exit1,
+`timed_out:true`. Its private TAP has only `TAP version 13` (15bytes), SHA
+`7cb03ab03edf5190a8aa546c78285344395fad3d42d4011cd224f934aef96b3f`.
+No phase, compiler count, new artifact identity or build success was collected.
+Result **UNKNOWN**, not compiler FAIL or PASS. A later exact Node-wrapper process
+query returned no match; this does not prove every possible descendant was reaped.
+Partial owned files are preserved, not broadly deleted or adopted as capabilities.
+The prelaunch key-only startup scan passed; no environment was stripped. No fixed
+launcher/helper, compiler check, native agent, model, receipt or seal executed.
+
+DIR-NEXT-008 implementer owns bounded static phase capture in the existing worker
+worktree; root owns integration/docs. Do not repeat the actual build until a new
+reviewed capture mechanism can identify a blocked phase. Keep30s total/5s compiler
+limits; failed capture/deadline remains UNKNOWN, no retrospective authority.
+Observation SHA `08d628da032d7f39414cdc7a502eaab63315cc5fa00d983da479dd7cda82579e`,
+mocks `03749f8a2d6a2be06e2262f624a7b354c4756ef8977f14b6a959b058b3d0b59b`.
+
+Herdr owned `w1:pD`/`redue-director` remains the SAME primary coordinator and goal;
+smoke loop completed, explicit roles loaded, automatic TOML/OS role enforcement
+unverified. No Herdr owner action remains. Existing original hosted Claude scoped
+PASS is closed, not repeated. GitHub admin denial and Copilot included Actions
+capacity remain lane-specific external prerequisites. G0partial/sealedG1/G2/G3/
+prepubG4 remain incomplete; alpha.11 frozen/unpublished; Day0/calibration unchanged.
+
+## Historical checkpoint — pre-Node source/build reviewed; observation pending
 
 At 2026-10-13 10:02UTC, integration `c4bc6ec` includes worker `547e600` after fresh
 independent DIR-REVIEW-005 ACCEPT. The fixed C launcher rejects forbidden preload

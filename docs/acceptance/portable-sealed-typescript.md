@@ -12,7 +12,20 @@ requires reviewed TS5.5.2 and the existing matched Darwin25.6/ARM64/official
 Node22.13 profile. A local proposal cannot certify that profile or its enforcement.
 Existing commands, user configurations and receipts are unchanged.
 
-## Current checkpoint — fixed pre-Node source/build independently accepted
+## Current checkpoint — actual engineering build timeout is UNKNOWN
+
+Integration `2e567e8`,2026-10-13 10:49UTC. Fresh review ACCEPTed `994b1ed` after
+preserved `0de35f0` deadline/ancestor findings. Root112 mock controls and reviewer56
+additional controls pass. These validate wrapper mechanics, not actual sealing.
+One real selected engineering setup/build exceeded30s; only15byte TAP was saved,
+SHA `7cb03ab03edf5190a8aa546c78285344395fad3d42d4011cd224f934aef96b3f`.
+Parent reaped, elapsed30008.807ms; phase/counts/compiler outcome unknown. No fixed
+code/native/model/check executed. Do not infer cause from elapsed time or signal.
+DIR-NEXT-008 adds bounded phase capture before another reviewed attempt; deadlines,
+currentness and missing native-stage assertions remain unchanged. See current
+[resume](../plan/portable-evidence-resume.md). Earlier failures and reviews follow.
+
+## Historical checkpoint — fixed pre-Node source/build independently accepted
 
 Integration `e753ff8` (worker `547e600`),09:54UTC. Fixed launcher/source identity and
 currentness have fresh independent ACCEPT,16 extra controls;94 source/protocol and

@@ -3,7 +3,24 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — pre-Node source/build accepted; observation pending
+## Current checkpoint — observation accepted; actual timeout retained
+
+2026-10-13 10:49UTC, integration `2e567e8`. See the current
+[resume](portable-evidence-resume.md) for exact identities and limits.
+
+| Task | Owner/status | Evidence and next gate |
+| --- | --- | --- |
+| DIR-NEXT-005/006 | Independently ACCEPTed / integrated | Fixed pre-Node source and engineering builder; existing source identities retained; no native authority |
+| DIR-NEXT-007 | Independently ACCEPTed engineering wrapper / actual UNKNOWN | Failed `0de35f0` preserved; successor `994b1ed`;112 mocks +56 independent controls; actual30s timeout with only15byte TAP, phase/counts unknown |
+| DIR-NEXT-008 | Implementer ACTIVE; root integration owner | Bounded static phase capture before/after blocking actions; no actual retry before fresh review; same deadlines/authority |
+| Native seal / G1–G4 | NOT ESTABLISHED | Missing stage assertion/enclosing-parent/native/auth/handles remain required; mocks/builds are not enforcement |
+| Herdr | Live primary director / smoke PASS | Same goal/thread and owned pane; explicit native roles; no duplicate coordinator |
+
+No model trial launches on missing preconditions. Claude hosted prerequisite remains
+CLOSED scoped PASS; GitHub-admin/Copilot-capacity blockers unchanged. No publication,
+signing/trust expansion, deadline increase or environment stripping.
+
+## Historical checkpoint — pre-Node source/build accepted; observation pending
 
 2026-10-13 10:02UTC, integration `c4bc6ec`. See current
 [resume](portable-evidence-resume.md) for exact reviewed hashes and scope limits.
