@@ -8,11 +8,12 @@ verify HEAD/status first. The planning baseline is history, never a rollback tar
 
 ## Current checkpoint — complete engineering build observed; native seal still open
 
-2026-10-13 12:32UTC, integration `bb934ad` (source); original goal/Herdr primary
+2026-10-13 12:45UTC, integration `942dd82` (source); original goal/Herdr primary
 `w1:pD`/`redue-director` preserved. Root is sole integration owner; native roles
 actually read their guidance, automatic profile/OS enforcement remains unverified.
-DIR-NEXT-017 now owns only the mapping-result parser/tests in the existing isolated
-stage-results worktree; no second coordinator or new orchestrator.
+DIR-NEXT-018 owns only the Node-stage data parser/tests in the existing import
+worktree. DIR-NEXT-019 is read-only collection-order research; no second coordinator
+or new orchestrator.
 
 DIR-NEXT-012 source `c12b05a` independently ACCEPT144 default +84 fault controls;
 root pure readback failed `68b758f` is preserved (partial-counter contradictions/
@@ -70,8 +71,14 @@ No data/lifecycle input authenticates tool provenance or native enforcement.
 DIR-NEXT-016 `ed91807` → `bb934ad`: only stale disabled composition exchange pin
 507dc→actual06e5 corrected; author initial6PASS2FAIL retained, independent69+12PASS,
 root69PASS64.684ms. No commands/settings/permissions enabled. Source pin match is
-not binary or native authority. DIR-NEXT-017 now implements the seven-row mapping
-reader only; OS descriptor constraints must not be relabeled sandbox denial.
+not binary or native authority. DIR-NEXT-017 `7d71aff` → root `942dd82` independent
+ACCEPT67 default +3115 source-derived branch/lifecycle controls; root67PASS73.883ms.
+Strict seven-row mapping data reader never promotes read-only descriptor constraints
+to sandbox denial. SourceSHA `d19e3d1f33394b74c2771207d24ed3697ba1665e1e0d5f49564ecb80e0dcce13`;
+tests `58e6a91428a8d06a1bd9542b3c7638eba246ccde573a747a1ba16164d7a71828`.
+DIR-NEXT-018 Node checker data reader awaits exact candidate/fresh review; real
+checker exit is1, not74. DIR-NEXT-019 inventories current collection/fixture ordering
+without reviving a mint invalidated by control changes/restoration. No native trial.
 
 Original hosted Claude scoped diagnostic remains CLOSED PASS. GitHub admin denial
 and Copilot included Actions four-credit fact remain lane-specific pending; no

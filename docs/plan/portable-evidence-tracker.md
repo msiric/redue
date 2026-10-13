@@ -5,7 +5,7 @@ recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gat
 
 ## Current checkpoint — engineering build complete; native seal still open
 
-2026-10-13 12:32UTC, source `bb934ad`. Exact evidence/limits in current
+2026-10-13 12:45UTC, source `942dd82`. Exact evidence/limits in current
 [resume](portable-evidence-resume.md). Earlier UNKNOWNs/failures remain preserved.
 
 | Task | Owner/status | Evidence and next gate |
@@ -16,7 +16,9 @@ recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gat
 | Complete engineering observation | Root PASS / not native acceptance |15145.139ms, within30s; 3+1 compiler builds exit0; persistence/final-barrier/TAP1PASS; no launcher/helper/native/model execution |
 | DIR-NEXT-015 | ACCEPT / integrated `0ddc648` | Five-row strict data parser;46 default +1020 independent; globalUNKNOWN/FAIL only |
 | DIR-NEXT-016 | ACCEPT / integrated `bb934ad` | Corrected disabled static source pin only;69+12 independent/root69PASS; source identity ≠ enforcement |
-| DIR-NEXT-017 | Native implementer ACTIVE | Seven-row mapper result/lifecycle data-only reader; isolated stage-results worktree; fresh review required |
+| DIR-NEXT-017 | Independent ACCEPT / integrated `942dd82` |67 default +3115 independent data controls; root67PASS; OS descriptor constraint never sandbox proof |
+| DIR-NEXT-018 | Native implementer ACTIVE | Exact variable Node-checker data protocol/lifecycle; isolated import worktree; fresh review required |
+| DIR-NEXT-019 | Native researcher ACTIVE | Current source-only collection ordering/fixture lifecycle; no revived mint/actual native call |
 | Native seal / G1–G4 | NOT ESTABLISHED | Missing composition, parent/credential/handles and actual machine/agent evidence remain required |
 
 No new deadline, environment stripping, native/model/signing/trust/publication
