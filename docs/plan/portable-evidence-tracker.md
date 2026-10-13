@@ -3,28 +3,23 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — engineering build complete; native seal still open
+## Current checkpoint — paired build observed; native seal still open
 
-2026-10-13 13:00UTC, source `ad07a79`. Exact evidence/limits in current
-[resume](portable-evidence-resume.md). Earlier UNKNOWNs/failures remain preserved.
+2026-10-13 13:52UTC, source `eb6bc77`. Exact evidence/limits in current
+[resume](portable-evidence-resume.md); previous failures remain preserved.
 
 | Task | Owner/status | Evidence and next gate |
 | --- | --- | --- |
-| Director smoke | COMPLETE | Same primary/pane; useful assignment/result/source/fresh review/decision/next task; automatic role/OS enforcement unverified |
-| DIR-NEXT-010/011/012 | Independent ACCEPT / integrated | Exact private binding, endpoint snapshots, fixed diagnostics/pure bounded readback; no native authority |
-| DIR-NEXT-013 | Engineering-only ACCEPT / integrated `54a14e3` |374 author/default +427 independent; known hostile unchanged-metadata detection loss excluded; no receipt/seal use |
-| Complete engineering observation | Root PASS / not native acceptance |15145.139ms, within30s; 3+1 compiler builds exit0; persistence/final-barrier/TAP1PASS; no launcher/helper/native/model execution |
-| DIR-NEXT-015 | ACCEPT / integrated `0ddc648` | Five-row strict data parser;46 default +1020 independent; globalUNKNOWN/FAIL only |
-| DIR-NEXT-016 | ACCEPT / integrated `bb934ad` | Corrected disabled static source pin only;69+12 independent/root69PASS; source identity ≠ enforcement |
-| DIR-NEXT-017 | Independent ACCEPT / integrated `942dd82` |67 default +3115 independent data controls; root67PASS; OS descriptor constraint never sandbox proof |
-| DIR-NEXT-018 | Independent ACCEPT / integrated `c428def` |257 defaults +5088 controls; root257PASS; original160PASS1FAIL preserved; data never native proof |
-| DIR-NEXT-019/020 | Research complete / independent ACCEPT `ad07a79` | Fixed trace/launcher mismatch;27 +888 controls, root66PASS; no Node fallback/authority expansion |
-| DIR-NEXT-021 | Implementer ACTIVE / fresh reviewer prepared | Fixed A-targeted paired artifacts under H; private derivation before paths; existing toolchain; no actual build before review |
-| Native seal / G1–G4 | NOT ESTABLISHED | Missing composition, parent/credential/handles and actual machine/agent evidence remain required |
+| Herdr director smoke | COMPLETE | Primary `w1:pD`, useful delegation→source/evidence→fresh review→decision→next task; automatic profile/OS enforcement unverified |
+| DIR-NEXT-021 | ACCEPT / integrated `d224676` |458 defaults +496 controls; privately bound paired engineering artifacts; trusted/quiescent scope only |
+| DIR-NEXT-024 | ACCEPT / integrated `eb6bc77` | Root326PASS/one SKIP; independent95 +246 controls; actual five-build observation11618.043ms exit0, no helpers/native/models |
+| DIR-NEXT-025 | ACCEPT / integrated `d0ed1fe` | Pinned noEmit checking before membership; independent60 +66 controls, root60PASS; no CLI/namespace/seal authority |
+| DIR-NEXT-026 | Implementer ACTIVE | Fixed four-route campaign under ONE shared deadline; stage-results `fc06d9d`; review before use, no native/model operation |
+| Sealed product G1–G4 | NOT ESTABLISHED | Configured sealed execution, complete namespace/loader/parent boundaries and actual machine/agent reuse still required |
 
-No new deadline, environment stripping, native/model/signing/trust/publication
-operation. Original Claude scopedPASS closed; GitHub-admin/Copilot capacity facts
-unchanged. Alpha.11 frozen; field usage/economics not established.
+No deadline increase, environment stripping, new signing/trust/publication or
+permission operation. Original Claude scopedPASS closed; GitHub-admin/Copilot
+included-capacity facts unchanged. Alpha.11 frozen; field/economic gates pending.
 
 ## Historical checkpoint — pre-Node source/build accepted; observation pending
 
