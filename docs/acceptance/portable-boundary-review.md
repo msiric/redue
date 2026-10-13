@@ -6418,3 +6418,26 @@ bodies are additional readable locations. Denied reads may affect TypeScript
 semantics and cannot be relabeled missing or irrelevant. Whole snapshot coverage
 therefore still needs actual closed-view/recipe and interval enforcement;
 historical source provenance never becomes fresh live-checkout equivalence.
+
+## Fixed synthetic case and parent-symlink assertions
+
+Source/mock-only GO6f4276303379adffb0cbdb11ffe7a9147ef377b5,
+sentinel SHAd206de2e8fa469768aecec6e7bf276a935a0071c470aa5b1ad053de6dd649671.
+Case-spelled parent/stage/leaf must match the original physical fingerprints;
+directory symlinks or missing spellings do not establish a case alias and launch
+no case write. Workspace symlink creation is a positive construction control:
+EPERM/EACCES there is UNKNOWN, and the unperformed protected alias write is never
+claimed denied. The fixed alias readlink/owner/linkcount/target physical checks
+precede writing; successful protected writes remain FAIL despite close/final
+audit uncertainty. Known mismatches are failures and missing observations unknown.
+Benign workspace timestamp updates retain identity checks, and final alias
+replacement/target changes are checked without opening unrelated body paths.
+
+The exact source plus its 50 pure/injected-filesystem controls passed50/50 in73.77ms
+on pinned Node22.13. Reviewer did not render/start the sentinel or exercise real
+filesystem mutations. MAP_SHARED and true atomic parent/base exchange remain
+explicitly NOT_IMPLEMENTED, so nominal implemented denials still yield UNKNOWN.
+This source GO authorizes no native command, real-stage destruction or seal;
+fresh synthetic inventory, rendered code/resource bindings and actual native
+read/write enforcement remain separate prerequisites. Sequential rename is not
+an atomic-exchange substitute, and endpoint fingerprints are not interval proof.
