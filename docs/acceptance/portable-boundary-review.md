@@ -6213,3 +6213,43 @@ stable sealed execution, reusable receipt or origin authority. Verification was
 not run; native-agent enforcement remains NOT_TESTED and namespace/sealed/reuse
 false. All previous UNKNOWN results and their distinct diagnostics are preserved.
 No real API/compiler/native/model/CI operation was performed by the reviewer.
+
+
+## Disabled native composition and UTF-8 mapper source
+
+Source-only GO7a710d086a7eb299f012ec78cf3e5dc6c508bc59,
+compositionSHA845216c599caa423ca595a021d8da6a6c0049e44a7261e328d12924f164d0124.
+The proposal always exposes commands[]; its two routes remain proposed data only.
+Whole-parent destructive assertions are deferred until an authoritative bounded
+fresh synthetic-only inventory, rather than a caller freshness label or digest.
+Existing prepared stages/state/receipts must remain untouched. Caller hash values
+are local references, not verified runtime/settings/artifact authority. Missing
+case/symlink-parent/atomic-exchange/mapping checks stay explicit; readonly mapping
+errors remain descriptor constraints, not independent sandbox denial proof.
+
+Source-only GOfcf2b16cae94d46687b3d9cf7cb135c62f951df2,
+mapperSHA14ed107ff8e48e539c172c49aee88830f44eac0d037463d97b45fc54d8e3b070.
+The fixed baked path predicate now admits bounded well-formed UTF-8, rejecting
+C0/DEL/C1 controls, overlong encodings, surrogates, out-of-range scalars, truncated
+or invalid continuations before indexing. Existing4096-byte/component/placeholder/
+colon/backslash checks, stronger O_NOFOLLOW_ANY guards, equal principals,
+single-link marker identities, immutable failure latches and false-authority
+protocol remain unchanged. It does not normalize Unicode or establish physical
+path/case/firmlink equivalence, which still needs actual local bindings.
+
+Independently7 composition pure controls and14 mapper source/finite-Boolean
+controls passed21/21 in55.24ms. Five own composer countercontrols passed5/5
+in49.89ms: roundtrip/plausible hashes never mint routes, freshness/activation/symbol
+claims and getters refuse, caller mutation cannot alter frozen paths, preservation
+and missing obligations remain explicit. No C compilation/ABI/syscall/native/
+checker/compiler/model/CI execution occurred in this review. Routine owned
+render/build may proceed under standing authority; actual native use still requires
+independent exact rendered source/binary/resources/effective-profile review.
+
+Composition's historical45da template pin and UTF8_NOT_ADMITTED label must be
+transparently rebound before any use; source review is not an observed match.
+A parent rename-only test also cannot establish protection against base/ancestor
+replacement or alias access. Moving an ancestor can relocate a pathname-protected
+child; endpoint identities alone cannot rule out replacement-and-restore. Treat
+that future seal obligation as unobserved, with no scope expansion or existing
+real-stage destruction. Current origin containment and all seal/reuse gates remain.
