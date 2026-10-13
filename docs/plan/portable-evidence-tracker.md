@@ -3,50 +3,67 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — native read view and safe canary preparation
+## Current checkpoint — read-boundary and native canary implementation
 
-At2026-10-13 01:09UTC, integration source6398476 contains the reviewed fresh
-synthetic fixture/bootstrap leaf (author de2fcd1, SHA26543512af07e9d7ed27ba25c9b863b2664898cd2b8f4b9986359f1f07ff41dd)
-and current UTF8 mapper composition bindings. Preparation uses a private
-same-process mint; serialized labels cannot authorize adoption. Existing host
-assets remain outside the bounded synthetic inventories and are not read or
-modified. Preexisting stages are refused/preserved. This is trusted/quiescent
-preparation, not proof of hostile-ancestor confinement or inherited-handle absence.
+At2026-10-13 01:35UTC, integration sourceddbe600 includes independent review of
+fresh synthetic preparation, tightened native read-view proposals, and fixed
+case/symlink/mapping/atomic diagnostic composition. Actual native enforcement,
+sealing and portable origin authority remain NOT established; no settings were
+applied, C helper built, native/model run or origin signed at this checkpoint.
 
-Pinned native187 source review establishes a supported single-layer root body-read
-deny with exact reallows, plus global DIRECTORY metadata and existing ancestor
-create/unlink guards. It does not establish empirical alias/mapping protection.
-Disabled closed-read canary proposal07368be has independent source/pure GO:
-one Canarystage and exact Node/Bash/checker/mapper plus two nonsecret positive-
-control readback leaves. No root/home/base/checkout/OS-directory reallow, original
-credential/env/network/write/strict controls retained, commandallows removed.
-6398476 additionally names directory-enumeration requirements as unresolved.
-No settings/profile was applied and commands remain empty. Physical/case/firmlink
-disjointness, OS startup, full native read view and compiler completeness remain
-prerequisites; this canary proposal is not the recipient REDUE wrapper policy.
+The exact repaired atomic sourceSHA507dc2fb45adb9d7df293eccf18874fbfb101d4b25f2ace932899be6f2198d72
+and fixtureSHA8e0c5a73a41faa85f1b2fde111252622ce968110c45309f6e49695aca0c6692d
+have independent source/finite-control GO. Predecessors772/9bd have preserved
+NO-GO reviews: a known directory/descriptor mismatch could be masked by an
+unrelated unavailable observation. The repair compares each independently observed
+identity and preserves FAIL through later uncertainty. There was no native use of
+those predecessors and no claim of a released defect. Case/symlink checks are
+implemented source/mock-only; missing aliases remain UNKNOWN. Base exchange and
+full native composition remain unobserved. Exchange must precede deliberately
+writable Node controls; the full-fingerprint prep mint is not revived after those
+changes and is never a post-run seal certificate.108 affected local/source/pure/
+mock controls PASS207.009ms, distinct from native/machine acceptance.
 
-Affected integration controls:95 synthetic preparation/source/pure/mocked native
-controls PASS173.791ms; separate127 discovery/reader/forwarding/namespace controls
-PASS364.412ms. Actual harmless local fixture checks are labelled separately from
-mock CI bootstrap and mock native assertions. No native/model/verification/CI
-job was run for this checkpoint. A owns missing case/symlink/atomic canary leaves;
-root owns policy/composition integration; C independently reviews those leaves,
-runtime read requirements and deferred compiler-input completeness. No capacity
-retry or agent-product substitution follows B's unavailable capacity.
+Disabled canary read-view@2 has source GO at7c93f33 (SHAd171a31ea942d81f7f93134a26f73bf0b1ccb826edf9bcb878debd82f3397f3d):
+root body-read denial; only two fresh synthetic inventory subpaths and exact
+Node/Bash/three public-code leaves. No home/base/checkout/OS-directory reallow.
+Original credential/env/network/write/strict safeguards retained, commandallows
+removed, commands empty. Never use its inventory reallows on the real prepared
+stage. Pinned native187 still permits directory metadata/root-inode and built-in
+OS services. Proper-parent create/unlink guards already exist; actual alias/
+exchange/mapping protection and physical/case/firmlink disjointness are pending.
+No nested macOS sandbox is assumed. Exact loader read needs remain unestablished.
 
-The914-file ordinary staged graph remains the limited engineering result below,
-not complete query capture, CLI verification or portable authority. Prior UNKNOWN
-attempts and partial stages are preserved. Hosted Claude's six-check prerequisite
-stays CLOSED scopedPASS; Copilot Actions included capacity remains pending.
-G1/current sealed interpretation,G2/finalG3 and prepublicationG4 remain incomplete.
-Origin containment, frozen/unpublished alpha.11, receipts and trust/signing scope
-are unchanged. Day0/72h checkpoint remain2026-10-10 21:24UTC /
-2026-10-13 21:24UTC; no invented blocked duration or forecast change.
+Pinned TS5.5.2 source review found conditional diagnostic extension-candidate
+queries after getSourceFiles. The914-file graph below cannot be promoted to full
+query/CLI completeness. Three synthetic counterfixture attempts are preserved
+privately: one test-worker admission refusal before API load and two actual API
+late-query assertion failures. They did not establish the expected branch;
+mode/query/diagnostic observations were insufficient to assign why. The exploratory
+fixture is archived, not a passing regression or claimed debugger counterexample.
+No receipt/model/configured verification ran. No further API attempt until a
+reviewed diagnostic captures the missing prerequisite. Actual graph remains
+partial and diagnostic-only. Root owns interfaces/integration; A owns bounded
+canary and exact generator-source proposal; C owns independent critical review.
+B capacity remains unavailable, without capacity/model switching.
 
-Next: finish independent canary/runtime/compiler read-boundary reviews, integrate
-only reviewed exact resources, then establish actual native prerequisites before
-any model-origin or recipient reuse claim. Do not rerun the closed six-check
-prerequisite or unchanged API collection. No owner resource decision is repeated.
+Selected public nativea59 and29 retained source fragments match exact offsets/
+lengths/hashes under independent read-only review. A's subsequently frozen
+24-fragment constructor0a412b9 (shared common prefix once) awaits independent
+review before source evaluation or a fixed nonsecret engineering startup test.
+Source composition is not Bun equivalence or actual native enforcement. No
+invented broad OS read allowance, terminal controller or new host resource.
+
+Hosted Claude's completed six-check prerequisite stays CLOSED scopedPASS;
+Copilot Actions included capacity remains pending. G1/current sealed
+interpretation,G2/finalG3 and prepublicationG4 remain incomplete. Origin
+containment stays enabled. Frozen alpha.11 rehash still
+f6e368bd8171412b301f3f5dee3ceebea14da3b3418968504a7a49428e5876a0,
+unchanged/unpublished; no new trust/signing/publication, state or receipt change.
+Day0/72h remain2026-10-10 21:24UTC /2026-10-13 21:24UTC, without fabricated blocked
+time or forecast revisions. Full sealed setup/portable-workflow economics remain
+unmeasured. Next: independently review exact generator construction and capture
+narrow startup requirements before actual native boundary/recipient claims.
 
 ## Historical checkpoint — ordinary staged graph collected; native seal pending
 
