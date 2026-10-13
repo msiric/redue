@@ -1,3 +1,4 @@
+import {previewSealedTypeScriptRecipe,sealedTypeScriptQualification,sealedTypeScriptCommand} from './sealed-typescript-recipe.mjs';
 import {directProject,directQualification} from './direct-typescript.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -161,7 +162,7 @@ function workspaceManifests(root,patterns) {
   return matched.map(file=>({file,pkg:readJson(path.join(root,file))}));
 }
 export function discoverNodeProject(root,{recipe=null}={}) {
-  if(recipe&&recipe!=='typescript-direct')throw Error('unknown recipe; use typescript-direct');
+  if(recipe&&!['typescript-direct','typescript-sealed'].includes(recipe))throw Error('unknown recipe; use typescript-direct or typescript-sealed');
   root=realObservedPath(root);
   const packageFile=path.join(root,'package.json');
   if(!exists(packageFile))throw Error('run init from a repository containing package.json');
@@ -196,6 +197,15 @@ export function discoverNodeProject(root,{recipe=null}={}) {
         classification={level:'ready',qualification:directQualification,
           reason:`explicit local TypeScript ${compiler.version} compilation; npm launcher/lifecycle scripts are not executed; package.json stays unchanged`};
       }catch(e){classification={level:'recording',reason:`Direct recipe unavailable (${e.code||e.message}); original npm script retained, without bypassing required behavior`};}
+    }
+    if(recipe==='typescript-sealed'&&kind==='typecheck'){
+      if(pm.name!=='npm'||workspaces||observationIssue||pm.issue)
+        throw Error('sealed recipe requires a supported single-package npm checkout');
+      // Explicit selection must never fall back to executing the source script.
+      const preview=previewSealedTypeScriptRecipe({root,script});
+      check.command=[...sealedTypeScriptCommand];check.cwd='.';
+      classification={level:'blocked',qualification:sealedTypeScriptQualification,preview,
+        reason:'SEALED_RECIPE_ENFORCEMENT_PENDING: distinct prepared-tree compiler obligation; execution disabled until native enforcement is established; npm and lifecycle scripts are not executed; package.json stays unchanged'};
     }
     if(pm.name==='pnpm'&&kind==='typecheck'&&!workspaces&&!pm.issue&&
       /^(?:tsc --noEmit|tsc -p (?:\.|tsconfig\.json)(?: --noEmit)?)$/.test(scripts[script].trim())){
@@ -268,6 +278,8 @@ export function discoverNodeProject(root,{recipe=null}={}) {
       }
     }
   }
+  if(recipe==='typescript-sealed'&&!checks.some(row=>row.config.qualification===sealedTypeScriptQualification))
+    throw Error('sealed recipe requires an unambiguous standalone typecheck script');
   return {schema:1,root,manager:pm,observationIssue,workspaces,node:process.version,
     checks,ambiguous,
     config:{schema:1,packageManager:pm.name||'unknown',checks:checks.map(row=>row.config)}};

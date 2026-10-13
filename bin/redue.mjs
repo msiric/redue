@@ -4,6 +4,7 @@ import {mark,traceBase,traceContext,traceEnvironment,traceId} from '../src/decis
 traceBase({...traceContext(),request:traceId(),work:'client'});
 mark('client.loaded');
 import {directCompiler,directQualification,directEnvironment,directInterpretation} from '../src/direct-typescript.mjs';
+import {sealedTypeScriptQualification,sealedTypeScriptInterpretation,sealedTypeScriptPending,assertPendingSealedTypeScriptCheck} from '../src/sealed-typescript-contract.mjs';
 import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
@@ -28,7 +29,7 @@ const help=`REDUE ${version}
 Usage: redue [--config FILE] [--state-dir DIR] COMMAND [OPTIONS]
 
 Commands:
-  init [--dry-run] [--workspace NAME] [--check KIND] [--recipe typescript-direct]
+  init [--dry-run] [--workspace NAME] [--check KIND] [--recipe typescript-direct|typescript-sealed]
                        Discover existing scripts; optionally select one workspace/check
   agent setup codex|claude [--dry-run|--apply] [--json]
   agent doctor [codex|claude] [--json]
@@ -116,6 +117,9 @@ if(command==='init'){
     if(!chosen.length)error('no discovered check matches the selected workspace and kind');
     discovery.checks=chosen;discovery.config.checks=chosen.map(row=>row.config);
   }
+  if(recipeSelection==='typescript-sealed'&&!discovery.checks.some(row=>
+    row.config.qualification===sealedTypeScriptQualification))
+    error('sealed recipe requires the selected typecheck; conflicting check/workspace selection was not applied');
   const configured=fs.existsSync(configFile),unsupported=Boolean(discovery.observationIssue||
     discovery.manager.issue&&!['npm','yarn','pnpm'].includes(discovery.manager.name)||
     discovery.manager.name==='yarn'&&!discovery.manager.version);
@@ -125,9 +129,10 @@ if(command==='init'){
     installation_layout:discovery.manager.layout,
     issue:discovery.observationIssue||discovery.manager.issue,workspaces:discovery.workspaces,
     ambiguous:discovery.ambiguous,
-    checks:discovery.checks.map(({config:check,level,reason})=>({name:check.name,
+    checks:discovery.checks.map(({config:check,level,reason,preview})=>({name:check.name,
       script:check.script||null,command:check.command||null,
-      workspace:check.workspace||null,level,reason})),config:configFile,
+      workspace:check.workspace||null,qualification:check.qualification||null,cwd:check.cwd||'.',
+      ...(preview?{recipe:preview}:{}),level,reason})),config:configFile,
     written:willWrite,existing:configured};
   if(!json) {
     console.log(`Node ${summary.node}; ${summary.package_manager||'unknown package manager'}`+
@@ -136,9 +141,10 @@ if(command==='init'){
     for(const row of summary.checks){
       console.log(`  ${row.name} (${row.script||row.command?.join(' ')}) — `+
         `${{ready:'ready to qualify',recording:'recording-only',unsupported:'unsupported'}[row.level]||row.level}: ${row.reason}`);
-      if(row.script&&row.command)console.log(`    Recorded invocation: ${row.command.map(value=>
+      if(row.script&&row.command)console.log(`    ${row.recipe?'Proposed disabled invocation':'Recorded invocation'}: ${row.command.map(value=>
         value==='@node'?'node':value==='@typescript-compiler:.'?'[reviewed local TypeScript compiler implementation]':value.startsWith('@typescript-bin:')?
           `[installed TypeScript in ${value.slice('@typescript-bin:'.length)}]`:value).join(' ')}`);
+      if(row.recipe)console.log('    Working directory: explicitly prepared @sealed-root; no source-checkout execution fallback.');
     }
     for(const row of summary.ambiguous)
       console.log(`  ${row.kind}: ambiguous scripts (${row.scripts.join(', ')}); choose one explicitly`);
@@ -153,7 +159,8 @@ if(command==='init'){
     fs.writeFileSync(configFile,JSON.stringify(discovery.config,null,2)+'\n',{flag:'wx'});
     if(!json){console.log(`Created ${configFile}. No checks were executed.`);
       console.log('Ready to qualify means the supported contract will be validated; it is not verification evidence.');
-      console.log(`Next: review the config, then redue start and redue run ${JSON.stringify(discovery.checks[0].config.name)}.`);
+      if(recipeSelection==='typescript-sealed')console.log('Sealed recipe execution is disabled: SEALED_RECIPE_ENFORCEMENT_PENDING. This config creates no evidence.');
+      else console.log(`Next: review the config, then redue start and redue run ${JSON.stringify(discovery.checks[0].config.name)}.`);
       console.log('Connect your agent: redue agent setup codex (or claude). Preview with --dry-run.');
       console.log('Use redue status first. --sync can establish applicability, but may cost more than rerunning a cheap check.');}
   } else if(unsupported&&!json)console.log(`No config written: ${summary.issue||'unsupported discovery boundary'}.`);
@@ -202,6 +209,7 @@ function which(name){
   error(`cannot resolve executable ${name} on PATH`);
 }
 function token(value){
+  if(value.startsWith('@sealed-root'))error('reserved sealed command requires the explicitly selected pending recipe');
   if(value==='@node')return process.execPath;
   if(value==='@project')return root;
   if(value==='@typescript-compiler:.'){
@@ -245,8 +253,13 @@ const checks=publicConfig.checks.map(check=>{
     typeof check.coverageReview?.[category]!=='string')
     error(`${check.name}: reviewed coverage ${category} needs a rationale`);
   const npmDirect=check.qualification===directQualification;
+  const npmSealed=check.qualification===sealedTypeScriptQualification;
+  if(npmSealed){
+    try{assertPendingSealedTypeScriptCheck(check);}catch(e){error(`${check.name}: ${e.code}`);}
+    if(publicConfig.packageManager!=='npm')error(`${check.name}: sealed recipe requires npm`);
+  }
   const pnpmTypecheck=check.qualification==='pnpm-tsc-v1';
-  if(check.script&&check.command&&!pnpmTypecheck&&!npmDirect)
+  if(check.script&&check.command&&!pnpmTypecheck&&!npmDirect&&!npmSealed)
     error(`${check.name}: choose script or command, not both`);
   const manager=publicConfig.packageManager;
   if(check.script&&!['npm','yarn','pnpm'].includes(manager))
@@ -255,7 +268,7 @@ const checks=publicConfig.checks.map(check=>{
     [`@which:${manager}`,'run',check.script]:null;
   const npmAutomatic=check.qualification==='typescript-noemit-v1';
   const yarnWorkspace=check.qualification==='yarn-workspace-tsc-v1';
-  if(check.qualification&&!npmAutomatic&&!npmDirect&&!yarnWorkspace&&!pnpmTypecheck)
+  if(check.qualification&&!npmAutomatic&&!npmDirect&&!npmSealed&&!yarnWorkspace&&!pnpmTypecheck)
     error(`${check.name}: unknown qualification contract`);
   if(npmDirect&&(manager!=='npm'||!check.script||check.cwd&&check.cwd!=='.'||
     JSON.stringify(check.command)!==JSON.stringify(['@node','@typescript-compiler:.','--noEmit'])))
@@ -294,10 +307,10 @@ const checks=publicConfig.checks.map(check=>{
     {variables:['NODE_OPTIONS','NODE_PATH','CI','HOME','NODE_ENV','BASH_ENV','ENV',...windowsContext],
       prefixes:['PNPM_','COREPACK_','npm_config_','DYLD_','TSGO_'],
       pathExecutables:['node'],executableIdentity:true}:{};
-  return {name:check.name,command:argv(scriptCommand||check.command,`${check.name}.command`),
+  return {name:check.name,command:npmSealed?[process.execPath,...check.command.slice(1)]:argv(scriptCommand||check.command,`${check.name}.command`),
     cwd:check.cwd,inputs:check.inputs||[],generatedInputs:check.generatedInputs||[],
     installedInputs:check.installedInputs||(
-      npmAutomatic||npmDirect?['node_modules/**']:[]),
+      npmAutomatic||npmDirect||npmSealed?['node_modules/**']:[]),
     allowedExternalRoots:check.allowedExternalRoots||[],
     probes:[...(check.probes||[]),...autoProbes]
       .map((p,i)=>argv(p,`${check.name}.probes[${i}]`)),
@@ -308,8 +321,12 @@ const checks=publicConfig.checks.map(check=>{
     qualification:check.qualification||null,script:check.script||null,
     ...(npmAutomatic?{qualificationInterpretation:'npm-launcher-withheld@1'}:{}),
     ...(npmDirect?{qualificationInterpretation:directInterpretation}:{}),
+    ...(npmSealed?{qualificationInterpretation:sealedTypeScriptInterpretation}:{}),
     workspace:check.workspace||null,kind:check.kind||null};
 });
+// A pending recipe is not executable, even with forged state or prior evidence.
+if(command==='run'&&checks.find(row=>row.name===check)?.qualification===sealedTypeScriptQualification)
+  error(sealedTypeScriptPending);
 const runtime={schema:1,provider:'declared-project@1',root,state,checks};
 try{assertOwnedStatePlacement(runtime);}catch(e){error(e.message);}
 const serialized=JSON.stringify(runtime,null,2)+'\n';

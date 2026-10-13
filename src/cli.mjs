@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {sealedTypeScriptQualification,sealedTypeScriptPending} from './sealed-typescript-contract.mjs';
 import fs from 'node:fs';
 import {directQualification,directInterpretation,observedNpmContext} from './direct-typescript.mjs';
 import {directRunCertificateAllowed,validateDirectRunCertificate} from './direct-run-certificate.mjs';
@@ -173,6 +174,7 @@ async function execute() {
   const totalStarted=performance.now();
   const selected=config.checks.find(c=>c.name===name);
   if(!selected)throw Error(`unknown check ${name}`);
+  if(selected.qualification===sealedTypeScriptQualification)throw Error(sealedTypeScriptPending);
   // Recording uses existing state only. Never initialize or repair ownership
   // as a fallback for unavailable observation.
   const expectedOwner={schema:1,kind:'vstate-product-alpha',config:configFile,root,state};

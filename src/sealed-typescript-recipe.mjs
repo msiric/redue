@@ -1,4 +1,4 @@
-// Opt-in proposal, not a supported run plan or portable authority. The enforced
+// Opt-in pending configuration/proposal, not executable or portable authority. The enforced
 // execution/namespace boundary must be established separately before activation.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -7,7 +7,8 @@ import {canonical} from './portable-envelope.mjs';
 import {createHash} from 'node:crypto';
 import {portableRuntimeInterpretation} from './portable-runtime.mjs';
 
-export const sealedTypeScriptInterpretation='npm-sealed-typescript@1';
+import {sealedTypeScriptInterpretation,sealedTypeScriptCommand,sealedTypeScriptPending} from './sealed-typescript-contract.mjs';
+export {sealedTypeScriptInterpretation,sealedTypeScriptQualification,sealedTypeScriptCommand,sealedTypeScriptPending,assertPendingSealedTypeScriptCheck} from './sealed-typescript-contract.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const freeze=value=>{if(value&&typeof value==='object'){for(const item of Object.values(value))freeze(item);Object.freeze(value);}return value;};
 export function previewSealedTypeScriptRecipe(options){
@@ -24,7 +25,7 @@ export function previewSealedTypeScriptRecipe(options){
   const compiler=directProject(root,script);
   if(compiler.version!=='5.5.2')fail('SEALED_COMPILER_UNSUPPORTED');
   const recipe={interpretation:sealedTypeScriptInterpretation,script,
-    command:['@node','@sealed-root/node_modules/typescript/lib/tsc.js','--noEmit'],
+    command:[...sealedTypeScriptCommand],
     cwd:'@sealed-root',compiler:{version:compiler.version,sha256:compiler.digest},
     requiredProfile:{platform:'darwin',arch:'arm64',release:'25.6.0',node:'v22.13.0',
       runtimeInterpretation:portableRuntimeInterpretation},
@@ -35,5 +36,5 @@ export function previewSealedTypeScriptRecipe(options){
     discoveredScript:'tsc --noEmit',packageJsonChanged:false,
     npmExecution:false,lifecycleExecution:false,existingChecksConverted:false,
     sealed:false,executable:false,reuseEligible:false,
-    reason:'SEALED_RECIPE_ENFORCEMENT_PENDING'});
+    reason:sealedTypeScriptPending});
 }

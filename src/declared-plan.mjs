@@ -1,3 +1,4 @@
+import {sealedTypeScriptQualification,sealedTypeScriptInterpretation,sealedTypeScriptPending,assertPendingSealedTypeScriptCheck} from './sealed-typescript-contract.mjs';
 // A single-project plan. Declarations are explicit;
 // this provider does not infer complete coverage from a successful command.
 import fs from 'node:fs';
@@ -69,8 +70,10 @@ export function discoverDeclared(config) {
     const installed=resolveDeclaredInstalled(root,
       [...(selected.installedInputs||[]),...(workspace?.installed||[])],allowedRoots);
     timing('plan.installed_resolution',installedStarted,{mappings:installed.mappings.length});
-    const automatic=qualifyTypeScript(root,selected,
-      {workspace,issue:workspaceIssue});
+    const sealed=selected.qualification===sealedTypeScriptQualification;
+    if(sealed)assertPendingSealedTypeScriptCheck(selected,{resolved:true});
+    const automatic=sealed?{qualified:false,issues:[sealedTypeScriptPending]}:
+      qualifyTypeScript(root,selected,{workspace,issue:workspaceIssue});
     const sourcePatterns=[...new Set([...selected.inputs,...(workspace?.source||[]),
       ...(workspace?.generated||[])])].sort();
     const additivePatterns=[...new Set([...(selected.generatedInputs||[]),
@@ -113,7 +116,8 @@ export function discoverDeclared(config) {
       installedMappings:installed.mappings,effectiveEnvironmentGlobs:{},
       probes:selected.probes||[],environment:selected.environment||{},
       qualification:selected.qualification||null,
-      executionProvenance:'declared-command',
+      executionProvenance:sealed?'sealed-recipe-enforcement-pending':'declared-command',
+      ...(sealed?{qualificationInterpretation:sealedTypeScriptInterpretation}:{}),
       unresolved:[...new Set(unresolved)].sort()};
     plan.resolutionCandidates=workspace?.resolutionCandidates||[];
     plan.id=identity(plan);plans[selected.name]=plan;
