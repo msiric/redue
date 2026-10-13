@@ -6508,3 +6508,16 @@ must distinguish permitted-control changes from protected stage preservation,
 and an UNKNOWN private token is still irreversibly unknown. Exact rendered
 binary/resource currency, fresh inventory, closed native policy/route and bounded
 parent supervision remain independent prerequisites before an actual fixture.
+
+Source/data-only GO58fcfac4afe1503fd38dc6253a74e1b050080f32,
+composition SHAb030e2c9f60841d25ee15efaa98a8ee41fe71356c5c98dea34a15207d85dffc7.
+It requires the two local exchange rendered/binary hash references and pins the
+reviewed507dc2 template. Proposed routes place pristine-inventory exchange before
+Node's intentionally writable workspace controls, then the separate mapper.
+All three are proposal data; commands[]/permission activation remains refused,
+all authority false, whole-parent destruction deferred until an actual fresh
+synthetic-only inventory. Whole-base exchange remains NOT_IMPLEMENTED, actual
+case/symlink/parent exchange/mapping observations remain missing, and no whole
+fixture-unchanged promise is added. Caller hashes cannot authenticate rendered
+binary, native settings or resource currency. Seven pure controls passed7/7
+in51.71ms. No render/build/bootstrap/native/API/compiler/model/CI ran.
