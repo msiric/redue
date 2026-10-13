@@ -7405,3 +7405,40 @@ There is no actual helper, C build, fixture/bootstrap, native, compiler, model,
 credential or CI operation in this review. Actual native/auth/effective-policy,
 fixed supervisor, protocol provenance and lifecycle review remain required before
 dispatch; no seal or reuse conclusion follows from this source/mock GO.
+
+## Fixed collector renderer — integration-owner independent review, 2026-10-13
+
+A authored `b2ec73f`/`132f657`/`644b8fd` and corrective `ea8bbf2`. Root did not
+author that renderer. Final source SHA-256
+`83d2bb9ad273b9d1abb9ebed12227d171985ff86948c4abf216f43110e066412`
+is source/mock GO only. C's preserved predecessor finding remains NO-GO:
+asynchronous stdout errors could escape; no actual native use occurred. A's
+controlled deferred-error reproduction and its correction remain separate.
+
+Root independently inspected the entire derivation/private verifier and generated
+entry: one current private build, private A/B/H bindings, fixed four copied-source
+destinations, exact three dependency pins/imports, bounded nofollow FD reads,
+late dependency/asset barriers, permanent invalidation, and no serialized
+adoption or writes/dispatch. The generated helper inherits its actual native
+environment; no proxy or credential value is transformed. Its loader checks are
+AFTER Node startup and are not preventative preload enforcement. The enclosing
+parent must reject unsupported flags/environment before dispatch.
+
+Twenty-five author source/entry controls passed64.763ms. The first integration
+review command used a wrong relative path for its independent script: chmod
+reported no such file, and only the25 author controls ran. It is not a4-control
+PASS. After correcting the exact owner-local path, four independent template/
+entry controls passed46.437ms: synchronous/deferred event/callback publication
+failures preserve FAIL exit1 or UNKNOWN exit74 without raw errors; environment
+identity/one fixed helper[] are preserved; flags/loader aliases prevent the
+requested helper; data-only/currentness/non-adoption remains explicit.
+The private script is `.local/portable-evidence/collector-renderer-independent-ea8bbf2.mjs`
+(mode600), not native enforcement or imported-code execution evidence.
+
+This does not establish protected copies, exclusive native permission admission,
+authentication/capacity, OS child/native enforcement, descriptor closure, compiler
+namespace completeness, sealing, producer acceptance or agent reuse. Root's
+separate collector command has non-author A review in the linked
+[command review](sealed-typescript-native-base-collector-command-review.md).
+No model/native/CI/provider retry, secret read/copy, trust/signing/publication or
+receipt modification occurred.
