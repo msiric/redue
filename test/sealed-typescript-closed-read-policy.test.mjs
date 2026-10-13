@@ -32,6 +32,7 @@ test('body reallows are fixed leaves and one stage, not broad or credential regi
     '/System/Library','/usr/lib','~','~/.claude'])assert(!reads.includes(forbidden));
   assert(result.blockers.includes('REDUE_WRAPPER_CONFIG_AND_STATE_READ_OBLIGATIONS_NOT_MODELLED'));
   assert(result.blockers.includes('OS_RUNTIME_STARTUP_REQUIREMENTS_NOT_ESTABLISHED'));
+  assert(result.blockers.includes('CANARY_DIRECTORY_ENUMERATION_READ_REQUIREMENTS_NOT_ESTABLISHED'));
 });
 test('no new resource arrays, authority booleans, alternate version or getters are accepted',()=>{
   for(const extra of [{allowRead:['/']},{readLeaves:['/']},{stagedRoot:'/'},{physicalBindingsVerified:true},
