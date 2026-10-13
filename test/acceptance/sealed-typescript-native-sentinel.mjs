@@ -8,6 +8,7 @@
 import fs from 'node:fs/promises';
 import {constants as F} from 'node:fs';
 import {fileURLToPath} from 'node:url';
+import {dirname} from 'node:path';
 
 const base='__REVIEWED_SENTINEL_BASE__';
 export const SEALED_SENTINEL_BINDINGS=Object.freeze({
@@ -22,6 +23,9 @@ export const SEALED_SENTINEL_BINDINGS=Object.freeze({
   parentReplacement:base+'/protected-stage-parent-replaced',
   allowedWorkspace:base+'/allowed-workspace',allowedWrite:base+'/allowed-workspace/write-canary.txt',
   outsideAlias:base+'/allowed-workspace/stage-alias.txt',
+  caseWriteCanary:base+'/PROTECTED-STAGE-PARENT/stage/write-canary.txt',
+  parentSymlinkAlias:base+'/allowed-workspace/stage-parent-alias',
+  parentSymlinkWriteCanary:base+'/allowed-workspace/stage-parent-alias/stage/write-canary.txt',
 });
 const CANARY=Buffer.from('REDUE_SEALED_SYNTHETIC_CANARY\n');
 const codes=new Set(['FIXTURE_MATCHED','ACCESS_SUCCEEDED','DENIED_PERMISSION_ERROR','ASSERTION_FAILED','UNKNOWN_OR_UNAVAILABLE']);
@@ -36,8 +40,8 @@ export function sealedSentinelRouteAllowed({argv,execPath,version,execArgv,env})
 }
 export async function runSealedTypeScriptNativeSentinel(io){
   const checks=[];
-  const check=async(name,method,expected)=>{let code;try{code=await io[method]();}catch(error){code=classifySealedSentinelError(error);}
-    if(!codes.has(code))code='UNKNOWN_OR_UNAVAILABLE';const result=code==='UNKNOWN_OR_UNAVAILABLE'?'UNKNOWN':code===expected?'PASS':'FAIL';
+  const check=async(name,method,expected,creationControl=false)=>{let code;try{code=await io[method]();}catch(error){code=classifySealedSentinelError(error);}
+    if(!codes.has(code))code='UNKNOWN_OR_UNAVAILABLE';const result=code==='UNKNOWN_OR_UNAVAILABLE'||creationControl&&code==='DENIED_PERMISSION_ERROR'?'UNKNOWN':code===expected?'PASS':'FAIL';
     const row={name,result,reason_code:code,attempted:true};checks.push(row);return row;
   };
   // If the intended fresh synthetic fixture is not established, launch no
@@ -46,18 +50,30 @@ export async function runSealedTypeScriptNativeSentinel(io){
   if(fixture.result!=='PASS')return report(checks,['STAGE_OPERATIONS_PREREQUISITE_NOT_ESTABLISHED','MAP_SHARED_WRITABLE_MAPPING_DENIED']);
   const allowed=await check('owned_workspace_write_permitted','allowedWriteProbe','ACCESS_SUCCEEDED');
   if(allowed.result!=='PASS')return report(checks,['STAGE_OPERATIONS_PREREQUISITE_NOT_ESTABLISHED','MAP_SHARED_WRITABLE_MAPPING_DENIED']);
+  const caseAlias=await check('case_alias_resolves_to_same_stage_canary','caseAliasProbe','FIXTURE_MATCHED');
+  if(caseAlias.result==='PASS')await check('stage_case_alias_write_denied','caseWriteProbe','DENIED_PERMISSION_ERROR');
+  else checks.push({name:'stage_case_alias_write_denied',result:'NOT_PERFORMED',reason_code:'NOT_PERFORMED_PREREQUISITE_UNKNOWN',attempted:false});
   await check('stage_file_write_denied','writeProbe','DENIED_PERMISSION_ERROR');
   await check('stage_file_chmod_denied','chmodProbe','DENIED_PERMISSION_ERROR');
   await check('stage_file_unlink_denied','unlinkProbe','DENIED_PERMISSION_ERROR');
   await check('stage_file_rename_denied','renameProbe','DENIED_PERMISSION_ERROR');
   await check('stage_parent_replacement_denied','parentReplacementProbe','DENIED_PERMISSION_ERROR');
   const link=await check('outside_hardlink_creation_denied','hardlinkProbe','DENIED_PERMISSION_ERROR');
-  const unperformed=['MAP_SHARED_WRITABLE_MAPPING_DENIED'];
+  const unperformed=['MAP_SHARED_WRITABLE_MAPPING_DENIED','STAGE_PARENT_ATOMIC_EXCHANGE_DENIED','BASE_ATOMIC_EXCHANGE_DENIED'];
+  if(caseAlias.result!=='PASS')unperformed.push('CASE_ALIAS_PREREQUISITE_NOT_ESTABLISHED');
   if(link.reason_code==='ACCESS_SUCCEEDED')await check('write_through_created_alias_denied','aliasWriteProbe','DENIED_PERMISSION_ERROR');
   else{const reason=link.reason_code==='DENIED_PERMISSION_ERROR'?'NOT_PERFORMED_PREREQUISITE_DENIED':'NOT_PERFORMED_PREREQUISITE_UNKNOWN';
     checks.push({name:'write_through_created_alias_denied',result:'NOT_PERFORMED',reason_code:reason,attempted:false});unperformed.push(reason);}
+  // The alias itself is a permitted-workspace construction control, not a
+  // protected-stage write or proof of denial. If creation is denied/unavailable,
+  // never claim the unattempted write through that alias was denied.
+  const symlink=await check('owned_workspace_parent_symlink_creation_control','parentSymlinkProbe','ACCESS_SUCCEEDED',true);
+  const symlinkReady=symlink.result==='PASS'?await check('parent_symlink_resolves_to_same_stage_canary','parentSymlinkFixtureProbe','FIXTURE_MATCHED'):null;
+  if(symlinkReady?.result==='PASS')await check('stage_parent_symlink_alias_write_denied','parentSymlinkWriteProbe','DENIED_PERMISSION_ERROR');
+  else {checks.push({name:'stage_parent_symlink_alias_write_denied',result:'NOT_PERFORMED',reason_code:symlink.reason_code==='DENIED_PERMISSION_ERROR'?'NOT_PERFORMED_PREREQUISITE_DENIED':'NOT_PERFORMED_PREREQUISITE_UNKNOWN',attempted:false});unperformed.push('PARENT_SYMLINK_ALIAS_PREREQUISITE_NOT_ESTABLISHED');}
   await check('stage_fixture_identity_and_bytes_preserved','stageIntegrityProbe','FIXTURE_MATCHED');
   checks.push({name:'map_shared_writable_mapping_denied',result:'NOT_IMPLEMENTED',reason_code:'NOT_IMPLEMENTED',attempted:false});
+  for(const [name,reason] of [['stage_parent_atomic_exchange_denied','STAGE_PARENT_ATOMIC_EXCHANGE_DENIED'],['base_atomic_exchange_denied','BASE_ATOMIC_EXCHANGE_DENIED']])checks.push({name,result:'NOT_IMPLEMENTED',reason_code:'NOT_IMPLEMENTED',attempted:false});
   return report(checks,unperformed);
 }
 function report(checks,unperformed){return{schema:1,scope:'SYNTHETIC_STAGED_TREE_BOUNDARY_PROBE_RESULTS',
@@ -66,7 +82,7 @@ function report(checks,unperformed){return{schema:1,scope:'SYNTHETIC_STAGED_TREE
   native_tool_boundary:'REQUIRES_ACTUAL_NATIVE_HOST_TRACE_AND_LIVE_FIXTURE_GATES',real_credentials_opened:false,
   compiler_executions:0,model_actions_requested:0,network_actions_requested:0,sealed:false,reuseEligible:false};}
 export function sealedTypeScriptSentinelIO(fileSystem=fs){
-  const snapshots=new Map();let fixtureReady=false,cleanupUncertain=false;
+  const snapshots=new Map();let fixtureReady=false,cleanupUncertain=false,symlinkCreated=false;
   const physical=stat=>['dev','ino','mode','uid','nlink','size','mtimeNs','ctimeNs'].map(key=>String(stat[key])).join(':');
   const protectedFiles=[SEALED_SENTINEL_BINDINGS.writeCanary,SEALED_SENTINEL_BINDINGS.chmodCanary,SEALED_SENTINEL_BINDINGS.unlinkCanary,SEALED_SENTINEL_BINDINGS.renameCanary,SEALED_SENTINEL_BINDINGS.hardlinkCanary];
   const fixedDirectories=[SEALED_SENTINEL_BINDINGS.stageParent,SEALED_SENTINEL_BINDINGS.stage,SEALED_SENTINEL_BINDINGS.allowedWorkspace];
@@ -84,15 +100,40 @@ export function sealedTypeScriptSentinelIO(fileSystem=fs){
   const operation=async fn=>{try{await fn();return'ACCESS_SUCCEEDED';}catch(error){return classifySealedSentinelError(error);}};
   return{
     fixtureProbe:async()=>{if(typeof process.getuid!=='function'||F.O_NOFOLLOW===undefined||F.O_NONBLOCK===undefined)return'UNKNOWN_OR_UNAVAILABLE';
-      try{fixtureReady=false;snapshots.clear();for(const directory of fixedDirectories){
+      try{fixtureReady=false;symlinkCreated=false;snapshots.clear();for(const directory of fixedDirectories){
           const stat=await fileSystem.lstat(directory,{bigint:true});if(!stat.isDirectory()||stat.isSymbolicLink()||stat.uid!==BigInt(process.getuid())||(stat.mode&0o7777n)!==0o700n)return'ASSERTION_FAILED';snapshots.set(directory,physical(stat));}
         for(const file of [...protectedFiles,SEALED_SENTINEL_BINDINGS.allowedWrite]){
           const outcome=await readCanary(file,true);if(outcome!=='FIXTURE_MATCHED')return outcome;}
-        for(const missing of [SEALED_SENTINEL_BINDINGS.renameDestination,SEALED_SENTINEL_BINDINGS.parentReplacement,SEALED_SENTINEL_BINDINGS.outsideAlias]){
+        for(const missing of [SEALED_SENTINEL_BINDINGS.renameDestination,SEALED_SENTINEL_BINDINGS.parentReplacement,SEALED_SENTINEL_BINDINGS.outsideAlias,SEALED_SENTINEL_BINDINGS.parentSymlinkAlias]){
           try{await fileSystem.lstat(missing);return'ASSERTION_FAILED';}catch(error){if(error?.code!=='ENOENT')return'UNKNOWN_OR_UNAVAILABLE';}}
         fixtureReady=true;return'FIXTURE_MATCHED';
       }catch{return'UNKNOWN_OR_UNAVAILABLE';}},
-    stageIntegrityProbe:async()=>{if(!fixtureReady||cleanupUncertain)return'UNKNOWN_OR_UNAVAILABLE';try{for(const directory of fixedDirectories){const stat=await fileSystem.lstat(directory,{bigint:true});if(!stat.isDirectory()||stat.isSymbolicLink()||physical(stat)!==snapshots.get(directory))return'ASSERTION_FAILED';}
+    caseAliasProbe:async()=>{if(!fixtureReady||cleanupUncertain)return'UNKNOWN_OR_UNAVAILABLE';try{
+      for(const [file,original] of [[dirname(dirname(SEALED_SENTINEL_BINDINGS.caseWriteCanary)),SEALED_SENTINEL_BINDINGS.stageParent],[dirname(SEALED_SENTINEL_BINDINGS.caseWriteCanary),SEALED_SENTINEL_BINDINGS.stage]]){
+        const directory=await fileSystem.lstat(file,{bigint:true});if(!directory.isDirectory()||directory.isSymbolicLink()||physical(directory)!==snapshots.get(original))return'ASSERTION_FAILED';}
+      const stat=await fileSystem.lstat(SEALED_SENTINEL_BINDINGS.caseWriteCanary,{bigint:true});
+      return stat.isFile()&&!stat.isSymbolicLink()&&physical(stat)===snapshots.get(SEALED_SENTINEL_BINDINGS.writeCanary)?'FIXTURE_MATCHED':'ASSERTION_FAILED';
+    }catch{return'UNKNOWN_OR_UNAVAILABLE';}},
+    caseWriteProbe:()=>write(SEALED_SENTINEL_BINDINGS.caseWriteCanary),
+    parentSymlinkProbe:async()=>{if(!fixtureReady||cleanupUncertain)return'UNKNOWN_OR_UNAVAILABLE';
+      const outcome=await operation(()=>fileSystem.symlink(SEALED_SENTINEL_BINDINGS.stageParent,SEALED_SENTINEL_BINDINGS.parentSymlinkAlias,'dir'));
+      if(outcome==='ACCESS_SUCCEEDED'){symlinkCreated=true;try{const stat=await fileSystem.lstat(SEALED_SENTINEL_BINDINGS.allowedWorkspace,{bigint:true});
+        const prior=snapshots.get(SEALED_SENTINEL_BINDINGS.allowedWorkspace);
+        if(!stat.isDirectory()||stat.isSymbolicLink()||physical(stat).split(':').slice(0,5).join(':')!==prior.split(':').slice(0,5).join(':'))cleanupUncertain=true;
+        else snapshots.set(SEALED_SENTINEL_BINDINGS.allowedWorkspace,physical(stat));
+      }catch{cleanupUncertain=true;}}return outcome;},
+    parentSymlinkFixtureProbe:async()=>{if(!fixtureReady||!symlinkCreated||cleanupUncertain)return'UNKNOWN_OR_UNAVAILABLE';try{
+      const alias=await fileSystem.lstat(SEALED_SENTINEL_BINDINGS.parentSymlinkAlias,{bigint:true});
+      if(!alias.isSymbolicLink()||alias.uid!==BigInt(process.getuid())||alias.nlink!==1n||await fileSystem.readlink(SEALED_SENTINEL_BINDINGS.parentSymlinkAlias)!==SEALED_SENTINEL_BINDINGS.stageParent)return'ASSERTION_FAILED';
+      const current=physical(alias),prior=snapshots.get(SEALED_SENTINEL_BINDINGS.parentSymlinkAlias);if(prior&&current!==prior)return'ASSERTION_FAILED';
+      snapshots.set(SEALED_SENTINEL_BINDINGS.parentSymlinkAlias,current);
+      const stat=await fileSystem.lstat(SEALED_SENTINEL_BINDINGS.parentSymlinkWriteCanary,{bigint:true});
+      return stat.isFile()&&!stat.isSymbolicLink()&&physical(stat)===snapshots.get(SEALED_SENTINEL_BINDINGS.writeCanary)?'FIXTURE_MATCHED':'ASSERTION_FAILED';
+    }catch{return'UNKNOWN_OR_UNAVAILABLE';}},
+    parentSymlinkWriteProbe:()=>write(SEALED_SENTINEL_BINDINGS.parentSymlinkWriteCanary),
+    stageIntegrityProbe:async()=>{if(!fixtureReady||cleanupUncertain)return'UNKNOWN_OR_UNAVAILABLE';try{
+      if(symlinkCreated){const alias=await fileSystem.lstat(SEALED_SENTINEL_BINDINGS.parentSymlinkAlias,{bigint:true});if(!alias.isSymbolicLink()||physical(alias)!==snapshots.get(SEALED_SENTINEL_BINDINGS.parentSymlinkAlias)||await fileSystem.readlink(SEALED_SENTINEL_BINDINGS.parentSymlinkAlias)!==SEALED_SENTINEL_BINDINGS.stageParent)return'ASSERTION_FAILED';}
+      for(const directory of fixedDirectories){const stat=await fileSystem.lstat(directory,{bigint:true});if(!stat.isDirectory()||stat.isSymbolicLink()||physical(stat)!==snapshots.get(directory))return'ASSERTION_FAILED';}
       for(const file of protectedFiles){const outcome=await readCanary(file);if(outcome!=='FIXTURE_MATCHED')return outcome;}return'FIXTURE_MATCHED';}catch{return'UNKNOWN_OR_UNAVAILABLE';}},
     allowedWriteProbe:()=>write(SEALED_SENTINEL_BINDINGS.allowedWrite),writeProbe:()=>write(SEALED_SENTINEL_BINDINGS.writeCanary),
     chmodProbe:()=>operation(()=>fileSystem.chmod(SEALED_SENTINEL_BINDINGS.chmodCanary,0o600)),
