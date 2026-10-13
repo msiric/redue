@@ -3,26 +3,24 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — reviewed loop active; native seal still unproved
+## Current checkpoint — measured validation cost; native seal still unproved
 
-2026-10-13 11:47UTC, integration `bf5bf64`. Current [resume](portable-evidence-resume.md)
-records exact hashes, actual timing, failed candidates and scope limits.
+2026-10-13 12:16UTC, integration `c12b05a`. Current [resume](portable-evidence-resume.md)
+records exact identities, actual timing and preserved failed/UNKNOWN attempts.
 
 | Task | Owner/status | Evidence and next gate |
 | --- | --- | --- |
-| Director smoke | Root/native roles COMPLETE | Actual same primary live `w1:pD`; assignment/result/source/fresh review/repair/decision/next task; no automatic TOML enforcement claim |
-| DIR-NEXT-007 | Reviewed wrapper / actual UNKNOWN | Failed deadline/ancestor revision retained; corrected112 +56 mocks; first30s actual timeout emitted no phases |
-| DIR-NEXT-008 | Fresh ACCEPT / integrated `76db3b7` | Failed `ce90d88` cleanup retained; `c1ce208`:147 mocks +65 independent controls; one actual instrumented timeout stops within marked `oneLauncherBuild`, internal phase/counts unknown |
-| DIR-NEXT-010 | Fresh ACCEPT / integrated `ccb8f12` | Private exact launcher binding;88 mocks +10 independent groups; root ESM initialization +124 mocks; proposal disabled/no native authority |
-| DIR-NEXT-011 | Fresh ACCEPT / integrated `bf5bf64` |48 source/model PASS/one real SKIP;11 fields +2 baseline calls +54 latch controls; endpoint-only, aggregate UNKNOWN |
-| DIR-NEXT-012 | Implementer ACTIVE | Existing opt-in diagnostics: internal phase/count seam only; failed/missing profiling UNKNOWN by outer readback; original guard/timeout/outcome semantics retained |
-| Native seal / G1–G4 | NOT ESTABLISHED | Missing assertions, enclosing-parent loader/auth/capacity/handles and real native/machine/agent evidence remain required |
+| Director smoke | Root/native roles COMPLETE | Same original primary/pane; actual task/result/source/fresh review/decision/next task; automatic TOML enforcement unverified |
+| DIR-NEXT-010/011 | Independent ACCEPT / integrated | Exact private launcher binding and original endpoint snapshots; no native authority |
+| DIR-NEXT-012 | Independent ACCEPT / integrated |144 mocks +84 fault controls; pure readback correction21 +297 independent controls; failed68b758f retained |
+| Actual engineering capture | Root / overall UNKNOWN |110 markers complete; launcher23.717s, eight dependency bundles23.656s, compiler54ms exit0; parent30.021s stopped during final currency |
+| DIR-NEXT-013 | Native implementer ACTIVE | Small currentness composition only if all private/content/late guards retained; existing separate worker worktree; fresh review required |
+| DIR-NEXT-014 | Native researcher ACTIVE | Exact missing stage assertions/source composition inventory; read-only |
+| Native seal / G1–G4 | NOT ESTABLISHED | Missing assertions, enclosing parent/credential/handles and actual machine/agent evidence remain required |
 
-Actual engineering attempts kept the unchanged30s budget and recorded UNKNOWN;
-no native/model/check ran, no stripped environment, no blind retry/deadline increase.
-Original hosted Claude scopedPASS is closed. GitHub-admin/Copilot-capacity blockers
-unchanged; no publication/signing/trust expansion; frozenalpha.11 preserved.
-
+No higher deadline, environment stripping, native/model/signing/trust/publication
+operation. Earlier failedsource/timed-outactual evidence preserved. Original Claude
+scopedPASS closed; GitHub-admin/Copilot included-capacity prerequisites unchanged.
 
 ## Historical checkpoint — pre-Node source/build accepted; observation pending
 
