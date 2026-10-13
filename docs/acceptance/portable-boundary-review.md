@@ -7080,3 +7080,33 @@ Eighteen original author whole-source/mock controls passed18/18 in56.84ms but di
 not cover those intervals. No real fixture/bootstrap/write/build/native/model/CI
 operation. One initial reviewer invocation targeted the absent new test in the
 review worktree; the controlled test was then read/run at its author worktree.
+
+Exact H-only build successor source/mock GO2ae4ee1,
+newleafSHAf772d542cfba92d9eb1614388c220018e747683bbd0f2628090996d9f68d3254
+and oldbuilderSHA1d76e87b1e289a4dc2365adb81cf3d5e5f8920bfe9ad2b81520d8227f1f94872.
+Final named/parent barriers for both new source/binary now follow all sequential
+hashes and last pair/H boundary checks. Old private build currency retains its
+full fixed row/SDK/directory/fixture checks and late all-row barrier, with permanent
+invalidity on any failure. No serialized or restored label can seed/revive it.
+Dispatch attempts are incremented before each old/third spawn; returned result
+records and positive observed-PID events are distinct counts. Unknown old-helper
+attempt total is null, not fabricated zero. Prior ef findings remain historical.
+
+Six independent exact-source/whole-driver memory-FS/mock-spawn controls passed6/6
+in62.61ms: preserved ef last-binary source replacement now UNKNOWN; final-boundary
+mutation refusal; failed/no-PID and thrown-dispatch count tuples3/3/2 and3/2/2;
+normal frozen H-only data; late H ancestor replacement; old private late source/
+binary/SDK metadata failures permanently invalidate with no restoration recheck
+or clone adoption. The last control exercises the exact metadata barrier using
+simulated full-check completion, not actual tool/SDK hashing. Combined author
+controls passed29 with actual build skipped in60.83ms. No real fixture/preparation,
+write/build/helper/native/model/CI operation by reviewer.
+
+One fixed engineering build under the existing owned resources is source-review
+GO, not helper execution. A/B remain strict synthetic and are untouched; public
+code/runtime/output stays H. Same5s/4096B/TMPDIR-only child env and fixed compiler
+vectors remain. Partial H is retained and unsupported/changed resources stay
+UNKNOWN; all native/helper/compiler-check/model/seal/reuse authority remains false.
+Fresh private pair/H/current code/binary/runtime/argv/profile/protocol guards are
+still separate prerequisites for any later use. No SDK closure, hostile-writer
+atomic protection, matched-host native enforcement or trust is minted here.
