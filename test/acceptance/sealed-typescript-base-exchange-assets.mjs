@@ -8,10 +8,11 @@ import {verifySealedTypeScriptBaseExchangePair} from './sealed-typescript-base-e
 import {verifySealedTypeScriptSyntheticFixture} from './sealed-typescript-synthetic-fixture.mjs';
 import {prepareSealedTypeScriptBaseExchangeSource} from './sealed-typescript-base-exchange-source.mjs';
 import {prepareSealedTypeScriptNativeAssetsProposal} from './sealed-typescript-native-assets-proposal.mjs';
-import {verifySealedTypeScriptBaseCollectorSource,sealedTypeScriptBaseCollectorSourceMatchesAssets} from './sealed-typescript-base-collector-source.mjs';
+import {prepareSealedTypeScriptBaseCollectorSource,verifySealedTypeScriptBaseCollectorSource,sealedTypeScriptBaseCollectorSourceMatchesAssets} from './sealed-typescript-base-collector-source.mjs';
 import {verifySealedTypeScriptBaseCollectorCopies,sealedTypeScriptBaseCollectorCopiesMatchSource} from './sealed-typescript-base-collector-copies.mjs';
 import {buildSealedTypeScriptNativeAssets,verifySealedTypeScriptNativeAssetsBuild,observeSealedTypeScriptNativeAssetsBuild,sealedAssetsBuildCompleted,sealedAssetsBuildProcessSummary} from './sealed-typescript-native-assets-build.mjs';
 import {verifySealedTypeScriptPairedStageSource,sealedTypeScriptPairedStageSourceMatchesDerivation} from './sealed-typescript-paired-stage-source.mjs';
+import {verifySealedTypeScriptFixedCampaignCopies,sealedTypeScriptFixedCampaignCopiesMatchDerivation} from './sealed-typescript-fixed-campaign-copies.mjs';
 import {mark as profileMark,profiling} from '../../src/decision-profile.mjs';
 const mintedAssets=new WeakMap();
 const sha=value=>createHash('sha256').update(value).digest('hex'),guard=value=>{if(!value)throw Error('BASE_EXCHANGE_ASSETS_UNKNOWN');};
@@ -272,3 +273,57 @@ export function verifySealedTypeScriptPairedStageArtifacts(build){
 export function sealedTypeScriptPairedStageArtifactsMatchDerivation(build,assetsBuild,source){
  const record=mintedPairedArtifacts.get(build);return arguments.length===3&&!!record&&!record.invalid&&record.assetsBuild===assetsBuild&&record.proposal===source;
 }
+
+
+// Fixed campaign-specific launcher, not adoption of the old base launcher. The
+// original private H toolchain and exact current copies remain prerequisites.
+// File/namespace guards require trusted quiescent parents, not hostile-writer
+// confinement; neither building nor currentness establishes native enforcement.
+const mintedCampaignLaunchers=new WeakMap();
+const campaignLauncherAuthority=fields=>freeze({schema:1,scope:'FIXED_CAMPAIGN_LAUNCHER_BUILD_DATA_ONLY',...fields,commands:[],recordAdoptionAuthority:false,compilerCheckExecutions:0,helperExecutions:0,nativeAgentLaunches:0,models:0,nativeEnforcement:'NOT_ESTABLISHED',noInheritedWritableHandlesVerified:false,sealed:false,reuseEligible:false});
+function campaignLauncherDependencies(record){
+ const original=mintedAssets.get(record.assetsBuild);
+ guard(original&&!original.invalid&&sealedTypeScriptPairedStageSourceMatchesDerivation(record.pairedSource,original.pair,record.assetsBuild)&&sealedTypeScriptPairedStageArtifactsMatchDerivation(record.pairedArtifacts,record.assetsBuild,record.pairedSource)&&sealedTypeScriptFixedCampaignCopiesMatchDerivation(record.copies,record.assetsBuild,record.pairedArtifacts,record.pairedSource));
+ const assets=verifySealedTypeScriptBaseExchangeAssets(record.assetsBuild),source=verifySealedTypeScriptPairedStageSource(record.pairedSource),artifacts=verifySealedTypeScriptPairedStageArtifacts(record.pairedArtifacts);
+ guard(assets.scope==='OBSERVED_BASE_EXCHANGE_BUILD_DATA_ONLY'&&assets.outcome==='BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED'&&source.scope==='DISABLED_PAIRED_STAGE_ASSERTION_SOURCES_DATA_ONLY'&&source.outcome==='PAIRED_STAGE_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED'&&artifacts.scope==='PAIRED_STAGE_ENGINEERING_ARTIFACTS_DATA_ONLY'&&artifacts.outcome==='PAIRED_STAGE_ARTIFACTS_CURRENTLY_OBSERVED_NOT_EXECUTED');
+ guard(['baseA','baseB','hostBase'].every(k=>assets[k]===source[k]&&assets[k]===artifacts[k])&&JSON.stringify(source.bindings)===JSON.stringify(artifacts.bindings));
+ let template=null;if(record.templateSource){guard(sealedTypeScriptBaseCollectorSourceMatchesAssets(record.templateSource,record.assetsBuild));template=verifySealedTypeScriptBaseCollectorSource(record.templateSource);guard(template.scope==='DISABLED_FIXED_BASE_COLLECTOR_SOURCE_DATA_ONLY'&&template.outcome==='SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED'&&['baseA','baseB','hostBase'].every(k=>assets[k]===template[k]));}
+ // Copy validation finishes after every original/template validation.
+ const copies=verifySealedTypeScriptFixedCampaignCopies(record.copies);guard(copies.scope==='FIXED_CAMPAIGN_COPIES_DATA_ONLY'&&copies.outcome==='CAMPAIGN_COPIES_CURRENTLY_OBSERVED_NOT_EXECUTED'&&['baseA','baseB','hostBase'].every(k=>assets[k]===copies[k]));
+ return{assets,source,artifacts,copies,template};
+}
+function campaignLauncherBoundary(record){guard(JSON.stringify(campaignLauncherDependencies(record))===JSON.stringify(record.before));for(const[file,before]of record.roots)guard(JSON.stringify(rootIdentity(file))===JSON.stringify(before));}
+function campaignLauncherFilesCurrent(record){
+ campaignLauncherBoundary(record);current(record.source);current(record.binary);campaignLauncherBoundary(record);
+ current(record.source);current(record.binary);campaignLauncherBoundary(record);
+ for(const[file,before]of record.roots)guard(JSON.stringify(rootIdentity(file))===JSON.stringify(before));
+ // All original/template/copy guards finish before these final new-row checks.
+ for(const row of [record.source,record.binary])namedCurrent(row);
+}
+export function buildSealedTypeScriptFixedCampaignLauncher(options){
+ if(arguments.length!==1||!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==4||!['assetsBuild','pairedSource','pairedArtifacts','copies'].every(k=>Object.hasOwn(Object.getOwnPropertyDescriptor(options,k)??{},'value')))throw Object.assign(Error('CAMPAIGN_LAUNCHER_BUILD_OPTIONS'),{code:'CAMPAIGN_LAUNCHER_BUILD_OPTIONS'});
+ const {assetsBuild,pairedSource,pairedArtifacts,copies}=options,builds=[];let reason='PRIVATE_DERIVATION_UNAVAILABLE',record=null,report=null,dispatchAttemptCount=0,sourceWriteAttempts=0,fileCreateCount=0,fileSyncCount=0,sourceWriteCompleted=false;
+ try{
+  const candidate={assetsBuild,pairedSource,pairedArtifacts,copies},initial=campaignLauncherDependencies(candidate),h=initial.assets.hostBase,original=mintedAssets.get(assetsBuild);
+  guard(typeof process.getuid==='function'&&process.getuid()>0&&['O_RDONLY','O_WRONLY','O_CREAT','O_EXCL','O_NOFOLLOW','O_NONBLOCK'].every(k=>fs.constants[k]!==undefined)&&[initial.assets.baseA,initial.assets.baseB,h].every(v=>/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}$/.test(v))&&new Set([initial.assets.baseA,initial.assets.baseB,h]).size===3);
+  reason='LAUNCHER_BINDINGS_UNAVAILABLE';const node=h+'/runtime/node-v22.13.0-darwin-arm64/bin/node',entry=h+'/prefix/native-probes/paired-stage-campaign.mjs',output=h+'/prefix/native-probes/paired-stage-campaign-launch',file=output+'.c';
+  guard(initial.copies.node===node&&initial.copies.entry===entry&&initial.copies.cwd===initial.assets.baseA+'/Checkout 空间/.sealed-native-canaries'&&/^[a-f0-9]{64}$/.test(initial.copies.campaignSha256));
+  // Reuse only the reviewed pinned C template renderer, with an internally
+  // minted source. The retired base entry/output are never built or selected.
+  const templateSource=prepareSealedTypeScriptBaseCollectorSource(assetsBuild);candidate.templateSource=templateSource;const before=campaignLauncherDependencies(candidate),template=templateSource.proposedLauncher,old=before.template.bindings;
+  guard(template.disabled===true&&template.templateSha256==='11a1092b2c94e723833e4b3cf2188b4db886f86adccbb3f962ce16ba019b4068'&&template.file===h+'/prefix/native-probes/base-exchange-collect-launch.c'&&template.output===h+'/prefix/native-probes/base-exchange-collect-launch'&&old.node===node&&old.entry===h+'/prefix/native-probes/base-exchange-collect.mjs'&&old.launcher===template.output&&old.launcherSource===template.file&&old.launcherSourceSha256===template.sha256&&old.nodeSha256==='5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc'&&typeof template.source==='string'&&Number.isInteger(template.sourceBytes)&&template.sourceBytes>0&&template.sourceBytes<=65536&&Buffer.byteLength(template.source)===template.sourceBytes&&Buffer.from(template.source).toString('utf8')===template.source&&sha(template.source)===template.sha256);
+  let text=template.source;for(const[from,to]of [[old.entry,entry],[old.launcher,output]]){guard(text.split(from).length===2);text=text.replace(from,to);}guard(!/__REVIEWED_[A-Z_]+__/.test(text)&&Buffer.byteLength(text)<=65536);const sourceSha256=sha(text),sourceBytes=Buffer.byteLength(text);
+  const roots=[initial.assets.baseA,initial.assets.baseB,h,h+'/prefix',h+'/prefix/native-probes'].map(at=>[at,rootIdentity(at)]);Object.assign(candidate,{before,roots});campaignLauncherBoundary(candidate);
+  const tool=prepareSealedTypeScriptNativeAssetsProposal({fixture:original.hostFixture}),flags=['-std=c11','-O2','-Wall','-Wextra','-Werror','-fstack-protector-strong','-arch','arm64','-mmacosx-version-min=26.0','-isysroot','/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk'];
+  guard(tool.scope==='FIXED_SYNTHETIC_NATIVE_ASSETS_PROPOSAL_ONLY'&&tool.base===h&&tool.bindings.node===node&&tool.proposedBuilds.length===2);for(let at=0;at<2;at++){const op=tool.proposedBuilds[at],oldFile=h+'/prefix/native-probes/'+['sealed-typescript-map-sentinel.c','sealed-typescript-exchange-sentinel.c'][at];guard(op.disabled===true&&op.executable==='/Library/Developer/CommandLineTools/usr/bin/clang'&&JSON.stringify(op.argv)===JSON.stringify([...flags,oldFile,'-o',oldFile.slice(0,-2)]));}
+  campaignLauncherBoundary(candidate);absent(file);absent(output);reason='SOURCE_CREATE_UNAVAILABLE';const lineage=parents(file);let fd,writtenMark,failed=false;
+  try{sourceWriteAttempts++;fd=fs.openSync(file,fs.constants.O_WRONLY|fs.constants.O_CREAT|fs.constants.O_EXCL|fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK,0o600);fileCreateCount++;const s=fs.fstatSync(fd,{bigint:true});guard(s.isFile()&&!s.isSymbolicLink()&&s.uid===BigInt(process.getuid())&&s.nlink===1n&&(s.mode&0o7777n)===0o600n&&s.size===0n);const bytes=Buffer.from(text);let at=0;while(at<bytes.length){const n=fs.writeSync(fd,bytes,at,bytes.length-at,at);guard(Number.isInteger(n)&&n>0&&n<=bytes.length-at);at+=n;}fs.fsyncSync(fd);fileSyncCount++;const s2=fs.fstatSync(fd,{bigint:true});guard(['dev','ino','mode','uid','gid','nlink'].every(k=>s2[k]===s[k])&&s2.size===BigInt(sourceBytes));writtenMark=mark(s2);guard(mark(fs.lstatSync(file,{bigint:true}))===writtenMark&&JSON.stringify(parents(file))===JSON.stringify(lineage));}catch{failed=true;}finally{if(fd!==undefined)try{fs.closeSync(fd);}catch{failed=true;}}guard(!failed);sourceWriteCompleted=true;
+  campaignLauncherBoundary(candidate);reason='SOURCE_READBACK_UNAVAILABLE';const newSource=bounded(file,65536,sourceSha256);guard(newSource.mark===writtenMark&&JSON.stringify(newSource.lineage)===JSON.stringify(lineage)&&(fs.lstatSync(file,{bigint:true}).mode&0o7777n)===0o600n);campaignLauncherBoundary(candidate);current(newSource);campaignLauncherBoundary(candidate);absent(output);namedCurrent(newSource);
+  reason='COMPILER_BUILD_UNAVAILABLE';dispatchAttemptCount++;const result=spawnSync(tool.proposedBuilds[1].executable,[...flags,file,'-o',output],{cwd:h+'/prefix/native-probes',env:{TMPDIR:h},timeout:5000,maxBuffer:4096,killSignal:'SIGKILL',encoding:'utf8'});builds.push(sealedAssetsBuildProcessSummary(result));guard(sealedAssetsBuildCompleted(result));campaignLauncherBoundary(candidate);
+  reason='BINARY_READBACK_UNAVAILABLE';const binary=bounded(output,2*1024*1024);guard(binary.arm64Header);Object.assign(candidate,{source:newSource,binary});reason='BOUNDARY_CHANGED';campaignLauncherFilesCurrent(candidate);
+  record=candidate;report={baseA:initial.assets.baseA,baseB:initial.assets.baseB,hostBase:h,bindings:{baseA:initial.assets.baseA,baseB:initial.assets.baseB,hostBase:h,node,entry,cwd:initial.copies.cwd,campaignSha256:initial.copies.campaignSha256,launcher:output,launcherSource:file,launcherSourceSha256:sourceSha256,nodeSha256:old.nodeSha256},source:{file,sha256:newSource.digest,mark:newSource.mark,lineage:newSource.lineage},binary:{file:output,sha256:binary.digest,mark:binary.mark,lineage:binary.lineage},templateSha256:template.templateSha256,namespaceCrashRecoveryEstablished:false};
+ }catch{/* Static phases and real returned process facts only; partial H stays. */}
+ const result=campaignLauncherAuthority({outcome:report?'CAMPAIGN_LAUNCHER_BUILT_NOT_EXECUTED':'UNKNOWN',reason_code:report?'BUILT_NOT_EXECUTED':reason,report,builds,sourceWriteAttempts,fileCreateCount,fileSyncCount,sourceWriteCompleted,dispatchAttemptCount,dispatchResultCount:builds.length,observedProcessCount:builds.filter(row=>row.pidObserved===true).length});if(record)mintedCampaignLaunchers.set(result,record);return result;
+}
+export function verifySealedTypeScriptFixedCampaignLauncherBuild(build){const record=mintedCampaignLaunchers.get(build),unknown=()=>campaignLauncherAuthority({outcome:'UNKNOWN'});if(!record||record.invalid)return unknown();try{campaignLauncherFilesCurrent(record);return campaignLauncherAuthority({outcome:'CAMPAIGN_LAUNCHER_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED',baseA:record.before.assets.baseA,baseB:record.before.assets.baseB,hostBase:record.before.assets.hostBase,bindings:build.report.bindings,launcherSha256:record.binary.digest,launcherSourceSha256:record.source.digest});}catch{record.invalid=true;return unknown();}}
+export function sealedTypeScriptFixedCampaignLauncherBuildMatchesDerivation(build,assetsBuild,pairedSource,pairedArtifacts,copies){const record=mintedCampaignLaunchers.get(build);return arguments.length===5&&!!record&&!record.invalid&&record.assetsBuild===assetsBuild&&record.pairedSource===pairedSource&&record.pairedArtifacts===pairedArtifacts&&record.copies===copies;}
