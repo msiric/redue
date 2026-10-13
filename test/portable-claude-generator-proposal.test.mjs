@@ -3,6 +3,7 @@
 // no-secret Node child and never invokes Claude or sandbox-exec.
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import {createHash} from 'node:crypto';import {spawnSync} from 'node:child_process';
 import {prepareClaude187GeneratorProposal as prepare,CLAUDE187_GENERATOR_NATIVE_SHA256 as pin} from './acceptance/portable-claude-generator-proposal.mjs';
+import {createSealedTypeScriptCIBootstrap} from './acceptance/sealed-typescript-synthetic-fixture.mjs';
 const moduleSource=fs.readFileSync(new URL('./acceptance/portable-claude-generator-proposal.mjs',import.meta.url),'utf8');
 const publicNative=process.env.REDUE_REVIEWED_CLAUDE187;
 const selected={skip:publicNative?false:'No locally selected reviewed public native file; no source read/evaluation'};
@@ -96,7 +97,16 @@ function sourceCompositionSuccessShape(value){
 // Evaluation remains opt-in for the source-review checkpoint. This is not a
 // permission token for a native startup; no policy is installed or enforced.
 const evaluation={skip:publicNative&&process.env.REDUE_GENERATOR_SOURCE_EVALUATION==='1'?false:'Separate reviewed source-evaluation checkpoint not requested'};
-test('reviewed exact closure evaluates with four actual builtins in fixed no-secret Node child; no sandbox/native proof',evaluation,()=>local(base=>{
+test('reviewed exact closure evaluates with four actual builtins in fixed no-secret Node child; no sandbox/native proof',evaluation,()=>{
+  // Exact fresh receiver-shaped short location reduces source-derived ancestor
+  // auto-deny expansion; source/options/cap/budgets are unchanged. This private
+  // source-only fixture is retained for the owner's explicit cleanup, not rm'd
+  // recursively through a pathname after an uncertain operation. No settings,
+  // state, policy or synthetic native canaries are prepared/adopted here.
+  const bootstrap=createSealedTypeScriptCIBootstrap();
+  assert(bootstrap.outcome==='CI_SYNTHETIC_BOOTSTRAP_PREPARED'&&/^\/private\/tmp\/redue-ci-recipient-[A-Za-z0-9]{8}$/.test(bootstrap.base),'SOURCE_EVALUATION_FRESH_BASE_UNKNOWN');
+  const base=bootstrap.base,baseBefore=fs.lstatSync(base,{bigint:true});
+  assert(baseBefore.isDirectory()&&!baseBefore.isSymbolicLink()&&baseBefore.uid===BigInt(process.getuid())&&(baseBefore.mode&0o7777n)===0o700n&&fs.realpathSync(base)===base,'SOURCE_EVALUATION_FRESH_BASE_UNKNOWN');
   const proposal=prepare({native:publicNative}),home=base+'/home',cwd=base+'/public-cwd';fs.mkdirSync(home,{mode:0o700});fs.mkdirSync(cwd,{mode:0o700});
   const codeFile=base+'/generator-source.js';fs.writeFileSync(codeFile,proposal.source,{mode:0o600,flag:'wx'});
   const child=`import fs from 'node:fs';import vm from 'node:vm';import {createRequire} from 'node:module';import {createHash} from 'node:crypto';
@@ -122,7 +132,9 @@ console.log(JSON.stringify({schema:1,result:'SOURCE_COMPOSITION_OBSERVED',phase:
   assert(sourceCompositionSuccessShape(observed),'BOUNDED_SOURCE_CHILD_PROTOCOL_UNKNOWN');
   assert.equal(observed.result,'SOURCE_COMPOSITION_OBSERVED');assert.equal(observed.phase,'CLASSIFY');assert.equal(observed.nativeLaunches,0);assert.equal(observed.nativeEnforcement,'NOT_ESTABLISHED');assert.equal(observed.bunEquivalence,'NOT_ESTABLISHED');assert.equal(observed.sealed,false);assert.equal(observed.reuseEligible,false);
   assert(!result.stdout.includes(base));assert(!result.stdout.includes('file-read'));assert(!result.stdout.includes('REDUE_ENGINEERING_SOURCE_ONLY'));
-}));
+  const baseAfter=fs.lstatSync(base,{bigint:true});
+  assert(baseAfter.isDirectory()&&!baseAfter.isSymbolicLink()&&['dev','ino','uid','gid','mode'].every(key=>baseBefore[key]===baseAfter[key])&&fs.realpathSync(base)===base,'SOURCE_EVALUATION_BASE_CHANGED');
+});
 
 
 test('external failures carrying known code still become static sanitized error',()=>{
@@ -177,4 +189,13 @@ test('success record requires exact duplicated byte-count agreement, not indepen
   assert.equal(sourceCompositionSuccessShape(good),true);assert.equal(sourceCompositionSuccessShape({...good,profileBytes:good.profileBytes+1}),false);
   assert.equal(sourceCompositionSuccessShape({...good,classification:{...classification,profileBytes:classification.profileBytes+1}}),false);
   let getters=0;const getter={...good};Object.defineProperty(getter,'profileBytes',{get(){getters++;return good.profileBytes;}});assert.equal(sourceCompositionSuccessShape(getter),false);assert.equal(getters,0);
+});
+
+
+test('source-evaluation placement uses exact fresh CI bootstrap without changing source acceptance/budgets',()=>{
+  const body=fs.readFileSync(new URL('./portable-claude-generator-proposal.test.mjs',import.meta.url),'utf8');
+  const begin=body.indexOf("test('reviewed exact closure evaluates"),end=body.indexOf("test('external failures",begin),evaluationBody=body.slice(begin,end);
+  assert(evaluationBody.includes('const bootstrap=createSealedTypeScriptCIBootstrap();'));assert(evaluationBody.includes('CI_SYNTHETIC_BOOTSTRAP_PREPARED'));
+  assert(!evaluationBody.includes('os.tmpdir()'));assert(!evaluationBody.includes('rmSync'));assert(evaluationBody.includes('home=base+\'/home\',cwd=base+\'/public-cwd\''));
+  assert(evaluationBody.includes('timeout:1000'));assert(evaluationBody.includes('timeout:5000,maxBuffer:4096'));assert(body.includes('profileBytes<=65536'));
 });
