@@ -29,10 +29,10 @@ const SDK_HEADERS=['sys/stdio.h','sys/fcntl.h','fcntl.h','sys/mman.h','sys/stat.
 const FILE_ERROR_CODES=new Set(['ENOENT','EACCES','EPERM','ENOTDIR','ELOOP','EINVAL','EBADF','EMFILE','ENFILE','EIO']);
 function sdkFiles(sdk,result){
  result.observationPhase='DIRECTORY_METADATA';const selected=fs.lstatSync(sdk,{bigint:true});guard(fs.realpathSync(sdk)===sdk&&selected.isDirectory()&&!selected.isSymbolicLink()&&selected.uid===0n&&(selected.mode&0o22n)===0n);
- const parents=lineage(sdk);result.directory={canonical:true,rootOwned:true};
+ const parents=lineage(sdk);result.directory={canonical:true,rootOwned:true,permissionBits:Number(selected.mode&0o7777n),closingIdentityChecked:false};
  for(const name of SDK_HEADERS){result.observationPhase='HEADER:'+name;result.headers[name]=publicFile(sdk+'/usr/include/'+name,0,1024*1024);}
  result.observationPhase='CLOSING_DIRECTORY';
- guard(mark(fs.lstatSync(sdk,{bigint:true}))===mark(selected)&&JSON.stringify(lineage(sdk))===JSON.stringify(parents));result.observationPhase='COMPLETE';
+ guard(mark(fs.lstatSync(sdk,{bigint:true}))===mark(selected)&&JSON.stringify(lineage(sdk))===JSON.stringify(parents));result.directory.closingIdentityChecked=true;result.observationPhase='COMPLETE';
 }
 function etcAlias(){
  const before=fs.lstatSync('/etc',{bigint:true});guard(before.isSymbolicLink()&&before.uid===0n&&before.nlink===1n);
