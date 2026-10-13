@@ -4,9 +4,9 @@
  * cannot prove freshness, no inherited writable handles or a native sandbox.
  * No argv path/dispatcher, env, body/path logging, network, child or cleanup rm.
  * Requires the NEW private same-process synthetic-only pair, not the ordinary
- * fixture or a serialized record. BASE may hold only fixed approved public build
- * assets and synthetic canaries; settings/state/auth/real-stage assets forbid use.
- * Finalized known-public-asset bindings are NOT IMPLEMENTED by the pair v1 mint.
+ * fixture or a serialized record. BOTH bases must stay strictly synthetic;
+ * code/build/host assets belong in a SEPARATE owned namespace. Neither base
+ * may contain settings/state/auth/public-code/real-stage additions.
  * Read scope: existing workspace + stage-parent/Canary inventory only; sibling
  * and both BASE paths use directory metadata ONLY, no sibling bodies/readdir.
  * Native profile/code-route admission remains separate and disabled.
@@ -42,7 +42,7 @@ _Static_assert(RENAME_SWAP == 0x2 && RENAME_NOFOLLOW_ANY == 0x10, "Reviewed exch
 #define GUARDS (O_NOFOLLOW_ANY | O_NONBLOCK | O_CLOEXEC)
 _Static_assert((GUARDS & O_NOFOLLOW) == 0, "ANY conflicts with terminal NOFOLLOW");
 /* These exact identity fields must be rendered from independently revalidated
- * PRIVATE pair/known-public-asset bindings, never artifact or caller JSON. */
+ * PRIVATE current strict-synthetic pair bindings, never artifact or caller JSON. */
 static const struct stat expected_a = {
  .st_dev = (dev_t)__REVIEWED_BASE_A_DEV__,
  .st_ino = (ino_t)__REVIEWED_BASE_A_INO__,

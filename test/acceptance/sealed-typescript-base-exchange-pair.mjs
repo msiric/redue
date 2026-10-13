@@ -1,7 +1,7 @@
 // Trusted/quiescent data preparation ONLY. No host/auth/settings/state assets,
 // callback, serialized adoption, code build/launch or native permission proof.
-// Failed partial bases stay intact. This initial mint must NOT survive later
-// build additions: exact known-public-asset finalization remains a separate gate.
+// Failed partial bases stay intact. BOTH bases remain strictly synthetic:
+// code/build/host assets belong in a separate owned namespace, never this pair.
 import fs from 'node:fs';
 import {createSealedTypeScriptCIBootstrap,prepareSealedTypeScriptCISyntheticFixture,verifySealedTypeScriptSyntheticFixture} from './sealed-typescript-synthetic-fixture.mjs';
 const minted=new WeakMap(),scope='FIXED_CI_SYNTHETIC_BASE_EXCHANGE_PAIR_MECHANICS_ONLY';
