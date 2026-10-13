@@ -10,7 +10,7 @@ import {prepareSealedTypeScriptBaseExchangeSource} from './sealed-typescript-bas
 import {prepareSealedTypeScriptNativeAssetsProposal} from './sealed-typescript-native-assets-proposal.mjs';
 import {verifySealedTypeScriptBaseCollectorSource,sealedTypeScriptBaseCollectorSourceMatchesAssets} from './sealed-typescript-base-collector-source.mjs';
 import {verifySealedTypeScriptBaseCollectorCopies,sealedTypeScriptBaseCollectorCopiesMatchSource} from './sealed-typescript-base-collector-copies.mjs';
-import {buildSealedTypeScriptNativeAssets,verifySealedTypeScriptNativeAssetsBuild,sealedAssetsBuildCompleted,sealedAssetsBuildProcessSummary} from './sealed-typescript-native-assets-build.mjs';
+import {buildSealedTypeScriptNativeAssets,verifySealedTypeScriptNativeAssetsBuild,observeSealedTypeScriptNativeAssetsBuild,sealedAssetsBuildCompleted,sealedAssetsBuildProcessSummary} from './sealed-typescript-native-assets-build.mjs';
 import {mark as profileMark,profiling} from '../../src/decision-profile.mjs';
 const mintedAssets=new WeakMap();
 const sha=value=>createHash('sha256').update(value).digest('hex'),guard=value=>{if(!value)throw Error('BASE_EXCHANGE_ASSETS_UNKNOWN');};
@@ -58,11 +58,13 @@ export function verifySealedTypeScriptBaseExchangeAssets(build){
  const record=mintedAssets.get(build),unknown=()=>freeze({schema:1,scope:'OBSERVED_BASE_EXCHANGE_BUILD_DATA_ONLY',outcome:'UNKNOWN',commands:[],sealed:false,reuseEligible:false});
  if(!record||record.invalid)return unknown();
  try{const boundary=()=>{guard(JSON.stringify(verifySealedTypeScriptBaseExchangePair(record.pair))===JSON.stringify(record.initialPair)&&verifySealedTypeScriptSyntheticFixture(record.hostFixture).outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED');for(const [file,before] of record.roots)guard(JSON.stringify(rootIdentity(file))===JSON.stringify(before));};
-  boundary();guard(verifySealedTypeScriptNativeAssetsBuild(record.hostBuild).outcome==='ASSETS_BUILD_CURRENTLY_OBSERVED');current(record.source);current(record.binary);boundary();
-  guard(verifySealedTypeScriptNativeAssetsBuild(record.hostBuild).outcome==='ASSETS_BUILD_CURRENTLY_OBSERVED');current(record.source);current(record.binary);boundary();
-  // The last new-file reads may invalidate an earlier original-host check.
-  // Compose its late all-row barrier before the final new-row metadata barrier.
-  guard(verifySealedTypeScriptNativeAssetsBuild(record.hostBuild).outcome==='ASSETS_BUILD_CURRENTLY_OBSERVED');
+  boundary();observeSealedTypeScriptNativeAssetsBuild(record.hostBuild,lateNativeBarrier=>{
+   current(record.source);current(record.binary);boundary();lateNativeBarrier();
+   current(record.source);current(record.binary);boundary();lateNativeBarrier();
+  });
+  // Same-call native hashes are composed with late all-row metadata barriers.
+  // The last native barrier can still change an earlier new row: retain this
+  // final named/ancestry check. Each independent verification hashes anew.
   for(const row of [record.source,record.binary])namedCurrent(row);
   return freeze({schema:1,scope:'OBSERVED_BASE_EXCHANGE_BUILD_DATA_ONLY',outcome:'BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED',baseA:record.initialPair.baseA,baseB:record.initialPair.baseB,hostBase:record.roots[2][0],commands:[],sealed:false,reuseEligible:false});
  }catch{record.invalid=true;return unknown();}

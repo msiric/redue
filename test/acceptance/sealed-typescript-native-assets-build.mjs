@@ -63,13 +63,31 @@ export function buildSealedTypeScriptNativeAssets(options){
 // Read-only, one privately minted build only. Not a receipt, certificate, cached
 // applicability decision or persistent-record adoption route. Observed failure
 // irreversibly invalidates this mint; restored labels cannot revive it.
+function nativeBuildBoundary(record){guard(verifySealedTypeScriptSyntheticFixture(record.fixture).outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED'&&ownedDirectory(record.base)===record.baseIdentity&&record.identities.every(([file,before])=>ownedDirectory(file)===before)&&fs.realpathSync(record.sdk)===record.sdk&&parentMark(fs.lstatSync(record.sdk,{bigint:true}))===record.sdkIdentity);}
+function nativeBuildNamedRows(record){for(const row of record.rows)guard(mark(fs.lstatSync(row.file,{bigint:true}))===row.mark&&JSON.stringify(parents(row.file))===JSON.stringify(row.lineage));}
 export function verifySealedTypeScriptNativeAssetsBuild(build){
  const record=mintedBuilds.get(build);const unknown=()=>freeze({schema:1,scope:'OBSERVED_BUILD_DATA_ONLY',outcome:'UNKNOWN',commands:[],sealed:false,reuseEligible:false});
  if(!record||record.invalid)return unknown();
- try{const boundary=()=>guard(verifySealedTypeScriptSyntheticFixture(record.fixture).outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED'&&ownedDirectory(record.base)===record.baseIdentity&&record.identities.every(([file,before])=>ownedDirectory(file)===before)&&fs.realpathSync(record.sdk)===record.sdk&&parentMark(fs.lstatSync(record.sdk,{bigint:true}))===record.sdkIdentity);
-  boundary();for(const row of record.rows)current(row);boundary();
+ try{nativeBuildBoundary(record);for(const row of record.rows)current(row);nativeBuildBoundary(record);
   // Catch changes after a row's hash while later fixed rows were validated.
-  for(const row of record.rows)guard(mark(fs.lstatSync(row.file,{bigint:true}))===row.mark&&JSON.stringify(parents(row.file))===JSON.stringify(row.lineage));boundary();
+  nativeBuildNamedRows(record);nativeBuildBoundary(record);
   return freeze({schema:1,scope:'OBSERVED_BUILD_DATA_ONLY',outcome:'ASSETS_BUILD_CURRENTLY_OBSERVED',base:record.base,commands:[],sealed:false,reuseEligible:false});
  }catch{record.invalid=true;return unknown();}
+}
+
+// Compose one exchange-assets observation, not a reusable certificate/cache.
+// The complete private native row set is hashed before synchronous inspection.
+// Each late barrier checks that exact set and fixture/SDK/root ancestry again;
+// it is unusable after this call and cannot select a different build. Required
+// ctime/inode/lineage checks retain the trusted/quiescent-parent limitation:
+// this is not atomic content protection against a hostile filesystem.
+const activeBuildObservations=new WeakMap();
+export function observeSealedTypeScriptNativeAssetsBuild(build,inspect){
+ const enclosing=activeBuildObservations.get(build);if(enclosing){enclosing.failed=true;guard(false);}
+ guard(arguments.length===2&&typeof inspect==='function'&&Object.getPrototypeOf(inspect)===Function.prototype);
+ const record=mintedBuilds.get(build);guard(record&&!record.invalid);
+ const operation={failed:false};activeBuildObservations.set(build,operation);let active=true;
+ const barrier=()=>{guard(active&&!record.invalid&&!operation.failed);try{nativeBuildBoundary(record);nativeBuildNamedRows(record);nativeBuildBoundary(record);nativeBuildNamedRows(record);}catch(error){record.invalid=true;throw error;}};
+ try{guard(verifySealedTypeScriptNativeAssetsBuild(build).outcome==='ASSETS_BUILD_CURRENTLY_OBSERVED');guard(inspect(barrier)===undefined&&!operation.failed);barrier();}
+ finally{active=false;activeBuildObservations.delete(build);}
 }
