@@ -18,17 +18,20 @@ function current(row){const after=bounded(row.file,row.owner,row.limit,row.diges
 test('fixed reviewed C helpers build in fresh owned fixture; built assets are not native/seal authority',{
  skip:process.env.REDUE_SYNTHETIC_ASSETS_BUILD==='1'?false:'Reviewed engineering build not selected; no process or fixture'
 },t=>{
- let result;try{
+ let result,bootstrapBase=null;try{
  // Preserve original runtime admission before constructing the opt-in fixture;
  // reusable leaf independently rechecks it for its live-fixture caller.
  guard(process.platform==='darwin'&&process.arch==='arm64'&&process.version==='v22.13.0'&&process.getuid()>0&&process.getuid()===process.geteuid()&&process.getgid()===process.getegid());
  const node=path.join(os.userInfo().homedir,'.nvm/versions/node/v22.13.0/bin/node');guard(process.execPath===node);
  bounded(node,process.getuid(),128*1024*1024,'5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc');
  const bootstrap=createSealedTypeScriptCIBootstrap();
+ // Preserve only this internally minted namespace for partial-failure records.
+ // A record/path cannot adopt or revive the private bootstrap/fixture proof.
+ if(typeof bootstrap.base==='string'&&/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}$/.test(bootstrap.base))bootstrapBase=bootstrap.base;
  const fixture=bootstrap.outcome==='CI_SYNTHETIC_BOOTSTRAP_PREPARED'?prepareSealedTypeScriptCISyntheticFixture(bootstrap):null;
  result=buildSealedTypeScriptNativeAssets({fixture});
- }catch{result={outcome:'UNKNOWN',report:{schema:1,scope:'LOCAL_SYNTHETIC_ASSETS_BUILD_UNKNOWN',base:null,builds:[],compilerCheckExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false}};}
- const observations=result.report.builds,ownerReport=result.report;let finished=result.outcome==='ASSETS_BUILT_NOT_EXECUTED';
+ }catch{result={outcome:'UNKNOWN',report:{schema:1,scope:'LOCAL_SYNTHETIC_ASSETS_BUILD_UNKNOWN',base:bootstrapBase,builds:[],compilerCheckExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false}};}
+ const observations=result.report.builds,ownerReport=result.report.base===null&&bootstrapBase?{...result.report,base:bootstrapBase}:result.report;let finished=result.outcome==='ASSETS_BUILT_NOT_EXECUTED';
  t.diagnostic(JSON.stringify(finished?{scope:ownerReport.scope,builds:observations,baseSha256:sha(ownerReport.base),binaries:ownerReport.binaries.map(row=>row.sha256),compilerCheckExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false}:{scope:'LOCAL_SYNTHETIC_ASSETS_BUILD_UNKNOWN',builds:observations,ownedFixture:'PRESERVED_NOT_ADOPTABLE_FROM_RECORD',compilerCheckExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false}));
  try{const reportDir=path.resolve('.local/portable-evidence');guard(fs.realpathSync(reportDir)===reportDir);const directory=fs.lstatSync(reportDir);guard(directory.isDirectory()&&!directory.isSymbolicLink()&&directory.uid===process.getuid()&&(directory.mode&0o22)===0);const stem=ownerReport.base?path.basename(ownerReport.base):'no-fixture-'+randomBytes(4).toString('hex');const reportFile=reportDir+'/synthetic-assets-build-'+stem+'.json';const body=JSON.stringify({...ownerReport,fixtureTokenSerialized:false,recordAdoptionAuthority:false})+'\n';fs.writeFileSync(reportFile,body,{mode:0o600,flag:'wx'});bounded(reportFile,process.getuid(),1024*1024,sha(body));t.diagnostic(JSON.stringify({scope:'OWNER_LOCAL_BUILD_RECORD',recordName:path.basename(reportFile),sha256:sha(body),saved:true,sealed:false,reuseEligible:false}));}catch{finished=false;t.diagnostic('{"scope":"OWNER_LOCAL_BUILD_RECORD","saved":false,"result":"UNKNOWN"}');}
  // No recursive cleanup, token serialization/adoption or use of compiled output.
@@ -50,3 +53,11 @@ function mockBuild(verify){let accesses=0,dispatches=0;const source=buildSource.
 test('new reusable leaf accepts only one data fixture option and has no imported build surface',()=>{const mock=mockBuild(()=>{throw Error('UNEXPECTED');});for(const options of [{fixture:null,flags:[]},{fixture:null,env:{}},{fixture:null,executable:'/other'},{fixture:null,source:'CODE'},{fixture:null,[Symbol()]:true},Object.create(null)])assert.throws(()=>mock.run(options),error=>error.code==='BUILD_OPTIONS'&&error.message==='BUILD_OPTIONS');const options={};Object.defineProperty(options,'fixture',{get(){throw Error('UNEXPECTED');}});assert.throws(()=>mock.run(options),error=>error.code==='BUILD_OPTIONS');assert.deepEqual(mock.counters(),{accesses:0,dispatches:0});});
 test('unminted or wrong-scope fixture launches zero builds and returns immutable UNKNOWN data',()=>{for(const observed of [{outcome:'UNKNOWN'},{outcome:'SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED',scope:'OWNED_SYNTHETIC_FIXTURE_MECHANICS_ONLY',receiverBasePolicyMatch:false}]){const mock=mockBuild(()=>observed),value=mock.run({fixture:{base:'/NONSECRET-label'}});assert.equal(value.outcome,'UNKNOWN');assert.equal(value.report.base,null);assert.deepEqual(value.report.builds,[]);assert(Object.isFrozen(value.report));assert.deepEqual(value.commands,[]);assert.equal(value.nativeAgentLaunches,0);assert.equal(value.sealed,false);assert.equal(value.reuseEligible,false);assert.deepEqual(mock.counters(),{accesses:0,dispatches:0});}});
 test('build procedure stays fixed and retains full boundary validations and child caps',()=>{assert(buildSource.includes('timeout:5000,maxBuffer:4096'));assert(buildSource.includes("killSignal:'SIGKILL'"));assert(buildSource.includes('current(linker)'));assert(buildSource.includes('for(const row of [runtime,compiler,linker,...headers,...sources,copied,...artifacts])current(row)'));assert(buildSource.includes('guard(binary.arm64Header)'));assert(!buildSource.includes('createSealedTypeScriptCIBootstrap'));assert(!buildSource.includes('rmSync'));assert(!buildSource.includes('execSync'));assert(buildSource.includes("argv,{cwd:base+'/prefix/native-probes',env:{TMPDIR:base}"));});
+
+
+test('wrapper retains only internally returned fixed bootstrap base before partial preparation failure',()=>{
+ const source=fs.readFileSync(new URL('./sealed-typescript-native-assets-build.test.mjs',import.meta.url),'utf8');
+ const mint=source.indexOf('const bootstrap=createSealedTypeScriptCIBootstrap();'),capture=source.indexOf('bootstrapBase=bootstrap.base;',mint),prepare=source.indexOf('prepareSealedTypeScriptCISyntheticFixture(bootstrap)',mint);
+ assert(mint>=0&&capture>mint&&prepare>capture);assert(source.includes("typeof bootstrap.base==='string'&&/^\\/private\\/tmp\\/redue-ci-recipient-[a-f0-9]{8}$/"));
+ assert(source.includes("base:bootstrapBase,builds:[]"));assert(source.includes('result.report.base===null&&bootstrapBase?{...result.report,base:bootstrapBase}:result.report'));
+});
