@@ -94,13 +94,15 @@ static enum observation inventory(const char *file,const char **names,size_t cou
   if(lstat(file,&after))result=merge(result,UNKNOWN);else if(!same_identity(&named,&after))result=merge(result,MISMATCH);
   if(closedir(dir))result=merge(result,UNKNOWN);return result;
 }
-static enum observation fixture(struct stat dirs[4]) {
+static enum observation fixture(struct stat dirs[4],const struct stat *expected) {
   struct stat base,checkout,workspace;enum observation result=owned_directory(BASE,&base);
   result=merge(result,owned_directory(BASE "/Checkout 空间",&checkout));result=merge(result,owned_directory(WORKSPACE,&workspace));
   const char *parent_names[]={"redue-materialization-Canary"},*single[]={"identity-canary.txt"};
   result=merge(result,inventory(WORKSPACE,workspace_names,5));result=merge(result,inventory(PARENT,parent_names,1));result=merge(result,inventory(STAGE,stage_names,6));
   const char *four[]={PARENT,PARTNER,LEFT,RIGHT};
-  for(size_t i=0;i<4;i++){result=merge(result,owned_directory(four[i],&dirs[i]));if(i)result=merge(result,inventory(four[i],single,1));}
+  for(size_t i=0;i<4;i++){enum observation one=owned_directory(four[i],&dirs[i]);
+    if(one==MATCH&&expected&&!same_identity(&dirs[i],&expected[i]))one=MISMATCH;
+    result=merge(result,one);if(i)result=merge(result,inventory(four[i],single,1));}
   if(result!=MATCH)return result;
   for(size_t i=0;i<4;i++)for(size_t j=0;j<i;j++)if(dirs[i].st_dev==dirs[j].st_dev&&dirs[i].st_ino==dirs[j].st_ino)result=MISMATCH;
   for(size_t i=0;i<4;i++)if(dirs[i].st_dev!=workspace.st_dev)result=MISMATCH;
@@ -110,9 +112,11 @@ static enum observation fixture(struct stat dirs[4]) {
   return result;
 }
 static enum observation identities_at(const char *a,const struct stat *expected_a,const char *b,const struct stat *expected_b) {
-  struct stat now_a,now_b;enum observation result=owned_directory(a,&now_a);result=merge(result,owned_directory(b,&now_b));
-  if(result==MATCH&&(!same_identity(&now_a,expected_a)||!same_identity(&now_b,expected_b)))result=MISMATCH;
-  return result;
+  struct stat now_a,now_b;enum observation left=owned_directory(a,&now_a);
+  if(left==MATCH&&!same_identity(&now_a,expected_a))left=MISMATCH;
+  enum observation right=owned_directory(b,&now_b);
+  if(right==MATCH&&!same_identity(&now_b,expected_b))right=MISMATCH;
+  return merge(left,right);
 }
 static enum observation control(const struct stat dirs[4]) {
   if(renameatx_np(AT_FDCWD,LEFT,AT_FDCWD,RIGHT,EXCHANGE_FLAGS))return UNKNOWN;
@@ -136,10 +140,10 @@ static void emit(enum observation initial,enum observation workspace,int attempt
 int main(int argc,char **argv) {
   (void)argv;struct stat dirs[4],current[4];enum observation initial=UNKNOWN,workspace=UNKNOWN,final=UNKNOWN;int attempted=0,granted=0,denied=0,final_checked=0;
   if(argc!=1||!valid_base()||getuid()==0||getuid()!=geteuid()||getgid()!=getegid()){emit(initial,workspace,attempted,granted,denied,final_checked,final);return 74;}
-  initial=fixture(dirs);if(initial==MATCH)workspace=control(dirs);
-  if(workspace==MATCH){final_checked=1;enum observation again=fixture(current);for(size_t i=0;i<4&&again==MATCH;i++)if(!same_identity(&current[i],&dirs[i]))again=MISMATCH;
+  initial=fixture(dirs,NULL);if(initial==MATCH)workspace=control(dirs);
+  if(workspace==MATCH){final_checked=1;enum observation again=fixture(current,dirs);
     if(again==MATCH){attempted=1;if(!renameatx_np(AT_FDCWD,PARENT,AT_FDCWD,PARTNER,EXCHANGE_FLAGS))granted=1;else{int error=errno;denied=error==EPERM||error==EACCES;}
-      final=fixture(current);if(final==MATCH)for(size_t i=0;i<4;i++)if(!same_identity(&current[i],&dirs[i]))final=MISMATCH;
+      final=fixture(current,dirs);
     }else final=again;
   }
   emit(initial,workspace,attempted,granted,denied,final_checked,final);return 74;

@@ -22,8 +22,8 @@ test('complete bounded synthetic inventory and owned marker readback precede pos
   assert.match(source,/if\(\+\+retained>16\)/);assert.match(source,/inventory\(PARENT,parent_names,1\)/);assert.match(source,/inventory\(STAGE,stage_names,6\)/);
   assert.match(source,/inventory\(WORKSPACE,workspace_names,5\)/);assert.match(source,/if\(at==count \|\| \(seen&\(1u<<at\)\)\)/);
   assert.match(source,/named\.st_nlink!=1/);assert.match(source,/memcmp\(bytes,marker,sizeof\(marker\)-1\)/);
-  assert.match(source,/initial=fixture\(dirs\);if\(initial==MATCH\)workspace=control\(dirs\)/);
-  assert.match(source,/if\(workspace==MATCH\)\{final_checked=1;enum observation again=fixture\(current\)/);assert.match(source,/if\(again==MATCH\)\{attempted=1/);
+  assert.match(source,/initial=fixture\(dirs,NULL\);if\(initial==MATCH\)workspace=control\(dirs\)/);
+  assert.match(source,/if\(workspace==MATCH\)\{final_checked=1;enum observation again=fixture\(current,dirs\)/);assert.match(source,/if\(again==MATCH\)\{attempted=1/);
 });
 test('read-only nofollow-any descriptor guards preserve ancestor safety without conflicting flag pair',()=>{
   assert.match(source,/#define GUARDS \(O_NOFOLLOW_ANY \| O_NONBLOCK \| O_CLOEXEC\)/);assert.match(source,/_Static_assert\(\(GUARDS & O_NOFOLLOW\) == 0/);
@@ -49,4 +49,24 @@ test('fixed redacted report never claims native/seal/handle proof or executes ot
   assert(source.includes('\\"noInheritedWritableHandlesVerified\\":false'));assert(source.includes('NOT_ESTABLISHED'));
   assert.doesNotMatch(source,/perror\(|strerror\(|system\(|exec[a-z]*\(|fork\(|socket\(|\bgetenv\(/);
   for(const statement of source.matchAll(/\bprintf\(([^;]+);/g))assert.doesNotMatch(statement[1],/BASE|PARENT|WORKSPACE|PARTNER|LEFT|RIGHT|file|bytes|entry->d_name|errno/);
+});
+
+
+test('independently observed control identity mismatch survives other-side unavailability',()=>{
+  assert.match(source,/if\(left==MATCH&&!same_identity\(&now_a,expected_a\)\)left=MISMATCH/);
+  assert.match(source,/if\(right==MATCH&&!same_identity\(&now_b,expected_b\)\)right=MISMATCH/);assert.match(source,/return merge\(left,right\)/);
+  const MATCH=0,UNKNOWN=1,MISMATCH=2,merge=(a,b)=>a===MISMATCH||b===MISMATCH?MISMATCH:a===UNKNOWN||b===UNKNOWN?UNKNOWN:MATCH;
+  const known=(result,equal)=>result===MATCH&&!equal?MISMATCH:result;
+  assert.equal(merge(known(MATCH,false),known(UNKNOWN,false)),MISMATCH);
+  assert.equal(merge(known(UNKNOWN,false),known(MATCH,false)),MISMATCH);
+  assert.equal(merge(known(UNKNOWN,false),known(MATCH,true)),UNKNOWN,'Unavailable metadata itself is not invented mismatch');
+});
+test('current parent comparisons occur per successfully captured stat before unrelated fixture uncertainty',()=>{
+  assert.match(source,/if\(one==MATCH&&expected&&!same_identity\(&dirs\[i\],&expected\[i\]\)\)one=MISMATCH/);
+  assert.match(source,/result=merge\(result,one\);/);assert.match(source,/again=fixture\(current,dirs\)/);assert.match(source,/final=fixture\(current,dirs\)/);
+  assert.doesNotMatch(source,/if\(final==MATCH\)for|i<4&&again==MATCH/);
+  const MATCH=0,UNKNOWN=1,MISMATCH=2,merge=(a,b)=>a===MISMATCH||b===MISMATCH?MISMATCH:a===UNKNOWN||b===UNKNOWN?UNKNOWN:MATCH;
+  const classify=(stat,equal)=>stat===MATCH&&!equal?MISMATCH:stat;
+  assert.equal([UNKNOWN,classify(MATCH,false),MATCH,MATCH].reduce(merge,MATCH),MISMATCH,'Known changed parent cannot be masked by unavailable marker/other metadata');
+  assert.equal([UNKNOWN,classify(UNKNOWN,false),MATCH,MATCH].reduce(merge,MATCH),UNKNOWN,'No captured parent is not asserted changed');
 });
