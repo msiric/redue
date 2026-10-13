@@ -6725,3 +6725,41 @@ The historical388 retained EPERM frames and914-file partial API graph remain
 engineering observations without exhaustive denial, API/CLI or reuse authority.
 Reviewer performed only document/public source/config reads; no API, compiler,
 sandbox/native, model or CI execution and no permission/implementation change.
+
+Tests-only source GO839f085: the renderer's controlled test facade explicitly
+models POSIX principal/no-follow metadata and canonical LF template bytes; it
+does not infer them from Windows. Actual source binding tests remain NOT_RUN
+without real POSIX/no-follow prerequisites, and source evaluation remains Darwin
+plus opt-in. Production constructor/pins/permission behavior are unchanged.
+Twelve exact facade controls passed12/12 in54.01ms on the reviewer host; this is
+not a Windows execution or actual filesystem permission proof.
+
+Final build-test source/mock GO39b2540,
+SHA349cbdbf39be329b3557da23b338e36424820169fb3bb4a5da07496f1bc5ac42.
+One selected local engineering attempt may compile the two fixed reviewed C
+templates using fresh minted synthetic resources, pinned Node/clang/linker/five
+SDK headers, exact argv and env containing only owned TMPDIR. Each child remains
+5s/4096B/SIGKILL. Bounded content/physical/parent checks surround builds; copied
+Node and rendered sources are exclusive new files. No helper or compiled output
+is executed. SDK linkage/complete runtime closure is not established by five
+header pins; the build grants no native-agent/compiler-check/seal/reuse authority.
+
+Initial354 read the ARM64 header through an unbound second descriptor, permitting
+its identity to differ from the hashed binary. Independent mocked exact snippet
+confirmed that descriptor was never fstat-bound (three controls passed3/3 in45.36ms).
+Successor0ae reads the format predicate during the same bounded full-hash stream;
+a short initial read is conservatively not accepted. Its first result SHA covered
+different bytes from the later saved report extras. Final39b hashes one exact
+serialized payload only after bounded readback confirms those saved bytes.
+Failures save static UNKNOWN metadata where possible, retain all fixtures and
+provide no serialized-token/adoption authority; no recursive cleanup occurs.
+
+Eight independent whole-driver memory-FS/mock-spawn controls passed8/8 in68.58ms:
+exact two compile vectors/env/caps and saved-byte checksum; setid zero dispatch/
+bootstrap; spawn error/contradictory signal; bad header refusing after one build;
+source replacement; persistence write/readback corruption refusal. No real
+bootstrap, copy, clang/helper/sandbox/native/TS/model/CI execution occurred.
+Original354 and0ae defects are historical source/mock findings, not observed
+native failures. One initial reviewer snippet test used concurrently updated
+source and failed; freezing the354 Git object repaired only the test preparation.
+This GO covers the fixed build attempt, not actual template execution or a seal.
