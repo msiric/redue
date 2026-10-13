@@ -12,32 +12,40 @@ requires reviewed TS5.5.2 and the existing matched Darwin25.6/ARM64/official
 Node22.13 profile. A local proposal cannot certify that profile or its enforcement.
 Existing commands, user configurations and receipts are unchanged.
 
-## Current checkpoint — staged observation boundary under review
+## Current checkpoint — ordinary staged graph collected; native seal pending
 
-Integration branch `dev/portable-sealed-typescript`; source `bc663bf` integrates
-strict observation projection after independent source review. All34 local pure
-controls pass; they are parser/harness evidence, not native enforcement. The
-private first API parent98f0 was refused before dispatch because its partial
-schema retained unvalidated child values. Its reviewed successor preparation
-keeps the30s/8MiB bounds, immutable bindings and all authorityfalse. One additional
-pre-call deadline/counter ordering defect was corrected before dispatch. The
-exact parent still requires independent review before its one real local sample.
+Integration branch `dev/portable-sealed-typescript`; source69c4757 has independent
+critical review. The restricted ordinary debugger API probe collected914 files:
+425 project files,59 installed TypeScript default libraries,429 other installed
+files and1 other file; one config. Complete12189.041ms, child74/reaped/no signal,
+all12 before/after binding checks true, exact record/outerACK verified. No compiler
+verification, native agent, model or reusable origin was executed/established.
+Private recordSHA95c3be736476d67a66e3d217c07ca6316a54ff5c993d3104359b6add60011289;
+outerACKSHA5608b977cf79a71797280cb38326219a41d591bfde42b922c4a69e83f5ec5ac6.
 
-The ordinary debugger project's33345-file tree was materialized in66.571s;
-preparation is not sealing. One fixed snapshot command later completed in14.849s
-with all10 guard comparisons true, but no native-agent/seal/namespace authority.
-The changed local kernel mapper observed7 expected classifications in442.304ms;
-its overall result remains UNKNOWN. Prior failed/UNKNOWN attempts are preserved.
-See [current implementation evidence](../acceptance/portable-sealed-typescript.md)
-and [critical review](../acceptance/portable-boundary-review.md).
+Logging is explicitly partial:39489 calls/14218 retained frames; FRAME_LIMIT,
+JOURNAL_LIMIT,UNSUPPORTED_FUNCTION_METADATA andUNSUPPORTED_METHOD. Retained raw
+outsideEPERM observations388 remain denials. No all-query, API/CLI equivalence,
+namespace completeness or seal claim follows. Three preceding actual engineering
+attempts remain UNKNOWN: missing reason, known summary cap, then strict schema
+refusal. Reviewed repairs lower retained diagnostic bytes to4MiB within the same
+8MiB response and omit unreviewed shapes while still forwarding/counting calls
+and latching incompleteness. The finite strict reader still rejects injected
+unknown fields/methods. No evidence validation or permissions were weakened.
 
-Closed hosted Claude six-check prerequisite remains scopedPASS. The staged native
-checker/policy paths do not yet match; source-only fixture composition is underway.
-Copilot Actions included capacity remains pending. G1/G2/G3/prepublicationG4 stay
-incomplete; origin containment and frozen alpha.11 bytes remain unchanged. No
-model, signing, trust expansion, package publication or observer-state change.
-Day0/72h calibration remain2026-10-10 21:24UTC /2026-10-13 21:24UTC. Full portable
-setup/economics and actual staged native enforcement are not established.
+Source-only native composition and UTF8 mapper repairs are integrated through
+76ba343. Runnable commands remain empty: destructive parent operations require a
+fresh synthetic-only namespace, never a prepared real stage. Actual native stage,
+ancestor/alias/mapping enforcement remains unestablished. A owns bounded canary
+preparation/bootstrap leaves; root integrates interfaces; C independently reviews.
+B capacity is unavailable, so concurrency stays reduced without a model switch.
+
+Closed hosted Claude six-check prerequisite remains scopedPASS. Copilot Actions
+included capacity remains pending. G1/current sealed interpretation,G2/finalG3 and
+prepublicationG4 are incomplete; origin containment and frozen alpha.11 bytes
+remain unchanged/unpublished. No signing, new trust, package publication, state
+or receipt change. Day0/72h calibration remain2026-10-10 21:24UTC /
+2026-10-13 21:24UTC. Full portable setup/economics remain unmeasured.
 
 ## Historical checkpoint — prepared tree; compiler guard diagnosis
 
@@ -354,3 +362,36 @@ Initial0PASS/3mock failures omitted URL/Buffer from the mock realm; corrected
 fixture supplies Node globals without changing profile rules. This proposal still
 requires independent process/profile/currentness/deadline review before execution.
 The existing prepared tree and all failed/UNKNOWN records remain preserved.
+
+## Actual bounded API collection repairs —2026-10-13
+
+Exact private parent7b0d24fb/strict readerb2c42a3d returnedUNKNOWN in11559.126ms:
+child74/reaped,198 stdout/0stderr, all12 comparisonstrue, no retained observation.
+Record060afe2cfc0dcc6efaa706612f0b271c2ecf7c33a3023a59ac75288e15d633dd;
+outerACK59a02fba866d217022caee2468c32a3611ba66a25055438085cdbf004bebfb61.
+Its exact cause remains unassigned. Source9f3c856/private parent4404cadb then
+collected staticSEALED_PROBE_SUMMARY_LIMIT, not a typecheck-failure result:
+UNKNOWN11021.714ms,74/reaped/190 stdout/0stderr, all12 comparisonstrue.
+Record11a4d5587098af3a690bac225402226b9f5ab6afb9c272867cd45172bb1dcf74;
+outerACKcbadc5bb000407bcd82a87d14781556f7e854db43148242b05ffc8af4e9dd6af.
+
+Sourcea750e39/9a9a28d reduced only journal retention8→4MiB. Its held-stable fake
+countercase forwards identical2500 calls: the former budget rejects the whole
+summary; the new bounded partial journal leaves room for1800 graph names.
+Actual private8f26b2bd returnedUNKNOWN11151.503ms with4237872 outputbytes and
+strict-schema refusal; all12 guardstrue,74/reaped/no stderr.
+Record9814ad4f9552b9ac6dcb03e71f2ef35347f211e1569ea682015aef022997e7c5;
+outerACKdeca6454fc02e001007777d17596d956e5ce3cb6057f1920d92cbc71d3c24dbc.
+No unvalidated observations were persisted.
+
+A separate harmless ownedNONSECRET Buffer-file harness on pinnedNode22.13.0
+observed4 calls, including an unsupportedcloseSync frame. Built-in Node source
+lines446/481 calls exportedopenSync/closeSync for Buffer reads; canonical
+TS5.5.2 source8673 uses that Buffer path. This establishes a source/collector
+compatibility countercase, not a retroactive assignment of every prior cause.
+Source69c4757 continues forwarding/counting these calls and permanently marks
+UNSUPPORTED_METHOD, but no longer serializes their unreviewed shapes. The strict
+reader still rejects an injectedunknown frame.87 affected mocks and18 independent
+controls passed; exact private parenta84a80dd has independent GO. Its one actual
+sample produced the scoped collected observation at the top of this document.
+Partial logging, origin containment and all false authority markers remain.

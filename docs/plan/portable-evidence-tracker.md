@@ -3,32 +3,40 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — staged observation boundary under review
+## Current checkpoint — ordinary staged graph collected; native seal pending
 
-Integration branch `dev/portable-sealed-typescript`; source `bc663bf` integrates
-strict observation projection after independent source review. All34 local pure
-controls pass; they are parser/harness evidence, not native enforcement. The
-private first API parent98f0 was refused before dispatch because its partial
-schema retained unvalidated child values. Its reviewed successor preparation
-keeps the30s/8MiB bounds, immutable bindings and all authorityfalse. One additional
-pre-call deadline/counter ordering defect was corrected before dispatch. The
-exact parent still requires independent review before its one real local sample.
+Integration branch `dev/portable-sealed-typescript`; source69c4757 has independent
+critical review. The restricted ordinary debugger API probe collected914 files:
+425 project files,59 installed TypeScript default libraries,429 other installed
+files and1 other file; one config. Complete12189.041ms, child74/reaped/no signal,
+all12 before/after binding checks true, exact record/outerACK verified. No compiler
+verification, native agent, model or reusable origin was executed/established.
+Private recordSHA95c3be736476d67a66e3d217c07ca6316a54ff5c993d3104359b6add60011289;
+outerACKSHA5608b977cf79a71797280cb38326219a41d591bfde42b922c4a69e83f5ec5ac6.
 
-The ordinary debugger project's33345-file tree was materialized in66.571s;
-preparation is not sealing. One fixed snapshot command later completed in14.849s
-with all10 guard comparisons true, but no native-agent/seal/namespace authority.
-The changed local kernel mapper observed7 expected classifications in442.304ms;
-its overall result remains UNKNOWN. Prior failed/UNKNOWN attempts are preserved.
-See [current implementation evidence](../acceptance/portable-sealed-typescript.md)
-and [critical review](../acceptance/portable-boundary-review.md).
+Logging is explicitly partial:39489 calls/14218 retained frames; FRAME_LIMIT,
+JOURNAL_LIMIT,UNSUPPORTED_FUNCTION_METADATA andUNSUPPORTED_METHOD. Retained raw
+outsideEPERM observations388 remain denials. No all-query, API/CLI equivalence,
+namespace completeness or seal claim follows. Three preceding actual engineering
+attempts remain UNKNOWN: missing reason, known summary cap, then strict schema
+refusal. Reviewed repairs lower retained diagnostic bytes to4MiB within the same
+8MiB response and omit unreviewed shapes while still forwarding/counting calls
+and latching incompleteness. The finite strict reader still rejects injected
+unknown fields/methods. No evidence validation or permissions were weakened.
 
-Closed hosted Claude six-check prerequisite remains scopedPASS. The staged native
-checker/policy paths do not yet match; source-only fixture composition is underway.
-Copilot Actions included capacity remains pending. G1/G2/G3/prepublicationG4 stay
-incomplete; origin containment and frozen alpha.11 bytes remain unchanged. No
-model, signing, trust expansion, package publication or observer-state change.
-Day0/72h calibration remain2026-10-10 21:24UTC /2026-10-13 21:24UTC. Full portable
-setup/economics and actual staged native enforcement are not established.
+Source-only native composition and UTF8 mapper repairs are integrated through
+76ba343. Runnable commands remain empty: destructive parent operations require a
+fresh synthetic-only namespace, never a prepared real stage. Actual native stage,
+ancestor/alias/mapping enforcement remains unestablished. A owns bounded canary
+preparation/bootstrap leaves; root integrates interfaces; C independently reviews.
+B capacity is unavailable, so concurrency stays reduced without a model switch.
+
+Closed hosted Claude six-check prerequisite remains scopedPASS. Copilot Actions
+included capacity remains pending. G1/current sealed interpretation,G2/finalG3 and
+prepublicationG4 are incomplete; origin containment and frozen alpha.11 bytes
+remain unchanged/unpublished. No signing, new trust, package publication, state
+or receipt change. Day0/72h calibration remain2026-10-10 21:24UTC /
+2026-10-13 21:24UTC. Full portable setup/economics remain unmeasured.
 
 ## Historical checkpoint — prepared tree; compiler guard diagnosis
 
