@@ -1,32 +1,39 @@
-# One bounded CI-only raw-event provider attempt. No models, tokens, signing,
-# uploads, imported authority, or changes to native-agent permissions.
-name: Portable ordinary-query bounded vnode fixture diagnosis
+# Approved storage-free hosted public-tool facts only. No credentials, uploads,
+# compiler/helper/native/model executions, signing or producer trust changes.
+name: Sealed-input public tool inventory
 on:
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: portable-ordinary-query-preflight
+  group: redue-sealed-host-tool-inventory
   cancel-in-progress: false
 jobs:
-  provider:
-    if: github.repository == 'msiric/redue' && github.ref == 'refs/heads/dev/portable-ordinary-boundary' && github.event_name == 'workflow_dispatch' && github.actor == 'msiric' && github.run_attempt == 1
+  inventory:
+    if: github.repository == 'msiric/redue' && github.ref == 'refs/heads/dev/portable-sealed-host-preflight' && github.event_name == 'workflow_dispatch' && github.actor == 'msiric' && github.run_attempt == 1
     runs-on: macos-26
-    timeout-minutes: 5
+    timeout-minutes: 2
+    env:
+      REVIEWED_SOURCE: c96f3500576d3c5e4be498829a2e6e466d9b69bf
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ env.REVIEWED_SOURCE }}
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22.13.0'
-      - run: npm ci --no-audit --no-fund
-      - name: Source and pure protocol/ownership controls; never start the collector locally
+      - name: Fixed source and classifier precondition, no installation scripts
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          node --test --test-concurrency=1 test/portable-ancestor-queries.test.mjs test/portable-ancestor-fsevents.test.mjs test/portable-ancestor-protocol.test.mjs test/portable-ancestor-capability.test.mjs test/portable-ancestor-observer.test.mjs test/portable-vnode-guard.test.mjs
-      - name: One fixed test-only vnode fixture diagnosis
-        run: node test/acceptance/portable-vnode-interval.mjs
+          test "$(git rev-parse HEAD)" = "$REVIEWED_SOURCE"
+          test "$(uname -m)" = arm64
+          test "$(node --version)" = v22.13.0
+          node --test test/sealed-typescript-host-tool-inventory.test.mjs
+      - name: Read-only public runtime and build-tool facts
+        shell: bash
+        run: |
+          set -euo pipefail
+          node test/acceptance/sealed-typescript-host-tool-inventory.mjs
+      # No model credentials/environment, cache, artifact, OIDC or signing.
