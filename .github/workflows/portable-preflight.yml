@@ -10,11 +10,17 @@ concurrency:
   cancel-in-progress: false
 jobs:
   inventory:
+    name: Public tool facts (${{ matrix.machine }})
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        machine: [producer, receiver]
     if: github.repository == 'msiric/redue' && github.ref == 'refs/heads/dev/portable-sealed-host-preflight' && github.event_name == 'workflow_dispatch' && github.actor == 'msiric' && github.run_attempt == 1
     runs-on: macos-26
     timeout-minutes: 2
     env:
-      REVIEWED_SOURCE: c96f3500576d3c5e4be498829a2e6e466d9b69bf
+      REVIEWED_SOURCE: ae9aef9c7457c2375f57350b1d39935c72f0de0f
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
