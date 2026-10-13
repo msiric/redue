@@ -13,7 +13,7 @@ const identity=s=>['dev','ino','mode','uid','gid'].map(key=>String(s[key])).join
 
 // Lexical injection only for authored controls; executable selection/imports are
 // fixed below. No serialized descriptors or previously saved mint are accepted.
-export async function observeSealedTypeScriptBaseCollectorLauncher({cwd,uid,filesystem,now,uuid,diagnostic,platformReady,loadOperations}){
+export async function observeSealedTypeScriptBaseCollectorLauncher({cwd,uid,filesystem,now,uuid,diagnostic,platformReady,loadOperations,phaseCapture=false}){
  let begun;try{begun=now();}catch{begun=NaN;}
  let last=begun,totalElapsedMs=null,clockUnavailable=!Number.isFinite(begun),budgetExceeded=false,completed=false,recordVerified=false;
  const tick=()=>{
@@ -42,6 +42,48 @@ export async function observeSealedTypeScriptBaseCollectorLauncher({cwd,uid,file
   }
  };
  const lineageCurrent=before=>{guard(before&&JSON.stringify(ancestorLineage())===JSON.stringify(before));};
+ // Optional engineering breadcrumb FD. Open before the selector snapshot so
+ // creating its one leaf cannot invalidate that snapshot. Kernel writeSync is
+ // used directly, not TAP buffering. Marks neither prove action invocation nor
+ // completion, power-loss durability or atomic hostile-ancestor confinement.
+ // expose process counters, values, errors or private fixture paths.
+ const capture={selected:phaseCapture===true,fd:undefined,file:null,name:null,bytesWritten:0,recordsWritten:0,failed:false,mark:null,identity:null,parentIdentity:null,lineage:null};
+ const capturePhases=new Set(['testBody','selectorSnapshot','preconditions','operationImports','freshPair','freshHost','freshHostFixture',
+  'prerequisiteThreeBuilds','prerequisiteCurrency','sourceDerivation','fourCollectorCopies','copyCurrency','oneLauncherBuild','launcherCurrency',
+  'persistence','recordReadback','publication','finalRecordBarrier']);
+ const captureRegular=(s,size)=>s.isFile()&&!s.isSymbolicLink()&&s.uid===BigInt(uid)&&s.nlink===1n&&(s.mode&0o7777n)===0o600n&&s.size===BigInt(size);
+ const captureNamedCurrent=s=>{
+  guard(mark(filesystem.lstatSync(capture.file,{bigint:true}))===mark(s)&&filesystem.realpathSync(capture.file)===capture.file);
+  guard(identity(directory())===capture.parentIdentity);lineageCurrent(capture.lineage);
+ };
+ const captureOpen=()=>{
+  const parent=directory(),lineage=ancestorLineage();remaining();
+  guard(['O_WRONLY','O_CREAT','O_EXCL','O_NOFOLLOW','O_NONBLOCK'].every(key=>filesystem.constants[key]!==undefined));
+  const nonce=uuid();guard(typeof nonce==='string'&&/^[A-Za-z0-9-]{1,64}$/.test(nonce));
+  capture.name='base-collector-launcher-phases-'+nonce+'.jsonl';capture.file=path.join(local,capture.name);
+  remaining();capture.fd=filesystem.openSync(capture.file,filesystem.constants.O_WRONLY|filesystem.constants.O_CREAT|filesystem.constants.O_EXCL|filesystem.constants.O_NOFOLLOW|filesystem.constants.O_NONBLOCK,0o600);
+  const opened=filesystem.fstatSync(capture.fd,{bigint:true});guard(captureRegular(opened,0));
+  capture.identity=identity(opened);capture.mark=mark(opened);capture.parentIdentity=identity(parent);capture.lineage=lineage;
+  captureNamedCurrent(opened);remaining();
+ };
+ const captureMark=(name,edge)=>{
+  if(!capture.selected)return;
+  try{
+   guard(!capture.failed&&capture.fd!==undefined&&capturePhases.has(name)&&
+    (name==='testBody'?edge==='entered':['validation','before','after'].includes(edge))&&capture.recordsWritten<64);
+   const opened=filesystem.fstatSync(capture.fd,{bigint:true});
+   guard(captureRegular(opened,capture.bytesWritten)&&mark(opened)===capture.mark&&identity(opened)===capture.identity);
+   remaining();const bytes=Buffer.from(JSON.stringify({schema:1,phase:name,edge,elapsedMs:totalElapsedMs})+'\n');
+   guard(bytes.length<=256&&capture.bytesWritten+bytes.length<=16384);let at=0;
+   while(at<bytes.length){remaining();const n=filesystem.writeSync(capture.fd,bytes,at,bytes.length-at,capture.bytesWritten);
+    guard(Number.isInteger(n)&&n>0&&n<=bytes.length-at);at+=n;capture.bytesWritten+=n;
+    if(at===bytes.length)capture.recordsWritten++;remaining();}
+   const after=filesystem.fstatSync(capture.fd,{bigint:true});guard(captureRegular(after,capture.bytesWritten)&&identity(after)===capture.identity);
+   captureNamedCurrent(after);capture.mark=mark(after);remaining();
+  }catch{capture.failed=true;throw Error('OBSERVATION_PHASE_CAPTURE_UNKNOWN');}
+ };
+ const captureSnapshot=()=>({selected:capture.selected,recordName:capture.name,bytesWritten:capture.bytesWritten,recordsWritten:capture.recordsWritten,
+  outcome:capture.selected?'UNKNOWN':'NOT_SELECTED',authority:false});
  const phaseCostsMs={};
  const report={schema:1,scope:'ENGINEERING_FRESH_BASE_COLLECTOR_LAUNCHER_BUILD_ONLY',
   prerequisiteSetup:'FRESH_PAIR_H_AND_THREE_C_BUILDS_REQUIRED',buildSequenceOutcome:'UNKNOWN',phaseCostsMs,
@@ -52,12 +94,14 @@ export async function observeSealedTypeScriptBaseCollectorLauncher({cwd,uid,file
  let selector,selectorLineage,persistenceStarted=false;
  const phase=async(name,action)=>{
   const start=tick();
-  try{if(selector&&!persistenceStarted)guard(mark(directory())===mark(selector));
+  try{captureMark(name,'validation');if(selector&&!persistenceStarted)guard(mark(directory())===mark(selector));
   lineageCurrent(selectorLineage);
   // Filesystem validation can consume or invalidate the clock budget. Sample
   // only after it finishes, immediately before the corresponding action.
+  remaining();captureMark(name,'before');
+  if(capture.selected){if(selector&&!persistenceStarted)guard(mark(directory())===mark(selector));lineageCurrent(selectorLineage);}
   remaining();
-  const value=await action();if(selector&&!persistenceStarted)guard(mark(directory())===mark(selector));
+  const value=await action();captureMark(name,'after');if(selector&&!persistenceStarted)guard(mark(directory())===mark(selector));
    lineageCurrent(selectorLineage);
    phaseCostsMs[name]=tick()-start;return value;}
   catch{try{tick();}catch{/* Keep a finite historical phase duration even when late. */}
@@ -86,8 +130,10 @@ export async function observeSealedTypeScriptBaseCollectorLauncher({cwd,uid,file
  const historicalFailure=()=>[report.prerequisiteBuild,report.launcherBuild].some(build=>build?.builds?.some(row=>
   row.pidObserved===true&&Number.isInteger(row.status)&&row.status>0&&row.status<=255&&row.signal===null&&row.spawnError==='NONE'));
  try{
-  remaining();selector=directory(); // RAW local guard BEFORE any platform probe/import/fixture/build.
-  selectorLineage=ancestorLineage();guard(mark(directory())===mark(selector));lineageCurrent(selectorLineage);
+  remaining();if(capture.selected){try{captureOpen();captureMark('testBody','entered');}catch{capture.failed=true;throw Error('OBSERVATION_PHASE_CAPTURE_UNKNOWN');}}
+  captureMark('selectorSnapshot','validation');remaining();captureMark('selectorSnapshot','before');remaining();
+  selector=directory(); // RAW local guard BEFORE any platform probe/import/fixture/build.
+  selectorLineage=ancestorLineage();guard(mark(directory())===mark(selector));lineageCurrent(selectorLineage);captureMark('selectorSnapshot','after');
   remaining();guard(filesystem.constants.O_NOFOLLOW!==undefined&&filesystem.constants.O_NONBLOCK!==undefined);
   await phase('preconditions',()=>{guard(platformReady()===true);});
   const operations=await phase('operationImports',loadOperations);
@@ -120,8 +166,8 @@ export async function observeSealedTypeScriptBaseCollectorLauncher({cwd,uid,file
   report.compilerBuildOutcome='EXIT_ZERO';
  report.counters=counters();report.phaseCostsMs={...phaseCostsMs};report.elapsedMs=clockUnavailable?null:totalElapsedMs;
  report.elapsedMsScope='PRE_PERSISTENCE_SNAPSHOT';report.phaseCostsScope='THROUGH_PRE_RECORD_VALIDATION';
- report.observationCompleted=false;report.recordVerified=false;
- let recordName=null,recordSha256=null,namedSnapshot;
+ report.observationCompleted=false;report.recordVerified=false;report.phaseCapture=captureSnapshot();
+ let recordName=null,recordSha256=null,namedSnapshot,recordParentSnapshot;
  try{
   remaining();const parentBefore=directory(),saveLineage=ancestorLineage();lineageCurrent(selectorLineage);
   // Retain even early refusals without requiring a newly minted fixture label.
@@ -129,7 +175,7 @@ export async function observeSealedTypeScriptBaseCollectorLauncher({cwd,uid,file
   guard(body.length<=65536&&filesystem.constants.O_NOFOLLOW!==undefined&&filesystem.constants.O_NONBLOCK!==undefined);
   persistenceStarted=true;
   await phase('persistence',()=>{filesystem.writeFileSync(file,body,{mode:0o600,flag:'wx'});});
-  const parent=directory();guard(identity(parent)===identity(parentBefore));lineageCurrent(saveLineage);
+  const parent=directory();recordParentSnapshot=parent;guard(identity(parent)===identity(parentBefore));lineageCurrent(saveLineage);
   await phase('recordReadback',()=>{
    const named=filesystem.lstatSync(file,{bigint:true});namedSnapshot=named;
    const regular=s=>s.isFile()&&!s.isSymbolicLink()&&s.uid===BigInt(uid)&&s.nlink===1n&&(s.mode&0o7777n)===0o600n&&s.size===BigInt(body.length);
@@ -147,7 +193,7 @@ export async function observeSealedTypeScriptBaseCollectorLauncher({cwd,uid,file
   const summary=JSON.stringify({scope:report.scope,buildSequenceOutcome:report.buildSequenceOutcome,compilerBuildOutcome:report.compilerBuildOutcome,
    ...counters(),recordName,sha256:recordSha256,phaseCostsMs:{...phaseCostsMs,publication:null,finalRecordBarrier:null},
    elapsedMs:totalElapsedMs,elapsedMsScope:'PRE_PUBLICATION_SNAPSHOT',observationStatus:'PENDING_FINAL_BUDGET_CHECK',
-   observationCompleted:false,recordVerified:false,helperExecutions:0,nativeAgentLaunches:0,models:0,compilerCheckExecutions:0,receiptWrites:0,sealed:false,reuseEligible:false});
+   observationCompleted:false,recordVerified:false,helperExecutions:0,nativeAgentLaunches:0,models:0,compilerCheckExecutions:0,receiptWrites:0,sealed:false,reuseEligible:false,phaseCapture:captureSnapshot()});
   remaining();await phase('publication',()=>diagnostic(summary));
   await phase('finalRecordBarrier',()=>{lineageCurrent(saveLineage);guard(mark(filesystem.lstatSync(file,{bigint:true}))===mark(namedSnapshot)&&mark(directory())===mark(parent));});
   tick();recordVerified=true;
@@ -157,8 +203,25 @@ export async function observeSealedTypeScriptBaseCollectorLauncher({cwd,uid,file
    observationCompleted:false,recordVerified:false,helperExecutions:0,nativeAgentLaunches:0,models:0,compilerCheckExecutions:0,receiptWrites:0,sealed:false,reuseEligible:false}));
   try{tick();}catch{/* Failed publication cannot repair budget/clock/currentness. */}
  }
- return{completed,recordVerified,report,recordName,recordSha256,totalElapsedMs,totalElapsedMsScope:'THROUGH_PUBLICATION_AND_FINAL_RECORD_BARRIER',
-  phaseCostsMs,phaseCostsScope:'THROUGH_PUBLICATION_AND_FINAL_RECORD_BARRIER',outcome:clockUnavailable||budgetExceeded||!recordVerified?'UNKNOWN':completed?'BUILT_NOT_EXECUTED':historicalFailure()?'FAIL':'UNKNOWN',
+ if(capture.selected&&capture.fd!==undefined){
+  const closeStarted=last;let closeFailed=false;
+  try{const s=filesystem.fstatSync(capture.fd,{bigint:true});guard(captureRegular(s,capture.bytesWritten)&&mark(s)===capture.mark);
+   captureNamedCurrent(s);remaining();}catch{closeFailed=true;}
+  finally{try{filesystem.closeSync(capture.fd);}catch{closeFailed=true;}capture.fd=undefined;}
+  try{remaining();guard(!capture.failed&&!closeFailed);const s=filesystem.lstatSync(capture.file,{bigint:true});guard(mark(s)===capture.mark);captureNamedCurrent(s);
+   // Capture finalization is later work: it cannot hide a changed saved record.
+   if(recordVerified)guard(mark(filesystem.lstatSync(path.join(local,recordName),{bigint:true}))===mark(namedSnapshot)&&mark(directory())===mark(recordParentSnapshot));
+   remaining();}
+  catch{capture.failed=true;completed=false;recordVerified=false;
+   diagnostic(JSON.stringify({scope:'BASE_COLLECTOR_LAUNCHER_RECORD_UNKNOWN',compilerBuildOutcome:report.compilerBuildOutcome,...counters(),
+    observationCompleted:false,recordVerified:false,helperExecutions:0,nativeAgentLaunches:0,models:0,compilerCheckExecutions:0,receiptWrites:0,sealed:false,reuseEligible:false,phaseCapture:captureSnapshot()}));
+   try{tick();}catch{/* Capture failure remains UNKNOWN. */}
+  }
+  phaseCostsMs.phaseCaptureClose=clockUnavailable?null:last-closeStarted;
+ }
+ const finalTimingScope=capture.selected?'THROUGH_PUBLICATION_FINAL_RECORD_BARRIER_AND_CAPTURE_CLOSE':'THROUGH_PUBLICATION_AND_FINAL_RECORD_BARRIER';
+ return{completed,recordVerified,report,recordName,recordSha256,phaseCapture:captureSnapshot(),totalElapsedMs,totalElapsedMsScope:finalTimingScope,
+  phaseCostsMs,phaseCostsScope:finalTimingScope,outcome:clockUnavailable||budgetExceeded||!recordVerified?'UNKNOWN':completed?'BUILT_NOT_EXECUTED':historicalFailure()?'FAIL':'UNKNOWN',
   observationStatus:clockUnavailable?'CLOCK_UNAVAILABLE':budgetExceeded?'BUDGET_EXCEEDED':completed&&recordVerified?'BUILT_NOT_EXECUTED':'UNKNOWN'};
 }
 
@@ -169,6 +232,7 @@ test('fresh three prerequisite builds and one fixed launcher build only; no fixe
 },async t=>{
  const observed=await observeSealedTypeScriptBaseCollectorLauncher({cwd:process.cwd(),uid:typeof process.getuid==='function'?process.getuid():undefined,
   filesystem:fs,now:()=>performance.now(),uuid:randomUUID,diagnostic:message=>t.diagnostic(message),
+  phaseCapture:process.env.REDUE_BASE_COLLECTOR_LAUNCHER_PHASE_CAPTURE==='1',
   platformReady:()=>process.env.REDUE_BASE_COLLECTOR_COPIES!=='1'&&process.env.REDUE_BASE_ASSETS_BUILD!=='1'&&
    process.platform==='darwin'&&process.arch==='arm64'&&process.version==='v22.13.0'&&
    ['getuid','geteuid','getgid','getegid'].every(key=>typeof process[key]==='function')&&
