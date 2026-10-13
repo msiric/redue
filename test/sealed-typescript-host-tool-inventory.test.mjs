@@ -11,9 +11,10 @@ import fs from 'node:fs';import path from 'node:path';import {createHash} from '
 const source=fs.readFileSync(new URL('./acceptance/sealed-typescript-host-tool-inventory.mjs',import.meta.url),'utf8');
 const sha=x=>createHash('sha256').update(x).digest('hex'),literal='/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk',selected='/Applications/Xcode_26.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk';
 const headers=['sys/stdio.h','sys/fcntl.h','fcntl.h','sys/mman.h','sys/stat.h','stdio.h','errno.h','unistd.h'];
+const requiredTools={clang:'/Library/Developer/CommandLineTools/usr/bin/clang',ld:'/Library/Developer/CommandLineTools/usr/bin/ld'},selectedTools={clang:'/Applications/Xcode_26.0.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang',ld:'/Applications/Xcode_26.0.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld'};
 const stock=['/private/etc/profile','/private/etc/bashrc','/bin/bash','/usr/libexec/path_helper'];
 function mock(){
- let ino=1,fd=100;const nodes=new Map(),fds=new Map(),state={opens:[],reads:[],realpaths:[],calls:[],selected,failPath:null,failCode:'ENOENT',afterRead:null,result:null,link:'private/etc'};
+ let ino=1,fd=100;const nodes=new Map(),fds=new Map(),state={opens:[],reads:[],realpaths:[],calls:[],selected,selectedTools:{...requiredTools},failPath:null,failCode:'ENOENT',afterRead:null,result:null,link:'private/etc'};
  const put=(p,kind='f',body='PUBLIC_MOCK',uid=0)=>nodes.set(p,{kind,body:Buffer.from(body),dev:1n,ino:BigInt(ino++),uid:BigInt(uid),gid:20n,mode:kind==='d'?0o40755n:kind==='l'?0o120777n:0o100644n,nlink:1n,size:BigInt(Buffer.byteLength(body)),mtimeNs:1n,ctimeNs:1n});
  const parents=p=>{for(let a=path.posix.dirname(p);;a=path.posix.dirname(a)){if(!nodes.has(a))put(a,'d','',0);if(a===path.posix.dirname(a))return;}};
  for(const p of ['/usr/bin/xcrun','/runtime/node','/Library/Developer/CommandLineTools/usr/bin/clang','/Library/Developer/CommandLineTools/usr/bin/ld',...stock]){parents(p);put(p,'f',p==='/runtime/node'?'MOCK_NODE':'PUBLIC_MOCK',p==='/runtime/node'?501:0);}
@@ -23,11 +24,11 @@ function mock(){
  const io={constants:{O_RDONLY:0,O_NOFOLLOW:1,O_NONBLOCK:2},lstatSync:stat,realpathSync:p=>{state.realpaths.push(p);stat(p);return p==='/etc'?'/private/etc':p;},readlinkSync:p=>{assert.equal(p,'/etc');return state.link;},
   openSync(p,flags){assert.equal(flags,3);stat(p);state.opens.push(p);const n=fd++;fds.set(n,p);return n;},fstatSync:n=>stat(fds.get(n)),
   readSync(n,b,o,l,p){const file=fds.get(n);state.reads.push(file);const r=nodes.get(file),count=r.body.copy(b,o,p,Math.min(p+l,r.body.length));state.afterRead?.(file);return count;},closeSync:n=>{assert(fds.has(n));fds.delete(n);}};
- const spawn=(file,argv,opts)=>{assert.equal(file,'/usr/bin/xcrun');assert.deepEqual(opts,{env:{},encoding:'utf8',timeout:5000,maxBuffer:4096,killSignal:'SIGKILL'});state.calls.push([...argv]);return state.result??{pid:1234,status:0,signal:null,stderr:'',stdout:(argv[0]==='--sdk'?state.selected:argv[1]==='clang'?'/Library/Developer/CommandLineTools/usr/bin/clang':'/Library/Developer/CommandLineTools/usr/bin/ld')+'\n'};};
+ const spawn=(file,argv,opts)=>{assert.equal(file,'/usr/bin/xcrun');assert.deepEqual(opts,{env:{},encoding:'utf8',timeout:5000,maxBuffer:4096,killSignal:'SIGKILL'});state.calls.push([...argv]);return state.result??{pid:1234,status:0,signal:null,stderr:'',stdout:(argv[0]==='--sdk'?state.selected:state.selectedTools[argv[1]])+'\n'};};
  const p={platform:'darwin',arch:'arm64',version:'v22.13.0',execPath:'/runtime/node',getuid:()=>501,geteuid:()=>501,getgid:()=>20,getegid:()=>20};
  const code=source.slice(0,source.indexOf('if(process.argv[1]')).replace(/^import .*;$/gm,'').replaceAll('export function ','function ').replace('5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc',sha('MOCK_NODE'));
  const inventory=Function('fs','path','os','createHash','spawnSync','process',code+';return inventoryPublicSealedTools;')(io,path,{release:()=> 'SYNTHETIC_OS_NOT_ACCEPTANCE'},createHash,spawn,p);
- return {inventory,state,nodes,fds,put,process:p};
+ return {inventory,state,nodes,fds,put,parents,process:p};
 }
 function noAuthority(report){assert.equal(report.profileApproved,false);for(const k of ['sealed','reuseEligible'])assert.equal(report[k],false);for(const k of ['models','nativeAgentLaunches','compilerCheckExecutions'])assert.equal(report[k],0);assert.equal(JSON.stringify(report).includes('PROTECTED_PRIVATE_ERROR'),false);assert.equal(Object.hasOwn(report,'environment'),false);}
 test('fixed mocks capture selected and requiredSDK independently plus allstdio/startup publicfiles',()=>{
@@ -60,4 +61,18 @@ test('unsupported platform or injected options cannot request additional paths',
 });
 test('source performs fixed hashes/aliasmetadata only, no directorybody walk or envdump/newexecution',()=>{
  assert.doesNotMatch(source,/process\.env|readdir|readFileSync|copyFile|writeFile|mkdtemp|spawn\(|execFile|fetch\(|http\.request/);assert.equal((source.match(/spawnSync\(/g)??[]).length,1);assert(source.includes("spawnSync('/usr/bin/xcrun'"));
+});
+
+test('selected Xcode tools and literal required CLT tools retain independent canonical identity and bytes',()=>{
+ const m=mock();for(const name of ['clang','ld']){m.state.selectedTools[name]=selectedTools[name];m.parents(selectedTools[name]);m.put(selectedTools[name],'f','SELECTED_XCODE_'+name);}
+ const r=m.inventory();noAuthority(r);assert.equal(r.outcome,'PUBLIC_TOOL_BYTES_OBSERVED_NOT_ACCEPTED');for(const name of ['clang','ld']){assert.equal(r.tools[name].canonical,selectedTools[name]);assert.equal(r.requiredTools[name].canonical,requiredTools[name]);assert.notEqual(r.tools[name].sha256,r.requiredTools[name].sha256);}assert.equal(m.fds.size,0);
+});
+for(const name of ['clang','ld'])test('missing literal CLT '+name+' is UNKNOWN while selected Xcode bytes remain observed',()=>{
+ const m=mock();for(const n of ['clang','ld']){m.state.selectedTools[n]=selectedTools[n];m.parents(selectedTools[n]);m.put(selectedTools[n],'f','SELECTED_XCODE_'+n);}m.nodes.delete(requiredTools[name]);const r=m.inventory();noAuthority(r);assert.equal(r.outcome,'UNKNOWN');assert.equal(r.phase,'COMPLETE_WITH_UNKNOWN');assert.deepEqual(r.failures,[{phase:'REQUIRED_LITERAL_TOOL:'+name,code:'ENOENT'}]);assert(r.tools[name].sha256);assert.deepEqual(r.requiredTools[name],{canonical:requiredTools[name]});assert.equal(Object.keys(r.stockStartup).length,4);assert.equal(m.fds.size,0);
+});
+for(const name of ['clang','ld'])test('late required CLT '+name+' mutation remains UNKNOWN despite valid selected Xcode bytes',()=>{
+ const m=mock();for(const n of ['clang','ld']){m.state.selectedTools[n]=selectedTools[n];m.parents(selectedTools[n]);m.put(selectedTools[n],'f','SELECTED_XCODE_'+n);}m.state.afterRead=p=>{if(p===requiredTools[name])m.nodes.get(p).ino++;};const r=m.inventory();noAuthority(r);assert.equal(r.outcome,'UNKNOWN');assert.deepEqual(r.failures,[{phase:'REQUIRED_LITERAL_TOOL:'+name,code:'UNSUPPORTED_OR_CHANGED'}]);assert(r.tools[name].sha256);assert.equal(m.fds.size,0);
+});
+for(const [name,limit]of [['clang',128*1024*1024],['ld',16*1024*1024]])test('required CLT '+name+' uses actual builder bound, not broader selected-tool bound',()=>{
+ const m=mock();for(const n of ['clang','ld']){m.state.selectedTools[n]=selectedTools[n];m.parents(selectedTools[n]);m.put(selectedTools[n],'f','SELECTED_XCODE_'+n);}m.nodes.get(requiredTools[name]).size=BigInt(limit+1);const r=m.inventory();noAuthority(r);assert.equal(r.outcome,'UNKNOWN');assert.deepEqual(r.failures,[{phase:'REQUIRED_LITERAL_TOOL:'+name,code:'UNSUPPORTED_OR_CHANGED'}]);assert(!m.state.opens.includes(requiredTools[name]));assert.equal(m.fds.size,0);
 });
