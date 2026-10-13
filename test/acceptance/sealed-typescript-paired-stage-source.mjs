@@ -4,18 +4,22 @@
 // Real control writes/restores change private fixture fingerprints: NEVER revive
 // or reinterpret old pair/source/build mints after such an operation.
 import {verifySealedTypeScriptBaseExchangePair} from './sealed-typescript-base-exchange-pair.mjs';
-import {verifySealedTypeScriptBaseExchangeAssets} from './sealed-typescript-base-exchange-assets.mjs';
+import {verifySealedTypeScriptBaseExchangeAssets,sealedTypeScriptBaseExchangeAssetsMatchPair} from './sealed-typescript-base-exchange-assets.mjs';
 import {prepareSealedTypeScriptNativeAssetsProposal} from './sealed-typescript-native-assets-proposal.mjs';
 import {createHash} from 'node:crypto';
 const fail=()=>{throw Object.assign(Error('PAIRED_STAGE_SOURCE_UNAVAILABLE'),{code:'PAIRED_STAGE_SOURCE_UNAVAILABLE'});};
 const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
 const sha=value=>createHash('sha256').update(value).digest('hex');
+const mintedSources=new WeakMap();
 const names={checker:'sealed-typescript-paired-stage-node.mjs',mapper:'sealed-typescript-paired-stage-map.c',exchange:'sealed-typescript-paired-stage-exchange.c'};
-function observe(pair,assetsBuild){const p=verifySealedTypeScriptBaseExchangePair(pair),h=verifySealedTypeScriptBaseExchangeAssets(assetsBuild);
+function observe(pair,assetsBuild){if(!sealedTypeScriptBaseExchangeAssetsMatchPair(assetsBuild,pair))fail();const p=verifySealedTypeScriptBaseExchangePair(pair),h=verifySealedTypeScriptBaseExchangeAssets(assetsBuild);
  if(p.outcome!=='BASE_EXCHANGE_PAIR_CURRENTLY_OBSERVED'||p.scope!=='FIXED_CI_SYNTHETIC_BASE_EXCHANGE_PAIR_MECHANICS_ONLY'||h.outcome!=='BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED'||h.scope!=='OBSERVED_BASE_EXCHANGE_BUILD_DATA_ONLY'||p.baseA!==h.baseA||p.baseB!==h.baseB||![p.baseA,p.baseB,h.hostBase].every(value=>typeof value==='string'&&/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}$/.test(value))||new Set([p.baseA,p.baseB,h.hostBase]).size!==3)fail();return{pair:p,assets:h};}
 export function prepareSealedTypeScriptPairedStageSource(options){
  if(!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==2||!['pair','assetsBuild'].every(key=>Object.hasOwn(options,key)&&Object.hasOwn(Object.getOwnPropertyDescriptor(options,key),'value')))fail();
- const {pair,assetsBuild}=options,before=observe(pair,assetsBuild),base=before.pair.baseA,hostBase=before.assets.hostBase;
+ const {pair,assetsBuild}=options,result=derive(pair,assetsBuild);mintedSources.set(result,{pair,assetsBuild,snapshot:JSON.stringify(result)});return result;
+}
+function derive(pair,assetsBuild){
+ const before=observe(pair,assetsBuild),base=before.pair.baseA,hostBase=before.assets.hostBase;
  // Access to pair.fixture is after actual private brand/currentness validation.
  const original=prepareSealedTypeScriptNativeAssetsProposal({fixture:pair.fixture});
  if(original.base!==base||original.scope!=='FIXED_SYNTHETIC_NATIVE_ASSETS_PROPOSAL_ONLY'||original.sources.length!==3)fail();
@@ -29,4 +33,17 @@ export function prepareSealedTypeScriptPairedStageSource(options){
   commands:[],helperExecutions:0,nativeLaunches:0,models:0,inferencePermitted:false,nativeEnforcement:'NOT_ESTABLISHED',sealed:false,reuseEligible:false,
   blockers:['CURRENT_PROTECTED_SOURCE_AND_BINARY_COPIES_NOT_PROVISIONED','EFFECTIVE_NATIVE_VIEW_AND_SAME_BOUNDARY_NOT_OBSERVED','FRESH_SYNTHETIC_PAIR_PER_ROUTE_REQUIRED','CONTROL_WRITES_RESTORES_INVALIDATE_ORIGINAL_PRIVATE_FIXTURE_MINT','DISTINCT_NODE_MAPPING_STAGE_EXCHANGE_PROTOCOLS_NOT_COMPOSED','OTHER_NATIVE_STAGE_ASSERTIONS_REMAIN_NOT_IMPLEMENTED'],
   preservesExistingAssertions:true,assertionAggregation:'NOT_ESTABLISHED',originalSixCheckClosure:'SEPARATE_UNCHANGED'});
+}
+
+// Identity queries select no files and disclose no private mint. Public reports,
+// copied source objects and equal A/B/H labels cannot adopt this derivation.
+export function sealedTypeScriptPairedStageSourceMatchesDerivation(source,pair,assetsBuild){
+ const record=mintedSources.get(source);return arguments.length===3&&!!record&&!record.invalid&&record.pair===pair&&record.assetsBuild===assetsBuild;
+}
+export function verifySealedTypeScriptPairedStageSource(source){
+ const record=mintedSources.get(source),unknown=()=>freeze({schema:1,scope:'DISABLED_PAIRED_STAGE_ASSERTION_SOURCES_DATA_ONLY',outcome:'UNKNOWN',commands:[],sealed:false,reuseEligible:false});
+ if(!record||record.invalid)return unknown();
+ try{if(JSON.stringify(derive(record.pair,record.assetsBuild))!==record.snapshot)fail();
+  return freeze({schema:1,scope:'DISABLED_PAIRED_STAGE_ASSERTION_SOURCES_DATA_ONLY',outcome:'PAIRED_STAGE_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED',baseA:source.baseA,baseB:source.baseB,hostBase:source.hostBase,node:source.node,bindings:source.bindings,commands:[],nativeEnforcement:'NOT_ESTABLISHED',sealed:false,reuseEligible:false});
+ }catch{record.invalid=true;return unknown();}
 }

@@ -11,6 +11,7 @@ import {prepareSealedTypeScriptNativeAssetsProposal} from './sealed-typescript-n
 import {verifySealedTypeScriptBaseCollectorSource,sealedTypeScriptBaseCollectorSourceMatchesAssets} from './sealed-typescript-base-collector-source.mjs';
 import {verifySealedTypeScriptBaseCollectorCopies,sealedTypeScriptBaseCollectorCopiesMatchSource} from './sealed-typescript-base-collector-copies.mjs';
 import {buildSealedTypeScriptNativeAssets,verifySealedTypeScriptNativeAssetsBuild,observeSealedTypeScriptNativeAssetsBuild,sealedAssetsBuildCompleted,sealedAssetsBuildProcessSummary} from './sealed-typescript-native-assets-build.mjs';
+import {verifySealedTypeScriptPairedStageSource,sealedTypeScriptPairedStageSourceMatchesDerivation} from './sealed-typescript-paired-stage-source.mjs';
 import {mark as profileMark,profiling} from '../../src/decision-profile.mjs';
 const mintedAssets=new WeakMap();
 const sha=value=>createHash('sha256').update(value).digest('hex'),guard=value=>{if(!value)throw Error('BASE_EXCHANGE_ASSETS_UNKNOWN');};
@@ -196,4 +197,78 @@ export function verifySealedTypeScriptBaseCollectorLauncherBuild(build){
 export function sealedTypeScriptBaseCollectorLauncherBuildMatchesDerivation(build,assets,source){
  const record=mintedLauncherBuilds.get(build);
  return arguments.length===3&&!!record&&!record.invalid&&record.assets===assets&&record.proposal===source;
+}
+
+// Exact original pair linkage only. No private-record getter or public adoption.
+export function sealedTypeScriptBaseExchangeAssetsMatchPair(assets,pair){
+ const record=mintedAssets.get(assets);return arguments.length===2&&!!record&&!record.invalid&&record.pair===pair;
+}
+
+// Fixed A-target assertions under H; the original H-target binaries cannot be
+// substituted. Engineering build data only: no copied Node/checker/helper runs.
+// Trusted/quiescent ancestry is still required; these guards are not sealing.
+const mintedPairedArtifacts=new WeakMap();
+const pairedKinds=['checker','mapper','exchange'];
+const pairedNames=['sealed-typescript-paired-stage-node.mjs','sealed-typescript-paired-stage-map.c','sealed-typescript-paired-stage-exchange.c'];
+const pairedPins=['d206de2e8fa469768aecec6e7bf276a935a0071c470aa5b1ad053de6dd649671','14ed107ff8e48e539c172c49aee88830f44eac0d037463d97b45fc54d8e3b070','06e5da5dca906063762410f40bea9b7f99662cb6a62934ee50749a7b41162e48'];
+const pairedAuthorityFalse=fields=>freeze({schema:1,scope:'PAIRED_STAGE_ENGINEERING_ARTIFACTS_DATA_ONLY',...fields,commands:[],recordAdoptionAuthority:false,compilerCheckExecutions:0,helperExecutions:0,nativeAgentLaunches:0,models:0,nativeEnforcement:'NOT_ESTABLISHED',noInheritedWritableHandlesVerified:false,sealed:false,reuseEligible:false});
+function pairedDependencies(record){
+ guard(sealedTypeScriptBaseExchangeAssetsMatchPair(record.assetsBuild,record.pair)&&sealedTypeScriptPairedStageSourceMatchesDerivation(record.proposal,record.pair,record.assetsBuild));
+ const assets=verifySealedTypeScriptBaseExchangeAssets(record.assetsBuild),source=verifySealedTypeScriptPairedStageSource(record.proposal);
+ guard(assets.scope==='OBSERVED_BASE_EXCHANGE_BUILD_DATA_ONLY'&&assets.outcome==='BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED'&&source.scope==='DISABLED_PAIRED_STAGE_ASSERTION_SOURCES_DATA_ONLY'&&source.outcome==='PAIRED_STAGE_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED'&&assets.baseA===source.baseA&&assets.baseB===source.baseB&&assets.hostBase===source.hostBase&&source.node===source.hostBase+'/runtime/node-v22.13.0-darwin-arm64/bin/node');
+ return{assets,source};
+}
+function pairedBoundary(record){guard(JSON.stringify(pairedDependencies(record))===JSON.stringify(record.before));for(const [file,before]of record.roots)guard(JSON.stringify(rootIdentity(file))===JSON.stringify(before));}
+function pairedFilesCurrent(record){
+ pairedBoundary(record);for(const row of record.rows)current(row);pairedBoundary(record);
+ for(const row of record.rows)current(row);pairedBoundary(record);
+ // Original/runtime/toolchain validation after all new-file full reads, then
+ // every new named row. No inherited prior result grants continuing authority.
+ for(const [file,before]of record.roots)guard(JSON.stringify(rootIdentity(file))===JSON.stringify(before));
+ for(const row of record.rows)namedCurrent(row);
+}
+export function buildSealedTypeScriptPairedStageArtifacts(options){
+ if(!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==2||!['assetsBuild','source'].every(key=>Object.hasOwn(options,key)&&Object.hasOwn(Object.getOwnPropertyDescriptor(options,key),'value')))throw Object.assign(Error('PAIRED_STAGE_ARTIFACTS_OPTIONS'),{code:'PAIRED_STAGE_ARTIFACTS_OPTIONS'});
+ const {assetsBuild,source:proposal}=options,builds=[];let reason='PRIVATE_DERIVATION_UNAVAILABLE',report=null,record=null,dispatchAttemptCount=0,sourceWriteAttempts=0,fileCreateCount=0;
+ try{
+  const original=mintedAssets.get(assetsBuild);guard(original&&!original.invalid&&sealedTypeScriptPairedStageSourceMatchesDerivation(proposal,original.pair,assetsBuild));
+  const candidate={assetsBuild,proposal,pair:original.pair},before=pairedDependencies(candidate),h=before.assets.hostBase;
+  guard(typeof process.getuid==='function'&&process.getuid()>0&&['O_RDONLY','O_WRONLY','O_CREAT','O_EXCL','O_NOFOLLOW','O_NONBLOCK'].every(key=>fs.constants[key]!==undefined));
+  guard(/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}$/.test(h)&&h!==before.assets.baseA&&h!==before.assets.baseB&&proposal.disabled===true&&proposal.scope==='DISABLED_PAIRED_STAGE_ASSERTION_SOURCES_DATA_ONLY'&&proposal.node===before.source.node&&JSON.stringify(proposal.bindings)===JSON.stringify(before.source.bindings));
+  const sources=proposal.sources;guard(Array.isArray(sources)&&sources.length===3);
+  for(let at=0;at<3;at++){const row=sources[at];guard(row&&Object.getPrototypeOf(row)===Object.prototype&&Reflect.ownKeys(row).length===6&&['kind','file','templateSha256','source','sha256','sourceBytes'].every(key=>Object.hasOwn(Object.getOwnPropertyDescriptor(row,key)??{},'value'))&&row.kind===pairedKinds[at]&&row.file===h+'/prefix/native-probes/'+pairedNames[at]&&row.templateSha256===pairedPins[at]&&typeof row.source==='string'&&Buffer.from(row.source).toString('utf8')===row.source&&Number.isInteger(row.sourceBytes)&&row.sourceBytes>0&&row.sourceBytes<=1048576&&row.sourceBytes===Buffer.byteLength(row.source)&&sha(row.source)===row.sha256);}
+  const roots=[before.assets.baseA,before.assets.baseB,h,h+'/prefix',h+'/prefix/native-probes'].map(file=>[file,rootIdentity(file)]);
+  Object.assign(candidate,{before,roots,rows:[]});pairedBoundary(candidate);
+  const tool=prepareSealedTypeScriptNativeAssetsProposal({fixture:original.hostFixture});guard(tool.scope==='FIXED_SYNTHETIC_NATIVE_ASSETS_PROPOSAL_ONLY'&&tool.base===h&&tool.bindings.node===before.source.node&&tool.proposedBuilds.length===2);
+  const flags=['-std=c11','-O2','-Wall','-Wextra','-Werror','-fstack-protector-strong','-arch','arm64','-mmacosx-version-min=26.0','-isysroot','/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk'];
+  for(let at=0;at<2;at++){const operation=tool.proposedBuilds[at],oldFile=h+'/prefix/native-probes/'+['sealed-typescript-map-sentinel.c','sealed-typescript-exchange-sentinel.c'][at];guard(operation.disabled===true&&operation.executable==='/Library/Developer/CommandLineTools/usr/bin/clang'&&JSON.stringify(operation.argv)===JSON.stringify([...flags,oldFile,'-o',oldFile.slice(0,-2)]));}
+  pairedBoundary(candidate);for(const row of sources)absent(row.file);for(const row of sources.slice(1))absent(row.file.slice(0,-2));
+  reason='SOURCE_CREATE_UNAVAILABLE';for(const source of sources){
+   pairedBoundary(candidate);for(const row of candidate.rows)namedCurrent(row);const lineage=parents(source.file);let fd,writtenMark,failure=false;
+   try{sourceWriteAttempts++;fd=fs.openSync(source.file,fs.constants.O_WRONLY|fs.constants.O_CREAT|fs.constants.O_EXCL|fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK,0o600);fileCreateCount++;
+    const before=fs.fstatSync(fd,{bigint:true});guard(before.isFile()&&!before.isSymbolicLink()&&before.uid===BigInt(process.getuid())&&before.nlink===1n&&(before.mode&0o7777n)===0o600n&&before.size===0n);
+    const bytes=Buffer.from(source.source);let at=0;while(at<bytes.length){const n=fs.writeSync(fd,bytes,at,bytes.length-at,at);guard(Number.isInteger(n)&&n>0&&n<=bytes.length-at);at+=n;}
+    const after=fs.fstatSync(fd,{bigint:true});guard(['dev','ino','mode','uid','gid','nlink'].every(key=>after[key]===before[key])&&after.size===BigInt(source.sourceBytes));writtenMark=mark(after);guard(mark(fs.lstatSync(source.file,{bigint:true}))===writtenMark&&JSON.stringify(parents(source.file))===JSON.stringify(lineage));
+   }catch{failure=true;}finally{if(fd!==undefined)try{fs.closeSync(fd);}catch{failure=true;}}guard(!failure);
+   reason='SOURCE_READBACK_UNAVAILABLE';const row=bounded(source.file,1048576,source.sha256);guard(row.mark===writtenMark&&JSON.stringify(row.lineage)===JSON.stringify(lineage)&&(fs.lstatSync(source.file,{bigint:true}).mode&0o7777n)===0o600n);candidate.rows.push(row);pairedBoundary(candidate);for(const row of candidate.rows)namedCurrent(row);reason='SOURCE_CREATE_UNAVAILABLE';
+  }
+  for(let at=0;at<2;at++){
+   pairedBoundary(candidate);for(const row of candidate.rows)current(row);pairedBoundary(candidate);for(const row of candidate.rows)namedCurrent(row);
+   const operation=tool.proposedBuilds[at],file=sources[at+1].file,output=file.slice(0,-2),argv=[...operation.argv.slice(0,-3),file,'-o',output];absent(output);
+   reason='COMPILER_BUILD_UNAVAILABLE';dispatchAttemptCount++;const result=spawnSync(operation.executable,argv,{cwd:h+'/prefix/native-probes',env:{TMPDIR:h},timeout:5000,maxBuffer:4096,killSignal:'SIGKILL',encoding:'utf8'});
+   builds.push(sealedAssetsBuildProcessSummary(result));guard(sealedAssetsBuildCompleted(result));reason='BINARY_READBACK_UNAVAILABLE';const binary=bounded(output,2*1024*1024);guard(binary.arm64Header);candidate.rows.push(binary);
+  }
+  reason='BOUNDARY_CHANGED';pairedFilesCurrent(candidate);record=candidate;
+  report={baseA:before.assets.baseA,baseB:before.assets.baseB,hostBase:h,bindings:before.source.bindings,sources:candidate.rows.slice(0,3).map((row,at)=>({kind:pairedKinds[at],file:row.file,sha256:row.digest,mark:row.mark,lineage:row.lineage,templateSha256:pairedPins[at]})),binaries:candidate.rows.slice(3).map((row,at)=>({kind:pairedKinds[at+1],file:row.file,sha256:row.digest,mark:row.mark,lineage:row.lineage}))};
+ }catch{/* Static reason and true child summaries only. Partial H is preserved. */}
+ const result=pairedAuthorityFalse({outcome:report?'BUILT_NOT_EXECUTED':'UNKNOWN',reason_code:report?'BUILT_NOT_EXECUTED':reason,report,builds,sourceWriteAttempts,fileCreateCount,dispatchAttemptCount,dispatchResultCount:builds.length,observedProcessCount:builds.filter(row=>row.pidObserved===true).length});
+ if(record)mintedPairedArtifacts.set(result,record);return result;
+}
+export function verifySealedTypeScriptPairedStageArtifacts(build){
+ const record=mintedPairedArtifacts.get(build),unknown=()=>pairedAuthorityFalse({outcome:'UNKNOWN'});if(!record||record.invalid)return unknown();
+ try{pairedFilesCurrent(record);return pairedAuthorityFalse({outcome:'PAIRED_STAGE_ARTIFACTS_CURRENTLY_OBSERVED_NOT_EXECUTED',baseA:record.before.assets.baseA,baseB:record.before.assets.baseB,hostBase:record.before.assets.hostBase,bindings:record.before.source.bindings});}
+ catch{record.invalid=true;return unknown();}
+}
+export function sealedTypeScriptPairedStageArtifactsMatchDerivation(build,assetsBuild,source){
+ const record=mintedPairedArtifacts.get(build);return arguments.length===3&&!!record&&!record.invalid&&record.assetsBuild===assetsBuild&&record.proposal===source;
 }
