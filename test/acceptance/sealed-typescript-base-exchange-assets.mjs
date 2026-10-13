@@ -15,6 +15,7 @@ import {verifySealedTypeScriptPairedStageSource,sealedTypeScriptPairedStageSourc
 import {verifySealedTypeScriptFixedCampaignCopies,sealedTypeScriptFixedCampaignCopiesMatchDerivation} from './sealed-typescript-fixed-campaign-copies.mjs';
 import {mark as profileMark,profiling} from '../../src/decision-profile.mjs';
 const mintedAssets=new WeakMap();
+const activeBaseAssetsObservations=new WeakMap();
 const sha=value=>createHash('sha256').update(value).digest('hex'),guard=value=>{if(!value)throw Error('BASE_EXCHANGE_ASSETS_UNKNOWN');};
 const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
 const mark=stat=>['dev','ino','mode','uid','gid','nlink','size','mtimeNs','ctimeNs'].map(key=>String(stat[key])).join(':');
@@ -59,6 +60,7 @@ export function buildSealedTypeScriptBaseExchangeAssets(options){
 export function verifySealedTypeScriptBaseExchangeAssets(build){
  const record=mintedAssets.get(build),unknown=()=>freeze({schema:1,scope:'OBSERVED_BASE_EXCHANGE_BUILD_DATA_ONLY',outcome:'UNKNOWN',commands:[],sealed:false,reuseEligible:false});
  if(!record||record.invalid)return unknown();
+ const enclosing=activeBaseAssetsObservations.get(build);if(enclosing){try{enclosing.barrier();return baseAssetsObserved(record);}catch{enclosing.failed=true;record.invalid=true;return unknown();}}
  try{const boundary=()=>{guard(JSON.stringify(verifySealedTypeScriptBaseExchangePair(record.pair))===JSON.stringify(record.initialPair)&&verifySealedTypeScriptSyntheticFixture(record.hostFixture).outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED');for(const [file,before] of record.roots)guard(JSON.stringify(rootIdentity(file))===JSON.stringify(before));};
   boundary();observeSealedTypeScriptNativeAssetsBuild(record.hostBuild,lateNativeBarrier=>{
    current(record.source);current(record.binary);boundary();lateNativeBarrier();
@@ -72,6 +74,27 @@ export function verifySealedTypeScriptBaseExchangeAssets(build){
  }catch{record.invalid=true;return unknown();}
 }
 
+
+function baseAssetsBoundary(record){guard(JSON.stringify(verifySealedTypeScriptBaseExchangePair(record.pair))===JSON.stringify(record.initialPair)&&verifySealedTypeScriptSyntheticFixture(record.hostFixture).outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED');for(const[file,before]of record.roots)guard(JSON.stringify(rootIdentity(file))===JSON.stringify(before));}
+function baseAssetsNamedRows(record){for(const row of [record.source,record.binary])namedCurrent(row);}
+function baseAssetsObserved(record){return freeze({schema:1,scope:'OBSERVED_BASE_EXCHANGE_BUILD_DATA_ONLY',outcome:'BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED',baseA:record.initialPair.baseA,baseB:record.initialPair.baseB,hostBase:record.roots[2][0],commands:[],sealed:false,reuseEligible:false});}
+// Same private build, one synchronous call only. Full native/base hashing is
+// unchanged before enabling nested metadata observations. The live native
+// barrier is not a cached success; fixtures, inventories, SDK, rows and ancestry
+// remain checked every time. Consumer files must be checked AFTER this closes.
+export function observeSealedTypeScriptBaseExchangeAssets(build,inspect){
+ const enclosing=activeBaseAssetsObservations.get(build),record=mintedAssets.get(build);if(enclosing){enclosing.failed=true;if(record)record.invalid=true;guard(false);}
+ guard(arguments.length===2&&typeof inspect==='function'&&Object.getPrototypeOf(inspect)===Function.prototype&&record&&!record.invalid);
+ const operation={failed:false,enabled:false,barrier:null};let active=true;
+ operation.barrier=()=>{try{guard(active&&operation.enabled&&!operation.failed&&!record.invalid);baseAssetsBoundary(record);operation.nativeBarrier();baseAssetsNamedRows(record);baseAssetsBoundary(record);operation.nativeBarrier();baseAssetsNamedRows(record);}catch(error){operation.failed=true;record.invalid=true;throw error;}};
+ activeBaseAssetsObservations.set(build,operation);
+ try{observeSealedTypeScriptNativeAssetsBuild(record.hostBuild,nativeBarrier=>{
+   baseAssetsBoundary(record);current(record.source);current(record.binary);baseAssetsBoundary(record);nativeBarrier();
+   current(record.source);current(record.binary);baseAssetsBoundary(record);nativeBarrier();baseAssetsNamedRows(record);
+   operation.nativeBarrier=nativeBarrier;operation.enabled=true;guard(inspect(operation.barrier)===undefined&&!operation.failed);operation.barrier();operation.enabled=false;
+  });baseAssetsBoundary(record);baseAssetsNamedRows(record);guard(!operation.failed&&!record.invalid);
+ }catch(error){operation.failed=true;record.invalid=true;throw error;}finally{active=false;operation.enabled=false;operation.nativeBarrier=null;activeBaseAssetsObservations.delete(build);}
+}
 
 // Fixed launcher-only engineering build. Source, four JS copies and original
 // assets must be the same live private derivation; labels cannot adopt them.
@@ -284,11 +307,13 @@ const campaignLauncherAuthority=fields=>freeze({schema:1,scope:'FIXED_CAMPAIGN_L
 function campaignLauncherDependencies(record){
  const original=mintedAssets.get(record.assetsBuild);
  guard(original&&!original.invalid&&sealedTypeScriptPairedStageSourceMatchesDerivation(record.pairedSource,original.pair,record.assetsBuild)&&sealedTypeScriptPairedStageArtifactsMatchDerivation(record.pairedArtifacts,record.assetsBuild,record.pairedSource)&&sealedTypeScriptFixedCampaignCopiesMatchDerivation(record.copies,record.assetsBuild,record.pairedArtifacts,record.pairedSource));
- const assets=verifySealedTypeScriptBaseExchangeAssets(record.assetsBuild),source=verifySealedTypeScriptPairedStageSource(record.pairedSource),artifacts=verifySealedTypeScriptPairedStageArtifacts(record.pairedArtifacts);
+ let assets,source,artifacts,template=null;observeSealedTypeScriptBaseExchangeAssets(record.assetsBuild,()=>{assets=verifySealedTypeScriptBaseExchangeAssets(record.assetsBuild);source=verifySealedTypeScriptPairedStageSource(record.pairedSource);artifacts=verifySealedTypeScriptPairedStageArtifacts(record.pairedArtifacts);
  guard(assets.scope==='OBSERVED_BASE_EXCHANGE_BUILD_DATA_ONLY'&&assets.outcome==='BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED'&&source.scope==='DISABLED_PAIRED_STAGE_ASSERTION_SOURCES_DATA_ONLY'&&source.outcome==='PAIRED_STAGE_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED'&&artifacts.scope==='PAIRED_STAGE_ENGINEERING_ARTIFACTS_DATA_ONLY'&&artifacts.outcome==='PAIRED_STAGE_ARTIFACTS_CURRENTLY_OBSERVED_NOT_EXECUTED');
  guard(['baseA','baseB','hostBase'].every(k=>assets[k]===source[k]&&assets[k]===artifacts[k])&&JSON.stringify(source.bindings)===JSON.stringify(artifacts.bindings));
- let template=null;if(record.templateSource){guard(sealedTypeScriptBaseCollectorSourceMatchesAssets(record.templateSource,record.assetsBuild));template=verifySealedTypeScriptBaseCollectorSource(record.templateSource);guard(template.scope==='DISABLED_FIXED_BASE_COLLECTOR_SOURCE_DATA_ONLY'&&template.outcome==='SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED'&&['baseA','baseB','hostBase'].every(k=>assets[k]===template[k]));}
- // Copy validation finishes after every original/template validation.
+ if(record.templateSource){guard(sealedTypeScriptBaseCollectorSourceMatchesAssets(record.templateSource,record.assetsBuild));template=verifySealedTypeScriptBaseCollectorSource(record.templateSource);guard(template.scope==='DISABLED_FIXED_BASE_COLLECTOR_SOURCE_DATA_ONLY'&&template.outcome==='SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED'&&['baseA','baseB','hostBase'].every(k=>assets[k]===template[k]));}
+ });
+ // A separate copies scope closes before this consumer is accepted. No nested
+ // consumer result or implicit observation joining can outlive an outer scope.
  const copies=verifySealedTypeScriptFixedCampaignCopies(record.copies);guard(copies.scope==='FIXED_CAMPAIGN_COPIES_DATA_ONLY'&&copies.outcome==='CAMPAIGN_COPIES_CURRENTLY_OBSERVED_NOT_EXECUTED'&&['baseA','baseB','hostBase'].every(k=>assets[k]===copies[k]));
  return{assets,source,artifacts,copies,template};
 }

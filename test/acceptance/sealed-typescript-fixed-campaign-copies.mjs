@@ -6,6 +6,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {prepareSealedTypeScriptFixedCampaignSource} from './sealed-typescript-fixed-campaign.mjs';
+import {observeSealedTypeScriptBaseExchangeAssets} from './sealed-typescript-base-exchange-assets.mjs';
 const minted=new WeakMap(),sha=value=>createHash('sha256').update(value).digest('hex');
 const fields=['dev','ino','mode','uid','gid','nlink','size','mtimeNs','ctimeNs'];
 const guard=value=>{if(!value)throw Error('CAMPAIGN_COPY_UNAVAILABLE');};
@@ -45,7 +46,7 @@ export function provisionSealedTypeScriptFixedCampaignCopies(options){
  if(arguments.length!==1||!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==3||!['assetsBuild','pairedArtifacts','pairedSource'].every(k=>Object.hasOwn(Object.getOwnPropertyDescriptor(options,k)??{},'value')))throw Object.assign(Error('CAMPAIGN_COPY_OPTIONS'),{code:'CAMPAIGN_COPY_OPTIONS'});
  const inputs=Object.freeze({assetsBuild:options.assetsBuild,pairedArtifacts:options.pairedArtifacts,pairedSource:options.pairedSource});
  let reason='SOURCE_UNAVAILABLE',fileCreateCount=0,directoryCreateCount=0,fileSyncCount=0,record=null,report=null;
- try{const before=observe(inputs),h=before.proposal.hostBase;reason='BINDINGS_UNAVAILABLE';guard(typeof process.getuid==='function'&&typeof process.geteuid==='function'&&typeof process.getgid==='function'&&typeof process.getegid==='function'&&process.getuid()>0&&process.getuid()===process.geteuid()&&process.getgid()===process.getegid()&&['O_NOFOLLOW','O_NONBLOCK','O_CREAT','O_EXCL','O_WRONLY'].every(k=>fs.constants[k]!==undefined));
+ try{observeSealedTypeScriptBaseExchangeAssets(inputs.assetsBuild,()=>{const before=observe(inputs),h=before.proposal.hostBase;reason='BINDINGS_UNAVAILABLE';guard(typeof process.getuid==='function'&&typeof process.geteuid==='function'&&typeof process.getgid==='function'&&typeof process.getegid==='function'&&process.getuid()>0&&process.getuid()===process.geteuid()&&process.getgid()===process.getegid()&&['O_NOFOLLOW','O_NONBLOCK','O_CREAT','O_EXCL','O_WRONLY'].every(k=>fs.constants[k]!==undefined));
   const directories=[h,h+'/prefix',h+'/prefix/native-probes'].map(directory),boundary=()=>{for(const row of directories)directoryCurrent(row);};
   reason='CREATE_UNAVAILABLE';for(const file of [h+'/prefix/test',h+'/prefix/test/acceptance',h+'/prefix/src']){boundary();fs.mkdirSync(file,{mode:0o700});directoryCreateCount++;directories.push(directory(file));boundary();}
   const sources=[...before.dependencies.map(row=>({file:row.destination,source:row.source,sourceBytes:row.sourceBytes,sha256:row.sha256})),{file:before.proposal.entry,source:before.proposal.source,sourceBytes:before.proposal.sourceBytes,sha256:before.proposal.sourceSha256}],rows=[];
@@ -53,12 +54,13 @@ export function provisionSealedTypeScriptFixedCampaignCopies(options){
    reason='READBACK_UNAVAILABLE';const row=read(source.file,source.sha256,true);guard(row.source===source.source&&row.mark===written&&JSON.stringify(row.lineage)===JSON.stringify(lineage));rows.push(row);boundary();reason='CREATE_UNAVAILABLE';}
   reason='BOUNDARY_CHANGED';record={inputs,before,directories,rows};sourceCurrent(record);for(const row of rows){const after=read(row.file,row.sha256,true);guard(JSON.stringify(after)===JSON.stringify(row));}boundary();sourceCurrent(record);boundary();named(before.prepared);for(const row of before.dependencies)named(row);for(const row of rows)named(row);
   report={bindings:{baseA:before.proposal.baseA,baseB:before.proposal.baseB,hostBase:h,node:before.proposal.node,entry:before.proposal.entry,cwd:before.proposal.cwd,campaignSha256:before.proposal.sourceSha256},files:rows.map(({file,sha256,sourceBytes,mark,lineage})=>({file,sha256,sourceBytes,mark,lineage})),fileBytesSynced:true,namespaceCrashRecoveryEstablished:false,launcherProvisioned:false};
- }catch{record=null;/* Keep true partial counts/paths; never delete, adopt or retry. */}
+  });guard(record&&report);for(const row of record.directories)directoryCurrent(row);named(record.before.prepared);for(const row of record.before.dependencies)named(row);for(const row of record.rows)named(row);
+ }catch{record=null;report=null;/* Keep true partial counts/paths; never delete, adopt or retry. */}
  const result=authority({outcome:report?'CAMPAIGN_COPIES_OBSERVED_NOT_EXECUTED':'UNKNOWN',reason_code:report?'COPIES_OBSERVED':reason,fileCreateCount,directoryCreateCount,fileSyncCount,report});if(record)minted.set(result,record);return result;
 }
 export function verifySealedTypeScriptFixedCampaignCopies(copies){
  const record=minted.get(copies),unknown=()=>authority({outcome:'UNKNOWN'});if(!record||record.invalid)return unknown();
- try{sourceCurrent(record);for(const row of record.directories)directoryCurrent(row);for(const row of record.rows)guard(JSON.stringify(read(row.file,row.sha256,true))===JSON.stringify(row));sourceCurrent(record);for(const row of record.directories)directoryCurrent(row);named(record.before.prepared);for(const row of record.before.dependencies)named(row);for(const row of record.rows)named(row);return authority({outcome:'CAMPAIGN_COPIES_CURRENTLY_OBSERVED_NOT_EXECUTED',...copies.report.bindings});}catch{record.invalid=true;return unknown();}
+ try{observeSealedTypeScriptBaseExchangeAssets(record.inputs.assetsBuild,()=>{sourceCurrent(record);for(const row of record.directories)directoryCurrent(row);for(const row of record.rows)guard(JSON.stringify(read(row.file,row.sha256,true))===JSON.stringify(row));sourceCurrent(record);for(const row of record.directories)directoryCurrent(row);named(record.before.prepared);for(const row of record.before.dependencies)named(row);for(const row of record.rows)named(row);});for(const row of record.directories)directoryCurrent(row);named(record.before.prepared);for(const row of record.before.dependencies)named(row);for(const row of record.rows)named(row);return authority({outcome:'CAMPAIGN_COPIES_CURRENTLY_OBSERVED_NOT_EXECUTED',...copies.report.bindings});}catch{record.invalid=true;return unknown();}
 }
 // Linkage is private identity only, not currentness, child authentication or a seal.
 export function sealedTypeScriptFixedCampaignCopiesMatchDerivation(copies,assetsBuild,pairedArtifacts,pairedSource){const record=minted.get(copies);return arguments.length===4&&!!record&&!record.invalid&&record.inputs.assetsBuild===assetsBuild&&record.inputs.pairedArtifacts===pairedArtifacts&&record.inputs.pairedSource===pairedSource;}
