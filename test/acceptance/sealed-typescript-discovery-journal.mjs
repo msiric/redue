@@ -7,6 +7,8 @@
 // Phase labels are engineering annotations, not proof of execution boundaries.
 // Reserve half the fixed8MiB child-response budget for graph/config metadata.
 // Overflow remains explicit partial logging, never complete query coverage.
+// Unsupported public fs calls still forward/count and latch incompleteness;
+// their unreviewed shapes are not serialized as supposedly supported frames.
 // Node's internalModuleStat/internalModuleReadJSON loader operations bypass these
 // public fs wrappers. Whole implementation/manifest binding remains mandatory;
 // no first-require or CLI/API query-completeness claim follows from this journal.
@@ -99,10 +101,10 @@ export function captureSealedTypeScriptDiscovery(options){
   };
   const next=()=>{if(calls<Number.MAX_SAFE_INTEGER)calls++;if(calls>SEALED_DISCOVERY_LIMITS.frames)invalidate('FRAME_LIMIT');return calls;};
   const forwarded=(operation,original)=>{
-    function wrapper(...args){const seq=next();if(!supportedFS.has(operation))invalidate('UNSUPPORTED_METHOD');
+    function wrapper(...args){const seq=next(),supported=supportedFS.has(operation);if(!supported)invalidate('UNSUPPORTED_METHOD');
       try{const result=new.target?Reflect.construct(original,args,new.target===wrapper?original:new.target):Reflect.apply(original,this,args);
-        record(seq,'fs',operation,args[0],args,result,undefined,false);return result;
-      }catch(error){record(seq,'fs',operation,args[0],args,undefined,error,true);throw error;}
+        if(supported)record(seq,'fs',operation,args[0],args,result,undefined,false);return result;
+      }catch(error){if(supported)record(seq,'fs',operation,args[0],args,undefined,error,true);throw error;}
     }
     const ownKeys=Reflect.ownKeys(original);if(ownKeys.length>SEALED_DISCOVERY_LIMITS.descriptors)fail('SEALED_DISCOVERY_FS');
     for(const key of ownKeys){

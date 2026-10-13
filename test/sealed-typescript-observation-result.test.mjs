@@ -140,3 +140,17 @@ test('file/config/frames count and cumulative byte limits fail closed without re
   const frames=fixture();frames.observation.journal.frames=new Array(limits.frames+1);rejected(frames);
   const bytes=fixture();bytes.observation.files=Array.from({length:2200},()=> 'x'.repeat(4096));rejected(bytes,'SEALED_OBSERVATION_SIZE');
 });
+
+// Node22 Buffer reads internally call exported descriptor operations. Their
+// omitted shapes must remain explicitly incomplete, not invalidate the whole
+// bounded diagnostic projection or become complete compiler-query coverage.
+test('unsupported close-shaped forwarding is counted but never serialized as an admitted method',()=>{
+  const fs={statSync(){return false;},readFileSync(){return Buffer.from('NONSECRET');},readdirSync(){return [];},realpathSync(path){return path;},closeSync(fd){assert.equal(fd,12);return undefined;}};
+  const value=fixture();value.observation.journal=capture({fileSystem:fs,root:'/owned/stage',callback(){fs.closeSync(12);}});
+  value.observation.observationStatus='INCOMPLETE';
+  assert.equal(value.observation.journal.callsObserved,1);assert.equal(value.observation.journal.frames.length,0);
+  assert.equal(value.observation.journal.loggingComplete,false);assert(value.observation.journal.reasonCodes.includes('UNSUPPORTED_METHOD'));
+  const result=validate(value);assert.equal(result.observation.journal.callsObserved,1);assert.equal(result.observation.journal.queryCompleteness,'NOT_ESTABLISHED');assert.equal(result.reuseEligible,false);
+  const injected=clone(value);injected.observation.journal.frames=[{sequence:1,phase:'load',category:'fs',operation:'closeSync',path:{scope:'unsupported'},argumentsSha256:h,outcome:{status:'RETURNED',value:{type:'undefined'}}}];
+  rejected(injected);
+});
