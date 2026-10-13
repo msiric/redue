@@ -88,6 +88,11 @@ function classificationShape(value){
   return value.byteStatus===(value.profileBytes<=65536?'WITHIN_65536':'EXCEEDS_65536')&&value.passed===(value.profileBytes<=65536&&value.rootLiteralRead&&value.publicReadSubpath&&!value.networkWildcard);
 }
 
+function sourceCompositionSuccessShape(value){
+  const keys=['schema','result','phase','profileSha256','profileBytes','classification','nativeLaunches','nativeEnforcement','bunEquivalence','sealed','reuseEligible'];
+  return value&&Object.getPrototypeOf(value)===Object.prototype&&Reflect.ownKeys(value).length===keys.length&&keys.every(key=>Object.hasOwn(value,key)&&Object.hasOwn(Object.getOwnPropertyDescriptor(value,key),'value'))&&value.schema===1&&value.result==='SOURCE_COMPOSITION_OBSERVED'&&value.phase==='CLASSIFY'&&typeof value.profileSha256==='string'&&/^[a-f0-9]{64}$/.test(value.profileSha256)&&Number.isInteger(value.profileBytes)&&value.profileBytes>0&&value.profileBytes<=65536&&value.nativeLaunches===0&&value.nativeEnforcement==='NOT_ESTABLISHED'&&value.bunEquivalence==='NOT_ESTABLISHED'&&value.sealed===false&&value.reuseEligible===false&&classificationShape(value.classification)&&value.classification.passed===true&&value.profileBytes===value.classification.profileBytes;
+}
+
 // Evaluation remains opt-in for the source-review checkpoint. This is not a
 // permission token for a native startup; no policy is installed or enforced.
 const evaluation={skip:publicNative&&process.env.REDUE_GENERATOR_SOURCE_EVALUATION==='1'?false:'Separate reviewed source-evaluation checkpoint not requested'};
@@ -114,8 +119,7 @@ console.log(JSON.stringify({schema:1,result:'SOURCE_COMPOSITION_OBSERVED',phase:
   let observed;try{observed=JSON.parse(result.stdout);}catch{assert.fail('BOUNDED_SOURCE_CHILD_PROTOCOL_UNKNOWN');}
   if(result.status!==0){const safe=observed&&Object.keys(observed).sort().join(',')==='classification,identifier,nativeLaunches,phase,reason_code,result,reuseEligible,schema,sealed'&&observed.schema===1&&observed.nativeLaunches===0&&observed.sealed===false&&observed.reuseEligible===false&&observed.result==='UNKNOWN'&&['COMPILE','INITIALIZE','GENERATE','CLASSIFY'].includes(observed.phase)&&['VM_TIMEOUT','SOURCE_IDENTITY_MISMATCH','PROFILE_CLASSIFICATION_UNKNOWN','REFERENCE_ERROR','SYNTAX_ERROR','TYPE_ERROR','UNKNOWN_OR_UNAVAILABLE'].includes(observed.reason_code)&&['NONE',...REFERENCE_NAMES].includes(observed.identifier)&&(observed.classification===null||classificationShape(observed.classification));
     assert.fail(safe?'SOURCE_EVALUATION_'+observed.phase+'_'+observed.reason_code+'_'+observed.identifier+'_'+JSON.stringify(observed.classification):'BOUNDED_SOURCE_CHILD_UNKNOWN');}
-  const validSuccess=observed&&Object.keys(observed).sort().join(',')==='bunEquivalence,classification,nativeEnforcement,nativeLaunches,phase,profileBytes,profileSha256,result,reuseEligible,schema,sealed'&&observed.schema===1&&observed.result==='SOURCE_COMPOSITION_OBSERVED'&&observed.phase==='CLASSIFY'&&/^[a-f0-9]{64}$/.test(observed.profileSha256)&&Number.isInteger(observed.profileBytes)&&observed.profileBytes>0&&observed.profileBytes<=65536&&observed.nativeLaunches===0&&observed.nativeEnforcement==='NOT_ESTABLISHED'&&observed.bunEquivalence==='NOT_ESTABLISHED'&&observed.sealed===false&&observed.reuseEligible===false&&classificationShape(observed.classification)&&observed.classification.passed===true;
-  assert(validSuccess,'BOUNDED_SOURCE_CHILD_PROTOCOL_UNKNOWN');
+  assert(sourceCompositionSuccessShape(observed),'BOUNDED_SOURCE_CHILD_PROTOCOL_UNKNOWN');
   assert.equal(observed.result,'SOURCE_COMPOSITION_OBSERVED');assert.equal(observed.phase,'CLASSIFY');assert.equal(observed.nativeLaunches,0);assert.equal(observed.nativeEnforcement,'NOT_ESTABLISHED');assert.equal(observed.bunEquivalence,'NOT_ESTABLISHED');assert.equal(observed.sealed,false);assert.equal(observed.reuseEligible,false);
   assert(!result.stdout.includes(base));assert(!result.stdout.includes('file-read'));assert(!result.stdout.includes('REDUE_ENGINEERING_SOURCE_ONLY'));
 }));
@@ -164,4 +168,13 @@ test('classification result omits profile/env/path bodies and does not invoke no
   const classified=generatedProfileClassification('NONSECRET_BODY ENV=VALUE /NONSECRET/path');assert(!JSON.stringify(classified).includes('NONSECRET'));assert(!JSON.stringify(classified).includes('VALUE'));
   assert.equal(classificationShape({...classified,private:'NONSECRET'}),false);assert.equal(classificationShape({...classified,profileBytes:-1}),false);assert.equal(classificationShape({...classified,passed:true}),false);assert.equal(classificationShape({...classified,byteStatus:'NOT_APPLICABLE'}),false);
   let getters=0;const getter={...classified};Object.defineProperty(getter,'passed',{get(){getters++;return true;}});assert.equal(classificationShape(getter),false);assert.equal(getters,0);
+});
+
+
+test('success record requires exact duplicated byte-count agreement, not independently plausible counts',()=>{
+  const profile='(allow file-read* (literal "/"))\n(subpath "/redue-engineering-public/node")',classification=generatedProfileClassification(profile);
+  const good={schema:1,result:'SOURCE_COMPOSITION_OBSERVED',phase:'CLASSIFY',profileSha256:'a'.repeat(64),profileBytes:classification.profileBytes,classification,nativeLaunches:0,nativeEnforcement:'NOT_ESTABLISHED',bunEquivalence:'NOT_ESTABLISHED',sealed:false,reuseEligible:false};
+  assert.equal(sourceCompositionSuccessShape(good),true);assert.equal(sourceCompositionSuccessShape({...good,profileBytes:good.profileBytes+1}),false);
+  assert.equal(sourceCompositionSuccessShape({...good,classification:{...classification,profileBytes:classification.profileBytes+1}}),false);
+  let getters=0;const getter={...good};Object.defineProperty(getter,'profileBytes',{get(){getters++;return good.profileBytes;}});assert.equal(sourceCompositionSuccessShape(getter),false);assert.equal(getters,0);
 });
