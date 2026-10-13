@@ -24,6 +24,7 @@ function resolvePublicTool(argv,kind){
  const value=result.stdout;guard(typeof value==='string'&&value.endsWith('\n')&&value.split('\n').length===2);
  const canonical=fs.realpathSync(value.slice(0,-1));guard(publicDeveloperPath(canonical,kind));return canonical;
 }
+const REQUIRED_TOOLS=[['clang','/Library/Developer/CommandLineTools/usr/bin/clang',128*1024*1024],['ld','/Library/Developer/CommandLineTools/usr/bin/ld',16*1024*1024]];
 const REQUIRED_SDK='/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk';
 const SDK_HEADERS=['sys/stdio.h','sys/fcntl.h','fcntl.h','sys/mman.h','sys/stat.h','stdio.h','errno.h','unistd.h'];
 const FILE_ERROR_CODES=new Set(['ENOENT','EACCES','EPERM','ENOTDIR','ELOOP','EINVAL','EBADF','EMFILE','ENFILE','EIO']);
@@ -43,7 +44,7 @@ function etcAlias(){
  return {symbolicLink:true,rootOwned:true,targetClassification:'EXPECTED_PRIVATE_ETC',canonicalMatch:true,closingIdentityChecked:true};
 }
 export function inventoryPublicSealedTools(){
- let phase='PROFILE',report={schema:1,scope:'PUBLIC_HOST_TOOL_INVENTORY_ONLY',outcome:'UNKNOWN',platform:process.platform,arch:process.arch,node:process.version,release:os.release(),tools:{},
+ let phase='PROFILE',report={schema:1,scope:'PUBLIC_HOST_TOOL_INVENTORY_ONLY',outcome:'UNKNOWN',platform:process.platform,arch:process.arch,node:process.version,release:os.release(),tools:{},requiredTools:{},
   requiredSdk:{canonical:REQUIRED_SDK,headers:{}},failures:[],stockStartup:{},etcAlias:null,profileApproved:false,models:0,nativeAgentLaunches:0,compilerCheckExecutions:0,sealed:false,reuseEligible:false};
  const noteFailure=(error,currentPhase)=>report.failures.push({phase:currentPhase,code:FILE_ERROR_CODES.has(error?.code)?error.code:'UNSUPPORTED_OR_CHANGED'});
  try{
@@ -55,9 +56,10 @@ export function inventoryPublicSealedTools(){
   phase='NODE';const runtime=fs.realpathSync(process.execPath);report.tools.node=publicFile(runtime,process.getuid(),128*1024*1024);
   guard(report.tools.node.sha256==='5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc');
   phase='SELECTED_TOOL_PATHS';const clang=resolvePublicTool(['--find','clang'],'CLANG'),ld=resolvePublicTool(['--find','ld'],'LD'),sdk=resolvePublicTool(['--sdk','macosx','--show-sdk-path'],'SDK');
-  phase='SELECTED_TOOL_BYTES';report.tools.clang=publicFile(clang,0,256*1024*1024);report.tools.ld=publicFile(ld,0,32*1024*1024);
+  phase='SELECTED_TOOL_BYTES';report.tools.clang={canonical:clang,...publicFile(clang,0,256*1024*1024)};report.tools.ld={canonical:ld,...publicFile(ld,0,32*1024*1024)};
   // Independent fixed groups retain partial facts even when the literal SDK
   // is absent. No dynamic file enumeration, imported paths or profile approval.
+  for(const [name,file,limit]of REQUIRED_TOOLS){const result=report.requiredTools[name]={canonical:file};try{Object.assign(result,publicFile(file,0,limit));}catch(error){noteFailure(error,'REQUIRED_LITERAL_TOOL:'+name);}}
   report.sdk={canonical:sdk,headers:{}};
   for(const [slot,result]of [['SELECTED_SDK_FILES',report.sdk],['REQUIRED_LITERAL_SDK_FILES',report.requiredSdk]])try{sdkFiles(result.canonical,result);}catch(error){noteFailure(error,slot);}
   for(const [file,limit]of [['/private/etc/profile',4096],['/private/etc/bashrc',4096],['/bin/bash',2*1024*1024],['/usr/libexec/path_helper',256*1024]])try{report.stockStartup[file]=publicFile(file,0,limit);}catch(error){noteFailure(error,'STOCK_STARTUP:'+file);}
