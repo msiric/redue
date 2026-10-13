@@ -2,7 +2,7 @@
 import {EventEmitter} from 'node:events';import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';import {createHash} from 'node:crypto';
 import {prepareSealedTypeScriptBaseCollectorSource as actual,verifySealedTypeScriptBaseCollectorSource as actualCurrent} from './acceptance/sealed-typescript-base-collector-source.mjs';
 const url=new URL('./acceptance/sealed-typescript-base-collector-source.mjs',import.meta.url),moduleSource=fs.readFileSync(url,'utf8');
-const files=['./sealed-typescript-base-child-collection.mjs','./sealed-typescript-base-exchange-result.mjs','../../src/portable-envelope.mjs'].map(rel=>fileURLToPath(new URL(rel,url)));
+const files=['./sealed-typescript-base-child-collection.mjs','./sealed-typescript-base-exchange-result.mjs','../../src/portable-envelope.mjs','./sealed-typescript-base-collector-launcher.c'].map(rel=>fileURLToPath(new URL(rel,url)));
 const bodies=files.map(file=>Buffer.from(fs.readFileSync(file,'utf8').replaceAll('\r\n','\n'))),sha=body=>createHash('sha256').update(body).digest('hex');
 const build=Object.freeze({report:Object.freeze({base:'/private/tmp/redue-ci-recipient-33333333',binary:Object.freeze({file:'/private/tmp/redue-ci-recipient-33333333/prefix/native-probes/sealed-typescript-base-exchange-sentinel',sha256:'b'.repeat(64)})})});
 const good=()=>({schema:1,scope:'OBSERVED_BASE_EXCHANGE_BUILD_DATA_ONLY',outcome:'BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED',baseA:'/private/tmp/redue-ci-recipient-11111111',baseB:'/private/tmp/redue-ci-recipient-22222222',hostBase:'/private/tmp/redue-ci-recipient-33333333',commands:[],sealed:false,reuseEligible:false});
@@ -37,3 +37,53 @@ test('final original asset revalidation cannot hide earlier dependency replaceme
 test('assets lost after final dependency hash prevent source currency',()=>{const m=mock(count=>count===4?{outcome:'UNKNOWN'}:good()),proposal=m.prepare(build);assert.equal(m.verify(proposal).outcome,'UNKNOWN');assert.equal(m.verify(proposal).outcome,'UNKNOWN');});
 
 test('deferred stdout error and write callback are nonthrowing and preserve the classified exit',async()=>{for(const kind of ['event','callback','both'])for(const outcome of ['UNKNOWN','FAIL']){const queued=[],error=Error('NONSECRET_PRIVATE_DEFERRED_ERROR');const value=await entryMock(p=>{p.stdout.write=(text,callback)=>{queued.push(()=>{if(kind!=='callback')p.stdout.emit('error',error);if(kind!=='event'){assert.equal(typeof callback,'function');callback(error);}});return false;};},{outcome,reason_code:'HELPER_RESULT_OBSERVED_WITH_MISSING_ASSERTIONS'});assert.equal(queued.length,1);assert.doesNotThrow(()=>queued[0]());assert.equal(value.process.exitCode,outcome==='FAIL'?1:74);assert.equal(value.output.length,0);assert.equal(value.calls.length,1);}});
+
+
+test('pre-Node launcher is fixed disabled source data and preserves the four-file copy interface',()=>{
+ const m=mock(),proposal=m.prepare(build),launch=proposal.proposedLauncher;
+ assert.equal(proposal.proposedSources.length,4);assert.equal(launch.disabled,true);
+ assert.equal(launch.file,proposal.bindings.hostBase+'/prefix/native-probes/base-exchange-collect-launch.c');
+ assert.equal(launch.output,proposal.bindings.launcher);assert.equal(launch.file,proposal.bindings.launcherSource);
+ assert.equal(launch.sha256,sha(launch.source));assert.equal(launch.sourceBytes,Buffer.byteLength(launch.source));
+ assert.equal(proposal.bindings.launcherSourceSha256,launch.sha256);
+ assert.equal(proposal.bindings.collectorSha256,proposal.proposedSources[3].sha256);
+ assert.equal(launch.templateSha256,sha(bodies[3]));assert(Object.isFrozen(launch));
+ assert(launch.source.includes('static const char node[] = "'+proposal.bindings.node+'";'));
+ assert(launch.source.includes('static const char collector[] = "'+proposal.bindings.entry+'";'));
+ assert(launch.source.includes('static const char launcher[] = "'+proposal.bindings.launcher+'";'));
+ assert(!launch.source.includes('__REVIEWED_'));assert.deepEqual(proposal.commands,[]);
+ for(const blocker of ['PRE_NODE_LAUNCHER_NOT_BUILT_OR_PROVISIONED','ENCLOSING_PARENT_MUST_PREVENT_LAUNCHER_PRE_MAIN_LOADER_INJECTION',
+ 'CURRENT_PINNED_NATIVE_EFFECTIVE_PROFILE_AUTH_AND_CAPACITY_REQUIRED','CURRENT_PROTECTED_SOURCE_AND_RUNTIME_COPIES_REQUIRED',
+ 'INHERITED_HANDLES_NOT_VERIFIED','TRUSTED_PARENT_SUPERVISION_REQUIRED','OTHER_STAGE_ASSERTIONS_NOT_IMPLEMENTED'])assert(proposal.blockers.includes(blocker));
+ assert.equal(m.verify(proposal).outcome,'SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED');
+});
+for(const change of ['content','identity','parent'])test('launcher template '+change+' invalidates the existing private source mint and never revives',()=>{
+ const m=mock(),proposal=m.prepare(build),file=change==='parent'?path.dirname(files[3]):files[3],row=m.nodes.get(file),saved={...row,body:row.body};
+ if(change==='content')row.body=Buffer.from(row.body.toString().replace('DISABLED','ENABLED!'));else row.ino+=1n;
+ assert.equal(m.verify(proposal).outcome,'UNKNOWN');Object.assign(row,saved);const before=m.counters();
+ assert.equal(m.verify(proposal).outcome,'UNKNOWN');assert.deepEqual(m.counters(),before);
+});
+test('serialized launcher bindings and source cannot mint source currentness or a build/copy command',()=>{
+ const m=mock(),proposal=m.prepare(build),forged=JSON.parse(JSON.stringify(proposal));
+ assert.equal(m.verify(forged).outcome,'UNKNOWN');assert.equal(actualCurrent(forged).outcome,'UNKNOWN');
+ assert.deepEqual(proposal.commands,[]);assert.equal(proposal.helperExecutions,0);assert.equal(proposal.nativeLaunches,0);
+ assert.equal(proposal.models,0);assert.equal(proposal.inferencePermitted,false);assert.equal(proposal.sealed,false);assert.equal(proposal.reuseEligible,false);
+});
+test('launcher template read after JS dependencies cannot conceal an earlier changed dependency',()=>{
+ const m=mock(),read=m.nodes.get(files[3]);
+ Object.defineProperty(read,'body',{get(){m.nodes.get(files[0]).ino+=1n;return bodies[3];}});
+ failure(()=>m.prepare(build),'BASE_COLLECTOR_SOURCE_CHANGED');assert.equal(m.counters().handles,0);
+});
+
+test('generated collector defense in depth rejects empty preload keys and ASCII case aliases with zero mocked helpers',async()=>{
+ for(const key of ['NODE_OPTIONS','node_options','NoDe_PaTh','NODE_REPL_EXTERNAL_MODULE','nOdE_rEpL_eXtErNaL_mOdUlE',
+ 'DYLD_','dyld_insert_libraries','LD_','lD_pReLoAd','OPENSSL_','oPeNsSl_cOnF']){
+  const value=await entryMock(p=>{p.env[key]='';});assert.equal(value.calls.length,0);
+  assert.equal(value.process.exitCode,74);assert.equal(JSON.parse(value.output[0]).outcome,'UNKNOWN');
+ }
+});
+test('preload-like value text and longer exact-key names preserve the inherited mock environment',async()=>{
+ const value=await entryMock(p=>{p.env.NODE_OPTIONS_EXTRA='NODE_OPTIONS=NONSECRET';p.env.SAFE='LD_PRELOAD=NONSECRET';});
+ assert.equal(value.calls.length,1);assert.equal(value.process.env,value.env);
+ assert(!value.output.join('').includes('NONSECRET'));assert.equal(JSON.parse(value.output[0]).outcome,'UNKNOWN');
+});

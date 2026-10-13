@@ -1,5 +1,7 @@
 // Disabled fixed collector source DATA only. Never writes, launches or adopts a
 // serialized build. Exact copied public dependencies preserve their imports.
+// The pre-Node launcher is a disabled source proposal; the existing four-file
+// copy/build/command interfaces are unchanged and cannot provision its binary.
 // A reviewed enclosing parent still owns native identity/effective policy/auth,
 // capacity, protected copies and supervision. Reads require trusted/quiescent
 // ancestry; these descriptor checks are not hostile-parent read confinement.
@@ -9,6 +11,8 @@ const pins=Object.freeze([
  ['./sealed-typescript-base-child-collection.mjs','test/acceptance/sealed-typescript-base-child-collection.mjs','e9c8fdb40201c25e84bef78b8b04b00850e738e663234183966d45f65006bdb3'],
  ['./sealed-typescript-base-exchange-result.mjs','test/acceptance/sealed-typescript-base-exchange-result.mjs','be2d30edf40597f52a6a9e919b5a3ee26e15bf0dc9f942badda0fb54db10b05d'],
  ['../../src/portable-envelope.mjs','src/portable-envelope.mjs','3a10d9546b5b71ceb99121412471f250676cb71a2c943532ddec39a3ac836482']]);
+const launcherTemplate=['./sealed-typescript-base-collector-launcher.c',null,'11a1092b2c94e723833e4b3cf2188b4db886f86adccbb3f962ce16ba019b4068'];
+const currencyPins=Object.freeze([...pins,launcherTemplate]);
 const mintedSources=new WeakMap();
 const sha=value=>createHash('sha256').update(value).digest('hex'),limit=1024*1024;
 const fail=code=>{throw Object.assign(Error(code),{code});};
@@ -32,13 +36,20 @@ export function prepareSealedTypeScriptBaseCollectorSource(build){
  const node=hostBase+'/runtime/node-v22.13.0-darwin-arm64/bin/node',entry=hostBase+'/prefix/native-probes/base-exchange-collect.mjs',helper=hostBase+'/prefix/native-probes/sealed-typescript-base-exchange-sentinel',cwd=baseA+'/Checkout 空间/.sealed-native-canaries';
  // Paths are consulted only after the private verifier; report data never mints.
  if(build.report?.base!==hostBase||build.report?.binary?.file!==helper||!/^[a-f0-9]{64}$/.test(build.report?.binary?.sha256??''))fail('BASE_COLLECTOR_BINDINGS');
- const rows=pins.map(([relative,,pin])=>dependency(relative,pin));
+ const rows=currencyPins.map(([relative,,pin])=>dependency(relative,pin));
  const source=`// Fixed reviewed native tool collector; no caller-selected child/arguments.\nimport {spawn} from 'node:child_process';\nimport {collectSealedTypeScriptBaseChild,classifySealedTypeScriptBaseChild} from '../test/acceptance/sealed-typescript-base-child-collection.mjs';\nconst publish=result=>{const code=result.outcome==='FAIL'?1:74,publicationFailed=()=>{process.exitCode=code;};process.exitCode=code;try{process.stdout.on('error',publicationFailed);process.stdout.write(JSON.stringify(result)+'\\n',publicationFailed);}catch{publicationFailed();}};\nlet classified=classifySealedTypeScriptBaseChild(null);\ntry{\n if(process.platform!=='darwin'||process.arch!=='arm64'||process.version!=='v22.13.0'||process.execPath!==${JSON.stringify(node)}||process.execArgv.length!==0||process.argv.length!==2||process.argv[1]!==${JSON.stringify(entry)}||Object.keys(process.env).some(key=>/^(?:NODE_OPTIONS|NODE_PATH|NODE_REPL_EXTERNAL_MODULE)$|^(?:DYLD_|LD_|OPENSSL_)/i.test(key)))throw Error();\n const collection=await collectSealedTypeScriptBaseChild(()=>spawn(${JSON.stringify(helper)},[],{cwd:${JSON.stringify(cwd)},stdio:['ignore','pipe','pipe']}));\n classified=classifySealedTypeScriptBaseChild(collection);\n}catch{}\npublish(classified);\n`;
- if(Buffer.byteLength(source)>65536)fail('BASE_COLLECTOR_BINDINGS');
+ const launcher=hostBase+'/prefix/native-probes/base-exchange-collect-launch',launcherFile=launcher+'.c';
+ let launcherSource=rows[pins.length].source;
+ for(const [token,value]of [['__REVIEWED_BASE_COLLECTOR_NODE__',node],['__REVIEWED_BASE_COLLECTOR_ENTRY__',entry],['__REVIEWED_BASE_COLLECTOR_LAUNCHER__',launcher]]){
+  if(launcherSource.split(token).length!==2)fail('BASE_COLLECTOR_DEPENDENCY_MISMATCH');launcherSource=launcherSource.replace(token,value);
+ }
+ if(Buffer.byteLength(source)>65536||Buffer.byteLength(launcherSource)>65536||/__REVIEWED_[A-Z_]+__/.test(launcherSource))fail('BASE_COLLECTOR_BINDINGS');
  if(JSON.stringify(observed(build))!==JSON.stringify(before))fail('BASE_COLLECTOR_ASSETS_UNAVAILABLE');for(const row of rows)current(row);
- const result=freeze({schema:1,scope:'DISABLED_FIXED_BASE_COLLECTOR_SOURCE_DATA_ONLY',disabled:true,bindings:{baseA,baseB,hostBase,node,entry,helper,helperSha256:build.report.binary.sha256,nodeSha256:'5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc'},
-  proposedSources:[...rows.map((row,at)=>({file:hostBase+'/prefix/'+pins[at][1],source:row.source,sourceBytes:Buffer.byteLength(row.source),sha256:row.sha256})),{file:entry,source,sourceBytes:Buffer.byteLength(source),sha256:sha(source)}],commands:[],nativeLaunches:0,helperExecutions:0,models:0,inferencePermitted:false,nativeEnforcement:'NOT_ESTABLISHED',sealed:false,reuseEligible:false,
-  blockers:['CURRENT_PINNED_NATIVE_EFFECTIVE_PROFILE_AUTH_AND_CAPACITY_REQUIRED','CURRENT_PROTECTED_SOURCE_AND_RUNTIME_COPIES_REQUIRED','TRUSTED_PARENT_SUPERVISION_REQUIRED','OTHER_STAGE_ASSERTIONS_NOT_IMPLEMENTED']});
+ const result=freeze({schema:1,scope:'DISABLED_FIXED_BASE_COLLECTOR_SOURCE_DATA_ONLY',disabled:true,bindings:{baseA,baseB,hostBase,node,entry,helper,helperSha256:build.report.binary.sha256,nodeSha256:'5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc',collectorSha256:sha(source),launcher,launcherSource:launcherFile,launcherSourceSha256:sha(launcherSource)},
+  proposedSources:[...rows.slice(0,pins.length).map((row,at)=>({file:hostBase+'/prefix/'+pins[at][1],source:row.source,sourceBytes:Buffer.byteLength(row.source),sha256:row.sha256})),{file:entry,source,sourceBytes:Buffer.byteLength(source),sha256:sha(source)}],
+  proposedLauncher:{disabled:true,file:launcherFile,output:launcher,source:launcherSource,sourceBytes:Buffer.byteLength(launcherSource),sha256:sha(launcherSource),templateSha256:launcherTemplate[2]},
+  commands:[],nativeLaunches:0,helperExecutions:0,models:0,inferencePermitted:false,nativeEnforcement:'NOT_ESTABLISHED',sealed:false,reuseEligible:false,
+  blockers:['PRE_NODE_LAUNCHER_NOT_BUILT_OR_PROVISIONED','ENCLOSING_PARENT_MUST_PREVENT_LAUNCHER_PRE_MAIN_LOADER_INJECTION','CURRENT_PINNED_NATIVE_EFFECTIVE_PROFILE_AUTH_AND_CAPACITY_REQUIRED','CURRENT_PROTECTED_SOURCE_AND_RUNTIME_COPIES_REQUIRED','TRUSTED_PARENT_SUPERVISION_REQUIRED','INHERITED_HANDLES_NOT_VERIFIED','OTHER_STAGE_ASSERTIONS_NOT_IMPLEMENTED']});
  mintedSources.set(result,{build,before,rows,bindings:result.bindings});return result;
 }
 
@@ -48,7 +59,7 @@ export function verifySealedTypeScriptBaseCollectorSource(proposal){
  const record=mintedSources.get(proposal),unknown=()=>freeze({schema:1,scope:'DISABLED_FIXED_BASE_COLLECTOR_SOURCE_DATA_ONLY',outcome:'UNKNOWN',commands:[],sealed:false,reuseEligible:false});
  if(!record||record.invalid)return unknown();
  try{if(JSON.stringify(observed(record.build))!==JSON.stringify(record.before))fail('BASE_COLLECTOR_ASSETS_UNAVAILABLE');
-  for(let at=0;at<pins.length;at++){const row=dependency(pins[at][0],pins[at][2]);if(row.mark!==record.rows[at].mark||JSON.stringify(row.lineage)!==JSON.stringify(record.rows[at].lineage))fail('BASE_COLLECTOR_SOURCE_CHANGED');}
+  for(let at=0;at<currencyPins.length;at++){const row=dependency(currencyPins[at][0],currencyPins[at][2]);if(row.mark!==record.rows[at].mark||JSON.stringify(row.lineage)!==JSON.stringify(record.rows[at].lineage))fail('BASE_COLLECTOR_SOURCE_CHANGED');}
   if(JSON.stringify(observed(record.build))!==JSON.stringify(record.before))fail('BASE_COLLECTOR_ASSETS_UNAVAILABLE');for(const row of record.rows)current(row);
   return freeze({schema:1,scope:'DISABLED_FIXED_BASE_COLLECTOR_SOURCE_DATA_ONLY',outcome:'SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED',baseA:record.bindings.baseA,baseB:record.bindings.baseB,hostBase:record.bindings.hostBase,bindings:record.bindings,commands:[],nativeEnforcement:'NOT_ESTABLISHED',sealed:false,reuseEligible:false});
  }catch{record.invalid=true;return unknown();}
