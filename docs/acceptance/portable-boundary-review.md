@@ -6309,3 +6309,39 @@ metadata, equal/narrow reallow risk and proper ancestor write guards. This prove
 source structure only, not SBPL/kernel or actual native enforcement. An initial
 Python extraction typo failed parsing before any source read; preserved as review
 preparation history. All model/receipt/origin/seal/reuse gates remain unchanged.
+
+
+## Fresh synthetic fixture mechanics and current mapper references
+
+Source-only GOde2fcd118bd46fbc2eaf6bfa8d001996c3c21944,
+helperSHA26543512af07e9d7ed27ba25c9b863b2664898cd2b8f4b9986359f1f07ff41dd.
+Zero-argument fixed bootstrap admits only canonical root-owned sticky01777
+/private/tmp with nonwritable canonical root ancestry, nonroot matched real/effective
+principals and one atomic owned0700 random base. It never retries/adopts a collision.
+Same-process private WeakMap token is consumed before work. Reserved synthetic
+stage parent/replacement destination/workspace must be absent; unrelated host
+assets outside the three exact synthetic inventories are neither opened nor
+listed. Bounded64-entry inventories, eight known nonsecret marker bodies,
+single-link unique inodes, modes/UID/readback/physical snapshots and proper parents
+are rechecked; failure/close/mutation uncertainty permanently latches UNKNOWN.
+Partial owned namespaces are retained, not recursively removed or relabeled fresh.
+
+Ten independent exact-source memory-filesystem controls passed10/10 in51.52ms:
+fresh mint/verification, serialized fake-token zero operations, collision no adopt,
+reserved namespace preservation, unrelated host assets no open/list, single use,
+mutation-and-restoration cannot revive, inode replacement/extra entry/close errors,
+invalid principal/root ancestry zero creation and extra callback/path option refusal.
+Reviewer did not call the actual /private/tmp bootstrap or local preparer and did
+not run the author's real owned-filesystem suites. This remains explicitly trusted/
+quiescent setup, not atomic confinement against hostile ancestor swaps. Owned
+handle closure is distinct from global inherited-RW absence; native policy,
+sealed/reuse and actual CI authority remain unverified/false. Actual native or
+destructive use still requires independent current resource/profile review.
+
+Source-only GO52415330ab27b8a871bcdea628258d3e98a2e175,
+compositionSHAd23f186b95601e79071bfe187a3edea64109cf96b84a9d42c354e802d27a8925.
+It only replaces the historical mapper reference with reviewed UTF8 source14ed...
+and the stale UTF8 label with rendered-binary/physical-currency NOT_VERIFIED.
+Seven pure controls passed7/7 in50.88ms. Commands[]/deferred parent destruction,
+all false authority, preservation and missing assertion obligations remain intact.
+No mapper build/native/compiler/model/CI or credential/settings operation occurred.
