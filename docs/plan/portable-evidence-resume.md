@@ -6,7 +6,59 @@ and [independent review](../acceptance/portable-boundary-review.md). Resume the
 existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree on `dev/portable-sealed-typescript`;
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
-## Current checkpoint — fixed campaign provisioning reviewed; native boundary pending
+## Current checkpoint — combined preparation timed out; precise repair under review
+
+2026-10-13 15:24UTC, source `825ae91`. Same primary Herdr director confirmed
+working/interactive-ready; root alone integrates. Client/server0.9.1 match; no restart,
+pane worker, new goal/coordinator, global policy or publication operation.
+
+032 `6ac450a` → `8d60a7a`: fresh independent ACCEPT166 mocks+136 controls and
+one unselected SKIP; root382PASS/two unselected SKIP282.908ms. 033 `4ea47f6` →
+`825ae91`: disabled exact campaign command,11 literal H read leaves, no ancestor,
+C-source/write/socket/network/trust widening. Independent226 tests+99 controls+3
+fresh ESM orders; root107PASS69.893ms. No settings/native/model action from source.
+
+First parent precondition REFUSED before launch because its100MiB runtime read bound
+was smaller than the actual121593488-byte reviewed Node. Metadata established the
+cause; corrected hash-read bound128MiB, exact runtime/source pins unchanged. Refusal
+record SHA `24e5eb14a371620e1e93ffc44985256de4df5e3fffe00c18d59a5d8a082cd472`,
+zero child/build/model operations. No execution deadline or permissions changed.
+
+One actual combined engineering attempt at825ae91 then hit the30s outer cap:
+30005.412ms, timedOut=true, exit1, reaped; SIGTERM sent to owned group, no group
+observed afterward. Parent SHA
+`60d46908becc5db298f7c6666493bfb0cbfaa35757e97c0266575c994aa2e2a8`;
+TAP SHA `7cb03ab03edf5190a8aa546c78285344395fad3d42d4011cd224f934aef96b3f`.
+38 retained phase frames SHA
+`80bc1a235dd26399783d7c559f7d36f89abc5cd0cf90b6160fcf065dd18b3204`:
+prerequisite3-build phase25.739→1656.346ms, paired2-build2124.219→9404.124ms,
+copies10751.283→21466.567ms, copy currency21467.169→28569.554ms;
+last campaignLauncherBuild/before28569.888ms, no after. Inner launcher cause/attempt
+and final compile/PID counters UNKNOWN; no final durable completed-build record.
+No helper, launcher, TypeScript check, native/model or receipt executed. Partial
+prepared files remain; no fake completion, recovered private mint or blind retry.
+
+034 source audit CLOSED: ordinary source33818 leaves versus selected33345 means
+473 omitted,28 Git/445 other. Git-only full-source projection is insufficient.
+Smallest proposed boundary is VERSIONED selected-input prepared view (@2 copy plus
+complete actual-stage inventory), not original source namespace/npm equivalence.
+Source-selection membership and explicit/negative Git-consumption guards still
+missing; incomplete old journal cannot certify unconsumed paths. No actual staging.
+035 import worker is sole production writer: sealed-only Git consumption guard,
+finite reason and @2 observation interpretation; ordinary API path unchanged.
+Fresh review before integration. 036 diagnostics reviewer owns READ-ONLY diagnosis
+of repeated engineering dependency validation/call-specific composition, preserving
+full entry checks, late metadata barriers, quiescent-only limitation and independent
+full validation. No deadline increase/cache/engine/publication work authorized.
+
+Existing admin403/inventory action and Copilot included Actions billing fact remain
+lane-specific owner prerequisites; no repeat request/unchanged denial retry.
+Original Claude hosted diagnostic CLOSED scopedPASS. G0partial/sealedG1/G2/G3/
+prepubG4 incomplete; actual portable cross-agent/two-machine reuse NOT ESTABLISHED.
+Alpha.11 frozen/unpublished, pilot receipts untouched, field usage NOT STARTED;
+complete sealed-path economics NOT MEASURED. Day0/calibration unchanged.
+
+## Historical checkpoint — fixed campaign provisioning reviewed; native boundary pending
 
 2026-10-13 15:09UTC, integration source `3c66c74`. Root remains sole integration
 owner in existing Herdr `w1:pD` / `redue-director`; no duplicate coordinator, goal,

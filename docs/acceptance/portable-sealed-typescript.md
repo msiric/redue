@@ -14,18 +14,18 @@ Existing commands, user configurations and receipts are unchanged.
 
 ## Current evidence summary
 
-At integration source `3c66c74`, fixed campaign source/copies/launcher and opt-in
-complete-directory materialization have fresh independent review and targeted
-regressions. Two late-validation defects were reproduced and repaired before use;
-original failures remain. The last actual engineering observation built five C
-artifacts in11618.043ms; no native/helper/model/receipt ran. Combined provisioning
-and exact native command binding are active tasks. Ordinary debugger directory
-metadata exposes undeclared Git leaves; no Git-body read/copy or qualified @3 claim.
-Sealed recipe still preview-only; actual sealed execution and portable cross-agent/
-two-machine reuse remain NOT ESTABLISHED. See the one current
-[resume](../plan/portable-evidence-resume.md) and
-[tracker](../plan/portable-evidence-tracker.md) for exact identities, owners and gates.
-Historical checkpoint reports below are not current gate certificates.
+At source `825ae91`, fixed source/copies/launcher and exact disabled native command
+have independent source/mock review. One combined engineering provisioning attempt
+hit30s and was reaped; retained38 phase frames identify17.8s in copies+currency
+before launcher construction. Final build/compile counters UNKNOWN, no helper/native/
+model/receipt executed. The source diagnosis is active; no deadline increased or
+unchanged retry. Two prior late-validation defects are repaired; failures retained.
+Ordinary selected-view audit requires membership/Git-consumption guards rather than
+copying unconsumed Git metadata. Sealed recipe remains preview-only; actual sealed
+execution and portable cross-agent/two-machine reuse NOT ESTABLISHED. See the one
+current [resume](../plan/portable-evidence-resume.md) and
+[tracker](../plan/portable-evidence-tracker.md) for identities, owners and gates.
+Historical reports below are not current gate certificates.
 
 ## Historical checkpoint — phase captured; disabled launcher proposal reviewed
 

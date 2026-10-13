@@ -3,7 +3,25 @@
 Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revision1.0, with the explicit owner-approved demonstration-pair amendment D4
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
-## Current checkpoint — reviewed campaign pipeline; native seal still open
+## Current checkpoint — combined preparation UNKNOWN; source repair active
+
+2026-10-13 15:24UTC, source `825ae91`; exact records and limitations in current
+[resume](portable-evidence-resume.md). Same existing director; no owner relay.
+
+| Task | Status | Observed result / next gate |
+| --- | --- | --- |
+|032 combined provisioning | REVIEWED/integrated8d60a7a, actualUNKNOWN | Root382PASS/two SKIP; one30s attempt timed out/reaped;38 phase frames, no helper/native/model |
+|033 exact native command | REVIEWED/integrated825ae91 |11 literal H leaves; independent99 controls; root107PASS; proposal stays disabled |
+|034 selected-view audit | COMPLETE/read-only |473 omitted leaves, not Git-only; prepared-tree obligation requires membership/Git guards |
+|035 Git-consumption guard | Import implementer ACTIVE | Sealed-only reason/versioned observation handling; fresh review required |
+|036 preparation diagnosis | Diagnostics reviewer ACTIVE/read-only | Copies+currency≈17.8s before launcher; inspect repeated full-validation path, no unchanged retry/deadline increase |
+| Product sealedG1/G2/G3/G4 | INCOMPLETE | No actual sealed execution or portable two-machine/agent reuse |
+
+No unperformed validation assumed unchanged, no private capability recovered from
+JSON. Existing GitHub admin/Copilot capacity facts unchanged; successful Claude
+prerequisite stays closed. Alpha.11 and pilot untouched. Day0/calibration unchanged.
+
+## Historical checkpoint — reviewed campaign pipeline; native seal still open
 
 2026-10-13 15:09UTC, integration source `3c66c74`; exact scope/evidence in current
 [resume](portable-evidence-resume.md). Failures and UNKNOWNs remain preserved.
