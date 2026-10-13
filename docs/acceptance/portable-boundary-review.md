@@ -6670,3 +6670,36 @@ full JS/compiler startup, credentials, stable-input seal and reuse remain
 NOT_ESTABLISHED/false. Prior generic source-composition failures stay historical:
 the20f attempt alone established88592B/EXCEEDS65536, with read predicates true
 and network wildcard false; no earlier unknown cause is retroassigned.
+
+Data-only source/mock GOe2b93ac (integrated98457d8), renderer SHA
+4b08f97c399c63fb647ed9ce33716957aa26448f63d33b631cc596aa3b3fa840.
+Actual private fixture verification is required before/after rendering; serialized
+labels cannot mint it. Exact CI geometry selects fixed checker/map/exchange paths.
+Each reviewed template is bounded1MiB, owned/single-link/canonical, descriptor-read
+and pinned by content plus before/after leaf/parent identities and close success.
+Checker changes only fixed base/bindings; C substitutions use three-digit octal
+UTF8 bytes, preserving the approved Unicode checkout spelling. Frozen returned
+sources/hashes/build vectors are data: commands[] and disabled/sealedfalse/reusefalse
+remain. No source writing, evaluation, build, settings/grant or process dispatch
+occurs. Trusted/quiescent preparation is explicit; no atomic ancestor confinement.
+Referenced clang/header hashes are not current toolchain or complete SDK proof.
+Separate fresh route fixtures, current rendered/binary/resource bindings and actual
+native observations remain required before use; this GO grants no seal authority.
+
+Combined selected renderer/classifier controls passed27 with6 opt-in skips in59.03ms;
+four independent renderer size/parent change, growth/invalid-read/UTF8 corruption,
+post-fixture refusal and exact decoded C-path controls passed4/4 in46.21ms.
+They read only reviewed templates/use injected fixture verification; no actual
+bootstrap/evaluation/native/build occurred. Initial independent C-line matcher
+incorrectly expected a #define instead of the actual static const declaration
+(3pass/1test-failure); only that test matcher was repaired, with source unchanged.
+
+Source GO4bb0f25 (integrated5e549e1), testSHA
+66e4b909587436c0e3abb407ff46e25fb836c8d6270523059337e122d5e86100.
+Optional source-only evaluation now uses the already-reviewed zero-argument CI
+bootstrap, canonical owned0700 short /private/tmp base, fixed home/public-cwd and
+base dev/ino/UID/GID/mode recheck, retaining its fixture for explicit cleanup.
+Native fragments/options/65536 acceptance and VM1000ms/parent5000ms/4096B limits
+remain unchanged. That optional evaluation was not run by reviewer or required
+again after662's own distinct context passed its prerequisite. Short placement
+does not reinterpret the prior88592B failure or constitute a permission grant.
