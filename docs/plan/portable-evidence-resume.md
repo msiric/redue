@@ -8,7 +8,7 @@ verify HEAD/status first. The planning baseline is history, never a rollback tar
 
 ## Current checkpoint — fixed selection repair integrated; native guard under review
 
-2026-10-13 17:10UTC, integration source `255382c`. Existing primary Herdr director
+2026-10-13 17:24UTC, integration source `6912ea4`. Existing primary Herdr director
 and original goal continue; one integration owner, native bounded roles, no new
 pane/coordinator/permissions/publication. Day0 and72h checkpoint unchanged.
 
@@ -29,16 +29,23 @@ These are trusted/quiescent preparation mechanics, never hostile interval/seal p
 Selected SDK and versioned Apple XNU support exact-path SETEXEC|CLOEXEC_DEFAULT
 with precisely inheritedstdio0/1/2; this is C→Node closure only, not pre-main,
 parent-held writable handles or complete native namespace authority.
-040 `a4a7a59` is CHANGES_REQUIRED: controlled caught nested validation failure
-poisons private source state, but its outer call still reports observed currentness.
-Independent714PASS/one default SKIP plus45 controls and the failing counterexample;
-no compiler/native/model execution. Source-only successor `05a04e2` adds a final
-invalid-latch guard and regression,178 focused/715 extended PASS plusone default
-SKIP. Fresh nonauthor review is ACTIVE; not integrated yet. Separate campaign C
-and narrow SDK bindings leave old standalone collector and generated policy/read
-leaves unchanged. Best-effort refusal output may block/signal on pipe failure;
-actual parent exit/signal/timeout remains authoritative. Native stdio and/dev/null
-metadata admission, loader and parent-held handles are still unestablished.
+040 `a4a7a59` was CHANGES_REQUIRED: a controlled caught nested validation failure
+poisoned private state while its outer call still reported observed currentness.
+040B `05a04e2` → `6912ea4` adds the final invalid-latch guard and regression.
+Fresh independent ACCEPT715PASS/one default SKIP plus45 controls,21 repaired variants
+and preserved old counterexample, three import orders. Root715PASS/one default SKIP
+292.849ms; TAP SHA
+`719802ee01f54793ea0c8b125fe53a439c82b660b72cc45a39710fdfe0e4364d`.
+Separate campaign C/new SDK bindings leave old standalone collector and generated
+policy/read leaves unchanged. No global handle/seal/reuse authority. Best-effort
+refusal output may block/signal on pipe failure; actual parent exit/signal/timeout
+remains authoritative. Native stdio,/dev/null metadata permission, loader and
+parent-held handles are unestablished. Exact C syntax-only check with pinned
+compiler/two SDK headers passed exit0/reaped65.417ms, no output artifact/helper
+execution; record SHA
+`be56c46e85b078e3a6f05263ee0cea556cd6be21696184f9de19361f435a0330`.
+Author's initial040 failure counts are conversation evidence only; original TAPs
+were not saved and no hashes are fabricated.
 
 041 implementer owns selected preparation child/profile/parent plumbing in import
 worktree; reviewer040 reads stage-results only. Exact public code dependency
@@ -48,6 +55,12 @@ approved REDUE checkouts with alias metadata/currentness checks are in scope;
 other targets refuse. Preserve120s/8MiB limits, empty no-auth environment, old six-code
 route and truthful data-only summaries. Source/harmless tests only; no actual debugger
 body scan/copy/compiler/native/model/CI until review and real prerequisites.
+042 stage-results author owns one default-skipped standalone engineering descriptor
+control: fixed direct-Node positive delivery baseline then exact C→Node arm,
+nonsecret sparse FD referents/same-PID metadata, empty no-auth parent, unchanged
+5s compile and30s total/5s reap budgets. Failed baseline launches no guard arm;
+no resource-limit increase or retries. Source/mock only until fresh review; future
+OS observation is NOT native Bash/loader/parent/sealing acceptance.
 
 Last actual engineering observation remains6ec4209: six C builds24030.586ms exit0,
 reaped under unchanged30s cap, no helper/launcher/TypeScript/native/model/receipt

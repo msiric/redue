@@ -5,7 +5,7 @@ recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gat
 
 ## Current checkpoint — selection identity corrected; two bounded tasks active
 
-2026-10-13 17:10UTC, integration `255382c`; exact evidence/limits in current
+2026-10-13 17:24UTC, integration `6912ea4`; exact evidence/limits in current
 [resume](portable-evidence-resume.md). Prior results remain historical, not gate passes.
 
 | Task | Status | Evidence / next gate |
@@ -13,8 +13,9 @@ recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gat
 |038 initial fixed-selection data | REVISE / preserved09db33b |Root omitted-match + reviewer omission/superset counterexamples; no reusable evidence |
 |038B truthful fixed/declared distinction | ACCEPT / integrated255382c |132 root PASS; fresh42 controls/three imports; old@2/@3 unchanged |
 |039 native descriptor audit | COMPLETE/source only |Pinned Darwin SETEXEC+CLOEXEC semantics; stdio/loader/parent proof still required |
-|040 campaign-only descriptor guard | REVISE then successor05a04e2 under review |Caught nested failure must poison outer; same policy/read leaves, no native authority |
+|040B campaign-only descriptor guard | ACCEPT / integrated6912ea4 |715 root PASS/one SKIP +45 independent controls/21 variants; syntax-only exit0; native authority false |
 |041 selected preparation binding | Implementer ACTIVE/import worktree |Finite current public module leaves, unchanged bounded empty-env prep path; review before actual staging |
+|042 standalone descriptor control | Stage-results author ACTIVE |Fixed nonsecret directbaseline→Carm, review before OS selection; not native enforcement |
 | Last real engineering build | Six builds complete6ec4209 |24030.586ms/reaped, no compiled helper execution or native/model operation |
 | Portable product gates | INCOMPLETE |Actual sealed execution, recipient interpretation and real agent/machine reuse outstanding |
 

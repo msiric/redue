@@ -21,13 +21,15 @@ only the complete InputIndex wrapper now emits the fixed identity after closure.
 Root132 tests and fresh42 independent controls pass. No native/seal/reuse authority.
 The selected preparation child/profile integration is still in progress.
 
-The campaign-only descriptor guard has a reviewed source finding (caught nested
-failure must poison outer verification); successor05a04e2 awaits fresh review.
-Permissions and old standalone collector behavior remain unchanged. Actual native
-stdio, loader, inherited parent handles and complete namespace remain unestablished.
-The last real engineering observation is still the six C builds at6ec4209,
-24030.586ms; no compiled helper/launcher/TypeScript/native/model/receipt executed.
-Prior timeout, Git-admission and selection counterexamples remain preserved.
+The campaign-only descriptor guard repair is independently accepted at6912ea4:
+root715 tests/one intentional skip, plus fresh45 controls and21 invalidation variants.
+The pinned C/compiler/header syntax check passed, without building/running a helper.
+Standalone OS descriptor controls are under preparation; no native enforcement claim.
+Permissions and old standalone collector behavior remain unchanged. Native stdio,
+loader, inherited parent handles and complete namespace remain unestablished.
+The last complete real engineering build is still six C builds at6ec4209,
+24030.586ms; no helper/launcher/TypeScript/native/model/receipt executed.
+Prior timeout, Git-admission, selection and source-invalidation failures remain.
 
 Configured sealed execution and portable cross-agent/two-machine reuse remain
 NOT ESTABLISHED. See current [resume](../plan/portable-evidence-resume.md) and
