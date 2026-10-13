@@ -6763,3 +6763,20 @@ Original354 and0ae defects are historical source/mock findings, not observed
 native failures. One initial reviewer snippet test used concurrently updated
 source and failed; freezing the354 Git object repaired only the test preparation.
 This GO covers the fixed build attempt, not actual template execution or a seal.
+
+Independently read the owner's actual39b build TAP and1836B owned0600/single-link
+record; recomputed record SHA
+685d01be99e0bdf0cc4249318b287dd84e7f517f4b83a49996e5d96274de4a5a
+matches the saved-byte acknowledgement. Two fixed clang calls each report observed
+PID, exit0/null signal/NONE error/completedtrue and stdout0B/stderr0B. Test
+1091.727834ms/total1141.862875ms. The record reports fixtureCurrenttrue at its
+checked boundary, exact three reviewed template pins and pinned copied Node.
+Compiled mapper SHA
+5529c5379bdc347e4cbc7d3e735cf270d4d8777badda8432a8d28cca5e83e243;
+exchange SHA7eb33bf584bd0d615471b9976474483d320714b90be94ab1eee31958fcb9f2b6.
+These are compiled-but-not-executed assets. Fixture remains preserved; record
+contains no token and explicitly has recordAdoptionAuthorityfalse. No compiler
+check, Claude-agent/model launch, receipt, stable-input seal or reuse follows.
+Reviewer read only the scoped report/TAP/metadata, not executing or adopting the
+fixture/assets. A future current in-process fixture and separately reviewed route
+are still required; historical stored fixtureCurrent is not ongoing authority.
