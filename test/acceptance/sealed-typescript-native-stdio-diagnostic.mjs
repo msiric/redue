@@ -118,18 +118,26 @@ async function runFixedDirectDiagnostic(options,witness){
    equal(argv,nativeDiagnosticArgv({settingsFile:proposal.settings_file_proposed,command:proposal.command_proposed}))&&
    Object.keys(startup.requiredSettings).every(k=>equal(settings[k],startup.requiredSettings[k]));
   const current=(when)=>{
-   guardResultFields={phase,when,fixture:null,build:null,startup:null};
+   guardResultFields={phase,when,fixture:{outcome:null,base:null},build:{outcome:null,profileId:null,buildInterpretation:null,sourceSha256:null,hostBase:null},startup:{sourceSha256:null,buildInterpretation:null,outcome:null,hostBase:null}};
    diagnosed('ACTUAL_BINDINGS',()=>guard(actualBindings()));nativeShape();diagnosed('MANIFEST_VALIDATION',()=>bounded(()=>validateOwnedDiagnosticManifest(manifest)));nativeShape();
    // Preserve the existing f -> b -> s validation call order. A returned UNKNOWN
    // is not a thrown validation failure and is refused by its own match guard.
    const f=diagnosed('FIXTURE_VALIDATION',()=>bounded(()=>verifySealedTypeScriptSyntheticFixture(fixture))),b=diagnosed('BUILD_VALIDATION',()=>bounded(()=>verifyNativeStdioProbeBuild(build))),s=diagnosed('STARTUP_VALIDATION',()=>bounded(()=>verifyNativeStdioStartup(startup,when)));
-   // Only matches for predicates already required here; no observed values.
-   guardResultFields.fixture={outcome:f.outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED',base:f.base===base};
-   guardResultFields.build={outcome:b.outcome==='BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED',profileId:b.profileId===build.profileId,buildInterpretation:b.buildInterpretation===build.buildInterpretation,sourceSha256:b.sourceSha256===sourcePin,hostBase:b.hostBase===base};
-   guardResultFields.startup={sourceSha256:s.sourceSha256===sourcePin,buildInterpretation:s.buildInterpretation===buildRule,outcome:s.outcome==='STARTUP_CURRENTLY_OBSERVED_SOURCE_ONLY',hostBase:s.hostBase===base};
-   diagnosed('FIXTURE_RESULT_MATCH',()=>guard(Object.values(guardResultFields.fixture).every(v=>v===true)));
-   diagnosed('BUILD_RESULT_MATCH',()=>guard(Object.values(guardResultFields.build).every(v=>v===true)));
-   diagnosed('STARTUP_RESULT_MATCH',()=>guard(Object.values(guardResultFields.startup).every(v=>v===true)));
+   // Preserve the original conjunct access order and short-circuit refusal.
+   // Null means unperformed, never an assumed match. MATCH call counts count
+   // each executed predicate only; no later property is read after refusal.
+   const match=(name,role,field,check)=>diagnosed(name,()=>{const value=check();guardResultFields[role][field]=value;guard(value);return value;});
+   guard(match('FIXTURE_RESULT_MATCH','fixture','outcome',()=>f.outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED')&&
+    match('BUILD_RESULT_MATCH','build','outcome',()=>b.outcome==='BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED')&&
+    match('BUILD_RESULT_MATCH','build','profileId',()=>b.profileId===build.profileId)&&
+    match('BUILD_RESULT_MATCH','build','buildInterpretation',()=>b.buildInterpretation===build.buildInterpretation)&&
+    match('BUILD_RESULT_MATCH','build','sourceSha256',()=>b.sourceSha256===sourcePin)&&
+    match('STARTUP_RESULT_MATCH','startup','sourceSha256',()=>s.sourceSha256===sourcePin)&&
+    match('STARTUP_RESULT_MATCH','startup','buildInterpretation',()=>s.buildInterpretation===buildRule)&&
+    match('STARTUP_RESULT_MATCH','startup','outcome',()=>s.outcome==='STARTUP_CURRENTLY_OBSERVED_SOURCE_ONLY')&&
+    match('FIXTURE_RESULT_MATCH','fixture','base',()=>f.base===base)&&
+    match('BUILD_RESULT_MATCH','build','hostBase',()=>b.hostBase===base)&&
+    match('STARTUP_RESULT_MATCH','startup','hostBase',()=>s.hostBase===base));
    diagnosed('ACCOUNT_VALIDATION',()=>bounded(()=>requireNativeDiagnosticActivation({env,source})));return {sourceBasisCurrent:s.sourceBasisCurrent===true,actualBindingsApplied:actualBindings()};
   };
   phase='PRE_NATIVE_SOURCE_UNAVAILABLE';diagnosed('SELECTED_STARTUP_SOURCE_ABSENCE',()=>bounded(()=>selectedStartupSourcesAbsent(assets)));pre=current('BEFORE_NATIVE');diagnosed('PRELAUNCH_BUDGET',()=>guard(remaining()>5000));
