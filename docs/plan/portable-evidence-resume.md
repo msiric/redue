@@ -7,7 +7,37 @@ existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
 
-## Current checkpoint — reviewed runner build check ready
+## Current checkpoint — actual pre-auth builds observed on both VMs
+
+2026-10-14: [run38579790669](https://github.com/msiric/redue/actions/runs/38579790669)
+used reviewed workflowf26ad105/runtimee5e90865 on two independent macOS26.6.2/25G83,
+macos-26-arm64 image20260907.0351.1 jobs. Both retained inventory UNKNOWN/exit74,
+so the run remains FAILURE. Both separate fixed C-build steps succeeded: one attempt,
+exit0, no signal or compiler output, private currentness observed and owned cleanup.
+Identical helper SHA256 `7136bbf2e7e601e61ffea1353214879815f6ba8fb5675eb9ce059905ad10df72`.
+Outcome is BUILT_NOT_EXECUTED; helper/native/model/compiler-check counts are zero.
+Fresh independent076 review ACCEPT_SCOPE confirms these distinct actual outcomes.
+
+The fixed root llvm-objdump was observed, not invoked:37,016,144 bytes,
+SHA256 `1dcc1432db4d828cf8cd71a84cb8d9bf63a7ca80b5eeec711a9e5f13a3f5f98e`.
+Full log SHA256 `240366907cdd4198b862e128c10eb3f15f8d827ed85abf23d8f5c581be3af6df`;
+reports SHA256 `864f2b9470fa2679327df901b48bef166efc4c6d9a0fa839ee8ee82b347a89d1`.
+Private mode600 evidence and all earlier failures are retained.
+
+075 owns isolated fixed public-binary inspection implementation;077 primary-source
+research warns that LLVM exit0 does not prove successful arm64e disassembly.
+Version/options, empty stderr, actual architecture and complete output need review;
+unknown instructions/imports cannot prove shell startup. No automatic startup repin,
+native launch, model, trust/signing or receipt change follows from these observations.
+Next is fresh independent inspector review before one bounded actual inspection.
+No new owner operation is requested while that work remains locally unblocked.
+
+Complete SDK/loader closure, actual startup/native protection, sealing and portable
+machine/agent reuse remain unestablished. G0partial; G1–G4 incomplete. Copilot included
+Actions capacity stays separately pending. The closed hosted Claude prerequisite is
+not repeated. Alpha.11 remains unpublished; Day0, fixed pilot and receipts unchanged.
+
+## Historical checkpoint — reviewed runner build check ready
 
 2026-10-14: collected [38560378792](https://github.com/msiric/redue/actions/runs/38560378792).
 Both independent VMs supplied identical root CLT/compiler and SDK26.5 observations;
