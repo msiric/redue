@@ -4,12 +4,13 @@
 import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';import {createHash} from 'node:crypto';
 import {createSealedTypeScriptCIBootstrap,prepareSealedTypeScriptCISyntheticFixture,verifySealedTypeScriptSyntheticFixture} from './sealed-typescript-synthetic-fixture.mjs';
-import {buildNativeStdioProbeForReviewedCI,verifyNativeStdioProbeBuild} from './sealed-typescript-native-stdio-build.mjs';
-import {prepareNativeStdioStartup,verifyNativeStdioStartup} from './sealed-typescript-native-stdio-startup.mjs';
-import {prepareDirectNativeStdioProbeCommand} from './sealed-typescript-native-stdio-command.mjs';
+import {buildNativeStdioProbeForReviewedCI,buildNativeStartupWitnessForReviewedCI,verifyNativeStdioProbeBuild} from './sealed-typescript-native-stdio-build.mjs';
+import {prepareNativeStdioStartup,prepareNativeStartupWitnessStartup,verifyNativeStdioStartup} from './sealed-typescript-native-stdio-startup.mjs';
+import {prepareDirectNativeStdioProbeCommand,prepareDirectNativeStartupWitnessCommand} from './sealed-typescript-native-stdio-command.mjs';
 import {nativeStdioDirectCommand,NATIVE_STDIO_SOURCE_SHA256} from './sealed-typescript-native-stdio-probe.mjs';
+import {NATIVE_STARTUP_WITNESS_SOURCE_SHA256,NATIVE_STARTUP_WITNESS_INTERPRETATION} from './sealed-typescript-native-startup-witness.mjs';
 import {REVIEWED_CLAUDE_NATIVE} from './portable-claude-native-profile.mjs';
-import {requireNativeDiagnosticActivation,nativeDiagnosticEnvironment,nativeDiagnosticArgv,selectedStartupSourcesAbsent,validateNativePostStartupSources,POST_REMOTE_SENTINEL_RULE,readOwnedDiagnosticFile,putOwnedDiagnosticFile,validateOwnedDiagnosticManifest,collectDirectNativeStdioDiagnostic,interpretCollectedDirectNativeStdioDiagnostic} from './portable-claude-diagnostic.mjs';
+import {requireNativeDiagnosticActivation,nativeDiagnosticEnvironment,nativeDiagnosticArgv,selectedStartupSourcesAbsent,validateNativePostStartupSources,POST_REMOTE_SENTINEL_RULE,readOwnedDiagnosticFile,putOwnedDiagnosticFile,validateOwnedDiagnosticManifest,collectDirectNativeStdioDiagnostic,interpretCollectedDirectNativeStdioDiagnostic,collectDirectNativeStartupWitnessDiagnostic,interpretCollectedDirectNativeStartupWitnessDiagnostic} from './portable-claude-diagnostic.mjs';
 const hash=v=>createHash('sha256').update(v).digest('hex');
 const fail=()=>{throw Error('FIXED_NATIVE_STDIO_DIAGNOSTIC_UNAVAILABLE');};
 const guard=v=>{if(!v)fail();};
@@ -29,8 +30,23 @@ function requiredArgsApplied(argv,required){
 // registered protected workflow/source review remains an external prerequisite.
 // This function accepts NO child factory, native path, prompt, policy or context.
 export async function runFixedNativeStdioDiagnostic(options){
- guard(arguments.length===1&&options&&Object.getPrototypeOf(options)===Object.prototype&&Reflect.ownKeys(options).every(k=>['env','source','signal'].includes(k)&&Object.hasOwn(Object.getOwnPropertyDescriptor(options,k)??{},'value'))&&
+ guard(arguments.length===1);return runFixedDirectDiagnostic(options,false);
+}
+// Source preparation only: not wired to the CLI/workflow. The same protected
+// activation/capacity, native policy, currentness and process bounds still apply.
+export async function runFixedNativeStartupWitnessDiagnostic(options){
+ guard(arguments.length===1);return runFixedDirectDiagnostic(options,true);
+}
+async function runFixedDirectDiagnostic(options,witness){
+ guard(options&&Object.getPrototypeOf(options)===Object.prototype&&Reflect.ownKeys(options).every(k=>['env','source','signal'].includes(k)&&Object.hasOwn(Object.getOwnPropertyDescriptor(options,k)??{},'value'))&&
   ['env','source'].every(k=>Object.hasOwn(Object.getOwnPropertyDescriptor(options,k)??{},'value')));
+ const buildFixed=witness?buildNativeStartupWitnessForReviewedCI:buildNativeStdioProbeForReviewedCI,
+  prepareStartup=witness?prepareNativeStartupWitnessStartup:prepareNativeStdioStartup,
+  prepareCommand=witness?prepareDirectNativeStartupWitnessCommand:prepareDirectNativeStdioProbeCommand,
+  collect=witness?collectDirectNativeStartupWitnessDiagnostic:collectDirectNativeStdioDiagnostic,
+  interpret=witness?interpretCollectedDirectNativeStartupWitnessDiagnostic:interpretCollectedDirectNativeStdioDiagnostic,
+  sourcePin=witness?NATIVE_STARTUP_WITNESS_SOURCE_SHA256:NATIVE_STDIO_SOURCE_SHA256,
+  buildRule=witness?'redue-native-child-startup-witness-preauth-build@1':'redue-native-stdio-preauth-build@2';
  const {env,source,signal}=options;let phase='ACTIVATION_OR_PROFILE_UNAVAILABLE',base=null,baseId=null,observed=null,interpreted=null,launched=false,cleanup='NOT_NEEDED',reason=null;
  let fixture,build,startup,proposal,manifest,nativeEnv,argv,binding,ownerFact,pre=null,post=null,remotePolicyEstablished=false;
  const started=performance.now();let last=started,deadline=null;
@@ -52,11 +68,11 @@ export async function runFixedNativeStdioDiagnostic(options){
   bounded(()=>nativeDiagnosticEnvironment(env,{host:nativeBase}));
   phase='LIVE_FIXTURE_UNAVAILABLE';const bootstrap=bounded(()=>createSealedTypeScriptCIBootstrap());guard(bootstrap.outcome==='CI_SYNTHETIC_BOOTSTRAP_PREPARED');base=bootstrap.base;baseId=bounded(()=>ownBase(base));
   fixture=bounded(()=>prepareSealedTypeScriptCISyntheticFixture(bootstrap));guard(fixture.outcome==='SYNTHETIC_FIXTURE_PREPARED');
-  phase='LIVE_BUILD_UNAVAILABLE';build=bounded(()=>buildNativeStdioProbeForReviewedCI({fixture}));guard(build.outcome==='BUILT_NOT_EXECUTED'&&build.profileId==='redue-native-stdio-preauth-ci-sdk26.5@1'&&build.buildInterpretation==='redue-native-stdio-preauth-build@2');
-  phase='LIVE_STARTUP_UNAVAILABLE';startup=bounded(()=>prepareNativeStdioStartup({fixture,build}));guard(startup.outcome==='STARTUP_PREPARED_NOT_LAUNCHED');
+  phase='LIVE_BUILD_UNAVAILABLE';build=bounded(()=>buildFixed({fixture}));guard(build.outcome==='BUILT_NOT_EXECUTED'&&build.profileId==='redue-native-stdio-preauth-ci-sdk26.5@1'&&build.buildInterpretation===buildRule&&build.sourceSha256===sourcePin);
+  phase='LIVE_STARTUP_UNAVAILABLE';startup=bounded(()=>prepareStartup({fixture,build}));guard(startup.outcome==='STARTUP_PREPARED_NOT_LAUNCHED');
   const host=base+'/claude-host',assets={host,code:build.cwd};
-  proposal=bounded(()=>prepareDirectNativeStdioProbeCommand({build,claudeExecutable:native,claudeSha256:REVIEWED_CLAUDE_NATIVE.sha256,claudeVersion:REVIEWED_CLAUDE_NATIVE.version}));
-  guard(proposal.build_profile_id===build.profileId&&proposal.build_interpretation===build.buildInterpretation&&proposal.command_proposed===nativeStdioDirectCommand(base)&&proposal.cwd_proposed===build.cwd&&proposal.settings_file_proposed===host+'/settings.json'&&build.sourceSha256===NATIVE_STDIO_SOURCE_SHA256);
+  proposal=bounded(()=>prepareCommand({build,claudeExecutable:native,claudeSha256:REVIEWED_CLAUDE_NATIVE.sha256,claudeVersion:REVIEWED_CLAUDE_NATIVE.version}));
+  guard(proposal.build_profile_id===build.profileId&&proposal.build_interpretation===build.buildInterpretation&&proposal.source_sha256===sourcePin&&(!witness||proposal.witness_interpretation===NATIVE_STARTUP_WITNESS_INTERPRETATION)&&proposal.command_proposed===nativeStdioDirectCommand(base)&&proposal.cwd_proposed===build.cwd&&proposal.settings_file_proposed===host+'/settings.json'&&build.sourceSha256===sourcePin);
   phase='FIXED_SETTINGS_UNAVAILABLE';const settings=structuredClone(proposal.settings_proposed);
   // NONbare OAuth requires closing auto-memory and managed instructions/rules.
   Object.assign(settings,startup.requiredSettings);
@@ -79,12 +95,12 @@ export async function runFixedNativeStdioDiagnostic(options){
   const current=(when)=>{
    guard(actualBindings());nativeShape();bounded(()=>validateOwnedDiagnosticManifest(manifest));nativeShape();
    const f=bounded(()=>verifySealedTypeScriptSyntheticFixture(fixture)),b=bounded(()=>verifyNativeStdioProbeBuild(build)),s=bounded(()=>verifyNativeStdioStartup(startup,when));
-   guard(f.outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED'&&b.outcome==='BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED'&&b.profileId===build.profileId&&b.buildInterpretation===build.buildInterpretation&&s.outcome==='STARTUP_CURRENTLY_OBSERVED_SOURCE_ONLY'&&f.base===base&&b.hostBase===base&&s.hostBase===base);
+   guard(f.outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED'&&b.outcome==='BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED'&&b.profileId===build.profileId&&b.buildInterpretation===build.buildInterpretation&&b.sourceSha256===sourcePin&&s.sourceSha256===sourcePin&&s.buildInterpretation===buildRule&&s.outcome==='STARTUP_CURRENTLY_OBSERVED_SOURCE_ONLY'&&f.base===base&&b.hostBase===base&&s.hostBase===base);
    bounded(()=>requireNativeDiagnosticActivation({env,source}));return {sourceBasisCurrent:s.sourceBasisCurrent===true,actualBindingsApplied:actualBindings()};
   };
   phase='PRE_NATIVE_SOURCE_UNAVAILABLE';bounded(()=>selectedStartupSourcesAbsent(assets));pre=current('BEFORE_NATIVE');guard(remaining()>5000);
-  binding={hostBase:base,sourceSha256:build.sourceSha256,helperSha256:build.helperSha256,nativeSha256:REVIEWED_CLAUDE_NATIVE.sha256};
-  phase='NATIVE_COLLECTION_UNAVAILABLE';observed=await collectDirectNativeStdioDiagnostic(()=>{
+  binding={...(witness?{interpretation:NATIVE_STARTUP_WITNESS_INTERPRETATION}:{}),hostBase:base,sourceSha256:build.sourceSha256,helperSha256:build.helperSha256,nativeSha256:REVIEWED_CLAUDE_NATIVE.sha256};
+  phase='NATIVE_COLLECTION_UNAVAILABLE';observed=await collect(()=>{
    // Final same-process late currency precedes the sole actual native spawn.
    bounded(()=>selectedStartupSourcesAbsent(assets));current('BEFORE_NATIVE');guard(remaining()>5000);launched=true;
    const child=spawn(native,argv,{cwd:build.cwd,env:nativeEnv,detached:true,stdio:['ignore','pipe','pipe']});
@@ -93,17 +109,18 @@ export async function runFixedNativeStdioDiagnostic(options){
   guard(observed.owned_native_reaped===true&&observed.native_exit_observed===true&&observed.native_exit_code===0&&observed.native_signal===null&&observed.timed_out===false&&!observed.transport_error);
   phase='POST_NATIVE_SOURCE_UNAVAILABLE';guard(remaining()>0);post=current('AFTER_NATIVE');
   guard(bounded(()=>validateNativePostStartupSources(assets))==='EXACT_NATIVE_EMPTY_SENTINEL');remotePolicyEstablished=true;
-  // The052B flag is intentionally NOT certified by source/profile/config facts.
-  // Actual metadata is retained, but enforcement remains a separate observation.
-  interpreted=interpretCollectedDirectNativeStdioDiagnostic(observed,{sourceCurrent:true,helperCurrent:true,reviewedBuildMatches:true,nativeCurrent:true,
+  // Old052B controlledShellStartup remains false. The new witness reports
+  // only actual child bindings/stdio after matching native trace and currency;
+  // neither route certifies global startup, pre-main reads or enforcement.
+  interpreted=interpret(observed,{sourceCurrent:true,helperCurrent:true,reviewedBuildMatches:true,nativeCurrent:true,
    sourceSha256:binding.sourceSha256,helperSha256:binding.helperSha256,nativeSha256:binding.nativeSha256,
-   startupPreconditions:true,noHooksCurrent:true,controlledShellStartup:false});
+   startupPreconditions:true,noHooksCurrent:true,...(witness?{interpretation:NATIVE_STARTUP_WITNESS_INTERPRETATION}:{controlledShellStartup:false})});
   guard(remaining()>0);
  }catch{reason=phase;}
  finally{
   // Always consume private frames once, even if post-currency failed. Never
   // reinterpret a serialized collection or keep a raw model transcript.
-  if(observed&&!interpreted)interpreted=interpretCollectedDirectNativeStdioDiagnostic(observed,{});
+  if(observed&&!interpreted)interpreted=interpret(observed,{});
   if(baseId){
    if(launched&&observed?.owned_native_reaped!==true)cleanup='RETAINED_NATIVE_CLOSE_UNKNOWN';
    else try{guard(remaining()>0&&ownBase(base)===baseId);fs.rmSync(base,{recursive:true,force:false});guard(remaining()>0);cleanup='OWNED_FRESH_BASE_REMOVED';}
@@ -111,7 +128,7 @@ export async function runFixedNativeStdioDiagnostic(options){
   }
  }
  const ended=performance.now(),clockKnown=Number.isFinite(ended)&&ended>=last;
- return authority({source:typeof source==='string'&&/^[a-f0-9]{40}$/.test(source)?source:null,nativeVersion:REVIEWED_CLAUDE_NATIVE.version,nativeSha256:REVIEWED_CLAUDE_NATIVE.sha256,
+ return authority({...(witness?{scope:'FIXED_SINGLE_DIRECT_NATIVE_CHILD_STARTUP_WITNESS_DIAGNOSTIC_ONLY',witnessInterpretation:NATIVE_STARTUP_WITNESS_INTERPRETATION}:{}),source:typeof source==='string'&&/^[a-f0-9]{40}$/.test(source)?source:null,nativeVersion:REVIEWED_CLAUDE_NATIVE.version,nativeSha256:REVIEWED_CLAUDE_NATIVE.sha256,
   outcome:reason?'UNKNOWN':interpreted?.outcome??'UNKNOWN',reason:reason??interpreted?.reason??'PRECONDITION_UNAVAILABLE',
   observation:interpreted??null,nativeLaunchAttempted:launched,nativeSpawnObserved:observed?.native_process_spawn_observed??false,
   nativeExit:observed?.native_exit_code??null,nativeSignal:observed?.native_signal??null,nativeCloseObserved:observed?.native_exit_observed??false,nativeReaped:observed?.owned_native_reaped??false,timedOut:observed?.timed_out??false,jobDeadlineExceeded:deadline===null?null:clockKnown?ended>=deadline:'UNKNOWN',milliseconds:clockKnown?ended-started:null,nativeMilliseconds:observed?.milliseconds??null,

@@ -6,6 +6,8 @@ import {createHash} from 'node:crypto';
 import {REVIEWED_CLAUDE_NATIVE} from './portable-claude-native-profile.mjs';
 import {nativeStdioDirectCommand,parseNativeStdioMetadata,isNativeStdioDiagnosticData,NATIVE_STDIO_SOURCE_SHA256} from './sealed-typescript-native-stdio-probe.mjs';
 
+import {parseNativeStartupWitness,NATIVE_STARTUP_WITNESS_SOURCE_SHA256,NATIVE_STARTUP_WITNESS_INTERPRETATION,NATIVE_STARTUP_WITNESS_FIELDS} from './sealed-typescript-native-startup-witness.mjs';
+export const NATIVE_STARTUP_WITNESS_DIRECT_INTERPRETATION='native187-direct-bash-child-startup-foreground@1';
 export const NATIVE_STDIO_DIRECT_INTERPRETATION='native187-direct-bash-stdio-foreground@1';
 // Independent051 pinned-public-source audit; no extracted code executes here.
 export const NATIVE_STDIO_FOREGROUND_SOURCE=Object.freeze({nativeSha256:REVIEWED_CLAUDE_NATIVE.sha256,
@@ -33,24 +35,31 @@ const freeze=v=>{if(v&&typeof v==='object'){for(const child of Object.values(v))
 const authority=fields=>freeze({schema:1,scope:'SINGLE_DIRECT_NATIVE_STDIO_PRECONDITION_ONLY',interpretation:NATIVE_STDIO_DIRECT_INTERPRETATION,...fields,
  helperKernelClose:'NOT_OBSERVED',helperReap:'NOT_OBSERVED',helperSignal:'NOT_OBSERVED',
  nativeEnforcement:'NOT_ESTABLISHED',stdioOwnership:'NOT_ESTABLISHED',preMainLoader:'NOT_ESTABLISHED',sealed:false,reuseEligible:false});
-function foregroundResult(event,item){
+function foregroundResult(event,item,witness){
  const raw=event.tool_use_result;
  if(!exact(raw,['stdout','stderr','interrupted','isImage','noOutputExpected'])||typeof raw.stdout!=='string'||Buffer.byteLength(raw.stdout)>4096||raw.stderr!==''||
    raw.interrupted!==false||raw.isImage!==false||raw.noOutputExpected!==false||item.is_error!==false||typeof item.content!=='string')return null;
  const rendered=raw.stdout.replace(/^(\s*\n)+/,'').trimEnd();
  if(item.content!==rendered||Buffer.byteLength(rendered)>4096)return null;
- const metadata=parseNativeStdioMetadata(raw.stdout),also=parseNativeStdioMetadata(item.content);
+ const parse=witness?parseNativeStartupWitness:parseNativeStdioMetadata;
+ const metadata=parse(raw.stdout),also=parse(item.content);
  if(!metadata||!also||JSON.stringify(metadata)!==JSON.stringify(also))return null;
  return metadata;
 }
 
 // completion supplies actual outer native close + independently current build
 // and controlled startup facts. JSON booleans from a model are not that evidence.
-export function interpretDirectNativeStdioProbeTrace(events,binding,completion){
- const unknown=(reason,fields={})=>authority({outcome:'UNKNOWN',reason,...fields});
+export function interpretDirectNativeStdioProbeTrace(events,binding,completion){return interpretFixedDirectTrace(events,binding,completion,false);}
+// Child environment + stdio only. This does not prove controlled pre-main
+// startup, credential protection or a seal; source/mock labels cannot supply it.
+export function interpretDirectNativeStartupWitnessTrace(events,binding,completion){return interpretFixedDirectTrace(events,binding,completion,true);}
+function interpretFixedDirectTrace(events,binding,completion,witness){
+ const scopedAuthority=fields=>authority(witness?{scope:'SINGLE_DIRECT_NATIVE_CHILD_STARTUP_WITNESS_PRECONDITION_ONLY',interpretation:NATIVE_STARTUP_WITNESS_DIRECT_INTERPRETATION,
+   controlledShellStartup:'NOT_ESTABLISHED',pathHelperProcessing:'NOT_ESTABLISHED',...fields}:fields);
+ const unknown=(reason,fields={})=>scopedAuthority({outcome:'UNKNOWN',reason,...fields});
  if(!isNativeStdioDiagnosticData(events)||!isNativeStdioDiagnosticData(binding)||!isNativeStdioDiagnosticData(completion)||!Array.isArray(events)||events.length>64||
    Buffer.byteLength(JSON.stringify(events))>2097152)return unknown('INPUT_UNAVAILABLE');
- if(!exact(binding,['hostBase','helperSha256','sourceSha256','nativeSha256'])||!full(hash,binding.helperSha256)||binding.sourceSha256!==NATIVE_STDIO_SOURCE_SHA256||binding.nativeSha256!==REVIEWED_CLAUDE_NATIVE.sha256)return unknown('IDENTITY_BINDING_UNKNOWN');
+ if(!exact(binding,witness?['hostBase','helperSha256','sourceSha256','nativeSha256','interpretation']:['hostBase','helperSha256','sourceSha256','nativeSha256'])||!full(hash,binding.helperSha256)||binding.sourceSha256!==(witness?NATIVE_STARTUP_WITNESS_SOURCE_SHA256:NATIVE_STDIO_SOURCE_SHA256)||witness&&binding.interpretation!==NATIVE_STARTUP_WITNESS_INTERPRETATION||binding.nativeSha256!==REVIEWED_CLAUDE_NATIVE.sha256)return unknown('IDENTITY_BINDING_UNKNOWN');
  let command;try{command=nativeStdioDirectCommand(binding.hostBase);}catch{return unknown('IDENTITY_BINDING_UNKNOWN');}
  const cwd=binding.hostBase+'/prefix/native-probes';let init=false,session=null,tool=null,metadata=null,final=null,reason=null;const messages=new Set();
  const reject=v=>{reason??=v;};
@@ -79,7 +88,7 @@ export function interpretDirectNativeStdioProbeTrace(events,binding,completion){
      Object.keys(event).some(k=>!['type','session_id','parent_tool_use_id','message','tool_use_result','uuid','timestamp','isSynthetic'].includes(k))){reject('NATIVE_RESULT_CONTEXT');continue;}
    const item=event.message.content[0];
    if(!tool||!exact(item,['type','tool_use_id','content','is_error'])||item.type!=='tool_result'||item.tool_use_id!==tool.id){reject('NATIVE_RESULT_ID');continue;}
-   const result=foregroundResult(event,item);if(!result){reject('FOREGROUND_RAW_OR_RENDERED_RESULT_UNAVAILABLE');continue;}metadata=result;continue;
+   const result=foregroundResult(event,item,witness);if(!result){reject('FOREGROUND_RAW_OR_RENDERED_RESULT_UNAVAILABLE');continue;}metadata=result;continue;
   }
   if(event.type==='result'){
    if(!init||!tool||!metadata||final||event.session_id!==session||!Number.isInteger(event.num_turns)||event.num_turns<1||event.num_turns>4||typeof event.is_error!=='boolean'){reject('NATIVE_FINAL_CONTEXT');continue;}
@@ -92,11 +101,13 @@ export function interpretDirectNativeStdioProbeTrace(events,binding,completion){
  }
  if(reason||!init||!tool||!metadata||!final?.success)return unknown(reason??'NATIVE_TRACE_INCOMPLETE');
  const observed={metadata,toolUseId:tool.id,commandSha256:tool.commandSha256,helperSha256:binding.helperSha256};
- if(!exact(completion,['sourceCurrent','helperCurrent','reviewedBuildMatches','nativeCurrent','sourceSha256','helperSha256','nativeSha256','nativeExit','nativeSignal','timedOut','reaped','startupPreconditions','noHooksCurrent','controlledShellStartup'])||
+ const completionKeys=['sourceCurrent','helperCurrent','reviewedBuildMatches','nativeCurrent','sourceSha256','helperSha256','nativeSha256','nativeExit','nativeSignal','timedOut','reaped','startupPreconditions','noHooksCurrent',witness?'interpretation':'controlledShellStartup'];
+ if(!exact(completion,completionKeys)||
   completion.sourceCurrent!==true||completion.helperCurrent!==true||completion.reviewedBuildMatches!==true||completion.nativeCurrent!==true||completion.sourceSha256!==binding.sourceSha256||completion.helperSha256!==binding.helperSha256||completion.nativeSha256!==binding.nativeSha256||
-  completion.nativeExit!==0||completion.nativeSignal!==null||completion.timedOut!==false||completion.reaped!==true||completion.startupPreconditions!==true||completion.noHooksCurrent!==true||completion.controlledShellStartup!==true)return unknown('EXTERNAL_NATIVE_BUILD_OR_STARTUP_PRECONDITION_MISSING',observed);
+  completion.nativeExit!==0||completion.nativeSignal!==null||completion.timedOut!==false||completion.reaped!==true||completion.startupPreconditions!==true||completion.noHooksCurrent!==true||(witness?completion.interpretation!==NATIVE_STARTUP_WITNESS_INTERPRETATION:completion.controlledShellStartup!==true))return unknown('EXTERNAL_NATIVE_BUILD_OR_STARTUP_PRECONDITION_MISSING',observed);
  const process={helperProcessOutcome:'SOURCE_DERIVED_FOREGROUND_COMMAND_EXIT_ZERO',exitInterpretationSource:NATIVE_STDIO_FOREGROUND_SOURCE.nativeSha256};
  if(metadata.dev_null.lstat!=='OK'||metadata.dev_null.type==='UNKNOWN'||metadata.descriptors.some(r=>r.fstat!=='OK'||r.fcntl!=='OK'||r.type==='UNKNOWN'||r.access==='UNKNOWN'))return unknown('DESCRIPTOR_METADATA_UNAVAILABLE',{...observed,...process});
- const compatible=metadata.fd0_matches_dev_null===true&&metadata.descriptors[0].access==='READ_ONLY'&&metadata.descriptors.slice(1).every(r=>r.type==='FIFO'&&r.access==='WRITE_ONLY');
- return authority({outcome:compatible?'OBSERVED_COMPATIBLE':'OBSERVED_INCOMPATIBLE',reason:'SINGLE_DIRECT_NATIVE_FOREGROUND_METADATA_OBSERVED',...observed,...process});
+ const childMatches=!witness||NATIVE_STARTUP_WITNESS_FIELDS.every(k=>metadata.startup[k]===true);
+ const compatible=childMatches&&metadata.fd0_matches_dev_null===true&&metadata.descriptors[0].access==='READ_ONLY'&&metadata.descriptors.slice(1).every(r=>r.type==='FIFO'&&r.access==='WRITE_ONLY');
+ return scopedAuthority({outcome:compatible?'OBSERVED_COMPATIBLE':'OBSERVED_INCOMPATIBLE',reason:witness?'SINGLE_DIRECT_NATIVE_FOREGROUND_CHILD_CONTEXT_AND_METADATA_OBSERVED':'SINGLE_DIRECT_NATIVE_FOREGROUND_METADATA_OBSERVED',...observed,...process});
 }

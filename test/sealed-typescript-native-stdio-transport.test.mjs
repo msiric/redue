@@ -2,8 +2,9 @@
 // credential, settings application or enforcement operation runs in this suite.
 import test from 'node:test';import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';import {PassThrough} from 'node:stream';
-import {collectDirectNativeStdioDiagnostic,interpretCollectedDirectNativeStdioDiagnostic} from './acceptance/portable-claude-diagnostic.mjs';
+import {collectDirectNativeStdioDiagnostic,interpretCollectedDirectNativeStdioDiagnostic,collectDirectNativeStartupWitnessDiagnostic,interpretCollectedDirectNativeStartupWitnessDiagnostic} from './acceptance/portable-claude-diagnostic.mjs';
 import {nativeStdioDirectCommand,NATIVE_STDIO_SOURCE_SHA256} from './acceptance/sealed-typescript-native-stdio-probe.mjs';
+import {NATIVE_STARTUP_WITNESS_SOURCE_SHA256,NATIVE_STARTUP_WITNESS_INTERPRETATION,NATIVE_STARTUP_WITNESS_FIELDS} from './acceptance/sealed-typescript-native-startup-witness.mjs';
 import {REVIEWED_CLAUDE_NATIVE} from './acceptance/portable-claude-native-profile.mjs';
 const hostBase='/private/tmp/redue-ci-recipient-01234567',cwd=hostBase+'/prefix/native-probes',command=nativeStdioDirectCommand(hostBase);
 const source='a'.repeat(40),session='12345678-1234-4234-8234-123456789abc',id='toolu_01234567';
@@ -125,4 +126,35 @@ test('nonmonotonicclock aftercreate irrevocably latchesUNKNOWN',async()=>{
  const original=Object.getOwnPropertyDescriptor(globalThis,'performance');let reads=0;
  try{Object.defineProperty(globalThis,'performance',{value:{now:()=>++reads<3?reads:-1},configurable:true});const r=await collect();assert.equal(r.transport_error,'NATIVE_CLOCK_UNKNOWN');assert.equal(r.timed_out,true);assert.equal(r.milliseconds,null);assert.equal(interpret(r).outcome,'UNKNOWN');}
  finally{Object.defineProperty(globalThis,'performance',original);}
+});
+
+const witnessBinding={...binding,sourceSha256:NATIVE_STARTUP_WITNESS_SOURCE_SHA256,interpretation:NATIVE_STARTUP_WITNESS_INTERPRETATION};
+function witnessFrames(){const e=frames(),m=JSON.parse(e[2].tool_use_result.stdout);m.scope='NATIVE_CHILD_STARTUP_WITNESS_ONLY';m.startup=Object.fromEntries(NATIVE_STARTUP_WITNESS_FIELDS.map(k=>[k,true]));e[2].tool_use_result.stdout=JSON.stringify(m)+'\n';e[2].message.content[0].content=e[2].tool_use_result.stdout.trimEnd();return e;}
+const witnessCompletion=()=>{const {controlledShellStartup,...c}=completion();return {...c,sourceSha256:NATIVE_STARTUP_WITNESS_SOURCE_SHA256,interpretation:NATIVE_STARTUP_WITNESS_INTERPRETATION};};
+const witnessCollect=(e=witnessFrames(),opts={},extra={})=>collectDirectNativeStartupWitnessDiagnostic(()=>child(e,opts),{binding:witnessBinding,activation:activation(),timeoutMs:100,cleanupMs:20,...extra});
+const witnessInterpret=(r,c=witnessCompletion())=>interpretCollectedDirectNativeStartupWitnessDiagnostic(r,c);
+test('witness private mock collection has separate source contract, authenticating foreground-format checks and no global startup authority',async()=>{
+ const r=await witnessCollect(),v=witnessInterpret(r);noAuthority(v);assert.equal(v.outcome,'OBSERVED_COMPATIBLE');assert.equal(v.controlledShellStartup,'NOT_ESTABLISHED');assert.equal(v.pathHelperProcessing,'NOT_ESTABLISHED');assert.equal(v.metadata.startup.home_matches,true);assert.equal(witnessInterpret(r).outcome,'UNKNOWN');assert.equal(JSON.stringify(r).includes('PRIVATE_MODEL_CANARY'),false);
+});
+test('old/witness private collections cannot cross-adopt and attempted adoption consumes records',async()=>{
+ const w=await witnessCollect();assert.equal(interpret(w).reason,'COLLECTED_NATIVE_CONTRACT_MISMATCH');assert.equal(witnessInterpret(w).outcome,'UNKNOWN');
+ const old=await collect();assert.equal(witnessInterpret(old).reason,'COLLECTED_NATIVE_CONTRACT_MISMATCH');assert.equal(interpret(old).outcome,'UNKNOWN');
+});
+test('witness copied collection or JSON facts cannot manufacture live private observations',async()=>{
+ const r=await witnessCollect();for(const v of [{...r},JSON.parse(JSON.stringify(r)),{},null])assert.equal(witnessInterpret(v).outcome,'UNKNOWN');assert.equal(witnessInterpret(r).outcome,'OBSERVED_COMPATIBLE');
+});
+for(const key of NATIVE_STARTUP_WITNESS_FIELDS)test('witness collected child '+key+' false remains incompatible',async()=>{
+ const e=witnessFrames(),m=JSON.parse(e[2].tool_use_result.stdout);m.startup[key]=false;e[2].tool_use_result.stdout=JSON.stringify(m);e[2].message.content[0].content=e[2].tool_use_result.stdout;
+ const v=witnessInterpret(await witnessCollect(e));assert.equal(v.outcome,'OBSERVED_INCOMPATIBLE');noAuthority(v);
+});
+test('witness old source, old completion/global true, malformed raw output and lifecycle loss cannot gain compatibility',async()=>{
+ let launches=0;assert.throws(()=>collectDirectNativeStartupWitnessDiagnostic(()=>{launches++;return child([]);},{binding,activation:activation()}));assert.throws(()=>collectDirectNativeStdioDiagnostic(()=>{launches++;return child([]);},{binding:witnessBinding,activation:activation()}));assert.equal(launches,0);
+ for(const c of [completion(),{...witnessCompletion(),controlledShellStartup:true},{...witnessCompletion(),sourceCurrent:false},{...witnessCompletion(),noHooksCurrent:false}])assert.equal(witnessInterpret(await witnessCollect(),c).outcome,'UNKNOWN');
+ for(const opts of [{emitSpawn:false},{exit:74},{signal:'SIGKILL'},{stderr:'PRIVATE_SECRET'}]){const v=witnessInterpret(await witnessCollect(undefined,opts));assert.equal(v.outcome,'UNKNOWN');noAuthority(v);assert.equal(JSON.stringify(v).includes('PRIVATE_SECRET'),false);}
+ const e=witnessFrames();e[2].tool_use_result.stdout='{"schema":';assert.equal(witnessInterpret(await witnessCollect(e)).outcome,'UNKNOWN');
+});
+test('witness source-only labels cannot bypass cancellation or actual native close',async()=>{
+ const abort=new AbortController();abort.abort();let launches=0;
+ const r=await collectDirectNativeStartupWitnessDiagnostic(()=>{launches++;return child([]);},{binding:witnessBinding,activation:activation(),signal:abort.signal,timeoutMs:5,cleanupMs:5});assert.equal(launches,0);assert.equal(witnessInterpret(r).outcome,'UNKNOWN');
+ const t=await witnessCollect(undefined,{hang:true,ignoreTerm:true},{timeoutMs:5,cleanupMs:5});assert.equal(t.timed_out,true);assert.equal(witnessInterpret(t).outcome,'UNKNOWN');
 });

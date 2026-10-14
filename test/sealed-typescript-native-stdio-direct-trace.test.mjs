@@ -1,12 +1,13 @@
 // Mock/native-format source controls only. No build, native/helper/model, settings,
 // secret, network, descriptor contents or actual enforcement operation runs.
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
-import {interpretDirectNativeStdioProbeTrace,NATIVE_STDIO_DIRECT_INTERPRETATION,NATIVE_STDIO_FOREGROUND_SOURCE} from './acceptance/sealed-typescript-native-stdio-direct-trace.mjs';
+import {interpretDirectNativeStdioProbeTrace,interpretDirectNativeStartupWitnessTrace,NATIVE_STARTUP_WITNESS_DIRECT_INTERPRETATION,NATIVE_STDIO_DIRECT_INTERPRETATION,NATIVE_STDIO_FOREGROUND_SOURCE} from './acceptance/sealed-typescript-native-stdio-direct-trace.mjs';
 import {nativeStdioDirectCommand,nativeStdioProbeCommand,parseNativeStdioMetadata,NATIVE_STDIO_SOURCE_SHA256} from './acceptance/sealed-typescript-native-stdio-probe.mjs';
 import {prepareDirectNativeStdioProbeCommand} from './acceptance/sealed-typescript-native-stdio-command.mjs';
 import {prepareSealedTypeScriptClosedReadCanaryPolicy} from './acceptance/sealed-typescript-closed-read-policy.mjs';
 import {nativeDiagnosticArgv} from './acceptance/portable-claude-diagnostic.mjs';
 import {REVIEWED_CLAUDE_NATIVE} from './acceptance/portable-claude-native-profile.mjs';
+import {NATIVE_STARTUP_WITNESS_SOURCE_SHA256,NATIVE_STARTUP_WITNESS_INTERPRETATION,NATIVE_STARTUP_WITNESS_FIELDS} from './acceptance/sealed-typescript-native-startup-witness.mjs';
 import {parsePortableJson} from '../src/portable-envelope.mjs';
 const hostBase='/private/tmp/redue-ci-recipient-01234567',command=nativeStdioDirectCommand(hostBase),cwd=hostBase+'/prefix/native-probes';
 const session='12345678-1234-4234-8234-123456789abc',foreign='23456789-1234-4234-8234-123456789abc',id='toolu_01234567';
@@ -111,12 +112,43 @@ test('forged build labels cannot construct a real native policy proposal',()=>{
 });
 test('direct-only mock proposal removes only marker command while retaining all security denials',()=>{
  const source=fs.readFileSync(new URL('./acceptance/sealed-typescript-native-stdio-command.mjs',import.meta.url),'utf8'),build=Object.freeze({mockOnly:true}),observed={outcome:'BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED',buildInterpretation:'redue-native-stdio-preauth-build@2',hostBase,helper:hostBase+'/prefix/native-probes/native-stdio-probe',cwd,sourceSha256:binding.sourceSha256,helperSha256:binding.helperSha256};
- const api=Function('verifyNativeStdioProbeBuild','nativeStdioProbeCommand','nativeStdioDirectCommand','NATIVE_STDIO_SOURCE_SHA256','prepareSealedTypeScriptClosedReadCanaryPolicy','nativeDiagnosticArgv',source.replace(/^import .*;$/gm,'').replaceAll('export function ','function ')+';return {direct:prepareDirectNativeStdioProbeCommand,old:prepareNativeStdioProbeCommand};')
- (value=>value===build?observed:{outcome:'UNKNOWN'},nativeStdioProbeCommand,nativeStdioDirectCommand,NATIVE_STDIO_SOURCE_SHA256,prepareSealedTypeScriptClosedReadCanaryPolicy,nativeDiagnosticArgv);
+ const api=Function('verifyNativeStdioProbeBuild','nativeStdioProbeCommand','nativeStdioDirectCommand','NATIVE_STDIO_SOURCE_SHA256','NATIVE_STARTUP_WITNESS_SOURCE_SHA256','NATIVE_STARTUP_WITNESS_INTERPRETATION','prepareSealedTypeScriptClosedReadCanaryPolicy','nativeDiagnosticArgv',source.replace(/^import .*;$/gm,'').replaceAll('export function ','function ')+';return {direct:prepareDirectNativeStdioProbeCommand,old:prepareNativeStdioProbeCommand};')
+ (value=>value===build?observed:{outcome:'UNKNOWN'},nativeStdioProbeCommand,nativeStdioDirectCommand,NATIVE_STDIO_SOURCE_SHA256,NATIVE_STARTUP_WITNESS_SOURCE_SHA256,NATIVE_STARTUP_WITNESS_INTERPRETATION,prepareSealedTypeScriptClosedReadCanaryPolicy,nativeDiagnosticArgv);
  const options={build,claudeExecutable:'/approved/native/claude',claudeSha256:REVIEWED_CLAUDE_NATIVE.sha256,claudeVersion:'2.1.187'},p=api.direct(options),old=api.old(options);
  assert.equal(p.command_proposed,command);assert.equal(old.command_proposed,nativeStdioProbeCommand(hostBase));assert.equal(p.inferencePermitted,false);assert.equal(p.disabled,true);assert.equal(p.sealed,false);assert.equal(p.reuseEligible,false);
  assert.deepEqual(p.settings_proposed.permissions.deny,old.settings_proposed.permissions.deny);assert(p.settings_proposed.permissions.deny.includes('Bash(printf:*)'));
  assert.deepEqual(p.settings_proposed.sandbox,old.settings_proposed.sandbox);assert.deepEqual(p.settings_proposed.permissions.allow,[`Bash(${command})`]);
  assert(p.blockers.includes('EXACT_SINGLE_DIRECT_BASH_ADMISSION_NOT_OBSERVED'));assert(p.blockers.includes('SOURCE_DERIVED_FOREGROUND_RAW_AND_RENDERED_RESULT_REQUIRED'));
  assert.equal(p.parent_timeout_ms_proposed,120000);assert.equal(p.tool_timeout_ms_proposed,15000);assert.equal(p.max_turns_proposed,4);assert.deepEqual(p.commands,[]);
+});
+
+const witnessBinding={...binding,sourceSha256:NATIVE_STARTUP_WITNESS_SOURCE_SHA256,interpretation:NATIVE_STARTUP_WITNESS_INTERPRETATION};
+const witnessCompletion=()=>{const {controlledShellStartup,...c}=completion;return {...c,sourceSha256:NATIVE_STARTUP_WITNESS_SOURCE_SHA256,interpretation:NATIVE_STARTUP_WITNESS_INTERPRETATION};};
+const witnessMetadata=()=>({...metadata(),scope:'NATIVE_CHILD_STARTUP_WITNESS_ONLY',startup:Object.fromEntries(NATIVE_STARTUP_WITNESS_FIELDS.map(k=>[k,true]))});
+const witnessObserve=(e=events(witnessMetadata()),b=witnessBinding,c=witnessCompletion())=>interpretDirectNativeStartupWitnessTrace(e,b,c);
+function witnessAuthority(v){assert.equal(v.scope,'SINGLE_DIRECT_NATIVE_CHILD_STARTUP_WITNESS_PRECONDITION_ONLY');assert.equal(v.interpretation,NATIVE_STARTUP_WITNESS_DIRECT_INTERPRETATION);for(const k of ['nativeEnforcement','preMainLoader','controlledShellStartup','pathHelperProcessing'])assert.equal(v[k],'NOT_ESTABLISHED');assert.equal(v.sealed,false);assert.equal(v.reuseEligible,false);}
+test('witness actual-format mock child context/stdio can match only with separate exact source and live completion',()=>{
+ const v=witnessObserve();witnessAuthority(v);assert.equal(v.outcome,'OBSERVED_COMPATIBLE');assert.equal(v.helperProcessOutcome,'SOURCE_DERIVED_FOREGROUND_COMMAND_EXIT_ZERO');assert.deepEqual(v.metadata,witnessMetadata());assert(Object.isFrozen(v.metadata.startup));
+ assert.equal(observe(events(witnessMetadata()),witnessBinding,witnessCompletion()).outcome,'UNKNOWN');assert.equal(witnessObserve(events(),binding,completion).outcome,'UNKNOWN');
+});
+for(const field of NATIVE_STARTUP_WITNESS_FIELDS)test('witness child '+field+' mismatch is explicit incompatible, absent is unknown',()=>{
+ const v=witnessMetadata();v.startup[field]=false;const r=witnessObserve(events(v));witnessAuthority(r);assert.equal(r.outcome,'OBSERVED_INCOMPATIBLE');
+ delete v.startup[field];assert.equal(witnessObserve(events(v)).outcome,'UNKNOWN');
+});
+for(const field of ['sourceCurrent','helperCurrent','reviewedBuildMatches','nativeCurrent','startupPreconditions','noHooksCurrent','reaped'])test('witness missing or failed actual-current '+field+' is unknown',()=>{
+ for(const value of [undefined,false]){const c=witnessCompletion();if(value===undefined)delete c[field];else c[field]=value;const v=witnessObserve(undefined,undefined,c);witnessAuthority(v);assert.equal(v.outcome,'UNKNOWN');}
+});
+test('witness original/unknown interpretation, extra global startup claim and forged native result remain unknown',()=>{
+ for(const b of [{...witnessBinding,sourceSha256:NATIVE_STDIO_SOURCE_SHA256},{...witnessBinding,interpretation:'OTHER'},{...witnessBinding,interpretation:NATIVE_STARTUP_WITNESS_INTERPRETATION+'\n'}])assert.equal(witnessObserve(undefined,b).outcome,'UNKNOWN');
+ for(const c of [{...witnessCompletion(),controlledShellStartup:true},{...witnessCompletion(),interpretation:'OTHER'},{...witnessCompletion(),nativeExit:74},{...witnessCompletion(),nativeSignal:'SIGKILL'}])assert.equal(witnessObserve(undefined,undefined,c).outcome,'UNKNOWN');
+ const e=events(witnessMetadata());e[2].message.content[0].content='Model says startup passed';assert.equal(witnessObserve(e).outcome,'UNKNOWN');e[2].message.content[0].content=e[2].tool_use_result.stdout.trimEnd();e[2].tool_use_result.stderr='PRIVATE';const r=witnessObserve(e);assert.equal(r.outcome,'UNKNOWN');assert.equal(JSON.stringify(r).includes('PRIVATE'),false);
+});
+
+test('witness accessor facts, missing interpretation and source-only startup statements supply no actual observations',()=>{
+ let reads=0;const c=witnessCompletion();Object.defineProperty(c,'interpretation',{get(){reads++;return NATIVE_STARTUP_WITNESS_INTERPRETATION;},enumerable:true});assert.equal(witnessObserve(undefined,undefined,c).outcome,'UNKNOWN');assert.equal(reads,0);
+ const b={...witnessBinding};delete b.interpretation;assert.equal(witnessObserve(undefined,b).outcome,'UNKNOWN');
+ const d=witnessCompletion();delete d.interpretation;assert.equal(witnessObserve(undefined,undefined,d).outcome,'UNKNOWN');
+ for(const field of ['helperSha256','sourceSha256','nativeSha256']){const d=witnessCompletion();d[field]='e'.repeat(64);assert.equal(witnessObserve(undefined,undefined,d).outcome,'UNKNOWN');}
+ assert.equal(witnessObserve([]).outcome,'UNKNOWN');
+ const e=events(witnessMetadata());e.push({type:'system',subtype:'hook_started',session_id:session});assert.equal(witnessObserve(e).outcome,'UNKNOWN');
 });

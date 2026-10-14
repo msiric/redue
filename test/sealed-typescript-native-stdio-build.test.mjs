@@ -7,8 +7,8 @@ import {prepareNativeStdioProbeCommand} from './acceptance/sealed-typescript-nat
 import {sealedAssetsBuildProcessSummary} from './acceptance/sealed-typescript-native-assets-build.mjs';
 import {prepareSealedTypeScriptClosedReadCanaryPolicy} from './acceptance/sealed-typescript-closed-read-policy.mjs';
 import {nativeDiagnosticArgv} from './acceptance/portable-claude-diagnostic.mjs';
-import {nativeStdioProbeCommand,NATIVE_STDIO_SOURCE_SHA256} from './acceptance/sealed-typescript-native-stdio-probe.mjs';
-import {readNativeStartupWitnessSource,NATIVE_STARTUP_WITNESS_SOURCE_SHA256} from './acceptance/sealed-typescript-native-startup-witness.mjs';
+import {nativeStdioProbeCommand,nativeStdioDirectCommand,NATIVE_STDIO_SOURCE_SHA256} from './acceptance/sealed-typescript-native-stdio-probe.mjs';
+import {readNativeStartupWitnessSource,NATIVE_STARTUP_WITNESS_SOURCE_SHA256,NATIVE_STARTUP_WITNESS_INTERPRETATION} from './acceptance/sealed-typescript-native-startup-witness.mjs';
 import {REVIEWED_CLAUDE_NATIVE,PINNED_READONLY_BASH_HEADS} from './acceptance/portable-claude-native-profile.mjs';
 const buildURL=new URL('./acceptance/sealed-typescript-native-stdio-build.mjs',import.meta.url),commandURL=new URL('./acceptance/sealed-typescript-native-stdio-command.mjs',import.meta.url);
 const buildSource=fs.readFileSync(buildURL,'utf8'),commandSource=fs.readFileSync(commandURL,'utf8'),c=fs.readFileSync(new URL('./acceptance/sealed-typescript-native-stdio-probe.c',import.meta.url),'utf8');
@@ -41,9 +41,9 @@ function mock(kind='local'){
  const spawn=(file,argv,options)=>{state.dispatches.push({file,argv,options});const bytes=Buffer.alloc(32);bytes.writeUInt32LE(0xfeedfacf,0);bytes.writeUInt32LE(0x0100000c,4);put(helper,'f',bytes,501,0o100700n);return state.result??{pid:1001,status:0,signal:null,stdout:'',stderr:''};};
  const api=Function('fs','path','fileURLToPath','createHash','spawnSync','verifySealedTypeScriptSyntheticFixture','prepareSealedTypeScriptNativeAssetsProposal','sealedAssetsBuildProcessSummary','readNativeStdioProbeSource','NATIVE_STDIO_SOURCE_SHA256','readNativeStartupWitnessSource','NATIVE_STARTUP_WITNESS_SOURCE_SHA256','process',source+';return {build:buildNativeStdioProbe,buildCI:buildNativeStdioProbeForReviewedCI,buildWitness:buildNativeStartupWitness,buildWitnessCI:buildNativeStartupWitnessForReviewedCI,verify:verifyNativeStdioProbeBuild};')
  (io,path.posix,fileURLToPath,createHash,spawn,verify,()=>{state.proposals++;return {toolchain:tool};},sealedAssetsBuildProcessSummary,()=>({source:c,sourceSha256:NATIVE_STDIO_SOURCE_SHA256}),NATIVE_STDIO_SOURCE_SHA256,()=>({source:witnessC,sourceSha256:NATIVE_STARTUP_WITNESS_SOURCE_SHA256}),NATIVE_STARTUP_WITNESS_SOURCE_SHA256,{platform:'darwin',arch:'arm64',version:'v22.13.0',execPath:'/runtime/node',getuid:()=>501,geteuid:()=>501,getgid:()=>20,getegid:()=>20});
- const commandAPI=Function('verifyNativeStdioProbeBuild','nativeStdioProbeCommand','NATIVE_STDIO_SOURCE_SHA256','prepareSealedTypeScriptClosedReadCanaryPolicy','nativeDiagnosticArgv',commandSource.replace(/^import .*;$/gm,'').replaceAll('export function ','function ')+';return prepareNativeStdioProbeCommand;')
- (api.verify,nativeStdioProbeCommand,NATIVE_STDIO_SOURCE_SHA256,options=>{const p=prepareSealedTypeScriptClosedReadCanaryPolicy(options);if(state.policyAfter)state.policyAfter();return p;},nativeDiagnosticArgv);
- return {...api,command:commandAPI,fixture,state,nodes,fds,activeSdk,headerPaths:Object.keys(headers).map(name=>activeSdk+'/usr/include/'+name)};
+ const commandAPI=Function('verifyNativeStdioProbeBuild','nativeStdioProbeCommand','nativeStdioDirectCommand','NATIVE_STDIO_SOURCE_SHA256','NATIVE_STARTUP_WITNESS_SOURCE_SHA256','NATIVE_STARTUP_WITNESS_INTERPRETATION','prepareSealedTypeScriptClosedReadCanaryPolicy','nativeDiagnosticArgv',commandSource.replace(/^import .*;$/gm,'').replaceAll('export function ','function ')+';return {old:prepareNativeStdioProbeCommand,witness:prepareDirectNativeStartupWitnessCommand};')
+ (api.verify,nativeStdioProbeCommand,nativeStdioDirectCommand,NATIVE_STDIO_SOURCE_SHA256,NATIVE_STARTUP_WITNESS_SOURCE_SHA256,NATIVE_STARTUP_WITNESS_INTERPRETATION,options=>{const p=prepareSealedTypeScriptClosedReadCanaryPolicy(options);if(state.policyAfter)state.policyAfter();return p;},nativeDiagnosticArgv);
+ return {...api,command:commandAPI.old,witnessCommand:commandAPI.witness,fixture,state,nodes,fds,activeSdk,headerPaths:Object.keys(headers).map(name=>activeSdk+'/usr/include/'+name)};
 }
 const options=build=>({build,claudeExecutable:'/approved/native/claude',claudeSha256:REVIEWED_CLAUDE_NATIVE.sha256,claudeVersion:REVIEWED_CLAUDE_NATIVE.version});
 function authority(v){for(const k of ['sealed','reuseEligible','recordAdoptionAuthority'])if(Object.hasOwn(v,k))assert.equal(v[k],false);assert.deepEqual(v.commands,[]);for(const k of ['helperExecutions','nativeLaunches','models'])assert.equal(v[k],0);assert.equal(v.nativeEnforcement,'NOT_ESTABLISHED');}
@@ -167,4 +167,11 @@ test('witness fixed builders do not accept source/environment/profile overrides 
   for(const v of [{fixture:{},source:'OTHER'},{fixture:{},env:{}},{fixture:{},profile:'OTHER'}])assert.throws(()=>fn(v),/NATIVE_STDIO_BUILD_OPTIONS/);
   assert.equal(fn({fixture:{base}}).outcome,'UNKNOWN');
  }
+});
+
+for(const kind of ['local','ci'])test('new fixed witness command uses exact same security policy but cannot adopt old C '+kind,()=>{
+ const m=mock(kind),v=(kind==='ci'?m.buildWitnessCI:m.buildWitness)({fixture:m.fixture}),p=m.witnessCommand(options(v));authority(p);assert.equal(p.witness_interpretation,NATIVE_STARTUP_WITNESS_INTERPRETATION);assert.equal(p.command_proposed,nativeStdioDirectCommand(base));assert.equal(p.source_sha256,NATIVE_STARTUP_WITNESS_SOURCE_SHA256);assert.equal(p.disabled,true);assert.equal(p.inferencePermitted,false);
+ const n=mock(kind),old=(kind==='ci'?n.buildCI:n.build)({fixture:n.fixture}),before=n.command(options(old));assert.throws(()=>n.witnessCommand(options(old)),/NATIVE_STDIO_COMMAND_UNAVAILABLE/);
+ assert.deepEqual(p.settings_proposed.sandbox,before.settings_proposed.sandbox);assert.deepEqual(p.settings_proposed.permissions.deny,before.settings_proposed.permissions.deny);
+ assert.equal(p.build_interpretation,'redue-native-child-startup-witness-preauth-build@1');assert.deepEqual(p.exact_read_leaves,before.exact_read_leaves);
 });

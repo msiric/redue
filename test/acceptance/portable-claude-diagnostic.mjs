@@ -9,7 +9,7 @@ import {fileURLToPath} from 'node:url';
 import {renderNativeDiagnosticAssets,sha} from './portable-native-diagnostic-assets.mjs';
 import {REVIEWED_CLAUDE_NATIVE,PINNED_READONLY_BASH_HEADS} from './portable-claude-native-profile.mjs';
 import {parsePortableJson} from '../../src/portable-envelope.mjs';
-import {interpretDirectNativeStdioProbeTrace} from './sealed-typescript-native-stdio-direct-trace.mjs';
+import {interpretDirectNativeStdioProbeTrace,interpretDirectNativeStartupWitnessTrace} from './sealed-typescript-native-stdio-direct-trace.mjs';
 import {isNativeStdioDiagnosticData,nativeStdioDirectCommand} from './sealed-typescript-native-stdio-probe.mjs';
 export {PINNED_READONLY_BASH_HEADS} from './portable-claude-native-profile.mjs';
 export const LIMITS=Object.freeze({turns:4,totalMs:120000,cleanupMs:5000,lineBytes:65536,streamBytes:2*1024*1024});
@@ -135,24 +135,31 @@ export function collectNativeDiagnostic(create,options={}) {
 // resource prerequisites before calling it. Protected activation is still checked
 // here; a settings/proposal JSON label never supplies effective enforcement.
 const directCollections=new WeakMap();
-export function collectDirectNativeStdioDiagnostic(create,{binding,activation,...limits}={}) {
- if(!isNativeStdioDiagnosticData(binding)||interpretDirectNativeStdioProbeTrace([],binding,{}).reason!=='NATIVE_TRACE_INCOMPLETE')fail('DIAGNOSTIC_DIRECT_BINDING');
+export function collectDirectNativeStdioDiagnostic(create,options={}) {return collectFixedDirectDiagnostic(create,options,false);}
+export function collectDirectNativeStartupWitnessDiagnostic(create,options={}) {return collectFixedDirectDiagnostic(create,options,true);}
+function collectFixedDirectDiagnostic(create,{binding,activation,...limits}={},witness) {
+ const interpret=witness?interpretDirectNativeStartupWitnessTrace:interpretDirectNativeStdioProbeTrace;
+ if(!isNativeStdioDiagnosticData(binding)||interpret([],binding,{}).reason!=='NATIVE_TRACE_INCOMPLETE')fail('DIAGNOSTIC_DIRECT_BINDING');
  if(!activation||Object.getPrototypeOf(activation)!==Object.prototype||Reflect.ownKeys(activation).length!==2||
   !['env','source'].every(k=>Object.hasOwn(Object.getOwnPropertyDescriptor(activation,k)??{},'value')))fail('DIAGNOSTIC_DIRECT_ACTIVATION');
  requireNativeDiagnosticActivation(activation);
  if(Object.keys(limits).some(k=>!['timeoutMs','cleanupMs','signal'].includes(k)))fail('DIAGNOSTIC_DIRECT_OPTIONS');
  const fixedBinding=JSON.parse(JSON.stringify(binding));
- return collectNativeDiagnosticProcess(create,{...limits,command:nativeStdioDirectCommand(binding.hostBase),cwd:binding.hostBase+'/prefix/native-probes'},fixedBinding);
+ return collectNativeDiagnosticProcess(create,{...limits,command:nativeStdioDirectCommand(binding.hostBase),cwd:binding.hostBase+'/prefix/native-probes'},fixedBinding,witness?'STARTUP_WITNESS_V1':'STDIO_V1');
 }
 // Consume the live same-process collection exactly once AFTER the controller's
 // post-close currentness checks. Copied/serialized/foreign records cannot adopt
 // it. Raw frames never leave the private map and are discarded even on failure.
-export function interpretCollectedDirectNativeStdioDiagnostic(collection,completion){
+export function interpretCollectedDirectNativeStdioDiagnostic(collection,completion){return interpretCollectedFixedDirectDiagnostic(collection,completion,false);}
+export function interpretCollectedDirectNativeStartupWitnessDiagnostic(collection,completion){return interpretCollectedFixedDirectDiagnostic(collection,completion,true);}
+function interpretCollectedFixedDirectDiagnostic(collection,completion,witness){
+ const interpret=witness?interpretDirectNativeStartupWitnessTrace:interpretDirectNativeStdioProbeTrace;
  const retained=directCollections.get(collection);if(retained)directCollections.delete(collection);
- if(!retained)return Object.freeze({...interpretDirectNativeStdioProbeTrace([],{},{}),reason:'COLLECTED_NATIVE_STDIO_CONTEXT_UNAVAILABLE'});
+ if(!retained)return Object.freeze({...interpret([],{},{}),reason:'COLLECTED_NATIVE_STDIO_CONTEXT_UNAVAILABLE'});
+ if(retained.kind!==(witness?'STARTUP_WITNESS_V1':'STDIO_V1')){retained.events.length=0;return Object.freeze({...interpret([],{},{}),reason:'COLLECTED_NATIVE_CONTRACT_MISMATCH'});}
  try{
   const current=isNativeStdioDiagnosticData(completion)?completion:{};
-  const interpreted=interpretDirectNativeStdioProbeTrace(retained.events,retained.binding,{...current,
+  const interpreted=interpret(retained.events,retained.binding,{...current,
    nativeExit:collection.native_exit_code,nativeSignal:collection.native_signal,timedOut:collection.timed_out,reaped:collection.owned_native_reaped});
   return collection.transport_error?Object.freeze({...interpreted,outcome:'UNKNOWN',reason:collection.transport_error}):interpreted;
  }finally{retained.events.length=0;}
@@ -167,7 +174,7 @@ function parseDirectNativeFrame(line){
  parsePortableJson(source.replace(tokens,token=>token[0]==='"'?token:'0'));
  return value;
 }
-function collectNativeDiagnosticProcess(create,{command,cwd,timeoutMs=115000,cleanupMs=5000,signal:abortSignal}={},directBinding=null) {
+function collectNativeDiagnosticProcess(create,{command,cwd,timeoutMs=115000,cleanupMs=5000,signal:abortSignal}={},directBinding=null,directKind=null) {
  if(!Number.isInteger(timeoutMs)||timeoutMs<1||timeoutMs>115000||!Number.isInteger(cleanupMs)||cleanupMs<1||cleanupMs>5000)fail('DIAGNOSTIC_LIMIT');
  return new Promise(resolve=>{
   const events=[];let directError=null;
@@ -207,7 +214,7 @@ function collectNativeDiagnosticProcess(create,{command,cwd,timeoutMs=115000,cle
     transport_error:snapshot.error??(invalidClose?'NATIVE_CLOSE_UNSUPPORTED':!spawnObserved?'NATIVE_SPAWN_NOT_OBSERVED':null),
     raw_stdout_retained:true,raw_frames_returned:false,raw_frames_persisted:false,
     collection_phase:'AWAITING_ONE_POST_CLOSE_INTERPRETATION',nativeEnforcement:'NOT_ESTABLISHED',sealed:false,reuseEligible:false});
-   directCollections.set(collected,{events,binding:directBinding});resolve(collected);
+   directCollections.set(collected,{events,binding:directBinding,kind:directKind});resolve(collected);
   };
   const cancel=()=>{ioError??='NATIVE_CANCELLED';stop();};
   const deadline=setTimeout(()=>{timedOut=true;stop();},timeoutMs);

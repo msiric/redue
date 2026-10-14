@@ -5,7 +5,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {prepareNativeStdioStartup,verifyNativeStdioStartup,NATIVE_STDIO_STARTUP_BASIS,NATIVE_STDIO_CI_STARTUP_BASIS} from './acceptance/sealed-typescript-native-stdio-startup.mjs';
+import {prepareNativeStdioStartup,prepareNativeStartupWitnessStartup,verifyNativeStdioStartup,NATIVE_STDIO_STARTUP_BASIS,NATIVE_STDIO_CI_STARTUP_BASIS} from './acceptance/sealed-typescript-native-stdio-startup.mjs';
+import {NATIVE_STDIO_SOURCE_SHA256} from './acceptance/sealed-typescript-native-stdio-probe.mjs';
+import {NATIVE_STARTUP_WITNESS_SOURCE_SHA256} from './acceptance/sealed-typescript-native-startup-witness.mjs';
 const source=fs.readFileSync(new URL('./acceptance/sealed-typescript-native-stdio-startup.mjs',import.meta.url),'utf8');
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const base='/private/tmp/redue-ci-recipient-12345678',host=base+'/claude-host';
@@ -14,7 +16,7 @@ const publicProfile='# System-wide .profile for sh(1)\n\nif [ -x /usr/libexec/pa
 const publicBashrc='# System-wide .bashrc file for interactive bash(1) shells.\nif [ -z "$PS1" ]; then\n   return\nfi\n\nPS1=\'\\h:\\W \\u\\$ \'\n# Make bash check its window size after a process completes\nshopt -s checkwinsize\n\n[ -r "/etc/bashrc_$TERM_PROGRAM" ] && . "/etc/bashrc_$TERM_PROGRAM"\n';
 function mock(profileId='redue-native-stdio-preauth-local-sdk27@1'){
  let ino=1,fd=100;const nodes=new Map(),fds=new Map(),fixture=Object.freeze({kind:'PRIVATE_FIXTURE'}),build=Object.freeze({hostBase:base});
- const state={fixtureValid:true,buildValid:true,profileId,buildInterpretation:'redue-native-stdio-preauth-build@2',reads:[],writes:[],opens:[],closes:[],mkdirs:[],stats:[],fault:null,deniedPath:null,deniedCode:'EPERM',afterRead:null,afterStat:null,afterBuild:null};
+ const state={fixtureValid:true,buildValid:true,profileId,buildInterpretation:'redue-native-stdio-preauth-build@2',sourceSha256:NATIVE_STDIO_SOURCE_SHA256,reads:[],writes:[],opens:[],closes:[],mkdirs:[],stats:[],fault:null,deniedPath:null,deniedCode:'EPERM',afterRead:null,afterStat:null,afterBuild:null};
  const put=(file,kind='d',body='',owner=501,mode=kind==='d'?0o40700n:0o100600n)=>{const p=nodes.get(path.posix.dirname(file));if(p){p.mtimeNs++;p.ctimeNs++;}return nodes.set(file,{kind,body:Buffer.from(body),uid:BigInt(owner),gid:20n,mode,dev:1n,ino:BigInt(ino++),nlink:1n,size:BigInt(Buffer.byteLength(body)),mtimeNs:1n,ctimeNs:1n});};
  const parents=file=>{for(let at=path.posix.dirname(file);;at=path.posix.dirname(at)){if(!nodes.has(at))put(at,'d','',0,at==='/private/tmp'?0o41777n:0o40755n);if(at===path.posix.dirname(at))return;}};
  for(const [file,body]of [['/private/etc/profile',publicProfile],['/private/etc/bashrc',publicBashrc],['/bin/bash',profileId==='redue-native-stdio-preauth-ci-sdk26.5@1'?'CI_BASH':'STOCK_BASH'],['/usr/libexec/path_helper',profileId==='redue-native-stdio-preauth-ci-sdk26.5@1'?'CI_PATH_HELPER':'STOCK_PATH_HELPER']]){parents(file);put(file,'f',body,0,0o100444n);}
@@ -34,13 +36,13 @@ function mock(profileId='redue-native-stdio-preauth-local-sdk27@1'){
   fsyncSync(){if(state.fault==='fsync')throw Error('PRIVATE_DETAIL');},
   closeSync(n){state.closes.push(n);fds.delete(n);if(state.fault==='close')throw Error('PRIVATE_DETAIL');}};
  const fixtureVerify=v=>v===fixture&&state.fixtureValid?{outcome:'SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED',scope:'FIXED_CI_SYNTHETIC_FIXTURE_MECHANICS_ONLY',receiverBasePolicyMatch:true,ownedHandlesClosed:true,base}:{outcome:'UNKNOWN'};
- const buildVerify=v=>{const observed=v===build&&state.buildValid?{outcome:'BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED',profileId:state.profileId,buildInterpretation:state.buildInterpretation,hostBase:base,helper:base+'/prefix/native-probes/native-stdio-probe',cwd:base+'/prefix/native-probes'}:{outcome:'UNKNOWN'};state.afterBuild?.();return observed;};
+ const buildVerify=v=>{const observed=v===build&&state.buildValid?{outcome:'BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED',profileId:state.profileId,buildInterpretation:state.buildInterpretation,sourceSha256:state.sourceSha256,hostBase:base,helper:base+'/prefix/native-probes/native-stdio-probe',cwd:base+'/prefix/native-probes'}:{outcome:'UNKNOWN'};state.afterBuild?.();return observed;};
  // Substitute only actual binary pins for in-memory byte fixtures. Public stock
  // profile/bashrc pins remain exact, so accidental public-template drift fails.
  const code=source.replace(/^import .*;$/gm,'').replaceAll('export const ','const ').replaceAll('export function ','function ')
   .replace(NATIVE_STDIO_STARTUP_BASIS.pins['/bin/bash'],sha('STOCK_BASH')).replace(NATIVE_STDIO_STARTUP_BASIS.pins['/usr/libexec/path_helper'],sha('STOCK_PATH_HELPER')).replace(NATIVE_STDIO_CI_STARTUP_BASIS.pins['/bin/bash'],sha('CI_BASH')).replace(NATIVE_STDIO_CI_STARTUP_BASIS.pins['/usr/libexec/path_helper'],sha('CI_PATH_HELPER'));
  const processMock={env:{},platform:'darwin',arch:'arm64',version:'v22.13.0',getuid:()=>501,geteuid:()=>501,getgid:()=>20,getegid:()=>20};
- const api=Function('fs','path','createHash','verifyNativeStdioProbeBuild','verifySealedTypeScriptSyntheticFixture','process',code+';return {prepare:prepareNativeStdioStartup,verify:verifyNativeStdioStartup};')(io,path.posix,createHash,buildVerify,fixtureVerify,processMock);
+ const api=Function('fs','path','createHash','verifyNativeStdioProbeBuild','verifySealedTypeScriptSyntheticFixture','NATIVE_STDIO_SOURCE_SHA256','NATIVE_STARTUP_WITNESS_SOURCE_SHA256','process',code+';return {prepare:prepareNativeStdioStartup,prepareWitness:prepareNativeStartupWitnessStartup,verify:verifyNativeStdioStartup};')(io,path.posix,createHash,buildVerify,fixtureVerify,NATIVE_STDIO_SOURCE_SHA256,NATIVE_STARTUP_WITNESS_SOURCE_SHA256,processMock);
  return {...api,fixture,build,state,nodes,fds,put,process:processMock};
 }
 const prepare=m=>m.prepare({fixture:m.fixture,build:m.build});
@@ -202,4 +204,20 @@ for(const change of ['inode','owner','mode','hardlink','symlink'])test(`CI publi
 });
 test('CI late managed-profile presence latches UNKNOWN without a protected body read',()=>{
  const m=mock(ciProfile),v=prepare(m);m.put(managedProfile,'f','PROTECTED');assert.equal(m.verify(v,'AFTER_NATIVE').outcome,'UNKNOWN');m.nodes.delete(managedProfile);assert.equal(m.verify(v).outcome,'UNKNOWN');assert(!m.state.reads.includes(managedProfile));
+});
+
+for(const profile of ['redue-native-stdio-preauth-local-sdk27@1',ciProfile])test('fixed witness pair has separate startup identity, same bindings and no authority '+profile,()=>{
+ const m=mock(profile);m.state.buildInterpretation='redue-native-child-startup-witness-preauth-build@1';m.state.sourceSha256=NATIVE_STARTUP_WITNESS_SOURCE_SHA256;
+ assert.equal(m.prepare({fixture:m.fixture,build:m.build}).outcome,'UNKNOWN');assert.deepEqual(m.state.opens,[]);assert.deepEqual(m.state.mkdirs,[]);
+ const v=m.prepareWitness({fixture:m.fixture,build:m.build});noAuthority(v);assert.equal(v.outcome,'STARTUP_PREPARED_NOT_LAUNCHED');assert.equal(v.sourceSha256,NATIVE_STARTUP_WITNESS_SOURCE_SHA256);assert.equal(v.buildInterpretation,m.state.buildInterpretation);assert(v.interpretation.endsWith('child-startup-witness-source@1'));
+ assert.equal(v.environmentBindings.HOME,host+'/home');assert.equal(v.environmentBindings.PATH_HELPER_ROOT,host+'/path-helper-root');assert.equal(m.verify(v).sourceSha256,v.sourceSha256);assert.equal(m.verify(v,'AFTER_NATIVE').outcome,'STARTUP_CURRENTLY_OBSERVED_SOURCE_ONLY');
+ m.state.sourceSha256=NATIVE_STDIO_SOURCE_SHA256;assert.equal(m.verify(v).outcome,'UNKNOWN');m.state.sourceSha256=NATIVE_STARTUP_WITNESS_SOURCE_SHA256;assert.equal(m.verify(v).outcome,'UNKNOWN');
+});
+for(const [interpretation,pin] of [['redue-native-stdio-preauth-build@2',NATIVE_STARTUP_WITNESS_SOURCE_SHA256],['redue-native-child-startup-witness-preauth-build@1',NATIVE_STDIO_SOURCE_SHA256],['OTHER',NATIVE_STARTUP_WITNESS_SOURCE_SHA256]])test('mixed source/build pair cannot prepare either fixed startup '+interpretation,()=>{
+ for(const mode of ['prepare','prepareWitness']){const m=mock(ciProfile);m.state.buildInterpretation=interpretation;m.state.sourceSha256=pin;assert.equal(m[mode]({fixture:m.fixture,build:m.build}).outcome,'UNKNOWN');assert.deepEqual(m.state.stats,[]);}
+});
+test('new startup entry rejects getters, arbitrary source and forged build before IO',()=>{
+ const m=mock(ciProfile);let gets=0;const o={build:m.build};Object.defineProperty(o,'fixture',{get(){gets++;return m.fixture;}});
+ assert.throws(()=>prepareNativeStartupWitnessStartup(o),/STARTUP_OPTIONS/);assert.equal(gets,0);
+ for(const o of [{fixture:m.fixture,build:m.build,source:NATIVE_STARTUP_WITNESS_SOURCE_SHA256},{fixture:m.fixture,build:{}}]){if(Object.hasOwn(o,'source'))assert.throws(()=>m.prepareWitness(o),/STARTUP_OPTIONS/);else assert.equal(m.prepareWitness(o).outcome,'UNKNOWN');}assert.deepEqual(m.state.opens,[]);
 });
