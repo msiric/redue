@@ -4,7 +4,43 @@ Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revisio
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
 
-## Current checkpoint — matching supplemental CLT facts collected
+## Current checkpoint — reviewed runner build check ready
+
+2026-10-14: collected [38560378792](https://github.com/msiric/redue/actions/runs/38560378792).
+Both independent VMs supplied identical root CLT/compiler and SDK26.5 observations;
+original guards still returned UNKNOWN. No compiler check, native or model ran.
+
+Reviewed070 CI-only build binding and071A fixed llvm-objdump inventory are integrated
+at runtime `e5e908656eac9982a01ee4381b7828d5432cacdb`. Local SDK27 behavior stays unchanged.
+Root combined510 mock tests PASS with one existing opt-in SKIP; TAP SHA256
+`3a7dd96599ecc24a6c60b9e6f7763274e6703ec0ac96893561f95924f9442463`.
+This is source/mock acceptance, not actual build or native enforcement.
+
+Fresh nonauthor072 review ACCEPT at workflow `f26ad10575ffe02f56c4c3fd500d557e41ee03ae`:
+64 independent controls and all Bash syntax checks PASS; root17 harmless/source/mock
+controls PASS. Author validation failures remain preserved. Exact workflow SHA256
+`67b13adc0ca506ca570a5814108e7203eb784653c00f10ff5c1e915dc81cd795` is pushed and
+verified remotely, pinned to that runtime. Two standard macOS jobs, read-only GitHub
+permissions, two-minute bounds and no artifacts/cache/credentials/models remain.
+The new step performs one fixed C helper build and private currentness checks; it
+never executes that helper. Missing guards remain UNKNOWN; inventory failure still
+leaves the job failed. Cleanup cannot confer evidence or erase an uncertain namespace.
+
+Next: owner normal Actions UI, portable-preflight.yml → Run workflow →
+`dev/portable-sealed-host-preflight` → Run workflow (NEW, not Re-run jobs).
+Existing API403 is not retried or bypassed. Collect actual C build result separately
+from retained inventory failures and fixed inspection-tool facts before further use.
+Actual C build, tool invocation, complete profile, seal and portable reuse remain
+unestablished. Copilot included Actions capacity stays separately pending; the closed
+hosted Claude prerequisite is not repeated. G0partial; G1–G4 incomplete; alpha.11
+unpublished, pilot and immutable receipts unchanged.
+
+074 source assessment rejects substituting an API snapshot for the approved staged
+CLI recipe: ambient System closures and deferred resolution remain unclosed; a new
+API recipe would change the obligation and require a consequential owner decision.
+No such change was adopted. Day0 and gates remain unchanged.
+
+## Historical checkpoint — matching supplemental CLT facts collected
 
 2026-10-14: [run38560378792](https://github.com/msiric/redue/actions/runs/38560378792)
 completed on reviewed08d7e01/runtime6d0c6a1. Both independent VMs returned identical
