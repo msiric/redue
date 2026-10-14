@@ -21,9 +21,13 @@ none establishes native enforcement. A reviewer mistakenly ran those filesystem
 controls despite a read-only instruction; the filter failure is recorded separately.
 The local source basis remains unchanged and all native/portable authority stays false.
 
-Next: review the fixed, authentication-free public startup observation103 and close
-native executor source edges105. Standalone observations cannot establish Claude's
-command boundary. No model launches until that boundary's actual prerequisites pass.
+Fixed authentication-free observation103 is reviewed/integrated at
+`52a3b7f37637fa6c1362b68ec79ecc95f114d7f4`; root357 source/mock controls PASS.
+Native source edges105 establish outer login startup before sandbox-exec when no
+snapshot exists, not actual branch selection or enforcement. Next: review the
+storage-free workflow107 and prepare the unchanged-route native witness108.
+Standalone observations cannot establish Claude's boundary; no model launches
+until actual protected-workflow prerequisites pass.
 G0partial/G1–G4 incomplete; Copilot included Actions capacity separately pending;
 the earlier scoped Claude diagnostic remains closed. Alpha.11 remains unpublished;
 fixed pilot and immutable receipts are unchanged. Details and exact evidence are in

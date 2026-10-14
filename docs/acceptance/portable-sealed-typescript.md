@@ -54,12 +54,30 @@ retained as an instruction failure, not evidence of an OS sandbox. No native/mod
 credential, API or compiler-check operation occurred. Source-only acceptance cannot
 supply controlledShellStartup or native enforcement.
 
-Next: independently review the bounded five-case public startup observation103 and
-resolve actual native executor edges105. Existing native policy does not explicitly
-reallow the private ROOT bodies; configuration alone does not establish actual
-startup failure or enforcement. A standalone successful check cannot satisfy that
-native prerequisite. No new model/CI operation is launched from these observations.
-No authority, recipe meaning, permission, signing or trust rule has changed.
+Five-case standalone observation103 is independently accepted by106:57 supplied
+plus8 independent in-memory controls. Integrated runtime
+`52a3b7f37637fa6c1362b68ec79ecc95f114d7f4` is normally pushed and remotely verified;
+root357 source/mock controls PASS, TAP SHA256
+`4eb5f1cc04e0036f7ffe97b30da2b4f254d28de1e1c9263d41cdaf81e9b1d60b`.
+The initial51PASS/1FAIL symlink-kind test is preserved; its guard was repaired without
+weakening the assertion. Exactly five public calls use separately owned controls,
+literal authentication-free environments, bounded output and no stdout evaluation.
+No actual targets ran. Internal30-second validation/5-second cleanup budgets reject
+late returns but cannot interrupt a kernel-blocked filesystem call. Per-child5-second
+limits and the hosted job limit are distinct; no hard35-second guarantee is claimed.
+
+Research105 closes the inspected native executor's source edges: without a usable
+snapshot, outer login startup occurs before sandbox-exec; its inner shell is nonlogin.
+Actual branch, environment, loader and access remain unobserved. Root independently
+verified the pinned public native file and eight source spans. Existing private ROOT
+read denials alone therefore do not prove outer startup failure. Nor does config
+prove enforcement. A versioned fixed-child witness must report actual narrow facts;
+it cannot establish complete Bash equivalence, all earlier reads or a stable seal.
+
+Next: independently review storage-free workflow107 and prepare fixed native witness108
+on the same literal command with unchanged permissions. Standalone observation cannot
+supply controlledShellStartup or native enforcement. No model launches until actual
+protected-workflow prerequisites pass. No signing/trust or evidence authority changed.
 G0partial/G1–G4 incomplete; Copilot included Actions capacity remains pending;
 the earlier scoped hosted Claude diagnostic stays closed. Alpha.11 is unpublished;
 fixed pilot, protected local evidence and immutable receipts remain unchanged.
