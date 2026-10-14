@@ -13,7 +13,58 @@ Node22.13 profile. A local proposal cannot certify that profile or its enforceme
 Existing checks, configurations and receipts are never silently converted.
 The unreleased CLI now offers explicit pending selection, not executable evidence.
 
-## Current checkpoint — argument binding correction reviewed; new native run pending
+## Current checkpoint — native ran; precise tool-refusal reporting ready
+
+2026-10-14: [run38632067782](https://github.com/msiric/redue/actions/runs/38632067782)
+used workflow41832/runtime7064, attempt1. Independent127 ACCEPT_SCOPE verifies
+UNKNOWN/NATIVE_TOOL_SCOPE despite successful before/after currentness and native
+spawn/close/reap with exit0. Native7.487s/controller19.145s, one helper build,
+owned cleanup;328 source/mock tests passed. Helper execution and failed tool
+subcondition are unproven; raw frames were deliberately discarded. A valid first
+request followed by a rejected second request can yield this same reason. Neither
+normal exit nor cleanup proves enforcement, and this diagnostic is not G2/reuse.
+Report SHA256 `ae6f5922ef86aca66592a4e89b60043a99e608fb67e5344bfecc49f9177e8b5c`;
+log321,328 bytes SHA256
+`030b0012b6fe6f27978fe279144921a4c079953e0b00889668ac2e9f9ea26638`.
+
+Reviewed reporting128/129 is integrated/pushed at runtime
+`2ca6809061eef19ca529f30974b956944d9c091c`. It preserves every tool-scope predicate,
+its order/short circuit and all acceptance conditions. Only the first static
+refusal class, ordinal and prior-accepted-request boolean are added; no raw tool
+names/keys/IDs/commands/descriptions. Prior acceptance is not execution proof.
+Reviewer174 supplied+38 independent old/new equivalence controls pass; root174
+focused and1052 shared PASS/1 optional actual C-build SKIP. Shared18-file run725.431ms,
+TAP SHA256 `8e12f978895a4c4c5758c0b841906264c4258aec774fc64270e91489aa109592`.
+Three shared controls use owned temporary files; others source/mocks. Actual previous
+subcause remains UNKNOWN and is not retroactively supplied by these new diagnostics.
+
+Pinned public native187 source review130 confirms timeout is optional in its schema;
+omission defaults to120000ms, separately capped600000ms. Optional background and
+sandbox-override booleans have no inserted defaults. Execution parses a copy;
+streamed tool-input blocks retain original requested data. This does not identify
+the actual failed field or justify weakening the reviewed explicit1..15000ms bound.
+Native binary SHA256 remains a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3.
+Exact source spans/hashes are retained in the protected resume record, not raw code.
+
+Workflow131/132 is independently accepted, fast-forward pushed and remotely verified
+at `d968a60eb5ecba103ee424537444fedbcd551bcf`, SHA256
+`28066e97bccf0ab53de66ac4bf0e3e2138f558e4d4cc8a58c370f443106d8fa9`.
+Only two runtime pins changed; flags, command, credentials, four-turn/two-minute
+limits, permissions and all other bytes remain unchanged. Root9 source/mock/syntax
+and reviewer8 source/pure-mock controls pass. Protected account source alone is
+aligned; owner reviewed_at19:26:03Z remains unchanged. Input validation passes,
+fact digest `f386ab706e176fea1c6c847f187bf6eb539cd5fc2d3f5985c4bb8a2aa89c3a6c`.
+
+Next: one NEW normal owner Actions UI run of portable-claude-diagnostic.yml on
+`dev/portable-claude-diagnostic` (not Re-run jobs), normal configured review, then
+actual closed/refusal result collection. This is diagnosis, not retries for a score;
+no new login/account confirmation is required. Unchanged CLI dispatch403 is not
+retried. No actual native attempt has used the new reporting revision yet.
+G0partial/G1–G4 incomplete; Copilot included Actions capacity separately pending.
+Scoped earlier Claude six-check prerequisite stays closed. Alpha.11 unpublished;
+fixed pilot/immutable receipts preserved; complete portable economics unmeasured.
+
+## Historical checkpoint — argument binding correction reviewed; new native run pending
 
 2026-10-14: the latest hosted attempt38629169088 remains UNKNOWN before native
 launch. Its exact guard report and independent122 review confirm ACTUAL_BINDINGS
