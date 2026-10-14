@@ -13,12 +13,13 @@ const sha=x=>createHash('sha256').update(x).digest('hex'),literal='/Library/Deve
 const headers=['sys/stdio.h','sys/fcntl.h','fcntl.h','sys/mman.h','sys/stat.h','stdio.h','errno.h','unistd.h'];
 const requiredTools={clang:'/Library/Developer/CommandLineTools/usr/bin/clang',ld:'/Library/Developer/CommandLineTools/usr/bin/ld'},selectedTools={clang:'/Applications/Xcode_26.0.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang',ld:'/Applications/Xcode_26.0.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld'};
 const installedSdk='/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk',cltAlias='/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk';
+const inspectionTool='/Library/Developer/CommandLineTools/usr/bin/llvm-objdump';
 const stock=['/private/etc/profile','/private/etc/bashrc','/bin/bash','/usr/libexec/path_helper'];
 function mock(){
  let ino=1,fd=100;const nodes=new Map(),fds=new Map(),state={opens:[],reads:[],realpaths:[],calls:[],selected,selectedTools:{...requiredTools},failPath:null,failCode:'ENOENT',afterRead:null,result:null,link:'private/etc',noncanonicalPath:null,failOpenPath:null,failReadPath:null,fdIdentityPath:null,failClosePath:null,afterClose:null,lookupAliases:new Map(),cltLink:'MacOSX26.5.sdk',cltRealpath:installedSdk,virtualFile:null,afterReadlink:null,afterRealpath:null};
  const put=(p,kind='f',body='PUBLIC_MOCK',uid=0)=>nodes.set(p,{kind,body:Buffer.from(body),dev:1n,ino:BigInt(ino++),uid:BigInt(uid),gid:20n,mode:kind==='d'?0o40755n:kind==='l'?0o120777n:0o100644n,nlink:1n,size:BigInt(Buffer.byteLength(body)),mtimeNs:1n,ctimeNs:1n});
  const parents=p=>{for(let a=path.posix.dirname(p);;a=path.posix.dirname(a)){if(!nodes.has(a))put(a,'d','',0);if(a===path.posix.dirname(a))return;}};
- for(const p of ['/usr/bin/xcrun','/runtime/node','/Library/Developer/CommandLineTools/usr/bin/clang','/Library/Developer/CommandLineTools/usr/bin/ld',...stock]){parents(p);put(p,'f',p==='/runtime/node'?'MOCK_NODE':'PUBLIC_MOCK',p==='/runtime/node'?501:0);}
+ for(const p of ['/usr/bin/xcrun','/runtime/node','/Library/Developer/CommandLineTools/usr/bin/clang','/Library/Developer/CommandLineTools/usr/bin/ld',inspectionTool,...stock]){parents(p);put(p,'f',p==='/runtime/node'?'MOCK_NODE':'PUBLIC_MOCK',p==='/runtime/node'?501:0);}
  for(const sdk of [selected,literal,installedSdk])for(const name of headers){const p=sdk+'/usr/include/'+name;parents(p);put(p,'f',sdk+' '+name);}
  put('/etc','l','private/etc');put(cltAlias,'l','MacOSX26.5.sdk');
  const stat=p=>{if(p===state.failPath)throw Object.assign(Error('PROTECTED_PRIVATE_ERROR'),{code:state.failCode});const row=nodes.get(p);if(!row)throw Object.assign(Error('PROTECTED_PRIVATE_ERROR'),{code:'ENOENT'});return {...row,isFile:()=>row.kind==='f',isDirectory:()=>row.kind==='d',isSymbolicLink:()=>row.kind==='l'};};
@@ -31,7 +32,7 @@ function mock(){
  const inventory=Function('fs','path','os','createHash','spawnSync','process',code+';return inventoryPublicSealedTools;')(io,path,{release:()=> 'SYNTHETIC_OS_NOT_ACCEPTANCE'},createHash,spawn,p);
  return {inventory,state,nodes,fds,put,parents,process:p};
 }
-function noAuthority(report){assert.equal(report.profileApproved,false);for(const k of ['sealed','reuseEligible'])assert.equal(report[k],false);for(const k of ['models','nativeAgentLaunches','compilerCheckExecutions'])assert.equal(report[k],0);assert.equal(JSON.stringify(report).includes('PROTECTED_PRIVATE_ERROR'),false);assert.equal(Object.hasOwn(report,'environment'),false);}
+function noAuthority(report){assert.equal(report.profileApproved,false);for(const k of ['sealed','reuseEligible'])assert.equal(report[k],false);for(const k of ['models','nativeAgentLaunches','compilerCheckExecutions'])assert.equal(report[k],0);assert.equal(JSON.stringify(report).includes('PROTECTED_PRIVATE_ERROR'),false);assert.equal(Object.hasOwn(report,'environment'),false);assert.equal(report.inspectionTool.scope,'OBSERVATIONAL_NOT_EXECUTION_ACCEPTED');assert.equal(Object.hasOwn(report.inspectionTool,'version'),false);assert.equal(Object.hasOwn(report.inspectionTool,'executionAccepted'),false);}
 test('fixed mocks capture selected and requiredSDK independently plus allstdio/startup publicfiles',()=>{
  const m=mock(),r=m.inventory();noAuthority(r);assert.equal(r.outcome,'PUBLIC_TOOL_BYTES_OBSERVED_NOT_ACCEPTED');assert.equal(r.phase,'COMPLETE');assert.equal(r.sdk.canonical,selected);assert.equal(r.requiredSdk.canonical,literal);assert.notEqual(r.sdk.headers['stdio.h'].sha256,r.requiredSdk.headers['stdio.h'].sha256);assert.deepEqual(Object.keys(r.sdk.headers),headers);assert.deepEqual(Object.keys(r.requiredSdk.headers),headers);assert.deepEqual(Object.keys(r.stockStartup),stock);assert.equal(r.etcAlias.canonicalMatch,true);assert.equal(m.fds.size,0);
  assert.deepEqual(m.state.calls,[['--find','clang'],['--find','ld'],['--sdk','macosx','--show-sdk-path']]);assert(m.state.opens.every(p=>p!=='/etc'&&p!=='/private/etc'));assert(r.stockStartup['/bin/bash'].stat.regularFile);assert.equal(r.requiredSdk.headers['errno.h'].stat.singleLink,true);
@@ -162,4 +163,49 @@ test('valid observed CLT versioned alias retains absent original SDK27 and all a
 for(const operation of ['readlink','realpath'])test('CLT alias replacement during final '+operation+' cannot be reported COMPLETE',()=>{
  const m=mock();let calls=0;m.state[operation==='readlink'?'afterReadlink':'afterRealpath']=p=>{if(p===cltAlias&&++calls===2)m.nodes.get(cltAlias).ino++;};
  const r=m.inventory();noAuthority(r);assert.equal(calls,2);assert.equal(r.outcome,'UNKNOWN');assert.equal(r.observedClt.sdk.aliasPhase,'ALIAS_CLOSURE');assert.deepEqual(r.failures,[{phase:'OBSERVATIONAL_CLT_SDK',code:'UNSUPPORTED_OR_CHANGED',guardReason:'SDK_ALIAS_IDENTITY_CHANGED'}]);assert.equal(m.fds.size,0);
+});
+
+function inspectionFailure(m,r,reason,code='UNSUPPORTED_OR_CHANGED'){
+ noAuthority(r);assert.equal(r.outcome,'UNKNOWN');assert.equal(r.phase,'COMPLETE_WITH_UNKNOWN');assert.equal(r.inspectionTool.canonical,inspectionTool);assert.equal(r.inspectionTool.sha256,undefined);
+ assert.deepEqual(r.failures,[{phase:'OBSERVATIONAL_INSPECTION_TOOL',code,...(reason?{guardReason:reason}:{})}]);
+ assert(r.observedClt.clang.sha256);assert.equal(r.observedClt.sdk.aliasPhase,'COMPLETE');assert.equal(Object.keys(r.sdk.headers).length,8);assert.equal(Object.keys(r.requiredSdk.headers).length,8);assert.equal(Object.keys(r.stockStartup).length,4);assert.equal(r.etcAlias.canonicalMatch,true);
+ assert.deepEqual(m.state.calls,[['--find','clang'],['--find','ld'],['--sdk','macosx','--show-sdk-path']]);assert.equal(m.fds.size,0);
+}
+test('fixed inspection tool captures only public bytes with no invocation, version assumption or authority',()=>{
+ const m=mock(),r=m.inventory();noAuthority(r);assert.equal(r.outcome,'PUBLIC_TOOL_BYTES_OBSERVED_NOT_ACCEPTED');assert.equal(r.inspectionTool.canonical,inspectionTool);assert.equal(r.inspectionTool.observationPhase,'COMPLETE');assert.equal(r.inspectionTool.fdClose,'CLOSED');assert.equal(r.inspectionTool.sha256,sha('PUBLIC_MOCK'));assert.equal(r.inspectionTool.bytes,Buffer.byteLength('PUBLIC_MOCK'));assert.equal(r.inspectionTool.owner,'ROOT');assert(r.inspectionTool.stat.closingIdentityChecked);
+ assert.equal(m.state.opens.filter(p=>p===inspectionTool).length,1);assert.equal(m.state.reads.filter(p=>p===inspectionTool).length,1);assert.deepEqual(m.state.calls,[['--find','clang'],['--find','ld'],['--sdk','macosx','--show-sdk-path']]);assert.equal(m.fds.size,0);
+ const allowed=new Set(['/usr/bin/xcrun','/runtime/node',...Object.values(requiredTools),inspectionTool,...stock,...[selected,literal,installedSdk].flatMap(sdk=>headers.map(name=>sdk+'/usr/include/'+name))]);assert(m.state.opens.every(p=>allowed.has(p)));
+ assert.equal(JSON.stringify(r).includes('PUBLIC_MOCK'),false);assert.doesNotMatch(source,/codesign|llvm-objdump.*--|--disassemble|--version|--macho|--debuginfod/);
+});
+for(const code of ['ENOENT','EACCES','EPERM','ENOTDIR','EIO'])test(`inspection tool ${code} preserves every prior fixed group without a fallback`,()=>{
+ const m=mock();m.state.failPath=inspectionTool;m.state.failCode=code;const r=m.inventory();inspectionFailure(m,r,null,code);assert.equal(r.inspectionTool.observationPhase,'CANONICAL_PATH');assert(!m.state.opens.includes(inspectionTool));assert(!m.state.reads.includes(inspectionTool));
+});
+test('inspection tool alias cannot follow a private target body or publish its path',()=>{
+ const m=mock(),privateTarget='/private/PROTECTED_CREDENTIAL';m.put(privateTarget,'f','PROTECTED_BODY',501);m.state.lookupAliases.set(inspectionTool,privateTarget);const r=m.inventory();inspectionFailure(m,r,'NON_CANONICAL');assert.deepEqual(r.inspectionTool.metadata,{canonicalMatch:false});assert(!m.state.opens.includes(inspectionTool));assert(!m.state.opens.includes(privateTarget));assert(!m.state.reads.includes(privateTarget));assert(!JSON.stringify(r).includes(privateTarget));assert(!JSON.stringify(r).includes('PROTECTED_BODY'));
+});
+for(const [label,change,reason]of [
+ ['directory',row=>row.kind='d','FILE_TYPE_UNSUPPORTED'],['symlink',row=>row.kind='l','FILE_TYPE_UNSUPPORTED'],
+ ['caller owner',row=>row.uid=501n,'OWNER_MISMATCH'],['multiple links',row=>row.nlink=2n,'LINK_COUNT_UNSUPPORTED'],
+ ['writable mode',row=>row.mode|=0o22n,'PERMISSIONS_UNSUPPORTED'],['setuid mode',row=>row.mode|=0o4000n,'PERMISSIONS_UNSUPPORTED'],
+ ['empty file',row=>row.size=0n,'SIZE_UNSUPPORTED'],['oversized file',row=>row.size=BigInt(256*1024*1024+1),'SIZE_UNSUPPORTED'],
+])test('inspection tool '+label+' rejection opens no body and preserves fixed partial facts',()=>{
+ const m=mock();change(m.nodes.get(inspectionTool));const r=m.inventory();inspectionFailure(m,r,reason);assert.equal(r.inspectionTool.observationPhase,'FILE_METADATA');assert(!m.state.opens.includes(inspectionTool));assert(!m.state.reads.includes(inspectionTool));
+});
+test('inspection tool exact 256MiB bound is streamed in finite 64KiB reads',()=>{
+ const m=mock(),size=256*1024*1024;m.nodes.get(inspectionTool).size=BigInt(size);m.state.virtualFile=inspectionTool;const r=m.inventory();noAuthority(r);assert.equal(r.outcome,'PUBLIC_TOOL_BYTES_OBSERVED_NOT_ACCEPTED');assert.equal(r.inspectionTool.bytes,size);assert.equal(r.inspectionTool.observationPhase,'COMPLETE');assert.equal(m.state.reads.filter(p=>p===inspectionTool).length,size/65536);assert.equal(m.state.opens.filter(p=>p===inspectionTool).length,1);assert.equal(m.fds.size,0);
+});
+for(const [field,phase,reason,code]of [
+ ['failOpenPath','OPEN_READ_ONLY',null,'EACCES'],['fdIdentityPath','START_FD_IDENTITY','OPEN_FD_IDENTITY_CHANGED','UNSUPPORTED_OR_CHANGED'],
+ ['failReadPath','BODY_HASH',null,'EIO'],['failClosePath','CLOSING_FD_IDENTITY',null,'EIO'],
+])test('inspection tool '+field+' remains UNKNOWN and never publishes a hash',()=>{
+ const m=mock();m.state[field]=inspectionTool;const r=m.inventory();inspectionFailure(m,r,reason,code);assert.equal(r.inspectionTool.observationPhase,phase);if(field==='failClosePath')assert.equal(r.inspectionTool.fdClose,'NOT_OBSERVED');else if(field!=='failOpenPath')assert.equal(r.inspectionTool.fdClose,'CLOSED');if(field==='fdIdentityPath')assert(!m.state.reads.includes(inspectionTool));
+});
+test('inspection tool changed during its body read cannot publish a hash',()=>{
+ const m=mock();m.state.afterRead=p=>{if(p===inspectionTool)m.nodes.get(p).ino++;};const r=m.inventory();inspectionFailure(m,r,'CLOSING_FD_IDENTITY_CHANGED');assert.equal(r.inspectionTool.fdClose,'CLOSED');
+});
+for(const ancestor of [false,true])test('inspection tool closing '+(ancestor?'ancestor':'name')+' mutation cannot publish a hash',()=>{
+ const m=mock();m.state.afterClose=p=>{if(p===inspectionTool)m.nodes.get(ancestor?path.dirname(p):p).ino++;};const r=m.inventory();inspectionFailure(m,r,ancestor?'CLOSING_ANCESTOR_IDENTITY_CHANGED':'CLOSING_NAME_IDENTITY_CHANGED');assert.equal(r.inspectionTool.fdClose,'CLOSED');
+});
+test('inspection tool success cannot erase historical selected or literal prerequisite refusals',()=>{
+ const m=mock();xcodeSelected(m);m.nodes.get(selectedTools.clang).uid=501n;m.nodes.delete(literal);const r=m.inventory();noAuthority(r);assert.equal(r.outcome,'UNKNOWN');assert(r.inspectionTool.sha256);assert.deepEqual(r.failures,[{phase:'SELECTED_TOOL_BYTES:clang',code:'UNSUPPORTED_OR_CHANGED',guardReason:'OWNER_MISMATCH'},{phase:'REQUIRED_LITERAL_SDK_FILES',code:'ENOENT'}]);assert.equal(m.state.calls.length,3);assert.equal(m.fds.size,0);
 });

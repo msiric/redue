@@ -38,6 +38,7 @@ function resolvePublicTool(argv,kind){
  const canonical=fs.realpathSync(lookup);guard(publicDeveloperPath(canonical,kind));return {lookup,canonical};
 }
 const REQUIRED_TOOLS=[['clang','/Library/Developer/CommandLineTools/usr/bin/clang',128*1024*1024],['ld','/Library/Developer/CommandLineTools/usr/bin/ld',16*1024*1024]];
+const INSPECTION_TOOL='/Library/Developer/CommandLineTools/usr/bin/llvm-objdump';
 const CLT_SDK_ALIAS='/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk';
 const REQUIRED_SDK='/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk';
 const SDK_HEADERS=['sys/stdio.h','sys/fcntl.h','fcntl.h','sys/mman.h','sys/stat.h','stdio.h','errno.h','unistd.h'];
@@ -78,7 +79,7 @@ function etcAlias(){
 }
 export function inventoryPublicSealedTools(){
  let phase='PROFILE',report={schema:1,scope:'PUBLIC_HOST_TOOL_INVENTORY_ONLY',outcome:'UNKNOWN',platform:process.platform,arch:process.arch,node:process.version,release:os.release(),tools:{},requiredTools:{},
-  requiredSdk:{canonical:REQUIRED_SDK,headers:{}},observedClt:{scope:'OBSERVATIONAL_NOT_BUILD_ACCEPTED',clang:{canonical:REQUIRED_TOOLS[0][1]},sdk:{lookup:CLT_SDK_ALIAS,headers:{}}},failures:[],stockStartup:{},etcAlias:null,profileApproved:false,models:0,nativeAgentLaunches:0,compilerCheckExecutions:0,sealed:false,reuseEligible:false};
+  requiredSdk:{canonical:REQUIRED_SDK,headers:{}},observedClt:{scope:'OBSERVATIONAL_NOT_BUILD_ACCEPTED',clang:{canonical:REQUIRED_TOOLS[0][1]},sdk:{lookup:CLT_SDK_ALIAS,headers:{}}},inspectionTool:{scope:'OBSERVATIONAL_NOT_EXECUTION_ACCEPTED',canonical:INSPECTION_TOOL},failures:[],stockStartup:{},etcAlias:null,profileApproved:false,models:0,nativeAgentLaunches:0,compilerCheckExecutions:0,sealed:false,reuseEligible:false};
  const noteFailure=(error,currentPhase)=>report.failures.push({phase:currentPhase,code:FILE_ERROR_CODES.has(error?.code)?error.code:'UNSUPPORTED_OR_CHANGED',...(FILE_GUARD_REASONS.has(error?.inventoryGuard)?{guardReason:error.inventoryGuard}:{})});
  try{
   guard(arguments.length===0);
@@ -96,6 +97,8 @@ export function inventoryPublicSealedTools(){
   for(const [name,file,limit]of REQUIRED_TOOLS){const result=report.requiredTools[name]={canonical:file};try{publicFile(file,0,limit,result);}catch(error){noteFailure(error,'REQUIRED_LITERAL_TOOL:'+name);}}
   try{publicFile(REQUIRED_TOOLS[0][1],0,512*1024*1024,report.observedClt.clang);}catch(error){noteFailure(error,'OBSERVATIONAL_CLT_CLANG');}
   try{installedCltSdk(report.observedClt.sdk);}catch(error){noteFailure(error,'OBSERVATIONAL_CLT_SDK');}
+  // Fixed public bytes only. No invocation, version claim, alias or fallback.
+  try{publicFile(INSPECTION_TOOL,0,256*1024*1024,report.inspectionTool);}catch(error){noteFailure(error,'OBSERVATIONAL_INSPECTION_TOOL');}
   report.sdk={...sdk,headers:{}};
   for(const [slot,result]of [['SELECTED_SDK_FILES',report.sdk],['REQUIRED_LITERAL_SDK_FILES',report.requiredSdk]])try{sdkFiles(result.canonical,result);}catch(error){noteFailure(error,slot);}
   for(const [file,limit]of [['/private/etc/profile',4096],['/private/etc/bashrc',4096],['/bin/bash',2*1024*1024],['/usr/libexec/path_helper',256*1024]])try{publicFile(file,0,limit,report.stockStartup[file]={});}catch(error){noteFailure(error,'STOCK_STARTUP:'+file);}
