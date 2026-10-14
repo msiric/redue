@@ -7,7 +7,35 @@ existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
 
-## Current operation — manual-workflow registration repair
+## Current operation — reviewed registration and test-group repair
+
+2026-10-14 00:18UTC: PR15 final head748a9ab registers the exact reviewed storage-free
+workflow on default main, enabling the missing owner UI route. Workflow bytes
+remain eb5c39bd5cfdeb595ea577427a090f7a83f98e88788d753ed788daf49d0a01d8;
+fresh independent063 accepted its unchanged ref/actor/source/permission gates.
+
+Original normal CI38487256107: both Linux jobs and Windows PASS; macOS FAIL
+in existing552 harness (ETIMEDOUT180s). Harmless actualNode controls and pinned
+22.23.2 source reproduced the cause: the negative include pattern matches the
+parent and admits all11 child cases. Test-only79ad964 repairs discovery with
+a positive skip and recording with matching positive inclusion. Every current
+case executes once (8+3), all bodies/assertions and180s group limits unchanged.
+Fresh independent064 ACCEPT; actual isolated552 parent PASS133386.713ms, TAP
+SHA7d584e694bf81e413afdb373678592a26f621ce8041797c5fb910bbfa535b9a7.
+Main5.6.3 compiler/shim and isolated5.5.2 preserved; no runtime/evidence change.
+
+New normal CI38489104025 is confirmed live on finalhead748a9ab. No merge yet.
+Wait on that same run, then recheck exact revision/checks before normal merge.
+The portable integration already has a different explicit grouping/diagnostic
+repair; root inspected the cherry-pick conflict and aborted its owned operation,
+preserving it unchanged. No lost work or history rewrite.
+
+Actual hosted inventory/native/model calls remain NOT RUN. Existing CLI403 stays
+unretried; default-branch absence explains missing UI, not account permissions.
+This correction is not native enforcement, sealed execution or portable reuse.
+The existing goal remains active, gates incomplete, alpha.11 unpublished.
+
+## Historical registration checkpoint — first CI pending
 
 2026-10-14 00:04UTC: owner screenshot exposed a missed UI prerequisite: the inventory
 workflow is absent from default branch main (fresh contents404). GitHub documents
