@@ -4,17 +4,26 @@ Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revisio
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
 
-## Current checkpoint — reviewed capture ready; hosted result pending
+## Current checkpoint — verified UNKNOWN report; reviewed fixes pushed
 
-2026-10-14: 085/086 exact workflow30d20ef is independently accepted and pushed; runtime08b.
-Root52 controls PASS; independent52+29 behavioral+2 structural controls PASS.
-Both prior actual jobs remain UNKNOWN; no new hosted/native/model acceptance.
-Storage snapshot plus both-job reserve fits10MiB; next jobs recheck fail-closed.
+2026-10-14: run38598991001 bothFAILURE; receiver complete exact report recovered
+and independently accepted as UNKNOWN data only. Producer validation phase/cause
+unobserved; no producer artifact. No native/model/typecheck execution or authority.
 
-Exact identities, prior failures, review limits and next operation are recorded
-in [the current acceptance summary](../acceptance/portable-sealed-typescript.md).
-G0partial; G1–G4 incomplete, alpha.11 unpublished, Copilot capacity pending.
-Existing scoped Claude diagnostic remains closed; no new account question.
+Reviewed parser and safe second-target collection are integrated/pushed at
+`ccf2847a12c09f8a2fd61409e67c3493c9ff780a`; root173 mocks PASS.
+Final diagnostic workflow `5d6228dd793a03d50e8ee83eb583120539b15d9f` is reviewed,
+pushed and remotely verified, SHA256
+`0a695e39b25fe18c17d7a7fd17ea35b8ad6ce263b9fa74f991424c10e320b568`.
+Root62 workflow controls PASS. All prior failures/UNKNOWN results remain preserved.
+
+Next: NEW owner normal Actions UI run → dev/portable-sealed-host-preflight.
+Do not retry API403, use Re-run jobs, repin startup or launch models. Collect actual
+safe phase and fixed path_helper data before reviewing native startup prerequisites.
+Exact evidence, source/review limits and storage snapshot are in the
+[current acceptance summary](../acceptance/portable-sealed-typescript.md).
+G0partial/G1–G4 incomplete; Copilot capacity pending; scoped Claude diagnostic closed;
+alpha.11 unpublished, fixed pilot/receipts unchanged. No blanket native/portable PASS.
 
 ## Historical checkpoint — actual static inspection UNKNOWN; repair underway
 

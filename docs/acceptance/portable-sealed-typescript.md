@@ -13,7 +13,67 @@ Node22.13 profile. A local proposal cannot certify that profile or its enforceme
 Existing checks, configurations and receipts are never silently converted.
 The unreleased CLI now offers explicit pending selection, not executable evidence.
 
-## Current checkpoint — reviewed bounded report capture ready
+## Current checkpoint — actual receiver data retained; bounded corrections ready
+
+2026-10-14: [run38598991001](https://github.com/msiric/redue/actions/runs/38598991001)
+used reviewed workflow30d20ef/runtime08b on two independent standard macos-26 VMs
+(26.6.2/25G83, image20260907.0351.1). Both jobs remain FAILURE. Receiver captured,
+validated and uploaded complete diagnostic data, then correctly exited74 UNKNOWN.
+Producer reported files ready but failed validation before upload; its phase/cause
+was not observed. The receiver cannot establish the producer's full record.
+
+Receiver artifact11912466680 has exactly the two intended files. ZIP998,237 bytes,
+SHA256 `6172a076ab82bd1ef08ef153f3cc07216116efb1c620747932ad7761c3683bd5`;
+raw5,562,255 bytes, SHA256
+`539a53d54d4cf84713e22a7a10c2c096fd8976a6846035f8dce101c1ab7ff3e9`.
+Bounded decompression, canonical JSON, manifest and all three stdout hashes are
+independently verified (088 ACCEPT_SCOPE). Complete logs/reports remain protected
+locally; no masked bytes or original stderr were reconstructed.
+
+Bash exit0/no signal/error emitted104 stderr bytes classified
+INVALID_INSTRUCTION_ENCODING; completion remains false/UNKNOWN. Descriptor closure
+and owned-empty-cwd removal are observed. path_helper was not invoked. Research089
+locates two omitted words within an indexed relative jump table, but omitted bytes,
+entry reachability and complete startup/loader behavior remain UNESTABLISHED.
+Partial decoded managed-profile/HOME/fork sites do not certify the native boundary.
+The C probe only inspects descriptor metadata; no new enforcement primitive exists.
+
+Two code corrections are independently accepted and integrated at runtime
+`ccf2847a12c09f8a2fd61409e67c3493c9ff780a`. Parser091 recognizes actual text/header
+ordering and colon addresses (093:155 supplied+19 independent controls). Its
+predecessor106PASS/3FAIL remains preserved; actual saved stdout is now recognized
+without promoting its warning result. Collection094 may continue to only the
+already-approved fixed path_helper call after Bash's known clean exit, valid nonempty
+outputs and fresh FD/name/ancestor/cwd/deadline checks. First failure stays latched,
+Bash remains incomplete and overall UNKNOWN is irreversible. Missing PID, error,
+nonzero exit, signal, timeout, invalid encoding, empty output or changed inputs stop.
+Fresh095 ACCEPT:173 supplied+16 independent controls. Root integrated173 PASS,
+TAP SHA256 `d8d255a9e17019f1e2b417e2a09d485f0d741168b1daa0b66e70bf3fdd3d78a6`.
+Same four fixed calls/argv, caps and false authority fields; no native/model execution.
+
+Diagnostic090 adds fixed failure phases and bounded numeric HTTP status, never
+exceptions/causes/URLs/bodies. 092 ACCEPT62 supplied+18 independent controls.
+The final pinned workflow is `5d6228dd793a03d50e8ee83eb583120539b15d9f`, SHA256
+`0a695e39b25fe18c17d7a7fd17ea35b8ad6ce263b9fa74f991424c10e320b568`;
+normal push/remote bytes verified. 096 ACCEPT62 supplied+7 continuity+4 wiring
+controls; its mock-digest fixture refusal remains retained as a reviewer harness
+failure, not a source failure. Root final62 controls PASS, TAP SHA256
+`8c5fe4bd35027feb122a744570014c7c39feeebbd30efec579204b054191e8d7`.
+Phase names identify last entered stage, not exact root cause. No historical result
+is reinterpreted; no real operation validated this new revision yet.
+
+Fresh storage snapshot42 active artifacts/4,978,251 bytes plus4,456,448 two-job
+reserve fits confirmed10MiB. Each job rechecks fail-closed; snapshot is not atomic,
+near-cap double counting may conservatively refuse, and no unrelated artifact is
+deleted. Exact two-file upload/one-day retention/quiescent-checkout limits remain.
+Next: one NEW owner Actions UI run of portable-preflight.yml on
+`dev/portable-sealed-host-preflight`, not Re-run jobs. Unchanged API403 is not retried.
+Collect actual failure phase and path_helper data, then review startup prerequisites;
+no automatic repin, signing/trust expansion or model launch. G0partial/G1–G4
+incomplete; Copilot included Actions capacity separately pending. Closed scoped
+Claude diagnostic remains closed. Alpha.11/fixed pilot/immutable receipts preserved.
+
+## Historical checkpoint — reviewed bounded report capture ready
 
 2026-10-14: both jobs of [run38586798824](https://github.com/msiric/redue/actions/runs/38586798824)
 remain UNKNOWN. Nonempty stderr and malformed logged reports are not successful
