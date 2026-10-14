@@ -54,8 +54,32 @@ export const NATIVE_STDIO_STARTUP_BASIS=freeze({
   '/bin/bash':'67e853b740606c0cb92fc8b7186a98d327d783f7e7cd911773bb83f73f3d6583',
   '/usr/libexec/path_helper':'5d4d2ec6dd2706b2b864188978ad29a6910979a90f8bfef2d85ef053a33eb0e6'}
 });
+// Separate CI source/static basis: no imported report is adopted at runtime.
+// Actual receiver run38606711077 reportSHA7504f33413b67cd51d444a2682bc3e48321d86930bd3f4f424425d258e24934f
+// captured these public binary bytes with current endpoint checks. Bash had
+// undecodable instructions; its behavior/source correspondence remains unknown.
+// Path-helper static ROOT/MANPATH branches match the official source above;
+// neither this observation nor a runner label authenticates a whole binary build.
+export const NATIVE_STDIO_CI_STARTUP_BASIS=freeze({...NATIVE_STDIO_STARTUP_BASIS,
+ interpretation:'redue-native187-ci-sdk26.5-bash-startup-source@1',
+ buildProfileId:'redue-native-stdio-preauth-ci-sdk26.5@1',
+ publicInspectionReportSha256:'7504f33413b67cd51d444a2682bc3e48321d86930bd3f4f424425d258e24934f',
+ binarySourceCorrespondence:'NOT_ESTABLISHED',
+ pins:{...NATIVE_STDIO_STARTUP_BASIS.pins,
+  '/bin/bash':'16303dedab719ddb63efd9dd68092a0da37b397bfd4fcb856d5f1c86c5ee414b',
+  '/usr/libexec/path_helper':'c6213c2dfc123f4bade31383a918129a98bb9dfcac9a606f994a9e26a1a78255'}
+});
+const startupBases=freeze({'redue-native-stdio-preauth-local-sdk27@1':NATIVE_STDIO_STARTUP_BASIS,
+ 'redue-native-stdio-preauth-ci-sdk26.5@1':NATIVE_STDIO_CI_STARTUP_BASIS});
 const FIXED_PATH='/usr/bin:/bin:/usr/sbin:/sbin';
 const pathBytes=Buffer.from(FIXED_PATH.replaceAll(':','\n')+'\n');
+const absentEnvironmentKeys=freeze(['PS1','MANPATH','BASH_ENV','ENV','TERM_PROGRAM']);
+// Presence only: an empty MANPATH still selects path-helper's manpath branch.
+// Do not access any environment value or invoke a property getter.
+function environmentAbsent(){const descriptor=Object.getOwnPropertyDescriptor(process,'env');
+ guard(descriptor&&Object.hasOwn(descriptor,'value')&&descriptor.value&&typeof descriptor.value==='object');
+ for(const key of absentEnvironmentKeys)guard(!Reflect.has(descriptor.value,key));
+}
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 function parents(file){const rows=[];for(let at=path.dirname(file);;at=path.dirname(at)){
  const s=fs.lstatSync(at,{bigint:true});guard(s.isDirectory()&&!s.isSymbolicLink()&&(s.mode&0o6022n)===0n||at==='/private/tmp'&&s.isDirectory()&&!s.isSymbolicLink()&&s.uid===0n&&(s.mode&0o7777n)===0o1777n);
@@ -80,13 +104,14 @@ function directoryNames(file){const names=fs.readdirSync(file);guard(Array.isArr
 function binding(fixture,build){
  const f=verifySealedTypeScriptSyntheticFixture(fixture),b=verifyNativeStdioProbeBuild(build);
  guard(f.outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED'&&f.scope==='FIXED_CI_SYNTHETIC_FIXTURE_MECHANICS_ONLY'&&f.receiverBasePolicyMatch===true&&f.ownedHandlesClosed===true&&
-  b.outcome==='BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED'&&f.base===b.hostBase&&/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}$/.test(f.base)&&
+  b.outcome==='BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED'&&b.buildInterpretation==='redue-native-stdio-preauth-build@2'&&typeof b.profileId==='string'&&Object.hasOwn(startupBases,b.profileId)&&f.base===b.hostBase&&/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}$/.test(f.base)&&
   b.helper===f.base+'/prefix/native-probes/native-stdio-probe'&&b.cwd===f.base+'/prefix/native-probes');
- return JSON.stringify([f,b]);
+ return {fingerprint:JSON.stringify([f,b]),base:f.base,profileId:b.profileId,basis:startupBases[b.profileId]};
 }
 function state(record,phase){
- for(const file of NATIVE_STDIO_STARTUP_BASIS.requiredAbsentSystemStartupPaths)absent(file);
- guard(!record.invalid&&binding(record.fixture,record.build)===record.binding&&etcAlias()===record.etc);
+ environmentAbsent();
+ for(const file of record.basis.requiredAbsentSystemStartupPaths)absent(file);
+ guard(!record.invalid&&binding(record.fixture,record.build).fingerprint===record.binding&&etcAlias()===record.etc);
  const closing=[];
  for(const row of record.directories){const now=owned(row.file);guard(now.mark===row.mark&&JSON.stringify(now.parents)===JSON.stringify(row.parents));closing.push([row.file,mark(fs.lstatSync(row.file,{bigint:true}))]);}
  guard(directoryNames(record.home).length===0&&directoryNames(record.gh).length===0&&directoryNames(record.pathDirectory).length===0);
@@ -102,7 +127,7 @@ function state(record,phase){
  guard(directoryNames(record.snapshots).length===0);
  const sessions=directoryNames(record.sessions);guard(phase==='BEFORE_NATIVE'?sessions.length===0:sessions.length<=1&&sessions.every(n=>uuid.test(n)));
  for(const n of sessions){const p=record.sessions+'/'+n,s=fs.lstatSync(p,{bigint:true});guard(fs.realpathSync(p)===p&&s.isDirectory()&&!s.isSymbolicLink()&&s.uid===BigInt(process.getuid())&&(s.mode&0o6022n)===0n&&directoryNames(p).length===0);closing.push([p,mark(s)]);}
- for(const file of NATIVE_STDIO_STARTUP_BASIS.requiredAbsentSystemStartupPaths)absent(file);return closing;
+ for(const file of record.basis.requiredAbsentSystemStartupPaths)absent(file);return closing;
 }
 function closeDirectories(rows){for(const [file,fingerprint]of rows)guard(fs.realpathSync(file)===file&&mark(fs.lstatSync(file,{bigint:true}))===fingerprint);}
 function current(record,phase){
@@ -113,7 +138,7 @@ function current(record,phase){
  // until after every late named row/ancestor check. Full membership scans stay
  // required; fingerprints merely close later validation work in this call.
  const closing=state(record,phase);for(const row of record.rows)named(row);closeDirectories(closing);for(const row of record.rows)named(row);closeDirectories(closing);
- for(const file of NATIVE_STDIO_STARTUP_BASIS.requiredAbsentSystemStartupPaths)absent(file);guard(!record.invalid);
+ for(const file of record.basis.requiredAbsentSystemStartupPaths)absent(file);environmentAbsent();guard(!record.invalid);
 }
 function put(file){let fd,failed=false;
  try{fd=fs.openSync(file,fs.constants.O_WRONLY|fs.constants.O_CREAT|fs.constants.O_EXCL|fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK,0o600);
@@ -125,23 +150,24 @@ export function prepareNativeStdioStartup(options){
  if(arguments.length!==1||!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==2||!['fixture','build'].every(k=>Object.hasOwn(Object.getOwnPropertyDescriptor(options,k)??{},'value')))throw Error('NATIVE_STDIO_STARTUP_OPTIONS');
  let record=null,reason='PRIVATE_BINDING_UNAVAILABLE';
  try{
-  const first=binding(options.fixture,options.build),base=options.build.hostBase;
+  const observed=binding(options.fixture,options.build),first=observed.fingerprint,base=observed.base,basis=observed.basis;
+  reason='INHERITED_STARTUP_INPUT_UNAVAILABLE';environmentAbsent();
   guard(process.platform==='darwin'&&process.arch==='arm64'&&process.version==='v22.13.0'&&process.getuid()>0&&process.getuid()===process.geteuid()&&process.getgid()===process.getegid()&&fs.constants.O_NOFOLLOW!==undefined&&fs.constants.O_NONBLOCK!==undefined);
-  reason='STOCK_LOGIN_BASIS_UNAVAILABLE';for(const file of NATIVE_STDIO_STARTUP_BASIS.requiredAbsentSystemStartupPaths)absent(file);const alias=etcAlias();
-  const rows=Object.entries(NATIVE_STDIO_STARTUP_BASIS.pins).map(([file,pin])=>bounded(file,0,file==='/bin/bash'?2*1024*1024:file==='/usr/libexec/path_helper'?256*1024:4096,pin));
+  reason='STOCK_LOGIN_BASIS_UNAVAILABLE';for(const file of basis.requiredAbsentSystemStartupPaths)absent(file);const alias=etcAlias();
+  const rows=Object.entries(basis.pins).map(([file,pin])=>bounded(file,0,file==='/bin/bash'?2*1024*1024:file==='/usr/libexec/path_helper'?256*1024:4096,pin));
   // Exact public bodies are compared by hash only. Never open local /etc/paths,
   // /etc/paths.d entries, owner HOME rc, credential or corporate configuration.
-  guard(binding(options.fixture,options.build)===first&&etcAlias()===alias);for(const row of rows)named(row);
+  guard(binding(options.fixture,options.build).fingerprint===first&&etcAlias()===alias);for(const row of rows)named(row);environmentAbsent();
   reason='FRESH_STARTUP_NAMESPACE_UNAVAILABLE';const host=base+'/claude-host',home=host+'/home',config=host+'/claude-config',gh=host+'/gh-config',root=host+'/path-helper-root',etc=root+'/etc';absent(host);
   const dirs=[host,home,config,gh,root,etc,etc+'/paths.d',config+'/shell-snapshots',config+'/session-env'];
   const directories=[];for(const file of dirs){fs.mkdirSync(file,{mode:0o700});directories.push(owned(file));}
   put(etc+'/paths');rows.push(bounded(etc+'/paths',process.getuid(),4096,createHash('sha256').update(pathBytes).digest('hex')));
-  record={fixture:options.fixture,build:options.build,binding:first,etc:alias,rows,directories,home,config,gh,pathDirectory:etc+'/paths.d',snapshots:config+'/shell-snapshots',sessions:config+'/session-env',invalid:false};
+  record={fixture:options.fixture,build:options.build,binding:first,basis,profileId:observed.profileId,etc:alias,rows,directories,home,config,gh,pathDirectory:etc+'/paths.d',snapshots:config+'/shell-snapshots',sessions:config+'/session-env',invalid:false};
   reason='CLOSING_STARTUP_BINDING_UNAVAILABLE';current(record,'BEFORE_NATIVE');
-  const value=result({outcome:'STARTUP_PREPARED_NOT_LAUNCHED',interpretation:NATIVE_STDIO_STARTUP_BASIS.interpretation,hostBase:base,sourceBasisCurrent:true,
+  const value=result({outcome:'STARTUP_PREPARED_NOT_LAUNCHED',interpretation:basis.interpretation,buildProfileId:observed.profileId,hostBase:base,sourceBasisCurrent:true,
    environmentBindings:{HOME:home,CLAUDE_CONFIG_DIR:config,GH_CONFIG_DIR:gh,SHELL:'/bin/bash',PATH:FIXED_PATH,PATH_HELPER_ROOT:root},
-   requiredAbsentSystemStartupPaths:NATIVE_STDIO_STARTUP_BASIS.requiredAbsentSystemStartupPaths,
-   requiredAbsentEnvironmentKeys:['PS1','MANPATH','BASH_ENV','ENV','TERM_PROGRAM'],requiredSettings:{autoMemoryEnabled:false,disableAllHooks:true,enabledPlugins:{}},forbiddenArgv:['--bare','--add-dir','--plugin-dir'],requiredArgv:['--setting-sources','','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--no-session-persistence'],
+   requiredAbsentSystemStartupPaths:basis.requiredAbsentSystemStartupPaths,
+   requiredAbsentEnvironmentKeys:absentEnvironmentKeys,requiredSettings:{autoMemoryEnabled:false,disableAllHooks:true,enabledPlugins:{}},forbiddenArgv:['--bare','--add-dir','--plugin-dir'],requiredArgv:['--setting-sources','','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--no-session-persistence'],
    policyPreservation:'OAUTH_PROXY_CREDENTIAL_DENIALS_SANDBOX_AND_EXACT_COMMAND_REMAIN_SEPARATE_PREREQUISITES'});
   minted.set(value,record);return value;
  }catch{if(record)record.invalid=true;return result({outcome:'UNKNOWN',reason,sourceBasisCurrent:false});}
@@ -149,6 +175,6 @@ export function prepareNativeStdioStartup(options){
 export function verifyNativeStdioStartup(value,phase='BEFORE_NATIVE'){
  if(arguments.length<1||arguments.length>2||!['BEFORE_NATIVE','AFTER_NATIVE'].includes(phase))throw Error('NATIVE_STDIO_STARTUP_OPTIONS');
  const record=minted.get(value);if(!record||record.invalid)return result({outcome:'UNKNOWN',sourceBasisCurrent:false});
- try{current(record,phase);guard(!record.invalid);return result({outcome:'STARTUP_CURRENTLY_OBSERVED_SOURCE_ONLY',phase,interpretation:value.interpretation,hostBase:value.hostBase,sourceBasisCurrent:true,environmentBindings:value.environmentBindings,requiredArgv:value.requiredArgv,forbiddenArgv:value.forbiddenArgv,requiredSettings:value.requiredSettings,requiredAbsentEnvironmentKeys:value.requiredAbsentEnvironmentKeys,requiredAbsentSystemStartupPaths:value.requiredAbsentSystemStartupPaths});}
+ try{current(record,phase);guard(!record.invalid);return result({outcome:'STARTUP_CURRENTLY_OBSERVED_SOURCE_ONLY',phase,interpretation:record.basis.interpretation,buildProfileId:record.profileId,hostBase:value.hostBase,sourceBasisCurrent:true,environmentBindings:value.environmentBindings,requiredArgv:value.requiredArgv,forbiddenArgv:value.forbiddenArgv,requiredSettings:value.requiredSettings,requiredAbsentEnvironmentKeys:value.requiredAbsentEnvironmentKeys,requiredAbsentSystemStartupPaths:value.requiredAbsentSystemStartupPaths});}
  catch{record.invalid=true;return result({outcome:'UNKNOWN',sourceBasisCurrent:false});}
 }

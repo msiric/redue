@@ -5,19 +5,19 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {prepareNativeStdioStartup,verifyNativeStdioStartup,NATIVE_STDIO_STARTUP_BASIS} from './acceptance/sealed-typescript-native-stdio-startup.mjs';
+import {prepareNativeStdioStartup,verifyNativeStdioStartup,NATIVE_STDIO_STARTUP_BASIS,NATIVE_STDIO_CI_STARTUP_BASIS} from './acceptance/sealed-typescript-native-stdio-startup.mjs';
 const source=fs.readFileSync(new URL('./acceptance/sealed-typescript-native-stdio-startup.mjs',import.meta.url),'utf8');
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const base='/private/tmp/redue-ci-recipient-12345678',host=base+'/claude-host';
 const managedProfile='/private/var/db/ManagedConfigurationFiles/com.apple.bash/etc/profile';
 const publicProfile='# System-wide .profile for sh(1)\n\nif [ -x /usr/libexec/path_helper ]; then\n\teval `/usr/libexec/path_helper -s`\nfi\n\nif [ "${BASH-no}" != "no" ]; then\n\t[ -r /etc/bashrc ] && . /etc/bashrc\nfi\n';
 const publicBashrc='# System-wide .bashrc file for interactive bash(1) shells.\nif [ -z "$PS1" ]; then\n   return\nfi\n\nPS1=\'\\h:\\W \\u\\$ \'\n# Make bash check its window size after a process completes\nshopt -s checkwinsize\n\n[ -r "/etc/bashrc_$TERM_PROGRAM" ] && . "/etc/bashrc_$TERM_PROGRAM"\n';
-function mock(){
+function mock(profileId='redue-native-stdio-preauth-local-sdk27@1'){
  let ino=1,fd=100;const nodes=new Map(),fds=new Map(),fixture=Object.freeze({kind:'PRIVATE_FIXTURE'}),build=Object.freeze({hostBase:base});
- const state={fixtureValid:true,buildValid:true,reads:[],writes:[],opens:[],closes:[],mkdirs:[],stats:[],fault:null,deniedPath:null,deniedCode:'EPERM',afterRead:null,afterStat:null,afterBuild:null};
+ const state={fixtureValid:true,buildValid:true,profileId,buildInterpretation:'redue-native-stdio-preauth-build@2',reads:[],writes:[],opens:[],closes:[],mkdirs:[],stats:[],fault:null,deniedPath:null,deniedCode:'EPERM',afterRead:null,afterStat:null,afterBuild:null};
  const put=(file,kind='d',body='',owner=501,mode=kind==='d'?0o40700n:0o100600n)=>{const p=nodes.get(path.posix.dirname(file));if(p){p.mtimeNs++;p.ctimeNs++;}return nodes.set(file,{kind,body:Buffer.from(body),uid:BigInt(owner),gid:20n,mode,dev:1n,ino:BigInt(ino++),nlink:1n,size:BigInt(Buffer.byteLength(body)),mtimeNs:1n,ctimeNs:1n});};
  const parents=file=>{for(let at=path.posix.dirname(file);;at=path.posix.dirname(at)){if(!nodes.has(at))put(at,'d','',0,at==='/private/tmp'?0o41777n:0o40755n);if(at===path.posix.dirname(at))return;}};
- for(const [file,body]of [['/private/etc/profile',publicProfile],['/private/etc/bashrc',publicBashrc],['/bin/bash','STOCK_BASH'],['/usr/libexec/path_helper','STOCK_PATH_HELPER']]){parents(file);put(file,'f',body,0,0o100444n);}
+ for(const [file,body]of [['/private/etc/profile',publicProfile],['/private/etc/bashrc',publicBashrc],['/bin/bash',profileId==='redue-native-stdio-preauth-ci-sdk26.5@1'?'CI_BASH':'STOCK_BASH'],['/usr/libexec/path_helper',profileId==='redue-native-stdio-preauth-ci-sdk26.5@1'?'CI_PATH_HELPER':'STOCK_PATH_HELPER']]){parents(file);put(file,'f',body,0,0o100444n);}
  parents(base);put(base);parents(base+'/prefix/native-probes');put(base+'/prefix');put(base+'/prefix/native-probes');
  put('/etc','l','private/etc',0,0o120755n);
  const stat=file=>{state.stats.push(file);if(file===state.deniedPath)throw Object.assign(Error('PRIVATE_DETAIL'),{code:state.deniedCode});if(state.fault==='stat')throw Error('PRIVATE_DETAIL');const row=nodes.get(file);if(!row)throw Object.assign(Error('PRIVATE_DETAIL'),{code:state.fault==='absent-denied'?'EPERM':'ENOENT'});
@@ -34,12 +34,12 @@ function mock(){
   fsyncSync(){if(state.fault==='fsync')throw Error('PRIVATE_DETAIL');},
   closeSync(n){state.closes.push(n);fds.delete(n);if(state.fault==='close')throw Error('PRIVATE_DETAIL');}};
  const fixtureVerify=v=>v===fixture&&state.fixtureValid?{outcome:'SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED',scope:'FIXED_CI_SYNTHETIC_FIXTURE_MECHANICS_ONLY',receiverBasePolicyMatch:true,ownedHandlesClosed:true,base}:{outcome:'UNKNOWN'};
- const buildVerify=v=>{const observed=v===build&&state.buildValid?{outcome:'BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED',hostBase:base,helper:base+'/prefix/native-probes/native-stdio-probe',cwd:base+'/prefix/native-probes'}:{outcome:'UNKNOWN'};state.afterBuild?.();return observed;};
+ const buildVerify=v=>{const observed=v===build&&state.buildValid?{outcome:'BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED',profileId:state.profileId,buildInterpretation:state.buildInterpretation,hostBase:base,helper:base+'/prefix/native-probes/native-stdio-probe',cwd:base+'/prefix/native-probes'}:{outcome:'UNKNOWN'};state.afterBuild?.();return observed;};
  // Substitute only actual binary pins for in-memory byte fixtures. Public stock
  // profile/bashrc pins remain exact, so accidental public-template drift fails.
  const code=source.replace(/^import .*;$/gm,'').replaceAll('export const ','const ').replaceAll('export function ','function ')
-  .replace(NATIVE_STDIO_STARTUP_BASIS.pins['/bin/bash'],sha('STOCK_BASH')).replace(NATIVE_STDIO_STARTUP_BASIS.pins['/usr/libexec/path_helper'],sha('STOCK_PATH_HELPER'));
- const processMock={platform:'darwin',arch:'arm64',version:'v22.13.0',getuid:()=>501,geteuid:()=>501,getgid:()=>20,getegid:()=>20};
+  .replace(NATIVE_STDIO_STARTUP_BASIS.pins['/bin/bash'],sha('STOCK_BASH')).replace(NATIVE_STDIO_STARTUP_BASIS.pins['/usr/libexec/path_helper'],sha('STOCK_PATH_HELPER')).replace(NATIVE_STDIO_CI_STARTUP_BASIS.pins['/bin/bash'],sha('CI_BASH')).replace(NATIVE_STDIO_CI_STARTUP_BASIS.pins['/usr/libexec/path_helper'],sha('CI_PATH_HELPER'));
+ const processMock={env:{},platform:'darwin',arch:'arm64',version:'v22.13.0',getuid:()=>501,geteuid:()=>501,getgid:()=>20,getegid:()=>20};
  const api=Function('fs','path','createHash','verifyNativeStdioProbeBuild','verifySealedTypeScriptSyntheticFixture','process',code+';return {prepare:prepareNativeStdioStartup,verify:verifyNativeStdioStartup};')(io,path.posix,createHash,buildVerify,fixtureVerify,processMock);
  return {...api,fixture,build,state,nodes,fds,put,process:processMock};
 }
@@ -131,7 +131,7 @@ test('caught nested failed validation cannot escape the permanent invalidation l
  assert.equal(m.verify(v).outcome,'UNKNOWN');assert.equal(m.verify(v).outcome,'UNKNOWN');assert.equal(m.fds.size,0);
 });
 test('source has no execution, caller callback, cleanup/adoption or broad system-config body walk',()=>{
- assert.doesNotMatch(source,/spawn|execFile|execSync|child_process|process\.env|rmSync|copyFile|readFileSync|\/etc\/paths\.d\//);
+ assert.doesNotMatch(source,/spawn|execFile|execSync|child_process|rmSync|copyFile|readFileSync|\/etc\/paths\.d\//);
  assert.match(source,/PATH_HELPER_ROOT/);assert.match(source,/NOT_EMPIRICALLY_OBSERVED/);
 });
 
@@ -148,4 +148,58 @@ test('late managed root appearance permanently invalidates private witness even 
 });
 test('unknown managedroot metadata permission refuses and cannot later recover same witness',()=>{
  const m=mock(),v=prepare(m),root='/Library/Application Support/ClaudeCode/.claude';const prior=m.state.reads.length;m.state.deniedPath=root;assert.equal(m.verify(v,'AFTER_NATIVE').outcome,'UNKNOWN');m.state.deniedPath=null;assert.equal(m.verify(v).outcome,'UNKNOWN');assert.equal(m.state.reads.length,prior); // Metadata failure is sufficient; no protected bodies opened.
+});
+
+const ciProfile='redue-native-stdio-preauth-ci-sdk26.5@1',localProfile='redue-native-stdio-preauth-local-sdk27@1';
+test('CI source basis is separately versioned and preserves exact local pins and shared restrictions',()=>{
+ assert.equal(NATIVE_STDIO_CI_STARTUP_BASIS.buildProfileId,ciProfile);
+ assert.equal(NATIVE_STDIO_CI_STARTUP_BASIS.interpretation,'redue-native187-ci-sdk26.5-bash-startup-source@1');
+ assert.equal(NATIVE_STDIO_STARTUP_BASIS.interpretation,'redue-native187-isolated-bash-startup@3');
+ assert.equal(NATIVE_STDIO_STARTUP_BASIS.pins['/bin/bash'],'67e853b740606c0cb92fc8b7186a98d327d783f7e7cd911773bb83f73f3d6583');
+ assert.equal(NATIVE_STDIO_STARTUP_BASIS.pins['/usr/libexec/path_helper'],'5d4d2ec6dd2706b2b864188978ad29a6910979a90f8bfef2d85ef053a33eb0e6');
+ assert.equal(NATIVE_STDIO_CI_STARTUP_BASIS.pins['/bin/bash'],'16303dedab719ddb63efd9dd68092a0da37b397bfd4fcb856d5f1c86c5ee414b');
+ assert.equal(NATIVE_STDIO_CI_STARTUP_BASIS.pins['/usr/libexec/path_helper'],'c6213c2dfc123f4bade31383a918129a98bb9dfcac9a606f994a9e26a1a78255');
+ for(const field of ['nativeSha256','appleBashCommit','appleShellCommandsCommit','pathHelperSourceSha256'])assert.equal(NATIVE_STDIO_CI_STARTUP_BASIS[field],NATIVE_STDIO_STARTUP_BASIS[field]);
+ for(const file of ['/private/etc/profile','/private/etc/bashrc'])assert.equal(NATIVE_STDIO_CI_STARTUP_BASIS.pins[file],NATIVE_STDIO_STARTUP_BASIS.pins[file]);
+ assert.equal(NATIVE_STDIO_CI_STARTUP_BASIS.binarySourceCorrespondence,'NOT_ESTABLISHED');assert(Object.isFrozen(NATIVE_STDIO_CI_STARTUP_BASIS.pins));
+});
+test('current private CI build selects only CI binary pins with no native authority',()=>{
+ const m=mock(ciProfile),v=prepare(m);noAuthority(v);assert.equal(v.outcome,'STARTUP_PREPARED_NOT_LAUNCHED');assert.equal(v.buildProfileId,ciProfile);assert.equal(v.interpretation,NATIVE_STDIO_CI_STARTUP_BASIS.interpretation);
+ for(const phase of ['BEFORE_NATIVE','AFTER_NATIVE']){const r=m.verify(v,phase);noAuthority(r);assert.equal(r.outcome,'STARTUP_CURRENTLY_OBSERVED_SOURCE_ONLY');assert.equal(r.buildProfileId,ciProfile);assert.equal(r.interpretation,v.interpretation);}
+ assert.equal(m.verify(structuredClone(v)).outcome,'UNKNOWN');assert.equal(m.fds.size,0);
+});
+for(const profileId of [undefined,null,'OTHER','__proto__',localProfile+' '])test(`unrecognized private build profile ${String(profileId)} refuses before filesystem work`,()=>{
+ const m=mock();m.state.profileId=profileId;const v=prepare(m);noAuthority(v);assert.equal(v.outcome,'UNKNOWN');assert.deepEqual(m.state.stats,[]);assert.deepEqual(m.state.mkdirs,[]);
+});
+for(const buildInterpretation of [undefined,'redue-native-stdio-preauth-build@1','OTHER'])test(`unsupported build interpretation ${String(buildInterpretation)} refuses before reads`,()=>{const m=mock(ciProfile);m.state.buildInterpretation=buildInterpretation;assert.equal(prepare(m).outcome,'UNKNOWN');assert.deepEqual(m.state.stats,[]);});
+for(const profile of [ciProfile,localProfile])test(`mixed public binary pins do not match ${profile}`,()=>{const m=mock(profile);m.nodes.get('/bin/bash').body=Buffer.from(profile===ciProfile?'STOCK_BASH':'CI_BASH');assert.equal(prepare(m).outcome,'UNKNOWN');assert.equal(m.state.mkdirs.length,0);assert.equal(m.fds.size,0);});
+for(const phase of ['BEFORE_NATIVE','AFTER_NATIVE'])for(const field of ['profileId','buildInterpretation'])test(`changed private ${field} invalidates CI ${phase} permanently`,()=>{
+ const m=mock(ciProfile),v=prepare(m),old=m.state[field];m.state[field]=field==='profileId'?localProfile:'OTHER';assert.equal(m.verify(v,phase).outcome,'UNKNOWN');m.state[field]=old;assert.equal(m.verify(v,phase).outcome,'UNKNOWN');
+});
+for(const phase of ['BEFORE_NATIVE','AFTER_NATIVE'])for(const target of ['/bin/bash','/usr/libexec/path_helper'])test(`CI ${target} content mutation during ${phase} remains invalid after restoration`,()=>{
+ const m=mock(ciProfile),v=prepare(m),row=m.nodes.get(target),old=Buffer.from(row.body);row.body[0]^=1;assert.equal(m.verify(v,phase).outcome,'UNKNOWN');row.body=old;assert.equal(m.verify(v,phase).outcome,'UNKNOWN');assert.equal(m.fds.size,0);
+});
+for(const fault of ['present','EPERM'])test(`CI managed profile ${fault} is refused without opening its body`,()=>{const m=mock(ciProfile);if(fault==='present')m.put(managedProfile,'f','PROTECTED');else m.state.deniedPath=managedProfile;assert.equal(prepare(m).outcome,'UNKNOWN');assert.deepEqual(m.state.opens,[]);assert.equal(m.state.mkdirs.length,0);});
+for(const key of ['PS1','MANPATH','BASH_ENV','ENV','TERM_PROGRAM'])for(const value of ['', 'UNOBSERVED_SENTINEL'])test(`inherited ${key} ${value===''?'empty':'present'} refuses before body read or preparation`,()=>{
+ const m=mock(ciProfile);m.process.env[key]=value;const v=prepare(m);noAuthority(v);assert.equal(v.outcome,'UNKNOWN');assert.equal(v.reason,'INHERITED_STARTUP_INPUT_UNAVAILABLE');assert.deepEqual(m.state.stats,[]);assert.deepEqual(m.state.mkdirs,[]);assert(!JSON.stringify(v).includes('UNOBSERVED_SENTINEL'));
+});
+for(const phase of ['BEFORE_NATIVE','AFTER_NATIVE'])for(const key of ['PS1','MANPATH','BASH_ENV','ENV','TERM_PROGRAM'])test(`late ${key} presence invalidates ${phase} permanently without reading values`,()=>{
+ const m=mock(ciProfile),v=prepare(m);let reads=0;Object.defineProperty(m.process.env,key,{configurable:true,get(){reads++;throw Error('SECRET');}});const r=m.verify(v,phase);noAuthority(r);assert.equal(r.outcome,'UNKNOWN');assert.equal(reads,0);delete m.process.env[key];assert.equal(m.verify(v,phase).outcome,'UNKNOWN');
+});
+test('environment accessor or inherited startup-key getter is refused without invoking it',()=>{
+ let reads=0;const m=mock();Object.defineProperty(m.process,'env',{get(){reads++;return {};}});assert.equal(prepare(m).outcome,'UNKNOWN');assert.equal(reads,0);assert.equal(m.state.stats.length,0);
+ const n=mock();n.process.env=Object.create(Object.defineProperty({},'MANPATH',{get(){reads++;return 'SECRET';}}));assert.equal(prepare(n).outcome,'UNKNOWN');assert.equal(reads,0);assert.equal(n.state.stats.length,0);
+});
+
+test('CI preparation rejects late inherited MANPATH before creating any isolated directory',()=>{
+ const m=mock(ciProfile);m.state.afterRead=file=>{if(file==='/usr/libexec/path_helper')m.process.env.MANPATH='';};assert.equal(prepare(m).outcome,'UNKNOWN');assert.equal(m.state.mkdirs.length,0);assert.equal(m.fds.size,0);
+});
+test('malformed privately returned profile is refused without invoking its coercion',()=>{
+ const m=mock(ciProfile);let calls=0;m.state.profileId={toString(){calls++;return ciProfile;}};assert.equal(prepare(m).outcome,'UNKNOWN');assert.equal(calls,0);assert.deepEqual(m.state.stats,[]);
+});
+for(const change of ['inode','owner','mode','hardlink','symlink'])test(`CI public binary ${change} currentness remains strict`,()=>{
+ const m=mock(ciProfile),v=prepare(m),row=m.nodes.get('/usr/libexec/path_helper');if(change==='inode')row.ino++;else if(change==='owner')row.uid=501n;else if(change==='mode')row.mode|=0o22n;else if(change==='hardlink')row.nlink=2n;else row.kind='l';assert.equal(m.verify(v,'AFTER_NATIVE').outcome,'UNKNOWN');noAuthority(m.verify(v));assert.equal(m.fds.size,0);
+});
+test('CI late managed-profile presence latches UNKNOWN without a protected body read',()=>{
+ const m=mock(ciProfile),v=prepare(m);m.put(managedProfile,'f','PROTECTED');assert.equal(m.verify(v,'AFTER_NATIVE').outcome,'UNKNOWN');m.nodes.delete(managedProfile);assert.equal(m.verify(v).outcome,'UNKNOWN');assert(!m.state.reads.includes(managedProfile));
 });
