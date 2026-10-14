@@ -4,7 +4,37 @@ Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revisio
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
 
-## Execution status — BLOCKED after corrected handoff (2026-10-14 00:35UTC)
+## Current checkpoint — actual VM inventory refused; targeted diagnosis continuing
+
+2026-10-14 11:17 UTC: owner-dispatched run [38555298834](https://github.com/msiric/redue/actions/runs/38555298834)
+used branch `b58a80f60c84f9ed2794e4d04876f9727571b743` and reviewed source
+`53c6eb352d3099956aa3ef9d42ea7b05be3e764e`. Both independent macOS jobs completed
+with UNKNOWN/exit74. The precise established failures match: xcrun-selected Xcode
+clang/ld are CALLER-owned rather than ROOT-owned; selected and literal CLT clang
+exceed their respective bounded inspection limits; literal CLT SDK27.0 is absent;
+selected SDK directory validation refused. No compiler check, native agent or model
+executed. Matching Node22.13/Darwin25.6 and partial hashes do not approve a profile.
+
+The earlier run38552782841 and its less precise UNKNOWN report remain preserved.
+Repair066 retained all guards and independently captured partial fixed groups and
+redacted rejection reasons. Fresh nonauthor review accepted exact b58/53:
+44 focused mock tests plus20 independent controls PASS; root integrated44PASS.
+Code-only integration `0aab2cae81936dc6da06436f3532f58aa4bd6512` preserves the
+integration's unrelated ordinary-query workflow. Dedicated inventory branch was
+pushed normally; no CLI403 retry, signing, trust or permission expansion occurred.
+Reports/logs and failed author expectations are preserved in existing private state.
+Full log SHA256 `c56ab519182cf70c03cd90a82c3b4075a7e3ccbaba43a7f51087510673a8c79c`;
+structured reports SHA256 `8d63c5d5d1ecb7989dceb96647dfa83f0d7892b229a6968c42287e4370df61b2`.
+
+Next bounded task067: independent source/profile review of observation limits and
+actual root-owned CLT/SDK discovery, before changing any execution binding. No
+blind rerun or weakening root ownership to accept Xcode is authorized by these
+facts. Existing native prerequisite remains CLOSED scoped PASS; sealed origin,
+recipient reuse and complete-path economics remain unestablished. Copilot included
+Actions capacity remains separately pending. Alpha.11 is unpublished; Day0, gates,
+protected resources, pilot and receipts remain unchanged.
+
+## Historical execution status — BLOCKED after corrected handoff (2026-10-14 00:35UTC)
 
 Three consecutive post-resume checks show no dedicated inventory run. The reviewed
 registration/test-only correction is merged asde2fd9f; exact workflow bytes and
@@ -21,7 +51,7 @@ and independently evaluating both VMs. No new model/checker/CI dispatch, scope,
 trust, spending, publication, receipt deletion or pilot update. Goal and gates
 unchanged; not release-ready. Current work and private handoff are preserved.
 
-## Current operation — registration merged; actual inventory pending
+## Historical operation — registration merged; actual inventory pending
 
 2026-10-14 00:30UTC: PR15 merged normally asde2fd9f after independent063/064 ACCEPT
 and all four normal CI38489104025 jobs PASS at exacthead748a9ab. Main now contains
