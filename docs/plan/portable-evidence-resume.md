@@ -7,7 +7,27 @@ existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
 
-## Execution status — BLOCKED at 2026-10-13 22:39UTC
+## Current operation — manual-workflow registration repair
+
+2026-10-14 00:04UTC: owner screenshot exposed a missed UI prerequisite: the inventory
+workflow is absent from default branch main (fresh contents404). GitHub documents
+that default-branch registration is required for its Run workflow button. The old
+CLI403 is separate and remains unretried; no account permission cause is inferred.
+Prior blocked/audit conclusions below are historical, not current task ownership.
+
+FocusedPR15 adds only the exact reviewed inventory workflow to current main.
+Candidate82f5271, SHAeb5c39bd5cfdeb595ea577427a090f7a83f98e88788d753ed788daf49d0a01d8.
+Fresh independent063 ACCEPT: scope/YAML/Bash checks and29 pinned mock tests pass.
+Normal PR CI38487256107 is confirmed live; both Linux checks passed, macOS/Windows
+remain running. No inventory/native/model call has occurred. Root waits on that
+same run, then rechecks exact revision before normal merge under standing authority.
+Only after registration can the owner use the existing UI handoff. No signing,
+producer trust, permissions, publication or verification semantics change.
+
+The owner resumed the existing goal; no new goal or coordinator was created.
+Portable gates remain incomplete. Current integration runtime is unchanged.
+
+## Historical execution status — BLOCKED at 2026-10-13 22:39UTC
 
 Three consecutive checks confirm the same missing hosted inventory operation; no
 run handle exists. Fresh independent dependency audit061 at54f2418 found no safe
