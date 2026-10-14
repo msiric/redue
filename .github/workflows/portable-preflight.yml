@@ -1,6 +1,6 @@
-# Fixed bounded public Mach-O output collection only, never behavior proof.
-# Public-data artifacts only; no credentials, C builds, target/native/model executions or trust changes.
-name: Fixed public Mach-O inspection
+# Fixed no-auth PRE-AUTH public startup observations only, not a native boundary.
+# One fixed C build; its helper is never executed. No artifacts/API/auth/model/signing.
+name: Fixed pre-auth startup observations
 on:
   workflow_dispatch:
 permissions:
@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   inventory:
-    name: Public static inspection (${{ matrix.machine }})
+    name: Pre-auth startup observations (${{ matrix.machine }})
     strategy:
       fail-fast: false
       max-parallel: 2
@@ -20,8 +20,16 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 2
     env:
-      REVIEWED_SOURCE: ccf2847a12c09f8a2fd61409e67c3493c9ff780a
+      REVIEWED_SOURCE: 52a3b7f37637fa6c1362b68ec79ecc95f114d7f4
     steps:
+      - name: Refuse a missing reviewed runtime binding before checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! [[ "$REVIEWED_SOURCE" =~ ^[a-f0-9]{40}$ ]]; then
+            printf '%s\n' 'REVIEWED_RUNTIME_UNAVAILABLE' >&2
+            exit 74
+          fi
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ env.REVIEWED_SOURCE }}
@@ -29,12 +37,12 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22.13.0'
-      - name: Fixed source and classifier precondition, no installation scripts
+      - name: Fixed source and mock precondition, no installation scripts
         id: source_classifier
         shell: bash
         run: |
           set -euo pipefail
-          for redue_env_key in NODE_OPTIONS NODE_PATH BASH_ENV ENV DYLD_INSERT_LIBRARIES DYLD_LIBRARY_PATH DYLD_FRAMEWORK_PATH DYLD_FALLBACK_LIBRARY_PATH DYLD_FALLBACK_FRAMEWORK_PATH DYLD_ROOT_PATH LD_PRELOAD LD_LIBRARY_PATH ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_CODE_OAUTH_TOKEN OPENAI_API_KEY GH_TOKEN GITHUB_TOKEN NPM_TOKEN NODE_AUTH_TOKEN; do
+          for redue_env_key in NODE_OPTIONS NODE_PATH PS1 MANPATH BASH_ENV ENV TERM_PROGRAM DYLD_INSERT_LIBRARIES DYLD_LIBRARY_PATH DYLD_FRAMEWORK_PATH DYLD_FALLBACK_LIBRARY_PATH DYLD_FALLBACK_FRAMEWORK_PATH DYLD_ROOT_PATH LD_PRELOAD LD_LIBRARY_PATH ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_CODE_OAUTH_TOKEN OPENAI_API_KEY GH_TOKEN GITHUB_TOKEN NPM_TOKEN NODE_AUTH_TOKEN; do
             if [ "${!redue_env_key+x}" = x ]; then
               printf '%s\n' 'PREAUTH_ENVIRONMENT_UNSUPPORTED' >&2
               exit 74
@@ -43,13 +51,14 @@ jobs:
           test "$(git rev-parse HEAD)" = "$REVIEWED_SOURCE"
           test "$(uname -m)" = arm64
           test "$(node --version)" = v22.13.0
-          node --test test/sealed-typescript-public-macho-inspection.test.mjs test/sealed-typescript-public-inspection-files.test.mjs
-      - name: Collect fixed public files; UNKNOWN data is not inspection success
-        id: collect_public_data
+          node --test test/sealed-typescript-native-stdio-startup.test.mjs test/sealed-typescript-preauth-startup-observation.test.mjs
+      - name: One fixed live pre-auth startup observation, no native agent
+        id: preauth_observation
+        if: ${{ !cancelled() && steps.source_classifier.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail
-          for redue_env_key in NODE_OPTIONS NODE_PATH BASH_ENV ENV DYLD_INSERT_LIBRARIES DYLD_LIBRARY_PATH DYLD_FRAMEWORK_PATH DYLD_FALLBACK_LIBRARY_PATH DYLD_FALLBACK_FRAMEWORK_PATH DYLD_ROOT_PATH LD_PRELOAD LD_LIBRARY_PATH ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_CODE_OAUTH_TOKEN OPENAI_API_KEY GH_TOKEN GITHUB_TOKEN NPM_TOKEN NODE_AUTH_TOKEN; do
+          for redue_env_key in NODE_OPTIONS NODE_PATH PS1 MANPATH BASH_ENV ENV TERM_PROGRAM DYLD_INSERT_LIBRARIES DYLD_LIBRARY_PATH DYLD_FRAMEWORK_PATH DYLD_FALLBACK_LIBRARY_PATH DYLD_FALLBACK_FRAMEWORK_PATH DYLD_ROOT_PATH LD_PRELOAD LD_LIBRARY_PATH ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_CODE_OAUTH_TOKEN OPENAI_API_KEY GH_TOKEN GITHUB_TOKEN NPM_TOKEN NODE_AUTH_TOKEN; do
             if [ "${!redue_env_key+x}" = x ]; then
               printf '%s\n' 'PREAUTH_ENVIRONMENT_UNSUPPORTED' >&2
               exit 74
@@ -59,125 +68,35 @@ jobs:
           test "$(uname -m)" = arm64
           test "$(node --version)" = v22.13.0
           node --input-type=module <<'NODE'
-          import {collectFixedPublicMachOInspectionFiles} from './test/acceptance/sealed-typescript-public-inspection-files.mjs';
-          let r=null;try{r=collectFixedPublicMachOInspectionFiles();}catch{/* UNKNOWN, no raw error. */}
-          const ready=r?.schema===1&&r.scope==='FIXED_PUBLIC_INSPECTION_FILE_TRANSPORT_ONLY'&&r.transport==='PUBLIC_REPORT_FILES_READY'&&r.ownedDescriptorsClosed===true&&r.directory==='.redue-public-inspection'&&
-           JSON.stringify(r.files)==='["public-inspection.json.gz","manifest.json"]'&&r.untrustedPublicData===true&&r.profileApproved===false&&r.sealed===false&&r.reuseEligible===false&&r.models===0&&r.nativeAgentLaunches===0&&r.targetExecutions===0&&r.compilerCheckExecutions===0;
-          const count=v=>Number.isSafeInteger(v)&&v>=0&&v<=24*1024*1024?v:null,digest=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v)?v:null;
-          console.log(JSON.stringify({schema:1,scope:'PUBLIC_FILE_TRANSPORT_STATUS_ONLY',outcome:ready?'PUBLIC_DATA_FILES_READY':'UNKNOWN',inspectionOutcome:['UNKNOWN','PUBLIC_OUTPUT_COLLECTED_NOT_BEHAVIOR_PROOF'].includes(r?.inspectionOutcome)?r.inspectionOutcome:'UNKNOWN',rawBytes:count(r?.rawBytes),compressedBytes:count(r?.compressedBytes),payloadBytes:count(r?.payloadBytes),rawSha256:digest(r?.rawSha256),compressedSha256:digest(r?.compressedSha256),manifestSha256:digest(r?.manifestSha256)}));
-          process.exitCode=ready?0:74; // File readiness is not inspection success.
+          import {createSealedTypeScriptCIBootstrap,prepareSealedTypeScriptCISyntheticFixture,verifySealedTypeScriptSyntheticFixture} from './test/acceptance/sealed-typescript-synthetic-fixture.mjs';
+          import {buildNativeStdioProbeForReviewedCI,verifyNativeStdioProbeBuild} from './test/acceptance/sealed-typescript-native-stdio-build.mjs';
+          import {prepareNativeStdioStartup,verifyNativeStdioStartup} from './test/acceptance/sealed-typescript-native-stdio-startup.mjs';
+          import {observeFixedPreauthStartupBehavior} from './test/acceptance/sealed-typescript-preauth-startup-observation.mjs';
+          const guard=v=>{if(!v)throw Error('PREAUTH_OBSERVATION_UNKNOWN');};
+          const profile='redue-native-stdio-preauth-ci-sdk26.5@1',buildInterpretation='redue-native-stdio-preauth-build@2',startupInterpretation='redue-native187-ci-sdk26.5-bash-startup-source@1';
+          const roles=['ROOT_A','ROOT_B','MANPATH_EMPTY','BASH_LOGIN','BASH_NONLOGIN'];
+          const noAuthority=r=>r?.sealed===false&&r.reuseEligible===false&&r.recordAdoptionAuthority===false&&r.models===0&&r.nativeEnforcement==='NOT_ESTABLISHED'&&r.preMainLoader==='NOT_ESTABLISHED';
+          let phase='BOOTSTRAP',outcome='UNKNOWN',build=null,observation=null,base=null,basisCurrent=false,buildRequested=false;
+          try{
+           const bootstrap=createSealedTypeScriptCIBootstrap();guard(bootstrap.outcome==='CI_SYNTHETIC_BOOTSTRAP_PREPARED');base=bootstrap.base;
+           phase='FIXTURE';const fixture=prepareSealedTypeScriptCISyntheticFixture(bootstrap);guard(fixture.outcome==='SYNTHETIC_FIXTURE_PREPARED');
+           phase='BUILD';buildRequested=true;build=buildNativeStdioProbeForReviewedCI({fixture});guard(build.outcome==='BUILT_NOT_EXECUTED'&&build.profileId===profile&&build.buildInterpretation===buildInterpretation&&build.dispatchAttemptCount===1&&build.build?.completed===true&&build.build.pidObserved===true&&build.build.status===0&&build.build.signal===null&&build.build.spawnError==='NONE'&&noAuthority(build));
+           phase='STARTUP';const startup=prepareNativeStdioStartup({fixture,build});guard(startup.outcome==='STARTUP_PREPARED_NOT_LAUNCHED'&&startup.hostBase===base&&startup.buildProfileId===profile&&startup.interpretation===startupInterpretation&&noAuthority(startup)&&startup.controlledShellStartup==='NOT_EMPIRICALLY_OBSERVED');
+           phase='OBSERVATION';observation=observeFixedPreauthStartupBehavior({fixture,build,startup});
+           guard(observation.schema===1&&observation.scope==='PREAUTH_PUBLIC_CONTROLLED_STARTUP_OBSERVATION_ONLY'&&observation.interpretation==='redue-fixed-preauth-startup-observation@1'&&noAuthority(observation)&&observation.nativeAgentLaunches===0&&observation.compilerCheckExecutions===0&&observation.profileApproved===false&&observation.controlledShellStartup==='NOT_EMPIRICALLY_OBSERVED');
+           phase='POST_CURRENTNESS';const f=verifySealedTypeScriptSyntheticFixture(fixture),b=verifyNativeStdioProbeBuild(build),s=verifyNativeStdioStartup(startup,'BEFORE_NATIVE');
+           guard(f.outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED'&&f.base===base&&f.ownedHandlesClosed===true&&b.outcome==='BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED'&&b.hostBase===base&&b.profileId===profile&&b.buildInterpretation===buildInterpretation&&s.outcome==='STARTUP_CURRENTLY_OBSERVED_SOURCE_ONLY'&&s.hostBase===base&&s.buildProfileId===profile&&s.interpretation===startupInterpretation&&s.sourceBasisCurrent===true);basisCurrent=true;
+           phase='RESULT';guard(observation.outcome==='PREAUTH_FIXED_BEHAVIOR_OBSERVED_NOT_NATIVE_PROOF'&&observation.ownedCleanup==='REMOVED_OWNED_CONTROLS'&&Array.isArray(observation.calls)&&observation.calls.length===5&&roles.every((role,i)=>{const c=observation.calls[i];return c?.role===role&&c.pidObserved===true&&c.exitCode===0&&c.signal===null&&c.errorCode===null&&c.expectedOutputObserved===true&&Number.isFinite(c.elapsedMs)&&c.elapsedMs>=0&&c.elapsedMs<5000&&Number.isSafeInteger(c.stdoutBytes)&&c.stdoutBytes>0&&c.stdoutBytes<=4096&&c.stderrBytes===0;}));
+           outcome='PREAUTH_FIXED_BEHAVIOR_OBSERVED_NOT_NATIVE_PROOF';phase='COMPLETE';
+          }catch{/* Missing or failed prerequisites stay UNKNOWN; no raw errors or private paths. */}
+          const codes=new Set(['ENOENT','EACCES','EPERM','ENOTDIR','ELOOP','EINVAL','EBADF','EIO','ETIMEDOUT','ENOBUFS','UNKNOWN']),signals=new Set(['SIGKILL','SIGTERM','SIGABRT','SIGSEGV','SIGBUS','SIGINT','UNKNOWN']);
+          const n=(v,max)=>Number.isSafeInteger(v)&&v>=0&&v<=max?v:null,ms=v=>Number.isFinite(v)&&v>=0&&v<=120000?v:null;
+          const calls=Array.isArray(observation?.calls)?observation.calls.slice(0,5).map((c,i)=>({role:c?.role===roles[i]?roles[i]:'UNKNOWN',pidObserved:c?.pidObserved===true,exitCode:n(c?.exitCode,255),signal:c?.signal===null?null:signals.has(c?.signal)?c.signal:'UNKNOWN',errorCode:c?.errorCode===null?null:codes.has(c?.errorCode)?c.errorCode:'UNKNOWN',elapsedMs:ms(c?.elapsedMs),stdoutBytes:n(c?.stdoutBytes,4096),stderrBytes:n(c?.stderrBytes,4096),expectedOutputObserved:c?.expectedOutputObserved===true})):[];
+          const reasons=new Set(['PRIVATE_CI_BASIS_UNAVAILABLE','OWNED_CONTROLS_UNAVAILABLE','FIXED_OPERATION_UNAVAILABLE','FIXED_OUTPUT_MISMATCH','PARENT_DEADLINE','FIXED_CASES_MATCHED','OWNED_CLEANUP_UNKNOWN']);
+          const cleanups=new Set(['NOT_CREATED','PENDING','RETAINED_CHILD_CLOSURE_UNKNOWN','RETAINED_INCOMPLETE_CONTROLS','REMOVED_OWNED_CONTROLS','UNKNOWN']);
+          console.log(JSON.stringify({schema:1,scope:'FIXED_CI_PREAUTH_STARTUP_OBSERVATION_ONLY',outcome,phase,observationReason:reasons.has(observation?.reason)?observation.reason:'UNKNOWN',calls,privateBasisCurrent:basisCurrent,cBuildAttemptCount:buildRequested?([0,1].includes(build?.dispatchAttemptCount)?build.dispatchAttemptCount:null):0,controlsCleanup:cleanups.has(observation?.ownedCleanup)?observation.ownedCleanup:'UNKNOWN',freshBaseDisposition:base===null?'NOT_CREATED':'RETAINED_DISPOSABLE_RUNNER_NAMESPACE',models:0,nativeAgentLaunches:0,compilerCheckExecutions:0,recordAdoptionAuthority:false,profileApproved:false,sealed:false,reuseEligible:false,nativeEnforcement:'NOT_ESTABLISHED',preMainLoader:'NOT_ESTABLISHED',controlledShellStartup:'NOT_EMPIRICALLY_OBSERVED'}));
+          process.exitCode=outcome==='PREAUTH_FIXED_BEHAVIOR_OBSERVED_NOT_NATIVE_PROOF'?0:74;
           NODE
-      - name: Validate exact public files and fresh included storage reserve
-        id: validate_public_data
-        if: ${{ !cancelled() && steps.source_classifier.outcome == 'success' && steps.collect_public_data.outcome == 'success' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          for redue_env_key in NODE_OPTIONS NODE_PATH BASH_ENV ENV DYLD_INSERT_LIBRARIES DYLD_LIBRARY_PATH DYLD_FRAMEWORK_PATH DYLD_FALLBACK_LIBRARY_PATH DYLD_FALLBACK_FRAMEWORK_PATH DYLD_ROOT_PATH LD_PRELOAD LD_LIBRARY_PATH ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_CODE_OAUTH_TOKEN OPENAI_API_KEY GH_TOKEN GITHUB_TOKEN NPM_TOKEN NODE_AUTH_TOKEN; do
-            if [ "${!redue_env_key+x}" = x ]; then
-              printf '%s\n' 'PREAUTH_ENVIRONMENT_UNSUPPORTED' >&2
-              exit 74
-            fi
-          done
-          test "$(git rev-parse HEAD)" = "$REVIEWED_SOURCE"
-          test "$(uname -m)" = arm64
-          test "$(node --version)" = v22.13.0
-          node --input-type=module <<'NODE'
-          import {parsePortableJson} from './src/portable-envelope.mjs';
-          import fs from 'node:fs';import path from 'node:path';import {createHash} from 'node:crypto';import {gunzipSync} from 'node:zlib';
-          const guard=v=>{if(!v)throw Error('PUBLIC_DATA_UNKNOWN');},sha=v=>createHash('sha256').update(v).digest('hex');
-          const mark=s=>['dev','ino','mode','uid','gid','nlink','size','mtimeNs','ctimeNs'].map(k=>String(s[k])).join(':'),dmark=s=>['dev','ino','mode','uid','gid'].map(k=>String(s[k])).join(':');
-          const exact=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).length===keys.length&&keys.every(k=>Object.hasOwn(v,k));
-          const falseAuthority=v=>v.profileApproved===false&&v.sealed===false&&v.reuseEligible===false&&v.nativeAgentLaunches===0&&v.models===0&&v.targetExecutions===0&&v.compilerCheckExecutions===0;
-          const names=['manifest.json','public-inspection.json.gz'],rows=[],cwd=process.cwd(),directory=path.join(cwd,'.redue-public-inspection');let identity=null,parents=null,inspection=null;
-          function lineage(file){const result=[];for(let at=path.dirname(file);;at=path.dirname(at)){const s=fs.lstatSync(at,{bigint:true});guard(s.isDirectory()&&!s.isSymbolicLink()&&(s.uid===0n||s.uid===BigInt(process.getuid()))&&(s.mode&0o22n)===0n&&fs.realpathSync(at)===at);result.push([at,dmark(s)]);if(at===path.dirname(at))return result;}}
-          function current(){const s=fs.lstatSync(directory,{bigint:true});guard(s.isDirectory()&&!s.isSymbolicLink()&&s.uid===BigInt(process.getuid())&&(s.mode&0o7777n)===0o700n&&fs.realpathSync(directory)===directory);guard(identity===null||dmark(s)===identity);identity??=dmark(s);const next=lineage(directory);guard(parents===null||JSON.stringify(next)===JSON.stringify(parents));parents??=next;guard(JSON.stringify(fs.readdirSync(directory).sort())===JSON.stringify(names));for(const r of rows){guard(fs.realpathSync(r.file)===r.file&&mark(fs.lstatSync(r.file,{bigint:true}))===r.mark&&mark(fs.fstatSync(r.fd,{bigint:true}))===r.mark);}}
-          function readFixed(name,limit){guard(names.includes(name));current();const file=path.join(directory,name),s=fs.lstatSync(file,{bigint:true});guard(s.isFile()&&!s.isSymbolicLink()&&s.uid===BigInt(process.getuid())&&s.nlink===1n&&(s.mode&0o7777n)===0o600n&&s.size>0n&&s.size<=BigInt(limit)&&fs.realpathSync(file)===file);const r={file,size:Number(s.size),mark:mark(s),fd:fs.openSync(file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK)};rows.push(r);guard(mark(fs.fstatSync(r.fd,{bigint:true}))===r.mark);const bytes=Buffer.alloc(Number(s.size));let at=0;while(at<bytes.length){const n=fs.readSync(r.fd,bytes,at,bytes.length-at,at);guard(Number.isInteger(n)&&n>0&&n<=bytes.length-at);at+=n;}current();r.sha256=sha(bytes);return bytes;}
-          function json(bytes){const text=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(bytes),v=JSON.parse(text);guard(JSON.stringify(v)+'\n'===text);return v;} // Canonical generated format rejects duplicate keys/alternate spellings.
-          function verifyBundle(){current();const manifestBytes=readFixed('manifest.json',4096),compressed=readFixed('public-inspection.json.gz',2*1024*1024),m=json(manifestBytes);guard(compressed.length+manifestBytes.length<=2*1024*1024);
-           guard(exact(m,['schema','scope','interpretation','outcome','rawFile','compressedFile','rawBytes','compressedBytes','rawSha256','compressedSha256','rawDecompressionLimit','payloadLimit','profileApproved','sealed','reuseEligible','nativeAgentLaunches','models','targetExecutions','compilerCheckExecutions'])&&m.schema===1&&m.scope==='UNTRUSTED_PUBLIC_MACHO_INSPECTION_DATA_ONLY'&&m.interpretation==='redue-fixed-public-macho-inspection@2'&&m.rawFile==='public-inspection.json'&&m.compressedFile==='public-inspection.json.gz'&&m.rawDecompressionLimit===24*1024*1024&&m.payloadLimit===2*1024*1024&&falseAuthority(m));
-           guard(Number.isSafeInteger(m.rawBytes)&&m.rawBytes>0&&m.rawBytes<=24*1024*1024&&m.compressedBytes===compressed.length&&m.compressedSha256===sha(compressed));const raw=gunzipSync(compressed,{maxOutputLength:24*1024*1024});guard(raw.length===m.rawBytes&&sha(raw)===m.rawSha256);const r=json(raw);
-           guard(exact(r,['schema','interpretation','scope','outcome','reason','calls','targets','expectedToolSha256','publicOutputUntrusted','behavior','appleAuthenticity','nativeEnforcement','completeSdkClosure','profileApproved','sealed','reuseEligible','models','nativeAgentLaunches','targetExecutions','compilerCheckExecutions','ownedDescriptorsClosed','ownedCwdCleanup'])&&r.schema===1&&r.interpretation===m.interpretation&&r.scope==='PUBLIC_STATIC_SOURCE_INSPECTION_ONLY'&&r.outcome===m.outcome&&['UNKNOWN','PUBLIC_OUTPUT_COLLECTED_NOT_BEHAVIOR_PROOF'].includes(r.outcome)&&falseAuthority(r)&&r.publicOutputUntrusted===true&&r.behavior==='NOT_ESTABLISHED'&&r.appleAuthenticity==='NOT_ESTABLISHED'&&r.nativeEnforcement==='NOT_ESTABLISHED'&&r.completeSdkClosure==='NOT_ESTABLISHED'&&r.expectedToolSha256==='1dcc1432db4d828cf8cd71a84cb8d9bf63a7ca80b5eeec711a9e5f13a3f5f98e');
-           guard(typeof r.reason==='string'&&/^[A-Z_]{1,128}$/.test(r.reason)&&typeof r.ownedDescriptorsClosed==='boolean'&&['NOT_CREATED','PENDING','RETAINED_CHILD_CLOSURE_UNKNOWN','REMOVED_OWNED_EMPTY_CWD','UNKNOWN'].includes(r.ownedCwdCleanup));
-            const roles=['version','help','bash','path_helper'],flags=['--no-debuginfod','--macho','--arch=arm64e','--private-headers','--syms','--bind','--indirect-symbols','--disassemble'],paths=['/bin/bash','/usr/libexec/path_helper'];
-            guard(Array.isArray(r.calls)&&r.calls.length<=4&&r.targets&&typeof r.targets==='object'&&!Array.isArray(r.targets)&&Object.keys(r.targets).every(k=>['bash','path_helper'].includes(k)));
-            for(const [i,c]of r.calls.entries()){const limit=[8192,65536,16*1024*1024,1024*1024][i],argv=i<2?['--'+roles[i]]:[...flags,paths[i-2]];guard(exact(c,['role','argv','pidObserved','exitCode','signal','errorCode','elapsedMs','stdout','stdoutSha256','stderrEmpty','stderrBytes','stderrSha256','stderrClassification','complete'])&&c.role===roles[i]&&JSON.stringify(c.argv)===JSON.stringify(argv)&&typeof c.pidObserved==='boolean'&&typeof c.complete==='boolean'&&Number.isFinite(c.elapsedMs)&&c.elapsedMs>=0&&c.elapsedMs<=120000&&(c.exitCode===null||Number.isInteger(c.exitCode)&&c.exitCode>=0&&c.exitCode<=255));
-             guard([null,'SIGKILL','SIGTERM','SIGABRT','SIGSEGV','SIGBUS','SIGINT','UNKNOWN'].includes(c.signal)&&[null,'ENOENT','EACCES','EPERM','ENOTDIR','ELOOP','EINVAL','EBADF','EIO','ETIMEDOUT','ENOBUFS','UNKNOWN'].includes(c.errorCode)&&[null,true,false].includes(c.stderrEmpty)&&['EMPTY','UNAVAILABLE','OTHER','INVALID_INSTRUCTION_ENCODING'].includes(c.stderrClassification));
-             guard(c.stdout===null?c.stdoutSha256===null:typeof c.stdout==='string'&&Buffer.byteLength(c.stdout)<=limit&&!/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(c.stdout)&&sha(Buffer.from(c.stdout))===c.stdoutSha256);guard(c.stderrBytes===null?c.stderrSha256===null:Number.isSafeInteger(c.stderrBytes)&&c.stderrBytes>=0&&c.stderrBytes<=limit&&/^[a-f0-9]{64}$/.test(c.stderrSha256));
-             guard(c.stderrClassification==='UNAVAILABLE'?c.stderrBytes===null&&c.stderrSha256===null&&c.stderrEmpty===null:c.stderrClassification==='EMPTY'?c.stderrBytes===0&&c.stderrSha256===sha(Buffer.alloc(0))&&c.stderrEmpty!==false:c.stderrBytes>0&&c.stderrEmpty!==true);guard(c.stderrEmpty!==true||c.stderrBytes===0&&c.stderrClassification==='EMPTY');
-             if(c.complete)guard(c.pidObserved&&c.exitCode===0&&c.signal===null&&c.errorCode===null&&c.stderrEmpty===true&&c.elapsedMs<5000&&typeof c.stdout==='string');}
-            for(const [key,t]of Object.entries(r.targets)){const i=key==='bash'?0:1;guard(exact(t,['path','sha256','outputObserved'])&&t.path===paths[i]&&t.sha256===['16303dedab719ddb63efd9dd68092a0da37b397bfd4fcb856d5f1c86c5ee414b','c6213c2dfc123f4bade31383a918129a98bb9dfcac9a606f994a9e26a1a78255'][i]&&typeof t.outputObserved==='boolean');if(t.outputObserved)guard(r.calls[i+2]?.complete===true);}
-            if(r.outcome==='PUBLIC_OUTPUT_COLLECTED_NOT_BEHAVIOR_PROOF')guard(r.ownedDescriptorsClosed&&r.ownedCwdCleanup==='REMOVED_OWNED_EMPTY_CWD'&&r.calls.length===4&&r.calls.every(c=>c.complete)&&r.targets.bash?.outputObserved&&r.targets.path_helper?.outputObserved);inspection=r;current();}
-          function closing(){current();for(const r of rows){const bytes=Buffer.alloc(r.size);let at=0;while(at<bytes.length){const n=fs.readSync(r.fd,bytes,at,bytes.length-at,at);guard(Number.isInteger(n)&&n>0&&n<=bytes.length-at);at+=n;}guard(sha(bytes)===r.sha256);}current();}
-          let ready=false,reason='UNKNOWN',phase='FILES_VALIDATION',httpStatus=null;try{verifyBundle();
-           phase='ARTIFACT_REQUEST';const started=performance.now(),end=started+8000;const time=()=>guard(performance.now()<end);time();
-           // GitHub Docs: public artifact listing supports unauthenticated read access.
-           // https://docs.github.com/en/rest/actions/artifacts#list-artifacts-for-a-repository
-           const response=await fetch('https://api.github.com/repos/msiric/redue/actions/artifacts?per_page=100',{method:'GET',redirect:'error',credentials:'omit',cache:'no-store',signal:AbortSignal.timeout(8000),headers:{Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'REDUE-public-artifact-budget'}});if(Number.isInteger(response.status)&&response.status>=100&&response.status<=599)httpStatus=response.status;phase='ARTIFACT_RESPONSE_HEADERS';time();
-           guard(response.status===200&&!/rel="next"/.test(response.headers.get('link')??'')&&/^[0-9]+$/.test(response.headers.get('x-ratelimit-remaining')??'')&&Number(response.headers.get('x-ratelimit-remaining'))>0);phase='ARTIFACT_RESPONSE_BODY';let length=0;const chunks=[];guard(response.body);for await(const chunk of response.body){time();guard(chunk instanceof Uint8Array);length+=chunk.byteLength;guard(length<=1024*1024);chunks.push(Buffer.from(chunk));}time();
-           phase='ARTIFACT_PAGE_SCHEMA';const data=parsePortableJson(Buffer.concat(chunks));guard(data&&Number.isSafeInteger(data.total_count)&&data.total_count>=0&&data.total_count<=100&&Array.isArray(data.artifacts)&&data.artifacts.length===data.total_count);const ids=new Set();let activeBytes=0,activeCount=0;
-           for(const a of data.artifacts){guard(a&&Number.isSafeInteger(a.id)&&a.id>0&&!ids.has(a.id)&&typeof a.expired==='boolean'&&Number.isSafeInteger(a.size_in_bytes)&&a.size_in_bytes>=0);ids.add(a.id);if(!a.expired){activeBytes+=a.size_in_bytes;activeCount++;guard(Number.isSafeInteger(activeBytes));}}
-           phase='STORAGE_RESERVE';const reserve=2*(2*1024*1024+128*1024);guard(activeBytes+reserve<=10*1024*1024);time();phase='POST_REQUEST_CURRENTNESS';closing();time();ready=true;phase='COMPLETE';reason='PUBLIC_FILES_AND_INCLUDED_RESERVE_OBSERVED';console.log(JSON.stringify({scope:'PUBLIC_ARTIFACT_BUDGET_ONLY',activeCount,activeBytes,reserve,includedLimit:10*1024*1024}));}catch{reason=phase==='INSPECTION_RESULT'?'INSPECTION_INCOMPLETE':phase+'_UNKNOWN';/* Static phase only; no exception/cause/message/code/body is retained. */}finally{for(const r of rows)try{fs.closeSync(r.fd);}catch{ready=false;phase='FILE_DESCRIPTOR_CLOSE';reason='CLOSE_UNKNOWN';}}
-          console.log(JSON.stringify({schema:1,scope:'FIXED_PUBLIC_DATA_VALIDATION_ONLY',outcome:ready?'PUBLIC_DATA_VALIDATED':'UNKNOWN',reason,phase,httpStatus}));process.exitCode=ready?0:74;
-          NODE
-      - name: Retain complete public diagnostic data only
-        id: upload_public_data
-        if: ${{ !cancelled() && steps.source_classifier.outcome == 'success' && steps.collect_public_data.outcome == 'success' && steps.validate_public_data.outcome == 'success' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: redue-public-inspection-${{ github.run_id }}-${{ matrix.machine }}
-          path: |
-            .redue-public-inspection/public-inspection.json.gz
-            .redue-public-inspection/manifest.json
-          retention-days: 1
-          overwrite: false
-          if-no-files-found: error
-          compression-level: 0
-          include-hidden-files: true
-      - name: Keep actual UNKNOWN inspection red after retaining complete data
-        id: inspection_result
-        if: ${{ !cancelled() && steps.collect_public_data.outcome == 'success' && steps.validate_public_data.outcome == 'success' && steps.upload_public_data.outcome == 'success' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          for redue_env_key in NODE_OPTIONS NODE_PATH BASH_ENV ENV DYLD_INSERT_LIBRARIES DYLD_LIBRARY_PATH DYLD_FRAMEWORK_PATH DYLD_FALLBACK_LIBRARY_PATH DYLD_FALLBACK_FRAMEWORK_PATH DYLD_ROOT_PATH LD_PRELOAD LD_LIBRARY_PATH ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_CODE_OAUTH_TOKEN OPENAI_API_KEY GH_TOKEN GITHUB_TOKEN NPM_TOKEN NODE_AUTH_TOKEN; do
-            if [ "${!redue_env_key+x}" = x ]; then
-              printf '%s\n' 'PREAUTH_ENVIRONMENT_UNSUPPORTED' >&2
-              exit 74
-            fi
-          done
-          test "$(git rev-parse HEAD)" = "$REVIEWED_SOURCE"
-          test "$(uname -m)" = arm64
-          test "$(node --version)" = v22.13.0
-          node --input-type=module <<'NODE'
-          import fs from 'node:fs';import path from 'node:path';import {createHash} from 'node:crypto';import {gunzipSync} from 'node:zlib';
-          const guard=v=>{if(!v)throw Error('PUBLIC_DATA_UNKNOWN');},sha=v=>createHash('sha256').update(v).digest('hex');
-          const mark=s=>['dev','ino','mode','uid','gid','nlink','size','mtimeNs','ctimeNs'].map(k=>String(s[k])).join(':'),dmark=s=>['dev','ino','mode','uid','gid'].map(k=>String(s[k])).join(':');
-          const exact=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).length===keys.length&&keys.every(k=>Object.hasOwn(v,k));
-          const falseAuthority=v=>v.profileApproved===false&&v.sealed===false&&v.reuseEligible===false&&v.nativeAgentLaunches===0&&v.models===0&&v.targetExecutions===0&&v.compilerCheckExecutions===0;
-          const names=['manifest.json','public-inspection.json.gz'],rows=[],cwd=process.cwd(),directory=path.join(cwd,'.redue-public-inspection');let identity=null,parents=null,inspection=null;
-          function lineage(file){const result=[];for(let at=path.dirname(file);;at=path.dirname(at)){const s=fs.lstatSync(at,{bigint:true});guard(s.isDirectory()&&!s.isSymbolicLink()&&(s.uid===0n||s.uid===BigInt(process.getuid()))&&(s.mode&0o22n)===0n&&fs.realpathSync(at)===at);result.push([at,dmark(s)]);if(at===path.dirname(at))return result;}}
-          function current(){const s=fs.lstatSync(directory,{bigint:true});guard(s.isDirectory()&&!s.isSymbolicLink()&&s.uid===BigInt(process.getuid())&&(s.mode&0o7777n)===0o700n&&fs.realpathSync(directory)===directory);guard(identity===null||dmark(s)===identity);identity??=dmark(s);const next=lineage(directory);guard(parents===null||JSON.stringify(next)===JSON.stringify(parents));parents??=next;guard(JSON.stringify(fs.readdirSync(directory).sort())===JSON.stringify(names));for(const r of rows){guard(fs.realpathSync(r.file)===r.file&&mark(fs.lstatSync(r.file,{bigint:true}))===r.mark&&mark(fs.fstatSync(r.fd,{bigint:true}))===r.mark);}}
-          function readFixed(name,limit){guard(names.includes(name));current();const file=path.join(directory,name),s=fs.lstatSync(file,{bigint:true});guard(s.isFile()&&!s.isSymbolicLink()&&s.uid===BigInt(process.getuid())&&s.nlink===1n&&(s.mode&0o7777n)===0o600n&&s.size>0n&&s.size<=BigInt(limit)&&fs.realpathSync(file)===file);const r={file,size:Number(s.size),mark:mark(s),fd:fs.openSync(file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK)};rows.push(r);guard(mark(fs.fstatSync(r.fd,{bigint:true}))===r.mark);const bytes=Buffer.alloc(Number(s.size));let at=0;while(at<bytes.length){const n=fs.readSync(r.fd,bytes,at,bytes.length-at,at);guard(Number.isInteger(n)&&n>0&&n<=bytes.length-at);at+=n;}current();r.sha256=sha(bytes);return bytes;}
-          function json(bytes){const text=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(bytes),v=JSON.parse(text);guard(JSON.stringify(v)+'\n'===text);return v;} // Canonical generated format rejects duplicate keys/alternate spellings.
-          function verifyBundle(){current();const manifestBytes=readFixed('manifest.json',4096),compressed=readFixed('public-inspection.json.gz',2*1024*1024),m=json(manifestBytes);guard(compressed.length+manifestBytes.length<=2*1024*1024);
-           guard(exact(m,['schema','scope','interpretation','outcome','rawFile','compressedFile','rawBytes','compressedBytes','rawSha256','compressedSha256','rawDecompressionLimit','payloadLimit','profileApproved','sealed','reuseEligible','nativeAgentLaunches','models','targetExecutions','compilerCheckExecutions'])&&m.schema===1&&m.scope==='UNTRUSTED_PUBLIC_MACHO_INSPECTION_DATA_ONLY'&&m.interpretation==='redue-fixed-public-macho-inspection@2'&&m.rawFile==='public-inspection.json'&&m.compressedFile==='public-inspection.json.gz'&&m.rawDecompressionLimit===24*1024*1024&&m.payloadLimit===2*1024*1024&&falseAuthority(m));
-           guard(Number.isSafeInteger(m.rawBytes)&&m.rawBytes>0&&m.rawBytes<=24*1024*1024&&m.compressedBytes===compressed.length&&m.compressedSha256===sha(compressed));const raw=gunzipSync(compressed,{maxOutputLength:24*1024*1024});guard(raw.length===m.rawBytes&&sha(raw)===m.rawSha256);const r=json(raw);
-           guard(exact(r,['schema','interpretation','scope','outcome','reason','calls','targets','expectedToolSha256','publicOutputUntrusted','behavior','appleAuthenticity','nativeEnforcement','completeSdkClosure','profileApproved','sealed','reuseEligible','models','nativeAgentLaunches','targetExecutions','compilerCheckExecutions','ownedDescriptorsClosed','ownedCwdCleanup'])&&r.schema===1&&r.interpretation===m.interpretation&&r.scope==='PUBLIC_STATIC_SOURCE_INSPECTION_ONLY'&&r.outcome===m.outcome&&['UNKNOWN','PUBLIC_OUTPUT_COLLECTED_NOT_BEHAVIOR_PROOF'].includes(r.outcome)&&falseAuthority(r)&&r.publicOutputUntrusted===true&&r.behavior==='NOT_ESTABLISHED'&&r.appleAuthenticity==='NOT_ESTABLISHED'&&r.nativeEnforcement==='NOT_ESTABLISHED'&&r.completeSdkClosure==='NOT_ESTABLISHED'&&r.expectedToolSha256==='1dcc1432db4d828cf8cd71a84cb8d9bf63a7ca80b5eeec711a9e5f13a3f5f98e');
-           guard(typeof r.reason==='string'&&/^[A-Z_]{1,128}$/.test(r.reason)&&typeof r.ownedDescriptorsClosed==='boolean'&&['NOT_CREATED','PENDING','RETAINED_CHILD_CLOSURE_UNKNOWN','REMOVED_OWNED_EMPTY_CWD','UNKNOWN'].includes(r.ownedCwdCleanup));
-            const roles=['version','help','bash','path_helper'],flags=['--no-debuginfod','--macho','--arch=arm64e','--private-headers','--syms','--bind','--indirect-symbols','--disassemble'],paths=['/bin/bash','/usr/libexec/path_helper'];
-            guard(Array.isArray(r.calls)&&r.calls.length<=4&&r.targets&&typeof r.targets==='object'&&!Array.isArray(r.targets)&&Object.keys(r.targets).every(k=>['bash','path_helper'].includes(k)));
-            for(const [i,c]of r.calls.entries()){const limit=[8192,65536,16*1024*1024,1024*1024][i],argv=i<2?['--'+roles[i]]:[...flags,paths[i-2]];guard(exact(c,['role','argv','pidObserved','exitCode','signal','errorCode','elapsedMs','stdout','stdoutSha256','stderrEmpty','stderrBytes','stderrSha256','stderrClassification','complete'])&&c.role===roles[i]&&JSON.stringify(c.argv)===JSON.stringify(argv)&&typeof c.pidObserved==='boolean'&&typeof c.complete==='boolean'&&Number.isFinite(c.elapsedMs)&&c.elapsedMs>=0&&c.elapsedMs<=120000&&(c.exitCode===null||Number.isInteger(c.exitCode)&&c.exitCode>=0&&c.exitCode<=255));
-             guard([null,'SIGKILL','SIGTERM','SIGABRT','SIGSEGV','SIGBUS','SIGINT','UNKNOWN'].includes(c.signal)&&[null,'ENOENT','EACCES','EPERM','ENOTDIR','ELOOP','EINVAL','EBADF','EIO','ETIMEDOUT','ENOBUFS','UNKNOWN'].includes(c.errorCode)&&[null,true,false].includes(c.stderrEmpty)&&['EMPTY','UNAVAILABLE','OTHER','INVALID_INSTRUCTION_ENCODING'].includes(c.stderrClassification));
-             guard(c.stdout===null?c.stdoutSha256===null:typeof c.stdout==='string'&&Buffer.byteLength(c.stdout)<=limit&&!/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(c.stdout)&&sha(Buffer.from(c.stdout))===c.stdoutSha256);guard(c.stderrBytes===null?c.stderrSha256===null:Number.isSafeInteger(c.stderrBytes)&&c.stderrBytes>=0&&c.stderrBytes<=limit&&/^[a-f0-9]{64}$/.test(c.stderrSha256));
-             guard(c.stderrClassification==='UNAVAILABLE'?c.stderrBytes===null&&c.stderrSha256===null&&c.stderrEmpty===null:c.stderrClassification==='EMPTY'?c.stderrBytes===0&&c.stderrSha256===sha(Buffer.alloc(0))&&c.stderrEmpty!==false:c.stderrBytes>0&&c.stderrEmpty!==true);guard(c.stderrEmpty!==true||c.stderrBytes===0&&c.stderrClassification==='EMPTY');
-             if(c.complete)guard(c.pidObserved&&c.exitCode===0&&c.signal===null&&c.errorCode===null&&c.stderrEmpty===true&&c.elapsedMs<5000&&typeof c.stdout==='string');}
-            for(const [key,t]of Object.entries(r.targets)){const i=key==='bash'?0:1;guard(exact(t,['path','sha256','outputObserved'])&&t.path===paths[i]&&t.sha256===['16303dedab719ddb63efd9dd68092a0da37b397bfd4fcb856d5f1c86c5ee414b','c6213c2dfc123f4bade31383a918129a98bb9dfcac9a606f994a9e26a1a78255'][i]&&typeof t.outputObserved==='boolean');if(t.outputObserved)guard(r.calls[i+2]?.complete===true);}
-            if(r.outcome==='PUBLIC_OUTPUT_COLLECTED_NOT_BEHAVIOR_PROOF')guard(r.ownedDescriptorsClosed&&r.ownedCwdCleanup==='REMOVED_OWNED_EMPTY_CWD'&&r.calls.length===4&&r.calls.every(c=>c.complete)&&r.targets.bash?.outputObserved&&r.targets.path_helper?.outputObserved);inspection=r;current();}
-          function closing(){current();for(const r of rows){const bytes=Buffer.alloc(r.size);let at=0;while(at<bytes.length){const n=fs.readSync(r.fd,bytes,at,bytes.length-at,at);guard(Number.isInteger(n)&&n>0&&n<=bytes.length-at);at+=n;}guard(sha(bytes)===r.sha256);}current();}
-          let ready=false,reason='UNKNOWN',phase='FILES_VALIDATION',httpStatus=null;try{verifyBundle();
-           phase='FILE_CURRENTNESS';closing();phase='INSPECTION_RESULT';guard(inspection.outcome==='PUBLIC_OUTPUT_COLLECTED_NOT_BEHAVIOR_PROOF'&&inspection.ownedDescriptorsClosed===true&&inspection.ownedCwdCleanup==='REMOVED_OWNED_EMPTY_CWD'&&inspection.calls.length===4&&['version','help','bash','path_helper'].every((role,i)=>{const c=inspection.calls[i];return c?.role===role&&c.complete===true&&c.pidObserved===true&&c.exitCode===0&&c.signal===null&&c.errorCode===null&&c.stderrEmpty===true;})&&inspection.targets.bash?.outputObserved===true&&inspection.targets.path_helper?.outputObserved===true);ready=true;phase='COMPLETE';reason='PUBLIC_OUTPUT_COLLECTED_NOT_BEHAVIOR_PROOF';}catch{reason=phase==='INSPECTION_RESULT'?'INSPECTION_INCOMPLETE':phase+'_UNKNOWN';/* Static phase only; no exception/cause/message/code/body is retained. */}finally{for(const r of rows)try{fs.closeSync(r.fd);}catch{ready=false;phase='FILE_DESCRIPTOR_CLOSE';reason='CLOSE_UNKNOWN';}}
-          console.log(JSON.stringify({schema:1,scope:'FIXED_PUBLIC_DATA_VALIDATION_ONLY',outcome:ready?'PUBLIC_DATA_VALIDATED':'UNKNOWN',reason,phase,httpStatus}));process.exitCode=ready?0:74;
-          NODE
-      # Retained artifacts contain only exact untrusted public-data files.
-      # No partial-file upload, model credentials, cache, OIDC or signing.
+      # Base is retained on every outcome; only103 removes its own current controls.
+      # These sync checks reject late returns but cannot interrupt blocked FS calls.
+      # Job timeout is separate. No artifact/API/storage route or native authority.
