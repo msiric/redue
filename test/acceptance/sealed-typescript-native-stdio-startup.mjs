@@ -23,6 +23,9 @@ const result=fields=>freeze({schema:1,scope:'FIXED_NATIVE187_ISOLATED_STARTUP_SO
 // https://github.com/apple-oss-distributions/bash/blob/51bf3fc6f26e9517c3a2e4bc3d208f9b39b87178/profile
 // https://github.com/apple-oss-distributions/bash/blob/51bf3fc6f26e9517c3a2e4bc3d208f9b39b87178/bashrc
 // Stock noninteractive bashrc returns before dynamic TERM_PROGRAM sourcing.
+// The same bash commit's bash-3.2/pathnames.h.in and shell.c require a separate
+// metadata-only absence check: Apple login startup prefers MANAGED_SYS_PROFILE
+// over /etc/profile when present. No managed profile body is inspected.
 // Stock profile calls path_helper -s. The fixed diagnostic supplies an isolated
 // PATH_HELPER_ROOT and no MANPATH/PS1/BASH_ENV/ENV/TERM_PROGRAM startup inputs.
 // Apple shell_cmds commit298787009e5432c5e4c378a077f98267077e3495,
@@ -33,13 +36,16 @@ const result=fields=>freeze({schema:1,scope:'FIXED_NATIVE187_ISOLATED_STARTUP_SO
 // fts_open0x100000720. MANPATH branch0x1000005b0 is conditional on presence.
 // This source/static-binary basis is versioned and does not certify the loader.
 export const NATIVE_STDIO_STARTUP_BASIS=freeze({
- interpretation:'redue-native187-isolated-bash-startup@2',
+ interpretation:'redue-native187-isolated-bash-startup@3',
  nativeSha256:'a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3',
  // Independent058: --bare Ed/qs disables even explicit env subscription OAuth.
  // Nonbare flagsettings autoMemoryEnabled:false is recognized by Kc.
  nativeNonbareOAuthSource:{offset:196583840,bytes:619,sha256:'dc09a6a0899b9612f113dba10b2e51e7bc2e66fef0a11887bb5809292645783b'},
  nativeAutoMemorySource:{offset:196837373,bytes:396,sha256:'890ff56288a7f4a6f86763f9dbaf434cb3a14cb5c19fb80ab2d60ac4daee596d'},
  appleBashCommit:'51bf3fc6f26e9517c3a2e4bc3d208f9b39b87178',
+ appleBashPathnamesSourceSha256:'bdd2f209f4503cfdaede9f603692e6807e6574fce2142f1feab3424d0695939a',
+ appleBashShellSourceSha256:'41e86baac3861152e77e479dac988d80f42bffa467ef42c3c10a1ea04a48c542',
+ requiredAbsentSystemStartupPaths:['/private/var/db/ManagedConfigurationFiles/com.apple.bash/etc/profile'],
  appleShellCommandsCommit:'298787009e5432c5e4c378a077f98267077e3495',
  pathHelperSourceSha256:'8f1a55eb4b848b75447f3b3e7a5c8f63f6c23dc2a2dca01406b9cb4004d747f0',
  pins:{
@@ -79,6 +85,7 @@ function binding(fixture,build){
  return JSON.stringify([f,b]);
 }
 function state(record,phase){
+ for(const file of NATIVE_STDIO_STARTUP_BASIS.requiredAbsentSystemStartupPaths)absent(file);
  guard(!record.invalid&&binding(record.fixture,record.build)===record.binding&&etcAlias()===record.etc);
  const closing=[];
  for(const row of record.directories){const now=owned(row.file);guard(now.mark===row.mark&&JSON.stringify(now.parents)===JSON.stringify(row.parents));closing.push([row.file,mark(fs.lstatSync(row.file,{bigint:true}))]);}
@@ -95,7 +102,7 @@ function state(record,phase){
  guard(directoryNames(record.snapshots).length===0);
  const sessions=directoryNames(record.sessions);guard(phase==='BEFORE_NATIVE'?sessions.length===0:sessions.length<=1&&sessions.every(n=>uuid.test(n)));
  for(const n of sessions){const p=record.sessions+'/'+n,s=fs.lstatSync(p,{bigint:true});guard(fs.realpathSync(p)===p&&s.isDirectory()&&!s.isSymbolicLink()&&s.uid===BigInt(process.getuid())&&(s.mode&0o6022n)===0n&&directoryNames(p).length===0);closing.push([p,mark(s)]);}
- return closing;
+ for(const file of NATIVE_STDIO_STARTUP_BASIS.requiredAbsentSystemStartupPaths)absent(file);return closing;
 }
 function closeDirectories(rows){for(const [file,fingerprint]of rows)guard(fs.realpathSync(file)===file&&mark(fs.lstatSync(file,{bigint:true}))===fingerprint);}
 function current(record,phase){
@@ -105,7 +112,8 @@ function current(record,phase){
  // Preserve complete directory fingerprints from the final membership scan
  // until after every late named row/ancestor check. Full membership scans stay
  // required; fingerprints merely close later validation work in this call.
- const closing=state(record,phase);for(const row of record.rows)named(row);closeDirectories(closing);for(const row of record.rows)named(row);closeDirectories(closing);guard(!record.invalid);
+ const closing=state(record,phase);for(const row of record.rows)named(row);closeDirectories(closing);for(const row of record.rows)named(row);closeDirectories(closing);
+ for(const file of NATIVE_STDIO_STARTUP_BASIS.requiredAbsentSystemStartupPaths)absent(file);guard(!record.invalid);
 }
 function put(file){let fd,failed=false;
  try{fd=fs.openSync(file,fs.constants.O_WRONLY|fs.constants.O_CREAT|fs.constants.O_EXCL|fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK,0o600);
@@ -119,7 +127,7 @@ export function prepareNativeStdioStartup(options){
  try{
   const first=binding(options.fixture,options.build),base=options.build.hostBase;
   guard(process.platform==='darwin'&&process.arch==='arm64'&&process.version==='v22.13.0'&&process.getuid()>0&&process.getuid()===process.geteuid()&&process.getgid()===process.getegid()&&fs.constants.O_NOFOLLOW!==undefined&&fs.constants.O_NONBLOCK!==undefined);
-  reason='STOCK_LOGIN_BASIS_UNAVAILABLE';const alias=etcAlias();
+  reason='STOCK_LOGIN_BASIS_UNAVAILABLE';for(const file of NATIVE_STDIO_STARTUP_BASIS.requiredAbsentSystemStartupPaths)absent(file);const alias=etcAlias();
   const rows=Object.entries(NATIVE_STDIO_STARTUP_BASIS.pins).map(([file,pin])=>bounded(file,0,file==='/bin/bash'?2*1024*1024:file==='/usr/libexec/path_helper'?256*1024:4096,pin));
   // Exact public bodies are compared by hash only. Never open local /etc/paths,
   // /etc/paths.d entries, owner HOME rc, credential or corporate configuration.
@@ -132,6 +140,7 @@ export function prepareNativeStdioStartup(options){
   reason='CLOSING_STARTUP_BINDING_UNAVAILABLE';current(record,'BEFORE_NATIVE');
   const value=result({outcome:'STARTUP_PREPARED_NOT_LAUNCHED',interpretation:NATIVE_STDIO_STARTUP_BASIS.interpretation,hostBase:base,sourceBasisCurrent:true,
    environmentBindings:{HOME:home,CLAUDE_CONFIG_DIR:config,GH_CONFIG_DIR:gh,SHELL:'/bin/bash',PATH:FIXED_PATH,PATH_HELPER_ROOT:root},
+   requiredAbsentSystemStartupPaths:NATIVE_STDIO_STARTUP_BASIS.requiredAbsentSystemStartupPaths,
    requiredAbsentEnvironmentKeys:['PS1','MANPATH','BASH_ENV','ENV','TERM_PROGRAM'],requiredSettings:{autoMemoryEnabled:false,disableAllHooks:true,enabledPlugins:{}},forbiddenArgv:['--bare','--add-dir','--plugin-dir'],requiredArgv:['--setting-sources','','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--no-session-persistence'],
    policyPreservation:'OAUTH_PROXY_CREDENTIAL_DENIALS_SANDBOX_AND_EXACT_COMMAND_REMAIN_SEPARATE_PREREQUISITES'});
   minted.set(value,record);return value;
@@ -140,6 +149,6 @@ export function prepareNativeStdioStartup(options){
 export function verifyNativeStdioStartup(value,phase='BEFORE_NATIVE'){
  if(arguments.length<1||arguments.length>2||!['BEFORE_NATIVE','AFTER_NATIVE'].includes(phase))throw Error('NATIVE_STDIO_STARTUP_OPTIONS');
  const record=minted.get(value);if(!record||record.invalid)return result({outcome:'UNKNOWN',sourceBasisCurrent:false});
- try{current(record,phase);guard(!record.invalid);return result({outcome:'STARTUP_CURRENTLY_OBSERVED_SOURCE_ONLY',phase,interpretation:value.interpretation,hostBase:value.hostBase,sourceBasisCurrent:true,environmentBindings:value.environmentBindings,requiredArgv:value.requiredArgv,forbiddenArgv:value.forbiddenArgv,requiredSettings:value.requiredSettings,requiredAbsentEnvironmentKeys:value.requiredAbsentEnvironmentKeys});}
+ try{current(record,phase);guard(!record.invalid);return result({outcome:'STARTUP_CURRENTLY_OBSERVED_SOURCE_ONLY',phase,interpretation:value.interpretation,hostBase:value.hostBase,sourceBasisCurrent:true,environmentBindings:value.environmentBindings,requiredArgv:value.requiredArgv,forbiddenArgv:value.forbiddenArgv,requiredSettings:value.requiredSettings,requiredAbsentEnvironmentKeys:value.requiredAbsentEnvironmentKeys,requiredAbsentSystemStartupPaths:value.requiredAbsentSystemStartupPaths});}
  catch{record.invalid=true;return result({outcome:'UNKNOWN',sourceBasisCurrent:false});}
 }
