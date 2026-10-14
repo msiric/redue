@@ -13,7 +13,42 @@ Node22.13 profile. A local proposal cannot certify that profile or its enforceme
 Existing checks, configurations and receipts are never silently converted.
 The unreleased CLI now offers explicit pending selection, not executable evidence.
 
-## Current checkpoint — reviewed fixed public inspection ready
+## Current checkpoint — actual static inspection UNKNOWN; repair underway
+
+2026-10-14: [run38586798824](https://github.com/msiric/redue/actions/runs/38586798824)
+used workflow016fa017/runtimee3095472. Both independent jobs failed conservatively.
+Intact version/help objects and their stdout hashes are verified; the tool reports
+Apple LLVM21.0.0. Bash inspection exited0 without signal/error, but emitted stderr;
+TOOL_EXECUTION_INCOMPLETE remains UNKNOWN. Actual stderr cause was not captured.
+
+Both large logged reports are malformed (offset671859/671863); no masked bytes were
+reconstructed. Direct job logs preserve the actual data; only intact prefixes and
+scalar metadata were decoded. The complete Bash body/hash, later path_helper data,
+final input closure and cleanup are not established from these partial records.
+Producer log SHA256 `ef0afc2338be02264f4938f462a4b475ff35cf6a074789d6a842926d52865917`;
+receiver `7ecfb1803cf8fb2e1cf9e827dc373e91066c59f334c9bb6c273941fd868366ee`.
+The whole-run CLI log omitted these long records; no internal CLI cause is assumed.
+Every failed/partial collection attempt is retained privately, not relabeled PASS.
+
+Independent081 source review confirms ARM64 subtypeE is the valid printer spelling;
+current literalARM64E parsing is incompatible. This separate format defect does not
+explain away stderr. Independent082 accepts the partial interpretation and a bounded
+public-data transport proposal withinD8, not any unwritten implementation/workflow.
+083 owns one isolated repair: actual header columns, redacted stderr classification,
+and an exact public-report file with hard storage/decompression bounds. Nonempty
+stderr stays UNKNOWN; no raw stderr/environment/private files/binary copies. Existing
+artifact metadata is3,980,014 bytes; two proposed payloads are capped2MiB each plus
+bounded overhead, one-day retention, fresh usage check and no unrelated deletion.
+
+Next: inspect/review exact083 source before wiring or another actual operation.
+No new owner action is requested during this locally unblocked repair. Earlier same
+helper builds remain scoped success. No native agent/model/compiler check executed
+in this inspection job. Startup/fork behavior, loader closure, seal, actual portable
+machine/agent reuse and economics remain unestablished. G0partial; G1–G4 incomplete;
+Copilot included Actions capacity separately pending; closed hosted Claude evidence
+unchanged. Alpha.11, fixed pilot and immutable receipts remain preserved/unpublished.
+
+## Historical checkpoint — reviewed fixed public inspection ready
 
 2026-10-14: actual run38579790669 built the same helper on both independent VMs;
 that scoped success and the original inventory failures remain recorded below.
