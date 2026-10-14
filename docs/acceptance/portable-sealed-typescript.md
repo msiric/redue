@@ -13,7 +13,66 @@ Node22.13 profile. A local proposal cannot certify that profile or its enforceme
 Existing checks, configurations and receipts are never silently converted.
 The unreleased CLI now offers explicit pending selection, not executable evidence.
 
-## Current checkpoint — fixed public observations; native boundary still unestablished
+## Current checkpoint — actual public startup observation passed; native witness pending
+
+[Run38615104204](https://github.com/msiric/redue/actions/runs/38615104204),
+workflow `bc1d05b83bf540f31a28ed9604ffd7618816a430`, runtime
+`52a3b7f37637fa6c1362b68ec79ecc95f114d7f4`, attempt1/manual dispatch:
+both jobs SUCCESS. Independent112 ACCEPT_SCOPE verifies exact scripts/runtime,
+closed executed reports and process outcomes. Both report all five expected cases,
+PID observed/exit0/no error/signal/stderr; ROOT_A/ROOT_B, empty-present MANPATH,
+Bash login/nonlogin. Receiver child times2.894–11.235ms; producer2.625–12.744ms.
+These are child times, not complete preflight or decision economics.
+
+Private basis/control currentness passed; observation controls removed, disposable
+base retained. One C build per job, helper not executed. Zero native-agent launches,
+models or compiler-check executions. All authority flags are false; startup/native
+and pre-main enforcement remain unestablished. The two reports expose equality
+booleans/counts, not child stdout/hashes; interpretation is bound to reviewed source.
+Both job logs label macOS26.6.2/25G83, macos-26-arm64 image20260907.0351.1. Labels
+alone do not establish a compatible whole execution profile or portable acceptance.
+
+Exact workflow SHA256
+`517f3f7fa6e142a712ff300ea289da1059cc1a6abedad15d30da71155383c06e`;
+protected local complete log461,098 bytes SHA256
+`495a26ea84a217bb2dc4fa6815830df21216d5203041ef11fbb6a57616e12991`;
+final metadata4,205 bytes SHA256
+`5aba5d431d0010a08667bfb0248e4206be9cc6fe1705719be12817cad1558eb5`.
+Independent summary hashes cover exact UTF8 JSON without prefix/newline:
+receiver `34c68d70bad49019e4d318569d0ea244c3352453423c046ef02e5204aacee971`;
+producer `1f37892c09b07bb10dfedd1d1b4f2d9d70006f4c51ace8d1393ea51fa2080ee2`.
+No artifacts/storage requests, credentials, native or model operation occurred.
+The earlier actual producer HTTP403 remains unexplained, not retried or relabeled.
+
+Workflow109 initially REVISE: partial/throwing bootstrap falsely reported NOT_CREATED.
+107B captures returned retained bases before rejecting outcomes; null/throws remain
+UNKNOWN without cleanup/adoption.109B ACCEPT40 supplied pure+39 independent controls;
+root96 PASS (44 source/mock+52 harmless local syntax/guard controls), TAP SHA256
+`e4380d3095b8ed03f1bcb4a7aa5996a4855ffda2a1afb38e3debe5edea3db00a`.
+Failed author/reviewer harness attempts and actual older UNKNOWN runs remain retained.
+Internal synchronous deadlines reject late returns but cannot interrupt blocked FS;
+the two-minute job deadline is distinct. No hard35-second wall-clock claim is made.
+
+Witness108 source/schema/build changes are independently accepted by110 and integrated
+at `d545c90e0a44890457f3e7a1f426668500f9b91e`. New source SHA256
+`a2a439ccdb403a26c5b0491ceb27b2b60cfb3d53bccd2c53faa7ce1ca409741b`;
+new build interpretation `redue-native-child-startup-witness-preauth-build@1`.
+Original C/source/@2 remains intact; old command proposals reject new-source adoption.
+The child may report only exact HOME/ROOT/SHELL/PATH comparisons, forbidden startup
+key absence and descriptor metadata. Parsed data is unauthenticated and establishes
+no native/credential/pre-main/seal authority. Source/ABI review is not loader closure.
+110:284 supplied+94 independent controls; root623 source/mock PASS, TAP SHA256
+`901e3a22dbfc16d02094fcbc6999d0de5868bfc2a2121ff5a4aa5e71c36357cb`.
+Initial lexical failure, incomplete stalled test run (cause unknown), old-adoption
+counterexamples and reviewer-harness mistakes remain preserved. No witness executed.
+
+Next: source-only versioned native startup/foreground binding111, with unchanged
+literal command and security scope, then fresh independent review. Actual native
+observations are still required; standalone success cannot supply them. G0partial,
+G1–G4 incomplete; Copilot included Actions capacity pending, scoped earlier Claude
+prerequisite closed. Alpha.11 unpublished; fixed pilot and receipts unchanged.
+
+## Historical checkpoint — fixed public observations; native boundary still unestablished
 
 2026-10-14: [run38606711077](https://github.com/msiric/redue/actions/runs/38606711077)
 used workflow `5d6228dd793a03d50e8ee83eb583120539b15d9f` and runtime

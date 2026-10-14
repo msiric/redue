@@ -7,7 +7,32 @@ existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
 
-## Current checkpoint — latest hosted result retained; startup basis reviewed
+## Current checkpoint — public startup cases passed on both hosted VMs
+
+2026-10-14: [run38615104204](https://github.com/msiric/redue/actions/runs/38615104204)
+completed successfully on both independent standard macOS jobs. Exactly five fixed
+public cases per job matched expected output: ROOT_A, ROOT_B, empty-present MANPATH,
+Bash login and Bash nonlogin. Private currentness passed, controls were removed,
+one fixed C helper was built but not executed. No native agent/model/compiler check
+ran; all profile/seal/reuse authority remains false. Independent112 ACCEPT_SCOPE.
+This is standalone shell behavior, not native Claude enforcement or portable reuse.
+
+Reviewed workflow `bc1d05b83bf540f31a28ed9604ffd7618816a430` uses runtime
+`52a3b7f37637fa6c1362b68ec79ecc95f114d7f4`, no storage API or uploads.
+Its partial-bootstrap reporting defect was reproduced independently and repaired;
+prior failures/UNKNOWN records remain unchanged. Exact evidence is in
+[sealed-input acceptance](../acceptance/portable-sealed-typescript.md).
+
+Fixed native child witness108 is independently accepted/integrated at
+`d545c90e0a44890457f3e7a1f426668500f9b91e`; root623 source/mock controls PASS.
+It has not executed. Next: source-only versioned native startup/foreground wiring111,
+then fresh critical review before any actual native operation. No permissions,
+credential access, trust, signing or recipe authority have expanded. No owner action
+is currently requested. G0partial/G1–G4 incomplete; Copilot included Actions capacity
+remains pending; earlier scoped Claude prerequisite stays closed. Alpha.11, fixed
+pilot, protected records and immutable receipts remain unchanged/unpublished.
+
+## Historical checkpoint — latest hosted result retained; startup basis reviewed
 
 2026-10-14: [run38606711077](https://github.com/msiric/redue/actions/runs/38606711077)
 completed with both jobs FAILURE. Receiver data is independently verified as
