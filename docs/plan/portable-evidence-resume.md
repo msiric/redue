@@ -7,7 +7,49 @@ existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
 
-## Current checkpoint — public startup cases passed on both hosted VMs
+## Current checkpoint — native child-witness workflow reviewed and pushed
+
+2026-10-14: runtime `e9da40308da1011ed65c61b7ced9c3fe2b91b353` includes the
+reviewed native child-binding/stdio witness and truthful partial-bootstrap/build
+reporting repair. Independent113C ACCEPT:703 supplied and14 independent controls.
+Root725 PASS comprises703 source/mock and22 shared controls, including3 actual
+owned temporary-filesystem controls; no native/model enforcement is inferred.
+TAP SHA256 `20dddb15909d78e88304c6a8f51960dc1e5d83135d1fd2f732fa1a6da41a9203`.
+Initial reporting counterexamples and all prior failed/UNKNOWN attempts are retained.
+
+Exact native workflow `cc9bd04bfc25e7d4535c792d388cb3ace682f368` is independently
+accepted115C and normally fast-forward pushed to `dev/portable-claude-diagnostic`.
+Remote file SHA256 `db48dd83a06092133346221eae60b56a07ef2673331dd1021eed12b1e7def0d0`
+is verified. Body matches accepted proposal `b1dd7e5` after its first comment.
+Root9 source/mock/local-syntax controls PASS; fresh reviewer8 source/pure-mock
+controls PASS. One standard macOS job, read-only permissions, protected environment,
+four turns/two-minute whole-job limit, no uploads/signing/trust changes or retries.
+The credential-bearing Node parent performs the fixed C build using a compiler
+child with only the literal TMPDIR environment; it must not be described as a
+credential-free parent. No native operation has run under this new workflow.
+
+Actual protected account statement still binds `49b3f44` with reviewed_at
+2026-10-12T11:09:43Z: wrong source and older than24hours. Capacity variable and
+OAuth secret name are present; no secret value accessed and no validity inferred.
+No diagnostic is running. Failed prerequisite launches zero models. Owner is asked
+only to confirm current account/policy/included-capacity facts, not repeat setup.
+Then refresh the statement truthfully, verify it, and use the existing normal
+Actions UI dispatch/review route; unchanged CLI dispatch403 is not retried.
+
+[Public startup run38615104204](https://github.com/msiric/redue/actions/runs/38615104204)
+remains scoped PASS on both independent VMs, accepted112: five fixed shell cases,
+one unexecuted C helper build, zero native/model/compiler checks. That is not native
+boundary, pre-main, seal, CURRENT or reuse proof. Earlier hosted six-check Claude
+prerequisite stays closed within its scope. Copilot included Actions capacity is
+separately pending. G0partial/G1–G4 incomplete; alpha.11 remains unpublished,
+fixed pilot/receipts untouched, complete portable-workflow economics unmeasured.
+
+Review incidents remain explicit: the earlier negative filter ran3 owned filesystem
+controls despite a read-only instruction; reviewer115 initially used default shell
+before reading AGENTS, with unintended startup effects unobserved. Corrected115B/C
+calls explicitly use Bash without login. Neither instruction scope is OS enforcement.
+
+## Historical checkpoint — public startup cases passed on both hosted VMs
 
 2026-10-14: [run38615104204](https://github.com/msiric/redue/actions/runs/38615104204)
 completed successfully on both independent standard macOS jobs. Exactly five fixed
