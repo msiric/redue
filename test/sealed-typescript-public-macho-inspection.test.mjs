@@ -95,3 +95,24 @@ test('empty version or partial help produces no target subprocess and keeps publ
 test('missing process identity cannot establish safe private-cwd cleanup',()=>{
  const m=mock();m.state.result={pid:0,status:0,signal:null,stdout:Buffer.from(version),stderr:Buffer.alloc(0)};const v=m.run();assert.equal(v.outcome,'UNKNOWN');assert.equal(v.ownedCwdCleanup,'RETAINED_CHILD_CLOSURE_UNKNOWN');assert.equal(m.state.removed,0);assert.equal(v.ownedDescriptorsClosed,true);
 });
+// DIR078 expected-outcome countercontrols: predecessor falsely crossed regions.
+test('ARM64E token outside an ARM64_ALL Mach header cannot satisfy architecture observation',()=>{
+ const m=mock();m.state.output='Mach header\n magic cputype cpusubtype\n MH_MAGIC_64 ARM64 ARM64_ALL\npublic ARM64E symbol token\n(__TEXT,__text) section\n000000010000abcd ret\n';
+ const v=m.run();assert.equal(v.outcome,'UNKNOWN');assert.equal(v.reason,'TARGET_ARCHITECTURE_OR_TEXT_UNOBSERVED');assert.equal(v.targets.bash.outputObserved,false);
+});
+test('addressed symbol-table row before empty text cannot satisfy disassembly observation',()=>{
+ const m=mock();m.state.output='Mach header\n magic cputype cpusubtype\n MH_MAGIC_64 ARM64 ARM64E\nSYMBOL TABLE:\n000000010000abcd public_symbol\n(__TEXT,__text) section\n';
+ const v=m.run();assert.equal(v.outcome,'UNKNOWN');assert.equal(v.reason,'TARGET_ARCHITECTURE_OR_TEXT_UNOBSERVED');assert.equal(v.targets.bash.outputObserved,false);
+});
+for(const boundary of ['(__DATA,__data) section','Mach header','SYMBOL TABLE:','Symbol table','Indirect symbols','Indirect symbol table','Bind table','Unsupported public output heading'])test('empty text region cannot consume addressed rows after '+boundary,()=>{
+ const m=mock();m.state.output=output.replace('000000010000abcd ret',boundary+'\n000000010000abcd ret');const v=m.run();assert.equal(v.outcome,'UNKNOWN');assert.equal(v.reason,'TARGET_ARCHITECTURE_OR_TEXT_UNOBSERVED');assert.equal(v.targets.bash.outputObserved,false);
+});
+for(const invalid of ['MH_MAGIC_64 ARM64 ARM64E_UNSUPPORTED','MH_MAGIC_64 ARM64E ARM64','MH_MAGIC_64 ARM64 ARM64_ALL','0xfeedfacf ARM64 ARM64E'])test('unsupported Mach header row remains UNKNOWN '+invalid,()=>{
+ const m=mock();m.state.output=output.replace('MH_MAGIC_64 ARM64 ARM64E',invalid);assert.equal(m.run().outcome,'UNKNOWN');
+});
+test('fixed disassembly labels and tab-separated instructions retain complete public data',()=>{
+ const m=mock();m.state.output=output.replace('000000010000abcd ret','_public_function:\n000000010000abcd\tret');const v=m.run();assert.equal(v.outcome,'PUBLIC_OUTPUT_COLLECTED_NOT_BEHAVIOR_PROOF');assert.equal(v.calls[2].stdout,m.state.output);noAuthority(v);
+});
+test('duplicate Mach headers or text sections are unsupported rather than merged',()=>{
+ for(const tail of ['Mach header\n magic cputype cpusubtype\n MH_MAGIC_64 ARM64 ARM64E\n','(__TEXT,__text) section\n000000010000abcd ret\n']){const m=mock();m.state.output=output+tail;assert.equal(m.run().outcome,'UNKNOWN');}
+});

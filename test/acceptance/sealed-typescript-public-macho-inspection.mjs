@@ -46,7 +46,27 @@ function text(bytes,limit){guard(Buffer.isBuffer(bytes)&&bytes.length<=limit,'OU
 function optionsObserved(help){return FLAGS.every(flag=>{
  const name=flag.split('=')[0].replace(/[.*+?^${}()|[\]\\]/g,'\\$&');return new RegExp('(?:^|[\\s,])'+name+'(?=[=\\s,]|$)','m').test(help);
 });}
-function targetOutputObserved(value){return /Mach header/.test(value)&&/\bARM64\b/.test(value)&&/\bARM64E\b/.test(value)&&/\(__TEXT,__text\) section/.test(value)&&/^\s*[0-9a-fA-F]{8,16}\s+\S+/m.test(value);}
+function targetOutputObserved(value){
+ // Recognize only this fixed human-readable Mach-O layout. Other formats remain
+ // UNKNOWN; tokens in symbols or other output regions cannot supply these facts.
+ const lines=value.split(/\r?\n/).map(line=>line.trim()),headers=[];
+ for(let i=0;i<lines.length;i++)if(lines[i]==='Mach header')headers.push(i);
+ if(headers.length!==1)return false;const h=headers[0];
+ if(!/^magic[ \t]+cputype[ \t]+cpusubtype(?:[ \t]|$)/.test(lines[h+1]??'')||
+  !/^MH_MAGIC_64[ \t]+ARM64[ \t]+ARM64E(?:[ \t].*)?$/.test(lines[h+2]??''))return false;
+ const sections=[];for(let i=h+3;i<lines.length;i++)if(lines[i]==='(__TEXT,__text) section')sections.push(i);
+ if(sections.length!==1)return false;
+ for(let i=sections[0]+1;i<lines.length;i++){
+  const line=lines[i];if(line==='')continue;
+  // Only ordinary labels may precede the first instruction. Any other header,
+  // section/symbol-table region or unsupported line ends this fixed region.
+  if(/^(?:SYMBOL TABLE|Symbol table|Indirect symbols|Indirect symbol table|Bind table|Mach header)\b/.test(line))return false;
+  if(/^[0-9a-fA-F]{8,16}[ \t]+(?:[0-9a-fA-F]{2}[ \t]+){0,4}[a-zA-Z][a-zA-Z0-9.]*\b/.test(line))return true;
+  if(/^[A-Za-z_.$][A-Za-z0-9_.$]*:$/.test(line))continue;
+  return false;
+ }
+ return false;
+}
 
 export function inspectFixedNativeStartupPublicBinaries(){
  const report={schema:1,interpretation:'redue-fixed-public-macho-inspection@1',scope:'PUBLIC_STATIC_SOURCE_INSPECTION_ONLY',outcome:'UNKNOWN',reason:'PROFILE_UNAVAILABLE',
