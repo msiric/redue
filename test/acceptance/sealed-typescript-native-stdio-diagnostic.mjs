@@ -47,6 +47,15 @@ async function runFixedDirectDiagnostic(options,witness){
   interpret=witness?interpretCollectedDirectNativeStartupWitnessDiagnostic:interpretCollectedDirectNativeStdioDiagnostic,
   sourcePin=witness?NATIVE_STARTUP_WITNESS_SOURCE_SHA256:NATIVE_STDIO_SOURCE_SHA256,
   buildRule=witness?'redue-native-child-startup-witness-preauth-build@1':'redue-native-stdio-preauth-build@2';
+ // Only this fixed witness procedure changes its final prompt. Native flags,
+ // exact permission command and environment are unchanged; old routes retain
+ // the original generator. Creation and full equality use this same selection.
+ const selectedArgv=options=>{
+  const args=nativeDiagnosticArgv(options);if(!witness)return args;
+  args[args.length-1]='Make exactly one foreground Bash tool call with this exact input JSON:\n'+JSON.stringify({command:options.command,timeout:15000})+
+   '\nPreserve the command string exactly, including its single quotes. Do not rewrite quotes, execute another command, run in background, retry, delegate or inspect credentials. Report only the tool result. If unavailable, stop.';
+  return args;
+ };
  const diagnosticNames=['SELECTED_STARTUP_SOURCE_ABSENCE','ACTUAL_BINDINGS','NATIVE_FILE_SHAPE','MANIFEST_VALIDATION','FIXTURE_VALIDATION','BUILD_VALIDATION','STARTUP_VALIDATION','FIXTURE_RESULT_MATCH','BUILD_RESULT_MATCH','STARTUP_RESULT_MATCH','ACCOUNT_VALIDATION','PRELAUNCH_BUDGET'];
  const diagnosticCodes=new Set(['EACCES','EPERM','ENOENT','ENOTDIR','ELOOP','EINVAL','EIO','DIAGNOSTIC_STARTUP_SOURCE_PRESENT','DIAGNOSTIC_SOURCE_CHANGED','DIAGNOSTIC_JOB_DEADLINE','DIAGNOSTIC_WORKFLOW_OR_CAPACITY','DIAGNOSTIC_OWNER_POLICY_FACT_MISSING','DIAGNOSTIC_OWNER_POLICY_FACT_INVALID','DIAGNOSTIC_OWNER_POLICY_FACT_STALE']);
  const diagnosticRoles=new Set(['SYSTEM_MANAGED_JSON','SYSTEM_MANAGED_DIRECTORY','SYSTEM_MANAGED_PLIST','USER_MANAGED_PLIST','ISOLATED_REMOTE_SETTINGS','ISOLATED_CREDENTIAL_STORE','PROJECT_CLAUDE_DIRECTORY','PROJECT_MCP_FILE','PROJECT_INSTRUCTION_FILE','REMOTE_API_KEY_PATH']);
@@ -111,11 +120,11 @@ async function runFixedDirectDiagnostic(options,witness){
   const settingsRow=bounded(()=>readOwnedDiagnosticFile(proposal.settings_file_proposed,262144));guard(settingsRow.digest===hash(settingsBytes));
   manifest={base,native,files:[{file:native,digest:nativeRow.digest,fingerprint:nativeRow.fingerprint},{file:proposal.settings_file_proposed,digest:settingsRow.digest,fingerprint:settingsRow.fingerprint}]};
   nativeEnv={...bounded(()=>nativeDiagnosticEnvironment(env,{host})),...startup.environmentBindings};
-  argv=nativeDiagnosticArgv({settingsFile:proposal.settings_file_proposed,command:proposal.command_proposed});
+  argv=selectedArgv({settingsFile:proposal.settings_file_proposed,command:proposal.command_proposed});
   // Exact applied data, not a claim that native enforcement has been measured.
   const actualBindings=()=>equal(Object.fromEntries(Object.keys(startup.environmentBindings).map(k=>[k,nativeEnv[k]])),startup.environmentBindings)&&
    startup.requiredAbsentEnvironmentKeys.every(k=>!Object.hasOwn(nativeEnv,k))&&startup.forbiddenArgv.every(k=>!argv.includes(k))&&requiredArgsApplied(argv,startup.requiredArgv)&&
-   equal(argv,nativeDiagnosticArgv({settingsFile:proposal.settings_file_proposed,command:proposal.command_proposed}))&&
+   equal(argv,selectedArgv({settingsFile:proposal.settings_file_proposed,command:proposal.command_proposed}))&&
    Object.keys(startup.requiredSettings).every(k=>equal(settings[k],startup.requiredSettings[k]));
   const current=(when)=>{
    guardResultFields={phase,when,fixture:{outcome:null,base:null},build:{outcome:null,profileId:null,buildInterpretation:null,sourceSha256:null,hostBase:null},startup:{sourceSha256:null,buildInterpretation:null,outcome:null,hostBase:null}};

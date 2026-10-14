@@ -170,9 +170,24 @@ for(const witness of [false,true])test('held-stable field access order is exact 
 });
 
 for(const witness of [false,true])test('composition uses exact actual pure argv rather than a hand-built shadow '+(witness?'witness':'old'),async()=>{
- const m=mocks(witness);await invoke(m);assert.equal(m.state.spawns.length,1);assert.deepEqual(m.state.spawns[0].a,nativeDiagnosticArgv({settingsFile,command}));
+ const m=mocks(witness);await invoke(m);assert.equal(m.state.spawns.length,1);const actual=m.state.spawns[0].a,original=nativeDiagnosticArgv({settingsFile,command});
+ assert.deepEqual(actual.slice(0,-1),original.slice(0,-1));if(!witness)assert.deepEqual(actual,original);
+ else {assert.notEqual(actual.at(-1),original.at(-1));const lines=actual.at(-1).split('\n');assert.equal(lines.length,3);assert.equal(lines[1],JSON.stringify({command,timeout:15000}));}
 });
 for(const witness of [false,true])for(const fault of ['missingArgv','bareArgv','changedMaxTurns','duplicateMaxTurns','changedSettingsSources','changedMcpConfig'])test('initial actual-argv '+fault+' mutation remains refused '+(witness?'witness':'old'),async()=>{
  const m=mocks(witness);m.state.fault=fault;const v=await invoke(m);noAuthority(v);assert.equal(v.outcome,'UNKNOWN');assert.equal(v.guardDiagnostics.failure.guard,'ACTUAL_BINDINGS');assert.equal(m.state.spawns.length,0);assert.equal(v.nativeLaunchAttempted,false);
  if(['changedMaxTurns','duplicateMaxTurns'].includes(fault))assert(m.state.argvCalls>=2); // required subsequence passes; unchanged full equality refuses
+});
+
+test('witness-only prompt prescribes exact canonical quoted command input once without changing flags or permissions',async()=>{
+ const m=mocks(true),v=await invoke(m);noAuthority(v);assert.equal(m.state.spawns.length,1);
+ const args=m.state.spawns[0].a,original=nativeDiagnosticArgv({settingsFile,command}),prompt=args.at(-1),lines=prompt.split('\n'),input=JSON.parse(lines[1]);
+ assert.deepEqual(args.slice(0,-1),original.slice(0,-1));assert.deepEqual(input,{command,timeout:15000});assert.equal(input.command,"'"+helper+"'");assert.equal(prompt.includes('Make exactly one foreground Bash tool call'),true);assert.equal(prompt.includes('Do not rewrite quotes'),true);assert.equal(prompt.includes('retry, delegate or inspect credentials'),true);
+ const settings=JSON.parse(m.state.settingsBytes);assert.deepEqual(settings.permissions.allow,[`Bash(${command})`]);assert.equal(settings.sandbox.failIfUnavailable,true);assert.equal(settings.sandbox.allowUnsandboxedCommands,false);assert.deepEqual(settings.sandbox.excludedCommands,[]);assert.equal(v.nativeEnforcement,'NOT_ESTABLISHED');assert.equal(Object.hasOwn(v,'helperProcessOutcome'),false);
+});
+test('old stdio procedure retains byte-identical actual exported argv and original prompt',async()=>{
+ const m=mocks(),v=await invoke(m),expected=nativeDiagnosticArgv({settingsFile,command});noAuthority(v);assert.deepEqual(m.state.spawns[0].a,expected);assert.equal(expected.at(-1).startsWith('Run this fixed diagnostic command exactly once with the Bash tool'),true);assert.equal(expected.at(-1).includes('exact input JSON'),false);
+});
+test('witness altered command proposal remains refused before prompt generation or native launch',async()=>{
+ const m=mocks(true);m.state.fault='command';const v=await invoke(m);assert.equal(v.outcome,'UNKNOWN');assert.equal(v.reason,'LIVE_STARTUP_UNAVAILABLE');assert.equal(m.state.argvCalls,0);assert.equal(m.state.spawns.length,0);
 });
