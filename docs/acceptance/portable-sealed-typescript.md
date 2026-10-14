@@ -13,7 +13,44 @@ Node22.13 profile. A local proposal cannot certify that profile or its enforceme
 Existing checks, configurations and receipts are never silently converted.
 The unreleased CLI now offers explicit pending selection, not executable evidence.
 
-## Current checkpoint — actual VM inventory refused; targeted diagnosis continuing
+## Current checkpoint — actual inventory diagnosed; reviewed repairs ready
+
+2026-10-14: actual [run38555298834](https://github.com/msiric/redue/actions/runs/38555298834)
+used reviewed53c6/b58 on two independent macOS26.6.2/25G83 ARM64 VMs. Both returned
+identical UNKNOWN reports: selected Xcode tools are caller-owned, CLT clang exceeds
+the old128MiB inspection bound, literalSDK27 is absent, and linker/Bash/path_helper
+hashes differ from the preparation pins. No profile compatibility or native/model
+acceptance is inferred. Original38552782841 UNKNOWN and all failures remain retained.
+
+Fresh independent067B ACCEPT at08d7e01/runtime6d0c6a1:77 mock tests plus24 independent
+controls. The fixed root CLT alias and512MiB streamed clang capture are explicitly
+OBSERVATIONAL_NOT_BUILD_ACCEPTED; original builder128MiB/SDK27/pins and Xcode refusal
+remain. Review caught a late alias replacement gap in034; both identical fault
+controls now refuse. Predecessor75PASS/2FAIL TAP remains preserved. No authority flag
+was enabled. Dedicated inventory branch was pushed normally to08d7e01.
+
+Fresh independent068 ACCEPT at846dd9a:136 mock tests plus17 independent controls.
+Apple Bash may prefer a managed profile; the new@3 witness requires metadata-only
+ENOENT at its fixed path before provisioning and throughout currentness. Failure
+permanently invalidates that witness. No protected body is opened; binary pins are
+unchanged. This repairs an unreleased source prerequisite, not proof of a released
+defect or historical profile presence. Actual runner binary behavior remains unproven.
+
+Both reviewed changes are integrated at `b9e6be6ec0ad0fd6e123e49cf857e8b9a60c0b21`; root combined213PASS,
+393.6675ms, TAP SHA256 `dc2915687d2f1009aeef40dc83df4bf1af2fa4a32737a22f42e6221c17c94178`. This is mock/source acceptance,
+not native enforcement, exact-package/platform acceptance or portable agent reuse.
+Author expectation failures and reviewer harness correction are retained explicitly;
+independent controls ran from stdin, so no invented reviewer artifact hash is given.
+
+Next: one NEW owner UI inventory run ondev/portable-sealed-host-preflight at08d7e01,
+checked runtime6d0c6a1. API dispatch403 remains unretried; no account cause inferred.
+The old execution profile can still make the overall job red; inspect supplemental
+root CLT facts without treating them as execution admission. Then review actual
+bindings before any native/model launch. Copilot included Actions capacity remains
+separately pending. Existing scoped hosted Claude PASS stays closed. G0partial and
+sealedG1–G4 incomplete; alpha.11 unpublished; immutable receipts/pilot unchanged.
+
+## Historical checkpoint — first precise VM inventory diagnosis
 
 2026-10-14 11:17 UTC: owner-dispatched run [38555298834](https://github.com/msiric/redue/actions/runs/38555298834)
 used branch `b58a80f60c84f9ed2794e4d04876f9727571b743` and reviewed source
