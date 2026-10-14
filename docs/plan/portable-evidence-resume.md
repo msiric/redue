@@ -7,6 +7,23 @@ existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
 
+## Execution status — BLOCKED after corrected handoff (2026-10-14 00:35UTC)
+
+Three consecutive post-resume checks show no dedicated inventory run. The reviewed
+registration/test-only correction is merged asde2fd9f; exact workflow bytes and
+GitHub active registration are verified. The old missing-default-file/UI problem is
+fixed. The separate CLI dispatch denial remains unretried, and no account cause
+is inferred. Owner action already requested: normal Actions UI portable-preflight.yml,
+Run workflow ondev/portable-sealed-host-preflight at8f49e77.
+
+The independent sealed-boundary dependency audit remains applicable: actual VM
+profile/enforcement facts are still missing, so connecting sealed execution or
+origin authority would invent those facts. No safe useful downstream task is
+established without this external operation. Resume by collecting the actual run
+and independently evaluating both VMs. No new model/checker/CI dispatch, scope,
+trust, spending, publication, receipt deletion or pilot update. Goal and gates
+unchanged; not release-ready. Current work and private handoff are preserved.
+
 ## Current operation — registration merged; actual inventory pending
 
 2026-10-14 00:30UTC: PR15 merged normally asde2fd9f after independent063/064 ACCEPT
