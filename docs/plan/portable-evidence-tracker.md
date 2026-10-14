@@ -4,7 +4,31 @@ Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revisio
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
 
-## Current operation — reviewed registration and test-group repair
+## Current operation — registration merged; actual inventory pending
+
+2026-10-14 00:30UTC: PR15 merged normally asde2fd9f after independent063/064 ACCEPT
+and all four normal CI38489104025 jobs PASS at exacthead748a9ab. Main now contains
+the exact workflow SHAeb5c39bd5cfdeb595ea577427a090f7a83f98e88788d753ed788daf49d0a01d8;
+GitHub reports registered active workflow380854940, Sealed-input public tool inventory.
+No source/permission/signing/trust expansion or product runtime change occurred.
+Original38487256107 macOS selector timeout remains preserved as FAIL; the reviewed
+test-only partition repair retained all assertions and180s bounds.
+
+The separateCLI403 remains unretried, and no account-permission cause is inferred.
+The owner UI handoff is now usable: refresh portable-preflight.yml, Run workflow,
+selectdev/portable-sealed-host-preflight at8f49e77, Run workflow. Two approved
+standardmacOS read-only/storage-free jobs, no model/secret/compiler execution or
+upload. No such inventory run exists yet. Collect its actual per-VM results and
+independently compare requiredtool/profile facts before anynative/model launch.
+
+The existing portable integration’s explicit test grouping/diagnostics remain
+unchanged after root aborted its own conflicting cherry-pick. Current runtime and
+private evidence are preserved; no forced push, receipt deletion or pilot upgrade.
+Goal remains active and incomplete; sealedexecution/portable agent reuse/economics
+are unestablished. Alpha.11 remains unpublished. Existing Claude fact/native gates
+and Copilot includedActions capacity remain separate, not implicitly satisfied.
+
+## Historical registration operation — corrected CI pending
 
 2026-10-14 00:18UTC: PR15 final head748a9ab registers the exact reviewed storage-free
 workflow on default main, enabling the missing owner UI route. Workflow bytes
