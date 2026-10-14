@@ -13,7 +13,7 @@ Node22.13 profile. A local proposal cannot certify that profile or its enforceme
 Existing checks, configurations and receipts are never silently converted.
 The unreleased CLI now offers explicit pending selection, not executable evidence.
 
-## Current checkpoint — precise native prelaunch diagnostics ready
+## Current checkpoint — actual binding refusal and sufficient argument-order mismatch
 
 2026-10-14: runtime `e9da40308da1011ed65c61b7ced9c3fe2b91b353` includes the
 reviewed native child-binding/stdio witness and truthful partial-bootstrap/build
@@ -77,17 +77,37 @@ truthful owner reviewed_at19:26:03Z remains unchanged. Actual nonsecret input
 validation passes with fact digest
 `fb1e1bf86a002d7b6f45169f1f0528b79aa64f9ec9a71639949c85fd801a031a`.
 No credentials, permissions, trust, capacity facts or deadlines changed.
-Next: one NEW normal owner Actions UI run on `dev/portable-claude-diagnostic`,
-using portable-claude-diagnostic.yml by filename (the numeric API-ID browser link
-was a coordinator mistake and is retired). CLI dispatch403 is not retried.
-No new account confirmation/login is required. Collect actual static guard data;
-failed preconditions still launch zero models. All earlier failures remain preserved.
+The owner dispatched the exact new workflow; root approved its normal configured
+environment review. The resulting attempt is preserved below. The numeric API-ID
+browser link was a coordinator mistake and is retired; use the filename URL.
+CLI dispatch403 is unchanged and was not retried. Failed prerequisites still
+launch zero models; all earlier failures remain preserved.
 Actual log259,921 bytes SHA256
 `f90f5e92f06649142db587d4a16f1152579f69c56cf4de116df886fd443cead3`;
 normalized report1,727 bytes SHA256
 `d8dd4049c42131da7ddfc488693adb1d21593703991efcf9b266496775f739c4`.
 The extra owner-dispatched shell-preflight run38623893819 is preserved separately;
 it is not the native diagnostic and supplies no new native/machine/reuse claim.
+
+[Run38629169088](https://github.com/msiric/redue/actions/runs/38629169088), attempt1,
+head `23de199`, runtime `c5907db`, completed FAILURE/UNKNOWN in the diagnostic.
+Independent122 ACCEPT_SCOPE verifies the exact report: ACTUAL_BINDINGS refusal,
+selected-source absence passed, later currentness verifiers uncalled, one helper
+build/unexecuted, owned cleanup, no native launch or model observation.312 source/
+mock controls passed; diagnostic4357.718ms. Report SHA256
+`5775a3d2c9be38834f083edf7cee730260c6876706137b8bbca7f6d1186c79d3`;
+log307,300 bytes SHA256
+`9778acdfebbf436d24f6c6b9d384a2332fdad0d2d4e80adedd8eff21094bacf6`.
+Independent pure reproduction confirms one sufficient structural failure: required
+argument metadata orders setting-sources before strict-MCP, while the actual pure
+argv builder orders strict-MCP/MCP-config before setting-sources. Existing ordered
+matcher returns false for the real invocation; same literals in actual order pass.
+This does not prove preceding binding predicates passed or that this subcondition
+was reached in the actual short circuit; the previous run is not backfilled.
+123 owns only the required-list ordering correction and accurate pure argv tests.
+Actual invocation, matcher, full equality, permissions and all other guards remain
+unchanged. Fresh candidate review precedes integration and any further operation.
+No owner interaction or new login is needed during this in-scope repair.
 
 [Public startup run38615104204](https://github.com/msiric/redue/actions/runs/38615104204)
 remains scoped PASS on both independent VMs, accepted112: five fixed shell cases,
