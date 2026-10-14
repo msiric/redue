@@ -4,7 +4,7 @@ Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revisio
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
 
-## Current checkpoint — native child-witness workflow reviewed and pushed
+## Current checkpoint — native witness stopped conservatively before launch
 
 2026-10-14: runtime `e9da40308da1011ed65c61b7ced9c3fe2b91b353` includes the
 reviewed native child-binding/stdio witness and truthful partial-bootstrap/build
@@ -23,7 +23,7 @@ controls PASS. One standard macOS job, read-only permissions, protected environm
 four turns/two-minute whole-job limit, no uploads/signing/trust changes or retries.
 The credential-bearing Node parent performs the fixed C build using a compiler
 child with only the literal TMPDIR environment; it must not be described as a
-credential-free parent. No native operation has run under this new workflow.
+credential-free parent. Actual run evidence is recorded below.
 
 Owner reconfirmed personal-Pro/no-organization/no-managed-policy/included-$0
 facts in this thread. Protected statement was refreshed and read-back verified:
@@ -32,10 +32,28 @@ Local validation of those actual nonsecret protected inputs passed; fact digest
 `b2eaaf22055f5325e82f8e59473fe87512cdc9196a39ac44fbcf37ef9095390d`.
 This is input validation, not hosted/native enforcement or OAuth-validity proof.
 No secret value accessed; capacity/permissions/credentials unchanged. Original
-expired statement is preserved privately. No diagnostic is running/model launched.
-Next: one NEW normal owner Actions UI run of portable-claude-diagnostic.yml on
-`dev/portable-claude-diagnostic`, then the existing approved environment review
-and actual bounded result collection. CLI dispatch403 is unchanged and not retried.
+expired statement is preserved privately. The owner launched the exact workflow;
+root approved its normal configured pending-environment review underD8/D9.
+CLI dispatch403 remains unchanged and was not retried.
+
+[Run38624884034](https://github.com/msiric/redue/actions/runs/38624884034), attempt1,
+head `cc9bd04`, checked runtime `e9da403`, completed FAILURE. Independent117
+ACCEPT_SCOPE verifies one exact report: UNKNOWN/PRE_NATIVE_SOURCE_UNAVAILABLE,
+4030.772ms, one helper build BUILT_NOT_EXECUTED, nativeLaunchAttempted:false,
+no native spawn/observation, owned fixture removed, no reported timeout/overrun.
+Prerequisite check and257 source/mock controls passed. This is not native enforcement.
+The phase aggregates startup-source absence, applied bindings, native/manifest,
+fixture/build/startup and activation currentness: the failed subguard is not known.
+Do not infer credential failure, policy denial or source mutation from this report.
+Next:118 owns only closed nonsecret prelaunch-stage diagnostics and pure tests;
+fresh critical review precedes integration/another actual operation. No owner
+interaction is needed during this routine repair. All failures remain preserved.
+Actual log259,921 bytes SHA256
+`f90f5e92f06649142db587d4a16f1152579f69c56cf4de116df886fd443cead3`;
+normalized report1,727 bytes SHA256
+`d8dd4049c42131da7ddfc488693adb1d21593703991efcf9b266496775f739c4`.
+The extra owner-dispatched shell-preflight run38623893819 is preserved separately;
+it is not the native diagnostic and supplies no new native/machine/reuse claim.
 
 [Public startup run38615104204](https://github.com/msiric/redue/actions/runs/38615104204)
 remains scoped PASS on both independent VMs, accepted112: five fixed shell cases,
