@@ -25,13 +25,17 @@ The credential-bearing Node parent performs the fixed C build using a compiler
 child with only the literal TMPDIR environment; it must not be described as a
 credential-free parent. No native operation has run under this new workflow.
 
-Actual protected account statement still binds `49b3f44` with reviewed_at
-2026-10-12T11:09:43Z: wrong source and older than24hours. Capacity variable and
-OAuth secret name are present; no secret value accessed and no validity inferred.
-No diagnostic is running. Failed prerequisite launches zero models. Owner is asked
-only to confirm current account/policy/included-capacity facts, not repeat setup.
-Then refresh the statement truthfully, verify it, and use the existing normal
-Actions UI dispatch/review route; unchanged CLI dispatch403 is not retried.
+Owner reconfirmed personal-Pro/no-organization/no-managed-policy/included-$0
+facts in this thread. Protected statement was refreshed and read-back verified:
+source `e9da40308da1011ed65c61b7ced9c3fe2b91b353`, reviewed_at2026-10-14T19:26:03Z.
+Local validation of those actual nonsecret protected inputs passed; fact digest
+`b2eaaf22055f5325e82f8e59473fe87512cdc9196a39ac44fbcf37ef9095390d`.
+This is input validation, not hosted/native enforcement or OAuth-validity proof.
+No secret value accessed; capacity/permissions/credentials unchanged. Original
+expired statement is preserved privately. No diagnostic is running/model launched.
+Next: one NEW normal owner Actions UI run of portable-claude-diagnostic.yml on
+`dev/portable-claude-diagnostic`, then the existing approved environment review
+and actual bounded result collection. CLI dispatch403 is unchanged and not retried.
 
 [Public startup run38615104204](https://github.com/msiric/redue/actions/runs/38615104204)
 remains scoped PASS on both independent VMs, accepted112: five fixed shell cases,
