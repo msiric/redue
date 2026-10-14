@@ -2,17 +2,19 @@
 // model, configuration change, secret or endpoint operation is selected here.
 import test from 'node:test';import assert from 'node:assert/strict';
 import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';import {createHash} from 'node:crypto';
-import {buildNativeStdioProbe,buildNativeStdioProbeForReviewedCI,verifyNativeStdioProbeBuild} from './acceptance/sealed-typescript-native-stdio-build.mjs';
+import {buildNativeStdioProbe,buildNativeStdioProbeForReviewedCI,verifyNativeStdioProbeBuild,buildNativeStartupWitness,buildNativeStartupWitnessForReviewedCI} from './acceptance/sealed-typescript-native-stdio-build.mjs';
 import {prepareNativeStdioProbeCommand} from './acceptance/sealed-typescript-native-stdio-command.mjs';
 import {sealedAssetsBuildProcessSummary} from './acceptance/sealed-typescript-native-assets-build.mjs';
 import {prepareSealedTypeScriptClosedReadCanaryPolicy} from './acceptance/sealed-typescript-closed-read-policy.mjs';
 import {nativeDiagnosticArgv} from './acceptance/portable-claude-diagnostic.mjs';
 import {nativeStdioProbeCommand,NATIVE_STDIO_SOURCE_SHA256} from './acceptance/sealed-typescript-native-stdio-probe.mjs';
+import {readNativeStartupWitnessSource,NATIVE_STARTUP_WITNESS_SOURCE_SHA256} from './acceptance/sealed-typescript-native-startup-witness.mjs';
 import {REVIEWED_CLAUDE_NATIVE,PINNED_READONLY_BASH_HEADS} from './acceptance/portable-claude-native-profile.mjs';
 const buildURL=new URL('./acceptance/sealed-typescript-native-stdio-build.mjs',import.meta.url),commandURL=new URL('./acceptance/sealed-typescript-native-stdio-command.mjs',import.meta.url);
 const buildSource=fs.readFileSync(buildURL,'utf8'),commandSource=fs.readFileSync(commandURL,'utf8'),c=fs.readFileSync(new URL('./acceptance/sealed-typescript-native-stdio-probe.c',import.meta.url),'utf8');
 const sha=v=>createHash('sha256').update(v).digest('hex'),base='/private/tmp/redue-ci-recipient-12345678',sdk='/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk';
 const template=fileURLToPath(new URL('./sealed-typescript-native-stdio-probe.c',buildURL)),directory=base+'/prefix/native-probes',helper=directory+'/native-stdio-probe';
+const witnessC=fs.readFileSync(new URL('./acceptance/sealed-typescript-native-startup-witness.c',import.meta.url),'utf8'),witnessTemplate=fileURLToPath(new URL('./sealed-typescript-native-startup-witness.c',buildURL));
 function mock(kind='local'){
  const activeSdk=kind==='ci'?'/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk':sdk;
  let ino=1,fd=100;const nodes=new Map(),fds=new Map(),fixture=Object.freeze({base}),state={dispatches:[],reads:0,opens:0,closed:0,writes:0,fsyncs:0,verifyCount:0,fixtureValid:true,afterRead:null,fail:null,result:null,proposals:0};
@@ -24,7 +26,7 @@ function mock(kind='local'){
  const replacements=[['5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc','/runtime/node',Buffer.from('MOCK_PINNED_NODE'),501],['1590ac950a3d627817d09ade5cb60b2115f17a72182a3141e010b4bcc482a0c9','/Library/Developer/CommandLineTools/usr/bin/clang',Buffer.from('MOCK_PINNED_CLANG'),0],['374d9f0713bce2c8a9e1e82bde51615d5433516a10d99b63107eb6ee70542e4c','/Library/Developer/CommandLineTools/usr/bin/ld',Buffer.from('MOCK_PINNED_LD'),0]];
  for(const [pin,file,body,owner] of replacements){source=source.replaceAll(pin,sha(body));if(tool.clangSha256===pin)tool.clangSha256=sha(body);ensureParents(file);put(file,'f',kind==='ci'&&file.endsWith('/clang')?'MOCK_CI_CLANG':kind==='ci'&&file.endsWith('/ld')?'MOCK_CI_LD':body,owner,0o100755n);}
  source=source.replaceAll('f30550eab15fdf5ab8c0dc54c52679711241e5d4b636b027e18c09fef531775d',sha('MOCK_CI_CLANG')).replaceAll('28d85b9af18c923db12e0b4ce70b80ee217f2b7cade0e872baa9e8ddc396c08d',sha('MOCK_CI_LD'));
- ensureParents(template);put(template,'f',Buffer.from(c));
+ ensureParents(template);put(template,'f',Buffer.from(c));ensureParents(witnessTemplate);put(witnessTemplate,'f',Buffer.from(witnessC));
  const different={'sys/fcntl.h':'805fd8c695f8e5e1c327b6852382cc5533738bbfd8f18bc11f850531166e4fe8','sys/stat.h':'31c8f252b05785343ca577c007657c0fbab45a182b60fc5b73994c621dc318d4'};
  for(const [name,pin] of Object.entries(headers)){const body=Buffer.from('MOCK_HEADER '+name),ciBody=Buffer.from('MOCK_CI_HEADER '+name),file=activeSdk+'/usr/include/'+name;source=source.replaceAll(pin,sha(body));if(different[name])source=source.replaceAll(different[name],sha(ciBody));if(Object.hasOwn(tool.headerPins,name))tool.headerPins[name]=sha(body);ensureParents(file);put(file,'f',kind==='ci'&&different[name]?ciBody:body,0,0o100644n);}
  ensureParents(base);put(base,'d');const sdkRow=nodes.get(activeSdk);sdkRow.uid=0n;sdkRow.mode=0o40755n;
@@ -37,10 +39,10 @@ function mock(kind='local'){
   mkdirSync(file,options){assert.equal(options.mode,0o700);assert(!nodes.has(file));if(state.fail==='mkdir')throw Error('PRIVATE');put(file,'d');}};
  const verify=value=>{state.verifyCount++;return value===fixture&&state.fixtureValid?{outcome:'SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED',scope:'FIXED_CI_SYNTHETIC_FIXTURE_MECHANICS_ONLY',receiverBasePolicyMatch:true,ownedHandlesClosed:true,base}:{outcome:'UNKNOWN'};};
  const spawn=(file,argv,options)=>{state.dispatches.push({file,argv,options});const bytes=Buffer.alloc(32);bytes.writeUInt32LE(0xfeedfacf,0);bytes.writeUInt32LE(0x0100000c,4);put(helper,'f',bytes,501,0o100700n);return state.result??{pid:1001,status:0,signal:null,stdout:'',stderr:''};};
- const api=Function('fs','path','fileURLToPath','createHash','spawnSync','verifySealedTypeScriptSyntheticFixture','prepareSealedTypeScriptNativeAssetsProposal','sealedAssetsBuildProcessSummary','readNativeStdioProbeSource','NATIVE_STDIO_SOURCE_SHA256','process',source+';return {build:buildNativeStdioProbe,buildCI:buildNativeStdioProbeForReviewedCI,verify:verifyNativeStdioProbeBuild};')
- (io,path.posix,fileURLToPath,createHash,spawn,verify,()=>{state.proposals++;return {toolchain:tool};},sealedAssetsBuildProcessSummary,()=>({source:c,sourceSha256:NATIVE_STDIO_SOURCE_SHA256}),NATIVE_STDIO_SOURCE_SHA256,{platform:'darwin',arch:'arm64',version:'v22.13.0',execPath:'/runtime/node',getuid:()=>501,geteuid:()=>501,getgid:()=>20,getegid:()=>20});
- const commandAPI=Function('verifyNativeStdioProbeBuild','nativeStdioProbeCommand','prepareSealedTypeScriptClosedReadCanaryPolicy','nativeDiagnosticArgv',commandSource.replace(/^import .*;$/gm,'').replaceAll('export function ','function ')+';return prepareNativeStdioProbeCommand;')
- (api.verify,nativeStdioProbeCommand,options=>{const p=prepareSealedTypeScriptClosedReadCanaryPolicy(options);if(state.policyAfter)state.policyAfter();return p;},nativeDiagnosticArgv);
+ const api=Function('fs','path','fileURLToPath','createHash','spawnSync','verifySealedTypeScriptSyntheticFixture','prepareSealedTypeScriptNativeAssetsProposal','sealedAssetsBuildProcessSummary','readNativeStdioProbeSource','NATIVE_STDIO_SOURCE_SHA256','readNativeStartupWitnessSource','NATIVE_STARTUP_WITNESS_SOURCE_SHA256','process',source+';return {build:buildNativeStdioProbe,buildCI:buildNativeStdioProbeForReviewedCI,buildWitness:buildNativeStartupWitness,buildWitnessCI:buildNativeStartupWitnessForReviewedCI,verify:verifyNativeStdioProbeBuild};')
+ (io,path.posix,fileURLToPath,createHash,spawn,verify,()=>{state.proposals++;return {toolchain:tool};},sealedAssetsBuildProcessSummary,()=>({source:c,sourceSha256:NATIVE_STDIO_SOURCE_SHA256}),NATIVE_STDIO_SOURCE_SHA256,()=>({source:witnessC,sourceSha256:NATIVE_STARTUP_WITNESS_SOURCE_SHA256}),NATIVE_STARTUP_WITNESS_SOURCE_SHA256,{platform:'darwin',arch:'arm64',version:'v22.13.0',execPath:'/runtime/node',getuid:()=>501,geteuid:()=>501,getgid:()=>20,getegid:()=>20});
+ const commandAPI=Function('verifyNativeStdioProbeBuild','nativeStdioProbeCommand','NATIVE_STDIO_SOURCE_SHA256','prepareSealedTypeScriptClosedReadCanaryPolicy','nativeDiagnosticArgv',commandSource.replace(/^import .*;$/gm,'').replaceAll('export function ','function ')+';return prepareNativeStdioProbeCommand;')
+ (api.verify,nativeStdioProbeCommand,NATIVE_STDIO_SOURCE_SHA256,options=>{const p=prepareSealedTypeScriptClosedReadCanaryPolicy(options);if(state.policyAfter)state.policyAfter();return p;},nativeDiagnosticArgv);
  return {...api,command:commandAPI,fixture,state,nodes,fds,activeSdk,headerPaths:Object.keys(headers).map(name=>activeSdk+'/usr/include/'+name)};
 }
 const options=build=>({build,claudeExecutable:'/approved/native/claude',claudeSha256:REVIEWED_CLAUDE_NATIVE.sha256,claudeVersion:REVIEWED_CLAUDE_NATIVE.version});
@@ -142,4 +144,27 @@ test('two fixed build profiles retain exact recorded CI hashes/cap without accep
 test('CI source/node corruption before launch and SDK replacement permanently refuse',()=>{
  for(const file of [template,'/runtime/node']){const m=mock('ci');m.nodes.get(file).body[0]^=1;const v=m.buildCI({fixture:m.fixture});assert.equal(v.outcome,'UNKNOWN');assert.equal(m.state.dispatches.length,0);}
  const m=mock('ci'),v=m.buildCI({fixture:m.fixture}),row=m.nodes.get(m.activeSdk);row.ino++;assert.equal(m.verify(v).outcome,'UNKNOWN');row.ino--;assert.equal(m.verify(v).outcome,'UNKNOWN');assert.equal(m.fds.size,0);
+});
+
+// All builds below remain in-memory mock compiler/fixture controls only.
+for(const kind of ['local','ci'])test('separate fixed startup witness source and private build interpretation '+kind,()=>{
+ const m=mock(kind),v=(kind==='ci'?m.buildWitnessCI:m.buildWitness)({fixture:m.fixture});authority(v);
+ assert.equal(v.outcome,'BUILT_NOT_EXECUTED');assert.equal(v.sourceSha256,NATIVE_STARTUP_WITNESS_SOURCE_SHA256);
+ assert.equal(v.buildInterpretation,'redue-native-child-startup-witness-preauth-build@1');assert.equal(v.helper,helper);
+ assert.equal(m.state.dispatches.length,1);assert.deepEqual(m.state.dispatches[0].argv.slice(-3),[directory+'/native-stdio-probe.c','-o',helper]);
+ assert.equal(m.nodes.get(directory+'/native-stdio-probe.c').body.toString(),witnessC);assert.equal(m.state.dispatches[0].options.timeout,5000);
+ const verified=m.verify(v);assert.equal(verified.buildInterpretation,v.buildInterpretation);assert.equal(verified.sourceSha256,v.sourceSha256);
+ assert.throws(()=>m.command(options(v)),/NATIVE_STDIO_COMMAND_UNAVAILABLE/); // old proposal must not adopt same-path new source
+ assert.equal(m.verify(JSON.parse(JSON.stringify(v))).outcome,'UNKNOWN');assert.equal(mock(kind).verify(v).outcome,'UNKNOWN');assert.equal(m.fds.size,0);
+});
+for(const kind of ['local','ci'])test('witness missing or replaced source permanently refuses '+kind,()=>{
+ const m=mock(kind);m.nodes.delete(witnessTemplate);assert.equal((kind==='ci'?m.buildWitnessCI:m.buildWitness)({fixture:m.fixture}).outcome,'UNKNOWN');assert.equal(m.state.dispatches.length,0);
+ const n=mock(kind),v=(kind==='ci'?n.buildWitnessCI:n.buildWitness)({fixture:n.fixture}),r=n.nodes.get(witnessTemplate);r.body[0]^=1;
+ assert.equal(n.verify(v).outcome,'UNKNOWN');r.body[0]^=1;assert.equal(n.verify(v).outcome,'UNKNOWN');assert.equal(n.fds.size,0);
+});
+test('witness fixed builders do not accept source/environment/profile overrides or cloned fixture',()=>{
+ for(const fn of [buildNativeStartupWitness,buildNativeStartupWitnessForReviewedCI]){
+  for(const v of [{fixture:{},source:'OTHER'},{fixture:{},env:{}},{fixture:{},profile:'OTHER'}])assert.throws(()=>fn(v),/NATIVE_STDIO_BUILD_OPTIONS/);
+  assert.equal(fn({fixture:{base}}).outcome,'UNKNOWN');
+ }
 });

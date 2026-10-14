@@ -11,6 +11,7 @@ import {verifySealedTypeScriptSyntheticFixture} from './sealed-typescript-synthe
 import {prepareSealedTypeScriptNativeAssetsProposal} from './sealed-typescript-native-assets-proposal.mjs';
 import {sealedAssetsBuildProcessSummary} from './sealed-typescript-native-assets-build.mjs';
 import {readNativeStdioProbeSource,NATIVE_STDIO_SOURCE_SHA256} from './sealed-typescript-native-stdio-probe.mjs';
+import {readNativeStartupWitnessSource,NATIVE_STARTUP_WITNESS_SOURCE_SHA256} from './sealed-typescript-native-startup-witness.mjs';
 
 const minted=new WeakMap();
 const fail=()=>{throw Error('NATIVE_STDIO_BUILD_UNKNOWN');};
@@ -48,6 +49,8 @@ const CI_PROFILE=freeze({id:'redue-native-stdio-preauth-ci-sdk26.5@1',clangPin:'
  linkerPin:'28d85b9af18c923db12e0b4ce70b80ee217f2b7cade0e872baa9e8ddc396c08d',sdk:'/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk',clangLimit:290664032,
  headerPins:{...localHeaders,'sys/fcntl.h':'805fd8c695f8e5e1c327b6852382cc5533738bbfd8f18bc11f850531166e4fe8','sys/stat.h':'31c8f252b05785343ca577c007657c0fbab45a182b60fc5b73994c621dc318d4'}});
 const BUILD_INTERPRETATION='redue-native-stdio-preauth-build@2';
+const STDIO_SOURCE=Object.freeze({file:'sealed-typescript-native-stdio-probe.c',read:readNativeStdioProbeSource,pin:NATIVE_STDIO_SOURCE_SHA256,interpretation:BUILD_INTERPRETATION});
+const STARTUP_WITNESS_SOURCE=Object.freeze({file:'sealed-typescript-native-startup-witness.c',read:readNativeStartupWitnessSource,pin:NATIVE_STARTUP_WITNESS_SOURCE_SHA256,interpretation:'redue-native-child-startup-witness-preauth-build@1'});
 const flags=sdk=>['-std=c11','-O2','-Wall','-Wextra','-Werror','-fstack-protector-strong','-arch','arm64','-mmacosx-version-min=26.0','-isysroot',sdk];
 
 function parents(file){const rows=[];for(let at=path.dirname(file);;at=path.dirname(at)){const s=fs.lstatSync(at,{bigint:true});guard(s.isDirectory()&&!s.isSymbolicLink());rows.push([at,parentMark(s)]);if(at===path.dirname(at))return rows;}}
@@ -94,7 +97,15 @@ export function buildNativeStdioProbe(options){
 export function buildNativeStdioProbeForReviewedCI(options){
  if(arguments.length!==1)throw Error('NATIVE_STDIO_BUILD_OPTIONS');return buildFixedProfile(options,CI_PROFILE);
 }
-function buildFixedProfile(options,profile){
+// Separate fixed source identity; identical literal helper location is not old
+// source adoption. Old build APIs/interpretation remain unchanged.
+export function buildNativeStartupWitnessForReviewedCI(options){
+ if(arguments.length!==1)throw Error('NATIVE_STDIO_BUILD_OPTIONS');return buildFixedProfile(options,CI_PROFILE,STARTUP_WITNESS_SOURCE);
+}
+export function buildNativeStartupWitness(options){
+ if(arguments.length!==1)throw Error('NATIVE_STDIO_BUILD_OPTIONS');return buildFixedProfile(options,LOCAL_PROFILE,STARTUP_WITNESS_SOURCE);
+}
+function buildFixedProfile(options,profile,sourceDefinition=STDIO_SOURCE){
  if(!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==1||!Object.hasOwn(Object.getOwnPropertyDescriptor(options,'fixture')??{},'value'))throw Error('NATIVE_STDIO_BUILD_OPTIONS');
  let record=null,build=null,attempts=0,base=null,reason='FIXTURE_UNAVAILABLE';
  try{
@@ -102,16 +113,16 @@ function buildFixedProfile(options,profile){
   guard(process.platform==='darwin'&&process.arch==='arm64'&&process.version==='v22.13.0'&&process.getuid()>0&&process.getuid()===process.geteuid()&&process.getgid()===process.getegid()&&fs.constants.O_NOFOLLOW!==undefined&&fs.constants.O_NONBLOCK!==undefined);
   if(profile===LOCAL_PROFILE){const tool=prepareSealedTypeScriptNativeAssetsProposal({fixture:options.fixture}).toolchain;
    guard(tool.clangSha256===profile.clangPin&&tool.sdk===profile.sdk&&JSON.stringify({...tool.headerPins,...extraHeaders})===JSON.stringify(profile.headerPins));}
-  const sourceProfile=readNativeStdioProbeSource();guard(sourceProfile.sourceSha256===NATIVE_STDIO_SOURCE_SHA256);
-  const template=fileURLToPath(new URL('./sealed-typescript-native-stdio-probe.c',import.meta.url));
+  const sourceProfile=sourceDefinition.read();guard(sourceProfile.sourceSha256===sourceDefinition.pin);
+  const template=fileURLToPath(new URL('./'+sourceDefinition.file,import.meta.url));
   const rows=[bounded(process.execPath,process.getuid(),128*1024*1024,nodePin),bounded(clang,0,profile.clangLimit,profile.clangPin),bounded(linker,0,16*1024*1024,profile.linkerPin),
-   bounded(template,process.getuid(),65536,NATIVE_STDIO_SOURCE_SHA256),...Object.entries(profile.headerPins).map(([name,pin])=>bounded(profile.sdk+'/usr/include/'+name,0,1048576,pin))];
-  record={profile,fixture:options.fixture,fixtureObservation:JSON.stringify(first),sdkIdentity:sdkIdentity(profile.sdk),directories:[[base,owned(base)]],rows};
+   bounded(template,process.getuid(),65536,sourceDefinition.pin),...Object.entries(profile.headerPins).map(([name,pin])=>bounded(profile.sdk+'/usr/include/'+name,0,1048576,pin))];
+  record={profile,sourceDefinition,fixture:options.fixture,fixtureObservation:JSON.stringify(first),sdkIdentity:sdkIdentity(profile.sdk),directories:[[base,owned(base)]],rows};
   reason='OUTPUT_NAMESPACE_UNAVAILABLE';completeCurrent(record);
   const prefix=base+'/prefix',directory=prefix+'/native-probes';absent(prefix);fs.mkdirSync(prefix,{mode:0o700});record.directories.push([prefix,owned(prefix)]);
   fs.mkdirSync(directory,{mode:0o700});record.directories.push([directory,owned(directory)]);
   const sourceFile=directory+'/native-stdio-probe.c',helper=directory+'/native-stdio-probe';absent(sourceFile);absent(helper);
-  completeCurrent(record);putSource(sourceFile,Buffer.from(sourceProfile.source));record.rows.push(bounded(sourceFile,process.getuid(),65536,NATIVE_STDIO_SOURCE_SHA256));
+  completeCurrent(record);putSource(sourceFile,Buffer.from(sourceProfile.source));record.rows.push(bounded(sourceFile,process.getuid(),65536,sourceDefinition.pin));
   reason='COMPILER_BUILD_UNAVAILABLE';completeCurrent(record);attempts++;
   const result=spawnSync(clang,[...flags(profile.sdk),sourceFile,'-o',helper],{cwd:directory,env:{TMPDIR:base},timeout:5000,maxBuffer:4096,killSignal:'SIGKILL',encoding:'utf8'});
   const pidObserved=Number.isInteger(result.pid)&&result.pid>0&&result.pid<=2147483647;
@@ -119,14 +130,14 @@ function buildFixedProfile(options,profile){
   build={...sealedAssetsBuildProcessSummary(result),pidObserved,completed};guard(completed);
   reason='OUTPUT_IDENTITY_UNAVAILABLE';const binary=bounded(helper,process.getuid(),2*1024*1024,null);guard(binary.arm64&&(fs.lstatSync(helper,{bigint:true}).mode&0o100n)!==0n);
   record.rows.push(binary);completeCurrent(record);reason='BUILT_NOT_EXECUTED';
-  const value=authority({profileId:profile.id,buildInterpretation:BUILD_INTERPRETATION,outcome:'BUILT_NOT_EXECUTED',reason,hostBase:base,sourceSha256:NATIVE_STDIO_SOURCE_SHA256,helperSha256:binary.pin,
+  const value=authority({profileId:profile.id,buildInterpretation:sourceDefinition.interpretation,outcome:'BUILT_NOT_EXECUTED',reason,hostBase:base,sourceSha256:sourceDefinition.pin,helperSha256:binary.pin,
    sourceFile,helper,cwd:directory,dispatchAttemptCount:attempts,build,compilerCheckExecutions:0});
   minted.set(value,record);return value;
- }catch{return authority({profileId:profile.id,buildInterpretation:BUILD_INTERPRETATION,outcome:'UNKNOWN',reason,hostBase:base,dispatchAttemptCount:attempts,build,compilerCheckExecutions:0});}
+ }catch{return authority({profileId:profile.id,buildInterpretation:sourceDefinition.interpretation,outcome:'UNKNOWN',reason,hostBase:base,dispatchAttemptCount:attempts,build,compilerCheckExecutions:0});}
 }
 
 export function verifyNativeStdioProbeBuild(value){
  const record=minted.get(value);if(!record||record.invalid)return authority({outcome:'UNKNOWN'});
- try{completeCurrent(record);return authority({profileId:record.profile.id,buildInterpretation:BUILD_INTERPRETATION,outcome:'BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED',hostBase:value.hostBase,sourceSha256:value.sourceSha256,helperSha256:value.helperSha256,helper:value.helper,cwd:value.cwd});}
+ try{completeCurrent(record);return authority({profileId:record.profile.id,buildInterpretation:record.sourceDefinition.interpretation,outcome:'BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED',hostBase:value.hostBase,sourceSha256:value.sourceSha256,helperSha256:value.helperSha256,helper:value.helper,cwd:value.cwd});}
  catch{record.invalid=true;return authority({outcome:'UNKNOWN'});}
 }

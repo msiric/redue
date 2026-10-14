@@ -2,7 +2,7 @@
 // no settings/authentication/file IO and no native/model/helper starts here.
 // An exact compound permission string does NOT prove native piecewise admission.
 import {verifyNativeStdioProbeBuild} from './sealed-typescript-native-stdio-build.mjs';
-import {nativeStdioProbeCommand,nativeStdioDirectCommand} from './sealed-typescript-native-stdio-probe.mjs';
+import {nativeStdioProbeCommand,nativeStdioDirectCommand,NATIVE_STDIO_SOURCE_SHA256} from './sealed-typescript-native-stdio-probe.mjs';
 import {prepareSealedTypeScriptClosedReadCanaryPolicy} from './sealed-typescript-closed-read-policy.mjs';
 import {nativeDiagnosticArgv} from './portable-claude-diagnostic.mjs';
 
@@ -18,7 +18,7 @@ export function prepareDirectNativeStdioProbeCommand(options){
 function prepareCommand(options,direct){
  if(!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==keys.length||!keys.every(k=>Object.hasOwn(Object.getOwnPropertyDescriptor(options,k)??{},'value')))fail();
  const first=verifyNativeStdioProbeBuild(options.build);
- if(first.outcome!=='BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED')fail();
+ if(first.outcome!=='BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED'||first.sourceSha256!==NATIVE_STDIO_SOURCE_SHA256||first.buildInterpretation!=='redue-native-stdio-preauth-build@2')fail();
  const base=first.hostBase,helper=base+'/prefix/native-probes/native-stdio-probe';
  if(first.helper!==helper||first.cwd!==base+'/prefix/native-probes')fail();
  const command=direct?nativeStdioDirectCommand(base):nativeStdioProbeCommand(base);
