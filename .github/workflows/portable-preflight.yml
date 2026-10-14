@@ -1,0 +1,45 @@
+# Approved storage-free hosted public-tool facts only. No credentials, uploads,
+# compiler/helper/native/model executions, signing or producer trust changes.
+name: Sealed-input public tool inventory
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: redue-sealed-host-tool-inventory
+  cancel-in-progress: false
+jobs:
+  inventory:
+    name: Public tool facts (${{ matrix.machine }})
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        machine: [producer, receiver]
+    if: github.repository == 'msiric/redue' && github.ref == 'refs/heads/dev/portable-sealed-host-preflight' && github.event_name == 'workflow_dispatch' && github.actor == 'msiric' && github.run_attempt == 1
+    runs-on: macos-26
+    timeout-minutes: 2
+    env:
+      REVIEWED_SOURCE: 7cf70d9b3400c274fb719526f94638427bc12a5a
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.REVIEWED_SOURCE }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.13.0'
+      - name: Fixed source and classifier precondition, no installation scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$REVIEWED_SOURCE"
+          test "$(uname -m)" = arm64
+          test "$(node --version)" = v22.13.0
+          node --test test/sealed-typescript-host-tool-inventory.test.mjs
+      - name: Read-only public runtime and build-tool facts
+        shell: bash
+        run: |
+          set -euo pipefail
+          node test/acceptance/sealed-typescript-host-tool-inventory.mjs
+      # No model credentials/environment, cache, artifact, OIDC or signing.
