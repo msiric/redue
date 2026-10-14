@@ -1,5 +1,5 @@
-# Approved storage-free hosted public-tool facts only. No credentials, uploads,
-# compiler/helper/native/model executions, signing or producer trust changes.
+# Approved storage-free public-tool facts and one fixed PRE-AUTH C build.
+# No credentials, uploads, helper/native/model executions or trust changes.
 name: Sealed-input public tool inventory
 on:
   workflow_dispatch:
@@ -20,7 +20,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 2
     env:
-      REVIEWED_SOURCE: c883874ba442d4f0b1c4d481ba1ff9e2d4ef1e90
+      REVIEWED_SOURCE: e5e908656eac9982a01ee4381b7828d5432cacdb
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -30,9 +30,16 @@ jobs:
         with:
           node-version: '22.13.0'
       - name: Fixed source and classifier precondition, no installation scripts
+        id: source_classifier
         shell: bash
         run: |
           set -euo pipefail
+          for redue_env_key in NODE_OPTIONS NODE_PATH BASH_ENV ENV DYLD_INSERT_LIBRARIES DYLD_LIBRARY_PATH DYLD_FRAMEWORK_PATH DYLD_FALLBACK_LIBRARY_PATH DYLD_FALLBACK_FRAMEWORK_PATH DYLD_ROOT_PATH LD_PRELOAD LD_LIBRARY_PATH ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_CODE_OAUTH_TOKEN OPENAI_API_KEY GH_TOKEN GITHUB_TOKEN NPM_TOKEN NODE_AUTH_TOKEN; do
+            if [ "${!redue_env_key+x}" = x ]; then
+              printf '%s\n' 'PREAUTH_ENVIRONMENT_UNSUPPORTED' >&2
+              exit 74
+            fi
+          done
           test "$(git rev-parse HEAD)" = "$REVIEWED_SOURCE"
           test "$(uname -m)" = arm64
           test "$(node --version)" = v22.13.0
@@ -42,4 +49,43 @@ jobs:
         run: |
           set -euo pipefail
           node test/acceptance/sealed-typescript-host-tool-inventory.mjs
+      - name: One fixed data-only pre-auth C build; never execute its helper
+        if: ${{ !cancelled() && steps.source_classifier.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for redue_env_key in NODE_OPTIONS NODE_PATH BASH_ENV ENV DYLD_INSERT_LIBRARIES DYLD_LIBRARY_PATH DYLD_FRAMEWORK_PATH DYLD_FALLBACK_LIBRARY_PATH DYLD_FALLBACK_FRAMEWORK_PATH DYLD_ROOT_PATH LD_PRELOAD LD_LIBRARY_PATH ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_CODE_OAUTH_TOKEN OPENAI_API_KEY GH_TOKEN GITHUB_TOKEN NPM_TOKEN NODE_AUTH_TOKEN; do
+            if [ "${!redue_env_key+x}" = x ]; then
+              printf '%s\n' 'PREAUTH_ENVIRONMENT_UNSUPPORTED' >&2
+              exit 74
+            fi
+          done
+          test "$(git rev-parse HEAD)" = "$REVIEWED_SOURCE"
+          test "$(node --version)" = v22.13.0
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import {createSealedTypeScriptCIBootstrap,prepareSealedTypeScriptCISyntheticFixture} from './test/acceptance/sealed-typescript-synthetic-fixture.mjs';
+          import {buildNativeStdioProbeForReviewedCI,verifyNativeStdioProbeBuild} from './test/acceptance/sealed-typescript-native-stdio-build.mjs';
+          const guard=v=>{if(!v)throw Error('PREAUTH_BUILD_UNKNOWN');};
+          const profile='redue-native-stdio-preauth-ci-sdk26.5@1',interpretation='redue-native-stdio-preauth-build@2';
+          const owned=base=>{guard(/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}$/.test(base)&&fs.realpathSync(base)===base);const s=fs.lstatSync(base,{bigint:true});guard(s.isDirectory()&&!s.isSymbolicLink()&&s.uid===BigInt(process.getuid())&&(s.mode&0o7777n)===0o700n);return ['dev','ino','uid','gid','mode'].map(k=>String(s[k])).join(':');};
+          let outcome='UNKNOWN',build=null,current=false,cleanup='NOT_ATTEMPTED';
+          try{
+            const bootstrap=createSealedTypeScriptCIBootstrap();guard(bootstrap.outcome==='CI_SYNTHETIC_BOOTSTRAP_PREPARED');const base=bootstrap.base,identity=owned(base);
+            const fixture=prepareSealedTypeScriptCISyntheticFixture(bootstrap);guard(fixture.outcome==='SYNTHETIC_FIXTURE_PREPARED');cleanup='RETAINED_CURRENTNESS_OR_CHILD_UNKNOWN';
+            build=buildNativeStdioProbeForReviewedCI({fixture});guard(build.outcome==='BUILT_NOT_EXECUTED'&&build.profileId===profile&&build.buildInterpretation===interpretation&&build.dispatchAttemptCount===1&&build.build?.completed===true&&build.build.pidObserved===true&&build.build.status===0&&build.build.signal===null&&build.build.spawnError==='NONE');
+            const verified=verifyNativeStdioProbeBuild(build);guard(verified.outcome==='BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED'&&verified.profileId===profile&&verified.buildInterpretation===interpretation&&verified.hostBase===base&&verified.helperSha256===build.helperSha256);current=true;
+            guard(owned(base)===identity);fs.rmSync(base,{recursive:true,force:false});try{fs.lstatSync(base);throw Error('CLEANUP_UNKNOWN');}catch(e){guard(e?.code==='ENOENT');}cleanup='OWNED_FRESH_BASE_REMOVED';outcome='BUILT_NOT_EXECUTED';
+          }catch{/* Retain an uncertain namespace; never print raw errors. */}
+          const digest=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v)?v:null;
+          const b=build?.build,safeCount=v=>Number.isSafeInteger(v)&&v>=0?v:null;
+          const signals=new Set(['SIGKILL','SIGTERM','SIGABRT','SIGSEGV','SIGBUS','SIGILL','SIGINT']);
+          const report={schema:1,scope:'FIXED_CI_PREAUTH_C_BUILD_DATA_ONLY',outcome,profileId:build?.profileId===profile?profile:null,buildInterpretation:build?.buildInterpretation===interpretation?interpretation:null,
+            sourceSha256:digest(build?.sourceSha256),helperSha256:digest(build?.helperSha256),cBuildAttemptCount:build?.dispatchAttemptCount===1?1:0,
+            compilerProcess:b?{pidObserved:b.pidObserved===true,completed:b.completed===true,status:Number.isInteger(b.status)&&b.status>=0&&b.status<=255?b.status:null,signal:b.signal===null?null:signals.has(b.signal)?b.signal:'UNKNOWN',spawnError:b.spawnError==='NONE'?'NONE':'UNKNOWN',stdoutBytes:safeCount(b.stdoutBytes),stderrBytes:safeCount(b.stderrBytes)}:null,
+            privateBuildCurrentnessObserved:current,cleanup,commands:[],helperExecutions:0,nativeLaunches:0,models:0,compilerCheckExecutions:0,recordAdoptionAuthority:false,
+            completeSdkClosure:'NOT_ESTABLISHED',nativeEnforcement:'NOT_ESTABLISHED',preMainLoader:'NOT_ESTABLISHED',sealed:false,reuseEligible:false};
+          console.log(JSON.stringify(report));process.exitCode=outcome==='BUILT_NOT_EXECUTED'?0:74;
+          NODE
+      # Inventory failures remain job failures; no continue-on-error or retries.
       # No model credentials/environment, cache, artifact, OIDC or signing.
