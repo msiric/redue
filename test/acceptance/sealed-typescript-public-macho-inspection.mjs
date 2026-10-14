@@ -85,7 +85,7 @@ export function inspectFixedNativeStartupPublicBinaries(){
   calls:[],targets:{},expectedToolSha256:TOOL_PIN,publicOutputUntrusted:true,behavior:'NOT_ESTABLISHED',appleAuthenticity:'NOT_ESTABLISHED',nativeEnforcement:'NOT_ESTABLISHED',
   completeSdkClosure:'NOT_ESTABLISHED',profileApproved:false,sealed:false,reuseEligible:false,models:0,nativeAgentLaunches:0,targetExecutions:0,compilerCheckExecutions:0,
   ownedDescriptorsClosed:false,ownedCwdCleanup:'NOT_CREATED'};
- const rows=[],cwdParents=[];let cwd=null,cwdMark=null,reason='PROFILE_UNAVAILABLE',uncertainChild=false;const started=process.hrtime.bigint();
+ const rows=[],cwdParents=[];let cwd=null,cwdMark=null,reason='PROFILE_UNAVAILABLE',uncertainChild=false,firstTargetFailure=null;const started=process.hrtime.bigint();
  const deadline=()=>guard(process.hrtime.bigint()-started<120000000000n,'PARENT_DEADLINE');
  const cwdCurrent=()=>{guard(cwdIdentity(cwd)===cwdMark,'CWD_CHANGED');for(const [at,id]of cwdParents)guard(directoryMark(fs.lstatSync(at,{bigint:true}))===id&&fs.realpathSync(at)===at,'CWD_PARENT_CHANGED');};
  const current=()=>{deadline();cwdCurrent();for(const r of rows)hashFd(r,deadline);for(const r of rows)named(r);deadline();};
@@ -99,8 +99,11 @@ export function inspectFixedNativeStartupPublicBinaries(){
   if(!call.pidObserved||error||code===null||signal!==null)uncertainChild=true;
   if(Buffer.isBuffer(r?.stderr)&&r.stderr.length<=limit){call.stderrBytes=r.stderr.length;call.stderrSha256=sha(r.stderr);call.stderrClassification=r.stderr.length===0?'EMPTY':classifyStderr(r.stderr);}
   const stdout=text(r?.stdout,limit);call.stdout=stdout;call.stdoutSha256=sha(r.stdout);const stderr=text(r?.stderr,limit);call.stderrEmpty=stderr==='';
-  guard(call.pidObserved&&!error&&code===0&&signal===null&&elapsed<5000000000n&&stderr==='','TOOL_EXECUTION_INCOMPLETE');
-  current();call.complete=true;return stdout;
+  guard(call.pidObserved&&!error&&code===0&&signal===null&&elapsed<5000000000n,'TOOL_EXECUTION_INCOMPLETE');
+  // Only fixed Bash's safely closed diagnostic output can permit the already
+  // approved second target. This never qualifies Bash or erases its failure.
+  if(role==='bash'&&stdout.length>0&&stderr!==''){firstTargetFailure??='TOOL_EXECUTION_INCOMPLETE';current();return null;}
+  guard(stderr==='','TOOL_EXECUTION_INCOMPLETE');current();call.complete=true;return stdout;
  };
  try{
   guard(arguments.length===0&&process.platform==='darwin'&&process.arch==='arm64'&&process.version==='v22.13.0'&&process.getuid()>0&&process.getuid()===process.geteuid()&&process.getgid()===process.getegid()&&fs.constants.O_NOFOLLOW!==undefined&&fs.constants.O_NONBLOCK!==undefined,'PROFILE_UNAVAILABLE');
@@ -112,12 +115,12 @@ export function inspectFixedNativeStartupPublicBinaries(){
   reason='CWD_UNAVAILABLE';cwd=fs.mkdtempSync('/private/tmp/redue-public-macho-');cwdMark=cwdIdentity(cwd);report.ownedCwdCleanup='PENDING';
   reason='VERSION_UNAVAILABLE';const version=invoke('version',['--version'],8192);guard(/\bLLVM\b[^\n]*\bversion\b/i.test(version),'VERSION_UNSUPPORTED');
   reason='HELP_UNAVAILABLE';const help=invoke('help',['--help'],65536);guard(optionsObserved(help),'OPTIONS_UNSUPPORTED');
-  for(const [name,file,,,limit]of TARGETS){reason='TARGET_OUTPUT_UNAVAILABLE';const output=invoke(name,[...FLAGS,file],limit);guard(targetOutputObserved(output),'TARGET_ARCHITECTURE_OR_TEXT_UNOBSERVED');report.targets[name].outputObserved=true;}
-  current();reason='PUBLIC_OUTPUT_COLLECTED_NOT_BEHAVIOR_PROOF';report.outcome='PUBLIC_OUTPUT_COLLECTED_NOT_BEHAVIOR_PROOF';
- }catch(e){reason=failures.get(e)??(ERRORS.has(e?.code)?e.code:reason);}
+  for(const [name,file,,,limit]of TARGETS){reason='TARGET_OUTPUT_UNAVAILABLE';const output=invoke(name,[...FLAGS,file],limit);if(output===null)continue;guard(targetOutputObserved(output),'TARGET_ARCHITECTURE_OR_TEXT_UNOBSERVED');report.targets[name].outputObserved=true;}
+  current();if(firstTargetFailure===null){reason='PUBLIC_OUTPUT_COLLECTED_NOT_BEHAVIOR_PROOF';report.outcome='PUBLIC_OUTPUT_COLLECTED_NOT_BEHAVIOR_PROOF';}else reason=firstTargetFailure;
+ }catch(e){reason=firstTargetFailure??failures.get(e)??(ERRORS.has(e?.code)?e.code:reason);}
  finally{
-  let closed=true;for(const r of rows)try{fs.closeSync(r.fd);}catch{closed=false;}report.ownedDescriptorsClosed=closed;if(!closed){reason='DESCRIPTOR_CLOSE_UNOBSERVED';report.outcome='UNKNOWN';}
-  if(cwd){if(uncertainChild)report.ownedCwdCleanup='RETAINED_CHILD_CLOSURE_UNKNOWN';else try{cwdCurrent();fs.rmdirSync(cwd);report.ownedCwdCleanup='REMOVED_OWNED_EMPTY_CWD';}catch{report.ownedCwdCleanup='UNKNOWN';reason='CWD_CLEANUP_UNKNOWN';report.outcome='UNKNOWN';}}
+  let closed=true;for(const r of rows)try{fs.closeSync(r.fd);}catch{closed=false;}report.ownedDescriptorsClosed=closed;if(!closed){reason=firstTargetFailure??'DESCRIPTOR_CLOSE_UNOBSERVED';report.outcome='UNKNOWN';}
+  if(cwd){if(uncertainChild)report.ownedCwdCleanup='RETAINED_CHILD_CLOSURE_UNKNOWN';else try{cwdCurrent();fs.rmdirSync(cwd);report.ownedCwdCleanup='REMOVED_OWNED_EMPTY_CWD';}catch{report.ownedCwdCleanup='UNKNOWN';reason=firstTargetFailure??'CWD_CLEANUP_UNKNOWN';report.outcome='UNKNOWN';}}
  }
  report.reason=reason;return freeze(report);
 }

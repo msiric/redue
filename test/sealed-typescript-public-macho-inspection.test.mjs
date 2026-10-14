@@ -9,7 +9,7 @@ const version='LLVM version 21.1.8\n',help=flags.map(v=>'  '+v+' public option')
 const output='Mach header\n magic cputype cpusubtype caps filetype ncmds sizeofcmds flags\n MH_MAGIC_64 ARM64 E PAC00 EXECUTE 19 1744 NOUNDEFS DYLDLINK TWOLEVEL PIE\n(__TEXT,__text) section\n000000010000abcd:\tret\n';
 const sha=body=>createHash('sha256').update(body).digest('hex');
 function mock(){
- let ino=1,fd=20,now=0n;const nodes=new Map(),fds=new Map(),state={calls:[],reads:[],removed:0,closeCount:0,afterRead:null,afterCall:null,afterRealpath:null,result:null,fail:null,output,help,version};
+ let ino=1,fd=20,now=0n;const nodes=new Map(),fds=new Map(),state={calls:[],reads:[],removed:0,closeCount:0,afterRead:null,afterCall:null,afterRealpath:null,result:null,resultFor:null,fail:null,output,help,version};
  const put=(file,kind='d',body='',uid=0n,mode=kind==='d'?0o40755n:0o100755n)=>nodes.set(file,{kind,body:Buffer.from(body),dev:1n,ino:BigInt(ino++),uid,gid:0n,mode,nlink:1n,size:BigInt(Buffer.byteLength(body)),mtimeNs:1n,ctimeNs:1n});
  const parents=file=>{for(let at=path.dirname(file);;at=path.dirname(at)){if(!nodes.has(at))put(at);if(at===path.dirname(at))break;}};
  for(const file of [tool,bash,helper]){parents(file);put(file,'f','MOCK '+file);}put('/private');put('/private/tmp','d','',0n,0o41777n);
@@ -23,7 +23,7 @@ function mock(){
   chmodSync(file,mode){assert.equal(file,cwd);assert.equal(mode,0o700);nodes.get(cwd).mode=0o40700n;},readdirSync:file=>{assert.equal(file,cwd);return state.fail==='occupied'?['owned-new-file']:[];},
   rmdirSync(file){assert.equal(file,cwd);state.removed++;nodes.delete(file);if(state.fail==='rmdir')throw Error('SECRET');}};
  const proc={platform:'darwin',arch:'arm64',version:'v22.13.0',getuid:()=>501,geteuid:()=>501,getgid:()=>20,getegid:()=>20,hrtime:{bigint:()=>now}};
- const spawn=(file,argv,options)=>{state.calls.push({file,argv,options});if(state.afterCall)state.afterCall(argv);return state.result??{pid:123,status:0,signal:null,stdout:Buffer.from(argv[0]==='--version'?state.version:argv[0]==='--help'?state.help:state.output),stderr:Buffer.alloc(0)};};
+ const spawn=(file,argv,options)=>{state.calls.push({file,argv,options});if(state.afterCall)state.afterCall(argv);return state.result??state.resultFor?.(argv)??{pid:123,status:0,signal:null,stdout:Buffer.from(argv[0]==='--version'?state.version:argv[0]==='--help'?state.help:state.output),stderr:Buffer.alloc(0)};};
  const run=Function('fs','path','createHash','spawnSync','process',code+';return inspectFixedNativeStartupPublicBinaries;')(io,path.posix,createHash,spawn,proc);
  return {run,nodes,fds,state,proc,advance:ms=>{now+=BigInt(ms)*1000000n;}};
 }
@@ -148,4 +148,23 @@ test('actual disassembly ordering does not accept an ALL header plus unrelated E
 });
 test('actual minimal prefix with nonempty stderr remains incomplete rather than skipping invalid encoding',()=>{
  const m=mock();m.state.result={pid:3,status:0,signal:null,stdout:Buffer.from(actualPublicLayout),stderr:Buffer.from('llvm-objdump: warning: invalid instruction encoding\n')};const v=m.run();assert.equal(v.outcome,'UNKNOWN');assert.equal(v.calls[0].complete,false);assert.equal(v.calls[0].stderrClassification,'INVALID_INSTRUCTION_ENCODING');noAuthority(v);
+});
+function bashDiagnostic(m,overrides={}){m.state.resultFor=argv=>argv.at(-1)===bash?{pid:123,status:0,signal:null,stdout:Buffer.from(actualPublicLayout),stderr:Buffer.from('llvm-objdump: warning: invalid instruction encoding\n'),...overrides}:null;}
+test('safely closed Bash diagnostic permits only the fixed second target, without making overall evidence green',()=>{
+ const m=mock();bashDiagnostic(m);const v=m.run();assert.equal(v.calls.length,4);assert.equal(v.calls[2].complete,false);assert.equal(v.calls[2].stderrClassification,'INVALID_INSTRUCTION_ENCODING');assert.equal(v.calls[3].complete,true);assert.equal(v.targets.bash.outputObserved,false);assert.equal(v.targets.path_helper.outputObserved,true);assert.equal(v.outcome,'UNKNOWN');assert.equal(v.reason,'TOOL_EXECUTION_INCOMPLETE');assert.deepEqual(m.state.calls[3].argv,[...flags,helper]);noAuthority(v);assert.equal(m.fds.size,0);
+});
+for(const override of [{pid:0},{status:74},{status:null,signal:'SIGKILL'},{error:{code:'ETIMEDOUT'}},{stdout:Buffer.from([0xff])},{stderr:Buffer.from([0xff])},{stderr:Buffer.from('llvm-objdump: warning: invalid instruction encoding\u001b\n')},{stdout:Buffer.alloc(0)}])test('uncertain/invalid/absent Bash diagnostic never launches the second target',()=>{
+ const m=mock();bashDiagnostic(m,override);const v=m.run();assert.equal(v.outcome,'UNKNOWN');assert.equal(v.calls.length,3);assert.equal(v.targets.path_helper.outputObserved,false);noAuthority(v);
+});
+test('closed Bash diagnostic still respects its actual child deadline before considering another target',()=>{
+ const m=mock();bashDiagnostic(m);m.state.afterCall=argv=>{if(argv.at(-1)===bash)m.advance(5000);};const v=m.run();assert.equal(v.outcome,'UNKNOWN');assert.equal(v.calls.length,3);
+});
+for(const target of [tool,bash,helper,'/bin','/Library/Developer',cwd])test('changed input/cwd after Bash diagnostic blocks second target '+target,()=>{
+ const m=mock();bashDiagnostic(m);m.state.afterCall=argv=>{if(argv.at(-1)===bash)m.nodes.get(target).ino++;};const v=m.run();assert.equal(v.outcome,'UNKNOWN');assert.equal(v.calls.length,3);assert.equal(v.reason,'TOOL_EXECUTION_INCOMPLETE');assert.equal(v.targets.bash.outputObserved,false);
+});
+test('later second-target failure cannot erase the specific first incomplete call',()=>{
+ const m=mock();bashDiagnostic(m);const first=m.state.resultFor;m.state.resultFor=argv=>argv.at(-1)===helper?{pid:123,status:74,signal:null,stdout:Buffer.from('PUBLIC'),stderr:Buffer.alloc(0)}:first(argv);const v=m.run();assert.equal(v.calls.length,4);assert.equal(v.calls[2].complete,false);assert.equal(v.calls[3].complete,false);assert.equal(v.calls[3].exitCode,74);assert.equal(v.reason,'TOOL_EXECUTION_INCOMPLETE');assert.equal(v.outcome,'UNKNOWN');assert.equal(v.targets.path_helper.outputObserved,false);
+});
+test('closing failure retains first diagnostic failure and reports closure uncertainty independently',()=>{
+ const m=mock();bashDiagnostic(m);m.state.fail='close';const v=m.run();assert.equal(v.calls.length,4);assert.equal(v.reason,'TOOL_EXECUTION_INCOMPLETE');assert.equal(v.ownedDescriptorsClosed,false);assert.equal(v.outcome,'UNKNOWN');
 });
