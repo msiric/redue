@@ -61,7 +61,7 @@ function interpretFixedDirectTrace(events,binding,completion,witness){
    Buffer.byteLength(JSON.stringify(events))>2097152)return unknown('INPUT_UNAVAILABLE');
  if(!exact(binding,witness?['hostBase','helperSha256','sourceSha256','nativeSha256','interpretation']:['hostBase','helperSha256','sourceSha256','nativeSha256'])||!full(hash,binding.helperSha256)||binding.sourceSha256!==(witness?NATIVE_STARTUP_WITNESS_SOURCE_SHA256:NATIVE_STDIO_SOURCE_SHA256)||witness&&binding.interpretation!==NATIVE_STARTUP_WITNESS_INTERPRETATION||binding.nativeSha256!==REVIEWED_CLAUDE_NATIVE.sha256)return unknown('IDENTITY_BINDING_UNKNOWN');
  let command;try{command=nativeStdioDirectCommand(binding.hostBase);}catch{return unknown('IDENTITY_BINDING_UNKNOWN');}
- const cwd=binding.hostBase+'/prefix/native-probes';let init=false,session=null,tool=null,metadata=null,final=null,reason=null;const messages=new Set();
+ const cwd=binding.hostBase+'/prefix/native-probes';let init=false,session=null,tool=null,metadata=null,final=null,reason=null,toolItemsObserved=0,toolScopeRefusal=null;const messages=new Set();
  const reject=v=>{reason??=v;};
  for(const event of events){
   if(!event||typeof event!=='object'||Array.isArray(event)){reject('STREAM_MALFORMED');continue;}
@@ -76,9 +76,19 @@ function interpretFixedDirectTrace(events,binding,completion,witness){
    for(const item of event.message.content){
     if(!['text','thinking','redacted_thinking','tool_use'].includes(item?.type)){reject('NATIVE_ASSISTANT_CONTENT');continue;}
     if(item.type!=='tool_use')continue;
-    const input=item.input;
-    if(tool||item.name!=='Bash'||!full(/^toolu_[A-Za-z0-9]{6,100}$/,item.id)||!input||typeof input!=='object'||Array.isArray(input)||input.command!==command||Object.keys(input).some(k=>!['command','timeout','description'].includes(k))||
-     !Object.hasOwn(input,'timeout')||!Number.isInteger(input.timeout)||input.timeout<1||input.timeout>15000||Object.hasOwn(input,'description')&&typeof input.description!=='string'){reject('NATIVE_TOOL_SCOPE');continue;}
+    toolItemsObserved++;const input=item.input;let refusalClass=null;
+    // Classify only the first actually reached refusing operand, preserving the
+    // original OR/property access order. No command, key/name/ID, description or
+    // model text is retained. A prior accepted request proves no execution.
+    const refused=(classification,value)=>{if(value)refusalClass=classification;return value;};
+    if(refused('DUPLICATE_TOOL_REQUEST',tool)||refused('TOOL_NAME_MISMATCH',item.name!=='Bash')||refused('TOOL_ID_SHAPE',!full(/^toolu_[A-Za-z0-9]{6,100}$/,item.id))||
+     refused('INPUT_ABSENT',!input)||refused('INPUT_NOT_OBJECT',typeof input!=='object')||refused('INPUT_ARRAY',Array.isArray(input))||
+     refused('COMMAND_MISMATCH',input.command!==command)||refused('INPUT_EXTRA_KEYS',Object.keys(input).some(k=>!['command','timeout','description'].includes(k)))||
+     refused('TIMEOUT_MISSING',!Object.hasOwn(input,'timeout'))||refused('TIMEOUT_NOT_INTEGER',!Number.isInteger(input.timeout))||refused('TIMEOUT_BELOW_MINIMUM',input.timeout<1)||
+     refused('TIMEOUT_ABOVE_MAXIMUM',input.timeout>15000)||refused('DESCRIPTION_NOT_STRING',Object.hasOwn(input,'description')&&typeof input.description!=='string')){
+     toolScopeRefusal??={schema:1,scope:'STATIC_NATIVE_TOOL_REFUSAL_ONLY',classification:refusalClass,toolItemOrdinal:toolItemsObserved,priorAcceptedToolRequest:tool!==null};
+     reject('NATIVE_TOOL_SCOPE');continue;
+    }
     tool={id:item.id,commandSha256:sha(command)};
    }continue;
   }
@@ -99,7 +109,7 @@ function interpretFixedDirectTrace(events,binding,completion,witness){
   if(event.type==='rate_limit_event'){if(Object.hasOwn(event,'session_id')&&event.session_id!==session)reject('NATIVE_SESSION_CONTEXT');continue;}
   reject('NATIVE_STREAM_UNKNOWN');
  }
- if(reason||!init||!tool||!metadata||!final?.success)return unknown(reason??'NATIVE_TRACE_INCOMPLETE');
+ if(reason||!init||!tool||!metadata||!final?.success)return unknown(reason??'NATIVE_TRACE_INCOMPLETE',reason==='NATIVE_TOOL_SCOPE'?{toolScopeRefusal}:{});
  const observed={metadata,toolUseId:tool.id,commandSha256:tool.commandSha256,helperSha256:binding.helperSha256};
  const completionKeys=['sourceCurrent','helperCurrent','reviewedBuildMatches','nativeCurrent','sourceSha256','helperSha256','nativeSha256','nativeExit','nativeSignal','timedOut','reaped','startupPreconditions','noHooksCurrent',witness?'interpretation':'controlledShellStartup'];
  if(!exact(completion,completionKeys)||

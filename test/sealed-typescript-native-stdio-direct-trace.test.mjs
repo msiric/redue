@@ -152,3 +152,53 @@ test('witness accessor facts, missing interpretation and source-only startup sta
  assert.equal(witnessObserve([]).outcome,'UNKNOWN');
  const e=events(witnessMetadata());e.push({type:'system',subtype:'hook_started',session_id:session});assert.equal(witnessObserve(e).outcome,'UNKNOWN');
 });
+
+const toolRefusalCases=[
+ ['TOOL_NAME_MISMATCH',item=>item.name='PRIVATE_TOOL_NAME'],
+ ['TOOL_ID_SHAPE',item=>item.id='PRIVATE_TOOL_ID'],
+ ['INPUT_ABSENT',item=>item.input=null],
+ ['INPUT_NOT_OBJECT',item=>item.input='PRIVATE_INPUT_VALUE'],
+ ['INPUT_ARRAY',item=>item.input=[]],
+ ['COMMAND_MISMATCH',item=>item.input.command='PRIVATE_COMMAND_VALUE'],
+ ['INPUT_EXTRA_KEYS',item=>item.input.PRIVATE_KEY='PRIVATE_KEY_VALUE'],
+ ['TIMEOUT_MISSING',item=>delete item.input.timeout],
+ ['TIMEOUT_NOT_INTEGER',item=>item.input.timeout='PRIVATE_TIMEOUT_VALUE'],
+ ['TIMEOUT_BELOW_MINIMUM',item=>item.input.timeout=0],
+ ['TIMEOUT_ABOVE_MAXIMUM',item=>item.input.timeout=15001],
+ ['DESCRIPTION_NOT_STRING',item=>item.input.description={value:'PRIVATE_DESCRIPTION_VALUE'}]
+];
+for(const witness of [false,true])for(const [classification,mutate]of toolRefusalCases)test('first fixed tool refusal '+classification+' '+(witness?'witness':'old'),()=>{
+ const e=events(witness?witnessMetadata():metadata());mutate(e[1].message.content[0]);const v=witness?witnessObserve(e):observe(e);
+ assert.equal(v.outcome,'UNKNOWN');assert.equal(v.reason,'NATIVE_TOOL_SCOPE');assert.deepEqual(v.toolScopeRefusal,{schema:1,scope:'STATIC_NATIVE_TOOL_REFUSAL_ONLY',classification,toolItemOrdinal:1,priorAcceptedToolRequest:false});assert(Object.isFrozen(v.toolScopeRefusal));assert.equal(JSON.stringify(v).includes('PRIVATE_'),false);
+ if(witness)witnessAuthority(v);else authority(v);
+});
+for(const witness of [false,true])test('valid first request followed by invalid second records duplicate refusal, never helper execution '+(witness?'witness':'old'),()=>{
+ const e=events(witness?witnessMetadata():metadata());e[1].message.content.push({...clone(e[1].message.content[0]),name:'PRIVATE_SECOND_NAME',id:'PRIVATE_SECOND_ID',input:null});
+ const v=witness?witnessObserve(e):observe(e);assert.equal(v.reason,'NATIVE_TOOL_SCOPE');assert.equal(v.toolScopeRefusal.classification,'DUPLICATE_TOOL_REQUEST');assert.equal(v.toolScopeRefusal.toolItemOrdinal,2);assert.equal(v.toolScopeRefusal.priorAcceptedToolRequest,true);assert.equal(Object.hasOwn(v,'helperProcessOutcome'),false);assert.equal(JSON.stringify(v).includes('PRIVATE_'),false);
+});
+test('first tool-scope refusal is latched despite a later accepted request and later duplicate',()=>{
+ const e=events(witnessMetadata());e[1].message.content.unshift({...clone(e[1].message.content[0]),input:{command:'PRIVATE_FIRST_COMMAND',timeout:15000}});e[1].message.content.push(clone(e[1].message.content[1]));const v=witnessObserve(e);
+ assert.equal(v.reason,'NATIVE_TOOL_SCOPE');assert.equal(v.toolScopeRefusal.classification,'COMMAND_MISMATCH');assert.equal(v.toolScopeRefusal.toolItemOrdinal,1);assert.equal(v.toolScopeRefusal.priorAcceptedToolRequest,false);assert.equal(JSON.stringify(v).includes('PRIVATE_'),false);
+});
+test('earlier non-tool refusal remains primary without attaching later tool diagnostics',()=>{
+ const e=events(witnessMetadata());e[0].tools=['PRIVATE_WRONG_INITIAL_TOOL'];e[1].message.content[0].input.command='PRIVATE_COMMAND';const v=witnessObserve(e);assert.equal(v.reason,'NATIVE_INITIAL_CONTEXT');assert.equal(Object.hasOwn(v,'toolScopeRefusal'),false);assert.equal(JSON.stringify(v).includes('PRIVATE_'),false);
+});
+test('successful actual-format mocks gain no tool-refusal field or additional authority',()=>{
+ for(const v of [observe(),witnessObserve()]){assert.equal(v.outcome,'OBSERVED_COMPATIBLE');assert.equal(Object.hasOwn(v,'toolScopeRefusal'),false);assert.equal(v.sealed,false);assert.equal(v.reuseEligible,false);assert.equal(v.nativeEnforcement,'NOT_ESTABLISHED');}
+});
+for(const field of ['name','id','input'])test('accessor-bearing '+field+' is rejected before any scope classification/getter read',()=>{
+ let reads=0;const e=events(witnessMetadata());Object.defineProperty(e[1].message.content[0],field,{enumerable:true,get(){reads++;throw Error('PRIVATE_ACCESSOR');}});const v=witnessObserve(e);assert.equal(v.reason,'INPUT_UNAVAILABLE');assert.equal(reads,0);assert.equal(Object.hasOwn(v,'toolScopeRefusal'),false);
+});
+for(const field of ['command','timeout','description'])test('input accessor '+field+' is never evaluated or retained',()=>{
+ let reads=0;const e=events(witnessMetadata());Object.defineProperty(e[1].message.content[0].input,field,{enumerable:true,get(){reads++;throw Error('PRIVATE_ACCESSOR');}});const v=witnessObserve(e);assert.equal(v.reason,'INPUT_UNAVAILABLE');assert.equal(reads,0);assert.equal(Object.hasOwn(v,'toolScopeRefusal'),false);
+});
+// Conflicting invalid fields prove the original OR priority without exposing
+// any of their values. No native tool/helper/model is run by these mocks.
+for(const [expected,mutate]of [
+ ['TOOL_NAME_MISMATCH',i=>{i.name='PRIVATE';i.id='PRIVATE';i.input=null;}],
+ ['TOOL_ID_SHAPE',i=>{i.id='PRIVATE';i.input=null;}],
+ ['COMMAND_MISMATCH',i=>{i.input.command='PRIVATE';i.input.PRIVATE=true;delete i.input.timeout;}],
+ ['INPUT_EXTRA_KEYS',i=>{i.input.PRIVATE=true;delete i.input.timeout;}],
+ ['TIMEOUT_MISSING',i=>{delete i.input.timeout;i.input.description={private:true};}],
+ ['TIMEOUT_NOT_INTEGER',i=>{i.input.timeout='PRIVATE';i.input.description={private:true};}]
+])test('original scope first-refusal priority '+expected,()=>{const e=events(witnessMetadata());mutate(e[1].message.content[0]);const v=witnessObserve(e);assert.equal(v.toolScopeRefusal.classification,expected);assert.equal(v.reason,'NATIVE_TOOL_SCOPE');assert.equal(JSON.stringify(v).includes('PRIVATE'),false);});
