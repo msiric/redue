@@ -4,7 +4,7 @@ Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revisio
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
 
-## Current checkpoint — native witness stopped conservatively before launch
+## Current checkpoint — precise native prelaunch diagnostics ready
 
 2026-10-14: runtime `e9da40308da1011ed65c61b7ced9c3fe2b91b353` includes the
 reviewed native child-binding/stdio witness and truthful partial-bootstrap/build
@@ -57,10 +57,22 @@ selected. TAP SHA256
 `238d01e8411b8718d1f6e44b9eabd9c421c2b8126758b78577bff16a195f19ea`.
 No validation predicate, command, environment, timeout, permission or authority was
 relaxed. The actual predecessor's precise failure remains unknown, not backfilled.
-Next:120 owns only the workflow source-pin update; fresh review and protected
-source-only fact update preserve the owner's19:26:03Z statement timestamp. Then
-collect a new correctly bound operation through the normal supported UI route.
-No owner interaction is needed during repair/preparation; all failures preserved.
+Workflow120/121 is independently accepted at
+`23de199375b9939cba217dcd39edccf9a745de7c`, normally fast-forward pushed and remote
+bytes verified: SHA256
+`fe66d4f9dac2a31756bafd2eafc779ee87c99f7348947c43dc0d9a40bd351392`.
+Only two source literals changed to `c5907db`; all other workflow bytes are identical.
+Root9 source/mock/local-syntax controls PASS; reviewer8 source/pure-mock controls PASS.
+Protected account statement's source alone was aligned and read-back verified;
+truthful owner reviewed_at19:26:03Z remains unchanged. Actual nonsecret input
+validation passes with fact digest
+`fb1e1bf86a002d7b6f45169f1f0528b79aa64f9ec9a71639949c85fd801a031a`.
+No credentials, permissions, trust, capacity facts or deadlines changed.
+Next: one NEW normal owner Actions UI run on `dev/portable-claude-diagnostic`,
+using portable-claude-diagnostic.yml by filename (the numeric API-ID browser link
+was a coordinator mistake and is retired). CLI dispatch403 is not retried.
+No new account confirmation/login is required. Collect actual static guard data;
+failed preconditions still launch zero models. All earlier failures remain preserved.
 Actual log259,921 bytes SHA256
 `f90f5e92f06649142db587d4a16f1152579f69c56cf4de116df886fd443cead3`;
 normalized report1,727 bytes SHA256
