@@ -91,3 +91,7 @@ for(const target of [tool,bash,helper])test('post-process same-size public conte
 test('empty version or partial help produces no target subprocess and keeps public observations',()=>{
  const m=mock();m.state.version='public version text with no LLVM identifier\n';const v=m.run();assert.equal(v.outcome,'UNKNOWN');assert.equal(v.reason,'VERSION_UNSUPPORTED');assert.equal(v.calls.length,1);assert.equal(v.calls[0].stdout,m.state.version);
 });
+
+test('missing process identity cannot establish safe private-cwd cleanup',()=>{
+ const m=mock();m.state.result={pid:0,status:0,signal:null,stdout:Buffer.from(version),stderr:Buffer.alloc(0)};const v=m.run();assert.equal(v.outcome,'UNKNOWN');assert.equal(v.ownedCwdCleanup,'RETAINED_CHILD_CLOSURE_UNKNOWN');assert.equal(m.state.removed,0);assert.equal(v.ownedDescriptorsClosed,true);
+});

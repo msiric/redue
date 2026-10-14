@@ -64,7 +64,7 @@ export function inspectFixedNativeStartupPublicBinaries(){
   const call={role,argv:[...argv],pidObserved:Number.isInteger(r?.pid)&&r.pid>0&&r.pid<=2147483647,exitCode:code,signal,errorCode:error,
    elapsedMs:Number(elapsed)/1e6,stdout:null,stdoutSha256:null,stderrEmpty:null,complete:false};report.calls.push(call);
   // A timeout/error or missing outcome cannot establish child ownership closure.
-  if(error||code===null||signal!==null)uncertainChild=true;
+  if(!call.pidObserved||error||code===null||signal!==null)uncertainChild=true;
   const stdout=text(r?.stdout,limit),stderr=text(r?.stderr,limit);call.stdout=stdout;call.stdoutSha256=sha(r.stdout);call.stderrEmpty=stderr==='';
   guard(call.pidObserved&&!error&&code===0&&signal===null&&elapsed<5000000000n&&stderr==='','TOOL_EXECUTION_INCOMPLETE');
   current();call.complete=true;return stdout;
