@@ -8,6 +8,9 @@ import {createHash} from 'node:crypto';
 import {prepareNativeStdioStartup,prepareNativeStartupWitnessStartup,verifyNativeStdioStartup,NATIVE_STDIO_STARTUP_BASIS,NATIVE_STDIO_CI_STARTUP_BASIS} from './acceptance/sealed-typescript-native-stdio-startup.mjs';
 import {NATIVE_STDIO_SOURCE_SHA256} from './acceptance/sealed-typescript-native-stdio-probe.mjs';
 import {NATIVE_STARTUP_WITNESS_SOURCE_SHA256} from './acceptance/sealed-typescript-native-startup-witness.mjs';
+import {nativeDiagnosticArgv} from './acceptance/portable-claude-diagnostic.mjs';
+const diagnosticSource=fs.readFileSync(new URL('./acceptance/sealed-typescript-native-stdio-diagnostic.mjs',import.meta.url),'utf8');
+const orderedArgsApplied=Function(diagnosticSource.slice(diagnosticSource.indexOf('function requiredArgsApplied('),diagnosticSource.indexOf('// Options are trusted host inputs'))+';return requiredArgsApplied;')();
 const source=fs.readFileSync(new URL('./acceptance/sealed-typescript-native-stdio-startup.mjs',import.meta.url),'utf8');
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const base='/private/tmp/redue-ci-recipient-12345678',host=base+'/claude-host';
@@ -220,4 +223,17 @@ test('new startup entry rejects getters, arbitrary source and forged build befor
  const m=mock(ciProfile);let gets=0;const o={build:m.build};Object.defineProperty(o,'fixture',{get(){gets++;return m.fixture;}});
  assert.throws(()=>prepareNativeStartupWitnessStartup(o),/STARTUP_OPTIONS/);assert.equal(gets,0);
  for(const o of [{fixture:m.fixture,build:m.build,source:NATIVE_STARTUP_WITNESS_SOURCE_SHA256},{fixture:m.fixture,build:{}}]){if(Object.hasOwn(o,'source'))assert.throws(()=>m.prepareWitness(o),/STARTUP_OPTIONS/);else assert.equal(m.prepareWitness(o).outcome,'UNKNOWN');}assert.deepEqual(m.state.opens,[]);
+});
+
+test('prepared startup required flags match actual native pure argv order',()=>{
+ const m=mock(ciProfile),v=prepare(m),argv=nativeDiagnosticArgv({settingsFile:host+'/settings.json',command:"'"+base+"/prefix/native-probes/native-stdio-probe'"});
+ assert.equal(orderedArgsApplied(argv,v.requiredArgv),true);
+});
+
+test('historical ordering fails actual builder while corrected order retains identical flags and values',()=>{
+ const argv=nativeDiagnosticArgv({settingsFile:host+'/settings.json',command:"'"+base+"/prefix/native-probes/native-stdio-probe'"}),old=['--setting-sources','','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--no-session-persistence'];
+ const expected=['--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--setting-sources','','--no-session-persistence'];
+ assert.equal(orderedArgsApplied(argv,old),false);assert.equal(orderedArgsApplied(argv,expected),true);assert.deepEqual([...old].sort(),[...expected].sort());
+ for(const profile of ['redue-native-stdio-preauth-local-sdk27@1',ciProfile])for(const witness of [false,true]){const m=mock(profile);if(witness){m.state.buildInterpretation='redue-native-child-startup-witness-preauth-build@1';m.state.sourceSha256=NATIVE_STARTUP_WITNESS_SOURCE_SHA256;}
+  const v=(witness?m.prepareWitness:m.prepare)({fixture:m.fixture,build:m.build});assert.deepEqual(v.requiredArgv,expected);assert.equal(orderedArgsApplied(argv,v.requiredArgv),true);assert.deepEqual(m.verify(v).requiredArgv,expected);}
 });

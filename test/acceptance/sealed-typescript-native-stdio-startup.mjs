@@ -177,7 +177,7 @@ function prepareFixedStartup(options,witness){
   const value=result({outcome:'STARTUP_PREPARED_NOT_LAUNCHED',interpretation:observed.interpretation,sourceSha256:observed.sourceSha256,buildInterpretation:observed.buildInterpretation,buildProfileId:observed.profileId,hostBase:base,sourceBasisCurrent:true,
    environmentBindings:{HOME:home,CLAUDE_CONFIG_DIR:config,GH_CONFIG_DIR:gh,SHELL:'/bin/bash',PATH:FIXED_PATH,PATH_HELPER_ROOT:root},
    requiredAbsentSystemStartupPaths:basis.requiredAbsentSystemStartupPaths,
-   requiredAbsentEnvironmentKeys:absentEnvironmentKeys,requiredSettings:{autoMemoryEnabled:false,disableAllHooks:true,enabledPlugins:{}},forbiddenArgv:['--bare','--add-dir','--plugin-dir'],requiredArgv:['--setting-sources','','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--no-session-persistence'],
+   requiredAbsentEnvironmentKeys:absentEnvironmentKeys,requiredSettings:{autoMemoryEnabled:false,disableAllHooks:true,enabledPlugins:{}},forbiddenArgv:['--bare','--add-dir','--plugin-dir'],requiredArgv:['--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--setting-sources','','--no-session-persistence'],
    policyPreservation:'OAUTH_PROXY_CREDENTIAL_DENIALS_SANDBOX_AND_EXACT_COMMAND_REMAIN_SEPARATE_PREREQUISITES'});
   minted.set(value,record);return value;
  }catch{if(record)record.invalid=true;return result({outcome:'UNKNOWN',reason,sourceBasisCurrent:false});}

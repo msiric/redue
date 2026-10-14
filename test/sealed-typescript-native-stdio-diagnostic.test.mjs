@@ -5,18 +5,30 @@ import {runFixedNativeStdioDiagnostic,runFixedNativeStartupWitnessDiagnostic} fr
 import {nativeStdioDirectCommand,NATIVE_STDIO_SOURCE_SHA256} from './acceptance/sealed-typescript-native-stdio-probe.mjs';
 import {interpretDirectNativeStdioProbeTrace} from './acceptance/sealed-typescript-native-stdio-direct-trace.mjs';
 import {NATIVE_STARTUP_WITNESS_SOURCE_SHA256,NATIVE_STARTUP_WITNESS_INTERPRETATION} from './acceptance/sealed-typescript-native-startup-witness.mjs';
+import {nativeDiagnosticArgv} from './acceptance/portable-claude-diagnostic.mjs';
 import {REVIEWED_CLAUDE_NATIVE} from './acceptance/portable-claude-native-profile.mjs';
 const source=fs.readFileSync(new URL('./acceptance/sealed-typescript-native-stdio-diagnostic.mjs',import.meta.url),'utf8'),sha=v=>createHash('sha256').update(v).digest('hex');
 const base='/private/tmp/redue-ci-recipient-12345678',host=base+'/claude-host',nativeBase='/private/tmp/redue-claude-diagnostic-ABCDEF',native=nativeBase+'/native/claude',helper=base+'/prefix/native-probes/native-stdio-probe',cwd=base+'/prefix/native-probes',command=`'${helper}'`,settingsFile=host+'/settings.json';
 function mocks(witness=false){
  const bootstrap=Object.freeze({outcome:'CI_SYNTHETIC_BOOTSTRAP_PREPARED',base}),fixture=Object.freeze({outcome:'SYNTHETIC_FIXTURE_PREPARED',base}),build=Object.freeze({profileId:'redue-native-stdio-preauth-ci-sdk26.5@1',buildInterpretation:witness?'redue-native-child-startup-witness-preauth-build@1':'redue-native-stdio-preauth-build@2',outcome:'BUILT_NOT_EXECUTED',hostBase:base,cwd,helper,sourceSha256:witness?NATIVE_STARTUP_WITNESS_SOURCE_SHA256:NATIVE_STDIO_SOURCE_SHA256,helperSha256:'b'.repeat(64),dispatchAttemptCount:1});
- const startup=Object.freeze({outcome:'STARTUP_PREPARED_NOT_LAUNCHED',hostBase:base,environmentBindings:{HOME:host+'/home',CLAUDE_CONFIG_DIR:host+'/claude-config',GH_CONFIG_DIR:host+'/gh-config',SHELL:'/bin/bash',PATH:'/usr/bin:/bin:/usr/sbin:/sbin',PATH_HELPER_ROOT:host+'/path-helper-root'},requiredSettings:{autoMemoryEnabled:false,disableAllHooks:true,enabledPlugins:{}},requiredAbsentEnvironmentKeys:['PS1','MANPATH','BASH_ENV','ENV','TERM_PROGRAM'],requiredArgv:['--setting-sources','','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--no-session-persistence'],forbiddenArgv:['--bare','--add-dir','--plugin-dir']});
+ const startup=Object.freeze({outcome:'STARTUP_PREPARED_NOT_LAUNCHED',hostBase:base,environmentBindings:{HOME:host+'/home',CLAUDE_CONFIG_DIR:host+'/claude-config',GH_CONFIG_DIR:host+'/gh-config',SHELL:'/bin/bash',PATH:'/usr/bin:/bin:/usr/sbin:/sbin',PATH_HELPER_ROOT:host+'/path-helper-root'},requiredSettings:{autoMemoryEnabled:false,disableAllHooks:true,enabledPlugins:{}},requiredAbsentEnvironmentKeys:['PS1','MANPATH','BASH_ENV','ENV','TERM_PROGRAM'],requiredArgv:['--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--setting-sources','','--no-session-persistence'],forbiddenArgv:['--bare','--add-dir','--plugin-dir']});
  const settings={disableAllHooks:true,enabledPlugins:{},permissions:{allow:[`Bash(${command})`],deny:['Bash(printf:*)']},sandbox:{enabled:true,failIfUnavailable:true,allowUnsandboxedCommands:false,excludedCommands:[],filesystem:{allowRead:['/bin/bash',helper],denyRead:['/'],denyWrite:[]},credentials:{envVars:[{name:'CLAUDE_CODE_OAUTH_TOKEN',mode:'deny'}]},network:{allowedDomains:[],deniedDomains:['*'],allowUnixSockets:[],allowAllUnixSockets:false}}};
- const state={spawns:[],removed:[],events:[],builds:0,bootstraps:0,syntheticBootstrapResourceCreated:false,clockAfterBuild:false,clockAfterAccount:false,verifierViews:{},verifierCalls:[],selectedCalls:0,diagnosticError:null,fault:null,settingsBytes:null,nativeCurrent:true,buildCurrent:true,fixtureCurrent:true,startupCurrent:true,close:true,interpretations:0,activationCalls:0,abort:null,afterCollect:null};
+ const state={argvCalls:0,spawns:[],removed:[],events:[],builds:0,bootstraps:0,syntheticBootstrapResourceCreated:false,clockAfterBuild:false,clockAfterAccount:false,verifierViews:{},verifierCalls:[],selectedCalls:0,diagnosticError:null,fault:null,settingsBytes:null,nativeCurrent:true,buildCurrent:true,fixtureCurrent:true,startupCurrent:true,close:true,interpretations:0,activationCalls:0,abort:null,afterCollect:null};
  const failure=()=>{throw Error('PRIVATE_FAILURE_SECRET');};
  const activation=({env,source})=>{state.activationCalls++;if(state.fault==='preBudget'&&state.activationCalls>1)state.clockAfterAccount=true;if(state.fault==='lateAccount'&&state.activationCalls===3)failure();if(state.fault==='preAccount'&&state.activationCalls>1)throw Object.assign(Error('PRIVATE_ACCOUNT_FACT'),{code:'DIAGNOSTIC_OWNER_POLICY_FACT_INVALID'});if(state.fault==='activation'||env.GITHUB_REF!=='refs/heads/dev/portable-claude-diagnostic'||source!==env.REDUE_CHECKED_SOURCE||env.REDUE_CLAUDE_INCLUDED_DIAGNOSTIC_CAPACITY!=='4-turn-120s-included-only')failure();return {digest:'c'.repeat(64)};};
  const nativeEnv=(env,{host})=>{if(state.fault==='environment'||Object.hasOwn(env,'ANTHROPIC_API_KEY')||!env.CLAUDE_CODE_OAUTH_TOKEN)failure();return {...(state.fault==='envBinding'?{BASH_ENV:'UNREVIEWED_MUST_NOT_RUN'}:{}),HOME:env.HOME,CLAUDE_CONFIG_DIR:host+'/claude-config',GH_CONFIG_DIR:host+'/gh-config',SHELL:'/bin/bash',PATH:'/usr/bin:/bin:/usr/sbin:/sbin',HTTPS_PROXY:env.HTTPS_PROXY,CLAUDE_CODE_OAUTH_TOKEN:env.CLAUDE_CODE_OAUTH_TOKEN};};
- const argv=({settingsFile,command})=>[...(state.fault==='bareArgv'?['--bare']:[]),'--print','--max-turns','4','--setting-sources','',...(state.fault==='missingArgv'?[]:['--strict-mcp-config']),'--mcp-config','{"mcpServers":{}}','--settings',settingsFile,'--no-session-persistence',command];
+ // Use the actual pure builder. Faults mutate only the initially supplied
+ // array; later full equality compares it with a fresh real-builder result.
+ const argv=options=>{
+  const out=nativeDiagnosticArgv(options);state.argvCalls++;if(state.argvCalls!==1)return out;
+  if(state.fault==='bareArgv')out.unshift('--bare');
+  if(state.fault==='missingArgv')out.splice(out.indexOf('--strict-mcp-config'),1);
+  if(state.fault==='changedMaxTurns')out[out.indexOf('--max-turns')+1]='5';
+  if(state.fault==='duplicateMaxTurns')out.splice(out.length-1,0,'--max-turns','5');
+  if(state.fault==='changedSettingsSources')out[out.indexOf('--setting-sources')+1]='user';
+  if(state.fault==='changedMcpConfig')out[out.indexOf('--mcp-config')+1]='{"mcpServers":{"unreviewed":{}}}';
+  return out;
+ };
  const stat=p=>{if(state.fault==='read')failure();return {dev:1,ino:p===base?1:2,mode:p===base?0o40700:state.fault==='nativeMode'||state.fault==='preNativeShape'&&state.selectedCalls>0?0o100777:0o100700,uid:501,gid:20,nlink:1,isFile:()=>p===native,isDirectory:()=>p===base,isSymbolicLink:()=>false};};
  const io={lstatSync:stat,realpathSync:p=>state.fault==='canonical'?p+'/alias':p,rmSync(p,o){assert.equal(p,base);assert.deepEqual(o,{recursive:true,force:false});if(state.fault==='cleanup')failure();state.removed.push(p);}};
  const read=(p)=>{state.events.push('READ:'+p);if(state.fault==='read')failure();return {digest:p===native?(state.fault==='nativeDigest'?'f'.repeat(64):REVIEWED_CLAUDE_NATIVE.sha256):sha(state.settingsBytes),fingerprint:'PINNED'};};
@@ -155,4 +167,12 @@ for(const witness of [false,true])test('held-stable field access order is exact 
  const m=mocks(witness),views=matchingViews(m),reads=[];for(const [role,key]of orderedRequiredFields){const expected=views[role][key];Object.defineProperty(views[role],key,{enumerable:true,get(){reads.push(role+'.'+key);return expected;}});}
  assert.equal(originalConjunctReference(views.fixture,views.build,views.startup,m.build,m.build.sourceSha256,m.build.buildInterpretation),true);assert.deepEqual(reads,orderedRequiredFields.map(v=>v.join('.')));reads.length=0;m.state.verifierViews=views;
  const v=await invoke(m);assert.equal(m.state.spawns.length,1);assert.deepEqual(reads,[...orderedRequiredFields,...orderedRequiredFields,...orderedRequiredFields].map(v=>v.join('.')));assert.deepEqual(m.state.verifierCalls,['fixture','build','startup','fixture','build','startup','fixture','build','startup']);assert.equal(v.guardDiagnostics.failure,null);
+});
+
+for(const witness of [false,true])test('composition uses exact actual pure argv rather than a hand-built shadow '+(witness?'witness':'old'),async()=>{
+ const m=mocks(witness);await invoke(m);assert.equal(m.state.spawns.length,1);assert.deepEqual(m.state.spawns[0].a,nativeDiagnosticArgv({settingsFile,command}));
+});
+for(const witness of [false,true])for(const fault of ['missingArgv','bareArgv','changedMaxTurns','duplicateMaxTurns','changedSettingsSources','changedMcpConfig'])test('initial actual-argv '+fault+' mutation remains refused '+(witness?'witness':'old'),async()=>{
+ const m=mocks(witness);m.state.fault=fault;const v=await invoke(m);noAuthority(v);assert.equal(v.outcome,'UNKNOWN');assert.equal(v.guardDiagnostics.failure.guard,'ACTUAL_BINDINGS');assert.equal(m.state.spawns.length,0);assert.equal(v.nativeLaunchAttempted,false);
+ if(['changedMaxTurns','duplicateMaxTurns'].includes(fault))assert(m.state.argvCalls>=2); // required subsequence passes; unchanged full equality refuses
 });
