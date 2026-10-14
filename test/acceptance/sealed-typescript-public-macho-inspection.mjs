@@ -1,6 +1,6 @@
 // Fixed public source inspection only. Targets are read, never executed.
 // Actual source-tool byte observation: run38579790669 on two approved VMs.
-// Upstream reference (not a claim of fork equivalence): LLVM llvmorg-21.1.8
+// Upstream reference (not a claim of fork equivalence): LLVM llvmorg-21-init/21.1.0
 // llvm/tools/llvm-objdump/{llvm-objdump.cpp,MachODump.cpp,ObjdumpOpts.td}.
 // Endpoint hashes/metadata are trusted-quiescent observations, not interval,
 // Apple-authenticity, loader, branch-equivalence, sandbox or seal proof.
@@ -43,6 +43,14 @@ function cwdIdentity(cwd){guard(/^\/private\/tmp\/redue-public-macho-[A-Za-z0-9]
 function text(bytes,limit){guard(Buffer.isBuffer(bytes)&&bytes.length<=limit,'OUTPUT_UNAVAILABLE_OR_TRUNCATED');const value=bytes.toString('utf8');
  guard(Buffer.from(value,'utf8').equals(bytes)&&!/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(value),'OUTPUT_ENCODING_UNSUPPORTED');return value;
 }
+function classifyStderr(bytes){
+ // llvmorg-21.1.0 MachODump.cpp#L7674 and WithColor.cpp#L101 emit
+ // this exact complete line (same warning in llvmorg-21-init).
+ // Dynamic target/initialization diagnostics, mixed or partial output and ANSI
+ // are deliberately OTHER; none of these classifications authorizes completion.
+ const value=bytes.toString('utf8');if(!Buffer.from(value,'utf8').equals(bytes))return 'OTHER';
+ return /^(?:llvm-objdump: warning: invalid instruction encoding\n)+$/.test(value)?'INVALID_INSTRUCTION_ENCODING':'OTHER';
+}
 function optionsObserved(help){return FLAGS.every(flag=>{
  const name=flag.split('=')[0].replace(/[.*+?^${}()|[\]\\]/g,'\\$&');return new RegExp('(?:^|[\\s,])'+name+'(?=[=\\s,]|$)','m').test(help);
 });}
@@ -52,8 +60,10 @@ function targetOutputObserved(value){
  const lines=value.split(/\r?\n/).map(line=>line.trim()),headers=[];
  for(let i=0;i<lines.length;i++)if(lines[i]==='Mach header')headers.push(i);
  if(headers.length!==1)return false;const h=headers[0];
- if(!/^magic[ \t]+cputype[ \t]+cpusubtype(?:[ \t]|$)/.test(lines[h+1]??'')||
-  !/^MH_MAGIC_64[ \t]+ARM64[ \t]+ARM64E(?:[ \t].*)?$/.test(lines[h+2]??''))return false;
+ const columns=(lines[h+1]??'').split(/[ \t]+/),row=(lines[h+2]??'').split(/[ \t]+/);
+ if(columns.join(' ')!=='magic cputype cpusubtype caps filetype ncmds sizeofcmds flags'||row.length<8||
+  row[0]!=='MH_MAGIC_64'||row[1]!=='ARM64'||row[2]!=='E'||!/^PAC[0-9A-F]{2}$/.test(row[3])||row[4]!=='EXECUTE'||
+  !/^[0-9]+$/.test(row[5])||!/^[0-9]+$/.test(row[6])||!row.slice(7).every(flag=>/^[A-Z0-9_]+$/.test(flag)))return false;
  const sections=[];for(let i=h+3;i<lines.length;i++)if(lines[i]==='(__TEXT,__text) section')sections.push(i);
  if(sections.length!==1)return false;
  for(let i=sections[0]+1;i<lines.length;i++){
@@ -69,7 +79,7 @@ function targetOutputObserved(value){
 }
 
 export function inspectFixedNativeStartupPublicBinaries(){
- const report={schema:1,interpretation:'redue-fixed-public-macho-inspection@1',scope:'PUBLIC_STATIC_SOURCE_INSPECTION_ONLY',outcome:'UNKNOWN',reason:'PROFILE_UNAVAILABLE',
+ const report={schema:1,interpretation:'redue-fixed-public-macho-inspection@2',scope:'PUBLIC_STATIC_SOURCE_INSPECTION_ONLY',outcome:'UNKNOWN',reason:'PROFILE_UNAVAILABLE',
   calls:[],targets:{},expectedToolSha256:TOOL_PIN,publicOutputUntrusted:true,behavior:'NOT_ESTABLISHED',appleAuthenticity:'NOT_ESTABLISHED',nativeEnforcement:'NOT_ESTABLISHED',
   completeSdkClosure:'NOT_ESTABLISHED',profileApproved:false,sealed:false,reuseEligible:false,models:0,nativeAgentLaunches:0,targetExecutions:0,compilerCheckExecutions:0,
   ownedDescriptorsClosed:false,ownedCwdCleanup:'NOT_CREATED'};
@@ -82,10 +92,11 @@ export function inspectFixedNativeStartupPublicBinaries(){
   const elapsed=process.hrtime.bigint()-before,code=Number.isInteger(r?.status)&&r.status>=0&&r.status<=255?r.status:null;
   const signal=r?.signal===null?null:SIGNALS.has(r?.signal)?r.signal:'UNKNOWN',error=r?.error?ERRORS.has(r.error.code)?r.error.code:'UNKNOWN':null;
   const call={role,argv:[...argv],pidObserved:Number.isInteger(r?.pid)&&r.pid>0&&r.pid<=2147483647,exitCode:code,signal,errorCode:error,
-   elapsedMs:Number(elapsed)/1e6,stdout:null,stdoutSha256:null,stderrEmpty:null,complete:false};report.calls.push(call);
+   elapsedMs:Number(elapsed)/1e6,stdout:null,stdoutSha256:null,stderrEmpty:null,stderrBytes:null,stderrSha256:null,stderrClassification:'UNAVAILABLE',complete:false};report.calls.push(call);
   // A timeout/error or missing outcome cannot establish child ownership closure.
   if(!call.pidObserved||error||code===null||signal!==null)uncertainChild=true;
-  const stdout=text(r?.stdout,limit),stderr=text(r?.stderr,limit);call.stdout=stdout;call.stdoutSha256=sha(r.stdout);call.stderrEmpty=stderr==='';
+  if(Buffer.isBuffer(r?.stderr)&&r.stderr.length<=limit){call.stderrBytes=r.stderr.length;call.stderrSha256=sha(r.stderr);call.stderrClassification=r.stderr.length===0?'EMPTY':classifyStderr(r.stderr);}
+  const stdout=text(r?.stdout,limit);call.stdout=stdout;call.stdoutSha256=sha(r.stdout);const stderr=text(r?.stderr,limit);call.stderrEmpty=stderr==='';
   guard(call.pidObserved&&!error&&code===0&&signal===null&&elapsed<5000000000n&&stderr==='','TOOL_EXECUTION_INCOMPLETE');
   current();call.complete=true;return stdout;
  };
