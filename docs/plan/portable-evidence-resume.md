@@ -7,7 +7,32 @@ existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
 
-## Current checkpoint — verified UNKNOWN report; reviewed fixes pushed
+## Current checkpoint — latest hosted result retained; startup basis reviewed
+
+2026-10-14: [run38606711077](https://github.com/msiric/redue/actions/runs/38606711077)
+completed with both jobs FAILURE. Receiver data is independently verified as
+UNKNOWN: Bash inspection emitted invalid-instruction warnings; the separate fixed
+path_helper inspection completed. No native agent, model or compiler check ran.
+Producer stopped at ARTIFACT_RESPONSE_HEADERS_UNKNOWN with HTTP403; the cause is
+unestablished. Do not retry or bypass either the existing dispatch denial or this
+storage-route failure. Prior failed/UNKNOWN attempts remain retained.
+
+CI-specific startup source basis100 is independently reviewed and integrated at
+`de6612bf9890d1b1eb6dc685a157ba25f5f5bd7c`. Root shared acceptance:352 PASS,
+comprising349 source/mock controls and3 actual owned temporary-filesystem controls;
+none establishes native enforcement. A reviewer mistakenly ran those filesystem
+controls despite a read-only instruction; the filter failure is recorded separately.
+The local source basis remains unchanged and all native/portable authority stays false.
+
+Next: review the fixed, authentication-free public startup observation103 and close
+native executor source edges105. Standalone observations cannot establish Claude's
+command boundary. No model launches until that boundary's actual prerequisites pass.
+G0partial/G1–G4 incomplete; Copilot included Actions capacity separately pending;
+the earlier scoped Claude diagnostic remains closed. Alpha.11 remains unpublished;
+fixed pilot and immutable receipts are unchanged. Details and exact evidence are in
+[sealed-input acceptance](../acceptance/portable-sealed-typescript.md).
+
+## Historical checkpoint — verified UNKNOWN report; reviewed fixes pushed
 
 2026-10-14: run38598991001 bothFAILURE; receiver complete exact report recovered
 and independently accepted as UNKNOWN data only. Producer validation phase/cause

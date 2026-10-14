@@ -13,7 +13,58 @@ Node22.13 profile. A local proposal cannot certify that profile or its enforceme
 Existing checks, configurations and receipts are never silently converted.
 The unreleased CLI now offers explicit pending selection, not executable evidence.
 
-## Current checkpoint — actual receiver data retained; bounded corrections ready
+## Current checkpoint — fixed public observations; native boundary still unestablished
+
+2026-10-14: [run38606711077](https://github.com/msiric/redue/actions/runs/38606711077)
+used workflow `5d6228dd793a03d50e8ee83eb583120539b15d9f` and runtime
+`ccf2847a12c09f8a2fd61409e67c3493c9ff780a`. Both jobs failed conservatively.
+Receiver completed all four fixed inspection calls. Bash exit0/no signal/error
+emitted104 bytes of invalid-instruction warnings and remains incomplete/UNKNOWN.
+The separate path_helper inspection had empty stderr and complete bounded output.
+This is public binary-inspection data, not native execution or enforcement.
+
+Receiver artifact11915727757 contains exactly the intended two flat files.
+ZIP1,005,324 bytes SHA256
+`851761e910063ca02a45d2a068359b835dc50edcadda1045f598c47e5e514b07`;
+raw5,595,669 bytes SHA256
+`7504f33413b67cd51d444a2682bc3e48321d86930bd3f4f424425d258e24934f`.
+Independent098 ACCEPT_SCOPE verifies bounded archive/decompression, canonical JSON,
+manifest, pins and four stdout bindings. Artifact integrity is not producer trust.
+Producer reached files-ready but stopped at ARTIFACT_RESPONSE_HEADERS_UNKNOWN,
+observed HTTP403, with no uploaded producer artifact. The response cause is unknown;
+receiver results do not authenticate producer contents. No retry or bypass is made.
+The earlier producer failure remains unexplained rather than retroactively relabeled.
+
+Read-only source research101 finds the actual path_helper ROOT prefixing and
+MANPATH-presence branches consistent with pinned Apple shell_cmds-329 source
+commit `298787009e5432c5e4c378a077f98267077e3495`, source SHA256
+`8f1a55eb4b848b75447f3b3e7a5c8f63f6c23dc2a2dca01406b9cb4004d747f0`.
+That is the existing reviewed source pin, not complete binary/source correspondence.
+Bash jump-table observations leave complete startup reachability unestablished.
+
+CI-specific startup source basis100 is independently accepted by102 and integrated
+at `de6612bf9890d1b1eb6dc685a157ba25f5f5bd7c`. LOCAL basis is unchanged; CI-only
+binary pins, private namespace currentness and absence of five startup environment
+keys remain strict. Root shared352 PASS:349 source/mock controls and3 actual owned
+filesystem controls, TAP SHA256
+`e7320dc07ce9243fc0552be564ec411796076c512d4b9bb88f080290a8e5b986`.
+During review, a negative test filter unintentionally ran those3 temporary-filesystem
+controls despite a read-only instruction. The reviewer disclosed the breach; it is
+retained as an instruction failure, not evidence of an OS sandbox. No native/model,
+credential, API or compiler-check operation occurred. Source-only acceptance cannot
+supply controlledShellStartup or native enforcement.
+
+Next: independently review the bounded five-case public startup observation103 and
+resolve actual native executor edges105. Existing native policy does not explicitly
+reallow the private ROOT bodies; configuration alone does not establish actual
+startup failure or enforcement. A standalone successful check cannot satisfy that
+native prerequisite. No new model/CI operation is launched from these observations.
+No authority, recipe meaning, permission, signing or trust rule has changed.
+G0partial/G1–G4 incomplete; Copilot included Actions capacity remains pending;
+the earlier scoped hosted Claude diagnostic stays closed. Alpha.11 is unpublished;
+fixed pilot, protected local evidence and immutable receipts remain unchanged.
+
+## Historical checkpoint — actual receiver data retained; bounded corrections ready
 
 2026-10-14: [run38598991001](https://github.com/msiric/redue/actions/runs/38598991001)
 used reviewed workflow30d20ef/runtime08b on two independent standard macos-26 VMs
