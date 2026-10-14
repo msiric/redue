@@ -1,6 +1,6 @@
-# Approved storage-free public-tool facts and one fixed PRE-AUTH C build.
-# No credentials, uploads, helper/native/model executions or trust changes.
-name: Sealed-input public tool inventory
+# Fixed bounded public Mach-O output collection only, never behavior proof.
+# No credentials, uploads, C builds, target/native/model executions or trust changes.
+name: Fixed public Mach-O inspection
 on:
   workflow_dispatch:
 permissions:
@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   inventory:
-    name: Public tool facts (${{ matrix.machine }})
+    name: Public static inspection (${{ matrix.machine }})
     strategy:
       fail-fast: false
       max-parallel: 2
@@ -20,7 +20,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 2
     env:
-      REVIEWED_SOURCE: e5e908656eac9982a01ee4381b7828d5432cacdb
+      REVIEWED_SOURCE: e3095472a1b701c0d6475e7e39d93b91833ef0ce
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -43,14 +43,8 @@ jobs:
           test "$(git rev-parse HEAD)" = "$REVIEWED_SOURCE"
           test "$(uname -m)" = arm64
           test "$(node --version)" = v22.13.0
-          node --test test/sealed-typescript-host-tool-inventory.test.mjs
-      - name: Read-only public runtime and build-tool facts
-        shell: bash
-        run: |
-          set -euo pipefail
-          node test/acceptance/sealed-typescript-host-tool-inventory.mjs
-      - name: One fixed data-only pre-auth C build; never execute its helper
-        if: ${{ !cancelled() && steps.source_classifier.outcome == 'success' }}
+          node --test test/sealed-typescript-public-macho-inspection.test.mjs
+      - name: Fixed public tool version, help and ARM64e inspection data only
         shell: bash
         run: |
           set -euo pipefail
@@ -61,31 +55,23 @@ jobs:
             fi
           done
           test "$(git rev-parse HEAD)" = "$REVIEWED_SOURCE"
+          test "$(uname -m)" = arm64
           test "$(node --version)" = v22.13.0
           node --input-type=module <<'NODE'
-          import fs from 'node:fs';
-          import {createSealedTypeScriptCIBootstrap,prepareSealedTypeScriptCISyntheticFixture} from './test/acceptance/sealed-typescript-synthetic-fixture.mjs';
-          import {buildNativeStdioProbeForReviewedCI,verifyNativeStdioProbeBuild} from './test/acceptance/sealed-typescript-native-stdio-build.mjs';
-          const guard=v=>{if(!v)throw Error('PREAUTH_BUILD_UNKNOWN');};
-          const profile='redue-native-stdio-preauth-ci-sdk26.5@1',interpretation='redue-native-stdio-preauth-build@2';
-          const owned=base=>{guard(/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}$/.test(base)&&fs.realpathSync(base)===base);const s=fs.lstatSync(base,{bigint:true});guard(s.isDirectory()&&!s.isSymbolicLink()&&s.uid===BigInt(process.getuid())&&(s.mode&0o7777n)===0o700n);return ['dev','ino','uid','gid','mode'].map(k=>String(s[k])).join(':');};
-          let outcome='UNKNOWN',build=null,current=false,cleanup='NOT_ATTEMPTED';
-          try{
-            const bootstrap=createSealedTypeScriptCIBootstrap();guard(bootstrap.outcome==='CI_SYNTHETIC_BOOTSTRAP_PREPARED');const base=bootstrap.base,identity=owned(base);
-            const fixture=prepareSealedTypeScriptCISyntheticFixture(bootstrap);guard(fixture.outcome==='SYNTHETIC_FIXTURE_PREPARED');cleanup='RETAINED_CURRENTNESS_OR_CHILD_UNKNOWN';
-            build=buildNativeStdioProbeForReviewedCI({fixture});guard(build.outcome==='BUILT_NOT_EXECUTED'&&build.profileId===profile&&build.buildInterpretation===interpretation&&build.dispatchAttemptCount===1&&build.build?.completed===true&&build.build.pidObserved===true&&build.build.status===0&&build.build.signal===null&&build.build.spawnError==='NONE');
-            const verified=verifyNativeStdioProbeBuild(build);guard(verified.outcome==='BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED'&&verified.profileId===profile&&verified.buildInterpretation===interpretation&&verified.hostBase===base&&verified.helperSha256===build.helperSha256);current=true;
-            guard(owned(base)===identity);fs.rmSync(base,{recursive:true,force:false});try{fs.lstatSync(base);throw Error('CLEANUP_UNKNOWN');}catch(e){guard(e?.code==='ENOENT');}cleanup='OWNED_FRESH_BASE_REMOVED';outcome='BUILT_NOT_EXECUTED';
-          }catch{/* Retain an uncertain namespace; never print raw errors. */}
-          const digest=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v)?v:null;
-          const b=build?.build,safeCount=v=>Number.isSafeInteger(v)&&v>=0?v:null;
-          const signals=new Set(['SIGKILL','SIGTERM','SIGABRT','SIGSEGV','SIGBUS','SIGILL','SIGINT']);
-          const report={schema:1,scope:'FIXED_CI_PREAUTH_C_BUILD_DATA_ONLY',outcome,profileId:build?.profileId===profile?profile:null,buildInterpretation:build?.buildInterpretation===interpretation?interpretation:null,
-            sourceSha256:digest(build?.sourceSha256),helperSha256:digest(build?.helperSha256),cBuildAttemptCount:build?.dispatchAttemptCount===1?1:0,
-            compilerProcess:b?{pidObserved:b.pidObserved===true,completed:b.completed===true,status:Number.isInteger(b.status)&&b.status>=0&&b.status<=255?b.status:null,signal:b.signal===null?null:signals.has(b.signal)?b.signal:'UNKNOWN',spawnError:b.spawnError==='NONE'?'NONE':'UNKNOWN',stdoutBytes:safeCount(b.stdoutBytes),stderrBytes:safeCount(b.stderrBytes)}:null,
-            privateBuildCurrentnessObserved:current,cleanup,commands:[],helperExecutions:0,nativeLaunches:0,models:0,compilerCheckExecutions:0,recordAdoptionAuthority:false,
-            completeSdkClosure:'NOT_ESTABLISHED',nativeEnforcement:'NOT_ESTABLISHED',preMainLoader:'NOT_ESTABLISHED',sealed:false,reuseEligible:false};
-          console.log(JSON.stringify(report));process.exitCode=outcome==='BUILT_NOT_EXECUTED'?0:74;
+          import {inspectFixedNativeStartupPublicBinaries} from './test/acceptance/sealed-typescript-public-macho-inspection.mjs';
+          let inspection=null;
+          try{inspection=inspectFixedNativeStartupPublicBinaries();}catch{/* UNKNOWN; never raw errors. */}
+          const r=inspection;
+          const collected=r?.schema===1&&r.interpretation==='redue-fixed-public-macho-inspection@1'&&r.scope==='PUBLIC_STATIC_SOURCE_INSPECTION_ONLY'&&r.outcome==='PUBLIC_OUTPUT_COLLECTED_NOT_BEHAVIOR_PROOF'&&
+            r.publicOutputUntrusted===true&&r.ownedDescriptorsClosed===true&&r.ownedCwdCleanup==='REMOVED_OWNED_EMPTY_CWD'&&Array.isArray(r.calls)&&r.calls.length===4&&
+            ['version','help','bash','path_helper'].every((role,i)=>{const c=r.calls[i];return c?.role===role&&c.complete===true&&c.pidObserved===true&&c.exitCode===0&&c.signal===null&&c.errorCode===null&&c.stderrEmpty===true;})&&
+            r.targets?.bash?.outputObserved===true&&r.targets?.path_helper?.outputObserved===true&&r.profileApproved===false&&r.sealed===false&&r.reuseEligible===false&&
+            r.models===0&&r.nativeAgentLaunches===0&&r.targetExecutions===0&&r.compilerCheckExecutions===0&&r.behavior==='NOT_ESTABLISHED'&&r.appleAuthenticity==='NOT_ESTABLISHED'&&r.nativeEnforcement==='NOT_ESTABLISHED'&&r.completeSdkClosure==='NOT_ESTABLISHED';
+          // Full bounded public stdout is untrusted data for independent source
+          // review. A successful job means collection only, not native acceptance.
+          console.log(JSON.stringify({schema:1,scope:'FIXED_CI_PUBLIC_MACHO_INSPECTION_DATA_ONLY',outcome:collected?'PUBLIC_OUTPUT_COLLECTED_NOT_BEHAVIOR_PROOF':'UNKNOWN',inspection}));
+          process.exitCode=collected?0:74;
           NODE
-      # Inventory failures remain job failures; no continue-on-error or retries.
-      # No model credentials/environment, cache, artifact, OIDC or signing.
+      # Any missing guard remains UNKNOWN/exit74; no retries or continue-on-error.
+      # Public output cap:17MiB+72KiB before JSON escaping; no artifact upload.
+      # No model credentials/environment, cache, OIDC, signing or authority transfer.
