@@ -7,7 +7,21 @@ existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
 
-## Current checkpoint — actual static inspection UNKNOWN; repair underway
+## Current checkpoint — reviewed capture ready; one owner UI launch
+
+2026-10-14: Use existing integration08b and dedicated CI branch30d20ef; both pushed.
+Workflow SHA256 f30da542dccbdd81e73a765ba4d69ac4d3a8e3e517e7840bf0dff6aa70c1ae6a.
+Fresh086 ACCEPT; root52 mock controls PASS. No new actual operation.
+Next: NEW normal owner Actions UI run → dev/portable-sealed-host-preflight.
+Do not retry denied API dispatch, use Re-run jobs, repin startup or launch models.
+Collect exact two artifacts with hash/size/decompression checks as untrusted data.
+
+Exact identities, prior failures, review limits and next operation are recorded
+in [the current acceptance summary](../acceptance/portable-sealed-typescript.md).
+G0partial; G1–G4 incomplete, alpha.11 unpublished, Copilot capacity pending.
+Existing scoped Claude diagnostic remains closed; no new account question.
+
+## Historical checkpoint — actual static inspection UNKNOWN; repair underway
 
 2026-10-14: [run38586798824](https://github.com/msiric/redue/actions/runs/38586798824)
 used workflow016fa017/runtimee3095472. Both independent jobs failed conservatively.

@@ -4,7 +4,19 @@ Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revisio
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
 
-## Current checkpoint — actual static inspection UNKNOWN; repair underway
+## Current checkpoint — reviewed capture ready; hosted result pending
+
+2026-10-14: 085/086 exact workflow30d20ef is independently accepted and pushed; runtime08b.
+Root52 controls PASS; independent52+29 behavioral+2 structural controls PASS.
+Both prior actual jobs remain UNKNOWN; no new hosted/native/model acceptance.
+Storage snapshot plus both-job reserve fits10MiB; next jobs recheck fail-closed.
+
+Exact identities, prior failures, review limits and next operation are recorded
+in [the current acceptance summary](../acceptance/portable-sealed-typescript.md).
+G0partial; G1–G4 incomplete, alpha.11 unpublished, Copilot capacity pending.
+Existing scoped Claude diagnostic remains closed; no new account question.
+
+## Historical checkpoint — actual static inspection UNKNOWN; repair underway
 
 2026-10-14: [run38586798824](https://github.com/msiric/redue/actions/runs/38586798824)
 used workflow016fa017/runtimee3095472. Both independent jobs failed conservatively.

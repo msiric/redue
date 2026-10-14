@@ -13,7 +13,54 @@ Node22.13 profile. A local proposal cannot certify that profile or its enforceme
 Existing checks, configurations and receipts are never silently converted.
 The unreleased CLI now offers explicit pending selection, not executable evidence.
 
-## Current checkpoint — actual static inspection UNKNOWN; repair underway
+## Current checkpoint — reviewed bounded report capture ready
+
+2026-10-14: both jobs of [run38586798824](https://github.com/msiric/redue/actions/runs/38586798824)
+remain UNKNOWN. Nonempty stderr and malformed logged reports are not successful
+inspection or enforcement. No masked bytes were reconstructed; all partial records
+and failed collection attempts are retained below and privately.
+
+Repair083 is integrated at `08b127154bdc7634ea76763675c0a1df5ed61d77`:
+actual ARM64/E header recognition, closed redacted stderr classification, and two
+fixed compressed public-data files. Every nonempty stderr still withholds completion.
+Fresh084 review ACCEPT:144 supplied plus45 independent controls; root144 PASS,
+TAP SHA256 `aff8947a47cba096b4680cd3e9cb6b9243305c69323d3a740791abe7c9159271`.
+
+Workflow085/086 is independently ACCEPT at
+`30d20ef49476f71231f126ffda06018b02aded98`, SHA256
+`f30da542dccbdd81e73a765ba4d69ac4d3a8e3e517e7840bf0dff6aa70c1ae6a`.
+Normal push and remote bytes verified; it pins that exact08b runtime. Supplied52
+controls PASS independently and at root;29 additional behavioral and2 structural
+review controls PASS. Root TAP SHA256
+`77635b33ab9f8d9130d8e22237b62bfca6b52ed604686318ad4ca70bc97a5f6c`.
+Author predecessor50PASS/2FAIL and the failed edit remain preserved; contradictory
+stderr/elapsed metadata is now rejected, not silently accepted.
+
+Only `public-inspection.json.gz` and `manifest.json` may upload: combined2MiB per
+job, raw/decompression24MiB, manifest4KiB, one-day retention and no overwrite.
+Canonical owner/FD/name/ancestor/hash/schema guards run before the pinned action.
+One bounded anonymous fixed-public-API GET checks complete storage metadata;
+active3,980,014 bytes plus4,456,448 two-job reserve fits the confirmed10MiB allowance.
+Actual jobs recheck; failure refuses upload. No deletion of unrelated artifacts.
+UNKNOWN complete diagnostic files may upload but the final inspection exits74.
+File readiness, artifact delivery and hashes confer no profile, seal or producer trust.
+
+Review limits: remote usage is a snapshot, not an atomic reservation; do not launch
+competing storage work. Near-cap second uploads can conservatively refuse because
+the reserve also counts the first upload. File validation/action reads rely on the
+trusted quiescent owned checkout. Actual API availability/upload/archive/runner
+behavior is NOT RUN for this revision; source/mock PASS is not hosted acceptance.
+
+Next: one NEW normal owner Actions UI run of portable-preflight.yml on
+`dev/portable-sealed-host-preflight`, not Re-run jobs. The unchanged API403 is not
+retried or bypassed. No credentials, C build, native agent/model/compiler check,
+signing or trust change. Collect exact files and actual stderr classification;
+then inspect instructions/callees before any startup profile admission.
+G0partial; G1–G4 incomplete. Copilot included Actions capacity remains pending;
+closed scoped hosted Claude diagnostic stays closed. Alpha.11 remains unpublished,
+fixed pilot/receipts unchanged. No actual portable agent reuse or economics claimed.
+
+## Historical checkpoint — actual static inspection UNKNOWN; repair underway
 
 2026-10-14: [run38586798824](https://github.com/msiric/redue/actions/runs/38586798824)
 used workflow016fa017/runtimee3095472. Both independent jobs failed conservatively.
