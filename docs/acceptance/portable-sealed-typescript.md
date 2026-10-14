@@ -13,7 +13,43 @@ Node22.13 profile. A local proposal cannot certify that profile or its enforceme
 Existing checks, configurations and receipts are never silently converted.
 The unreleased CLI now offers explicit pending selection, not executable evidence.
 
-## Current checkpoint — actual pre-auth builds observed on both VMs
+## Current checkpoint — reviewed fixed public inspection ready
+
+2026-10-14: actual run38579790669 built the same helper on both independent VMs;
+that scoped success and the original inventory failures remain recorded below.
+No helper, native agent or model executed. Independent076 ACCEPT_SCOPE confirms it.
+
+Inspector075B atf8ba565 is independently accepted:91 mock tests plus30 independent
+controls PASS. Both earlier misleading-format cases fail on the predecessor and
+remain preserved. Exact implementation is integrated at runtime
+`e3095472a1b701c0d6475e7e39d93b91833ef0ce`; root combined192 mock tests PASS,
+TAP SHA256 `4dc452c9973c670dd6ce264673e7a63e11b7e0864821c1f1a49ba961dacfc4c6`.
+Actual installed-tool compatibility, output volume and shell behavior are unobserved.
+
+Workflow079/080 is independently accepted at `016fa017457f7bf4f9df765e9593e46a5598109b`:
+40 supplied controls plus50 independent controls PASS; root40 PASS. SHA256
+`037d3acd43ba2b68e8c0c075a2802bba4e45c57d806a9822f60806dcfb742ef2` is pushed and
+verified remotely, with that exact runtime pin. Initial normal push failed with
+remote commit_refs; remote unchanged/read checks preceded one successful bounded
+normal retry. Cause was not established; no credential or alternate-transport change.
+
+Next: one NEW normal owner Actions UI run of portable-preflight.yml on
+`dev/portable-sealed-host-preflight` (not Re-run jobs). Existing API403 is not retried.
+Same two standard VMs, manual actor/ref/attempt guards, read-only permissions and
+two-minute limits. This job performs only the fixed tool's bounded version/help and
+public-binary disassembly collection; it does not repeat the completed C build.
+No credentials, model calls, target execution, uploads, cache, signing or trust change.
+Job success means collection only. Unsupported options/layouts, incomplete process
+or uncertain cleanup remain UNKNOWN. No automatic startup repin follows.
+
+Collect the actual outputs, then independently inspect relevant instructions/callees.
+Source strings or exit0 cannot establish behavior. Sealing, native startup/loader
+protection, full profile and actual portable machine/agent reuse remain unestablished.
+G0partial; G1–G4 incomplete. Copilot included Actions capacity remains separately
+pending. Existing hosted Claude prerequisite stays closed in its actual scope.
+Alpha.11 is unpublished; Day0, fixed pilot and immutable receipts remain unchanged.
+
+## Historical checkpoint — actual pre-auth builds observed on both VMs
 
 2026-10-14: [run38579790669](https://github.com/msiric/redue/actions/runs/38579790669)
 used reviewed workflowf26ad105/runtimee5e90865 on two independent macOS26.6.2/25G83,
