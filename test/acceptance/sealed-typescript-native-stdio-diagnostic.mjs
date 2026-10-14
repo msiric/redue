@@ -48,7 +48,7 @@ async function runFixedDirectDiagnostic(options,witness){
   sourcePin=witness?NATIVE_STARTUP_WITNESS_SOURCE_SHA256:NATIVE_STDIO_SOURCE_SHA256,
   buildRule=witness?'redue-native-child-startup-witness-preauth-build@1':'redue-native-stdio-preauth-build@2';
  const {env,source,signal}=options;let phase='ACTIVATION_OR_PROFILE_UNAVAILABLE',base=null,baseId=null,observed=null,interpreted=null,launched=false,cleanup='NOT_NEEDED',reason=null;
- let fixture,build,startup,proposal,manifest,nativeEnv,argv,binding,ownerFact,pre=null,post=null,remotePolicyEstablished=false;
+ let fixture,build,startup,proposal,manifest,nativeEnv,argv,binding,ownerFact,pre=null,post=null,remotePolicyEstablished=false,buildRequested=false;
  const started=performance.now();let last=started,deadline=null;
  const remaining=()=>{const now=performance.now();guard(Number.isFinite(now)&&Number.isFinite(last)&&now>=last&&deadline!==null);last=now;return deadline-now;};
  const bounded=fn=>{guard(remaining()>0&&!signal?.aborted);const value=fn();guard(remaining()>0&&!signal?.aborted);return value;};
@@ -66,9 +66,18 @@ async function runFixedDirectDiagnostic(options,witness){
   const nativeRow=bounded(()=>readOwnedDiagnosticFile(native,224*1024*1024));guard(nativeRow.digest===REVIEWED_CLAUDE_NATIVE.sha256);
   // Validate forbidden authentication/runtime overrides BEFORE owned preparation.
   bounded(()=>nativeDiagnosticEnvironment(env,{host:nativeBase}));
-  phase='LIVE_FIXTURE_UNAVAILABLE';const bootstrap=bounded(()=>createSealedTypeScriptCIBootstrap());guard(bootstrap.outcome==='CI_SYNTHETIC_BOOTSTRAP_PREPARED');base=bootstrap.base;baseId=bounded(()=>ownBase(base));
+  phase='LIVE_FIXTURE_UNAVAILABLE';const bootstrap=bounded(()=>{
+   // Preparation may create a namespace before returning UNKNOWN or throwing.
+   // Until its successful result AND canonical owned identity are established,
+   // retain unknown resources; never adopt or remove a partial returned base.
+   cleanup='BOOTSTRAP_RESOURCES_UNKNOWN_RETAINED';return createSealedTypeScriptCIBootstrap();
+  });guard(bootstrap.outcome==='CI_SYNTHETIC_BOOTSTRAP_PREPARED');base=bootstrap.base;baseId=bounded(()=>ownBase(base));
   fixture=bounded(()=>prepareSealedTypeScriptCISyntheticFixture(bootstrap));guard(fixture.outcome==='SYNTHETIC_FIXTURE_PREPARED');
-  phase='LIVE_BUILD_UNAVAILABLE';build=bounded(()=>buildFixed({fixture}));guard(build.outcome==='BUILT_NOT_EXECUTED'&&build.profileId==='redue-native-stdio-preauth-ci-sdk26.5@1'&&build.buildInterpretation===buildRule&&build.sourceSha256===sourcePin);
+  phase='LIVE_BUILD_UNAVAILABLE';build=bounded(()=>{
+   // Retain a returned build observation before the post-call budget check.
+   // A throw leaves execution count unknown, not a fabricated zero attempt.
+   buildRequested=true;build=buildFixed({fixture});return build;
+  });guard(build.outcome==='BUILT_NOT_EXECUTED'&&build.profileId==='redue-native-stdio-preauth-ci-sdk26.5@1'&&build.buildInterpretation===buildRule&&build.sourceSha256===sourcePin);
   phase='LIVE_STARTUP_UNAVAILABLE';startup=bounded(()=>prepareStartup({fixture,build}));guard(startup.outcome==='STARTUP_PREPARED_NOT_LAUNCHED');
   const host=base+'/claude-host',assets={host,code:build.cwd};
   proposal=bounded(()=>prepareCommand({build,claudeExecutable:native,claudeSha256:REVIEWED_CLAUDE_NATIVE.sha256,claudeVersion:REVIEWED_CLAUDE_NATIVE.version}));
@@ -133,7 +142,7 @@ async function runFixedDirectDiagnostic(options,witness){
   observation:interpreted??null,nativeLaunchAttempted:launched,nativeSpawnObserved:observed?.native_process_spawn_observed??false,
   nativeExit:observed?.native_exit_code??null,nativeSignal:observed?.native_signal??null,nativeCloseObserved:observed?.native_exit_observed??false,nativeReaped:observed?.owned_native_reaped??false,timedOut:observed?.timed_out??false,jobDeadlineExceeded:deadline===null?null:clockKnown?ended>=deadline:'UNKNOWN',milliseconds:clockKnown?ended-started:null,nativeMilliseconds:observed?.milliseconds??null,
   sourceStartupBefore:pre,sourceStartupAfter:post,remotePolicyRule:remotePolicyEstablished?POST_REMOTE_SENTINEL_RULE:null,
-  accountFactDigest:ownerFact?.digest??null,helperSha256:typeof build?.helperSha256==='string'&&/^[a-f0-9]{64}$/.test(build.helperSha256)?build.helperSha256:null,buildProfileId:build?.profileId??null,buildInterpretation:build?.buildInterpretation??null,buildOutcome:build?.outcome??'NOT_STARTED',buildAttemptCount:build?.dispatchAttemptCount??0,cleanup});
+  accountFactDigest:ownerFact?.digest??null,helperSha256:typeof build?.helperSha256==='string'&&/^[a-f0-9]{64}$/.test(build.helperSha256)?build.helperSha256:null,buildProfileId:build?.profileId??null,buildInterpretation:build?.buildInterpretation??null,buildRequested,buildOutcome:build?.outcome??(buildRequested?'UNKNOWN':'NOT_STARTED'),buildAttemptCount:Number.isInteger(build?.dispatchAttemptCount)&&build.dispatchAttemptCount>=0&&build.dispatchAttemptCount<=1?build.dispatchAttemptCount:buildRequested?null:0,cleanup});
 }
 async function main(signal){const args=process.argv.slice(2);guard(args.length===3&&args[0]==='--run'&&args[1]==='--source');return runFixedNativeStdioDiagnostic({env:process.env,source:args[2],signal});}
 if(process.argv[1]&&fileURLToPath(import.meta.url)===path.resolve(process.argv[1])){
