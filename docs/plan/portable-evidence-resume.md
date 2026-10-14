@@ -7,7 +7,47 @@ existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
 
-## Current checkpoint — native ran; precise tool-refusal reporting ready
+## Current checkpoint — exact witness input reviewed; one changed-procedure attempt ready
+
+2026-10-14: [run38636497478](https://github.com/msiric/redue/actions/runs/38636497478)
+used workflowd968/runtime2ca, attempt1. Independent133 ACCEPT_SCOPE retains
+UNKNOWN/NATIVE_TOOL_SCOPE: COMMAND_MISMATCH at tool item1, with no prior accepted
+request. Native spawn/close/reap and exit0 were observed; native6.286s/controller
+13.701s. Currentness guards passed, one helper was built and owned cleanup completed.
+The actual requested command was deliberately not retained. Its mismatch cause and
+helper execution remain unproven; exit0/cleanup are not enforcement evidence.
+Report SHA256 `c03612bf1446182c77d9cc0a4acd4c71b576a5d240623b5a9681f457285f89c7`;
+log321,457 bytes SHA256
+`00aec7bc498dd240ec23ad8f62790938ab716088bc23a9e02b61b7be53e1ce9a`.
+
+DIR134/135 ACCEPT is integrated/pushed as runtime
+`bc50a9f1111625151a3c805f050a718bfe8252d6`. The witness-only prompt supplies exact
+JSON tool input (unchanged quoted command, timeout15000); generation and full argv
+validation share the same private selection. Old prompts/argv, accepted command,
+permissions, context, guard order, limits and cleanup remain unchanged. Reviewer139
+supplied+9 independent source/pure-mock controls pass. Root139 focused PASS and1055
+shared PASS/1 optional C-build SKIP; three shared controls use owned temporary files.
+Shared579.514ms, TAP SHA256
+`4b6ceb0248e9ee0ff42615618df792bb78d8820dae7ef2256786164349853846`.
+These tests establish neither native enforcement nor why the earlier command differed.
+
+DIR136/137 workflow ACCEPT is pushed and remotely verified at
+`3eb677ac828a3f74c3c9bb43e3375b0598db6126`, file SHA256
+`f374643783b8d3562f72b1c0a58dea8f203bbfd496f8d0a53b44aa98338d9382`.
+Only two runtime pins changed. Root9 source/mock/syntax and reviewer8 source/pure-mock
+controls pass. Protected source alone is aligned; original owner review timestamp
+2026-10-14T19:26:03Z is preserved. Input provenance validation passes, digest
+`e5c329910465c0a94a5dea1ebbed40a1a236cc1bd151084f3568349f719d453a`.
+No secret value was accessed; no signing/trust/access/spending authority expanded.
+
+Next: one NEW normal owner Actions UI run of portable-claude-diagnostic.yml on
+`dev/portable-claude-diagnostic`, not Re-run jobs. CLI dispatch403 remains unchanged
+and is not retried. Collect and independently review its actual result before any
+further approach; no retries for a score. This is not G2 or agent reuse. G0partial,
+G1–G4 incomplete; Copilot included Actions capacity is separately pending. Earlier
+scoped six-check prerequisite stays closed; alpha.11 unpublished and pilot preserved.
+
+## Historical checkpoint — native ran; precise tool-refusal reporting ready
 
 2026-10-14: [run38632067782](https://github.com/msiric/redue/actions/runs/38632067782)
 used workflow41832/runtime7064, attempt1. Independent127 ACCEPT_SCOPE verifies
