@@ -39,7 +39,7 @@ function prepareCommand(options,direct){
  return freeze({schema:1,scope:direct?'DISABLED_SINGLE_DIRECT_NATIVE_STDIO_COMMAND_PROPOSAL_ONLY':'DISABLED_FIXED_NATIVE_STDIO_COMMAND_PROPOSAL_ONLY',disabled:true,
   hostBase:base,command_proposed:command,cwd_proposed:first.cwd,settings_file_proposed:settingsFile,settings_proposed:settings,argv_proposed:argv,
   native_executable_proposed:options.claudeExecutable,native_version_proposed:options.claudeVersion,native_sha256_proposed:options.claudeSha256,
-  source_sha256:first.sourceSha256,helper_sha256:first.helperSha256,
+  source_sha256:first.sourceSha256,helper_sha256:first.helperSha256,build_profile_id:first.profileId,build_interpretation:first.buildInterpretation,
   source_command_admission:direct?'SINGLE_LITERAL_COMMAND_REQUIRES_EFFECTIVE_ADMISSION':'EXPECTED_DENIED_IF_NATIVE_PARSES_PRINTF_SUBCOMMAND',
   max_turns_proposed:4,parent_timeout_ms_proposed:120000,tool_timeout_ms_proposed:15000,
   exact_read_leaves:['/bin/bash',helper],read_denials_retained:true,credential_denials_retained:true,

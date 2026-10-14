@@ -4,7 +4,7 @@
 import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';import {createHash} from 'node:crypto';
 import {createSealedTypeScriptCIBootstrap,prepareSealedTypeScriptCISyntheticFixture,verifySealedTypeScriptSyntheticFixture} from './sealed-typescript-synthetic-fixture.mjs';
-import {buildNativeStdioProbe,verifyNativeStdioProbeBuild} from './sealed-typescript-native-stdio-build.mjs';
+import {buildNativeStdioProbeForReviewedCI,verifyNativeStdioProbeBuild} from './sealed-typescript-native-stdio-build.mjs';
 import {prepareNativeStdioStartup,verifyNativeStdioStartup} from './sealed-typescript-native-stdio-startup.mjs';
 import {prepareDirectNativeStdioProbeCommand} from './sealed-typescript-native-stdio-command.mjs';
 import {nativeStdioDirectCommand,NATIVE_STDIO_SOURCE_SHA256} from './sealed-typescript-native-stdio-probe.mjs';
@@ -52,11 +52,11 @@ export async function runFixedNativeStdioDiagnostic(options){
   bounded(()=>nativeDiagnosticEnvironment(env,{host:nativeBase}));
   phase='LIVE_FIXTURE_UNAVAILABLE';const bootstrap=bounded(()=>createSealedTypeScriptCIBootstrap());guard(bootstrap.outcome==='CI_SYNTHETIC_BOOTSTRAP_PREPARED');base=bootstrap.base;baseId=bounded(()=>ownBase(base));
   fixture=bounded(()=>prepareSealedTypeScriptCISyntheticFixture(bootstrap));guard(fixture.outcome==='SYNTHETIC_FIXTURE_PREPARED');
-  phase='LIVE_BUILD_UNAVAILABLE';build=bounded(()=>buildNativeStdioProbe({fixture}));guard(build.outcome==='BUILT_NOT_EXECUTED');
+  phase='LIVE_BUILD_UNAVAILABLE';build=bounded(()=>buildNativeStdioProbeForReviewedCI({fixture}));guard(build.outcome==='BUILT_NOT_EXECUTED'&&build.profileId==='redue-native-stdio-preauth-ci-sdk26.5@1'&&build.buildInterpretation==='redue-native-stdio-preauth-build@2');
   phase='LIVE_STARTUP_UNAVAILABLE';startup=bounded(()=>prepareNativeStdioStartup({fixture,build}));guard(startup.outcome==='STARTUP_PREPARED_NOT_LAUNCHED');
   const host=base+'/claude-host',assets={host,code:build.cwd};
   proposal=bounded(()=>prepareDirectNativeStdioProbeCommand({build,claudeExecutable:native,claudeSha256:REVIEWED_CLAUDE_NATIVE.sha256,claudeVersion:REVIEWED_CLAUDE_NATIVE.version}));
-  guard(proposal.command_proposed===nativeStdioDirectCommand(base)&&proposal.cwd_proposed===build.cwd&&proposal.settings_file_proposed===host+'/settings.json'&&build.sourceSha256===NATIVE_STDIO_SOURCE_SHA256);
+  guard(proposal.build_profile_id===build.profileId&&proposal.build_interpretation===build.buildInterpretation&&proposal.command_proposed===nativeStdioDirectCommand(base)&&proposal.cwd_proposed===build.cwd&&proposal.settings_file_proposed===host+'/settings.json'&&build.sourceSha256===NATIVE_STDIO_SOURCE_SHA256);
   phase='FIXED_SETTINGS_UNAVAILABLE';const settings=structuredClone(proposal.settings_proposed);
   // NONbare OAuth requires closing auto-memory and managed instructions/rules.
   Object.assign(settings,startup.requiredSettings);
@@ -79,7 +79,7 @@ export async function runFixedNativeStdioDiagnostic(options){
   const current=(when)=>{
    guard(actualBindings());nativeShape();bounded(()=>validateOwnedDiagnosticManifest(manifest));nativeShape();
    const f=bounded(()=>verifySealedTypeScriptSyntheticFixture(fixture)),b=bounded(()=>verifyNativeStdioProbeBuild(build)),s=bounded(()=>verifyNativeStdioStartup(startup,when));
-   guard(f.outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED'&&b.outcome==='BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED'&&s.outcome==='STARTUP_CURRENTLY_OBSERVED_SOURCE_ONLY'&&f.base===base&&b.hostBase===base&&s.hostBase===base);
+   guard(f.outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED'&&b.outcome==='BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED'&&b.profileId===build.profileId&&b.buildInterpretation===build.buildInterpretation&&s.outcome==='STARTUP_CURRENTLY_OBSERVED_SOURCE_ONLY'&&f.base===base&&b.hostBase===base&&s.hostBase===base);
    bounded(()=>requireNativeDiagnosticActivation({env,source}));return {sourceBasisCurrent:s.sourceBasisCurrent===true,actualBindingsApplied:actualBindings()};
   };
   phase='PRE_NATIVE_SOURCE_UNAVAILABLE';bounded(()=>selectedStartupSourcesAbsent(assets));pre=current('BEFORE_NATIVE');guard(remaining()>5000);
@@ -116,7 +116,7 @@ export async function runFixedNativeStdioDiagnostic(options){
   observation:interpreted??null,nativeLaunchAttempted:launched,nativeSpawnObserved:observed?.native_process_spawn_observed??false,
   nativeExit:observed?.native_exit_code??null,nativeSignal:observed?.native_signal??null,nativeCloseObserved:observed?.native_exit_observed??false,nativeReaped:observed?.owned_native_reaped??false,timedOut:observed?.timed_out??false,jobDeadlineExceeded:deadline===null?null:clockKnown?ended>=deadline:'UNKNOWN',milliseconds:clockKnown?ended-started:null,nativeMilliseconds:observed?.milliseconds??null,
   sourceStartupBefore:pre,sourceStartupAfter:post,remotePolicyRule:remotePolicyEstablished?POST_REMOTE_SENTINEL_RULE:null,
-  accountFactDigest:ownerFact?.digest??null,helperSha256:typeof build?.helperSha256==='string'&&/^[a-f0-9]{64}$/.test(build.helperSha256)?build.helperSha256:null,buildOutcome:build?.outcome??'NOT_STARTED',buildAttemptCount:build?.dispatchAttemptCount??0,cleanup});
+  accountFactDigest:ownerFact?.digest??null,helperSha256:typeof build?.helperSha256==='string'&&/^[a-f0-9]{64}$/.test(build.helperSha256)?build.helperSha256:null,buildProfileId:build?.profileId??null,buildInterpretation:build?.buildInterpretation??null,buildOutcome:build?.outcome??'NOT_STARTED',buildAttemptCount:build?.dispatchAttemptCount??0,cleanup});
 }
 async function main(signal){const args=process.argv.slice(2);guard(args.length===3&&args[0]==='--run'&&args[1]==='--source');return runFixedNativeStdioDiagnostic({env:process.env,source:args[2],signal});}
 if(process.argv[1]&&fileURLToPath(import.meta.url)===path.resolve(process.argv[1])){
