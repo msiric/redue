@@ -3,15 +3,26 @@
 import fs from 'node:fs';import path from 'node:path';import os from 'node:os';
 import {createHash} from 'node:crypto';import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-const guard=x=>{if(!x)throw Error('PUBLIC_TOOL_INVENTORY_UNKNOWN');};
+const guard=(x,reason)=>{if(!x){const error=Error('PUBLIC_TOOL_INVENTORY_UNKNOWN');if(reason)error.inventoryGuard=reason;throw error;}};
 const mark=s=>['dev','ino','uid','gid','mode','nlink','size','mtimeNs','ctimeNs'].map(k=>String(s[k])).join(':');
 function lineage(file){const rows=[];for(let at=path.dirname(file);;at=path.dirname(at)){const s=fs.lstatSync(at,{bigint:true});guard(s.isDirectory()&&!s.isSymbolicLink());rows.push([at,['dev','ino','uid','gid','mode'].map(k=>String(s[k])).join(':')]);if(at===path.dirname(at))return rows;}}
-function publicFile(file,owner,limit){
- guard(fs.realpathSync(file)===file);const s=fs.lstatSync(file,{bigint:true});guard(s.isFile()&&!s.isSymbolicLink()&&s.uid===BigInt(owner)&&s.nlink===1n&&(s.mode&0o6022n)===0n&&s.size>0n&&s.size<=BigInt(limit));
- const before=lineage(file),fd=fs.openSync(file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK),hash=createHash('sha256');
- try{guard(mark(s)===mark(fs.fstatSync(fd,{bigint:true})));const bytes=Buffer.alloc(65536);let at=0;while(at<Number(s.size)){const asked=Math.min(bytes.length,Number(s.size)-at),n=fs.readSync(fd,bytes,0,asked,at);guard(Number.isInteger(n)&&n>0&&n<=asked);hash.update(bytes.subarray(0,n));at+=n;}guard(mark(s)===mark(fs.fstatSync(fd,{bigint:true})));}finally{fs.closeSync(fd);}
- guard(mark(s)===mark(fs.lstatSync(file,{bigint:true}))&&JSON.stringify(before)===JSON.stringify(lineage(file)));return {sha256:hash.digest('hex'),bytes:Number(s.size),owner:owner===0?'ROOT':'CALLER',
-  stat:{regularFile:true,singleLink:true,permissionBits:Number(s.mode&0o7777n),canonical:true,closingIdentityChecked:true}};
+function publicFile(file,owner,limit,result={}){
+ result.observationPhase='CANONICAL_PATH';result.metadata={canonicalMatch:fs.realpathSync(file)===file};guard(result.metadata.canonicalMatch,'NON_CANONICAL');
+ result.observationPhase='FILE_METADATA';const s=fs.lstatSync(file,{bigint:true});
+ result.metadata={...result.metadata,type:s.isSymbolicLink()?'SYMLINK':s.isFile()?'REGULAR_FILE':s.isDirectory()?'DIRECTORY':'OTHER',
+  owner:s.uid===0n?'ROOT':s.uid===BigInt(process.getuid())?'CALLER':'OTHER',ownerMatches:s.uid===BigInt(owner),singleLink:s.nlink===1n,
+  permissionsAccepted:(s.mode&0o6022n)===0n,size:s.size<=0n?'EMPTY_OR_INVALID':s.size>BigInt(limit)?'OVER_LIMIT':'WITHIN_LIMIT'};
+ guard(s.isFile()&&!s.isSymbolicLink(),'FILE_TYPE_UNSUPPORTED');guard(s.uid===BigInt(owner),'OWNER_MISMATCH');guard(s.nlink===1n,'LINK_COUNT_UNSUPPORTED');
+ guard((s.mode&0o6022n)===0n,'PERMISSIONS_UNSUPPORTED');guard(s.size>0n&&s.size<=BigInt(limit),'SIZE_UNSUPPORTED');
+ result.observationPhase='ANCESTOR_METADATA';const before=lineage(file);
+ result.observationPhase='OPEN_READ_ONLY';const fd=fs.openSync(file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK),hash=createHash('sha256');result.fdClose='NOT_OBSERVED';
+ try{result.observationPhase='START_FD_IDENTITY';guard(mark(s)===mark(fs.fstatSync(fd,{bigint:true})),'OPEN_FD_IDENTITY_CHANGED');
+  result.observationPhase='BODY_HASH';const bytes=Buffer.alloc(65536);let at=0;while(at<Number(s.size)){const asked=Math.min(bytes.length,Number(s.size)-at),n=fs.readSync(fd,bytes,0,asked,at);guard(Number.isInteger(n)&&n>0&&n<=asked,'BODY_READ_INVALID');hash.update(bytes.subarray(0,n));at+=n;}
+  result.observationPhase='CLOSING_FD_IDENTITY';guard(mark(s)===mark(fs.fstatSync(fd,{bigint:true})),'CLOSING_FD_IDENTITY_CHANGED');
+ }finally{fs.closeSync(fd);result.fdClose='CLOSED';}
+ result.observationPhase='CLOSING_NAME_IDENTITY';guard(mark(s)===mark(fs.lstatSync(file,{bigint:true})),'CLOSING_NAME_IDENTITY_CHANGED');
+ result.observationPhase='CLOSING_ANCESTOR_IDENTITY';guard(JSON.stringify(before)===JSON.stringify(lineage(file)),'CLOSING_ANCESTOR_IDENTITY_CHANGED');
+ Object.assign(result,{sha256:hash.digest('hex'),bytes:Number(s.size),owner:owner===0?'ROOT':'CALLER',stat:{regularFile:true,singleLink:true,permissionBits:Number(s.mode&0o7777n),canonical:true,closingIdentityChecked:true}});result.observationPhase='COMPLETE';return result;
 }
 export function publicDeveloperPath(file,kind){
  if(typeof file!=='string'||file.length>4096||/[\u0000-\u0020\u007f]/u.test(file)||path.posix.normalize(file)!==file)return false;
@@ -27,11 +38,12 @@ function resolvePublicTool(argv,kind){
 const REQUIRED_TOOLS=[['clang','/Library/Developer/CommandLineTools/usr/bin/clang',128*1024*1024],['ld','/Library/Developer/CommandLineTools/usr/bin/ld',16*1024*1024]];
 const REQUIRED_SDK='/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk';
 const SDK_HEADERS=['sys/stdio.h','sys/fcntl.h','fcntl.h','sys/mman.h','sys/stat.h','stdio.h','errno.h','unistd.h'];
+const FILE_GUARD_REASONS=new Set(['NON_CANONICAL','FILE_TYPE_UNSUPPORTED','OWNER_MISMATCH','LINK_COUNT_UNSUPPORTED','PERMISSIONS_UNSUPPORTED','SIZE_UNSUPPORTED','OPEN_FD_IDENTITY_CHANGED','BODY_READ_INVALID','CLOSING_FD_IDENTITY_CHANGED','CLOSING_NAME_IDENTITY_CHANGED','CLOSING_ANCESTOR_IDENTITY_CHANGED']);
 const FILE_ERROR_CODES=new Set(['ENOENT','EACCES','EPERM','ENOTDIR','ELOOP','EINVAL','EBADF','EMFILE','ENFILE','EIO']);
 function sdkFiles(sdk,result){
  result.observationPhase='DIRECTORY_METADATA';const selected=fs.lstatSync(sdk,{bigint:true});guard(fs.realpathSync(sdk)===sdk&&selected.isDirectory()&&!selected.isSymbolicLink()&&selected.uid===0n&&(selected.mode&0o22n)===0n);
  const parents=lineage(sdk);result.directory={canonical:true,rootOwned:true,permissionBits:Number(selected.mode&0o7777n),closingIdentityChecked:false};
- for(const name of SDK_HEADERS){result.observationPhase='HEADER:'+name;result.headers[name]=publicFile(sdk+'/usr/include/'+name,0,1024*1024);}
+ for(const name of SDK_HEADERS){result.observationPhase='HEADER:'+name;publicFile(sdk+'/usr/include/'+name,0,1024*1024,result.headers[name]={});}
  result.observationPhase='CLOSING_DIRECTORY';
  guard(mark(fs.lstatSync(sdk,{bigint:true}))===mark(selected)&&JSON.stringify(lineage(sdk))===JSON.stringify(parents));result.directory.closingIdentityChecked=true;result.observationPhase='COMPLETE';
 }
@@ -46,7 +58,7 @@ function etcAlias(){
 export function inventoryPublicSealedTools(){
  let phase='PROFILE',report={schema:1,scope:'PUBLIC_HOST_TOOL_INVENTORY_ONLY',outcome:'UNKNOWN',platform:process.platform,arch:process.arch,node:process.version,release:os.release(),tools:{},requiredTools:{},
   requiredSdk:{canonical:REQUIRED_SDK,headers:{}},failures:[],stockStartup:{},etcAlias:null,profileApproved:false,models:0,nativeAgentLaunches:0,compilerCheckExecutions:0,sealed:false,reuseEligible:false};
- const noteFailure=(error,currentPhase)=>report.failures.push({phase:currentPhase,code:FILE_ERROR_CODES.has(error?.code)?error.code:'UNSUPPORTED_OR_CHANGED'});
+ const noteFailure=(error,currentPhase)=>report.failures.push({phase:currentPhase,code:FILE_ERROR_CODES.has(error?.code)?error.code:'UNSUPPORTED_OR_CHANGED',...(FILE_GUARD_REASONS.has(error?.inventoryGuard)?{guardReason:error.inventoryGuard}:{})});
  try{
   guard(arguments.length===0);
   guard(process.platform==='darwin'&&process.arch==='arm64'&&process.version==='v22.13.0'&&process.getuid()>0&&process.getuid()===process.geteuid()&&process.getgid()===process.getegid());
@@ -56,13 +68,14 @@ export function inventoryPublicSealedTools(){
   phase='NODE';const runtime=fs.realpathSync(process.execPath);report.tools.node=publicFile(runtime,process.getuid(),128*1024*1024);
   guard(report.tools.node.sha256==='5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc');
   phase='SELECTED_TOOL_PATHS';const clang=resolvePublicTool(['--find','clang'],'CLANG'),ld=resolvePublicTool(['--find','ld'],'LD'),sdk=resolvePublicTool(['--sdk','macosx','--show-sdk-path'],'SDK');
-  phase='SELECTED_TOOL_BYTES';report.tools.clang={canonical:clang,...publicFile(clang,0,256*1024*1024)};report.tools.ld={canonical:ld,...publicFile(ld,0,32*1024*1024)};
+  report.tools.clang={canonical:clang};report.tools.ld={canonical:ld};
+  for(const [name,file,limit]of [['clang',clang,256*1024*1024],['ld',ld,32*1024*1024]])try{publicFile(file,0,limit,report.tools[name]);}catch(error){noteFailure(error,'SELECTED_TOOL_BYTES:'+name);}
   // Independent fixed groups retain partial facts even when the literal SDK
   // is absent. No dynamic file enumeration, imported paths or profile approval.
-  for(const [name,file,limit]of REQUIRED_TOOLS){const result=report.requiredTools[name]={canonical:file};try{Object.assign(result,publicFile(file,0,limit));}catch(error){noteFailure(error,'REQUIRED_LITERAL_TOOL:'+name);}}
+  for(const [name,file,limit]of REQUIRED_TOOLS){const result=report.requiredTools[name]={canonical:file};try{publicFile(file,0,limit,result);}catch(error){noteFailure(error,'REQUIRED_LITERAL_TOOL:'+name);}}
   report.sdk={canonical:sdk,headers:{}};
   for(const [slot,result]of [['SELECTED_SDK_FILES',report.sdk],['REQUIRED_LITERAL_SDK_FILES',report.requiredSdk]])try{sdkFiles(result.canonical,result);}catch(error){noteFailure(error,slot);}
-  for(const [file,limit]of [['/private/etc/profile',4096],['/private/etc/bashrc',4096],['/bin/bash',2*1024*1024],['/usr/libexec/path_helper',256*1024]])try{report.stockStartup[file]=publicFile(file,0,limit);}catch(error){noteFailure(error,'STOCK_STARTUP:'+file);}
+  for(const [file,limit]of [['/private/etc/profile',4096],['/private/etc/bashrc',4096],['/bin/bash',2*1024*1024],['/usr/libexec/path_helper',256*1024]])try{publicFile(file,0,limit,report.stockStartup[file]={});}catch(error){noteFailure(error,'STOCK_STARTUP:'+file);}
   try{report.etcAlias=etcAlias();}catch(error){noteFailure(error,'ETC_ALIAS_METADATA');}
   if(report.failures.length===0){report.outcome='PUBLIC_TOOL_BYTES_OBSERVED_NOT_ACCEPTED';phase='COMPLETE';}else phase='COMPLETE_WITH_UNKNOWN';
  }catch(error){noteFailure(error,phase);/* Never raw exceptions or environments. */}

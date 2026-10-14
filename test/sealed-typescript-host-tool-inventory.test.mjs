@@ -14,16 +14,16 @@ const headers=['sys/stdio.h','sys/fcntl.h','fcntl.h','sys/mman.h','sys/stat.h','
 const requiredTools={clang:'/Library/Developer/CommandLineTools/usr/bin/clang',ld:'/Library/Developer/CommandLineTools/usr/bin/ld'},selectedTools={clang:'/Applications/Xcode_26.0.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang',ld:'/Applications/Xcode_26.0.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld'};
 const stock=['/private/etc/profile','/private/etc/bashrc','/bin/bash','/usr/libexec/path_helper'];
 function mock(){
- let ino=1,fd=100;const nodes=new Map(),fds=new Map(),state={opens:[],reads:[],realpaths:[],calls:[],selected,selectedTools:{...requiredTools},failPath:null,failCode:'ENOENT',afterRead:null,result:null,link:'private/etc'};
+ let ino=1,fd=100;const nodes=new Map(),fds=new Map(),state={opens:[],reads:[],realpaths:[],calls:[],selected,selectedTools:{...requiredTools},failPath:null,failCode:'ENOENT',afterRead:null,result:null,link:'private/etc',noncanonicalPath:null,failOpenPath:null,failReadPath:null,fdIdentityPath:null,failClosePath:null,afterClose:null};
  const put=(p,kind='f',body='PUBLIC_MOCK',uid=0)=>nodes.set(p,{kind,body:Buffer.from(body),dev:1n,ino:BigInt(ino++),uid:BigInt(uid),gid:20n,mode:kind==='d'?0o40755n:kind==='l'?0o120777n:0o100644n,nlink:1n,size:BigInt(Buffer.byteLength(body)),mtimeNs:1n,ctimeNs:1n});
  const parents=p=>{for(let a=path.posix.dirname(p);;a=path.posix.dirname(a)){if(!nodes.has(a))put(a,'d','',0);if(a===path.posix.dirname(a))return;}};
  for(const p of ['/usr/bin/xcrun','/runtime/node','/Library/Developer/CommandLineTools/usr/bin/clang','/Library/Developer/CommandLineTools/usr/bin/ld',...stock]){parents(p);put(p,'f',p==='/runtime/node'?'MOCK_NODE':'PUBLIC_MOCK',p==='/runtime/node'?501:0);}
  for(const sdk of [selected,literal])for(const name of headers){const p=sdk+'/usr/include/'+name;parents(p);put(p,'f',sdk+' '+name);}
  put('/etc','l','private/etc');
  const stat=p=>{if(p===state.failPath)throw Object.assign(Error('PROTECTED_PRIVATE_ERROR'),{code:state.failCode});const row=nodes.get(p);if(!row)throw Object.assign(Error('PROTECTED_PRIVATE_ERROR'),{code:'ENOENT'});return {...row,isFile:()=>row.kind==='f',isDirectory:()=>row.kind==='d',isSymbolicLink:()=>row.kind==='l'};};
- const io={constants:{O_RDONLY:0,O_NOFOLLOW:1,O_NONBLOCK:2},lstatSync:stat,realpathSync:p=>{state.realpaths.push(p);stat(p);return p==='/etc'?'/private/etc':p;},readlinkSync:p=>{assert.equal(p,'/etc');return state.link;},
-  openSync(p,flags){assert.equal(flags,3);stat(p);state.opens.push(p);const n=fd++;fds.set(n,p);return n;},fstatSync:n=>stat(fds.get(n)),
-  readSync(n,b,o,l,p){const file=fds.get(n);state.reads.push(file);const r=nodes.get(file),count=r.body.copy(b,o,p,Math.min(p+l,r.body.length));state.afterRead?.(file);return count;},closeSync:n=>{assert(fds.has(n));fds.delete(n);}};
+ const io={constants:{O_RDONLY:0,O_NOFOLLOW:1,O_NONBLOCK:2},lstatSync:stat,realpathSync:p=>{state.realpaths.push(p);stat(p);return p==='/etc'?'/private/etc':p===state.noncanonicalPath&&state.calls.length===3?p+'.alias':p;},readlinkSync:p=>{assert.equal(p,'/etc');return state.link;},
+  openSync(p,flags){assert.equal(flags,3);if(p===state.failOpenPath)throw Object.assign(Error('PROTECTED_PRIVATE_ERROR'),{code:'EACCES'});stat(p);state.opens.push(p);const n=fd++;fds.set(n,p);return n;},fstatSync:n=>{const p=fds.get(n),row=stat(p);if(p===state.fdIdentityPath)row.ino++;return row;},
+  readSync(n,b,o,l,p){const file=fds.get(n);if(file===state.failReadPath)throw Object.assign(Error('PROTECTED_PRIVATE_ERROR'),{code:'EIO'});state.reads.push(file);const r=nodes.get(file),count=r.body.copy(b,o,p,Math.min(p+l,r.body.length));state.afterRead?.(file);return count;},closeSync:n=>{assert(fds.has(n));const p=fds.get(n);fds.delete(n);state.afterClose?.(p);if(p===state.failClosePath)throw Object.assign(Error('PROTECTED_PRIVATE_ERROR'),{code:'EIO'});}};
  const spawn=(file,argv,opts)=>{assert.equal(file,'/usr/bin/xcrun');assert.deepEqual(opts,{env:{},encoding:'utf8',timeout:5000,maxBuffer:4096,killSignal:'SIGKILL'});state.calls.push([...argv]);return state.result??{pid:1234,status:0,signal:null,stderr:'',stdout:(argv[0]==='--sdk'?state.selected:state.selectedTools[argv[1]])+'\n'};};
  const p={platform:'darwin',arch:'arm64',version:'v22.13.0',execPath:'/runtime/node',getuid:()=>501,geteuid:()=>501,getgid:()=>20,getegid:()=>20};
  const code=source.slice(0,source.indexOf('if(process.argv[1]')).replace(/^import .*;$/gm,'').replaceAll('export function ','function ').replace('5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc',sha('MOCK_NODE'));
@@ -68,11 +68,50 @@ test('selected Xcode tools and literal required CLT tools retain independent can
  const r=m.inventory();noAuthority(r);assert.equal(r.outcome,'PUBLIC_TOOL_BYTES_OBSERVED_NOT_ACCEPTED');for(const name of ['clang','ld']){assert.equal(r.tools[name].canonical,selectedTools[name]);assert.equal(r.requiredTools[name].canonical,requiredTools[name]);assert.notEqual(r.tools[name].sha256,r.requiredTools[name].sha256);}assert.equal(m.fds.size,0);
 });
 for(const name of ['clang','ld'])test('missing literal CLT '+name+' is UNKNOWN while selected Xcode bytes remain observed',()=>{
- const m=mock();for(const n of ['clang','ld']){m.state.selectedTools[n]=selectedTools[n];m.parents(selectedTools[n]);m.put(selectedTools[n],'f','SELECTED_XCODE_'+n);}m.nodes.delete(requiredTools[name]);const r=m.inventory();noAuthority(r);assert.equal(r.outcome,'UNKNOWN');assert.equal(r.phase,'COMPLETE_WITH_UNKNOWN');assert.deepEqual(r.failures,[{phase:'REQUIRED_LITERAL_TOOL:'+name,code:'ENOENT'}]);assert(r.tools[name].sha256);assert.deepEqual(r.requiredTools[name],{canonical:requiredTools[name]});assert.equal(Object.keys(r.stockStartup).length,4);assert.equal(m.fds.size,0);
+ const m=mock();for(const n of ['clang','ld']){m.state.selectedTools[n]=selectedTools[n];m.parents(selectedTools[n]);m.put(selectedTools[n],'f','SELECTED_XCODE_'+n);}m.nodes.delete(requiredTools[name]);const r=m.inventory();noAuthority(r);assert.equal(r.outcome,'UNKNOWN');assert.equal(r.phase,'COMPLETE_WITH_UNKNOWN');assert.deepEqual(r.failures,[{phase:'REQUIRED_LITERAL_TOOL:'+name,code:'ENOENT'}]);assert(r.tools[name].sha256);assert.deepEqual(r.requiredTools[name],{canonical:requiredTools[name],observationPhase:'CANONICAL_PATH'});assert.equal(Object.keys(r.stockStartup).length,4);assert.equal(m.fds.size,0);
 });
 for(const name of ['clang','ld'])test('late required CLT '+name+' mutation remains UNKNOWN despite valid selected Xcode bytes',()=>{
- const m=mock();for(const n of ['clang','ld']){m.state.selectedTools[n]=selectedTools[n];m.parents(selectedTools[n]);m.put(selectedTools[n],'f','SELECTED_XCODE_'+n);}m.state.afterRead=p=>{if(p===requiredTools[name])m.nodes.get(p).ino++;};const r=m.inventory();noAuthority(r);assert.equal(r.outcome,'UNKNOWN');assert.deepEqual(r.failures,[{phase:'REQUIRED_LITERAL_TOOL:'+name,code:'UNSUPPORTED_OR_CHANGED'}]);assert(r.tools[name].sha256);assert.equal(m.fds.size,0);
+ const m=mock();for(const n of ['clang','ld']){m.state.selectedTools[n]=selectedTools[n];m.parents(selectedTools[n]);m.put(selectedTools[n],'f','SELECTED_XCODE_'+n);}m.state.afterRead=p=>{if(p===requiredTools[name])m.nodes.get(p).ino++;};const r=m.inventory();noAuthority(r);assert.equal(r.outcome,'UNKNOWN');assert.deepEqual(r.failures,[{phase:'REQUIRED_LITERAL_TOOL:'+name,code:'UNSUPPORTED_OR_CHANGED',guardReason:'CLOSING_FD_IDENTITY_CHANGED'}]);assert(r.tools[name].sha256);assert.equal(m.fds.size,0);
 });
 for(const [name,limit]of [['clang',128*1024*1024],['ld',16*1024*1024]])test('required CLT '+name+' uses actual builder bound, not broader selected-tool bound',()=>{
- const m=mock();for(const n of ['clang','ld']){m.state.selectedTools[n]=selectedTools[n];m.parents(selectedTools[n]);m.put(selectedTools[n],'f','SELECTED_XCODE_'+n);}m.nodes.get(requiredTools[name]).size=BigInt(limit+1);const r=m.inventory();noAuthority(r);assert.equal(r.outcome,'UNKNOWN');assert.deepEqual(r.failures,[{phase:'REQUIRED_LITERAL_TOOL:'+name,code:'UNSUPPORTED_OR_CHANGED'}]);assert(!m.state.opens.includes(requiredTools[name]));assert.equal(m.fds.size,0);
+ const m=mock();for(const n of ['clang','ld']){m.state.selectedTools[n]=selectedTools[n];m.parents(selectedTools[n]);m.put(selectedTools[n],'f','SELECTED_XCODE_'+n);}m.nodes.get(requiredTools[name]).size=BigInt(limit+1);const r=m.inventory();noAuthority(r);assert.equal(r.outcome,'UNKNOWN');assert.deepEqual(r.failures,[{phase:'REQUIRED_LITERAL_TOOL:'+name,code:'UNSUPPORTED_OR_CHANGED',guardReason:'SIZE_UNSUPPORTED'}]);assert(!m.state.opens.includes(requiredTools[name]));assert.equal(m.fds.size,0);
+});
+
+function xcodeSelected(m){for(const name of ['clang','ld']){m.state.selectedTools[name]=selectedTools[name];m.parents(selectedTools[name]);m.put(selectedTools[name],'f','SELECTED_XCODE_'+name);}}
+function partialAfterSelectedRejection(m,r,reason){
+ noAuthority(r);assert.equal(r.outcome,'UNKNOWN');assert.equal(r.phase,'COMPLETE_WITH_UNKNOWN');assert.equal(r.tools.clang.canonical,selectedTools.clang);assert.equal(r.tools.clang.sha256,undefined);assert.equal(r.tools.ld.canonical,selectedTools.ld);assert(r.tools.ld.sha256);
+ assert.deepEqual(r.failures,[{phase:'SELECTED_TOOL_BYTES:clang',code:'UNSUPPORTED_OR_CHANGED',guardReason:reason}]);
+ for(const name of ['clang','ld'])assert(r.requiredTools[name].sha256);assert.equal(Object.keys(r.sdk.headers).length,8);assert.equal(Object.keys(r.requiredSdk.headers).length,8);assert.equal(Object.keys(r.stockStartup).length,4);assert.equal(r.etcAlias.canonicalMatch,true);assert.equal(m.fds.size,0);
+}
+for(const [label,change,reason,key,value]of [
+ ['directory',row=>row.kind='d','FILE_TYPE_UNSUPPORTED','type','DIRECTORY'],
+ ['symlink',row=>row.kind='l','FILE_TYPE_UNSUPPORTED','type','SYMLINK'],
+ ['caller owner',row=>row.uid=501n,'OWNER_MISMATCH','owner','CALLER'],
+ ['multiple links',row=>row.nlink=2n,'LINK_COUNT_UNSUPPORTED','singleLink',false],
+ ['writable mode',row=>row.mode=0o100666n,'PERMISSIONS_UNSUPPORTED','permissionsAccepted',false],
+ ['empty file',row=>row.size=0n,'SIZE_UNSUPPORTED','size','EMPTY_OR_INVALID'],
+ ['oversized file',row=>row.size=BigInt(256*1024*1024+1),'SIZE_UNSUPPORTED','size','OVER_LIMIT'],
+])test('selected '+label+' rejection retains fixed public facts and precise nonsecret metadata without bodyread',()=>{
+ const m=mock();xcodeSelected(m);change(m.nodes.get(selectedTools.clang));const r=m.inventory();partialAfterSelectedRejection(m,r,reason);assert.equal(r.tools.clang.observationPhase,'FILE_METADATA');assert.equal(r.tools.clang.metadata[key],value);assert(!m.state.opens.includes(selectedTools.clang));assert(!m.state.reads.includes(selectedTools.clang));
+});
+test('noncanonical selected file reports only mismatch, retains original canonical lookup and other fixed groups',()=>{
+ const m=mock();xcodeSelected(m);m.state.noncanonicalPath=selectedTools.clang;const r=m.inventory();partialAfterSelectedRejection(m,r,'NON_CANONICAL');assert.equal(r.tools.clang.observationPhase,'CANONICAL_PATH');assert.deepEqual(r.tools.clang.metadata,{canonicalMatch:false});assert(!m.state.opens.includes(selectedTools.clang));assert(!JSON.stringify(r).includes('.alias'));
+});
+test('selected read-only open denial preserves actual closed error code and fixed-group observations',()=>{
+ const m=mock();xcodeSelected(m);m.state.failOpenPath=selectedTools.clang;const r=m.inventory();noAuthority(r);assert.equal(r.outcome,'UNKNOWN');assert.equal(r.tools.clang.canonical,selectedTools.clang);assert.equal(r.tools.clang.observationPhase,'OPEN_READ_ONLY');assert.deepEqual(r.failures,[{phase:'SELECTED_TOOL_BYTES:clang',code:'EACCES'}]);assert(!m.state.reads.includes(selectedTools.clang));assert(r.requiredTools.clang.sha256);assert(r.stockStartup['/bin/bash'].sha256);
+});
+test('selected starting fd identity mismatch reads no body and preserves actual closure observation',()=>{
+ const m=mock();xcodeSelected(m);m.state.fdIdentityPath=selectedTools.clang;const r=m.inventory();partialAfterSelectedRejection(m,r,'OPEN_FD_IDENTITY_CHANGED');assert.equal(r.tools.clang.observationPhase,'START_FD_IDENTITY');assert.equal(r.tools.clang.fdClose,'CLOSED');assert(!m.state.reads.includes(selectedTools.clang));
+});
+test('selected body read failure keeps EIO distinct from guard refusal without raw exception output',()=>{
+ const m=mock();xcodeSelected(m);m.state.failReadPath=selectedTools.clang;const r=m.inventory();noAuthority(r);assert.equal(r.outcome,'UNKNOWN');assert.equal(r.tools.clang.observationPhase,'BODY_HASH');assert.equal(r.tools.clang.fdClose,'CLOSED');assert.deepEqual(r.failures,[{phase:'SELECTED_TOOL_BYTES:clang',code:'EIO'}]);assert.equal(r.tools.clang.sha256,undefined);assert(r.requiredTools.ld.sha256);assert.equal(m.fds.size,0);
+});
+test('selected post-read fd change keeps precise closing failure and does not publish hash',()=>{
+ const m=mock();xcodeSelected(m);m.state.afterRead=p=>{if(p===selectedTools.clang)m.nodes.get(p).ino++;};const r=m.inventory();partialAfterSelectedRejection(m,r,'CLOSING_FD_IDENTITY_CHANGED');assert.equal(r.tools.clang.observationPhase,'CLOSING_FD_IDENTITY');assert.equal(r.tools.clang.fdClose,'CLOSED');
+});
+for(const ancestor of [false,true])test('selected closing '+(ancestor?'ancestor':'name')+' change remains UNKNOWN with precise static reason',()=>{
+ const m=mock();xcodeSelected(m);m.state.afterClose=p=>{if(p===selectedTools.clang)m.nodes.get(ancestor?path.dirname(p):p).ino++;};const r=m.inventory();partialAfterSelectedRejection(m,r,ancestor?'CLOSING_ANCESTOR_IDENTITY_CHANGED':'CLOSING_NAME_IDENTITY_CHANGED');assert.equal(r.tools.clang.observationPhase,ancestor?'CLOSING_ANCESTOR_IDENTITY':'CLOSING_NAME_IDENTITY');
+});
+test('failed selected fd close never becomes claimed successful closure or a published hash',()=>{
+ const m=mock();xcodeSelected(m);m.state.failClosePath=selectedTools.clang;const r=m.inventory();noAuthority(r);assert.equal(r.outcome,'UNKNOWN');assert.equal(r.tools.clang.fdClose,'NOT_OBSERVED');assert.equal(r.tools.clang.sha256,undefined);assert.deepEqual(r.failures,[{phase:'SELECTED_TOOL_BYTES:clang',code:'EIO'}]);assert(r.requiredTools.clang.sha256);assert.equal(Object.keys(r.stockStartup).length,4);
 });
