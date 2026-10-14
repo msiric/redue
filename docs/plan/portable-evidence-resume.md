@@ -7,7 +7,44 @@ existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
 
-## Current checkpoint — actual binding refusal and sufficient argument-order mismatch
+## Current checkpoint — argument binding correction reviewed; new native run pending
+
+2026-10-14: the latest hosted attempt38629169088 remains UNKNOWN before native
+launch. Its exact guard report and independent122 review confirm ACTUAL_BINDINGS
+refusal, selected startup-source absence passing, one unexecuted helper build and
+owned cleanup. No model, native child witness, seal or reuse was demonstrated.
+An independent pure reproduction established one sufficient structural defect:
+required-argument metadata rejected the unchanged real argv builder's flag order.
+Other actual binding conditions remain unproven; older failures are not backfilled.
+
+The minimal correction123/124 is reviewed and integrated in runtime
+`7064c3a6bbdc79823b5a5ff12de2d0b55eb6fe4f`. Only the required-list order changes;
+all flag/value literals, actual invocation, ordered matcher, full argv equality,
+security controls and guard short circuit remain unchanged. Tests now use the real
+pure builder. Reviewer303 supplied+12 independent checks pass; root303 focused and
+1011 shared PASS, with1 optional actual C-build test intentionally unselected.
+Shared TAP SHA256 `55079b5617c878c30ec08da109e882e949e88d4dcfb3d86c9f44d0129c70fd87`;
+three shared controls use owned temporary files; others are source/mocks.
+
+Workflow125/126 is independently accepted, normally fast-forward pushed and remote
+bytes verified at `41832e20520a26b87d9c0ced9f7aaa911126fb69`, SHA256
+`74b519e67ae2f8b352d427f1eab9bc1f0eee0c95801a1d35a61ffe1070b8f189`.
+Only two source pins changed. Root9 source/mock/local-syntax controls and reviewer8
+source/pure-mock controls pass. Protected account fact source alone is aligned;
+owner reviewed_at2026-10-14T19:26:03Z remains unchanged, input validation passes,
+fact digest `be9422827a4ccdc8d5c61a0dd4f46f2b14e81a52eae91d948489e37b58d39f69`.
+No secret value was accessed, timestamp renewed, or permission/trust expanded.
+
+Next: one NEW normal owner Actions UI run of portable-claude-diagnostic.yml on
+`dev/portable-claude-diagnostic` (not Re-run jobs), normal configured environment
+review, then actual result collection and fresh review. CLI dispatch403 is unchanged
+and not retried. No new login/account confirmation is needed. Keep four turns,
+two-minute total job and$0. Failed prerequisites still launch zero models.
+G0partial/G1–G4 incomplete; scoped prior Claude six-check prerequisite stays closed;
+Copilot included Actions capacity separately pending. Alpha.11 is unpublished,
+fixed pilot/immutable receipts untouched, portable complete-path economics unmeasured.
+
+## Historical checkpoint — actual binding refusal and sufficient argument-order mismatch
 
 2026-10-14: runtime `e9da40308da1011ed65c61b7ced9c3fe2b91b353` includes the
 reviewed native child-binding/stdio witness and truthful partial-bootstrap/build
