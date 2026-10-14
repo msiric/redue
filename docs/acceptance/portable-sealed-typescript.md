@@ -13,7 +13,37 @@ Node22.13 profile. A local proposal cannot certify that profile or its enforceme
 Existing checks, configurations and receipts are never silently converted.
 The unreleased CLI now offers explicit pending selection, not executable evidence.
 
-## Current checkpoint — actual inventory diagnosed; reviewed repairs ready
+## Current checkpoint — matching supplemental CLT facts collected
+
+2026-10-14: [run38560378792](https://github.com/msiric/redue/actions/runs/38560378792)
+completed on reviewed08d7e01/runtime6d0c6a1. Both independent VMs returned identical
+structured reports. The supplemental root CLT observations completed: clang is
+290,664,032 bytes, SHA256 f30550eab15fdf5ab8c0dc54c52679711241e5d4b636b027e18c09fef531775d;
+SDK alias closes to literal MacOSX26.5.sdk with eight root-owned header identities.
+Original LOCAL27/128MiB/Xcode-owner checks still refuse; job outcome remains UNKNOWN.
+No compiler check, native agent or model executed. This is observed data, not
+execution-profile admission, complete machine compatibility or portable reuse.
+
+Full log SHA256 e63207d004db2dfaf463a485ae57fb1c8cf4a082f4717032677cc45a48eb411f;
+structured reports SHA256 fcc04973a3cda710f6fb6ecae2468c8bb1cc3d349648bf041d5b2a1ce2b89f3d.
+Saved in existing private owner-local evidence; every prior failure remains retained.
+
+Next unblocked work070: explicit reviewed CI-only pre-auth build binding, preserving
+local27 and legacy assets behavior. It binds exact current tool/header bytes and
+private fixture/currentness; no imported profile JSON, Xcode fallback or new receipt
+claims. Work071A separately inventories only the fixed ROOT llvm-objdump needed
+for read-only inspection of changed public Bash/path_helper binaries. Those targets
+will not execute during static inspection. Current tool identity is unknown, so
+inspection invocation remains gated. Neither task changes producer trust/signing.
+One integration owner, isolated authors and fresh critical-boundary review remain.
+
+No new owner operation requested now. Copilot included Actions capacity remains
+separately pending; source-bound Claude facts require freshness only when runnable.
+The successful hosted six-check prerequisite remains closed within its actual scope.
+Sealed execution, two-agent/two-machine reuse and economics are unestablished;
+G0partial and G1–G4 incomplete. Alpha.11 stays unpublished; pilot/receipts unchanged.
+
+## Historical checkpoint — reviewed inventory and managed-startup repairs
 
 2026-10-14: actual [run38555298834](https://github.com/msiric/redue/actions/runs/38555298834)
 used reviewed53c6/b58 on two independent macOS26.6.2/25G83 ARM64 VMs. Both returned
