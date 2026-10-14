@@ -6,7 +6,7 @@ const source=fs.readFileSync(new URL('./acceptance/sealed-typescript-public-mach
 const tool='/Library/Developer/CommandLineTools/usr/bin/llvm-objdump',bash='/bin/bash',helper='/usr/libexec/path_helper',cwd='/private/tmp/redue-public-macho-ABC123';
 const flags=['--no-debuginfod','--macho','--arch=arm64e','--private-headers','--syms','--bind','--indirect-symbols','--disassemble'];
 const version='LLVM version 21.1.8\n',help=flags.map(v=>'  '+v+' public option').join('\n')+'\n';
-const output='Mach header\n magic cputype cpusubtype caps filetype ncmds sizeofcmds flags\n MH_MAGIC_64 ARM64 E PAC00 EXECUTE 19 1744 NOUNDEFS DYLDLINK TWOLEVEL PIE\n(__TEXT,__text) section\n000000010000abcd ret\n';
+const output='Mach header\n magic cputype cpusubtype caps filetype ncmds sizeofcmds flags\n MH_MAGIC_64 ARM64 E PAC00 EXECUTE 19 1744 NOUNDEFS DYLDLINK TWOLEVEL PIE\n(__TEXT,__text) section\n000000010000abcd:\tret\n';
 const sha=body=>createHash('sha256').update(body).digest('hex');
 function mock(){
  let ino=1,fd=20,now=0n;const nodes=new Map(),fds=new Map(),state={calls:[],reads:[],removed:0,closeCount:0,afterRead:null,afterCall:null,afterRealpath:null,result:null,fail:null,output,help,version};
@@ -52,7 +52,7 @@ for(const fault of ['stat','open','read','close','occupied','rmdir'])test('fixed
 for(const flag of flags)test('absent public help option '+flag+' never falls back or invokes a target',()=>{
  const m=mock();m.state.help=flags.filter(v=>v!==flag).join('\n');const v=m.run();assert.equal(v.outcome,'UNKNOWN');assert.equal(v.reason,'OPTIONS_UNSUPPORTED');assert.equal(v.calls.length,2);assert.equal(v.calls[1].stdout,m.state.help);
 });
-for(const out of ['', 'Mach header ARM64 ARM64E\n',output.replace('ARM64 E PAC00','ARM64 ALL PAC00'),output.replace('(__TEXT,__text)','(__DATA,__data)'),output.replace('000000010000abcd ret','not-addressed text')])test('exit zero without expected architecture and addressed text is UNKNOWN',()=>{
+for(const out of ['', 'Mach header ARM64 ARM64E\n',output.replace('ARM64 E PAC00','ARM64 ALL PAC00'),output.replace('(__TEXT,__text)','(__DATA,__data)'),output.replace('000000010000abcd:\tret','not-addressed text')])test('exit zero without expected architecture and addressed text is UNKNOWN',()=>{
  const m=mock();m.state.output=out;const v=m.run();assert.equal(v.outcome,'UNKNOWN');assert.equal(v.reason,'TARGET_ARCHITECTURE_OR_TEXT_UNOBSERVED');assert.equal(v.calls.length,3);assert.equal(v.targets.bash.outputObserved,false);
 });
 for(const result of [{pid:0,status:0,signal:null},{pid:3,status:74,signal:null},{pid:3,status:null,signal:'SIGKILL'},{pid:3,status:0,signal:null,error:{code:'ETIMEDOUT',message:'SECRET'}},{pid:3,status:0,signal:null,error:{code:'ENOBUFS'}},{pid:3,status:0,signal:'SECRET'},{pid:3,status:0,signal:null,stderr:Buffer.from('private diagnostic')},{pid:3,status:0,signal:null,stdout:Buffer.from([0xff])}])test('incomplete subprocess outcome is not complete public inspection',()=>{
@@ -97,7 +97,7 @@ test('missing process identity cannot establish safe private-cwd cleanup',()=>{
 });
 // DIR078 expected-outcome countercontrols: predecessor falsely crossed regions.
 test('ARM64E token outside an ARM64_ALL Mach header cannot satisfy architecture observation',()=>{
- const m=mock();m.state.output='Mach header\n magic cputype cpusubtype caps filetype ncmds sizeofcmds flags\n MH_MAGIC_64 ARM64 ALL PAC00 EXECUTE 19 1744 NOUNDEFS DYLDLINK TWOLEVEL PIE\npublic ARM64E symbol token\n(__TEXT,__text) section\n000000010000abcd ret\n';
+ const m=mock();m.state.output='Mach header\n magic cputype cpusubtype caps filetype ncmds sizeofcmds flags\n MH_MAGIC_64 ARM64 ALL PAC00 EXECUTE 19 1744 NOUNDEFS DYLDLINK TWOLEVEL PIE\npublic ARM64E symbol token\n(__TEXT,__text) section\n000000010000abcd:\tret\n';
  const v=m.run();assert.equal(v.outcome,'UNKNOWN');assert.equal(v.reason,'TARGET_ARCHITECTURE_OR_TEXT_UNOBSERVED');assert.equal(v.targets.bash.outputObserved,false);
 });
 test('addressed symbol-table row before empty text cannot satisfy disassembly observation',()=>{
@@ -105,16 +105,16 @@ test('addressed symbol-table row before empty text cannot satisfy disassembly ob
  const v=m.run();assert.equal(v.outcome,'UNKNOWN');assert.equal(v.reason,'TARGET_ARCHITECTURE_OR_TEXT_UNOBSERVED');assert.equal(v.targets.bash.outputObserved,false);
 });
 for(const boundary of ['(__DATA,__data) section','Mach header','SYMBOL TABLE:','Symbol table','Indirect symbols','Indirect symbol table','Bind table','Unsupported public output heading'])test('empty text region cannot consume addressed rows after '+boundary,()=>{
- const m=mock();m.state.output=output.replace('000000010000abcd ret',boundary+'\n000000010000abcd ret');const v=m.run();assert.equal(v.outcome,'UNKNOWN');assert.equal(v.reason,'TARGET_ARCHITECTURE_OR_TEXT_UNOBSERVED');assert.equal(v.targets.bash.outputObserved,false);
+ const m=mock();m.state.output=output.replace('000000010000abcd:\tret',boundary+'\n000000010000abcd:\tret');const v=m.run();assert.equal(v.outcome,'UNKNOWN');assert.equal(v.reason,'TARGET_ARCHITECTURE_OR_TEXT_UNOBSERVED');assert.equal(v.targets.bash.outputObserved,false);
 });
 for(const invalid of ['MH_MAGIC_64 ARM64 ARM64E_UNSUPPORTED','MH_MAGIC_64 ARM64E ARM64','MH_MAGIC_64 ARM64 ARM64_ALL','0xfeedfacf ARM64 ARM64E'])test('unsupported Mach header row remains UNKNOWN '+invalid,()=>{
  const m=mock();m.state.output=output.replace('MH_MAGIC_64 ARM64 E PAC00 EXECUTE 19 1744 NOUNDEFS DYLDLINK TWOLEVEL PIE',invalid);assert.equal(m.run().outcome,'UNKNOWN');
 });
 test('fixed disassembly labels and tab-separated instructions retain complete public data',()=>{
- const m=mock();m.state.output=output.replace('000000010000abcd ret','_public_function:\n000000010000abcd\tret');const v=m.run();assert.equal(v.outcome,'PUBLIC_OUTPUT_COLLECTED_NOT_BEHAVIOR_PROOF');assert.equal(v.calls[2].stdout,m.state.output);noAuthority(v);
+ const m=mock();m.state.output=output.replace('000000010000abcd:\tret','_public_function:\n000000010000abcd:\tret');const v=m.run();assert.equal(v.outcome,'PUBLIC_OUTPUT_COLLECTED_NOT_BEHAVIOR_PROOF');assert.equal(v.calls[2].stdout,m.state.output);noAuthority(v);
 });
 test('duplicate Mach headers or text sections are unsupported rather than merged',()=>{
- for(const tail of ['Mach header\n magic cputype cpusubtype\n MH_MAGIC_64 ARM64 ARM64E\n','(__TEXT,__text) section\n000000010000abcd ret\n']){const m=mock();m.state.output=output+tail;assert.equal(m.run().outcome,'UNKNOWN');}
+ for(const tail of ['Mach header\n magic cputype cpusubtype\n MH_MAGIC_64 ARM64 ARM64E\n','(__TEXT,__text) section\n000000010000abcd:\tret\n']){const m=mock();m.state.output=output+tail;assert.equal(m.run().outcome,'UNKNOWN');}
 });
 for(const subtype of ['ALL','V8','ARM64E','E_UNSUPPORTED'])test('named cpusubtype '+subtype+' does not establish actual E layout',()=>{
  const m=mock();m.state.output=output.replace('ARM64 E PAC00','ARM64 '+subtype+' PAC00');assert.equal(m.run().outcome,'UNKNOWN');
@@ -127,4 +127,25 @@ for(const body of [Buffer.from('llvm-objdump: warning: invalid instruction encod
 });
 test('empty stderr reports exact zero bytes/hash and cannot by itself claim architecture observation',()=>{
  const m=mock(),v=m.run();assert.equal(v.calls[0].stderrBytes,0);assert.equal(v.calls[0].stderrSha256,sha(Buffer.alloc(0)));assert.equal(v.calls[0].stderrClassification,'EMPTY');assert.equal(v.interpretation,'redue-fixed-public-macho-inspection@2');
+});
+// DIR091 source-faithful minimal public prefix from retained run38598991001.
+// Raw public JSON SHA539a53d54d4cf84713e22a7a10c2c096fd8976a6846035f8dce101c1ab7ff3e9.
+const actualPublicLayout='/bin/bash:\n(__TEXT,__text) section\n100000708:\t7f 23 03 d5\tpacibsp\n10000070c:\tff c3 06 d1\tsub\tsp, sp, #0x1b0\nMach header\n      magic cputype cpusubtype  caps    filetype ncmds sizeofcmds      flags\nMH_MAGIC_64   ARM64          E PAC00     EXECUTE    19       1744   NOUNDEFS DYLDLINK TWOLEVEL PIE\n';
+test('actual colon-addressed disassembly before the bound Mach header is observed only as static format data',()=>{
+ const m=mock();m.state.output=actualPublicLayout;const v=m.run();assert.equal(v.outcome,'PUBLIC_OUTPUT_COLLECTED_NOT_BEHAVIOR_PROOF');assert.equal(v.calls[2].stdout,actualPublicLayout);noAuthority(v);
+});
+test('actual colon instruction also binds when the unique named header precedes its region',()=>{
+ const m=mock();m.state.output=output.replace('000000010000abcd:\tret','100000708:\t7f 23 03 d5\tpacibsp');assert.equal(m.run().outcome,'PUBLIC_OUTPUT_COLLECTED_NOT_BEHAVIOR_PROOF');
+});
+test('illustrative no-colon address does not establish the actual pinned disassembly format',()=>{
+ const m=mock();m.state.output=output.replace('000000010000abcd:\tret','000000010000abcd ret');assert.equal(m.run().outcome,'UNKNOWN');
+});
+for(const boundary of ['SYMBOL TABLE:','Symbol table','Indirect symbols','Bind table','(__DATA,__data) section','Mach header'])test('actual colon symbol/address rows after empty text stay UNKNOWN across '+boundary,()=>{
+ const m=mock();m.state.output=actualPublicLayout.replace('100000708:\t7f 23 03 d5\tpacibsp\n10000070c:\tff c3 06 d1\tsub\tsp, sp, #0x1b0\n',boundary+'\n100000708:\t7f 23 03 d5\tpacibsp\n');assert.equal(m.run().outcome,'UNKNOWN');
+});
+test('actual disassembly ordering does not accept an ALL header plus unrelated E token',()=>{
+ const m=mock();m.state.output=actualPublicLayout.replace('ARM64          E PAC00','ARM64        ALL PAC00')+'public E token\n';assert.equal(m.run().outcome,'UNKNOWN');
+});
+test('actual minimal prefix with nonempty stderr remains incomplete rather than skipping invalid encoding',()=>{
+ const m=mock();m.state.result={pid:3,status:0,signal:null,stdout:Buffer.from(actualPublicLayout),stderr:Buffer.from('llvm-objdump: warning: invalid instruction encoding\n')};const v=m.run();assert.equal(v.outcome,'UNKNOWN');assert.equal(v.calls[0].complete,false);assert.equal(v.calls[0].stderrClassification,'INVALID_INSTRUCTION_ENCODING');noAuthority(v);
 });

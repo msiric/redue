@@ -64,14 +64,16 @@ function targetOutputObserved(value){
  if(columns.join(' ')!=='magic cputype cpusubtype caps filetype ncmds sizeofcmds flags'||row.length<8||
   row[0]!=='MH_MAGIC_64'||row[1]!=='ARM64'||row[2]!=='E'||!/^PAC[0-9A-F]{2}$/.test(row[3])||row[4]!=='EXECUTE'||
   !/^[0-9]+$/.test(row[5])||!/^[0-9]+$/.test(row[6])||!row.slice(7).every(flag=>/^[A-Z0-9_]+$/.test(flag)))return false;
- const sections=[];for(let i=h+3;i<lines.length;i++)if(lines[i]==='(__TEXT,__text) section')sections.push(i);
+ // LLVM21.1.0 MachODump.cpp#L2154 disassembles before private headers;
+ // #L7702 emits colon-addressed instructions. Bind the two regions separately.
+ const sections=[];for(let i=0;i<lines.length;i++)if(lines[i]==='(__TEXT,__text) section')sections.push(i);
  if(sections.length!==1)return false;
  for(let i=sections[0]+1;i<lines.length;i++){
   const line=lines[i];if(line==='')continue;
   // Only ordinary labels may precede the first instruction. Any other header,
   // section/symbol-table region or unsupported line ends this fixed region.
   if(/^(?:SYMBOL TABLE|Symbol table|Indirect symbols|Indirect symbol table|Bind table|Mach header)\b/.test(line))return false;
-  if(/^[0-9a-fA-F]{8,16}[ \t]+(?:[0-9a-fA-F]{2}[ \t]+){0,4}[a-zA-Z][a-zA-Z0-9.]*\b/.test(line))return true;
+  if(/^[0-9a-fA-F]{8,16}:[ \t]+(?:[0-9a-fA-F]{2}[ \t]+){0,4}[a-zA-Z][a-zA-Z0-9.]*\b/.test(line))return true;
   if(/^[A-Za-z_.$][A-Za-z0-9_.$]*:$/.test(line))continue;
   return false;
  }
