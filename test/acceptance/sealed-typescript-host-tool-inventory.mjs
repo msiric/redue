@@ -66,7 +66,7 @@ function installedCltSdk(result){
  result.aliasPhase='ALIAS_CLOSURE';guard(mark(fs.lstatSync(CLT_SDK_ALIAS,{bigint:true}))===mark(before),'SDK_ALIAS_IDENTITY_CHANGED');
  if(target!==undefined)guard(fs.readlinkSync(CLT_SDK_ALIAS)===target,'SDK_ALIAS_IDENTITY_CHANGED');
  guard(mark(fs.lstatSync(canonical,{bigint:true}))===mark(destination),'CLOSING_NAME_IDENTITY_CHANGED');guard(JSON.stringify(lineage(CLT_SDK_ALIAS,true))===JSON.stringify(parents),'CLOSING_ANCESTOR_IDENTITY_CHANGED');
- guard(fs.realpathSync(CLT_SDK_ALIAS)===canonical,'NON_CANONICAL');result.aliasPhase='COMPLETE';
+ guard(fs.realpathSync(CLT_SDK_ALIAS)===canonical,'NON_CANONICAL');guard(mark(fs.lstatSync(CLT_SDK_ALIAS,{bigint:true}))===mark(before),'SDK_ALIAS_IDENTITY_CHANGED');result.aliasPhase='COMPLETE';
 }
 function etcAlias(){
  const before=fs.lstatSync('/etc',{bigint:true});guard(before.isSymbolicLink()&&before.uid===0n&&before.nlink===1n);
