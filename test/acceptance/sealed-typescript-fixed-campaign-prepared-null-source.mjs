@@ -6,7 +6,7 @@ const version='campaign-prepared-devnull-setexec@2',sdk='/Library/Developer/Comm
 export const SEALED_TYPESCRIPT_PREPARED_NULL_IDENTITY_INTERPRETATION='prepared-null-device-endpoints@1';
 const templatePin='ecff1f5d828aa83e1050da066f1f8037fef3f7c15949cae45674371ae85ea35b';
 const headerPins=Object.freeze({'spawn.h':'2d90f16beec60b2080553613234f004b58f384003feaa5eb809fe5e91b42b884','sys/spawn.h':'988afa3a6d7a1ce18df118d234240c02eff0715b5712784ac28b44e7f66254dc'});
-const ciSdk='/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk',ciProfile='fixed-native-assets-ci-sdk26.5-toolpair-a@1';
+const ciSdk='/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk',ciProfile='fixed-native-assets-ci-sdk26.5-toolpair-b@1';
 const ciHeaderPins=Object.freeze({...headerPins,'sys/spawn.h':'8e73a88c3f63dae77ebf831737942e82ee7c78a7af1446fdbb1ee7ac6804a7e4'});
 const minted=new WeakMap(),sha=body=>createHash('sha256').update(body).digest('hex');
 const guard=value=>{if(!value)throw Error('CAMPAIGN_PREPARED_NULL_SOURCE_UNKNOWN');};

@@ -12,13 +12,13 @@ const originalNames=['sealed-typescript-native-sentinel.mjs','sealed-typescript-
 const originalLeaves=[...originalNames.map(name=>code+'/'+name),h+'/runtime/node-v22.13.0-darwin-arm64/bin/node',...['sealed-typescript-base-exchange-result.mjs','sealed-typescript-stage-exchange-result.mjs','sealed-typescript-stage-result.mjs','sealed-typescript-map-result.mjs'].map(name=>h+'/prefix/test/acceptance/'+name),h+'/prefix/src/portable-envelope.mjs'];
 const refusal=call=>assert.throws(call,error=>error.code==='NATIVE_ENCLOSURE_COMMAND_UNAVAILABLE'&&error.message==='NATIVE_ENCLOSURE_COMMAND_UNAVAILABLE');
 function fixture(fixtureProfile='fixed-native-assets-local-sdk27@1'){
- const ci=fixtureProfile==='fixed-native-assets-ci-sdk26.5-toolpair-a@1';
+ const ci=fixtureProfile==='fixed-native-assets-ci-sdk26.5-toolpair-b@1';
  const caps=Object.fromEntries(['pair','hostFixture','assetsBuild','pairedSource','pairedArtifacts','copies','projection','preparedNullSource','enclosureSource','enclosureBuild'].map(key=>[key,{}]));
  const collectionTransport={interpretation:'finite-enclosure-normal-collection@2',frame:'RDE2',completeCollectionExit:0,incompleteCollectionExit:74,collectorExit:{E:74,F:1},assertionAuthority:'JSON_BODY_ONLY_NOT_OUTER_EXIT',nativeResultAcceptance:'NOT_TESTED'};
  Object.assign(caps.projection,{version:'fixed-canary-original-input-projection@3',projectionSha256:'a'.repeat(64)});
  Object.assign(caps.enclosureSource,{scope:'DISABLED_FIXED_CANARY_FINITE_ENCLOSURE_SOURCE_DATA_ONLY',version:'fixed-canary-finite-enclosure-source@2',disabled:true,runnable:false,executionAuthority:'NONE',projectionSha256:'a'.repeat(64),collectionTransport,
   bindings:{baseA:a,baseB:b,hostBase:h,node:h+'/runtime/node-v22.13.0-darwin-arm64/bin/node',entry:six[1],projectionEntry:six[0],launcher,self,cwd},files:six.slice(0,4).map((file,at)=>({file,sourceSha256:String(at+1).repeat(64)}))});
- caps.enclosureBuild.report={profileId:ci?'fixed-enclosure-ci-sdk26.5-toolpair-a@1':'fixed-enclosure-local-sdk27@1'};
+ caps.enclosureBuild.report={profileId:ci?'fixed-enclosure-ci-sdk26.5-toolpair-b@1':'fixed-enclosure-local-sdk27@1'};
  if(ci)caps.enclosureSource.fixtureProfileId=fixtureProfile;
  const observed={scope:'FIXED_CANARY_ENCLOSURE_POSTBUILD_DATA_ONLY',outcome:'ENCLOSURE_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED',hostBase:h,bindings:caps.enclosureSource.bindings,files:six.map((file,at)=>({file,digest:String(at+1).repeat(64),mark:'MOCK_ORIGINAL',lineage:[]})),originalRowsScope:'POSTBUILD_PRE_NATIVE_ENDPOINTS_ONLY',nativeIntervalBarrier:'NOT_ESTABLISHED'};
  const leafData={outcome:'FIXED_ORIGINAL_H_CODE_READ_LEAVES_DATA_ONLY',version:'fixed-canary-original-input-projection@3',hostBase:h,readLeaves:originalLeaves,currency:'NOT_CHECKED'};
@@ -82,16 +82,16 @@ test('unreviewed/coercible native options fail before private verifier or policy
  for(const patch of [{claudeExecutable:{}},{claudeExecutable:'relative/claude'},{claudeExecutable:'/path/../claude'},{claudeExecutable:'/path/other'},{claudeExecutable:'/path/claude\n'},{claudeSha256:'0'.repeat(64)},{claudeVersion:'OTHER'}]){const f=fixture();refusal(()=>f.make({...f.options,...patch}));assert.deepEqual(f.counts,{build:0,base:0,leaves:0,clone:0});}
 });
 
-const ciFixtureProfile='fixed-native-assets-ci-sdk26.5-toolpair-a@1';
+const ciFixtureProfile='fixed-native-assets-ci-sdk26.5-toolpair-b@1';
 test('original reviewed CI assets select only CI preparation metadata and preserve the literal command/settings/read27 policy',()=>{
  const local=fixture(),ci=fixture(ciFixtureProfile),a=local.make(local.options),b=ci.make(ci.options);
  for(const key of ['command_proposed','argv_proposed','settings_proposed','settings_sha256_proposed','exact_code_read_leaves','exact_executable_leaf','argv0_proposed','binary_sha256_proposed','projection_sha256_proposed','collection_transport_proposed'])assert.deepEqual(b[key],a[key],key);
- assert.equal(b.preparation_profile_proposed,'fixed-enclosure-ci-sdk26.5-toolpair-a@1');
+ assert.equal(b.preparation_profile_proposed,'fixed-enclosure-ci-sdk26.5-toolpair-b@1');
  assert(b.blockers.includes('CI_PREPARATION_IS_NOT_COMPLETE_HOSTED_COMPATIBILITY'));assert(!b.blockers.includes('LOCAL_SDK27_PREPARATION_IS_NOT_HOSTED_SDK26_5_COMPATIBILITY'));
  for(const key of ['inferencePermitted','sealed','reuseEligible','runnable'])assert.equal(b[key],false);
  assert.equal(b.hostedCompatibility,'NOT_ESTABLISHED');assert.deepEqual(ci.counts,local.counts);
 });
-for(const profile of [null,undefined,'fixed-native-assets-ci-sdk26.5-toolpair-a@2','fixed-native-assets-local-sdk27@2','redue-native-stdio-preauth-ci-sdk26.5@1'])test('unknown or retired original asset profile '+String(profile)+' never starts full command validation',()=>{
+for(const profile of [null,undefined,'fixed-native-assets-ci-sdk26.5-toolpair-a@1','fixed-native-assets-ci-sdk26.5-toolpair-b@2','fixed-native-assets-local-sdk27@2','redue-native-stdio-preauth-ci-sdk26.5@1'])test('unknown or retired original asset profile '+String(profile)+' never starts full command validation',()=>{
  const f=fixture();f.state.fixtureProfile=profile;refusal(()=>f.make(f.options));assert.deepEqual(f.counts,{build:0,base:0,leaves:0,clone:0});
 });
 for(const identity of ['fixed-native-assets-local-sdk27@1',ciFixtureProfile])test('original '+identity+' profile refuses copied/mixed parents and mismatched source/build profile',()=>{
@@ -99,7 +99,7 @@ for(const identity of ['fixed-native-assets-local-sdk27@1',ciFixtureProfile])tes
   const f=fixture(identity),other=fixture(identity===ciFixtureProfile?'fixed-native-assets-local-sdk27@1':ciFixtureProfile);
   refusal(()=>f.make({...f.options,[key]:other.options[key]}));assert.deepEqual(f.counts,{build:0,base:0,leaves:0,clone:0});
  }
- for(const patch of [f=>f.caps.enclosureBuild.report.profileId=identity===ciFixtureProfile?'fixed-enclosure-local-sdk27@1':'fixed-enclosure-ci-sdk26.5-toolpair-a@1',f=>f.caps.enclosureSource.fixtureProfileId=identity===ciFixtureProfile?undefined:ciFixtureProfile]){
+ for(const patch of [f=>f.caps.enclosureBuild.report.profileId=identity===ciFixtureProfile?'fixed-enclosure-local-sdk27@1':'fixed-enclosure-ci-sdk26.5-toolpair-b@1',f=>f.caps.enclosureSource.fixtureProfileId=identity===ciFixtureProfile?undefined:ciFixtureProfile]){
   const f=fixture(identity);patch(f);refusal(()=>f.make(f.options));assert.equal(f.counts.base,0);assert.equal(f.counts.leaves,0);
  }
  const f=fixture(identity);f.state.retired=true;refusal(()=>f.make(f.options));assert.equal(f.counts.build,0);

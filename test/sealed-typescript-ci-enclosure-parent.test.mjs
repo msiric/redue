@@ -24,8 +24,8 @@ async function mockWire(nonzero=false){
   provisionCopies:()=>value('CAMPAIGN_COPIES_OBSERVED_NOT_EXECUTED'),verifyCopies:()=>value('CAMPAIGN_COPIES_CURRENTLY_OBSERVED_NOT_EXECUTED'),
   buildLauncher:()=>({...build(1),outcome:'CAMPAIGN_LAUNCHER_BUILT_NOT_EXECUTED'}),verifyLauncher:()=>value('CAMPAIGN_LAUNCHER_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED'),
   prepareProjection:()=>value('ORIGINAL_PROTECTED_INPUT_PROJECTION_PREPARED'),prepareNull:()=>({...flags,disabled:true,version:'campaign-prepared-devnull-setexec@2'}),
-  prepareEnclosure:()=>({...value('FIXED_CANARY_ENCLOSURE_SOURCES_PREPARED_NOT_PROVISIONED'),version:'fixed-canary-finite-enclosure-source@2',fixtureProfileId:'fixed-native-assets-ci-sdk26.5-toolpair-a@1'}),
-  buildEnclosure:()=>({...build(2),report:{profileId:'fixed-enclosure-ci-sdk26.5-toolpair-a@1',sourceVersion:'fixed-canary-finite-enclosure-source@2',files:Array.from({length:6},()=>({digest:'a'.repeat(64)}))}}),
+  prepareEnclosure:()=>({...value('FIXED_CANARY_ENCLOSURE_SOURCES_PREPARED_NOT_PROVISIONED'),version:'fixed-canary-finite-enclosure-source@2',fixtureProfileId:'fixed-native-assets-ci-sdk26.5-toolpair-b@1'}),
+  buildEnclosure:()=>({...build(2),report:{profileId:'fixed-enclosure-ci-sdk26.5-toolpair-b@1',sourceVersion:'fixed-canary-finite-enclosure-source@2',files:Array.from({length:6},()=>({digest:'a'.repeat(64)}))}}),
   verifyEnclosure:()=>value('ENCLOSURE_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED')};
  const frames=[],report=await observe({ready:()=>true,load:async()=>op,now:()=>0,observeProgress:frame=>frames.push(frame)});
  return {frames,report};
@@ -80,7 +80,7 @@ assert 'innerReport' not in m.unknown_with_observations({'innerReport':ci},'PERS
 summary=m.ci_public_summary({'outcome':'BUILT_NOT_EXECUTED','reason_code':'PREPARATION_OBSERVED','innerReport':ci,'progressFrames':data['good']['frames'],'childReaped':True,'childExitCode':0,'childSignal':None,'groupAbsentAfterReap':True,'cleanupSignal':'SENT','finalSourceCurrentness':'ENDPOINTS_OBSERVED'},record='/owned/enclosure-ci-preparation-11111111-2222-3333-4444-555555555555.json',digest='b'*64)
 assert summary['outcome']=='BUILT_NOT_EXECUTED' and summary['buildResultCount']==8 and summary['observedProcessCount']==8 and summary['completedPhaseCount']==19
 assert summary['protocolStatus']=='FINAL_VALIDATED' and summary['validatedProgressFrameCount']==38
-assert summary['buildProfileObserved']=='fixed-enclosure-ci-sdk26.5-toolpair-a@1'
+assert summary['buildProfileObserved']=='fixed-enclosure-ci-sdk26.5-toolpair-b@1'
 assert '/' not in summary['record'] and summary['recordAdoptionAuthority'] is False and summary['originAuthority'] is False
 assert len(json.dumps(summary).encode())<8192;checks+=1
 for body in [b'{}\n',wire(data['good']['frames']+[final(ci)])[:-1],wire(data['good']['frames']+[final(ci)])+b'{}\n',b'x'*65537]:
@@ -282,4 +282,16 @@ m.json.dumps=original_dumps
 print(original_dumps({'checks':checks,'testedPopen':0,'signals':0,'kernelMonitors':0,'filesystemWrites':0}))
 `);
  assert.equal(result.checks,15);assert.equal(result.testedPopen,0);assert.equal(result.signals,0);
+});
+
+test('retired A preparation report cannot satisfy B FINAL or survive fallback as a validated report',posix,()=>{
+ const result=execute(setup+String.raw`
+old={**data['good']['report'],'profile':'fixed-enclosure-preparation-ci-sdk26.5-toolpair-a@1'}
+try:m.parse_inner((json.dumps(old)+'\n').encode(),_ci=True);raise AssertionError('RETIRED_A_ACCEPTED')
+except ValueError:checks+=1
+p=m.ProgressProtocol(_ci=True);p.feed(wire(data['good']['frames']+[final(old)]));assert p.finish() is None and p.invalid;checks+=1
+fallback=m.unknown_with_observations({'innerReport':old,'progressFrames':data['good']['frames']},'PERSISTENCE_UNAVAILABLE',_ci=True)
+assert 'innerReport' not in fallback['observed'];assert fallback['outcome']=='UNKNOWN';checks+=1
+print(json.dumps({'checks':checks,'testedPopen':0,'kernelMonitors':0}))
+`);assert.equal(result.checks,3);assert.equal(result.testedPopen,0);
 });

@@ -5,7 +5,7 @@ import {sealedTypeScriptBaseExchangeAssetsFixtureProfile,sealedTypeScriptBaseExc
 const version='campaign-stdio-only-setexec@1',sdk='/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk';
 const templatePin='7bef186e33e3d4ed3c2e7588632e3d808c4fba11a9949abe7324031a719ff90c';
 const headerPins=Object.freeze({'spawn.h':'2d90f16beec60b2080553613234f004b58f384003feaa5eb809fe5e91b42b884','sys/spawn.h':'988afa3a6d7a1ce18df118d234240c02eff0715b5712784ac28b44e7f66254dc'});
-const ciSdk='/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk',ciProfile='fixed-native-assets-ci-sdk26.5-toolpair-a@1';
+const ciSdk='/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk',ciProfile='fixed-native-assets-ci-sdk26.5-toolpair-b@1';
 const ciHeaderPins=Object.freeze({...headerPins,'sys/spawn.h':'8e73a88c3f63dae77ebf831737942e82ee7c78a7af1446fdbb1ee7ac6804a7e4'});
 const minted=new WeakMap(),sha=body=>createHash('sha256').update(body).digest('hex');
 const guard=value=>{if(!value)throw Error('CAMPAIGN_LAUNCHER_SOURCE_UNKNOWN');};

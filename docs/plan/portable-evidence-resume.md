@@ -34,11 +34,19 @@ Public records32,804B SHA256
 This does not establish full-profile compatibility, build, native enforcement,
 sealing or reuse. No helper, native agent, model or receipt executed.
 
-Next: independent actual-result and fixed build-tool binding review, then only
-the smallest justified correction. No unchanged retry, generic larger compiler
-allowance, timeout increase or profile admission from logs. DIR342/DIR344 remain
-accepted; combined local regressions5,085 PASS/12 explicit SKIP/0 FAIL, TAP SHA256
-`e2250ba7c070708134cd848b9690850b63392ea7f3932e0e5433c6b497091e4f`.
+DIR346 independently accepts the actual observations and exact fixed-B correction
+using the already-reviewed stdio CI binding. DIR349 found one stale standalone
+renderer pin; its34 source/mock failures remain retained. DIR351 accepts the
+one-literal repair and complete source`8acd443` / workflow`dfc716e` (SHA256
+`71f0fee49378bd8c47b4be485482849ea6cd3e4a83bab3951c3982e30047edc2`).
+Only the fixed CI tool binding/identities change; A/mixed/wrong-size/hash inputs
+remain refused. Local behavior, runtime/compiler scope, flags, environment and
+deadlines stay unchanged. Combined local regressions5,097 PASS/12 explicit SKIP/
+0 FAIL, TAP SHA256
+`325827e8f0bd8b79d6c51ab2cd601b747d25864dc2219cb57c709abf31ad35fa`.
+Next is one actual bounded two-VM capture on those reviewed bytes; post-guard cost
+and full build/native/origin/reuse outcomes remain unestablished. No unchanged
+retry, generic larger compiler allowance, timeout increase or admission from logs.
 Prior failures and timeouts remain below. Resume using
 [the standing delivery loop](director-role.md#acceptance-driven-delivery-loop).
 

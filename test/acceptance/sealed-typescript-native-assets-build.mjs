@@ -46,9 +46,9 @@ function buildFixedAssets(options,ci){
   if(ci){guard(typeof node==='string'&&path.isAbsolute(node)&&path.normalize(node)===node&&process.execArgv.length===0&&!Object.keys(process.env).some(key=>/^(?:NODE_OPTIONS|NODE_PATH|NODE_REPL_EXTERNAL_MODULE|BASH_ENV|ENV)$|^(?:DYLD_|LD_|OPENSSL_)/i.test(key)));guard(fs.realpathSync(node)===node&&fs.lstatSync(node,{bigint:true}).size===121593488n);}
   stage('NATIVE_RUNTIME_BYTES');const runtime=bounded(node,process.getuid(),128*1024*1024,'5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc');
   stage('NATIVE_PROPOSAL');const proposal=(ci?prepareSealedTypeScriptNativeAssetsProposalForReviewedCI:prepareSealedTypeScriptNativeAssetsProposal)({fixture}),base=proposal.base,baseIdentity=ownedDirectory(base),tool=proposal.toolchain;
-  stage('NATIVE_COMPILER_BYTES');const compiler=bounded(proposal.proposedBuilds[0].executable,0,128*1024*1024,tool.clangSha256);
-  stage('NATIVE_LINKER_BYTES');const linker=bounded('/Library/Developer/CommandLineTools/usr/bin/ld',0,16*1024*1024,'374d9f0713bce2c8a9e1e82bde51615d5433516a10d99b63107eb6ee70542e4c');
-  stage('NATIVE_CI_TOOL_SIZES');if(ci)guard(fs.lstatSync(compiler.file,{bigint:true}).size===124676976n&&fs.lstatSync(linker.file,{bigint:true}).size===2749664n);
+  stage('NATIVE_COMPILER_BYTES');const compiler=bounded(proposal.proposedBuilds[0].executable,0,ci?290664032:128*1024*1024,tool.clangSha256);
+  stage('NATIVE_LINKER_BYTES');const linker=bounded('/Library/Developer/CommandLineTools/usr/bin/ld',0,ci?4953232:16*1024*1024,ci?'28d85b9af18c923db12e0b4ce70b80ee217f2b7cade0e872baa9e8ddc396c08d':'374d9f0713bce2c8a9e1e82bde51615d5433516a10d99b63107eb6ee70542e4c');
+  stage('NATIVE_CI_TOOL_SIZES');if(ci)guard(fs.lstatSync(compiler.file,{bigint:true}).size===290664032n&&fs.lstatSync(linker.file,{bigint:true}).size===4953232n);
   stage('NATIVE_SDK');guard(fs.realpathSync(tool.sdk)===tool.sdk);const sdkStat=fs.lstatSync(tool.sdk,{bigint:true});guard(sdkStat.isDirectory()&&!sdkStat.isSymbolicLink()&&sdkStat.uid===0n&&(sdkStat.mode&0o22n)===0n);const sdkIdentity=parentMark(sdkStat);
   stage('NATIVE_HEADERS');const headers=Object.entries(tool.headerPins).map(([rel,pin])=>bounded(tool.sdk+'/usr/include/'+rel,0,1024*1024,pin));
   stage('NATIVE_NAMESPACE');const directories=[base+'/prefix',base+'/prefix/native-probes',base+'/runtime',base+'/runtime/node-v22.13.0-darwin-arm64',base+'/runtime/node-v22.13.0-darwin-arm64/bin'];
@@ -66,7 +66,7 @@ function buildFixedAssets(options,ci){
   }
   stage('NATIVE_FINAL');for(const row of [runtime,compiler,linker,...headers,...sources,copied,...artifacts])current(row);guard(verifySealedTypeScriptSyntheticFixture(fixture).outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED'&&ownedDirectory(base)===baseIdentity&&identities.every(([file,before])=>ownedDirectory(file)===before));
   const report={schema:1,scope:'LOCAL_SYNTHETIC_ASSETS_BUILT_NOT_EXECUTED',base,baseIdentity,sources:sources.map(row=>({file:row.file,sha256:row.digest})),binaries:artifacts.map(row=>({file:row.file,sha256:row.digest})),nodeSha256:copied.digest,builds:observations,templateSha256:proposal.sources.map(row=>row.templateSha256),fixtureCurrent:true,compilerCheckExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false};
-  if(ci)report.fixtureProfileId='fixed-native-assets-ci-sdk26.5-toolpair-a@1';
+  if(ci)report.fixtureProfileId='fixed-native-assets-ci-sdk26.5-toolpair-b@1';
   ownerReport=report;
   mintedRecord={fixture,base,baseIdentity,identities,sdk:tool.sdk,sdkIdentity,rows:[runtime,compiler,linker,...headers,...sources,copied,...artifacts]};
   finished=true;

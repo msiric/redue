@@ -105,7 +105,7 @@ export function observeSealedTypeScriptBaseExchangeAssets(build,inspect){
 // selects a profile. Source consumers retain their own currentness barriers.
 export function sealedTypeScriptBaseExchangeAssetsFixtureProfile(assetsBuild){
  const original=mintedAssets.get(assetsBuild);if(arguments.length!==1||!original||original.invalid)return null;
- return original.ci===false&&original.prepareProposal===prepareSealedTypeScriptNativeAssetsProposal?'fixed-native-assets-local-sdk27@1':original.ci===true&&original.prepareProposal===prepareSealedTypeScriptNativeAssetsProposalForReviewedCI?'fixed-native-assets-ci-sdk26.5-toolpair-a@1':null;
+ return original.ci===false&&original.prepareProposal===prepareSealedTypeScriptNativeAssetsProposal?'fixed-native-assets-local-sdk27@1':original.ci===true&&original.prepareProposal===prepareSealedTypeScriptNativeAssetsProposalForReviewedCI?'fixed-native-assets-ci-sdk26.5-toolpair-b@1':null;
 }
 
 // Original host binding only; this does not establish root currency.
