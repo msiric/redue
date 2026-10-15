@@ -291,18 +291,23 @@ line=json.dumps(frame,separators=(',',':'))+'\n'
 # native agent, checker, compiler, REDUE fixture, credentials or model.
 source="const fs=require('node:fs');const b=Buffer.from("+json.dumps(line)+");let at=0;while(at<b.length)at+=fs.writeSync(1,b,at,b.length-at);Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0);"
 wall=time.monotonic();child=subprocess.Popen([str(node),'-e',source],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,start_new_session=True,close_fds=True,env=os.environ.copy())
+monitor=m.open_owned_exit_monitor(child)
 events=[]
 def kill(pid,sig):
  assert pid==child.pid
  events.append('OWNED_GROUP_SIGKILL' if sig==signal.SIGKILL else 'POST_REAP_GROUP_ZERO' if sig==0 else 'INVALID')
  return os.killpg(pid,sig)
-result=m.collect(child,killpg=kill,started=wall-28.5)
+result=m.collect(child,killpg=kill,started=wall-28.5,exit_monitor=monitor)
 actual=(time.monotonic()-wall)*1000
 assert result['outcome']=='UNKNOWN' and result['reason_code']=='BODY_DEADLINE' and result['innerReport'] is None
 assert result['progressObservation']['inProgressPhase']=='operationImports' and result['progressObservation']['validatedFrameCount']==1
 assert result['progressObservation']['activeDispatchCount']=='UNKNOWN' and result['childReaped'] and result['childSignal']==signal.SIGKILL and result['groupAbsentAfterReap']
 assert events==['OWNED_GROUP_SIGKILL','POST_REAP_GROUP_ZERO'] and result['stderrBytes']==0 and actual<7500
-print(json.dumps({'scope':'HARMLESS_FIXED_STDOUT_DELIVERY_HARNESS_ONLY','outcome':'HARNESS_ASSERTIONS_PASS','wallMs':actual,'syntheticParentAgeAtLaunchMs':28500,'validProgressFrames':1,'overallPreparation':'UNKNOWN','childReaped':True,'ownedGroupAbsent':True,'actualPopen':1,'childSubprocesses':0,'compilerBuilds':0,'nativeExecutions':0,'models':0,'sourceAuthority':'NONE'}))
+# Check only after bounded cleanup: a failed monitor prerequisite must never
+# leave the owned child running. A BEGIN without FINAL cannot query EXIT or
+# authorize the normal-exit shortcut, even with a real registered monitor.
+assert monitor is not None and monitor.queue is None and result['exitMonitorState']=='NOT_QUERIED'
+print(json.dumps({'scope':'HARMLESS_FIXED_STDOUT_DELIVERY_HARNESS_ONLY','outcome':'HARNESS_ASSERTIONS_PASS','wallMs':actual,'syntheticParentAgeAtLaunchMs':28500,'monitorRegistered':True,'monitorClosed':True,'exitMonitorState':result['exitMonitorState'],'validProgressFrames':1,'overallPreparation':'UNKNOWN','childReaped':True,'ownedGroupAbsent':True,'actualPopen':1,'childSubprocesses':0,'compilerBuilds':0,'nativeExecutions':0,'models':0,'sourceAuthority':'NONE'}))
 `;
  const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{encoding:'utf8',timeout:8000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.scope,'HARMLESS_FIXED_STDOUT_DELIVERY_HARNESS_ONLY');assert.equal(result.outcome,'HARNESS_ASSERTIONS_PASS');assert.equal(result.actualPopen,1);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);assert.equal(result.models,0);console.log(JSON.stringify(result));
 });
@@ -371,7 +376,7 @@ print(json.dumps({'scope':'BOUND_PROCESS_FACTS_SOURCE_MOCKS_ONLY','passed':check
  const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify({failed,failedFrames,partial,partialFrames}),encoding:'utf8',timeout:5000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.passed,13);assert.equal(result.actualPopen,0);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);
 });
 
-test('kernel-exit lifecycle gate avoids destructive signaling only for complete known outcomes and preserves unknown closure',async()=>{
+test('kernel-exit lifecycle gate for complete zero-success build rows preserves unknown closure',async()=>{
  const goodFrames=[],good=await observe({...mock().options,observeProgress:frame=>goodFrames.push(frame)}),unknownMock=mock();unknownMock.state.fail='prepareEnclosure';const unknownFrames=[],unknown=await observe({...unknownMock.options,observeProgress:frame=>unknownFrames.push(frame)});const incompleteMock=mock();incompleteMock.state.nonzero=true;const incompleteFrames=[],incompleteReport=await observe({...incompleteMock.options,observeProgress:frame=>incompleteFrames.push(frame)});const partialMock=mock();partialMock.op.buildAssets=()=>({outcome:'UNKNOWN',sealed:false,reuseEligible:false,dispatchAttemptCount:2,builds:[{pidObserved:true,completed:true,status:0,signal:null,spawnError:'NONE',stdoutBytes:0,stderrBytes:0}]});const partialFrames=[],partialReport=await observe({...partialMock.options,observeProgress:frame=>partialFrames.push(frame)});
  const python=String.raw`
 import copy,errno,importlib.util,json,signal,sys,types
@@ -443,6 +448,10 @@ try:
   result,events=run(**options);assert ('group',signal.SIGKILL) in events or options.get('code')==-9
   if options.get('body') is not None or options.get('code')==-9:assert result['outcome']=='UNKNOWN'
   checks+=1
+ # The pinned helpers use completed=true only for zero-success builds. All
+ # returned rows must meet that completion gate: a known nonzero remains a
+ # historical process fact, but completed=false retains old bounded cleanup.
+ # This does not claim a nonzero-run cleanup shortcut. Partial rows also fail.
  # Full FINAL with incomplete returned process facts cannot authorize skip.
  for report,frames in ((payload['incompleteReport'],payload['incompleteFrames']),(payload['partialReport'],payload['partialFrames'])):
   body=wire(report,frames);result,events=run(body=body,code=74);assert result['innerReport'] is not None and ('group',signal.SIGKILL) in events and result['outcome']=='UNKNOWN';checks+=1
