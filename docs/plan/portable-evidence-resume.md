@@ -13,6 +13,39 @@ resource limits, history or the next acceptance outcome.
 
 
 
+## Current checkpoint — exact tool-pair guard repaired; preparation deadline now measured
+
+The independently reviewed closed A/B tuple implementation `d3acd01` is integrated
+at `2b77aef`. Root's existing sealed regressions pass: 5,108 PASS, 12 explicit SKIP,
+zero FAIL; TAP SHA-256
+`5aa6df3418df01087c93543293c974460e82bac6b83afe5b47227bbfa41719a1`.
+DIR359 independently accepts private tuple binding, unchanged-choice currentness,
+all eight-build consumers, conservative parent reporting and unchanged local behavior.
+DIR360 accepts workflow `99a0f61`, SHA-256
+`7c21d4af43bb117a45b96be58c2492a27936760492c78c859af41f481f772374`.
+
+Actual [run 38825999937](https://github.com/msiric/redue/actions/runs/38825999937)
+was dispatched once through the existing personal account without an owner UI step.
+Both machines passed the former tool guard and returned six preparatory compiler
+process observations each. Both then reached the unchanged 60-second body deadline;
+UNKNOWN and lower-bound counts are retained. The producer spent 32,523.990ms in
+`oldLauncherBuild` and 6,689.871ms in `oldLauncherCurrent`; the receiver spent
+22,282.646ms and 4,920.880ms respectively. The receiver also completed a 7,359.619ms
+`originalProjection` and 4,970.386ms `enclosureSource` before the deadline during
+`enclosureBuilds`. Cost groups overlap: their inclusive times must not be summed.
+No validated FINAL means the selected/expected pair fields correctly remain null.
+
+Images/tool pairs differed between the VMs. Complete recipient profile matching
+remains NOT ESTABLISHED; these public facts alone prove neither full compatibility
+nor incompatibility. No built helper, native agent, model, TypeScript check or
+receipt executed. There is no origin, seal or reuse authority. Public records:
+35,473B SHA-256 `2ab4fa687785b37f551acb1b6b8f3ef6d5d3f06c1dea01540d754056b0165540`.
+Next: independently inspect the measured repeated launcher-validation calls and
+use the existing same-call guarded observation only where justified. No unchanged
+retry, deadline increase, cross-write/clang/await cache or relaxed currentness.
+
+### Preserved previous checkpoint
+
 ## Current checkpoint — scoped GitHub access works; runner tool-pair variation established
 
 The per-process, independently reviewed DIR352 route uses only the existing personal
