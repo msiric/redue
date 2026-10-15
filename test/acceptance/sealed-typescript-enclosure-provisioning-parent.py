@@ -24,8 +24,9 @@ import subprocess
 import sys
 import uuid
 
-INNER_SHA256 = "2a9ef884d7fe1de1a950b48484c6f6825ef31c0f2e7f45db36843acf9c903034"
+INNER_SHA256 = "20b7adac1bc208626e43ee2b815cb6558e44c25e4a4558c68ad05880245642f7"
 ENCLOSURE_REFUSAL_STAGES = ("OPTIONS", "ORIGINAL_DERIVATION", "PREPARED_NULL_CURRENT", "INITIAL_ORIGINAL_CURRENT", "PROJECTION_INTERPRETATION", "CAMPAIGN_RENDER", "DERIVED_BINDINGS", "COLLECTOR_FUNCTION_PIN", "C_TEMPLATE_READ", "COLLECTOR_TEMPLATE_READ", "LAUNCHER_REBIND", "ENCLOSURE_REBIND", "FINAL_ORIGINAL_CURRENT", "SOURCE_RESULT")
+ORIGINAL_CURRENT_REFUSAL_STAGES = ("DERIVATION", "PROJECTION_CURRENT", "PREPARED_NULL_CURRENT", "PROJECTION_RESULT", "PREPARED_NULL_RESULT", "C_SOURCE_READ", "C_SOURCE_IDENTITY", "COLLECTOR_SOURCE_READ", "COLLECTOR_SOURCE_IDENTITY", "C_SOURCE_NAMED", "COLLECTOR_SOURCE_NAMED")
 NODE_SHA256 = "5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc"
 ENTRY_NAME = "sealed-typescript-enclosure-provisioning.mjs"
 SCOPE = "FIXED_ENCLOSURE_PREPARATION_PARENT_ONLY"
@@ -130,7 +131,7 @@ def parse_inner(body):
         return value
     require(0 < len(body) <= 65536 and body.endswith(b"\n") and body.count(b"\n") == 1)
     value = json.loads(body, object_pairs_hook=unique)
-    expected = {"schema", "scope", "profile", "outcome", "reason_code", "failedPhase", "enclosureSourceRefusal", "phases", "ownedRootNames", "builds", "buildAttemptCount", "buildResultCount", "observedProcessCount", "compilerBuildOutcome", "newFileDigests", "elapsedMs", "privateMints", "newCodeCurrentness", "nativeIntervalBarrier", "completeSdkClosure", "preMainLoader", *_FALSE.keys()}
+    expected = {"schema", "scope", "profile", "outcome", "reason_code", "failedPhase", "enclosureSourceRefusal", "originalCurrentRefusal", "phases", "ownedRootNames", "builds", "buildAttemptCount", "buildResultCount", "observedProcessCount", "compilerBuildOutcome", "newFileDigests", "elapsedMs", "privateMints", "newCodeCurrentness", "nativeIntervalBarrier", "completeSdkClosure", "preMainLoader", *_FALSE.keys()}
     require(type(value) is dict and set(value) == expected and value["schema"] == 1
             and type(value["schema"]) is int and value["scope"] == "FIXED_ENCLOSURE_PROVISIONING_OBSERVATION_ONLY"
             and value["profile"] == "fixed-enclosure-local-sdk27@1"
@@ -158,6 +159,10 @@ def parse_inner(body):
                 and value["reason_code"] in ("PHASE_UNAVAILABLE", "FINAL_REPORT_OR_BUDGET_UNAVAILABLE")
                 and value["phases"] and value["phases"][-1]["name"] == "enclosureSource"
                 and value["phases"][-1]["outcome"] == "UNKNOWN")
+    inner_refusal = value["originalCurrentRefusal"]
+    require(inner_refusal is None or type(inner_refusal) is str and inner_refusal in ORIGINAL_CURRENT_REFUSAL_STAGES)
+    if inner_refusal is not None:
+        require(refusal in ("INITIAL_ORIGINAL_CURRENT", "FINAL_ORIGINAL_CURRENT"))
     require(type(value["ownedRootNames"]) is list and len(value["ownedRootNames"]) <= 3)
     for row in value["ownedRootNames"]:
         require(type(row) is dict and set(row) == {"role", "name"}
