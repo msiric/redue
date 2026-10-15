@@ -8,6 +8,7 @@ import {verifySealedTypeScriptFixedCampaignPreparedNullSource} from './sealed-ty
 const version='fixed-canary-finite-enclosure-source@2',projectionVersion='fixed-canary-original-input-projection@3';
 const cPin='3e4a891d7e228b754b05544a98b03b7086c5702acfd0e7110666cc66611fcc03',collectorPin='a15fee9374767e14483575264bcfa85732d90eab503c8a1f2b770c5156395878';
 const collectFunctionPin='0734891f42bc3efbd04a4194a29fd196946f421b23b08b8b907d036208bfbf42';
+export const SEALED_TYPESCRIPT_ENCLOSURE_SOURCE_REFUSAL_STAGES=Object.freeze(['OPTIONS','ORIGINAL_DERIVATION','PREPARED_NULL_CURRENT','INITIAL_ORIGINAL_CURRENT','PROJECTION_INTERPRETATION','CAMPAIGN_RENDER','DERIVED_BINDINGS','COLLECTOR_FUNCTION_PIN','C_TEMPLATE_READ','COLLECTOR_TEMPLATE_READ','LAUNCHER_REBIND','ENCLOSURE_REBIND','FINAL_ORIGINAL_CURRENT','SOURCE_RESULT']);
 const keys=['assetsBuild','pairedSource','pairedArtifacts','copies','projection','preparedNullSource'];
 const minted=new WeakMap(),sha=value=>createHash('sha256').update(value).digest('hex');
 const guard=value=>{if(!value)throw Error('ENCLOSURE_SOURCE_UNAVAILABLE');};
@@ -21,29 +22,47 @@ function current(record){const i=record.inputs;guard(sealedTypeScriptFixedCanary
 const blockers=Object.freeze(['NEW_ENCLOSURE_CODE_PROVISIONING_AND_ORIGINAL_CURRENTNESS_NOT_ESTABLISHED','EXACT_NATIVE_POLICY_AND_READ_VIEW_NOT_ESTABLISHED','PRE_MAIN_LOADER_NOT_ESTABLISHED','COMPLETE_SDK_CLOSURE_NOT_ESTABLISHED','ACTUAL_NATIVE_SESSION_FIFO_AND_CLEANUP_NOT_ESTABLISHED','COMPILER_NAMESPACE_AND_FRESH_PRODUCER_BINDINGS_NOT_ESTABLISHED']);
 const authority=fields=>freeze({schema:1,scope:'DISABLED_FIXED_CANARY_FINITE_ENCLOSURE_SOURCE_DATA_ONLY',...fields,version,disabled:true,runnable:false,commands:[],executionAuthority:'NONE',recordAdoptionAuthority:false,nativeEnforcement:'NOT_ESTABLISHED',sealed:false,reuseEligible:false,blockers});
 export function prepareSealedTypeScriptFixedCampaignEnclosureSource(options){
+ let refusalStage='OPTIONS';
+ try{
  guard(arguments.length===1&&options&&Object.getPrototypeOf(options)===Object.prototype&&Reflect.ownKeys(options).length===keys.length&&keys.every(k=>Object.hasOwn(Object.getOwnPropertyDescriptor(options,k)??{},'value')));
+ refusalStage='ORIGINAL_DERIVATION';
  const inputs=Object.freeze(Object.fromEntries(keys.map(k=>[k,options[k]])));
  // Reject copied/accessor/mixed capabilities BEFORE public-path IO. A private
  // identity match is not currency; both private currency guards follow it.
  guard(sealedTypeScriptFixedCanaryProtectedInputProjectionMatchesDerivation(inputs.projection,inputs.assetsBuild,inputs.pairedSource,inputs.pairedArtifacts,inputs.copies));
+ refusalStage='PREPARED_NULL_CURRENT';
  const preparedCheck=verifySealedTypeScriptFixedCampaignPreparedNullSource(inputs.preparedNullSource);guard(preparedCheck.outcome==='CAMPAIGN_PREPARED_NULL_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED'&&preparedCheck.version==='campaign-prepared-devnull-setexec@2');
+ refusalStage='INITIAL_ORIGINAL_CURRENT';
  const record={inputs,rows:[],projectionSourceSha256:inputs.projection.sourceSha256,preparedSourceSha256:preparedCheck.sourceSha256};current(record);
+ refusalStage='PROJECTION_INTERPRETATION';
  guard(inputs.projection.version===projectionVersion&&inputs.projection.disabled===true&&inputs.projection.runnable===false&&sha(inputs.projection.source)===record.projectionSourceSha256);
+ refusalStage='CAMPAIGN_RENDER';
  const campaign=prepareSealedTypeScriptFixedCampaignSource({assetsBuild:inputs.assetsBuild,pairedSource:inputs.pairedSource,pairedArtifacts:inputs.pairedArtifacts}),h=campaign.hostBase;
  guard(campaign.disabled===true&&campaign.actors.length===4&&/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}$/.test(h));
+ refusalStage='DERIVED_BINDINGS';
  const node=h+'/runtime/node-v22.13.0-darwin-arm64/bin/node',entry=h+'/prefix/native-probes/paired-stage-enclosed-campaign.mjs',projectionEntry=h+'/prefix/native-probes/paired-stage-enclosed-original-inputs.mjs',launcher=h+'/prefix/native-probes/paired-stage-enclosed-campaign-launch',self=h+'/prefix/native-probes/paired-stage-enclosure';
  const prepared=inputs.preparedNullSource;guard(campaign.node===node&&prepared.bindings.node===node&&prepared.bindings.entry===campaign.entry&&prepared.bindings.launcher===h+'/prefix/native-probes/paired-stage-campaign-launch');
+ refusalStage='COLLECTOR_FUNCTION_PIN';
  guard(sha(Function.prototype.toString.call(collectFixedEnclosedCampaign))===collectFunctionPin);
- record.rows=[readSource('sealed-typescript-fixed-campaign-enclosure.c',cPin),readSource('sealed-typescript-fixed-campaign-enclosed-collector.mjs',collectorPin)];
+ refusalStage='C_TEMPLATE_READ';
+ const cRow=readSource('sealed-typescript-fixed-campaign-enclosure.c',cPin);
+ refusalStage='COLLECTOR_TEMPLATE_READ';
+ record.rows=[cRow,readSource('sealed-typescript-fixed-campaign-enclosed-collector.mjs',collectorPin)];
+ refusalStage='SOURCE_RESULT';
  const imports=`import {spawn} from 'node:child_process';\nimport {fixedCanaryProtectedInputs} from ${JSON.stringify(projectionEntry)};\nimport {parseSealedTypeScriptBaseExchangeResult as baseParse,createSealedTypeScriptBaseExchangeResultLatch as baseLatch} from '../test/acceptance/sealed-typescript-base-exchange-result.mjs';\nimport {parseSealedTypeScriptStageExchangeResult as exchangeParse,createSealedTypeScriptStageExchangeResultLatch as exchangeLatch} from '../test/acceptance/sealed-typescript-stage-exchange-result.mjs';\nimport {parseSealedTypeScriptStageResult as stageParse,createSealedTypeScriptStageResultLatch as stageLatch} from '../test/acceptance/sealed-typescript-stage-result.mjs';\nimport {parseSealedTypeScriptMapResult as mapParse,createSealedTypeScriptMapResultLatch as mapLatch} from '../test/acceptance/sealed-typescript-map-result.mjs';\n`;
  const declarations=record.rows[1].source.slice(record.rows[1].source.indexOf('const roles='),record.rows[1].source.indexOf('// Source closed:'));
  const collectorSource=imports+declarations+`\nconst collect=${Function.prototype.toString.call(collectFixedEnclosedCampaign)},actors=Object.freeze(${JSON.stringify(campaign.actors)});\nlet result=null;\ntry{if(process.platform!=='darwin'||process.arch!=='arm64'||process.version!=='v22.13.0'||process.execPath!==${JSON.stringify(node)}||process.execArgv.length||process.argv.length!==2||process.argv[1]!==${JSON.stringify(entry)}||process.cwd()!==${JSON.stringify(campaign.cwd)}||Object.keys(process.env).some(k=>/^(?:NODE_OPTIONS|NODE_PATH|NODE_REPL_EXTERNAL_MODULE|BASH_ENV|ENV)$|^(?:DYLD_|LD_|OPENSSL_)/i.test(k)))throw Error();\nresult=await collect(role=>{const selected=actors[roles.indexOf(role)];return spawn(selected.file,selected.args,{cwd:${JSON.stringify(campaign.cwd)},env:process.env,stdio:['ignore','pipe','pipe'],detached:false});},fixedCanaryProtectedInputs);\n}catch{}\nprocess.exitCode=result?.outcome==='FAIL'?1:74;\n// Only the protected trusted collector produces the finite lifecycle frame.\nif(result&&(result.outcome==='FAIL'||(result.begin===true&&result.end===true&&!result.timedOut&&result.allLaunchedDirectActorsReaped===true&&result.launchedCount===result.closedCount&&result.closedCount>=1&&result.closedCount<=4))){const bytes=Buffer.from('RDE2:${inputs.projection.projectionSha256}:'+(result.outcome==='FAIL'?'F':'E')+':'+result.closedCount+'\\n'+JSON.stringify(result)+'\\n');if(bytes.length<=32768)process.stdout.write(bytes);}/* no partial/unknown completion frame */\n`;
  const replace=(source,from,to)=>{guard(source.split(from).length===2);return source.replace(from,to);};
+ refusalStage='LAUNCHER_REBIND';
  let launcherSource=replace(prepared.source,prepared.bindings.entry,entry);launcherSource=replace(launcherSource,prepared.bindings.launcher,launcher);
+ refusalStage='ENCLOSURE_REBIND';
  let enclosureSource=record.rows[0].source;for(const [token,value]of [['SELF',self],['LAUNCHER',launcher],['PROJECTION',inputs.projection.projectionSha256]])enclosureSource=replace(enclosureSource,'__REVIEWED_FIXED_ENCLOSURE_'+token+'__',value);
- guard(!/__REVIEWED_FIXED_ENCLOSURE_/.test(enclosureSource)&&collectorSource.length<262144&&/^[a-f0-9]{64}$/.test(inputs.projection.projectionSha256));current(record);
+ guard(!/__REVIEWED_FIXED_ENCLOSURE_/.test(enclosureSource)&&collectorSource.length<262144&&/^[a-f0-9]{64}$/.test(inputs.projection.projectionSha256));
+ refusalStage='FINAL_ORIGINAL_CURRENT';current(record);
+ refusalStage='SOURCE_RESULT';
  const files=[{role:'original_projection',file:projectionEntry,source:inputs.projection.source},{role:'collector',file:entry,source:collectorSource},{role:'prepared_null_launcher',file:launcher+'.c',source:launcherSource},{role:'finite_enclosure',file:self+'.c',source:enclosureSource}].map(row=>({...row,sourceBytes:Buffer.byteLength(row.source),sourceSha256:sha(row.source)}));
  const result=authority({outcome:'FIXED_CANARY_ENCLOSURE_SOURCES_PREPARED_NOT_PROVISIONED',bindings:{baseA:campaign.baseA,baseB:campaign.baseB,hostBase:h,node,entry,projectionEntry,launcher,self,cwd:campaign.cwd},projectionSha256:inputs.projection.projectionSha256,files,actors:campaign.actors,budgetsMs:{actor:11000,actorClose:11500,worker:13750,parentReceive:14000,parentReap:14750,parentAbsolute:14900,external:15000},collectionTransport:{interpretation:'finite-enclosure-normal-collection@2',frame:'RDE2',completeCollectionExit:0,incompleteCollectionExit:74,collectorExit:{E:74,F:1},assertionAuthority:'JSON_BODY_ONLY_NOT_OUTER_EXIT',nativeResultAcceptance:'NOT_TESTED'},capturePublication:{E:'ORIGINAL_END_THEN_COLLECTOR_REAP_WORKER_REAP_AND_GROUP_ABSENCE',F:'KNOWN_ASSERTION_FAIL_THEN_CONTROLLED_GROUP_CLEANUP_WORKER_REAP_AND_GROUP_ABSENCE_END_NOT_REQUIRED'},actualExecution:'NOT_RUN',newCodeFileCurrentness:'NOT_ESTABLISHED',fullSdkClosure:'NOT_ESTABLISHED',preMainLoader:'NOT_ESTABLISHED'});minted.set(result,record);return result;
+ }catch{const error=Error('ENCLOSURE_SOURCE_UNAVAILABLE');Object.defineProperty(error,'refusalStage',{value:refusalStage,enumerable:true});throw error;}
 }
 // Private identity only. Do not inspect any caller capability or touch paths;
 // this predicate does not establish currency or permission to execute.
