@@ -1,14 +1,25 @@
 # Sealed-input TypeScript: current implementation boundary
 
-## Current checkpoint — actual CI preparation UNKNOWN; bounded diagnosis active
+## Current checkpoint — reviewed bounded capture ready; actual preparation UNKNOWN
 
-Latest actual run38807523991 returned UNKNOWN on both VMs: the producer stopped
-at prerequisite builds with zero build observations; the receiver returned eight
-build-process observations but reached its60s deadline at final enclosure currency.
-The two runner images differ. No model or reusable evidence was authorized. Next:
-review the captured failure/cost path, then correct the concrete prerequisite before
-another bounded attempt. Scope stays frozen around that path. Resume using
-[the standing delivery loop](../plan/director-role.md#acceptance-driven-delivery-loop).
+Actual run38807523991 remains UNKNOWN on both VMs: producer pre-dispatch guard
+not identified; receiver deadline before final validation; runner images differ.
+No helper, native agent, model or reusable evidence followed. Next actual outcome:
+one two-VM capture of public paired identities plus bounded preparation subphases,
+using reviewed workflow`cc273d1` and exact runtime`e4f7fee`. CLI dispatch403 remains
+respected; a new owner UI dispatch is required after the reviewed push.
+
+DIR342 accepts the fixed CI-only diagnostic delta and closes DIR340's misleading
+outer refusal-stage finding. Original guards, commands, environments, deadlines
+and authority remain unchanged. Counts/timings are inclusive sampled call facts,
+not summable costs or process success. Partial capture survives timeout; missing
+facts remain UNKNOWN. DIR344 accepts the test-only negative-fixture correction:
+explicitly establish0770 before testing group-write refusal, independent of umask.
+Combined dependency-backed regressions:5,085 PASS/12 explicit SKIP/0 FAIL;
+TAP SHA256`e2250ba7c070708134cd848b9690850b63392ea7f3932e0e5433c6b497091e4f`.
+The earlier one-failure run and four diagnostic misattributions are retained.
+These are local source/mock results, not actual runner/native/seal/reuse acceptance.
+Resume using [the standing delivery loop](../plan/director-role.md#acceptance-driven-delivery-loop).
 
 Owner approval for [run38748867165](https://github.com/msiric/redue/actions/runs/38748867165)
 was applied; the completed attempt is already preserved below. Its accepted native

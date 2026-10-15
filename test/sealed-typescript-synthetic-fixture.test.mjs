@@ -228,6 +228,7 @@ test('mock occupied checkout symlink, group-write mode or unowned metadata is pr
     const privateParent=parent+'/'+kind;fs.mkdirSync(privateParent,{mode:0o700});const mock=ciMock(privateParent),token=boot(mock),base=mock.actual(token.base),checkout=base+'/Checkout 空间';
     if(kind==='symlink'){fs.mkdirSync(base+'/NONSECRET-target',{mode:0o700});fs.symlinkSync(base+'/NONSECRET-target',checkout);}
     else fs.mkdirSync(checkout,{mode:kind==='mode'?0o770:0o700});
+    if(kind==='mode'){fs.chmodSync(checkout,0o770);assert.equal(fs.lstatSync(checkout).mode&0o777,0o770);}
     if(kind==='owner'){const original=mock.fake.lstatSync;mock.fake.lstatSync=function(file,...args){const stat=Reflect.apply(original,this,[file,...args]);if(file.endsWith('/Checkout 空间'))stat.uid+=1n;return stat;};}
     ciUnknown(mock.prepare(token));assert.equal(fs.existsSync(base+'/sealed-inputs'),false);assert.equal(fs.lstatSync(checkout).isSymbolicLink(),kind==='symlink');
   }
