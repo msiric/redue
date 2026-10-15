@@ -23,7 +23,7 @@ import subprocess
 import sys
 import uuid
 
-INNER_SHA256 = "5ceffb3ee7efe91eab46a9f06df05dcacf220d627652eff5d28bbe5c1797cd42"
+INNER_SHA256 = "4577a42abf870088b92864bdcfb0553330c1515d82386a7e4017d945beefd6e5"
 NODE_SHA256 = "5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc"
 ENTRY_NAME = "sealed-typescript-enclosure-provisioning.mjs"
 SCOPE = "FIXED_ENCLOSURE_PREPARATION_PARENT_ONLY"
@@ -107,6 +107,18 @@ def prerequisites():
     return repo, entry, node, rows
 
 
+def recorded_build_outcome(builds):
+    # Outcome derives only from the bound returned process facts. A historical
+    # nonzero is never displaced by an asserted zero/unknown summary.
+    if any(row["pidObserved"] and row["status"] is not None and row["status"] > 0
+           and row["signal"] is None and row["spawnError"] == "NONE" for row in builds):
+        return "EXIT_NONZERO"
+    if len(builds) == 8 and all(row["pidObserved"] and row["completed"] and row["status"] == 0
+                               and row["signal"] is None and row["spawnError"] == "NONE" for row in builds):
+        return "EXIT_ZERO"
+    return "UNKNOWN"
+
+
 def parse_inner(body):
     def unique(pairs):
         value = {}
@@ -153,9 +165,9 @@ def parse_inner(body):
                 and all(type(row[k]) is int and 0 <= row[k] <= 9007199254740991 for k in ("stdoutBytes", "stderrBytes")))
     for key in ("buildAttemptCount", "buildResultCount", "observedProcessCount"):
         require(type(value[key]) is int and 0 <= value[key] <= 8)
-    require(value["buildResultCount"] == len(value["builds"])
+    require(value["buildResultCount"] == len(value["builds"]) <= value["buildAttemptCount"]
             and value["observedProcessCount"] == sum(row["pidObserved"] for row in value["builds"])
-            and value["compilerBuildOutcome"] in ("EXIT_ZERO", "EXIT_NONZERO", "UNKNOWN"))
+            and value["compilerBuildOutcome"] == recorded_build_outcome(value["builds"]))
     require(type(value["newFileDigests"]) is list and len(value["newFileDigests"]) <= 6)
     for row in value["newFileDigests"]:
         require(type(row) is dict and set(row) == {"index", "sha256"}
@@ -213,6 +225,7 @@ class ProgressProtocol:
             inner = parse_inner((json.dumps(value["report"], allow_nan=False) + "\n").encode())
             require(inner["ownedRootNames"] == self.roots and inner["builds"] == self.builds
                     and inner["buildAttemptCount"] == self.attempts and len(inner["phases"]) == len(self.phases)
+                    and inner["compilerBuildOutcome"] == recorded_build_outcome(self.builds)
                     and type(inner["elapsedMs"]) in (int, float) and inner["elapsedMs"] + 0.00051 >= self.last_elapsed)
             for final, observed in zip(inner["phases"], self.phases):
                 require(final["name"] == observed["name"] and final["outcome"] == observed["outcome"]
@@ -249,7 +262,7 @@ class ProgressProtocol:
                     and all(type(row[k]) is int and 0 <= row[k] <= 9007199254740991 for k in ("stdoutBytes", "stderrBytes")))
         for key in ("buildAttemptCount", "buildResultCount", "observedProcessCount"):
             require(type(value[key]) is int and 0 <= value[key] <= 8)
-        require(value["buildResultCount"] == len(builds) and value["observedProcessCount"] == sum(row["pidObserved"] for row in builds)
+        require(value["buildResultCount"] == len(builds) <= value["buildAttemptCount"] and value["observedProcessCount"] == sum(row["pidObserved"] for row in builds)
                 and value["buildAttemptCount"] >= self.attempts
                 and value["compilerBuildOutcome"] == ("EXIT_NONZERO" if any(row["pidObserved"] and row["status"] is not None and row["status"] > 0 and row["signal"] is None and row["spawnError"] == "NONE" for row in builds) else "UNKNOWN"))
         if value["kind"] == "BEGIN":
@@ -263,7 +276,7 @@ class ProgressProtocol:
                     and type(value["phaseElapsedMs"]) in (int, float) and 0 <= value["phaseElapsedMs"] < 35000
                     and abs(value["elapsedMs"] - self.phase_began - value["phaseElapsedMs"]) <= 0.0011)
             capacity = {"prerequisiteBuilds": 3, "pairedBuilds": 2, "oldLauncherBuild": 1, "enclosureBuilds": 2}.get(self.active, 0)
-            require(len(value["newBuilds"]) <= capacity and value["buildAttemptCount"] - self.attempts <= capacity)
+            require(len(value["newBuilds"]) <= value["buildAttemptCount"] - self.attempts <= capacity)
             require(not value["newRoots"] or self.active in ("freshPair", "freshHost"))
             if value["outcome"] == "COMPLETED":
                 require(len(value["newBuilds"]) == capacity and value["buildAttemptCount"] - self.attempts == capacity)

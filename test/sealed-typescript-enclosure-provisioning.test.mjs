@@ -291,3 +291,66 @@ print(json.dumps({'scope':'HARMLESS_FIXED_STDOUT_DELIVERY_HARNESS_ONLY','outcome
 `;
  const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{encoding:'utf8',timeout:8000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.scope,'HARMLESS_FIXED_STDOUT_DELIVERY_HARNESS_ONLY');assert.equal(result.outcome,'HARNESS_ASSERTIONS_PASS');assert.equal(result.actualPopen,1);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);assert.equal(result.models,0);console.log(JSON.stringify(result));
 });
+
+test('final build outcome and progress dispatch counts derive from bound facts, including known failures and partial returns',async()=>{
+ const failedMock=mock();failedMock.state.nonzero=true;const failedFrames=[],failed=await observe({...failedMock.options,observeProgress:frame=>failedFrames.push(frame)});
+ const partialMock=mock();partialMock.op.buildAssets=()=>({outcome:'UNKNOWN',sealed:false,reuseEligible:false,dispatchAttemptCount:2,builds:[{pidObserved:true,completed:true,status:0,signal:null,spawnError:'NONE',stdoutBytes:0,stderrBytes:0}]});
+ const partialFrames=[],partial=await observe({...partialMock.options,observeProgress:frame=>partialFrames.push(frame)});assert.equal(partial.outcome,'UNKNOWN');assert.equal(partial.buildAttemptCount,2);assert.equal(partial.buildResultCount,1);assert.equal(partial.compilerBuildOutcome,'UNKNOWN');
+ const missingPid=mock(),build=missingPid.op.buildEnclosure;missingPid.op.buildEnclosure=(...args)=>{const value=build(...args);value.builds[0].pidObserved=false;return value;};const incomplete=await observe(missingPid.options);assert.equal(incomplete.outcome,'UNKNOWN');assert.equal(incomplete.buildResultCount,8);assert.equal(incomplete.compilerBuildOutcome,'UNKNOWN');
+ const python=String.raw`
+import copy,importlib.util,json,sys
+sys.dont_write_bytecode=True
+spec=importlib.util.spec_from_file_location('bound_build_facts_mock',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+v=json.loads(sys.stdin.read());checks=0
+wire=lambda values:b''.join((json.dumps(x,separators=(',',':'))+'\n').encode() for x in values)
+final=lambda report:{'schema':1,'protocol':'fixed-enclosure-progress@1','kind':'FINAL','report':report}
+failed,failed_frames=v['failed'],v['failedFrames']
+# Exact prior counterexample: immutable returned nonzero cannot be summarized
+# as EXIT_ZERO (or UNKNOWN), even though the overall preparation is UNKNOWN.
+for outcome in ('EXIT_ZERO','UNKNOWN'):
+ bad=copy.deepcopy(failed);bad['compilerBuildOutcome']=outcome
+ try:m.parse_inner((json.dumps(bad)+'\n').encode());raise AssertionError('CONTRADICTORY_SUMMARY_ACCEPTED')
+ except ValueError:pass
+ p=m.ProgressProtocol();p.feed(wire(failed_frames+[final(bad)]));assert p.finish() is None and p.observation()['compilerBuildOutcome']=='EXIT_NONZERO' and len(p.builds)==3;checks+=1
+p=m.ProgressProtocol();p.feed(wire(failed_frames+[final(failed)]));assert p.finish()['compilerBuildOutcome']=='EXIT_NONZERO';checks+=1
+# Exact prior counterexample: UNKNOWN END with three process rows and zero
+# dispatches must be refused, retaining the preceding valid phase BEGIN.
+bad=copy.deepcopy(failed_frames[-1]);assert bad['name']=='prerequisiteBuilds' and bad['kind']=='END' and len(bad['newBuilds'])==3
+bad['buildAttemptCount']=0
+p=m.ProgressProtocol();p.feed(wire(failed_frames[:-1]+[bad]));assert p.finish() is None and p.observation()['inProgressPhase']=='prerequisiteBuilds' and p.observation()['buildResultCountLowerBound']==0;checks+=1
+bad=copy.deepcopy(failed);bad['buildAttemptCount']=0
+try:m.parse_inner((json.dumps(bad)+'\n').encode());raise AssertionError('MORE_RESULTS_THAN_DISPATCHES_ACCEPTED')
+except ValueError:pass
+checks+=1
+# A partial operation legitimately returned one result from two dispatches;
+# future/unreturned work is not fabricated. Its final outcome remains UNKNOWN.
+p=m.ProgressProtocol();p.feed(wire(v['partialFrames']+[final(v['partial'])]));result=p.finish();assert result['outcome']=='UNKNOWN' and result['buildAttemptCount']==2 and result['buildResultCount']==1 and result['compilerBuildOutcome']=='UNKNOWN';checks+=1
+for bad_row in ({'pidObserved':False},{'completed':False},{'status':None},{'signal':'SIGKILL'},{'spawnError':'UNKNOWN'}):
+ rows=[{'pidObserved':True,'completed':True,'status':0,'signal':None,'spawnError':'NONE','stdoutBytes':0,'stderrBytes':0} for _ in range(8)]
+ rows[0].update(bad_row);assert m.recorded_build_outcome(rows)=='UNKNOWN';checks+=1
+rows=[{'pidObserved':True,'completed':True,'status':0,'signal':None,'spawnError':'NONE','stdoutBytes':0,'stderrBytes':0} for _ in range(8)]
+assert m.recorded_build_outcome(rows)=='EXIT_ZERO';rows[0]['status']=1;assert m.recorded_build_outcome(rows)=='EXIT_NONZERO';checks+=1
+# Conservative encoded field budgets, including duplicate retained observations:
+# progress <=41,344; ended-phase/root/build summary <=5,888; FINAL inner <=16,384;
+# bounded outer wrapper/field names/separators <=1,536 =>65,152 <65,536.
+encoded=lambda value:len(json.dumps(value,separators=(',',':'),allow_nan=False).encode())
+# Maximum numeric representations come from binary64 diagnostics or bounded
+# safe integers; all string fields are the fixed enums/phase/root patterns.
+max_build={'pidObserved':False,'completed':False,'status':255,'signal':'SIGABRT','spawnError':'UNKNOWN','stdoutBytes':9007199254740991,'stderrBytes':9007199254740991}
+max_root={'role':'H','name':'redue-ci-recipient-'+'f'*8}
+assert encoded(max_build)<=256 and encoded(max_root)<=128
+for name in m.PHASE_NAMES:
+ assert encoded({'name':name,'elapsedMs':34999.99999999999,'outcome':'COMPLETED'})<=128
+p=m.ProgressProtocol();summary=p.observation()
+for key in ('endedPhases','ownedRootNames','builds'):summary[key]=[]
+summary.update(validatedFrameCount=38,protocolStatus='INVALID_OR_INCOMPLETE',inProgressPhase='prerequisiteCurrent',buildAttemptCountLowerBound=8,buildResultCountLowerBound=8,compilerBuildOutcome='EXIT_NONZERO')
+assert encoded(summary)<=1024
+outer={'schema':1,'scope':m.SCOPE,'outcome':'UNKNOWN','reason_code':'POST_COLLECTION_UNAVAILABLE','recordPersistence':'UNKNOWN','savedRecord':'NOT_ESTABLISHED','finalParentCompletion':'NOT_ESTABLISHED','observed':{'childReaped':False,'childExitCode':255,'childSignal':255,'cleanupSignal':'GROUP_ALREADY_ABSENT','cleanupExceptionFamily':'PROCESS_LOOKUP_ERROR','cleanupErrno':'EOVERFLOW','groupAbsentAfterReap':False,'stdoutBytes':65536,'stderrBytes':4096,'elapsedMs':34999.99999999999,'finalSourceCurrentness':'ENDPOINTS_OBSERVED','progressFrames':[],'progressObservation':{},'innerReport':{}},**m._FALSE}
+assert encoded(outer)<=1536
+assert 38*1024+8*256+3*128==41344
+assert 19*128+3*128+8*256+1024==5888
+assert 41344+5888+16384+1536==65152<65536;checks+=1
+print(json.dumps({'scope':'BOUND_PROCESS_FACTS_SOURCE_MOCKS_ONLY','passed':checks,'actualPopen':0,'compilerBuilds':0,'nativeExecutions':0}))
+`;
+ const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify({failed,failedFrames,partial,partialFrames}),encoding:'utf8',timeout:5000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.passed,13);assert.equal(result.actualPopen,0);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);
+});
