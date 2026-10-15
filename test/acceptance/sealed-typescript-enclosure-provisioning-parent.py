@@ -1,15 +1,13 @@
 #!/usr/bin/python3
-"""Fixed PRE-NATIVE preparation parent. No native/model/compiled-code execution.
-
-Fixed preparation profile@2: 60-second body, at most 5-second cleanup,
-65-second total. These operation-boundary checks cannot interrupt synchronous
-filesystem stalls. Native/checker/model and per-build budgets are unchanged.
-One reviewed inner entry, one reviewed Node and unchanged safe environment. This
-is a process-lifetime envelope, not a command dispatcher or a native sandbox.
-Private preparation mints are lost at child exit; reports never restore them.
+"""Two fixed routes: --run preparation (60s body + <=5s cleanup, 65s total),
+--native-run diagnostic (115s work + <=5s cleanup, 120s total), both from the
+original process/job start. Sync filesystem calls are checked at boundaries,
+not OS-interruptible. No supplied command/path or restored private authority.
+Node-group closure never establishes detached native Bash descendant closure.
 """
 import time
 _PROCESS_STARTED = time.monotonic()
+_PROCESS_STARTED_WALL_MS = int(time.time() * 1000)
 
 import hashlib
 import errno
@@ -34,6 +32,58 @@ ORIGINAL_CURRENT_REFUSAL_STAGES = ("DERIVATION", "PROJECTION_CURRENT", "PREPARED
 NODE_SHA256 = "5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc"
 ENTRY_NAME = "sealed-typescript-enclosure-provisioning.mjs"
 SCOPE = "FIXED_ENCLOSURE_PREPARATION_PARENT_ONLY"
+PARENT_SOURCE_LIMIT = 131072  # Only this owned, reviewed Python source file.
+NATIVE_ENTRY_NAME = "sealed-typescript-native-enclosure-child.mjs"
+NATIVE_ENTRY_SHA256 = "231ab81534dea2565b0f5bb547a6de827409e7f3f1e4ed4394c99fb175d31ff3"
+# Finite reviewed literal JS import closure. No runtime graph or path selector.
+NATIVE_SOURCE_PINS = (
+    ("portable-claude-diagnostic.mjs", "239111f87bbe1ae229ba83127c3ce174333179b76f1bc7da2eb9f907bb007d5a"),
+    ("portable-claude-invocation.mjs", "58a09a206c1fe1532999abd7c0f5278cce63594a6cc832d20ef001dc0843024e"),
+    ("portable-claude-native-profile.mjs", "5feec095db8bbf22ee4fa23082d89ed6824e7b777238e2d0854d53d1e2a4169f"),
+    ("portable-native-diagnostic-assets.mjs", "0318a5aead13de956dbcfeea4bc4041947a7d69c4e1803887ef73112472e4836"),
+)
+NATIVE_SEALED_SOURCE_PINS = (
+    ("base-collector-copies.mjs", "70b129684c8896e7f7e1c4b134b46a29f9f84818f10c8b7e65a094b1579cc699"),
+    ("base-collector-source.mjs", "88b60905f59af6aedf62d80492bacc8e60ee8c58b1ed45d2abeed4c03a19c421"),
+    ("base-exchange-assets.mjs", "d2c8a0c1720c0869537e58a748444e5bb3e6a64da7e789005dfa5adc0f99a6de"),
+    ("base-exchange-pair.mjs", "1eb18eaa4768ece210afcdea400d88fedf1408adf7ffec4caf190109ae403196"),
+    ("base-exchange-result.mjs", "be2d30edf40597f52a6a9e919b5a3ee26e15bf0dc9f942badda0fb54db10b05d"),
+    ("base-exchange-source.mjs", "1a66abed15ecff05ee41266ff3e3a5230fc109164a0e74ecafce83525d1c16f6"),
+    ("claude-policy.mjs", "d19957530cd238ea2f1b3b7b7ae95f5d7ccc65f457fb3763edef85a1e844407d"),
+    ("closed-read-policy.mjs", "d171a31ea942d81f7f93134a26f73bf0b1ccb826edf9bcb878debd82f3397f3d"),
+    ("enclosure-provisioning.mjs", "f46bb06767a23e8e8eb52aa5a1ab6ff4378aef22fb8d036892d3cdd7fc7c4906"),
+    ("fixed-campaign-copies.mjs", "06380846f206a66100c7b5216f969ae55fc8ee2188449e8183e81f8827132a59"),
+    ("fixed-campaign-enclosed-collector.mjs", "a15fee9374767e14483575264bcfa85732d90eab503c8a1f2b770c5156395878"),
+    ("fixed-campaign-enclosure-build.mjs", "5c3c920e755b6c107622ec4eb2b98fcc1ceb189c71d26a6ab8b60e0e3dd1d299"),
+    ("fixed-campaign-enclosure-source.mjs", "cd0ae0b719f1a1fff6ef410a56c2b5e10485fd2b560e23a6848c23eb6de70ffd"),
+    ("fixed-campaign-launcher-source.mjs", "e1c9ca3dbfbeccc187015a3c78061166a5f4c494f4389d0dc4622a6424c113c5"),
+    ("fixed-campaign-prepared-null-source.mjs", "9403878927795fd0a3d176d438e767a85a507adab5e20a5df9267d8dc26f73e6"),
+    ("fixed-campaign.mjs", "9984ffa1719401dd5cf3ab2b10313d8e9606524fac361905d31fb14172860f21"),
+    ("map-result.mjs", "d19e3d1f33394b74c2771207d24ed3697ba1665e1e0d5f49564ecb80e0dcce13"),
+    ("native-assets-build.mjs", "ee28e073c9019fb537e98777db1aeedeac65d99b8951aa6ed0a154acd18fc75b"),
+    ("native-assets-proposal.mjs", "9ae0d2a89045fba1645909e9ecf26c5b505187ded255f8d110de4654003debe3"),
+    ("native-base-command.mjs", "fd34d5ad1eb2f252c18aaa3130dd3db08c7f03fdf6e7f17b1b0db0ea63a12a14"),
+    ("native-enclosure-command.mjs", "0b1e4fa3ad93eb511140fc352d04d7645cd953108cd7a69019402a1e1ed58178"),
+    ("native-enclosure-startup.mjs", "a942b2f0dbfc99e7390f7d1320a1b179bf280a474e94d9c09181e6e5d73d0c01"),
+    ("native-enclosure-trace.mjs", "e03ef28fe63604a182e897933a50cf1300ced7c7244174ed25e023ab5b0a866e"),
+    ("native-startup-witness.mjs", "61eeb17831e5b2641078bb520a42b8baa81d74f0cb0e5a7695cf0b306eb3439f"),
+    ("native-stdio-build.mjs", "2056ac09bccde1e7ec1f053a389bc05f2f08f696c9152ab5ea452e75cbd9f3e9"),
+    ("native-stdio-direct-trace.mjs", "f6fc4cc8db70f5db08019c7a5924a8b537933ecb6eaf127a1eb22fb159291777"),
+    ("native-stdio-probe.mjs", "8ac2b29ad0e31e98611821baeddc011869bf590d9e3d51337c7f35152b53f4c6"),
+    ("native-stdio-startup.mjs", "ae74c7492f162708807e455b1d8676354e7eb5b23a90340a281c8c6c49a7a025"),
+    ("paired-canary-policy.mjs", "45cd4884696768fe272d811887f094e0ba41f3eb29b1d8b189e3c5a546797362"),
+    ("paired-stage-source.mjs", "5a101d8a13a1d0c1d299d38d9672f57605d0e6ff8f8f292dc45641528d889c39"),
+    ("stage-exchange-result.mjs", "dc86c11a62ef22563d63ea0541185b86b14910a029c67c9b3f58eec4a52b6654"),
+    ("stage-result.mjs", "7c6f7685314deeac8de6974604b0dae8154286262e0e2cbc7a6fda41a84e6813"),
+    ("synthetic-fixture.mjs", "928f851d202999c2b3001a0bcfce9e354f6cc62bd5f7568bb5d48a1d487f46b0"),
+)
+NATIVE_ROOT_SOURCE_PINS = (
+    ("src/decision-profile.mjs", "6890fec7b8800d150f284bf6a7b8dcfb5029baf6af9eb93e0e78dd6554e97d13"),
+    ("src/portable-envelope.mjs", "3a10d9546b5b71ceb99121412471f250676cb71a2c943532ddec39a3ac836482"),
+)
+NATIVE_SCOPE = "FIXED_NATIVE_ENCLOSURE_PARENT_DATA_ONLY"
+_NATIVE_FALSE = {"publicDataOnly": True, "nativeAuthenticated": False, "nativeEnforcement": "NOT_ESTABLISHED", "nativeIntervalBarrier": "NOT_ESTABLISHED", "originAuthority": False, "receiptAuthority": False, "recordAdoptionAuthority": False, "sealed": False, "reuseEligible": False, "groupClosureScope": "OWNED_NODE_GROUP_ONLY", "detachedDescendantClosure": "UNKNOWN", "resources": "RETAINED_NOT_DELETED"}
+
 _FALSE = {"compilerCheckExecutions": 0, "helperExecutions": 0,
           "nativeAgentLaunches": 0, "models": 0, "receiptWrites": 0,
           "recordAdoptionAuthority": False, "sealed": False, "reuseEligible": False,
@@ -93,22 +143,29 @@ def file_current(row):
     require(after == row)
 
 
-def prerequisites():
+def prerequisites(_native=False):
+    require(type(_native) is bool)
     uid = os.getuid()
     require(sys.flags.isolated == 1 and sys.flags.no_site == 1)
     require(sys.platform == "darwin" and platform.machine() == "arm64"
             and uid > 0 and uid == os.geteuid() and os.getgid() == os.getegid())
     forbidden = re.compile(r"^(?:NODE_OPTIONS|NODE_PATH|NODE_REPL_EXTERNAL_MODULE|BASH_ENV|ENV)$|^(?:DYLD_|LD_|OPENSSL_)", re.I)
     require(not any(forbidden.search(key) for key in os.environ))
+    if _native:
+        require(not any(key in os.environ for key in ("REDUE_DECISION_PROFILE", "REDUE_DECISION_PROFILE_FILE", "REDUE_PROFILE_CONTEXT")))
     here = Path(__file__).absolute()
     require(here == here.resolve() and here.name == "sealed-typescript-enclosure-provisioning-parent.py")
     repo = here.parents[2]
     require((repo / "package.json").is_file())
-    entry = here.parent / ENTRY_NAME
+    entry = here.parent / (NATIVE_ENTRY_NAME if _native else ENTRY_NAME)
     node = Path(pwd.getpwuid(uid).pw_dir) / ".nvm/versions/node/v22.13.0/bin/node"
-    rows = [inspect_file(here, uid, 65536),
-            inspect_file(entry, uid, 65536, INNER_SHA256),
+    rows = [inspect_file(here, uid, PARENT_SOURCE_LIMIT),
+            inspect_file(entry, uid, 65536, NATIVE_ENTRY_SHA256 if _native else INNER_SHA256),
             inspect_file(node, uid, 128 * 1024 * 1024, NODE_SHA256)]
+    if _native:
+        rows.extend(inspect_file(here.parent / name, uid, 131072, pin) for name, pin in NATIVE_SOURCE_PINS)
+        rows.extend(inspect_file(here.parent / ("sealed-typescript-" + name), uid, 131072, pin) for name, pin in NATIVE_SEALED_SOURCE_PINS)
+        rows.extend(inspect_file(repo / name, uid, 131072, pin) for name, pin in NATIVE_ROOT_SOURCE_PINS)
     for row in rows:
         file_current(row)
     return repo, entry, node, rows
@@ -214,14 +271,111 @@ def parse_inner(body):
 PHASE_NAMES = ("operationImports", "freshPair", "freshHost", "hostFixture", "prerequisiteBuilds", "prerequisiteCurrent", "pairedSource", "pairedBuilds", "pairedCurrent", "campaignCopies", "copiesCurrent", "oldLauncherBuild", "oldLauncherCurrent", "originalProjection", "preparedNull", "enclosureSource", "enclosureBuilds", "enclosureCurrent", "finalValidation")
 
 
-def unique_json(body):
+def unique_json(body, _native=False):
     def unique(pairs):
         value = {}
         for key, item in pairs:
             require(key not in value)
             value[key] = item
         return value
+    if _native:
+        def number(token):
+            require(not token.startswith("-"))
+            value = float(token) if any(c in token for c in ".eE") else int(token)
+            require(math.isfinite(value))
+            return value
+        return json.loads(body, object_pairs_hook=unique, parse_int=number,
+                          parse_float=number, parse_constant=number)
     return json.loads(body, object_pairs_hook=unique)
+
+
+NATIVE_REASONS = {"ACTIVATION_OR_RUNTIME_UNAVAILABLE", "PINNED_RUNTIME_OR_ENVIRONMENT_UNAVAILABLE", "GENUINE_PREPARATION_UNAVAILABLE", "ORIGINAL_COMMAND_OR_STARTUP_UNAVAILABLE", "EXCLUSIVE_SETTINGS_OR_BINDINGS_UNAVAILABLE", "PRE_NATIVE_CURRENTNESS_UNAVAILABLE", "NATIVE_COLLECTION_UNAVAILABLE", "POST_NATIVE_ENDPOINT_OR_STARTUP_UNAVAILABLE", "NATIVE_INTERPRETATION_UNAVAILABLE", "CLOCK_UNAVAILABLE", "OVERALL_BUDGET_OR_CANCELLATION", "SYNTACTIC_NATIVE_COLLECTION_ONLY", "CONTROLLER_RESULT_UNAVAILABLE"}
+NATIVE_SIGNALS = {"SIGHUP", "SIGINT", "SIGQUIT", "SIGILL", "SIGTRAP", "SIGABRT", "SIGIOT", "SIGBUS", "SIGFPE", "SIGKILL", "SIGUSR1", "SIGSEGV", "SIGUSR2", "SIGPIPE", "SIGALRM", "SIGTERM", "SIGCHLD", "SIGCONT", "SIGSTOP", "SIGTSTP", "SIGTTIN", "SIGTTOU", "SIGURG", "SIGXCPU", "SIGXFSZ", "SIGVTALRM", "SIGPROF", "SIGWINCH", "SIGIO", "SIGINFO", "SIGSYS"}
+
+
+def parse_native_final(body):
+    require(type(body) in (bytes, bytearray) and 0 < len(body) <= 4096
+            and body.endswith(b"\n") and body.count(b"\n") == 1)
+    text = body.decode("utf-8", "strict")
+    require(not text.startswith("\ufeff"))
+    value = unique_json(text, _native=True)
+    fixed = {"schema": 1, "scope": "FIXED_NATIVE_ENCLOSURE_CHILD_SUMMARY_ONLY", "interpretation": "fixed-native-enclosure-child-summary@1", "bodyDigestScope": "PARSED_BODY_SERIALIZATION_NOT_ORIGINAL_WIRE", "bodyRetained": False, "publicDataOnly": True, "nativeAuthenticated": False, "nativeEnforcement": "NOT_ESTABLISHED", "nativeIntervalBarrier": "NOT_ESTABLISHED", "detachedDescendantClosure": "UNKNOWN", "resources": "RETAINED_NOT_DELETED", "originAuthority": False, "receiptAuthority": False, "recordAdoptionAuthority": False, "sealed": False, "reuseEligible": False}
+    fields = {"reportStatus", "outcome", "reportedAssertionOutcome", "reason", "preparationAttempted", "preparationOutcome", "preparationBuildAttemptCount", "preparationBuildResultCount", "preparationObservedProcessCount", "preparationProcessesComplete", "compilerBuildOutcome", "nativeSpawnAttempts", "nativeLaunches", "models", "helperExecutions", "nativeSpawnObserved", "nativeExit", "nativeSignal", "nativeCloseObserved", "nativeReaped", "timedOut", "cancelled", "overallBudgetExceeded", "milliseconds", "traceSyntaxValid", "completionDataValid", "commandSha256", "parsedBodySha256"}
+    require(type(value) is dict and set(value) == fields | set(fixed))
+    require(all(type(value[key]) is type(item) and value[key] == item for key, item in fixed.items()))
+    require(value["reportStatus"] in ("CONTROLLER_RETURNED", "RESULT_UNAVAILABLE")
+            and value["outcome"] in ("FAIL", "UNKNOWN") and value["reportedAssertionOutcome"] == value["outcome"]
+            and value["reason"] in NATIVE_REASONS and value["preparationOutcome"] in (None, "BUILT_NOT_EXECUTED", "UNKNOWN")
+            and value["compilerBuildOutcome"] in ("EXIT_ZERO", "EXIT_NONZERO", "UNKNOWN"))
+    for key in ("preparationAttempted", "nativeSpawnObserved", "nativeCloseObserved", "nativeReaped", "timedOut", "cancelled", "overallBudgetExceeded"):
+        require(value[key] is None or type(value[key]) is bool)
+    require(all(type(value[key]) is bool for key in ("preparationProcessesComplete", "traceSyntaxValid", "completionDataValid")))
+    for key, maximum in (("preparationBuildAttemptCount", 8), ("preparationBuildResultCount", 8), ("preparationObservedProcessCount", 8), ("nativeSpawnAttempts", 1), ("nativeLaunches", 1), ("models", 0), ("helperExecutions", 0), ("nativeExit", 255)):
+        require(value[key] is None or type(value[key]) is int and 0 <= value[key] <= maximum)
+    counts = [value[key] for key in ("preparationObservedProcessCount", "preparationBuildResultCount", "preparationBuildAttemptCount")]
+    require(all(item is None for item in counts) or all(type(item) is int for item in counts) and counts == sorted(counts))
+    require(value["nativeSignal"] is None or value["nativeSignal"] in NATIVE_SIGNALS)
+    require(value["nativeExit"] is None or value["nativeSignal"] is None)
+    require(value["milliseconds"] is None or type(value["milliseconds"]) in (int, float)
+            and math.isfinite(value["milliseconds"]) and 0 <= value["milliseconds"] < 120000)
+    for key in ("commandSha256", "parsedBodySha256"):
+        require(value[key] is None or type(value[key]) is str and re.fullmatch(r"[a-f0-9]{64}", value[key]))
+    require(not value["completionDataValid"] or value["traceSyntaxValid"] and value["nativeSpawnAttempts"] == 1
+            and value["nativeSpawnObserved"] is True and value["nativeCloseObserved"] is True and value["nativeReaped"] is True
+            and value["nativeExit"] == 0 and value["nativeSignal"] is None and value["timedOut"] is False
+            and value["cancelled"] is False and value["overallBudgetExceeded"] is False)
+    require(not value["completionDataValid"] or value["commandSha256"] is not None and value["parsedBodySha256"] is not None)
+    if value["nativeSpawnAttempts"] == 0:
+        require(value["nativeLaunches"] == 0 and value["models"] == 0 and value["helperExecutions"] == 0
+                and value["nativeSpawnObserved"] is False and value["nativeCloseObserved"] is False and value["nativeReaped"] is False
+                and value["nativeExit"] is None and value["nativeSignal"] is None)
+    if value["nativeSpawnAttempts"] == 1:
+        require(value["preparationAttempted"] is True and counts == [8, 8, 8])
+        require(value["models"] is None and value["helperExecutions"] is None
+                and value["preparationOutcome"] == "BUILT_NOT_EXECUTED" and value["preparationProcessesComplete"])
+    if value["nativeSpawnObserved"] is True:
+        require(value["nativeLaunches"] == 1 and value["nativeSpawnAttempts"] == 1)
+    if value["preparationAttempted"] is False:
+        require(value["preparationOutcome"] is None and value["nativeSpawnAttempts"] == 0)
+    if value["preparationOutcome"] is None:
+        require(all(item is None for item in counts) and value["compilerBuildOutcome"] == "UNKNOWN")
+    require(value["compilerBuildOutcome"] != "EXIT_ZERO" or counts == [8, 8, 8])
+    if value["preparationProcessesComplete"]:
+        require(value["preparationAttempted"] is False or value["preparationOutcome"] == "BUILT_NOT_EXECUTED"
+                and counts == [8, 8, 8] and value["compilerBuildOutcome"] == "EXIT_ZERO")
+    if value["outcome"] == "FAIL":
+        require(value["nativeSpawnAttempts"] == 1 and value["preparationOutcome"] == "BUILT_NOT_EXECUTED")
+    if value["reportStatus"] == "CONTROLLER_RETURNED":
+        require(type(value["preparationAttempted"]) is bool and type(value["nativeSpawnAttempts"]) is int)
+    if value["nativeLaunches"] == 1:
+        require(value["nativeSpawnObserved"] is True)
+    if value["reportStatus"] == "RESULT_UNAVAILABLE":
+        require(value["outcome"] == "UNKNOWN" and value["reason"] == "CONTROLLER_RESULT_UNAVAILABLE"
+                and not value["traceSyntaxValid"] and not value["completionDataValid"] and not value["preparationProcessesComplete"]
+                and all(value[key] is None for key in ("models", "helperExecutions", "nativeLaunches", "nativeSpawnAttempts", "preparationAttempted", "nativeSpawnObserved", "nativeCloseObserved", "nativeReaped")))
+    return value
+
+
+def native_deadline(timing):
+    raw = os.environ.get("REDUE_DIAGNOSTIC_JOB_STARTED_MS")
+    require(type(raw) is str and re.fullmatch(r"[0-9]{10,16}", raw))
+    elapsed = _PROCESS_STARTED_WALL_MS - int(raw)
+    require(0 <= elapsed < 115000)
+    deadline = timing.started + 120 - elapsed / 1000
+    require(timing() < deadline - 5)
+    return deadline
+
+
+def native_unknown(report, reason):
+    summary = report.get("nativeSummary")
+    try:
+        summary = parse_native_final((json.dumps(summary, allow_nan=False) + "\n").encode())
+    except Exception:
+        summary = None
+    failed = summary is not None and summary["reportedAssertionOutcome"] == "FAIL"
+    observed = {key: report[key] for key in ("childReaped", "childExitCode", "childSignal", "cleanupSignal", "cleanupExceptionFamily", "cleanupErrno", "groupAbsentAfterReap", "exitMonitorState", "elapsedMs", "bodyElapsedMs", "stdoutBytes", "stderrBytes") if key in report}
+    return {"schema": 1, "scope": NATIVE_SCOPE, "outcome": "FAIL" if failed else "UNKNOWN", "reportedAssertionOutcome": "FAIL" if failed else "UNKNOWN", "reason_code": reason, "collectionStatus": "UNKNOWN", "nativeSummary": summary, "observed": observed,
+            "models": summary["models"] if summary else None, "helperExecutions": summary["helperExecutions"] if summary else None, "nativeAgentLaunches": summary["nativeLaunches"] if summary else None, "recordPersistence": "UNKNOWN", "finalParentCompletion": "NOT_ESTABLISHED", **_NATIVE_FALSE}
 
 
 class ProgressProtocol:
@@ -434,8 +588,41 @@ class PreparationMonotonicClock:
             raise ValueError("PREPARATION_CLOCK_UNAVAILABLE") from None
 
 
+
+class NativeCancellation:
+    """Native-only process-local signal latch; never raises inside Popen/cleanup."""
+    def __init__(self):
+        self.requested = False
+        self.previous = []
+
+    def latch(self, signum, frame):
+        self.requested = True
+
+    def install(self):
+        require(not self.previous)
+        for selected in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
+            old = signal.getsignal(selected)
+            self.previous.append((selected, old))
+            signal.signal(selected, self.latch)
+
+    def restore(self):
+        restored = True
+        for selected, old in reversed(self.previous):
+            try:
+                signal.signal(selected, old)
+            except KeyboardInterrupt:
+                # INT may already have its original handler while later
+                # restoration calls are still pending. Continue every attempt.
+                self.requested = True
+                restored = False
+            except Exception:
+                restored = False
+        self.previous.clear()
+        return restored
+
+
 def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelector,
-            read=os.read, killpg=os.killpg, started=None, exit_monitor=None):
+            read=os.read, killpg=os.killpg, started=None, exit_monitor=None, _native_deadline=None, _native_cancellation=None):
     """Fixed process envelope; injection is for source/mock tests only.
 
     Never poll/wait/communicate before the cleanup decision. The Popen PID
@@ -444,6 +631,11 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
     """
     timing = clock if type(clock) is PreparationMonotonicClock else PreparationMonotonicClock(clock, started)
     began = timing.started
+    native = _native_deadline is not None
+    require(_native_cancellation is None or native and type(_native_cancellation) is NativeCancellation)
+    require(not native or type(_native_deadline) in (int, float) and math.isfinite(_native_deadline)
+            and type(began) in (int, float) and began + 5 < _native_deadline <= began + 120)
+    work_end, total_end = (_native_deadline - 5, _native_deadline) if native else (began + 60, began + 65)
     output, error = bytearray(), bytearray()
     selector = None
     owned_pid = None
@@ -459,6 +651,13 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
     code = None
     inner = None
     protocol = ProgressProtocol()
+    def inner_report():
+        if not native:
+            return protocol.finish()
+        try:
+            return parse_native_final(output)
+        except Exception:
+            return None
     body_end = None
     cleanup_deadline = None
     def cleanup_remaining():
@@ -485,12 +684,15 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
             os.set_blocking(stream.fileno(), False)
             selector.register(stream, selectors.EVENT_READ, role)
         while selector.get_map():
+            if native and _native_cancellation is not None and _native_cancellation.requested:
+                reason = "CANCELLED"
+                break
             now = timing()
             require(type(now) in (int, float) and math.isfinite(now) and type(began) in (int, float) and math.isfinite(began))
-            if now - began >= 60:
+            if now >= work_end:
                 reason = "BODY_DEADLINE"
                 break
-            for key, _ in selector.select(min(0.1, max(0, 60 - (now - began)))):
+            for key, _ in selector.select(min(0.1, max(0, work_end - now))):
                 try:
                     block = read(key.fileobj.fileno(), 4096)
                 except BlockingIOError:
@@ -503,34 +705,46 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
                     reason = "OUTPUT_LIMIT"
                     raise ValueError("OUTPUT_LIMIT")
                 selected.extend(block)
-                if key.data == "out":
+                if key.data == "out" and not native:
                     protocol.feed(block)
         else:
             reason = "BOTH_EOF"
-    except Exception:
-        if reason == "UNKNOWN":
+    except (Exception, KeyboardInterrupt) as interruption:
+        if isinstance(interruption, KeyboardInterrupt):
+            if not native:
+                raise
+            if _native_cancellation is not None:
+                _native_cancellation.requested = True
+            reason = "CANCELLED"
+        elif reason == "UNKNOWN":
             reason = "COLLECTION_UNAVAILABLE"
     finally:
         try:
             body_end = timing()
             require(type(body_end) in (int, float) and math.isfinite(body_end) and type(began) in (int, float) and math.isfinite(began))
-            cleanup_deadline = min(began + 65, body_end + 5)
-            if body_end - began >= 60:
+            cleanup_deadline = min(total_end, body_end + 5) if native else min(began + 65, body_end + 5)
+            if body_end >= work_end:
                 reason = "BODY_DEADLINE"
         except Exception:
             reason = "CLOCK_UNAVAILABLE"
             timing.valid = False
-            cleanup_deadline = began + 65 if type(began) in (int, float) and math.isfinite(began) else None
+            cleanup_deadline = total_end if type(began) in (int, float) and math.isfinite(began) else None
         # A strict complete FINAL plus exact kernel NOTE_EXIT can avoid a
         # useless destructive signal to an exited child. Neither EPERM nor
         # NOTE_EXIT proves descendant closure: post-reap ESRCH remains required.
-        inner = protocol.finish()
-        returned = [] if inner is None else inner["builds"]
+        inner = inner_report()
+        returned = [] if native or inner is None else inner["builds"]
         exited_gate = (reason == "BOTH_EOF" and len(error) == 0 and inner is not None
-                       and protocol.active is None and 1 <= inner["buildAttemptCount"]
+                       and not native and protocol.active is None and 1 <= inner["buildAttemptCount"]
                        == inner["buildResultCount"] == inner["observedProcessCount"]
                        and all(row["pidObserved"] and row["completed"] and type(row["status"]) is int
                                and row["signal"] is None and row["spawnError"] == "NONE" for row in returned))
+        if native:
+            exited_gate = (reason == "BOTH_EOF" and not error and inner is not None
+                           and inner["reportStatus"] == "CONTROLLER_RETURNED" and inner["preparationProcessesComplete"]
+                           and (inner["nativeSpawnAttempts"] == 0 or inner["nativeSpawnAttempts"] == 1
+                                and inner["nativeCloseObserved"] is True and inner["nativeReaped"] is True
+                                and inner["nativeExit"] == 0 and inner["nativeSignal"] is None and inner["timedOut"] is False))
         if exited_gate and owned_pid is not None and exit_monitor is not None:
             try:
                 grace = min(0.1, cleanup_remaining())
@@ -614,12 +828,14 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
         reason = "CLOCK_UNAVAILABLE"
     if not timing.valid:
         reason = "CLOCK_UNAVAILABLE"
-    inner = protocol.finish()
+    inner = inner_report()
+    if native and _native_cancellation is not None and _native_cancellation.requested:
+        reason = "CANCELLED"
     normal = (reason == "BOTH_EOF" and (kill_attempted or exited_skip)
               and cleanup_signal in ("SENT", "GROUP_ALREADY_ABSENT", "NOT_ATTEMPTED_CHILD_EXIT_OBSERVED") and reaped
-              and absent and code in (0, 74) and len(error) == 0 and elapsed < 65
+              and absent and code in (0, 74) and len(error) == 0 and (completed_at < total_end if native else elapsed < 65)
               and type(cleanup_deadline) in (int, float) and completed_at < cleanup_deadline)
-    success = normal and code == 0 and inner is not None and inner["outcome"] == "BUILT_NOT_EXECUTED"
+    success = not native and normal and code == 0 and inner is not None and inner["outcome"] == "BUILT_NOT_EXECUTED"
     if not success and reason == "BOTH_EOF":
         if not reaped or not absent or cleanup_signal == "UNKNOWN":
             reason = "OWNED_CLEANUP_UNKNOWN"
@@ -635,6 +851,13 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
             reason = "CLEANUP_DEADLINE"
         else:
             reason = "INNER_PREPARATION_UNKNOWN"
+    if native:
+        failed = inner is not None and inner["reportedAssertionOutcome"] == "FAIL"
+        complete = normal and code == 0 and inner is not None and inner["reportStatus"] == "CONTROLLER_RETURNED"
+        return {"schema": 1, "scope": NATIVE_SCOPE, "outcome": "FAIL" if failed else "UNKNOWN", "reportedAssertionOutcome": "FAIL" if failed else "UNKNOWN", "reason_code": "NATIVE_DATA_REPORT_OBSERVED" if complete else reason, "collectionStatus": "COMPLETE_DATA_REPORT" if complete else "UNKNOWN",
+                "childReaped": reaped, "childExitCode": code if type(code) is int and code >= 0 else None, "childSignal": -code if type(code) is int and code < 0 else None, "cleanupSignal": cleanup_signal, "cleanupExceptionFamily": cleanup_exception_family, "cleanupErrno": cleanup_errno, "groupAbsentAfterReap": absent, "exitMonitorState": exit_monitor_state,
+                "stdoutBytes": len(output), "stderrBytes": len(error), "elapsedMs": elapsed * 1000 if elapsed is not None else None, "bodyElapsedMs": (body_end - began) * 1000 if timing.valid and body_end is not None else None, "nativeSummary": inner,
+                "models": inner["models"] if inner else None, "helperExecutions": inner["helperExecutions"] if inner else None, "nativeAgentLaunches": inner["nativeLaunches"] if inner else None, **_NATIVE_FALSE}
     return {"schema": 1, "scope": SCOPE, "outcome": "BUILT_NOT_EXECUTED" if success else "UNKNOWN",
             "reason_code": "PREPARATION_OBSERVED" if success else reason,
             "childReaped": reaped, "childExitCode": code if isinstance(code, int) and code >= 0 else None,
@@ -676,10 +899,10 @@ def record_directory_current(snapshot):
                 and ancestors(file) == lineage)
 
 
-def save_record(repo, report, rows, directory_snapshot):
+def save_record(repo, report, rows, directory_snapshot, _native=False):
     uid = os.getuid()
     record_directory_current(directory_snapshot)
-    file = repo / ".local" / "portable-evidence" / ("enclosure-preparation-" + str(uuid.uuid4()) + ".json")
+    file = repo / ".local" / "portable-evidence" / (("enclosure-native-diagnostic-" if _native else "enclosure-preparation-") + str(uuid.uuid4()) + ".json")
     value = {**report, "sourceIdentities": [{"sha256": row["sha256"]} for row in rows],
              "sourceIdentityScope": "PRELAUNCH_OBSERVED_ONLY",
              "persistenceStatus": "PRE_FINAL_SNAPSHOT_ONLY",
@@ -708,7 +931,7 @@ def save_record(repo, report, rows, directory_snapshot):
     return str(file), readback["sha256"]
 
 
-def emit_final(value, deadline=None, not_before=None, parent_clock=None):
+def emit_final(value, deadline=None, not_before=None, parent_clock=None, _native_cancellation=None):
     body = json.dumps(value, separators=(",", ":"), allow_nan=False)
     require(len(body.encode()) <= 65536)
     if deadline is not None:
@@ -716,7 +939,14 @@ def emit_final(value, deadline=None, not_before=None, parent_clock=None):
         require(type(deadline) in (int, float) and math.isfinite(deadline)
                 and type(value_now) in (int, float) and math.isfinite(value_now) and value_now < deadline
                 and (not_before is None or type(not_before) in (int, float) and math.isfinite(not_before) and value_now >= not_before))
+    if _native_cancellation is not None:
+        require(type(_native_cancellation) is NativeCancellation and not _native_cancellation.requested)
     print(body)
+    if _native_cancellation is not None:
+        # Delivery is not atomic with signal handling. A late latch causes the
+        # caller to emit a final UNKNOWN record; already-written data cannot
+        # be retracted and never grants completion or evidence authority.
+        require(not _native_cancellation.requested)
 
 
 def unknown_with_observations(report, reason):
@@ -752,7 +982,63 @@ def unknown_with_observations(report, reason):
             "finalParentCompletion": "NOT_ESTABLISHED", "observed": observed, **_FALSE}
 
 
+def native_main():
+    timing = PreparationMonotonicClock(time.monotonic, _PROCESS_STARTED)
+    report = native_unknown({}, "PRECONDITION_UNAVAILABLE")
+    phase = "PRECONDITIONS"
+    cancellation = NativeCancellation()
+    status = 74
+    try:
+        cancellation.install()
+        deadline = native_deadline(timing)
+        repo, entry, node, rows = prerequisites(_native=True)
+        directory_snapshot = prepare_record_directory(repo)
+        require(not cancellation.requested and timing() < deadline - 5)
+        # Recheck every pinned source/binary at the last prelaunch boundary.
+        for row in rows:
+            file_current(row)
+        require(not cancellation.requested and timing() < deadline - 5)
+        child = subprocess.Popen([str(node), str(entry)], cwd=repo,
+                                 env=os.environ.copy(), stdin=subprocess.DEVNULL,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 start_new_session=True, close_fds=True)
+        monitor = open_owned_exit_monitor(child)
+        report = collect(child, clock=timing, started=timing.started, exit_monitor=monitor, _native_deadline=deadline, _native_cancellation=cancellation)
+        phase = "POST_COLLECTION"
+        require(type(report.get("bodyElapsedMs")) in (int, float) and math.isfinite(report["bodyElapsedMs"]) and report["bodyElapsedMs"] >= 0)
+        require(type(report.get("elapsedMs")) in (int, float) and math.isfinite(report["elapsedMs"]) and report["elapsedMs"] >= report["bodyElapsedMs"])
+        cleanup_end = min(deadline, timing.started + report["bodyElapsedMs"] / 1000 + 5)
+        completion = timing.started + report["elapsedMs"] / 1000
+        def current_time():
+            require(not cancellation.requested and completion <= timing() < cleanup_end)
+        current_time()
+        for row in rows:
+            file_current(row)
+        current_time()
+        phase = "PERSISTENCE"
+        file, digest = save_record(repo, report, rows, directory_snapshot, _native=True)
+        current_time()
+        emit_final({"scope": NATIVE_SCOPE, "outcome": report["outcome"], "reportedAssertionOutcome": report["reportedAssertionOutcome"], "collectionStatus": report["collectionStatus"], "reason_code": report["reason_code"], "record": file, "sha256": digest, "models": report["models"], "helperExecutions": report["helperExecutions"], "nativeAgentLaunches": report["nativeAgentLaunches"], **_NATIVE_FALSE}, deadline=cleanup_end, not_before=completion, parent_clock=timing, _native_cancellation=cancellation)
+        status = 1 if report["outcome"] == "FAIL" else 0 if report["collectionStatus"] == "COMPLETE_DATA_REPORT" else 74
+    except (Exception, KeyboardInterrupt) as interruption:
+        if isinstance(interruption, KeyboardInterrupt):
+            cancellation.requested = True
+        reason = "CANCELLED" if cancellation.requested else "CLOCK_UNAVAILABLE" if not timing.valid else "PRECONDITION_UNAVAILABLE" if phase == "PRECONDITIONS" else "PERSISTENCE_UNAVAILABLE" if phase == "PERSISTENCE" else "POST_COLLECTION_UNAVAILABLE"
+        emit_final(native_unknown(report, reason))
+    finally:
+        restored = cancellation.restore()
+        if cancellation.requested and status != 74:
+            emit_final(native_unknown(report, "CANCELLED"))
+            status = 74
+        if not restored:
+            emit_final(native_unknown(report, "CANCELLATION_HANDLER_RESTORE_UNAVAILABLE"))
+            status = 74
+    return status
+
+
 def main():
+    if sys.argv[1:] == ["--native-run"]:
+        return native_main()
     if sys.argv[1:] != ["--run"]:
         print(json.dumps({"scope": SCOPE, "outcome": "NOT_SELECTED", **_FALSE}))
         return 0
