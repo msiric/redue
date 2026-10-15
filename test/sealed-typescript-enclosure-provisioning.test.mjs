@@ -17,7 +17,7 @@ for(const method of ['verifyAssets','verifyPaired','verifyCopies','verifyLaunche
 test('known actual nonzero mock compiler status remains separate from UNKNOWN preparation',async()=>{const m=mock();m.state.nonzero=true;const v=await observe(m.options);assert.equal(v.outcome,'UNKNOWN');assert.equal(v.compilerBuildOutcome,'EXIT_NONZERO');assert.equal(v.buildResultCount,3);assert.equal(v.builds[0].status,1);assert.equal(v.failedPhase,'prerequisiteBuilds');assert.equal(m.calls.at(-1),'buildAssets');});
 for(const method of ['preparePair','buildAssets','buildLauncher','buildEnclosure','verifyEnclosure'])test('the same explicit 60s preparation budget includes '+method+' and stops later work',async()=>{const m=mock();m.state.elapsedAt=method;const v=await observe(m.options);assert.equal(v.outcome,'UNKNOWN');assert.equal(m.calls.at(-1),method);authority(v);});
 test('final validation is not exempt from body deadline',async()=>{const m=mock();let calls=0;m.op.verifyEnclosure=()=>{if(++calls===2)m.set(60000);return{outcome:'ENCLOSURE_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED',sealed:false,reuseEligible:false};};const v=await observe(m.options);assert.equal(v.outcome,'UNKNOWN');assert.equal(v.failedPhase,'finalValidation');assert.equal(v.buildResultCount,8);});
-test('parent pins exact inner bytes and fixed reviewed Node; no environment stripping or arbitrary command route',()=>{const sha=createHash('sha256').update(innerSource).digest('hex');assert(parentSource.includes('INNER_SHA256 = "'+sha+'"'));assert(parentSource.includes('NODE_SHA256 = "5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc"'));assert.match(parentSource,/start_new_session=True, close_fds=True/);assert.match(parentSource,/env=os\.environ\.copy\(\)/);assert.match(parentSource,/collect\(child, started=begun, exit_monitor=exit_monitor\)/);assert(!/child\.(?:poll|communicate)\(/.test(parentSource));assert(!/os\.environ\.(?:pop|clear|update)|shell=True|pexpect|pty\./.test(parentSource));assert.match(innerSource,/process\.execArgv\.length===0/);});
+test('parent pins exact inner bytes and fixed reviewed Node; no environment stripping or arbitrary command route',()=>{const sha=createHash('sha256').update(innerSource).digest('hex');assert(parentSource.includes('INNER_SHA256 = "'+sha+'"'));assert(parentSource.includes('NODE_SHA256 = "5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc"'));assert.match(parentSource,/start_new_session=True, close_fds=True/);assert.match(parentSource,/env=os\.environ\.copy\(\)/);assert.match(parentSource,/collect\(child, clock=timing, started=begun, exit_monitor=exit_monitor\)/);assert(!/child\.(?:poll|communicate)\(/.test(parentSource));assert(!/os\.environ\.(?:pop|clear|update)|shell=True|pexpect|pty\./.test(parentSource));assert.match(innerSource,/process\.execArgv\.length===0/);});
 test('mock Python parent proves kill-before-wait, no postreap destructive kill, EOF/cap/deadline/parser and SIGKILL races',async()=>{const frames=[];const good=await observe({...mock().options,observeProgress:frame=>frames.push(frame)});const python=String.raw`
 import contextlib,copy,errno,importlib.util,io,json,os,signal,sys
 spec=importlib.util.spec_from_file_location('owned_enclosure_parent',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
@@ -152,7 +152,7 @@ try:
  m.prepare_record_directory=lambda repo:[('PRIVATE_TEST_SNAPSHOT',)]
  large_failed=copy.deepcopy(failed);large_failed['builds'][0]['stderrBytes']=8193
  observed={'schema':1,'scope':m.SCOPE,'outcome':'UNKNOWN','reason_code':'INNER_PREPARATION_UNKNOWN','childReaped':True,'childExitCode':74,'childSignal':None,'cleanupSignal':'UNKNOWN','cleanupExceptionFamily':'PERMISSION_ERROR','cleanupErrno':'EPERM','groupAbsentAfterReap':True,'stdoutBytes':1234,'stderrBytes':0,'elapsedMs':1200,'bodyElapsedMs':1000,'innerReport':large_failed,**m._FALSE}
- m.collect=lambda child,started=None,exit_monitor=None:copy.deepcopy(observed)
+ m.collect=lambda child,clock=None,started=None,exit_monitor=None:copy.deepcopy(observed)
  m.file_current=lambda row:None
  def denied_persistence(*args):raise PermissionError('PRIVATE_PERSISTENCE_ERROR')
  m.save_record=denied_persistence
@@ -645,7 +645,7 @@ try:
   m.prerequisites=lambda:(m.Path('/owned/repo'),m.Path('/owned/repo/fixed.mjs'),m.Path('/owned/node'),[{}]);m.prepare_record_directory=lambda repo:[]
   m.open_owned_exit_monitor=lambda child:None;m.subprocess.Popen=lambda *args,**kwargs:object()
   observed={'schema':1,'scope':m.SCOPE,'outcome':'BUILT_NOT_EXECUTED','reason_code':'PREPARATION_OBSERVED','bodyElapsedMs':10000,'elapsedMs':10000,'innerReport':good,**m._FALSE}
-  m.collect=lambda child,started=None,exit_monitor=None:copy.deepcopy(observed)
+  m.collect=lambda child,clock=None,started=None,exit_monitor=None:copy.deepcopy(observed)
   def current(row):
    calls.append('current')
    if delayed=='currentness':clock[0]=15.001
@@ -674,7 +674,7 @@ try:
   m.subprocess.Popen=lambda *args,**kwargs:launches.append(True)
   output=io.StringIO()
   with contextlib.redirect_stdout(output):assert m.main()==74
-  assert launches==[] and json.loads(output.getvalue())['reason_code']=='PRECONDITION_UNAVAILABLE';checks+=1
+  assert launches==[] and json.loads(output.getvalue())['reason_code']==('PRECONDITION_UNAVAILABLE' if prelaunch==60 else 'CLOCK_UNAVAILABLE');checks+=1
  assert kernel_calls==[]
 finally:
  for key,value in old.items():setattr(m,key,value)
@@ -684,4 +684,99 @@ finally:
 print(json.dumps({'scope':'PREPARATION_PROFILE2_BUDGET_SOURCE_MOCKS_ONLY','passed':checks,'actualPopen':0,'actualKernelMonitors':0,'compilerBuilds':0,'nativeExecutions':0}))
 `;
  const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify({good,frames}),encoding:'utf8',timeout:5000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.passed,26);assert.equal(result.actualPopen,0);assert.equal(result.actualKernelMonitors,0);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);
+});
+
+test('one parent clock latches cleanup regressions across grace wait completion and main without renewed authority',async()=>{
+ const frames=[],good=await observe({...mock().options,observeProgress:frame=>frames.push(frame)});
+ const python=String.raw`
+import contextlib,copy,errno,importlib.util,io,json,signal,sys
+sys.dont_write_bytecode=True
+spec=importlib.util.spec_from_file_location('parent_clock_latch_mock',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+payload=json.loads(sys.stdin.read());good=payload['good'];raw=b''.join((json.dumps(frame,separators=(',',':'))+'\n').encode() for frame in payload['frames']+[{'schema':1,'protocol':'fixed-enclosure-progress@2','kind':'FINAL','report':good}]);checks=0
+# The irreversible clock does not re-read a restored source after one invalid
+# observation. Last-seen remains provenance, never a reset baseline.
+for bad in (10.2,float('nan'),float('inf')):
+ values=iter((10,14.9,bad,20));calls=[]
+ def source():calls.append(True);return next(values)
+ clock=m.PreparationMonotonicClock(source,0);assert clock()==10 and clock()==14.9
+ for _ in range(2):
+  try:clock();raise AssertionError('CLOCK_RECOVERED_AUTHORITY')
+  except ValueError:pass
+ assert not clock.valid and clock.last==14.9 and len(calls)==3;checks+=1
+class Stream:
+ def __init__(self,n):self.n=n
+ def fileno(self):return self.n
+ def close(self):pass
+class Child:
+ pid=123
+ def __init__(self):self.stdout=Stream(10);self.stderr=Stream(11);self.events=[]
+ def wait(self,timeout):self.events.append(('wait',timeout));assert 0<=timeout<=5;return 0
+class Key:
+ def __init__(self,f,d):self.fileobj=f;self.data=d
+class Selector:
+ def __init__(self):self.keys={}
+ def register(self,f,e,d):self.keys[f.n]=Key(f,d)
+ def unregister(self,f):self.keys.pop(f.n)
+ def get_map(self):return self.keys
+ def select(self,t):return [(next(iter(self.keys.values())),1)]
+ def close(self):pass
+class Monitor:
+ def __init__(self,child):self.child=child;self.queries=0
+ def exited(self,timeout=0):self.queries+=1;self.child.events.append(('grace',timeout));return True
+ def close(self):pass
+old_blocking=m.os.set_blocking;m.os.set_blocking=lambda *args:None
+try:
+ def run(values,monitor=False):
+  child=Child();chunks={10:[raw,b''],11:[b'']};done=[False];sequence=iter(values);calls=[]
+  def read(fd,n):
+   value=chunks[fd][0];part=value[:n];chunks[fd][0]=value[n:]
+   if not chunks[fd][0]:chunks[fd].pop(0)
+   if fd==11:done[0]=True
+   return part
+  def source():
+   if not done[0]:return 0
+   value=next(sequence,20);calls.append(value);return value
+  def kill(pid,sig):
+   assert pid==123;child.events.append(('kill',sig))
+   if sig==0:raise ProcessLookupError(errno.ESRCH,'PRIVATE')
+  observer=Monitor(child) if monitor else None
+  result=m.collect(child,clock=source,selector_factory=Selector,read=read,killpg=kill,started=0,exit_monitor=observer)
+  wait_at=next(i for i,value in enumerate(child.events) if value[0]=='wait')
+  assert all(value[0]!='kill' or value[1]==0 for value in child.events[wait_at+1:])
+  assert result['childReaped'] and result['groupAbsentAfterReap'] and result['innerReport']['buildResultCount']==8
+  return result,child.events,calls,observer
+ # Exact rejected e6a20 counterexample, plus grace->wait and nonfinite cases.
+ for values,monitor in (((10,14.9,10.2),False),((10,14.8,14.9,10.2),True),((10,14.9,14.8,14.95),True),((10,float('nan'),11),False),((10,float('inf'),20),True),((10,-1,12),False)):
+  result,events,calls,observer=run(values,monitor);assert result['outcome']=='UNKNOWN' and result['reason_code']=='CLOCK_UNAVAILABLE' and result['elapsedMs'] is None
+  if monitor and values[1]==float('inf'):assert observer.queries==0
+  if not monitor:assert events[0]==('kill',signal.SIGKILL)
+  checks+=1
+ result,events,calls,observer=run((10,14.8,14.9,14.95),True);assert result['outcome']=='BUILT_NOT_EXECUTED' and result['reason_code']=='PREPARATION_OBSERVED';assert not any(event==('kill',signal.SIGKILL) for event in events);checks+=1
+finally:m.os.set_blocking=old_blocking
+# Actual main passes one identical tracker to collect and final guards. A mock
+# collection observes14.9 then restores the source to10.2; main cannot reset it
+# using report/child timestamps or proceed to currentness/persistence.
+old={key:getattr(m,key) for key in ('prerequisites','prepare_record_directory','collect','save_record','file_current','open_owned_exit_monitor','_PROCESS_STARTED')};old_popen=m.subprocess.Popen;old_time=m.time.monotonic;old_argv=sys.argv;old_queue=getattr(m.select,'kqueue',None);had_queue=hasattr(m.select,'kqueue')
+try:
+ wall=[0];operations=[];m._PROCESS_STARTED=0;sys.argv=['fixed-parent','--run'];m.time.monotonic=lambda:wall[0]
+ m.prerequisites=lambda:(m.Path('/owned/repo'),m.Path('/owned/entry'),m.Path('/owned/node'),[]);m.prepare_record_directory=lambda repo:[]
+ m.subprocess.Popen=lambda *args,**kwargs:object();m.open_owned_exit_monitor=lambda child:None
+ def forbidden_queue():operations.append('KERNEL_MONITOR');raise AssertionError('NO_KERNEL_MONITOR')
+ m.select.kqueue=forbidden_queue
+ def observed(child,clock=None,started=None,exit_monitor=None):
+  assert type(clock) is m.PreparationMonotonicClock and started==0
+  wall[0]=14.9;assert clock()==14.9;wall[0]=10.2
+  return {'schema':1,'scope':m.SCOPE,'outcome':'BUILT_NOT_EXECUTED','reason_code':'PREPARATION_OBSERVED','elapsedMs':14900,'bodyElapsedMs':10000,'innerReport':good,**m._FALSE}
+ m.collect=observed;m.file_current=lambda row:operations.append('CURRENT');m.save_record=lambda *args:operations.append('PERSISTENCE')
+ output=io.StringIO()
+ with contextlib.redirect_stdout(output):assert m.main()==74
+ result=json.loads(output.getvalue());assert result['outcome']=='UNKNOWN' and result['reason_code']=='CLOCK_UNAVAILABLE' and result['observed']['innerReport']['buildResultCount']==8 and operations==[];checks+=1
+finally:
+ for key,value in old.items():setattr(m,key,value)
+ m.subprocess.Popen=old_popen;m.time.monotonic=old_time;sys.argv=old_argv
+ if had_queue:m.select.kqueue=old_queue
+ else:delattr(m.select,'kqueue')
+print(json.dumps({'scope':'PARENT_CLOCK_LATCH_SOURCE_MOCKS_ONLY','passed':checks,'actualPopen':0,'actualKernelMonitors':0,'actualSignals':0,'compilerBuilds':0,'nativeExecutions':0}))
+`;
+ const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify({good,frames}),encoding:'utf8',timeout:5000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.passed,11);assert.equal(result.actualPopen,0);assert.equal(result.actualKernelMonitors,0);assert.equal(result.actualSignals,0);assert.equal(result.nativeExecutions,0);
 });
