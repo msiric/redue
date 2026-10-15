@@ -19,7 +19,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 2
     env:
-      REVIEWED_SOURCE: 2663eae8b21266b8db46d5ee034841654fae5a88
+      REVIEWED_SOURCE: 3ca37a5a59ebe1b5e0750d42bfe0f1710c045cdb
     steps:
       - name: Refuse a missing reviewed runtime binding before checkout
         shell: bash
@@ -61,7 +61,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$REVIEWED_SOURCE"
           test "$(uname -m)" = arm64
           test "$(node --version)" = v22.13.0
-          node --test test/sealed-typescript-ci-enclosure-headers.test.mjs test/sealed-typescript-host-tool-inventory.test.mjs test/sealed-typescript-ci-native-assets.test.mjs test/sealed-typescript-ci-enclosure-consumers.test.mjs test/sealed-typescript-ci-enclosure-preparation.test.mjs test/sealed-typescript-ci-enclosure-parent.test.mjs
+          node --test test/sealed-typescript-ci-enclosure-headers.test.mjs test/sealed-typescript-host-tool-inventory.test.mjs test/sealed-typescript-ci-native-assets.test.mjs test/sealed-typescript-ci-enclosure-consumers.test.mjs test/sealed-typescript-ci-enclosure-preparation.test.mjs test/sealed-typescript-ci-enclosure-parent.test.mjs test/sealed-typescript-preparation-cost.test.mjs
       - name: Fixed public facts and eight-build preparation, no helper execution
         if: ${{ !cancelled() && steps.source_classifier.outcome == 'success' }}
         shell: bash
@@ -104,9 +104,17 @@ jobs:
             fi
           done
           printf '{"scope":"PUBLIC_RUNNER_FACTS_ONLY","source":"%s","machine":"%s","os":"%s","kernel":"%s","arch":"arm64","filesystem_type":%s,"imageOS":"%s","imageVersion":"%s","profileMatch":"NOT_EVALUATED"}\n' "$REVIEWED_SOURCE" '${{ matrix.machine }}' "$redue_os" "$redue_kernel" "$redue_fs" "$redue_image_os" "$redue_image_version"
-          # Exact reviewed parent selects the fixed CI profile and emits bounded
-          # already-validated facts. UNKNOWN/nonzero fails; no local fallback.
-          /usr/bin/python3 -I -S test/acceptance/sealed-typescript-enclosure-provisioning-parent.py --ci-run
+          # Read-only paired identities are diagnostics, never profile admission.
+          # Retain both results even when this observation is UNKNOWN; the parent
+          # independently enforces every existing fixed build prerequisite.
+          redue_observation_status=0
+          node test/acceptance/sealed-typescript-host-tool-inventory.mjs --fixed-ci-paired-profile || redue_observation_status=$?
+          redue_preparation_status=0
+          /usr/bin/python3 -I -S test/acceptance/sealed-typescript-enclosure-provisioning-parent.py --ci-run || redue_preparation_status=$?
+          printf '{"scope":"FIXED_PUBLIC_OBSERVATION_AND_PREPARATION_EXIT_ONLY","observation_exit":%s,"preparation_exit":%s,"profile_admission":false,"reuse_eligible":false}\n' "$redue_observation_status" "$redue_preparation_status"
+          if [ "$redue_observation_status" -ne 0 ] || [ "$redue_preparation_status" -ne 0 ]; then
+            exit 74
+          fi
       # Parent: original 60s body + <=5s cleanup / 65s total. Filesystem
       # checkpoints are not OS-interruptible; the 2-minute job cap stays independent.
       # Reports grant no sealing, native, origin, receipt or reusable-evidence authority.
