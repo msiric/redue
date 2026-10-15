@@ -7,7 +7,19 @@ existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
 
-## Current checkpoint — reviewed exec alternative; no native attempt queued
+## Current checkpoint — exec result collected; descriptor metadata UNKNOWN
+
+Actual run38748867165 completed on exact reviewed workflow `abdb206` / runtime
+`c9110d8`; owner normal environment UI review was required and performed. Actual
+prerequisites and347 controls passed; one bounded native diagnostic returned
+UNKNOWN / DESCRIPTOR_METADATA_UNAVAILABLE, independently accepted by DIR173.
+Normal raw/rendered helper result supports source-derived command exit0 and all
+ten startup booleans true. Outer native exit0/reap, no timeout and cleanup passed.
+`/dev/null` lstat and fd1/fd2 fstat returned EPERM; fd0 is CHARACTER/READ_ONLY and
+fd1/fd2 WRITE_ONLY, but identity/target/types are not inferred. No unsafe descriptor
+condition, seal or reuse is established; do not relax checks or rerun unchanged.
+See the [current tracker](portable-evidence-tracker.md#current-checkpoint--structured-exec-result-accepted-descriptor-metadata-remains-unknown)
+for exact report/log digests, timing and review scope. Prior UNKNOWNs remain intact.
 
 Focused DIR167/168 review permits one distinct fixed diagnostic method: plain exec
 of the same protected helper inside native Bash, with a fresh interpretation and
@@ -18,20 +30,16 @@ permissions, flags, runtime/CLI/evidence changes or error-body acceptance are ad
 DIR169/170 source is integrated/reviewed at runtime
 `c9110d8dca8d686ef697b1050e8ac30213f5fa69`. Root1,056 local controls pass, including
 four harmless synthetic child launches; reviewer49 pure assertions pass. These are
-not native enforcement or sealed compiler evidence. Workflow `abdb206` selecting
-the fixed exec procedure is independently DIR171 accepted; exact SHA256 is in the
-tracker. Normal protected source alignment remains unavailable: variable read403;
-capacity-variable and secret-name reads also failed, without established cause.
-Do not infer authentication failure or bypass these routes. Do not launch the old
-workflow or renew owner account timestamps.
-The [current tracker](portable-evidence-tracker.md#current-checkpoint--separately-versioned-exec-witness-reviewed-native-admission-untested)
-has exact identities, test scope and remaining prerequisites.
+not native enforcement or sealed compiler evidence. Workflow `abdb206` is
+independently DIR171 accepted and used by the completed run. API read403 and
+CLI dispatch403 remain respected; current_user_can_approve=false required owner
+UI action, not a coordinator POST. Actual account/source guards now passed;
+neither account timestamps nor secret values were copied/refreshed by engineering.
 
-Owner action after source/workflow push: normal environment UI source-only binding
-to exact runtime `c9110d8`, preserving truthful facts/reviewed_at, then one NEW normal
-UI workflow dispatch (CLI403 unchanged and not retried). Current account/secret
-presence is not newly verified; actual workflow gates remain required. Native
-eligibility, compiler namespace closure,
+No new owner action is pending for this run. DIR174 source-only review of the
+existing native canary route is active; no new native/model attempt is queued.
+Do not infer output targets/types from denied metadata or broaden read permissions.
+Descriptor authority, native compiler namespace closure,
 fresh producer bindings and G1–G4 remain pending; Copilot capacity is separate.
 Prior UNKNOWN38729509357 and cancelled duplicate remain preserved. Alpha.11 stays
 unpublished; no fresh origin or CURRENT authority is inferred from this preparation.

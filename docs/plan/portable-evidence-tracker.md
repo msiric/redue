@@ -4,7 +4,30 @@ Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revisio
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
 
-## Current checkpoint — separately versioned exec witness reviewed; native admission untested
+## Current checkpoint — structured exec result accepted; descriptor metadata remains UNKNOWN
+
+Actual [run38748867165](https://github.com/msiric/redue/actions/runs/38748867165)
+used the reviewed workflow/runtime below, attempt1. Independent DIR173 accepts
+UNKNOWN / DESCRIPTOR_METADATA_UNAVAILABLE. Normal raw/rendered helper metadata
+was accepted, supporting SOURCE_DERIVED_FOREGROUND_COMMAND_EXIT_ZERO; all ten
+startup bindings were true. This is distinct from independently observing C
+kernel-close/signal/reap. Outer native exit0/reap was observed, no timeout.
+
+fd0 fstat is CHARACTER/READ_ONLY; `/dev/null` lstat returned EPERM, so identity
+matching remains unknown. fd1/fd2 are WRITE_ONLY by fcntl, but fstat returned EPERM:
+their types and physical targets are unknown. There is no observed unsafe or
+incompatible descriptor condition and no justified permission expansion or weaker
+assertion. Do not infer FIFO or reinterpret this result as PASS.
+
+Native7,534.729ms / controller16,493.374ms; job35s. CI347 controls pass, including
+one harmless synthetic process case with four Node launches, not347 native checks.
+Actual source/currentness, account, both proxy, remote-policy and cleanup gates pass.
+Report5,673 bytes SHA256
+`6e76cb247d81054c3669d608cc7e273f8b509408fe296b2ac62dafe5981ed41b`;
+redacted log339,100 bytes SHA256
+`e841ae1f26ded3a6d85979efabf470b04fd650d27b3d49241698bf7bc5226957`.
+No raw native frames/stderr are retained. No TypeScript check, seal, portable
+applicability or actual agent reuse was tested by this diagnostic.
 
 DIR167/168 focused source/feasibility review found one supported alternative within
 the existing boundary: exactly `exec '<same fixed helper>'` inside native Bash.
@@ -34,12 +57,13 @@ assertions; full fixture/process tests were run by root, not the read-only revie
 
 Workflow candidate `abdb2060f742c7dfdada05ca353679edd8b9e5b2`, SHA256
 `fd05e0966543b27bc299cb4c9bc92f460c387c5edd712967362a7ea69862a552`,
-selects only this new fixed procedure and exact runtime. Whole-file expected-diff
+selected only this new fixed procedure and exact runtime. Whole-file expected-diff
 and3 Bash/1 Node syntax checks pass; independent DIR171 repeats those checks and
 accepts the exact file with no findings. No workflow control or permission changes.
-No native attempt is queued. Native admission, helper completion, sealing and reuse
-remain unestablished. The old marker approach stays stopped; this is one changed
-method, not marker growth or retries for a score.
+No further native attempt is queued. Exact foreground admission/result is now
+observed within the stated scope; descriptor authority, sealing and reuse remain
+unestablished. Old UNKNOWN results and the stopped marker approach remain intact;
+exec success does not prove cwd bookkeeping caused the old failure.
 
 DIR168 also confirms that D12 requires the actual compiler namespace, origin and
 stable-input guarantees, not universal isolation claims about all native startup.
@@ -47,15 +71,14 @@ Outside-resolution/absence topology remains unresolved; successful child observa
 would not close that separate sealing gap. G0partial/G1–G4 incomplete; Copilot Actions
 included capacity separately pending; alpha.11 unpublished and fixed pilot preserved.
 
-Operational prerequisite: GitHub returns HTTP403 reading the protected nonsecret
-account-policy variable; capacity-variable and secret-name reads also failed. This
-does not establish expired authentication or missing account permissions. General
-environment/branch protections remain readable and match the configured reviewer
-and dedicated branch. No protected setting was changed and no write was attempted
-to evade the read refusal. Normal CLI dispatch403 is also unchanged and not retried.
-Owner-side normal environment administration must align only the fact's source to
-the reviewed runtime, retaining truthful account facts/reviewed_at; then use normal
-UI dispatch once. Recheck actual prerequisites; missing/stale facts launch no model.
+Owner normal UI source alignment/dispatch/review completed; actual account guards
+passed with fact digest `769231fefb0951a143296afba0e8ee3df3ae6000aedcede4089e3d87f35f6b37`.
+Protected API reads and CLI dispatch remain denied; current_user_can_approve=false
+was respected without a POST or bypass. No new owner action is pending for this run.
+DIR174 source-only review now examines the existing finite native canary route and
+the minimum physical/preparation/handle facts needed for D12, without changing this
+diagnostic or authorizing execution. Missing metadata remains UNKNOWN; outside
+compiler namespace/denial-versus-absence coverage remains separately unresolved.
 
 ## Historical checkpoint — fixed-marker attempt UNKNOWN; diagnostic loop stopped
 

@@ -15,13 +15,15 @@ The unreleased CLI now offers explicit pending selection, not executable evidenc
 
 ## Current checkpoint — native child witness remains UNKNOWN
 
-One distinct fixed exec-witness method is source-reviewed and locally tested at
-runtime `c9110d8`; actual native admission is untested. Its fresh interpretation
-and collection kind preserve old evidence and strict completion requirements.
-It retains all resource restrictions and helper bytes while changing shell
-topology/SHLVL handling and omitting trailing shell bookkeeping. This establishes
-neither the old error cause nor sealing. See the [current tracker](../plan/portable-evidence-tracker.md#current-checkpoint--separately-versioned-exec-witness-reviewed-native-admission-untested)
-for source/review/test identities; no actual new native run has started.
+Actual exec-witness run38748867165 at runtime `c9110d8` returned accepted structured
+helper metadata and source-derived command exit0; all ten startup booleans were true.
+Independent DIR173 retains UNKNOWN / DESCRIPTOR_METADATA_UNAVAILABLE: `/dev/null`
+lstat and output fstat are EPERM, so identity/types/targets are unavailable. No
+unsafe descriptor condition or seal is established. Outer native exit0/reap and
+cleanup are separate from C kernel-close observations. This establishes neither
+the old error cause nor portable reuse. The [current tracker](../plan/portable-evidence-tracker.md#current-checkpoint--structured-exec-result-accepted-descriptor-metadata-remains-unknown)
+records exact identities/timing/scope; no further attempt or permission expansion
+is queued. Existing namespace/origin blockers and all old UNKNOWN records remain.
 
 Run38729509357, workflow `fb93787` / runtime `b812589`, did not establish helper
 completion, native sealing or portable reuse. Independent DIR164 accepts only
