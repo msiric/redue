@@ -7,7 +7,33 @@ existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
 
-## Current checkpoint — raw shape refused; consolidated diagnosis under review
+## Current checkpoint — native tool error observed; launch-path audit active
+
+2026-10-15: [run38721590183](https://github.com/msiric/redue/actions/runs/38721590183)
+used reviewed workflowb836/runtime910, attempt1; protected inputs, normal environment
+review and331 source/mock tests passed. Independent DIR150 ACCEPT_SCOPE retains
+UNKNOWN/RAW_SHAPE_INVALID. A canonical bounded request had a matching result whose
+own raw property was a string and item is_error was true. Shape refusal preceded
+all renderer/metadata checks. Non-object field indicators are constructed false,
+not inspection of error contents. A valid bounded native nonallow-history candidate
+had no accepted-tool-ID match; this proves neither final permission nor execution.
+
+Native exit0/reap6.977s, controller14.347s, all currentness guards, one helper build
+and cleanup succeeded; no timeout. There is no accepted helper completion, child
+metadata, enforcement, seal or reuse. Raw error contents were not retained.
+Report5,166 bytes SHA256
+`d608b1251d65fd6f9ea26d8846726e5ed5de63ab2d18e4d522c31de35341e948`;
+redacted log324,711 bytes SHA256
+`430afa7c5e94368727a0b264b82e6783a2a88218f1af4cd51a42cf80c3419039`.
+
+Next: DIR151 audits the pinned public native launch/wrapper/validation error paths
+against the existing closed-read setup. No further native attempt or observation
+change is justified merely to expose another field. No permissions are changed and
+no owner action is requested during diagnosis. G0partial/G1–G4 incomplete; Copilot
+included Actions capacity remains separately pending. Alpha.11 stays unpublished,
+fixed pilot and immutable evidence are preserved.
+
+## Historical checkpoint — raw shape refused; consolidated diagnosis reviewed
 
 2026-10-15: [run38663417895](https://github.com/msiric/redue/actions/runs/38663417895)
 used reviewed workflowde38/runtime8f316, attempt1. The normal environment approval
