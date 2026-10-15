@@ -23,11 +23,22 @@ parent/entry implementation in an isolated task branch. Review and actual
 profile/account/security prerequisites remain mandatory before any native launch.
 All origin, sealing and reusable-evidence authority remains withheld.
 
-The public-header workflow still awaits the existing owner UI dispatch; the
-latest read found no new run. CLI403 is not retried. Copilot included Actions
-capacity is a separate pending fact. G1–G4 remain incomplete; alpha.11 is frozen
-and unpublished. No new native/model attempt, signing, trust change or release
-is authorized by these source/mock results.
+The owner-dispatched [public-header run38794832477](https://github.com/msiric/redue/actions/runs/38794832477)
+passed both jobs at workflow `3f07b38` / runtime `3edffa5`. Independent DIR301
+accepts its observations only: Node and eleven literal SDK26.5 header identities
+match, but runner image and compiler/linker identities differ. Local SDK27 guards
+remain inapplicable; three observed header pins differ and the receiver compiler
+exceeds the local size guard. This is not a matched-profile or native PASS.
+
+DIR302 is preparing the fixed observation of seven additional header rows already
+required by the existing guards, with endpoint-specific tool identities and no
+profile admission from logs. No new VM, compiler invocation, credential or model
+is involved. Public records13,189B SHA256
+`1cfd23705be35670f896a5e8958e450589cafb3d47b8920cb3e202a4fec9bd4d`.
+The existing CLI403 is not retried. Copilot included Actions capacity remains a
+separate pending fact. G1–G4 remain incomplete; alpha.11 is frozen/unpublished.
+The expired account fact is not silently refreshed. No native/model attempt,
+signing, trust change or release follows from these source/public observations.
 
 ## Retained checkpoint — build-only preparation and controller source evidence
 
