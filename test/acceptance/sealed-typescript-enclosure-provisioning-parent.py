@@ -28,7 +28,7 @@ import subprocess
 import sys
 import uuid
 
-INNER_SHA256 = "a3fde5180c6cc9cc0cedae7cd045138130a1396737fea0ffbab990eef1a5ea13"
+INNER_SHA256 = "7d2425f7fe667e66c42514ecb9f4fc370069ee5d16557c79de27f11c22f76b1d"
 ENCLOSURE_REFUSAL_STAGES = ("OPTIONS", "ORIGINAL_DERIVATION", "PREPARED_NULL_CURRENT", "INITIAL_ORIGINAL_CURRENT", "PROJECTION_INTERPRETATION", "CAMPAIGN_RENDER", "DERIVED_BINDINGS", "COLLECTOR_FUNCTION_PIN", "C_TEMPLATE_READ", "COLLECTOR_TEMPLATE_READ", "LAUNCHER_REBIND", "ENCLOSURE_REBIND", "FINAL_ORIGINAL_CURRENT", "SOURCE_RESULT")
 ORIGINAL_CURRENT_REFUSAL_STAGES = ("DERIVATION", "PROJECTION_CURRENT", "PREPARED_NULL_CURRENT", "PROJECTION_RESULT", "PREPARED_NULL_RESULT", "C_SOURCE_READ", "C_SOURCE_IDENTITY", "COLLECTOR_SOURCE_READ", "COLLECTOR_SOURCE_IDENTITY", "C_SOURCE_NAMED", "COLLECTOR_SOURCE_NAMED")
 NODE_SHA256 = "5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc"
@@ -49,22 +49,22 @@ NATIVE_SOURCE_PINS = (
 NATIVE_SEALED_SOURCE_PINS = (
     ("base-collector-copies.mjs", "70b129684c8896e7f7e1c4b134b46a29f9f84818f10c8b7e65a094b1579cc699"),
     ("base-collector-source.mjs", "88b60905f59af6aedf62d80492bacc8e60ee8c58b1ed45d2abeed4c03a19c421"),
-    ("base-exchange-assets.mjs", "7a4a4ee8c93b2b3b6020bcafcab2d42bd6ea8e69b48e273d0f92a73aab982aa8"),
+    ("base-exchange-assets.mjs", "e2e76736bcb2d00a1cb568c1742e1d55c7f523b5eab87ef022467471f6e48f68"),
     ("base-exchange-pair.mjs", "1eb18eaa4768ece210afcdea400d88fedf1408adf7ffec4caf190109ae403196"),
     ("base-exchange-result.mjs", "be2d30edf40597f52a6a9e919b5a3ee26e15bf0dc9f942badda0fb54db10b05d"),
     ("base-exchange-source.mjs", "1a66abed15ecff05ee41266ff3e3a5230fc109164a0e74ecafce83525d1c16f6"),
     ("claude-policy.mjs", "d19957530cd238ea2f1b3b7b7ae95f5d7ccc65f457fb3763edef85a1e844407d"),
     ("closed-read-policy.mjs", "d171a31ea942d81f7f93134a26f73bf0b1ccb826edf9bcb878debd82f3397f3d"),
-    ("enclosure-provisioning.mjs", "a3fde5180c6cc9cc0cedae7cd045138130a1396737fea0ffbab990eef1a5ea13"),
+    ("enclosure-provisioning.mjs", "7d2425f7fe667e66c42514ecb9f4fc370069ee5d16557c79de27f11c22f76b1d"),
     ("fixed-campaign-copies.mjs", "06380846f206a66100c7b5216f969ae55fc8ee2188449e8183e81f8827132a59"),
     ("fixed-campaign-enclosed-collector.mjs", "a15fee9374767e14483575264bcfa85732d90eab503c8a1f2b770c5156395878"),
-    ("fixed-campaign-enclosure-build.mjs", "ebd8ecda96e0ca3028b39c6be2fdeb7dea2e2519b5d6daed715a18f796f2b3f2"),
+    ("fixed-campaign-enclosure-build.mjs", "2c91f69803edca3c6fa30a93fe52a58049794436fec68dc645a79b6bb6f60b0e"),
     ("fixed-campaign-enclosure-source.mjs", "af9b5f7ba785531fbd9ea6af819b1dfb1ac73f2a5d47806329680cfef7925682"),
     ("fixed-campaign-launcher-source.mjs", "ddc82a7b3001bc3ad07c9d8d9dcf497dfa8052fc46b4b2fd41f9db42ded0eec7"),
     ("fixed-campaign-prepared-null-source.mjs", "ea00b5293f361d77029b76b16f49abd83114773a0bc1851851f8df024a70e342"),
     ("fixed-campaign.mjs", "9984ffa1719401dd5cf3ab2b10313d8e9606524fac361905d31fb14172860f21"),
     ("map-result.mjs", "d19e3d1f33394b74c2771207d24ed3697ba1665e1e0d5f49564ecb80e0dcce13"),
-    ("native-assets-build.mjs", "28af4f9f02a70673a5d8486f38efc5311faa3735d868dade35fb12b2db123b84"),
+    ("native-assets-build.mjs", "b213858288b15f2d06e2b25d42518b4988f7b474ee50724b3dab4258803d6185"),
     ("native-assets-proposal.mjs", "74b0d1f96e85ccb66e2336897a29661c052c0e15d3c27596a3001ed798df8dc9"),
     ("native-base-command.mjs", "fd34d5ad1eb2f252c18aaa3130dd3db08c7f03fdf6e7f17b1b0db0ea63a12a14"),
     ("native-enclosure-command.mjs", "5be0f3701094b57a0e446c673e72983ed8f83246f221678d07bd750359d60ea5"),
@@ -76,6 +76,7 @@ NATIVE_SEALED_SOURCE_PINS = (
     ("native-stdio-probe.mjs", "8ac2b29ad0e31e98611821baeddc011869bf590d9e3d51337c7f35152b53f4c6"),
     ("native-stdio-startup.mjs", "ae74c7492f162708807e455b1d8676354e7eb5b23a90340a281c8c6c49a7a025"),
     ("paired-canary-policy.mjs", "45cd4884696768fe272d811887f094e0ba41f3eb29b1d8b189e3c5a546797362"),
+    ("preparation-cost.mjs", "1dcb10f2c1dda6cd5ce4d9d11212855f26883547378c9cba3b0160fc19a64caf"),
     ("paired-stage-source.mjs", "ea0aa13964983d553c892fc94fa6636db42282cd99a1fe300c37d033803e13ec"),
     ("stage-exchange-result.mjs", "dc86c11a62ef22563d63ea0541185b86b14910a029c67c9b3f58eec4a52b6654"),
     ("stage-result.mjs", "7c6f7685314deeac8de6974604b0dae8154286262e0e2cbc7a6fda41a84e6813"),
@@ -455,11 +456,19 @@ def native_unknown(report, reason, _ci=False):
             "models": summary["models"] if summary else None, "helperExecutions": summary["helperExecutions"] if summary else None, "nativeAgentLaunches": summary["nativeLaunches"] if summary else None, "recordPersistence": "UNKNOWN", "finalParentCompletion": "NOT_ESTABLISHED", **_NATIVE_FALSE}
 
 
+COST_GROUPS = ("prerequisite", "launcher_dependencies", "launcher_source", "launcher_copies", "launcher_tool", "launcher_compile", "enclosure_source", "enclosure_tool", "enclosure_rows", "enclosure_compile", "original_projection")
+COST_STAGES = {"NONE", "PAIR", "HOST", "ROOTS", "HOST_BUILD", "BOUNDARY", "BASE_SOURCE", "BASE_COMPILE", "BASE_OUTPUT", "NATIVE_FIXTURE", "NATIVE_RUNTIME_SHAPE", "NATIVE_RUNTIME_BYTES", "NATIVE_PROPOSAL", "NATIVE_COMPILER_BYTES", "NATIVE_LINKER_BYTES", "NATIVE_CI_TOOL_SIZES", "NATIVE_SDK", "NATIVE_HEADERS", "NATIVE_NAMESPACE", "NATIVE_COPY", "NATIVE_SOURCES", "NATIVE_BUILD_PRECONDITION", "NATIVE_COMPILE", "NATIVE_OUTPUT", "NATIVE_FINAL", "LAUNCHER", "ENCLOSURE"}
+# Old phase+FINAL bound57728 +9 fixed cost snapshots*768 =64640 <65536.
+# Costs are diagnostic inclusive completed calls, never summable process facts.
+
+
 class ProgressProtocol:
     """Strict valid-prefix observations, never restorable execution authority."""
     def __init__(self, _ci=False):
         require(type(_ci) is bool)
         self.ci = _ci
+        self.cost_frames = []
+        self.cost_unknown = False
         self.pending = bytearray()
         self.bytes_seen = 0
         self.frames = []
@@ -474,6 +483,9 @@ class ProgressProtocol:
     def accept(self, value, size):
         require(type(value) is dict and type(value.get("schema")) is int and value["schema"] == 1
                 and value.get("protocol") == "fixed-enclosure-progress@2" and self.inner is None)
+        if value.get("kind") == "COST":
+            self.cost_frame(value, size)
+            return
         if value.get("kind") == "FINAL":
             require(set(value) == {"schema", "protocol", "kind", "report"} and size <= 16384 and self.active is None)
             inner = parse_inner((json.dumps(value["report"], allow_nan=False) + "\n").encode(), _ci=self.ci)
@@ -566,6 +578,41 @@ class ProgressProtocol:
         except Exception:
             self.invalid = True
             self.pending.clear()
+
+    def cost_frame(self, value, size):
+        require(self.ci and size + 1 <= 768 and len(self.cost_frames) < 9
+                and set(value) == {"schema", "protocol", "kind", "sequence", "elapsedMs", "state", "guardStage", "refusal", "rows", "meaning"}
+                and type(value["sequence"]) is int and value["sequence"] == len(self.cost_frames)
+                and value["state"] in ("OBSERVED", "CLOCK_UNKNOWN", "SATURATED", "CAPTURE_FAILED")
+                and value["guardStage"] in COST_STAGES and type(value["refusal"]) is bool
+                and value["meaning"] == "INCLUSIVE_COMPLETED_CALLS_NOT_SUMMABLE_NOT_PROCESS_COUNTS")
+        elapsed = value["elapsedMs"]
+        require(elapsed is None and value["state"] == "CLOCK_UNKNOWN" or type(elapsed) in (int, float)
+                and math.isfinite(elapsed) and 0 <= elapsed < 65000)
+        previous = self.cost_frames[-1] if self.cost_frames else None
+        if previous:
+            require(not self.cost_unknown or value["state"] != "OBSERVED")
+            require(previous["elapsedMs"] is not None and elapsed is not None and previous["elapsedMs"] <= elapsed
+                    or previous["elapsedMs"] is None and elapsed is None or elapsed is None and value["state"] == "CLOCK_UNKNOWN")
+            require(not previous["refusal"] or value["refusal"] and value["guardStage"] == previous["guardStage"])
+        rows = value["rows"]
+        require(type(rows) is list and len(rows) == len(COST_GROUPS))
+        for at, row in enumerate(rows):
+            require(type(row) is list and len(row) == 6 and type(row[0]) is int and row[0] == at
+                    and all(type(n) is int and 0 <= n <= 9999 for n in row[1:4])
+                    and type(row[5]) is int and 0 <= row[5] <= 64 and row[1] == row[2] + row[3] + row[5]
+                    and (row[4] is None and value["state"] != "OBSERVED" or type(row[4]) in (int, float) and math.isfinite(row[4]) and 0 <= row[4] <= 60000000))
+            if previous:
+                before = previous["rows"][at]
+                require(all(row[i] >= before[i] for i in (1, 2, 3)))
+                require(before[4] is None and row[4] is None or before[4] is not None and (row[4] is None or row[4] >= before[4]))
+        self.cost_unknown = self.cost_unknown or value["state"] != "OBSERVED"
+        self.cost_frames.append(value)
+
+    def cost_observation(self):
+        return {"interpretation": "fixed-ci-preparation-cost@1", "status": "UNKNOWN" if not self.cost_frames or self.cost_unknown else "OBSERVED_PREFIX_ONLY",
+                "validSnapshotCount": len(self.cost_frames), "snapshot": self.cost_frames[-1] if self.cost_frames else None,
+                "coverage": "SAMPLING_OPERATION_BOUNDARIES_ONLY", "semantics": "INCLUSIVE_NOT_SUMMABLE_NOT_PROCESS_COUNTS"}
 
     def finish(self):
         if self.pending or self.inner is None:
@@ -950,7 +997,7 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
             "postreapGroupProbe": postreap_probe, "postreapProbeExceptionFamily": postreap_family, "postreapProbeErrno": postreap_errno,
             "stdoutBytes": len(output), "stderrBytes": len(error), "elapsedMs": elapsed * 1000 if elapsed is not None else None,
             "bodyElapsedMs": (body_end - began) * 1000 if type(body_end) in (int, float) and type(began) in (int, float) and math.isfinite(body_end) and math.isfinite(began) and body_end >= began else None,
-            "innerReport": inner, "progressFrames": protocol.frames, "progressObservation": protocol.observation(), **_FALSE}
+            "innerReport": inner, "progressFrames": protocol.frames, **({"costFrames": protocol.cost_frames} if _ci else {}), "progressObservation": protocol.observation(), **_FALSE}
 
 
 def prepare_record_directory(repo):
@@ -1042,6 +1089,15 @@ def unknown_with_observations(report, reason, _ci=False):
             observed[key] = report[key]
     # Only the already validated, fixed redacted schema is retained. No captured
     # byte stream/error text/source/environment/credential is serialized here.
+    if _ci and "costFrames" in report:
+        costs = ProgressProtocol(_ci=True)
+        try:
+            for frame in report["costFrames"]:
+                costs.feed((json.dumps(frame, separators=(",", ":"), allow_nan=False) + "\n").encode())
+        except Exception:
+            costs.invalid = True
+        observed["costFrames"] = costs.cost_frames
+        observed["costCapture"] = costs.cost_observation()
     if "progressFrames" in report:
         protocol = ProgressProtocol(_ci=True) if _ci else ProgressProtocol()
         try:
@@ -1069,6 +1125,11 @@ def unknown_with_observations(report, reason, _ci=False):
 def ci_public_summary(report, reason=None, record=None, digest=None):
     """Fixed redacted DATA only; reconstruct the same CI protocol, never adopt it."""
     protocol = ProgressProtocol(_ci=True)
+    try:
+        for frame in report.get("costFrames", []):
+            protocol.feed((json.dumps(frame, separators=(",", ":"), allow_nan=False) + "\n").encode())
+    except Exception:
+        protocol.invalid = True
     frames = report.get("progressFrames")
     if type(frames) is list:
         try:
@@ -1129,7 +1190,7 @@ def ci_public_summary(report, reason=None, record=None, digest=None):
              "inProgressPhase": observed["inProgressPhase"] if prefix else None,
              "validatedProgressFrameCount": observed["validatedFrameCount"] if prefix else None,
              "protocolStatus": observed["protocolStatus"] if prefix else "NOT_OBSERVED",
-             "activeDispatchCount": "UNKNOWN", "childReaped": boolean("childReaped"),
+             "activeDispatchCount": "UNKNOWN", "costCapture": protocol.cost_observation(), "childReaped": boolean("childReaped"),
              "childExitCode": number(report.get("childExitCode")), "childSignal": number(report.get("childSignal")),
              "cleanupSignal": selected("cleanupSignal", {"NOT_ATTEMPTED", "SENT", "GROUP_ALREADY_ABSENT", "NOT_ATTEMPTED_CHILD_EXIT_OBSERVED", "UNKNOWN"}),
              "groupAbsentAfterReap": boolean("groupAbsentAfterReap"), "groupClosureScope": "OWNED_PREPARATION_NODE_GROUP_ONLY",
@@ -1137,8 +1198,9 @@ def ci_public_summary(report, reason=None, record=None, digest=None):
              "elapsedMs": number(report.get("elapsedMs")), "bodyElapsedMs": number(report.get("bodyElapsedMs")),
              "finalSourceCurrentness": selected("finalSourceCurrentness", {"ENDPOINTS_OBSERVED", "UNKNOWN"}),
              "recordAuthority": "NONE", "completeSdkClosure": "NOT_ESTABLISHED", "hostedCompatibility": "NOT_ESTABLISHED", "publicDataOnly": True, "originAuthority": False, "receiptAuthority": False, "nativeAuthenticated": False, "nativeIntervalBarrier": "NOT_ESTABLISHED", "finalParentCompletion": "NOT_ESTABLISHED_BY_DATA_SUMMARY", **_FALSE}
-    # <=19 bounded phase rows (~2.5KiB) plus fixed fields (<4KiB), including
-    # longest numeric forms. No raw wire, source rows, absolute paths or secrets.
+    # <=19 bounded phase rows (~2.5KiB), fixed fields (<4KiB) and one
+    # <=768-byte cost snapshot plus small metadata (<1KiB) fit8KiB.
+    # No raw wire, source rows, absolute paths or secrets.
     require(len(json.dumps(value, separators=(",", ":"), allow_nan=False).encode()) <= 8192)
     return value
 

@@ -85,7 +85,7 @@ for key in ('SIMPLE','simple','REDUE_DECISION_PROFILE','redue_profile_context','
  try:m.prerequisites(_native=True,_native_ci=True);raise AssertionError('FORBIDDEN_KEY')
  except ValueError:checks+=1
  assert seen==[] and selected==[]
-m.os.environ={'PATH':'/host/bin'};repo,entry,node,rows=m.prerequisites(_native=True,_native_ci=True);assert str(node)=='/reviewed/node' and entry.name==m.NATIVE_ENTRY_NAME and len(rows)==42;assert selected==[('node','/host/bin')];checks+=1
+m.os.environ={'PATH':'/host/bin'};repo,entry,node,rows=m.prerequisites(_native=True,_native_ci=True);assert str(node)=='/reviewed/node' and entry.name==m.NATIVE_ENTRY_NAME and len(rows)==43;assert selected==[('node','/host/bin')];checks+=1
 for candidate in (None,'relative/node'):
  m.shutil.which=lambda *a,**k:candidate
  try:m.prerequisites(_native=True,_native_ci=True);raise AssertionError('INVALID_PATH_NODE')

@@ -8,7 +8,7 @@ import {createHash} from 'node:crypto';
 const nativeSource=fs.readFileSync(new URL('./acceptance/sealed-typescript-native-assets-build.mjs',import.meta.url),'utf8');
 const exchangeSource=fs.readFileSync(new URL('./acceptance/sealed-typescript-base-exchange-assets.mjs',import.meta.url),'utf8');
 const sha=b=>createHash('sha256').update(b).digest('hex');
-const strip=s=>s.replace(/^import .*;$/gm,'').replaceAll('export function ','function ');
+const strip=s=>s.replace(/^import .*;$/gm,line=>line.startsWith('import * as fixedCost ')?'const fixedCost={beginFixedCIPreparationCost:()=>null,endFixedCIPreparationCost:()=>{},fixedCIPreparationGuardStage:()=>{},fixedCIPreparationRefusal:()=>{}};':'').replaceAll('export function ','function ');
 function harness(){
  const nodes=new Map(),handles=new Map();let inode=1,fd=10,hook=()=>{},fixtureHook=()=>{};
  const state={reads:[],fixtureReads:0},put=(file,dir=false,body=Buffer.alloc(0),uid=501n,mode=dir?0o40700n:0o100600n)=>{

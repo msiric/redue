@@ -46,7 +46,7 @@ test('build completion is strict and diagnostics redact raw failures',()=>{
 
 // Injected author-leaf controls only; no compiler/toolchain or fixture launch.
 const buildSource=fs.readFileSync(new URL('./acceptance/sealed-typescript-native-assets-build.mjs',import.meta.url),'utf8');
-function mockBuild(verify){let accesses=0,dispatches=0;const source=buildSource.replace(/^import .*;$/gm,'').replaceAll('export function ','function ');
+function mockBuild(verify){let accesses=0,dispatches=0;const source=buildSource.replace(/^import .*;$/gm,line=>line.startsWith('import * as fixedCost ')?'const fixedCost={beginFixedCIPreparationCost:()=>null,endFixedCIPreparationCost:()=>{},fixedCIPreparationGuardStage:()=>{},fixedCIPreparationRefusal:()=>{}};':'').replaceAll('export function ','function ');
  const run=Function('fs','path','os','createHash','spawnSync','verifySealedTypeScriptSyntheticFixture','prepareSealedTypeScriptNativeAssetsProposal','process',source+'\nreturn buildSealedTypeScriptNativeAssets;')(
  {...fs,realpathSync(){accesses++;throw Error('UNEXPECTED');}},path,os,createHash,()=>{dispatches++;throw Error('UNEXPECTED');},verify,()=>{throw Error('UNEXPECTED');},process);
  return {run,counters:()=>({accesses,dispatches})};}

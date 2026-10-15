@@ -61,7 +61,7 @@ function mock(fault=null,diagnostics={enabled:false}){
  if(fault==='output-link')nodes.get(output).nlink=2n;if(fault==='parent-after-compile')nodes.get(h+'/prefix/native-probes').ino+=1n;
  if(fault==='assets-after-compile')state.valid.assets=false;if(fault==='copies-after-compile')state.valid.copies=false;
  return{pid:fault==='no-pid'?undefined:42,status:fault==='exit'?1:fault==='signal'?null:0,signal:fault==='signal'?'SIGKILL':null,stdout:'',stderr:''};};
- const code=moduleSource.replace(/^import .*;$/gm,'').replaceAll('export function ','function ').replace('const mintedAssets=new WeakMap();','const mintedAssets=controlledMint;')+
+ const code=moduleSource.replace(/^import .*;$/gm,line=>line.startsWith('import * as fixedCost ')?'const fixedCost={beginFixedCIPreparationCost:()=>null,endFixedCIPreparationCost:()=>{},fixedCIPreparationGuardStage:()=>{},fixedCIPreparationRefusal:()=>{}};':'').replaceAll('export function ','function ').replace('const mintedAssets=new WeakMap();','const mintedAssets=controlledMint;')+
  '\nverifySealedTypeScriptBaseExchangeAssets=controlledAssetVerify;return {build:buildSealedTypeScriptBaseCollectorLauncher,verify:verifySealedTypeScriptBaseCollectorLauncherBuild,matches:sealedTypeScriptBaseCollectorLauncherBuildMatchesDerivation};';
  const api=Function('fs','path','createHash','spawnSync','verifySealedTypeScriptBaseExchangePair','verifySealedTypeScriptSyntheticFixture','prepareSealedTypeScriptBaseExchangeSource',
  'prepareSealedTypeScriptNativeAssetsProposal','buildSealedTypeScriptNativeAssets','verifySealedTypeScriptNativeAssetsBuild','sealedAssetsBuildCompleted','sealedAssetsBuildProcessSummary',
@@ -132,7 +132,7 @@ for(const fault of ['spawn-throws','signal','exit','no-pid'])test('diagnostic '+
  assert.equal(last.outcome,'UNKNOWN');assert(!JSON.stringify(m.state.marks).includes('PRIVATE'));falseAuthority(result);
 });
 test('existing profiler still cannot distinguish persisted from unavailable sink; the builder claims no availability',()=>{
- const logger=fs.readFileSync(new URL('../src/decision-profile.mjs',import.meta.url),'utf8').replace(/^import .*;$/gm,'').replaceAll('export ','');
+ const logger=fs.readFileSync(new URL('../src/decision-profile.mjs',import.meta.url),'utf8').replace(/^import .*;$/gm,line=>line.startsWith('import * as fixedCost ')?'const fixedCost={beginFixedCIPreparationCost:()=>null,endFixedCIPreparationCost:()=>{},fixedCIPreparationGuardStage:()=>{},fixedCIPreparationRefusal:()=>{}};':'').replaceAll('export ','');
  const create=Function('fs','AsyncLocalStorage','randomUUID','process','performance',logger+';return {profiling,mark};');
  class Context{getStore(){return undefined;}}
  for(const failure of [false,true]){let attempts=0,persisted=0;

@@ -110,7 +110,7 @@ for key in ('NODE_OPTIONS','node_path','NODE_REPL_EXTERNAL_MODULE','DYLD_INSERT_
  assert seen==[] and which_calls==[];checks+=1
 m.os.environ={'PATH':'/selected/bin','HTTPS_PROXY':'SOURCE_MOCK_VALUE_NOT_READ'};seen.clear();which_calls.clear();current.clear()
 repo,entry,node,rows=m.prerequisites(_ci=True)
-assert str(node)=='/actual/canonical/node' and entry.name==m.ENTRY_NAME and len(rows)==42 and len(current)==42
+assert str(node)=='/actual/canonical/node' and entry.name==m.ENTRY_NAME and len(rows)==43 and len(current)==43
 assert which_calls==[('node','/selected/bin')] and seen[2][1:]==(501,128*1024*1024,m.NODE_SHA256);checks+=1
 for candidate,bad in [(None,None),('relative/node',None),('/selected/bin/node','digest'),('/selected/bin/node','size')]:
  selected.update(path=candidate,bad=bad);seen.clear();which_calls.clear()
