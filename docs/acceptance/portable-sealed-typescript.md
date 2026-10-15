@@ -7,8 +7,13 @@ unchanged30s body deadline during `enclosureBuilds`. Parent30,005.527ms;
 and completion remain UNKNOWN. Owned kill/reap/group absence were observed.
 Report17,654B SHA256
 `805b4fe6f9ef033144c2e836a483f09958da2fff2761caf6c3891716bd71bfeb`.
-No native/helper/model/check or receipt ran. DIR260/261 review the build-only
-budget and remaining work before any further attempt; no unchanged retry.
+No native/helper/model/check or receipt ran. DIR260/261 support an explicit
+60s build-only body/maximum5s cleanup/65s total revision; the inspected30s cap
+was internal engineering configuration, not an owner-set native/model limit.
+The first revision `e6a20eab` is NOT integrated or run: DIR267 found a pure-mock
+cleanup clock regression (10.0→14.9→10.2) could falsely report preparation
+complete. DIR269 is correcting the latched monotonic clock before fresh review.
+No unchanged retry, native-limit change or performance claim follows.
 
 The sixth attempt at `d4d54d5` completed in23,547.987ms and precisely returned
 `FINAL_ORIGINAL_CURRENT / PREPARED_NULL_RESULT`; its exact changed property is
