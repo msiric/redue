@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 2
     environment: portable-evidence-claude
     env:
-      REVIEWED_SOURCE: e7c3ea28dbb2a502d88f82c9f88a1850fdcf527d
+      REVIEWED_SOURCE: b812589ae7741e506e89bde90e4e33c83624647f
       REDUE_CLAUDE_ACCOUNT_POLICY_FACT: ${{ vars.REDUE_CLAUDE_ACCOUNT_POLICY_FACT }}
       REDUE_CLAUDE_INCLUDED_DIAGNOSTIC_CAPACITY: ${{ vars.REDUE_CLAUDE_INCLUDED_DIAGNOSTIC_CAPACITY }}
     steps:
@@ -78,7 +78,7 @@ jobs:
           node --input-type=module <<'NODE'
           import {runFixedNativeStartupWitnessDiagnostic} from './test/acceptance/sealed-typescript-native-stdio-diagnostic.mjs';
           const scope='FIXED_SINGLE_DIRECT_NATIVE_CHILD_STARTUP_WITNESS_DIAGNOSTIC_ONLY';
-          const intendedSource='e7c3ea28dbb2a502d88f82c9f88a1850fdcf527d',nativeVersion='2.1.187',nativeSha256='a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3',witnessInterpretation='native187-direct-bash-child-startup-witness@1';
+          const intendedSource='b812589ae7741e506e89bde90e4e33c83624647f',nativeVersion='2.1.187',nativeSha256='a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3',witnessInterpretation='native187-direct-bash-child-startup-witness@1';
           const abort=new AbortController(),cancel=()=>abort.abort();
           for(const sig of ['SIGINT','SIGTERM','SIGHUP'])process.on(sig,cancel);
           try{
