@@ -23,8 +23,8 @@ export function prepareSealedTypeScriptNativeEnclosureCommand(options){
   // Identity checks touch only private maps and precede ALL public capability
   // properties, original policy reads and full PRE_NATIVE filesystem checks.
   const fixtureProfile=sealedTypeScriptBaseExchangeAssetsFixtureProfile(assetsBuild);
-  if(fixtureProfile!=='fixed-native-assets-local-sdk27@1'&&fixtureProfile!=='fixed-native-assets-ci-sdk26.5-toolpair-b@1')fail();
-  const ci=fixtureProfile==='fixed-native-assets-ci-sdk26.5-toolpair-b@1',preparationProfile=ci?'fixed-enclosure-ci-sdk26.5-toolpair-b@1':'fixed-enclosure-local-sdk27@1';
+  if(fixtureProfile!=='fixed-native-assets-local-sdk27@1'&&fixtureProfile!=='fixed-native-assets-ci-sdk26.5-toolpair-b@1'&&fixtureProfile!=='fixed-native-assets-ci-sdk26.5-toolpair-a@1')fail();
+  const ci=fixtureProfile!=='fixed-native-assets-local-sdk27@1',preparationProfile=ci?(fixtureProfile==='fixed-native-assets-ci-sdk26.5-toolpair-a@1'?'fixed-enclosure-ci-sdk26.5-toolpair-a@1':'fixed-enclosure-ci-sdk26.5-toolpair-b@1'):'fixed-enclosure-local-sdk27@1';
   const linked=()=>sealedTypeScriptBaseExchangeAssetsFixtureProfile(assetsBuild)===fixtureProfile&&sealedTypeScriptFixedCampaignEnclosureSourceMatchesDerivation(enclosureSource,assetsBuild,pairedSource,pairedArtifacts,copies,projection,preparedNullSource)&&sealedTypeScriptFixedCampaignEnclosureBuildMatchesSource(enclosureBuild,enclosureSource)&&sealedTypeScriptBaseExchangeAssetsMatchPair(assetsBuild,pair)&&sealedTypeScriptBaseExchangeAssetsMatchHostFixture(assetsBuild,hostFixture)&&sealedTypeScriptPairedStageSourceMatchesDerivation(pairedSource,pair,assetsBuild);
   const observe=()=>{if(!linked())fail();const v=verifySealedTypeScriptFixedCampaignEnclosureBuild(enclosureBuild);if(v.scope!=='FIXED_CANARY_ENCLOSURE_POSTBUILD_DATA_ONLY'||v.outcome!=='ENCLOSURE_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED'||v.originalRowsScope!=='POSTBUILD_PRE_NATIVE_ENDPOINTS_ONLY'||v.nativeIntervalBarrier!=='NOT_ESTABLISHED'||!linked())fail();return v;};
   const first=observe(),binding=enclosureSource.bindings,{baseA:a,baseB:b,hostBase:h}=binding;

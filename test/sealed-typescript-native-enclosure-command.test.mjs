@@ -12,13 +12,13 @@ const originalNames=['sealed-typescript-native-sentinel.mjs','sealed-typescript-
 const originalLeaves=[...originalNames.map(name=>code+'/'+name),h+'/runtime/node-v22.13.0-darwin-arm64/bin/node',...['sealed-typescript-base-exchange-result.mjs','sealed-typescript-stage-exchange-result.mjs','sealed-typescript-stage-result.mjs','sealed-typescript-map-result.mjs'].map(name=>h+'/prefix/test/acceptance/'+name),h+'/prefix/src/portable-envelope.mjs'];
 const refusal=call=>assert.throws(call,error=>error.code==='NATIVE_ENCLOSURE_COMMAND_UNAVAILABLE'&&error.message==='NATIVE_ENCLOSURE_COMMAND_UNAVAILABLE');
 function fixture(fixtureProfile='fixed-native-assets-local-sdk27@1'){
- const ci=fixtureProfile==='fixed-native-assets-ci-sdk26.5-toolpair-b@1';
+ const ci=fixtureProfile==='fixed-native-assets-ci-sdk26.5-toolpair-b@1'||fixtureProfile==='fixed-native-assets-ci-sdk26.5-toolpair-a@1';
  const caps=Object.fromEntries(['pair','hostFixture','assetsBuild','pairedSource','pairedArtifacts','copies','projection','preparedNullSource','enclosureSource','enclosureBuild'].map(key=>[key,{}]));
  const collectionTransport={interpretation:'finite-enclosure-normal-collection@2',frame:'RDE2',completeCollectionExit:0,incompleteCollectionExit:74,collectorExit:{E:74,F:1},assertionAuthority:'JSON_BODY_ONLY_NOT_OUTER_EXIT',nativeResultAcceptance:'NOT_TESTED'};
  Object.assign(caps.projection,{version:'fixed-canary-original-input-projection@3',projectionSha256:'a'.repeat(64)});
  Object.assign(caps.enclosureSource,{scope:'DISABLED_FIXED_CANARY_FINITE_ENCLOSURE_SOURCE_DATA_ONLY',version:'fixed-canary-finite-enclosure-source@2',disabled:true,runnable:false,executionAuthority:'NONE',projectionSha256:'a'.repeat(64),collectionTransport,
   bindings:{baseA:a,baseB:b,hostBase:h,node:h+'/runtime/node-v22.13.0-darwin-arm64/bin/node',entry:six[1],projectionEntry:six[0],launcher,self,cwd},files:six.slice(0,4).map((file,at)=>({file,sourceSha256:String(at+1).repeat(64)}))});
- caps.enclosureBuild.report={profileId:ci?'fixed-enclosure-ci-sdk26.5-toolpair-b@1':'fixed-enclosure-local-sdk27@1'};
+ caps.enclosureBuild.report={profileId:ci?(fixtureProfile==='fixed-native-assets-ci-sdk26.5-toolpair-a@1'?'fixed-enclosure-ci-sdk26.5-toolpair-a@1':'fixed-enclosure-ci-sdk26.5-toolpair-b@1'):'fixed-enclosure-local-sdk27@1'};
  if(ci)caps.enclosureSource.fixtureProfileId=fixtureProfile;
  const observed={scope:'FIXED_CANARY_ENCLOSURE_POSTBUILD_DATA_ONLY',outcome:'ENCLOSURE_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED',hostBase:h,bindings:caps.enclosureSource.bindings,files:six.map((file,at)=>({file,digest:String(at+1).repeat(64),mark:'MOCK_ORIGINAL',lineage:[]})),originalRowsScope:'POSTBUILD_PRE_NATIVE_ENDPOINTS_ONLY',nativeIntervalBarrier:'NOT_ESTABLISHED'};
  const leafData={outcome:'FIXED_ORIGINAL_H_CODE_READ_LEAVES_DATA_ONLY',version:'fixed-canary-original-input-projection@3',hostBase:h,readLeaves:originalLeaves,currency:'NOT_CHECKED'};
@@ -91,7 +91,7 @@ test('original reviewed CI assets select only CI preparation metadata and preser
  for(const key of ['inferencePermitted','sealed','reuseEligible','runnable'])assert.equal(b[key],false);
  assert.equal(b.hostedCompatibility,'NOT_ESTABLISHED');assert.deepEqual(ci.counts,local.counts);
 });
-for(const profile of [null,undefined,'fixed-native-assets-ci-sdk26.5-toolpair-a@1','fixed-native-assets-ci-sdk26.5-toolpair-b@2','fixed-native-assets-local-sdk27@2','redue-native-stdio-preauth-ci-sdk26.5@1'])test('unknown or retired original asset profile '+String(profile)+' never starts full command validation',()=>{
+for(const profile of [null,undefined,'fixed-native-assets-ci-sdk26.5-toolpair-b@2','fixed-native-assets-local-sdk27@2','redue-native-stdio-preauth-ci-sdk26.5@1'])test('unknown or retired original asset profile '+String(profile)+' never starts full command validation',()=>{
  const f=fixture();f.state.fixtureProfile=profile;refusal(()=>f.make(f.options));assert.deepEqual(f.counts,{build:0,base:0,leaves:0,clone:0});
 });
 for(const identity of ['fixed-native-assets-local-sdk27@1',ciFixtureProfile])test('original '+identity+' profile refuses copied/mixed parents and mismatched source/build profile',()=>{
@@ -108,3 +108,5 @@ test('profile loss during final full validation never authorizes a copied earlie
  const f=fixture(ciFixtureProfile),original=f.make(f.options);assert.equal(original.inferencePermitted,false);
  f.state.retired=true;refusal(()=>f.make(f.options));assert.equal(f.counts.build,2);
 });
+
+test('original reviewed A assets retain A command binding with identical fixed resources',()=>{const m=fixture('fixed-native-assets-ci-sdk26.5-toolpair-a@1'),b=fixture(ciFixtureProfile),a=m.make(m.options),other=b.make(b.options);assert.equal(a.preparation_profile_proposed,'fixed-enclosure-ci-sdk26.5-toolpair-a@1');for(const key of ['command_proposed','argv_proposed','settings_proposed','exact_code_read_leaves'])assert.deepEqual(a[key],other[key]);});

@@ -19,7 +19,7 @@ async function mockWire(nonzero=false){
   builds:Array.from({length:count},(_,i)=>({pidObserved:true,completed:true,status:nonzero&&i===0?1:0,signal:null,spawnError:'NONE',stdoutBytes:0,stderrBytes:0}))});
  const op={preparePair:()=>({...value('BASE_EXCHANGE_PAIR_PREPARED'),baseA:'/private/tmp/redue-ci-recipient-11111111',baseB:'/private/tmp/redue-ci-recipient-22222222'}),
   createHost:()=>({...value('CI_SYNTHETIC_BOOTSTRAP_PREPARED'),base:'/private/tmp/redue-ci-recipient-33333333'}),
-  prepareHostFixture:()=>value('SYNTHETIC_FIXTURE_PREPARED'),buildAssets:()=>build(3),verifyAssets:()=>value('BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED'),
+  prepareHostFixture:()=>value('SYNTHETIC_FIXTURE_PREPARED'),buildAssets:()=>build(3),assetsProfile:()=> 'fixed-native-assets-ci-sdk26.5-toolpair-b@1',verifyAssets:()=>value('BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED'),
   preparePairedSource:()=>({...flags,disabled:true}),buildPaired:()=>build(2),verifyPaired:()=>value('PAIRED_STAGE_ARTIFACTS_CURRENTLY_OBSERVED_NOT_EXECUTED'),
   provisionCopies:()=>value('CAMPAIGN_COPIES_OBSERVED_NOT_EXECUTED'),verifyCopies:()=>value('CAMPAIGN_COPIES_CURRENTLY_OBSERVED_NOT_EXECUTED'),
   buildLauncher:()=>({...build(1),outcome:'CAMPAIGN_LAUNCHER_BUILT_NOT_EXECUTED'}),verifyLauncher:()=>value('CAMPAIGN_LAUNCHER_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED'),
@@ -63,7 +63,7 @@ test('fixed CI route binds reviewed sources and exact build-only CLI without a c
 });
 test('CI and local profiles cannot satisfy each other in FINAL, progress or fallback paths',posix,()=>{
  const result=execute(setup+String.raw`
-ci=data['good']['report'];local={**ci,'profile':'fixed-enclosure-preparation-local-sdk27@2'}
+ci=data['good']['report'];local={k:v for k,v in ci.items() if k!='selectedToolPair'};local['profile']='fixed-enclosure-preparation-local-sdk27@2'
 for report,ci_selected in [(ci,True),(local,False)]:
  assert m.parse_inner((json.dumps(report)+'\n').encode(),_ci=ci_selected)==report;checks+=1
  try:m.parse_inner((json.dumps(report)+'\n').encode(),_ci=not ci_selected);raise AssertionError('PROFILE_CONFUSION')
@@ -294,4 +294,25 @@ fallback=m.unknown_with_observations({'innerReport':old,'progressFrames':data['g
 assert 'innerReport' not in fallback['observed'];assert fallback['outcome']=='UNKNOWN';checks+=1
 print(json.dumps({'checks':checks,'testedPopen':0,'kernelMonitors':0}))
 `);assert.equal(result.checks,3);assert.equal(result.testedPopen,0);
+});
+
+test('fixed family retains exact A/B selection, refuses corrupted selection and never infers a pair from progress',posix,()=>{
+ const result=execute(setup+String.raw`
+for pair in ('A','B'):
+ report={**data['good']['report'],'selectedToolPair':pair}
+ assert m.parse_inner((json.dumps(report)+'\n').encode(),_ci=True)==report;checks+=1
+ summary=m.ci_public_summary({'innerReport':report,'progressFrames':data['good']['frames']})
+ suffix=pair.lower();assert summary['selectedToolPair']==pair and summary['expectedFixtureProfile']=='fixed-native-assets-ci-sdk26.5-toolpair-'+suffix+'@1' and summary['expectedBuildProfile']=='fixed-enclosure-ci-sdk26.5-toolpair-'+suffix+'@1';checks+=1
+for pair in (None,True,1,'C',{},['A']):
+ report={**data['good']['report'],'selectedToolPair':pair}
+ try:m.parse_inner((json.dumps(report)+'\n').encode(),_ci=True);raise AssertionError('CORRUPT_SELECTION_ACCEPTED')
+ except ValueError:checks+=1
+for old_profile in ('fixed-enclosure-preparation-ci-sdk26.5-toolpair-a@1','fixed-enclosure-preparation-ci-sdk26.5-toolpair-b@1'):
+ report={**data['good']['report'],'profile':old_profile}
+ try:m.parse_inner((json.dumps(report)+'\n').encode(),_ci=True);raise AssertionError('OLD_PROFILE_ACCEPTED')
+ except ValueError:checks+=1
+summary=m.ci_public_summary({'progressFrames':data['good']['frames']})
+assert summary['selectedToolPair'] is None and summary['expectedFixtureProfile'] is None and summary['expectedBuildProfile'] is None and summary['fixtureProfileObserved'] is None and summary['buildProfileObserved'] is None;checks+=1
+print(json.dumps({'checks':checks,'testedPopen':0,'kernelMonitors':0}))
+`);assert.equal(result.checks,13);assert.equal(result.testedPopen,0);
 });
