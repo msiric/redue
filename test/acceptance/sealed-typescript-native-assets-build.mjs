@@ -3,7 +3,7 @@
 // sandbox, sealing or reuse authority. Partial owned artifacts are retained.
 import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import {createHash} from 'node:crypto';import {spawnSync} from 'node:child_process';
 import {verifySealedTypeScriptSyntheticFixture,sealedTypeScriptSyntheticFixtureOriginalAvailable} from './sealed-typescript-synthetic-fixture.mjs';
-import {prepareSealedTypeScriptNativeAssetsProposal} from './sealed-typescript-native-assets-proposal.mjs';
+import {prepareSealedTypeScriptNativeAssetsProposal,prepareSealedTypeScriptNativeAssetsProposalForReviewedCI} from './sealed-typescript-native-assets-proposal.mjs';
 const sha=b=>createHash('sha256').update(b).digest('hex'),guard=(condition)=>{if(!condition)throw Error('BUILD_PRECONDITION_UNKNOWN');};
 const mark=s=>['dev','ino','mode','uid','gid','nlink','size','mtimeNs','ctimeNs'].map(k=>String(s[k])).join(':');
 const parentMark=s=>['dev','ino','mode','uid','gid'].map(k=>String(s[k])).join(':');
@@ -28,7 +28,9 @@ export function sealedTypeScriptNativeAssetsBuildOriginalInputs(build){
  const record=mintedBuilds.get(build);if(arguments.length!==1||!record||record.invalid||!sealedTypeScriptSyntheticFixtureOriginalAvailable(record.fixture))return null;
  return freeze({base:record.base,directories:[[record.base,record.baseIdentity],...record.identities].map(([file,mark])=>({file,mark,full:false})),files:record.rows.filter(row=>row.file.startsWith(record.base+'/')).map(row=>({file:row.file,mark:row.mark,digest:row.digest,limit:row.limit,lineage:row.lineage.map(row=>[...row])}))});
 }
-export function buildSealedTypeScriptNativeAssets(options){
+export function buildSealedTypeScriptNativeAssets(options){return buildFixedAssets(options,false);}
+export function buildSealedTypeScriptNativeAssetsForReviewedCI(options){if(arguments.length!==1)throw Object.assign(Error('BUILD_OPTIONS'),{code:'BUILD_OPTIONS'});return buildFixedAssets(options,true);}
+function buildFixedAssets(options,ci){
  if(!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==1||!Object.hasOwn(options,'fixture')||!Object.hasOwn(Object.getOwnPropertyDescriptor(options,'fixture'),'value'))throw Object.assign(Error('BUILD_OPTIONS'),{code:'BUILD_OPTIONS'});
  const {fixture}=options;
  const observations=[];let finished=false,mintedRecord=null,dispatchAttemptCount=0,ownerReport={schema:1,scope:'LOCAL_SYNTHETIC_ASSETS_BUILD_UNKNOWN',base:null,builds:observations,compilerCheckExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false};
@@ -36,11 +38,15 @@ export function buildSealedTypeScriptNativeAssets(options){
   const observed=verifySealedTypeScriptSyntheticFixture(fixture);guard(observed.outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED'&&observed.scope==='FIXED_CI_SYNTHETIC_FIXTURE_MECHANICS_ONLY'&&observed.receiverBasePolicyMatch===true);
   ownerReport.base=fixture.base;
   guard(process.platform==='darwin'&&process.arch==='arm64'&&process.version==='v22.13.0'&&process.getuid()>0&&process.getuid()===process.geteuid()&&process.getgid()===process.getegid());
-  const node=path.join(os.userInfo().homedir,'.nvm/versions/node/v22.13.0/bin/node');guard(process.execPath===node);
+  // CI binds the ACTUAL current canonical runtime, never a guessed toolcache
+  // path. Its exact bytes/size and endpoint identity remain private rows.
+  const node=ci?process.execPath:path.join(os.userInfo().homedir,'.nvm/versions/node/v22.13.0/bin/node');guard(process.execPath===node);
+  if(ci){guard(typeof node==='string'&&path.isAbsolute(node)&&path.normalize(node)===node&&process.execArgv.length===0&&!Object.keys(process.env).some(key=>/^(?:NODE_OPTIONS|NODE_PATH|NODE_REPL_EXTERNAL_MODULE|BASH_ENV|ENV)$|^(?:DYLD_|LD_|OPENSSL_)/i.test(key)));guard(fs.realpathSync(node)===node&&fs.lstatSync(node,{bigint:true}).size===121593488n);}
   const runtime=bounded(node,process.getuid(),128*1024*1024,'5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc');
-  const proposal=prepareSealedTypeScriptNativeAssetsProposal({fixture}),base=proposal.base,baseIdentity=ownedDirectory(base),tool=proposal.toolchain;
+  const proposal=(ci?prepareSealedTypeScriptNativeAssetsProposalForReviewedCI:prepareSealedTypeScriptNativeAssetsProposal)({fixture}),base=proposal.base,baseIdentity=ownedDirectory(base),tool=proposal.toolchain;
   const compiler=bounded(proposal.proposedBuilds[0].executable,0,128*1024*1024,tool.clangSha256);
   const linker=bounded('/Library/Developer/CommandLineTools/usr/bin/ld',0,16*1024*1024,'374d9f0713bce2c8a9e1e82bde51615d5433516a10d99b63107eb6ee70542e4c');
+  if(ci)guard(fs.lstatSync(compiler.file,{bigint:true}).size===124676976n&&fs.lstatSync(linker.file,{bigint:true}).size===2749664n);
   guard(fs.realpathSync(tool.sdk)===tool.sdk);const sdkStat=fs.lstatSync(tool.sdk,{bigint:true});guard(sdkStat.isDirectory()&&!sdkStat.isSymbolicLink()&&sdkStat.uid===0n&&(sdkStat.mode&0o22n)===0n);const sdkIdentity=parentMark(sdkStat);
   const headers=Object.entries(tool.headerPins).map(([rel,pin])=>bounded(tool.sdk+'/usr/include/'+rel,0,1024*1024,pin));
   const directories=[base+'/prefix',base+'/prefix/native-probes',base+'/runtime',base+'/runtime/node-v22.13.0-darwin-arm64',base+'/runtime/node-v22.13.0-darwin-arm64/bin'];
@@ -58,6 +64,7 @@ export function buildSealedTypeScriptNativeAssets(options){
   }
   for(const row of [runtime,compiler,linker,...headers,...sources,copied,...artifacts])current(row);guard(verifySealedTypeScriptSyntheticFixture(fixture).outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED'&&ownedDirectory(base)===baseIdentity&&identities.every(([file,before])=>ownedDirectory(file)===before));
   const report={schema:1,scope:'LOCAL_SYNTHETIC_ASSETS_BUILT_NOT_EXECUTED',base,baseIdentity,sources:sources.map(row=>({file:row.file,sha256:row.digest})),binaries:artifacts.map(row=>({file:row.file,sha256:row.digest})),nodeSha256:copied.digest,builds:observations,templateSha256:proposal.sources.map(row=>row.templateSha256),fixtureCurrent:true,compilerCheckExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false};
+  if(ci)report.fixtureProfileId='fixed-native-assets-ci-sdk26.5-toolpair-a@1';
   ownerReport=report;
   mintedRecord={fixture,base,baseIdentity,identities,sdk:tool.sdk,sdkIdentity,rows:[runtime,compiler,linker,...headers,...sources,copied,...artifacts]};
   finished=true;

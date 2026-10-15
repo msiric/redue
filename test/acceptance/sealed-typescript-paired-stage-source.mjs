@@ -4,8 +4,7 @@
 // Real control writes/restores change private fixture fingerprints: NEVER revive
 // or reinterpret old pair/source/build mints after such an operation.
 import {verifySealedTypeScriptBaseExchangePair} from './sealed-typescript-base-exchange-pair.mjs';
-import {verifySealedTypeScriptBaseExchangeAssets,sealedTypeScriptBaseExchangeAssetsMatchPair} from './sealed-typescript-base-exchange-assets.mjs';
-import {prepareSealedTypeScriptNativeAssetsProposal} from './sealed-typescript-native-assets-proposal.mjs';
+import {verifySealedTypeScriptBaseExchangeAssets,sealedTypeScriptBaseExchangeAssetsMatchPair,prepareSealedTypeScriptBaseExchangeOriginalPairAssetsProposal} from './sealed-typescript-base-exchange-assets.mjs';
 import {createHash} from 'node:crypto';
 const fail=()=>{throw Object.assign(Error('PAIRED_STAGE_SOURCE_UNAVAILABLE'),{code:'PAIRED_STAGE_SOURCE_UNAVAILABLE'});};
 const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
@@ -21,8 +20,8 @@ export function prepareSealedTypeScriptPairedStageSource(options){
 function derive(pair,assetsBuild){
  const before=observe(pair,assetsBuild),base=before.pair.baseA,hostBase=before.assets.hostBase;
  // Access to pair.fixture is after actual private brand/currentness validation.
- const original=prepareSealedTypeScriptNativeAssetsProposal({fixture:pair.fixture});
- if(original.base!==base||original.scope!=='FIXED_SYNTHETIC_NATIVE_ASSETS_PROPOSAL_ONLY'||original.sources.length!==3)fail();
+ const original=prepareSealedTypeScriptBaseExchangeOriginalPairAssetsProposal(assetsBuild,pair);
+ if(!original||original.base!==base||original.scope!=='FIXED_SYNTHETIC_NATIVE_ASSETS_PROPOSAL_ONLY'||original.sources.length!==3)fail();
  const node=hostBase+'/runtime/node-v22.13.0-darwin-arm64/bin/node',code=hostBase+'/prefix/native-probes',bindings={...original.bindings,node,checker:code+'/'+names.checker};
  const sources=original.sources.map((row,at)=>{const kind=['checker','mapper','exchange'][at];if(row.kind!==kind||row.file!==base+'/prefix/native-probes/'+({checker:'sealed-typescript-native-sentinel.mjs',mapper:'sealed-typescript-map-sentinel.c',exchange:'sealed-typescript-exchange-sentinel.c'})[kind]||sha(row.source)!==row.sha256||row.bytes!==Buffer.byteLength(row.source))fail();let source=row.source;
   if(kind==='checker'){const old='export const SEALED_SENTINEL_BINDINGS=Object.freeze('+JSON.stringify(original.bindings)+');';if(source.split(old).length!==2)fail();source=source.replace(old,'export const SEALED_SENTINEL_BINDINGS=Object.freeze('+JSON.stringify(bindings)+');');}

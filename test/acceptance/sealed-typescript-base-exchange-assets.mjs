@@ -7,10 +7,10 @@ import fs from 'node:fs';import path from 'node:path';import {createHash} from '
 import {verifySealedTypeScriptBaseExchangePair,sealedTypeScriptBaseExchangePairOriginalInputs} from './sealed-typescript-base-exchange-pair.mjs';
 import {verifySealedTypeScriptSyntheticFixture} from './sealed-typescript-synthetic-fixture.mjs';
 import {prepareSealedTypeScriptBaseExchangeSource} from './sealed-typescript-base-exchange-source.mjs';
-import {prepareSealedTypeScriptNativeAssetsProposal} from './sealed-typescript-native-assets-proposal.mjs';
+import {prepareSealedTypeScriptNativeAssetsProposal,prepareSealedTypeScriptNativeAssetsProposalForReviewedCI} from './sealed-typescript-native-assets-proposal.mjs';
 import {prepareSealedTypeScriptBaseCollectorSource,verifySealedTypeScriptBaseCollectorSource,sealedTypeScriptBaseCollectorSourceMatchesAssets} from './sealed-typescript-base-collector-source.mjs';
 import {verifySealedTypeScriptBaseCollectorCopies,sealedTypeScriptBaseCollectorCopiesMatchSource} from './sealed-typescript-base-collector-copies.mjs';
-import {buildSealedTypeScriptNativeAssets,verifySealedTypeScriptNativeAssetsBuild,observeSealedTypeScriptNativeAssetsBuild,sealedAssetsBuildCompleted,sealedAssetsBuildProcessSummary,sealedTypeScriptNativeAssetsBuildOriginalInputs} from './sealed-typescript-native-assets-build.mjs';
+import {buildSealedTypeScriptNativeAssets,buildSealedTypeScriptNativeAssetsForReviewedCI,verifySealedTypeScriptNativeAssetsBuild,observeSealedTypeScriptNativeAssetsBuild,sealedAssetsBuildCompleted,sealedAssetsBuildProcessSummary,sealedTypeScriptNativeAssetsBuildOriginalInputs} from './sealed-typescript-native-assets-build.mjs';
 import {verifySealedTypeScriptPairedStageSource,sealedTypeScriptPairedStageSourceMatchesDerivation} from './sealed-typescript-paired-stage-source.mjs';
 import {verifySealedTypeScriptFixedCampaignCopies,sealedTypeScriptFixedCampaignCopiesMatchDerivation,sealedTypeScriptFixedCampaignCopiesOriginalInputs} from './sealed-typescript-fixed-campaign-copies.mjs';
 import {prepareSealedTypeScriptFixedCampaignLauncherSource,verifySealedTypeScriptFixedCampaignLauncherSource} from './sealed-typescript-fixed-campaign-launcher-source.mjs';
@@ -31,15 +31,17 @@ function bounded(file,limit,pin=null){guard(typeof process.getuid==='function'&&
 function namedCurrent(row){guard(mark(fs.lstatSync(row.file,{bigint:true}))===row.mark&&JSON.stringify(parents(row.file))===JSON.stringify(row.lineage));}
 function current(row){const after=bounded(row.file,row.limit,row.digest);guard(after.mark===row.mark&&JSON.stringify(after.lineage)===JSON.stringify(row.lineage));}
 function rootIdentity(file){guard(fs.realpathSync(file)===file);const stat=fs.lstatSync(file,{bigint:true});guard(stat.isDirectory()&&!stat.isSymbolicLink()&&stat.uid===BigInt(process.getuid())&&(stat.mode&0o7777n)===0o700n);return{inode:stat.dev+':'+stat.ino,identity:parentMark(stat),parents:parents(file)};}
-export function buildSealedTypeScriptBaseExchangeAssets(options){
+export function buildSealedTypeScriptBaseExchangeAssets(options){return buildFixedBaseAssets(options,false);}
+export function buildSealedTypeScriptBaseExchangeAssetsForReviewedCI(options){if(arguments.length!==1)throw Object.assign(Error('BASE_EXCHANGE_ASSETS_OPTIONS'),{code:'BASE_EXCHANGE_ASSETS_OPTIONS'});return buildFixedBaseAssets(options,true);}
+function buildFixedBaseAssets(options,ci){
  if(!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==2||!['pair','hostFixture'].every(key=>Object.hasOwn(options,key)&&Object.hasOwn(Object.getOwnPropertyDescriptor(options,key),'value')))throw Object.assign(Error('BASE_EXCHANGE_ASSETS_OPTIONS'),{code:'BASE_EXCHANGE_ASSETS_OPTIONS'});
- const {pair,hostFixture}=options,builds=[];let reason='PAIR_UNAVAILABLE',report=null,mintedRecord=null,hostDispatchAttempts=0,thirdDispatchAttempts=0;
+ const {pair,hostFixture}=options,builds=[],prepareProposal=ci?prepareSealedTypeScriptNativeAssetsProposalForReviewedCI:prepareSealedTypeScriptNativeAssetsProposal;let reason='PAIR_UNAVAILABLE',report=null,mintedRecord=null,hostDispatchAttempts=0,thirdDispatchAttempts=0;
  try{const initialPair=verifySealedTypeScriptBaseExchangePair(pair);guard(initialPair.outcome==='BASE_EXCHANGE_PAIR_CURRENTLY_OBSERVED');reason='HOST_UNAVAILABLE';const host=verifySealedTypeScriptSyntheticFixture(hostFixture);guard(host.outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED'&&host.scope==='FIXED_CI_SYNTHETIC_FIXTURE_MECHANICS_ONLY');
   const base=host.base;guard(/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}$/.test(base)&&base!==initialPair.baseA&&base!==initialPair.baseB);
   const roots=[initialPair.baseA,initialPair.baseB,base].map(file=>[file,rootIdentity(file)]);guard(new Set(roots.map(([,row])=>row.inode)).size===3);
   const boundary=()=>{guard(JSON.stringify(verifySealedTypeScriptBaseExchangePair(pair))===JSON.stringify(initialPair)&&verifySealedTypeScriptSyntheticFixture(hostFixture).outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED');for(const [file,before] of roots)guard(JSON.stringify(rootIdentity(file))===JSON.stringify(before));};
-  reason='HOST_BUILD_UNAVAILABLE';boundary();hostDispatchAttempts=null;const hostBuild=buildSealedTypeScriptNativeAssets({fixture:hostFixture});guard(Number.isInteger(hostBuild.dispatchAttemptCount)&&hostBuild.dispatchAttemptCount>=0&&hostBuild.dispatchAttemptCount<=2);hostDispatchAttempts=hostBuild.dispatchAttemptCount;builds.push(...hostBuild.report.builds);guard(hostBuild.outcome==='ASSETS_BUILT_NOT_EXECUTED');
-  reason='BOUNDARY_CHANGED';boundary();guard(verifySealedTypeScriptNativeAssetsBuild(hostBuild).outcome==='ASSETS_BUILD_CURRENTLY_OBSERVED');const rendered=prepareSealedTypeScriptBaseExchangeSource(pair),proposal=prepareSealedTypeScriptNativeAssetsProposal({fixture:hostFixture});
+  reason='HOST_BUILD_UNAVAILABLE';boundary();hostDispatchAttempts=null;const hostBuild=(ci?buildSealedTypeScriptNativeAssetsForReviewedCI:buildSealedTypeScriptNativeAssets)({fixture:hostFixture});guard(Number.isInteger(hostBuild.dispatchAttemptCount)&&hostBuild.dispatchAttemptCount>=0&&hostBuild.dispatchAttemptCount<=2);hostDispatchAttempts=hostBuild.dispatchAttemptCount;builds.push(...hostBuild.report.builds);guard(hostBuild.outcome==='ASSETS_BUILT_NOT_EXECUTED');
+  reason='BOUNDARY_CHANGED';boundary();guard(verifySealedTypeScriptNativeAssetsBuild(hostBuild).outcome==='ASSETS_BUILD_CURRENTLY_OBSERVED');const rendered=prepareSealedTypeScriptBaseExchangeSource(pair),proposal=prepareProposal({fixture:hostFixture});
   const file=base+'/prefix/native-probes/sealed-typescript-base-exchange-sentinel.c',output=file.slice(0,-2);guard(rendered.sourceBytes>0&&rendered.sourceBytes<=65536&&sha(rendered.source)===rendered.sourceSha256);
   fs.writeFileSync(file,rendered.source,{flag:'wx',mode:0o600});const source=bounded(file,65536,rendered.sourceSha256);
   boundary();guard(verifySealedTypeScriptNativeAssetsBuild(hostBuild).outcome==='ASSETS_BUILD_CURRENTLY_OBSERVED');current(source);
@@ -48,7 +50,7 @@ export function buildSealedTypeScriptBaseExchangeAssets(options){
   // Later row hashing/boundaries must not hide a changed earlier new file.
   // This is an observed metadata barrier, not atomic hostile-writer protection.
   for(const row of [source,binary])namedCurrent(row);
-  mintedRecord={pair,hostFixture,hostBuild,initialPair,roots,source,binary};
+  mintedRecord={pair,hostFixture,hostBuild,prepareProposal,initialPair,roots,source,binary};
   report={base,source:{file,sha256:source.digest,mark:source.mark,lineage:source.lineage},binary:{file:output,sha256:binary.digest,mark:binary.mark,lineage:binary.lineage},templateSha256:rendered.templateSha256};
  }catch{/* Only static phase codes and actual process summaries escape. Partial H remains. */}
  const result=freeze({schema:1,scope:'OBSERVED_BASE_EXCHANGE_BUILD_DATA_ONLY',outcome:report?'BUILT_NOT_EXECUTED':'UNKNOWN',reason_code:report?'BUILT_NOT_EXECUTED':reason,report,builds,dispatchAttemptCount:hostDispatchAttempts===null?null:hostDispatchAttempts+thirdDispatchAttempts,dispatchResultCount:builds.length,observedProcessCount:builds.filter(row=>row.pidObserved===true).length,commands:[],compilerCheckExecutions:0,helperExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false});
@@ -98,6 +100,17 @@ export function observeSealedTypeScriptBaseExchangeAssets(build,inspect){
 }
 
 
+// Same fixed proposal definition selected by the ORIGINAL asset mint, bound
+// to its ORIGINAL pair only. Public labels cannot choose a compiler profile.
+// Selection is NOT asset currency: paired-source retains its independent full
+// before/after currency checks. The returned proposal says NOT_VERIFIED.
+export function prepareSealedTypeScriptBaseExchangeOriginalPairAssetsProposal(assetsBuild,pair){
+ const original=mintedAssets.get(assetsBuild);
+ if(arguments.length!==2||!original||original.invalid||original.pair!==pair)return null;
+ try{return original.prepareProposal({fixture:original.pair.fixture});
+ }catch{original.invalid=true;return null;}
+}
+
 // Fixed pre-build, read-only selection from the ORIGINAL live asset mint. This
 // exports data, not a tool-adoption capability or continuing build authority.
 // Full original native hashes precede the fixed proposal; named barriers close
@@ -111,7 +124,7 @@ export function prepareSealedTypeScriptBaseExchangeBuildToolchain(assetsBuild){
  try{let selected;
   observeSealedTypeScriptNativeAssetsBuild(original.hostBuild,nativeBarrier=>{
    baseAssetsBoundary(original);current(original.source);current(original.binary);nativeBarrier();baseAssetsNamedRows(original);
-   const proposal=prepareSealedTypeScriptNativeAssetsProposal({fixture:original.hostFixture});
+   const proposal=original.prepareProposal({fixture:original.hostFixture});
    guard(proposal.scope==='FIXED_SYNTHETIC_NATIVE_ASSETS_PROPOSAL_ONLY'&&proposal.base===original.roots[2][0]&&proposal.proposedBuilds.length===2);
    selected={base:proposal.base,proposedBuilds:proposal.proposedBuilds,toolchain:proposal.toolchain};
    baseAssetsBoundary(original);current(original.source);current(original.binary);nativeBarrier();baseAssetsNamedRows(original);
@@ -198,7 +211,7 @@ export function buildSealedTypeScriptBaseCollectorLauncher(options){
   Object.assign(candidate,{before,roots});launcherBoundary(candidate,true);
   // Retrieve fixed reviewed argv via the original private host fixture only.
   launcherDiagnostic(true,'launcher_tool_proposal_before');
-  const toolProposal=prepareSealedTypeScriptNativeAssetsProposal({fixture:original.hostFixture});
+  const toolProposal=original.prepareProposal({fixture:original.hostFixture});
   guard(toolProposal.base===h&&toolProposal.bindings.node===bindings.node);
   launcherDiagnostic(true,'launcher_tool_proposal_after');
   const operation=toolProposal.proposedBuilds[1],argv=[...operation.argv.slice(0,-3),file,'-o',output];
@@ -302,8 +315,8 @@ export function buildSealedTypeScriptPairedStageArtifacts(options){
   for(let at=0;at<3;at++){const row=sources[at];guard(row&&Object.getPrototypeOf(row)===Object.prototype&&Reflect.ownKeys(row).length===6&&['kind','file','templateSha256','source','sha256','sourceBytes'].every(key=>Object.hasOwn(Object.getOwnPropertyDescriptor(row,key)??{},'value'))&&row.kind===pairedKinds[at]&&row.file===h+'/prefix/native-probes/'+pairedNames[at]&&row.templateSha256===pairedPins[at]&&typeof row.source==='string'&&Buffer.from(row.source).toString('utf8')===row.source&&Number.isInteger(row.sourceBytes)&&row.sourceBytes>0&&row.sourceBytes<=1048576&&row.sourceBytes===Buffer.byteLength(row.source)&&sha(row.source)===row.sha256);}
   const roots=[before.assets.baseA,before.assets.baseB,h,h+'/prefix',h+'/prefix/native-probes'].map(file=>[file,rootIdentity(file)]);
   Object.assign(candidate,{before,roots,rows:[]});pairedBoundary(candidate);
-  const tool=prepareSealedTypeScriptNativeAssetsProposal({fixture:original.hostFixture});guard(tool.scope==='FIXED_SYNTHETIC_NATIVE_ASSETS_PROPOSAL_ONLY'&&tool.base===h&&tool.bindings.node===before.source.node&&tool.proposedBuilds.length===2);
-  const flags=['-std=c11','-O2','-Wall','-Wextra','-Werror','-fstack-protector-strong','-arch','arm64','-mmacosx-version-min=26.0','-isysroot','/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk'];
+  const tool=original.prepareProposal({fixture:original.hostFixture});guard(tool.scope==='FIXED_SYNTHETIC_NATIVE_ASSETS_PROPOSAL_ONLY'&&tool.base===h&&tool.bindings.node===before.source.node&&tool.proposedBuilds.length===2);
+  const flags=['-std=c11','-O2','-Wall','-Wextra','-Werror','-fstack-protector-strong','-arch','arm64','-mmacosx-version-min=26.0','-isysroot',tool.toolchain.sdk];
   for(let at=0;at<2;at++){const operation=tool.proposedBuilds[at],oldFile=h+'/prefix/native-probes/'+['sealed-typescript-map-sentinel.c','sealed-typescript-exchange-sentinel.c'][at];guard(operation.disabled===true&&operation.executable==='/Library/Developer/CommandLineTools/usr/bin/clang'&&JSON.stringify(operation.argv)===JSON.stringify([...flags,oldFile,'-o',oldFile.slice(0,-2)]));}
   pairedBoundary(candidate);for(const row of sources)absent(row.file);for(const row of sources.slice(1))absent(row.file.slice(0,-2));
   reason='SOURCE_CREATE_UNAVAILABLE';for(const source of sources){
@@ -384,7 +397,7 @@ export function buildSealedTypeScriptFixedCampaignLauncher(options){
   guard(launcherSourceProposal.scope==='DISABLED_FIXED_CAMPAIGN_LAUNCHER_SOURCE_DATA_ONLY'&&launcherSourceProposal.disabled===true&&launcherSourceProposal.version==='campaign-stdio-only-setexec@1'&&launcherSourceProposal.bindings.node===node&&launcherSourceProposal.bindings.entry===entry&&launcherSourceProposal.bindings.launcher===output&&launcherSourceProposal.templateSha256==='7bef186e33e3d4ed3c2e7588632e3d808c4fba11a9949abe7324031a719ff90c');
   const text=launcherSourceProposal.source,sourceSha256=sha(text),sourceBytes=Buffer.byteLength(text);guard(sourceSha256===launcherSourceProposal.sourceSha256&&sourceBytes===launcherSourceProposal.sourceBytes&&sourceBytes>0&&sourceBytes<=65536&&!/__REVIEWED_[A-Z_]+__/.test(text));candidate.launcherSourceProposal=launcherSourceProposal;
   const roots=[initial.assets.baseA,initial.assets.baseB,h,h+'/prefix',h+'/prefix/native-probes'].map(at=>[at,rootIdentity(at)]);Object.assign(candidate,{before,roots});campaignLauncherBoundary(candidate);
-  const tool=prepareSealedTypeScriptNativeAssetsProposal({fixture:original.hostFixture}),flags=['-std=c11','-O2','-Wall','-Wextra','-Werror','-fstack-protector-strong','-arch','arm64','-mmacosx-version-min=26.0','-isysroot','/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk'];
+  const tool=original.prepareProposal({fixture:original.hostFixture}),flags=['-std=c11','-O2','-Wall','-Wextra','-Werror','-fstack-protector-strong','-arch','arm64','-mmacosx-version-min=26.0','-isysroot',tool.toolchain.sdk];
   guard(tool.scope==='FIXED_SYNTHETIC_NATIVE_ASSETS_PROPOSAL_ONLY'&&tool.base===h&&tool.bindings.node===node&&tool.proposedBuilds.length===2);for(let at=0;at<2;at++){const op=tool.proposedBuilds[at],oldFile=h+'/prefix/native-probes/'+['sealed-typescript-map-sentinel.c','sealed-typescript-exchange-sentinel.c'][at];guard(op.disabled===true&&op.executable==='/Library/Developer/CommandLineTools/usr/bin/clang'&&JSON.stringify(op.argv)===JSON.stringify([...flags,oldFile,'-o',oldFile.slice(0,-2)]));}
   campaignLauncherBoundary(candidate);absent(file);absent(output);reason='SOURCE_CREATE_UNAVAILABLE';const lineage=parents(file);let fd,writtenMark,failed=false;
   try{sourceWriteAttempts++;fd=fs.openSync(file,fs.constants.O_WRONLY|fs.constants.O_CREAT|fs.constants.O_EXCL|fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK,0o600);fileCreateCount++;const s=fs.fstatSync(fd,{bigint:true});guard(s.isFile()&&!s.isSymbolicLink()&&s.uid===BigInt(process.getuid())&&s.nlink===1n&&(s.mode&0o7777n)===0o600n&&s.size===0n);const bytes=Buffer.from(text);let at=0;while(at<bytes.length){const n=fs.writeSync(fd,bytes,at,bytes.length-at,at);guard(Number.isInteger(n)&&n>0&&n<=bytes.length-at);at+=n;}fs.fsyncSync(fd);fileSyncCount++;const s2=fs.fstatSync(fd,{bigint:true});guard(['dev','ino','mode','uid','gid','nlink'].every(k=>s2[k]===s[k])&&s2.size===BigInt(sourceBytes));writtenMark=mark(s2);guard(mark(fs.lstatSync(file,{bigint:true}))===writtenMark&&JSON.stringify(parents(file))===JSON.stringify(lineage));}catch{failed=true;}finally{if(fd!==undefined)try{fs.closeSync(fd);}catch{failed=true;}}guard(!failed);sourceWriteCompleted=true;

@@ -31,7 +31,10 @@ function cPath(value){if(typeof value!=='string'||!path.isAbsolute(value)||path.
   return [...Buffer.from(value)].map(byte=>byte===34?'\\"':byte>=32&&byte<=126?String.fromCharCode(byte):'\\'+byte.toString(8).padStart(3,'0')).join('');}
 function current(fixture){const value=verifySealedTypeScriptSyntheticFixture(fixture);
   if(value.outcome!=='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED'||value.scope!=='FIXED_CI_SYNTHETIC_FIXTURE_MECHANICS_ONLY'||value.receiverBasePolicyMatch!==true||value.ownedHandlesClosed!==true||!/^\/private\/tmp\/redue-ci-recipient-[A-Za-z0-9]{8}$/.test(value.base))throw error('NATIVE_ASSETS_FIXTURE_UNAVAILABLE');return JSON.stringify(value);}
-export function prepareSealedTypeScriptNativeAssetsProposal(options){
+export function prepareSealedTypeScriptNativeAssetsProposal(options){return prepareFixedAssetsProposal(options,false);}
+// Fixed CI fixture recipe only. No environment selection or report adoption.
+export function prepareSealedTypeScriptNativeAssetsProposalForReviewedCI(options){if(arguments.length!==1)throw Object.assign(Error('NATIVE_ASSETS_OPTIONS'),{code:'NATIVE_ASSETS_OPTIONS'});return prepareFixedAssetsProposal(options,true);}
+function prepareFixedAssetsProposal(options,ci){
   if(!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==1||!Object.hasOwn(options,'fixture')||!Object.hasOwn(Object.getOwnPropertyDescriptor(options,'fixture'),'value'))throw error('NATIVE_ASSETS_OPTIONS');
   const {fixture}=options,before=current(fixture),base=fixture.base,code=base+'/prefix/native-probes',node=base+'/runtime/node-v22.13.0-darwin-arm64/bin/node';
   const stageParent=base+'/sealed-inputs',stage=stageParent+'/redue-materialization-Canary',workspace=base+'/Checkout 空间/.sealed-native-canaries';
@@ -43,10 +46,10 @@ export function prepareSealedTypeScriptNativeAssetsProposal(options){
   const mapper=replaceOnce(replaceOnce(readTemplate('mapper'),'__REVIEWED_WRITABLE_WORKSPACE_MAP_CANARY__',cPath(workspace+'/map-canary.txt')),'__REVIEWED_STAGED_MAP_CANARY__',cPath(stage+'/map-canary.txt'));
   const exchange=replaceOnce(readTemplate('exchange'),'__REVIEWED_EXCHANGE_BASE__',cPath(base));
   if(current(fixture)!==before)throw error('NATIVE_ASSETS_FIXTURE_UNAVAILABLE');
-  const clang='/Library/Developer/CommandLineTools/usr/bin/clang',sdk='/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk',flags=['-std=c11','-O2','-Wall','-Wextra','-Werror','-fstack-protector-strong','-arch','arm64','-mmacosx-version-min=26.0'];
+  const clang='/Library/Developer/CommandLineTools/usr/bin/clang',sdk=ci?'/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk':'/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk',flags=['-std=c11','-O2','-Wall','-Wextra','-Werror','-fstack-protector-strong','-arch','arm64','-mmacosx-version-min=26.0'];
   const sources=Object.entries({checker,mapper,exchange}).map(([kind,source])=>({kind,file:code+'/'+names[kind],templateSha256:pins[kind],source,sha256:sha(source),bytes:Buffer.byteLength(source)}));
   return freeze({schema:1,scope:'FIXED_SYNTHETIC_NATIVE_ASSETS_PROPOSAL_ONLY',disabled:true,base,bindings,sources,
     proposedBuilds:['mapper','exchange'].map(kind=>({disabled:true,executable:clang,argv:[...flags,'-isysroot',sdk,code+'/'+names[kind],'-o',code+'/'+names[kind].slice(0,-2)]})),
-    toolchain:{clangVersion:'21.0.0',clangSha256:'1590ac950a3d627817d09ade5cb60b2115f17a72182a3141e010b4bcc482a0c9',sdk,headerPins:{'sys/stdio.h':'a8078ae1cba1a46a66d0de6fe7f13bbc969cdb7e78fc2d4b9a5c5cdaaf16126b','sys/fcntl.h':'9aca8ca87031ab7b670617e5af8b15a0cad8f34f7ab3bdb5dd799eb153b3ad0e','fcntl.h':'289f3be20c07d8eae5589f43994cfdb5fb33b3b099a6aee67f63e00d90039a8f','sys/mman.h':'07adbf7f11a601e6461ca508a2deca037103008600608f8dbe93a4b0887d46e9','sys/stat.h':'1546ce7485287bec0d15a643ef5d5f882d21272f2f089fed71c36457e609b92a'},currentness:'NOT_VERIFIED',completeSdkClosure:'NOT_ESTABLISHED'},
+    toolchain:{clangVersion:'21.0.0',clangSha256:'1590ac950a3d627817d09ade5cb60b2115f17a72182a3141e010b4bcc482a0c9',sdk,...(ci?{fixtureProfileId:'fixed-native-assets-ci-sdk26.5-toolpair-a@1'}:{}),headerPins:{'sys/stdio.h':'a8078ae1cba1a46a66d0de6fe7f13bbc969cdb7e78fc2d4b9a5c5cdaaf16126b','sys/fcntl.h':ci?'805fd8c695f8e5e1c327b6852382cc5533738bbfd8f18bc11f850531166e4fe8':'9aca8ca87031ab7b670617e5af8b15a0cad8f34f7ab3bdb5dd799eb153b3ad0e','fcntl.h':'289f3be20c07d8eae5589f43994cfdb5fb33b3b099a6aee67f63e00d90039a8f','sys/mman.h':'07adbf7f11a601e6461ca508a2deca037103008600608f8dbe93a4b0887d46e9','sys/stat.h':ci?'31c8f252b05785343ca577c007657c0fbab45a182b60fc5b73994c621dc318d4':'1546ce7485287bec0d15a643ef5d5f882d21272f2f089fed71c36457e609b92a'},currentness:'NOT_VERIFIED',completeSdkClosure:'NOT_ESTABLISHED'},
     ordering:'SEPARATE_FRESH_FIXTURE_PER_ROUTE_REQUIRES_REVIEW',commands:[],nativeLaunches:0,nativeEnforcement:'NOT_ESTABLISHED',noInheritedWritableHandlesVerified:false,sealed:false,reuseEligible:false});
 }

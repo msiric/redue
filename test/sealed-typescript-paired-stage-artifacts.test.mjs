@@ -43,7 +43,7 @@ function mock(fault=null){
  const sourceObservation=()=>({scope:'DISABLED_PAIRED_STAGE_ASSERTION_SOURCES_DATA_ONLY',outcome:'PAIRED_STAGE_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED',baseA:a,baseB:b,hostBase:h,node:bindings.node,bindings});
  const originalFiles=['sealed-typescript-map-sentinel.c','sealed-typescript-exchange-sentinel.c'];
  const flags=['-std=c11','-O2','-Wall','-Wextra','-Werror','-fstack-protector-strong','-arch','arm64','-mmacosx-version-min=26.0','-isysroot','/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk'];
- const tool={scope:'FIXED_SYNTHETIC_NATIVE_ASSETS_PROPOSAL_ONLY',base:h,bindings:{node:bindings.node},proposedBuilds:originalFiles.map(name=>({disabled:true,executable:'/Library/Developer/CommandLineTools/usr/bin/clang',argv:[...flags,code+'/'+name,'-o',(code+'/'+name).slice(0,-2)]}))};
+ const tool={scope:'FIXED_SYNTHETIC_NATIVE_ASSETS_PROPOSAL_ONLY',base:h,toolchain:{sdk:'/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk'},bindings:{node:bindings.node},proposedBuilds:originalFiles.map(name=>({disabled:true,executable:'/Library/Developer/CommandLineTools/usr/bin/clang',argv:[...flags,code+'/'+name,'-o',(code+'/'+name).slice(0,-2)]}))};
  if(fault==='wrong-compiler')tool.proposedBuilds[0].executable='/OTHER';if(fault==='extra-argv')tool.proposedBuilds[0].argv.unshift('UNREVIEWED');if(fault==='wrong-sdk')tool.proposedBuilds[0].argv[10]='/OTHER_SDK';if(fault==='wrong-node')tool.bindings.node='/OTHER_NODE';
  const spawn=(executable,argv,options)=>{state.calls.push({executable,argv,options});const at=state.calls.length-1;
   assert.equal(executable,'/Library/Developer/CommandLineTools/usr/bin/clang');assert.deepEqual(argv,[...flags,code+'/'+names[at+1],'-o',(code+'/'+names[at+1]).slice(0,-2)]);
@@ -61,6 +61,7 @@ function mock(fault=null){
   value=>{state.sourceChecks++;if(state.late==='new-file-after-final-source'&&(state.binaryReads.get(code+'/'+names[2].slice(0,-2))||0)>=3)nodes.get(code+'/'+names[0]).ino++;return value===proposal&&state.valid.source?sourceObservation():{outcome:'UNKNOWN'};},
   (value,p,assets)=>value===proposal&&p===pair&&assets===assetsBuild,
   options=>{state.toolCalls++;assert.equal(options.fixture,hostFixture);if(fault==='runtime-during-tool-proposal'||fault==='sdk-during-tool-proposal')state.valid.assets=false;return tool;},sealedAssetsBuildCompleted,sealedAssetsBuildProcessSummary);
+ mint.get(assetsBuild).prepareProposal=options=>{state.toolCalls++;assert.equal(options.fixture,hostFixture);if(fault==='runtime-during-tool-proposal'||fault==='sdk-during-tool-proposal')state.valid.assets=false;return tool;};
  return{...api,options:{assetsBuild,source:proposal},pair,proposal,assetsBuild,mint,nodes,handles,state,a,b,h,code,names};
 }
 const falseAuthority=value=>{assert.deepEqual(value.commands,[]);for(const name of ['recordAdoptionAuthority','noInheritedWritableHandlesVerified','sealed','reuseEligible'])assert.equal(value[name],false);for(const name of ['compilerCheckExecutions','helperExecutions','nativeAgentLaunches','models'])assert.equal(value[name],0);assert.equal(value.nativeEnforcement,'NOT_ESTABLISHED');};

@@ -74,6 +74,7 @@ function mock(fault=null,diagnostics={enabled:false}){
  value=>value===copies?checked('copies',copyObservation):{outcome:'UNKNOWN'},(value,parent)=>value===copies&&parent===proposal,
  {getuid:()=>501},controlledMint,value=>value===assets?checked('assets',assetObservation):{outcome:'UNKNOWN'},diagnostics.enabled,
  diagnostics.unavailable?undefined:(phase,fields)=>{state.markAttempts.push(phase);if(diagnostics.throws)throw Error('SYNTHETIC_MARK_FAILURE');state.marks.push({phase,...fields});});
+ controlledMint.get(assets).prepareProposal=options=>{state.toolCalls++;assert.equal(options.fixture,hostFixture);return{base:h,bindings:{node:bindings.node},proposedBuilds:[{},{executable:'/reviewed/clang',argv:['FIXED','-isysroot','/reviewed/SDK','old.c','-o','old']}]};};
  return{...api,options:{assets,source:proposal,copies},sourceBrands,state,nodes,file,output,h,a,b,handles};
 }
 const falseAuthority=value=>{assert.deepEqual(value.commands,[]);for(const key of ['compilerCheckExecutions','helperExecutions','nativeAgentLaunches','models'])assert.equal(value[key],0);
