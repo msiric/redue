@@ -9,6 +9,31 @@ verify HEAD/status first. The planning baseline is history, never a rollback tar
 
 ## Current checkpoint — exec result collected; descriptor metadata UNKNOWN
 
+Latest trusted preparation at `6f5bb90` reached BODY_DEADLINE at30,005.345ms.
+Its31 validated progress frames retain six actual Clang exit0 results and
+`enclosureSource` BEGIN without END/FINAL. No inner-refusal label or final
+source outcome was collected; no enclosure/helper/native/model/check ran.
+Owned SIGKILL/reap and post-reap group absence were observed. This remains
+UNKNOWN, not a failure of the compiler check or a successful preparation.
+Report16,782B SHA256
+`2ded5ab1326208883f0bca2527d2922d132c43074947a07c07de764972a49349`.
+No unchanged retry or deadline increase is queued. DIR245/246 review whether
+existing synchronous guarded observation can remove repeated preparation
+validation while retaining original boundary checks; no new cache authority.
+
+DIR236/243's11 fixed inner attribution labels and DIR239/242's strict bridge
+are independently accepted and integrated at `02025af`/`6f5bb90`. The affected
+14-file source/mock checks have901 PASS/2 explicit actual-child SKIP/0 FAIL
+(two separate invocations, not an end-to-end timing). TAPs SHA256
+`6f79584dbb6fabe4d2dbcc247d40248c29e28e938c54daf7924ad0773f284cfc` and
+`d7599ca5417d2799082893f8ab68841c506ba5cc4cd971d6882a16a7716ab921`.
+A passive local sample observed only `/dev/null` mtime/ctime drift; a separate
+one-source three-second sample remained current. Neither establishes the
+historical refusal cause; no device-identity guard was changed.
+
+Previous actual attempt retained below: its completed FINAL establishes a
+specific refusing stage and a distinct normal-exit lifecycle result.
+
 Latest trusted local preparation remains UNKNOWN at a now identified guard:
 `FINAL_ORIGINAL_CURRENT` inside `enclosureSource`. At integration `d685db1`,
 six actual Clang builds completed with exit0; no new enclosure build, compiled
@@ -37,7 +62,7 @@ no unrelated kernel watcher was established. Explicit stubs now protect test pur
 
 Static source refusal stages preserve guard order and original outputs (DIR232).
 The final bridge reports fixed labels only, without inner error text or secrets.
-DIR237 independently reviews actual lifecycle/result scope. No owner action is
+DIR237 independently accepts the limited actual lifecycle/result scope. No owner action is
 needed for this diagnosis, and no native retry or timeout increase is queued.
 
 Reviewed endpoint interface `4d7a5ce` is integrated at `6f3ea09` (DIR221).
