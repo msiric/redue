@@ -59,9 +59,26 @@ The old stdio/witness implementation is unchanged. BEFORE retains full enclosure
 validation; AFTER checks startup identity/control rows only, not fresh currency
 of every original. The separate code endpoint retains dependency-invalidation
 gates. Manifest/settings/account/original-budget and effective native boundaries
-remain mandatory. Local SDK27 is not a CI profile. Fixed original-byte collection
-(DIR287) and same-process controller composition (DIR288) are active source tasks;
-no actual native/model launch is implied or queued by these source checks.
+remain mandatory. Local SDK27 is not a CI profile.
+
+DIR293 accepts repaired original-byte collection `4bb80b7`, integrated at
+`7e5be9a`:649 combined source/mock checks PASS/1 explicit SKIP/0 FAIL; TAP SHA256
+`1864398df7f1f14f28c55dba5dbe242d974be4f4bdf771ea86dbfbecafd17e08`.
+The rejected predecessor `1b97aaf` mishandled malformed stderr. DIR291 retains
+six failing source/mock replay cases and the repair; reviewer observations are
+explicitly recorded separately from raw output (none saved). Both validity flags
+now refuse malformed transport, while only strict matched adverse FAIL survives.
+Original bytes remain private/bounded; import time spends the original clock;
+consumption deletes before awaiting and cannot adopt public records.
+
+DIR289's pinned-binary inspection confirms Bash is detached even when native
+inherits the Node group. Async native tree cancellation is not a proven whole-job
+lifetime enclosure. Source also shows the finite C worker calls setsid before
+arming its watchdog. DIR292 reviews a narrow pre-escape correction and the exact
+required supervision boundary before implementation or native launch. Neither
+new native enforcement nor cross-machine reuse is established by these checks;
+no actual native/model trial is queued. Existing completed diagnostics retain
+their original limited scope. No whole-job safety or timing claim is inferred.
 
 The reviewed public-header workflow `3f07b38`, pinned runtime `3edffa5`, still
 awaits the one requested owner UI dispatch (CLI403 is not retried). No new run
