@@ -339,8 +339,58 @@ test('non-string shapes add no error-format fields, and earlier primary refusal/
  const f=rawShapeEvents();f[2].tool_use_result='Error: Exit code 7';f[1].message.content[0].input.command='PRIVATE_COMMAND';const r=witnessObserve(f);assert.equal(r.reason,'NATIVE_TOOL_SCOPE');assert.equal(Object.hasOwn(r,'foregroundShape'),false);
  for(const r of [observe(),witnessObserve()]){assert.equal(r.outcome,'OBSERVED_COMPATIBLE');assert.equal(Object.hasOwn(r,'foregroundShape'),false);}
 });
-test('excluding two new string-format diagnostics preserves the prior fixed shape summary exactly',()=>{
- for(const [raw]of formatCases){const e=rawShapeEvents();e[2].tool_use_result=raw;const v=witnessObserve(e),{errorFormat,formatDerivedExitCode,...priorShape}=v.foregroundShape;
+test('excluding string-only diagnostics preserves the original fixed shape summary exactly',()=>{
+ for(const [raw]of formatCases){const e=rawShapeEvents();e[2].tool_use_result=raw;const v=witnessObserve(e),{errorFormat,formatDerivedExitCode,errorMarkers,...priorShape}=v.foregroundShape;
   assert.deepEqual(priorShape,{rawOwnPropertyPresent:true,rawContainerKind:'string',knownFieldPresence:Object.fromEntries(fixedRawShapeFields.map(key=>[key,false])),unknownKeysPresent:false,itemIsErrorState:'FALSE'});
+ }
+});
+
+// Fixed public-token diagnostic mocks only. Markers do not establish output
+// origin, execution, actual exit, native enforcement, permissions or a cause.
+const fixedErrorMarkers=[
+ ['sandboxExec','sandbox-exec:'],['sandboxApply','sandbox_apply:'],['operationNotPermitted','Operation not permitted'],['permissionDenied','Permission denied'],
+ ['noSuchFile','No such file or directory'],['commandNotFound','command not found'],['badInterpreter','bad interpreter'],['cannotExecute','cannot execute'],
+ ['cannotOpen','cannot open'],['unboundVariable','unbound variable'],['syntaxError','syntax error'],['readOnlyFilesystem','Read-only file system'],
+ ['dyld','dyld['],['libraryNotLoaded','Library not loaded'],['bashPath','/bin/bash'],['helperLeaf','/native-stdio-probe'],['nativeTmpPrefix','/tmp/claude-'],
+ ['cwdLeaf','/cwd-'],['snapshotDirectory','/shell-snapshots/'],['pathHelper','/usr/libexec/path_helper'],['profile','/etc/profile'],
+ ['privateProfile','/private/etc/profile'],['devNull','/dev/null'],['helperMetadataScope','"scope":"NATIVE_CHILD_STARTUP_WITNESS_ONLY"']
+];
+const errorMarkerSnapshot=(raw,witness=true)=>{const e=events(witness?witnessMetadata():metadata());e[2].tool_use_result=raw;return witness?witnessObserve(e):observe(e);};
+const expectedErrorMarkers=raw=>Object.fromEntries(fixedErrorMarkers.map(([name,token])=>[name,raw.includes(token)]));
+for(const [name,token]of fixedErrorMarkers)test('fixed error marker '+name+' matches literal case-sensitive substrings only',()=>{
+ for(const witness of [false,true])for(const raw of [token,'PRIVATE_PREFIX'+token+'PRIVATE_SUFFIX',token.toUpperCase(),token.toLowerCase(),token.split('').join(' '),token.slice(0,1)+'\u001b[0m'+token.slice(1),token.slice(0,1)+'\r\n'+token.slice(1)]){
+  const v=errorMarkerSnapshot(raw,witness),markers=v.foregroundShape.errorMarkers;
+  assert.deepEqual(markers,expectedErrorMarkers(raw));assert.deepEqual(Object.keys(markers),fixedErrorMarkers.map(([key])=>key));assert(Object.values(markers).every(value=>typeof value==='boolean'));assert(Object.isFrozen(markers));
+  assert.equal(v.reason,'FOREGROUND_RAW_OR_RENDERED_RESULT_UNAVAILABLE');assert.equal(v.foregroundRefusalClass,'RAW_SHAPE_INVALID');assert.equal(v.outcome,'UNKNOWN');assert.equal(v.nativeEnforcement,'NOT_ESTABLISHED');assert.equal(v.reuseEligible,false);assert.equal(Object.hasOwn(v,'metadata'),false);assert.equal(Object.hasOwn(v,'helperProcessOutcome'),false);assert.equal(JSON.stringify(v).includes('PRIVATE_'),false);
+ }
+});
+test('marker snapshot has a fixed boolean shape for empty/no-match/multiple tokens and never retains synthetic secrets or unknown paths',()=>{
+ for(const raw of ['', 'PRIVATE_SYNTHETIC_SECRET_7820 /unknown/private-7820/token-value',fixedErrorMarkers.map(([,token])=>token).join('\n')+' PRIVATE_SYNTHETIC_SECRET_7820 /unknown/private-7820/token-value']){
+  const v=errorMarkerSnapshot(raw),serialized=JSON.stringify(v);assert.deepEqual(v.foregroundShape.errorMarkers,expectedErrorMarkers(raw));assert.equal(serialized.includes('7820'),false);assert.equal(serialized.includes('/unknown/'),false);assert.equal(serialized.includes('token-value'),false);assert.equal(serialized.includes('PRIVATE_'),false);assert.equal(JSON.stringify(v.foregroundShape.errorMarkers).includes('NATIVE_CHILD_STARTUP_WITNESS_ONLY'),false);
+ }
+ assert(Object.values(errorMarkerSnapshot('').foregroundShape.errorMarkers).every(value=>value===false));
+ assert(Object.values(errorMarkerSnapshot(fixedErrorMarkers.map(([,token])=>token).join('\n')).foregroundShape.errorMarkers).every(value=>value===true));
+});
+test('no error markers for non-string shapes, successful traces or earlier primary refusal; first snapshot remains authoritative',()=>{
+ for(const raw of [null,true,123,[],{}]){const v=errorMarkerSnapshot(raw);assert.equal(Object.hasOwn(v.foregroundShape,'errorMarkers'),false);}
+ const absent=rawShapeEvents();delete absent[2].tool_use_result;assert.equal(Object.hasOwn(witnessObserve(absent).foregroundShape,'errorMarkers'),false);
+ for(const v of [observe(),witnessObserve()])assert.equal(Object.hasOwn(v,'foregroundShape'),false);
+ const early=rawShapeEvents();early[1].message.content[0].input.command='PRIVATE_COMMAND';assert.equal(Object.hasOwn(witnessObserve(early),'foregroundShape'),false);
+ const e=rawShapeEvents();e[2].tool_use_result='Permission denied';const later=clone(e[2]);later.tool_use_result='sandbox-exec:';e.splice(3,0,later);const v=witnessObserve(e);assert.deepEqual(v.foregroundShape.errorMarkers,expectedErrorMarkers('Permission denied'));
+ const f=events(witnessMetadata());f[2].tool_use_result.stderr='PRIVATE_WARNING';const second=clone(f[2]);second.tool_use_result='sandbox-exec:';f.splice(3,0,second);assert.equal(Object.hasOwn(witnessObserve(f),'foregroundShape'),false);
+});
+test('forged exit-format and helper marker remain unknown without helper/process metadata or authority',()=>{
+ const raw='Error: Exit code 1\n/native-stdio-probe '+JSON.stringify(witnessMetadata());
+ for(const witness of [false,true]){const v=errorMarkerSnapshot(raw,witness);assert.equal(v.foregroundShape.errorFormat,'SHELL_EXIT_FIRST_LINE_FORMAT');assert.equal(v.foregroundShape.formatDerivedExitCode,1);assert.equal(v.foregroundShape.errorMarkers.helperLeaf,true);assert.equal(v.foregroundShape.errorMarkers.helperMetadataScope,true);assert.equal(v.outcome,'UNKNOWN');for(const key of ['metadata','helperProcessOutcome','helperExitCode','nativeExit'])assert.equal(Object.hasOwn(v,key),false);assert.equal(v.helperKernelClose,'NOT_OBSERVED');assert.equal(v.nativeEnforcement,'NOT_ESTABLISHED');assert.equal(v.sealed,false);assert.equal(v.reuseEligible,false);}
+});
+test('removing only errorMarkers preserves baseline foreground semantics and every prior diagnostic',()=>{
+ const expression=',errorMarkers:foregroundErrorMarkers(raw)';assert.equal(foregroundSource.split(expression).length,2);
+ const baseline=Function('exact','parseNativeStartupWitness','parseNativeStdioMetadata','Buffer',foregroundSource.replace(expression,'')+';return foregroundResult;')(exactForeground,parseNativeStartupWitness,parseNativeStdioMetadata,Buffer);
+ for(const witness of [false,true])for(const mutate of [()=>{},...foregroundRefusalCases.map(([,change])=>change),...formatCases.map(([raw])=>e=>e[2].tool_use_result=raw),...fixedErrorMarkers.map(([,raw])=>e=>e[2].tool_use_result=raw)]){
+  const e=events(witness?witnessMetadata():metadata());mutate(e);let before=null,after=null;
+  const resultBefore=baseline(e[2],e[2].message.content[0],witness,(classification,summary)=>before={classification,summary});
+  const resultAfter=newForeground(witness?parseNativeStartupWitness:parseNativeStdioMetadata)(e[2],e[2].message.content[0],witness,(classification,summary)=>after={classification,summary});
+  if(after?.summary&&Object.hasOwn(after.summary,'errorMarkers')){const {errorMarkers,...prior}=after.summary;after={...after,summary:prior};}
+  assert.deepEqual(resultAfter,resultBefore);assert.deepEqual(after,before);
  }
 });

@@ -45,7 +45,7 @@ function foregroundShapeSummary(event,item,raw){
  return {rawOwnPropertyPresent:present,rawContainerKind:kind,knownFieldPresence:Object.fromEntries(known.map(key=>[key,object&&Object.hasOwn(raw,key)])),
   unknownKeysPresent:object&&Object.keys(raw).some(key=>!known.includes(key)),
   itemIsErrorState:!descriptor?'MISSING':!Object.hasOwn(descriptor,'value')?'UNSUPPORTED':descriptor.value===false?'FALSE':descriptor.value===true?'TRUE':'UNSUPPORTED',
-  ...(kind==='string'?foregroundErrorFormat(raw):{})};
+  ...(kind==='string'?{...foregroundErrorFormat(raw),errorMarkers:foregroundErrorMarkers(raw)}:{})};
 }
 // Finite string-format diagnostics only, not native error identity, cause,
 // sandbox enforcement or process-observed exit. Never retain any body/prefix.
@@ -57,6 +57,21 @@ function foregroundErrorFormat(raw){
  else {const matched=/^Error: Exit code (0|[1-9][0-9]{0,2})(?:\n|$)/.exec(raw);
   if(matched&&Number(matched[1])<=255){errorFormat='SHELL_EXIT_FIRST_LINE_FORMAT';formatDerivedExitCode=Number(matched[1]);}}
  return {errorFormat,formatDerivedExitCode};
+}
+// Fixed public-token presence only. No normalization or retained body, value,
+// path, length, hash or dynamic name. Text may mimic every marker: these flags
+// prove no output origin, helper execution, actual exit, permission or cause.
+function foregroundErrorMarkers(raw){
+ return {sandboxExec:raw.includes('sandbox-exec:'),sandboxApply:raw.includes('sandbox_apply:'),
+  operationNotPermitted:raw.includes('Operation not permitted'),permissionDenied:raw.includes('Permission denied'),
+  noSuchFile:raw.includes('No such file or directory'),commandNotFound:raw.includes('command not found'),
+  badInterpreter:raw.includes('bad interpreter'),cannotExecute:raw.includes('cannot execute'),cannotOpen:raw.includes('cannot open'),
+  unboundVariable:raw.includes('unbound variable'),syntaxError:raw.includes('syntax error'),readOnlyFilesystem:raw.includes('Read-only file system'),
+  dyld:raw.includes('dyld['),libraryNotLoaded:raw.includes('Library not loaded'),bashPath:raw.includes('/bin/bash'),
+  helperLeaf:raw.includes('/native-stdio-probe'),nativeTmpPrefix:raw.includes('/tmp/claude-'),cwdLeaf:raw.includes('/cwd-'),
+  snapshotDirectory:raw.includes('/shell-snapshots/'),pathHelper:raw.includes('/usr/libexec/path_helper'),
+  profile:raw.includes('/etc/profile'),privateProfile:raw.includes('/private/etc/profile'),devNull:raw.includes('/dev/null'),
+  helperMetadataScope:raw.includes('"scope":"NATIVE_CHILD_STARTUP_WITNESS_ONLY"')};
 }
 // Native headless nonallow history is not a final-denial or execution proof.
 // Inspect only after primary raw-shape refusal, never to satisfy final/metadata.
