@@ -28,6 +28,15 @@ remain distinct; no actual C/checker/native executes. Original new-code build
 bindings are the next source task. Actual H read admission, actor/session closure, native enforcement,
 compiler sealing and portable reuse remain unestablished. No new attempt is queued.
 
+Original post-build binding is now reviewed data-only source (`8ca19fc`), with no
+actual build observation yet. The original enclosure@1 transport was found
+incompatible with Claude's normal result path before use; reviewed source@2/RDE2
+(`84b80aa`) fixes collection delivery without changing assertion or evidence
+semantics. Root587 shared source/mock checks and exact local C syntax-only pass.
+An outer collection exit0 cannot establish checker PASS, sealing or reuse. Native
+result acceptance and all actual barriers remain NOT RUN; the next fixed local
+preparation observation cannot transfer private capabilities through its report.
+
 Actual exec-witness run38748867165 at runtime `c9110d8` returned accepted structured
 helper metadata and source-derived command exit0; all ten startup booleans were true.
 Independent DIR173 retains UNKNOWN / DESCRIPTOR_METADATA_UNAVAILABLE: `/dev/null`

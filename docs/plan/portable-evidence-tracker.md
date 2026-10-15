@@ -26,7 +26,26 @@ does not invent END. Review's misleading publication label was corrected;
 initial test failures remain preserved. Source remains disabled, without native
 execution authority. Local SDK27 C syntax-only passes on the original template;
 final C noncomment bytes are identical. No C object/checker/native/model ran.
-DIR200 now binds original generated-file/build identities before any native use.
+DIR200/204's original generated-file builder is integrated at `8ca19fc`, accepted
+for trusted PRE_NATIVE endpoint data only. Its verifier is unsuitable after
+intentional actor mutations because original whole-pair guards remain strict.
+DIR201/203 reuses original compiler/linker/tool guards without a caller-selected
+tool profile. No actual enclosure build has run. DIR205 prepares the single
+bounded, no-native preparation observation; private capabilities cannot survive
+that process or be adopted from its saved report.
+
+DIR206 found a source-level transport incompatibility before native admission:
+normal outer exit74 enters pinned Claude's error-string path, which strict result
+validation must reject. This does not explain earlier UNKNOWNs. DIR207/208's
+separately versioned source@2/RDE2 correction is integrated at `84b80aa`: outer0
+requires complete timely collection/publication, never assertion PASS. Body
+UNKNOWN/FAIL, inner collector/actor outcomes and all cleanup guards are unchanged.
+No error-string acceptance was added. Reviewer94 focused source/mock tests pass;
+root587 shared source/mock tests pass,1,147.876ms, TAP SHA256
+`ba61a46f590b21916cab01011286d8e15e9e2d41110ff79559896bf568eca842`.
+Exact final C template passes local SDK27 syntax-only,83.382ms/no output/object.
+Actual native result-envelope acceptance, code-write barrier, loader/SDK closure,
+enforcement, origin and recipient reuse remain unestablished.
 No new attempt, producer authority, seal, reusable evidence or owner action is implied.
 DIR195/196 separately reviews the private five-argument derivation predicate:
 author `9a73811`, integration `aaac7ce`, root/reviewer93 focused source/mock tests

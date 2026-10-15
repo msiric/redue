@@ -27,6 +27,18 @@ reviewer93 focused tests passing; it grants no currency. Inspect/review the exac
 remaining revision before integration. No new native attempt is queued and no owner action
 is needed for this source work. Exact private task paths are in the local resume.
 
+Latest source: builder `f5d9954` is DIR204 accepted and integrated `8ca19fc`;
+original tooling interface `68ccd2c` is DIR203 accepted/integrated `04912be`.
+These remain PRE_NATIVE data, not executable evidence or a post-actor verifier.
+DIR206 then found outer74 incompatible with pinned native normal structured
+results. Reviewed DIR207/208 repair `6fcb3d4`, integration `84b80aa`, is source@2 /
+RDE2: collection transport0 never means assertion PASS; incomplete74 stays refused.
+Existing body/actor outcomes and strict error-string refusal remain. Root587
+source/mock controls and local SDK27 C syntax-only pass; no native/model ran.
+DIR205 is the sole active source writer for the three fixed preparation-observation
+files. Inspect/fresh-review its exact deadline/collection implementation before
+one actual trusted local build; never adopt private authority from saved JSON.
+
 Actual run38748867165 completed on exact reviewed workflow `abdb206` / runtime
 `c9110d8`; owner normal environment UI review was required and performed. Actual
 prerequisites and347 controls passed; one bounded native diagnostic returned
