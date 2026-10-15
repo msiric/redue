@@ -9,6 +9,7 @@ const version='fixed-canary-finite-enclosure-source@2',projectionVersion='fixed-
 const cPin='3e4a891d7e228b754b05544a98b03b7086c5702acfd0e7110666cc66611fcc03',collectorPin='a15fee9374767e14483575264bcfa85732d90eab503c8a1f2b770c5156395878';
 const collectFunctionPin='0734891f42bc3efbd04a4194a29fd196946f421b23b08b8b907d036208bfbf42';
 export const SEALED_TYPESCRIPT_ENCLOSURE_SOURCE_REFUSAL_STAGES=Object.freeze(['OPTIONS','ORIGINAL_DERIVATION','PREPARED_NULL_CURRENT','INITIAL_ORIGINAL_CURRENT','PROJECTION_INTERPRETATION','CAMPAIGN_RENDER','DERIVED_BINDINGS','COLLECTOR_FUNCTION_PIN','C_TEMPLATE_READ','COLLECTOR_TEMPLATE_READ','LAUNCHER_REBIND','ENCLOSURE_REBIND','FINAL_ORIGINAL_CURRENT','SOURCE_RESULT']);
+export const SEALED_TYPESCRIPT_ENCLOSURE_ORIGINAL_CURRENT_REFUSALS=Object.freeze(['DERIVATION','PROJECTION_CURRENT','PREPARED_NULL_CURRENT','PROJECTION_RESULT','PREPARED_NULL_RESULT','C_SOURCE_READ','C_SOURCE_IDENTITY','COLLECTOR_SOURCE_READ','COLLECTOR_SOURCE_IDENTITY','C_SOURCE_NAMED','COLLECTOR_SOURCE_NAMED']);
 const keys=['assetsBuild','pairedSource','pairedArtifacts','copies','projection','preparedNullSource'];
 const minted=new WeakMap(),sha=value=>createHash('sha256').update(value).digest('hex');
 const guard=value=>{if(!value)throw Error('ENCLOSURE_SOURCE_UNAVAILABLE');};
@@ -18,11 +19,25 @@ const directoryMark=s=>['dev','ino','mode','uid','gid'].map(k=>String(s[k])).joi
 function parents(file){const rows=[];for(let at=path.dirname(file);;at=path.dirname(at)){const s=fs.lstatSync(at,{bigint:true});guard(s.isDirectory()&&!s.isSymbolicLink());rows.push([at,directoryMark(s)]);if(at===path.dirname(at))return rows;}}
 function named(row){guard(mark(fs.lstatSync(row.file,{bigint:true}))===row.mark&&JSON.stringify(parents(row.file))===JSON.stringify(row.lineage));}
 function readSource(name,pin){const file=fileURLToPath(new URL(name,import.meta.url));let fd,row,failed=false;try{const s=fs.lstatSync(file,{bigint:true}),lineage=parents(file);guard(typeof process.getuid==='function'&&process.getuid()>0&&fs.realpathSync(file)===file&&s.isFile()&&!s.isSymbolicLink()&&s.uid===BigInt(process.getuid())&&s.nlink===1n&&(s.mode&0o6022n)===0n&&s.size>0n&&s.size<=262144n&&fs.constants.O_NOFOLLOW!==undefined&&fs.constants.O_NONBLOCK!==undefined);fd=fs.openSync(file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK);guard(mark(fs.fstatSync(fd,{bigint:true}))===mark(s));const bytes=Buffer.alloc(Number(s.size)+1);let at=0;while(at<bytes.length){const n=fs.readSync(fd,bytes,at,bytes.length-at,at);if(n===0)break;guard(Number.isInteger(n)&&n>0&&n<=bytes.length-at);at+=n;}const body=bytes.subarray(0,at),source=body.toString('utf8');guard(at===Number(s.size)&&Buffer.from(source).equals(body)&&sha(body)===pin&&mark(fs.fstatSync(fd,{bigint:true}))===mark(s));row={file,mark:mark(s),lineage,source,pin};named(row);}catch{failed=true;}finally{if(fd!==undefined)try{fs.closeSync(fd);}catch{failed=true;}}guard(!failed);return row;}
-function current(record){const i=record.inputs;guard(sealedTypeScriptFixedCanaryProtectedInputProjectionMatchesDerivation(i.projection,i.assetsBuild,i.pairedSource,i.pairedArtifacts,i.copies));const p=verifySealedTypeScriptFixedCanaryProtectedInputProjection(i.projection),n=verifySealedTypeScriptFixedCampaignPreparedNullSource(i.preparedNullSource);guard(p.outcome==='FIXED_CANARY_ORIGINAL_INPUT_GUARDS_OBSERVED'&&p.version===projectionVersion&&p.sourceSha256===record.projectionSourceSha256&&n.outcome==='CAMPAIGN_PREPARED_NULL_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED'&&n.version==='campaign-prepared-devnull-setexec@2'&&n.sourceSha256===record.preparedSourceSha256);for(const row of record.rows){const next=readSource(path.basename(row.file),row.pin);guard(next.mark===row.mark&&JSON.stringify(next.lineage)===JSON.stringify(row.lineage));}for(const row of record.rows)named(row);}
+function current(record,note=null){
+ // The optional callback is factory-local diagnostics only, never a caller
+ // selector. It records static operation names without inspecting exceptions.
+ const at=step=>{if(note)note(step);},i=record.inputs;
+ at('DERIVATION');guard(sealedTypeScriptFixedCanaryProtectedInputProjectionMatchesDerivation(i.projection,i.assetsBuild,i.pairedSource,i.pairedArtifacts,i.copies));
+ at('PROJECTION_CURRENT');const p=verifySealedTypeScriptFixedCanaryProtectedInputProjection(i.projection);
+ at('PREPARED_NULL_CURRENT');const n=verifySealedTypeScriptFixedCampaignPreparedNullSource(i.preparedNullSource);
+ // Both verifier calls retain their original order before either result test.
+ // Split the existing conjunction without changing its short-circuit reads.
+ at('PROJECTION_RESULT');guard(p.outcome==='FIXED_CANARY_ORIGINAL_INPUT_GUARDS_OBSERVED'&&p.version===projectionVersion&&p.sourceSha256===record.projectionSourceSha256);
+ at('PREPARED_NULL_RESULT');guard(n.outcome==='CAMPAIGN_PREPARED_NULL_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED'&&n.version==='campaign-prepared-devnull-setexec@2'&&n.sourceSha256===record.preparedSourceSha256);
+ for(let index=0;index<record.rows.length;index++){const row=record.rows[index];at(index===0?'C_SOURCE_READ':'COLLECTOR_SOURCE_READ');const next=readSource(path.basename(row.file),row.pin);at(index===0?'C_SOURCE_IDENTITY':'COLLECTOR_SOURCE_IDENTITY');guard(next.mark===row.mark&&JSON.stringify(next.lineage)===JSON.stringify(row.lineage));}
+ for(let index=0;index<record.rows.length;index++){at(index===0?'C_SOURCE_NAMED':'COLLECTOR_SOURCE_NAMED');named(record.rows[index]);}
+}
 const blockers=Object.freeze(['NEW_ENCLOSURE_CODE_PROVISIONING_AND_ORIGINAL_CURRENTNESS_NOT_ESTABLISHED','EXACT_NATIVE_POLICY_AND_READ_VIEW_NOT_ESTABLISHED','PRE_MAIN_LOADER_NOT_ESTABLISHED','COMPLETE_SDK_CLOSURE_NOT_ESTABLISHED','ACTUAL_NATIVE_SESSION_FIFO_AND_CLEANUP_NOT_ESTABLISHED','COMPILER_NAMESPACE_AND_FRESH_PRODUCER_BINDINGS_NOT_ESTABLISHED']);
 const authority=fields=>freeze({schema:1,scope:'DISABLED_FIXED_CANARY_FINITE_ENCLOSURE_SOURCE_DATA_ONLY',...fields,version,disabled:true,runnable:false,commands:[],executionAuthority:'NONE',recordAdoptionAuthority:false,nativeEnforcement:'NOT_ESTABLISHED',sealed:false,reuseEligible:false,blockers});
 export function prepareSealedTypeScriptFixedCampaignEnclosureSource(options){
- let refusalStage='OPTIONS';
+ let refusalStage='OPTIONS',originalCurrentRefusal=null;
+ const noteOriginalCurrent=step=>{originalCurrentRefusal=step;};
  try{
  guard(arguments.length===1&&options&&Object.getPrototypeOf(options)===Object.prototype&&Reflect.ownKeys(options).length===keys.length&&keys.every(k=>Object.hasOwn(Object.getOwnPropertyDescriptor(options,k)??{},'value')));
  refusalStage='ORIGINAL_DERIVATION';
@@ -33,7 +48,7 @@ export function prepareSealedTypeScriptFixedCampaignEnclosureSource(options){
  refusalStage='PREPARED_NULL_CURRENT';
  const preparedCheck=verifySealedTypeScriptFixedCampaignPreparedNullSource(inputs.preparedNullSource);guard(preparedCheck.outcome==='CAMPAIGN_PREPARED_NULL_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED'&&preparedCheck.version==='campaign-prepared-devnull-setexec@2');
  refusalStage='INITIAL_ORIGINAL_CURRENT';
- const record={inputs,rows:[],projectionSourceSha256:inputs.projection.sourceSha256,preparedSourceSha256:preparedCheck.sourceSha256};current(record);
+ const record={inputs,rows:[],projectionSourceSha256:inputs.projection.sourceSha256,preparedSourceSha256:preparedCheck.sourceSha256};current(record,noteOriginalCurrent);originalCurrentRefusal=null;
  refusalStage='PROJECTION_INTERPRETATION';
  guard(inputs.projection.version===projectionVersion&&inputs.projection.disabled===true&&inputs.projection.runnable===false&&sha(inputs.projection.source)===record.projectionSourceSha256);
  refusalStage='CAMPAIGN_RENDER';
@@ -58,11 +73,11 @@ export function prepareSealedTypeScriptFixedCampaignEnclosureSource(options){
  refusalStage='ENCLOSURE_REBIND';
  let enclosureSource=record.rows[0].source;for(const [token,value]of [['SELF',self],['LAUNCHER',launcher],['PROJECTION',inputs.projection.projectionSha256]])enclosureSource=replace(enclosureSource,'__REVIEWED_FIXED_ENCLOSURE_'+token+'__',value);
  guard(!/__REVIEWED_FIXED_ENCLOSURE_/.test(enclosureSource)&&collectorSource.length<262144&&/^[a-f0-9]{64}$/.test(inputs.projection.projectionSha256));
- refusalStage='FINAL_ORIGINAL_CURRENT';current(record);
+ refusalStage='FINAL_ORIGINAL_CURRENT';current(record,noteOriginalCurrent);originalCurrentRefusal=null;
  refusalStage='SOURCE_RESULT';
  const files=[{role:'original_projection',file:projectionEntry,source:inputs.projection.source},{role:'collector',file:entry,source:collectorSource},{role:'prepared_null_launcher',file:launcher+'.c',source:launcherSource},{role:'finite_enclosure',file:self+'.c',source:enclosureSource}].map(row=>({...row,sourceBytes:Buffer.byteLength(row.source),sourceSha256:sha(row.source)}));
  const result=authority({outcome:'FIXED_CANARY_ENCLOSURE_SOURCES_PREPARED_NOT_PROVISIONED',bindings:{baseA:campaign.baseA,baseB:campaign.baseB,hostBase:h,node,entry,projectionEntry,launcher,self,cwd:campaign.cwd},projectionSha256:inputs.projection.projectionSha256,files,actors:campaign.actors,budgetsMs:{actor:11000,actorClose:11500,worker:13750,parentReceive:14000,parentReap:14750,parentAbsolute:14900,external:15000},collectionTransport:{interpretation:'finite-enclosure-normal-collection@2',frame:'RDE2',completeCollectionExit:0,incompleteCollectionExit:74,collectorExit:{E:74,F:1},assertionAuthority:'JSON_BODY_ONLY_NOT_OUTER_EXIT',nativeResultAcceptance:'NOT_TESTED'},capturePublication:{E:'ORIGINAL_END_THEN_COLLECTOR_REAP_WORKER_REAP_AND_GROUP_ABSENCE',F:'KNOWN_ASSERTION_FAIL_THEN_CONTROLLED_GROUP_CLEANUP_WORKER_REAP_AND_GROUP_ABSENCE_END_NOT_REQUIRED'},actualExecution:'NOT_RUN',newCodeFileCurrentness:'NOT_ESTABLISHED',fullSdkClosure:'NOT_ESTABLISHED',preMainLoader:'NOT_ESTABLISHED'});minted.set(result,record);return result;
- }catch{const error=Error('ENCLOSURE_SOURCE_UNAVAILABLE');Object.defineProperty(error,'refusalStage',{value:refusalStage,enumerable:true});throw error;}
+ }catch{const error=Error('ENCLOSURE_SOURCE_UNAVAILABLE');Object.defineProperty(error,'refusalStage',{value:refusalStage,enumerable:true});if((refusalStage==='INITIAL_ORIGINAL_CURRENT'||refusalStage==='FINAL_ORIGINAL_CURRENT')&&originalCurrentRefusal!==null)Object.defineProperty(error,'originalCurrentRefusal',{value:originalCurrentRefusal,enumerable:true});throw error;}
 }
 // Private identity only. Do not inspect any caller capability or touch paths;
 // this predicate does not establish currency or permission to execute.
