@@ -5,7 +5,7 @@ recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gat
 
 
 
-## Current checkpoint — fixed launcher repair; native acceptance remains UNKNOWN
+## Current checkpoint — paired endpoints match; CI preparation wiring reviewed
 
 Owner approval for [run38748867165](https://github.com/msiric/redue/actions/runs/38748867165)
 was applied; the completed attempt is already preserved below. Its accepted native
@@ -47,11 +47,34 @@ covered. Root sealed-TypeScript regressions:4,977 PASS/11 explicit SKIP/0 FAIL,
 TAP SHA256 `30554d1df7330af0495eb72f446daca2a63f8167e6bb453b7b0bcdd675d9f06f`.
 These are local regressions, not actual CI builds or model acceptance.
 
-DIR315 owns the remaining fixed launcher/null/enclosure consumers. DIR316 owns
-only fixed CI preparation/context wiring and its driver pin. Their files are
-isolated; the director owns integration. Command/startup/native-CI and parent-CI
-routes remain unwired. Actual CI preparation must validate current resources again;
-no SDK closure, native enforcement or origin authority is inferred.
+The remaining fixed CI consumer slice `cef679a` passed independent DIR318 review
+and is integrated at `05a186c`. The first combined regression exposed34 correct
+refusals from an obsolete descriptor-control renderer pin; its one-literal repair
+passed independent DIR322 review without changing assertions. Repaired full suite:
+4,997 PASS/11 explicit SKIP/0 FAIL, TAP SHA256
+`aa831d29feffa8725eb1df217549d58bb2b51d0c46c465c0a5ec1d5d12c335da`.
+The original failed TAP is retained, SHA256
+`62532be6a036274fbbc9599d8f7d35f91eda83731dd674f1918d229b65e095f9`.
+
+Fixed CI preparation/context wiring `5eb480d` passed independent DIR319 review;
+DIR324 accepts the two exact parent driver pins and all39 import-closure bindings.
+Integrated at `d46e851`, its affected combined source/mock tests:552 PASS/4 explicit
+SKIP/0 FAIL, TAP SHA256
+`e041c3493be56039af0a7babd17c2009235952a4fcd84fe2ba6169bd332901de`.
+No genuine CI preparation ran. Reviewer and author selections differ and their
+counts are not presented as identical test sets. DIR326 accepts the test-only
+POSIX repair `bc4f7fd` including `4a2cdf8`, integrated at `459b41a`: universal
+JavaScript assertions remain active; only Python portions receive POSIX guards.
+Root49 PASS/2 opt-in SKIP; independent Windows-selection simulation on Mac29 PASS/
+22 reasoned SKIP and zero Python calls. Native Windows remains NOT RUN for this
+slice. The earlier overbroad four-test skips and DIR323 rejection are retained.
+
+DIR327 owns only the fixed CI build-only parent/driver route from `d46e851`;
+DIR328 independently reviews its required security guards. Existing local and
+native routes, original deadlines and all authority-false fields must remain.
+Command/startup/native-CI routes remain unwired. Actual CI preparation must validate
+current resources again; no SDK closure, native enforcement or origin authority
+is inferred. No new model, signing or publication follows from these tests.
 
 Earlier retained run (different images/tools, not retroactively relabeled):
 
