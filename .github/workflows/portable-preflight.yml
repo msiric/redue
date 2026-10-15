@@ -68,7 +68,11 @@ jobs:
           # Named nonsecret runner facts only; missing facts never imply a match.
           redue_image_os="${ImageOS-UNAVAILABLE}"
           redue_image_version="${ImageVersion-UNAVAILABLE}"
-          redue_fs=$(/usr/bin/stat -f '%T' "$GITHUB_WORKSPACE")
+          redue_fs=$(node -e 'const fs=require("node:fs");const t=fs.statfsSync(process.cwd(),{bigint:true}).type;if(typeof t!=="bigint"||t<0n||t>4294967295n)process.exit(74);process.stdout.write(t.toString());')
+          if ! [[ "$redue_fs" =~ ^[0-9]{1,10}$ ]]; then
+            printf '%s\n' 'PUBLIC_FILESYSTEM_TYPE_UNAVAILABLE' >&2
+            exit 74
+          fi
           redue_os=$(/usr/bin/sw_vers -productVersion)
           redue_kernel=$(/usr/bin/uname -r)
           for redue_fact in "$redue_image_os" "$redue_image_version" "$redue_fs" "$redue_os" "$redue_kernel"; do
@@ -77,7 +81,7 @@ jobs:
               exit 74
             fi
           done
-          printf '{"scope":"PUBLIC_RUNNER_FACTS_ONLY","source":"%s","machine":"%s","os":"%s","kernel":"%s","arch":"arm64","filesystem":"%s","imageOS":"%s","imageVersion":"%s","profileMatch":"NOT_EVALUATED"}\n' "$REVIEWED_SOURCE" '${{ matrix.machine }}' "$redue_os" "$redue_kernel" "$redue_fs" "$redue_image_os" "$redue_image_version"
+          printf '{"scope":"PUBLIC_RUNNER_FACTS_ONLY","source":"%s","machine":"%s","os":"%s","kernel":"%s","arch":"arm64","filesystem_type":%s,"imageOS":"%s","imageVersion":"%s","profileMatch":"NOT_EVALUATED"}\n' "$REVIEWED_SOURCE" '${{ matrix.machine }}' "$redue_os" "$redue_kernel" "$redue_fs" "$redue_image_os" "$redue_image_version"
           node test/acceptance/sealed-typescript-host-tool-inventory.mjs --fixed-ci-enclosure-headers
       # The helper's 10s checkpoint budget cannot interrupt blocked filesystem IO.
       # The 2-minute job limit remains independent; no output becomes trusted input.
