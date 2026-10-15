@@ -18,10 +18,10 @@ test('known actual nonzero mock compiler status remains separate from UNKNOWN pr
 for(const method of ['preparePair','buildAssets','buildLauncher','buildEnclosure','verifyEnclosure'])test('the same 30s budget includes '+method+' and stops later work',async()=>{const m=mock();m.state.elapsedAt=method;const v=await observe(m.options);assert.equal(v.outcome,'UNKNOWN');assert.equal(m.calls.at(-1),method);authority(v);});
 test('final validation is not exempt from body deadline',async()=>{const m=mock();let calls=0;m.op.verifyEnclosure=()=>{if(++calls===2)m.set(30000);return{outcome:'ENCLOSURE_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED',sealed:false,reuseEligible:false};};const v=await observe(m.options);assert.equal(v.outcome,'UNKNOWN');assert.equal(v.failedPhase,'finalValidation');assert.equal(v.buildResultCount,8);});
 test('parent pins exact inner bytes and fixed reviewed Node; no environment stripping or arbitrary command route',()=>{const sha=createHash('sha256').update(innerSource).digest('hex');assert(parentSource.includes('INNER_SHA256 = "'+sha+'"'));assert(parentSource.includes('NODE_SHA256 = "5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc"'));assert.match(parentSource,/start_new_session=True, close_fds=True/);assert.match(parentSource,/env=os\.environ\.copy\(\)/);assert.match(parentSource,/collect\(child, started=begun\)/);assert(!/child\.(?:poll|communicate)\(/.test(parentSource));assert(!/os\.environ\.(?:pop|clear|update)|shell=True|pexpect|pty\./.test(parentSource));assert.match(innerSource,/process\.execArgv\.length===0/);});
-test('mock Python parent proves kill-before-wait, no postreap destructive kill, EOF/cap/deadline/parser and SIGKILL races',async()=>{const good=await observe(mock().options);const python=String.raw`
+test('mock Python parent proves kill-before-wait, no postreap destructive kill, EOF/cap/deadline/parser and SIGKILL races',async()=>{const frames=[];const good=await observe({...mock().options,observeProgress:frame=>frames.push(frame)});const python=String.raw`
 import contextlib,copy,errno,importlib.util,io,json,os,signal,sys
 spec=importlib.util.spec_from_file_location('owned_enclosure_parent',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
-good=json.loads(sys.stdin.read());raw=(json.dumps(good)+'\n').encode();assert m.parse_inner(raw)['outcome']=='BUILT_NOT_EXECUTED'
+payload=json.loads(sys.stdin.read());good=payload['good'];frames=payload['frames'];raw=b''.join((json.dumps(f,separators=(',',':'))+'\n').encode() for f in frames+[{'schema':1,'protocol':'fixed-enclosure-progress@1','kind':'FINAL','report':good}]);assert m.parse_inner((json.dumps(good)+'\n').encode())['outcome']=='BUILT_NOT_EXECUTED'
 class Stream:
  def __init__(self,n):self.n=n
  def fileno(self):return self.n
@@ -47,7 +47,10 @@ checks=0
 try:
  def run(body=raw,stderr=b'',code=0,deadline=False,kill_denied=False,started=None,kill_error=None):
   c=Child(code);chunks={10:[body,b''],11:[stderr,b'']};t=[0]
-  def read(fd,n):return chunks[fd].pop(0)
+  def read(fd,n):
+   value=chunks[fd][0];part=value[:n];chunks[fd][0]=value[n:]
+   if not chunks[fd][0]:chunks[fd].pop(0)
+   return part
   def clock():t[0]+=31 if deadline else .01;return t[0]
   def kill(pid,sig):
    c.events.append(('kill',pid,sig))
@@ -104,7 +107,7 @@ try:
 finally:m.os.set_blocking=original
 print(json.dumps({'scope':'PYTHON_PARENT_SOURCE_MOCKS_ONLY','passed':checks,'nativeExecutions':0,'compilerBuilds':0}))
 `;
- const out=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify(good),encoding:'utf8',timeout:5000,maxBuffer:16384});const v=JSON.parse(out);assert.equal(v.scope,'PYTHON_PARENT_SOURCE_MOCKS_ONLY');assert.equal(v.passed,25);assert.equal(v.nativeExecutions,0);assert.equal(v.compilerBuilds,0);});
+ const out=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify({good,frames}),encoding:'utf8',timeout:5000,maxBuffer:16384});const v=JSON.parse(out);assert.equal(v.scope,'PYTHON_PARENT_SOURCE_MOCKS_ONLY');assert.equal(v.passed,25);assert.equal(v.nativeExecutions,0);assert.equal(v.compilerBuilds,0);});
 
 test('old enclosure source interpretation is refused before new build dispatch',async()=>{const m=mock();m.op.prepareEnclosure=()=>({outcome:'FIXED_CANARY_ENCLOSURE_SOURCES_PREPARED_NOT_PROVISIONED',version:'fixed-canary-finite-enclosure-source@1',sealed:false,reuseEligible:false});const v=await observe(m.options);assert.equal(v.outcome,'UNKNOWN');assert.equal(v.failedPhase,'enclosureSource');assert(!m.calls.includes('buildEnclosure'));});
 
@@ -175,3 +178,116 @@ checks+=1
 print(json.dumps({'scope':'RECORD_NAMESPACE_SOURCE_MOCKS_ONLY','passed':checks,'filesystemWrites':0,'actualPopen':0}))
 `;
  const out=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{encoding:'utf8',timeout:5000,maxBuffer:16384});const v=JSON.parse(out);assert.equal(v.scope,'RECORD_NAMESPACE_SOURCE_MOCKS_ONLY');assert.equal(v.passed,6);assert.equal(v.filesystemWrites,0);assert.equal(v.actualPopen,0);});
+
+test('fixed progress emits BEGIN before each synchronous operation, one-shot deltas and no private authority',async()=>{
+ const m=mock(),frames=[],seen=[];m.options.observeProgress=frame=>{frames.push(frame);seen.push(frame.kind+':'+frame.name);};
+ for(const [name,original]of Object.entries(m.op))m.op[name]=(...args)=>{assert.equal(frames.at(-1).kind,'BEGIN');seen.push('ACTION:'+name);return original(...args);};
+ const report=await observe(m.options);assert.equal(report.outcome,'BUILT_NOT_EXECUTED');assert.equal(frames.length,38);
+ assert(frames.every((v,i)=>v.sequence===i&&v.kind===(i%2?'END':'BEGIN')));
+ assert.equal(frames.flatMap(v=>v.newRoots).length,3);assert.equal(frames.flatMap(v=>v.newBuilds).length,8);
+ assert.equal(frames.filter(v=>v.kind==='BEGIN').every(v=>v.newRoots.length===0&&v.newBuilds.length===0),true);
+ const wire=frames.map(v=>JSON.stringify(v)+'\n').join('')+JSON.stringify({schema:1,protocol:'fixed-enclosure-progress@1',kind:'FINAL',report})+'\n';
+ assert(Buffer.byteLength(wire)<65536);assert.equal(38*1024+8*256+3*128+16384,57728);
+ assert.match(innerSource,/writeSync\(1,body,at,body\.length-at\)/);assert(!innerSource.includes('process.stdout.write(JSON.stringify(result)'));
+ assert.equal(seen[0],'BEGIN:operationImports');authority(report);
+});
+test('failed progress emission refuses later work and never certifies preparation',async()=>{const m=mock(),frames=[];m.options.observeProgress=frame=>{if(frame.name==='prerequisiteBuilds'&&frame.kind==='BEGIN')throw Error('PRIVATE');frames.push(frame);};const report=await observe(m.options);assert.equal(report.outcome,'UNKNOWN');assert(!m.calls.includes('buildAssets'));assert.equal(report.failedPhase,'prerequisiteBuilds');assert.equal(report.buildAttemptCount,0);assert(!JSON.stringify(report).includes('PRIVATE'));});
+
+test('finite parent protocol preserves valid prefix through timeout, partial final and malformed suffix; completed facts are lower bounds',async()=>{
+ const frames=[],good=await observe({...mock().options,observeProgress:frame=>frames.push(frame)});
+ const failedMock=mock();failedMock.state.nonzero=true;const failedFrames=[],failed=await observe({...failedMock.options,observeProgress:frame=>failedFrames.push(frame)});
+ const python=String.raw`
+import copy,importlib.util,json,sys,signal
+sys.dont_write_bytecode=True
+spec=importlib.util.spec_from_file_location('progress_only_mock',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+payload=json.loads(sys.stdin.read());frames=payload['frames'];good=payload['good'];failed_frames=payload['failedFrames'];failed=payload['failed'];checks=0
+wire=lambda values:b''.join((json.dumps(v,separators=(',',':'),allow_nan=True)+'\n').encode() for v in values)
+final={'schema':1,'protocol':'fixed-enclosure-progress@1','kind':'FINAL','report':good}
+p=m.ProgressProtocol();p.feed(wire(frames+[final]));assert p.finish()['outcome']=='BUILT_NOT_EXECUTED' and p.observation()['validatedFrameCount']==38;checks+=1
+# A synchronous operation can be interrupted after BEGIN. Its possible build
+# dispatches remain UNKNOWN, while the previous three returned outcomes survive.
+cut=next(i for i,v in enumerate(frames) if v['kind']=='BEGIN' and v['name']=='pairedBuilds')+1
+prefix=frames[:cut];p=m.ProgressProtocol();p.feed(wire(prefix));assert p.finish() is None
+v=p.observation();assert v['inProgressPhase']=='pairedBuilds' and v['buildAttemptCountLowerBound']==3 and v['buildResultCountLowerBound']==3 and v['activeDispatchCount']=='UNKNOWN' and v['authority']=='NONE';checks+=1
+for suffix in [b'{',b'{"schema":1,"schema":1}\n',wire([frames[cut-1]]),wire([dict(frames[cut],protocol='UNREVIEWED')]),wire([dict(frames[cut],sequence=99)]),wire([dict(frames[cut],phaseIndex=18)]),wire([dict(frames[cut],unexpected='PRIVATE')]),b'x'*65537,wire([dict(final,report={**good,'buildAttemptCount':7})])]:
+ p=m.ProgressProtocol();p.feed(wire(prefix));p.feed(suffix);assert p.finish() is None and p.observation()['buildResultCountLowerBound']==3 and p.observation()['inProgressPhase']=='pairedBuilds';assert 'PRIVATE' not in json.dumps(p.observation());checks+=1
+# Unknown final retains a genuine nonzero returned status without green evidence.
+p=m.ProgressProtocol();p.feed(wire(failed_frames+[{'schema':1,'protocol':'fixed-enclosure-progress@1','kind':'FINAL','report':failed}]));v=p.finish();assert v['outcome']=='UNKNOWN' and v['compilerBuildOutcome']=='EXIT_NONZERO';assert p.observation()['compilerBuildOutcome']=='EXIT_NONZERO';checks+=1
+# A duplicate FINAL and trailing partial data both withdraw whole-stream success.
+for tail in (wire([final]),b'{'):
+ p=m.ProgressProtocol();p.feed(wire(frames+[final])+tail);assert p.finish() is None and len(p.frames)==38;checks+=1
+# Schema, order, bounds, changed old facts, unknown kinds, unsafe counts and
+# per-frame size are rejected; the already valid preceding prefix is retained.
+for edit in (lambda v:v.update(schema=True),lambda v:v.update(kind='OTHER'),lambda v:v.update(elapsedMs=float('nan')),lambda v:v.update(buildAttemptCount=True),lambda v:v['newBuilds'][0].update(stderrBytes=-1),lambda v:v.update(newRoots=[{'role':'H','name':'redue-ci-recipient-33333333'}])):
+ at=next(i for i,v in enumerate(frames) if v['kind']=='END' and v['name']=='prerequisiteBuilds');bad=copy.deepcopy(frames[at]);edit(bad)
+ p=m.ProgressProtocol();p.feed(wire(frames[:at]));p.feed(wire([bad]));assert p.finish() is None and len(p.frames)==at and p.observation()['buildResultCountLowerBound']==0;checks+=1
+# collect() retains a delivered BEGIN plus earlier completed build facts after
+# the actual parent clock expires; mock process methods never launch anything.
+class Stream:
+ def __init__(self,n):self.n=n
+ def fileno(self):return self.n
+ def close(self):pass
+class Child:
+ pid=123
+ stdout=Stream(10);stderr=Stream(11)
+ def wait(self,timeout):assert events[0]==signal.SIGKILL;return -9
+class Key:
+ def __init__(self,f,d):self.fileobj=f;self.data=d
+class Selector:
+ def __init__(self):self.keys={}
+ def register(self,f,e,d):self.keys[f.n]=Key(f,d)
+ def unregister(self,f):self.keys.pop(f.n)
+ def get_map(self):return self.keys
+ def select(self,t):return [(self.keys[10],1)]
+ def close(self):pass
+events=[];clock_values=iter((0,0,31,31,31,31,31));chunks=[wire(prefix)]
+def read(fd,n):
+ body=chunks[0];value=body[:n];chunks[0]=body[n:]
+ if not chunks[0]:chunks.pop(0)
+ return value
+def kill(pid,sig):
+ events.append(sig)
+ if sig==0:raise ProcessLookupError()
+old=m.os.set_blocking;m.os.set_blocking=lambda *a:None
+try:
+ result=m.collect(Child(),clock=lambda:0 if chunks else 31,selector_factory=Selector,read=read,killpg=kill,started=0)
+ assert result['outcome']=='UNKNOWN' and result['reason_code']=='BODY_DEADLINE' and result['childSignal']==9 and result['childReaped']
+ assert result['progressObservation']['inProgressPhase']=='pairedBuilds' and result['progressObservation']['buildResultCountLowerBound']==3
+ assert result['innerReport'] is None and events==[signal.SIGKILL,0];checks+=1
+ saved=m.unknown_with_observations(result,'PERSISTENCE_UNAVAILABLE');assert saved['observed']['progressObservation']['buildResultCountLowerBound']==3 and saved['outcome']=='UNKNOWN';checks+=1
+finally:m.os.set_blocking=old
+print(json.dumps({'scope':'FINITE_PROGRESS_SOURCE_MOCKS_ONLY','passed':checks,'actualPopen':0,'compilerBuilds':0,'nativeExecutions':0}))
+`;
+ const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify({frames,good,failedFrames,failed}),encoding:'utf8',timeout:5000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.passed,22);assert.equal(result.actualPopen,0);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);
+});
+
+test('opt-in harmless one-child progress delivery before synchronous stall and owned cleanup HARNESS ONLY',{skip:process.env.REDUE_DIR220_HARMLESS_DELIVERY!=='1'},()=>{
+ const python=String.raw`
+import hashlib,importlib.util,json,os,pwd,re,signal,subprocess,sys,time
+sys.dont_write_bytecode=True
+spec=importlib.util.spec_from_file_location('harmless_progress_delivery_only',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+assert sys.platform=='darwin'
+assert not any(re.search(r'^(?:NODE_OPTIONS|NODE_PATH|NODE_REPL_EXTERNAL_MODULE|BASH_ENV|ENV)$|^(?:DYLD_|LD_|OPENSSL_)',key,re.I) for key in os.environ)
+node=m.Path(pwd.getpwuid(os.getuid()).pw_dir)/'.nvm/versions/node/v22.13.0/bin/node'
+m.inspect_file(node,os.getuid(),128*1024*1024,m.NODE_SHA256)
+frame={'schema':1,'protocol':'fixed-enclosure-progress@1','kind':'BEGIN','sequence':0,'phaseIndex':0,'name':'operationImports','elapsedMs':0,'phaseElapsedMs':None,'outcome':'IN_PROGRESS','newRoots':[],'newBuilds':[],'buildAttemptCount':0,'buildResultCount':0,'observedProcessCount':0,'compilerBuildOutcome':'UNKNOWN','countsMeaning':'RETURNED_OBSERVATIONS_LOWER_BOUND','activeDispatchCount':'UNKNOWN'}
+line=json.dumps(frame,separators=(',',':'))+'\n'
+# Fixed one harmless child: stdout only; no filesystem access, child launches,
+# native agent, checker, compiler, REDUE fixture, credentials or model.
+source="const fs=require('node:fs');const b=Buffer.from("+json.dumps(line)+");let at=0;while(at<b.length)at+=fs.writeSync(1,b,at,b.length-at);Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0);"
+wall=time.monotonic();child=subprocess.Popen([str(node),'-e',source],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,start_new_session=True,close_fds=True,env=os.environ.copy())
+events=[]
+def kill(pid,sig):
+ assert pid==child.pid
+ events.append('OWNED_GROUP_SIGKILL' if sig==signal.SIGKILL else 'POST_REAP_GROUP_ZERO' if sig==0 else 'INVALID')
+ return os.killpg(pid,sig)
+result=m.collect(child,killpg=kill,started=wall-28.5)
+actual=(time.monotonic()-wall)*1000
+assert result['outcome']=='UNKNOWN' and result['reason_code']=='BODY_DEADLINE' and result['innerReport'] is None
+assert result['progressObservation']['inProgressPhase']=='operationImports' and result['progressObservation']['validatedFrameCount']==1
+assert result['progressObservation']['activeDispatchCount']=='UNKNOWN' and result['childReaped'] and result['childSignal']==signal.SIGKILL and result['groupAbsentAfterReap']
+assert events==['OWNED_GROUP_SIGKILL','POST_REAP_GROUP_ZERO'] and result['stderrBytes']==0 and actual<7500
+print(json.dumps({'scope':'HARMLESS_FIXED_STDOUT_DELIVERY_HARNESS_ONLY','outcome':'HARNESS_ASSERTIONS_PASS','wallMs':actual,'syntheticParentAgeAtLaunchMs':28500,'validProgressFrames':1,'overallPreparation':'UNKNOWN','childReaped':True,'ownedGroupAbsent':True,'actualPopen':1,'childSubprocesses':0,'compilerBuilds':0,'nativeExecutions':0,'models':0,'sourceAuthority':'NONE'}))
+`;
+ const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{encoding:'utf8',timeout:8000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.scope,'HARMLESS_FIXED_STDOUT_DELIVERY_HARNESS_ONLY');assert.equal(result.outcome,'HARNESS_ASSERTIONS_PASS');assert.equal(result.actualPopen,1);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);assert.equal(result.models,0);console.log(JSON.stringify(result));
+});

@@ -23,7 +23,7 @@ import subprocess
 import sys
 import uuid
 
-INNER_SHA256 = "cfc72d799e92a86a919deca7df12b711bcaa2f1186a3a8d22929c0ec0ef03223"
+INNER_SHA256 = "5ceffb3ee7efe91eab46a9f06df05dcacf220d627652eff5d28bbe5c1797cd42"
 NODE_SHA256 = "5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc"
 ENTRY_NAME = "sealed-typescript-enclosure-provisioning.mjs"
 SCOPE = "FIXED_ENCLOSURE_PREPARATION_PARENT_ONLY"
@@ -164,13 +164,155 @@ def parse_inner(body):
     require([row["index"] for row in value["newFileDigests"]] == list(range(len(value["newFileDigests"]))))
     require(value["elapsedMs"] is None or type(value["elapsedMs"]) in (int, float) and 0 <= value["elapsedMs"] < 35000)
     if value["outcome"] == "BUILT_NOT_EXECUTED":
-        require(type(value["elapsedMs"]) in (int, float) and 0 <= value["elapsedMs"] < 30000)
+        require(type(value["elapsedMs"]) in (int, float) and 0 <= value["elapsedMs"] < 30000
+                and value["reason_code"] == "BUILT_NOT_EXECUTED" and value["failedPhase"] is None
+                and len(value["ownedRootNames"]) == 3)
         require(value["buildAttemptCount"] == value["buildResultCount"] == value["observedProcessCount"] == 8
                 and value["compilerBuildOutcome"] == "EXIT_ZERO"
                 and all(row["completed"] and row["status"] == 0 and row["signal"] is None and row["spawnError"] == "NONE" for row in value["builds"])
                 and len(value["newFileDigests"]) == 6 and len(value["phases"]) == 19
                 and all(row["outcome"] == "COMPLETED" for row in value["phases"]))
     return value
+
+
+# Fixed finite protocol: <=38 progress frames, three root names, eight returned
+# build facts, one FINAL <=16KiB. Enforced aggregate maximum: 57,728 bytes;
+# the original 65,536-byte stdout cap remains authoritative independently.
+PHASE_NAMES = ("operationImports", "freshPair", "freshHost", "hostFixture", "prerequisiteBuilds", "prerequisiteCurrent", "pairedSource", "pairedBuilds", "pairedCurrent", "campaignCopies", "copiesCurrent", "oldLauncherBuild", "oldLauncherCurrent", "originalProjection", "preparedNull", "enclosureSource", "enclosureBuilds", "enclosureCurrent", "finalValidation")
+
+
+def unique_json(body):
+    def unique(pairs):
+        value = {}
+        for key, item in pairs:
+            require(key not in value)
+            value[key] = item
+        return value
+    return json.loads(body, object_pairs_hook=unique)
+
+
+class ProgressProtocol:
+    """Strict valid-prefix observations, never restorable execution authority."""
+    def __init__(self):
+        self.pending = bytearray()
+        self.bytes_seen = 0
+        self.frames = []
+        self.roots, self.builds, self.phases = [], [], []
+        self.attempts = 0
+        self.active = None
+        self.last_elapsed = 0
+        self.inner = None
+        self.invalid = False
+        self.stopped = False
+
+    def accept(self, value, size):
+        require(type(value) is dict and type(value.get("schema")) is int and value["schema"] == 1
+                and value.get("protocol") == "fixed-enclosure-progress@1" and self.inner is None)
+        if value.get("kind") == "FINAL":
+            require(set(value) == {"schema", "protocol", "kind", "report"} and size <= 16384 and self.active is None)
+            inner = parse_inner((json.dumps(value["report"], allow_nan=False) + "\n").encode())
+            require(inner["ownedRootNames"] == self.roots and inner["builds"] == self.builds
+                    and inner["buildAttemptCount"] == self.attempts and len(inner["phases"]) == len(self.phases)
+                    and type(inner["elapsedMs"]) in (int, float) and inner["elapsedMs"] + 0.00051 >= self.last_elapsed)
+            for final, observed in zip(inner["phases"], self.phases):
+                require(final["name"] == observed["name"] and final["outcome"] == observed["outcome"]
+                        and type(final["elapsedMs"]) in (int, float)
+                        and abs(final["elapsedMs"] - observed["elapsedMs"]) <= 0.00051)
+            if inner["outcome"] == "BUILT_NOT_EXECUTED":
+                require(len(self.frames) == 38 and len(self.phases) == 19 and not self.stopped)
+            self.inner = inner
+            return
+        expected = {"schema", "protocol", "kind", "sequence", "phaseIndex", "name", "elapsedMs", "phaseElapsedMs", "outcome", "newRoots", "newBuilds", "buildAttemptCount", "buildResultCount", "observedProcessCount", "compilerBuildOutcome", "countsMeaning", "activeDispatchCount"}
+        require(set(value) == expected and not self.stopped and len(self.frames) < 38
+                and type(value["sequence"]) is int and value["sequence"] == len(self.frames)
+                and type(value["phaseIndex"]) is int and value["phaseIndex"] == len(self.phases)
+                and len(self.phases) < 19 and value["name"] == PHASE_NAMES[len(self.phases)]
+                and type(value["elapsedMs"]) in (int, float) and self.last_elapsed <= value["elapsedMs"] < 35000
+                and value["countsMeaning"] == "RETURNED_OBSERVATIONS_LOWER_BOUND"
+                and value["activeDispatchCount"] == "UNKNOWN"
+                and type(value["newRoots"]) is list and type(value["newBuilds"]) is list)
+        roots = self.roots + value["newRoots"]
+        builds = self.builds + value["newBuilds"]
+        require(len(roots) <= 3 and len(builds) <= 8
+                and size <= 1024 + len(value["newBuilds"]) * 256 + len(value["newRoots"]) * 128)
+        for index, row in enumerate(roots):
+            require(type(row) is dict and set(row) == {"role", "name"}
+                    and row["role"] == ("A", "B", "H")[index]
+                    and type(row["name"]) is str and re.fullmatch(r"redue-ci-recipient-[a-f0-9]{8}", row["name"]))
+        require(len({row["name"] for row in roots}) == len(roots))
+        for row in builds:
+            require(type(row) is dict and set(row) == {"pidObserved", "status", "signal", "spawnError", "completed", "stdoutBytes", "stderrBytes"}
+                    and type(row["pidObserved"]) is bool and type(row["completed"]) is bool
+                    and (row["status"] is None or type(row["status"]) is int and 0 <= row["status"] <= 255)
+                    and row["signal"] in (None, "SIGKILL", "SIGTERM", "SIGABRT", "SIGSEGV", "SIGBUS", "SIGILL", "SIGINT", "UNKNOWN")
+                    and row["spawnError"] in ("NONE", "UNKNOWN")
+                    and all(type(row[k]) is int and 0 <= row[k] <= 9007199254740991 for k in ("stdoutBytes", "stderrBytes")))
+        for key in ("buildAttemptCount", "buildResultCount", "observedProcessCount"):
+            require(type(value[key]) is int and 0 <= value[key] <= 8)
+        require(value["buildResultCount"] == len(builds) and value["observedProcessCount"] == sum(row["pidObserved"] for row in builds)
+                and value["buildAttemptCount"] >= self.attempts
+                and value["compilerBuildOutcome"] == ("EXIT_NONZERO" if any(row["pidObserved"] and row["status"] is not None and row["status"] > 0 and row["signal"] is None and row["spawnError"] == "NONE" for row in builds) else "UNKNOWN"))
+        if value["kind"] == "BEGIN":
+            require(self.active is None and value["outcome"] == "IN_PROGRESS" and value["phaseElapsedMs"] is None
+                    and not value["newRoots"] and not value["newBuilds"] and value["buildAttemptCount"] == self.attempts)
+            self.active = value["name"]
+            self.phase_began = value["elapsedMs"]
+        else:
+            require(value["kind"] == "END" and self.active == value["name"]
+                    and value["outcome"] in ("COMPLETED", "UNKNOWN")
+                    and type(value["phaseElapsedMs"]) in (int, float) and 0 <= value["phaseElapsedMs"] < 35000
+                    and abs(value["elapsedMs"] - self.phase_began - value["phaseElapsedMs"]) <= 0.0011)
+            capacity = {"prerequisiteBuilds": 3, "pairedBuilds": 2, "oldLauncherBuild": 1, "enclosureBuilds": 2}.get(self.active, 0)
+            require(len(value["newBuilds"]) <= capacity and value["buildAttemptCount"] - self.attempts <= capacity)
+            require(not value["newRoots"] or self.active in ("freshPair", "freshHost"))
+            if value["outcome"] == "COMPLETED":
+                require(len(value["newBuilds"]) == capacity and value["buildAttemptCount"] - self.attempts == capacity)
+                require(all(row["pidObserved"] and row["completed"] and row["status"] == 0 and row["signal"] is None and row["spawnError"] == "NONE" for row in value["newBuilds"]))
+                require(len(value["newRoots"]) == (2 if self.active == "freshPair" else 1 if self.active == "freshHost" else 0))
+            if self.active == "freshPair":
+                require(len(roots) <= 2)
+            if self.active == "freshHost":
+                require(len(self.roots) == 2)
+            self.phases.append({"name": self.active, "elapsedMs": value["phaseElapsedMs"], "outcome": value["outcome"]})
+            self.active = None
+            self.stopped = value["outcome"] == "UNKNOWN"
+        self.frames.append(value)
+        self.roots, self.builds = roots, builds
+        self.attempts = value["buildAttemptCount"]
+        self.last_elapsed = value["elapsedMs"]
+
+    def feed(self, body):
+        if self.invalid:
+            return
+        self.bytes_seen += len(body)
+        if self.bytes_seen > 65536:
+            self.invalid = True
+            self.pending.clear()
+            return
+        self.pending.extend(body)
+        try:
+            while b"\n" in self.pending:
+                at = self.pending.index(10) + 1
+                line = bytes(self.pending[:at])
+                del self.pending[:at]
+                self.accept(unique_json(line), len(line))
+        except Exception:
+            self.invalid = True
+            self.pending.clear()
+
+    def finish(self):
+        if self.pending or self.inner is None:
+            self.invalid = True
+        return None if self.invalid else self.inner
+
+    def observation(self):
+        return {"schema": 1, "protocol": "fixed-enclosure-progress@1", "validatedFrameCount": len(self.frames),
+                "protocolStatus": "INVALID_OR_INCOMPLETE" if self.invalid else "PREFIX_ONLY" if self.inner is None else "FINAL_VALIDATED",
+                "endedPhases": self.phases, "inProgressPhase": self.active,
+                "ownedRootNames": self.roots, "builds": self.builds, "buildAttemptCountLowerBound": self.attempts,
+                "buildResultCountLowerBound": len(self.builds), "activeDispatchCount": "UNKNOWN",
+                "compilerBuildOutcome": "EXIT_NONZERO" if any(row["pidObserved"] and row["status"] is not None and row["status"] > 0 and row["signal"] is None and row["spawnError"] == "NONE" for row in self.builds) else "UNKNOWN",
+                "authority": "NONE"}
 
 
 def cleanup_error_classification(error):
@@ -215,6 +357,7 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
     reason = "UNKNOWN"
     code = None
     inner = None
+    protocol = ProgressProtocol()
     try:
         require(type(child.pid) is int and 0 < child.pid <= 2147483647)
         owned_pid = child.pid
@@ -245,6 +388,8 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
                     reason = "OUTPUT_LIMIT"
                     raise ValueError("OUTPUT_LIMIT")
                 selected.extend(block)
+                if key.data == "out":
+                    protocol.feed(block)
         else:
             reason = "BOTH_EOF"
     except Exception:
@@ -303,10 +448,7 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
     except Exception:
         elapsed = 35000
         reason = "CLOCK_UNAVAILABLE"
-    try:
-        inner = parse_inner(bytes(output))
-    except Exception:
-        pass
+    inner = protocol.finish()
     normal = (reason == "BOTH_EOF" and kill_attempted
               and cleanup_signal in ("SENT", "GROUP_ALREADY_ABSENT") and reaped
               and absent and code in (0, 74) and len(error) == 0 and elapsed < 35)
@@ -331,7 +473,7 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
             "cleanupSignal": cleanup_signal, "cleanupExceptionFamily": cleanup_exception_family,
             "cleanupErrno": cleanup_errno, "groupAbsentAfterReap": absent,
             "stdoutBytes": len(output), "stderrBytes": len(error), "elapsedMs": elapsed * 1000,
-            "innerReport": inner, **_FALSE}
+            "innerReport": inner, "progressFrames": protocol.frames, "progressObservation": protocol.observation(), **_FALSE}
 
 
 def prepare_record_directory(repo):
@@ -408,6 +550,18 @@ def unknown_with_observations(report, reason):
             observed[key] = report[key]
     # Only the already validated, fixed redacted schema is retained. No captured
     # byte stream/error text/source/environment/credential is serialized here.
+    if "progressFrames" in report:
+        protocol = ProgressProtocol()
+        try:
+            for frame in report["progressFrames"]:
+                body = (json.dumps(frame, separators=(",", ":"), allow_nan=False) + "\n").encode()
+                protocol.feed(body)
+            require(not protocol.invalid)
+            protocol.finish()
+            observed["progressFrames"] = protocol.frames
+            observed["progressObservation"] = protocol.observation()
+        except Exception:
+            pass
     inner = report.get("innerReport")
     if inner is not None:
         try:
