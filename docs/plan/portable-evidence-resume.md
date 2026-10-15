@@ -30,6 +30,20 @@ required; no whole-native detached-tree guarantee is inferred. Actual profile,
 account and security prerequisites remain mandatory before any native launch.
 All origin, sealing and reusable-evidence authority remains withheld.
 
+Latest [paired observation run38796660543](https://github.com/msiric/redue/actions/runs/38796660543)
+passed both jobs at workflow `3531533` / runtime `a0d2d36`. Independent DIR307
+accepts the four public records (19,376B SHA256
+`a8f7f4937d9cf6efed2def5fa97323e77d7be9aae85566bb17f3a8c4d6ab02b5`).
+Both VMs reported image20261013.0424.1, and all22 inspected hash/size pairs match:
+Node, Clang, linker and nineteen literal SDK26.5 headers. Observer checkpoint
+costs415.490/314.736ms are inspection-only, not whole-workflow economics. These
+are matching public endpoints, not complete SDK/profile/native/seal/reuse proof.
+No further inventory is needed for the currently guarded subset. DIR309 is
+implementing the explicit CI fixture-profile slice; local SDK27 guards remain
+unchanged. Actual CI preparation must validate its current resources again.
+
+Earlier retained run (different images/tools, not retroactively relabeled):
+
 The owner-dispatched [public-header run38794832477](https://github.com/msiric/redue/actions/runs/38794832477)
 passed both jobs at workflow `3f07b38` / runtime `3edffa5`. Independent DIR301
 accepts its observations only: Node and eleven literal SDK26.5 header identities
