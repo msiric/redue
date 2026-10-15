@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 2
     environment: portable-evidence-claude
     env:
-      REVIEWED_SOURCE: 910bc6a97f41ca047037c6565ad90fd7d098f6b7
+      REVIEWED_SOURCE: e7c3ea28dbb2a502d88f82c9f88a1850fdcf527d
       REDUE_CLAUDE_ACCOUNT_POLICY_FACT: ${{ vars.REDUE_CLAUDE_ACCOUNT_POLICY_FACT }}
       REDUE_CLAUDE_INCLUDED_DIAGNOSTIC_CAPACITY: ${{ vars.REDUE_CLAUDE_INCLUDED_DIAGNOSTIC_CAPACITY }}
     steps:
@@ -42,7 +42,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$REVIEWED_SOURCE"
           test "$(uname -m)" = 'arm64'
           while IFS= read -r key; do
-            case "$key" in NODE_OPTIONS|NODE_PATH|BASH_ENV|ENV|LD_*|DYLD_*|OPENSSL_*|CLAUDE_*|ANTHROPIC_*) exit 2;; esac
+            case "$key" in NODE_OPTIONS|NODE_PATH|BASH_ENV|ENV|LD_*|DYLD_*|OPENSSL_*|CLAUDE_*|ANTHROPIC_*|HTTP_PROXY|HTTPS_PROXY|ALL_PROXY|NO_PROXY|http_proxy|https_proxy|all_proxy|no_proxy) exit 2;; esac
           done < <(compgen -e)
           test "$(node --version)" = 'v22.13.0'
           export REDUE_CHECKED_SOURCE="$REVIEWED_SOURCE"
@@ -68,7 +68,7 @@ jobs:
           while IFS= read -r key; do
             case "$key" in
               CLAUDE_CODE_OAUTH_TOKEN) ;;
-              NODE_OPTIONS|NODE_PATH|BASH_ENV|ENV|LD_*|DYLD_*|OPENSSL_*|CLAUDE_*|ANTHROPIC_*) exit 2;;
+              NODE_OPTIONS|NODE_PATH|BASH_ENV|ENV|LD_*|DYLD_*|OPENSSL_*|CLAUDE_*|ANTHROPIC_*|HTTP_PROXY|HTTPS_PROXY|ALL_PROXY|NO_PROXY|http_proxy|https_proxy|all_proxy|no_proxy) exit 2;;
             esac
           done < <(compgen -e)
           export REDUE_CHECKED_SOURCE="$REVIEWED_SOURCE"
@@ -78,7 +78,7 @@ jobs:
           node --input-type=module <<'NODE'
           import {runFixedNativeStartupWitnessDiagnostic} from './test/acceptance/sealed-typescript-native-stdio-diagnostic.mjs';
           const scope='FIXED_SINGLE_DIRECT_NATIVE_CHILD_STARTUP_WITNESS_DIAGNOSTIC_ONLY';
-          const intendedSource='910bc6a97f41ca047037c6565ad90fd7d098f6b7',nativeVersion='2.1.187',nativeSha256='a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3',witnessInterpretation='native187-direct-bash-child-startup-witness@1';
+          const intendedSource='e7c3ea28dbb2a502d88f82c9f88a1850fdcf527d',nativeVersion='2.1.187',nativeSha256='a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3',witnessInterpretation='native187-direct-bash-child-startup-witness@1';
           const abort=new AbortController(),cancel=()=>abort.abort();
           for(const sig of ['SIGINT','SIGTERM','SIGHUP'])process.on(sig,cancel);
           try{
