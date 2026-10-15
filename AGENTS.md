@@ -19,6 +19,12 @@ not establish a host-policy denial. Diagnose account/permission facts without
 printing tokens; do not repeatedly substitute owner UI actions for an unexplained
 CLI failure. Global account switches, credential changes and scope expansion
 still require the standing owner authority; do not silently affect other projects.
+The reviewed existing-account alternative is a process-local `gh` credential:
+refuse inherited authentication/debug/host overrides, capture only the approved
+account's token in memory, pass it only to fixed noninteractive GitHub commands,
+and verify that same API identity/permissions before writes. Never log, save or
+pass it to Git, CI, model processes or artifacts; never mutate the shared default.
+This grants no new credential, scope or account authority.
 <!-- REDUE-DIRECTOR-LOOP:END -->
 
 ## Local shell safety

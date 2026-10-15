@@ -13,6 +13,34 @@ resource limits, history or the next acceptance outcome.
 
 
 
+## Current checkpoint — scoped GitHub access works; runner tool-pair variation established
+
+The per-process, independently reviewed DIR352 route uses only the existing personal
+`msiric` credential for fixed REDUE GitHub commands. It verifies the API identity and
+repository permissions without logging or saving the credential or changing the
+shared active account. Ordinary Git keeps its existing authentication route. A
+concurrent project had reset the shared default account, so another global switch
+is not the continuing solution. No owner UI dispatch is currently needed.
+
+Actual [run 38824095716](https://github.com/msiric/redue/actions/runs/38824095716)
+used reviewed workflow `dfc716e` / runtime `8acd443`. Both machines reported image
+`20261013.0424.1` and the earlier exact A tool pair, while this candidate requires
+B. They conservatively stopped at `NATIVE_COMPILER_BYTES`, before any C build,
+helper, native agent, model or receipt. This is not a compiler execution failure.
+Both results remain UNKNOWN; cleanup and public observations do not establish
+native enforcement, sealing, origin authority or reuse. Public records: 32,829B,
+SHA-256 `ff27d057d2a4a6cd5f0850a0353878a4211018c0b25f5002b25097145af3f84a`.
+
+The preceding run below observed exact B on both machines. Independent DIR353
+confirms the new A-versus-B refusal. Next is a bounded design review for fixed
+CI-only recognition of the two already-reviewed complete tuples, with original
+private profile binding and rejection of mixed or unknown tools. Do not flip a
+single pin and retry, admit a profile from logs, loosen guards, or raise deadlines.
+The integrated source remains `503b518`; affected sealed regressions are 5,097 PASS,
+12 explicit SKIP, zero FAIL. These local tests are not hosted acceptance.
+
+### Preserved previous checkpoint
+
 ## Current checkpoint — CLI dispatch restored; actual compiler guard identified
 
 Owner-approved selection of the existing personal`msiric` account restored normal

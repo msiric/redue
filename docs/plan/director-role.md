@@ -109,6 +109,14 @@ nonsecret effective-account/scope facts before calling it a host denial or askin
 for repeated UI actions. The2026-10-16 owner-approved switch restored normal CLI
 dispatch; it did not add credentials or permissions. Never print token values or
 silently change the shared active account when another project has selected it.
+DIR352 permits the documented process-local route for that already-approved stored
+account: refuse inherited `GH_TOKEN`, `GITHUB_TOKEN`, `GH_DEBUG`, `DEBUG` and
+`GH_HOST`; capture the exact account credential in memory only; supply it only to
+fixed, bounded, noninteractive `gh` subprocesses in a copied environment; verify
+`/user` and repository permissions using that same environment before writes.
+Never log/save it, mutate the global environment, or pass it to Git, CI, models or
+artifacts. Normal Git authentication remains a separate existing route. This
+avoids cross-project account races without expanding credential or trust scope.
 
 Ask the owner only for a real boundary decision or owner-only action: new cost,
 credential/login/2FA, broader trust/permissions, material scope or verification-meaning

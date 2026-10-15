@@ -411,3 +411,17 @@ owner-only actions. Preserve history and use the existing plan/tracker/goal.
 No acceptance gate, independent-review obligation, permission, trust scope, spending
 limit or publication authority is relaxed. Existing workers receive the update
 explicitly; no automatic hot-reload or future compliance guarantee is claimed.
+
+
+## D15 — Existing personal GitHub identity, process-local operation
+
+Owner-approved selection of `msiric` restored CLI writes on 2026-10-16; prior403s
+were from the active read-only corporate identity, not an established host denial.
+A concurrent project later changed the shared default. Independent DIR352 reviewed
+installed `gh 2.79.0` and its documented `auth token --hostname --user` plus
+`GH_TOKEN` precedence. The fixed, guarded in-memory per-process route in the
+[charter](director-role.md#blocker-triage) avoids another shared switch. It adds no
+credentials, scopes, accounts or cross-machine export and never passes the token
+to Git, CI or models. The normal Git route pushed the reviewed task branches;
+the scoped API dispatched run38824095716 once. That run failed its existing
+compiler guard; account access does not establish any product acceptance gate.
