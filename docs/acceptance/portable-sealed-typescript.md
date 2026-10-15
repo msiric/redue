@@ -13,7 +13,22 @@ Node22.13 profile. A local proposal cannot certify that profile or its enforceme
 Existing checks, configurations and receipts are never silently converted.
 The unreleased CLI now offers explicit pending selection, not executable evidence.
 
-## Current checkpoint — code-one format retained; fixed-marker attempt ready
+## Current checkpoint — native child witness remains UNKNOWN
+
+Run38729509357, workflow `fb93787` / runtime `b812589`, did not establish helper
+completion, native sealing or portable reuse. Independent DIR164 accepts only
+UNKNOWN: raw string/error result, format-derived code1 and five literal markers
+do not establish cause, ordering or a valid result. Outer native exit0 and cleanup
+are not checker success. Duplicate38733430874 was cancelled before native execution.
+DIR165 rules out the proposed absent-temp first-use ordering defect by source;
+no actual denial cause or justified permission change follows.
+
+The fixed-marker diagnostic approach is stopped under its declared stopping rule.
+Exact identities/timings and remaining gates are in the [current tracker](../plan/portable-evidence-tracker.md#current-checkpoint--fixed-marker-attempt-unknown-diagnostic-loop-stopped).
+No new attempt is queued; earlier scoped six-check PASS remains local/hosted
+synthetic evidence only, not this child witness or G2 acceptance.
+
+## Historical checkpoint — code-one format retained; fixed-marker attempt ready
 
 2026-10-15: [run38724609993](https://github.com/msiric/redue/actions/runs/38724609993)
 used workflow9239/runtimee7c3, attempt1. Independent158 ACCEPT_SCOPE retains UNKNOWN:

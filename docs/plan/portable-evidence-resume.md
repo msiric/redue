@@ -7,7 +7,25 @@ existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
 
-## Current checkpoint — code-one format retained; fixed-marker attempt ready
+## Current checkpoint — diagnostic loop stopped; no new attempt queued
+
+Actual run38729509357 is independently UNKNOWN (DIR164), not enforcement or reuse.
+See the [current tracker](portable-evidence-tracker.md#current-checkpoint--fixed-marker-attempt-unknown-diagnostic-loop-stopped)
+for exact report/log identities, timings, five marker observations and limitations.
+Duplicate38733430874 was cancelled before native execution. DIR165 source audit
+ruled out the absent-temp first-use hypothesis; no permission/fixture repair is
+justified. Do not repeat the fixed-marker approach or grow its vocabulary.
+
+Integration remains `dev/portable-sealed-typescript`, reviewed runtime `b812589`;
+workflow branch `dev/portable-claude-diagnostic` remains at `fb93787`. There is no
+active model/watch/writer. DIR166 read-only independent audit found no useful safe
+production task independent of the unresolved enforcement boundary. Next is a
+focused feasibility review before any new native attempt, not a rerun. No demonstrated
+owner permission change fixes this UNKNOWN. Preserve prior records and frozen
+alpha.11; all gates remain incomplete. Copilot Actions included-capacity is a
+separate pending external fact. No additional owner run is requested.
+
+## Historical checkpoint — code-one format retained; fixed-marker attempt ready
 
 2026-10-15: [run38724609993](https://github.com/msiric/redue/actions/runs/38724609993)
 used workflow9239/runtimee7c3, attempt1. Independent158 ACCEPT_SCOPE retains UNKNOWN:

@@ -4,7 +4,41 @@ Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revisio
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
 
-## Current checkpoint — code-one format retained; fixed-marker attempt ready
+## Current checkpoint — fixed-marker attempt UNKNOWN; diagnostic loop stopped
+
+2026-10-15: [run38729509357](https://github.com/msiric/redue/actions/runs/38729509357)
+completed on workflow `fb93787f15477877b1815fc7f32e78c295a5d2ad`, runtime
+`b812589ae7741e506e89bde90e4e33c83624647f`. Independent DIR164 ACCEPT_SCOPE
+retains UNKNOWN / RAW_SHAPE_INVALID. The matching result has a raw string and
+item.is_error=true, with format-derived code1; five fixed markers occur: operationNotPermitted, bashPath,
+nativeTmpPrefix, cwdLeaf and helperMetadataScope. These establish no ordering,
+causal association, valid helper metadata or helper completion. Native exit0/reap
+is the outer process outcome, not a checker PASS. No seal or reuse is established.
+
+Native13,893.072ms / controller21,739.066ms; no timeout. Source/currentness and both
+proxy guards,331 source/mock tests and owned cleanup passed. Report6,031 bytes
+SHA256 `bc9f7ddfa73579aa56100bbb7f730259db99ba6c23ed0e901b11e3298fb00505`;
+redacted log325,490 bytes SHA256
+`d6046c58225e2c60dcf41c9690c219480a1e1d8f0f3cd7d0b7bfdf85d3fd0ceb`.
+Duplicate38733430874 was cancelled before native execution; it adds no acceptance.
+All prior failures/unknowns and immutable evidence are retained privately.
+
+DIR165 source-only audit rules out absent native-temp first-use ordering as the
+cause: mE creates/checks the directory before XF canonicalization; Xae also calls
+get→mE before constructing/sandboxing the command. Later deletion/canonicalization
+failure remains unobserved. No fixture-precreation or broader permission is justified.
+
+The declared stopping rule now applies: no more marker growth or unchanged retries.
+DIR166 independent source audit identifies no useful safe production task that
+can complete without the unresolved enforcement boundary. Materialization is not
+sealing; pending CLI execution and portable origin authority remain refused. The
+next technical decision is focused native-boundary feasibility review, not another
+marker expansion or workflow attempt. No demonstrated owner permission change
+fixes the UNKNOWN. No new model/CI attempt is scheduled.
+G0partial/G1–G4 incomplete; Copilot Actions capacity separately pending; alpha.11
+unpublished. Day0 and the fixed pilot remain unchanged.
+
+## Historical checkpoint — code-one format retained; fixed-marker attempt ready
 
 2026-10-15: [run38724609993](https://github.com/msiric/redue/actions/runs/38724609993)
 used workflow9239/runtimee7c3, attempt1. Independent158 ACCEPT_SCOPE retains UNKNOWN:
