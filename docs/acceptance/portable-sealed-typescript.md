@@ -91,9 +91,19 @@ Both results are retained, not retried. Public records9,847B SHA256
 DIR337 independently diagnoses the existing call path before correction or a budget
 request; no timeout increase, profile relaxation or new model follows.
 
-DIR333 accepts frozen CI command/startup adapters`ced92b6` (not yet integrated).
-DIR334 froze the next fixed CI native route at`4664ba4`; DIR338 reviews it in an
-isolated exact checkout. It remains unexecuted regardless of source/mock success.
+DIR333 independently accepts CI command/startup adapters`ced92b6`; DIR338
+independently accepts the fixed CI native route`4664ba4` in its isolated exact
+checkout. Both are integrated and pushed at`5d72b67`. Root affected source/mock
+acceptance675 PASS/4 explicit SKIP/0 FAIL; TAP SHA256
+`d1be90435f60cb99272e06efda81f97c7bbd49c3ae7b714639649bab01d1b518`.
+DIR338 additionally checked102 protocol/FAIL-retention cases. These are source/mock
+results only; the native route remains unexecuted. DIR337's completed diagnosis
+confirms repeated validation but cannot attribute its individual cost or the
+producer's exact guard. DIR339 now owns a bounded fixed CI-only stage/cost capture,
+including its parent prefix handling and affected bindings/tests. Guards, deadlines
+and local/native behavior remain unchanged. The next actual attempt will capture
+public paired identities and preparation diagnostics together after exact review;
+no unchanged retry, profile admission or timeout increase is authorized by diagnosis.
 The producer, signing and trust scope remains unchanged. Actual SDK/
 native enforcement, sealed origin and final cross-agent/two-machine reuse are
 not established by these source/mock tests. All model preconditions remain gated.
