@@ -13,7 +13,7 @@ import {verifySealedTypeScriptBaseCollectorCopies,sealedTypeScriptBaseCollectorC
 import {buildSealedTypeScriptNativeAssets,buildSealedTypeScriptNativeAssetsForReviewedCI,verifySealedTypeScriptNativeAssetsBuild,observeSealedTypeScriptNativeAssetsBuild,sealedAssetsBuildCompleted,sealedAssetsBuildProcessSummary,sealedTypeScriptNativeAssetsBuildOriginalInputs} from './sealed-typescript-native-assets-build.mjs';
 import {verifySealedTypeScriptPairedStageSource,sealedTypeScriptPairedStageSourceMatchesDerivation} from './sealed-typescript-paired-stage-source.mjs';
 import {verifySealedTypeScriptFixedCampaignCopies,sealedTypeScriptFixedCampaignCopiesMatchDerivation,sealedTypeScriptFixedCampaignCopiesOriginalInputs} from './sealed-typescript-fixed-campaign-copies.mjs';
-import {prepareSealedTypeScriptFixedCampaignLauncherSource,verifySealedTypeScriptFixedCampaignLauncherSource} from './sealed-typescript-fixed-campaign-launcher-source.mjs';
+import {prepareSealedTypeScriptFixedCampaignLauncherSource,prepareSealedTypeScriptFixedCampaignLauncherSourceForReviewedCI,verifySealedTypeScriptFixedCampaignLauncherSource} from './sealed-typescript-fixed-campaign-launcher-source.mjs';
 import {mark as profileMark,profiling} from '../../src/decision-profile.mjs';
 const mintedAssets=new WeakMap();
 const activeBaseAssetsObservations=new WeakMap();
@@ -50,7 +50,7 @@ function buildFixedBaseAssets(options,ci){
   // Later row hashing/boundaries must not hide a changed earlier new file.
   // This is an observed metadata barrier, not atomic hostile-writer protection.
   for(const row of [source,binary])namedCurrent(row);
-  mintedRecord={pair,hostFixture,hostBuild,prepareProposal,initialPair,roots,source,binary};
+  mintedRecord={pair,hostFixture,hostBuild,prepareProposal,ci,initialPair,roots,source,binary};
   report={base,source:{file,sha256:source.digest,mark:source.mark,lineage:source.lineage},binary:{file:output,sha256:binary.digest,mark:binary.mark,lineage:binary.lineage},templateSha256:rendered.templateSha256};
  }catch{/* Only static phase codes and actual process summaries escape. Partial H remains. */}
  const result=freeze({schema:1,scope:'OBSERVED_BASE_EXCHANGE_BUILD_DATA_ONLY',outcome:report?'BUILT_NOT_EXECUTED':'UNKNOWN',reason_code:report?'BUILT_NOT_EXECUTED':reason,report,builds,dispatchAttemptCount:hostDispatchAttempts===null?null:hostDispatchAttempts+thirdDispatchAttempts,dispatchResultCount:builds.length,observedProcessCount:builds.filter(row=>row.pidObserved===true).length,commands:[],compilerCheckExecutions:0,helperExecutions:0,nativeAgentLaunches:0,models:0,sealed:false,reuseEligible:false});
@@ -99,6 +99,16 @@ export function observeSealedTypeScriptBaseExchangeAssets(build,inspect){
  }catch(error){operation.failed=true;record.invalid=true;throw error;}finally{active=false;operation.enabled=false;operation.nativeBarrier=null;activeBaseAssetsObservations.delete(build);}
 }
 
+
+// Identity/definition only, NOT currency or adoption. No caller label or path
+// selects a profile. Source consumers retain their own currentness barriers.
+export function sealedTypeScriptBaseExchangeAssetsFixtureProfile(assetsBuild){
+ const original=mintedAssets.get(assetsBuild);if(arguments.length!==1||!original||original.invalid)return null;
+ return original.ci===false&&original.prepareProposal===prepareSealedTypeScriptNativeAssetsProposal?'fixed-native-assets-local-sdk27@1':original.ci===true&&original.prepareProposal===prepareSealedTypeScriptNativeAssetsProposalForReviewedCI?'fixed-native-assets-ci-sdk26.5-toolpair-a@1':null;
+}
+
+// Original host binding only; this does not establish root currency.
+export function sealedTypeScriptBaseExchangeAssetsMatchHostBase(assetsBuild,hostBase){const original=mintedAssets.get(assetsBuild);return arguments.length===2&&!!original&&!original.invalid&&typeof hostBase==='string'&&original.roots[2][0]===hostBase;}
 
 // Same fixed proposal definition selected by the ORIGINAL asset mint, bound
 // to its ORIGINAL pair only. Public labels cannot choose a compiler profile.
@@ -393,7 +403,7 @@ export function buildSealedTypeScriptFixedCampaignLauncher(options){
   guard(template.source.split(old.entry).length===2&&template.source.split(old.launcher).length===2);
   // Campaign-only source/SDK derivation; the old collector template remains
   // unchanged and current as an original private dependency, never selected.
-  const launcherSourceProposal=prepareSealedTypeScriptFixedCampaignLauncherSource({hostBase:h});
+  guard(original.ci===true||original.ci===false);const launcherSourceProposal=original.ci?prepareSealedTypeScriptFixedCampaignLauncherSourceForReviewedCI({hostBase:h,assetsBuild}):prepareSealedTypeScriptFixedCampaignLauncherSource({hostBase:h});
   guard(launcherSourceProposal.scope==='DISABLED_FIXED_CAMPAIGN_LAUNCHER_SOURCE_DATA_ONLY'&&launcherSourceProposal.disabled===true&&launcherSourceProposal.version==='campaign-stdio-only-setexec@1'&&launcherSourceProposal.bindings.node===node&&launcherSourceProposal.bindings.entry===entry&&launcherSourceProposal.bindings.launcher===output&&launcherSourceProposal.templateSha256==='7bef186e33e3d4ed3c2e7588632e3d808c4fba11a9949abe7324031a719ff90c');
   const text=launcherSourceProposal.source,sourceSha256=sha(text),sourceBytes=Buffer.byteLength(text);guard(sourceSha256===launcherSourceProposal.sourceSha256&&sourceBytes===launcherSourceProposal.sourceBytes&&sourceBytes>0&&sourceBytes<=65536&&!/__REVIEWED_[A-Z_]+__/.test(text));candidate.launcherSourceProposal=launcherSourceProposal;
   const roots=[initial.assets.baseA,initial.assets.baseB,h,h+'/prefix',h+'/prefix/native-probes'].map(at=>[at,rootIdentity(at)]);Object.assign(candidate,{before,roots});campaignLauncherBoundary(candidate);
