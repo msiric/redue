@@ -14,7 +14,7 @@ import {
 } from './acceptance/sealed-typescript-enclosure-provisioning.mjs';
 const source=fs.readFileSync(new URL('./acceptance/sealed-typescript-enclosure-provisioning.mjs',import.meta.url),'utf8');
 const localProfile='fixed-enclosure-preparation-local-sdk27@2';
-const ciProfile='fixed-enclosure-preparation-ci-sdk26.5-toolpair-b@1';
+const ciProfile='fixed-enclosure-preparation-ci-sdk26.5-reviewed-toolpairs@1';
 const fixtureProfile='fixed-native-assets-ci-sdk26.5-toolpair-b@1';
 const buildProfile='fixed-enclosure-ci-sdk26.5-toolpair-b@1';
 const nodeSHA='5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc';
@@ -35,6 +35,7 @@ function fixture(ci=true){
  method('createHost',()=>refs.host={...outcome('CI_SYNTHETIC_BOOTSTRAP_PREPARED'),base:'/private/tmp/redue-ci-recipient-33333333'});
  method('prepareHostFixture',host=>{assert.equal(host,refs.host);return refs.fixture=outcome('SYNTHETIC_FIXTURE_PREPARED');});
  method('buildAssets',options=>{assert.equal(options.pair,refs.pair);assert.equal(options.hostFixture,refs.fixture);return refs.assets=build(3);});
+ method('assetsProfile',assets=>{assert.equal(assets,refs.assets);return state.assetProfile??fixtureProfile;});
  method('verifyAssets',assets=>{assert.equal(assets,refs.assets);return outcome('BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED');});
  method('preparePairedSource',options=>{assert.equal(options.pair,refs.pair);assert.equal(options.assetsBuild,refs.assets);return refs.pairedSource={...flags,disabled:true};});
  method('buildPaired',options=>{assert.equal(options.assetsBuild,refs.assets);assert.equal(options.source,refs.pairedSource);return refs.paired=build(2);});
@@ -81,7 +82,7 @@ test('fixed CI mock path reuses all nineteen phases/eight builds without changin
  const local=fixture(false),ci=fixture(),a=await localObserve(local.options),b=await ciObserve(ci.options);
  assert.equal(a.profile,localProfile);assert.equal(b.profile,ciProfile);
  assert.equal(a.outcome,'BUILT_NOT_EXECUTED');assert.equal(b.outcome,'BUILT_NOT_EXECUTED');
- assert.deepEqual({...b,profile:a.profile},a);assert.deepEqual(ci.calls,local.calls);
+ assert.deepEqual((({selectedToolPair,...rest})=>({...rest,profile:a.profile}))(b),a);assert.equal(b.selectedToolPair,'B');assert.deepEqual(ci.calls.filter(name=>name!=='assetsProfile'),local.calls);assert.equal(ci.calls.filter(name=>name==='assetsProfile').length,1);
  assert.equal(b.phases.length,19);assert.equal(b.buildAttemptCount,8);
  assert.equal(b.buildResultCount,8);assert.equal(b.observedProcessCount,8);
  assert.equal(b.compilerBuildOutcome,'EXIT_ZERO');assert.equal(b.newFileDigests.length,6);
@@ -215,10 +216,18 @@ test('source-extracted CI capture failures return no token and never touch the a
  }
 });
 
-test('retired A source/build markers cannot satisfy the fixed B preparation even after successful mock builds',async()=>{
+test('mismatched A source/build markers cannot satisfy an original B preparation even after successful mock builds',async()=>{
  for(const part of ['source','build']){const m=fixture();
   if(part==='source'){const before=m.operations.prepareEnclosure;m.operations.prepareEnclosure=(...args)=>({...before(...args),fixtureProfileId:'fixed-native-assets-ci-sdk26.5-toolpair-a@1'});}
   else{const before=m.operations.buildEnclosure;m.operations.buildEnclosure=(...args)=>{const value=before(...args);return {...value,report:{...value.report,profileId:'fixed-enclosure-ci-sdk26.5-toolpair-a@1'}};};}
   const result=await ciObserve(m.options);assert.equal(result.outcome,'UNKNOWN');assert.equal(result.failedPhase,part==='source'?'enclosureSource':'finalValidation');noAuthority(result);
  }
+});
+
+test('fixed CI preparation binds either exact original pair and refuses unknown original profile',async()=>{
+ for(const pair of ['A','B']){const m=fixture(),id='fixed-native-assets-ci-sdk26.5-toolpair-'+pair.toLowerCase()+'@1';m.state.assetProfile=id;
+  const before=m.operations.prepareEnclosure;m.operations.prepareEnclosure=(...args)=>{const result=before(...args);result.fixtureProfileId=id;return result;};const build=m.operations.buildEnclosure;m.operations.buildEnclosure=(...args)=>{const result=build(...args);return {...result,report:{...result.report,profileId:'fixed-enclosure-ci-sdk26.5-toolpair-'+pair.toLowerCase()+'@1'}};};
+  const result=await ciObserve(m.options);assert.equal(result.outcome,'BUILT_NOT_EXECUTED');assert.equal(result.selectedToolPair,pair);assert.equal(result.buildAttemptCount,8);noAuthority(result);
+ }
+ const m=fixture();m.state.assetProfile='UNREVIEWED';const result=await ciObserve(m.options);assert.equal(result.outcome,'UNKNOWN');assert.equal(result.selectedToolPair,null);assert.equal(result.failedPhase,'prerequisiteBuilds');noAuthority(result);
 });

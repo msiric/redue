@@ -28,14 +28,14 @@ import subprocess
 import sys
 import uuid
 
-INNER_SHA256 = "6f06b1df629264415c2b2d11118bde08dbf4c068339e5abcd4d6a0847310dd2c"
+INNER_SHA256 = "4da7e0cdadbc5778ce232ae65ec7b54deb2c779b42330b876d7d990cc82b12b9"
 ENCLOSURE_REFUSAL_STAGES = ("OPTIONS", "ORIGINAL_DERIVATION", "PREPARED_NULL_CURRENT", "INITIAL_ORIGINAL_CURRENT", "PROJECTION_INTERPRETATION", "CAMPAIGN_RENDER", "DERIVED_BINDINGS", "COLLECTOR_FUNCTION_PIN", "C_TEMPLATE_READ", "COLLECTOR_TEMPLATE_READ", "LAUNCHER_REBIND", "ENCLOSURE_REBIND", "FINAL_ORIGINAL_CURRENT", "SOURCE_RESULT")
 ORIGINAL_CURRENT_REFUSAL_STAGES = ("DERIVATION", "PROJECTION_CURRENT", "PREPARED_NULL_CURRENT", "PROJECTION_RESULT", "PREPARED_NULL_RESULT", "C_SOURCE_READ", "C_SOURCE_IDENTITY", "COLLECTOR_SOURCE_READ", "COLLECTOR_SOURCE_IDENTITY", "C_SOURCE_NAMED", "COLLECTOR_SOURCE_NAMED")
 NODE_SHA256 = "5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc"
 ENTRY_NAME = "sealed-typescript-enclosure-provisioning.mjs"
 SCOPE = "FIXED_ENCLOSURE_PREPARATION_PARENT_ONLY"
 CI_SCOPE = "FIXED_CI_ENCLOSURE_PREPARATION_PARENT_ONLY"
-CI_PROFILE = "fixed-enclosure-preparation-ci-sdk26.5-toolpair-b@1"
+CI_PROFILE = "fixed-enclosure-preparation-ci-sdk26.5-reviewed-toolpairs@1"
 PARENT_SOURCE_LIMIT = 131072  # Only this owned, reviewed Python source file.
 NATIVE_ENTRY_NAME = "sealed-typescript-native-enclosure-child.mjs"
 NATIVE_ENTRY_SHA256 = "df04570a11118380c07d1fe55576ca7ba81c7061caefd71b1a66d8691e39da03"
@@ -49,26 +49,26 @@ NATIVE_SOURCE_PINS = (
 NATIVE_SEALED_SOURCE_PINS = (
     ("base-collector-copies.mjs", "70b129684c8896e7f7e1c4b134b46a29f9f84818f10c8b7e65a094b1579cc699"),
     ("base-collector-source.mjs", "88b60905f59af6aedf62d80492bacc8e60ee8c58b1ed45d2abeed4c03a19c421"),
-    ("base-exchange-assets.mjs", "e5fedf80b9868678c2bd16b2a792d29c4c0addddb823d96c2ad1ad2076ecf446"),
+    ("base-exchange-assets.mjs", "2556ec45cacfd05e5ef06e69f2c75eee5f49ae804c20f9baa7e4011d3ce7a5e6"),
     ("base-exchange-pair.mjs", "1eb18eaa4768ece210afcdea400d88fedf1408adf7ffec4caf190109ae403196"),
     ("base-exchange-result.mjs", "be2d30edf40597f52a6a9e919b5a3ee26e15bf0dc9f942badda0fb54db10b05d"),
     ("base-exchange-source.mjs", "1a66abed15ecff05ee41266ff3e3a5230fc109164a0e74ecafce83525d1c16f6"),
     ("claude-policy.mjs", "d19957530cd238ea2f1b3b7b7ae95f5d7ccc65f457fb3763edef85a1e844407d"),
     ("closed-read-policy.mjs", "d171a31ea942d81f7f93134a26f73bf0b1ccb826edf9bcb878debd82f3397f3d"),
-    ("enclosure-provisioning.mjs", "6f06b1df629264415c2b2d11118bde08dbf4c068339e5abcd4d6a0847310dd2c"),
+    ("enclosure-provisioning.mjs", "4da7e0cdadbc5778ce232ae65ec7b54deb2c779b42330b876d7d990cc82b12b9"),
     ("fixed-campaign-copies.mjs", "06380846f206a66100c7b5216f969ae55fc8ee2188449e8183e81f8827132a59"),
     ("fixed-campaign-enclosed-collector.mjs", "a15fee9374767e14483575264bcfa85732d90eab503c8a1f2b770c5156395878"),
-    ("fixed-campaign-enclosure-build.mjs", "cb780da9a1f3a0be9a213a44102ab58afc06d230332a01f2c5a6bd62e7084af4"),
-    ("fixed-campaign-enclosure-source.mjs", "725c96b4b7f777b487982a3c85a095ccaa2c9deb4d0794cd835bceda7cb5ba9a"),
-    ("fixed-campaign-launcher-source.mjs", "e0ebf158ee7d05f08d6d838420c73ea681e321802cadbf40201cbf56403cd5e4"),
-    ("fixed-campaign-prepared-null-source.mjs", "02bdf659cf83a5fc556e72ef6c2489a821fe66f423c1d4224cb7990ce79a16c9"),
+    ("fixed-campaign-enclosure-build.mjs", "cdb97e1d9537e8038041263d712c65d53b31f1fe01f0b21f0e909a8f455f8d2f"),
+    ("fixed-campaign-enclosure-source.mjs", "bd7db4ebc91fc4889980c3b7c3c725d17301374b24dcb2511c5546c06e811708"),
+    ("fixed-campaign-launcher-source.mjs", "b4aaec106012e612fc8f2602ca2e6bc9d2ea4c6eeeb89b79fd810e89499bb1a9"),
+    ("fixed-campaign-prepared-null-source.mjs", "fbbab8a59c8f561b536dd5bf69ab486795fb4c52fa261206eb6d5dee08d68628"),
     ("fixed-campaign.mjs", "9984ffa1719401dd5cf3ab2b10313d8e9606524fac361905d31fb14172860f21"),
     ("map-result.mjs", "d19e3d1f33394b74c2771207d24ed3697ba1665e1e0d5f49564ecb80e0dcce13"),
-    ("native-assets-build.mjs", "ef1e73bf036e766c6718d62816e0c4d703fce7e06e5a2060596dc49d1e358301"),
-    ("native-assets-proposal.mjs", "e66016eeee8f58bc445e4b7d6fc0f9ec12d1bbbe809d28c4a27e169ac7ce4828"),
+    ("native-assets-build.mjs", "bc4487243c662285edb334487b4313997d74a7af048415ed0744d62d49ed7f13"),
+    ("native-assets-proposal.mjs", "0230cdb42a39c9d5f54107466fea0fa431986fdf54277f3083db96759f266bad"),
     ("native-base-command.mjs", "fd34d5ad1eb2f252c18aaa3130dd3db08c7f03fdf6e7f17b1b0db0ea63a12a14"),
-    ("native-enclosure-command.mjs", "3b4f7b19c32c19165bf5f8e59ee3f6b2d9e3d46e358aa2d8db0fa331dc936fc1"),
-    ("native-enclosure-startup.mjs", "33e6db9d25e701444cd591a9cd3fbe924f97b9b7fd36b29847cfd7d5e9a71ec6"),
+    ("native-enclosure-command.mjs", "6ed0eade1f974639b266e32f0dbcb3c72109fa04b53d4a874b74880999c09311"),
+    ("native-enclosure-startup.mjs", "4df4c88d5d7873343cb544a34ada40bf203e7dee2476ea911d58b7f4c8ec0168"),
     ("native-enclosure-trace.mjs", "e03ef28fe63604a182e897933a50cf1300ced7c7244174ed25e023ab5b0a866e"),
     ("native-startup-witness.mjs", "61eeb17831e5b2641078bb520a42b8baa81d74f0cb0e5a7695cf0b306eb3439f"),
     ("native-stdio-build.mjs", "2056ac09bccde1e7ec1f053a389bc05f2f08f696c9152ab5ea452e75cbd9f3e9"),
@@ -212,6 +212,8 @@ def parse_inner(body, _ci=False):
     require(0 < len(body) <= 65536 and body.endswith(b"\n") and body.count(b"\n") == 1)
     value = json.loads(body, object_pairs_hook=unique)
     expected = {"schema", "scope", "profile", "bodyBudgetMs", "cleanupBudgetMs", "totalBudgetMs", "outcome", "reason_code", "failedPhase", "enclosureSourceRefusal", "originalCurrentRefusal", "phases", "ownedRootNames", "builds", "buildAttemptCount", "buildResultCount", "observedProcessCount", "compilerBuildOutcome", "newFileDigests", "elapsedMs", "privateMints", "newCodeCurrentness", "nativeIntervalBarrier", "completeSdkClosure", "preMainLoader", *_FALSE.keys()}
+    if _ci:
+        expected.add("selectedToolPair")
     require(type(value) is dict and set(value) == expected and value["schema"] == 1
             and type(value["schema"]) is int and value["scope"] == "FIXED_ENCLOSURE_PROVISIONING_OBSERVATION_ONLY"
             and value["profile"] == (CI_PROFILE if _ci else "fixed-enclosure-preparation-local-sdk27@2")
@@ -219,6 +221,9 @@ def parse_inner(body, _ci=False):
             and type(value["cleanupBudgetMs"]) is int and value["cleanupBudgetMs"] == 5000
             and type(value["totalBudgetMs"]) is int and value["totalBudgetMs"] == 65000
             and value["outcome"] in ("BUILT_NOT_EXECUTED", "UNKNOWN"))
+    if _ci:
+        require(value["selectedToolPair"] is None or type(value["selectedToolPair"]) is str and value["selectedToolPair"] in ("A", "B"))
+        require(value["outcome"] != "BUILT_NOT_EXECUTED" or value["selectedToolPair"] is not None)
     require(all(type(value[k]) is type(v) and value[k] == v for k, v in _FALSE.items()))
     require(value["privateMints"] == "PROCESS_LOCAL_NOT_ADOPTABLE_FROM_REPORT"
             and value["newCodeCurrentness"] == "PRE_NATIVE_ENDPOINTS_ONLY"
@@ -265,6 +270,9 @@ def parse_inner(body, _ci=False):
     require(value["buildResultCount"] == len(value["builds"]) <= value["buildAttemptCount"]
             and value["observedProcessCount"] == sum(row["pidObserved"] for row in value["builds"])
             and value["compilerBuildOutcome"] == recorded_build_outcome(value["builds"]))
+    if _ci and value["selectedToolPair"] is not None:
+        require(len(value["builds"]) >= 3 and len(value["phases"]) >= 5
+                and all(row["pidObserved"] and row["completed"] and row["status"] == 0 and row["signal"] is None and row["spawnError"] == "NONE" for row in value["builds"][:3]))
     require(type(value["newFileDigests"]) is list and len(value["newFileDigests"]) <= 6)
     for row in value["newFileDigests"]:
         require(type(row) is dict and set(row) == {"index", "sha256"}
@@ -1170,12 +1178,15 @@ def ci_public_summary(report, reason=None, record=None, digest=None):
                 and report.get("finalSourceCurrentness") == "ENDPOINTS_OBSERVED")
     if reason is None and report.get("outcome") == "BUILT_NOT_EXECUTED" and inner is not None and not complete:
         current_reason = "POST_COLLECTION_UNAVAILABLE"
+    pair = inner["selectedToolPair"] if inner is not None else None
+    fixture_profile = {"A": "fixed-native-assets-ci-sdk26.5-toolpair-a@1", "B": "fixed-native-assets-ci-sdk26.5-toolpair-b@1"}.get(pair)
+    build_profile = {"A": "fixed-enclosure-ci-sdk26.5-toolpair-a@1", "B": "fixed-enclosure-ci-sdk26.5-toolpair-b@1"}.get(pair)
     value = {"schema": 1, "scope": CI_SCOPE, "summaryInterpretation": "fixed-ci-enclosure-preparation-summary@1",
-             "profile": CI_PROFILE, "expectedBuildProfile": "fixed-enclosure-ci-sdk26.5-toolpair-b@1",
-             "expectedFixtureProfile": "fixed-native-assets-ci-sdk26.5-toolpair-b@1", "expectedSourceVersion": "fixed-canary-finite-enclosure-source@2",
+             "profile": CI_PROFILE, "selectedToolPair": pair, "expectedBuildProfile": build_profile,
+             "expectedFixtureProfile": fixture_profile, "expectedSourceVersion": "fixed-canary-finite-enclosure-source@2",
              "sourceVersionObserved": "fixed-canary-finite-enclosure-source@2" if "enclosureSource" in completed else None,
-             "fixtureProfileObserved": "fixed-native-assets-ci-sdk26.5-toolpair-b@1" if "enclosureSource" in completed else None,
-             "buildProfileObserved": "fixed-enclosure-ci-sdk26.5-toolpair-b@1" if "finalValidation" in completed else None,
+             "fixtureProfileObserved": fixture_profile if "enclosureSource" in completed else None,
+             "buildProfileObserved": build_profile if "finalValidation" in completed else None,
              "outcome": "BUILT_NOT_EXECUTED" if complete else "UNKNOWN",
              "reason_code": current_reason, "record": filename, "sha256": digest if filename is not None else None,
              "enclosureSourceRefusal": inner["enclosureSourceRefusal"] if inner is not None else None,
