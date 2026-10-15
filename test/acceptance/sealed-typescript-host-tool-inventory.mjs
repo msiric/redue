@@ -5,9 +5,9 @@ import {createHash} from 'node:crypto';import {spawnSync} from 'node:child_proce
 import {fileURLToPath} from 'node:url';
 const guard=(x,reason)=>{if(!x){const error=Error('PUBLIC_TOOL_INVENTORY_UNKNOWN');if(reason)error.inventoryGuard=reason;throw error;}};
 const mark=s=>['dev','ino','uid','gid','mode','nlink','size','mtimeNs','ctimeNs'].map(k=>String(s[k])).join(':');
-function lineage(file,rootOnly=false){const rows=[];for(let at=path.dirname(file);;at=path.dirname(at)){const s=fs.lstatSync(at,{bigint:true});guard(s.isDirectory()&&!s.isSymbolicLink());if(rootOnly){guard(s.uid===0n,'OWNER_MISMATCH');guard((s.mode&0o22n)===0n,'PERMISSIONS_UNSUPPORTED');}rows.push([at,['dev','ino','uid','gid','mode'].map(k=>String(s[k])).join(':')]);if(at===path.dirname(at))return rows;}}
-function publicFile(file,owner,limit,result={}){
- result.observationPhase='CANONICAL_PATH';result.metadata={canonicalMatch:fs.realpathSync(file)===file};guard(result.metadata.canonicalMatch,'NON_CANONICAL');
+function lineage(file,rootOnly=false,tick=()=>{}){const rows=[];for(let at=path.dirname(file);;at=path.dirname(at)){tick();const s=fs.lstatSync(at,{bigint:true});guard(s.isDirectory()&&!s.isSymbolicLink());if(rootOnly){guard(s.uid===0n,'OWNER_MISMATCH');guard((s.mode&0o22n)===0n,'PERMISSIONS_UNSUPPORTED');}rows.push([at,['dev','ino','uid','gid','mode'].map(k=>String(s[k])).join(':')]);if(at===path.dirname(at))return rows;}}
+function publicFile(file,owner,limit,result={},tick=()=>{},retained){
+ tick();result.observationPhase='CANONICAL_PATH';result.metadata={canonicalMatch:fs.realpathSync(file)===file};guard(result.metadata.canonicalMatch,'NON_CANONICAL');
  result.observationPhase='FILE_METADATA';const s=fs.lstatSync(file,{bigint:true});
  result.metadata={...result.metadata,type:s.isSymbolicLink()?'SYMLINK':s.isFile()?'REGULAR_FILE':s.isDirectory()?'DIRECTORY':'OTHER',
   byteSize:s.size>=0n&&s.size<=BigInt(Number.MAX_SAFE_INTEGER)?Number(s.size):null,
@@ -15,15 +15,15 @@ function publicFile(file,owner,limit,result={}){
   permissionsAccepted:(s.mode&0o6022n)===0n,size:s.size<=0n?'EMPTY_OR_INVALID':s.size>BigInt(limit)?'OVER_LIMIT':'WITHIN_LIMIT'};
  guard(s.isFile()&&!s.isSymbolicLink(),'FILE_TYPE_UNSUPPORTED');guard(s.uid===BigInt(owner),'OWNER_MISMATCH');guard(s.nlink===1n,'LINK_COUNT_UNSUPPORTED');
  guard((s.mode&0o6022n)===0n,'PERMISSIONS_UNSUPPORTED');guard(s.size>0n&&s.size<=BigInt(limit),'SIZE_UNSUPPORTED');
- result.observationPhase='ANCESTOR_METADATA';const before=lineage(file);
+ result.observationPhase='ANCESTOR_METADATA';const before=lineage(file,false,tick);
  result.observationPhase='OPEN_READ_ONLY';const fd=fs.openSync(file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK),hash=createHash('sha256');result.fdClose='NOT_OBSERVED';
  try{result.observationPhase='START_FD_IDENTITY';guard(mark(s)===mark(fs.fstatSync(fd,{bigint:true})),'OPEN_FD_IDENTITY_CHANGED');
-  result.observationPhase='BODY_HASH';const bytes=Buffer.alloc(65536);let at=0;while(at<Number(s.size)){const asked=Math.min(bytes.length,Number(s.size)-at),n=fs.readSync(fd,bytes,0,asked,at);guard(Number.isInteger(n)&&n>0&&n<=asked,'BODY_READ_INVALID');hash.update(bytes.subarray(0,n));at+=n;}
-  result.observationPhase='CLOSING_FD_IDENTITY';guard(mark(s)===mark(fs.fstatSync(fd,{bigint:true})),'CLOSING_FD_IDENTITY_CHANGED');
+  result.observationPhase='BODY_HASH';const bytes=Buffer.alloc(65536);let at=0;while(at<Number(s.size)){tick();const asked=Math.min(bytes.length,Number(s.size)-at),n=fs.readSync(fd,bytes,0,asked,at);guard(Number.isInteger(n)&&n>0&&n<=asked,'BODY_READ_INVALID');hash.update(bytes.subarray(0,n));at+=n;}
+  tick();result.observationPhase='CLOSING_FD_IDENTITY';guard(mark(s)===mark(fs.fstatSync(fd,{bigint:true})),'CLOSING_FD_IDENTITY_CHANGED');
  }finally{fs.closeSync(fd);result.fdClose='CLOSED';}
- result.observationPhase='CLOSING_NAME_IDENTITY';guard(mark(s)===mark(fs.lstatSync(file,{bigint:true})),'CLOSING_NAME_IDENTITY_CHANGED');
- result.observationPhase='CLOSING_ANCESTOR_IDENTITY';guard(JSON.stringify(before)===JSON.stringify(lineage(file)),'CLOSING_ANCESTOR_IDENTITY_CHANGED');
- Object.assign(result,{sha256:hash.digest('hex'),bytes:Number(s.size),owner:owner===0?'ROOT':'CALLER',stat:{regularFile:true,singleLink:true,permissionBits:Number(s.mode&0o7777n),canonical:true,closingIdentityChecked:true}});result.observationPhase='COMPLETE';return result;
+ tick();result.observationPhase='CLOSING_NAME_IDENTITY';guard(mark(s)===mark(fs.lstatSync(file,{bigint:true})),'CLOSING_NAME_IDENTITY_CHANGED');
+ result.observationPhase='CLOSING_ANCESTOR_IDENTITY';guard(JSON.stringify(before)===JSON.stringify(lineage(file,false,tick)),'CLOSING_ANCESTOR_IDENTITY_CHANGED');
+ Object.assign(result,{sha256:hash.digest('hex'),bytes:Number(s.size),owner:owner===0?'ROOT':'CALLER',stat:{regularFile:true,singleLink:true,permissionBits:Number(s.mode&0o7777n),canonical:true,closingIdentityChecked:true}});result.observationPhase='COMPLETE';if(retained)Object.assign(retained,{file,owner,limit,initial:mark(s),lineage:before});return result;
 }
 export function publicDeveloperPath(file,kind){
  if(typeof file!=='string'||file.length>4096||/[\u0000-\u0020\u007f]/u.test(file)||path.posix.normalize(file)!==file)return false;
@@ -108,6 +108,48 @@ export function inventoryPublicSealedTools(){
  report.phase=phase;
  return report;
 }
+// Fixed storage-free CI observation, not compiler/profile/native acceptance.
+// No supplied paths, callbacks, environment values, discovery or subprocesses.
+const CI_ENCLOSURE_SDK='/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk';
+const CI_ENCLOSURE_HEADERS=Object.freeze(['spawn.h','sys/spawn.h','sys/wait.h','signal.h','sys/signal.h','poll.h','sys/poll.h','time.h','_time.h','stdint.h','sys/time.h']);
+export function observeFixedCIEnclosureHeaders(){
+ const started=performance.now();let last=started,clockValid=true,phase='PROFILE';
+ const report={schema:1,scope:'FIXED_CI_ENCLOSURE_PUBLIC_HEADERS_OBSERVATION_ONLY',outcome:'UNKNOWN',phase,
+  runtime:'UNKNOWN',sdk:{status:'NOT_ATTEMPTED',phase:'NOT_STARTED',code:null,guardReason:null},rows:[],elapsedMs:null,
+  budget:'TEN_SECOND_MONOTONIC_CHECKPOINTS_NOT_OS_INTERRUPT',profileApproved:false,profileMatchEstablished:false,signing:false,producerTrust:false,sealed:false,runnable:false,reuseEligible:false,models:0,nativeAgentLaunches:0,compilerCheckExecutions:0};
+ const tick=()=>{let value;try{value=performance.now();}catch{clockValid=false;guard(false,'MONOTONIC_BUDGET_UNAVAILABLE');}if(!(Number.isFinite(started)&&started>=0&&Number.isFinite(value)&&value>=last)){clockValid=false;guard(false,'MONOTONIC_BUDGET_UNAVAILABLE');}last=value;guard(value-started<10000,'MONOTONIC_BUDGET_UNAVAILABLE');};
+ const reason=error=>({code:FILE_ERROR_CODES.has(error?.code)?error.code:'UNSUPPORTED_OR_CHANGED',guardReason:FILE_GUARD_REASONS.has(error?.inventoryGuard)||['MONOTONIC_BUDGET_UNAVAILABLE','RUNTIME_BYTES_UNSUPPORTED','REPORT_SIZE_UNSUPPORTED'].includes(error?.inventoryGuard)?error.inventoryGuard:null});
+ const names=['NODE','CLANG','LD',...CI_ENCLOSURE_HEADERS.map(name=>'HEADER:'+name)];
+ const retained=[];for(const name of names)report.rows.push({name,status:'NOT_ATTEMPTED',phase:'NOT_STARTED',sha256:null,bytes:null,code:null,guardReason:null,fdClose:'NOT_OBSERVED'});
+ const observe=(index,file,owner,limit,rootParents=false)=>{tick();const row=report.rows[index],raw={},original={};row.status='UNKNOWN';try{
+   if(rootParents)lineage(file,true,tick);
+   publicFile(file,owner,limit,raw,tick,original);
+   if(index===0)guard(raw.sha256==='5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc','RUNTIME_BYTES_UNSUPPORTED');
+   tick();row.status='PUBLIC_BYTES_OBSERVED_NOT_ACCEPTED';row.sha256=raw.sha256;row.bytes=raw.bytes;retained.push({row,original,rootParents});
+  }catch(error){Object.assign(row,reason(error));}finally{row.phase=raw.observationPhase??'ANCESTOR_METADATA';row.fdClose=raw.fdClose??'NOT_OBSERVED';}tick();return row.status==='PUBLIC_BYTES_OBSERVED_NOT_ACCEPTED';};
+ try{
+  tick();guard(arguments.length===0&&process.platform==='darwin'&&process.arch==='arm64'&&process.version==='v22.13.0'&&process.execArgv.length===0&&process.getuid()>0&&process.getuid()===process.geteuid()&&process.getgid()===process.getegid());
+  guard(!Object.keys(process.env).some(key=>/^(?:NODE_OPTIONS|NODE_PATH|NODE_REPL_EXTERNAL_MODULE|BASH_ENV|ENV)$|^(?:DYLD_|LD_|OPENSSL_)/i.test(key)));
+  phase='RUNTIME';tick();guard(typeof process.execPath==='string'&&path.isAbsolute(process.execPath)&&path.normalize(process.execPath)===process.execPath&&fs.realpathSync(process.execPath)===process.execPath,'NON_CANONICAL');
+  guard(observe(0,process.execPath,process.getuid(),128*1024*1024));report.runtime='PINNED_CURRENT_EXECUTABLE_BYTES_OBSERVED';
+  phase='TOOLS';observe(1,'/Library/Developer/CommandLineTools/usr/bin/clang',0,512*1024*1024,true);observe(2,'/Library/Developer/CommandLineTools/usr/bin/ld',0,32*1024*1024,true);
+  phase='SDK';let sdkOriginal=null,sdkParents=null;report.sdk.status='UNKNOWN';try{
+   report.sdk.phase='DIRECTORY_METADATA';tick();const initial=fs.lstatSync(CI_ENCLOSURE_SDK,{bigint:true});guard(initial.isDirectory()&&!initial.isSymbolicLink(),'FILE_TYPE_UNSUPPORTED');guard(initial.uid===0n,'OWNER_MISMATCH');guard((initial.mode&0o22n)===0n,'PERMISSIONS_UNSUPPORTED');
+   report.sdk.phase='CANONICAL_PATH';guard(fs.realpathSync(CI_ENCLOSURE_SDK)===CI_ENCLOSURE_SDK,'NON_CANONICAL');sdkParents=lineage(CI_ENCLOSURE_SDK,true,tick);sdkOriginal=mark(initial);report.sdk.phase='START_OBSERVED';
+  }catch(error){Object.assign(report.sdk,reason(error));}
+  if(sdkOriginal!==null){for(let index=0;index<CI_ENCLOSURE_HEADERS.length;index++)observe(index+3,CI_ENCLOSURE_SDK+'/usr/include/'+CI_ENCLOSURE_HEADERS[index],0,1024*1024,true);}
+  phase='FINAL_VALIDATION';for(const {row,original,rootParents}of retained){tick();try{
+   guard(fs.realpathSync(original.file)===original.file,'NON_CANONICAL');guard(mark(fs.lstatSync(original.file,{bigint:true}))===original.initial,'CLOSING_NAME_IDENTITY_CHANGED');guard(JSON.stringify(lineage(original.file,rootParents,tick))===JSON.stringify(original.lineage),'CLOSING_ANCESTOR_IDENTITY_CHANGED');guard(fs.realpathSync(original.file)===original.file,'NON_CANONICAL');guard(mark(fs.lstatSync(original.file,{bigint:true}))===original.initial,'CLOSING_NAME_IDENTITY_CHANGED');
+  }catch(error){row.status='UNKNOWN';row.phase='FINAL_ENDPOINT_VALIDATION';Object.assign(row,reason(error));}tick();}
+  if(sdkOriginal!==null){report.sdk.phase='FINAL_ENDPOINT_VALIDATION';try{tick();guard(fs.realpathSync(CI_ENCLOSURE_SDK)===CI_ENCLOSURE_SDK,'NON_CANONICAL');guard(mark(fs.lstatSync(CI_ENCLOSURE_SDK,{bigint:true}))===sdkOriginal,'CLOSING_NAME_IDENTITY_CHANGED');guard(JSON.stringify(lineage(CI_ENCLOSURE_SDK,true,tick))===JSON.stringify(sdkParents),'CLOSING_ANCESTOR_IDENTITY_CHANGED');guard(fs.realpathSync(CI_ENCLOSURE_SDK)===CI_ENCLOSURE_SDK,'NON_CANONICAL');guard(mark(fs.lstatSync(CI_ENCLOSURE_SDK,{bigint:true}))===sdkOriginal,'CLOSING_NAME_IDENTITY_CHANGED');tick();report.sdk.status='ENDPOINT_METADATA_OBSERVED_NOT_ACCEPTED';report.sdk.phase='COMPLETE';}catch(error){Object.assign(report.sdk,reason(error));}}
+  tick();if(report.rows.every(row=>row.status==='PUBLIC_BYTES_OBSERVED_NOT_ACCEPTED')&&report.sdk.status==='ENDPOINT_METADATA_OBSERVED_NOT_ACCEPTED'){report.outcome='PUBLIC_BYTES_OBSERVED_NOT_ACCEPTED';phase='COMPLETE';}
+ }catch(error){report.failure=reason(error);}
+ report.phase=phase;report.elapsedMs=clockValid&&Number.isFinite(Math.round((last-started)*1000)/1000)?Math.round((last-started)*1000)/1000:null;
+ // 14 fixed rows, each <=448 encoded bytes; SDK<=320; wrapper<=1024.
+ // 14*448+320+1024=7,616 bytes, inside the independent 8KiB output cap.
+ try{tick();guard(Buffer.byteLength(JSON.stringify(report)+'\n')<=8192,'REPORT_SIZE_UNSUPPORTED');tick();report.elapsedMs=Math.round((last-started)*1000)/1000;}catch(error){if(report.outcome!=='UNKNOWN'||!report.failure){report.phase='REPORT';report.failure=reason(error);}report.outcome='UNKNOWN';report.elapsedMs=clockValid&&Number.isFinite(Math.round((last-started)*1000)/1000)?Math.round((last-started)*1000)/1000:null;}
+ return report;
+}
 if(process.argv[1]===fileURLToPath(import.meta.url)){
- guard(process.argv.length===2);const report=inventoryPublicSealedTools();process.stdout.write(JSON.stringify(report)+'\n');process.exitCode=report.outcome==='PUBLIC_TOOL_BYTES_OBSERVED_NOT_ACCEPTED'?0:74;
+ guard(process.argv.length===2||process.argv.length===3&&process.argv[2]==='--fixed-ci-enclosure-headers');const fixed=process.argv.length===3,report=fixed?observeFixedCIEnclosureHeaders():inventoryPublicSealedTools();process.stdout.write(JSON.stringify(report)+'\n');process.exitCode=report.outcome===(fixed?'PUBLIC_BYTES_OBSERVED_NOT_ACCEPTED':'PUBLIC_TOOL_BYTES_OBSERVED_NOT_ACCEPTED')?0:74;
 }
