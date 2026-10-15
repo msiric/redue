@@ -1,6 +1,12 @@
 # REDUE — Autonomous director–implementer operating plan
 
-Revision 1.0 · 2026-10-13 · Proposed operational setup, not executed acceptance
+Revision 1.1 · 2026-10-15 · Standing operating workflow; empirical acceptance is separate
+
+Use the [director charter's acceptance-driven delivery loop](director-role.md#acceptance-driven-delivery-loop)
+and D14 on agent completion, compaction and resume. Reconcile the existing
+[resume](portable-evidence-resume.md) and goal before work. The original deployment
+description below does not require another coordinator, setup or smoke campaign;
+current source/gate evidence and owner authority remain controlling.
 
 ## 1. Objective and decision
 
