@@ -100,3 +100,71 @@ print(json.dumps({'scope':'PYTHON_PARENT_SOURCE_MOCKS_ONLY','passed':checks,'nat
  const out=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify(good),encoding:'utf8',timeout:5000,maxBuffer:16384});const v=JSON.parse(out);assert.equal(v.scope,'PYTHON_PARENT_SOURCE_MOCKS_ONLY');assert.equal(v.passed,19);assert.equal(v.nativeExecutions,0);assert.equal(v.compilerBuilds,0);});
 
 test('old enclosure source interpretation is refused before new build dispatch',async()=>{const m=mock();m.op.prepareEnclosure=()=>({outcome:'FIXED_CANARY_ENCLOSURE_SOURCES_PREPARED_NOT_PROVISIONED',version:'fixed-canary-finite-enclosure-source@1',sealed:false,reuseEligible:false});const v=await observe(m.options);assert.equal(v.outcome,'UNKNOWN');assert.equal(v.failedPhase,'enclosureSource');assert(!m.calls.includes('buildEnclosure'));});
+
+test('parent preserves large known-failed-build byte counts and late persistence facts, with no child for denied record directory',async()=>{const fixture=mock();fixture.state.nonzero=true;const failed=await observe(fixture.options);const python=String.raw`
+import contextlib,copy,importlib.util,io,json,sys
+sys.dont_write_bytecode=True
+spec=importlib.util.spec_from_file_location('owned_parent_observation_repairs',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+failed=json.loads(sys.stdin.read());assert failed['compilerBuildOutcome']=='EXIT_NONZERO';checks=0
+for count in (8192,8193,9007199254740991):
+ v=copy.deepcopy(failed);v['builds'][0]['stdoutBytes']=count;v['builds'][0]['stderrBytes']=count
+ parsed=m.parse_inner((json.dumps(v)+'\n').encode());assert parsed['builds'][0]['status']==1 and parsed['builds'][0]['stderrBytes']==count;checks+=1
+for count in (True,-1,float('nan'),9007199254740992,1.5):
+ v=copy.deepcopy(failed);v['builds'][0]['stderrBytes']=count
+ try:m.parse_inner((json.dumps(v)+'\n').encode());raise AssertionError('INVALID_BYTE_COUNT_ADMITTED')
+ except (ValueError,TypeError):pass
+ checks+=1
+old={key:getattr(m,key) for key in ('prerequisites','prepare_record_directory','collect','save_record','file_current','_PROCESS_STARTED')};old_popen=m.subprocess.Popen;old_argv=sys.argv
+try:
+ calls=[];m._PROCESS_STARTED=m.time.monotonic();sys.argv=['fixed-parent','--run']
+ m.prerequisites=lambda:(m.Path('/owned/repo'),m.Path('/owned/repo/fixed.mjs'),m.Path('/owned/node'),[])
+ def fake_popen(*args,**kwargs):calls.append('POpen');return object()
+ m.subprocess.Popen=fake_popen
+ def denied_directory(repo):raise PermissionError('PRIVATE_DIRECTORY_ERROR')
+ m.prepare_record_directory=denied_directory
+ capture=io.StringIO()
+ with contextlib.redirect_stdout(capture):assert m.main()==74
+ result=json.loads(capture.getvalue());assert calls==[] and result['outcome']=='UNKNOWN' and result['reason_code']=='PRECONDITION_UNAVAILABLE';assert 'PRIVATE' not in capture.getvalue();checks+=1
+ # A later filesystem failure must not discard the already-collected failed
+ # compiler outcome, owned root names, exact child exit or cleanup observation.
+ m.prepare_record_directory=lambda repo:[('PRIVATE_TEST_SNAPSHOT',)]
+ large_failed=copy.deepcopy(failed);large_failed['builds'][0]['stderrBytes']=8193
+ observed={'schema':1,'scope':m.SCOPE,'outcome':'UNKNOWN','reason_code':'INNER_PREPARATION_UNKNOWN','childReaped':True,'childExitCode':74,'childSignal':None,'cleanupSignal':'GROUP_ALREADY_ABSENT','groupAbsentAfterReap':True,'stdoutBytes':1234,'stderrBytes':0,'elapsedMs':1200,'innerReport':large_failed,**m._FALSE}
+ m.collect=lambda child,started=None:copy.deepcopy(observed)
+ m.file_current=lambda row:None
+ def denied_persistence(*args):raise PermissionError('PRIVATE_PERSISTENCE_ERROR')
+ m.save_record=denied_persistence
+ capture=io.StringIO()
+ with contextlib.redirect_stdout(capture):assert m.main()==74
+ result=json.loads(capture.getvalue());assert calls==['POpen'] and result['outcome']=='UNKNOWN' and result['recordPersistence']=='UNKNOWN' and result['savedRecord']=='NOT_ESTABLISHED' and result['finalParentCompletion']=='NOT_ESTABLISHED'
+ assert 'record' not in result and 'sha256' not in result and 'PRIVATE' not in capture.getvalue() and len(capture.getvalue().encode())<=65536
+ kept=result['observed'];assert kept['childReaped'] and kept['childExitCode']==74 and kept['childSignal'] is None and kept['cleanupSignal']=='GROUP_ALREADY_ABSENT' and kept['groupAbsentAfterReap']
+ assert kept['innerReport']['ownedRootNames']==failed['ownedRootNames'] and kept['innerReport']['compilerBuildOutcome']=='EXIT_NONZERO' and kept['innerReport']['builds'][0]['status']==1 and kept['innerReport']['builds'][0]['stderrBytes']==8193
+ assert kept['innerReport']['buildResultCount']==failed['buildResultCount'];checks+=1
+finally:
+ for key,value in old.items():setattr(m,key,value)
+ m.subprocess.Popen=old_popen;sys.argv=old_argv
+print(json.dumps({'scope':'OBSERVATION_PRESERVATION_SOURCE_MOCKS_ONLY','passed':checks,'actualPopen':0,'compilerBuilds':0,'nativeExecutions':0}))
+`;
+ const out=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify(failed),encoding:'utf8',timeout:5000,maxBuffer:16384});const v=JSON.parse(out);assert.equal(v.scope,'OBSERVATION_PRESERVATION_SOURCE_MOCKS_ONLY');assert.equal(v.passed,10);assert.equal(v.actualPopen,0);assert.equal(v.compilerBuilds,0);assert.equal(v.nativeExecutions,0);});
+
+test('record namespace accepts existing owned .local0755/private0700 only and retains its original identity',()=>{const python=String.raw`
+import importlib.util,json,stat,sys,types
+sys.dont_write_bytecode=True
+spec=importlib.util.spec_from_file_location('record_namespace_source_mocks',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+repo=m.Path('/owned/repo');local=repo/'.local';private=local/'portable-evidence';calls=[];nodes={str(local):types.SimpleNamespace(st_dev=1,st_ino=2,st_mode=stat.S_IFDIR|0o755,st_uid=501,st_gid=20),str(private):types.SimpleNamespace(st_dev=1,st_ino=3,st_mode=stat.S_IFDIR|0o700,st_uid=501,st_gid=20)}
+def mkdir(file,mode):calls.append((str(file),mode));raise FileExistsError()
+m.os.mkdir=mkdir;m.os.lstat=lambda file:nodes[str(file)];m.os.getuid=lambda:501;m.os.path.realpath=lambda file:str(file);m.ancestors=lambda file:[]
+snapshot=m.prepare_record_directory(repo);assert calls==[(str(local),0o700),(str(private),0o700)];m.record_directory_current(snapshot);checks=1
+for target,key,value in [(str(local),'st_mode',stat.S_IFDIR|0o775),(str(private),'st_mode',stat.S_IFDIR|0o755),(str(private),'st_uid',999),(str(private),'st_mode',stat.S_IFLNK|0o700)]:
+ before=getattr(nodes[target],key);setattr(nodes[target],key,value)
+ try:m.prepare_record_directory(repo);raise AssertionError('UNSAFE_NAMESPACE_ADMITTED')
+ except ValueError:pass
+ setattr(nodes[target],key,before);checks+=1
+nodes[str(private)].st_ino+=1
+try:m.record_directory_current(snapshot);raise AssertionError('REPLACEMENT_ADOPTED')
+except ValueError:pass
+checks+=1
+print(json.dumps({'scope':'RECORD_NAMESPACE_SOURCE_MOCKS_ONLY','passed':checks,'filesystemWrites':0,'actualPopen':0}))
+`;
+ const out=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{encoding:'utf8',timeout:5000,maxBuffer:16384});const v=JSON.parse(out);assert.equal(v.scope,'RECORD_NAMESPACE_SOURCE_MOCKS_ONLY');assert.equal(v.passed,6);assert.equal(v.filesystemWrites,0);assert.equal(v.actualPopen,0);});

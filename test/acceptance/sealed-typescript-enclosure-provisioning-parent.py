@@ -149,7 +149,7 @@ def parse_inner(body):
                 and (row["status"] is None or type(row["status"]) is int and 0 <= row["status"] <= 255)
                 and row["signal"] in (None, "SIGKILL", "SIGTERM", "SIGABRT", "SIGSEGV", "SIGBUS", "SIGILL", "SIGINT", "UNKNOWN")
                 and row["spawnError"] in ("NONE", "UNKNOWN")
-                and all(type(row[k]) is int and 0 <= row[k] <= 8192 for k in ("stdoutBytes", "stderrBytes")))
+                and all(type(row[k]) is int and 0 <= row[k] <= 9007199254740991 for k in ("stdoutBytes", "stderrBytes")))
     for key in ("buildAttemptCount", "buildResultCount", "observedProcessCount"):
         require(type(value[key]) is int and 0 <= value[key] <= 8)
     require(value["buildResultCount"] == len(value["builds"])
@@ -307,8 +307,10 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
             "innerReport": inner, **_FALSE}
 
 
-def save_record(repo, report, rows):
+def prepare_record_directory(repo):
+    """Only the fixed owned .local/portable-evidence namespace, before child."""
     uid = os.getuid()
+    snapshot = []
     for part in (repo / ".local", repo / ".local" / "portable-evidence"):
         try:
             os.mkdir(part, 0o700)
@@ -317,6 +319,24 @@ def save_record(repo, report, rows):
         s = os.lstat(part)
         require(str(part) == os.path.realpath(part) and stat.S_ISDIR(s.st_mode)
                 and s.st_uid == uid and not s.st_mode & (0o077 if part.name == "portable-evidence" else 0o022))
+        snapshot.append((str(part), (s.st_dev, s.st_ino, s.st_mode, s.st_uid, s.st_gid), ancestors(part)))
+    record_directory_current(snapshot)
+    return snapshot
+
+
+def record_directory_current(snapshot):
+    require(type(snapshot) is list and len(snapshot) == 2)
+    for file, before, lineage in snapshot:
+        s = os.lstat(file)
+        require(stat.S_ISDIR(s.st_mode) and not stat.S_ISLNK(s.st_mode)
+                and os.path.realpath(file) == file
+                and (s.st_dev, s.st_ino, s.st_mode, s.st_uid, s.st_gid) == before
+                and ancestors(file) == lineage)
+
+
+def save_record(repo, report, rows, directory_snapshot):
+    uid = os.getuid()
+    record_directory_current(directory_snapshot)
     file = repo / ".local" / "portable-evidence" / ("enclosure-preparation-" + str(uuid.uuid4()) + ".json")
     value = {**report, "sourceIdentities": [{"sha256": row["sha256"]} for row in rows],
              "sourceIdentityScope": "PRELAUNCH_OBSERVED_ONLY",
@@ -339,9 +359,37 @@ def save_record(repo, report, rows):
         require(saved.st_size == len(body) and mark(os.lstat(file)) == mark(saved))
     finally:
         os.close(fd)
+    record_directory_current(directory_snapshot)
     readback = inspect_file(file, uid, 131072, hashlib.sha256(body).hexdigest())
     require(mark(os.lstat(file)) == readback["mark"])
+    record_directory_current(directory_snapshot)
     return str(file), readback["sha256"]
+
+
+def emit_final(value):
+    body = json.dumps(value, separators=(",", ":"), allow_nan=False)
+    require(len(body.encode()) <= 65536)
+    print(body)
+
+
+def unknown_with_observations(report, reason):
+    observed = {}
+    for key in ("childReaped", "childExitCode", "childSignal", "cleanupSignal",
+                "groupAbsentAfterReap", "stdoutBytes", "stderrBytes", "elapsedMs",
+                "finalSourceCurrentness"):
+        if key in report:
+            observed[key] = report[key]
+    # Only the already validated, fixed redacted schema is retained. No captured
+    # byte stream/error text/source/environment/credential is serialized here.
+    inner = report.get("innerReport")
+    if inner is not None:
+        try:
+            observed["innerReport"] = parse_inner((json.dumps(inner, allow_nan=False) + "\n").encode())
+        except Exception:
+            pass
+    return {"schema": 1, "scope": SCOPE, "outcome": "UNKNOWN", "reason_code": reason,
+            "recordPersistence": "UNKNOWN", "savedRecord": "NOT_ESTABLISHED",
+            "finalParentCompletion": "NOT_ESTABLISHED", "observed": observed, **_FALSE}
 
 
 def main():
@@ -350,8 +398,10 @@ def main():
         return 0
     begun = _PROCESS_STARTED
     report = {"schema": 1, "scope": SCOPE, "outcome": "UNKNOWN", "reason_code": "PRECONDITION_UNAVAILABLE", **_FALSE}
+    phase = "PRECONDITIONS"
     try:
         repo, entry, node, rows = prerequisites()
+        directory_snapshot = prepare_record_directory(repo)
         require(time.monotonic() - begun < 30)
         # No shell, credentials, settings or environment rewriting. The child
         # receives the existing safe environment unchanged, including proxies.
@@ -361,6 +411,7 @@ def main():
                                  start_new_session=True, close_fds=True)
         # Include parent preflight/import/startup work in the original budget.
         report = collect(child, started=begun)
+        phase = "POST_COLLECTION"
         require(time.monotonic() - begun < 35)
         try:
             for row in rows:
@@ -368,13 +419,15 @@ def main():
             report["finalSourceCurrentness"] = "ENDPOINTS_OBSERVED"
         except Exception:
             report.update(outcome="UNKNOWN", reason_code="SOURCE_CURRENTNESS_UNAVAILABLE", finalSourceCurrentness="UNKNOWN")
-        file, digest = save_record(repo, report, rows)
+        phase = "PERSISTENCE"
+        file, digest = save_record(repo, report, rows, directory_snapshot)
         require(time.monotonic() - begun < 35)
-        print(json.dumps({"scope": SCOPE, "outcome": report["outcome"], "reason_code": report["reason_code"],
-                          "record": file, "sha256": digest, **_FALSE}, separators=(",", ":")))
+        emit_final({"scope": SCOPE, "outcome": report["outcome"], "reason_code": report["reason_code"],
+                    "record": file, "sha256": digest, **_FALSE})
         return 0 if report["outcome"] == "BUILT_NOT_EXECUTED" else 74
     except Exception:
-        print(json.dumps({"scope": SCOPE, "outcome": "UNKNOWN", "reason_code": "PREPARATION_OR_PERSISTENCE_UNAVAILABLE", **_FALSE}))
+        reason = "PRECONDITION_UNAVAILABLE" if phase == "PRECONDITIONS" else "PERSISTENCE_UNAVAILABLE" if phase == "PERSISTENCE" else "POST_COLLECTION_UNAVAILABLE"
+        emit_final(unknown_with_observations(report, reason))
         return 74
 
 
