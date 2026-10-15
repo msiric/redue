@@ -24,7 +24,8 @@ import subprocess
 import sys
 import uuid
 
-INNER_SHA256 = "4577a42abf870088b92864bdcfb0553330c1515d82386a7e4017d945beefd6e5"
+INNER_SHA256 = "2a9ef884d7fe1de1a950b48484c6f6825ef31c0f2e7f45db36843acf9c903034"
+ENCLOSURE_REFUSAL_STAGES = ("OPTIONS", "ORIGINAL_DERIVATION", "PREPARED_NULL_CURRENT", "INITIAL_ORIGINAL_CURRENT", "PROJECTION_INTERPRETATION", "CAMPAIGN_RENDER", "DERIVED_BINDINGS", "COLLECTOR_FUNCTION_PIN", "C_TEMPLATE_READ", "COLLECTOR_TEMPLATE_READ", "LAUNCHER_REBIND", "ENCLOSURE_REBIND", "FINAL_ORIGINAL_CURRENT", "SOURCE_RESULT")
 NODE_SHA256 = "5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc"
 ENTRY_NAME = "sealed-typescript-enclosure-provisioning.mjs"
 SCOPE = "FIXED_ENCLOSURE_PREPARATION_PARENT_ONLY"
@@ -129,7 +130,7 @@ def parse_inner(body):
         return value
     require(0 < len(body) <= 65536 and body.endswith(b"\n") and body.count(b"\n") == 1)
     value = json.loads(body, object_pairs_hook=unique)
-    expected = {"schema", "scope", "profile", "outcome", "reason_code", "failedPhase", "phases", "ownedRootNames", "builds", "buildAttemptCount", "buildResultCount", "observedProcessCount", "compilerBuildOutcome", "newFileDigests", "elapsedMs", "privateMints", "newCodeCurrentness", "nativeIntervalBarrier", "completeSdkClosure", "preMainLoader", *_FALSE.keys()}
+    expected = {"schema", "scope", "profile", "outcome", "reason_code", "failedPhase", "enclosureSourceRefusal", "phases", "ownedRootNames", "builds", "buildAttemptCount", "buildResultCount", "observedProcessCount", "compilerBuildOutcome", "newFileDigests", "elapsedMs", "privateMints", "newCodeCurrentness", "nativeIntervalBarrier", "completeSdkClosure", "preMainLoader", *_FALSE.keys()}
     require(type(value) is dict and set(value) == expected and value["schema"] == 1
             and type(value["schema"]) is int and value["scope"] == "FIXED_ENCLOSURE_PROVISIONING_OBSERVATION_ONLY"
             and value["profile"] == "fixed-enclosure-local-sdk27@1"
@@ -150,6 +151,13 @@ def parse_inner(body):
         require(type(row) is dict and set(row) == {"name", "elapsedMs", "outcome"}
                 and row["name"] in phase_names and row["outcome"] in ("COMPLETED", "UNKNOWN")
                 and (row["elapsedMs"] is None or type(row["elapsedMs"]) in (int, float) and 0 <= row["elapsedMs"] < 35000))
+    refusal = value["enclosureSourceRefusal"]
+    require(refusal is None or type(refusal) is str and refusal in ENCLOSURE_REFUSAL_STAGES)
+    if refusal is not None:
+        require(value["outcome"] == "UNKNOWN" and value["failedPhase"] == "enclosureSource"
+                and value["reason_code"] in ("PHASE_UNAVAILABLE", "FINAL_REPORT_OR_BUDGET_UNAVAILABLE")
+                and value["phases"] and value["phases"][-1]["name"] == "enclosureSource"
+                and value["phases"][-1]["outcome"] == "UNKNOWN")
     require(type(value["ownedRootNames"]) is list and len(value["ownedRootNames"]) <= 3)
     for row in value["ownedRootNames"]:
         require(type(row) is dict and set(row) == {"role", "name"}

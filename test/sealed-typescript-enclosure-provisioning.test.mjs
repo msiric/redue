@@ -486,3 +486,28 @@ print(json.dumps({'scope':'HARMLESS_OWNED_NORMAL_EXIT_HARNESS_ONLY','outcome':'H
 `;
  const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:wire,encoding:'utf8',timeout:8000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.scope,'HARMLESS_OWNED_NORMAL_EXIT_HARNESS_ONLY');assert.equal(result.outcome,'HARNESS_ASSERTIONS_PASS');assert.equal(result.actualPopen,1);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);assert.equal(result.models,0);console.log(JSON.stringify(result));
 });
+
+test('enclosure factory refusal bridge records only immutable own static data at its phase, never messages/getters or raw errors',async()=>{
+ const stages=['OPTIONS','ORIGINAL_DERIVATION','PREPARED_NULL_CURRENT','INITIAL_ORIGINAL_CURRENT','PROJECTION_INTERPRETATION','CAMPAIGN_RENDER','DERIVED_BINDINGS','COLLECTOR_FUNCTION_PIN','C_TEMPLATE_READ','COLLECTOR_TEMPLATE_READ','LAUNCHER_REBIND','ENCLOSURE_REBIND','FINAL_ORIGINAL_CURRENT','SOURCE_RESULT'];
+ const error=stage=>{const e=new Error('PRIVATE');Object.defineProperty(e,'refusalStage',{value:stage,enumerable:true,writable:false,configurable:false});Object.defineProperty(e,'message',{get(){throw Error('MESSAGE_MUST_NOT_BE_READ');}});return e;};
+ const results=[];
+ for(const stage of stages){const m=mock(),frames=[];m.op.prepareEnclosure=()=>{throw error(stage);};const report=await observe({...m.options,observeProgress:frame=>frames.push(frame)});assert.equal(report.outcome,'UNKNOWN');assert.equal(report.failedPhase,'enclosureSource');assert.equal(report.enclosureSourceRefusal,stage);assert.equal(report.buildResultCount,6);assert(!JSON.stringify(report).includes('PRIVATE'));assert(frames.every(frame=>!Object.hasOwn(frame,'enclosureSourceRefusal')));results.push({report,frames});}
+ for(const make of [()=>error('PRIVATE'),()=>({refusalStage:'OPTIONS'}),()=>Object.create(error('OPTIONS')),()=>{const e=new Error('PRIVATE');Object.defineProperty(e,'refusalStage',{get(){throw Error('GETTER_MUST_NOT_RUN');}});return e;},()=>new Proxy(error('OPTIONS'),{getOwnPropertyDescriptor(){throw Error('PROXY_TRAP_MUST_NOT_RUN');}}),()=>Object.assign(new Error('PRIVATE'),{refusalStage:'OPTIONS'})]){const m=mock();m.op.prepareEnclosure=()=>{throw make();};const report=await observe(m.options);assert.equal(report.outcome,'UNKNOWN');assert.equal(report.enclosureSourceRefusal,null);assert(!JSON.stringify(report).includes('PRIVATE'));}
+ const other=mock();other.op.prepareProjection=()=>{throw error('OPTIONS');};assert.equal((await observe(other.options)).enclosureSourceRefusal,null);assert.equal((await observe(mock().options)).enclosureSourceRefusal,null);
+ const python=String.raw`
+import copy,importlib.util,json,sys
+sys.dont_write_bytecode=True
+spec=importlib.util.spec_from_file_location('static_refusal_bridge_mock',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+v=json.loads(sys.stdin.read());assert tuple(row['report']['enclosureSourceRefusal'] for row in v)==m.ENCLOSURE_REFUSAL_STAGES;checks=0
+for row in v:
+ p=m.ProgressProtocol();frames=row['frames']+[{'schema':1,'protocol':'fixed-enclosure-progress@1','kind':'FINAL','report':row['report']}]
+ p.feed(b''.join((json.dumps(frame,separators=(',',':'))+'\n').encode() for frame in frames));assert p.finish()['enclosureSourceRefusal']==row['report']['enclosureSourceRefusal'];checks+=1
+for edit in (lambda x:x.update(enclosureSourceRefusal='PRIVATE'),lambda x:x.update(enclosureSourceRefusal={}),lambda x:x.pop('enclosureSourceRefusal'),lambda x:x.update(failedPhase='pairedSource'),lambda x:x.update(outcome='BUILT_NOT_EXECUTED'),lambda x:x['phases'][-1].update(outcome='COMPLETED')):
+ x=copy.deepcopy(v[0]['report']);edit(x)
+ try:m.parse_inner((json.dumps(x)+'\n').encode());raise AssertionError('BAD_STATIC_REFUSAL_ACCEPTED')
+ except (ValueError,KeyError,TypeError):pass
+ checks+=1
+print(json.dumps({'scope':'STATIC_REFUSAL_BRIDGE_SOURCE_MOCKS_ONLY','passed':checks,'actualPopen':0,'compilerBuilds':0,'nativeExecutions':0}))
+`;
+ const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify(results),encoding:'utf8',timeout:5000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.passed,20);assert.equal(result.actualPopen,0);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);
+});
