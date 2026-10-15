@@ -253,6 +253,11 @@ export function sealedTypeScriptBaseExchangeAssetsMatchPair(assets,pair){
  const record=mintedAssets.get(assets);return arguments.length===2&&!!record&&!record.invalid&&record.pair===pair;
 }
 
+// Exact original host fixture identity only; no currency or permission grant.
+export function sealedTypeScriptBaseExchangeAssetsMatchHostFixture(assets,hostFixture){
+ const record=mintedAssets.get(assets);return arguments.length===2&&!!record&&!record.invalid&&record.hostFixture===hostFixture;
+}
+
 // Fixed A-target assertions under H; the original H-target binaries cannot be
 // substituted. Engineering build data only: no copied Node/checker/helper runs.
 // Trusted/quiescent ancestry is still required; these guards are not sealing.
@@ -478,6 +483,18 @@ export function verifySealedTypeScriptFixedCanaryProtectedInputProjection(projec
  try{protectedOriginalIngredients(record.inputs);guard(sha(Function.prototype.toString.call(compareFixedOriginalProtectedInputs))===protectedComparatorPin&&record.implementationSha256===protectedComparatorPin&&sha(projection.source)===record.sourceSha256);compareFixedOriginalProtectedInputs(record.original,'END');protectedOriginalIngredients(record.inputs);
   return projectionAuthority({outcome:'FIXED_CANARY_ORIGINAL_INPUT_GUARDS_OBSERVED',version:protectedProjectionVersion,projectionSha256:sha(JSON.stringify(record.original)),sourceSha256:record.sourceSha256});
  }catch{record.invalid=true;return unknown();}
+}
+
+// Fixed ORIGINAL nonsecret H code/runtime/source names, selected only by the
+// live projection owner. This is not currency, a read grant, or a manifest API.
+export function sealedTypeScriptFixedCanaryProtectedInputProjectionHCodeReadLeaves(projection){
+ const record=mintedProtectedProjections.get(projection),unknown=()=>projectionAuthority({outcome:'UNKNOWN',version:protectedProjectionVersion,currency:'NOT_CHECKED'});
+ if(arguments.length!==1||!record||record.invalid)return unknown();
+ const readLeaves=record.original.files.slice(6).map(row=>row.file);
+ // Original private facts contain exactly six stage canaries followed by these
+ // 21 distinct H leaves. No caller-selected name, subset or parent is accepted.
+ if(record.original.version!==protectedProjectionVersion||readLeaves.length!==21||new Set(readLeaves).size!==21||!readLeaves.every(file=>file.startsWith(record.original.hostBase+'/')))return unknown();
+ return projectionAuthority({outcome:'FIXED_ORIGINAL_H_CODE_READ_LEAVES_DATA_ONLY',version:protectedProjectionVersion,hostBase:record.original.hostBase,readLeaves,currency:'NOT_CHECKED'});
 }
 
 // Private identity linkage only. Callers must separately verify currency;
