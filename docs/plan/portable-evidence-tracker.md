@@ -18,13 +18,17 @@ The fixed controller at `1b7b73d` has independent DIR297 source/mock acceptance,
 but remains unexecuted. DIR299 accepts the bounded parent design with one narrow
 pre-Node correction: reject the optional profiling selector keys by presence.
 Existing fixture-build subprocesses already receive only their owned TMPDIR;
-no OAuth inheritance into those compiler calls was found. DIR300 is frozen at
-`8deaaf6` for independent DIR304 review. Its source/mock checks pass, but review
-identified a native-parent cancellation gap: default SIGTERM can bypass owned
-Node-group cleanup; SIGINT can escape without structured results. That unexecuted
-candidate is not integrated or invoked. Native-only repair and fresh review are
-required; no whole-native detached-tree guarantee is inferred. Actual profile,
-account and security prerequisites remain mandatory before any native launch.
+no OAuth inheritance into those compiler calls was found. Independent DIR312
+accepts exact `aa06b49`, integrated at `4b8d818`. The fixed parent/child route now
+retains original deadlines, private source pins and latched native-only cancellation
+through owned Node-group cleanup and result handling. The earlier launch and
+handler-restoration findings are preserved; neither defective candidate ran as an
+actual native attempt. Only the owned Python source-inspection cap rose to128KiB;
+command/report limits, permissions and recipe semantics are unchanged. Root's
+affected source/mock suite:503 PASS/3 explicit SKIP/0 FAIL; TAP SHA256
+`5ada9c0f51156fee95b449cd154c1705f3fc4d320bec5251391ea89fef066ae7`.
+The route is wired but unexecuted. Node-group closure is not detached Bash closure.
+Actual profile, account and security prerequisites remain mandatory before launch.
 All origin, sealing and reusable-evidence authority remains withheld.
 
 Latest [paired observation run38796660543](https://github.com/msiric/redue/actions/runs/38796660543)
