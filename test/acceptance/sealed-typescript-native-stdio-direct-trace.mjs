@@ -6,8 +6,9 @@ import {createHash} from 'node:crypto';
 import {REVIEWED_CLAUDE_NATIVE} from './portable-claude-native-profile.mjs';
 import {nativeStdioDirectCommand,parseNativeStdioMetadata,isNativeStdioDiagnosticData,NATIVE_STDIO_SOURCE_SHA256} from './sealed-typescript-native-stdio-probe.mjs';
 
-import {parseNativeStartupWitness,NATIVE_STARTUP_WITNESS_SOURCE_SHA256,NATIVE_STARTUP_WITNESS_INTERPRETATION,NATIVE_STARTUP_WITNESS_FIELDS} from './sealed-typescript-native-startup-witness.mjs';
+import {parseNativeStartupWitness,NATIVE_STARTUP_WITNESS_SOURCE_SHA256,NATIVE_STARTUP_WITNESS_INTERPRETATION,NATIVE_STARTUP_WITNESS_FIELDS,NATIVE_EXEC_STARTUP_WITNESS_INTERPRETATION,nativeExecStartupWitnessCommand} from './sealed-typescript-native-startup-witness.mjs';
 export const NATIVE_STARTUP_WITNESS_DIRECT_INTERPRETATION='native187-direct-bash-child-startup-foreground@1';
+export const NATIVE_EXEC_STARTUP_WITNESS_DIRECT_INTERPRETATION='native187-exec-bash-child-startup-foreground@1';
 export const NATIVE_STDIO_DIRECT_INTERPRETATION='native187-direct-bash-stdio-foreground@1';
 // Independent051 pinned-public-source audit; no extracted code executes here.
 export const NATIVE_STDIO_FOREGROUND_SOURCE=Object.freeze({nativeSha256:REVIEWED_CLAUDE_NATIVE.sha256,
@@ -111,14 +112,16 @@ export function interpretDirectNativeStdioProbeTrace(events,binding,completion){
 // Child environment + stdio only. This does not prove controlled pre-main
 // startup, credential protection or a seal; source/mock labels cannot supply it.
 export function interpretDirectNativeStartupWitnessTrace(events,binding,completion){return interpretFixedDirectTrace(events,binding,completion,true);}
-function interpretFixedDirectTrace(events,binding,completion,witness){
- const scopedAuthority=fields=>authority(witness?{scope:'SINGLE_DIRECT_NATIVE_CHILD_STARTUP_WITNESS_PRECONDITION_ONLY',interpretation:NATIVE_STARTUP_WITNESS_DIRECT_INTERPRETATION,
+export function interpretExecNativeStartupWitnessTrace(events,binding,completion){return interpretFixedDirectTrace(events,binding,completion,true,true);}
+function interpretFixedDirectTrace(events,binding,completion,witness,execWitness=false){
+ const witnessRule=execWitness?NATIVE_EXEC_STARTUP_WITNESS_INTERPRETATION:NATIVE_STARTUP_WITNESS_INTERPRETATION;
+ const scopedAuthority=fields=>authority(witness?{scope:execWitness?'SINGLE_EXEC_NATIVE_CHILD_STARTUP_WITNESS_PRECONDITION_ONLY':'SINGLE_DIRECT_NATIVE_CHILD_STARTUP_WITNESS_PRECONDITION_ONLY',interpretation:execWitness?NATIVE_EXEC_STARTUP_WITNESS_DIRECT_INTERPRETATION:NATIVE_STARTUP_WITNESS_DIRECT_INTERPRETATION,
    controlledShellStartup:'NOT_ESTABLISHED',pathHelperProcessing:'NOT_ESTABLISHED',...fields}:fields);
  const unknown=(reason,fields={})=>scopedAuthority({outcome:'UNKNOWN',reason,...fields});
  if(!isNativeStdioDiagnosticData(events)||!isNativeStdioDiagnosticData(binding)||!isNativeStdioDiagnosticData(completion)||!Array.isArray(events)||events.length>64||
    Buffer.byteLength(JSON.stringify(events))>2097152)return unknown('INPUT_UNAVAILABLE');
- if(!exact(binding,witness?['hostBase','helperSha256','sourceSha256','nativeSha256','interpretation']:['hostBase','helperSha256','sourceSha256','nativeSha256'])||!full(hash,binding.helperSha256)||binding.sourceSha256!==(witness?NATIVE_STARTUP_WITNESS_SOURCE_SHA256:NATIVE_STDIO_SOURCE_SHA256)||witness&&binding.interpretation!==NATIVE_STARTUP_WITNESS_INTERPRETATION||binding.nativeSha256!==REVIEWED_CLAUDE_NATIVE.sha256)return unknown('IDENTITY_BINDING_UNKNOWN');
- let command;try{command=nativeStdioDirectCommand(binding.hostBase);}catch{return unknown('IDENTITY_BINDING_UNKNOWN');}
+ if(!exact(binding,witness?['hostBase','helperSha256','sourceSha256','nativeSha256','interpretation']:['hostBase','helperSha256','sourceSha256','nativeSha256'])||!full(hash,binding.helperSha256)||binding.sourceSha256!==(witness?NATIVE_STARTUP_WITNESS_SOURCE_SHA256:NATIVE_STDIO_SOURCE_SHA256)||witness&&binding.interpretation!==witnessRule||binding.nativeSha256!==REVIEWED_CLAUDE_NATIVE.sha256)return unknown('IDENTITY_BINDING_UNKNOWN');
+ let command;try{command=(execWitness?nativeExecStartupWitnessCommand:nativeStdioDirectCommand)(binding.hostBase);}catch{return unknown('IDENTITY_BINDING_UNKNOWN');}
  const cwd=binding.hostBase+'/prefix/native-probes';let init=false,session=null,tool=null,metadata=null,final=null,reason=null,toolItemsObserved=0,toolScopeRefusal=null,foregroundRefusalClass=null,foregroundShape=null;const messages=new Set();
  const reject=v=>{reason??=v;};
  for(const event of events){
@@ -172,7 +175,7 @@ function interpretFixedDirectTrace(events,binding,completion,witness){
  const completionKeys=['sourceCurrent','helperCurrent','reviewedBuildMatches','nativeCurrent','sourceSha256','helperSha256','nativeSha256','nativeExit','nativeSignal','timedOut','reaped','startupPreconditions','noHooksCurrent',witness?'interpretation':'controlledShellStartup'];
  if(!exact(completion,completionKeys)||
   completion.sourceCurrent!==true||completion.helperCurrent!==true||completion.reviewedBuildMatches!==true||completion.nativeCurrent!==true||completion.sourceSha256!==binding.sourceSha256||completion.helperSha256!==binding.helperSha256||completion.nativeSha256!==binding.nativeSha256||
-  completion.nativeExit!==0||completion.nativeSignal!==null||completion.timedOut!==false||completion.reaped!==true||completion.startupPreconditions!==true||completion.noHooksCurrent!==true||(witness?completion.interpretation!==NATIVE_STARTUP_WITNESS_INTERPRETATION:completion.controlledShellStartup!==true))return unknown('EXTERNAL_NATIVE_BUILD_OR_STARTUP_PRECONDITION_MISSING',observed);
+  completion.nativeExit!==0||completion.nativeSignal!==null||completion.timedOut!==false||completion.reaped!==true||completion.startupPreconditions!==true||completion.noHooksCurrent!==true||(witness?completion.interpretation!==witnessRule:completion.controlledShellStartup!==true))return unknown('EXTERNAL_NATIVE_BUILD_OR_STARTUP_PRECONDITION_MISSING',observed);
  const process={helperProcessOutcome:'SOURCE_DERIVED_FOREGROUND_COMMAND_EXIT_ZERO',exitInterpretationSource:NATIVE_STDIO_FOREGROUND_SOURCE.nativeSha256};
  if(metadata.dev_null.lstat!=='OK'||metadata.dev_null.type==='UNKNOWN'||metadata.descriptors.some(r=>r.fstat!=='OK'||r.fcntl!=='OK'||r.type==='UNKNOWN'||r.access==='UNKNOWN'))return unknown('DESCRIPTOR_METADATA_UNAVAILABLE',{...observed,...process});
  const childMatches=!witness||NATIVE_STARTUP_WITNESS_FIELDS.every(k=>metadata.startup[k]===true);

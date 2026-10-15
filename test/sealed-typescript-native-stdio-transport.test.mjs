@@ -2,9 +2,9 @@
 // credential, settings application or enforcement operation runs in this suite.
 import test from 'node:test';import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';import {PassThrough} from 'node:stream';
-import {collectDirectNativeStdioDiagnostic,interpretCollectedDirectNativeStdioDiagnostic,collectDirectNativeStartupWitnessDiagnostic,interpretCollectedDirectNativeStartupWitnessDiagnostic} from './acceptance/portable-claude-diagnostic.mjs';
+import {collectDirectNativeStdioDiagnostic,interpretCollectedDirectNativeStdioDiagnostic,collectDirectNativeStartupWitnessDiagnostic,interpretCollectedDirectNativeStartupWitnessDiagnostic,collectExecNativeStartupWitnessDiagnostic,interpretCollectedExecNativeStartupWitnessDiagnostic} from './acceptance/portable-claude-diagnostic.mjs';
 import {nativeStdioDirectCommand,NATIVE_STDIO_SOURCE_SHA256} from './acceptance/sealed-typescript-native-stdio-probe.mjs';
-import {NATIVE_STARTUP_WITNESS_SOURCE_SHA256,NATIVE_STARTUP_WITNESS_INTERPRETATION,NATIVE_STARTUP_WITNESS_FIELDS} from './acceptance/sealed-typescript-native-startup-witness.mjs';
+import {NATIVE_STARTUP_WITNESS_SOURCE_SHA256,NATIVE_STARTUP_WITNESS_INTERPRETATION,NATIVE_STARTUP_WITNESS_FIELDS,NATIVE_EXEC_STARTUP_WITNESS_INTERPRETATION,nativeExecStartupWitnessCommand} from './acceptance/sealed-typescript-native-startup-witness.mjs';
 import {REVIEWED_CLAUDE_NATIVE} from './acceptance/portable-claude-native-profile.mjs';
 const hostBase='/private/tmp/redue-ci-recipient-01234567',cwd=hostBase+'/prefix/native-probes',command=nativeStdioDirectCommand(hostBase);
 const source='a'.repeat(40),session='12345678-1234-4234-8234-123456789abc',id='toolu_01234567';
@@ -157,4 +157,22 @@ test('witness source-only labels cannot bypass cancellation or actual native clo
  const abort=new AbortController();abort.abort();let launches=0;
  const r=await collectDirectNativeStartupWitnessDiagnostic(()=>{launches++;return child([]);},{binding:witnessBinding,activation:activation(),signal:abort.signal,timeoutMs:5,cleanupMs:5});assert.equal(launches,0);assert.equal(witnessInterpret(r).outcome,'UNKNOWN');
  const t=await witnessCollect(undefined,{hang:true,ignoreTerm:true},{timeoutMs:5,cleanupMs:5});assert.equal(t.timed_out,true);assert.equal(witnessInterpret(t).outcome,'UNKNOWN');
+});
+
+const execBinding={...witnessBinding,interpretation:NATIVE_EXEC_STARTUP_WITNESS_INTERPRETATION};
+const execFrames=()=>{const e=witnessFrames();e[1].message.content[1].input.command=nativeExecStartupWitnessCommand(hostBase);return e;};
+const execCompletion=()=>({...witnessCompletion(),interpretation:NATIVE_EXEC_STARTUP_WITNESS_INTERPRETATION});
+const execCollect=(e=execFrames(),opts={},extra={})=>collectExecNativeStartupWitnessDiagnostic(()=>child(e,opts),{binding:execBinding,activation:activation(),timeoutMs:100,cleanupMs:20,...extra});
+const execInterpret=(r,c=execCompletion())=>interpretCollectedExecNativeStartupWitnessDiagnostic(r,c);
+test('exec fixed private collection cannot adopt old source/command/interpretation or be adopted by historical collectors',async()=>{
+ const r=await execCollect(),v=execInterpret(r);assert.equal(v.outcome,'OBSERVED_COMPATIBLE');noAuthority(v);assert.equal(execInterpret(r).outcome,'UNKNOWN');
+ for(const [create,consume,retry]of [[execCollect,interpret,execInterpret],[execCollect,witnessInterpret,execInterpret],[collect,execInterpret,interpret],[witnessCollect,execInterpret,witnessInterpret]]){const r=await create();assert.equal(consume(r).reason,'COLLECTED_NATIVE_CONTRACT_MISMATCH');assert.equal(retry(r).outcome,'UNKNOWN');}
+ let calls=0;for(const b of [binding,witnessBinding])assert.throws(()=>collectExecNativeStartupWitnessDiagnostic(()=>{calls++;return child([]);},{binding:b,activation:activation()}));assert.equal(calls,0);
+ assert.equal(execInterpret(await execCollect(witnessFrames())).outcome,'UNKNOWN');assert.equal(execInterpret(await execCollect(),witnessCompletion()).outcome,'UNKNOWN');
+});
+test('exec mock transport retains strict foreground/raw/lifecycle and single-use private disposal',async()=>{
+ for(const opts of [{exit:7},{signal:'SIGTERM'},{emitSpawn:false},{stderr:'PRIVATE'}])assert.equal(execInterpret(await execCollect(undefined,opts)).outcome,'UNKNOWN');
+ const e=execFrames();e[2].tool_use_result='Error: Exit code 0';assert.equal(execInterpret(await execCollect(e)).outcome,'UNKNOWN');
+ const r=await execCollect();for(const copy of [{...r},JSON.parse(JSON.stringify(r)),{},null])assert.equal(execInterpret(copy).outcome,'UNKNOWN');assert.equal(execInterpret(r).outcome,'OBSERVED_COMPATIBLE');
+ const abort=new AbortController();abort.abort();let calls=0;const cancelled=await collectExecNativeStartupWitnessDiagnostic(()=>{calls++;return child([]);},{binding:execBinding,activation:activation(),signal:abort.signal,timeoutMs:5,cleanupMs:5});assert.equal(calls,0);assert.equal(execInterpret(cancelled).outcome,'UNKNOWN');
 });

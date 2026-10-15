@@ -9,8 +9,9 @@ import {fileURLToPath} from 'node:url';
 import {renderNativeDiagnosticAssets,sha} from './portable-native-diagnostic-assets.mjs';
 import {REVIEWED_CLAUDE_NATIVE,PINNED_READONLY_BASH_HEADS} from './portable-claude-native-profile.mjs';
 import {parsePortableJson} from '../../src/portable-envelope.mjs';
-import {interpretDirectNativeStdioProbeTrace,interpretDirectNativeStartupWitnessTrace} from './sealed-typescript-native-stdio-direct-trace.mjs';
+import {interpretDirectNativeStdioProbeTrace,interpretDirectNativeStartupWitnessTrace,interpretExecNativeStartupWitnessTrace} from './sealed-typescript-native-stdio-direct-trace.mjs';
 import {isNativeStdioDiagnosticData,nativeStdioDirectCommand} from './sealed-typescript-native-stdio-probe.mjs';
+import {nativeExecStartupWitnessCommand} from './sealed-typescript-native-startup-witness.mjs';
 export {PINNED_READONLY_BASH_HEADS} from './portable-claude-native-profile.mjs';
 export const LIMITS=Object.freeze({turns:4,totalMs:120000,cleanupMs:5000,lineBytes:65536,streamBytes:2*1024*1024});
 // Finite pinned187 EOn family closure: qQd(+m9i/f9i/Hkn), nto(+Ikn),
@@ -137,26 +138,28 @@ export function collectNativeDiagnostic(create,options={}) {
 const directCollections=new WeakMap();
 export function collectDirectNativeStdioDiagnostic(create,options={}) {return collectFixedDirectDiagnostic(create,options,false);}
 export function collectDirectNativeStartupWitnessDiagnostic(create,options={}) {return collectFixedDirectDiagnostic(create,options,true);}
-function collectFixedDirectDiagnostic(create,{binding,activation,...limits}={},witness) {
- const interpret=witness?interpretDirectNativeStartupWitnessTrace:interpretDirectNativeStdioProbeTrace;
+export function collectExecNativeStartupWitnessDiagnostic(create,options={}) {return collectFixedDirectDiagnostic(create,options,true,true);}
+function collectFixedDirectDiagnostic(create,{binding,activation,...limits}={},witness,execWitness=false) {
+ const interpret=execWitness?interpretExecNativeStartupWitnessTrace:witness?interpretDirectNativeStartupWitnessTrace:interpretDirectNativeStdioProbeTrace;
  if(!isNativeStdioDiagnosticData(binding)||interpret([],binding,{}).reason!=='NATIVE_TRACE_INCOMPLETE')fail('DIAGNOSTIC_DIRECT_BINDING');
  if(!activation||Object.getPrototypeOf(activation)!==Object.prototype||Reflect.ownKeys(activation).length!==2||
   !['env','source'].every(k=>Object.hasOwn(Object.getOwnPropertyDescriptor(activation,k)??{},'value')))fail('DIAGNOSTIC_DIRECT_ACTIVATION');
  requireNativeDiagnosticActivation(activation);
  if(Object.keys(limits).some(k=>!['timeoutMs','cleanupMs','signal'].includes(k)))fail('DIAGNOSTIC_DIRECT_OPTIONS');
  const fixedBinding=JSON.parse(JSON.stringify(binding));
- return collectNativeDiagnosticProcess(create,{...limits,command:nativeStdioDirectCommand(binding.hostBase),cwd:binding.hostBase+'/prefix/native-probes'},fixedBinding,witness?'STARTUP_WITNESS_V1':'STDIO_V1');
+ return collectNativeDiagnosticProcess(create,{...limits,command:(execWitness?nativeExecStartupWitnessCommand:nativeStdioDirectCommand)(binding.hostBase),cwd:binding.hostBase+'/prefix/native-probes'},fixedBinding,execWitness?'EXEC_STARTUP_WITNESS_V1':witness?'STARTUP_WITNESS_V1':'STDIO_V1');
 }
 // Consume the live same-process collection exactly once AFTER the controller's
 // post-close currentness checks. Copied/serialized/foreign records cannot adopt
 // it. Raw frames never leave the private map and are discarded even on failure.
 export function interpretCollectedDirectNativeStdioDiagnostic(collection,completion){return interpretCollectedFixedDirectDiagnostic(collection,completion,false);}
 export function interpretCollectedDirectNativeStartupWitnessDiagnostic(collection,completion){return interpretCollectedFixedDirectDiagnostic(collection,completion,true);}
-function interpretCollectedFixedDirectDiagnostic(collection,completion,witness){
- const interpret=witness?interpretDirectNativeStartupWitnessTrace:interpretDirectNativeStdioProbeTrace;
+export function interpretCollectedExecNativeStartupWitnessDiagnostic(collection,completion){return interpretCollectedFixedDirectDiagnostic(collection,completion,true,true);}
+function interpretCollectedFixedDirectDiagnostic(collection,completion,witness,execWitness=false){
+ const interpret=execWitness?interpretExecNativeStartupWitnessTrace:witness?interpretDirectNativeStartupWitnessTrace:interpretDirectNativeStdioProbeTrace;
  const retained=directCollections.get(collection);if(retained)directCollections.delete(collection);
  if(!retained)return Object.freeze({...interpret([],{},{}),reason:'COLLECTED_NATIVE_STDIO_CONTEXT_UNAVAILABLE'});
- if(retained.kind!==(witness?'STARTUP_WITNESS_V1':'STDIO_V1')){retained.events.length=0;return Object.freeze({...interpret([],{},{}),reason:'COLLECTED_NATIVE_CONTRACT_MISMATCH'});}
+ if(retained.kind!==(execWitness?'EXEC_STARTUP_WITNESS_V1':witness?'STARTUP_WITNESS_V1':'STDIO_V1')){retained.events.length=0;return Object.freeze({...interpret([],{},{}),reason:'COLLECTED_NATIVE_CONTRACT_MISMATCH'});}
  try{
   const current=isNativeStdioDiagnosticData(completion)?completion:{};
   const interpreted=interpret(retained.events,retained.binding,{...current,

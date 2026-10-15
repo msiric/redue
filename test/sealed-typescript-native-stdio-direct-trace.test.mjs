@@ -1,13 +1,13 @@
 // Mock/native-format source controls only. No build, native/helper/model, settings,
 // secret, network, descriptor contents or actual enforcement operation runs.
-import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
-import {interpretDirectNativeStdioProbeTrace,interpretDirectNativeStartupWitnessTrace,NATIVE_STARTUP_WITNESS_DIRECT_INTERPRETATION,NATIVE_STDIO_DIRECT_INTERPRETATION,NATIVE_STDIO_FOREGROUND_SOURCE} from './acceptance/sealed-typescript-native-stdio-direct-trace.mjs';
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import {createHash} from 'node:crypto';
+import {interpretDirectNativeStdioProbeTrace,interpretDirectNativeStartupWitnessTrace,NATIVE_STARTUP_WITNESS_DIRECT_INTERPRETATION,NATIVE_STDIO_DIRECT_INTERPRETATION,NATIVE_STDIO_FOREGROUND_SOURCE,interpretExecNativeStartupWitnessTrace,NATIVE_EXEC_STARTUP_WITNESS_DIRECT_INTERPRETATION} from './acceptance/sealed-typescript-native-stdio-direct-trace.mjs';
 import {nativeStdioDirectCommand,nativeStdioProbeCommand,parseNativeStdioMetadata,isNativeStdioDiagnosticData,NATIVE_STDIO_SOURCE_SHA256} from './acceptance/sealed-typescript-native-stdio-probe.mjs';
 import {prepareDirectNativeStdioProbeCommand} from './acceptance/sealed-typescript-native-stdio-command.mjs';
 import {prepareSealedTypeScriptClosedReadCanaryPolicy} from './acceptance/sealed-typescript-closed-read-policy.mjs';
 import {nativeDiagnosticArgv} from './acceptance/portable-claude-diagnostic.mjs';
 import {REVIEWED_CLAUDE_NATIVE} from './acceptance/portable-claude-native-profile.mjs';
-import {parseNativeStartupWitness,NATIVE_STARTUP_WITNESS_SOURCE_SHA256,NATIVE_STARTUP_WITNESS_INTERPRETATION,NATIVE_STARTUP_WITNESS_FIELDS} from './acceptance/sealed-typescript-native-startup-witness.mjs';
+import {parseNativeStartupWitness,NATIVE_STARTUP_WITNESS_SOURCE_SHA256,NATIVE_STARTUP_WITNESS_INTERPRETATION,NATIVE_STARTUP_WITNESS_FIELDS,NATIVE_EXEC_STARTUP_WITNESS_INTERPRETATION,nativeExecStartupWitnessCommand} from './acceptance/sealed-typescript-native-startup-witness.mjs';
 import {parsePortableJson} from '../src/portable-envelope.mjs';
 const hostBase='/private/tmp/redue-ci-recipient-01234567',command=nativeStdioDirectCommand(hostBase),cwd=hostBase+'/prefix/native-probes';
 const session='12345678-1234-4234-8234-123456789abc',foreign='23456789-1234-4234-8234-123456789abc',id='toolu_01234567';
@@ -393,4 +393,23 @@ test('removing only errorMarkers preserves baseline foreground semantics and eve
   if(after?.summary&&Object.hasOwn(after.summary,'errorMarkers')){const {errorMarkers,...prior}=after.summary;after={...after,summary:prior};}
   assert.deepEqual(resultAfter,resultBefore);assert.deepEqual(after,before);
  }
+});
+
+const execBinding={...witnessBinding,interpretation:NATIVE_EXEC_STARTUP_WITNESS_INTERPRETATION};
+const execCompletion=()=>({...witnessCompletion(),interpretation:NATIVE_EXEC_STARTUP_WITNESS_INTERPRETATION});
+const execEvents=(m=witnessMetadata())=>{const e=events(m);e[1].message.content[0].input.command=nativeExecStartupWitnessCommand(hostBase);return e;};
+const execObserve=(e=execEvents(),b=execBinding,c=execCompletion())=>interpretExecNativeStartupWitnessTrace(e,b,c);
+test('exec foreground contract is distinct while helper/source/child/FD assertions remain exact',()=>{
+ const v=execObserve();assert.equal(v.outcome,'OBSERVED_COMPATIBLE');assert.equal(v.interpretation,NATIVE_EXEC_STARTUP_WITNESS_DIRECT_INTERPRETATION);assert.equal(v.commandSha256,createHash('sha256').update(nativeExecStartupWitnessCommand(hostBase)).digest('hex'));assert.deepEqual(v.metadata,witnessMetadata());assert.equal(v.helperProcessOutcome,'SOURCE_DERIVED_FOREGROUND_COMMAND_EXIT_ZERO');assert.equal(v.controlledShellStartup,'NOT_ESTABLISHED');assert.equal(v.pathHelperProcessing,'NOT_ESTABLISHED');assert.equal(v.nativeEnforcement,'NOT_ESTABLISHED');assert.equal(v.sealed,false);assert.equal(v.reuseEligible,false);
+ for(const [e,b,c]of [[execEvents(),witnessBinding,execCompletion()],[execEvents(),execBinding,witnessCompletion()],[events(witnessMetadata()),execBinding,execCompletion()]])assert.equal(execObserve(e,b,c).outcome,'UNKNOWN');
+ assert.equal(witnessObserve(execEvents(),execBinding,execCompletion()).outcome,'UNKNOWN');assert.equal(witnessObserve(execEvents()).reason,'NATIVE_TOOL_SCOPE');
+});
+for(const [name,change]of [...foregroundRefusalCases,...NATIVE_STARTUP_WITNESS_FIELDS.map(field=>['missing '+field,e=>{const m=witnessMetadata();delete m.startup[field];e[2].tool_use_result.stdout=JSON.stringify(m);e[2].message.content[0].content=e[2].tool_use_result.stdout;}])])test('exec fixed route preserves foreground refusal '+name,()=>{
+ const e=execEvents();change(e);const v=execObserve(e);assert.equal(v.outcome,'UNKNOWN');assert.equal(v.sealed,false);assert.equal(v.reuseEligible,false);
+});
+for(const field of NATIVE_STARTUP_WITNESS_FIELDS)test('exec child mismatch '+field+' remains incompatible',()=>{const m=witnessMetadata();m.startup[field]=false;assert.equal(execObserve(execEvents(m)).outcome,'OBSERVED_INCOMPATIBLE');});
+test('exec witness requires live completion and strict literal command without wrappers/redirects',()=>{
+ for(const field of ['sourceCurrent','helperCurrent','reviewedBuildMatches','nativeCurrent','startupPreconditions','noHooksCurrent','reaped'])assert.equal(execObserve(undefined,undefined,{...execCompletion(),[field]:false}).outcome,'UNKNOWN');
+ for(const command of [nativeStdioDirectCommand(hostBase),'exec '+nativeStdioDirectCommand(hostBase)+'; true','exec '+nativeStdioDirectCommand(hostBase)+' > /dev/null','env '+nativeExecStartupWitnessCommand(hostBase),nativeExecStartupWitnessCommand(hostBase)+'\n']){const e=execEvents();e[1].message.content[0].input.command=command;assert.equal(execObserve(e).reason,'NATIVE_TOOL_SCOPE');}
+ for(const c of [{...execCompletion(),nativeExit:7},{...execCompletion(),nativeSignal:'SIGTERM'},{...execCompletion(),controlledShellStartup:true}])assert.equal(execObserve(undefined,undefined,c).outcome,'UNKNOWN');
 });

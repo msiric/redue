@@ -8,6 +8,7 @@ import {parsePortableJson} from '../../src/portable-envelope.mjs';
 import {parseNativeStdioMetadata,nativeStdioDirectCommand} from './sealed-typescript-native-stdio-probe.mjs';
 export const NATIVE_STARTUP_WITNESS_SOURCE_SHA256='a2a439ccdb403a26c5b0491ceb27b2b60cfb3d53bccd2c53faa7ce1ca409741b';
 export const NATIVE_STARTUP_WITNESS_INTERPRETATION='native187-direct-bash-child-startup-witness@1';
+export const NATIVE_EXEC_STARTUP_WITNESS_INTERPRETATION='native187-exec-bash-child-startup-witness@1';
 const sha=value=>createHash('sha256').update(value).digest('hex');
 const fingerprints=s=>['dev','ino','mode','uid','nlink','size','mtimeNs','ctimeNs'].map(k=>String(s[k])).join(':');
 const fail=()=>{throw Error('NATIVE_STARTUP_WITNESS_SOURCE_UNKNOWN');};
@@ -56,4 +57,17 @@ export function nativeStartupWitnessBinding(hostBase){
   sourceSha256:NATIVE_STARTUP_WITNESS_SOURCE_SHA256,commandSha256:sha(command),command_proposed:command,
   disabled:true,models:0,helperExecutions:0,inferencePermitted:false,controlledShellStartup:'NOT_EMPIRICALLY_OBSERVED',
   nativeEnforcement:'NOT_ESTABLISHED',preMainLoader:'NOT_ESTABLISHED',sealed:false,reuseEligible:false});
+}
+
+// Separate fixed command contract. A successful shell builtin exec replaces
+// the sandboxed shell; it does not run trailing shell bookkeeping. This changes
+// shell topology (including possible SHLVL behavior), not the helper/source bytes.
+// Neither this proposal nor the old UNKNOWN observations establish admission.
+export function nativeExecStartupWitnessCommand(hostBase){
+ return 'exec '+nativeStdioDirectCommand(hostBase);
+}
+export function nativeExecStartupWitnessBinding(hostBase){
+ const command=nativeExecStartupWitnessCommand(hostBase);
+ return Object.freeze({...nativeStartupWitnessBinding(hostBase),scope:'DISABLED_LITERAL_NATIVE_EXEC_STARTUP_WITNESS_BINDING_ONLY',
+  interpretation:NATIVE_EXEC_STARTUP_WITNESS_INTERPRETATION,commandSha256:sha(command),command_proposed:command});
 }

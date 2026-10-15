@@ -3,7 +3,7 @@
 // An exact compound permission string does NOT prove native piecewise admission.
 import {verifyNativeStdioProbeBuild} from './sealed-typescript-native-stdio-build.mjs';
 import {nativeStdioProbeCommand,nativeStdioDirectCommand,NATIVE_STDIO_SOURCE_SHA256} from './sealed-typescript-native-stdio-probe.mjs';
-import {NATIVE_STARTUP_WITNESS_SOURCE_SHA256,NATIVE_STARTUP_WITNESS_INTERPRETATION} from './sealed-typescript-native-startup-witness.mjs';
+import {NATIVE_STARTUP_WITNESS_SOURCE_SHA256,NATIVE_STARTUP_WITNESS_INTERPRETATION,NATIVE_EXEC_STARTUP_WITNESS_INTERPRETATION,nativeExecStartupWitnessCommand} from './sealed-typescript-native-startup-witness.mjs';
 import {prepareSealedTypeScriptClosedReadCanaryPolicy} from './sealed-typescript-closed-read-policy.mjs';
 import {nativeDiagnosticArgv} from './portable-claude-diagnostic.mjs';
 
@@ -19,13 +19,27 @@ export function prepareDirectNativeStdioProbeCommand(options){
 export function prepareDirectNativeStartupWitnessCommand(options){
  if(arguments.length!==1)fail();return prepareCommand(options,true,true);
 }
-function prepareCommand(options,direct,witness=false){
+export function prepareExecNativeStartupWitnessCommand(options){
+ if(arguments.length!==1)fail();return prepareCommand(options,true,true,true);
+}
+// Fixed exec-witness procedure only. It is not an alternate prompt input.
+export function nativeExecStartupWitnessArgv(options){
+ if(arguments.length!==1||!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==2||
+  !['settingsFile','command'].every(k=>Object.hasOwn(Object.getOwnPropertyDescriptor(options,k)??{},'value')))fail();
+ const match=typeof options.settingsFile==='string'?/^(\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8})\/claude-host\/settings\.json$/.exec(options.settingsFile):null;
+ if(!match||match[0]!==options.settingsFile||options.command!==nativeExecStartupWitnessCommand(match[1]))fail();
+ const args=nativeDiagnosticArgv(options);
+ args[args.length-1]='Make exactly one foreground Bash tool call with this exact input JSON:\n'+JSON.stringify({command:options.command,timeout:15000})+
+  '\nPreserve the command string exactly, including exec and its single quotes. Do not rewrite quotes, execute another command, run in background, retry, delegate or inspect credentials. Report only the tool result. If unavailable, stop.';
+ return args;
+}
+function prepareCommand(options,direct,witness=false,execWitness=false){
  if(!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==keys.length||!keys.every(k=>Object.hasOwn(Object.getOwnPropertyDescriptor(options,k)??{},'value')))fail();
  const first=verifyNativeStdioProbeBuild(options.build);
  if(first.outcome!=='BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED'||first.sourceSha256!==(witness?NATIVE_STARTUP_WITNESS_SOURCE_SHA256:NATIVE_STDIO_SOURCE_SHA256)||first.buildInterpretation!==(witness?'redue-native-child-startup-witness-preauth-build@1':'redue-native-stdio-preauth-build@2'))fail();
  const base=first.hostBase,helper=base+'/prefix/native-probes/native-stdio-probe';
  if(first.helper!==helper||first.cwd!==base+'/prefix/native-probes')fail();
- const command=direct?nativeStdioDirectCommand(base):nativeStdioProbeCommand(base);
+ const command=execWitness?nativeExecStartupWitnessCommand(base):direct?nativeStdioDirectCommand(base):nativeStdioProbeCommand(base);
  const policy=prepareSealedTypeScriptClosedReadCanaryPolicy({base,claudeExecutable:options.claudeExecutable,claudeSha256:options.claudeSha256,claudeVersion:options.claudeVersion});
  const settings=structuredClone(policy.settings_proposed),settingsFile=base+'/claude-host/settings.json';
  // Replace no deny rule. In particular Bash(printf:*) remains denied. The old
@@ -35,13 +49,13 @@ function prepareCommand(options,direct,witness=false){
  settings.sandbox.filesystem.allowRead=['/bin/bash',helper];
  for(const file of [base,helper])if(!settings.sandbox.filesystem.denyWrite.includes(file))settings.sandbox.filesystem.denyWrite.push(file);
  settings.sandbox.network.allowUnixSockets=[];
- const argv=nativeDiagnosticArgv({settingsFile,command});
+ const argv=(execWitness?nativeExecStartupWitnessArgv:nativeDiagnosticArgv)({settingsFile,command});
  // Pure settings/argv construction must precede the final full original/code/
  // compiler/SDK/helper/ancestor validation, never replace it.
  const last=verifyNativeStdioProbeBuild(options.build);
  if(JSON.stringify(first)!==JSON.stringify(last))fail();
- return freeze({schema:1,scope:witness?'DISABLED_SINGLE_DIRECT_NATIVE_STARTUP_WITNESS_COMMAND_PROPOSAL_ONLY':direct?'DISABLED_SINGLE_DIRECT_NATIVE_STDIO_COMMAND_PROPOSAL_ONLY':'DISABLED_FIXED_NATIVE_STDIO_COMMAND_PROPOSAL_ONLY',disabled:true,
-  ...(witness?{witness_interpretation:NATIVE_STARTUP_WITNESS_INTERPRETATION}:{}),hostBase:base,command_proposed:command,cwd_proposed:first.cwd,settings_file_proposed:settingsFile,settings_proposed:settings,argv_proposed:argv,
+ return freeze({schema:1,scope:execWitness?'DISABLED_SINGLE_EXEC_NATIVE_STARTUP_WITNESS_COMMAND_PROPOSAL_ONLY':witness?'DISABLED_SINGLE_DIRECT_NATIVE_STARTUP_WITNESS_COMMAND_PROPOSAL_ONLY':direct?'DISABLED_SINGLE_DIRECT_NATIVE_STDIO_COMMAND_PROPOSAL_ONLY':'DISABLED_FIXED_NATIVE_STDIO_COMMAND_PROPOSAL_ONLY',disabled:true,
+  ...(witness?{witness_interpretation:execWitness?NATIVE_EXEC_STARTUP_WITNESS_INTERPRETATION:NATIVE_STARTUP_WITNESS_INTERPRETATION}:{}),hostBase:base,command_proposed:command,cwd_proposed:first.cwd,settings_file_proposed:settingsFile,settings_proposed:settings,argv_proposed:argv,
   native_executable_proposed:options.claudeExecutable,native_version_proposed:options.claudeVersion,native_sha256_proposed:options.claudeSha256,
   source_sha256:first.sourceSha256,helper_sha256:first.helperSha256,build_profile_id:first.profileId,build_interpretation:first.buildInterpretation,
   source_command_admission:direct?'SINGLE_LITERAL_COMMAND_REQUIRES_EFFECTIVE_ADMISSION':'EXPECTED_DENIED_IF_NATIVE_PARSES_PRINTF_SUBCOMMAND',
