@@ -1,4 +1,5 @@
-// Source and closed-parser tests only. No C build/child/native/model execution.
+// Source/parser controls and one harmless synthetic child-process test.
+// No C build, actual witness/helper, native agent, checker or model execution.
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import {createHash,randomBytes} from 'node:crypto';import {spawnSync} from 'node:child_process';
 import {parseNativeStartupWitness,nativeStartupWitnessBinding,readNativeStartupWitnessSource,NATIVE_STARTUP_WITNESS_SOURCE_SHA256,NATIVE_STARTUP_WITNESS_INTERPRETATION,NATIVE_STARTUP_WITNESS_FIELDS,nativeExecStartupWitnessCommand,nativeExecStartupWitnessBinding,NATIVE_EXEC_STARTUP_WITNESS_INTERPRETATION} from './acceptance/sealed-typescript-native-startup-witness.mjs';
 import {parseNativeStdioMetadata,NATIVE_STDIO_SOURCE_SHA256} from './acceptance/sealed-typescript-native-stdio-probe.mjs';
