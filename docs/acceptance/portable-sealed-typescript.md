@@ -1,6 +1,30 @@
 # Sealed-input TypeScript: current implementation boundary
 
-## Current checkpoint — build-only preparation complete; native acceptance pending
+## Current checkpoint — fixed launcher repair; native acceptance remains UNKNOWN
+
+Owner approval for [run38748867165](https://github.com/msiric/redue/actions/runs/38748867165)
+was applied; the completed attempt is already preserved below. Its accepted native
+output reports **UNKNOWN / DESCRIPTOR_METADATA_UNAVAILABLE**, not enforcement or
+portable reuse. Native exit0/reap does not resolve the denied descriptor metadata.
+The repeated approval message creates no new attempt and the old workflow is not
+being rerun.
+
+The fixed controller at `1b7b73d` has independent DIR297 source/mock acceptance,
+but remains unexecuted. DIR299 accepts the bounded parent design with one narrow
+pre-Node correction: reject the optional profiling selector keys by presence.
+Existing fixture-build subprocesses already receive only their owned TMPDIR;
+no OAuth inheritance into those compiler calls was found. DIR300 owns the fixed
+parent/entry implementation in an isolated task branch. Review and actual
+profile/account/security prerequisites remain mandatory before any native launch.
+All origin, sealing and reusable-evidence authority remains withheld.
+
+The public-header workflow still awaits the existing owner UI dispatch; the
+latest read found no new run. CLI403 is not retried. Copilot included Actions
+capacity is a separate pending fact. G1–G4 remain incomplete; alpha.11 is frozen
+and unpublished. No new native/model attempt, signing, trust change or release
+is authorized by these source/mock results.
+
+## Retained checkpoint — build-only preparation and controller source evidence
 
 At `79697aa6e9456bd0595ce64945ec264f0f6cd5b4`, the eighth trusted local
 preparation returned **BUILT_NOT_EXECUTED**. All eight actual C builds exited0;
