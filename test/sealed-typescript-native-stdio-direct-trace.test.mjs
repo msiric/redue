@@ -2,12 +2,12 @@
 // secret, network, descriptor contents or actual enforcement operation runs.
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
 import {interpretDirectNativeStdioProbeTrace,interpretDirectNativeStartupWitnessTrace,NATIVE_STARTUP_WITNESS_DIRECT_INTERPRETATION,NATIVE_STDIO_DIRECT_INTERPRETATION,NATIVE_STDIO_FOREGROUND_SOURCE} from './acceptance/sealed-typescript-native-stdio-direct-trace.mjs';
-import {nativeStdioDirectCommand,nativeStdioProbeCommand,parseNativeStdioMetadata,NATIVE_STDIO_SOURCE_SHA256} from './acceptance/sealed-typescript-native-stdio-probe.mjs';
+import {nativeStdioDirectCommand,nativeStdioProbeCommand,parseNativeStdioMetadata,isNativeStdioDiagnosticData,NATIVE_STDIO_SOURCE_SHA256} from './acceptance/sealed-typescript-native-stdio-probe.mjs';
 import {prepareDirectNativeStdioProbeCommand} from './acceptance/sealed-typescript-native-stdio-command.mjs';
 import {prepareSealedTypeScriptClosedReadCanaryPolicy} from './acceptance/sealed-typescript-closed-read-policy.mjs';
 import {nativeDiagnosticArgv} from './acceptance/portable-claude-diagnostic.mjs';
 import {REVIEWED_CLAUDE_NATIVE} from './acceptance/portable-claude-native-profile.mjs';
-import {NATIVE_STARTUP_WITNESS_SOURCE_SHA256,NATIVE_STARTUP_WITNESS_INTERPRETATION,NATIVE_STARTUP_WITNESS_FIELDS} from './acceptance/sealed-typescript-native-startup-witness.mjs';
+import {parseNativeStartupWitness,NATIVE_STARTUP_WITNESS_SOURCE_SHA256,NATIVE_STARTUP_WITNESS_INTERPRETATION,NATIVE_STARTUP_WITNESS_FIELDS} from './acceptance/sealed-typescript-native-startup-witness.mjs';
 import {parsePortableJson} from '../src/portable-envelope.mjs';
 const hostBase='/private/tmp/redue-ci-recipient-01234567',command=nativeStdioDirectCommand(hostBase),cwd=hostBase+'/prefix/native-probes';
 const session='12345678-1234-4234-8234-123456789abc',foreign='23456789-1234-4234-8234-123456789abc',id='toolu_01234567';
@@ -202,3 +202,59 @@ for(const [expected,mutate]of [
  ['TIMEOUT_MISSING',i=>{delete i.input.timeout;i.input.description={private:true};}],
  ['TIMEOUT_NOT_INTEGER',i=>{i.input.timeout='PRIVATE';i.input.description={private:true};}]
 ])test('original scope first-refusal priority '+expected,()=>{const e=events(witnessMetadata());mutate(e[1].message.content[0]);const v=witnessObserve(e);assert.equal(v.toolScopeRefusal.classification,expected);assert.equal(v.reason,'NATIVE_TOOL_SCOPE');assert.equal(JSON.stringify(v).includes('PRIVATE'),false);});
+
+const foregroundRefusalCases=[
+ ['RAW_SHAPE_INVALID',e=>delete e[2].tool_use_result],
+ ['RAW_SHAPE_INVALID',e=>e[2].tool_use_result={PRIVATE_EXTRA:'PRIVATE_BODY'}],
+ ['STDOUT_NOT_STRING',e=>e[2].tool_use_result.stdout={PRIVATE_BODY:true}],
+ ['STDOUT_TOO_LARGE',e=>e[2].tool_use_result.stdout='PRIVATE_BODY'.repeat(400)],
+ ['STDERR_NOT_EMPTY',e=>e[2].tool_use_result.stderr='PRIVATE_STDERR'],
+ ['INTERRUPTED_FLAG',e=>e[2].tool_use_result.interrupted=true],
+ ['IMAGE_FLAG',e=>e[2].tool_use_result.isImage=true],
+ ['NO_OUTPUT_EXPECTED_FLAG',e=>e[2].tool_use_result.noOutputExpected=true],
+ ['TOOL_RESULT_ERROR_FLAG',e=>e[2].message.content[0].is_error=true],
+ ['RENDERED_NOT_STRING',e=>e[2].message.content[0].content={PRIVATE_BODY:true}],
+ ['RENDERED_MISMATCH',e=>e[2].message.content[0].content='PRIVATE_RENDERED'],
+ ['RAW_METADATA_PARSE_FAILED',e=>{e[2].tool_use_result.stdout='PRIVATE_NOT_METADATA';e[2].message.content[0].content='PRIVATE_NOT_METADATA';}]
+];
+for(const witness of [false,true])for(const [classification,mutate]of foregroundRefusalCases)test('primary foreground refusal '+classification+' '+(witness?'witness':'old'),()=>{
+ const e=events(witness?witnessMetadata():metadata());mutate(e);const v=witness?witnessObserve(e):observe(e);assert.equal(v.reason,'FOREGROUND_RAW_OR_RENDERED_RESULT_UNAVAILABLE');assert.equal(v.outcome,'UNKNOWN');assert.equal(v.foregroundRefusalClass,classification);assert.equal(JSON.stringify(v).includes('PRIVATE_'),false);assert.equal(Object.hasOwn(v,'helperProcessOutcome'),false);if(witness)witnessAuthority(v);else authority(v);
+});
+test('only primary foreground reason carries first static label; later failures cannot overwrite it',()=>{
+ const e=events(witnessMetadata());e[2].tool_use_result.stderr='PRIVATE_WARNING';const later=clone(e[2]);later.tool_use_result.interrupted=true;later.tool_use_result.stderr='';e.splice(3,0,later);const v=witnessObserve(e);assert.equal(v.reason,'FOREGROUND_RAW_OR_RENDERED_RESULT_UNAVAILABLE');assert.equal(v.foregroundRefusalClass,'STDERR_NOT_EMPTY');
+ const f=events(witnessMetadata());f[1].message.content[0].input.command='PRIVATE_COMMAND';f[2].tool_use_result.stderr='PRIVATE_WARNING';const r=witnessObserve(f);assert.equal(r.reason,'NATIVE_TOOL_SCOPE');assert.equal(Object.hasOwn(r,'foregroundRefusalClass'),false);assert.equal(JSON.stringify(r).includes('PRIVATE_'),false);
+ for(const r of [observe(),witnessObserve()])assert.equal(Object.hasOwn(r,'foregroundRefusalClass'),false);
+});
+// Private source seam for predicate/order tests only. No helper/model/native
+// execution or native acceptance. Parser/Buffer fault cases are synthetic.
+const directSource=fs.readFileSync(new URL('./acceptance/sealed-typescript-native-stdio-direct-trace.mjs',import.meta.url),'utf8');
+const foregroundSource=directSource.slice(directSource.indexOf('function foregroundResult('),directSource.indexOf('// completion supplies'));
+const exactForeground=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).length===keys.length&&keys.every(k=>Object.hasOwn(v,k));
+const newForeground=(parse=parseNativeStdioMetadata,buffer=Buffer)=>Function('exact','parseNativeStartupWitness','parseNativeStdioMetadata','Buffer',foregroundSource+';return foregroundResult;')(exactForeground,parse,parse,buffer);
+// Exact bc50 foreground predicate reference; no acceptance or IO authority.
+function priorForeground(event,item,witness,parse=parseNativeStdioMetadata,buffer=Buffer){
+ const raw=event.tool_use_result;
+ if(!exactForeground(raw,['stdout','stderr','interrupted','isImage','noOutputExpected'])||typeof raw.stdout!=='string'||buffer.byteLength(raw.stdout)>4096||raw.stderr!==''||raw.interrupted!==false||raw.isImage!==false||raw.noOutputExpected!==false||item.is_error!==false||typeof item.content!=='string')return null;
+ const rendered=raw.stdout.replace(/^(\s*\n)+/,'').trimEnd();if(item.content!==rendered||buffer.byteLength(rendered)>4096)return null;
+ const metadata=parse(raw.stdout),also=parse(item.content);if(!metadata||!also||JSON.stringify(metadata)!==JSON.stringify(also))return null;return metadata;
+}
+const seamData=()=>{const e=events();return {event:e[2],item:e[2].message.content[0]};};
+test('old/new foreground return semantics match held-stable success and all real-shaped refusals',()=>{
+ for(const witness of [false,true])for(const mutate of [()=>{},...foregroundRefusalCases.map(v=>v[1])]){const e=events(witness?witnessMetadata():metadata());mutate(e);const parse=witness?parseNativeStartupWitness:parseNativeStdioMetadata;let label=null;
+  const before=priorForeground(e[2],e[2].message.content[0],witness,parse),after=newForeground(parse)(e[2],e[2].message.content[0],witness,v=>label=v);assert.deepEqual(after,before);if(before)assert.equal(label,null);
+ }
+});
+for(const [classification,answers]of [['RAW_METADATA_PARSE_FAILED',[null,null]],['RENDERED_METADATA_PARSE_FAILED',[metadata(),null]],['METADATA_MISMATCH',[metadata(),{...metadata(),pid:5678}]]])test('both parser calls precede synthetic '+classification+' classification',()=>{
+ const d=seamData();let calls=[];const parse=bytes=>{calls.push(bytes);return answers[calls.length-1];};let label=null;const result=newForeground(parse)(d.event,d.item,false,v=>label=v);assert.equal(result,null);assert.equal(label,classification);assert.deepEqual(calls,[d.event.tool_use_result.stdout,d.item.content]);
+ calls=[];assert.equal(priorForeground(d.event,d.item,false,parse),null);assert.deepEqual(calls,[d.event.tool_use_result.stdout,d.item.content]);
+});
+test('unreachable normal renderer-size refusal retains exact predicate through synthetic bounded Buffer seam',()=>{
+ const d=seamData();let calls=0,label=null;const buffer={byteLength:value=>++calls===2?4097:Buffer.byteLength(value)};assert.equal(newForeground(parseNativeStdioMetadata,buffer)(d.event,d.item,false,v=>label=v),null);assert.equal(label,'RENDERED_TOO_LARGE');assert.equal(calls,2);calls=0;assert.equal(priorForeground(d.event,d.item,false,parseNativeStdioMetadata,buffer),null);assert.equal(calls,2);
+});
+test('raw predicates preserve short-circuit getter access exactly under private source seam',()=>{
+ for(const [field,label]of [['stdout','STDOUT_NOT_STRING'],['stderr','STDERR_NOT_EMPTY'],['interrupted','INTERRUPTED_FLAG'],['isImage','IMAGE_FLAG'],['noOutputExpected','NO_OUTPUT_EXPECTED_FLAG']]){
+  const d=seamData(),raw=d.event.tool_use_result;let reads=0;const order=['stdout','stderr','interrupted','isImage','noOutputExpected'];raw[field]=field==='stdout'?null:field==='stderr'?'PRIVATE':true;
+  for(const key of order.slice(order.indexOf(field)+1))Object.defineProperty(raw,key,{enumerable:true,get(){reads++;throw Error('PRIVATE_LATER_GETTER');}});
+  assert.equal(priorForeground(d.event,d.item,false),null);assert.equal(reads,0);let code=null;assert.equal(newForeground()(d.event,d.item,false,v=>code=v),null);assert.equal(code,label);assert.equal(reads,0);
+ }
+});

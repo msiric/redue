@@ -35,15 +35,19 @@ const freeze=v=>{if(v&&typeof v==='object'){for(const child of Object.values(v))
 const authority=fields=>freeze({schema:1,scope:'SINGLE_DIRECT_NATIVE_STDIO_PRECONDITION_ONLY',interpretation:NATIVE_STDIO_DIRECT_INTERPRETATION,...fields,
  helperKernelClose:'NOT_OBSERVED',helperReap:'NOT_OBSERVED',helperSignal:'NOT_OBSERVED',
  nativeEnforcement:'NOT_ESTABLISHED',stdioOwnership:'NOT_ESTABLISHED',preMainLoader:'NOT_ESTABLISHED',sealed:false,reuseEligible:false});
-function foregroundResult(event,item,witness){
+function foregroundResult(event,item,witness,reportRefusal){
+ const refused=(classification,value)=>{if(value)reportRefusal(classification);return value;};
  const raw=event.tool_use_result;
- if(!exact(raw,['stdout','stderr','interrupted','isImage','noOutputExpected'])||typeof raw.stdout!=='string'||Buffer.byteLength(raw.stdout)>4096||raw.stderr!==''||
-   raw.interrupted!==false||raw.isImage!==false||raw.noOutputExpected!==false||item.is_error!==false||typeof item.content!=='string')return null;
+ // Each wrapper observes only its original reached predicate; no extra raw
+ // access or unperformed assertion. Labels never contain native/model values.
+ if(refused('RAW_SHAPE_INVALID',!exact(raw,['stdout','stderr','interrupted','isImage','noOutputExpected']))||refused('STDOUT_NOT_STRING',typeof raw.stdout!=='string')||refused('STDOUT_TOO_LARGE',Buffer.byteLength(raw.stdout)>4096)||refused('STDERR_NOT_EMPTY',raw.stderr!=='')||
+   refused('INTERRUPTED_FLAG',raw.interrupted!==false)||refused('IMAGE_FLAG',raw.isImage!==false)||refused('NO_OUTPUT_EXPECTED_FLAG',raw.noOutputExpected!==false)||refused('TOOL_RESULT_ERROR_FLAG',item.is_error!==false)||refused('RENDERED_NOT_STRING',typeof item.content!=='string'))return null;
  const rendered=raw.stdout.replace(/^(\s*\n)+/,'').trimEnd();
- if(item.content!==rendered||Buffer.byteLength(rendered)>4096)return null;
+ if(refused('RENDERED_MISMATCH',item.content!==rendered)||refused('RENDERED_TOO_LARGE',Buffer.byteLength(rendered)>4096))return null;
  const parse=witness?parseNativeStartupWitness:parseNativeStdioMetadata;
  const metadata=parse(raw.stdout),also=parse(item.content);
- if(!metadata||!also||JSON.stringify(metadata)!==JSON.stringify(also))return null;
+ // Both original parser calls above are mandatory even if the first fails.
+ if(refused('RAW_METADATA_PARSE_FAILED',!metadata)||refused('RENDERED_METADATA_PARSE_FAILED',!also)||refused('METADATA_MISMATCH',JSON.stringify(metadata)!==JSON.stringify(also)))return null;
  return metadata;
 }
 
@@ -61,7 +65,7 @@ function interpretFixedDirectTrace(events,binding,completion,witness){
    Buffer.byteLength(JSON.stringify(events))>2097152)return unknown('INPUT_UNAVAILABLE');
  if(!exact(binding,witness?['hostBase','helperSha256','sourceSha256','nativeSha256','interpretation']:['hostBase','helperSha256','sourceSha256','nativeSha256'])||!full(hash,binding.helperSha256)||binding.sourceSha256!==(witness?NATIVE_STARTUP_WITNESS_SOURCE_SHA256:NATIVE_STDIO_SOURCE_SHA256)||witness&&binding.interpretation!==NATIVE_STARTUP_WITNESS_INTERPRETATION||binding.nativeSha256!==REVIEWED_CLAUDE_NATIVE.sha256)return unknown('IDENTITY_BINDING_UNKNOWN');
  let command;try{command=nativeStdioDirectCommand(binding.hostBase);}catch{return unknown('IDENTITY_BINDING_UNKNOWN');}
- const cwd=binding.hostBase+'/prefix/native-probes';let init=false,session=null,tool=null,metadata=null,final=null,reason=null,toolItemsObserved=0,toolScopeRefusal=null;const messages=new Set();
+ const cwd=binding.hostBase+'/prefix/native-probes';let init=false,session=null,tool=null,metadata=null,final=null,reason=null,toolItemsObserved=0,toolScopeRefusal=null,foregroundRefusalClass=null;const messages=new Set();
  const reject=v=>{reason??=v;};
  for(const event of events){
   if(!event||typeof event!=='object'||Array.isArray(event)){reject('STREAM_MALFORMED');continue;}
@@ -98,7 +102,7 @@ function interpretFixedDirectTrace(events,binding,completion,witness){
      Object.keys(event).some(k=>!['type','session_id','parent_tool_use_id','message','tool_use_result','uuid','timestamp','isSynthetic'].includes(k))){reject('NATIVE_RESULT_CONTEXT');continue;}
    const item=event.message.content[0];
    if(!tool||!exact(item,['type','tool_use_id','content','is_error'])||item.type!=='tool_result'||item.tool_use_id!==tool.id){reject('NATIVE_RESULT_ID');continue;}
-   const result=foregroundResult(event,item,witness);if(!result){reject('FOREGROUND_RAW_OR_RENDERED_RESULT_UNAVAILABLE');continue;}metadata=result;continue;
+   let refusalClass=null;const result=foregroundResult(event,item,witness,classification=>{refusalClass=classification;});if(!result){foregroundRefusalClass??=refusalClass;reject('FOREGROUND_RAW_OR_RENDERED_RESULT_UNAVAILABLE');continue;}metadata=result;continue;
   }
   if(event.type==='result'){
    if(!init||!tool||!metadata||final||event.session_id!==session||!Number.isInteger(event.num_turns)||event.num_turns<1||event.num_turns>4||typeof event.is_error!=='boolean'){reject('NATIVE_FINAL_CONTEXT');continue;}
@@ -109,7 +113,7 @@ function interpretFixedDirectTrace(events,binding,completion,witness){
   if(event.type==='rate_limit_event'){if(Object.hasOwn(event,'session_id')&&event.session_id!==session)reject('NATIVE_SESSION_CONTEXT');continue;}
   reject('NATIVE_STREAM_UNKNOWN');
  }
- if(reason||!init||!tool||!metadata||!final?.success)return unknown(reason??'NATIVE_TRACE_INCOMPLETE',reason==='NATIVE_TOOL_SCOPE'?{toolScopeRefusal}:{});
+ if(reason||!init||!tool||!metadata||!final?.success)return unknown(reason??'NATIVE_TRACE_INCOMPLETE',reason==='NATIVE_TOOL_SCOPE'?{toolScopeRefusal}:reason==='FOREGROUND_RAW_OR_RENDERED_RESULT_UNAVAILABLE'?{foregroundRefusalClass}:{});
  const observed={metadata,toolUseId:tool.id,commandSha256:tool.commandSha256,helperSha256:binding.helperSha256};
  const completionKeys=['sourceCurrent','helperCurrent','reviewedBuildMatches','nativeCurrent','sourceSha256','helperSha256','nativeSha256','nativeExit','nativeSignal','timedOut','reaped','startupPreconditions','noHooksCurrent',witness?'interpretation':'controlledShellStartup'];
  if(!exact(completion,completionKeys)||
