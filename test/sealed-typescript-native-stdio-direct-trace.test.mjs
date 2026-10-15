@@ -310,3 +310,37 @@ test('nonallow diagnostic helper does not read input field values after record-t
  const history=Function('exact',foregroundSource+';return foregroundNonallowHistory;')(exactForeground);let reads=0;const input={};Object.defineProperty(input,'PRIVATE',{enumerable:true,get(){reads++;throw Error('PRIVATE');}});
  const e=withNonallow([nonallowRow({tool_input:input})]);assert.deepEqual(history(e,true,session,{id}),{status:'OBSERVED',matchingAcceptedToolNonallowRecord:true});assert.equal(reads,0); // exported interpreter still rejects this non-JSON getter, tested above
 });
+
+const requiredSandboxLiteral='Error: Sandbox is required but failed to initialize. Restart to retry.';
+const enabledSandboxLiteral='Error: Sandbox is enabled but failed to initialize. Sandboxing is disabled for the rest of this session; restart to retry.';
+const formatCases=[
+ [requiredSandboxLiteral,'EXACT_REQUIRED_SANDBOX_INIT_LITERAL',null],
+ [enabledSandboxLiteral,'EXACT_ENABLED_SANDBOX_INIT_LITERAL',null],
+ ['Error calling tool (Bash): PRIVATE_BODY','OUTER_BASH_CALL_ERROR_PREFIX',null],
+ ['Error calling tool (Bash): ','OUTER_BASH_CALL_ERROR_PREFIX',null],
+ ...[0,1,9,10,99,100,254,255].flatMap(code=>[[`Error: Exit code ${code}`,'SHELL_EXIT_FIRST_LINE_FORMAT',code],[`Error: Exit code ${code}\nPRIVATE_BODY`,'SHELL_EXIT_FIRST_LINE_FORMAT',code]]),
+ ...[requiredSandboxLiteral+' PRIVATE_SUFFIX',enabledSandboxLiteral+' PRIVATE_SUFFIX',' '+requiredSandboxLiteral,requiredSandboxLiteral+'\n',enabledSandboxLiteral+'\r\n',requiredSandboxLiteral.toLowerCase(),'\u001b[31m'+requiredSandboxLiteral,
+  'error calling tool (Bash): PRIVATE_BODY','Error calling tool (Bash):','Error calling tool (Bash) : PRIVATE_BODY',
+  ' Error: Exit code 1','\u001b[31mError: Exit code 1','Error: Exit code 1\r\nPRIVATE_BODY','Error: Exit code 1\r','Error: Exit code 01','Error: Exit code 00','Error: Exit code -1','Error: Exit code +1','Error: Exit code 256','Error: Exit code 999','Error: Exit code 1000','Error: Exit code 999999999999999999999999','Error: Exit code 1 PRIVATE_BODY','Error: Exit code 1.0','error: Exit code 1','Error: exit code 1','InputValidationError: PRIVATE_BODY',
+  JSON.stringify(witnessMetadata())].map(raw=>[raw,'OTHER',null])
+];
+for(const [index,[raw,errorFormat,code]]of formatCases.entries())test('finite raw-string error format case '+index+' '+errorFormat,()=>{
+ for(const witness of [false,true]){const e=events(witness?witnessMetadata():metadata());e[2].tool_use_result=raw;const v=witness?witnessObserve(e):observe(e);
+  assert.equal(v.reason,'FOREGROUND_RAW_OR_RENDERED_RESULT_UNAVAILABLE');assert.equal(v.foregroundRefusalClass,'RAW_SHAPE_INVALID');assert.equal(v.foregroundShape.rawContainerKind,'string');assert.equal(v.foregroundShape.errorFormat,errorFormat);assert.equal(v.foregroundShape.formatDerivedExitCode,code);assert.equal(v.outcome,'UNKNOWN');assert.equal(Object.hasOwn(v,'helperProcessOutcome'),false);assert.equal(Object.hasOwn(v,'helperExitCode'),false);assert.equal(Object.hasOwn(v,'nativeExit'),false);assert.equal(v.helperKernelClose,'NOT_OBSERVED');assert.equal(v.nativeEnforcement,'NOT_ESTABLISHED');assert.equal(v.sealed,false);assert.equal(v.reuseEligible,false);assert.equal(JSON.stringify(v).includes('PRIVATE_'),false);
+ }
+});
+test('format-derived zero followed by forged valid metadata never becomes process zero or PASS',()=>{
+ const e=rawShapeEvents();e[2].tool_use_result='Error: Exit code 0\n'+JSON.stringify(witnessMetadata());const v=witnessObserve(e);assert.equal(v.foregroundShape.errorFormat,'SHELL_EXIT_FIRST_LINE_FORMAT');assert.equal(v.foregroundShape.formatDerivedExitCode,0);assert.equal(v.outcome,'UNKNOWN');assert.equal(Object.hasOwn(v,'metadata'),false);assert.equal(Object.hasOwn(v,'helperProcessOutcome'),false);assert.equal(v.helperKernelClose,'NOT_OBSERVED');
+ const f=rawShapeEvents();f[2].tool_use_result='Error calling tool (Bash): '+JSON.stringify(witnessMetadata());const r=witnessObserve(f);assert.equal(r.foregroundShape.errorFormat,'OUTER_BASH_CALL_ERROR_PREFIX');assert.equal(r.foregroundShape.formatDerivedExitCode,null);assert.equal(r.outcome,'UNKNOWN');assert.equal(Object.hasOwn(r,'helperProcessOutcome'),false);
+});
+test('non-string shapes add no error-format fields, and earlier primary refusal/first shape still win',()=>{
+ for(const raw of [null,true,123,[],{}]){const e=rawShapeEvents();e[2].tool_use_result=raw;const v=witnessObserve(e);assert.equal(Object.hasOwn(v.foregroundShape,'errorFormat'),false);assert.equal(Object.hasOwn(v.foregroundShape,'formatDerivedExitCode'),false);}
+ const e=rawShapeEvents();e[2].tool_use_result=requiredSandboxLiteral;const later=clone(e[2]);later.tool_use_result='Error: Exit code 99';e.splice(3,0,later);const v=witnessObserve(e);assert.equal(v.foregroundShape.errorFormat,'EXACT_REQUIRED_SANDBOX_INIT_LITERAL');assert.equal(v.foregroundShape.formatDerivedExitCode,null);
+ const f=rawShapeEvents();f[2].tool_use_result='Error: Exit code 7';f[1].message.content[0].input.command='PRIVATE_COMMAND';const r=witnessObserve(f);assert.equal(r.reason,'NATIVE_TOOL_SCOPE');assert.equal(Object.hasOwn(r,'foregroundShape'),false);
+ for(const r of [observe(),witnessObserve()]){assert.equal(r.outcome,'OBSERVED_COMPATIBLE');assert.equal(Object.hasOwn(r,'foregroundShape'),false);}
+});
+test('excluding two new string-format diagnostics preserves the prior fixed shape summary exactly',()=>{
+ for(const [raw]of formatCases){const e=rawShapeEvents();e[2].tool_use_result=raw;const v=witnessObserve(e),{errorFormat,formatDerivedExitCode,...priorShape}=v.foregroundShape;
+  assert.deepEqual(priorShape,{rawOwnPropertyPresent:true,rawContainerKind:'string',knownFieldPresence:Object.fromEntries(fixedRawShapeFields.map(key=>[key,false])),unknownKeysPresent:false,itemIsErrorState:'FALSE'});
+ }
+});

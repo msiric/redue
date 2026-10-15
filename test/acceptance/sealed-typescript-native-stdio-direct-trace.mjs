@@ -44,7 +44,19 @@ function foregroundShapeSummary(event,item,raw){
  const object=kind==='object',descriptor=Object.getOwnPropertyDescriptor(item,'is_error');
  return {rawOwnPropertyPresent:present,rawContainerKind:kind,knownFieldPresence:Object.fromEntries(known.map(key=>[key,object&&Object.hasOwn(raw,key)])),
   unknownKeysPresent:object&&Object.keys(raw).some(key=>!known.includes(key)),
-  itemIsErrorState:!descriptor?'MISSING':!Object.hasOwn(descriptor,'value')?'UNSUPPORTED':descriptor.value===false?'FALSE':descriptor.value===true?'TRUE':'UNSUPPORTED'};
+  itemIsErrorState:!descriptor?'MISSING':!Object.hasOwn(descriptor,'value')?'UNSUPPORTED':descriptor.value===false?'FALSE':descriptor.value===true?'TRUE':'UNSUPPORTED',
+  ...(kind==='string'?foregroundErrorFormat(raw):{})};
+}
+// Finite string-format diagnostics only, not native error identity, cause,
+// sandbox enforcement or process-observed exit. Never retain any body/prefix.
+function foregroundErrorFormat(raw){
+ let errorFormat='OTHER',formatDerivedExitCode=null;
+ if(raw==='Error: Sandbox is required but failed to initialize. Restart to retry.')errorFormat='EXACT_REQUIRED_SANDBOX_INIT_LITERAL';
+ else if(raw==='Error: Sandbox is enabled but failed to initialize. Sandboxing is disabled for the rest of this session; restart to retry.')errorFormat='EXACT_ENABLED_SANDBOX_INIT_LITERAL';
+ else if(raw.startsWith('Error calling tool (Bash): '))errorFormat='OUTER_BASH_CALL_ERROR_PREFIX';
+ else {const matched=/^Error: Exit code (0|[1-9][0-9]{0,2})(?:\n|$)/.exec(raw);
+  if(matched&&Number(matched[1])<=255){errorFormat='SHELL_EXIT_FIRST_LINE_FORMAT';formatDerivedExitCode=Number(matched[1]);}}
+ return {errorFormat,formatDerivedExitCode};
 }
 // Native headless nonallow history is not a final-denial or execution proof.
 // Inspect only after primary raw-shape refusal, never to satisfy final/metadata.
