@@ -6,6 +6,7 @@ import net from 'node:net';
 import {spawn} from 'node:child_process';
 import {createHash,randomUUID} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
+import {isProxy} from 'node:util/types';
 import {renderNativeDiagnosticAssets,sha} from './portable-native-diagnostic-assets.mjs';
 import {REVIEWED_CLAUDE_NATIVE,PINNED_READONLY_BASH_HEADS} from './portable-claude-native-profile.mjs';
 import {parsePortableJson} from '../../src/portable-envelope.mjs';
@@ -159,13 +160,65 @@ function interpretCollectedFixedDirectDiagnostic(collection,completion,witness,e
  const interpret=execWitness?interpretExecNativeStartupWitnessTrace:witness?interpretDirectNativeStartupWitnessTrace:interpretDirectNativeStdioProbeTrace;
  const retained=directCollections.get(collection);if(retained)directCollections.delete(collection);
  if(!retained)return Object.freeze({...interpret([],{},{}),reason:'COLLECTED_NATIVE_STDIO_CONTEXT_UNAVAILABLE'});
- if(retained.kind!==(execWitness?'EXEC_STARTUP_WITNESS_V1':witness?'STARTUP_WITNESS_V1':'STDIO_V1')){retained.events.length=0;return Object.freeze({...interpret([],{},{}),reason:'COLLECTED_NATIVE_CONTRACT_MISMATCH'});}
+ if(retained.kind!==(execWitness?'EXEC_STARTUP_WITNESS_V1':witness?'STARTUP_WITNESS_V1':'STDIO_V1')){discardDirectCollection(retained);return Object.freeze({...interpret([],{},{}),reason:'COLLECTED_NATIVE_CONTRACT_MISMATCH'});}
  try{
   const current=isNativeStdioDiagnosticData(completion)?completion:{};
   const interpreted=interpret(retained.events,retained.binding,{...current,
    nativeExit:collection.native_exit_code,nativeSignal:collection.native_signal,timedOut:collection.timed_out,reaped:collection.owned_native_reaped});
   return collection.transport_error?Object.freeze({...interpreted,outcome:'UNKNOWN',reason:collection.transport_error}):interpreted;
- }finally{retained.events.length=0;}
+ }finally{discardDirectCollection(retained);}
+}
+// Fixed ENCLOSURE transport only. No callable controller, imported command or
+// public raw-frame interface. Genuine startup/build authority remains external.
+function snapshotEnclosureData(value){
+ if(!value||typeof value!=='object'||isProxy(value)||Array.isArray(value)||![Object.prototype,null].includes(Object.getPrototypeOf(value)))return null;
+ const keys=Reflect.ownKeys(value);if(keys.length>128)return null;const out={};
+ for(const key of keys){if(typeof key!=='string')return null;const d=Object.getOwnPropertyDescriptor(value,key);
+  if(!d||!Object.hasOwn(d,'value')||!d.enumerable)return null;const v=d.value;
+  if(v!==null&&typeof v!=='boolean'&&!(typeof v==='string'&&v.length<=65536)&&!(typeof v==='number'&&Number.isFinite(v)))return null;
+  Object.defineProperty(out,key,{value:v,enumerable:true});
+ }return Object.freeze(out);
+}
+function snapshotEnclosureActivation(value){
+ if(!value||typeof value!=='object'||isProxy(value)||Object.getPrototypeOf(value)!==Object.prototype||Reflect.ownKeys(value).length!==2)return null;
+ const source=Object.getOwnPropertyDescriptor(value,'source'),env=Object.getOwnPropertyDescriptor(value,'env');
+ if(!source||!Object.hasOwn(source,'value')||typeof source.value!=='string'||!env||!Object.hasOwn(env,'value')||!env.value||typeof env.value!=='object'||isProxy(env.value))return null;
+ const selected={};
+ // Snapshot only the nonsecret inputs consumed by the existing protected gate.
+ // Unrelated environment values, including OAuth material, are never read.
+ for(const key of ['GITHUB_ACTIONS','GITHUB_RUN_ATTEMPT','GITHUB_EVENT_NAME','GITHUB_REPOSITORY','GITHUB_REF','GITHUB_ACTOR','REDUE_CHECKED_SOURCE','REDUE_CLAUDE_INCLUDED_DIAGNOSTIC_CAPACITY','REDUE_CLAUDE_ACCOUNT_POLICY_FACT']){
+  const d=Object.getOwnPropertyDescriptor(env.value,key);if(!d||!Object.hasOwn(d,'value')||typeof d.value!=='string'||d.value.length>65536)return null;selected[key]=d.value;
+ }return Object.freeze({source:source.value,env:Object.freeze(selected)});
+}
+function discardDirectCollection(retained){retained.events.length=0;if(retained.wireState){retained.wireState.bytes=null;retained.wireState.length=0;}}
+const enclosureUnavailable=reason=>Object.freeze({schema:1,scope:'FIXED_NATIVE_ENCLOSURE_BODY_TRACE_DATA_ONLY',interpretation:'native187-fixed-enclosure-body-trace@1',outcome:'UNKNOWN',reportedAssertionOutcome:'UNKNOWN',traceSyntaxValid:false,completionDataValid:false,reason,publicDataOnly:true,nativeAuthenticated:false,nativeEnforcement:'NOT_ESTABLISHED',helperKernelClose:'NOT_AUTHENTICATED',helperReap:'NOT_AUTHENTICATED',nativeIntervalBarrier:'NOT_ESTABLISHED',originAuthority:false,receiptAuthority:false,recordAdoptionAuthority:false,sealed:false,reuseEligible:false});
+export async function collectNativeEnclosureDiagnostic(create,options){
+ const started=performance.now();
+ if(!Number.isFinite(started)||started<0)fail('DIAGNOSTIC_ENCLOSURE_CLOCK');
+ if(arguments.length!==2||!options||typeof options!=='object'||isProxy(options)||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).some(k=>!['binding','activation','timeoutMs','cleanupMs','signal'].includes(k))||!['binding','activation'].every(k=>Object.hasOwn(options,k))||!Reflect.ownKeys(options).every(k=>Object.hasOwn(Object.getOwnPropertyDescriptor(options,k)??{},'value')))fail('DIAGNOSTIC_ENCLOSURE_OPTIONS');
+ const binding=snapshotEnclosureData(options.binding),activation=snapshotEnclosureActivation(options.activation),timeoutMs=options.timeoutMs===undefined?115000:options.timeoutMs,cleanupMs=options.cleanupMs===undefined?5000:options.cleanupMs,signal=options.signal;
+ if(typeof create!=='function'||!binding||!activation||signal!==undefined&&(!signal||isProxy(signal)||Object.getPrototypeOf(signal)!==AbortSignal.prototype||['aborted','addEventListener','removeEventListener'].some(key=>Object.hasOwn(signal,key)))||!Number.isInteger(timeoutMs)||timeoutMs<1||timeoutMs>115000||!Number.isInteger(cleanupMs)||cleanupMs<1||cleanupMs>5000)fail('DIAGNOSTIC_ENCLOSURE_OPTIONS');
+ const {interpretNativeEnclosureTrace}=await import('./sealed-typescript-native-enclosure-trace.mjs');
+ if(interpretNativeEnclosureTrace(Buffer.alloc(0),binding,{}).reason!=='NATIVE_TRACE_INCOMPLETE')fail('DIAGNOSTIC_ENCLOSURE_BINDING');
+ // The lazy import and protected gate consume the ORIGINAL collection budget.
+ // The common loop, not a renewed remaining-duration timer, owns the deadline.
+ requireNativeDiagnosticActivation(activation);
+ return collectNativeDiagnosticProcess(create,{command:binding.command,cwd:binding.cwd,timeoutMs,cleanupMs,signal},binding,'ENCLOSURE_V1',{started,lastClock:performance.now()});
+}
+export async function interpretCollectedNativeEnclosureDiagnostic(collection,completion){
+ const retained=directCollections.get(collection);if(retained)directCollections.delete(collection);
+ if(!retained)return enclosureUnavailable('COLLECTED_NATIVE_ENCLOSURE_CONTEXT_UNAVAILABLE');
+ try{
+  if(retained.kind!=='ENCLOSURE_V1')return enclosureUnavailable('COLLECTED_NATIVE_CONTRACT_MISMATCH');
+  if(arguments.length!==2)return enclosureUnavailable('NATIVE_ENCLOSURE_COMPLETION_UNAVAILABLE');
+  // Snapshot before the await: mutation cannot change this consumed decision.
+  const current=snapshotEnclosureData(completion)??{};
+  const {interpretNativeEnclosureTrace}=await import('./sealed-typescript-native-enclosure-trace.mjs');
+  const interpreted=interpretNativeEnclosureTrace(retained.wireState.bytes.subarray(0,retained.wireState.length),retained.binding,{...current,
+   nativeExit:collection.native_exit_code,nativeSignal:collection.native_signal,timedOut:collection.timed_out,reaped:collection.owned_native_reaped,
+   nativeSpawnObserved:collection.native_process_spawn_observed,nativeCloseObserved:collection.native_exit_observed,nativeMilliseconds:collection.milliseconds});
+  return collection.transport_error?Object.freeze({...interpreted,traceSyntaxValid:false,completionDataValid:false,reason:collection.transport_error}):interpreted;
+ }catch{return enclosureUnavailable('NATIVE_ENCLOSURE_INTERPRETATION_UNAVAILABLE');}finally{discardDirectCollection(retained);}
 }
 export function parseDirectNativeFrame(line){
  // Native cost/timing fields can be fractional. Check the actual JSON first,
@@ -177,17 +230,17 @@ export function parseDirectNativeFrame(line){
  parsePortableJson(source.replace(tokens,token=>token[0]==='"'?token:'0'));
  return value;
 }
-function collectNativeDiagnosticProcess(create,{command,cwd,timeoutMs=115000,cleanupMs=5000,signal:abortSignal}={},directBinding=null,directKind=null) {
+function collectNativeDiagnosticProcess(create,{command,cwd,timeoutMs=115000,cleanupMs=5000,signal:abortSignal}={},directBinding=null,directKind=null,enclosureClock=null) {
  if(!Number.isInteger(timeoutMs)||timeoutMs<1||timeoutMs>115000||!Number.isInteger(cleanupMs)||cleanupMs<1||cleanupMs>5000)fail('DIAGNOSTIC_LIMIT');
  return new Promise(resolve=>{
-  const events=[];let directError=null;
-  const trace=directBinding?{consume:value=>{if(events.length>=64){directError??='NATIVE_FRAME_LIMIT';return;}events.push(value);},snapshot:()=>({error:directError})}:createNativeDiagnosticTrace({command,cwd});
+  const events=[];const enclosure=directKind==='ENCLOSURE_V1',wireState=enclosure?{bytes:Buffer.alloc(LIMITS.streamBytes),length:0}:null;let directError=null,frameCount=0,lineStart=0;
+  const trace=directBinding?{consume:value=>{if((enclosure?frameCount:events.length)>=64){directError??='NATIVE_FRAME_LIMIT';return;}if(enclosure)frameCount++;else events.push(value);},snapshot:()=>({error:directError})}:createNativeDiagnosticTrace({command,cwd});
   let child,pending=Buffer.alloc(0),total=0,done=false,timedOut=false,ioError=null,reaped=false,killTimer,spawnObserved=false;
-  const started=performance.now(),workEnd=started+timeoutMs,totalEnd=workEnd+cleanupMs;
-  let lastClock=started,stopping=false,killRequested=false,finishing=false;
+  const started=enclosureClock?enclosureClock.started:performance.now(),workEnd=started+timeoutMs,totalEnd=workEnd+cleanupMs;
+  let lastClock=enclosureClock?enclosureClock.lastClock:started,stopping=false,killRequested=false,finishing=false;
   const latchDeadline=()=>{
    const now=performance.now();
-   if(!Number.isFinite(now)||!Number.isFinite(lastClock)||now<lastClock){ioError??='NATIVE_CLOCK_UNKNOWN';timedOut=true;return null;}
+   if(!Number.isFinite(now)||!Number.isFinite(lastClock)||now<lastClock||enclosure&&lastClock<started){ioError??='NATIVE_CLOCK_UNKNOWN';timedOut=true;return null;}
    lastClock=now;if(now>=workEnd)timedOut=true;return now;
   };
   const alive=()=>child&&child.exitCode===null&&child.signalCode===null;
@@ -207,26 +260,43 @@ function collectNativeDiagnosticProcess(create,{command,cwd,timeoutMs=115000,cle
   const finish=(exit,signal,observed=false)=>{
    if(done||finishing)return;finishing=true;const finished=latchDeadline();if(!observed)forceKill();
    done=true;abortSignal?.removeEventListener('abort',cancel);clearTimeout(deadline);clearTimeout(killTimer);clearTimeout(lastWait);
-   if(pending.length)ioError??='NATIVE_STREAM_INCOMPLETE';const snapshot=trace.snapshot();snapshot.error??=ioError;
+   if(pending.length)ioError??='NATIVE_STREAM_INCOMPLETE';if(enclosure)pending=Buffer.alloc(0);const snapshot=trace.snapshot();snapshot.error??=ioError;
    const processReport={native_exit_code:Number.isInteger(exit)?exit:null,native_signal:SIGNALS.has(signal)?signal:null,
     native_process_spawn_observed:spawnObserved,native_exit_observed:observed,owned_native_reaped:reaped,timed_out:timedOut,milliseconds:finished===null?null:finished-started,
     stdout_bytes:total,raw_stdout_retained:false,raw_stderr_retained:false};
    if(!directBinding){resolve({trace:snapshot,...processReport});return;}
    const invalidClose=observed&&(!(exit===null||Number.isInteger(exit)&&exit>=0&&exit<=255)||!(signal===null||SIGNALS.has(signal))||exit!==null&&signal!==null);
-   const collected=Object.freeze({scope:'LIVE_SINGLE_DIRECT_NATIVE_STDIO_TRANSPORT_ONLY',...processReport,
+   const collected=Object.freeze({scope:enclosure?'LIVE_SINGLE_NATIVE_ENCLOSURE_TRANSPORT_ONLY':'LIVE_SINGLE_DIRECT_NATIVE_STDIO_TRANSPORT_ONLY',...processReport,
     transport_error:snapshot.error??(invalidClose?'NATIVE_CLOSE_UNSUPPORTED':!spawnObserved?'NATIVE_SPAWN_NOT_OBSERVED':null),
     raw_stdout_retained:true,raw_frames_returned:false,raw_frames_persisted:false,
     collection_phase:'AWAITING_ONE_POST_CLOSE_INTERPRETATION',nativeEnforcement:'NOT_ESTABLISHED',sealed:false,reuseEligible:false});
-   directCollections.set(collected,{events,binding:directBinding,kind:directKind});resolve(collected);
+   directCollections.set(collected,{events,wireState,binding:directBinding,kind:directKind});resolve(collected);
   };
   const cancel=()=>{ioError??='NATIVE_CANCELLED';stop();};
-  const deadline=setTimeout(()=>{timedOut=true;stop();},timeoutMs);
-  let lastWait=setTimeout(()=>{forceKill();finish(null,null);},timeoutMs+cleanupMs);
+  if(enclosure)latchDeadline();
+  const remainingWork=enclosure?Math.max(0,Number.isFinite(lastClock)?workEnd-lastClock:0):timeoutMs;
+  const deadline=setTimeout(()=>{timedOut=true;stop();},remainingWork);
+  let lastWait=setTimeout(()=>{forceKill();finish(null,null);},enclosure?Math.max(0,Number.isFinite(lastClock)?totalEnd-lastClock:0):timeoutMs+cleanupMs);
   if(abortSignal?.aborted){ioError='NATIVE_CANCELLED';finish(null,null);return;}abortSignal?.addEventListener('abort',cancel,{once:true});
   if(latchDeadline()===null||timedOut){finish(null,null);return;}
   try {
    child=create();child.on('spawn',()=>{spawnObserved=true;if(stopping)forceKill();else if(latchDeadline()===null||timedOut)stop();});child.stdout.on('data',chunk=>{
-    if(done)return;if(latchDeadline()===null||timedOut){stop();return;}if(!Buffer.isBuffer(chunk))chunk=Buffer.from(chunk);
+    if(done)return;if(latchDeadline()===null||timedOut){stop();return;}
+    if(enclosure){
+     if(stopping)return;if(!Buffer.isBuffer(chunk)){ioError??='NATIVE_STREAM_TYPE';stop();return;}
+     const prior=wireState.length,count=Math.min(chunk.length,LIMITS.streamBytes-prior);chunk.copy(wireState.bytes,prior,0,count);wireState.length+=count;total+=chunk.length;
+     // One fixed private allocation: tiny chunks cannot create an unbounded
+     // chunk-object list or repeatedly copy the accumulated pending line.
+     const part=wireState.bytes.subarray(prior,wireState.length);let offset=0,newline;
+     while((newline=part.indexOf(10,offset))>=0){const end=prior+newline;
+      if(end-lineStart>LIMITS.lineBytes){ioError??='NATIVE_STREAM_LIMIT';stop();return;}
+      try{trace.consume(parseDirectNativeFrame(wireState.bytes.subarray(lineStart,end)));}catch{ioError??='NATIVE_STREAM_MALFORMED';}
+      lineStart=end+1;offset=newline+1;if(ioError||trace.snapshot().error){stop();return;}
+     }
+     pending=wireState.bytes.subarray(lineStart,wireState.length);
+     if(pending.length>LIMITS.lineBytes||total>LIMITS.streamBytes){ioError??='NATIVE_STREAM_LIMIT';stop();}return;
+    }
+    if(!Buffer.isBuffer(chunk))chunk=Buffer.from(chunk);
     total+=chunk.length;if(total>LIMITS.streamBytes||chunk.length>LIMITS.lineBytes-pending.length){ioError??='NATIVE_STREAM_LIMIT';stop();return;}
     pending=Buffer.concat([pending,chunk]);let newline;
     while((newline=pending.indexOf(10))!==-1){const line=pending.subarray(0,newline);pending=pending.subarray(newline+1);
@@ -234,7 +304,8 @@ function collectNativeDiagnosticProcess(create,{command,cwd,timeoutMs=115000,cle
      if(ioError||trace.snapshot().error){stop();return;}
     }
    });
-   let stderrBytes=0;child.stderr.on('data',b=>{stderrBytes+=b.length;if(stderrBytes>LIMITS.streamBytes){ioError??='NATIVE_STDERR_LIMIT';stop();}else if(directBinding&&stderrBytes){ioError??='NATIVE_STDERR_PRESENT';stop();}});child.on('error',()=>{ioError??='NATIVE_START_FAILURE';stop();});
+   if(enclosure){child.stdout.on('error',()=>{if(done)return;ioError??='NATIVE_STDOUT_ERROR';stop();});child.stderr.on('error',()=>{if(done)return;ioError??='NATIVE_STDERR_ERROR';stop();});}
+   let stderrBytes=0;child.stderr.on('data',b=>{if(enclosure){if(done||stopping)return;if(!Buffer.isBuffer(b)){ioError??='NATIVE_STDERR_TYPE';stop();return;}}stderrBytes+=b.length;if(stderrBytes>LIMITS.streamBytes){ioError??='NATIVE_STDERR_LIMIT';stop();}else if(directBinding&&stderrBytes){ioError??='NATIVE_STDERR_PRESENT';stop();}});child.on('error',()=>{if(enclosure&&done)return;ioError??='NATIVE_START_FAILURE';stop();});
    child.on('close',(exit,signal)=>{reaped=true;finish(exit,signal,true);});
    if(stopping)forceKill();else if(latchDeadline()===null||timedOut)stop();
   }catch{ioError??='NATIVE_START_FAILURE';if(child)stop();else finish(null,null);}
