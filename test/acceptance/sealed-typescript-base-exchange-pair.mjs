@@ -26,7 +26,10 @@ function originalCaseAliases(base,snapshot){
  const rows=new Map(snapshot.rows),relative=['sealed-inputs','sealed-inputs/redue-materialization-Canary','sealed-inputs/redue-materialization-Canary/write-canary.txt'];
  return relative.map(rel=>{const target=base+'/'+rel,file=base+'/'+rel.replace('sealed-inputs','SEALED-INPUTS');let stat;
   try{stat=fs.lstatSync(file,{bigint:true});}catch(error){if(error?.code==='ENOENT')return{file,present:false};throw error;}
-  if(stat.isSymbolicLink()||fingerprint(stat)!==rows.get(target)||fs.realpathSync(file)!==target)fail();
+  // Node22.13's JS realpath retains non-symlink component spelling. Native
+  // realpath must resolve THIS fixed alias to its exact original target;
+  // absence/errors/alternate targets are not case-folded or admitted.
+  if(stat.isSymbolicLink()||fingerprint(stat)!==rows.get(target)||typeof fs.realpathSync.native!=='function'||fs.realpathSync.native(file)!==target)fail();
   return{file,target,mark:rows.get(target),present:true,directory:rel!==relative[2]};
  });
 }

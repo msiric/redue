@@ -5,7 +5,7 @@ import {collectFixedEnclosedCampaign} from './sealed-typescript-fixed-campaign-e
 import {prepareSealedTypeScriptFixedCampaignSource} from './sealed-typescript-fixed-campaign.mjs';
 import {prepareSealedTypeScriptBaseExchangeBuildToolchain,verifySealedTypeScriptFixedCanaryProtectedInputProjection,sealedTypeScriptFixedCanaryProtectedInputProjectionMatchesDerivation} from './sealed-typescript-base-exchange-assets.mjs';
 import {verifySealedTypeScriptFixedCampaignPreparedNullSource} from './sealed-typescript-fixed-campaign-prepared-null-source.mjs';
-const version='fixed-canary-finite-enclosure-source@2',projectionVersion='fixed-canary-original-input-projection@2';
+const version='fixed-canary-finite-enclosure-source@2',projectionVersion='fixed-canary-original-input-projection@3';
 const cPin='3e4a891d7e228b754b05544a98b03b7086c5702acfd0e7110666cc66611fcc03',collectorPin='a15fee9374767e14483575264bcfa85732d90eab503c8a1f2b770c5156395878';
 const collectFunctionPin='0734891f42bc3efbd04a4194a29fd196946f421b23b08b8b907d036208bfbf42';
 const keys=['assetsBuild','pairedSource','pairedArtifacts','copies','projection','preparedNullSource'];

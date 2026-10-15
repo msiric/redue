@@ -403,8 +403,8 @@ export function sealedTypeScriptFixedCampaignLauncherBuildMatchesDerivation(buil
 // This claims no H-wide closure, compiler namespace, atomic hostile-writer
 // confinement, actor/session closure, interval, native enforcement or origin.
 const mintedProtectedProjections=new WeakMap(),protectedProjectionOwners=new WeakSet();
-const protectedProjectionVersion='fixed-canary-original-input-projection@2';
-const protectedComparatorPin='501f1760edfc1b6196312b81aa2a0babe4432cbc289d84be2b33561af669ee91';
+const protectedProjectionVersion='fixed-canary-original-input-projection@3';
+const protectedComparatorPin='af57959d2524d976971234585236f4fecd680e3e47520dfec9f35252ade77411';
 const protectedMarker='REDUE_SEALED_SYNTHETIC_CANARY\n';
 const projectionAuthority=fields=>freeze({schema:1,scope:'DISABLED_FIXED_CANARY_PROTECTED_INPUT_PROJECTION_DATA_ONLY',inputScope:'DIAGNOSTIC_FIXED_CANARY_ONLY',...fields,disabled:true,runnable:false,commands:[],executionAuthority:'NONE',recordAdoptionAuthority:false,compilerCheckExecutions:0,helperExecutions:0,nativeAgentLaunches:0,models:0,nativeEnforcement:'NOT_ESTABLISHED',noInheritedWritableHandlesVerified:false,rootInventory:'TRUSTED_PRE_NATIVE_ONLY',rootMembershipContinuity:'NOT_ESTABLISHED',inputContinuity:'NOT_ESTABLISHED',fixedActorSourceClosure:'REQUIRED_SEPARATE_PREMISE',futureActorChanges:'REQUIRE_NEW_REVIEW',interval:'NOT_ESTABLISHED',allActorsGone:'NOT_ESTABLISHED',compilerOrigin:'NOT_ESTABLISHED',compilerSeal:'NOT_ESTABLISHED',sealed:false,reuseEligible:false});
 function protectedOriginalIngredients(inputs){
@@ -440,7 +440,7 @@ function compareFixedOriginalProtectedInputs(original,phase){
  const directory=row=>{const s=fs.lstatSync(row.file,{bigint:true});check(s.isDirectory()&&!s.isSymbolicLink()&&fs.realpathSync(row.file)===row.file&&(row.full?mark(s):identity(s))===row.mark);};
  const named=row=>{const s=fs.lstatSync(row.file,{bigint:true});check(s.isFile()&&!s.isSymbolicLink()&&s.nlink===1n&&mark(s)===row.mark&&fs.realpathSync(row.file)===row.file);};
  const membership=([file,expected])=>{let dir,failed=false;try{dir=fs.opendirSync(file);const found=[];for(;;){const entry=dir.readSync();if(!entry)break;check(found.length<expected.length);found.push(entry.name);}check(JSON.stringify(found.sort())===JSON.stringify(expected));}catch{failed=true;}finally{if(dir!==undefined)try{dir.closeSync();}catch{failed=true;}}check(!failed);};
- const aliases=()=>{for(const row of original.caseAliases){if(!row.present){absent(row.file);continue;}const s=fs.lstatSync(row.file,{bigint:true});check(!s.isSymbolicLink()&&(row.directory?s.isDirectory():s.isFile())&&mark(s)===row.mark&&fs.realpathSync(row.file)===row.target);}
+ const aliases=()=>{for(const row of original.caseAliases){if(!row.present){absent(row.file);continue;}const s=fs.lstatSync(row.file,{bigint:true});check(!s.isSymbolicLink()&&(row.directory?s.isDirectory():s.isFile())&&mark(s)===row.mark&&typeof fs.realpathSync.native==='function'&&fs.realpathSync.native(row.file)===row.target);}
   const alias=original.workspaceAlias;if(phase==='BEGIN'){absent(alias.file);return;}let s;try{s=fs.lstatSync(alias.file,{bigint:true});}catch(error){if(error?.code==='ENOENT')return;throw error;}
   check(s.isSymbolicLink()&&s.uid===BigInt(alias.mark.split(':')[3])&&s.nlink===1n&&fs.readlinkSync(alias.file)===alias.target&&fs.realpathSync(alias.file)===alias.target);
   const target=fs.lstatSync(alias.file+'/redue-materialization-Canary/write-canary.txt',{bigint:true});check(target.isFile()&&!target.isSymbolicLink()&&mark(target)===alias.mark);
