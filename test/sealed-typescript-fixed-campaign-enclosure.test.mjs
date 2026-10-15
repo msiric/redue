@@ -50,3 +50,50 @@ test('foreign prepared-null getter cannot run; stale loaded collector function i
 test('worker cannot start any actor until parent records group ownership and grants private fixed GO',()=>{const worker=cSource.slice(cSource.indexOf('static void worker('),cSource.indexOf('int main('));assert(worker.indexOf('struct ack a=')<worker.indexOf('while(!gate_eof'));assert(worker.indexOf('go!=GO')<worker.indexOf('posix_spawn(&child'));assert(worker.indexOf('!close_fd(&gate)')<worker.indexOf('posix_spawn(&child'));assert.match(worker,/\(size_t\)n>sizeof\(go\)-gate_used/);const parent=cSource.slice(cSource.indexOf('int main('));assert(parent.indexOf('own_group=1;')<parent.indexOf('send_private(gate[1]'));assert(parent.indexOf('close_fd(&gate[1])',parent.indexOf('own_group=1;'))>parent.indexOf('send_private(gate[1]'));assert.match(parent,/close_fd\(&control\[0\]\).*close_fd\(&gate\[1\]\)/);});
 
 test('publication labels distinguish original-END normal result from known FAIL without invented END',()=>{const r=renderer(),v=r.invoke(r.inputs);assert.deepEqual(v.capturePublication,{E:'ORIGINAL_END_THEN_COLLECTOR_REAP_WORKER_REAP_AND_GROUP_ABSENCE',F:'KNOWN_ASSERTION_FAIL_THEN_CONTROLLED_GROUP_CLEANUP_WORKER_REAP_AND_GROUP_ABSENCE_END_NOT_REQUIRED'});assert.match(cSource,/E requires original END and normal collector\/worker completion/);assert.match(cSource,/F retains a known assertion FAIL after controlled owned-group cleanup/);assert.match(cSource,/it does NOT require or invent END/);assert(!cSource.includes('AFTER valid END, direct worker reap'));});
+
+// Source/mock transport controls only: no C compilation, kernel I/O, native
+// envelope, sandbox, actor, compiler or model execution is established here.
+// Evaluate the exact final C predicate over finite integers after independently
+// asserting all preceding private-frame/cleanup/refusal guards still exist.
+function sourceTransportExit(at,length,deadlineValid){
+ const tail=cSource.slice(cSource.lastIndexOf('size_t at=0;'));
+ const matched=tail.match(/return (at==result\.length&&timely\(absolute_limit\))\?0:74;/);
+ assert(matched,'exact completion predicate must remain source bound');
+ return Function('at','result','timely','absolute_limit','return ('+matched[1]+')?0:74;')(at,{length},()=>deadlineValid,14900);
+}
+test('source@2 uses RDE2 on both protected frame producers/consumers and declares collection-only exit meaning',()=>{
+ const r=renderer(),v=r.invoke(r.inputs);
+ assert.equal(v.version,'fixed-canary-finite-enclosure-source@2');
+ assert.deepEqual(v.collectionTransport,{interpretation:'finite-enclosure-normal-collection@2',frame:'RDE2',completeCollectionExit:0,incompleteCollectionExit:74,collectorExit:{E:74,F:1},assertionAuthority:'JSON_BODY_ONLY_NOT_OUTER_EXIT',nativeResultAcceptance:'NOT_TESTED'});
+ assert.match(cSource,/finite enclosure@2/);assert.match(cSource,/frame\[\]="RDE2:/);
+ assert.match(v.files[1].source,/Buffer\.from\('RDE2:/);
+ assert(!cSource.includes('RDE1:'));assert(!v.files[1].source.includes('RDE1:'));
+ assert.match(v.files[1].source,/process\.exitCode=result\?\.outcome==='FAIL'\?1:74;/);
+ assert.deepEqual(exits,[74,74,1,74]);authority(v);
+});
+for(const [frame,outcome,collectorExit]of [['E','UNKNOWN',74],['F','FAIL',1]])test('complete '+frame+' collection exits0 but body stays '+outcome,async()=>{
+ const events=[];
+ const r=await collect(factory(events,frame==='F'?(c,index)=>{if(index!==0)return;const v=reports[0]();v.result='FAIL';v.checks[3].result='FAIL';v.checks[3].reason_code='ACCESS_SUCCEEDED';c.stdout.emit('data',Buffer.from(JSON.stringify(v)+'\n'));close(c,exits[0]);return false;}:undefined),projection(events));
+ assert.equal(r.outcome,outcome);assert.equal(r.end,true);
+ assert.equal(r.outcome==='FAIL'?1:74,collectorExit);
+ const payload=Buffer.from(JSON.stringify(r)+'\n');
+ assert.equal(sourceTransportExit(payload.length,payload.length,true),0);
+ assert.equal(JSON.parse(payload).outcome,outcome);authority(r);
+});
+for(const length of [1,2,4096,32768])test('incomplete or late '+length+' byte publication retains exit74',()=>{
+ for(const at of [0,Math.max(0,length-1)])assert.equal(sourceTransportExit(at,length,true),74);
+ assert.equal(sourceTransportExit(length,length,false),74);
+ assert.equal(sourceTransportExit(length,length,true),0);
+});
+test('transport0 remains behind exact private E/F frame, reap, group-absence and post-write deadline guards',()=>{
+ const parent=cSource.slice(cSource.indexOf('int main(')),publication=parent.indexOf('size_t at=0;');
+ for(const guard of ['result.magic!=RESULT','result.length==0','result.length>LIMIT','used!=sizeof(struct ack)+sizeof(result)+result.length','!timely(began+14000)','!reaped||failed||(!normal_exit&&!controlled_failed_cleanup)','kill(-child,0)==0||errno!=ESRCH||!timely(began+14750)'])assert(parent.indexOf(guard)>=0&&parent.indexOf(guard)<publication);
+ const tail=parent.slice(publication);
+ assert.match(tail,/while\(at<result\.length&&timely\(absolute_limit\)\)/);
+ assert.match(tail,/else if\(n<0&&errno==EINTR\)continue;else return 74;/);
+ assert(tail.indexOf('write(1,payload')<tail.indexOf('return at==result.length&&timely(absolute_limit)?0:74;'));
+ assert(!tail.includes('(void)at;return 74;'));
+ assert.match(cSource,/asserted_fail&&WEXITSTATUS\(status\)!=1/);
+ assert.match(cSource,/!asserted_fail&&\(WEXITSTATUS\(status\)!=74/);
+ assert.match(cSource,/output\[prefix\]!='E'&&output\[prefix\]!='F'/);
+});

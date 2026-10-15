@@ -1,4 +1,4 @@
-/* DISABLED fixed-canary finite enclosure@1. SOURCE ONLY, no authorized build or
+/* DISABLED fixed-canary finite enclosure@2. SOURCE ONLY, no authorized build or
  * invocation. Not a seal, origin or reusable verification. The generated Node
  * collector alone creates four pinned NO-PROCESS-CREATION actors; actual close
  * of every launched actor precedes original END. Reap/EOF/group absence alone
@@ -8,6 +8,8 @@
  * requires controlled owned-group cleanup; END may remain false. Neither
  * branch publishes before worker reap and group absence. Other incomplete or
  * interrupted collection remains UNKNOWN; cleanup never substitutes for END.
+ * Outer exit0 means complete collection transport ONLY, never assertion PASS.
+ * Collector/actor exit meanings and the structured body remain unchanged.
  */
 #define _DARWIN_C_SOURCE 1
 #include <unistd.h>
@@ -26,7 +28,7 @@ extern char **environ;
 _Static_assert(sizeof(pid_t)==sizeof(sig_atomic_t)&&(pid_t)-1<(pid_t)0&&(sig_atomic_t)-1<(sig_atomic_t)0,"signed same-width PID watchdog required");
 static const char self[]="__REVIEWED_FIXED_ENCLOSURE_SELF__";
 static const char launcher[]="__REVIEWED_FIXED_ENCLOSURE_LAUNCHER__";
-static const char frame[]="RDE1:__REVIEWED_FIXED_ENCLOSURE_PROJECTION__:";
+static const char frame[]="RDE2:__REVIEWED_FIXED_ENCLOSURE_PROJECTION__:";
 #define LIMIT 32768
 #define ACK 0x52444131U
 #define RESULT 0x52445231U
@@ -161,5 +163,8 @@ int main(int argc,char **argv){
   * it does NOT require or invent END. Partial writes cannot be accepted. */
  size_t at=0;const unsigned char *payload=bytes+sizeof(struct ack)+sizeof(result);
  while(at<result.length&&timely(absolute_limit)){const ssize_t n=write(1,payload+at,result.length-at);if(n>0)at+=(size_t)n;else if(n<0&&errno==EINTR)continue;else return 74;}
- (void)at;return 74;
+ /* A full write is necessary but not sufficient: publication itself consumes
+  * the same absolute budget. Complete E/UNKNOWN and F/FAIL transport exit0
+  * permits the native normal-result envelope; it never certifies the body. */
+ return at==result.length&&timely(absolute_limit)?0:74;
 }
