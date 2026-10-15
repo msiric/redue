@@ -4,15 +4,15 @@
 // Parent reads require a trusted/quiescent filesystem; O_NOFOLLOW leaf checks
 // are not hostile-ancestor read confinement or a native enforcement proof.
 import fs from 'node:fs';import path from 'node:path';import {createHash} from 'node:crypto';import {spawnSync} from 'node:child_process';
-import {verifySealedTypeScriptBaseExchangePair} from './sealed-typescript-base-exchange-pair.mjs';
+import {verifySealedTypeScriptBaseExchangePair,sealedTypeScriptBaseExchangePairOriginalInputs} from './sealed-typescript-base-exchange-pair.mjs';
 import {verifySealedTypeScriptSyntheticFixture} from './sealed-typescript-synthetic-fixture.mjs';
 import {prepareSealedTypeScriptBaseExchangeSource} from './sealed-typescript-base-exchange-source.mjs';
 import {prepareSealedTypeScriptNativeAssetsProposal} from './sealed-typescript-native-assets-proposal.mjs';
 import {prepareSealedTypeScriptBaseCollectorSource,verifySealedTypeScriptBaseCollectorSource,sealedTypeScriptBaseCollectorSourceMatchesAssets} from './sealed-typescript-base-collector-source.mjs';
 import {verifySealedTypeScriptBaseCollectorCopies,sealedTypeScriptBaseCollectorCopiesMatchSource} from './sealed-typescript-base-collector-copies.mjs';
-import {buildSealedTypeScriptNativeAssets,verifySealedTypeScriptNativeAssetsBuild,observeSealedTypeScriptNativeAssetsBuild,sealedAssetsBuildCompleted,sealedAssetsBuildProcessSummary} from './sealed-typescript-native-assets-build.mjs';
+import {buildSealedTypeScriptNativeAssets,verifySealedTypeScriptNativeAssetsBuild,observeSealedTypeScriptNativeAssetsBuild,sealedAssetsBuildCompleted,sealedAssetsBuildProcessSummary,sealedTypeScriptNativeAssetsBuildOriginalInputs} from './sealed-typescript-native-assets-build.mjs';
 import {verifySealedTypeScriptPairedStageSource,sealedTypeScriptPairedStageSourceMatchesDerivation} from './sealed-typescript-paired-stage-source.mjs';
-import {verifySealedTypeScriptFixedCampaignCopies,sealedTypeScriptFixedCampaignCopiesMatchDerivation} from './sealed-typescript-fixed-campaign-copies.mjs';
+import {verifySealedTypeScriptFixedCampaignCopies,sealedTypeScriptFixedCampaignCopiesMatchDerivation,sealedTypeScriptFixedCampaignCopiesOriginalInputs} from './sealed-typescript-fixed-campaign-copies.mjs';
 import {prepareSealedTypeScriptFixedCampaignLauncherSource,verifySealedTypeScriptFixedCampaignLauncherSource} from './sealed-typescript-fixed-campaign-launcher-source.mjs';
 import {mark as profileMark,profiling} from '../../src/decision-profile.mjs';
 const mintedAssets=new WeakMap();
@@ -304,6 +304,7 @@ export function sealedTypeScriptPairedStageArtifactsMatchDerivation(build,assets
 // File/namespace guards require trusted quiescent parents, not hostile-writer
 // confinement; neither building nor currentness establishes native enforcement.
 const mintedCampaignLaunchers=new WeakMap();
+const fixedCampaignLauncherByAssets=new WeakMap();
 const campaignLauncherAuthority=fields=>freeze({schema:1,scope:'FIXED_CAMPAIGN_LAUNCHER_BUILD_DATA_ONLY',...fields,commands:[],recordAdoptionAuthority:false,compilerCheckExecutions:0,helperExecutions:0,nativeAgentLaunches:0,models:0,nativeEnforcement:'NOT_ESTABLISHED',noInheritedWritableHandlesVerified:false,sealed:false,reuseEligible:false});
 function campaignLauncherDependencies(record){
  const original=mintedAssets.get(record.assetsBuild);
@@ -354,7 +355,97 @@ export function buildSealedTypeScriptFixedCampaignLauncher(options){
   reason='BINARY_READBACK_UNAVAILABLE';const binary=bounded(output,2*1024*1024);guard(binary.arm64Header);Object.assign(candidate,{source:newSource,binary});reason='BOUNDARY_CHANGED';campaignLauncherFilesCurrent(candidate);
   record=candidate;report={baseA:initial.assets.baseA,baseB:initial.assets.baseB,hostBase:h,bindings:{baseA:initial.assets.baseA,baseB:initial.assets.baseB,hostBase:h,node,entry,cwd:initial.copies.cwd,campaignSha256:initial.copies.campaignSha256,launcher:output,launcherSource:file,launcherSourceSha256:sourceSha256,nodeSha256:old.nodeSha256},source:{file,sha256:newSource.digest,mark:newSource.mark,lineage:newSource.lineage},binary:{file:output,sha256:binary.digest,mark:binary.mark,lineage:binary.lineage},templateSha256:launcherSourceProposal.templateSha256,baseCollectorTemplateSha256:template.templateSha256,descriptorBoundaryVersion:launcherSourceProposal.version,descriptorScope:'C_TO_NODE_NONSTDIO_ONLY',stdioOwnership:'NOT_ESTABLISHED',devNullMetadataPermission:'NOT_OBSERVED',requiredSdkHeaderPins:launcherSourceProposal.requiredSdkHeaderPins,completeSdkClosure:'NOT_ESTABLISHED',namespaceCrashRecoveryEstablished:false};
  }catch{/* Static phases and real returned process facts only; partial H stays. */}
- const result=campaignLauncherAuthority({outcome:report?'CAMPAIGN_LAUNCHER_BUILT_NOT_EXECUTED':'UNKNOWN',reason_code:report?'BUILT_NOT_EXECUTED':reason,report,builds,sourceWriteAttempts,fileCreateCount,fileSyncCount,sourceWriteCompleted,dispatchAttemptCount,dispatchResultCount:builds.length,observedProcessCount:builds.filter(row=>row.pidObserved===true).length});if(record)mintedCampaignLaunchers.set(result,record);return result;
+ const result=campaignLauncherAuthority({outcome:report?'CAMPAIGN_LAUNCHER_BUILT_NOT_EXECUTED':'UNKNOWN',reason_code:report?'BUILT_NOT_EXECUTED':reason,report,builds,sourceWriteAttempts,fileCreateCount,fileSyncCount,sourceWriteCompleted,dispatchAttemptCount,dispatchResultCount:builds.length,observedProcessCount:builds.filter(row=>row.pidObserved===true).length});if(record){mintedCampaignLaunchers.set(result,record);fixedCampaignLauncherByAssets.set(assetsBuild,result);}return result;
 }
 export function verifySealedTypeScriptFixedCampaignLauncherBuild(build){const record=mintedCampaignLaunchers.get(build),unknown=()=>campaignLauncherAuthority({outcome:'UNKNOWN'});if(!record||record.invalid)return unknown();try{campaignLauncherFilesCurrent(record);return campaignLauncherAuthority({outcome:'CAMPAIGN_LAUNCHER_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED',baseA:record.before.assets.baseA,baseB:record.before.assets.baseB,hostBase:record.before.assets.hostBase,bindings:build.report.bindings,launcherSha256:record.binary.digest,launcherSourceSha256:record.source.digest});}catch{record.invalid=true;return unknown();}}
 export function sealedTypeScriptFixedCampaignLauncherBuildMatchesDerivation(build,assetsBuild,pairedSource,pairedArtifacts,copies){const record=mintedCampaignLaunchers.get(build);return arguments.length===5&&!!record&&!record.invalid&&record.assetsBuild===assetsBuild&&record.pairedSource===pairedSource&&record.pairedArtifacts===pairedArtifacts&&record.copies===copies;}
+
+// DISABLED, fixed four-actor canary projection. This is deliberately distinct
+// from every full original fixture/build verifier above. Original snapshots are
+// selected before actors; END never adopts a new baseline or repairs an owner.
+// Concrete controls: base/exchange sentinel control() swaps/restores workspace
+// exchange-control-a/b (directory ctime changes); native-sentinel allowedWrite
+// changes workspace/write-canary.txt and creates stage-parent-alias; map-sentinel
+// workspace_control() changes/restores workspace/map-canary.txt. Those workspace
+// children, entry membership, size/nlink/mtime/ctime are excluded. Workspace's
+// own dev/ino/mode/uid/gid, Checkout exact membership, A root exact membership,
+// B emptiness, protected parent/stage/full markers and fixed H code ARE retained.
+// stage-alias.txt (hardlink destination) must stay absent. The ONE optional END
+// symlink has a fixed target and must resolve the original protected identity.
+// This claims no H-wide closure, compiler namespace, atomic hostile-writer
+// confinement, actor/session closure, interval, native enforcement or origin.
+const mintedProtectedProjections=new WeakMap(),protectedProjectionOwners=new WeakSet();
+const protectedProjectionVersion='fixed-canary-original-input-projection@1';
+const protectedComparatorPin='b9ede51187441a2d55e90aad8e54b9614805fa556909c920fdd2fd2dcc8226d9';
+const protectedMarker='REDUE_SEALED_SYNTHETIC_CANARY\n';
+const projectionAuthority=fields=>freeze({schema:1,scope:'DISABLED_FIXED_CANARY_PROTECTED_INPUT_PROJECTION_DATA_ONLY',inputScope:'DIAGNOSTIC_FIXED_CANARY_ONLY',...fields,disabled:true,runnable:false,commands:[],executionAuthority:'NONE',recordAdoptionAuthority:false,compilerCheckExecutions:0,helperExecutions:0,nativeAgentLaunches:0,models:0,nativeEnforcement:'NOT_ESTABLISHED',noInheritedWritableHandlesVerified:false,interval:'NOT_ESTABLISHED',allActorsGone:'NOT_ESTABLISHED',compilerOrigin:'NOT_ESTABLISHED',sealed:false,reuseEligible:false});
+function protectedOriginalIngredients(inputs){
+ const {assetsBuild,pairedSource,pairedArtifacts,copies}=inputs,assets=mintedAssets.get(assetsBuild),paired=mintedPairedArtifacts.get(pairedArtifacts),launcherBuild=fixedCampaignLauncherByAssets.get(assetsBuild),launcher=mintedCampaignLaunchers.get(launcherBuild);
+ // All four private derivations are rejected BEFORE any public-path I/O or
+ // public capability property access. These fixed queries do no filesystem IO.
+ guard(assets&&!assets.invalid&&paired&&!paired.invalid&&launcher&&!launcher.invalid&&launcher.assetsBuild===assetsBuild&&launcher.pairedSource===pairedSource&&launcher.pairedArtifacts===pairedArtifacts&&launcher.copies===copies&&paired.assetsBuild===assetsBuild&&paired.proposal===pairedSource&&paired.pair===assets.pair&&sealedTypeScriptPairedStageSourceMatchesDerivation(pairedSource,assets.pair,assetsBuild)&&sealedTypeScriptFixedCampaignCopiesMatchDerivation(copies,assetsBuild,pairedArtifacts,pairedSource));
+ const pair=sealedTypeScriptBaseExchangePairOriginalInputs(assets.pair),native=sealedTypeScriptNativeAssetsBuildOriginalInputs(assets.hostBuild),copied=sealedTypeScriptFixedCampaignCopiesOriginalInputs(copies,assetsBuild,pairedArtifacts,pairedSource);
+ guard(pair&&native&&copied&&native.base===assets.roots[2][0]&&pair.baseA===assets.initialPair.baseA&&pair.baseB===assets.initialPair.baseB);
+ return{assets,paired,pair,native,copied,launcher,launcherBuild};
+}
+function projectedOriginalFacts(parts){
+ const {assets,paired,pair,native,copied,launcher}=parts,h=native.base;
+ guard(new Set([pair.baseA,pair.baseB,h]).size===3&&[pair.baseA,pair.baseB,h].every(v=>/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}$/.test(v))&&pair.files.length===6&&native.files.length===6&&paired.rows.length===5&&copied.files.length===6);
+ const own=row=>({file:row.file,mark:row.mark,digest:row.digest,limit:row.limit,lineage:row.lineage.map(row=>[...row])});
+ const files=[...pair.files.map(row=>({...row,digest:sha(protectedMarker),limit:Buffer.byteLength(protectedMarker)})),...native.files.map(own),own(assets.source),own(assets.binary),...paired.rows.map(own),...copied.files.map(own),own(launcher.source),own(launcher.binary)];
+ const directories=new Map();
+ const add=row=>{const old=directories.get(row.file);if(old){guard(old.mark.split(':').slice(0,5).join(':')===row.mark.split(':').slice(0,5).join(':'));if(row.full)directories.set(row.file,{file:row.file,mark:row.mark,full:true});}else directories.set(row.file,{file:row.file,mark:row.mark,full:row.full});};
+ for(const row of [...pair.directories,...native.directories,...copied.directories])add(row);
+ for(const row of [...files,...copied.directories])for(const [file,mark]of row.lineage??[])add({file,mark,full:false});
+ const inodes=new Set();for(const row of [...directories.values(),...files]){const inode=row.mark.split(':').slice(0,2).join(':');guard(!inodes.has(inode));inodes.add(inode);}
+ guard(files.slice(6).every(row=>row.file.startsWith(h+'/'))&&new Set(files.map(row=>row.file)).size===files.length);
+ return freeze({version:protectedProjectionVersion,baseA:pair.baseA,baseB:pair.baseB,hostBase:h,directories:[...directories.values()],files,membership:pair.membership,absent:pair.absent,caseAliases:pair.caseAliases,workspaceAlias:pair.workspaceAlias});
+}
+// Self-contained reviewed implementation. Its only lexical dependencies are
+// fixed trusted Node builtins fs/createHash/Buffer. The generated module closes
+// over original constants; no caller manifest/path/callback/expected hash API.
+function compareFixedOriginalProtectedInputs(original,phase){
+ const fields=['dev','ino','mode','uid','gid','nlink','size','mtimeNs','ctimeNs'],mark=s=>fields.map(k=>String(s[k])).join(':'),identity=s=>fields.slice(0,5).map(k=>String(s[k])).join(':'),check=value=>{if(!value)throw Error('FIXED_ORIGINAL_INPUT_UNKNOWN');};
+ const absent=file=>{try{fs.lstatSync(file,{bigint:true});}catch(error){if(error?.code==='ENOENT')return;throw error;}check(false);};
+ const directory=row=>{const s=fs.lstatSync(row.file,{bigint:true});check(s.isDirectory()&&!s.isSymbolicLink()&&fs.realpathSync(row.file)===row.file&&(row.full?mark(s):identity(s))===row.mark);};
+ const named=row=>{const s=fs.lstatSync(row.file,{bigint:true});check(s.isFile()&&!s.isSymbolicLink()&&s.nlink===1n&&mark(s)===row.mark&&fs.realpathSync(row.file)===row.file);};
+ const membership=([file,expected])=>{let dir,failed=false;try{dir=fs.opendirSync(file);const found=[];for(;;){const entry=dir.readSync();if(!entry)break;check(found.length<expected.length);found.push(entry.name);}check(JSON.stringify(found.sort())===JSON.stringify(expected));}catch{failed=true;}finally{if(dir!==undefined)try{dir.closeSync();}catch{failed=true;}}check(!failed);};
+ const aliases=()=>{for(const row of original.caseAliases){if(!row.present){absent(row.file);continue;}const s=fs.lstatSync(row.file,{bigint:true});check(!s.isSymbolicLink()&&(row.directory?s.isDirectory():s.isFile())&&mark(s)===row.mark&&fs.realpathSync(row.file)===row.target);}
+  const alias=original.workspaceAlias;if(phase==='BEGIN'){absent(alias.file);return;}let s;try{s=fs.lstatSync(alias.file,{bigint:true});}catch(error){if(error?.code==='ENOENT')return;throw error;}
+  check(s.isSymbolicLink()&&s.uid===BigInt(alias.mark.split(':')[3])&&s.nlink===1n&&fs.readlinkSync(alias.file)===alias.target&&fs.realpathSync(alias.file)===alias.target);
+  const target=fs.lstatSync(alias.file+'/redue-materialization-Canary/write-canary.txt',{bigint:true});check(target.isFile()&&!target.isSymbolicLink()&&mark(target)===alias.mark);
+ };
+ const metadata=()=>{for(const row of original.directories)directory(row);for(const row of original.files)named(row);for(const row of original.membership)membership(row);for(const file of original.absent)absent(file);aliases();};
+ check(phase==='BEGIN'||phase==='END');check(fs.constants.O_NOFOLLOW!==undefined&&fs.constants.O_NONBLOCK!==undefined);metadata();
+ for(const row of original.files){named(row);let fd,failed=false;try{const expected=row.mark.split(':'),size=BigInt(expected[6]);check(size>0n&&size<=BigInt(row.limit));fd=fs.openSync(row.file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK);check(mark(fs.fstatSync(fd,{bigint:true}))===row.mark);
+   const hash=createHash('sha256'),bytes=Buffer.alloc(65536);let at=0;while(at<Number(size)){const asked=Math.min(bytes.length,Number(size)-at),n=fs.readSync(fd,bytes,0,asked,at);check(Number.isInteger(n)&&n>0&&n<=asked);hash.update(bytes.subarray(0,n));at+=n;}check(hash.digest('hex')===row.digest&&mark(fs.fstatSync(fd,{bigint:true}))===row.mark);
+  }catch{failed=true;}finally{if(fd!==undefined)try{fs.closeSync(fd);}catch{failed=true;}}check(!failed);named(row);
+ }metadata();return true;
+}
+function protectedProjectionSource(original){
+ const implementation=Function.prototype.toString.call(compareFixedOriginalProtectedInputs),implementationSha256=sha(implementation);
+ guard(implementationSha256===protectedComparatorPin);
+ const source=`// DISABLED diagnostic fixed canary only; no actor or execution route.\nimport fs from 'node:fs';\nimport {createHash} from 'node:crypto';\nconst freeze=${Function.prototype.toString.call(freeze)},original=freeze(${JSON.stringify(original)}),compare=${implementation};\nlet began=false,ended=false,failed=false;\nexport const fixedCanaryProtectedInputs=Object.freeze({begin(){if(began||ended||failed){failed=true;return false;}began=true;try{return compare(original,'BEGIN');}catch{failed=true;return false;}},end(){if(!began||ended||failed){failed=true;return false;}ended=true;try{return compare(original,'END');}catch{failed=true;return false;}}});\n`;
+ return{source,sourceBytes:Buffer.byteLength(source),sourceSha256:sha(source),implementationSha256};
+}
+export function prepareSealedTypeScriptFixedCanaryProtectedInputProjection(options){
+ if(arguments.length!==1||!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==4||!['assetsBuild','pairedSource','pairedArtifacts','copies'].every(k=>Object.hasOwn(Object.getOwnPropertyDescriptor(options,k)??{},'value')))throw Object.assign(Error('PROTECTED_INPUT_PROJECTION_OPTIONS'),{code:'PROTECTED_INPUT_PROJECTION_OPTIONS'});
+ const inputs={assetsBuild:options.assetsBuild,pairedSource:options.pairedSource,pairedArtifacts:options.pairedArtifacts,copies:options.copies};
+ try{const parts=protectedOriginalIngredients(inputs);guard(!protectedProjectionOwners.has(inputs.assetsBuild));
+  // One original mint attempt per owner. An observed failure cannot be hidden
+  // by another projection, restored bytes/timestamps or a fresh public report.
+  protectedProjectionOwners.add(inputs.assetsBuild);
+  const before=campaignLauncherDependencies(inputs);guard(before.assets.outcome==='BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED'&&verifySealedTypeScriptFixedCampaignLauncherBuild(parts.launcherBuild).outcome==='CAMPAIGN_LAUNCHER_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED');
+  const original=projectedOriginalFacts(parts);compareFixedOriginalProtectedInputs(original,'BEGIN');
+  const rendered=protectedProjectionSource(original);guard(rendered.sourceBytes>0&&rendered.sourceBytes<=131072&&sha(rendered.source)===rendered.sourceSha256);
+  protectedOriginalIngredients(inputs);compareFixedOriginalProtectedInputs(original,'BEGIN');
+  const result=projectionAuthority({outcome:'ORIGINAL_PROTECTED_INPUT_PROJECTION_PREPARED',version:protectedProjectionVersion,projectionSha256:sha(JSON.stringify(original)),...rendered,caseAliasControl:original.caseAliases.every(row=>row.present)?'ORIGINAL_FIXED_ALIAS_MATCHES':'UNSUPPORTED_ORIGINAL_CASE_ALIAS_ABSENCE',hostDirectoryClosure:'NOT_ESTABLISHED',nativeReadView:'REQUIRED_COMPARATOR_READS_NOT_ADMITTED_BY_CURRENT_FIXED_CAMPAIGN_POLICY',requiredComparatorOperations:['FIXED_A_CHECKOUT_PROTECTED_PARENT_STAGE_AND_B_MEMBERSHIP_READS','FIXED_ORIGINAL_H_CODE_SOURCE_RUNTIME_BINARY_CONTENT_READS','FIXED_ORIGINAL_ANCESTRY_METADATA_AND_ALIAS_READS'],blockers:['CURRENT_NATIVE_READ_VIEW_DOES_NOT_ADMIT_REQUIRED_COMPARATOR_READS','ENCLOSING_ACTOR_SESSION_AND_CANCELLATION_CLOSURE_NOT_ESTABLISHED','COMPILER_NAMESPACE_AND_FRESH_PRODUCER_BINDINGS_NOT_ESTABLISHED']});
+  mintedProtectedProjections.set(result,{inputs,original,sourceSha256:rendered.sourceSha256,implementationSha256:rendered.implementationSha256});return result;
+ }catch{return projectionAuthority({outcome:'UNKNOWN',version:protectedProjectionVersion});}
+}
+export function verifySealedTypeScriptFixedCanaryProtectedInputProjection(projection){
+ const record=mintedProtectedProjections.get(projection),unknown=()=>projectionAuthority({outcome:'UNKNOWN',version:protectedProjectionVersion});if(arguments.length!==1||!record||record.invalid)return unknown();
+ try{protectedOriginalIngredients(record.inputs);guard(sha(Function.prototype.toString.call(compareFixedOriginalProtectedInputs))===protectedComparatorPin&&record.implementationSha256===protectedComparatorPin&&sha(projection.source)===record.sourceSha256);compareFixedOriginalProtectedInputs(record.original,'END');protectedOriginalIngredients(record.inputs);
+  return projectionAuthority({outcome:'ORIGINAL_PROTECTED_INPUTS_CURRENTLY_OBSERVED',version:protectedProjectionVersion,projectionSha256:sha(JSON.stringify(record.original)),sourceSha256:record.sourceSha256});
+ }catch{record.invalid=true;return unknown();}
+}

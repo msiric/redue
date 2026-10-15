@@ -3,7 +3,7 @@
 // Failed partial bases stay intact. BOTH bases remain strictly synthetic:
 // code/build/host assets belong in a separate owned namespace, never this pair.
 import fs from 'node:fs';
-import {createSealedTypeScriptCIBootstrap,prepareSealedTypeScriptCISyntheticFixture,verifySealedTypeScriptSyntheticFixture} from './sealed-typescript-synthetic-fixture.mjs';
+import {createSealedTypeScriptCIBootstrap,prepareSealedTypeScriptCISyntheticFixture,verifySealedTypeScriptSyntheticFixture,sealedTypeScriptSyntheticFixtureOriginalAvailable} from './sealed-typescript-synthetic-fixture.mjs';
 const minted=new WeakMap(),scope='FIXED_CI_SYNTHETIC_BASE_EXCHANGE_PAIR_MECHANICS_ONLY';
 const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
 const fail=()=>{throw Error('BASE_EXCHANGE_PAIR_UNAVAILABLE');};
@@ -19,6 +19,16 @@ function directory(file,uid){const stat=fs.lstatSync(file,{bigint:true});if(fs.r
 function inventory(base){const work='Checkout 空间/.sealed-native-canaries',stage='sealed-inputs/redue-materialization-Canary';
  const markers=['chmod-canary.txt','hardlink-canary.txt','map-canary.txt','rename-canary.txt','unlink-canary.txt','write-canary.txt'];
  return {directories:[['',['Checkout 空间','sealed-inputs']],['Checkout 空间',['.sealed-native-canaries']],[work,['exchange-control-a','exchange-control-b','map-canary.txt','stage-parent-exchange','write-canary.txt']],['sealed-inputs',['redue-materialization-Canary']],[stage,markers],...[work+'/exchange-control-a',work+'/exchange-control-b',work+'/stage-parent-exchange'].map(rel=>[rel,['identity-canary.txt']])],files:[...markers.map(name=>stage+'/'+name),work+'/write-canary.txt',work+'/map-canary.txt',...[work+'/exchange-control-a',work+'/exchange-control-b',work+'/stage-parent-exchange'].map(rel=>rel+'/identity-canary.txt')].map(rel=>base+'/'+rel)};
+}
+// Capture ONLY these locally known case spellings at original construction.
+// Absence is retained as unsupported case-control topology, never compatibility.
+function originalCaseAliases(base,snapshot){
+ const rows=new Map(snapshot.rows),relative=['sealed-inputs','sealed-inputs/redue-materialization-Canary','sealed-inputs/redue-materialization-Canary/write-canary.txt'];
+ return relative.map(rel=>{const target=base+'/'+rel,file=base+'/'+rel.replace('sealed-inputs','SEALED-INPUTS');let stat;
+  try{stat=fs.lstatSync(file,{bigint:true});}catch(error){if(error?.code==='ENOENT')return{file,present:false};throw error;}
+  if(stat.isSymbolicLink()||fingerprint(stat)!==rows.get(target)||fs.realpathSync(file)!==target)fail();
+  return{file,target,mark:rows.get(target),present:true,directory:rel!==relative[2]};
+ });
 }
 function inspect(record){const uid=principal(),ancestry=parents();if(JSON.stringify(ancestry)!==JSON.stringify(record.parents))fail();
  if(verifySealedTypeScriptSyntheticFixture(record.fixture).outcome!=='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED')fail();
@@ -40,11 +50,25 @@ export function prepareSealedTypeScriptBaseExchangePair(){
   const fixture=prepareSealedTypeScriptCISyntheticFixture(a);if(fixture.outcome!=='SYNTHETIC_FIXTURE_PREPARED'||fixture.base!==baseA)fail();
   const record={baseA,baseB,fixture,parents:ancestry},snapshot=inspect(record);
   const result=freeze({schema:1,scope,outcome:'BASE_EXCHANGE_PAIR_PREPARED',baseA,baseB,fixture,bindings:{baseA:snapshot.baseA,baseB:snapshot.baseB},commands:[],nativeEnforcement:'NOT_ESTABLISHED',noInheritedWritableHandlesVerified:false,sealed:false,reuseEligible:false});
-  minted.set(result,{...record,snapshot});return result;
+  const caseAliases=originalCaseAliases(baseA,snapshot);if(verifySealedTypeScriptSyntheticFixture(fixture).outcome!=='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED'||JSON.stringify(inspect(record))!==JSON.stringify(snapshot))fail();
+  minted.set(result,{...record,snapshot,caseAliases});return result;
  }catch{return unknown(baseA,baseB);}
 }
 export function verifySealedTypeScriptBaseExchangePair(pair){
  const record=minted.get(pair);if(!record||record.invalid)return unknown();
  try{const current=inspect(record);if(JSON.stringify(current)!==JSON.stringify(record.snapshot))fail();return freeze({schema:1,scope,outcome:'BASE_EXCHANGE_PAIR_CURRENTLY_OBSERVED',baseA:record.baseA,baseB:record.baseB,bindings:{baseA:current.baseA,baseB:current.baseB},commands:[],nativeEnforcement:'NOT_ESTABLISHED',noInheritedWritableHandlesVerified:false,sealed:false,reuseEligible:false});}
  catch{record.invalid=true;return unknown(record.baseA,record.baseB);}
+}
+
+// Fixed original projection ingredients, never a caller-selected inventory.
+// This query performs no I/O and does not revive an observed owner failure.
+// Workspace contents/entries/timestamps are intentionally mutable controls;
+// its directory identity and Checkout membership remain protected.
+export function sealedTypeScriptBaseExchangePairOriginalInputs(pair){
+ const record=minted.get(pair);if(arguments.length!==1||!record||record.invalid||!sealedTypeScriptSyntheticFixtureOriginalAvailable(record.fixture))return null;
+ const a=record.baseA,b=record.baseB,work=a+'/Checkout 空间/.sealed-native-canaries',stage=a+'/sealed-inputs/redue-materialization-Canary',rows=new Map(record.snapshot.rows);
+ const identity=file=>({file,mark:rows.get(file).split(':').slice(0,5).join(':'),full:false});
+ const directories=[...record.parents.map(([file,mark])=>({file,mark,full:false})),identity(a),identity(a+'/Checkout 空间'),identity(work),...['/sealed-inputs','/sealed-inputs/redue-materialization-Canary'].map(rel=>({file:a+rel,mark:rows.get(a+rel),full:true})),{file:b,mark:rows.get(b),full:true}];
+ const membership=[[a,['Checkout 空间','sealed-inputs']],[a+'/Checkout 空间',['.sealed-native-canaries']],[a+'/sealed-inputs',['redue-materialization-Canary']],[stage,['chmod-canary.txt','hardlink-canary.txt','map-canary.txt','rename-canary.txt','unlink-canary.txt','write-canary.txt']],[b,[]]];
+ return freeze({baseA:a,baseB:b,directories,membership,files:membership[3][1].map(name=>({file:stage+'/'+name,mark:rows.get(stage+'/'+name),marker:true})),absent:[a+'/sealed-inputs-replaced',stage+'/rename-destination.txt',work+'/stage-alias.txt'],caseAliases:record.caseAliases.map(row=>({...row})),workspaceAlias:{file:work+'/stage-parent-alias',target:a+'/sealed-inputs',canary:stage+'/write-canary.txt',mark:rows.get(stage+'/write-canary.txt')}});
 }

@@ -72,6 +72,12 @@ export function verifySealedTypeScriptSyntheticFixture(fixture){
   }catch{record.invalid=true;return record.scope===ciScope?ciUnknown(record.base):unknown(record.base);}
 }
 
+// Private-brand/loss query only: no filesystem read or renewed observation.
+// Consumers still need their own fixed original facts and required reads.
+export function sealedTypeScriptSyntheticFixtureOriginalAvailable(fixture){
+ const record=minted.get(fixture);return arguments.length===1&&!!record&&!record.invalid;
+}
+
 // Fixed receiver placement only. No arbitrary parent, process callback, host
 // settings or serialized bootstrap proof is accepted by these two entrypoints.
 const ciScope='FIXED_CI_SYNTHETIC_FIXTURE_MECHANICS_ONLY';

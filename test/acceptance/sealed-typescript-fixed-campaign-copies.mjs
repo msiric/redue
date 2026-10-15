@@ -64,3 +64,10 @@ export function verifySealedTypeScriptFixedCampaignCopies(copies){
 }
 // Linkage is private identity only, not currentness, child authentication or a seal.
 export function sealedTypeScriptFixedCampaignCopiesMatchDerivation(copies,assetsBuild,pairedArtifacts,pairedSource){const record=minted.get(copies);return arguments.length===4&&!!record&&!record.invalid&&record.inputs.assetsBuild===assetsBuild&&record.inputs.pairedArtifacts===pairedArtifacts&&record.inputs.pairedSource===pairedSource;}
+
+// Original H copies only. Source-generator/dependency originals are separately
+// verified at mint time; no repository/settings/credential read is exported.
+export function sealedTypeScriptFixedCampaignCopiesOriginalInputs(copies,assetsBuild,pairedArtifacts,pairedSource){
+ if(arguments.length!==4||!sealedTypeScriptFixedCampaignCopiesMatchDerivation(copies,assetsBuild,pairedArtifacts,pairedSource))return null;
+ const record=minted.get(copies);return freeze({directories:record.directories.map(row=>({file:row.file,mark:row.mark,full:false,lineage:row.lineage.map(row=>[...row])})),files:record.rows.map(row=>({file:row.file,mark:row.mark,digest:row.sha256,limit:1048576,lineage:row.lineage.map(row=>[...row])}))});
+}

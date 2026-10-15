@@ -2,7 +2,7 @@
 // No native helper is executed; success is compiled-assets data, never PASS,
 // sandbox, sealing or reuse authority. Partial owned artifacts are retained.
 import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import {createHash} from 'node:crypto';import {spawnSync} from 'node:child_process';
-import {verifySealedTypeScriptSyntheticFixture} from './sealed-typescript-synthetic-fixture.mjs';
+import {verifySealedTypeScriptSyntheticFixture,sealedTypeScriptSyntheticFixtureOriginalAvailable} from './sealed-typescript-synthetic-fixture.mjs';
 import {prepareSealedTypeScriptNativeAssetsProposal} from './sealed-typescript-native-assets-proposal.mjs';
 const sha=b=>createHash('sha256').update(b).digest('hex'),guard=(condition)=>{if(!condition)throw Error('BUILD_PRECONDITION_UNKNOWN');};
 const mark=s=>['dev','ino','mode','uid','gid','nlink','size','mtimeNs','ctimeNs'].map(k=>String(s[k])).join(':');
@@ -22,6 +22,12 @@ export function sealedAssetsBuildProcessSummary(r){return {pidObserved:Number.is
 
 const mintedBuilds=new WeakMap();
 const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
+// Only fixed H code/runtime rows. Compiler, SDK and home runtime stay outer
+// prerequisites; no directory-wide H closure or new currentness is claimed.
+export function sealedTypeScriptNativeAssetsBuildOriginalInputs(build){
+ const record=mintedBuilds.get(build);if(arguments.length!==1||!record||record.invalid||!sealedTypeScriptSyntheticFixtureOriginalAvailable(record.fixture))return null;
+ return freeze({base:record.base,directories:[[record.base,record.baseIdentity],...record.identities].map(([file,mark])=>({file,mark,full:false})),files:record.rows.filter(row=>row.file.startsWith(record.base+'/')).map(row=>({file:row.file,mark:row.mark,digest:row.digest,limit:row.limit,lineage:row.lineage.map(row=>[...row])}))});
+}
 export function buildSealedTypeScriptNativeAssets(options){
  if(!options||Object.getPrototypeOf(options)!==Object.prototype||Reflect.ownKeys(options).length!==1||!Object.hasOwn(options,'fixture')||!Object.hasOwn(Object.getOwnPropertyDescriptor(options,'fixture'),'value'))throw Object.assign(Error('BUILD_OPTIONS'),{code:'BUILD_OPTIONS'});
  const {fixture}=options;
