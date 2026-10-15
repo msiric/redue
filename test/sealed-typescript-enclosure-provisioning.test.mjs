@@ -17,7 +17,7 @@ for(const method of ['verifyAssets','verifyPaired','verifyCopies','verifyLaunche
 test('known actual nonzero mock compiler status remains separate from UNKNOWN preparation',async()=>{const m=mock();m.state.nonzero=true;const v=await observe(m.options);assert.equal(v.outcome,'UNKNOWN');assert.equal(v.compilerBuildOutcome,'EXIT_NONZERO');assert.equal(v.buildResultCount,3);assert.equal(v.builds[0].status,1);assert.equal(v.failedPhase,'prerequisiteBuilds');assert.equal(m.calls.at(-1),'buildAssets');});
 for(const method of ['preparePair','buildAssets','buildLauncher','buildEnclosure','verifyEnclosure'])test('the same 30s budget includes '+method+' and stops later work',async()=>{const m=mock();m.state.elapsedAt=method;const v=await observe(m.options);assert.equal(v.outcome,'UNKNOWN');assert.equal(m.calls.at(-1),method);authority(v);});
 test('final validation is not exempt from body deadline',async()=>{const m=mock();let calls=0;m.op.verifyEnclosure=()=>{if(++calls===2)m.set(30000);return{outcome:'ENCLOSURE_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED',sealed:false,reuseEligible:false};};const v=await observe(m.options);assert.equal(v.outcome,'UNKNOWN');assert.equal(v.failedPhase,'finalValidation');assert.equal(v.buildResultCount,8);});
-test('parent pins exact inner bytes and fixed reviewed Node; no environment stripping or arbitrary command route',()=>{const sha=createHash('sha256').update(innerSource).digest('hex');assert(parentSource.includes('INNER_SHA256 = "'+sha+'"'));assert(parentSource.includes('NODE_SHA256 = "5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc"'));assert.match(parentSource,/start_new_session=True, close_fds=True/);assert.match(parentSource,/env=os\.environ\.copy\(\)/);assert.match(parentSource,/collect\(child, started=begun\)/);assert(!/child\.(?:poll|communicate)\(/.test(parentSource));assert(!/os\.environ\.(?:pop|clear|update)|shell=True|pexpect|pty\./.test(parentSource));assert.match(innerSource,/process\.execArgv\.length===0/);});
+test('parent pins exact inner bytes and fixed reviewed Node; no environment stripping or arbitrary command route',()=>{const sha=createHash('sha256').update(innerSource).digest('hex');assert(parentSource.includes('INNER_SHA256 = "'+sha+'"'));assert(parentSource.includes('NODE_SHA256 = "5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc"'));assert.match(parentSource,/start_new_session=True, close_fds=True/);assert.match(parentSource,/env=os\.environ\.copy\(\)/);assert.match(parentSource,/collect\(child, started=begun, exit_monitor=exit_monitor\)/);assert(!/child\.(?:poll|communicate)\(/.test(parentSource));assert(!/os\.environ\.(?:pop|clear|update)|shell=True|pexpect|pty\./.test(parentSource));assert.match(innerSource,/process\.execArgv\.length===0/);});
 test('mock Python parent proves kill-before-wait, no postreap destructive kill, EOF/cap/deadline/parser and SIGKILL races',async()=>{const frames=[];const good=await observe({...mock().options,observeProgress:frame=>frames.push(frame)});const python=String.raw`
 import contextlib,copy,errno,importlib.util,io,json,os,signal,sys
 spec=importlib.util.spec_from_file_location('owned_enclosure_parent',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
@@ -56,7 +56,7 @@ try:
    c.events.append(('kill',pid,sig))
    if kill_error is not None and sig==signal.SIGKILL:raise kill_error
    if kill_denied:raise PermissionError()
-   if sig==0:raise ProcessLookupError()
+   if sig==0:raise ProcessLookupError(3,'PRIVATE')
   result=m.collect(c,clock=clock,selector_factory=Selector,read=read,killpg=kill,started=started)
   kill_at=[i for i,e in enumerate(c.events) if e[0]=='kill' and e[2]==signal.SIGKILL];wait_at=[i for i,e in enumerate(c.events) if e[0]=='wait'];assert len(kill_at)==1 and wait_at and kill_at[0]<wait_at[0]
   assert all(e[0]!='kill' or e[2]==0 for e in c.events[wait_at[0]+1:])
@@ -89,7 +89,7 @@ try:
  m.prerequisites=old_pre;m.subprocess.Popen=old_popen;sys.argv=old_argv;checks+=1
  # Selector failure still cleans the known owned child; never silently leaks.
  c=Child();events=[]
- def kill(pid,sig):c.events.append(('kill',pid,sig));raise ProcessLookupError()
+ def kill(pid,sig):c.events.append(('kill',pid,sig));raise ProcessLookupError(3,'PRIVATE')
  result=m.collect(c,clock=lambda:0,selector_factory=lambda:(_ for _ in ()).throw(ValueError()),read=lambda *a:b'',killpg=kill)
  assert result['outcome']=='UNKNOWN' and result['childReaped'];checks+=1
  # Invalid/missing ownership must never turn a numeric zero into a group kill.
@@ -140,7 +140,7 @@ try:
  m.prepare_record_directory=lambda repo:[('PRIVATE_TEST_SNAPSHOT',)]
  large_failed=copy.deepcopy(failed);large_failed['builds'][0]['stderrBytes']=8193
  observed={'schema':1,'scope':m.SCOPE,'outcome':'UNKNOWN','reason_code':'INNER_PREPARATION_UNKNOWN','childReaped':True,'childExitCode':74,'childSignal':None,'cleanupSignal':'UNKNOWN','cleanupExceptionFamily':'PERMISSION_ERROR','cleanupErrno':'EPERM','groupAbsentAfterReap':True,'stdoutBytes':1234,'stderrBytes':0,'elapsedMs':1200,'innerReport':large_failed,**m._FALSE}
- m.collect=lambda child,started=None:copy.deepcopy(observed)
+ m.collect=lambda child,started=None,exit_monitor=None:copy.deepcopy(observed)
  m.file_current=lambda row:None
  def denied_persistence(*args):raise PermissionError('PRIVATE_PERSISTENCE_ERROR')
  m.save_record=denied_persistence
@@ -247,7 +247,7 @@ def read(fd,n):
  return value
 def kill(pid,sig):
  events.append(sig)
- if sig==0:raise ProcessLookupError()
+ if sig==0:raise ProcessLookupError(3,'PRIVATE')
 old=m.os.set_blocking;m.os.set_blocking=lambda *a:None
 try:
  result=m.collect(Child(),clock=lambda:0 if chunks else 31,selector_factory=Selector,read=read,killpg=kill,started=0)
@@ -346,6 +346,7 @@ for key in ('endedPhases','ownedRootNames','builds'):summary[key]=[]
 summary.update(validatedFrameCount=38,protocolStatus='INVALID_OR_INCOMPLETE',inProgressPhase='prerequisiteCurrent',buildAttemptCountLowerBound=8,buildResultCountLowerBound=8,compilerBuildOutcome='EXIT_NONZERO')
 assert encoded(summary)<=1024
 outer={'schema':1,'scope':m.SCOPE,'outcome':'UNKNOWN','reason_code':'POST_COLLECTION_UNAVAILABLE','recordPersistence':'UNKNOWN','savedRecord':'NOT_ESTABLISHED','finalParentCompletion':'NOT_ESTABLISHED','observed':{'childReaped':False,'childExitCode':255,'childSignal':255,'cleanupSignal':'GROUP_ALREADY_ABSENT','cleanupExceptionFamily':'PROCESS_LOOKUP_ERROR','cleanupErrno':'EOVERFLOW','groupAbsentAfterReap':False,'stdoutBytes':65536,'stderrBytes':4096,'elapsedMs':34999.99999999999,'finalSourceCurrentness':'ENDPOINTS_OBSERVED','progressFrames':[],'progressObservation':{},'innerReport':{}},**m._FALSE}
+outer['observed'].update(exitMonitorState='EXIT_NOT_OBSERVED',prewaitGroupProbe='PERMISSION_DENIED',prewaitProbeExceptionFamily='PROCESS_LOOKUP_ERROR',prewaitProbeErrno='EOVERFLOW',postreapGroupProbe='PERMISSION_DENIED',postreapProbeExceptionFamily='PROCESS_LOOKUP_ERROR',postreapProbeErrno='EOVERFLOW')
 assert encoded(outer)<=1536
 assert 38*1024+8*256+3*128==41344
 assert 19*128+3*128+8*256+1024==5888
@@ -353,4 +354,135 @@ assert 41344+5888+16384+1536==65152<65536;checks+=1
 print(json.dumps({'scope':'BOUND_PROCESS_FACTS_SOURCE_MOCKS_ONLY','passed':checks,'actualPopen':0,'compilerBuilds':0,'nativeExecutions':0}))
 `;
  const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify({failed,failedFrames,partial,partialFrames}),encoding:'utf8',timeout:5000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.passed,13);assert.equal(result.actualPopen,0);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);
+});
+
+test('kernel-exit lifecycle gate avoids destructive signaling only for complete known outcomes and preserves unknown closure',async()=>{
+ const goodFrames=[],good=await observe({...mock().options,observeProgress:frame=>goodFrames.push(frame)}),unknownMock=mock();unknownMock.state.fail='prepareEnclosure';const unknownFrames=[],unknown=await observe({...unknownMock.options,observeProgress:frame=>unknownFrames.push(frame)});const incompleteMock=mock();incompleteMock.state.nonzero=true;const incompleteFrames=[],incompleteReport=await observe({...incompleteMock.options,observeProgress:frame=>incompleteFrames.push(frame)});const partialMock=mock();partialMock.op.buildAssets=()=>({outcome:'UNKNOWN',sealed:false,reuseEligible:false,dispatchAttemptCount:2,builds:[{pidObserved:true,completed:true,status:0,signal:null,spawnError:'NONE',stdoutBytes:0,stderrBytes:0}]});const partialFrames=[],partialReport=await observe({...partialMock.options,observeProgress:frame=>partialFrames.push(frame)});
+ const python=String.raw`
+import copy,errno,importlib.util,json,signal,sys,types
+sys.dont_write_bytecode=True
+spec=importlib.util.spec_from_file_location('nonreaping_exit_gate_mocks',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+payload=json.loads(sys.stdin.read());checks=0
+wire=lambda report,frames:b''.join((json.dumps(v,separators=(',',':'))+'\n').encode() for v in frames+[{'schema':1,'protocol':'fixed-enclosure-progress@1','kind':'FINAL','report':report}])
+good=wire(payload['good'],payload['goodFrames']);unknown=wire(payload['unknown'],payload['unknownFrames'])
+class Stream:
+ def __init__(self,n):self.n=n
+ def fileno(self):return self.n
+ def close(self):pass
+class Child:
+ pid=123
+ def __init__(self,code):self.stdout=Stream(10);self.stderr=Stream(11);self.code=code;self.events=[]
+ def wait(self,timeout):self.events.append(('wait',timeout));return self.code
+ def poll(self):raise AssertionError('FORBIDDEN_POLL')
+ def communicate(self):raise AssertionError('FORBIDDEN_COMMUNICATE')
+class Key:
+ def __init__(self,f,d):self.fileobj=f;self.data=d
+class Selector:
+ def __init__(self):self.keys={}
+ def register(self,f,e,d):self.keys[f.n]=Key(f,d)
+ def unregister(self,f):self.keys.pop(f.n)
+ def get_map(self):return self.keys
+ def select(self,t):return [(next(iter(self.keys.values())),1)]
+ def close(self):pass
+class Monitor:
+ def __init__(self,child,value=True,error=False):self.child=child;self.value=value;self.error=error
+ def exited(self,timeout=0):
+  assert 0<=timeout<=.1;self.child.events.append(('NOTE_EXIT',timeout))
+  if self.error:raise ValueError('PRIVATE')
+  return self.value
+ def close(self):self.child.events.append(('monitor_close',))
+def run(body=good,code=0,pre='EPERM',post='ESRCH',monitor=True,monitor_error=False):
+ child=Child(code);chunks={10:[body,b''],11:[b'']};waited=[False]
+ old_wait=child.wait
+ def wait(timeout):waited[0]=True;return old_wait(timeout)
+ child.wait=wait
+ def read(fd,n):
+  value=chunks[fd][0];part=value[:n];chunks[fd][0]=value[n:]
+  if not chunks[fd][0]:chunks[fd].pop(0)
+  return part
+ def kill(pid,sig):
+  assert pid==123;child.events.append(('group',sig))
+  if sig==signal.SIGKILL:assert not waited[0];return
+  assert sig==0
+  state=post if waited[0] else pre
+  if state=='EPERM':raise PermissionError(errno.EPERM,'PRIVATE')
+  if state=='ESRCH':raise ProcessLookupError(errno.ESRCH,'PRIVATE')
+  if state=='LOOKUP_WITHOUT_ERRNO':raise ProcessLookupError('PRIVATE')
+  if state=='UNKNOWN':raise OSError(errno.EIO,'PRIVATE')
+  assert state=='LIVE'
+ observer=None if monitor is None else Monitor(child,monitor,monitor_error)
+ result=m.collect(child,clock=lambda:0,selector_factory=Selector,read=read,killpg=kill,started=0,exit_monitor=observer)
+ wait_at=next(i for i,e in enumerate(child.events) if e[0]=='wait');assert all(e[0]!='group' or e[1]==0 for e in child.events[wait_at+1:])
+ assert 'PRIVATE' not in json.dumps(result)
+ return result,child.events
+old=m.os.set_blocking;m.os.set_blocking=lambda *a:None
+try:
+ for pre in ('EPERM','ESRCH'):
+  result,events=run(pre=pre);assert result['outcome']=='BUILT_NOT_EXECUTED' and result['cleanupSignal']=='NOT_ATTEMPTED_CHILD_EXIT_OBSERVED' and result['exitMonitorState']=='EXIT_OBSERVED' and result['childReaped'] and result['groupAbsentAfterReap']
+  assert not any(e==('group',signal.SIGKILL) for e in events);checks+=1
+ result,events=run(body=unknown,code=74);assert result['outcome']=='UNKNOWN' and result['reason_code']=='INNER_PREPARATION_UNKNOWN' and result['cleanupSignal']=='NOT_ATTEMPTED_CHILD_EXIT_OBSERVED' and result['innerReport']['buildResultCount']==6;checks+=1
+ for post in ('EPERM','LIVE','UNKNOWN','LOOKUP_WITHOUT_ERRNO'):
+  result,events=run(post=post);assert result['outcome']=='UNKNOWN' and not result['groupAbsentAfterReap'] and result['cleanupSignal']=='NOT_ATTEMPTED_CHILD_EXIT_OBSERVED';checks+=1
+ result,events=run(pre='LIVE');assert result['outcome']=='BUILT_NOT_EXECUTED' and result['prewaitGroupProbe']=='LIVE_MEMBERS' and result['cleanupSignal']=='SENT';assert ('group',signal.SIGKILL) in events;checks+=1
+ for options in ({'monitor':None},{'monitor':False},{'monitor_error':True},{'pre':'UNKNOWN'},{'body':good[:-1]},{'body':good[:300]},{'code':-9}):
+  result,events=run(**options);assert ('group',signal.SIGKILL) in events or options.get('code')==-9
+  if options.get('body') is not None or options.get('code')==-9:assert result['outcome']=='UNKNOWN'
+  checks+=1
+ # Full FINAL with incomplete returned process facts cannot authorize skip.
+ for report,frames in ((payload['incompleteReport'],payload['incompleteFrames']),(payload['partialReport'],payload['partialFrames'])):
+  body=wire(report,frames);result,events=run(body=body,code=74);assert result['innerReport'] is not None and ('group',signal.SIGKILL) in events and result['outcome']=='UNKNOWN';checks+=1
+finally:m.os.set_blocking=old
+# Register only the exact owned PID; no NOTE_REAP, no Popen polling/waiting.
+select_names=('kqueue','kevent','KQ_FILTER_PROC','KQ_EV_ADD','KQ_EV_ENABLE','KQ_EV_CLEAR','KQ_EV_ERROR','KQ_NOTE_EXIT')
+missing=object();original={key:getattr(m.select,key,missing) for key in select_names}
+for key,value in {'KQ_FILTER_PROC':-5,'KQ_EV_ADD':1,'KQ_EV_ENABLE':4,'KQ_EV_CLEAR':32,'KQ_EV_ERROR':16384,'KQ_NOTE_EXIT':2147483648}.items():
+ if not hasattr(m.select,key):setattr(m.select,key,value)
+if not hasattr(m.select,'kevent'):m.select.kevent=lambda ident,**kwargs:types.SimpleNamespace(ident=ident,**kwargs)
+queues=[]
+class Queue:
+ def __init__(self,initial=None,error=False):self.initial=initial or [];self.error=error;self.closed=False;self.calls=[]
+ def control(self,changes,maximum,timeout):
+  self.calls.append((changes,maximum,timeout));assert maximum==1 and 0<=timeout<=.1
+  if self.error:raise ProcessLookupError(errno.ESRCH,'PRIVATE')
+  if changes:
+   assert len(changes)==1 and changes[0].ident==123 and changes[0].filter==m.select.KQ_FILTER_PROC and changes[0].fflags==m.select.KQ_NOTE_EXIT
+   assert changes[0].flags==m.select.KQ_EV_ADD|m.select.KQ_EV_ENABLE|m.select.KQ_EV_CLEAR
+   return self.initial
+  return [types.SimpleNamespace(ident=123,filter=m.select.KQ_FILTER_PROC,flags=0,fflags=m.select.KQ_NOTE_EXIT)]
+ def close(self):self.closed=True
+try:
+ queue=Queue();m.select.kqueue=lambda:queue;monitor=m.OwnedChildExitMonitor(123);assert monitor.exited(timeout=.1);monitor.close();assert queue.closed;checks+=1
+ for queue in (Queue(error=True),Queue(initial=[types.SimpleNamespace(ident=124,filter=m.select.KQ_FILTER_PROC,flags=0,fflags=m.select.KQ_NOTE_EXIT)]),Queue(initial=[types.SimpleNamespace(ident=123,filter=m.select.KQ_FILTER_PROC,flags=m.select.KQ_EV_ERROR,fflags=m.select.KQ_NOTE_EXIT)])):
+  m.select.kqueue=lambda:queue;assert m.open_owned_exit_monitor(types.SimpleNamespace(pid=123)) is None and queue.closed;checks+=1
+finally:
+ for key,value in original.items():
+  if value is missing:delattr(m.select,key)
+  else:setattr(m.select,key,value)
+print(json.dumps({'scope':'NONREAPING_CHILD_EXIT_SOURCE_MOCKS_ONLY','passed':checks,'actualPopen':0,'actualSignals':0,'compilerBuilds':0,'nativeExecutions':0}))
+`;
+ const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify({good,goodFrames,unknown,unknownFrames,incompleteReport,incompleteFrames,partialReport,partialFrames}),encoding:'utf8',timeout:5000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.passed,21);assert.equal(result.actualPopen,0);assert.equal(result.actualSignals,0);assert.equal(result.nativeExecutions,0);
+});
+
+test('opt-in harmless owned normal child exit is observed without reaping before cleanup decision HARNESS ONLY',{skip:process.env.REDUE_DIR230_HARMLESS_NORMAL_EXIT!=='1'},async()=>{
+ const fixture=mock();fixture.state.fail='prepareEnclosure';const frames=[],report=await observe({...fixture.options,observeProgress:frame=>frames.push(frame)});const wire=frames.map(frame=>JSON.stringify(frame)+'\n').join('')+JSON.stringify({schema:1,protocol:'fixed-enclosure-progress@1',kind:'FINAL',report})+'\n';
+ const python=String.raw`
+import importlib.util,json,os,pwd,re,subprocess,sys,time
+sys.dont_write_bytecode=True
+spec=importlib.util.spec_from_file_location('harmless_normal_exit_only',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+assert sys.platform=='darwin'
+assert not any(re.search(r'^(?:NODE_OPTIONS|NODE_PATH|NODE_REPL_EXTERNAL_MODULE|BASH_ENV|ENV)$|^(?:DYLD_|LD_|OPENSSL_)',key,re.I) for key in os.environ)
+node=m.Path(pwd.getpwuid(os.getuid()).pw_dir)/'.nvm/versions/node/v22.13.0/bin/node';m.inspect_file(node,os.getuid(),128*1024*1024,m.NODE_SHA256)
+line=sys.stdin.read();assert len(line.encode())<65536
+# One fixed harmless child publishes only synthetic mock facts and exits74.
+# This is delivery/lifecycle evidence, not compiler execution or authority.
+source="const fs=require('node:fs');const b=Buffer.from("+json.dumps(line)+");let at=0;while(at<b.length)at+=fs.writeSync(1,b,at,b.length-at);process.exit(74);"
+wall=time.monotonic();child=subprocess.Popen([str(node),'-e',source],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,start_new_session=True,close_fds=True,env=os.environ.copy())
+monitor=m.open_owned_exit_monitor(child)
+result=m.collect(child,started=wall,exit_monitor=monitor)
+assert result['outcome']=='UNKNOWN' and result['reason_code']=='INNER_PREPARATION_UNKNOWN' and result['innerReport']['buildResultCount']==6
+assert result['exitMonitorState']=='EXIT_OBSERVED' and result['cleanupSignal']=='NOT_ATTEMPTED_CHILD_EXIT_OBSERVED' and result['childExitCode']==74 and result['childSignal'] is None
+assert result['childReaped'] and result['groupAbsentAfterReap'] and result['postreapProbeErrno']=='ESRCH'
+print(json.dumps({'scope':'HARMLESS_OWNED_NORMAL_EXIT_HARNESS_ONLY','outcome':'HARNESS_ASSERTIONS_PASS','wallMs':(time.monotonic()-wall)*1000,'overallPreparation':'UNKNOWN','cleanupSignal':result['cleanupSignal'],'exitMonitorState':result['exitMonitorState'],'prewaitGroupProbe':result['prewaitGroupProbe'],'postreapGroupProbe':result['postreapGroupProbe'],'childExitCode':74,'childReaped':True,'ownedGroupAbsent':True,'actualPopen':1,'childSubprocesses':0,'compilerBuilds':0,'nativeExecutions':0,'models':0,'sourceAuthority':'NONE'}))
+`;
+ const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:wire,encoding:'utf8',timeout:8000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.scope,'HARMLESS_OWNED_NORMAL_EXIT_HARNESS_ONLY');assert.equal(result.outcome,'HARNESS_ASSERTIONS_PASS');assert.equal(result.actualPopen,1);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);assert.equal(result.models,0);console.log(JSON.stringify(result));
 });

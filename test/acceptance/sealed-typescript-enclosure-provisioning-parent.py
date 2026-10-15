@@ -17,6 +17,7 @@ import platform
 import pwd
 import re
 import selectors
+import select
 import signal
 import stat
 import subprocess
@@ -350,13 +351,53 @@ def cleanup_error_classification(error):
     return family, allowed.get(code, "UNKNOWN") if type(code) is int else "UNKNOWN"
 
 
+class OwnedChildExitMonitor:
+    """Darwin NOTE_EXIT observes this unreaped owned child; it never reaps it."""
+    def __init__(self, pid):
+        require(type(pid) is int and 0 < pid <= 2147483647)
+        self.pid, self.seen, self.queue = pid, False, None
+        try:
+            self.queue = select.kqueue()
+            changes = [select.kevent(pid, filter=select.KQ_FILTER_PROC,
+                                    flags=select.KQ_EV_ADD | select.KQ_EV_ENABLE | select.KQ_EV_CLEAR,
+                                    fflags=select.KQ_NOTE_EXIT)]
+            self._accept(self.queue.control(changes, 1, 0))
+        except Exception:
+            self.close()
+            raise
+
+    def _accept(self, events):
+        require(type(events) is list and len(events) <= 1)
+        for event in events:
+            require(event.ident == self.pid and event.filter == select.KQ_FILTER_PROC
+                    and not event.flags & select.KQ_EV_ERROR and event.fflags == select.KQ_NOTE_EXIT)
+            self.seen = True
+
+    def exited(self, timeout=0):
+        require(self.queue is not None and type(timeout) in (int, float) and 0 <= timeout <= 0.1)
+        self._accept(self.queue.control([], 1, timeout))
+        return self.seen
+
+    def close(self):
+        queue, self.queue = self.queue, None
+        if queue is not None:
+            queue.close()
+
+
+def open_owned_exit_monitor(child):
+    try:
+        return OwnedChildExitMonitor(child.pid)
+    except Exception:
+        return None  # Missing/raced/unsupported monitor retains old cleanup.
+
+
 def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelector,
-            read=os.read, killpg=os.killpg, started=None):
+            read=os.read, killpg=os.killpg, started=None, exit_monitor=None):
     """Fixed process envelope; injection is for source/mock tests only.
 
-    Never poll/wait/communicate before destructive cleanup. The Popen PID stays
-    reserved until the ONE killpg attempt and subsequent wait/reap. Popen's
-    start_new_session establishes its own PGID before fixed child exec.
+    Never poll/wait/communicate before the cleanup decision. The Popen PID
+    stays reserved through NOTE_EXIT and the optional ONE killpg attempt until
+    wait/reap. No destructive group operation is allowed after reap.
     """
     began = started
     last = began
@@ -365,6 +406,10 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
     owned_pid = None
     reaped = False
     kill_attempted = False
+    exited_skip = False
+    exit_monitor_state = "NO_MONITOR" if exit_monitor is None else "NOT_QUERIED"
+    prewait_probe, prewait_family, prewait_errno = "NOT_ATTEMPTED", "NONE", "NONE"
+    postreap_probe, postreap_family, postreap_errno = "NOT_ATTEMPTED", "NONE", "NONE"
     cleanup_signal = "NOT_ATTEMPTED"
     cleanup_exception_family, cleanup_errno = "NONE", "NONE"
     reason = "UNKNOWN"
@@ -416,21 +461,53 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
                 reason = "BODY_DEADLINE"
         except Exception:
             reason = "CLOCK_UNAVAILABLE"
-        # No wait/poll/communicate has occurred: the child PID still reserves
-        # this start_new_session PGID. Never issue a second destructive signal.
+        # A strict complete FINAL plus exact kernel NOTE_EXIT can avoid a
+        # useless destructive signal to an exited child. Neither EPERM nor
+        # NOTE_EXIT proves descendant closure: post-reap ESRCH remains required.
+        inner = protocol.finish()
+        returned = [] if inner is None else inner["builds"]
+        exited_gate = (reason == "BOTH_EOF" and len(error) == 0 and inner is not None
+                       and protocol.active is None and 1 <= inner["buildAttemptCount"]
+                       == inner["buildResultCount"] == inner["observedProcessCount"]
+                       and all(row["pidObserved"] and row["completed"] and type(row["status"]) is int
+                               and row["signal"] is None and row["spawnError"] == "NONE" for row in returned))
+        if exited_gate and owned_pid is not None and exit_monitor is not None:
+            try:
+                grace = max(0.0, min(0.1, began + 35 - clock()))
+                observed = exit_monitor.exited(timeout=grace)
+                require(type(observed) is bool)
+                exit_monitor_state = "EXIT_OBSERVED" if observed else "EXIT_NOT_OBSERVED"
+                if observed:
+                    try:
+                        killpg(owned_pid, 0)
+                        prewait_probe = "LIVE_MEMBERS"
+                    except Exception as probe_error:
+                        prewait_family, prewait_errno = cleanup_error_classification(probe_error)
+                        if type(probe_error) is ProcessLookupError and probe_error.errno == errno.ESRCH:
+                            prewait_probe, exited_skip = "GROUP_ABSENT", True
+                        elif type(probe_error) is PermissionError and probe_error.errno == errno.EPERM:
+                            prewait_probe, exited_skip = "PERMISSION_DENIED", True
+                        else:
+                            prewait_probe = "UNKNOWN"
+            except Exception:
+                exit_monitor_state = "UNKNOWN"
+        # No wait/poll/communicate has occurred: PID still reserves the group.
+        if exited_skip:
+            cleanup_signal = "NOT_ATTEMPTED_CHILD_EXIT_OBSERVED"
+        else:
+            try:
+                require(owned_pid is not None)
+                kill_attempted = True
+                killpg(owned_pid, signal.SIGKILL)
+                cleanup_signal = "SENT"
+            except ProcessLookupError as cleanup_error:
+                cleanup_signal = "GROUP_ALREADY_ABSENT"
+                cleanup_exception_family, cleanup_errno = cleanup_error_classification(cleanup_error)
+            except Exception as cleanup_error:
+                cleanup_signal = "UNKNOWN"
+                cleanup_exception_family, cleanup_errno = cleanup_error_classification(cleanup_error)
         try:
-            require(owned_pid is not None)
-            kill_attempted = True
-            killpg(owned_pid, signal.SIGKILL)
-            cleanup_signal = "SENT"
-        except ProcessLookupError as cleanup_error:
-            cleanup_signal = "GROUP_ALREADY_ABSENT"
-            cleanup_exception_family, cleanup_errno = cleanup_error_classification(cleanup_error)
-        except Exception as cleanup_error:
-            cleanup_signal = "UNKNOWN"
-            cleanup_exception_family, cleanup_errno = cleanup_error_classification(cleanup_error)
-        try:
-            require(owned_pid is not None and kill_attempted)
+            require(owned_pid is not None and (kill_attempted or exited_skip))
             remaining = 5.0 if began is None else max(0.0, min(5.0, began + 35 - clock()))
             code = child.wait(timeout=remaining)
             reaped = True
@@ -441,6 +518,11 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
                 stream.close()
             except Exception:
                 reason = "STREAM_CLOSE_UNAVAILABLE"
+        if exit_monitor is not None:
+            try:
+                exit_monitor.close()
+            except Exception:
+                reason = "EXIT_MONITOR_CLOSE_UNAVAILABLE"
         if selector is not None:
             try:
                 selector.close()
@@ -451,10 +533,14 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
     if reaped:
         try:
             killpg(child.pid, 0)
-        except ProcessLookupError:
-            absent = True
-        except Exception:
-            pass
+            postreap_probe = "LIVE_MEMBERS"
+        except ProcessLookupError as probe_error:
+            absent = type(probe_error) is ProcessLookupError and probe_error.errno == errno.ESRCH
+            postreap_probe = "GROUP_ABSENT" if absent else "UNKNOWN"
+            postreap_family, postreap_errno = cleanup_error_classification(probe_error)
+        except Exception as probe_error:
+            postreap_probe = "UNKNOWN"
+            postreap_family, postreap_errno = cleanup_error_classification(probe_error)
     try:
         elapsed = clock() - began
         require(elapsed >= 0)
@@ -462,8 +548,8 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
         elapsed = 35000
         reason = "CLOCK_UNAVAILABLE"
     inner = protocol.finish()
-    normal = (reason == "BOTH_EOF" and kill_attempted
-              and cleanup_signal in ("SENT", "GROUP_ALREADY_ABSENT") and reaped
+    normal = (reason == "BOTH_EOF" and (kill_attempted or exited_skip)
+              and cleanup_signal in ("SENT", "GROUP_ALREADY_ABSENT", "NOT_ATTEMPTED_CHILD_EXIT_OBSERVED") and reaped
               and absent and code in (0, 74) and len(error) == 0 and elapsed < 35)
     success = normal and code == 0 and inner is not None and inner["outcome"] == "BUILT_NOT_EXECUTED"
     if not success and reason == "BOTH_EOF":
@@ -485,6 +571,9 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
             "childSignal": -code if isinstance(code, int) and code < 0 else None,
             "cleanupSignal": cleanup_signal, "cleanupExceptionFamily": cleanup_exception_family,
             "cleanupErrno": cleanup_errno, "groupAbsentAfterReap": absent,
+            "exitMonitorState": exit_monitor_state,
+            "prewaitGroupProbe": prewait_probe, "prewaitProbeExceptionFamily": prewait_family, "prewaitProbeErrno": prewait_errno,
+            "postreapGroupProbe": postreap_probe, "postreapProbeExceptionFamily": postreap_family, "postreapProbeErrno": postreap_errno,
             "stdoutBytes": len(output), "stderrBytes": len(error), "elapsedMs": elapsed * 1000,
             "innerReport": inner, "progressFrames": protocol.frames, "progressObservation": protocol.observation(), **_FALSE}
 
@@ -558,7 +647,8 @@ def unknown_with_observations(report, reason):
     observed = {}
     for key in ("childReaped", "childExitCode", "childSignal", "cleanupSignal",
                 "cleanupExceptionFamily", "cleanupErrno", "groupAbsentAfterReap", "stdoutBytes", "stderrBytes", "elapsedMs",
-                "finalSourceCurrentness"):
+                "finalSourceCurrentness", "exitMonitorState", "prewaitGroupProbe", "prewaitProbeExceptionFamily", "prewaitProbeErrno",
+                "postreapGroupProbe", "postreapProbeExceptionFamily", "postreapProbeErrno"):
         if key in report:
             observed[key] = report[key]
     # Only the already validated, fixed redacted schema is retained. No captured
@@ -604,7 +694,8 @@ def main():
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                  start_new_session=True, close_fds=True)
         # Include parent preflight/import/startup work in the original budget.
-        report = collect(child, started=begun)
+        exit_monitor = open_owned_exit_monitor(child)
+        report = collect(child, started=begun, exit_monitor=exit_monitor)
         phase = "POST_COLLECTION"
         require(time.monotonic() - begun < 35)
         try:
