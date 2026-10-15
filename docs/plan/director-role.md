@@ -103,6 +103,13 @@ For a claimed blocker identify the exact affected task, existing authority, evid
 of the denial/absence, and remaining unblocked acceptance work. Do not recreate known
 blocked terminal automation. Do not bypass an actual denial through a different route.
 
+For REDUE GitHub writes, check the actual API login and repository permissions
+before dispatch. The approved personal identity is `msiric`. Diagnose a403 using
+nonsecret effective-account/scope facts before calling it a host denial or asking
+for repeated UI actions. The2026-10-16 owner-approved switch restored normal CLI
+dispatch; it did not add credentials or permissions. Never print token values or
+silently change the shared active account when another project has selected it.
+
 Ask the owner only for a real boundary decision or owner-only action: new cost,
 credential/login/2FA, broader trust/permissions, material scope or verification-meaning
 change, destructive shared/user state, or public release. Existing $0 additional

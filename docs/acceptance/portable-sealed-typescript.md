@@ -1,25 +1,33 @@
 # Sealed-input TypeScript: current implementation boundary
 
-## Current checkpoint — reviewed bounded capture ready; actual preparation UNKNOWN
+## Current checkpoint — CLI dispatch restored; actual compiler guard identified
 
-Actual run38807523991 remains UNKNOWN on both VMs: producer pre-dispatch guard
-not identified; receiver deadline before final validation; runner images differ.
-No helper, native agent, model or reusable evidence followed. Next actual outcome:
-one two-VM capture of public paired identities plus bounded preparation subphases,
-using reviewed workflow`cc273d1` and exact runtime`e4f7fee`. CLI dispatch403 remains
-respected; a new owner UI dispatch is required after the reviewed push.
+Owner-approved selection of the existing personal`msiric` account restored normal
+CLI dispatch. The earlier403 came from an active read-only API identity, not an
+established host-policy denial. No credential, scope or repository permission was
+added. Verify the effective identity before future writes; shared account changes
+remain owner-controlled.
 
-DIR342 accepts the fixed CI-only diagnostic delta and closes DIR340's misleading
-outer refusal-stage finding. Original guards, commands, environments, deadlines
-and authority remain unchanged. Counts/timings are inclusive sampled call facts,
-not summable costs or process success. Partial capture survives timeout; missing
-facts remain UNKNOWN. DIR344 accepts the test-only negative-fixture correction:
-explicitly establish0770 before testing group-write refusal, independent of umask.
-Combined dependency-backed regressions:5,085 PASS/12 explicit SKIP/0 FAIL;
-TAP SHA256`e2250ba7c070708134cd848b9690850b63392ea7f3932e0e5433c6b497091e4f`.
-The earlier one-failure run and four diagnostic misattributions are retained.
-These are local source/mock results, not actual runner/native/seal/reuse acceptance.
-Resume using [the standing delivery loop](../plan/director-role.md#acceptance-driven-delivery-loop).
+Actual [run38822190068](https://github.com/msiric/redue/actions/runs/38822190068)
+used reviewed workflow`cc273d1` / runtime`e4f7fee`. Both VMs reported
+image20260907.0351.1 and matching22 inspected public rows, then stopped at
+`NATIVE_COMPILER_BYTES` with zero dispatches. Their Clang is290,664,032B with
+SHA256`f30550eab15fdf5ab8c0dc54c52679711241e5d4b636b027e18c09fef531775d`;
+the fixed A-profile guard admits a different digest/size and caps it at128MiB.
+Both results remain UNKNOWN, including OWNED_CLEANUP_UNKNOWN. Two valid cost
+snapshots each preserve the refusal; no repeated-discovery costs were reached.
+Public records32,804B SHA256
+`77db471cd6bd3f2bf4c9cf37e7c9945660c939f46225d7ae000de52ee847adfc`.
+This does not establish full-profile compatibility, build, native enforcement,
+sealing or reuse. No helper, native agent, model or receipt executed.
+
+Next: independent actual-result and fixed build-tool binding review, then only
+the smallest justified correction. No unchanged retry, generic larger compiler
+allowance, timeout increase or profile admission from logs. DIR342/DIR344 remain
+accepted; combined local regressions5,085 PASS/12 explicit SKIP/0 FAIL, TAP SHA256
+`e2250ba7c070708134cd848b9690850b63392ea7f3932e0e5433c6b497091e4f`.
+Prior failures and timeouts remain below. Resume using
+[the standing delivery loop](../plan/director-role.md#acceptance-driven-delivery-loop).
 
 Owner approval for [run38748867165](https://github.com/msiric/redue/actions/runs/38748867165)
 was applied; the completed attempt is already preserved below. Its accepted native

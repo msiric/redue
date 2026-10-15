@@ -13,6 +13,12 @@ On resume, compaction, or an agent handoff, read the charter's acceptance-driven
 delivery loop and the current resume/tracker before dispatching or writing.
 Keep one next observable acceptance outcome. Review exact commits in an isolated
 checkout; an implementer's moving worktree is not a frozen review candidate.
+Before GitHub writes for REDUE, verify the effective API account is the approved
+personal `msiric` identity and inspect repository permissions. A403 alone does
+not establish a host-policy denial. Diagnose account/permission facts without
+printing tokens; do not repeatedly substitute owner UI actions for an unexplained
+CLI failure. Global account switches, credential changes and scope expansion
+still require the standing owner authority; do not silently affect other projects.
 <!-- REDUE-DIRECTOR-LOOP:END -->
 
 ## Local shell safety
