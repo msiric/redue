@@ -9,6 +9,18 @@ verify HEAD/status first. The planning baseline is history, never a rollback tar
 
 ## Current checkpoint — exec result collected; descriptor metadata UNKNOWN
 
+Disabled original-input projection author `861204b` is integrated at `f4af809`;
+fresh DIR193 accepts its exact source-only scope. Root454 PASS/1 gated SKIP and
+reviewer187 supplied+29 independent pure assertions pass. Full original root
+metadata does not certify inventory continuity: A/Checkout/B inventory remains
+TRUSTED_PRE_NATIVE_ONLY; protected stage membership/bytes remain explicit.
+No permissions, production runtime or evidence authority changed. DIR194 owns the
+new finite enclosure source in its isolated worktree. DIR195's private derivation
+predicate is separately DIR196 accepted and integrated at `aaac7ce`, with root and
+reviewer93 focused tests passing; it grants no currency. Inspect/review the exact
+enclosure revision before integration. No new native attempt is queued and no owner action
+is needed for this source work. Exact private task paths are in the local resume.
+
 Actual run38748867165 completed on exact reviewed workflow `abdb206` / runtime
 `c9110d8`; owner normal environment UI review was required and performed. Actual
 prerequisites and347 controls passed; one bounded native diagnostic returned
@@ -53,9 +65,9 @@ A reviewed finite FIFO/private-memory primitive is integrated atda861c2, but has
 main, invocation, publication or interval/actor-closure authority. DIR186366 mocks
 and root local SDK27 preparation/C syntax-only pass; no built code executes. Its
 control budget is not a runnable campaign deadline. DIR185 rejects a speculative
-read-only-image pivot as an established solution. DIR187 is the active source task:
-bind original protected inputs separately from intentionally mutable workspace
-controls and close the enclosing BEGIN/all-actors-gone/END plus cancellation path.
+read-only-image pivot as an established solution. DIR187/189 source reviews now
+feed DIR194: close the enclosing BEGIN/all-actors-gone/END plus cancellation path
+using original protected inputs separately from mutable workspace controls.
 Complete enclosing source closure and actual boundary proof are still prerequisites,
 not facts established by these leaves. No new native/model attempt is queued.
 Descriptor authority, native compiler namespace closure, fresh producer bindings

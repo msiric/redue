@@ -15,6 +15,16 @@ The unreleased CLI now offers explicit pending selection, not executable evidenc
 
 ## Current checkpoint — native child witness remains UNKNOWN
 
+The disabled original-input projection at author `861204b` / integration `f4af809`
+has fresh DIR193 acceptance for its fixed-canary source scope only. Root454 tests
+pass/1 gated real-build skip; reviewer187 supplied+29 independent pure assertions
+pass. Generated BEGIN/END retains the same original protected stage and code facts;
+full A/Checkout/B metadata is not root membership continuity, and those inventories
+remain TRUSTED_PRE_NATIVE_ONLY. Existing full verifiers remain strict. No broader
+root read permission was added. The finite parent/collector enclosure is under
+implementation; actual H read admission, actor/session closure, native enforcement,
+compiler sealing and portable reuse remain unestablished. No new attempt is queued.
+
 Actual exec-witness run38748867165 at runtime `c9110d8` returned accepted structured
 helper metadata and source-derived command exit0; all ten startup booleans were true.
 Independent DIR173 retains UNKNOWN / DESCRIPTOR_METADATA_UNAVAILABLE: `/dev/null`

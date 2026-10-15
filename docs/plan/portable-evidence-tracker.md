@@ -6,6 +6,24 @@ recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gat
 
 ## Current checkpoint — structured exec result accepted; descriptor metadata remains UNKNOWN
 
+Current source conclusion: the disabled fixed-canary original-input projection
+is independently reviewed at author `861204b` and integrated at `f4af809`.
+DIR193 accepts this limited leaf, not native execution or sealing:187 supplied
+source/mock tests plus29 independent pure assertions pass. Root's ten-file run
+has454 PASS/1 gated real-build SKIP/0 FAIL,1,115.681ms; TAP SHA256
+`678a31b2e0cd4406418e423b94fef09fd3cb29f362bbace1d4a7e0c45a296733`.
+Original protected stage membership/bytes and fixed H code remain checked.
+A/Checkout/B use full original metadata; their inventory is explicitly
+TRUSTED_PRE_NATIVE_ONLY, not membership continuity or compiler applicability.
+DIR191 rejects broader root body-read grants; current settings remain unchanged.
+DIR194 now implements the finite enclosing parent/collector, with all-actor
+completion before matching END and deferred capture publication. No new native
+attempt, producer authority, seal, reusable evidence or owner action is implied.
+DIR195/196 separately reviews the private five-argument derivation predicate:
+author `9a73811`, integration `aaac7ce`, root/reviewer93 focused source/mock tests
+pass. Identity linkage performs no I/O and is deliberately not currentness;
+consumers must validate currency separately. No comparator bytes changed.
+
 Actual [run38748867165](https://github.com/msiric/redue/actions/runs/38748867165)
 used the reviewed workflow/runtime below, attempt1. Independent DIR173 accepts
 UNKNOWN / DESCRIPTOR_METADATA_UNAVAILABLE. Normal raw/rendered helper metadata
@@ -130,10 +148,11 @@ not a runnable campaign deadline. Direct reap/EOF cannot certify descendants.
 DIR185 rejects a speculative read-only-image pivot as a ready solution: backing
 storage and mount lifecycle need separate enforcement, while compiler namespace
 closure remains. No mount, new privilege, infrastructure or permission was used.
-DIR187 now examines one coherent enclosure using original protected-input bindings,
-actual actor closure and matching END. Intended writable-workspace control changes
-cannot pass an unchanged whole-fixture snapshot; a separately reviewed original
-protected-input projection is needed, never a post-run replacement baseline.
+DIR187/189 source review supplies the bounded enclosure design. Intended writable
+workspace controls cannot pass an unchanged whole-fixture snapshot. The reviewed
+projection instead retains original fixed facts, never a post-run replacement
+baseline; actor/session/watchdog closure and exact H code-read admission still
+need implementation and review before native use.
 No additional owner action is pending for this source work.
 
 ## Historical checkpoint — fixed-marker attempt UNKNOWN; diagnostic loop stopped
