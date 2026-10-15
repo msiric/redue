@@ -80,8 +80,14 @@ Whole-native detached-tree closure is
 not invented as a new prerequisite for the bounded non-authoritative diagnostic:
 timeout/cancellation must retain UNKNOWN closure/resources and grant no completion,
 seal or reuse. Normal finite output concerns only its reviewed internal actors.
-DIR295 implements a fixed same-process controller, unwired and unexecuted until
-review and actual profile/security/account prerequisites. Neither
+DIR297 accepts exact fixed-controller source `67dcaaf`, integrated at `1b7b73d`.
+Root combined source/mock controls:571 PASS/3 explicit SKIP/0 FAIL; TAP SHA256
+`9e93617b1160eacf30a58f8cb7e7f3c1f560e00acd82083bb9c0fbb49623f821`.
+It remains unwired and unexecuted. The original job clock starts before preparation,
+private context consumption precedes subsequent validation, and post-actor work
+uses only approved endpoints. DIR298 is defining the smallest fixed parent path,
+preserving the existing report-only CLI and original120s budget. Actual profile,
+security and protected-account prerequisites still gate every model launch. Neither
 new native enforcement nor cross-machine reuse is established by these checks;
 no actual native/model trial is queued. Existing completed diagnostics retain
 their original limited scope. No whole-job safety or timing claim is inferred.
