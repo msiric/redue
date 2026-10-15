@@ -19,7 +19,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 2
     env:
-      REVIEWED_SOURCE: e4f7fee2caf57a030a3bb0acd3284803ce748f9e
+      REVIEWED_SOURCE: 1f3f93d370a3c8849fa386634907a1e4aedb6673
     steps:
       - name: Refuse a missing reviewed runtime binding before checkout
         shell: bash
