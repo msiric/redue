@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 2
     environment: portable-evidence-claude
     env:
-      REVIEWED_SOURCE: b812589ae7741e506e89bde90e4e33c83624647f
+      REVIEWED_SOURCE: c9110d8dca8d686ef697b1050e8ac30213f5fa69
       REDUE_CLAUDE_ACCOUNT_POLICY_FACT: ${{ vars.REDUE_CLAUDE_ACCOUNT_POLICY_FACT }}
       REDUE_CLAUDE_INCLUDED_DIAGNOSTIC_CAPACITY: ${{ vars.REDUE_CLAUDE_INCLUDED_DIAGNOSTIC_CAPACITY }}
     steps:
@@ -76,13 +76,13 @@ jobs:
           test "$(uname -m)" = 'arm64'
           test "$(node --version)" = 'v22.13.0'
           node --input-type=module <<'NODE'
-          import {runFixedNativeStartupWitnessDiagnostic} from './test/acceptance/sealed-typescript-native-stdio-diagnostic.mjs';
-          const scope='FIXED_SINGLE_DIRECT_NATIVE_CHILD_STARTUP_WITNESS_DIAGNOSTIC_ONLY';
-          const intendedSource='b812589ae7741e506e89bde90e4e33c83624647f',nativeVersion='2.1.187',nativeSha256='a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3',witnessInterpretation='native187-direct-bash-child-startup-witness@1';
+          import {runFixedExecNativeStartupWitnessDiagnostic} from './test/acceptance/sealed-typescript-native-stdio-diagnostic.mjs';
+          const scope='FIXED_SINGLE_EXEC_NATIVE_CHILD_STARTUP_WITNESS_DIAGNOSTIC_ONLY';
+          const intendedSource='c9110d8dca8d686ef697b1050e8ac30213f5fa69',nativeVersion='2.1.187',nativeSha256='a59a16ba4922adab7a145728f215d042184d349f5f7e72cddb7fc114250a4ce3',witnessInterpretation='native187-exec-bash-child-startup-witness@1';
           const abort=new AbortController(),cancel=()=>abort.abort();
           for(const sig of ['SIGINT','SIGTERM','SIGHUP'])process.on(sig,cancel);
           try{
-           const report=await runFixedNativeStartupWitnessDiagnostic({env:process.env,source:process.env.REDUE_CHECKED_SOURCE,signal:abort.signal});
+           const report=await runFixedExecNativeStartupWitnessDiagnostic({env:process.env,source:process.env.REDUE_CHECKED_SOURCE,signal:abort.signal});
            if(report?.schema!==1||report.scope!==scope||report.source!==intendedSource||report.nativeVersion!==nativeVersion||report.nativeSha256!==nativeSha256||report.witnessInterpretation!==witnessInterpretation||report.nativeEnforcement!=='NOT_ESTABLISHED'||report.controlledShellEnforcement!=='NOT_ESTABLISHED'||report.preMainLoader!=='NOT_ESTABLISHED'||report.completeSdkClosure!=='NOT_ESTABLISHED'||report.sealed!==false||report.reuseEligible!==false||report.portableApplicability!=='NOT_TESTED'||report.agentReuse!=='NOT_TESTED'||report.rawTranscriptRetained!==false||report.rawStderrRetained!==false)throw Error('FIXED_WITNESS_SCOPE_UNAVAILABLE');
            // Pinned controller produces redacted structured observations only;
            // no native/model stdout, credential value or imported report is logged.
