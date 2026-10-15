@@ -33,14 +33,27 @@ summary=m.ci_public_summary(report,'BODY_DEADLINE');assert summary['outcome']=='
 print(json.dumps({'checks':checks,'testedPopen':0,'kernelMonitors':0}))
 `);assert.equal(p.checks,13);});
 
-test('actual CI prerequisite source over owned in-memory fixture records retains a compiler guard refusal with zero dispatch',()=>{
+function activeCICostFixture(){
  const cost=mock(),token=cost.start(),fixedCost={beginFixedCIPreparationCost:cost.begin,endFixedCIPreparationCost:cost.end,fixedCIPreparationGuardStage:cost.stage,fixedCIPreparationRefusal:cost.refusal};
  const url=new URL('./sealed-typescript-ci-native-assets.test.mjs',import.meta.url);let text=fs.readFileSync(url,'utf8').split('const noAuthority=')[0].replace(/^import .*;$/gm,'').replaceAll(',import.meta.url)',','+JSON.stringify(url.href)+')');
- text=text.replace('const process={platform:', 'const process={fixedCost,platform:').replace('const fixedCost={beginFixedCIPreparationCost:()=>null,endFixedCIPreparationCost:()=>{},fixedCIPreparationGuardStage:()=>{},fixedCIPreparationRefusal:()=>{}};','const fixedCost=process.fixedCost;');
+ text=text.replace('const process={platform:', 'const process={fixedCost,platform:').replace('const fixedCost={beginFixedCIPreparationCost:()=>null,endFixedCIPreparationCost:()=>{},fixedCIPreparationGuardStage:()=>{},fixedCIPreparationRefusal:()=>{}};','const fixedCost=process.fixedCost;')
+  .replace('return{pid:42,status:0,signal:null', 'return{pid:42,status:state.dispatches.length===3&&process.thirdExitOne?1:0,signal:null');
  const setup=Function('fixedCost','fs','path','fileURLToPath','createHash','assert',text+';return setup;')(fixedCost,fs,path.posix,fileURLToPath,createHash,assert),m=setup(true);
- m.nodes.get('/Library/Developer/CommandLineTools/usr/bin/clang').mode|=0o22n;
+ return {cost,token,m};
+}
+test('actual CI prerequisite source over owned in-memory fixture records retains a compiler guard refusal with zero dispatch',()=>{
+ const {cost,token,m}=activeCICostFixture();m.nodes.get('/Library/Developer/CommandLineTools/usr/bin/clang').mode|=0o22n;
  const value=m.run();assert.equal(value.outcome,'UNKNOWN');assert.equal(m.state.dispatches.length,0);cost.finish(token);
  const last=cost.frames().at(-1);assert.equal(last.guardStage,'NATIVE_COMPILER_BYTES');assert.equal(last.refusal,true);assert.deepEqual(last.rows[0].slice(1,4),[1,1,0]);
+});
+for(const [kind,stage,count]of [['currency','BOUNDARY',2],['source','BASE_SOURCE',2],['compiler','BASE_COMPILE',3],['output','BASE_OUTPUT',3]])test('outer '+kind+' refusal retains its own stage and exact returned process facts',()=>{
+ const {cost,token,m}=activeCICostFixture();
+ if(kind==='currency')m.state.afterSpawn=()=>{if(m.state.dispatches.length===2)m.state.pairCurrent=false;};
+ if(kind==='source')m.state.afterRead=file=>{if(file.endsWith('/sealed-typescript-base-exchange-sentinel.c'))m.nodes.get(file).ino++;};
+ if(kind==='compiler')m.process.thirdExitOne=true;
+ if(kind==='output')m.state.afterSpawn=()=>{if(m.state.dispatches.length===3)m.nodes.get(m.state.dispatches[2].argv.at(-1)).body[0]=0;};
+ const value=m.run();cost.finish(token);assert.equal(value.outcome,'UNKNOWN');assert.equal(m.state.dispatches.length,count);assert.equal(value.dispatchAttemptCount,count);assert.equal(value.dispatchResultCount,count);assert.equal(value.observedProcessCount,count);assert.deepEqual(value.builds.map(row=>row.status),Array.from({length:count},(_,i)=>kind==='compiler'&&i===2?1:0));
+ const snapshot=cost.frames().at(-1);assert.equal(snapshot.refusal,true);assert.equal(snapshot.guardStage,stage);
 });
 
 test('actual parent collection keeps cost prefix after body deadline or cancellation with no inferred process counts',posix,()=>{
