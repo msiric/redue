@@ -6,23 +6,31 @@ recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gat
 
 ## Current checkpoint — structured exec result accepted; descriptor metadata remains UNKNOWN
 
-Latest local preparation: DIR205/210's fixed build-only observer is integrated at
-`4f7cc53`, independently accepted by DIR211 after DIR209's two observation-loss
-findings were repaired. Root608 source/mock tests PASS,0fail/skip,1,167.622ms;
-TAP SHA256 `ca9df364dd5e361a87a0d7998be05b805f46f8cbbed1ee07366422fca56bf290`.
-The first actual trusted local preparation returned UNKNOWN before any C build:
-`freshPair` failed; child exit74/reap and later group absence were observed, but
-cleanup's earlier exception was not classified. No native/model/checker ran.
-Private report2015B SHA256
-`304175f9d6aa8e04a7aac9f66b32a2591f48c38141093763c3c5be0e875040b5` is preserved.
-DIR212 identifies a concrete current fixture mismatch: Node22.13's JavaScript
-realpath preserves uppercase alias spelling while native realpath resolves the
-exact original lowercase target; all three original inode/metadata comparisons
-match. This does not prove the historical first throw. DIR213 finds no static
-PID/signal conversion defect; the discarded cleanup error leaves cause UNKNOWN.
-DIR214 owns only a narrowly reviewed case-alias repair and bounded cleanup error
-classification, not relaxed assertions, new permissions or an unchanged retry.
-No new native attempt or owner action is pending.
+Latest local preparation remains UNKNOWN. The repaired fixed-alias guard and
+bounded cleanup diagnostics are independently accepted (DIR215/218), integrated
+at `31346af` / `8f182ef`; root638 affected source/mock tests PASS,0fail/skip,
+1,313.362ms. TAP SHA256
+`c8750cd4a255d8c666096cec0bd20fec314fbbdfa4f1a3de687f9a6e1814605c`.
+Projection@3 admits only the three exact native-canonical original aliases with
+unchanged physical-identity checks; obsolete@2 is refused. No policy changed.
+The changed build-only attempt reached BODY_DEADLINE at30,006.131ms. Its child
+was killed/reaped, cleanup signal SENT with no exception, and the owned group
+was absent. Zero captured output and no inner report leave the responsible phase,
+created roots and actual build count UNKNOWN, not zero. No helper/native/model or
+receipt executes on this path. Private report1014B SHA256
+`3473a3d0bf0c41b88e5dbfe3b8f1c46a0613af7f83fe5fb9147c199c20b5c559` is preserved.
+DIR219 independently accepts only a bounded progress-observation design; DIR220
+owns its three driver/parent/test files. No third attempt precedes exact source
+review. The same30s/35s and65KiB limits remain, with no inferred fast path.
+DIR217/221's private source/build linkage and fixed post-native endpoint
+observation are accepted and integrated at `6f3ea09`. The full prelaunch verifier
+is unchanged; no report adoption or new interval/native authority is added.
+Root660 source/mock tests PASS,0fail/skip,1,326.610ms; TAP SHA256
+`3e2cedc964d1a40ba13c865c581f96f6ad35cde181d4ba88622e251ca441db62`.
+DIR222 now owns only a disabled exact native-command proposal and fixed code-read
+leaf access, not settings application or a model trial.
+The first freshPair UNKNOWN and prior native UNKNOWNs remain historical evidence.
+No owner action or new native attempt is queued; alpha.11 remains unpublished.
 
 Current source conclusion: the disabled fixed-canary original-input projection
 is independently reviewed at author `861204b` and integrated at `f4af809`.
