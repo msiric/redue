@@ -1,6 +1,5 @@
-# Fixed no-auth PRE-AUTH public startup observations only, not a native boundary.
-# One fixed C build; its helper is never executed. No artifacts/API/auth/model/signing.
-name: Fixed pre-auth startup observations
+# Fixed public bytes only. No build, native/model, artifact, signing or trust route.
+name: Fixed CI enclosure header observations
 on:
   workflow_dispatch:
 permissions:
@@ -10,7 +9,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   inventory:
-    name: Pre-auth startup observations (${{ matrix.machine }})
+    name: Fixed public headers (${{ matrix.machine }})
     strategy:
       fail-fast: false
       max-parallel: 2
@@ -20,7 +19,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 2
     env:
-      REVIEWED_SOURCE: 52a3b7f37637fa6c1362b68ec79ecc95f114d7f4
+      REVIEWED_SOURCE: 3edffa5631342a087bf5999cef031a3dcd102381
     steps:
       - name: Refuse a missing reviewed runtime binding before checkout
         shell: bash
@@ -37,7 +36,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22.13.0'
-      - name: Fixed source and mock precondition, no installation scripts
+      - name: Fixed source and mock prerequisites, no installation scripts
         id: source_classifier
         shell: bash
         run: |
@@ -51,9 +50,8 @@ jobs:
           test "$(git rev-parse HEAD)" = "$REVIEWED_SOURCE"
           test "$(uname -m)" = arm64
           test "$(node --version)" = v22.13.0
-          node --test test/sealed-typescript-native-stdio-startup.test.mjs test/sealed-typescript-preauth-startup-observation.test.mjs
-      - name: One fixed live pre-auth startup observation, no native agent
-        id: preauth_observation
+          node --test test/sealed-typescript-ci-enclosure-headers.test.mjs test/sealed-typescript-host-tool-inventory.test.mjs
+      - name: Fixed public machine and header observation, no native agent
         if: ${{ !cancelled() && steps.source_classifier.outcome == 'success' }}
         shell: bash
         run: |
@@ -67,38 +65,19 @@ jobs:
           test "$(git rev-parse HEAD)" = "$REVIEWED_SOURCE"
           test "$(uname -m)" = arm64
           test "$(node --version)" = v22.13.0
-          node --input-type=module <<'NODE'
-          import {createSealedTypeScriptCIBootstrap,prepareSealedTypeScriptCISyntheticFixture,verifySealedTypeScriptSyntheticFixture} from './test/acceptance/sealed-typescript-synthetic-fixture.mjs';
-          import {buildNativeStdioProbeForReviewedCI,verifyNativeStdioProbeBuild} from './test/acceptance/sealed-typescript-native-stdio-build.mjs';
-          import {prepareNativeStdioStartup,verifyNativeStdioStartup} from './test/acceptance/sealed-typescript-native-stdio-startup.mjs';
-          import {observeFixedPreauthStartupBehavior} from './test/acceptance/sealed-typescript-preauth-startup-observation.mjs';
-          const guard=v=>{if(!v)throw Error('PREAUTH_OBSERVATION_UNKNOWN');};
-          const profile='redue-native-stdio-preauth-ci-sdk26.5@1',buildInterpretation='redue-native-stdio-preauth-build@2',startupInterpretation='redue-native187-ci-sdk26.5-bash-startup-source@1';
-          const roles=['ROOT_A','ROOT_B','MANPATH_EMPTY','BASH_LOGIN','BASH_NONLOGIN'];
-          const noAuthority=r=>r?.sealed===false&&r.reuseEligible===false&&r.recordAdoptionAuthority===false&&r.models===0&&r.nativeEnforcement==='NOT_ESTABLISHED'&&r.preMainLoader==='NOT_ESTABLISHED';
-          let phase='BOOTSTRAP',outcome='UNKNOWN',build=null,observation=null,base=null,basisCurrent=false,buildRequested=false,baseDisposition='NOT_CREATED';
-          try{
-           baseDisposition='UNKNOWN';const bootstrap=createSealedTypeScriptCIBootstrap();
-           if(typeof bootstrap?.base==='string'&&/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}$/.test(bootstrap.base)){base=bootstrap.base;baseDisposition='RETAINED_DISPOSABLE_RUNNER_NAMESPACE';}
-           guard(bootstrap?.outcome==='CI_SYNTHETIC_BOOTSTRAP_PREPARED'&&base!==null);
-           phase='FIXTURE';const fixture=prepareSealedTypeScriptCISyntheticFixture(bootstrap);guard(fixture.outcome==='SYNTHETIC_FIXTURE_PREPARED');
-           phase='BUILD';buildRequested=true;build=buildNativeStdioProbeForReviewedCI({fixture});guard(build.outcome==='BUILT_NOT_EXECUTED'&&build.profileId===profile&&build.buildInterpretation===buildInterpretation&&build.dispatchAttemptCount===1&&build.build?.completed===true&&build.build.pidObserved===true&&build.build.status===0&&build.build.signal===null&&build.build.spawnError==='NONE'&&noAuthority(build));
-           phase='STARTUP';const startup=prepareNativeStdioStartup({fixture,build});guard(startup.outcome==='STARTUP_PREPARED_NOT_LAUNCHED'&&startup.hostBase===base&&startup.buildProfileId===profile&&startup.interpretation===startupInterpretation&&noAuthority(startup)&&startup.controlledShellStartup==='NOT_EMPIRICALLY_OBSERVED');
-           phase='OBSERVATION';observation=observeFixedPreauthStartupBehavior({fixture,build,startup});
-           guard(observation.schema===1&&observation.scope==='PREAUTH_PUBLIC_CONTROLLED_STARTUP_OBSERVATION_ONLY'&&observation.interpretation==='redue-fixed-preauth-startup-observation@1'&&noAuthority(observation)&&observation.nativeAgentLaunches===0&&observation.compilerCheckExecutions===0&&observation.profileApproved===false&&observation.controlledShellStartup==='NOT_EMPIRICALLY_OBSERVED');
-           phase='POST_CURRENTNESS';const f=verifySealedTypeScriptSyntheticFixture(fixture),b=verifyNativeStdioProbeBuild(build),s=verifyNativeStdioStartup(startup,'BEFORE_NATIVE');
-           guard(f.outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED'&&f.base===base&&f.ownedHandlesClosed===true&&b.outcome==='BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED'&&b.hostBase===base&&b.profileId===profile&&b.buildInterpretation===buildInterpretation&&s.outcome==='STARTUP_CURRENTLY_OBSERVED_SOURCE_ONLY'&&s.hostBase===base&&s.buildProfileId===profile&&s.interpretation===startupInterpretation&&s.sourceBasisCurrent===true);basisCurrent=true;
-           phase='RESULT';guard(observation.outcome==='PREAUTH_FIXED_BEHAVIOR_OBSERVED_NOT_NATIVE_PROOF'&&observation.ownedCleanup==='REMOVED_OWNED_CONTROLS'&&Array.isArray(observation.calls)&&observation.calls.length===5&&roles.every((role,i)=>{const c=observation.calls[i];return c?.role===role&&c.pidObserved===true&&c.exitCode===0&&c.signal===null&&c.errorCode===null&&c.expectedOutputObserved===true&&Number.isFinite(c.elapsedMs)&&c.elapsedMs>=0&&c.elapsedMs<5000&&Number.isSafeInteger(c.stdoutBytes)&&c.stdoutBytes>0&&c.stdoutBytes<=4096&&c.stderrBytes===0;}));
-           outcome='PREAUTH_FIXED_BEHAVIOR_OBSERVED_NOT_NATIVE_PROOF';phase='COMPLETE';
-          }catch{/* Missing or failed prerequisites stay UNKNOWN; no raw errors or private paths. */}
-          const codes=new Set(['ENOENT','EACCES','EPERM','ENOTDIR','ELOOP','EINVAL','EBADF','EIO','ETIMEDOUT','ENOBUFS','UNKNOWN']),signals=new Set(['SIGKILL','SIGTERM','SIGABRT','SIGSEGV','SIGBUS','SIGINT','UNKNOWN']);
-          const n=(v,max)=>Number.isSafeInteger(v)&&v>=0&&v<=max?v:null,ms=v=>Number.isFinite(v)&&v>=0&&v<=120000?v:null;
-          const calls=Array.isArray(observation?.calls)?observation.calls.slice(0,5).map((c,i)=>({role:c?.role===roles[i]?roles[i]:'UNKNOWN',pidObserved:c?.pidObserved===true,exitCode:n(c?.exitCode,255),signal:c?.signal===null?null:signals.has(c?.signal)?c.signal:'UNKNOWN',errorCode:c?.errorCode===null?null:codes.has(c?.errorCode)?c.errorCode:'UNKNOWN',elapsedMs:ms(c?.elapsedMs),stdoutBytes:n(c?.stdoutBytes,4096),stderrBytes:n(c?.stderrBytes,4096),expectedOutputObserved:c?.expectedOutputObserved===true})):[];
-          const reasons=new Set(['PRIVATE_CI_BASIS_UNAVAILABLE','OWNED_CONTROLS_UNAVAILABLE','FIXED_OPERATION_UNAVAILABLE','FIXED_OUTPUT_MISMATCH','PARENT_DEADLINE','FIXED_CASES_MATCHED','OWNED_CLEANUP_UNKNOWN']);
-          const cleanups=new Set(['NOT_CREATED','PENDING','RETAINED_CHILD_CLOSURE_UNKNOWN','RETAINED_INCOMPLETE_CONTROLS','REMOVED_OWNED_CONTROLS','UNKNOWN']);
-          console.log(JSON.stringify({schema:1,scope:'FIXED_CI_PREAUTH_STARTUP_OBSERVATION_ONLY',outcome,phase,observationReason:reasons.has(observation?.reason)?observation.reason:'UNKNOWN',calls,privateBasisCurrent:basisCurrent,cBuildAttemptCount:buildRequested?([0,1].includes(build?.dispatchAttemptCount)?build.dispatchAttemptCount:null):0,controlsCleanup:cleanups.has(observation?.ownedCleanup)?observation.ownedCleanup:'UNKNOWN',freshBaseDisposition:baseDisposition,models:0,nativeAgentLaunches:0,compilerCheckExecutions:0,recordAdoptionAuthority:false,profileApproved:false,sealed:false,reuseEligible:false,nativeEnforcement:'NOT_ESTABLISHED',preMainLoader:'NOT_ESTABLISHED',controlledShellStartup:'NOT_EMPIRICALLY_OBSERVED'}));
-          process.exitCode=outcome==='PREAUTH_FIXED_BEHAVIOR_OBSERVED_NOT_NATIVE_PROOF'?0:74;
-          NODE
-      # Base is retained on every outcome; only103 removes its own current controls.
-      # These sync checks reject late returns but cannot interrupt blocked FS calls.
-      # Job timeout is separate. No artifact/API/storage route or native authority.
+          # Named nonsecret runner facts only; missing facts never imply a match.
+          redue_image_os="${ImageOS-UNAVAILABLE}"
+          redue_image_version="${ImageVersion-UNAVAILABLE}"
+          redue_fs=$(/usr/bin/stat -f '%T' "$GITHUB_WORKSPACE")
+          redue_os=$(/usr/bin/sw_vers -productVersion)
+          redue_kernel=$(/usr/bin/uname -r)
+          for redue_fact in "$redue_image_os" "$redue_image_version" "$redue_fs" "$redue_os" "$redue_kernel"; do
+            if ! [[ "$redue_fact" =~ ^[A-Za-z0-9._-]{1,80}$ ]]; then
+              printf '%s\n' 'PUBLIC_RUNNER_FACT_UNAVAILABLE' >&2
+              exit 74
+            fi
+          done
+          printf '{"scope":"PUBLIC_RUNNER_FACTS_ONLY","source":"%s","machine":"%s","os":"%s","kernel":"%s","arch":"arm64","filesystem":"%s","imageOS":"%s","imageVersion":"%s","profileMatch":"NOT_EVALUATED"}\n' "$REVIEWED_SOURCE" '${{ matrix.machine }}' "$redue_os" "$redue_kernel" "$redue_fs" "$redue_image_os" "$redue_image_version"
+          node test/acceptance/sealed-typescript-host-tool-inventory.mjs --fixed-ci-enclosure-headers
+      # The helper's 10s checkpoint budget cannot interrupt blocked filesystem IO.
+      # The 2-minute job limit remains independent; no output becomes trusted input.
