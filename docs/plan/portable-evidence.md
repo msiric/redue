@@ -419,6 +419,12 @@ Use small PRs and separate worktrees/branches. Claim tasks through the existing 
 
 ### 6.2 Continuous progress without blind autonomy
 
+The owner's2026-10-15 delivery-workflow amendment is implemented in the repository
+[director charter](director-role.md#acceptance-driven-delivery-loop) and AGENTS.md.
+Use that loop on agent completion, compaction and resume: one next observable
+outcome, coherent candidate review, pinned independent review inputs and bounded
+real acceptance. The objective, scope, G0–G4 gates and standing authority remain.
+
 At task completion, an agent records its artifact/test evidence, submits review, and takes the next independent ready task within its approved scope. Routine progress reports should not require the owner to type “continue.”
 
 Use scheduled owner review windows—proposed twice daily when practical—for semantic and trust decisions. This is an operating target, not an assumption that the owner has already committed those hours.

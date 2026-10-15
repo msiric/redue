@@ -1,6 +1,11 @@
 # Sealed-input TypeScript: current implementation boundary
 
-## Current checkpoint — paired endpoints match; CI preparation wiring reviewed
+## Current checkpoint — reviewed CI build-only attempt ready; native boundary unproved
+
+Next observable outcome: actual eight-build preparation on both approved hosted
+VMs, followed by native-boundary acceptance. The frozen source/workflow is pushed;
+owner UI dispatch is pending. Scope stays frozen around that path. Resume using
+[the standing delivery loop](../plan/director-role.md#acceptance-driven-delivery-loop).
 
 Owner approval for [run38748867165](https://github.com/msiric/redue/actions/runs/38748867165)
 was applied; the completed attempt is already preserved below. Its accepted native
@@ -64,12 +69,22 @@ Root49 PASS/2 opt-in SKIP; independent Windows-selection simulation on Mac29 PAS
 22 reasoned SKIP and zero Python calls. Native Windows remains NOT RUN for this
 slice. The earlier overbroad four-test skips and DIR323 rejection are retained.
 
-DIR327 owns only the fixed CI build-only parent/driver route from `d46e851`;
-DIR328 independently reviews its required security guards. Existing local and
-native routes, original deadlines and all authority-false fields must remain.
-Command/startup/native-CI routes remain unwired. Actual CI preparation must validate
-current resources again; no SDK closure, native enforcement or origin authority
-is inferred. No new model, signing or publication follows from these tests.
+DIR327 is reviewed and integrated as frozen runtime `2663eae`: root affected
+source/mock acceptance562 PASS/4 explicit SKIP/0 FAIL; TAP SHA256
+`beb2dead45787398dd79e39fde086b1c5c16bf9dbff592cb3c95ef38d226949e`.
+Independent DIR330 accepts exact author`bbeabab` in an isolated checkout; DIR331
+accepts runtime`2663eae` and workflow`c0a46e1` (SHA256
+`392ebbed3869e11a4cc2a2bcc068ff905ffab17841ca65da6e4f353e6a9ef568`).
+The reviewed two-VM build-only attempt keeps original65s parent/2min job limits,
+no credentials/models/uploads and no helper execution. It is pending the owner's
+GitHub UI dispatch because the existing CLI403 remains respected; do not request
+it again while the recorded action is pending. No actual CI build result yet.
+
+DIR333 accepts frozen CI command/startup adapters`ced92b6` (not yet integrated).
+DIR334 owns the next fixed CI native controller/parent/child route in its isolated
+worktree. The producer, signing and trust scope remains unchanged. Actual SDK/
+native enforcement, sealed origin and final cross-agent/two-machine reuse are
+not established by these source/mock tests. All model preconditions remain gated.
 
 Earlier retained run (different images/tools, not retroactively relabeled):
 

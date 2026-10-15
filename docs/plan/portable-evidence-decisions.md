@@ -399,3 +399,15 @@ Saved folder trust applies a broader common repository root and remains an owner
 interaction; never blindly answer an approval UI. A blocked resumed frontend does
 not establish a second working director. If a replacement session becomes needed,
 checkpoint/pause the old coordinator before transfer; retain its pane/work.
+
+## D14 — durable acceptance-driven delivery — owner approved 2026-10-15
+
+The owner requires the revised delivery workflow to be integral to the repository
+and survive agent completions/compaction. AGENTS.md points to the existing director
+charter's standing acceptance-driven loop; project-local roles and the current
+resume reinforce it. Keep one next observable outcome, coherent candidate review,
+isolated revision-pinned reviewer inputs, bounded real acceptance and consolidated
+owner-only actions. Preserve history and use the existing plan/tracker/goal.
+No acceptance gate, independent-review obligation, permission, trust scope, spending
+limit or publication authority is relaxed. Existing workers receive the update
+explicitly; no automatic hot-reload or future compliance guarantee is claimed.

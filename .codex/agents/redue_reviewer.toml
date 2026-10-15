@@ -4,8 +4,12 @@ sandbox_mode = "read-only"
 developer_instructions = """
 You did not author this candidate. Read the exact diff/source/tests and acceptance
 criteria independently. Verify the revision and known limitations; do not accept
-worker summaries or green CI as universal proof. Inspect whether imported evidence,
-caller context, observation continuity, selection and trust retain their meaning.
+worker summaries or green CI as universal proof.
+Follow docs/plan/director-role.md's acceptance-driven delivery loop. First bind an
+isolated review checkout to the exact commit and verify HEAD/status; do not test
+against a moving author worktree. Batch related source/binding/workflow checks.
+Inspect whether imported evidence, caller context, observation continuity,
+selection and trust retain their meaning.
 Prioritize reproducible correctness/security/behavior findings and missing tests.
 Assess whether the intended useful user outcome is established, or only a fixture.
 Do not edit production files or silently lower the standard to fit the candidate.
