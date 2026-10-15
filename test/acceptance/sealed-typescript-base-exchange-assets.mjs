@@ -368,17 +368,21 @@ export function sealedTypeScriptFixedCampaignLauncherBuildMatchesDerivation(buil
 // changes workspace/write-canary.txt and creates stage-parent-alias; map-sentinel
 // workspace_control() changes/restores workspace/map-canary.txt. Those workspace
 // children, entry membership, size/nlink/mtime/ctime are excluded. Workspace's
-// own dev/ino/mode/uid/gid, Checkout exact membership, A root exact membership,
-// B emptiness, protected parent/stage/full markers and fixed H code ARE retained.
+// own dev/ino/mode/uid/gid and FULL original A/Checkout/B directory marks remain.
+// Exact A/Checkout/B inventory is TRUSTED_PRE_NATIVE_ONLY; these later metadata
+// guards do NOT establish root inventory/membership/input continuity. This
+// canary-only design requires the separately reviewed fixed-actor sources plus
+// trusted original preparation, never arbitrary actors or compiler applicability.
+// Protected parent/stage inventory/full markers and fixed H code ARE retained.
 // stage-alias.txt (hardlink destination) must stay absent. The ONE optional END
 // symlink has a fixed target and must resolve the original protected identity.
 // This claims no H-wide closure, compiler namespace, atomic hostile-writer
 // confinement, actor/session closure, interval, native enforcement or origin.
 const mintedProtectedProjections=new WeakMap(),protectedProjectionOwners=new WeakSet();
-const protectedProjectionVersion='fixed-canary-original-input-projection@1';
-const protectedComparatorPin='b9ede51187441a2d55e90aad8e54b9614805fa556909c920fdd2fd2dcc8226d9';
+const protectedProjectionVersion='fixed-canary-original-input-projection@2';
+const protectedComparatorPin='501f1760edfc1b6196312b81aa2a0babe4432cbc289d84be2b33561af669ee91';
 const protectedMarker='REDUE_SEALED_SYNTHETIC_CANARY\n';
-const projectionAuthority=fields=>freeze({schema:1,scope:'DISABLED_FIXED_CANARY_PROTECTED_INPUT_PROJECTION_DATA_ONLY',inputScope:'DIAGNOSTIC_FIXED_CANARY_ONLY',...fields,disabled:true,runnable:false,commands:[],executionAuthority:'NONE',recordAdoptionAuthority:false,compilerCheckExecutions:0,helperExecutions:0,nativeAgentLaunches:0,models:0,nativeEnforcement:'NOT_ESTABLISHED',noInheritedWritableHandlesVerified:false,interval:'NOT_ESTABLISHED',allActorsGone:'NOT_ESTABLISHED',compilerOrigin:'NOT_ESTABLISHED',sealed:false,reuseEligible:false});
+const projectionAuthority=fields=>freeze({schema:1,scope:'DISABLED_FIXED_CANARY_PROTECTED_INPUT_PROJECTION_DATA_ONLY',inputScope:'DIAGNOSTIC_FIXED_CANARY_ONLY',...fields,disabled:true,runnable:false,commands:[],executionAuthority:'NONE',recordAdoptionAuthority:false,compilerCheckExecutions:0,helperExecutions:0,nativeAgentLaunches:0,models:0,nativeEnforcement:'NOT_ESTABLISHED',noInheritedWritableHandlesVerified:false,rootInventory:'TRUSTED_PRE_NATIVE_ONLY',rootMembershipContinuity:'NOT_ESTABLISHED',inputContinuity:'NOT_ESTABLISHED',fixedActorSourceClosure:'REQUIRED_SEPARATE_PREMISE',futureActorChanges:'REQUIRE_NEW_REVIEW',interval:'NOT_ESTABLISHED',allActorsGone:'NOT_ESTABLISHED',compilerOrigin:'NOT_ESTABLISHED',compilerSeal:'NOT_ESTABLISHED',sealed:false,reuseEligible:false});
 function protectedOriginalIngredients(inputs){
  const {assetsBuild,pairedSource,pairedArtifacts,copies}=inputs,assets=mintedAssets.get(assetsBuild),paired=mintedPairedArtifacts.get(pairedArtifacts),launcherBuild=fixedCampaignLauncherByAssets.get(assetsBuild),launcher=mintedCampaignLaunchers.get(launcherBuild);
  // All four private derivations are rejected BEFORE any public-path I/O or
@@ -399,7 +403,9 @@ function projectedOriginalFacts(parts){
  for(const row of [...files,...copied.directories])for(const [file,mark]of row.lineage??[])add({file,mark,full:false});
  const inodes=new Set();for(const row of [...directories.values(),...files]){const inode=row.mark.split(':').slice(0,2).join(':');guard(!inodes.has(inode));inodes.add(inode);}
  guard(files.slice(6).every(row=>row.file.startsWith(h+'/'))&&new Set(files.map(row=>row.file)).size===files.length);
- return freeze({version:protectedProjectionVersion,baseA:pair.baseA,baseB:pair.baseB,hostBase:h,directories:[...directories.values()],files,membership:pair.membership,absent:pair.absent,caseAliases:pair.caseAliases,workspaceAlias:pair.workspaceAlias});
+ const trustedPreNativeMembership=pair.membership.filter(([file])=>[pair.baseA,pair.baseA+'/Checkout 空间',pair.baseB].includes(file)),protectedMembership=pair.membership.filter(([file])=>[pair.baseA+'/sealed-inputs',pair.baseA+'/sealed-inputs/redue-materialization-Canary'].includes(file));
+ guard(trustedPreNativeMembership.length===3&&protectedMembership.length===2);
+ return freeze({version:protectedProjectionVersion,baseA:pair.baseA,baseB:pair.baseB,hostBase:h,directories:[...directories.values()],files,trustedPreNativeMembership,protectedMembership,absent:pair.absent,caseAliases:pair.caseAliases,workspaceAlias:pair.workspaceAlias});
 }
 // Self-contained reviewed implementation. Its only lexical dependencies are
 // fixed trusted Node builtins fs/createHash/Buffer. The generated module closes
@@ -415,7 +421,7 @@ function compareFixedOriginalProtectedInputs(original,phase){
   check(s.isSymbolicLink()&&s.uid===BigInt(alias.mark.split(':')[3])&&s.nlink===1n&&fs.readlinkSync(alias.file)===alias.target&&fs.realpathSync(alias.file)===alias.target);
   const target=fs.lstatSync(alias.file+'/redue-materialization-Canary/write-canary.txt',{bigint:true});check(target.isFile()&&!target.isSymbolicLink()&&mark(target)===alias.mark);
  };
- const metadata=()=>{for(const row of original.directories)directory(row);for(const row of original.files)named(row);for(const row of original.membership)membership(row);for(const file of original.absent)absent(file);aliases();};
+ const metadata=()=>{for(const row of original.directories)directory(row);for(const row of original.files)named(row);for(const row of original.protectedMembership)membership(row);for(const file of original.absent)absent(file);aliases();};
  check(phase==='BEGIN'||phase==='END');check(fs.constants.O_NOFOLLOW!==undefined&&fs.constants.O_NONBLOCK!==undefined);metadata();
  for(const row of original.files){named(row);let fd,failed=false;try{const expected=row.mark.split(':'),size=BigInt(expected[6]);check(size>0n&&size<=BigInt(row.limit));fd=fs.openSync(row.file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK);check(mark(fs.fstatSync(fd,{bigint:true}))===row.mark);
    const hash=createHash('sha256'),bytes=Buffer.alloc(65536);let at=0;while(at<Number(size)){const asked=Math.min(bytes.length,Number(size)-at),n=fs.readSync(fd,bytes,0,asked,at);check(Number.isInteger(n)&&n>0&&n<=asked);hash.update(bytes.subarray(0,n));at+=n;}check(hash.digest('hex')===row.digest&&mark(fs.fstatSync(fd,{bigint:true}))===row.mark);
@@ -425,7 +431,7 @@ function compareFixedOriginalProtectedInputs(original,phase){
 function protectedProjectionSource(original){
  const implementation=Function.prototype.toString.call(compareFixedOriginalProtectedInputs),implementationSha256=sha(implementation);
  guard(implementationSha256===protectedComparatorPin);
- const source=`// DISABLED diagnostic fixed canary only; no actor or execution route.\nimport fs from 'node:fs';\nimport {createHash} from 'node:crypto';\nconst freeze=${Function.prototype.toString.call(freeze)},original=freeze(${JSON.stringify(original)}),compare=${implementation};\nlet began=false,ended=false,failed=false;\nexport const fixedCanaryProtectedInputs=Object.freeze({begin(){if(began||ended||failed){failed=true;return false;}began=true;try{return compare(original,'BEGIN');}catch{failed=true;return false;}},end(){if(!began||ended||failed){failed=true;return false;}ended=true;try{return compare(original,'END');}catch{failed=true;return false;}}});\n`;
+ const source=`// DISABLED diagnostic fixed canary only; no actor or execution route.\n// A/Checkout/B inventory is TRUSTED_PRE_NATIVE_ONLY. Full original marks and\n// fixed child identities do not establish root membership/input continuity,\n// CURRENT or compiler sealing. Fixed actor sources and trusted preparation\n// remain separate premises; future actors require a new scope review.\nimport fs from 'node:fs';\nimport {createHash} from 'node:crypto';\nconst freeze=${Function.prototype.toString.call(freeze)},original=freeze(${JSON.stringify(original)}),compare=${implementation};\nlet began=false,ended=false,failed=false;\nexport const fixedCanaryProtectedInputs=Object.freeze({begin(){if(began||ended||failed){failed=true;return false;}began=true;try{return compare(original,'BEGIN');}catch{failed=true;return false;}},end(){if(!began||ended||failed){failed=true;return false;}ended=true;try{return compare(original,'END');}catch{failed=true;return false;}}});\n`;
  return{source,sourceBytes:Buffer.byteLength(source),sourceSha256:sha(source),implementationSha256};
 }
 export function prepareSealedTypeScriptFixedCanaryProtectedInputProjection(options){
@@ -439,13 +445,13 @@ export function prepareSealedTypeScriptFixedCanaryProtectedInputProjection(optio
   const original=projectedOriginalFacts(parts);compareFixedOriginalProtectedInputs(original,'BEGIN');
   const rendered=protectedProjectionSource(original);guard(rendered.sourceBytes>0&&rendered.sourceBytes<=131072&&sha(rendered.source)===rendered.sourceSha256);
   protectedOriginalIngredients(inputs);compareFixedOriginalProtectedInputs(original,'BEGIN');
-  const result=projectionAuthority({outcome:'ORIGINAL_PROTECTED_INPUT_PROJECTION_PREPARED',version:protectedProjectionVersion,projectionSha256:sha(JSON.stringify(original)),...rendered,caseAliasControl:original.caseAliases.every(row=>row.present)?'ORIGINAL_FIXED_ALIAS_MATCHES':'UNSUPPORTED_ORIGINAL_CASE_ALIAS_ABSENCE',hostDirectoryClosure:'NOT_ESTABLISHED',nativeReadView:'REQUIRED_COMPARATOR_READS_NOT_ADMITTED_BY_CURRENT_FIXED_CAMPAIGN_POLICY',requiredComparatorOperations:['FIXED_A_CHECKOUT_PROTECTED_PARENT_STAGE_AND_B_MEMBERSHIP_READS','FIXED_ORIGINAL_H_CODE_SOURCE_RUNTIME_BINARY_CONTENT_READS','FIXED_ORIGINAL_ANCESTRY_METADATA_AND_ALIAS_READS'],blockers:['CURRENT_NATIVE_READ_VIEW_DOES_NOT_ADMIT_REQUIRED_COMPARATOR_READS','ENCLOSING_ACTOR_SESSION_AND_CANCELLATION_CLOSURE_NOT_ESTABLISHED','COMPILER_NAMESPACE_AND_FRESH_PRODUCER_BINDINGS_NOT_ESTABLISHED']});
+  const result=projectionAuthority({outcome:'ORIGINAL_PROTECTED_INPUT_PROJECTION_PREPARED',version:protectedProjectionVersion,projectionSha256:sha(JSON.stringify(original)),...rendered,caseAliasControl:original.caseAliases.every(row=>row.present)?'ORIGINAL_FIXED_ALIAS_MATCHES':'UNSUPPORTED_ORIGINAL_CASE_ALIAS_ABSENCE',hostDirectoryClosure:'NOT_ESTABLISHED',nativeReadView:'ALL_FIXED_H_SOURCE_CONTENT_READ_AUTHORITY_NOT_ESTABLISHED',requiredComparatorOperations:['FIXED_PROTECTED_PARENT_AND_STAGE_MEMBERSHIP_READS','FIXED_ORIGINAL_H_CODE_SOURCE_RUNTIME_BINARY_CONTENT_READS','FULL_ORIGINAL_A_CHECKOUT_B_AND_FIXED_ANCESTRY_METADATA_AND_ALIAS_READS'],blockers:['CURRENT_NATIVE_READ_VIEW_DOES_NOT_ADMIT_ALL_FIXED_H_SOURCE_READS','ENCLOSING_ACTOR_SESSION_AND_CANCELLATION_CLOSURE_NOT_ESTABLISHED','COMPILER_NAMESPACE_AND_FRESH_PRODUCER_BINDINGS_NOT_ESTABLISHED']});
   mintedProtectedProjections.set(result,{inputs,original,sourceSha256:rendered.sourceSha256,implementationSha256:rendered.implementationSha256});return result;
  }catch{return projectionAuthority({outcome:'UNKNOWN',version:protectedProjectionVersion});}
 }
 export function verifySealedTypeScriptFixedCanaryProtectedInputProjection(projection){
  const record=mintedProtectedProjections.get(projection),unknown=()=>projectionAuthority({outcome:'UNKNOWN',version:protectedProjectionVersion});if(arguments.length!==1||!record||record.invalid)return unknown();
  try{protectedOriginalIngredients(record.inputs);guard(sha(Function.prototype.toString.call(compareFixedOriginalProtectedInputs))===protectedComparatorPin&&record.implementationSha256===protectedComparatorPin&&sha(projection.source)===record.sourceSha256);compareFixedOriginalProtectedInputs(record.original,'END');protectedOriginalIngredients(record.inputs);
-  return projectionAuthority({outcome:'ORIGINAL_PROTECTED_INPUTS_CURRENTLY_OBSERVED',version:protectedProjectionVersion,projectionSha256:sha(JSON.stringify(record.original)),sourceSha256:record.sourceSha256});
+  return projectionAuthority({outcome:'FIXED_CANARY_ORIGINAL_INPUT_GUARDS_OBSERVED',version:protectedProjectionVersion,projectionSha256:sha(JSON.stringify(record.original)),sourceSha256:record.sourceSha256});
  }catch{record.invalid=true;return unknown();}
 }

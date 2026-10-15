@@ -63,12 +63,13 @@ export function verifySealedTypeScriptBaseExchangePair(pair){
 // Fixed original projection ingredients, never a caller-selected inventory.
 // This query performs no I/O and does not revive an observed owner failure.
 // Workspace contents/entries/timestamps are intentionally mutable controls;
-// its directory identity and Checkout membership remain protected.
+// its directory identity and original trusted Checkout inventory remain bound
+// data; this export grants no post-actor root inventory/continuity observation.
 export function sealedTypeScriptBaseExchangePairOriginalInputs(pair){
  const record=minted.get(pair);if(arguments.length!==1||!record||record.invalid||!sealedTypeScriptSyntheticFixtureOriginalAvailable(record.fixture))return null;
  const a=record.baseA,b=record.baseB,work=a+'/Checkout 空间/.sealed-native-canaries',stage=a+'/sealed-inputs/redue-materialization-Canary',rows=new Map(record.snapshot.rows);
  const identity=file=>({file,mark:rows.get(file).split(':').slice(0,5).join(':'),full:false});
- const directories=[...record.parents.map(([file,mark])=>({file,mark,full:false})),identity(a),identity(a+'/Checkout 空间'),identity(work),...['/sealed-inputs','/sealed-inputs/redue-materialization-Canary'].map(rel=>({file:a+rel,mark:rows.get(a+rel),full:true})),{file:b,mark:rows.get(b),full:true}];
+ const directories=[...record.parents.map(([file,mark])=>({file,mark,full:false})),...['','/Checkout 空间','/sealed-inputs','/sealed-inputs/redue-materialization-Canary'].map(rel=>({file:a+rel,mark:rows.get(a+rel),full:true})),identity(work),{file:b,mark:rows.get(b),full:true}];
  const membership=[[a,['Checkout 空间','sealed-inputs']],[a+'/Checkout 空间',['.sealed-native-canaries']],[a+'/sealed-inputs',['redue-materialization-Canary']],[stage,['chmod-canary.txt','hardlink-canary.txt','map-canary.txt','rename-canary.txt','unlink-canary.txt','write-canary.txt']],[b,[]]];
  return freeze({baseA:a,baseB:b,directories,membership,files:membership[3][1].map(name=>({file:stage+'/'+name,mark:rows.get(stage+'/'+name),marker:true})),absent:[a+'/sealed-inputs-replaced',stage+'/rename-destination.txt',work+'/stage-alias.txt'],caseAliases:record.caseAliases.map(row=>({...row})),workspaceAlias:{file:work+'/stage-parent-alias',target:a+'/sealed-inputs',canary:stage+'/write-canary.txt',mark:rows.get(stage+'/write-canary.txt')}});
 }
