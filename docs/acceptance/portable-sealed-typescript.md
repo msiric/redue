@@ -35,8 +35,15 @@ run has451 PASS/0 FAIL, TAP SHA256
 `2b2cd82f6b07ab6d28f864e2125e622df1f16c06ce5110f83608175cd3011735`.
 This is data interpretation only: public trace/binding JSON cannot authenticate
 native execution or create origin, sealing or reuse authority. DIR277 accepts
-the same-process private context design; DIR278 implements only that identity
-slice, without a native controller, report adoption or launch authority.
+the same-process private context design. DIR283 independently accepts exact
+`0b48010` and that four-file context slice is integrated. Root combined controls:
+664 PASS/3 explicit SKIP/0 FAIL, TAP SHA256
+`155f8aeee8041477f88675d3ff901c66d237d39d39153d86fe416a414a88e33e`.
+Only the zero-argument fixed real path can retain original objects in a private
+WeakMap; public mock/report paths cannot mint or restore a context. Genuine
+minting remains NOT RUN. No controller, consumption API, native deadline, GO,
+report adoption or sealing authority is supplied. DIR281 selects a bounded new
+fixed startup adapter (DIR282), leaving validated stdio/witness paths unchanged.
 
 The reviewed public-header workflow `3f07b38`, pinned runtime `3edffa5`, still
 awaits the one requested owner UI dispatch (CLI403 is not retried). No new run
