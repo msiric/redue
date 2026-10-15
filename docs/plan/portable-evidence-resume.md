@@ -21,9 +21,13 @@ The fixed controller at `1b7b73d` has independent DIR297 source/mock acceptance,
 but remains unexecuted. DIR299 accepts the bounded parent design with one narrow
 pre-Node correction: reject the optional profiling selector keys by presence.
 Existing fixture-build subprocesses already receive only their owned TMPDIR;
-no OAuth inheritance into those compiler calls was found. DIR300 owns the fixed
-parent/entry implementation in an isolated task branch. Review and actual
-profile/account/security prerequisites remain mandatory before any native launch.
+no OAuth inheritance into those compiler calls was found. DIR300 is frozen at
+`8deaaf6` for independent DIR304 review. Its source/mock checks pass, but review
+identified a native-parent cancellation gap: default SIGTERM can bypass owned
+Node-group cleanup; SIGINT can escape without structured results. That unexecuted
+candidate is not integrated or invoked. Native-only repair and fresh review are
+required; no whole-native detached-tree guarantee is inferred. Actual profile,
+account and security prerequisites remain mandatory before any native launch.
 All origin, sealing and reusable-evidence authority remains withheld.
 
 The owner-dispatched [public-header run38794832477](https://github.com/msiric/redue/actions/runs/38794832477)
@@ -33,9 +37,12 @@ match, but runner image and compiler/linker identities differ. Local SDK27 guard
 remain inapplicable; three observed header pins differ and the receiver compiler
 exceeds the local size guard. This is not a matched-profile or native PASS.
 
-DIR302 is preparing the fixed observation of seven additional header rows already
-required by the existing guards, with endpoint-specific tool identities and no
-profile admission from logs. No new VM, compiler invocation, credential or model
+DIR303 accepts exact `7902f68`, integrated at `a0d2d36`: fixed observation of
+eight additional header rows already required by the existing guards (nineteen
+headers total, including stdio.h). The earlier eighteen-row recommendation omitted
+that existing guard and was corrected before CI. Root173 source/mock controls
+PASS, TAP SHA256 `831e4a71251a5bd44ead203b0850faae460f2200aa9bafdaeff253bc3857d63d`.
+Endpoint-specific tool classification still grants no profile admission from logs. No new VM, compiler invocation, credential or model
 is involved. Public records13,189B SHA256
 `1cfd23705be35670f896a5e8958e450589cafb3d47b8920cb3e202a4fec9bd4d`.
 The existing CLI403 is not retried. Copilot included Actions capacity remains a
