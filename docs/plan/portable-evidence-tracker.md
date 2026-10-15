@@ -6,36 +6,36 @@ recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gat
 
 ## Current checkpoint — structured exec result accepted; descriptor metadata remains UNKNOWN
 
-Latest actual preparation remains UNKNOWN, now with validated phase evidence.
-Progress repair `8ecf264` is independently DIR227 accepted, integrated at `c1ef3f7`;
-root790 source/mock controls PASS/1 explicit harmless-child SKIP/0 FAIL,
-1,331.826ms, TAP SHA256
-`d1e8cf6d05ac129f5e91a063cf07a49d6b56bb8eee18a6850e35c96e6c4e9c88`.
-The separate one-child stalled-writer HARNESS passes in1,511.452ms, retaining its
-BEGIN before owned cleanup. It is not native enforcement. HARNESS TAP SHA256
-`492e87091d5b77ab4b79ad927b2b304514560755ff3e7e82c56c19e08cc998d2`.
+Latest trusted local preparation remains UNKNOWN at a now identified guard:
+`FINAL_ORIGINAL_CURRENT` inside `enclosureSource`. At integration `d685db1`,
+six actual Clang builds completed with exit0; no new enclosure build, compiled
+helper, TypeScript check, native agent, model or receipt ran. Child elapsed
+28,908.553ms, parent29,113.834ms. This was not a body timeout. The original
+currentness guard remains authoritative; DIR236 is diagnosing its refusal.
+Private report SHA256
+`3a77d879fca762dd65fcff6dbedd83c92545fee61ce819125a43b4770e2af8a0` is preserved.
 
-Actual third trusted local preparation completed six Clang builds with exit0,
-then refused at `enclosureSource`: child29,440.000ms, parent29,631.021ms,
-32 valid progress frames and a consistent FINAL. This was NOT BODY_DEADLINE.
-Paired builds cost7,262.648ms; old launcher build8,613.425ms. These are phase
-observations, not proof that hashing caused the cost. No new enclosure files,
-TypeScript check, helper execution, native agent, model or receipt was produced.
-Normal child exit74/reap and later group absence were observed; the earlier
-cleanup signal returned PERMISSION_ERROR/EPERM. The result remains UNKNOWN.
-Public Darwin source offers a compatible zombie-group explanation, not proof
-of the actual cause or absence of policy denial. No broader permission is sought.
-Report19,884B SHA256
-`dfce5f0a0da373fdbe7fe4f04e51f2d4a2857df9c8233ab54b891fe8c442aab3` is preserved.
+DIR230/233/234's reviewed preparation lifecycle repair is integrated. Exact owned
+kernel NOTE_EXIT was observed before reaping; the pre-reap group probe returned
+EPERM, which was retained rather than called signal success. No destructive
+cleanup signal was attempted; actual child exit74/reap and post-reap ESRCH were
+observed. This establishes preparation lifecycle closure, not native enforcement.
+All earlier UNKNOWNs and their cleanup classifications remain unchanged.
 
-DIR229 found no current template/function-pin or path mismatch that explains
-this factory refusal; lost private state cannot be reconstructed from files.
-DIR231/232 reviews fixed static factory-stage diagnostics. DIR230 separately
-repairs normal-exit closure using exact owned nonreaping NOTE_EXIT, strict FINAL,
-known returned process facts and mandatory post-reap group absence. EPERM never
-means signal success; original deadlines and no post-reap destructive signal
-remain. Source and harmless lifecycle review precede another actual attempt.
-All earlier UNKNOWNs remain intact; no unchanged retry or timeout increase.
+Root shared controls:808 PASS/2 explicit actual-child SKIP/0 FAIL across12 files,
+1,327.076ms; TAP SHA256
+`bf032900b95900e1fb6e4cab1b6b987bcab294e1b17f0f13f8073ae063916853`.
+The two opt-in harmless process harnesses then both passed once: stalled child
+1,507.819ms and normal exit30.218ms. They establish only owned lifecycle harness
+behavior, with zero compiler/native/model executions. HARNESS TAP SHA256
+`7b054fd0f03a2da25cdce57f6718ab526f6f41d392493430fcb97c539759ec67`.
+The possible mocked watcher finding was withdrawn after call-path inspection:
+no unrelated kernel watcher was established. Explicit stubs now protect test purity.
+
+Static source refusal stages preserve guard order and original outputs (DIR232).
+The final bridge reports fixed labels only, without inner error text or secrets.
+DIR237 independently reviews actual lifecycle/result scope. No owner action is
+needed for this diagnosis, and no native retry or timeout increase is queued.
 
 Reviewed endpoint interface `4d7a5ce` is integrated at `6f3ea09` (DIR221).
 Disabled command composition `f282dc2` is integrated at `ee2e055` (DIR224), with
