@@ -4,6 +4,48 @@ Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revisio
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
 
+
+## Current checkpoint — build-only preparation complete; native acceptance pending
+
+At `79697aa6e9456bd0595ce64945ec264f0f6cd5b4`, the eighth trusted local
+preparation returned **BUILT_NOT_EXECUTED**. All eight actual C builds exited0;
+all19 preparation phases completed, with38 ordered progress frames and final
+pre-native endpoint validation. Inner preparation32,486.897ms; parent collection
+32,680.167ms. The latter excludes later persistence/final-emission time and is
+not a whole-workflow performance measurement. No helper, TypeScript check,
+native agent, model or receipt executed; sealing/reuse authority remains false.
+
+The private24,443-byte report SHA256 is
+`ff626f80e66192feb142a9b138c8f1694a242ca620b2efc0b9a6207017b291a7`.
+Kernel exit, child exit0/reap and post-reap group absence were observed; pre-reap
+EPERM remains recorded, with no destructive cleanup signal attempted. The saved
+snapshot explicitly cannot establish final persistence/completion; the coordinator
+separately observed outer exit0 and its final printed completion. DIR273 accepts
+only this build-preparation scope. Original private capabilities expired with
+that process: its report and retained files cannot authorize a later native run.
+
+DIR270 accepted the corrected latched parent clock and fixed build-only profile
+`fixed-enclosure-preparation-local-sdk27@2` (60s body, at most5s cleanup,65s total).
+The SDK27 builder's30s limit and native/checker/model limits are unchanged. Root
+source/mock controls:1,244 PASS/2 actual-child SKIP/0 FAIL; two separate harmless
+lifecycle harnesses PASS. This budget correction is not a product speedup.
+The earlier `e6a20eab` clock counterexample and all seven UNKNOWN attempts remain
+historical evidence below; the defective revision was not run as an actual attempt.
+
+The native trace parser's DIR271 review found validated FAIL could be lost after
+END refusal or actor-reap timeout. The frozen repair `dcd493c` is under independent
+DIR276 review; it is not yet integrated. DIR275/277 are reviewing a same-process
+preparation context, without report adoption or native launch authority.
+
+The reviewed public-header workflow `3f07b38`, pinned runtime `3edffa5`, still
+awaits the one requested owner UI dispatch (CLI403 is not retried). No new run
+appeared at the latest read. Its result will be public SDK observations only;
+actual hosted profile compatibility and native enforcement remain unproved.
+G1–G4 are incomplete; alpha.11 remains unpublished. Copilot included Actions
+capacity remains a separate pending fact; no repeated account request is needed.
+
+## Historical checkpoints — retained without retrospective relabeling
+
 ## Current checkpoint — structured exec result accepted; descriptor metadata remains UNKNOWN
 
 Latest trusted preparation at `3888e9d` completed `enclosureSource` under the
