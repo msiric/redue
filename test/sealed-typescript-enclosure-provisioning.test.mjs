@@ -535,3 +535,38 @@ print(json.dumps({'scope':'STATIC_REFUSAL_BRIDGE_SOURCE_MOCKS_ONLY','passed':che
 `;
  const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify(results),encoding:'utf8',timeout:5000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.passed,20);assert.equal(result.actualPopen,0);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);
 });
+
+test('original-current substage bridge is final-only static own data confined to the two enclosing currentness refusals',async()=>{
+ const stages=['DERIVATION','PROJECTION_CURRENT','PREPARED_NULL_CURRENT','PROJECTION_RESULT','PREPARED_NULL_RESULT','C_SOURCE_READ','C_SOURCE_IDENTITY','COLLECTOR_SOURCE_READ','COLLECTOR_SOURCE_IDENTITY','C_SOURCE_NAMED','COLLECTOR_SOURCE_NAMED'];
+ const owned=(top,inner)=>{const error=new Error('PRIVATE');Object.defineProperty(error,'refusalStage',{value:top,enumerable:true,writable:false,configurable:false});if(inner!==undefined)Object.defineProperty(error,'originalCurrentRefusal',{value:inner,enumerable:true,writable:false,configurable:false});Object.defineProperty(error,'message',{get(){throw Error('MESSAGE_MUST_NOT_RUN');}});return error;};
+ const results=[];
+ for(const top of ['INITIAL_ORIGINAL_CURRENT','FINAL_ORIGINAL_CURRENT'])for(const stage of stages){const m=mock(),frames=[];m.op.prepareEnclosure=()=>{throw owned(top,stage);};const report=await observe({...m.options,observeProgress:frame=>frames.push(frame)});assert.equal(report.outcome,'UNKNOWN');assert.equal(report.enclosureSourceRefusal,top);assert.equal(report.originalCurrentRefusal,stage);assert(!JSON.stringify(report).includes('PRIVATE'));assert(frames.every(frame=>!Object.hasOwn(frame,'originalCurrentRefusal')));results.push({report,frames});}
+ for(const make of [()=>owned('FINAL_ORIGINAL_CURRENT','PRIVATE'),()=>owned('OPTIONS','DERIVATION'),()=>{const error=owned('FINAL_ORIGINAL_CURRENT');Object.defineProperty(error,'originalCurrentRefusal',{get(){throw Error('GETTER_MUST_NOT_RUN');}});return error;},()=>{const error=owned('FINAL_ORIGINAL_CURRENT');error.originalCurrentRefusal='DERIVATION';return error;},()=>new Proxy(owned('FINAL_ORIGINAL_CURRENT','DERIVATION'),{getOwnPropertyDescriptor(){throw Error('PROXY_TRAP_MUST_NOT_RUN');}})]){const m=mock();m.op.prepareEnclosure=()=>{throw make();};const report=await observe(m.options);assert.equal(report.originalCurrentRefusal,null);assert.equal(report.outcome,'UNKNOWN');assert(!JSON.stringify(report).includes('PRIVATE'));}
+ const other=mock();other.op.prepareProjection=()=>{throw owned('FINAL_ORIGINAL_CURRENT','DERIVATION');};assert.equal((await observe(other.options)).originalCurrentRefusal,null);assert.equal((await observe(mock().options)).originalCurrentRefusal,null);
+ const python=String.raw`
+import copy,importlib.util,json,sys
+sys.dont_write_bytecode=True
+spec=importlib.util.spec_from_file_location('original_current_bridge_mock',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+rows=json.loads(sys.stdin.read());assert tuple(row['report']['originalCurrentRefusal'] for row in rows[:11])==m.ORIGINAL_CURRENT_REFUSAL_STAGES;checks=0
+for row in rows:
+ final={'schema':1,'protocol':'fixed-enclosure-progress@1','kind':'FINAL','report':row['report']}
+ # New fields are inside the existing final-frame budget, not added outside
+ # it: progress41,344 + summary5,888 + FINAL16,384 + wrapper1,536 =65,152.
+ assert len((json.dumps(final,separators=(',',':'))+'\n').encode())<=16384
+ p=m.ProgressProtocol();p.feed(b''.join((json.dumps(frame,separators=(',',':'))+'\n').encode() for frame in row['frames']+[final]));assert p.finish()['originalCurrentRefusal']==row['report']['originalCurrentRefusal'];checks+=1
+for edit in (lambda value:value.update(originalCurrentRefusal='PRIVATE'),lambda value:value.update(originalCurrentRefusal={}),lambda value:value.pop('originalCurrentRefusal'),lambda value:value.update(enclosureSourceRefusal=None),lambda value:value.update(enclosureSourceRefusal='OPTIONS'),lambda value:value.update(failedPhase='preparedNull'),lambda value:value.update(outcome='BUILT_NOT_EXECUTED')):
+ value=copy.deepcopy(rows[0]['report']);edit(value)
+ try:m.parse_inner((json.dumps(value)+'\n').encode());raise AssertionError('INCONSISTENT_ORIGINAL_CURRENT_REFUSAL_ACCEPTED')
+ except (ValueError,TypeError,KeyError):pass
+ checks+=1
+# Missing substage is honest null, never a guessed cause. Older reports lacking
+# the new required field are refused; immutable saved history is not rewritten.
+value=copy.deepcopy(rows[0]['report']);value['originalCurrentRefusal']=None;assert m.parse_inner((json.dumps(value)+'\n').encode())['originalCurrentRefusal'] is None;checks+=1
+retained=m.unknown_with_observations({'innerReport':rows[0]['report'],'progressFrames':rows[0]['frames']},'PERSISTENCE_UNAVAILABLE')
+assert retained['outcome']=='UNKNOWN' and retained['observed']['innerReport']['originalCurrentRefusal']=='DERIVATION'
+assert len(json.dumps(retained,separators=(',',':')).encode())<=65536
+assert 41344+5888+16384+1536==65152<65536;checks+=1
+print(json.dumps({'scope':'ORIGINAL_CURRENT_BRIDGE_SOURCE_MOCKS_ONLY','passed':checks,'actualPopen':0,'actualKernelMonitors':0,'compilerBuilds':0,'nativeExecutions':0}))
+`;
+ const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify(results),encoding:'utf8',timeout:5000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.passed,31);assert.equal(result.actualPopen,0);assert.equal(result.actualKernelMonitors,0);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);
+});
