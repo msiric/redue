@@ -6,6 +6,24 @@ recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gat
 
 ## Current checkpoint — structured exec result accepted; descriptor metadata remains UNKNOWN
 
+Latest local preparation: DIR205/210's fixed build-only observer is integrated at
+`4f7cc53`, independently accepted by DIR211 after DIR209's two observation-loss
+findings were repaired. Root608 source/mock tests PASS,0fail/skip,1,167.622ms;
+TAP SHA256 `ca9df364dd5e361a87a0d7998be05b805f46f8cbbed1ee07366422fca56bf290`.
+The first actual trusted local preparation returned UNKNOWN before any C build:
+`freshPair` failed; child exit74/reap and later group absence were observed, but
+cleanup's earlier exception was not classified. No native/model/checker ran.
+Private report2015B SHA256
+`304175f9d6aa8e04a7aac9f66b32a2591f48c38141093763c3c5be0e875040b5` is preserved.
+DIR212 identifies a concrete current fixture mismatch: Node22.13's JavaScript
+realpath preserves uppercase alias spelling while native realpath resolves the
+exact original lowercase target; all three original inode/metadata comparisons
+match. This does not prove the historical first throw. DIR213 finds no static
+PID/signal conversion defect; the discarded cleanup error leaves cause UNKNOWN.
+DIR214 owns only a narrowly reviewed case-alias repair and bounded cleanup error
+classification, not relaxed assertions, new permissions or an unchanged retry.
+No new native attempt or owner action is pending.
+
 Current source conclusion: the disabled fixed-canary original-input projection
 is independently reviewed at author `861204b` and integrated at `f4af809`.
 DIR193 accepts this limited leaf, not native execution or sealing:187 supplied
@@ -30,9 +48,10 @@ DIR200/204's original generated-file builder is integrated at `8ca19fc`, accepte
 for trusted PRE_NATIVE endpoint data only. Its verifier is unsuitable after
 intentional actor mutations because original whole-pair guards remain strict.
 DIR201/203 reuses original compiler/linker/tool guards without a caller-selected
-tool profile. No actual enclosure build has run. DIR205 prepares the single
-bounded, no-native preparation observation; private capabilities cannot survive
-that process or be adopted from its saved report.
+tool profile. No actual enclosure C build has run. DIR205/210 source is reviewed and the first
+real preparation stopped at freshPair, before Clang. DIR214 repairs only the
+observed alias check and cleanup classification; private capabilities cannot
+survive the process or be adopted from its saved report.
 
 DIR206 found a source-level transport incompatibility before native admission:
 normal outer exit74 enters pinned Claude's error-string path, which strict result

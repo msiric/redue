@@ -1,5 +1,14 @@
 # Sealed-input TypeScript: current implementation boundary
 
+Current local preparation observation: integrated `4f7cc53` passed608 source/mock
+controls and DIR211 independent review. One trusted build-only attempt returned
+UNKNOWN at freshPair before Clang; no built code, native agent or model executed.
+Its2015B private report SHA256 is
+`304175f9d6aa8e04a7aac9f66b32a2591f48c38141093763c3c5be0e875040b5`.
+Case-alias canonicalization has a concrete current mismatch; cleanup's discarded
+exception remains unclassified. DIR214 repairs those observations before any
+changed attempt. No enforcement, seal, origin or reuse authority follows.
+
 Current conclusion: **preparation mechanics implemented; sealing and portable
 authority NOT established**. Owner decisionD12 authorizes this opt-in direction,
 not publication, expanded trust or a rewritten old receipt. The existing origin

@@ -9,6 +9,24 @@ verify HEAD/status first. The planning baseline is history, never a rollback tar
 
 ## Current checkpoint — exec result collected; descriptor metadata UNKNOWN
 
+Latest local preparation: DIR205/210's fixed build-only observer is integrated at
+`4f7cc53`, independently accepted by DIR211 after DIR209's two observation-loss
+findings were repaired. Root608 source/mock tests PASS,0fail/skip,1,167.622ms;
+TAP SHA256 `ca9df364dd5e361a87a0d7998be05b805f46f8cbbed1ee07366422fca56bf290`.
+The first actual trusted local preparation returned UNKNOWN before any C build:
+`freshPair` failed; child exit74/reap and later group absence were observed, but
+cleanup's earlier exception was not classified. No native/model/checker ran.
+Private report2015B SHA256
+`304175f9d6aa8e04a7aac9f66b32a2591f48c38141093763c3c5be0e875040b5` is preserved.
+DIR212 identifies a concrete current fixture mismatch: Node22.13's JavaScript
+realpath preserves uppercase alias spelling while native realpath resolves the
+exact original lowercase target; all three original inode/metadata comparisons
+match. This does not prove the historical first throw. DIR213 finds no static
+PID/signal conversion defect; the discarded cleanup error leaves cause UNKNOWN.
+DIR214 owns only a narrowly reviewed case-alias repair and bounded cleanup error
+classification, not relaxed assertions, new permissions or an unchanged retry.
+No new native attempt or owner action is pending.
+
 Disabled original-input projection author `861204b` is integrated at `f4af809`;
 fresh DIR193 accepts its exact source-only scope. Root454 PASS/1 gated SKIP and
 reviewer187 supplied+29 independent pure assertions pass. Full original root
@@ -35,9 +53,9 @@ results. Reviewed DIR207/208 repair `6fcb3d4`, integration `84b80aa`, is source@
 RDE2: collection transport0 never means assertion PASS; incomplete74 stays refused.
 Existing body/actor outcomes and strict error-string refusal remain. Root587
 source/mock controls and local SDK27 C syntax-only pass; no native/model ran.
-DIR205 is the sole active source writer for the three fixed preparation-observation
-files. Inspect/fresh-review its exact deadline/collection implementation before
-one actual trusted local build; never adopt private authority from saved JSON.
+DIR205/210 preparation collection is independently reviewed; the actual partial
+UNKNOWN and next bounded repair are recorded above. Never adopt private authority
+from saved JSON.
 
 Actual run38748867165 completed on exact reviewed workflow `abdb206` / runtime
 `c9110d8`; owner normal environment UI review was required and performed. Actual
