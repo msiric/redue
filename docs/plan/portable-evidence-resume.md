@@ -14,11 +14,17 @@ fresh DIR193 accepts its exact source-only scope. Root454 PASS/1 gated SKIP and
 reviewer187 supplied+29 independent pure assertions pass. Full original root
 metadata does not certify inventory continuity: A/Checkout/B inventory remains
 TRUSTED_PRE_NATIVE_ONLY; protected stage membership/bytes remain explicit.
-No permissions, production runtime or evidence authority changed. DIR194 owns the
-new finite enclosure source in its isolated worktree. DIR195's private derivation
+No permissions, production runtime or evidence authority changed. DIR194/199's
+finite enclosure is DIR198 accepted as disabled source at author `985258b`,
+integrated `88ac737`; root/reviewer507 source/mock tests pass. Local SDK27 C
+syntax-only passes, not native execution. Corrected labels keep normal END and
+known FAIL-after-cleanup distinct. DIR200 owns only the new fixed post-build
+identity/currentness builder and its test in the enclosure worktree. Review that
+candidate before real builds; actual native barrier/SDK/loader gates remain.
+DIR195's private derivation
 predicate is separately DIR196 accepted and integrated at `aaac7ce`, with root and
 reviewer93 focused tests passing; it grants no currency. Inspect/review the exact
-enclosure revision before integration. No new native attempt is queued and no owner action
+remaining revision before integration. No new native attempt is queued and no owner action
 is needed for this source work. Exact private task paths are in the local resume.
 
 Actual run38748867165 completed on exact reviewed workflow `abdb206` / runtime

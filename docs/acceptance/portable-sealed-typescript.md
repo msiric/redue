@@ -21,8 +21,11 @@ pass/1 gated real-build skip; reviewer187 supplied+29 independent pure assertion
 pass. Generated BEGIN/END retains the same original protected stage and code facts;
 full A/Checkout/B metadata is not root membership continuity, and those inventories
 remain TRUSTED_PRE_NATIVE_ONLY. Existing full verifiers remain strict. No broader
-root read permission was added. The finite parent/collector enclosure is under
-implementation; actual H read admission, actor/session closure, native enforcement,
+root read permission was added. The finite parent/collector enclosure is reviewed
+disabled source at author `985258b` / integration `88ac737`; root/reviewer507
+source/mock controls pass. Normal END and known FAIL-after-cleanup publication
+remain distinct; no actual C/checker/native executes. Original new-code build
+bindings are the next source task. Actual H read admission, actor/session closure, native enforcement,
 compiler sealing and portable reuse remain unestablished. No new attempt is queued.
 
 Actual exec-witness run38748867165 at runtime `c9110d8` returned accepted structured

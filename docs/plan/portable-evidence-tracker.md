@@ -16,9 +16,18 @@ Original protected stage membership/bytes and fixed H code remain checked.
 A/Checkout/B use full original metadata; their inventory is explicitly
 TRUSTED_PRE_NATIVE_ONLY, not membership continuity or compiler applicability.
 DIR191 rejects broader root body-read grants; current settings remain unchanged.
-DIR194 now implements the finite enclosing parent/collector, with all-actor
-completion before matching END and deferred capture publication. No new native
-attempt, producer authority, seal, reusable evidence or owner action is implied.
+DIR194/199's finite enclosing parent/collector is independently DIR198 accepted
+at author `985258b`, integrated at `88ac737`. Root and reviewer507 source/mock tests
+pass; root TAP SHA256
+`bbe5972c94a5e1f19b352ed3d7bb876cd2ab6735dbb6cfe5f9fe7f29514ddb40`.
+Private ACK/GO ordering, watchdog/PID lifetime and all-actor close before normal
+END are explicit. A known assertion FAIL has a separate post-cleanup path that
+does not invent END. Review's misleading publication label was corrected;
+initial test failures remain preserved. Source remains disabled, without native
+execution authority. Local SDK27 C syntax-only passes on the original template;
+final C noncomment bytes are identical. No C object/checker/native/model ran.
+DIR200 now binds original generated-file/build identities before any native use.
+No new attempt, producer authority, seal, reusable evidence or owner action is implied.
 DIR195/196 separately reviews the private five-argument derivation predicate:
 author `9a73811`, integration `aaac7ce`, root/reviewer93 focused source/mock tests
 pass. Identity linkage performs no I/O and is deliberately not currentness;
