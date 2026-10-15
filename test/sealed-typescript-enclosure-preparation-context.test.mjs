@@ -30,16 +30,18 @@ test('identity predicate rejects copied, serialized, accessor and foreign object
 test('a distinct module instance has no adoption or cross-module getter interface',async()=>{
  const other=await import(new URL('./acceptance/sealed-typescript-enclosure-provisioning.mjs?dir278-independent-instance',import.meta.url));
  const empty=Object.freeze(Object.create(null));assert.equal(other.isFixedEnclosurePreparationContext(empty),false);assert.equal(isContext(empty),false);
- assert.deepEqual(Object.keys(other).sort(),['isFixedEnclosurePreparationContext','observeFixedEnclosurePreparation','prepareFixedEnclosureContext','runFixedNativeEnclosureDiagnostic']);
+ assert.deepEqual(Object.keys(other).sort(),['isFixedEnclosurePreparationContext','observeFixedCIEnclosurePreparation','observeFixedEnclosurePreparation','prepareFixedCIEnclosureContext','prepareFixedCIEnclosurePreparation','prepareFixedEnclosureContext','runFixedNativeEnclosureDiagnostic']);
 });
 
 test('one private sequence retains ten originals only after successful report serialization and final budget',()=>{
  assert.match(source,/const preparedContexts=new WeakMap\(\)/);
  assert.match(source,/observeFixedEnclosurePreparation\(options\)\{return prepareFixedSequence\(options,null\);\}/);
  assert.equal((source.match(/async function prepareFixedSequence\(/g)||[]).length,1);
- const context=source.slice(source.indexOf('export async function prepareFixedEnclosureContext()'),source.indexOf('// Identity only:'));
- assert.match(context,/guard\(arguments\.length===0\);let captured=null;/);
- assert.match(context,/prepareFixedSequence\(\{ready:fixedReady,load:fixedOperations,now:\(\)=>performance\.now\(\)\}/);
+ const context=source.slice(source.indexOf('async function prepareFixedContext(ci)'),source.indexOf('// Identity only:'));
+ assert.match(context,/let captured=null;/);
+ assert.match(source,/prepareFixedEnclosureContext\(\)\{\s*guard\(arguments\.length===0\);return prepareFixedContext\(false\);/);
+ assert.match(source,/prepareFixedCIEnclosureContext\(\)\{\s*guard\(arguments\.length===0\);return prepareFixedContext\(true\);/);
+ assert.match(context,/prepareFixedSequence\(\{ready:ci\?fixedCIReady:fixedReady,load:ci\?fixedCIOperations:fixedOperations,now:\(\)=>performance\.now\(\)\}/);
  assert.match(context,/captured\.preparedReport===report/);
  const finalGuard=source.indexOf('guard(Buffer.byteLength(JSON.stringify(result))<=65536);tick();');
  const capture=source.indexOf('captureOriginals(originals,report,tick)');
