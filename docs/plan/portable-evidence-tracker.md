@@ -4,7 +4,35 @@ Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revisio
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
 
-## Current checkpoint — exact request accepted; foreground completion remains unknown
+## Current checkpoint — raw shape refused; consolidated diagnosis under review
+
+2026-10-15: [run38663417895](https://github.com/msiric/redue/actions/runs/38663417895)
+used reviewed workflowde38/runtime8f316, attempt1. The normal environment approval
+and331 source/mock tests passed. Independent DIR144 ACCEPT_SCOPE retains UNKNOWN:
+FOREGROUND_RAW_OR_RENDERED_RESULT_UNAVAILABLE / RAW_SHAPE_INVALID. The exact
+five-field object-shape check failed; subsequent value/renderer/parser checks were
+not reached for that refusal. Missing, primitive/error-shaped, missing-field and
+extra-field results remain distinguishable possibilities, not observed causes.
+Native exit0/reap7.777s, controller15.749s, successful pre/post guards, one build and
+owned cleanup do not establish helper completion, enforcement, sealing or reuse.
+
+Report4,283 bytes SHA256
+`0249097d32a51e43eb2e4e70fd80ebb2ce6c091fe313a1ee663fc9b97e8c81ec`;
+redacted log324,102 bytes SHA256
+`e41deb1e0da19b231aea4821faf7a00a0a9adbf441b516fa1f66954e96d194c0`.
+Ten independent pure controls confirm the reason's limits. Earlier UNKNOWN attempts
+and discarded-frame limitations remain unchanged.
+
+DIR145 public pinned-source review confirms that native permission_denials records
+non-allow history, not necessarily final denial or absence of execution. No unique
+error-body parser is justified. DIR146 now prepares one bounded structural summary
+and optional matching non-allow-history diagnostic, with no contents, primitive
+values, dynamic keys or commands retained and no accepted shape relaxed. Fresh
+independent review is required before any further operation. No run is queued and
+no owner action is requested during this repair. G0partial/G1–G4 incomplete;
+Copilot included Actions capacity separately pending; alpha.11 remains unpublished.
+
+## Historical checkpoint — exact request accepted; foreground completion remains unknown
 
 2026-10-15: [run38661085164](https://github.com/msiric/redue/actions/runs/38661085164)
 used reviewed workflow3eb677a/runtimebc50a9f, attempt1. Owner prerequisites and331
