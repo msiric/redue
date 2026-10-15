@@ -1,10 +1,13 @@
 # Sealed-input TypeScript: current implementation boundary
 
-## Current checkpoint — reviewed CI build-only attempt ready; native boundary unproved
+## Current checkpoint — actual CI preparation UNKNOWN; bounded diagnosis active
 
-Next observable outcome: actual eight-build preparation on both approved hosted
-VMs, followed by native-boundary acceptance. The frozen source/workflow is pushed;
-owner UI dispatch is pending. Scope stays frozen around that path. Resume using
+Latest actual run38807523991 returned UNKNOWN on both VMs: the producer stopped
+at prerequisite builds with zero build observations; the receiver returned eight
+build-process observations but reached its60s deadline at final enclosure currency.
+The two runner images differ. No model or reusable evidence was authorized. Next:
+review the captured failure/cost path, then correct the concrete prerequisite before
+another bounded attempt. Scope stays frozen around that path. Resume using
 [the standing delivery loop](../plan/director-role.md#acceptance-driven-delivery-loop).
 
 Owner approval for [run38748867165](https://github.com/msiric/redue/actions/runs/38748867165)
@@ -75,14 +78,23 @@ source/mock acceptance562 PASS/4 explicit SKIP/0 FAIL; TAP SHA256
 Independent DIR330 accepts exact author`bbeabab` in an isolated checkout; DIR331
 accepts runtime`2663eae` and workflow`c0a46e1` (SHA256
 `392ebbed3869e11a4cc2a2bcc068ff905ffab17841ca65da6e4f353e6a9ef568`).
-The reviewed two-VM build-only attempt keeps original65s parent/2min job limits,
-no credentials/models/uploads and no helper execution. It is pending the owner's
-GitHub UI dispatch because the existing CLI403 remains respected; do not request
-it again while the recorded action is pending. No actual CI build result yet.
+The owner-dispatched [build-only run38807523991](https://github.com/msiric/redue/actions/runs/38807523991)
+used those exact bytes. Producer image20260907.0351.1 stopped at prerequisiteBuilds
+with zero attempts and child74; its precise guard failure is not in the summary.
+Receiver image20261013.0424.1 completed17 phases and returned eight build-process
+observations, then reached BODY_DEADLINE during enclosureCurrent: parent60,013.225ms,
+child SIGKILL/reaped/group absent. Counts are lower bounds, compiler outcome UNKNOWN;
+no final validation or successful preparation is claimed. Its oldLauncherBuild phase
+cost18,422.734ms and enclosureBuilds14,660.036ms; nested causes are not yet measured.
+Both results are retained, not retried. Public records9,847B SHA256
+`e284ef28d7432e84f3f4fe05b3f7bc273512903128a5c0cd3e89af2fb6d1c5c2`.
+DIR337 independently diagnoses the existing call path before correction or a budget
+request; no timeout increase, profile relaxation or new model follows.
 
 DIR333 accepts frozen CI command/startup adapters`ced92b6` (not yet integrated).
-DIR334 owns the next fixed CI native controller/parent/child route in its isolated
-worktree. The producer, signing and trust scope remains unchanged. Actual SDK/
+DIR334 froze the next fixed CI native route at`4664ba4`; DIR338 reviews it in an
+isolated exact checkout. It remains unexecuted regardless of source/mock success.
+The producer, signing and trust scope remains unchanged. Actual SDK/
 native enforcement, sealed origin and final cross-agent/two-machine reuse are
 not established by these source/mock tests. All model preconditions remain gated.
 
