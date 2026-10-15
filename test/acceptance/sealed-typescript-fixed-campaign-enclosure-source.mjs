@@ -3,7 +3,7 @@
 import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';import {createHash} from 'node:crypto';
 import {collectFixedEnclosedCampaign} from './sealed-typescript-fixed-campaign-enclosed-collector.mjs';
 import {prepareSealedTypeScriptFixedCampaignSource} from './sealed-typescript-fixed-campaign.mjs';
-import {verifySealedTypeScriptFixedCanaryProtectedInputProjection,sealedTypeScriptFixedCanaryProtectedInputProjectionMatchesDerivation} from './sealed-typescript-base-exchange-assets.mjs';
+import {prepareSealedTypeScriptBaseExchangeBuildToolchain,verifySealedTypeScriptFixedCanaryProtectedInputProjection,sealedTypeScriptFixedCanaryProtectedInputProjectionMatchesDerivation} from './sealed-typescript-base-exchange-assets.mjs';
 import {verifySealedTypeScriptFixedCampaignPreparedNullSource} from './sealed-typescript-fixed-campaign-prepared-null-source.mjs';
 const version='fixed-canary-finite-enclosure-source@1',projectionVersion='fixed-canary-original-input-projection@2';
 const cPin='f9e48699c11da4e1a1baa618db35815cb23055a4b0e9b6d566354613d9809a6f',collectorPin='a15fee9374767e14483575264bcfa85732d90eab503c8a1f2b770c5156395878';
@@ -46,3 +46,16 @@ export function prepareSealedTypeScriptFixedCampaignEnclosureSource(options){
  const result=authority({outcome:'FIXED_CANARY_ENCLOSURE_SOURCES_PREPARED_NOT_PROVISIONED',bindings:{baseA:campaign.baseA,baseB:campaign.baseB,hostBase:h,node,entry,projectionEntry,launcher,self,cwd:campaign.cwd},projectionSha256:inputs.projection.projectionSha256,files,actors:campaign.actors,budgetsMs:{actor:11000,actorClose:11500,worker:13750,parentReceive:14000,parentReap:14750,parentAbsolute:14900,external:15000},capturePublication:{E:'ORIGINAL_END_THEN_COLLECTOR_REAP_WORKER_REAP_AND_GROUP_ABSENCE',F:'KNOWN_ASSERTION_FAIL_THEN_CONTROLLED_GROUP_CLEANUP_WORKER_REAP_AND_GROUP_ABSENCE_END_NOT_REQUIRED'},actualExecution:'NOT_RUN',newCodeFileCurrentness:'NOT_ESTABLISHED',fullSdkClosure:'NOT_ESTABLISHED',preMainLoader:'NOT_ESTABLISHED'});minted.set(result,record);return result;
 }
 export function verifySealedTypeScriptFixedCampaignEnclosureSource(proposal){const record=minted.get(proposal);if(arguments.length!==1||!record||record.invalid)return authority({outcome:'UNKNOWN'});try{current(record);return authority({outcome:'FIXED_CANARY_ENCLOSURE_SOURCE_INPUTS_CURRENTLY_OBSERVED_NOT_PROVISIONED',projectionSha256:proposal.projectionSha256,files:proposal.files.map(({file,sourceSha256})=>({file,sourceSha256})),newCodeFileCurrentness:'NOT_ESTABLISHED'});}catch{record.invalid=true;return authority({outcome:'UNKNOWN'});}}
+
+// Read-only fixed tool data through the ORIGINAL enclosure/private asset owner.
+// No caller-selected compiler, fixture, callback, path or serialized adoption.
+export function prepareSealedTypeScriptFixedCampaignEnclosureBuildToolchain(proposal){
+ const record=minted.get(proposal);
+ if(arguments.length!==1||!record||record.invalid)return authority({outcome:'UNKNOWN'});
+ try{current(record);
+  const selected=prepareSealedTypeScriptBaseExchangeBuildToolchain(record.inputs.assetsBuild);
+  guard(selected.outcome==='BUILD_TOOLCHAIN_ORIGINAL_INPUTS_CURRENTLY_OBSERVED_DATA_ONLY'&&selected.base===proposal.bindings.hostBase);
+  current(record);
+  return authority({outcome:'BUILD_TOOLCHAIN_ORIGINAL_INPUTS_CURRENTLY_OBSERVED_DATA_ONLY',base:selected.base,proposedBuilds:selected.proposedBuilds,toolchain:selected.toolchain});
+ }catch{record.invalid=true;return authority({outcome:'UNKNOWN'});}
+}

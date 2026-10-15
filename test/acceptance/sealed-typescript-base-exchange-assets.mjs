@@ -97,6 +97,30 @@ export function observeSealedTypeScriptBaseExchangeAssets(build,inspect){
  }catch(error){operation.failed=true;record.invalid=true;throw error;}finally{active=false;operation.enabled=false;operation.nativeBarrier=null;activeBaseAssetsObservations.delete(build);}
 }
 
+
+// Fixed pre-build, read-only selection from the ORIGINAL live asset mint. This
+// exports data, not a tool-adoption capability or continuing build authority.
+// Full original native hashes precede the fixed proposal; named barriers close
+// that same synchronous observation. SDK currentness/closure labels stay honest.
+const buildToolchainData=fields=>freeze({schema:1,scope:'ORIGINAL_BASE_EXCHANGE_BUILD_TOOLCHAIN_DATA_ONLY',...fields,
+ commands:[],executionAuthority:'NONE',recordAdoptionAuthority:false,compilerCheckExecutions:0,helperExecutions:0,
+ nativeAgentLaunches:0,models:0,nativeEnforcement:'NOT_ESTABLISHED',sealed:false,reuseEligible:false});
+export function prepareSealedTypeScriptBaseExchangeBuildToolchain(assetsBuild){
+ const original=mintedAssets.get(assetsBuild);
+ if(arguments.length!==1||!original||original.invalid)return buildToolchainData({outcome:'UNKNOWN'});
+ try{let selected;
+  observeSealedTypeScriptNativeAssetsBuild(original.hostBuild,nativeBarrier=>{
+   baseAssetsBoundary(original);current(original.source);current(original.binary);nativeBarrier();baseAssetsNamedRows(original);
+   const proposal=prepareSealedTypeScriptNativeAssetsProposal({fixture:original.hostFixture});
+   guard(proposal.scope==='FIXED_SYNTHETIC_NATIVE_ASSETS_PROPOSAL_ONLY'&&proposal.base===original.roots[2][0]&&proposal.proposedBuilds.length===2);
+   selected={base:proposal.base,proposedBuilds:proposal.proposedBuilds,toolchain:proposal.toolchain};
+   baseAssetsBoundary(original);current(original.source);current(original.binary);nativeBarrier();baseAssetsNamedRows(original);
+  });
+  baseAssetsBoundary(original);baseAssetsNamedRows(original);
+  return buildToolchainData({outcome:'BUILD_TOOLCHAIN_ORIGINAL_INPUTS_CURRENTLY_OBSERVED_DATA_ONLY',...selected});
+ }catch{original.invalid=true;return buildToolchainData({outcome:'UNKNOWN'});}
+}
+
 // Fixed launcher-only engineering build. Source, four JS copies and original
 // assets must be the same live private derivation; labels cannot adopt them.
 // This never repeats the old three builds or executes the new launcher/Node.
