@@ -25,12 +25,34 @@ and discarded-frame limitations remain unchanged.
 
 DIR145 public pinned-source review confirms that native permission_denials records
 non-allow history, not necessarily final denial or absence of execution. No unique
-error-body parser is justified. DIR146 now prepares one bounded structural summary
-and optional matching non-allow-history diagnostic, with no contents, primitive
-values, dynamic keys or commands retained and no accepted shape relaxed. Fresh
-independent review is required before any further operation. No run is queued and
-no owner action is requested during this repair. G0partial/G1–G4 incomplete;
-Copilot included Actions capacity separately pending; alpha.11 remains unpublished.
+error-body parser is justified. DIR146/147 ACCEPT is integrated and pushed at
+runtime `910bc6a97f41ca047037c6565ad90fd7d098f6b7`. Only primary raw-shape refusal
+receives a fixed structural summary and bounded, independently framed non-allow
+history observation. No contents, primitive values, dynamic keys or commands are
+retained. No acceptance predicate, parser order, completion check or authority is
+changed. Missing/malformed/foreign/capped history stays explicitly unavailable;
+matching history establishes neither final denial nor execution.
+
+Reviewer256 supplied+44 independent source/pure groups pass; root256 focused and
+1137 shared PASS/1 optional actual C-build SKIP. Shared757.321ms, TAP SHA256
+`f176054e9e8a97b2941dd5df2ffa77a9f276ca8d9813fd9279d0c54249fcf981`.
+Three shared controls use owned temporary files; remaining executed controls are
+source/mocks, not native enforcement evidence. Prior discarded shape stays unknown.
+
+DIR148/149 workflow ACCEPT is pushed and remotely verified at
+`b836c0bc0ec2a6a1161d3c68ebd89f4e4b0bec5f`, SHA256
+`5bf0fbd06e5610381092633a1ed7d892be9f972fd098114e3327100cea11c232`.
+Only two source pins change. Root9 source/mock/syntax and reviewer8 source/pure-mock
+controls pass. Protected source alone is aligned, preserving owner review timestamp
+2026-10-14T19:26:03Z; provenance digest
+`fbf197b7a7975ad2b4d051238c67eb5d25fb8594cac5deb15fc9919530a358f1`.
+No secret value was accessed; four turns/two minutes/$0 and all controls remain.
+
+Next: one NEW normal owner Actions UI run on dev/portable-claude-diagnostic,
+not Re-run jobs; CLI dispatch403 remains unchanged and is not retried. Collect the
+consolidated missing observation and obtain fresh review before another approach,
+not retries until green. G0partial/G1–G4 incomplete; Copilot included Actions capacity
+separately pending; alpha.11 remains unpublished and historical evidence preserved.
 
 ## Historical checkpoint — exact request accepted; foreground completion remains unknown
 
