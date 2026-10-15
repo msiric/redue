@@ -78,15 +78,22 @@ try:
   except (ValueError,TypeError,KeyError):pass
   checks+=1
  # A genuinely failed prerequisite launches no Popen at all.
- old_pre=m.prerequisites;old_popen=m.subprocess.Popen;old_argv=sys.argv
- m.prerequisites=lambda:(_ for _ in ()).throw(ValueError('FAILED_PREREQUISITE'))
- popen_calls=[]
- def forbidden_popen(*a,**k):popen_calls.append(True);raise AssertionError('CHILD_MUST_NOT_LAUNCH')
- m.subprocess.Popen=forbidden_popen
- sys.argv=['fixed-parent','--run']
- with contextlib.redirect_stdout(io.StringIO()):assert m.main()==74
- assert popen_calls==[]
- m.prerequisites=old_pre;m.subprocess.Popen=old_popen;sys.argv=old_argv;checks+=1
+ old_pre=m.prerequisites;old_popen=m.subprocess.Popen;old_argv=sys.argv;old_monitor=m.open_owned_exit_monitor
+ old_kqueue=getattr(m.select,'kqueue',None);had_kqueue=hasattr(m.select,'kqueue');kernel_monitor_calls=[]
+ def forbidden_kernel_monitor():kernel_monitor_calls.append(True);raise AssertionError('DEFAULT_MOCK_MUST_NOT_OPEN_KERNEL_MONITOR')
+ try:
+  m.select.kqueue=forbidden_kernel_monitor;m.open_owned_exit_monitor=lambda child:None
+  m.prerequisites=lambda:(_ for _ in ()).throw(ValueError('FAILED_PREREQUISITE'))
+  popen_calls=[]
+  def forbidden_popen(*a,**k):popen_calls.append(True);raise AssertionError('CHILD_MUST_NOT_LAUNCH')
+  m.subprocess.Popen=forbidden_popen
+  sys.argv=['fixed-parent','--run']
+  with contextlib.redirect_stdout(io.StringIO()):assert m.main()==74
+  assert popen_calls==[] and kernel_monitor_calls==[];checks+=1
+ finally:
+  m.prerequisites=old_pre;m.subprocess.Popen=old_popen;sys.argv=old_argv;m.open_owned_exit_monitor=old_monitor
+  if had_kqueue:m.select.kqueue=old_kqueue
+  else:delattr(m.select,'kqueue')
  # Selector failure still cleans the known owned child; never silently leaks.
  c=Child();events=[]
  def kill(pid,sig):c.events.append(('kill',pid,sig));raise ProcessLookupError(3,'PRIVATE')
@@ -124,11 +131,16 @@ for count in (True,-1,float('nan'),9007199254740992,1.5):
  try:m.parse_inner((json.dumps(v)+'\n').encode());raise AssertionError('INVALID_BYTE_COUNT_ADMITTED')
  except (ValueError,TypeError):pass
  checks+=1
-old={key:getattr(m,key) for key in ('prerequisites','prepare_record_directory','collect','save_record','file_current','_PROCESS_STARTED')};old_popen=m.subprocess.Popen;old_argv=sys.argv
+old={key:getattr(m,key) for key in ('prerequisites','prepare_record_directory','collect','save_record','file_current','_PROCESS_STARTED','open_owned_exit_monitor')};old_popen=m.subprocess.Popen;old_argv=sys.argv
+old_kqueue=getattr(m.select,'kqueue',None);had_kqueue=hasattr(m.select,'kqueue');kernel_monitor_calls=[];mock_monitor_calls=[]
+def forbidden_kernel_monitor():kernel_monitor_calls.append(True);raise AssertionError('DEFAULT_MOCK_MUST_NOT_OPEN_KERNEL_MONITOR')
+m.select.kqueue=forbidden_kernel_monitor
+def mock_monitor(child):mock_monitor_calls.append(True);return None
+m.open_owned_exit_monitor=mock_monitor
 try:
  calls=[];m._PROCESS_STARTED=m.time.monotonic();sys.argv=['fixed-parent','--run']
  m.prerequisites=lambda:(m.Path('/owned/repo'),m.Path('/owned/repo/fixed.mjs'),m.Path('/owned/node'),[])
- def fake_popen(*args,**kwargs):calls.append('POpen');return object()
+ def fake_popen(*args,**kwargs):calls.append('POpen');return type('MockChild',(),{'pid':123})()
  m.subprocess.Popen=fake_popen
  def denied_directory(repo):raise PermissionError('PRIVATE_DIRECTORY_ERROR')
  m.prepare_record_directory=denied_directory
@@ -151,12 +163,15 @@ try:
  kept=result['observed'];assert kept['childReaped'] and kept['childExitCode']==74 and kept['childSignal'] is None and kept['cleanupSignal']=='UNKNOWN' and kept['cleanupExceptionFamily']=='PERMISSION_ERROR' and kept['cleanupErrno']=='EPERM' and kept['groupAbsentAfterReap']
  assert kept['innerReport']['ownedRootNames']==failed['ownedRootNames'] and kept['innerReport']['compilerBuildOutcome']=='EXIT_NONZERO' and kept['innerReport']['builds'][0]['status']==1 and kept['innerReport']['builds'][0]['stderrBytes']==8193
  assert kept['innerReport']['buildResultCount']==failed['buildResultCount'];checks+=1
+ assert mock_monitor_calls==[True] and kernel_monitor_calls==[];checks+=1
 finally:
  for key,value in old.items():setattr(m,key,value)
  m.subprocess.Popen=old_popen;sys.argv=old_argv
+ if had_kqueue:m.select.kqueue=old_kqueue
+ else:delattr(m.select,'kqueue')
 print(json.dumps({'scope':'OBSERVATION_PRESERVATION_SOURCE_MOCKS_ONLY','passed':checks,'actualPopen':0,'compilerBuilds':0,'nativeExecutions':0}))
 `;
- const out=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify(failed),encoding:'utf8',timeout:5000,maxBuffer:16384});const v=JSON.parse(out);assert.equal(v.scope,'OBSERVATION_PRESERVATION_SOURCE_MOCKS_ONLY');assert.equal(v.passed,10);assert.equal(v.actualPopen,0);assert.equal(v.compilerBuilds,0);assert.equal(v.nativeExecutions,0);});
+ const out=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify(failed),encoding:'utf8',timeout:5000,maxBuffer:16384});const v=JSON.parse(out);assert.equal(v.scope,'OBSERVATION_PRESERVATION_SOURCE_MOCKS_ONLY');assert.equal(v.passed,11);assert.equal(v.actualPopen,0);assert.equal(v.compilerBuilds,0);assert.equal(v.nativeExecutions,0);});
 
 test('record namespace accepts existing owned .local0755/private0700 only and retains its original identity',()=>{const python=String.raw`
 import importlib.util,json,stat,sys,types
