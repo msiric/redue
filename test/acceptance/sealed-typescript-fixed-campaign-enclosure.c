@@ -37,11 +37,12 @@ static volatile sig_atomic_t owned_pid=0, own_group=0, reaped=0, worker_mode=0;
 static pid_t expected_parent;
 static uint64_t absolute_limit;
 static uint64_t now_ms(void){struct timespec t;if(clock_gettime(CLOCK_MONOTONIC,&t)!=0||t.tv_sec<0||t.tv_nsec<0||t.tv_nsec>=1000000000L||(uint64_t)t.tv_sec>(UINT64_MAX-999)/1000)return UINT64_MAX;return(uint64_t)t.tv_sec*1000+(uint64_t)t.tv_nsec/1000000;}
-/* Handler uses only async-signal-safe operations. Worker establishes its OWN
- * session before arming this watchdog and BEFORE ACK/any collector or actor.
- * No claim is made about Bun/native-created session topology. */
+/* Handler uses only async-signal-safe operations. Worker arms its watchdog
+ * BEFORE setsid; until its OWN session is checked, expiry may only self-exit.
+ * No actor exists before private ACK/GO. This does not enclose or certify
+ * Bun/native-created sessions; ambiguous timeout/cancellation stays UNKNOWN. */
 static void expired(int signal_number){(void)signal_number;const uint64_t n=now_ms();
- if(worker_mode){if(getppid()==expected_parent&&n!=UINT64_MAX&&n<absolute_limit)return;(void)kill(0,SIGKILL);_exit(74);}
+ if(worker_mode){if(getppid()==expected_parent&&n!=UINT64_MAX&&n<absolute_limit)return;if(own_group)(void)kill(0,SIGKILL);_exit(74);}
  if(n!=UINT64_MAX&&n<absolute_limit)return;
  if(owned_pid>0&&!reaped){if(own_group)(void)kill(-(pid_t)owned_pid,SIGKILL);else(void)kill((pid_t)owned_pid,SIGKILL);}_exit(74);
 }
@@ -60,9 +61,17 @@ static int read_capture(int fd,unsigned char *bytes,size_t *used,int *eof){unsig
  * ACK/control pipe is never inherited by collector/actors (CLOEXEC_DEFAULT).
  * Child stdio uses real pipe(2), never Node's socketpair-labelled "pipe". */
 static void worker(int control,int gate,uint64_t began,pid_t parent){
- expected_parent=parent;worker_mode=1;owned_pid=0;own_group=0;reaped=0;
- if(setsid()<0||getpid()!=getpgrp()||getpid()!=getsid(0)||getppid()!=parent)_exit(74);
- absolute_limit=began+13750;if(!watchdog()||!timely(absolute_limit)||getppid()!=parent)_exit(74);
+ sigset_t initial_block,initial_mask;
+ if(sigemptyset(&initial_block)!=0||sigaddset(&initial_block,SIGALRM)!=0||sigaddset(&initial_block,SIGPIPE)!=0||sigprocmask(SIG_BLOCK,&initial_block,&initial_mask)!=0)_exit(74);
+ expected_parent=parent;worker_mode=1;owned_pid=0;own_group=0;reaped=0;absolute_limit=began+13750;
+ if(!watchdog())_exit(74);
+ /* Deliver pending signals BEFORE session creation. An expiry/parent loss
+  * here, or between setsid and own_group, must never kill the inherited PG. */
+ if(sigprocmask(SIG_SETMASK,&initial_mask,NULL)!=0)_exit(74);
+ if(!timely(absolute_limit)||getppid()!=parent)_exit(74);
+ if(setsid()<0||getpid()!=getpgrp()||getpid()!=getsid(0))_exit(74);
+ own_group=1;
+ if(!timely(absolute_limit)||getppid()!=parent)_exit(74);
  struct ack a={ACK,(int32_t)getpid(),(int32_t)getpgrp(),(int32_t)getsid(0)};
  if((pid_t)a.pid!=getpid()||!send_private(control,&a,sizeof(a),absolute_limit))_exit(74);
  /* Two-way handshake closes ACK-consumption race: the parent records owned

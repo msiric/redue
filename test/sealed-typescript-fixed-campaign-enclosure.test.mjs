@@ -52,7 +52,7 @@ function renderer({selectedCollector=collect,faultStage=null,foreignError=null,c
 }
 test('public setup rejects arbitrary/copy/getter inputs before any physical source IO',()=>{for(const value of [null,{},[],{assetsBuild:{},pairedSource:{},pairedArtifacts:{},copies:{},projection:{},preparedNullSource:{}}])assert.throws(()=>prepare(value));const r=renderer();assert.throws(()=>r.invoke(structuredClone(r.inputs)));assert.equal(r.io(),0);let accessed=0;const accessor={...r.inputs};Object.defineProperty(accessor,'projection',{get(){accessed++;return r.inputs.projection;}});assert.throws(()=>r.invoke(accessor));assert.equal(accessed,0);assert.equal(r.io(),0);});
 test('composition binds one original projection, original fixed actors and new distinct portable paths, not a runtime substitution',()=>{const r=renderer(),v=r.invoke(r.inputs);assert.equal(v.runnable,false);assert.equal(v.executionAuthority,'NONE');assert.equal(v.files.length,4);assert(v.files.every(f=>f.sourceBytes===Buffer.byteLength(f.source)&&f.sourceSha256===createHash('sha256').update(f.source).digest('hex')));assert.equal(v.files[0].source,r.inputs.projection.source);assert.match(v.files[1].source,/detached:false/);assert.match(v.files[1].source,/result\.outcome==='FAIL'\?'F':'E'/);assert.match(v.files[2].source,/paired-stage-enclosed-campaign\.mjs/);assert(!v.files[2].source.includes('entry '+r.inputs.preparedNullSource.bindings.entry));assert.equal(v.bindings.entry.endsWith('/paired-stage-enclosed-campaign.mjs'),true);assert(v.blockers.includes('NEW_ENCLOSURE_CODE_PROVISIONING_AND_ORIGINAL_CURRENTNESS_NOT_ESTABLISHED'));assert.equal(v.actualExecution,'NOT_RUN');assert.equal(r.verify(v).outcome,'FIXED_CANARY_ENCLOSURE_SOURCE_INPUTS_CURRENTLY_OBSERVED_NOT_PROVISIONED');r.change();assert.equal(r.verify(v).outcome,'UNKNOWN');assert.equal(r.verify(v).outcome,'UNKNOWN');assert.equal(r.verify(structuredClone(v)).outcome,'UNKNOWN');});
-test('C source closes the specific session/ACK/parent-death and result-publication boundaries',()=>{assert.match(cSource,/setsid\(\)<0\|\|getpid\(\)!=getpgrp\(\)\|\|getpid\(\)!=getsid\(0\)/);assert(cSource.indexOf('!watchdog()||!timely(absolute_limit)')<cSource.indexOf('struct ack a='));assert.match(cSource,/getppid\(\)==expected_parent/);assert.match(cSource,/kill\(0,SIGKILL\)/);assert.match(cSource,/POSIX_SPAWN_CLOEXEC_DEFAULT/);assert.match(cSource,/pipe\(p\)/);assert.match(cSource,/!S_ISFIFO/);assert.match(cSource,/fcntl\(p\[at\],F_SETFD,FD_CLOEXEC\)/);assert.match(cSource,/if\(own_group\).*kill\(-child,SIGKILL\)/);assert.match(cSource,/else if\(kill\(child,SIGKILL\)/);assert.match(cSource,/signal_preconditions\(\)/);assert.match(cSource,/SIGPIPE,&a,NULL/);assert(!/execvp|system\(|popen\(|setsid\(.*argv|JSON|mkfifo|setenv|putenv/.test(cSource));});
+test('C source closes the specific session/ACK/parent-death and result-publication boundaries',()=>{assert.match(cSource,/setsid\(\)<0\|\|getpid\(\)!=getpgrp\(\)\|\|getpid\(\)!=getsid\(0\)/);assert(cSource.indexOf('if(!watchdog())_exit(74);')<cSource.indexOf('struct ack a='));assert.match(cSource,/getppid\(\)==expected_parent/);assert.match(cSource,/kill\(0,SIGKILL\)/);assert.match(cSource,/POSIX_SPAWN_CLOEXEC_DEFAULT/);assert.match(cSource,/pipe\(p\)/);assert.match(cSource,/!S_ISFIFO/);assert.match(cSource,/fcntl\(p\[at\],F_SETFD,FD_CLOEXEC\)/);assert.match(cSource,/if\(own_group\).*kill\(-child,SIGKILL\)/);assert.match(cSource,/else if\(kill\(child,SIGKILL\)/);assert.match(cSource,/signal_preconditions\(\)/);assert.match(cSource,/SIGPIPE,&a,NULL/);assert(!/execvp|system\(|popen\(|setsid\(.*argv|JSON|mkfifo|setenv|putenv/.test(cSource));});
 test('waitpid releases PID only while watchdog blocked; no later destructive numeric-group kill',()=>{const critical=cSource.slice(cSource.indexOf('sigset_t block,old;'),cSource.indexOf('const int normal_exit='));assert(critical.indexOf('sigprocmask(SIG_BLOCK')<critical.indexOf('waitpid(child'));assert(critical.indexOf('reaped=1;owned_pid=0;own_group=0')<critical.indexOf('sigprocmask(SIG_SETMASK'));assert.match(critical,/wait_error!=EINTR\)\{owned_pid=0;own_group=0;failed=1/);const after=cSource.slice(cSource.indexOf('const int normal_exit='));assert(!/kill\([^;]+SIGKILL/.test(after));assert.match(after,/kill\(-child,0\)==0\|\|errno!=ESRCH/);assert(after.indexOf('kill(-child,0)')<after.indexOf('write(1,payload'));});
 test('one bounded budget includes publication; known FAIL uses separate controlled group cleanup, not invented END',()=>{for(const value of [11000,11500,13750,14000,14750,14900])assert((cSource+fs.readFileSync(new URL('./acceptance/sealed-typescript-fixed-campaign-enclosed-collector.mjs',import.meta.url),'utf8')).includes(String(value)));assert.match(cSource,/asserted_fail&&WEXITSTATUS\(status\)!=1/);assert.match(cSource,/if\(asserted_fail\)\{\(void\)kill\(0,SIGKILL\)/);assert.match(cSource,/result\.failed_assertion&&WIFSIGNALED\(status\)&&WTERMSIG\(status\)==SIGKILL/);});
 
@@ -168,4 +168,72 @@ for(const interpretation of [undefined,null,'prepared-null-device-endpoints@0','
 });
 test('original prepared device interpretation remains required in every later source-current observation',()=>{
  const r=renderer(),value=r.invoke(r.inputs);r.inputs.preparedNullSource.preparedNullIdentityInterpretation='prepared-null-device-endpoints@0';assert.equal(r.verify(value).outcome,'UNKNOWN');r.inputs.preparedNullSource.preparedNullIdentityInterpretation='prepared-null-device-endpoints@1';assert.equal(r.verify(value).outcome,'UNKNOWN');
+});
+
+// Source-bound finite state controls, NOT kernel signals, C execution, native
+// enforcement or proof of closure of native-created Bash process groups.
+const workerSource=cSource.slice(cSource.indexOf('static void worker('),cSource.indexOf('int main('));
+const workerExpired=cSource.match(/if\(worker_mode\)\{([^\n]+)\}/)[1];
+function modeledWorkerSignal({ownGroup=false,parentAlive=true,time=13750}={}){
+ const actions=[];
+ const selected=workerExpired.replaceAll('UINT64_MAX','Infinity').replaceAll('(void)kill','kill');
+ Function('getppid','expected_parent','n','absolute_limit','own_group','kill','_exit','SIGKILL',selected)(
+  ()=>parentAlive?41:1,41,time,13750,Number(ownGroup),
+  (group,signal)=>actions.push(['kill',group,signal]),code=>actions.push(['exit',code]),'SIGKILL');
+ return actions;
+}
+const setupSteps=[
+ ['block','sigprocmask(SIG_BLOCK,&initial_block,&initial_mask)'],
+ ['initialize','expected_parent=parent;worker_mode=1;owned_pid=0;own_group=0;reaped=0;absolute_limit=began+13750;'],
+ ['arm','if(!watchdog())_exit(74);'],
+ ['restore','sigprocmask(SIG_SETMASK,&initial_mask,NULL)'],
+ ['precheck','if(!timely(absolute_limit)||getppid()!=parent)_exit(74);'],
+ ['session','if(setsid()<0||getpid()!=getpgrp()||getpid()!=getsid(0))_exit(74);'],
+ ['own','own_group=1;'],
+ ['postcheck','if(!timely(absolute_limit)||getppid()!=parent)_exit(74);'],
+ ['ack','struct ack a='],
+ ['gate','go!=GO'],
+ ['launch','posix_spawn(&child']
+];
+function modeledWorkerSetup({fail=null,signalAt=null,parentAlive=true,expired=true,go=false}={}){
+ let previous=-1,ownGroup=false,armed=false;const events=[];
+ for(const [step,fragment]of setupSteps){
+  const at=workerSource.indexOf(fragment,previous+1);assert(at>previous,'fixed C ordering: '+step);previous=at;
+  if(step==='gate'&&!go){events.push('WAIT_GO');break;}
+  events.push(step);
+  if(fail===step){events.push('EXIT74');break;}
+  if(step==='arm')armed=true;
+  if(step==='own')ownGroup=true;
+  if(signalAt===step){assert(armed);const actions=modeledWorkerSignal({ownGroup,parentAlive,time:expired?13750:1});events.push(...actions);if(actions.length)break;}
+ }
+ return events;
+}
+test('watchdog setup blocks only initialization, restores before setsid and has no pre-GO actor',()=>{
+ assert.match(workerSource,/sigemptyset\(&initial_block\)!=0\|\|sigaddset\(&initial_block,SIGALRM\)!=0\|\|sigaddset\(&initial_block,SIGPIPE\)!=0\|\|sigprocmask\(SIG_BLOCK,&initial_block,&initial_mask\)!=0/);
+ assert.deepEqual(modeledWorkerSetup(),['block','initialize','arm','restore','precheck','session','own','postcheck','ack','WAIT_GO']);
+ assert.equal(modeledWorkerSetup({go:true}).at(-1),'launch');
+ assert.match(cSource,/const pid_t parent=getpid\(\),child=fork\(\)/);
+ assert.match(cSource,/worker\(control\[1\],gate\[0\],began,parent\)/);
+ assert.match(cSource,/ambiguous timeout\/cancellation stays UNKNOWN/);
+});
+for(const ownGroup of [false,true])for(const condition of ['deadline','parent-loss','clock-failure'])test('source watchdog '+condition+' '+(ownGroup?'after':'before')+' own-session flag',()=>{
+ const actions=modeledWorkerSignal({ownGroup,parentAlive:condition!=='parent-loss',time:condition==='clock-failure'?Infinity:condition==='deadline'?13750:1});
+ assert.deepEqual(actions,ownGroup?[['kill',0,'SIGKILL'],['exit',74]]:[['exit',74]]);
+});
+test('healthy watchdog signal returns without signalling either inherited or owned group',()=>{
+ for(const ownGroup of [false,true])assert.deepEqual(modeledWorkerSignal({ownGroup,parentAlive:true,time:13749}),[]);
+});
+for(const step of ['restore','session'])test('pending expired signal at '+step+' self-exits without inherited-group kill or ACK',()=>{
+ const events=modeledWorkerSetup({signalAt:step});assert.deepEqual(events.slice(-1),[['exit',74]]);assert(!events.includes('ack'));assert(!events.includes('launch'));assert(!events.some(v=>Array.isArray(v)&&v[0]==='kill'));
+});
+test('parent loss at mask restore self-exits; after own flag signals only the checked own group',()=>{
+ const before=modeledWorkerSetup({signalAt:'restore',parentAlive:false,expired:false});assert.deepEqual(before.at(-1),['exit',74]);assert(!before.includes('session'));
+ const after=modeledWorkerSetup({signalAt:'own',parentAlive:false,expired:false});assert.deepEqual(after.slice(-2),[['kill',0,'SIGKILL'],['exit',74]]);assert(!after.includes('ack'));assert(!after.includes('launch'));
+});
+for(const step of ['block','arm','restore','precheck','session','postcheck'])test('setup '+step+' failure exits before ACK/actors with no inherited group signal',()=>{
+ const events=modeledWorkerSetup({fail:step});assert.equal(events.at(-1),'EXIT74');assert(!events.includes('ack'));assert(!events.includes('launch'));assert(!events.some(v=>Array.isArray(v)&&v[0]==='kill'));
+});
+
+test('non-expired signal at restored mask or either side of own flag does not alter setup/GO gate',()=>{
+ for(const signalAt of ['restore','session','own'])assert.deepEqual(modeledWorkerSetup({signalAt,expired:false}),['block','initialize','arm','restore','precheck','session','own','postcheck','ack','WAIT_GO']);
 });

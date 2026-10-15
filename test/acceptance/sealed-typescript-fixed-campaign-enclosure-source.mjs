@@ -6,7 +6,7 @@ import {prepareSealedTypeScriptFixedCampaignSource} from './sealed-typescript-fi
 import {prepareSealedTypeScriptBaseExchangeBuildToolchain,verifySealedTypeScriptFixedCanaryProtectedInputProjection,sealedTypeScriptFixedCanaryProtectedInputProjectionMatchesDerivation} from './sealed-typescript-base-exchange-assets.mjs';
 import {verifySealedTypeScriptFixedCampaignPreparedNullSource} from './sealed-typescript-fixed-campaign-prepared-null-source.mjs';
 const version='fixed-canary-finite-enclosure-source@2',projectionVersion='fixed-canary-original-input-projection@3';
-const cPin='3e4a891d7e228b754b05544a98b03b7086c5702acfd0e7110666cc66611fcc03',collectorPin='a15fee9374767e14483575264bcfa85732d90eab503c8a1f2b770c5156395878';
+const cPin='cc9df8be524afecef42fb91ed49fb7f5bf038a7a25f65ce1ab0fb6815c4924d5',collectorPin='a15fee9374767e14483575264bcfa85732d90eab503c8a1f2b770c5156395878';
 const collectFunctionPin='0734891f42bc3efbd04a4194a29fd196946f421b23b08b8b907d036208bfbf42';
 export const SEALED_TYPESCRIPT_ENCLOSURE_SOURCE_REFUSAL_STAGES=Object.freeze(['OPTIONS','ORIGINAL_DERIVATION','PREPARED_NULL_CURRENT','INITIAL_ORIGINAL_CURRENT','PROJECTION_INTERPRETATION','CAMPAIGN_RENDER','DERIVED_BINDINGS','COLLECTOR_FUNCTION_PIN','C_TEMPLATE_READ','COLLECTOR_TEMPLATE_READ','LAUNCHER_REBIND','ENCLOSURE_REBIND','FINAL_ORIGINAL_CURRENT','SOURCE_RESULT']);
 export const SEALED_TYPESCRIPT_ENCLOSURE_ORIGINAL_CURRENT_REFUSALS=Object.freeze(['DERIVATION','PROJECTION_CURRENT','PREPARED_NULL_CURRENT','PROJECTION_RESULT','PREPARED_NULL_RESULT','C_SOURCE_READ','C_SOURCE_IDENTITY','COLLECTOR_SOURCE_READ','COLLECTOR_SOURCE_IDENTITY','C_SOURCE_NAMED','COLLECTOR_SOURCE_NAMED']);
