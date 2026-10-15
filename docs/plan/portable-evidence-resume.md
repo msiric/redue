@@ -36,11 +36,23 @@ CLI dispatch403 remain respected; current_user_can_approve=false required owner
 UI action, not a coordinator POST. Actual account/source guards now passed;
 neither account timestamps nor secret values were copied/refreshed by engineering.
 
-No new owner action is pending for this run. DIR174 source-only review of the
-existing native canary route is active; no new native/model attempt is queued.
-Do not infer output targets/types from denied metadata or broaden read permissions.
-Descriptor authority, native compiler namespace closure,
-fresh producer bindings and G1–G4 remain pending; Copilot capacity is separate.
+No new owner action is pending for this run. DIR174–176 source review confirms
+normal native file capture is incompatible with the current campaign FIFO gate;
+Node pipe labels do not establish FIFO. No broader read permission or unchanged
+native retry is justified. A separate disabled prepared-null leaf is reviewed and
+integrated at2323e33, interpretation campaign-prepared-devnull-setexec@2. Initial
+@1 real preparation UNKNOWN is preserved; pinned Node/Darwin source justifies exact
+signed device identity handling. Fresh DIR183 accepts237+200 source/mock controls;
+root639 shared source/mock tests and actual local SDK27 trusted preparation/C
+syntax-only validation pass. No checker/native/model or hosted SDK26.5 acceptance
+is claimed; old routes, permissions and evidence authority remain unchanged.
+
+Next is the bounded real-FIFO parent direction reviewed by DIR178: no capture writes
+inside the original BEGIN/all-actors-gone/END interval; interruptions remain UNKNOWN.
+Complete enclosing source closure and actual boundary proof are still prerequisites,
+not facts established by this leaf. No new native/model attempt is queued.
+Descriptor authority, native compiler namespace closure, fresh producer bindings
+and G1–G4 remain pending; Copilot capacity is separate.
 Prior UNKNOWN38729509357 and cancelled duplicate remain preserved. Alpha.11 stays
 unpublished; no fresh origin or CURRENT authority is inferred from this preparation.
 

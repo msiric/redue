@@ -25,6 +25,16 @@ the old error cause nor portable reuse. The [current tracker](../plan/portable-e
 records exact identities/timing/scope; no further attempt or permission expansion
 is queued. Existing namespace/origin blockers and all old UNKNOWN records remain.
 
+Source review found normal native file capture incompatible with the disabled
+campaign's FIFO gate. The separately reviewed prepared-null @2 leaf removes a
+child pathname-read dependency, preserving exact signed Darwin device identity and
+all FIFO/access checks. Root639 source/mock controls and local SDK27 metadata/C
+syntax-only preparation pass; no native checker, hosted compatibility, seal or
+CURRENT is established. Initial @1 preparation refusal remains historical UNKNOWN.
+The next bounded source direction defers capture writes until after original
+input-boundary validation and all actors finish; forced completion cannot qualify.
+No permission expansion or new native attempt is queued.
+
 Run38729509357, workflow `fb93787` / runtime `b812589`, did not establish helper
 completion, native sealing or portable reuse. Independent DIR164 accepts only
 UNKNOWN: raw string/error result, format-derived code1 and five literal markers

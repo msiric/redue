@@ -75,9 +75,46 @@ Owner normal UI source alignment/dispatch/review completed; actual account guard
 passed with fact digest `769231fefb0951a143296afba0e8ee3df3ae6000aedcede4089e3d87f35f6b37`.
 Protected API reads and CLI dispatch remain denied; current_user_can_approve=false
 was respected without a POST or bypass. No new owner action is pending for this run.
-DIR174 source-only review now examines the existing finite native canary route and
-the minimum physical/preparation/handle facts needed for D12, without changing this
-diagnostic or authorizing execution. Missing metadata remains UNKNOWN; outside
+DIR174–176 source review establishes a separate implementation mismatch: normal
+native Bash uses file capture, while the disabled campaign requires FIFO outputs.
+This does not identify the actual EPERM descriptor referents. Node-created pipes
+are socket pairs and cannot simply replace the FIFO assertion. No broader read
+permission or unchanged native retry is justified.
+
+A new **disabled** prepared-null leaf is integrated at `2323e33`; it changes no
+builder, command, policy, workflow or product evidence authority. Author49554b9
+was accepted by DIR179 for source-data scope only. Actual trusted local preparation
+then refused before C compilation because the initial nonnegative device bound
+excluded a legitimate negative BigInt. That UNKNOWN is retained, not relabelled.
+Pinned [Node22.13 stats conversion](https://github.com/nodejs/node/blob/v22.13.0/src/node_file-inl.h)
+and [signed-array definition](https://github.com/nodejs/node/blob/v22.13.0/src/aliased_buffer.h),
+plus reviewed Darwin headers, establish signed32 device IDs in the final signed64
+JS representation. The intermediate-U64 hypothesis was refuted.
+
+DIR182 correction author11f4a0f / interpretation `campaign-prepared-devnull-setexec@2`
+retains exact signed32 dev/rdev and nonnegative signed64 inode values, with matching
+C literals/comparisons and ABI assertions. It performs fixed metadata-only trusted
+preparation and private endpoint revalidation; it does not open/read the device.
+All FIFO/access, environment, argv and SETEXEC/CLOEXEC checks remain. Old routes
+are byte-identical. Fresh DIR183 accepts this exact disabled leaf:237 source/mock
+controls plus200 independent in-memory adversarial checks pass. Root integrated
+639 source/mock controls pass/0skip,419.842ms; TAP SHA256
+`019b8045b01b72681c9c63c146a49c19580abc26e1f05536571b77fc407fe99a`.
+
+Actual **local SDK27-only** trusted metadata preparation and pinned Clang syntax-only
+validation now pass, exit0/no diagnostic output, with current source rechecked.
+No object or executable was produced; no checker/native/model ran. Template SHA256
+`ecff1f5d828aa83e1050da066f1f8037fef3f7c15949cae45674371ae85ea35b`.
+This is not hosted SDK26.5 compatibility, native enforcement, an immutable input
+interval or CURRENT authority. Complete SDK/pre-main/namespace requirements remain.
+
+DIR178 accepts only a bounded next source-design direction: a finite real-FIFO
+parent may hold native capture privately and defer every write until original
+prepared BEGIN, all actor completion and matching END are established. Normal
+native capture polling is read/stat-only on the inspected chain; forced completion
+can resolve before reap and must remain UNKNOWN. This does not prove absence of
+other writers or complete startup closure. No capture alias, unsafe condition,
+seal or reuse has been observed. No further native attempt is queued; outside
 compiler namespace/denial-versus-absence coverage remains separately unresolved.
 
 ## Historical checkpoint — fixed-marker attempt UNKNOWN; diagnostic loop stopped
