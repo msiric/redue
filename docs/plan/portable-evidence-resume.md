@@ -7,7 +7,50 @@ existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
 
-## Current checkpoint — tool error retained; guarded format diagnostic ready
+## Current checkpoint — code-one format retained; fixed-marker attempt ready
+
+2026-10-15: [run38724609993](https://github.com/msiric/redue/actions/runs/38724609993)
+used workflow9239/runtimee7c3, attempt1. Independent158 ACCEPT_SCOPE retains UNKNOWN:
+the matching raw string/error result has SHELL_EXIT_FIRST_LINE_FORMAT with
+formatDerivedExitCode1, not an observed helper or shell exit. Native exit0/reap7.928s,
+controller16.072s, source/currentness checks,331 source/mock tests and owned cleanup
+succeeded. Both proxy guards passed, establishing scoped constructed-env absence
+for this run. There is no accepted helper completion, enforcement, seal or reuse.
+Report5,252 bytes SHA256
+`d522c16b61e01b53a5ee07cd5caa156b276fd1306296062b9e18953d10cbc267`;
+redacted log324,948 bytes SHA256
+`efc85883512f703cd6a1db29f09a3eee1389d7113b8109ace63ec07284a5de04`.
+
+DIR159 source audit ruled out the proposed cwd-write conflict: cwd/task output
+uses native writable /private/tmp/claude-uid, separate from the denied REDUE base.
+No permission expansion or path relocation is justified; actual cause is unresolved.
+DIR160/161 ACCEPT is integrated/pushed at runtime
+`b812589ae7741e506e89bde90e4e33c83624647f`. Only primary string-shape refusal gains
+24 fixed public-token booleans, without raw error text, paths, values, lengths or
+hashes. Markers prove no origin/cause/execution/permission. Acceptance, predicates,
+parser order, history, context, limits and authority are unchanged. Reviewer335
+supplied+83 independent groups pass; root335 focused and1216 shared PASS/1 optional
+C-build SKIP. Shared593.556ms, TAP SHA256
+`2225886c511b54e90ef6c70f75dcb5476e29b11906cc6f5047dfa95c57a544a8`.
+Three shared controls use owned temporary files; others source/mocks, not native proof.
+
+DIR162/163 workflow ACCEPT is pushed/remotely verified at
+`fb93787f15477877b1815fc7f32e78c295a5d2ad`, SHA256
+`e4db4079361067cbc047ac3e10573d031adc2d9677aac75552f92d675c55dff3`.
+Only two source pins change; both proxy guards and other controls stay identical.
+Root13 and reviewer8 source/mock+4 proxy groups pass, including36 harmless local
+Bash guard cases. Protected source alone is aligned; owner reviewed_at remains
+2026-10-14T19:26:03Z. Provenance digest
+`b5d88e0bf1d436019b2afd91a0293c941103230af02da76ffae74f91e211fce3`.
+No secret value was accessed. Actual prerequisites still require run-time passage.
+
+Next: one NEW normal owner Actions UI run on dev/portable-claude-diagnostic,
+not Re-run jobs; CLI dispatch403 remains unchanged and is not retried. After the
+consolidated observation, obtain fresh review. If unresolved, STOP this diagnostic
+approach for review rather than grow the marker set or repeat runs for a score.
+G0partial/G1–G4 incomplete; Copilot capacity separately pending; alpha.11 unpublished.
+
+## Historical checkpoint — tool error retained; guarded format diagnostic ready
 
 2026-10-15: [run38721590183](https://github.com/msiric/redue/actions/runs/38721590183)
 used reviewed workflowb836/runtime910, attempt1; protected inputs, normal environment
