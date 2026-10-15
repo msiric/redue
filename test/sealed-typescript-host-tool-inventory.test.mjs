@@ -62,7 +62,7 @@ test('unsupported platform or injected options cannot request additional paths',
  const m=mock();m.process.platform='linux';assert.equal(m.inventory().outcome,'UNKNOWN');assert.equal(m.state.opens.length,0);assert.equal(m.inventory({path:'/owner/private'}).outcome,'UNKNOWN');assert.equal(m.state.calls.length,0);
 });
 test('source performs fixed hashes/aliasmetadata only, no directorybody walk or envdump/newexecution',()=>{
- assert.doesNotMatch(source,/process\.env|readdir|readFileSync|copyFile|writeFile|mkdtemp|spawn\(|execFile|fetch\(|http\.request/);assert.equal((source.match(/spawnSync\(/g)??[]).length,1);assert(source.includes("spawnSync('/usr/bin/xcrun'"));
+ const oldInventory=source.slice(source.indexOf('export function inventoryPublicSealedTools(){'),source.indexOf('// Fixed storage-free CI observation'));assert.doesNotMatch(oldInventory,/process\.env/);assert.equal((source.match(/process\.env/g)??[]).length,1);assert(source.includes('Object.keys(process.env).some(key=>'));assert.doesNotMatch(source,/readdir|readFileSync|copyFile|writeFile|mkdtemp|spawn\(|execFile|fetch\(|http\.request/);assert.equal((source.match(/spawnSync\(/g)??[]).length,1);assert(source.includes("spawnSync('/usr/bin/xcrun'"));
 });
 
 test('selected Xcode tools and literal required CLT tools retain independent canonical identity and bytes',()=>{
