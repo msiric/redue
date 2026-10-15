@@ -455,3 +455,10 @@ export function verifySealedTypeScriptFixedCanaryProtectedInputProjection(projec
   return projectionAuthority({outcome:'FIXED_CANARY_ORIGINAL_INPUT_GUARDS_OBSERVED',version:protectedProjectionVersion,projectionSha256:sha(JSON.stringify(record.original)),sourceSha256:record.sourceSha256});
  }catch{record.invalid=true;return unknown();}
 }
+
+// Private identity linkage only. Callers must separately verify currency;
+// this neither observes files nor renews/adopts projection or input authority.
+export function sealedTypeScriptFixedCanaryProtectedInputProjectionMatchesDerivation(projection,assetsBuild,pairedSource,pairedArtifacts,copies){
+ const record=mintedProtectedProjections.get(projection);
+ return arguments.length===5&&!!record&&!record.invalid&&record.inputs.assetsBuild===assetsBuild&&record.inputs.pairedSource===pairedSource&&record.inputs.pairedArtifacts===pairedArtifacts&&record.inputs.copies===copies;
+}
