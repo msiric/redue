@@ -4,7 +4,34 @@ Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revisio
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
 
-## Current checkpoint — exact witness input reviewed; one changed-procedure attempt ready
+## Current checkpoint — exact request accepted; foreground completion remains unknown
+
+2026-10-15: [run38661085164](https://github.com/msiric/redue/actions/runs/38661085164)
+used reviewed workflow3eb677a/runtimebc50a9f, attempt1. Owner prerequisites and331
+source/mock tests passed; normal environment review was used. Independent DIR138
+ACCEPT_SCOPE confirms UNKNOWN/FOREGROUND_RAW_OR_RENDERED_RESULT_UNAVAILABLE.
+At least one canonical bounded tool request and a matching result envelope reached
+foreground validation. The report does not distinguish absent/malformed raw result,
+unsupported fields/flags, renderer disagreement or invalid witness metadata. It
+establishes no accepted helper completion or native enforcement. Native exit0 and
+reaping were observed (8.583s native,17.828s controller); no timeout, one helper build,
+all before/after currentness guards passed and owned cleanup completed.
+
+Report4,238 bytes SHA256
+`56b473611df30550cc37d74ba6f9d6b8a950c3e9e7294421edfb183ad6789191`;
+redacted execution log324,062 bytes SHA256
+`60ab6dec2f2df3ce7bb05dfe9b84400e48abc942726e9b3ce26b1db3bab92fac`.
+Raw model frames/error text were deliberately not retained. Eight independent pure
+controls validate the interpretation's limits; no actual failed operand is inferred.
+
+Next: bounded DIR139 pinned-source review and DIR140 static foreground-refusal
+classification, with unchanged acceptance predicates/access order and fresh review
+before any further operation. No additional native run is queued. Earlier scoped
+six-check prerequisite remains closed; this new witness is not G2/seal/reuse.
+Copilot included Actions capacity remains separately pending. G0partial/G1–G4
+incomplete, alpha.11 unpublished, fixed pilot and immutable evidence preserved.
+
+## Historical checkpoint — exact witness input reviewed; one changed-procedure attempt ready
 
 2026-10-14: [run38636497478](https://github.com/msiric/redue/actions/runs/38636497478)
 used workflowd968/runtime2ca, attempt1. Independent133 ACCEPT_SCOPE retains
