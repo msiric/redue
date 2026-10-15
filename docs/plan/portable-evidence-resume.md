@@ -74,8 +74,13 @@ consumption deletes before awaiting and cannot adopt public records.
 DIR289's pinned-binary inspection confirms Bash is detached even when native
 inherits the Node group. Async native tree cancellation is not a proven whole-job
 lifetime enclosure. Source also shows the finite C worker calls setsid before
-arming its watchdog. DIR292 reviews a narrow pre-escape correction and the exact
-required supervision boundary before implementation or native launch. Neither
+arming its watchdog. DIR292 requires restoring the signal mask before setsid;
+DIR294 implements that narrow correction. Whole-native detached-tree closure is
+not invented as a new prerequisite for the bounded non-authoritative diagnostic:
+timeout/cancellation must retain UNKNOWN closure/resources and grant no completion,
+seal or reuse. Normal finite output concerns only its reviewed internal actors.
+DIR295 implements a fixed same-process controller, unwired and unexecuted until
+review and actual profile/security/account prerequisites. Neither
 new native enforcement nor cross-machine reuse is established by these checks;
 no actual native/model trial is queued. Existing completed diagnostics retain
 their original limited scope. No whole-job safety or timing claim is inferred.
