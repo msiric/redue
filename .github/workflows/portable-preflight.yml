@@ -1,5 +1,5 @@
 # Fixed public bytes only. No build, native/model, artifact, signing or trust route.
-name: Fixed CI enclosure header observations
+name: Fixed CI paired guarded endpoint observations
 on:
   workflow_dispatch:
 permissions:
@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   inventory:
-    name: Fixed public headers (${{ matrix.machine }})
+    name: Fixed paired endpoints (${{ matrix.machine }})
     strategy:
       fail-fast: false
       max-parallel: 2
@@ -19,7 +19,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 2
     env:
-      REVIEWED_SOURCE: 3edffa5631342a087bf5999cef031a3dcd102381
+      REVIEWED_SOURCE: a0d2d3686a0c6e1797b632b3fe8bea2b4d6b3a0a
     steps:
       - name: Refuse a missing reviewed runtime binding before checkout
         shell: bash
@@ -82,6 +82,6 @@ jobs:
             fi
           done
           printf '{"scope":"PUBLIC_RUNNER_FACTS_ONLY","source":"%s","machine":"%s","os":"%s","kernel":"%s","arch":"arm64","filesystem_type":%s,"imageOS":"%s","imageVersion":"%s","profileMatch":"NOT_EVALUATED"}\n' "$REVIEWED_SOURCE" '${{ matrix.machine }}' "$redue_os" "$redue_kernel" "$redue_fs" "$redue_image_os" "$redue_image_version"
-          node test/acceptance/sealed-typescript-host-tool-inventory.mjs --fixed-ci-enclosure-headers
+          node test/acceptance/sealed-typescript-host-tool-inventory.mjs --fixed-ci-paired-profile
       # The helper's 10s checkpoint budget cannot interrupt blocked filesystem IO.
       # The 2-minute job limit remains independent; no output becomes trusted input.
