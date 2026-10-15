@@ -4,7 +4,7 @@ Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revisio
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
 
-## Current checkpoint — native tool error observed; launch-path audit active
+## Current checkpoint — tool error retained; guarded format diagnostic ready
 
 2026-10-15: [run38721590183](https://github.com/msiric/redue/actions/runs/38721590183)
 used reviewed workflowb836/runtime910, attempt1; protected inputs, normal environment
@@ -23,12 +23,42 @@ Report5,166 bytes SHA256
 redacted log324,711 bytes SHA256
 `430afa7c5e94368727a0b264b82e6783a2a88218f1af4cd51a42cf80c3419039`.
 
-Next: DIR151 audits the pinned public native launch/wrapper/validation error paths
-against the existing closed-read setup. No further native attempt or observation
-change is justified merely to expose another field. No permissions are changed and
-no owner action is requested during diagnosis. G0partial/G1–G4 incomplete; Copilot
-included Actions capacity remains separately pending. Alpha.11 stays unpublished,
-fixed pilot and immutable evidence are preserved.
+DIR151/152 source audit found a pre-sandbox native snapshot/probe path, with OAuth
+removed after all environment merges. The nonsecret sentinel survives that earlier
+path; no actual leak/copy was established. Snapshot sourcing failures are swallowed,
+and no source-proven fatal read-policy mismatch or permission expansion is justified.
+Independent152B corrects the initial overbroad readiness conclusion: limited child
+observation can continue conditionally; global isolation, pre-main and seal readiness
+remain unestablished.152C requires actual absence of optional proxy variables for
+this fixed CI diagnostic unless their inheritance has separately reviewed authority.
+
+DIR153–155 finite format reporting is integrated/pushed at runtime
+`e7c3ea28dbb2a502d88f82c9f88a1850fdcf527d`. It retains only fixed format labels and
+nullable formatDerivedExitCode for primary string-shape refusals; no error text,
+normalization, inferred process exit/cause or acceptance change. Reviewer307 supplied
+and93 independent controls pass; root307 focused and1188 shared PASS/1 optional
+actual C-build SKIP. Shared603.869ms, TAP SHA256
+`912f080232487421936b5df1ca160387642164d853a5a9b04da262049295572e`.
+Three shared controls use owned temporary files; others source/mocks, not native proof.
+
+DIR156/157 workflow ACCEPT is pushed/remotely verified at
+`9239c1f361d92cba1e4df7bafdfeffdd4846422e`, SHA256
+`c015392d9b9b4e08ed005ce1eaef78449ebc9bb6bec49c3357f6e8a0c5bd002a`.
+Changes are two runtime pins plus eight proxy-name denials in both existing loops.
+Any proxy presence, even empty, refuses launch; no variable is stripped or rewritten.
+Root13 controls pass (including36 harmless local Bash guard children); reviewer8
+source/mock plus4 proxy groups pass. These prove harness behavior, not actual native
+proxy absence. Original OAuth placement, sandbox, command and limits stay unchanged.
+Protected source alone is aligned, preserving owner reviewed_at2026-10-14T19:26:03Z;
+provenance digest `5583f9ec1fd572db86fa2d9b1a66d25c60d4dabec6854a06b0c12614dd371856`.
+No secret value was accessed or account fact timestamp renewed.
+
+Next: one NEW normal owner Actions UI run of portable-claude-diagnostic.yml on
+`dev/portable-claude-diagnostic`, not Re-run jobs. CLI dispatch403 is unchanged and
+not retried. Failed proxy/other prerequisites launch no model. Collect the actual
+format observation and independently review it before any further approach; no
+retries until green. G0partial/G1–G4 incomplete; Copilot included Actions capacity
+separately pending; alpha.11 unpublished, pilot/immutable evidence preserved.
 
 ## Historical checkpoint — raw shape refused; consolidated diagnosis reviewed
 
