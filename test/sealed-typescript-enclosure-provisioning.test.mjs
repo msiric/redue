@@ -5,7 +5,7 @@ import {observeFixedEnclosurePreparation as observe} from './acceptance/sealed-t
 const parentPath=fileURLToPath(new URL('./acceptance/sealed-typescript-enclosure-provisioning-parent.py',import.meta.url));
 const innerSource=fs.readFileSync(new URL('./acceptance/sealed-typescript-enclosure-provisioning.mjs',import.meta.url),'utf8'),parentSource=fs.readFileSync(parentPath,'utf8');
 function mock(){let time=0;const calls=[],state={ready:true,fail:null,elapsedAt:null,nonzero:false};const flag={sealed:false,reuseEligible:false},value=outcome=>({outcome,...flag});const op={};
- const method=(name,fn)=>op[name]=(...args)=>{calls.push(name);if(state.elapsedAt===name)time=30000;if(state.fail===name)return value('UNKNOWN');return fn(...args);};
+ const method=(name,fn)=>op[name]=(...args)=>{calls.push(name);if(state.elapsedAt===name)time=60000;if(state.fail===name)return value('UNKNOWN');return fn(...args);};
  const build=(count,outcome)=>({...value(outcome),dispatchAttemptCount:count,builds:Array.from({length:count},(_,at)=>({pidObserved:true,completed:!state.nonzero,status:state.nonzero&&at===0?1:0,signal:null,spawnError:'NONE',stdoutBytes:0,stderrBytes:0}))});
  method('preparePair',()=>({...value('BASE_EXCHANGE_PAIR_PREPARED'),baseA:'/private/tmp/redue-ci-recipient-11111111',baseB:'/private/tmp/redue-ci-recipient-22222222'}));method('createHost',()=>({...value('CI_SYNTHETIC_BOOTSTRAP_PREPARED'),base:'/private/tmp/redue-ci-recipient-33333333'}));method('prepareHostFixture',()=>value('SYNTHETIC_FIXTURE_PREPARED'));method('buildAssets',()=>build(3,'BUILT_NOT_EXECUTED'));method('verifyAssets',()=>value('BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED'));method('preparePairedSource',()=>({...flag,disabled:true}));method('buildPaired',()=>build(2,'BUILT_NOT_EXECUTED'));method('verifyPaired',()=>value('PAIRED_STAGE_ARTIFACTS_CURRENTLY_OBSERVED_NOT_EXECUTED'));method('provisionCopies',()=>value('CAMPAIGN_COPIES_OBSERVED_NOT_EXECUTED'));method('verifyCopies',()=>value('CAMPAIGN_COPIES_CURRENTLY_OBSERVED_NOT_EXECUTED'));method('buildLauncher',()=>build(1,'CAMPAIGN_LAUNCHER_BUILT_NOT_EXECUTED'));method('verifyLauncher',()=>value('CAMPAIGN_LAUNCHER_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED'));method('prepareProjection',()=>value('ORIGINAL_PROTECTED_INPUT_PROJECTION_PREPARED'));method('prepareNull',()=>({...flag,disabled:true,version:'campaign-prepared-devnull-setexec@2'}));method('prepareEnclosure',()=>({...value('FIXED_CANARY_ENCLOSURE_SOURCES_PREPARED_NOT_PROVISIONED'),version:'fixed-canary-finite-enclosure-source@2'}));method('buildEnclosure',()=>({...build(2,'BUILT_NOT_EXECUTED'),report:{profileId:'fixed-enclosure-local-sdk27@1',sourceVersion:'fixed-canary-finite-enclosure-source@2',files:Array.from({length:6},()=>({digest:'a'.repeat(64)}))}}));method('verifyEnclosure',()=>value('ENCLOSURE_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED'));
  return{calls,state,op,options:{ready:()=>state.ready,load:async()=>{calls.push('IMPORTS');return op;},now:()=>time},set:n=>{time=n;}};
@@ -15,13 +15,13 @@ test('fixed same-process source pipeline counts eight C builds and six new origi
 test('missing precondition imports/creates/builds nothing',async()=>{const m=mock();m.state.ready=false;const v=await observe(m.options);assert.equal(v.outcome,'UNKNOWN');assert.deepEqual(m.calls,[]);assert.equal(v.buildAttemptCount,0);authority(v);});
 for(const method of ['verifyAssets','verifyPaired','verifyCopies','verifyLauncher','prepareProjection','prepareEnclosure','verifyEnclosure'])test('unknown '+method+' stops at that prerequisite and retains all prior observations',async()=>{const m=mock();m.state.fail=method;const v=await observe(m.options);assert.equal(v.outcome,'UNKNOWN');assert.equal(m.calls.at(-1),method);assert.equal(v.phases.at(-1).outcome,'UNKNOWN');assert(v.buildResultCount<=8);authority(v);});
 test('known actual nonzero mock compiler status remains separate from UNKNOWN preparation',async()=>{const m=mock();m.state.nonzero=true;const v=await observe(m.options);assert.equal(v.outcome,'UNKNOWN');assert.equal(v.compilerBuildOutcome,'EXIT_NONZERO');assert.equal(v.buildResultCount,3);assert.equal(v.builds[0].status,1);assert.equal(v.failedPhase,'prerequisiteBuilds');assert.equal(m.calls.at(-1),'buildAssets');});
-for(const method of ['preparePair','buildAssets','buildLauncher','buildEnclosure','verifyEnclosure'])test('the same 30s budget includes '+method+' and stops later work',async()=>{const m=mock();m.state.elapsedAt=method;const v=await observe(m.options);assert.equal(v.outcome,'UNKNOWN');assert.equal(m.calls.at(-1),method);authority(v);});
-test('final validation is not exempt from body deadline',async()=>{const m=mock();let calls=0;m.op.verifyEnclosure=()=>{if(++calls===2)m.set(30000);return{outcome:'ENCLOSURE_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED',sealed:false,reuseEligible:false};};const v=await observe(m.options);assert.equal(v.outcome,'UNKNOWN');assert.equal(v.failedPhase,'finalValidation');assert.equal(v.buildResultCount,8);});
-test('parent pins exact inner bytes and fixed reviewed Node; no environment stripping or arbitrary command route',()=>{const sha=createHash('sha256').update(innerSource).digest('hex');assert(parentSource.includes('INNER_SHA256 = "'+sha+'"'));assert(parentSource.includes('NODE_SHA256 = "5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc"'));assert.match(parentSource,/start_new_session=True, close_fds=True/);assert.match(parentSource,/env=os\.environ\.copy\(\)/);assert.match(parentSource,/collect\(child, started=begun, exit_monitor=exit_monitor\)/);assert(!/child\.(?:poll|communicate)\(/.test(parentSource));assert(!/os\.environ\.(?:pop|clear|update)|shell=True|pexpect|pty\./.test(parentSource));assert.match(innerSource,/process\.execArgv\.length===0/);});
+for(const method of ['preparePair','buildAssets','buildLauncher','buildEnclosure','verifyEnclosure'])test('the same explicit 60s preparation budget includes '+method+' and stops later work',async()=>{const m=mock();m.state.elapsedAt=method;const v=await observe(m.options);assert.equal(v.outcome,'UNKNOWN');assert.equal(m.calls.at(-1),method);authority(v);});
+test('final validation is not exempt from body deadline',async()=>{const m=mock();let calls=0;m.op.verifyEnclosure=()=>{if(++calls===2)m.set(60000);return{outcome:'ENCLOSURE_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED',sealed:false,reuseEligible:false};};const v=await observe(m.options);assert.equal(v.outcome,'UNKNOWN');assert.equal(v.failedPhase,'finalValidation');assert.equal(v.buildResultCount,8);});
+test('parent pins exact inner bytes and fixed reviewed Node; no environment stripping or arbitrary command route',()=>{const sha=createHash('sha256').update(innerSource).digest('hex');assert(parentSource.includes('INNER_SHA256 = "'+sha+'"'));assert(parentSource.includes('NODE_SHA256 = "5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc"'));assert.match(parentSource,/start_new_session=True, close_fds=True/);assert.match(parentSource,/env=os\.environ\.copy\(\)/);assert.match(parentSource,/collect\(child, clock=timing, started=begun, exit_monitor=exit_monitor\)/);assert(!/child\.(?:poll|communicate)\(/.test(parentSource));assert(!/os\.environ\.(?:pop|clear|update)|shell=True|pexpect|pty\./.test(parentSource));assert.match(innerSource,/process\.execArgv\.length===0/);});
 test('mock Python parent proves kill-before-wait, no postreap destructive kill, EOF/cap/deadline/parser and SIGKILL races',async()=>{const frames=[];const good=await observe({...mock().options,observeProgress:frame=>frames.push(frame)});const python=String.raw`
 import contextlib,copy,errno,importlib.util,io,json,os,signal,sys
 spec=importlib.util.spec_from_file_location('owned_enclosure_parent',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
-payload=json.loads(sys.stdin.read());good=payload['good'];frames=payload['frames'];raw=b''.join((json.dumps(f,separators=(',',':'))+'\n').encode() for f in frames+[{'schema':1,'protocol':'fixed-enclosure-progress@1','kind':'FINAL','report':good}]);assert m.parse_inner((json.dumps(good)+'\n').encode())['outcome']=='BUILT_NOT_EXECUTED'
+payload=json.loads(sys.stdin.read());good=payload['good'];frames=payload['frames'];raw=b''.join((json.dumps(f,separators=(',',':'))+'\n').encode() for f in frames+[{'schema':1,'protocol':'fixed-enclosure-progress@2','kind':'FINAL','report':good}]);assert m.parse_inner((json.dumps(good)+'\n').encode())['outcome']=='BUILT_NOT_EXECUTED'
 class Stream:
  def __init__(self,n):self.n=n
  def fileno(self):return self.n
@@ -51,7 +51,7 @@ try:
    value=chunks[fd][0];part=value[:n];chunks[fd][0]=value[n:]
    if not chunks[fd][0]:chunks[fd].pop(0)
    return part
-  def clock():t[0]+=31 if deadline else .01;return t[0]
+  def clock():t[0]+=61 if deadline else .01;return t[0]
   def kill(pid,sig):
    c.events.append(('kill',pid,sig))
    if kill_error is not None and sig==signal.SIGKILL:raise kill_error
@@ -138,7 +138,7 @@ m.select.kqueue=forbidden_kernel_monitor
 def mock_monitor(child):mock_monitor_calls.append(True);return None
 m.open_owned_exit_monitor=mock_monitor
 try:
- calls=[];m._PROCESS_STARTED=m.time.monotonic();sys.argv=['fixed-parent','--run']
+ calls=[];m._PROCESS_STARTED=m.time.monotonic()-2;sys.argv=['fixed-parent','--run']
  m.prerequisites=lambda:(m.Path('/owned/repo'),m.Path('/owned/repo/fixed.mjs'),m.Path('/owned/node'),[])
  def fake_popen(*args,**kwargs):calls.append('POpen');return type('MockChild',(),{'pid':123})()
  m.subprocess.Popen=fake_popen
@@ -151,14 +151,14 @@ try:
  # compiler outcome, owned root names, exact child exit or cleanup observation.
  m.prepare_record_directory=lambda repo:[('PRIVATE_TEST_SNAPSHOT',)]
  large_failed=copy.deepcopy(failed);large_failed['builds'][0]['stderrBytes']=8193
- observed={'schema':1,'scope':m.SCOPE,'outcome':'UNKNOWN','reason_code':'INNER_PREPARATION_UNKNOWN','childReaped':True,'childExitCode':74,'childSignal':None,'cleanupSignal':'UNKNOWN','cleanupExceptionFamily':'PERMISSION_ERROR','cleanupErrno':'EPERM','groupAbsentAfterReap':True,'stdoutBytes':1234,'stderrBytes':0,'elapsedMs':1200,'innerReport':large_failed,**m._FALSE}
- m.collect=lambda child,started=None,exit_monitor=None:copy.deepcopy(observed)
+ observed={'schema':1,'scope':m.SCOPE,'outcome':'UNKNOWN','reason_code':'INNER_PREPARATION_UNKNOWN','childReaped':True,'childExitCode':74,'childSignal':None,'cleanupSignal':'UNKNOWN','cleanupExceptionFamily':'PERMISSION_ERROR','cleanupErrno':'EPERM','groupAbsentAfterReap':True,'stdoutBytes':1234,'stderrBytes':0,'elapsedMs':1200,'bodyElapsedMs':1000,'innerReport':large_failed,**m._FALSE}
+ m.collect=lambda child,clock=None,started=None,exit_monitor=None:copy.deepcopy(observed)
  m.file_current=lambda row:None
  def denied_persistence(*args):raise PermissionError('PRIVATE_PERSISTENCE_ERROR')
  m.save_record=denied_persistence
  capture=io.StringIO()
  with contextlib.redirect_stdout(capture):assert m.main()==74
- result=json.loads(capture.getvalue());assert calls==['POpen'] and result['outcome']=='UNKNOWN' and result['recordPersistence']=='UNKNOWN' and result['savedRecord']=='NOT_ESTABLISHED' and result['finalParentCompletion']=='NOT_ESTABLISHED'
+ result=json.loads(capture.getvalue());assert calls==['POpen'] and result['outcome']=='UNKNOWN' and result['recordPersistence']=='UNKNOWN' and result['savedRecord']=='NOT_ESTABLISHED' and result['finalParentCompletion']=='NOT_ESTABLISHED',(calls,result.get('reason_code'))
  assert 'record' not in result and 'sha256' not in result and 'PRIVATE' not in capture.getvalue() and len(capture.getvalue().encode())<=65536
  kept=result['observed'];assert kept['childReaped'] and kept['childExitCode']==74 and kept['childSignal'] is None and kept['cleanupSignal']=='UNKNOWN' and kept['cleanupExceptionFamily']=='PERMISSION_ERROR' and kept['cleanupErrno']=='EPERM' and kept['groupAbsentAfterReap']
  assert kept['innerReport']['ownedRootNames']==failed['ownedRootNames'] and kept['innerReport']['compilerBuildOutcome']=='EXIT_NONZERO' and kept['innerReport']['builds'][0]['status']==1 and kept['innerReport']['builds'][0]['stderrBytes']==8193
@@ -201,7 +201,7 @@ test('fixed progress emits BEGIN before each synchronous operation, one-shot del
  assert(frames.every((v,i)=>v.sequence===i&&v.kind===(i%2?'END':'BEGIN')));
  assert.equal(frames.flatMap(v=>v.newRoots).length,3);assert.equal(frames.flatMap(v=>v.newBuilds).length,8);
  assert.equal(frames.filter(v=>v.kind==='BEGIN').every(v=>v.newRoots.length===0&&v.newBuilds.length===0),true);
- const wire=frames.map(v=>JSON.stringify(v)+'\n').join('')+JSON.stringify({schema:1,protocol:'fixed-enclosure-progress@1',kind:'FINAL',report})+'\n';
+ const wire=frames.map(v=>JSON.stringify(v)+'\n').join('')+JSON.stringify({schema:1,protocol:'fixed-enclosure-progress@2',kind:'FINAL',report})+'\n';
  assert(Buffer.byteLength(wire)<65536);assert.equal(38*1024+8*256+3*128+16384,57728);
  assert.match(innerSource,/writeSync\(1,body,at,body\.length-at\)/);assert(!innerSource.includes('process.stdout.write(JSON.stringify(result)'));
  assert.equal(seen[0],'BEGIN:operationImports');authority(report);
@@ -217,7 +217,7 @@ sys.dont_write_bytecode=True
 spec=importlib.util.spec_from_file_location('progress_only_mock',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 payload=json.loads(sys.stdin.read());frames=payload['frames'];good=payload['good'];failed_frames=payload['failedFrames'];failed=payload['failed'];checks=0
 wire=lambda values:b''.join((json.dumps(v,separators=(',',':'),allow_nan=True)+'\n').encode() for v in values)
-final={'schema':1,'protocol':'fixed-enclosure-progress@1','kind':'FINAL','report':good}
+final={'schema':1,'protocol':'fixed-enclosure-progress@2','kind':'FINAL','report':good}
 p=m.ProgressProtocol();p.feed(wire(frames+[final]));assert p.finish()['outcome']=='BUILT_NOT_EXECUTED' and p.observation()['validatedFrameCount']==38;checks+=1
 # A synchronous operation can be interrupted after BEGIN. Its possible build
 # dispatches remain UNKNOWN, while the previous three returned outcomes survive.
@@ -227,7 +227,7 @@ v=p.observation();assert v['inProgressPhase']=='pairedBuilds' and v['buildAttemp
 for suffix in [b'{',b'{"schema":1,"schema":1}\n',wire([frames[cut-1]]),wire([dict(frames[cut],protocol='UNREVIEWED')]),wire([dict(frames[cut],sequence=99)]),wire([dict(frames[cut],phaseIndex=18)]),wire([dict(frames[cut],unexpected='PRIVATE')]),b'x'*65537,wire([dict(final,report={**good,'buildAttemptCount':7})])]:
  p=m.ProgressProtocol();p.feed(wire(prefix));p.feed(suffix);assert p.finish() is None and p.observation()['buildResultCountLowerBound']==3 and p.observation()['inProgressPhase']=='pairedBuilds';assert 'PRIVATE' not in json.dumps(p.observation());checks+=1
 # Unknown final retains a genuine nonzero returned status without green evidence.
-p=m.ProgressProtocol();p.feed(wire(failed_frames+[{'schema':1,'protocol':'fixed-enclosure-progress@1','kind':'FINAL','report':failed}]));v=p.finish();assert v['outcome']=='UNKNOWN' and v['compilerBuildOutcome']=='EXIT_NONZERO';assert p.observation()['compilerBuildOutcome']=='EXIT_NONZERO';checks+=1
+p=m.ProgressProtocol();p.feed(wire(failed_frames+[{'schema':1,'protocol':'fixed-enclosure-progress@2','kind':'FINAL','report':failed}]));v=p.finish();assert v['outcome']=='UNKNOWN' and v['compilerBuildOutcome']=='EXIT_NONZERO';assert p.observation()['compilerBuildOutcome']=='EXIT_NONZERO';checks+=1
 # A duplicate FINAL and trailing partial data both withdraw whole-stream success.
 for tail in (wire([final]),b'{'):
  p=m.ProgressProtocol();p.feed(wire(frames+[final])+tail);assert p.finish() is None and len(p.frames)==38;checks+=1
@@ -255,7 +255,7 @@ class Selector:
  def get_map(self):return self.keys
  def select(self,t):return [(self.keys[10],1)]
  def close(self):pass
-events=[];clock_values=iter((0,0,31,31,31,31,31));chunks=[wire(prefix)]
+events=[];clock_values=iter((0,0,61,61,61,61,61));chunks=[wire(prefix)]
 def read(fd,n):
  body=chunks[0];value=body[:n];chunks[0]=body[n:]
  if not chunks[0]:chunks.pop(0)
@@ -265,7 +265,7 @@ def kill(pid,sig):
  if sig==0:raise ProcessLookupError(3,'PRIVATE')
 old=m.os.set_blocking;m.os.set_blocking=lambda *a:None
 try:
- result=m.collect(Child(),clock=lambda:0 if chunks else 31,selector_factory=Selector,read=read,killpg=kill,started=0)
+ result=m.collect(Child(),clock=lambda:0 if chunks else 61,selector_factory=Selector,read=read,killpg=kill,started=0)
  assert result['outcome']=='UNKNOWN' and result['reason_code']=='BODY_DEADLINE' and result['childSignal']==9 and result['childReaped']
  assert result['progressObservation']['inProgressPhase']=='pairedBuilds' and result['progressObservation']['buildResultCountLowerBound']==3
  assert result['innerReport'] is None and events==[signal.SIGKILL,0];checks+=1
@@ -285,7 +285,7 @@ assert sys.platform=='darwin'
 assert not any(re.search(r'^(?:NODE_OPTIONS|NODE_PATH|NODE_REPL_EXTERNAL_MODULE|BASH_ENV|ENV)$|^(?:DYLD_|LD_|OPENSSL_)',key,re.I) for key in os.environ)
 node=m.Path(pwd.getpwuid(os.getuid()).pw_dir)/'.nvm/versions/node/v22.13.0/bin/node'
 m.inspect_file(node,os.getuid(),128*1024*1024,m.NODE_SHA256)
-frame={'schema':1,'protocol':'fixed-enclosure-progress@1','kind':'BEGIN','sequence':0,'phaseIndex':0,'name':'operationImports','elapsedMs':0,'phaseElapsedMs':None,'outcome':'IN_PROGRESS','newRoots':[],'newBuilds':[],'buildAttemptCount':0,'buildResultCount':0,'observedProcessCount':0,'compilerBuildOutcome':'UNKNOWN','countsMeaning':'RETURNED_OBSERVATIONS_LOWER_BOUND','activeDispatchCount':'UNKNOWN'}
+frame={'schema':1,'protocol':'fixed-enclosure-progress@2','kind':'BEGIN','sequence':0,'phaseIndex':0,'name':'operationImports','elapsedMs':0,'phaseElapsedMs':None,'outcome':'IN_PROGRESS','newRoots':[],'newBuilds':[],'buildAttemptCount':0,'buildResultCount':0,'observedProcessCount':0,'compilerBuildOutcome':'UNKNOWN','countsMeaning':'RETURNED_OBSERVATIONS_LOWER_BOUND','activeDispatchCount':'UNKNOWN'}
 line=json.dumps(frame,separators=(',',':'))+'\n'
 # Fixed one harmless child: stdout only; no filesystem access, child launches,
 # native agent, checker, compiler, REDUE fixture, credentials or model.
@@ -297,7 +297,7 @@ def kill(pid,sig):
  assert pid==child.pid
  events.append('OWNED_GROUP_SIGKILL' if sig==signal.SIGKILL else 'POST_REAP_GROUP_ZERO' if sig==0 else 'INVALID')
  return os.killpg(pid,sig)
-result=m.collect(child,killpg=kill,started=wall-28.5,exit_monitor=monitor)
+result=m.collect(child,killpg=kill,started=wall-58.5,exit_monitor=monitor)
 actual=(time.monotonic()-wall)*1000
 assert result['outcome']=='UNKNOWN' and result['reason_code']=='BODY_DEADLINE' and result['innerReport'] is None
 assert result['progressObservation']['inProgressPhase']=='operationImports' and result['progressObservation']['validatedFrameCount']==1
@@ -307,7 +307,7 @@ assert events==['OWNED_GROUP_SIGKILL','POST_REAP_GROUP_ZERO'] and result['stderr
 # leave the owned child running. A BEGIN without FINAL cannot query EXIT or
 # authorize the normal-exit shortcut, even with a real registered monitor.
 assert monitor is not None and monitor.queue is None and result['exitMonitorState']=='NOT_QUERIED'
-print(json.dumps({'scope':'HARMLESS_FIXED_STDOUT_DELIVERY_HARNESS_ONLY','outcome':'HARNESS_ASSERTIONS_PASS','wallMs':actual,'syntheticParentAgeAtLaunchMs':28500,'monitorRegistered':True,'monitorClosed':True,'exitMonitorState':result['exitMonitorState'],'validProgressFrames':1,'overallPreparation':'UNKNOWN','childReaped':True,'ownedGroupAbsent':True,'actualPopen':1,'childSubprocesses':0,'compilerBuilds':0,'nativeExecutions':0,'models':0,'sourceAuthority':'NONE'}))
+print(json.dumps({'scope':'HARMLESS_FIXED_STDOUT_DELIVERY_HARNESS_ONLY','outcome':'HARNESS_ASSERTIONS_PASS','wallMs':actual,'syntheticParentAgeAtLaunchMs':58500,'monitorRegistered':True,'monitorClosed':True,'exitMonitorState':result['exitMonitorState'],'validProgressFrames':1,'overallPreparation':'UNKNOWN','childReaped':True,'ownedGroupAbsent':True,'actualPopen':1,'childSubprocesses':0,'compilerBuilds':0,'nativeExecutions':0,'models':0,'sourceAuthority':'NONE'}))
 `;
  const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{encoding:'utf8',timeout:8000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.scope,'HARMLESS_FIXED_STDOUT_DELIVERY_HARNESS_ONLY');assert.equal(result.outcome,'HARNESS_ASSERTIONS_PASS');assert.equal(result.actualPopen,1);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);assert.equal(result.models,0);console.log(JSON.stringify(result));
 });
@@ -323,7 +323,7 @@ sys.dont_write_bytecode=True
 spec=importlib.util.spec_from_file_location('bound_build_facts_mock',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 v=json.loads(sys.stdin.read());checks=0
 wire=lambda values:b''.join((json.dumps(x,separators=(',',':'))+'\n').encode() for x in values)
-final=lambda report:{'schema':1,'protocol':'fixed-enclosure-progress@1','kind':'FINAL','report':report}
+final=lambda report:{'schema':1,'protocol':'fixed-enclosure-progress@2','kind':'FINAL','report':report}
 failed,failed_frames=v['failed'],v['failedFrames']
 # Exact prior counterexample: immutable returned nonzero cannot be summarized
 # as EXIT_ZERO (or UNKNOWN), even though the overall preparation is UNKNOWN.
@@ -360,12 +360,12 @@ max_build={'pidObserved':False,'completed':False,'status':255,'signal':'SIGABRT'
 max_root={'role':'H','name':'redue-ci-recipient-'+'f'*8}
 assert encoded(max_build)<=256 and encoded(max_root)<=128
 for name in m.PHASE_NAMES:
- assert encoded({'name':name,'elapsedMs':34999.99999999999,'outcome':'COMPLETED'})<=128
+ assert encoded({'name':name,'elapsedMs':64999.99999999999,'outcome':'COMPLETED'})<=128
 p=m.ProgressProtocol();summary=p.observation()
 for key in ('endedPhases','ownedRootNames','builds'):summary[key]=[]
 summary.update(validatedFrameCount=38,protocolStatus='INVALID_OR_INCOMPLETE',inProgressPhase='prerequisiteCurrent',buildAttemptCountLowerBound=8,buildResultCountLowerBound=8,compilerBuildOutcome='EXIT_NONZERO')
 assert encoded(summary)<=1024
-outer={'schema':1,'scope':m.SCOPE,'outcome':'UNKNOWN','reason_code':'POST_COLLECTION_UNAVAILABLE','recordPersistence':'UNKNOWN','savedRecord':'NOT_ESTABLISHED','finalParentCompletion':'NOT_ESTABLISHED','observed':{'childReaped':False,'childExitCode':255,'childSignal':255,'cleanupSignal':'GROUP_ALREADY_ABSENT','cleanupExceptionFamily':'PROCESS_LOOKUP_ERROR','cleanupErrno':'EOVERFLOW','groupAbsentAfterReap':False,'stdoutBytes':65536,'stderrBytes':4096,'elapsedMs':34999.99999999999,'finalSourceCurrentness':'ENDPOINTS_OBSERVED','progressFrames':[],'progressObservation':{},'innerReport':{}},**m._FALSE}
+outer={'schema':1,'scope':m.SCOPE,'outcome':'UNKNOWN','reason_code':'POST_COLLECTION_UNAVAILABLE','recordPersistence':'UNKNOWN','savedRecord':'NOT_ESTABLISHED','finalParentCompletion':'NOT_ESTABLISHED','observed':{'childReaped':False,'childExitCode':255,'childSignal':255,'cleanupSignal':'GROUP_ALREADY_ABSENT','cleanupExceptionFamily':'PROCESS_LOOKUP_ERROR','cleanupErrno':'EOVERFLOW','groupAbsentAfterReap':False,'stdoutBytes':65536,'stderrBytes':4096,'elapsedMs':64999.99999999999,'bodyElapsedMs':59999.99999999999,'finalSourceCurrentness':'ENDPOINTS_OBSERVED','progressFrames':[],'progressObservation':{},'innerReport':{}},**m._FALSE}
 outer['observed'].update(exitMonitorState='EXIT_NOT_OBSERVED',prewaitGroupProbe='PERMISSION_DENIED',prewaitProbeExceptionFamily='PROCESS_LOOKUP_ERROR',prewaitProbeErrno='EOVERFLOW',postreapGroupProbe='PERMISSION_DENIED',postreapProbeExceptionFamily='PROCESS_LOOKUP_ERROR',postreapProbeErrno='EOVERFLOW')
 assert encoded(outer)<=1536
 assert 38*1024+8*256+3*128==41344
@@ -383,7 +383,7 @@ import copy,errno,importlib.util,json,signal,sys,types
 sys.dont_write_bytecode=True
 spec=importlib.util.spec_from_file_location('nonreaping_exit_gate_mocks',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 payload=json.loads(sys.stdin.read());checks=0
-wire=lambda report,frames:b''.join((json.dumps(v,separators=(',',':'))+'\n').encode() for v in frames+[{'schema':1,'protocol':'fixed-enclosure-progress@1','kind':'FINAL','report':report}])
+wire=lambda report,frames:b''.join((json.dumps(v,separators=(',',':'))+'\n').encode() for v in frames+[{'schema':1,'protocol':'fixed-enclosure-progress@2','kind':'FINAL','report':report}])
 good=wire(payload['good'],payload['goodFrames']);unknown=wire(payload['unknown'],payload['unknownFrames'])
 class Stream:
  def __init__(self,n):self.n=n
@@ -488,7 +488,7 @@ print(json.dumps({'scope':'NONREAPING_CHILD_EXIT_SOURCE_MOCKS_ONLY','passed':che
 });
 
 test('opt-in harmless owned normal child exit is observed without reaping before cleanup decision HARNESS ONLY',{skip:process.env.REDUE_DIR230_HARMLESS_NORMAL_EXIT!=='1'},async()=>{
- const fixture=mock();fixture.state.fail='prepareEnclosure';const frames=[],report=await observe({...fixture.options,observeProgress:frame=>frames.push(frame)});const wire=frames.map(frame=>JSON.stringify(frame)+'\n').join('')+JSON.stringify({schema:1,protocol:'fixed-enclosure-progress@1',kind:'FINAL',report})+'\n';
+ const fixture=mock();fixture.state.fail='prepareEnclosure';const frames=[],report=await observe({...fixture.options,observeProgress:frame=>frames.push(frame)});const wire=frames.map(frame=>JSON.stringify(frame)+'\n').join('')+JSON.stringify({schema:1,protocol:'fixed-enclosure-progress@2',kind:'FINAL',report})+'\n';
  const python=String.raw`
 import importlib.util,json,os,pwd,re,subprocess,sys,time
 sys.dont_write_bytecode=True
@@ -524,7 +524,7 @@ sys.dont_write_bytecode=True
 spec=importlib.util.spec_from_file_location('static_refusal_bridge_mock',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 v=json.loads(sys.stdin.read());assert tuple(row['report']['enclosureSourceRefusal'] for row in v)==m.ENCLOSURE_REFUSAL_STAGES;checks=0
 for row in v:
- p=m.ProgressProtocol();frames=row['frames']+[{'schema':1,'protocol':'fixed-enclosure-progress@1','kind':'FINAL','report':row['report']}]
+ p=m.ProgressProtocol();frames=row['frames']+[{'schema':1,'protocol':'fixed-enclosure-progress@2','kind':'FINAL','report':row['report']}]
  p.feed(b''.join((json.dumps(frame,separators=(',',':'))+'\n').encode() for frame in frames));assert p.finish()['enclosureSourceRefusal']==row['report']['enclosureSourceRefusal'];checks+=1
 for edit in (lambda x:x.update(enclosureSourceRefusal='PRIVATE'),lambda x:x.update(enclosureSourceRefusal={}),lambda x:x.pop('enclosureSourceRefusal'),lambda x:x.update(failedPhase='pairedSource'),lambda x:x.update(outcome='BUILT_NOT_EXECUTED'),lambda x:x['phases'][-1].update(outcome='COMPLETED')):
  x=copy.deepcopy(v[0]['report']);edit(x)
@@ -549,7 +549,7 @@ sys.dont_write_bytecode=True
 spec=importlib.util.spec_from_file_location('original_current_bridge_mock',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 rows=json.loads(sys.stdin.read());assert tuple(row['report']['originalCurrentRefusal'] for row in rows[:11])==m.ORIGINAL_CURRENT_REFUSAL_STAGES;checks=0
 for row in rows:
- final={'schema':1,'protocol':'fixed-enclosure-progress@1','kind':'FINAL','report':row['report']}
+ final={'schema':1,'protocol':'fixed-enclosure-progress@2','kind':'FINAL','report':row['report']}
  # New fields are inside the existing final-frame budget, not added outside
  # it: progress41,344 + summary5,888 + FINAL16,384 + wrapper1,536 =65,152.
  assert len((json.dumps(final,separators=(',',':'))+'\n').encode())<=16384
@@ -569,4 +569,214 @@ assert 41344+5888+16384+1536==65152<65536;checks+=1
 print(json.dumps({'scope':'ORIGINAL_CURRENT_BRIDGE_SOURCE_MOCKS_ONLY','passed':checks,'actualPopen':0,'actualKernelMonitors':0,'compilerBuilds':0,'nativeExecutions':0}))
 `;
  const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify(results),encoding:'utf8',timeout:5000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.passed,31);assert.equal(result.actualPopen,0);assert.equal(result.actualKernelMonitors,0);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);
+});
+
+test('preparation profile2 binds60s body and5s cleanup while preserving enclosure build profile1',async()=>{
+ const m=mock();let count=0;const original=m.op.verifyEnclosure;m.op.verifyEnclosure=(...args)=>{if(++count===2)m.set(59999);return original(...args);};const frames=[],good=await observe({...m.options,observeProgress:frame=>frames.push(frame)});
+ assert.equal(good.outcome,'BUILT_NOT_EXECUTED');assert.equal(good.profile,'fixed-enclosure-preparation-local-sdk27@2');assert.equal(good.elapsedMs,59999);assert.deepEqual([good.bodyBudgetMs,good.cleanupBudgetMs,good.totalBudgetMs],[60000,5000,65000]);assert(frames.every(frame=>frame.protocol==='fixed-enclosure-progress@2'));
+ for(const time of [60000,60001,NaN,Infinity,-1]){const fixture=mock();fixture.op.verifyAssets=()=>{fixture.set(time);return{outcome:'BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED',sealed:false,reuseEligible:false};};const report=await observe(fixture.options);assert.equal(report.outcome,'UNKNOWN');assert.equal(report.failedPhase,'prerequisiteCurrent');assert(!fixture.calls.includes('preparePairedSource'));}
+ const wrong=mock(),build=wrong.op.buildEnclosure;wrong.op.buildEnclosure=(...args)=>{const value=build(...args);value.report.profileId='fixed-enclosure-preparation-local-sdk27@2';return value;};const rejected=await observe(wrong.options);assert.equal(rejected.outcome,'UNKNOWN');assert.equal(rejected.failedPhase,'finalValidation');
+ const python=String.raw`
+import contextlib,copy,errno,importlib.util,io,json,math,signal,sys
+sys.dont_write_bytecode=True
+spec=importlib.util.spec_from_file_location('fixed_preparation_budget_mock',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+payload=json.loads(sys.stdin.read());good=payload['good'];frames=payload['frames'];checks=0
+raw=b''.join((json.dumps(frame,separators=(',',':'))+'\n').encode() for frame in frames+[{'schema':1,'protocol':'fixed-enclosure-progress@2','kind':'FINAL','report':good}])
+assert m.parse_inner((json.dumps(good)+'\n').encode())['elapsedMs']==59999;checks+=1
+for edit in (lambda value:value.update(profile='fixed-enclosure-local-sdk27@1'),lambda value:value.update(bodyBudgetMs=30000,totalBudgetMs=35000),lambda value:value.update(bodyBudgetMs=True),lambda value:value.update(elapsedMs=60000),lambda value:value.update(elapsedMs=60001)):
+ value=copy.deepcopy(good);edit(value)
+ try:m.parse_inner((json.dumps(value)+'\n').encode());raise AssertionError('OBSOLETE_OR_LATE_FINAL_ACCEPTED')
+ except ValueError:pass
+ checks+=1
+p=m.ProgressProtocol();old=copy.deepcopy(frames[0]);old['protocol']='fixed-enclosure-progress@1';p.feed((json.dumps(old)+'\n').encode());assert p.finish() is None and p.frames==[];checks+=1
+class Stream:
+ def __init__(self,n):self.n=n
+ def fileno(self):return self.n
+ def close(self):pass
+class Child:
+ pid=123
+ def __init__(self):self.stdout=Stream(10);self.stderr=Stream(11);self.events=[]
+ def wait(self,timeout):self.events.append(('wait',timeout));assert 0<=timeout<=5;return 0
+class Key:
+ def __init__(self,f,d):self.fileobj=f;self.data=d
+class Selector:
+ def __init__(self):self.keys={}
+ def register(self,f,e,d):self.keys[f.n]=Key(f,d)
+ def unregister(self,f):self.keys.pop(f.n)
+ def get_map(self):return self.keys
+ def select(self,t):return [(next(iter(self.keys.values())),1)]
+ def close(self):pass
+old_blocking=m.os.set_blocking;m.os.set_blocking=lambda *args:None
+try:
+ def run(body_end=59.999,cleanup_end=None):
+  child=Child();chunks={10:[raw,b''],11:[b'']};body_done=[False];at=[0]
+  def read(fd,n):
+   value=chunks[fd][0];part=value[:n];chunks[fd][0]=value[n:]
+   if not chunks[fd][0]:chunks[fd].pop(0)
+   if fd==11:body_done[0]=True
+   return part
+  def clock():
+   if not body_done[0]:return 0
+   at[0]+=1
+   return body_end if at[0]==1 or cleanup_end is None else cleanup_end
+  def kill(pid,sig):
+   child.events.append(('kill',sig))
+   if sig==0:raise ProcessLookupError(errno.ESRCH,'PRIVATE')
+  result=m.collect(child,clock=clock,selector_factory=Selector,read=read,killpg=kill,started=0)
+  assert child.events[0]==('kill',signal.SIGKILL) and child.events[1][0]=='wait' and child.events[2]==('kill',0)
+  return result,child.events
+ result,events=run();assert result['outcome']=='BUILT_NOT_EXECUTED' and result['bodyElapsedMs']==59999;assert events[1][1]<=5;checks+=1
+ for end in (60,60.001,65):
+  result,events=run(body_end=end);assert result['outcome']=='UNKNOWN' and result['reason_code']=='BODY_DEADLINE' and result['innerReport']['outcome']=='BUILT_NOT_EXECUTED';assert events[1][1]<=max(0,65-end);checks+=1
+ result,events=run(body_end=10,cleanup_end=15.001);assert result['outcome']=='UNKNOWN' and result['reason_code']=='CLEANUP_DEADLINE' and events[1][1]==0;checks+=1
+ result,events=run(body_end=59.999,cleanup_end=65.001);assert result['outcome']=='UNKNOWN' and events[1][1]==0;checks+=1
+ for end in (float('nan'),float('inf'),-1):
+  result,events=run(body_end=end);assert result['outcome']=='UNKNOWN' and events[1][1]==0;checks+=1
+finally:m.os.set_blocking=old_blocking
+# Mock main has its own parent time; child diagnostic timing is not the source
+# of the body's deadline. The mocked collector supplies parent body-end facts.
+old={key:getattr(m,key) for key in ('prerequisites','prepare_record_directory','collect','save_record','file_current','open_owned_exit_monitor','_PROCESS_STARTED')};old_popen=m.subprocess.Popen;old_clock=m.time.monotonic;old_argv=sys.argv
+old_queue=getattr(m.select,'kqueue',None);had_queue=hasattr(m.select,'kqueue');kernel_calls=[]
+def forbidden_queue():kernel_calls.append(True);raise AssertionError('NO_KERNEL_MONITOR')
+m.select.kqueue=forbidden_queue
+try:
+ for delayed in ('currentness','persistence','serialization','serialization_backwards','serialization_nonfinite','serialization_infinite'):
+  clock=[10.0];calls=[];m._PROCESS_STARTED=0;sys.argv=['fixed-parent','--run'];m.time.monotonic=lambda:clock[0]
+  m.prerequisites=lambda:(m.Path('/owned/repo'),m.Path('/owned/repo/fixed.mjs'),m.Path('/owned/node'),[{}]);m.prepare_record_directory=lambda repo:[]
+  m.open_owned_exit_monitor=lambda child:None;m.subprocess.Popen=lambda *args,**kwargs:object()
+  observed={'schema':1,'scope':m.SCOPE,'outcome':'BUILT_NOT_EXECUTED','reason_code':'PREPARATION_OBSERVED','bodyElapsedMs':10000,'elapsedMs':10000,'innerReport':good,**m._FALSE}
+  m.collect=lambda child,clock=None,started=None,exit_monitor=None:copy.deepcopy(observed)
+  def current(row):
+   calls.append('current')
+   if delayed=='currentness':clock[0]=15.001
+  m.file_current=current
+  def save(*args):
+   calls.append('save')
+   if delayed=='persistence':clock[0]=15.001
+   return '/owned/record','a'*64
+  m.save_record=save
+  old_dumps=m.json.dumps
+  def dumps(value,*args,**kwargs):
+   body=old_dumps(value,*args,**kwargs)
+   if delayed.startswith('serialization') and type(value) is dict and 'record' in value:clock[0]={'serialization':15.001,'serialization_backwards':9,'serialization_nonfinite':float('nan'),'serialization_infinite':float('inf')}[delayed]
+   return body
+  m.json.dumps=dumps
+  try:
+   output=io.StringIO()
+   with contextlib.redirect_stdout(output):assert m.main()==74
+  finally:m.json.dumps=old_dumps
+  result=json.loads(output.getvalue());assert result['outcome']=='UNKNOWN' and result['observed']['innerReport']['buildResultCount']==8 and 'record' not in result
+  if delayed=='currentness':assert calls==['current']
+  else:assert calls==['current','save']
+  checks+=1
+ for prelaunch in (-1,float('nan'),float('inf'),60):
+  m._PROCESS_STARTED=0;m.time.monotonic=lambda:prelaunch;launches=[]
+  m.subprocess.Popen=lambda *args,**kwargs:launches.append(True)
+  output=io.StringIO()
+  with contextlib.redirect_stdout(output):assert m.main()==74
+  assert launches==[] and json.loads(output.getvalue())['reason_code']==('PRECONDITION_UNAVAILABLE' if prelaunch==60 else 'CLOCK_UNAVAILABLE');checks+=1
+ assert kernel_calls==[]
+finally:
+ for key,value in old.items():setattr(m,key,value)
+ m.subprocess.Popen=old_popen;m.time.monotonic=old_clock;sys.argv=old_argv
+ if had_queue:m.select.kqueue=old_queue
+ else:delattr(m.select,'kqueue')
+print(json.dumps({'scope':'PREPARATION_PROFILE2_BUDGET_SOURCE_MOCKS_ONLY','passed':checks,'actualPopen':0,'actualKernelMonitors':0,'compilerBuilds':0,'nativeExecutions':0}))
+`;
+ const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify({good,frames}),encoding:'utf8',timeout:5000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.passed,26);assert.equal(result.actualPopen,0);assert.equal(result.actualKernelMonitors,0);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);
+});
+
+test('one parent clock latches cleanup regressions across grace wait completion and main without renewed authority',async()=>{
+ const frames=[],good=await observe({...mock().options,observeProgress:frame=>frames.push(frame)});
+ const python=String.raw`
+import contextlib,copy,errno,importlib.util,io,json,signal,sys
+sys.dont_write_bytecode=True
+spec=importlib.util.spec_from_file_location('parent_clock_latch_mock',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+payload=json.loads(sys.stdin.read());good=payload['good'];raw=b''.join((json.dumps(frame,separators=(',',':'))+'\n').encode() for frame in payload['frames']+[{'schema':1,'protocol':'fixed-enclosure-progress@2','kind':'FINAL','report':good}]);checks=0
+# The irreversible clock does not re-read a restored source after one invalid
+# observation. Last-seen remains provenance, never a reset baseline.
+for bad in (10.2,float('nan'),float('inf')):
+ values=iter((10,14.9,bad,20));calls=[]
+ def source():calls.append(True);return next(values)
+ clock=m.PreparationMonotonicClock(source,0);assert clock()==10 and clock()==14.9
+ for _ in range(2):
+  try:clock();raise AssertionError('CLOCK_RECOVERED_AUTHORITY')
+  except ValueError:pass
+ assert not clock.valid and clock.last==14.9 and len(calls)==3;checks+=1
+class Stream:
+ def __init__(self,n):self.n=n
+ def fileno(self):return self.n
+ def close(self):pass
+class Child:
+ pid=123
+ def __init__(self):self.stdout=Stream(10);self.stderr=Stream(11);self.events=[]
+ def wait(self,timeout):self.events.append(('wait',timeout));assert 0<=timeout<=5;return 0
+class Key:
+ def __init__(self,f,d):self.fileobj=f;self.data=d
+class Selector:
+ def __init__(self):self.keys={}
+ def register(self,f,e,d):self.keys[f.n]=Key(f,d)
+ def unregister(self,f):self.keys.pop(f.n)
+ def get_map(self):return self.keys
+ def select(self,t):return [(next(iter(self.keys.values())),1)]
+ def close(self):pass
+class Monitor:
+ def __init__(self,child):self.child=child;self.queries=0
+ def exited(self,timeout=0):self.queries+=1;self.child.events.append(('grace',timeout));return True
+ def close(self):pass
+old_blocking=m.os.set_blocking;m.os.set_blocking=lambda *args:None
+try:
+ def run(values,monitor=False):
+  child=Child();chunks={10:[raw,b''],11:[b'']};done=[False];sequence=iter(values);calls=[]
+  def read(fd,n):
+   value=chunks[fd][0];part=value[:n];chunks[fd][0]=value[n:]
+   if not chunks[fd][0]:chunks[fd].pop(0)
+   if fd==11:done[0]=True
+   return part
+  def source():
+   if not done[0]:return 0
+   value=next(sequence,20);calls.append(value);return value
+  def kill(pid,sig):
+   assert pid==123;child.events.append(('kill',sig))
+   if sig==0:raise ProcessLookupError(errno.ESRCH,'PRIVATE')
+  observer=Monitor(child) if monitor else None
+  result=m.collect(child,clock=source,selector_factory=Selector,read=read,killpg=kill,started=0,exit_monitor=observer)
+  wait_at=next(i for i,value in enumerate(child.events) if value[0]=='wait')
+  assert all(value[0]!='kill' or value[1]==0 for value in child.events[wait_at+1:])
+  assert result['childReaped'] and result['groupAbsentAfterReap'] and result['innerReport']['buildResultCount']==8
+  return result,child.events,calls,observer
+ # Exact rejected e6a20 counterexample, plus grace->wait and nonfinite cases.
+ for values,monitor in (((10,14.9,10.2),False),((10,14.8,14.9,10.2),True),((10,14.9,14.8,14.95),True),((10,float('nan'),11),False),((10,float('inf'),20),True),((10,-1,12),False)):
+  result,events,calls,observer=run(values,monitor);assert result['outcome']=='UNKNOWN' and result['reason_code']=='CLOCK_UNAVAILABLE' and result['elapsedMs'] is None
+  if monitor and values[1]==float('inf'):assert observer.queries==0
+  if not monitor:assert events[0]==('kill',signal.SIGKILL)
+  checks+=1
+ result,events,calls,observer=run((10,14.8,14.9,14.95),True);assert result['outcome']=='BUILT_NOT_EXECUTED' and result['reason_code']=='PREPARATION_OBSERVED';assert not any(event==('kill',signal.SIGKILL) for event in events);checks+=1
+finally:m.os.set_blocking=old_blocking
+# Actual main passes one identical tracker to collect and final guards. A mock
+# collection observes14.9 then restores the source to10.2; main cannot reset it
+# using report/child timestamps or proceed to currentness/persistence.
+old={key:getattr(m,key) for key in ('prerequisites','prepare_record_directory','collect','save_record','file_current','open_owned_exit_monitor','_PROCESS_STARTED')};old_popen=m.subprocess.Popen;old_time=m.time.monotonic;old_argv=sys.argv;old_queue=getattr(m.select,'kqueue',None);had_queue=hasattr(m.select,'kqueue')
+try:
+ wall=[0];operations=[];m._PROCESS_STARTED=0;sys.argv=['fixed-parent','--run'];m.time.monotonic=lambda:wall[0]
+ m.prerequisites=lambda:(m.Path('/owned/repo'),m.Path('/owned/entry'),m.Path('/owned/node'),[]);m.prepare_record_directory=lambda repo:[]
+ m.subprocess.Popen=lambda *args,**kwargs:object();m.open_owned_exit_monitor=lambda child:None
+ def forbidden_queue():operations.append('KERNEL_MONITOR');raise AssertionError('NO_KERNEL_MONITOR')
+ m.select.kqueue=forbidden_queue
+ def observed(child,clock=None,started=None,exit_monitor=None):
+  assert type(clock) is m.PreparationMonotonicClock and started==0
+  wall[0]=14.9;assert clock()==14.9;wall[0]=10.2
+  return {'schema':1,'scope':m.SCOPE,'outcome':'BUILT_NOT_EXECUTED','reason_code':'PREPARATION_OBSERVED','elapsedMs':14900,'bodyElapsedMs':10000,'innerReport':good,**m._FALSE}
+ m.collect=observed;m.file_current=lambda row:operations.append('CURRENT');m.save_record=lambda *args:operations.append('PERSISTENCE')
+ output=io.StringIO()
+ with contextlib.redirect_stdout(output):assert m.main()==74
+ result=json.loads(output.getvalue());assert result['outcome']=='UNKNOWN' and result['reason_code']=='CLOCK_UNAVAILABLE' and result['observed']['innerReport']['buildResultCount']==8 and operations==[];checks+=1
+finally:
+ for key,value in old.items():setattr(m,key,value)
+ m.subprocess.Popen=old_popen;m.time.monotonic=old_time;sys.argv=old_argv
+ if had_queue:m.select.kqueue=old_queue
+ else:delattr(m.select,'kqueue')
+print(json.dumps({'scope':'PARENT_CLOCK_LATCH_SOURCE_MOCKS_ONLY','passed':checks,'actualPopen':0,'actualKernelMonitors':0,'actualSignals':0,'compilerBuilds':0,'nativeExecutions':0}))
+`;
+ const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify({good,frames}),encoding:'utf8',timeout:5000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.passed,11);assert.equal(result.actualPopen,0);assert.equal(result.actualKernelMonitors,0);assert.equal(result.actualSignals,0);assert.equal(result.nativeExecutions,0);
 });

@@ -1,6 +1,9 @@
 #!/usr/bin/python3
 """Fixed PRE-NATIVE preparation parent. No native/model/compiled-code execution.
 
+Fixed preparation profile@2: 60-second body, at most 5-second cleanup,
+65-second total. These operation-boundary checks cannot interrupt synchronous
+filesystem stalls. Native/checker/model and per-build budgets are unchanged.
 One reviewed inner entry, one reviewed Node and unchanged safe environment. This
 is a process-lifetime envelope, not a command dispatcher or a native sandbox.
 Private preparation mints are lost at child exit; reports never restore them.
@@ -11,6 +14,7 @@ _PROCESS_STARTED = time.monotonic()
 import hashlib
 import errno
 import json
+import math
 import os
 from pathlib import Path
 import platform
@@ -24,7 +28,7 @@ import subprocess
 import sys
 import uuid
 
-INNER_SHA256 = "20b7adac1bc208626e43ee2b815cb6558e44c25e4a4558c68ad05880245642f7"
+INNER_SHA256 = "57a5e0f6d45dfd5ddd2e996da33c4d023a17cc1dbda7496a8eaecbb3484a3cf7"
 ENCLOSURE_REFUSAL_STAGES = ("OPTIONS", "ORIGINAL_DERIVATION", "PREPARED_NULL_CURRENT", "INITIAL_ORIGINAL_CURRENT", "PROJECTION_INTERPRETATION", "CAMPAIGN_RENDER", "DERIVED_BINDINGS", "COLLECTOR_FUNCTION_PIN", "C_TEMPLATE_READ", "COLLECTOR_TEMPLATE_READ", "LAUNCHER_REBIND", "ENCLOSURE_REBIND", "FINAL_ORIGINAL_CURRENT", "SOURCE_RESULT")
 ORIGINAL_CURRENT_REFUSAL_STAGES = ("DERIVATION", "PROJECTION_CURRENT", "PREPARED_NULL_CURRENT", "PROJECTION_RESULT", "PREPARED_NULL_RESULT", "C_SOURCE_READ", "C_SOURCE_IDENTITY", "COLLECTOR_SOURCE_READ", "COLLECTOR_SOURCE_IDENTITY", "C_SOURCE_NAMED", "COLLECTOR_SOURCE_NAMED")
 NODE_SHA256 = "5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc"
@@ -131,10 +135,13 @@ def parse_inner(body):
         return value
     require(0 < len(body) <= 65536 and body.endswith(b"\n") and body.count(b"\n") == 1)
     value = json.loads(body, object_pairs_hook=unique)
-    expected = {"schema", "scope", "profile", "outcome", "reason_code", "failedPhase", "enclosureSourceRefusal", "originalCurrentRefusal", "phases", "ownedRootNames", "builds", "buildAttemptCount", "buildResultCount", "observedProcessCount", "compilerBuildOutcome", "newFileDigests", "elapsedMs", "privateMints", "newCodeCurrentness", "nativeIntervalBarrier", "completeSdkClosure", "preMainLoader", *_FALSE.keys()}
+    expected = {"schema", "scope", "profile", "bodyBudgetMs", "cleanupBudgetMs", "totalBudgetMs", "outcome", "reason_code", "failedPhase", "enclosureSourceRefusal", "originalCurrentRefusal", "phases", "ownedRootNames", "builds", "buildAttemptCount", "buildResultCount", "observedProcessCount", "compilerBuildOutcome", "newFileDigests", "elapsedMs", "privateMints", "newCodeCurrentness", "nativeIntervalBarrier", "completeSdkClosure", "preMainLoader", *_FALSE.keys()}
     require(type(value) is dict and set(value) == expected and value["schema"] == 1
             and type(value["schema"]) is int and value["scope"] == "FIXED_ENCLOSURE_PROVISIONING_OBSERVATION_ONLY"
-            and value["profile"] == "fixed-enclosure-local-sdk27@1"
+            and value["profile"] == "fixed-enclosure-preparation-local-sdk27@2"
+            and type(value["bodyBudgetMs"]) is int and value["bodyBudgetMs"] == 60000
+            and type(value["cleanupBudgetMs"]) is int and value["cleanupBudgetMs"] == 5000
+            and type(value["totalBudgetMs"]) is int and value["totalBudgetMs"] == 65000
             and value["outcome"] in ("BUILT_NOT_EXECUTED", "UNKNOWN"))
     require(all(type(value[k]) is type(v) and value[k] == v for k, v in _FALSE.items()))
     require(value["privateMints"] == "PROCESS_LOCAL_NOT_ADOPTABLE_FROM_REPORT"
@@ -151,7 +158,7 @@ def parse_inner(body):
     for row in value["phases"]:
         require(type(row) is dict and set(row) == {"name", "elapsedMs", "outcome"}
                 and row["name"] in phase_names and row["outcome"] in ("COMPLETED", "UNKNOWN")
-                and (row["elapsedMs"] is None or type(row["elapsedMs"]) in (int, float) and 0 <= row["elapsedMs"] < 35000))
+                and (row["elapsedMs"] is None or type(row["elapsedMs"]) in (int, float) and 0 <= row["elapsedMs"] < 65000))
     refusal = value["enclosureSourceRefusal"]
     require(refusal is None or type(refusal) is str and refusal in ENCLOSURE_REFUSAL_STAGES)
     if refusal is not None:
@@ -188,9 +195,9 @@ def parse_inner(body):
                 and type(row["index"]) is int and 0 <= row["index"] < 6
                 and re.fullmatch(r"[a-f0-9]{64}", row["sha256"]))
     require([row["index"] for row in value["newFileDigests"]] == list(range(len(value["newFileDigests"]))))
-    require(value["elapsedMs"] is None or type(value["elapsedMs"]) in (int, float) and 0 <= value["elapsedMs"] < 35000)
+    require(value["elapsedMs"] is None or type(value["elapsedMs"]) in (int, float) and 0 <= value["elapsedMs"] < 65000)
     if value["outcome"] == "BUILT_NOT_EXECUTED":
-        require(type(value["elapsedMs"]) in (int, float) and 0 <= value["elapsedMs"] < 30000
+        require(type(value["elapsedMs"]) in (int, float) and 0 <= value["elapsedMs"] < 60000
                 and value["reason_code"] == "BUILT_NOT_EXECUTED" and value["failedPhase"] is None
                 and len(value["ownedRootNames"]) == 3)
         require(value["buildAttemptCount"] == value["buildResultCount"] == value["observedProcessCount"] == 8
@@ -233,7 +240,7 @@ class ProgressProtocol:
 
     def accept(self, value, size):
         require(type(value) is dict and type(value.get("schema")) is int and value["schema"] == 1
-                and value.get("protocol") == "fixed-enclosure-progress@1" and self.inner is None)
+                and value.get("protocol") == "fixed-enclosure-progress@2" and self.inner is None)
         if value.get("kind") == "FINAL":
             require(set(value) == {"schema", "protocol", "kind", "report"} and size <= 16384 and self.active is None)
             inner = parse_inner((json.dumps(value["report"], allow_nan=False) + "\n").encode())
@@ -254,7 +261,7 @@ class ProgressProtocol:
                 and type(value["sequence"]) is int and value["sequence"] == len(self.frames)
                 and type(value["phaseIndex"]) is int and value["phaseIndex"] == len(self.phases)
                 and len(self.phases) < 19 and value["name"] == PHASE_NAMES[len(self.phases)]
-                and type(value["elapsedMs"]) in (int, float) and self.last_elapsed <= value["elapsedMs"] < 35000
+                and type(value["elapsedMs"]) in (int, float) and self.last_elapsed <= value["elapsedMs"] < 65000
                 and value["countsMeaning"] == "RETURNED_OBSERVATIONS_LOWER_BOUND"
                 and value["activeDispatchCount"] == "UNKNOWN"
                 and type(value["newRoots"]) is list and type(value["newBuilds"]) is list)
@@ -287,7 +294,7 @@ class ProgressProtocol:
         else:
             require(value["kind"] == "END" and self.active == value["name"]
                     and value["outcome"] in ("COMPLETED", "UNKNOWN")
-                    and type(value["phaseElapsedMs"]) in (int, float) and 0 <= value["phaseElapsedMs"] < 35000
+                    and type(value["phaseElapsedMs"]) in (int, float) and 0 <= value["phaseElapsedMs"] < 65000
                     and abs(value["elapsedMs"] - self.phase_began - value["phaseElapsedMs"]) <= 0.0011)
             capacity = {"prerequisiteBuilds": 3, "pairedBuilds": 2, "oldLauncherBuild": 1, "enclosureBuilds": 2}.get(self.active, 0)
             require(len(value["newBuilds"]) <= value["buildAttemptCount"] - self.attempts <= capacity)
@@ -333,7 +340,7 @@ class ProgressProtocol:
         return None if self.invalid else self.inner
 
     def observation(self):
-        return {"schema": 1, "protocol": "fixed-enclosure-progress@1", "validatedFrameCount": len(self.frames),
+        return {"schema": 1, "protocol": "fixed-enclosure-progress@2", "validatedFrameCount": len(self.frames),
                 "protocolStatus": "INVALID_OR_INCOMPLETE" if self.invalid else "PREFIX_ONLY" if self.inner is None else "FINAL_VALIDATED",
                 "endedPhases": self.phases, "inProgressPhase": self.active,
                 "ownedRootNames": self.roots, "builds": self.builds, "buildAttemptCountLowerBound": self.attempts,
@@ -404,6 +411,29 @@ def open_owned_exit_monitor(child):
         return None  # Missing/raced/unsupported monitor retains old cleanup.
 
 
+class PreparationMonotonicClock:
+    """One parent last-seen value and irreversible failure latch, not a timer."""
+    def __init__(self, source, started):
+        self.source, self.started, self.last, self.valid = source, started, started, True
+        try:
+            if started is None:
+                self.started = self.last = source()
+            require(type(self.started) in (int, float) and math.isfinite(self.started))
+        except Exception:
+            self.valid = False
+
+    def __call__(self):
+        try:
+            require(self.valid)
+            value = self.source()
+            require(type(value) in (int, float) and math.isfinite(value) and value >= self.last)
+            self.last = value
+            return value
+        except Exception:
+            self.valid = False
+            raise ValueError("PREPARATION_CLOCK_UNAVAILABLE") from None
+
+
 def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelector,
             read=os.read, killpg=os.killpg, started=None, exit_monitor=None):
     """Fixed process envelope; injection is for source/mock tests only.
@@ -412,8 +442,8 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
     stays reserved through NOTE_EXIT and the optional ONE killpg attempt until
     wait/reap. No destructive group operation is allowed after reap.
     """
-    began = started
-    last = began
+    timing = clock if type(clock) is PreparationMonotonicClock else PreparationMonotonicClock(clock, started)
+    began = timing.started
     output, error = bytearray(), bytearray()
     selector = None
     owned_pid = None
@@ -429,24 +459,38 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
     code = None
     inner = None
     protocol = ProgressProtocol()
+    body_end = None
+    cleanup_deadline = None
+    def cleanup_remaining():
+        nonlocal reason
+        try:
+            require(timing.valid)
+            now = timing()
+            require(type(now) in (int, float) and math.isfinite(now)
+                    and type(body_end) in (int, float) and math.isfinite(body_end) and now >= body_end
+                    and type(cleanup_deadline) in (int, float) and math.isfinite(cleanup_deadline))
+            return max(0.0, min(5.0, cleanup_deadline - now))
+        except Exception:
+            timing.valid = False
+            reason = "CLOCK_UNAVAILABLE"
+            return 0.0
     try:
         require(type(child.pid) is int and 0 < child.pid <= 2147483647)
         owned_pid = child.pid
         if began is None:
-            began = clock()
-        last = began
+            began = timing()
+        require(type(began) in (int, float) and math.isfinite(began) and (started is None or started == began) and timing.valid)
         selector = selector_factory()
         for stream, role in ((child.stdout, "out"), (child.stderr, "err")):
             os.set_blocking(stream.fileno(), False)
             selector.register(stream, selectors.EVENT_READ, role)
         while selector.get_map():
-            now = clock()
-            require(now >= last)
-            last = now
-            if now - began >= 30:
+            now = timing()
+            require(type(now) in (int, float) and math.isfinite(now) and type(began) in (int, float) and math.isfinite(began))
+            if now - began >= 60:
                 reason = "BODY_DEADLINE"
                 break
-            for key, _ in selector.select(min(0.1, max(0, 30 - (now - began)))):
+            for key, _ in selector.select(min(0.1, max(0, 60 - (now - began)))):
                 try:
                     block = read(key.fileobj.fileno(), 4096)
                 except BlockingIOError:
@@ -468,12 +512,15 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
             reason = "COLLECTION_UNAVAILABLE"
     finally:
         try:
-            body_end = clock()
-            require(began is not None and body_end >= last)
-            if body_end - began >= 30:
+            body_end = timing()
+            require(type(body_end) in (int, float) and math.isfinite(body_end) and type(began) in (int, float) and math.isfinite(began))
+            cleanup_deadline = min(began + 65, body_end + 5)
+            if body_end - began >= 60:
                 reason = "BODY_DEADLINE"
         except Exception:
             reason = "CLOCK_UNAVAILABLE"
+            timing.valid = False
+            cleanup_deadline = began + 65 if type(began) in (int, float) and math.isfinite(began) else None
         # A strict complete FINAL plus exact kernel NOTE_EXIT can avoid a
         # useless destructive signal to an exited child. Neither EPERM nor
         # NOTE_EXIT proves descendant closure: post-reap ESRCH remains required.
@@ -486,7 +533,8 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
                                and row["signal"] is None and row["spawnError"] == "NONE" for row in returned))
         if exited_gate and owned_pid is not None and exit_monitor is not None:
             try:
-                grace = max(0.0, min(0.1, began + 35 - clock()))
+                grace = min(0.1, cleanup_remaining())
+                require(timing.valid)
                 observed = exit_monitor.exited(timeout=grace)
                 require(type(observed) is bool)
                 exit_monitor_state = "EXIT_OBSERVED" if observed else "EXIT_NOT_OBSERVED"
@@ -521,7 +569,7 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
                 cleanup_exception_family, cleanup_errno = cleanup_error_classification(cleanup_error)
         try:
             require(owned_pid is not None and (kill_attempted or exited_skip))
-            remaining = 5.0 if began is None else max(0.0, min(5.0, began + 35 - clock()))
+            remaining = cleanup_remaining()
             code = child.wait(timeout=remaining)
             reaped = True
         except Exception:
@@ -554,16 +602,23 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
         except Exception as probe_error:
             postreap_probe = "UNKNOWN"
             postreap_family, postreap_errno = cleanup_error_classification(probe_error)
+    completed_at = None
     try:
-        elapsed = clock() - began
-        require(elapsed >= 0)
+        completed_at = timing()
+        require(type(completed_at) in (int, float) and math.isfinite(completed_at)
+                and type(body_end) in (int, float) and math.isfinite(body_end) and completed_at >= body_end)
+        elapsed = completed_at - began
+        require(type(elapsed) in (int, float) and math.isfinite(elapsed) and elapsed >= 0)
     except Exception:
-        elapsed = 35000
+        elapsed = None
+        reason = "CLOCK_UNAVAILABLE"
+    if not timing.valid:
         reason = "CLOCK_UNAVAILABLE"
     inner = protocol.finish()
     normal = (reason == "BOTH_EOF" and (kill_attempted or exited_skip)
               and cleanup_signal in ("SENT", "GROUP_ALREADY_ABSENT", "NOT_ATTEMPTED_CHILD_EXIT_OBSERVED") and reaped
-              and absent and code in (0, 74) and len(error) == 0 and elapsed < 35)
+              and absent and code in (0, 74) and len(error) == 0 and elapsed < 65
+              and type(cleanup_deadline) in (int, float) and completed_at < cleanup_deadline)
     success = normal and code == 0 and inner is not None and inner["outcome"] == "BUILT_NOT_EXECUTED"
     if not success and reason == "BOTH_EOF":
         if not reaped or not absent or cleanup_signal == "UNKNOWN":
@@ -576,6 +631,8 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
             reason = "CHILD_PROTOCOL_UNAVAILABLE"
         elif code not in (0, 74):
             reason = "CHILD_EXIT_NOT_ACCEPTED"
+        elif completed_at is not None and cleanup_deadline is not None and completed_at >= cleanup_deadline:
+            reason = "CLEANUP_DEADLINE"
         else:
             reason = "INNER_PREPARATION_UNKNOWN"
     return {"schema": 1, "scope": SCOPE, "outcome": "BUILT_NOT_EXECUTED" if success else "UNKNOWN",
@@ -587,7 +644,8 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
             "exitMonitorState": exit_monitor_state,
             "prewaitGroupProbe": prewait_probe, "prewaitProbeExceptionFamily": prewait_family, "prewaitProbeErrno": prewait_errno,
             "postreapGroupProbe": postreap_probe, "postreapProbeExceptionFamily": postreap_family, "postreapProbeErrno": postreap_errno,
-            "stdoutBytes": len(output), "stderrBytes": len(error), "elapsedMs": elapsed * 1000,
+            "stdoutBytes": len(output), "stderrBytes": len(error), "elapsedMs": elapsed * 1000 if elapsed is not None else None,
+            "bodyElapsedMs": (body_end - began) * 1000 if type(body_end) in (int, float) and type(began) in (int, float) and math.isfinite(body_end) and math.isfinite(began) and body_end >= began else None,
             "innerReport": inner, "progressFrames": protocol.frames, "progressObservation": protocol.observation(), **_FALSE}
 
 
@@ -650,16 +708,21 @@ def save_record(repo, report, rows, directory_snapshot):
     return str(file), readback["sha256"]
 
 
-def emit_final(value):
+def emit_final(value, deadline=None, not_before=None, parent_clock=None):
     body = json.dumps(value, separators=(",", ":"), allow_nan=False)
     require(len(body.encode()) <= 65536)
+    if deadline is not None:
+        value_now = parent_clock() if parent_clock is not None else time.monotonic()
+        require(type(deadline) in (int, float) and math.isfinite(deadline)
+                and type(value_now) in (int, float) and math.isfinite(value_now) and value_now < deadline
+                and (not_before is None or type(not_before) in (int, float) and math.isfinite(not_before) and value_now >= not_before))
     print(body)
 
 
 def unknown_with_observations(report, reason):
     observed = {}
     for key in ("childReaped", "childExitCode", "childSignal", "cleanupSignal",
-                "cleanupExceptionFamily", "cleanupErrno", "groupAbsentAfterReap", "stdoutBytes", "stderrBytes", "elapsedMs",
+                "cleanupExceptionFamily", "cleanupErrno", "groupAbsentAfterReap", "stdoutBytes", "stderrBytes", "elapsedMs", "bodyElapsedMs",
                 "finalSourceCurrentness", "exitMonitorState", "prewaitGroupProbe", "prewaitProbeExceptionFamily", "prewaitProbeErrno",
                 "postreapGroupProbe", "postreapProbeExceptionFamily", "postreapProbeErrno"):
         if key in report:
@@ -694,12 +757,15 @@ def main():
         print(json.dumps({"scope": SCOPE, "outcome": "NOT_SELECTED", **_FALSE}))
         return 0
     begun = _PROCESS_STARTED
+    timing = PreparationMonotonicClock(time.monotonic, begun)
     report = {"schema": 1, "scope": SCOPE, "outcome": "UNKNOWN", "reason_code": "PRECONDITION_UNAVAILABLE", **_FALSE}
     phase = "PRECONDITIONS"
     try:
         repo, entry, node, rows = prerequisites()
         directory_snapshot = prepare_record_directory(repo)
-        require(time.monotonic() - begun < 30)
+        prelaunch = timing()
+        require(type(begun) in (int, float) and math.isfinite(begun)
+                and type(prelaunch) in (int, float) and math.isfinite(prelaunch) and begun <= prelaunch < begun + 60)
         # No shell, credentials, settings or environment rewriting. The child
         # receives the existing safe environment unchanged, including proxies.
         child = subprocess.Popen([str(node), str(entry), "--fixed-preparation-child"], cwd=repo,
@@ -708,23 +774,31 @@ def main():
                                  start_new_session=True, close_fds=True)
         # Include parent preflight/import/startup work in the original budget.
         exit_monitor = open_owned_exit_monitor(child)
-        report = collect(child, started=begun, exit_monitor=exit_monitor)
+        report = collect(child, clock=timing, started=begun, exit_monitor=exit_monitor)
         phase = "POST_COLLECTION"
-        require(time.monotonic() - begun < 35)
+        require(type(report.get("bodyElapsedMs")) in (int, float) and math.isfinite(report["bodyElapsedMs"]) and report["bodyElapsedMs"] >= 0)
+        require(type(report.get("elapsedMs")) in (int, float) and math.isfinite(report["elapsedMs"]) and report["elapsedMs"] >= report["bodyElapsedMs"])
+        cleanup_deadline = min(begun + 65, begun + report["bodyElapsedMs"] / 1000 + 5)
+        parent_completion = begun + report["elapsedMs"] / 1000
+        def post_current():
+            value = timing()
+            require(parent_completion <= value < cleanup_deadline)
+        post_current()
         try:
             for row in rows:
                 file_current(row)
             report["finalSourceCurrentness"] = "ENDPOINTS_OBSERVED"
         except Exception:
             report.update(outcome="UNKNOWN", reason_code="SOURCE_CURRENTNESS_UNAVAILABLE", finalSourceCurrentness="UNKNOWN")
+        post_current()
         phase = "PERSISTENCE"
         file, digest = save_record(repo, report, rows, directory_snapshot)
-        require(time.monotonic() - begun < 35)
+        post_current()
         emit_final({"scope": SCOPE, "outcome": report["outcome"], "reason_code": report["reason_code"],
-                    "record": file, "sha256": digest, **_FALSE})
+                    "record": file, "sha256": digest, **_FALSE}, deadline=cleanup_deadline, not_before=parent_completion, parent_clock=timing)
         return 0 if report["outcome"] == "BUILT_NOT_EXECUTED" else 74
     except Exception:
-        reason = "PRECONDITION_UNAVAILABLE" if phase == "PRECONDITIONS" else "PERSISTENCE_UNAVAILABLE" if phase == "PERSISTENCE" else "POST_COLLECTION_UNAVAILABLE"
+        reason = "CLOCK_UNAVAILABLE" if not timing.valid else "PRECONDITION_UNAVAILABLE" if phase == "PRECONDITIONS" else "PERSISTENCE_UNAVAILABLE" if phase == "PERSISTENCE" else "POST_COLLECTION_UNAVAILABLE"
         emit_final(unknown_with_observations(report, reason))
         return 74
 
