@@ -6,31 +6,44 @@ recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gat
 
 ## Current checkpoint — structured exec result accepted; descriptor metadata remains UNKNOWN
 
-Latest local preparation remains UNKNOWN. The repaired fixed-alias guard and
-bounded cleanup diagnostics are independently accepted (DIR215/218), integrated
-at `31346af` / `8f182ef`; root638 affected source/mock tests PASS,0fail/skip,
-1,313.362ms. TAP SHA256
-`c8750cd4a255d8c666096cec0bd20fec314fbbdfa4f1a3de687f9a6e1814605c`.
-Projection@3 admits only the three exact native-canonical original aliases with
-unchanged physical-identity checks; obsolete@2 is refused. No policy changed.
-The changed build-only attempt reached BODY_DEADLINE at30,006.131ms. Its child
-was killed/reaped, cleanup signal SENT with no exception, and the owned group
-was absent. Zero captured output and no inner report leave the responsible phase,
-created roots and actual build count UNKNOWN, not zero. No helper/native/model or
-receipt executes on this path. Private report1014B SHA256
-`3473a3d0bf0c41b88e5dbfe3b8f1c46a0613af7f83fe5fb9147c199c20b5c559` is preserved.
-DIR219 independently accepts only a bounded progress-observation design; DIR220
-owns its three driver/parent/test files. No third attempt precedes exact source
-review. The same30s/35s and65KiB limits remain, with no inferred fast path.
-DIR217/221's private source/build linkage and fixed post-native endpoint
-observation are accepted and integrated at `6f3ea09`. The full prelaunch verifier
-is unchanged; no report adoption or new interval/native authority is added.
-Root660 source/mock tests PASS,0fail/skip,1,326.610ms; TAP SHA256
-`3e2cedc964d1a40ba13c865c581f96f6ad35cde181d4ba88622e251ca441db62`.
-DIR222 now owns only a disabled exact native-command proposal and fixed code-read
-leaf access, not settings application or a model trial.
-The first freshPair UNKNOWN and prior native UNKNOWNs remain historical evidence.
-No owner action or new native attempt is queued; alpha.11 remains unpublished.
+Latest actual preparation remains UNKNOWN, now with validated phase evidence.
+Progress repair `8ecf264` is independently DIR227 accepted, integrated at `c1ef3f7`;
+root790 source/mock controls PASS/1 explicit harmless-child SKIP/0 FAIL,
+1,331.826ms, TAP SHA256
+`d1e8cf6d05ac129f5e91a063cf07a49d6b56bb8eee18a6850e35c96e6c4e9c88`.
+The separate one-child stalled-writer HARNESS passes in1,511.452ms, retaining its
+BEGIN before owned cleanup. It is not native enforcement. HARNESS TAP SHA256
+`492e87091d5b77ab4b79ad927b2b304514560755ff3e7e82c56c19e08cc998d2`.
+
+Actual third trusted local preparation completed six Clang builds with exit0,
+then refused at `enclosureSource`: child29,440.000ms, parent29,631.021ms,
+32 valid progress frames and a consistent FINAL. This was NOT BODY_DEADLINE.
+Paired builds cost7,262.648ms; old launcher build8,613.425ms. These are phase
+observations, not proof that hashing caused the cost. No new enclosure files,
+TypeScript check, helper execution, native agent, model or receipt was produced.
+Normal child exit74/reap and later group absence were observed; the earlier
+cleanup signal returned PERMISSION_ERROR/EPERM. The result remains UNKNOWN.
+Public Darwin source offers a compatible zombie-group explanation, not proof
+of the actual cause or absence of policy denial. No broader permission is sought.
+Report19,884B SHA256
+`dfce5f0a0da373fdbe7fe4f04e51f2d4a2857df9c8233ab54b891fe8c442aab3` is preserved.
+
+DIR229 found no current template/function-pin or path mismatch that explains
+this factory refusal; lost private state cannot be reconstructed from files.
+DIR231/232 reviews fixed static factory-stage diagnostics. DIR230 separately
+repairs normal-exit closure using exact owned nonreaping NOTE_EXIT, strict FINAL,
+known returned process facts and mandatory post-reap group absence. EPERM never
+means signal success; original deadlines and no post-reap destructive signal
+remain. Source and harmless lifecycle review precede another actual attempt.
+All earlier UNKNOWNs remain intact; no unchanged retry or timeout increase.
+
+Reviewed endpoint interface `4d7a5ce` is integrated at `6f3ea09` (DIR221).
+Disabled command composition `f282dc2` is integrated at `ee2e055` (DIR224), with
+exact original21/new6 H code read leaves and unchanged old commands/policies.
+Neither is native GO or an interval/seal. Actual hosted SDK compatibility,
+controller/trace/startup binding and effective code barriers remain prerequisites.
+Alpha.11's frozen bytes were rechecked unchanged; it remains unpublished.
+No new native attempt or owner action is queued; Copilot capacity is separate.
 
 Current source conclusion: the disabled fixed-canary original-input projection
 is independently reviewed at author `861204b` and integrated at `f4af809`.
