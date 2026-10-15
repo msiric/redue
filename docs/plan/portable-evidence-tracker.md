@@ -47,8 +47,18 @@ the same-process private context design. DIR283 independently accepts exact
 Only the zero-argument fixed real path can retain original objects in a private
 WeakMap; public mock/report paths cannot mint or restore a context. Genuine
 minting remains NOT RUN. No controller, consumption API, native deadline, GO,
-report adoption or sealing authority is supplied. DIR281 selects a bounded new
-fixed startup adapter (DIR282), leaving validated stdio/witness paths unchanged.
+report adoption or sealing authority is supplied.
+
+DIR286 accepts the fixed startup adapter `7065ae1`, integrated at `80abc27`.
+Root combined source/mock checks:589 PASS/1 explicit SKIP/0 FAIL, TAP SHA256
+`08c0c9fd7e6f06f4a52e6562ec340318d6f3209a6cbb898734fd6883b6c72d3c`.
+The old stdio/witness implementation is unchanged. BEFORE retains full enclosure
+validation; AFTER checks startup identity/control rows only, not fresh currency
+of every original. The separate code endpoint retains dependency-invalidation
+gates. Manifest/settings/account/original-budget and effective native boundaries
+remain mandatory. Local SDK27 is not a CI profile. Fixed original-byte collection
+(DIR287) and same-process controller composition (DIR288) are active source tasks;
+no actual native/model launch is implied or queued by these source checks.
 
 The reviewed public-header workflow `3f07b38`, pinned runtime `3edffa5`, still
 awaits the one requested owner UI dispatch (CLI403 is not retried). No new run
