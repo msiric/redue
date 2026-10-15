@@ -7,7 +7,36 @@ existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
 
-## Current checkpoint — diagnostic loop stopped; no new attempt queued
+## Current checkpoint — reviewed exec alternative; no native attempt queued
+
+Focused DIR167/168 review permits one distinct fixed diagnostic method: plain exec
+of the same protected helper inside native Bash, with a fresh interpretation and
+private collection kind. This omits post-command shell bookkeeping, changes shell
+topology/SHLVL handling, and does not establish the prior error's cause. No broader
+permissions, flags, runtime/CLI/evidence changes or error-body acceptance are added.
+
+DIR169/170 source is integrated/reviewed at runtime
+`c9110d8dca8d686ef697b1050e8ac30213f5fa69`. Root1,056 local controls pass, including
+four harmless synthetic child launches; reviewer49 pure assertions pass. These are
+not native enforcement or sealed compiler evidence. Workflow `abdb206` selecting
+the fixed exec procedure is independently DIR171 accepted; exact SHA256 is in the
+tracker. Normal protected source alignment remains unavailable: variable read403;
+capacity-variable and secret-name reads also failed, without established cause.
+Do not infer authentication failure or bypass these routes. Do not launch the old
+workflow or renew owner account timestamps.
+The [current tracker](portable-evidence-tracker.md#current-checkpoint--separately-versioned-exec-witness-reviewed-native-admission-untested)
+has exact identities, test scope and remaining prerequisites.
+
+Owner action after source/workflow push: normal environment UI source-only binding
+to exact runtime `c9110d8`, preserving truthful facts/reviewed_at, then one NEW normal
+UI workflow dispatch (CLI403 unchanged and not retried). Current account/secret
+presence is not newly verified; actual workflow gates remain required. Native
+eligibility, compiler namespace closure,
+fresh producer bindings and G1–G4 remain pending; Copilot capacity is separate.
+Prior UNKNOWN38729509357 and cancelled duplicate remain preserved. Alpha.11 stays
+unpublished; no fresh origin or CURRENT authority is inferred from this preparation.
+
+## Historical checkpoint — diagnostic loop stopped; no new attempt queued
 
 Actual run38729509357 is independently UNKNOWN (DIR164), not enforcement or reuse.
 See the [current tracker](portable-evidence-tracker.md#current-checkpoint--fixed-marker-attempt-unknown-diagnostic-loop-stopped)

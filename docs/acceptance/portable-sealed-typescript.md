@@ -15,6 +15,14 @@ The unreleased CLI now offers explicit pending selection, not executable evidenc
 
 ## Current checkpoint — native child witness remains UNKNOWN
 
+One distinct fixed exec-witness method is source-reviewed and locally tested at
+runtime `c9110d8`; actual native admission is untested. Its fresh interpretation
+and collection kind preserve old evidence and strict completion requirements.
+It retains all resource restrictions and helper bytes while changing shell
+topology/SHLVL handling and omitting trailing shell bookkeeping. This establishes
+neither the old error cause nor sealing. See the [current tracker](../plan/portable-evidence-tracker.md#current-checkpoint--separately-versioned-exec-witness-reviewed-native-admission-untested)
+for source/review/test identities; no actual new native run has started.
+
 Run38729509357, workflow `fb93787` / runtime `b812589`, did not establish helper
 completion, native sealing or portable reuse. Independent DIR164 accepts only
 UNKNOWN: raw string/error result, format-derived code1 and five literal markers

@@ -4,7 +4,60 @@ Canonical scope and gates: [portable-evidence.md](portable-evidence.md), revisio
 recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gates are unchanged.
 
 
-## Current checkpoint — fixed-marker attempt UNKNOWN; diagnostic loop stopped
+## Current checkpoint — separately versioned exec witness reviewed; native admission untested
+
+DIR167/168 focused source/feasibility review found one supported alternative within
+the existing boundary: exactly `exec '<same fixed helper>'` inside native Bash.
+Successful exec replaces the sandboxed shell, so later native cwd bookkeeping does
+not run. This does **not** establish the previous error's cause. Process topology
+and Bash SHLVL handling differ; no claim of an unchanged full environment is made.
+No flags, environment assignments, extra arguments or broader permissions are added.
+
+DIR169 author `8bf43484c887f8b4de1169f29110024465ed26af` is independently accepted
+by DIR170 and integrated at `abae453`; comment-only review correction gives runtime
+`c9110d8dca8d686ef697b1050e8ac30213f5fa69`. The new witness/foreground interpretations
+and private collection kind are distinct. Exact command, settings, prompt, live
+collection and interpretation bind consistently; cross-route adoption consumes and
+refuses. Old routes, strict normal raw/rendered result checks, currentness, native
+flags, deny rules, credential/network controls, helper C bytes and budgets remain.
+Error strings cannot become completion evidence. There is no production/CLI change.
+
+Root integrated controls:1,056 PASS/0 SKIP,604.253ms, TAP SHA256
+`6a147bb47b1de3e843fcb8f7181df841b77b9b82b054dd4759bf235c4dbc74da`.
+These include source/mocks/nonsecret fixtures and one harmless synthetic process
+case with four launches, **not** native/helper/checker/model execution. That case
+observes0,7,SIGTERM and a nonzero missing-entry failure; no guessed failure code is
+promoted to fact. Earlier author failures (accidental test seam editing, Node pipe
+type assumption and missing-entry exit-code assumption) are retained privately.
+Native FIFO predicates were not relaxed. DIR170 independently passes49 in-memory
+assertions; full fixture/process tests were run by root, not the read-only reviewer.
+
+Workflow candidate `abdb2060f742c7dfdada05ca353679edd8b9e5b2`, SHA256
+`fd05e0966543b27bc299cb4c9bc92f460c387c5edd712967362a7ea69862a552`,
+selects only this new fixed procedure and exact runtime. Whole-file expected-diff
+and3 Bash/1 Node syntax checks pass; independent DIR171 repeats those checks and
+accepts the exact file with no findings. No workflow control or permission changes.
+No native attempt is queued. Native admission, helper completion, sealing and reuse
+remain unestablished. The old marker approach stays stopped; this is one changed
+method, not marker growth or retries for a score.
+
+DIR168 also confirms that D12 requires the actual compiler namespace, origin and
+stable-input guarantees, not universal isolation claims about all native startup.
+Outside-resolution/absence topology remains unresolved; successful child observation
+would not close that separate sealing gap. G0partial/G1–G4 incomplete; Copilot Actions
+included capacity separately pending; alpha.11 unpublished and fixed pilot preserved.
+
+Operational prerequisite: GitHub returns HTTP403 reading the protected nonsecret
+account-policy variable; capacity-variable and secret-name reads also failed. This
+does not establish expired authentication or missing account permissions. General
+environment/branch protections remain readable and match the configured reviewer
+and dedicated branch. No protected setting was changed and no write was attempted
+to evade the read refusal. Normal CLI dispatch403 is also unchanged and not retried.
+Owner-side normal environment administration must align only the fact's source to
+the reviewed runtime, retaining truthful account facts/reviewed_at; then use normal
+UI dispatch once. Recheck actual prerequisites; missing/stale facts launch no model.
+
+## Historical checkpoint — fixed-marker attempt UNKNOWN; diagnostic loop stopped
 
 2026-10-15: [run38729509357](https://github.com/msiric/redue/actions/runs/38729509357)
 completed on workflow `fb93787f15477877b1815fc7f32e78c295a5d2ad`, runtime
