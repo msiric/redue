@@ -1,5 +1,5 @@
-# Fixed public bytes only. No build, native/model, artifact, signing or trust route.
-name: Fixed CI paired guarded endpoint observations
+# Fixed build-only preparation. No built helper/native/model, upload, signing or trust route.
+name: Fixed CI eight-build preparation only
 on:
   workflow_dispatch:
 permissions:
@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   inventory:
-    name: Fixed paired endpoints (${{ matrix.machine }})
+    name: Fixed eight-build preparation (${{ matrix.machine }})
     strategy:
       fail-fast: false
       max-parallel: 2
@@ -19,7 +19,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 2
     env:
-      REVIEWED_SOURCE: a0d2d3686a0c6e1797b632b3fe8bea2b4d6b3a0a
+      REVIEWED_SOURCE: 2663eae8b21266b8db46d5ee034841654fae5a88
     steps:
       - name: Refuse a missing reviewed runtime binding before checkout
         shell: bash
@@ -47,11 +47,22 @@ jobs:
               exit 74
             fi
           done
+          # Key names only. Presence (including empty values) is unsupported.
+          # Do not clear overrides or print their values and continue.
+          while IFS= read -r redue_env_key; do
+            redue_upper_env_key=$(printf '%s' "$redue_env_key" | /usr/bin/tr '[:lower:]' '[:upper:]')
+            case "$redue_upper_env_key" in
+              NODE_OPTIONS|NODE_PATH|NODE_REPL_EXTERNAL_MODULE|BASH_ENV|ENV|DYLD_*|LD_*|OPENSSL_*|SIMPLE|REDUE_DECISION_PROFILE|REDUE_DECISION_PROFILE_FILE|REDUE_PROFILE_CONTEXT)
+                printf '%s\n' 'PREAUTH_ENVIRONMENT_UNSUPPORTED' >&2
+                exit 74
+                ;;
+            esac
+          done < <(compgen -e)
           test "$(git rev-parse HEAD)" = "$REVIEWED_SOURCE"
           test "$(uname -m)" = arm64
           test "$(node --version)" = v22.13.0
-          node --test test/sealed-typescript-ci-enclosure-headers.test.mjs test/sealed-typescript-host-tool-inventory.test.mjs
-      - name: Fixed public machine and header observation, no native agent
+          node --test test/sealed-typescript-ci-enclosure-headers.test.mjs test/sealed-typescript-host-tool-inventory.test.mjs test/sealed-typescript-ci-native-assets.test.mjs test/sealed-typescript-ci-enclosure-consumers.test.mjs test/sealed-typescript-ci-enclosure-preparation.test.mjs test/sealed-typescript-ci-enclosure-parent.test.mjs
+      - name: Fixed public facts and eight-build preparation, no helper execution
         if: ${{ !cancelled() && steps.source_classifier.outcome == 'success' }}
         shell: bash
         run: |
@@ -62,6 +73,17 @@ jobs:
               exit 74
             fi
           done
+          # Key names only. Presence (including empty values) is unsupported.
+          # Do not clear overrides or print their values and continue.
+          while IFS= read -r redue_env_key; do
+            redue_upper_env_key=$(printf '%s' "$redue_env_key" | /usr/bin/tr '[:lower:]' '[:upper:]')
+            case "$redue_upper_env_key" in
+              NODE_OPTIONS|NODE_PATH|NODE_REPL_EXTERNAL_MODULE|BASH_ENV|ENV|DYLD_*|LD_*|OPENSSL_*|SIMPLE|REDUE_DECISION_PROFILE|REDUE_DECISION_PROFILE_FILE|REDUE_PROFILE_CONTEXT)
+                printf '%s\n' 'PREAUTH_ENVIRONMENT_UNSUPPORTED' >&2
+                exit 74
+                ;;
+            esac
+          done < <(compgen -e)
           test "$(git rev-parse HEAD)" = "$REVIEWED_SOURCE"
           test "$(uname -m)" = arm64
           test "$(node --version)" = v22.13.0
@@ -82,6 +104,9 @@ jobs:
             fi
           done
           printf '{"scope":"PUBLIC_RUNNER_FACTS_ONLY","source":"%s","machine":"%s","os":"%s","kernel":"%s","arch":"arm64","filesystem_type":%s,"imageOS":"%s","imageVersion":"%s","profileMatch":"NOT_EVALUATED"}\n' "$REVIEWED_SOURCE" '${{ matrix.machine }}' "$redue_os" "$redue_kernel" "$redue_fs" "$redue_image_os" "$redue_image_version"
-          node test/acceptance/sealed-typescript-host-tool-inventory.mjs --fixed-ci-paired-profile
-      # The helper's 10s checkpoint budget cannot interrupt blocked filesystem IO.
-      # The 2-minute job limit remains independent; no output becomes trusted input.
+          # Exact reviewed parent selects the fixed CI profile and emits bounded
+          # already-validated facts. UNKNOWN/nonzero fails; no local fallback.
+          /usr/bin/python3 -I -S test/acceptance/sealed-typescript-enclosure-provisioning-parent.py --ci-run
+      # Parent: original 60s body + <=5s cleanup / 65s total. Filesystem
+      # checkpoints are not OS-interruptible; the 2-minute job cap stays independent.
+      # Reports grant no sealing, native, origin, receipt or reusable-evidence authority.
