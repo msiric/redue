@@ -55,6 +55,17 @@ test('one private sequence retains ten originals only after successful report se
  assert(!/spawn|execFile|writeFile|readFile|process\.env|process\.argv/.test(context));
 });
 
+test('fixed original-linkage functions exist in the actual combined dependency modules',async()=>{
+ const groups=[
+  ['./acceptance/sealed-typescript-base-exchange-assets.mjs',['sealedTypeScriptBaseExchangeAssetsMatchPair','sealedTypeScriptBaseExchangeAssetsMatchHostFixture','sealedTypeScriptPairedStageArtifactsMatchDerivation','sealedTypeScriptFixedCampaignLauncherBuildMatchesDerivation','sealedTypeScriptFixedCanaryProtectedInputProjectionMatchesDerivation']],
+  ['./acceptance/sealed-typescript-paired-stage-source.mjs',['sealedTypeScriptPairedStageSourceMatchesDerivation']],
+  ['./acceptance/sealed-typescript-fixed-campaign-copies.mjs',['sealedTypeScriptFixedCampaignCopiesMatchDerivation']],
+  ['./acceptance/sealed-typescript-fixed-campaign-enclosure-source.mjs',['sealedTypeScriptFixedCampaignEnclosureSourceMatchesDerivation']],
+  ['./acceptance/sealed-typescript-fixed-campaign-enclosure-build.mjs',['sealedTypeScriptFixedCampaignEnclosureBuildMatchesSource']],
+ ];
+ for(const [file,names]of groups){const module=await import(new URL(file,import.meta.url));for(const name of names){assert.equal(typeof module[name],'function',name);assert(source.includes('.'+name),name);}}
+});
+
 test('fixed CLI remains the report-only observer with unchanged finite progress and lifetime budgets',()=>{
  const cli=source.slice(source.indexOf('const here=fileURLToPath(import.meta.url)'));
  assert.match(cli,/await observeFixedEnclosurePreparation\(/);assert(!cli.includes('prepareFixedEnclosureContext'));

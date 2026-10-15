@@ -7,17 +7,17 @@ const sdk='/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk',h='/private/
 const sourceSpecs=[['original_projection',directory+'/paired-stage-enclosed-original-inputs.mjs'],['collector',directory+'/paired-stage-enclosed-campaign.mjs'],['prepared_null_launcher',directory+'/paired-stage-enclosed-campaign-launch.c'],['finite_enclosure',directory+'/paired-stage-enclosure.c']];
 const outputs=[directory+'/paired-stage-enclosed-campaign-launch',directory+'/paired-stage-enclosure'];
 function mock({sourceOverride=null}={}){
- let ino=1,fd=3,time=0;const nodes=new Map(),fds=new Map(),pinBodies=new Map(),state={io:0,reads:0,creates:0,writes:0,fsyncs:0,sourceCurrent:true,toolCurrent:true,dispatches:[],fault:null,afterRead:null,afterDispatch:null,afterSource:null,result:null,advance:0};
+ let ino=1,fd=3,time=0;const nodes=new Map(),fds=new Map(),pinBodies=new Map(),state={io:0,reads:0,creates:0,writes:0,fsyncs:0,sourceCurrent:true,toolCurrent:true,sourceChecks:0,toolChecks:0,dispatches:[],fault:null,afterRead:null,afterDispatch:null,afterSource:null,result:null,advance:0};
  const put=(file,kind='d',body=Buffer.alloc(0),owner=501n)=>{const parent=path.dirname(file);if(parent!==file&&!nodes.has(parent))put(parent,'d',Buffer.alloc(0),parent.startsWith(h)?501n:0n);const n={kind,body:Buffer.from(body),dev:1n,ino:BigInt(ino++),mode:kind==='d'?(owner===501n?0o40700n:0o40755n):0o100600n,uid:owner,gid:20n,nlink:kind==='d'?2n:1n,size:BigInt(body.length),mtimeNs:1n,ctimeNs:1n};nodes.set(file,n);return n;};
  const stat=file=>{state.io++;if(state.fault==='stat')throw Error('PRIVATE');const n=nodes.get(file);if(!n)throw Object.assign(Error('MISSING'),{code:'ENOENT'});return{...n,isFile:()=>n.kind==='f',isDirectory:()=>n.kind==='d',isSymbolicLink:()=>n.kind==='l'};};
  const headers=Function(sourceText.slice(sourceText.indexOf('const headerPins='),sourceText.indexOf('function clock()'))+';return headerPins;')();
  put('/','d',Buffer.alloc(0),0n);for(const file of [h,h+'/prefix',directory])put(file);
  for(const [name,pin]of Object.entries(headers)){const body=Buffer.from('MOCK_REVIEWED_HEADER:'+name);put(sdk+'/usr/include/'+name,'f',body,0n);pinBodies.set(body.toString('hex'),pin);}
  const source={schema:1,scope:'DISABLED_FIXED_CANARY_FINITE_ENCLOSURE_SOURCE_DATA_ONLY',version:'fixed-canary-finite-enclosure-source@2',disabled:true,runnable:false,executionAuthority:'NONE',projectionSha256:'a'.repeat(64),bindings:{hostBase:h,baseA:a,baseB:b,node:h+'/runtime/node-v22.13.0-darwin-arm64/bin/node',entry:sourceSpecs[1][1],projectionEntry:sourceSpecs[0][1],launcher:outputs[0],self:outputs[1],cwd:a+'/Checkout 空间/.sealed-native-canaries'},files:sourceSpecs.map(([role,file])=>{const source='MOCK_SOURCE_'+role+'\n';return{role,file,source,sourceBytes:Buffer.byteLength(source),sourceSha256:sha(source)};})};if(sourceOverride)sourceOverride(source);
- const verifySource=value=>{state.io+=value===source?0:0;if(value!==source||!state.sourceCurrent)return{outcome:'UNKNOWN'};if(state.afterSource)state.afterSource();return{outcome:'FIXED_CANARY_ENCLOSURE_SOURCE_INPUTS_CURRENTLY_OBSERVED_NOT_PROVISIONED',version:source.version,projectionSha256:source.projectionSha256,files:source.files.map(({file,sourceSha256})=>({file,sourceSha256}))};};
+ const verifySource=value=>{state.sourceChecks++;if(value!==source||!state.sourceCurrent)return{outcome:'UNKNOWN'};if(state.afterSource)state.afterSource();return{outcome:'FIXED_CANARY_ENCLOSURE_SOURCE_INPUTS_CURRENTLY_OBSERVED_NOT_PROVISIONED',version:source.version,projectionSha256:source.projectionSha256,files:source.files.map(({file,sourceSha256})=>({file,sourceSha256}))};};
  const flags=['-std=c11','-O2','-Wall','-Wextra','-Werror','-fstack-protector-strong','-arch','arm64','-mmacosx-version-min=26.0','-isysroot',sdk];
  const tool={outcome:'BUILD_TOOLCHAIN_ORIGINAL_INPUTS_CURRENTLY_OBSERVED_DATA_ONLY',base:h,toolchain:{sdk},proposedBuilds:[0,1].map(at=>({executable:'/Library/Developer/CommandLineTools/usr/bin/clang',argv:[...flags,directory+'/old-'+at+'.c','-o',directory+'/old-'+at]}))};
- const verifyTool=value=>value===source&&state.toolCurrent?tool:{outcome:'UNKNOWN'};
+ const verifyTool=value=>{state.toolChecks++;return value===source&&state.toolCurrent?tool:{outcome:'UNKNOWN'};};
  const io={constants:{O_RDONLY:0,O_WRONLY:1,O_CREAT:512,O_EXCL:2048,O_NOFOLLOW:256,O_NONBLOCK:4},lstatSync:stat,
   realpathSync(file){state.io++;if(state.fault==='realpath')return '/OTHER';return nodes.get(file)?.kind==='l'?'/OTHER':file;},
   openSync(file,flags,mode){state.io++;if(state.fault==='open')throw Error('PRIVATE');if(flags&io.constants.O_WRONLY){assert(flags&io.constants.O_CREAT);assert(flags&io.constants.O_EXCL);assert(flags&io.constants.O_NOFOLLOW);assert.equal(mode,0o600);if(nodes.has(file))throw Error('EXISTS');put(file,'f');state.creates++;}else assert(nodes.get(file)?.kind==='f');const handle=fd++;fds.set(handle,file);return handle;},fstatSync:handle=>stat(fds.get(handle)),
@@ -28,8 +28,8 @@ function mock({sourceOverride=null}={}){
  const dispatch=(file,argv,options)=>{state.dispatches.push({file,argv,options});const result=state.result??{pid:123,status:0,signal:null,stdout:'',stderr:''};if(!result.error&&result.status===0&&result.signal===null){const body=Buffer.alloc(32);body.writeUInt32LE(0xfeedfacf,0);body.writeUInt32LE(0x0100000c,4);body.write('MOCK_COMPILED_'+state.dispatches.length,12);put(argv.at(-1),'f',body).mode=0o100700n;}if(state.afterDispatch)state.afterDispatch(argv.at(-1));return result;};
  const processMock={platform:'darwin',arch:'arm64',version:'v22.13.0',getuid:()=>501,geteuid:()=>501,getgid:()=>20,getegid:()=>20};
  const text=sourceText.replace(/^import .*;$/gm,'').replaceAll('export function ','function ');
- const [build,verify]=Function('fs','path','createHash','spawnSync','verifySealedTypeScriptFixedCampaignEnclosureSource','prepareSealedTypeScriptFixedCampaignEnclosureBuildToolchain','sealedAssetsBuildProcessSummary','process','performance',text+';return [buildSealedTypeScriptFixedCampaignEnclosure,verifySealedTypeScriptFixedCampaignEnclosureBuild];')(io,path,hash,dispatch,verifySource,verifyTool,sealedAssetsBuildProcessSummary,processMock,{now:()=>{time+=state.advance;return time;}});
- return{build,verify,source,nodes,fds,state,tool,put,advance:n=>{time=n;},headers};
+ const [build,verify,matchesSource,postEndpoint]=Function('fs','path','createHash','spawnSync','verifySealedTypeScriptFixedCampaignEnclosureSource','prepareSealedTypeScriptFixedCampaignEnclosureBuildToolchain','sealedAssetsBuildProcessSummary','process','performance',text+';return [buildSealedTypeScriptFixedCampaignEnclosure,verifySealedTypeScriptFixedCampaignEnclosureBuild,sealedTypeScriptFixedCampaignEnclosureBuildMatchesSource,observeSealedTypeScriptFixedCampaignEnclosurePostNativeEndpoint];')(io,path,hash,dispatch,verifySource,verifyTool,sealedAssetsBuildProcessSummary,processMock,{now:()=>{time+=state.advance;return time;}});
+ return{build,verify,matchesSource,postEndpoint,source,nodes,fds,state,tool,put,advance:n=>{time=n;},headers};
 }
 const authority=value=>{assert.equal(value.sealed,false);assert.equal(value.reuseEligible,false);assert.equal(value.nativeEnforcement,'NOT_ESTABLISHED');assert.equal(value.recordAdoptionAuthority,false);assert.equal(value.compilerCheckExecutions,0);assert.equal(value.nativeAgentLaunches,0);assert.equal(value.models,0);assert.equal(value.completeSdkClosure,'NOT_ESTABLISHED');};
 test('held-stable actual builder source creates four exclusive synced sources and exactly two C builds, privately retaining six original rows',()=>{const m=mock(),v=m.build({source:m.source});assert.equal(v.outcome,'BUILT_NOT_EXECUTED');assert.equal(v.fileCreateCount,4);assert.equal(v.fileSyncCount,4);assert.equal(v.sourceWriteCompleted,4);assert.equal(v.dispatchAttemptCount,2);assert.equal(v.dispatchResultCount,2);assert.equal(v.observedProcessCount,2);assert.equal(v.report.files.length,6);assert.deepEqual(v.createdSourcePaths,sourceSpecs.map(row=>row[1]));assert.deepEqual(v.attemptedOutputPaths,outputs);assert.equal(m.fds.size,0);for(let at=0;at<2;at++){const call=m.state.dispatches[at];assert.equal(call.file,'/Library/Developer/CommandLineTools/usr/bin/clang');assert.deepEqual(call.argv,[...m.tool.proposedBuilds[0].argv.slice(0,-3),sourceSpecs[at+2][1],'-o',outputs[at]]);assert.deepEqual(call.options,{cwd:directory,env:{TMPDIR:h},timeout:5000,maxBuffer:4096,killSignal:'SIGKILL',encoding:'utf8'});}assert.equal(m.verify(v).outcome,'ENCLOSURE_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED');assert.equal(m.verify(structuredClone(v)).outcome,'UNKNOWN');authority(v);});
@@ -49,3 +49,43 @@ test('clock/budget failures launch no models and do not silently gain a larger b
 test('same live source proposal cannot retry an observed failed or completed build',()=>{for(const fail of [false,true]){const m=mock();if(fail)m.state.fault='fsync';const first=m.build({source:m.source});assert.equal(first.outcome,fail?'UNKNOWN':'BUILT_NOT_EXECUTED');m.state.fault=null;const counts=[m.state.io,m.state.dispatches.length,m.state.creates];const second=m.build({source:m.source});assert.equal(second.outcome,'UNKNOWN');assert.deepEqual([m.state.io,m.state.dispatches.length,m.state.creates],counts);}});
 test('second C build failure retains the first real mock process result and partial files without minting',()=>{const m=mock();m.state.afterDispatch=()=>{m.state.result={pid:456,status:1,signal:null,stdout:'',stderr:''};};const v=m.build({source:m.source});assert.equal(v.outcome,'UNKNOWN');assert.equal(v.dispatchAttemptCount,2);assert.deepEqual(v.builds.map(row=>row.status),[0,1]);assert.equal(v.fileCreateCount,4);assert(m.nodes.has(outputs[0]));assert.equal(m.verify(v).outcome,'UNKNOWN');});
 test('nested observed verification failure cannot be hidden by restoring source currency before outer completion',()=>{const m=mock(),v=m.build({source:m.source});let entered=false;m.state.afterRead=(file,position)=>{if(!entered&&file===outputs[1]&&position===0){entered=true;m.state.sourceCurrent=false;assert.equal(m.verify(v).outcome,'UNKNOWN');m.state.sourceCurrent=true;}};assert.equal(m.verify(v).outcome,'UNKNOWN');assert(entered);});
+
+const postOutcome='ENCLOSURE_CODE_POST_NATIVE_ENDPOINT_CURRENTLY_OBSERVED';
+test('private build/source identity and foreign post endpoint reject before IO/public getters',()=>{
+ const m=mock(),v=m.build({source:m.source}),before=[m.state.io,m.state.sourceChecks,m.state.toolChecks];let traps=0;
+ const foreign=new Proxy({},{get(){traps++;throw Error('PRIVATE');},getPrototypeOf(){traps++;throw Error('PRIVATE');}});
+ assert.equal(m.matchesSource(v,m.source),true);
+ for(const source of [undefined,null,{},structuredClone(m.source),foreign])assert.equal(m.matchesSource(v,source),false);
+ for(const value of [undefined,null,{},structuredClone(v),foreign]){assert.equal(m.matchesSource(value,m.source),false);assert.equal(m.postEndpoint(value).outcome,'UNKNOWN');}
+ assert.equal(m.matchesSource(v),false);assert.equal(m.matchesSource(v,m.source,foreign),false);assert.equal(m.postEndpoint(v,foreign).outcome,'UNKNOWN');
+ assert.equal(traps,0);assert.deepEqual([m.state.io,m.state.sourceChecks,m.state.toolChecks],before);
+});
+test('post endpoint uses original six rows/source guards after intentional workspace controls, never full tool validation',()=>{
+ const m=mock(),v=m.build({source:m.source}),toolCalls=m.state.toolChecks;
+ m.state.toolCurrent=false; // Held-stable source/projection END; simulated intended workspace control.
+ const end=m.postEndpoint(v);assert.equal(end.outcome,postOutcome);assert.equal(end.observationPhase,'POST_NATIVE_ENDPOINT');assert.equal(end.observationExtent,'ENDPOINT_ONLY_NOT_INTERVAL');assert.equal(end.nativeIntervalBarrier,'NOT_ESTABLISHED');assert.deepEqual(end.files,v.report.files);assert.equal(m.state.toolChecks,toolCalls);authority(end);
+ assert.equal(m.matchesSource(v,m.source),true);
+ assert.equal(m.verify(v).outcome,'UNKNOWN');assert(m.state.toolChecks>toolCalls);
+ const reads=m.state.reads;assert.equal(m.postEndpoint(v).outcome,'UNKNOWN');assert.equal(m.matchesSource(v,m.source),false);assert.equal(m.state.reads,reads);
+});
+test('full verifier observed failure cannot be repaired by later endpoint-only success',()=>{
+ const m=mock(),v=m.build({source:m.source});m.state.toolCurrent=false;assert.equal(m.verify(v).outcome,'UNKNOWN');m.state.toolCurrent=true;
+ const before=m.state.io;assert.equal(m.postEndpoint(v).outcome,'UNKNOWN');assert.equal(m.state.io,before);
+});
+for(const [target,fault]of [...sourceSpecs.map(row=>[row[1],'bytes']),...outputs.map(file=>[file,'bytes']),[sourceSpecs[1][1],'symlink'],[sourceSpecs[2][1],'hardlink'],[outputs[0],'inode'],[outputs[1],'owner'],[directory,'inode'],[h,'inode'],[h+'/prefix','inode'],['/private/tmp','inode']])test('post endpoint original row/ancestry '+path.basename(target)+' '+fault+' refuses permanently',()=>{
+ const m=mock(),v=m.build({source:m.source}),row=m.nodes.get(target),saved={...row,body:Buffer.from(row.body)};
+ if(fault==='bytes')row.body[0]^=1;else if(fault==='inode')row.ino++;else if(fault==='hardlink')row.nlink=2n;else if(fault==='symlink')row.kind='l';else row.uid=999n;
+ assert.equal(m.postEndpoint(v).outcome,'UNKNOWN');Object.assign(row,saved);const before=m.state.io;assert.equal(m.postEndpoint(v).outcome,'UNKNOWN');assert.equal(m.verify(v).outcome,'UNKNOWN');assert.equal(m.matchesSource(v,m.source),false);assert.equal(m.state.io,before);assert.equal(m.fds.size,0);
+});
+test('post endpoint does not substitute unrelated SDK/tool snapshots for original source projection currentness',()=>{
+ const m=mock(),v=m.build({source:m.source});m.state.sourceCurrent=false;assert.equal(m.postEndpoint(v).outcome,'UNKNOWN');m.state.sourceCurrent=true;assert.equal(m.postEndpoint(v).outcome,'UNKNOWN');assert.equal(m.verify(v).outcome,'UNKNOWN');
+});
+test('post endpoint final source guard cannot conceal earlier code replacement',()=>{
+ const m=mock(),v=m.build({source:m.source});let calls=0;m.state.afterSource=()=>{if(++calls===3)m.nodes.get(sourceSpecs[0][1]).ino++;};assert.equal(m.postEndpoint(v).outcome,'UNKNOWN');assert.equal(calls,3);
+});
+test('post endpoint late hashing and nested invalidation cannot authorize stale original rows',()=>{
+ for(const mode of ['late','nested']){const m=mock(),v=m.build({source:m.source});let entered=false;m.state.afterRead=(file,position)=>{if(!entered&&file===outputs[1]&&position===0){entered=true;if(mode==='late')m.nodes.get(sourceSpecs[0][1]).ino++;else{m.state.sourceCurrent=false;assert.equal(m.postEndpoint(v).outcome,'UNKNOWN');m.state.sourceCurrent=true;}}};assert.equal(m.postEndpoint(v).outcome,'UNKNOWN');assert(entered);assert.equal(m.verify(v).outcome,'UNKNOWN');}
+});
+test('post endpoint has a fresh bounded observation clock, no renewed build or execution authority',()=>{
+ const m=mock(),v=m.build({source:m.source}),builds=m.state.dispatches.length;m.state.advance=30001;const end=m.postEndpoint(v);assert.equal(end.outcome,'UNKNOWN');assert.equal(m.state.dispatches.length,builds);authority(end);
+});

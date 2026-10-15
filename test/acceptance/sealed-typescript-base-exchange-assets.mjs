@@ -253,6 +253,11 @@ export function sealedTypeScriptBaseExchangeAssetsMatchPair(assets,pair){
  const record=mintedAssets.get(assets);return arguments.length===2&&!!record&&!record.invalid&&record.pair===pair;
 }
 
+// Exact original host fixture identity only; no currency or permission grant.
+export function sealedTypeScriptBaseExchangeAssetsMatchHostFixture(assets,hostFixture){
+ const record=mintedAssets.get(assets);return arguments.length===2&&!!record&&!record.invalid&&record.hostFixture===hostFixture;
+}
+
 // Fixed A-target assertions under H; the original H-target binaries cannot be
 // substituted. Engineering build data only: no copied Node/checker/helper runs.
 // Trusted/quiescent ancestry is still required; these guards are not sealing.
@@ -263,7 +268,16 @@ const pairedPins=['d206de2e8fa469768aecec6e7bf276a935a0071c470aa5b1ad053de6dd649
 const pairedAuthorityFalse=fields=>freeze({schema:1,scope:'PAIRED_STAGE_ENGINEERING_ARTIFACTS_DATA_ONLY',...fields,commands:[],recordAdoptionAuthority:false,compilerCheckExecutions:0,helperExecutions:0,nativeAgentLaunches:0,models:0,nativeEnforcement:'NOT_ESTABLISHED',noInheritedWritableHandlesVerified:false,sealed:false,reuseEligible:false});
 function pairedDependencies(record){
  guard(sealedTypeScriptBaseExchangeAssetsMatchPair(record.assetsBuild,record.pair)&&sealedTypeScriptPairedStageSourceMatchesDerivation(record.proposal,record.pair,record.assetsBuild));
- const assets=verifySealedTypeScriptBaseExchangeAssets(record.assetsBuild),source=verifySealedTypeScriptPairedStageSource(record.proposal);
+ let assets,source;
+ const inspect=()=>{assets=verifySealedTypeScriptBaseExchangeAssets(record.assetsBuild);source=verifySealedTypeScriptPairedStageSource(record.proposal);};
+ // A fresh independent group hashes the original rows once in the existing
+ // synchronous scope. Inside an ALREADY owned group, both verifiers still
+ // demand its live barriers; map presence alone grants no currency. Never
+ // open a nested public observation or retain this scope across writes/builds.
+ // These remain trusted/quiescent endpoints, not hostile-writer protection.
+ if(activeBaseAssetsObservations.has(record.assetsBuild))inspect();
+ else observeSealedTypeScriptBaseExchangeAssets(record.assetsBuild,inspect);
+ // No result escapes an owned observation before its closing barriers.
  guard(assets.scope==='OBSERVED_BASE_EXCHANGE_BUILD_DATA_ONLY'&&assets.outcome==='BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED'&&source.scope==='DISABLED_PAIRED_STAGE_ASSERTION_SOURCES_DATA_ONLY'&&source.outcome==='PAIRED_STAGE_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED'&&assets.baseA===source.baseA&&assets.baseB===source.baseB&&assets.hostBase===source.hostBase&&source.node===source.hostBase+'/runtime/node-v22.13.0-darwin-arm64/bin/node');
  return{assets,source};
 }
@@ -478,6 +492,18 @@ export function verifySealedTypeScriptFixedCanaryProtectedInputProjection(projec
  try{protectedOriginalIngredients(record.inputs);guard(sha(Function.prototype.toString.call(compareFixedOriginalProtectedInputs))===protectedComparatorPin&&record.implementationSha256===protectedComparatorPin&&sha(projection.source)===record.sourceSha256);compareFixedOriginalProtectedInputs(record.original,'END');protectedOriginalIngredients(record.inputs);
   return projectionAuthority({outcome:'FIXED_CANARY_ORIGINAL_INPUT_GUARDS_OBSERVED',version:protectedProjectionVersion,projectionSha256:sha(JSON.stringify(record.original)),sourceSha256:record.sourceSha256});
  }catch{record.invalid=true;return unknown();}
+}
+
+// Fixed ORIGINAL nonsecret H code/runtime/source names, selected only by the
+// live projection owner. This is not currency, a read grant, or a manifest API.
+export function sealedTypeScriptFixedCanaryProtectedInputProjectionHCodeReadLeaves(projection){
+ const record=mintedProtectedProjections.get(projection),unknown=()=>projectionAuthority({outcome:'UNKNOWN',version:protectedProjectionVersion,currency:'NOT_CHECKED'});
+ if(arguments.length!==1||!record||record.invalid)return unknown();
+ const readLeaves=record.original.files.slice(6).map(row=>row.file);
+ // Original private facts contain exactly six stage canaries followed by these
+ // 21 distinct H leaves. No caller-selected name, subset or parent is accepted.
+ if(record.original.version!==protectedProjectionVersion||readLeaves.length!==21||new Set(readLeaves).size!==21||!readLeaves.every(file=>file.startsWith(record.original.hostBase+'/')))return unknown();
+ return projectionAuthority({outcome:'FIXED_ORIGINAL_H_CODE_READ_LEAVES_DATA_ONLY',version:protectedProjectionVersion,hostBase:record.original.hostBase,readLeaves,currency:'NOT_CHECKED'});
 }
 
 // Private identity linkage only. Callers must separately verify currency;

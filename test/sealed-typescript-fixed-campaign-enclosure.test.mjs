@@ -1,7 +1,7 @@
 // SOURCE/MOCK controls only. No native, actors, compiler, SDK or fixtures run.
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';import {createHash} from 'node:crypto';import {EventEmitter} from 'node:events';
 import {collectFixedEnclosedCampaign as collect} from './acceptance/sealed-typescript-fixed-campaign-enclosed-collector.mjs';
-import {prepareSealedTypeScriptFixedCampaignEnclosureSource as prepare} from './acceptance/sealed-typescript-fixed-campaign-enclosure-source.mjs';
+import {prepareSealedTypeScriptFixedCampaignEnclosureSource as prepare,SEALED_TYPESCRIPT_ENCLOSURE_SOURCE_REFUSAL_STAGES as refusalStages,SEALED_TYPESCRIPT_ENCLOSURE_ORIGINAL_CURRENT_REFUSALS as currentRefusals} from './acceptance/sealed-typescript-fixed-campaign-enclosure-source.mjs';
 import {parseSealedTypeScriptBaseExchangeResult as baseParse,createSealedTypeScriptBaseExchangeResultLatch as baseLatch} from './acceptance/sealed-typescript-base-exchange-result.mjs';
 import {parseSealedTypeScriptStageExchangeResult as exchangeParse,createSealedTypeScriptStageExchangeResultLatch as exchangeLatch} from './acceptance/sealed-typescript-stage-exchange-result.mjs';
 import {parseSealedTypeScriptStageResult as stageParse,createSealedTypeScriptStageResultLatch as stageLatch} from './acceptance/sealed-typescript-stage-result.mjs';
@@ -30,15 +30,25 @@ test('timeout with descendant-potential requires group cleanup and no END even w
 test('known failed assertion survives missing close/timeout with honest partial lifecycle',async()=>{const t=clock(),events=[];const pending=t.selected(()=>child(c=>{c.emit('spawn');const v=reports[0]();v.result='FAIL';v.checks[3].result='FAIL';v.checks[3].reason_code='ACCESS_SUCCEEDED';c.stdout.emit('data',Buffer.from(JSON.stringify(v)+'\n'));}),projection(events));await Promise.resolve();t.set(11500);t.timers[1].fn();const r=await pending;assert.equal(r.outcome,'FAIL');assert.equal(r.end,false);assert.equal(r.phases[0].closeObserved,false);assert.equal(r.phases[0].checks[3].reason_code,'ACCESS_SUCCEEDED');});
 test('END itself consumes the same deadline; late result cannot authorize interval',async()=>{const t=clock(),events=[],p=projection(events);p.end=()=>{t.set(11001);return true;};const r=await t.selected(factory(events),p);assert.equal(r.end,false);assert.equal(r.timedOut,true);});
 const sourceUrl=new URL('./acceptance/sealed-typescript-fixed-campaign-enclosure-source.mjs',import.meta.url),cSource=fs.readFileSync(new URL('./acceptance/sealed-typescript-fixed-campaign-enclosure.c',import.meta.url),'utf8');
-function renderer({selectedCollector=collect}={}){const a='/private/tmp/redue-ci-recipient-11111111',b='/private/tmp/redue-ci-recipient-22222222',h='/private/tmp/redue-ci-recipient-33333333',node=h+'/runtime/node-v22.13.0-darwin-arm64/bin/node';let changed=false,io=0;
- const inputs={assetsBuild:{},pairedSource:{},pairedArtifacts:{},copies:{},projection:{version:'fixed-canary-original-input-projection@3',disabled:true,runnable:false,source:'export const fixedCanaryProtectedInputs={begin(){return true},end(){return true}};',projectionSha256:'a'.repeat(64)},preparedNullSource:{version:'campaign-prepared-devnull-setexec@2',bindings:{node,entry:h+'/prefix/native-probes/paired-stage-campaign.mjs',launcher:h+'/prefix/native-probes/paired-stage-campaign-launch'}}};
+function renderer({selectedCollector=collect,faultStage=null,foreignError=null,currentFault=null,currentAt='FINAL'}={}){const a='/private/tmp/redue-ci-recipient-11111111',b='/private/tmp/redue-ci-recipient-22222222',h='/private/tmp/redue-ci-recipient-33333333',node=h+'/runtime/node-v22.13.0-darwin-arm64/bin/node';let changed=false,io=0,projectionCalls=0,nullCalls=0,matchCalls=0;const events=[],state={onProjection:null};
+ const inputs={assetsBuild:{},pairedSource:{},pairedArtifacts:{},copies:{},projection:{version:'fixed-canary-original-input-projection@3',disabled:true,runnable:false,source:'export const fixedCanaryProtectedInputs={begin(){return true},end(){return true}};',projectionSha256:'a'.repeat(64)},preparedNullSource:{version:'campaign-prepared-devnull-setexec@2',preparedNullIdentityInterpretation:'prepared-null-device-endpoints@1',bindings:{node,entry:h+'/prefix/native-probes/paired-stage-campaign.mjs',launcher:h+'/prefix/native-probes/paired-stage-campaign-launch'}}};
  const sha=v=>createHash('sha256').update(v).digest('hex');inputs.projection.sourceSha256=sha(inputs.projection.source);inputs.preparedNullSource.source='node '+node+' entry '+inputs.preparedNullSource.bindings.entry+' launcher '+inputs.preparedNullSource.bindings.launcher;inputs.preparedNullSource.sourceSha256=sha(inputs.preparedNullSource.source);
- const matches=(p,x,s,y,c)=>p===inputs.projection&&x===inputs.assetsBuild&&s===inputs.pairedSource&&y===inputs.pairedArtifacts&&c===inputs.copies;
- const verifyProjection=p=>({outcome:!changed&&p===inputs.projection?'FIXED_CANARY_ORIGINAL_INPUT_GUARDS_OBSERVED':'UNKNOWN',version:p.version,sourceSha256:p.sourceSha256});const verifyNull=p=>p===inputs.preparedNullSource?({outcome:!changed?'CAMPAIGN_PREPARED_NULL_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED':'UNKNOWN',version:p.version,sourceSha256:p.sourceSha256}):({outcome:'UNKNOWN'});
+ const matches=(p,x,s,y,c)=>{matchCalls++;return !(currentFault==='DERIVATION'&&matchCalls===(currentAt==='INITIAL'?2:3))&&p===inputs.projection&&x===inputs.assetsBuild&&s===inputs.pairedSource&&y===inputs.pairedArtifacts&&c===inputs.copies;};
+ const verifyProjection=p=>{events.push('projection');projectionCalls++;if(state.onProjection)state.onProjection();if(projectionCalls===(currentAt==='INITIAL'?1:2)&&currentFault==='PROJECTION_CURRENT')throw foreignError;if(projectionCalls===(currentAt==='INITIAL'?1:2)&&currentFault==='PROJECTION_RESULT')return{outcome:'UNKNOWN',get version(){assert.fail('short-circuited projection property read');}};return{outcome:!changed&&p===inputs.projection?'FIXED_CANARY_ORIGINAL_INPUT_GUARDS_OBSERVED':'UNKNOWN',version:p.version,sourceSha256:p.sourceSha256};};
+ const verifyNull=p=>{events.push('null');nullCalls++;if(nullCalls===(currentAt==='INITIAL'?2:3)&&currentFault==='PREPARED_NULL_CURRENT')throw foreignError;if(nullCalls===(currentAt==='INITIAL'?2:3)&&currentFault==='PREPARED_NULL_RESULT')return{outcome:'UNKNOWN',get version(){assert.fail('short-circuited null property read');}};return p===inputs.preparedNullSource?({outcome:!changed?'CAMPAIGN_PREPARED_NULL_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED':'UNKNOWN',version:p.version,preparedNullIdentityInterpretation:p.preparedNullIdentityInterpretation,sourceSha256:p.sourceSha256}):({outcome:'UNKNOWN'});};
  const campaign=()=>({disabled:true,baseA:a,baseB:b,hostBase:h,node,entry:inputs.preparedNullSource.bindings.entry,cwd:a+'/Checkout 空间/.sealed-native-canaries',actors:roles.map((role,at)=>({role,file:at===2?node:h+'/prefix/native-probes/actor-'+at,args:at===2?[h+'/prefix/native-probes/check.mjs']:[],fileSha256:'b'.repeat(64)}))});
- const text=fs.readFileSync(sourceUrl,'utf8').replace(/^import .*;$/gm,'').replaceAll('export function ','function ').replaceAll('import.meta.url',JSON.stringify(sourceUrl.href));const counting=new Proxy(fs,{get(target,key){if(['lstatSync','realpathSync','openSync','readSync','fstatSync','closeSync'].includes(key))return(...args)=>{io++;return target[key](...args);};return target[key];}});
- const [invoke,verify]=Function('fs','path','fileURLToPath','createHash','collectFixedEnclosedCampaign','prepareSealedTypeScriptFixedCampaignSource','verifySealedTypeScriptFixedCanaryProtectedInputProjection','sealedTypeScriptFixedCanaryProtectedInputProjectionMatchesDerivation','verifySealedTypeScriptFixedCampaignPreparedNullSource',text+';return [prepareSealedTypeScriptFixedCampaignEnclosureSource,verifySealedTypeScriptFixedCampaignEnclosureSource];')(counting,path,fileURLToPath,createHash,selectedCollector,campaign,verifyProjection,matches,verifyNull);
- return{inputs,invoke,verify,io:()=>io,change:()=>{changed=true;}};
+ let text=fs.readFileSync(sourceUrl,'utf8').replace(/^import .*;$/gm,'').replaceAll('export function ','function ').replaceAll('export const ','const ').replaceAll('import.meta.url',JSON.stringify(sourceUrl.href));
+ // Explicit source fault injection only. No native/real boundary claim. The
+ // unchanged existing negative tests separately exercise actual predicates.
+ if(faultStage){assert(refusalStages.includes(faultStage));if(faultStage==='OPTIONS')text=text.replace(" try{\n guard(arguments.length===1&&options"," try{throw foreignError;\n guard(arguments.length===1&&options");else text=text.replace("refusalStage='"+faultStage+"';","refusalStage='"+faultStage+"';throw foreignError;");}
+ if(currentFault&&/^(?:C|COLLECTOR)_SOURCE_/.test(currentFault)){
+  const index=currentFault.startsWith('C_')?0:1;
+  if(currentFault.endsWith('_READ'))text=text.replace('const next=readSource(path.basename(row.file),row.pin);','const next=readSource(path.basename(row.file),index==='+index+"?'0'.repeat(64):row.pin);");
+  if(currentFault.endsWith('_IDENTITY'))text=text.replace('guard(next.mark===row.mark',"if(index==="+index+")next.mark='MOCK_MISMATCH';guard(next.mark===row.mark");
+  if(currentFault.endsWith('_NAMED'))text=text.replace('named(record.rows[index]);',"named(index==="+index+"?{...record.rows[index],mark:'MOCK_MISMATCH'}:record.rows[index]);");
+ }const counting=new Proxy(fs,{get(target,key){if(['lstatSync','realpathSync','openSync','readSync','fstatSync','closeSync'].includes(key))return(...args)=>{io++;return target[key](...args);};return target[key];}});
+ const [invoke,verify,matchesSource]=Function('fs','path','fileURLToPath','createHash','collectFixedEnclosedCampaign','foreignError','prepareSealedTypeScriptFixedCampaignSource','verifySealedTypeScriptFixedCanaryProtectedInputProjection','sealedTypeScriptFixedCanaryProtectedInputProjectionMatchesDerivation','verifySealedTypeScriptFixedCampaignPreparedNullSource',text+';return [prepareSealedTypeScriptFixedCampaignEnclosureSource,verifySealedTypeScriptFixedCampaignEnclosureSource,sealedTypeScriptFixedCampaignEnclosureSourceMatchesDerivation];')(counting,path,fileURLToPath,createHash,selectedCollector,foreignError,campaign,verifyProjection,matches,verifyNull);
+ return{inputs,invoke,verify,matchesSource,io:()=>io,change:()=>{changed=true;},state,events};
 }
 test('public setup rejects arbitrary/copy/getter inputs before any physical source IO',()=>{for(const value of [null,{},[],{assetsBuild:{},pairedSource:{},pairedArtifacts:{},copies:{},projection:{},preparedNullSource:{}}])assert.throws(()=>prepare(value));const r=renderer();assert.throws(()=>r.invoke(structuredClone(r.inputs)));assert.equal(r.io(),0);let accessed=0;const accessor={...r.inputs};Object.defineProperty(accessor,'projection',{get(){accessed++;return r.inputs.projection;}});assert.throws(()=>r.invoke(accessor));assert.equal(accessed,0);assert.equal(r.io(),0);});
 test('composition binds one original projection, original fixed actors and new distinct portable paths, not a runtime substitution',()=>{const r=renderer(),v=r.invoke(r.inputs);assert.equal(v.runnable,false);assert.equal(v.executionAuthority,'NONE');assert.equal(v.files.length,4);assert(v.files.every(f=>f.sourceBytes===Buffer.byteLength(f.source)&&f.sourceSha256===createHash('sha256').update(f.source).digest('hex')));assert.equal(v.files[0].source,r.inputs.projection.source);assert.match(v.files[1].source,/detached:false/);assert.match(v.files[1].source,/result\.outcome==='FAIL'\?'F':'E'/);assert.match(v.files[2].source,/paired-stage-enclosed-campaign\.mjs/);assert(!v.files[2].source.includes('entry '+r.inputs.preparedNullSource.bindings.entry));assert.equal(v.bindings.entry.endsWith('/paired-stage-enclosed-campaign.mjs'),true);assert(v.blockers.includes('NEW_ENCLOSURE_CODE_PROVISIONING_AND_ORIGINAL_CURRENTNESS_NOT_ESTABLISHED'));assert.equal(v.actualExecution,'NOT_RUN');assert.equal(r.verify(v).outcome,'FIXED_CANARY_ENCLOSURE_SOURCE_INPUTS_CURRENTLY_OBSERVED_NOT_PROVISIONED');r.change();assert.equal(r.verify(v).outcome,'UNKNOWN');assert.equal(r.verify(v).outcome,'UNKNOWN');assert.equal(r.verify(structuredClone(v)).outcome,'UNKNOWN');});
@@ -99,3 +109,63 @@ test('transport0 remains behind exact private E/F frame, reap, group-absence and
 });
 
 test('retired projection interpretation cannot select a new enclosure source',()=>{const r=renderer();r.inputs.projection.version='fixed-canary-original-input-projection@2';assert.throws(()=>r.invoke(r.inputs));assert.equal(r.io(),0);});
+
+test('private source derivation binds exactly six original capabilities without IO or public getters',()=>{
+ const r=renderer(),v=r.invoke(r.inputs),caps=Object.values(r.inputs),before=r.io();let traps=0;
+ const foreign=new Proxy({},{get(){traps++;throw Error('PRIVATE');},getPrototypeOf(){traps++;throw Error('PRIVATE');}});
+ assert.equal(r.matchesSource(v,...caps),true);
+ for(let at=0;at<6;at++){const wrong=[...caps];wrong[at]=foreign;assert.equal(r.matchesSource(v,...wrong),false);}
+ for(const value of [undefined,null,{},structuredClone(v),foreign])assert.equal(r.matchesSource(value,...caps),false);
+ assert.equal(r.matchesSource(v,...caps.slice(0,-1)),false);assert.equal(r.matchesSource(v,...caps,foreign),false);
+ assert.equal(traps,0);assert.equal(r.io(),before);
+ r.change();assert.equal(r.matchesSource(v,...caps),true);assert.equal(r.io(),before);assert.equal(r.verify(v).outcome,'UNKNOWN');const after=r.io();assert.equal(r.matchesSource(v,...caps),false);assert.equal(r.io(),after);
+});
+
+const expectedRefusalStages=['OPTIONS','ORIGINAL_DERIVATION','PREPARED_NULL_CURRENT','INITIAL_ORIGINAL_CURRENT','PROJECTION_INTERPRETATION','CAMPAIGN_RENDER','DERIVED_BINDINGS','COLLECTOR_FUNCTION_PIN','C_TEMPLATE_READ','COLLECTOR_TEMPLATE_READ','LAUNCHER_REBIND','ENCLOSURE_REBIND','FINAL_ORIGINAL_CURRENT','SOURCE_RESULT'];
+test('factory refusal vocabulary is a fixed frozen enum with no caller-controlled reason',()=>{assert.deepEqual(refusalStages,expectedRefusalStages);assert(Object.isFrozen(refusalStages));});
+for(const stage of expectedRefusalStages)test('source-injected '+stage+' failure records only its owned static refusal stage',()=>{
+ let touched=0;const foreignError={get message(){touched++;return 'SECRET_INNER_MESSAGE';},get code(){touched++;return 'SECRET_INNER_CODE';},get stack(){touched++;return 'SECRET_INNER_STACK';},get refusalStage(){touched++;return 'SECRET_INNER_STAGE';}};
+ const r=renderer({faultStage:stage,foreignError});let caught;
+ try{r.invoke(r.inputs);assert.fail('source-injected refusal must throw');}catch(error){caught=error;}
+ assert.notEqual(caught,foreignError);assert.equal(caught.message,'ENCLOSURE_SOURCE_UNAVAILABLE');assert.equal(caught.refusalStage,stage);assert.equal(touched,0);
+ assert.deepEqual(Object.keys(caught),['refusalStage']);assert.equal(Object.hasOwn(caught,'code'),false);assert(!String(caught.stack).includes('SECRET_INNER'));
+ const field=Object.getOwnPropertyDescriptor(caught,'refusalStage');assert.equal(field.writable,false);assert.equal(field.configurable,false);assert.equal(field.enumerable,true);
+ assert.equal(JSON.stringify(caught),JSON.stringify({refusalStage:stage}));
+});
+test('real existing option/derivation/collector pin refusals retain throws and accurate local stages',()=>{
+ const r=renderer();assert.throws(()=>r.invoke({}),error=>error.message==='ENCLOSURE_SOURCE_UNAVAILABLE'&&error.refusalStage==='OPTIONS');
+ assert.throws(()=>r.invoke({...r.inputs,assetsBuild:{}}),error=>error.refusalStage==='ORIGINAL_DERIVATION');
+ assert.throws(()=>r.invoke({...r.inputs,preparedNullSource:{}}),error=>error.refusalStage==='PREPARED_NULL_CURRENT');
+ const stale=renderer({selectedCollector:function stale(){}});assert.throws(()=>stale.invoke(stale.inputs),error=>error.refusalStage==='COLLECTOR_FUNCTION_PIN');
+ const good=r.invoke(r.inputs);assert.equal(good.outcome,'FIXED_CANARY_ENCLOSURE_SOURCES_PREPARED_NOT_PROVISIONED');assert.equal(Object.hasOwn(good,'refusalStage'),false);assert.equal(good.runnable,false);assert.equal(good.executionAuthority,'NONE');
+});
+
+const expectedCurrentRefusals=['DERIVATION','PROJECTION_CURRENT','PREPARED_NULL_CURRENT','PROJECTION_RESULT','PREPARED_NULL_RESULT','C_SOURCE_READ','C_SOURCE_IDENTITY','COLLECTOR_SOURCE_READ','COLLECTOR_SOURCE_IDENTITY','C_SOURCE_NAMED','COLLECTOR_SOURCE_NAMED'];
+test('original-current refusal vocabulary is fixed/frozen and distinct from outer factory stages',()=>{assert.deepEqual(currentRefusals,expectedCurrentRefusals);assert(Object.isFrozen(currentRefusals));});
+for(const step of expectedCurrentRefusals)test('final original-current source/mock fault '+step+' remains refused with precise owned static data',()=>{
+ let touched=0;const foreignError=new Proxy({},{get(){touched++;throw Error('SECRET_INNER_GETTER');}}),r=renderer({currentFault:step,foreignError});let error;
+ assert.throws(()=>r.invoke(r.inputs),caught=>{error=caught;return caught.message==='ENCLOSURE_SOURCE_UNAVAILABLE'&&caught.refusalStage==='FINAL_ORIGINAL_CURRENT'&&caught.originalCurrentRefusal===step;});
+ const field=Object.getOwnPropertyDescriptor(error,'originalCurrentRefusal');assert.equal(field.writable,false);assert.equal(field.configurable,false);assert.equal(field.enumerable,true);assert.equal(touched,0);assert.deepEqual(Object.keys(error),['refusalStage','originalCurrentRefusal']);
+ if(step==='PROJECTION_RESULT'||step==='PREPARED_NULL_RESULT')assert.deepEqual(r.events,['null','projection','null','projection','null'],'both current verifiers run in original order before result guards');
+});
+test('initial current reports UNKNOWN return without pretending it is a final or file-read failure',()=>{
+ const r=renderer();r.change();assert.throws(()=>r.invoke(r.inputs),error=>error.refusalStage==='PREPARED_NULL_CURRENT'&&!Object.hasOwn(error,'originalCurrentRefusal'));
+ const injected=renderer({faultStage:'INITIAL_ORIGINAL_CURRENT',foreignError:Error('PRIVATE')});assert.throws(()=>injected.invoke(injected.inputs),error=>error.refusalStage==='INITIAL_ORIGINAL_CURRENT'&&!Object.hasOwn(error,'originalCurrentRefusal'),'failure before current started has no invented inner observation');
+});
+test('reentrant inner factory refusal cannot overwrite outer current diagnostics or a successful result',()=>{
+ const r=renderer();let entered=false,nested;
+ r.state.onProjection=()=>{if(entered)return;entered=true;try{r.invoke({...r.inputs,preparedNullSource:{}});}catch(error){nested=error;}};
+ const value=r.invoke(r.inputs);assert.equal(nested.refusalStage,'PREPARED_NULL_CURRENT');assert(!Object.hasOwn(nested,'originalCurrentRefusal'));assert.equal(value.outcome,'FIXED_CANARY_ENCLOSURE_SOURCES_PREPARED_NOT_PROVISIONED');assert(!Object.hasOwn(value,'refusalStage'));assert(!Object.hasOwn(value,'originalCurrentRefusal'));assert.deepEqual(r.events,['null','projection','null','null','projection','null']);
+});
+
+for(const step of expectedCurrentRefusals.slice(0,5))test('initial original-current source/mock fault '+step+' has its own local exact observation',()=>{
+ const r=renderer({currentFault:step,currentAt:'INITIAL',foreignError:Error('PRIVATE')});assert.throws(()=>r.invoke(r.inputs),error=>error.refusalStage==='INITIAL_ORIGINAL_CURRENT'&&error.originalCurrentRefusal===step);
+ if(step==='PROJECTION_RESULT'||step==='PREPARED_NULL_RESULT')assert.deepEqual(r.events,['null','projection','null']);
+});
+
+for(const interpretation of [undefined,null,'prepared-null-device-endpoints@0','prepared-null-device-endpoints@2'])test('enclosure refuses absent or incompatible prepared device interpretation '+String(interpretation),()=>{
+ const r=renderer();r.inputs.preparedNullSource.preparedNullIdentityInterpretation=interpretation;assert.throws(()=>r.invoke(r.inputs),error=>error.refusalStage==='PREPARED_NULL_CURRENT');assert.equal(r.io(),0);
+});
+test('original prepared device interpretation remains required in every later source-current observation',()=>{
+ const r=renderer(),value=r.invoke(r.inputs);r.inputs.preparedNullSource.preparedNullIdentityInterpretation='prepared-null-device-endpoints@0';assert.equal(r.verify(value).outcome,'UNKNOWN');r.inputs.preparedNullSource.preparedNullIdentityInterpretation='prepared-null-device-endpoints@1';assert.equal(r.verify(value).outcome,'UNKNOWN');
+});

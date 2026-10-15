@@ -7,25 +7,166 @@ existing `/Users/mariosiric/Documents/redue-portable-ordinary-boundary` worktree
 verify HEAD/status first. The planning baseline is history, never a rollback target.
 
 
+
+## Current checkpoint — build-only preparation complete; native acceptance pending
+
+At `79697aa6e9456bd0595ce64945ec264f0f6cd5b4`, the eighth trusted local
+preparation returned **BUILT_NOT_EXECUTED**. All eight actual C builds exited0;
+all19 preparation phases completed, with38 ordered progress frames and final
+pre-native endpoint validation. Inner preparation32,486.897ms; parent collection
+32,680.167ms. The latter excludes later persistence/final-emission time and is
+not a whole-workflow performance measurement. No helper, TypeScript check,
+native agent, model or receipt executed; sealing/reuse authority remains false.
+
+The private24,443-byte report SHA256 is
+`ff626f80e66192feb142a9b138c8f1694a242ca620b2efc0b9a6207017b291a7`.
+Kernel exit, child exit0/reap and post-reap group absence were observed; pre-reap
+EPERM remains recorded, with no destructive cleanup signal attempted. The saved
+snapshot explicitly cannot establish final persistence/completion; the coordinator
+separately observed outer exit0 and its final printed completion. DIR273 accepts
+only this build-preparation scope. Original private capabilities expired with
+that process: its report and retained files cannot authorize a later native run.
+
+DIR270 accepted the corrected latched parent clock and fixed build-only profile
+`fixed-enclosure-preparation-local-sdk27@2` (60s body, at most5s cleanup,65s total).
+The SDK27 builder's30s limit and native/checker/model limits are unchanged. Root
+source/mock controls:1,244 PASS/2 actual-child SKIP/0 FAIL; two separate harmless
+lifecycle harnesses PASS. This budget correction is not a product speedup.
+The earlier `e6a20eab` clock counterexample and all seven UNKNOWN attempts remain
+historical evidence below; the defective revision was not run as an actual attempt.
+
+The native trace parser's DIR271 review found validated FAIL could be lost after
+END refusal or actor-reap timeout. DIR276 independently accepts exact `dcd493c`;
+the repaired tree is integrated at `64c3722`. All1,143 affected source/mock checks
+and44 independent collector/contradiction cases pass. Root's eight-file combined
+run has451 PASS/0 FAIL, TAP SHA256
+`2b2cd82f6b07ab6d28f864e2125e622df1f16c06ce5110f83608175cd3011735`.
+This is data interpretation only: public trace/binding JSON cannot authenticate
+native execution or create origin, sealing or reuse authority. DIR277 accepts
+the same-process private context design; DIR278 implements only that identity
+slice, without a native controller, report adoption or launch authority.
+
+The reviewed public-header workflow `3f07b38`, pinned runtime `3edffa5`, still
+awaits the one requested owner UI dispatch (CLI403 is not retried). No new run
+appeared at the latest read. Its result will be public SDK observations only;
+actual hosted profile compatibility and native enforcement remain unproved.
+G1–G4 are incomplete; alpha.11 remains unpublished. Copilot included Actions
+capacity remains a separate pending fact; no repeated account request is needed.
+
+## Historical checkpoints — retained without retrospective relabeling
+
 ## Current checkpoint — exec result collected; descriptor metadata UNKNOWN
 
-Latest local preparation: DIR205/210's fixed build-only observer is integrated at
-`4f7cc53`, independently accepted by DIR211 after DIR209's two observation-loss
-findings were repaired. Root608 source/mock tests PASS,0fail/skip,1,167.622ms;
-TAP SHA256 `ca9df364dd5e361a87a0d7998be05b805f46f8cbbed1ee07366422fca56bf290`.
-The first actual trusted local preparation returned UNKNOWN before any C build:
-`freshPair` failed; child exit74/reap and later group absence were observed, but
-cleanup's earlier exception was not classified. No native/model/checker ran.
-Private report2015B SHA256
-`304175f9d6aa8e04a7aac9f66b32a2591f48c38141093763c3c5be0e875040b5` is preserved.
-DIR212 identifies a concrete current fixture mismatch: Node22.13's JavaScript
-realpath preserves uppercase alias spelling while native realpath resolves the
-exact original lowercase target; all three original inode/metadata comparisons
-match. This does not prove the historical first throw. DIR213 finds no static
-PID/signal conversion defect; the discarded cleanup error leaves cause UNKNOWN.
-DIR214 owns only a narrowly reviewed case-alias repair and bounded cleanup error
-classification, not relaxed assertions, new permissions or an unchanged retry.
-No new native attempt or owner action is pending.
+Latest trusted preparation at `3888e9d` completed `enclosureSource` under the
+reviewed `prepared-null-device-endpoints@1` interpretation, then reached the
+unchanged30s body deadline during `enclosureBuilds`. Parent30,005.527ms;
+33 valid prefix frames, six returned Clang exit0 results. New-phase dispatch
+and completion remain UNKNOWN. Owned kill/reap/group absence were observed.
+Report17,654B SHA256
+`805b4fe6f9ef033144c2e836a483f09958da2fff2761caf6c3891716bd71bfeb`.
+No native/helper/model/check or receipt ran. DIR260/261 support an explicit
+60s build-only body/maximum5s cleanup/65s total revision; the inspected30s cap
+was internal engineering configuration, not an owner-set native/model limit.
+The first revision `e6a20eab` is NOT integrated or run: DIR267 found a pure-mock
+cleanup clock regression (10.0→14.9→10.2) could falsely report preparation
+complete. DIR269 is correcting the latched monotonic clock before fresh review.
+No unchanged retry, native-limit change or performance claim follows.
+
+The sixth attempt at `d4d54d5` completed in23,547.987ms and precisely returned
+`FINAL_ORIGINAL_CURRENT / PREPARED_NULL_RESULT`; its exact changed property is
+not reconstructed. Report SHA256
+`e214ec414da55f748abe0926e2475f38d734edf363bcfa74b8ffdc06cb925852`.
+The existing paired-dependency observation scope is DIR251 accepted: source/mock
+counts show fewer duplicate reads, and one observed paired-build phase fell
+from7,294.764ms to2,999.636ms. This is preparation-only evidence, not a product
+latency distribution or complete-path speedup claim.
+
+DIR253/257 independently reviewed the new exact-device endpoint interpretation.
+Only `/dev/null` mtime/ctime are excluded; type/dev/ino/rdev/mode/ownership/link
+count/size/canonical ancestry and source/SDK timestamp/hash checks remain.
+Both consumers reject missing/obsolete interpretations; C source bytes remain
+unchanged. Apple devfs source supports this relevance distinction, not a claim
+about the historical refusal or an immutable interval. Root17-file integration:
+1,242 PASS/2 actual-child SKIP/0 FAIL,1,718.231ms, TAP SHA256
+`639288fd7206f07763be9cdacbe5a1740674e361da5d43ea1da704b988359c49`.
+
+Fixed public CI-header observation is DIR255 accepted and integrated `3edffa5`:
+154 source/mock controls PASS. Reviewed workflow `3f07b38` is pushed on
+`dev/portable-sealed-host-preflight`, runtime pinned to `3edffa5631342a087bf5999cef031a3dcd102381`.
+It uses only two approved standard VMs, read-only permissions and bounded public
+metadata/hash observations; no C build, native/model, artifact, signing or trust.
+DIR256's BSD stat formatting defect was corrected before execution and DIR258
+accepted the exact workflow SHA256
+`abcc3dcb2161196e3865822ac345e9f07ac23ba40906784abe4a8beb38193020`.
+No job was active when checked. One owner UI dispatch is requested because the
+existing CLI403 remains; no denied-operation retry or alternate transport.
+Actual hosted header/machine acceptance is NOT RUN until the new result exists.
+
+Earlier actual attempts and their separate failure scopes follow unchanged.
+
+Latest trusted preparation at `6f5bb90` reached BODY_DEADLINE at30,005.345ms.
+Its31 validated progress frames retain six actual Clang exit0 results and
+`enclosureSource` BEGIN without END/FINAL. No inner-refusal label or final
+source outcome was collected; no enclosure/helper/native/model/check ran.
+Owned SIGKILL/reap and post-reap group absence were observed. This remains
+UNKNOWN, not a failure of the compiler check or a successful preparation.
+Report16,782B SHA256
+`2ded5ab1326208883f0bca2527d2922d132c43074947a07c07de764972a49349`.
+No unchanged retry or deadline increase is queued. DIR245/246 review whether
+existing synchronous guarded observation can remove repeated preparation
+validation while retaining original boundary checks; no new cache authority.
+
+DIR236/243's11 fixed inner attribution labels and DIR239/242's strict bridge
+are independently accepted and integrated at `02025af`/`6f5bb90`. The affected
+14-file source/mock checks have901 PASS/2 explicit actual-child SKIP/0 FAIL
+(two separate invocations, not an end-to-end timing). TAPs SHA256
+`6f79584dbb6fabe4d2dbcc247d40248c29e28e938c54daf7924ad0773f284cfc` and
+`d7599ca5417d2799082893f8ab68841c506ba5cc4cd971d6882a16a7716ab921`.
+A passive local sample observed only `/dev/null` mtime/ctime drift; a separate
+one-source three-second sample remained current. Neither establishes the
+historical refusal cause; no device-identity guard was changed.
+
+Previous actual attempt retained below: its completed FINAL establishes a
+specific refusing stage and a distinct normal-exit lifecycle result.
+
+Latest trusted local preparation remains UNKNOWN at a now identified guard:
+`FINAL_ORIGINAL_CURRENT` inside `enclosureSource`. At integration `d685db1`,
+six actual Clang builds completed with exit0; no new enclosure build, compiled
+helper, TypeScript check, native agent, model or receipt ran. Child elapsed
+28,908.553ms, parent29,113.834ms. This was not a body timeout. The original
+currentness guard remains authoritative; DIR236 is diagnosing its refusal.
+Private report SHA256
+`3a77d879fca762dd65fcff6dbedd83c92545fee61ce819125a43b4770e2af8a0` is preserved.
+
+DIR230/233/234's reviewed preparation lifecycle repair is integrated. Exact owned
+kernel NOTE_EXIT was observed before reaping; the pre-reap group probe returned
+EPERM, which was retained rather than called signal success. No destructive
+cleanup signal was attempted; actual child exit74/reap and post-reap ESRCH were
+observed. This establishes preparation lifecycle closure, not native enforcement.
+All earlier UNKNOWNs and their cleanup classifications remain unchanged.
+
+Root shared controls:808 PASS/2 explicit actual-child SKIP/0 FAIL across12 files,
+1,327.076ms; TAP SHA256
+`bf032900b95900e1fb6e4cab1b6b987bcab294e1b17f0f13f8073ae063916853`.
+The two opt-in harmless process harnesses then both passed once: stalled child
+1,507.819ms and normal exit30.218ms. They establish only owned lifecycle harness
+behavior, with zero compiler/native/model executions. HARNESS TAP SHA256
+`7b054fd0f03a2da25cdce57f6718ab526f6f41d392493430fcb97c539759ec67`.
+The possible mocked watcher finding was withdrawn after call-path inspection:
+no unrelated kernel watcher was established. Explicit stubs now protect test purity.
+
+Static source refusal stages preserve guard order and original outputs (DIR232).
+The final bridge reports fixed labels only, without inner error text or secrets.
+DIR237 independently accepts the limited actual lifecycle/result scope. No owner action is
+needed for this diagnosis, and no native retry or timeout increase is queued.
+
+Reviewed endpoint interface `4d7a5ce` is integrated at `6f3ea09` (DIR221).
+Disabled command composition `f282dc2` is integrated at `ee2e055` (DIR224), with
+exact original21/new6 H code read leaves and unchanged old commands/policies.
+Neither is native GO or an interval/seal. Actual hosted SDK compatibility,
+controller/trace/startup binding and effective code barriers remain prerequisites.
+Alpha.11's frozen bytes were rechecked unchanged; it remains unpublished.
+No new native attempt or owner action is queued; Copilot capacity is separate.
 
 Disabled original-input projection author `861204b` is integrated at `f4af809`;
 fresh DIR193 accepts its exact source-only scope. Root454 PASS/1 gated SKIP and

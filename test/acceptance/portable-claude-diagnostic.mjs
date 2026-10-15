@@ -167,7 +167,7 @@ function interpretCollectedFixedDirectDiagnostic(collection,completion,witness,e
   return collection.transport_error?Object.freeze({...interpreted,outcome:'UNKNOWN',reason:collection.transport_error}):interpreted;
  }finally{retained.events.length=0;}
 }
-function parseDirectNativeFrame(line){
+export function parseDirectNativeFrame(line){
  // Native cost/timing fields can be fractional. Check the actual JSON first,
  // then reuse the existing strict key/Unicode/depth parser with ONLY number
  // tokens neutralized outside strings. Duplicate decoded keys stay rejected;

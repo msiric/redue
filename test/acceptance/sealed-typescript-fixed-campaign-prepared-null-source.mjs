@@ -2,12 +2,18 @@
 // Trusted/quiescent source/SDK reads are not an immutable native namespace.
 import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';import {createHash} from 'node:crypto';
 const version='campaign-prepared-devnull-setexec@2',sdk='/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk';
+export const SEALED_TYPESCRIPT_PREPARED_NULL_IDENTITY_INTERPRETATION='prepared-null-device-endpoints@1';
 const templatePin='ecff1f5d828aa83e1050da066f1f8037fef3f7c15949cae45674371ae85ea35b';
 const headerPins=Object.freeze({'spawn.h':'2d90f16beec60b2080553613234f004b58f384003feaa5eb809fe5e91b42b884','sys/spawn.h':'988afa3a6d7a1ce18df118d234240c02eff0715b5712784ac28b44e7f66254dc'});
 const minted=new WeakMap(),sha=body=>createHash('sha256').update(body).digest('hex');
 const guard=value=>{if(!value)throw Error('CAMPAIGN_PREPARED_NULL_SOURCE_UNKNOWN');};
 const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
 const mark=s=>['dev','ino','mode','uid','gid','nlink','size','mtimeNs','ctimeNs'].map(k=>String(s[k])).join(':');
+// ONLY the prepared character-device endpoint projects volatile timestamps.
+// The C template selects dev/ino/rdev/type and descriptor access, never device
+// mtime/ctime or content. All structural fields/canonical ancestry remain; this
+// says nothing about an interval. Source/SDK full marks above stay unchanged.
+const nullDeviceMark=s=>['dev','ino','mode','uid','gid','nlink','size'].map(k=>String(s[k])).join(':');
 const parentMark=s=>['dev','ino','mode','uid','gid'].map(k=>String(s[k])).join(':');
 function parents(file){const rows=[];for(let at=path.dirname(file);;at=path.dirname(at)){const s=fs.lstatSync(at,{bigint:true});guard(s.isDirectory()&&!s.isSymbolicLink());rows.push([at,parentMark(s)]);if(at===path.dirname(at))return rows;}}
 function named(row){guard(mark(fs.lstatSync(row.file,{bigint:true}))===row.mark&&JSON.stringify(parents(row.file))===JSON.stringify(row.lineage));}
@@ -22,10 +28,10 @@ function sdkIdentity(){try{const s=fs.lstatSync(sdk,{bigint:true});guard(fs.real
 // inode/high-bit representations remain UNKNOWN; never reinterpret or normalize.
 const integer=(stat,key,min,max)=>{const field=Object.getOwnPropertyDescriptor(stat,key);guard(field&&Object.hasOwn(field,'value'));const value=field.value;guard(typeof value==='bigint'&&value>=min&&value<=max);return value.toString(10);};
 function nullSnapshot(){const s=fs.lstatSync('/dev/null',{bigint:true});guard(s.isCharacterDevice()&&!s.isSymbolicLink()&&typeof s.mode==='bigint'&&(s.mode&0o170000n)===0o020000n);
- const tuple={dev:integer(s,'dev',-2147483648n,2147483647n),ino:integer(s,'ino',0n,9223372036854775807n),rdev:integer(s,'rdev',-2147483648n,2147483647n)};return{tuple,mark:mark(s)};}
+ const tuple={dev:integer(s,'dev',-2147483648n,2147483647n),ino:integer(s,'ino',0n,9223372036854775807n),rdev:integer(s,'rdev',-2147483648n,2147483647n)};return{tuple,mark:nullDeviceMark(s)};}
 function nullIdentity(){try{const file='/dev/null';guard(fs.realpathSync(file)===file);const before=nullSnapshot(),lineage=parents(file),identity=JSON.stringify([before,lineage]);guard(fs.realpathSync(file)===file&&JSON.stringify(nullSnapshot())===JSON.stringify(before)&&JSON.stringify(parents(file))===JSON.stringify(lineage));return{tuple:before.tuple,identity};
  }catch{guard(false);}}
-function currentNull(record){guard(nullIdentity().identity===record.nullIdentity);}
+function currentNull(record){guard(record.preparedNullIdentityInterpretation===SEALED_TYPESCRIPT_PREPARED_NULL_IDENTITY_INTERPRETATION);guard(nullIdentity().identity===record.nullIdentity);}
 function current(record){currentNull(record);guard(sdkIdentity()===record.sdkIdentity);for(const row of record.rows){const next=read(row.file,row.owner,row.pin);guard(next.mark===row.mark&&JSON.stringify(next.lineage)===JSON.stringify(row.lineage));}guard(sdkIdentity()===record.sdkIdentity);for(const row of record.rows)named(row);currentNull(record);}
 const authority=fields=>freeze({schema:1,scope:'DISABLED_FIXED_CAMPAIGN_PREPARED_NULL_SOURCE_DATA_ONLY',...fields,commands:[],inferencePermitted:false,nativeEnforcement:'NOT_ESTABLISHED',noInheritedWritableHandlesVerified:false,sealed:false,reuseEligible:false});
 export function prepareSealedTypeScriptFixedCampaignPreparedNullSource(options){
@@ -36,6 +42,6 @@ export function prepareSealedTypeScriptFixedCampaignPreparedNullSource(options){
  const preparedNull=nullIdentity(),identity=sdkIdentity(),rows=[read(fileURLToPath(new URL('./sealed-typescript-fixed-campaign-prepared-null.c',import.meta.url)),process.getuid(),templatePin),...Object.entries(headerPins).map(([name,pin])=>read(sdk+'/usr/include/'+name,0,pin))];
  const bindings={node:h+'/runtime/node-v22.13.0-darwin-arm64/bin/node',entry:h+'/prefix/native-probes/paired-stage-campaign.mjs',launcher:h+'/prefix/native-probes/paired-stage-campaign-launch'};
  let source=rows[0].source;for(const[token,value]of [['NODE',bindings.node],['ENTRY',bindings.entry],['LAUNCHER',bindings.launcher]]){const marker='__REVIEWED_FIXED_CAMPAIGN_'+token+'__';guard(source.split(marker).length===2);source=source.replace(marker,value);}for(const [token,value] of Object.entries(preparedNull.tuple)){const marker='__REVIEWED_FIXED_CAMPAIGN_NULL_'+token.toUpperCase()+'__';guard(source.split(marker).length===2&&/^(0|-?[1-9][0-9]*)$/.test(value));source=source.replace(marker,value);}guard(!/__REVIEWED_[A-Z_]+__/.test(source)&&Buffer.byteLength(source)<=65536);
- const record={rows,sdkIdentity:identity,nullIdentity:preparedNull.identity};current(record);const result=authority({disabled:true,version,bindings,source,sourceBytes:Buffer.byteLength(source),sourceSha256:sha(source),templateSha256:templatePin,requiredSdkHeaderPins:headerPins,completeSdkClosure:'NOT_ESTABLISHED',descriptorScope:'C_TO_NODE_NONSTDIO_ONLY',stdioOwnership:'NOT_ESTABLISHED',devNullMetadataPermission:'PREPARATION_ENDPOINTS_ONLY',preparedNullIdentityScope:'TRUSTED_QUIESCENT_PREPARATION_ENDPOINTS_ONLY',captureNamespace:'NOT_ESTABLISHED',fifoParentOwnership:'NOT_ESTABLISHED',preMainLoader:'NOT_ESTABLISHED'});minted.set(result,record);return result;
+ const record={rows,sdkIdentity:identity,nullIdentity:preparedNull.identity,preparedNullIdentityInterpretation:SEALED_TYPESCRIPT_PREPARED_NULL_IDENTITY_INTERPRETATION};current(record);const result=authority({disabled:true,version,bindings,source,sourceBytes:Buffer.byteLength(source),sourceSha256:sha(source),templateSha256:templatePin,requiredSdkHeaderPins:headerPins,completeSdkClosure:'NOT_ESTABLISHED',descriptorScope:'C_TO_NODE_NONSTDIO_ONLY',stdioOwnership:'NOT_ESTABLISHED',devNullMetadataPermission:'PREPARATION_ENDPOINTS_ONLY',preparedNullIdentityScope:'TRUSTED_QUIESCENT_PREPARATION_ENDPOINTS_ONLY',preparedNullIdentityInterpretation:SEALED_TYPESCRIPT_PREPARED_NULL_IDENTITY_INTERPRETATION,captureNamespace:'NOT_ESTABLISHED',fifoParentOwnership:'NOT_ESTABLISHED',preMainLoader:'NOT_ESTABLISHED'});minted.set(result,record);return result;
 }
-export function verifySealedTypeScriptFixedCampaignPreparedNullSource(proposal){const record=minted.get(proposal),unknown=()=>authority({outcome:'UNKNOWN'});if(!record||record.invalid)return unknown();try{current(record);guard(!record.invalid);return authority({outcome:'CAMPAIGN_PREPARED_NULL_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED',version,sourceSha256:proposal.sourceSha256,templateSha256:templatePin});}catch{record.invalid=true;return unknown();}}
+export function verifySealedTypeScriptFixedCampaignPreparedNullSource(proposal){const record=minted.get(proposal),unknown=()=>authority({outcome:'UNKNOWN'});if(!record||record.invalid)return unknown();try{current(record);guard(!record.invalid);return authority({outcome:'CAMPAIGN_PREPARED_NULL_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED',version,preparedNullIdentityInterpretation:SEALED_TYPESCRIPT_PREPARED_NULL_IDENTITY_INTERPRETATION,sourceSha256:proposal.sourceSha256,templateSha256:templatePin});}catch{record.invalid=true;return unknown();}}
