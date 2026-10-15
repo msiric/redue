@@ -174,7 +174,7 @@ test('source binds four fixed CI consumers, one private context mint, unchanged 
  assert.deepEqual(record.split(',').map(row=>row.split(':')[0]),['pair','hostFixture','assetsBuild','pairedSource','pairedArtifacts','copies','projection','preparedNullSource','enclosureSource','enclosureBuild']);
  for(const matcher of ['assetsMatchPair','assetsMatchHostFixture','pairedSourceMatches','pairedArtifactsMatch','copiesMatch','launcherMatches','projectionMatches','sourceMatches','buildMatches'])assert(shared.includes('o.'+matcher+'('));
  const cli=source.slice(source.indexOf('const here=fileURLToPath(import.meta.url)'));
- assert(!cli.includes('CI'));assert.match(cli,/--fixed-preparation-child/);assert.match(cli,/await observeFixedEnclosurePreparation\(/);
+ assert(!cli.includes('prepareFixedCIEnclosureContext'));assert(!cli.includes('runFixedNativeEnclosureDiagnostic'));assert.match(cli,/--fixed-ci-preparation-child/);assert.match(cli,/--fixed-preparation-child/);assert.match(cli,/await observeFixedEnclosurePreparation\(/);
  const parent=fs.readFileSync(new URL('./acceptance/sealed-typescript-enclosure-provisioning-parent.py',import.meta.url),'utf8');
  assert(parent.includes('INNER_SHA256 = "'+createHash('sha256').update(source).digest('hex')+'"'));
 });

@@ -1,9 +1,9 @@
 #!/usr/bin/python3
-"""Two fixed routes: --run preparation (60s body + <=5s cleanup, 65s total),
---native-run diagnostic (115s work + <=5s cleanup, 120s total), both from the
-original process/job start. Sync filesystem calls are checked at boundaries,
-not OS-interruptible. No supplied command/path or restored private authority.
-Node-group closure never establishes detached native Bash descendant closure.
+"""Fixed --run/local and --ci-run/CI preparation: 60s body + <=5s cleanup,
+65s total. Separate --native-run/local diagnostic: 115s work + <=5s cleanup,
+120s total, including original process/job start. Sync filesystem calls are
+checked at boundaries, not OS-interruptible. No supplied command/path or
+restored private authority. Node-group closure is not detached Bash closure.
 """
 import time
 _PROCESS_STARTED = time.monotonic()
@@ -21,17 +21,20 @@ import re
 import selectors
 import select
 import signal
+import shutil
 import stat
 import subprocess
 import sys
 import uuid
 
-INNER_SHA256 = "d70e60a53bfb266546ee09eb6547b698f311df445af840ef497d7a3aeed845c5"
+INNER_SHA256 = "3d7bf5e8a121e6df98c8df08be1a860966d0d1f6bee443d759d943397f93dc47"
 ENCLOSURE_REFUSAL_STAGES = ("OPTIONS", "ORIGINAL_DERIVATION", "PREPARED_NULL_CURRENT", "INITIAL_ORIGINAL_CURRENT", "PROJECTION_INTERPRETATION", "CAMPAIGN_RENDER", "DERIVED_BINDINGS", "COLLECTOR_FUNCTION_PIN", "C_TEMPLATE_READ", "COLLECTOR_TEMPLATE_READ", "LAUNCHER_REBIND", "ENCLOSURE_REBIND", "FINAL_ORIGINAL_CURRENT", "SOURCE_RESULT")
 ORIGINAL_CURRENT_REFUSAL_STAGES = ("DERIVATION", "PROJECTION_CURRENT", "PREPARED_NULL_CURRENT", "PROJECTION_RESULT", "PREPARED_NULL_RESULT", "C_SOURCE_READ", "C_SOURCE_IDENTITY", "COLLECTOR_SOURCE_READ", "COLLECTOR_SOURCE_IDENTITY", "C_SOURCE_NAMED", "COLLECTOR_SOURCE_NAMED")
 NODE_SHA256 = "5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc"
 ENTRY_NAME = "sealed-typescript-enclosure-provisioning.mjs"
 SCOPE = "FIXED_ENCLOSURE_PREPARATION_PARENT_ONLY"
+CI_SCOPE = "FIXED_CI_ENCLOSURE_PREPARATION_PARENT_ONLY"
+CI_PROFILE = "fixed-enclosure-preparation-ci-sdk26.5-toolpair-a@1"
 PARENT_SOURCE_LIMIT = 131072  # Only this owned, reviewed Python source file.
 NATIVE_ENTRY_NAME = "sealed-typescript-native-enclosure-child.mjs"
 NATIVE_ENTRY_SHA256 = "231ab81534dea2565b0f5bb547a6de827409e7f3f1e4ed4394c99fb175d31ff3"
@@ -51,7 +54,7 @@ NATIVE_SEALED_SOURCE_PINS = (
     ("base-exchange-source.mjs", "1a66abed15ecff05ee41266ff3e3a5230fc109164a0e74ecafce83525d1c16f6"),
     ("claude-policy.mjs", "d19957530cd238ea2f1b3b7b7ae95f5d7ccc65f457fb3763edef85a1e844407d"),
     ("closed-read-policy.mjs", "d171a31ea942d81f7f93134a26f73bf0b1ccb826edf9bcb878debd82f3397f3d"),
-    ("enclosure-provisioning.mjs", "d70e60a53bfb266546ee09eb6547b698f311df445af840ef497d7a3aeed845c5"),
+    ("enclosure-provisioning.mjs", "3d7bf5e8a121e6df98c8df08be1a860966d0d1f6bee443d759d943397f93dc47"),
     ("fixed-campaign-copies.mjs", "06380846f206a66100c7b5216f969ae55fc8ee2188449e8183e81f8827132a59"),
     ("fixed-campaign-enclosed-collector.mjs", "a15fee9374767e14483575264bcfa85732d90eab503c8a1f2b770c5156395878"),
     ("fixed-campaign-enclosure-build.mjs", "ebd8ecda96e0ca3028b39c6be2fdeb7dea2e2519b5d6daed715a18f796f2b3f2"),
@@ -143,8 +146,8 @@ def file_current(row):
     require(after == row)
 
 
-def prerequisites(_native=False):
-    require(type(_native) is bool)
+def prerequisites(_native=False, _ci=False):
+    require(type(_native) is bool and type(_ci) is bool and not (_native and _ci))
     uid = os.getuid()
     require(sys.flags.isolated == 1 and sys.flags.no_site == 1)
     require(sys.platform == "darwin" and platform.machine() == "arm64"
@@ -153,16 +156,28 @@ def prerequisites(_native=False):
     require(not any(forbidden.search(key) for key in os.environ))
     if _native:
         require(not any(key in os.environ for key in ("REDUE_DECISION_PROFILE", "REDUE_DECISION_PROFILE_FILE", "REDUE_PROFILE_CONTEXT")))
+    if _ci:
+        ci_forbidden = re.compile(r"^(?:SIMPLE|REDUE_DECISION_PROFILE|REDUE_DECISION_PROFILE_FILE|REDUE_PROFILE_CONTEXT)$", re.I)
+        require(not any(ci_forbidden.search(key) for key in os.environ))
     here = Path(__file__).absolute()
     require(here == here.resolve() and here.name == "sealed-typescript-enclosure-provisioning-parent.py")
     repo = here.parents[2]
     require((repo / "package.json").is_file())
     entry = here.parent / (NATIVE_ENTRY_NAME if _native else ENTRY_NAME)
-    node = Path(pwd.getpwuid(uid).pw_dir) / ".nvm/versions/node/v22.13.0/bin/node"
+    if _ci:
+        host_path = os.environ.get("PATH")
+        require(type(host_path) is str and 0 < len(host_path) <= 16384 and not re.search(r"[\x00\r\n]", host_path))
+        selected = shutil.which("node", path=host_path)
+        require(type(selected) is str and os.path.isabs(selected))
+        node = Path(selected).resolve(strict=True)
+    else:
+        node = Path(pwd.getpwuid(uid).pw_dir) / ".nvm/versions/node/v22.13.0/bin/node"
     rows = [inspect_file(here, uid, PARENT_SOURCE_LIMIT),
             inspect_file(entry, uid, 65536, NATIVE_ENTRY_SHA256 if _native else INNER_SHA256),
             inspect_file(node, uid, 128 * 1024 * 1024, NODE_SHA256)]
-    if _native:
+    if _ci:
+        require(rows[2]["mark"][6] == 121593488)
+    if _native or _ci:
         rows.extend(inspect_file(here.parent / name, uid, 131072, pin) for name, pin in NATIVE_SOURCE_PINS)
         rows.extend(inspect_file(here.parent / ("sealed-typescript-" + name), uid, 131072, pin) for name, pin in NATIVE_SEALED_SOURCE_PINS)
         rows.extend(inspect_file(repo / name, uid, 131072, pin) for name, pin in NATIVE_ROOT_SOURCE_PINS)
@@ -183,7 +198,8 @@ def recorded_build_outcome(builds):
     return "UNKNOWN"
 
 
-def parse_inner(body):
+def parse_inner(body, _ci=False):
+    require(type(_ci) is bool)
     def unique(pairs):
         value = {}
         for key, item in pairs:
@@ -195,7 +211,7 @@ def parse_inner(body):
     expected = {"schema", "scope", "profile", "bodyBudgetMs", "cleanupBudgetMs", "totalBudgetMs", "outcome", "reason_code", "failedPhase", "enclosureSourceRefusal", "originalCurrentRefusal", "phases", "ownedRootNames", "builds", "buildAttemptCount", "buildResultCount", "observedProcessCount", "compilerBuildOutcome", "newFileDigests", "elapsedMs", "privateMints", "newCodeCurrentness", "nativeIntervalBarrier", "completeSdkClosure", "preMainLoader", *_FALSE.keys()}
     require(type(value) is dict and set(value) == expected and value["schema"] == 1
             and type(value["schema"]) is int and value["scope"] == "FIXED_ENCLOSURE_PROVISIONING_OBSERVATION_ONLY"
-            and value["profile"] == "fixed-enclosure-preparation-local-sdk27@2"
+            and value["profile"] == (CI_PROFILE if _ci else "fixed-enclosure-preparation-local-sdk27@2")
             and type(value["bodyBudgetMs"]) is int and value["bodyBudgetMs"] == 60000
             and type(value["cleanupBudgetMs"]) is int and value["cleanupBudgetMs"] == 5000
             and type(value["totalBudgetMs"]) is int and value["totalBudgetMs"] == 65000
@@ -380,7 +396,9 @@ def native_unknown(report, reason):
 
 class ProgressProtocol:
     """Strict valid-prefix observations, never restorable execution authority."""
-    def __init__(self):
+    def __init__(self, _ci=False):
+        require(type(_ci) is bool)
+        self.ci = _ci
         self.pending = bytearray()
         self.bytes_seen = 0
         self.frames = []
@@ -397,7 +415,7 @@ class ProgressProtocol:
                 and value.get("protocol") == "fixed-enclosure-progress@2" and self.inner is None)
         if value.get("kind") == "FINAL":
             require(set(value) == {"schema", "protocol", "kind", "report"} and size <= 16384 and self.active is None)
-            inner = parse_inner((json.dumps(value["report"], allow_nan=False) + "\n").encode())
+            inner = parse_inner((json.dumps(value["report"], allow_nan=False) + "\n").encode(), _ci=self.ci)
             require(inner["ownedRootNames"] == self.roots and inner["builds"] == self.builds
                     and inner["buildAttemptCount"] == self.attempts and len(inner["phases"]) == len(self.phases)
                     and inner["compilerBuildOutcome"] == recorded_build_outcome(self.builds)
@@ -590,7 +608,7 @@ class PreparationMonotonicClock:
 
 
 class NativeCancellation:
-    """Native-only process-local signal latch; never raises inside Popen/cleanup."""
+    """Fixed native/CI opt-in signal latch; never raises inside Popen/cleanup."""
     def __init__(self):
         self.requested = False
         self.previous = []
@@ -622,7 +640,7 @@ class NativeCancellation:
 
 
 def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelector,
-            read=os.read, killpg=os.killpg, started=None, exit_monitor=None, _native_deadline=None, _native_cancellation=None):
+            read=os.read, killpg=os.killpg, started=None, exit_monitor=None, _native_deadline=None, _native_cancellation=None, _ci=False):
     """Fixed process envelope; injection is for source/mock tests only.
 
     Never poll/wait/communicate before the cleanup decision. The Popen PID
@@ -632,7 +650,9 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
     timing = clock if type(clock) is PreparationMonotonicClock else PreparationMonotonicClock(clock, started)
     began = timing.started
     native = _native_deadline is not None
-    require(_native_cancellation is None or native and type(_native_cancellation) is NativeCancellation)
+    require(type(_ci) is bool and not (native and _ci))
+    cancellable = native or _ci
+    require(_native_cancellation is None or cancellable and type(_native_cancellation) is NativeCancellation)
     require(not native or type(_native_deadline) in (int, float) and math.isfinite(_native_deadline)
             and type(began) in (int, float) and began + 5 < _native_deadline <= began + 120)
     work_end, total_end = (_native_deadline - 5, _native_deadline) if native else (began + 60, began + 65)
@@ -650,7 +670,7 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
     reason = "UNKNOWN"
     code = None
     inner = None
-    protocol = ProgressProtocol()
+    protocol = ProgressProtocol(_ci=True) if _ci else ProgressProtocol()
     def inner_report():
         if not native:
             return protocol.finish()
@@ -684,7 +704,7 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
             os.set_blocking(stream.fileno(), False)
             selector.register(stream, selectors.EVENT_READ, role)
         while selector.get_map():
-            if native and _native_cancellation is not None and _native_cancellation.requested:
+            if cancellable and _native_cancellation is not None and _native_cancellation.requested:
                 reason = "CANCELLED"
                 break
             now = timing()
@@ -711,7 +731,7 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
             reason = "BOTH_EOF"
     except (Exception, KeyboardInterrupt) as interruption:
         if isinstance(interruption, KeyboardInterrupt):
-            if not native:
+            if not cancellable:
                 raise
             if _native_cancellation is not None:
                 _native_cancellation.requested = True
@@ -829,7 +849,7 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
     if not timing.valid:
         reason = "CLOCK_UNAVAILABLE"
     inner = inner_report()
-    if native and _native_cancellation is not None and _native_cancellation.requested:
+    if cancellable and _native_cancellation is not None and _native_cancellation.requested:
         reason = "CANCELLED"
     normal = (reason == "BOTH_EOF" and (kill_attempted or exited_skip)
               and cleanup_signal in ("SENT", "GROUP_ALREADY_ABSENT", "NOT_ATTEMPTED_CHILD_EXIT_OBSERVED") and reaped
@@ -858,7 +878,7 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
                 "childReaped": reaped, "childExitCode": code if type(code) is int and code >= 0 else None, "childSignal": -code if type(code) is int and code < 0 else None, "cleanupSignal": cleanup_signal, "cleanupExceptionFamily": cleanup_exception_family, "cleanupErrno": cleanup_errno, "groupAbsentAfterReap": absent, "exitMonitorState": exit_monitor_state,
                 "stdoutBytes": len(output), "stderrBytes": len(error), "elapsedMs": elapsed * 1000 if elapsed is not None else None, "bodyElapsedMs": (body_end - began) * 1000 if timing.valid and body_end is not None else None, "nativeSummary": inner,
                 "models": inner["models"] if inner else None, "helperExecutions": inner["helperExecutions"] if inner else None, "nativeAgentLaunches": inner["nativeLaunches"] if inner else None, **_NATIVE_FALSE}
-    return {"schema": 1, "scope": SCOPE, "outcome": "BUILT_NOT_EXECUTED" if success else "UNKNOWN",
+    return {"schema": 1, "scope": CI_SCOPE if _ci else SCOPE, "outcome": "BUILT_NOT_EXECUTED" if success else "UNKNOWN",
             "reason_code": "PREPARATION_OBSERVED" if success else reason,
             "childReaped": reaped, "childExitCode": code if isinstance(code, int) and code >= 0 else None,
             "childSignal": -code if isinstance(code, int) and code < 0 else None,
@@ -899,10 +919,11 @@ def record_directory_current(snapshot):
                 and ancestors(file) == lineage)
 
 
-def save_record(repo, report, rows, directory_snapshot, _native=False):
+def save_record(repo, report, rows, directory_snapshot, _native=False, _ci=False):
+    require(type(_native) is bool and type(_ci) is bool and not (_native and _ci))
     uid = os.getuid()
     record_directory_current(directory_snapshot)
-    file = repo / ".local" / "portable-evidence" / (("enclosure-native-diagnostic-" if _native else "enclosure-preparation-") + str(uuid.uuid4()) + ".json")
+    file = repo / ".local" / "portable-evidence" / (("enclosure-native-diagnostic-" if _native else "enclosure-ci-preparation-" if _ci else "enclosure-preparation-") + str(uuid.uuid4()) + ".json")
     value = {**report, "sourceIdentities": [{"sha256": row["sha256"]} for row in rows],
              "sourceIdentityScope": "PRELAUNCH_OBSERVED_ONLY",
              "persistenceStatus": "PRE_FINAL_SNAPSHOT_ONLY",
@@ -949,7 +970,8 @@ def emit_final(value, deadline=None, not_before=None, parent_clock=None, _native
         require(not _native_cancellation.requested)
 
 
-def unknown_with_observations(report, reason):
+def unknown_with_observations(report, reason, _ci=False):
+    require(type(_ci) is bool)
     observed = {}
     for key in ("childReaped", "childExitCode", "childSignal", "cleanupSignal",
                 "cleanupExceptionFamily", "cleanupErrno", "groupAbsentAfterReap", "stdoutBytes", "stderrBytes", "elapsedMs", "bodyElapsedMs",
@@ -960,7 +982,7 @@ def unknown_with_observations(report, reason):
     # Only the already validated, fixed redacted schema is retained. No captured
     # byte stream/error text/source/environment/credential is serialized here.
     if "progressFrames" in report:
-        protocol = ProgressProtocol()
+        protocol = ProgressProtocol(_ci=True) if _ci else ProgressProtocol()
         try:
             for frame in report["progressFrames"]:
                 body = (json.dumps(frame, separators=(",", ":"), allow_nan=False) + "\n").encode()
@@ -974,12 +996,90 @@ def unknown_with_observations(report, reason):
     inner = report.get("innerReport")
     if inner is not None:
         try:
-            observed["innerReport"] = parse_inner((json.dumps(inner, allow_nan=False) + "\n").encode())
+            observed["innerReport"] = parse_inner((json.dumps(inner, allow_nan=False) + "\n").encode(), _ci=_ci)
         except Exception:
             pass
-    return {"schema": 1, "scope": SCOPE, "outcome": "UNKNOWN", "reason_code": reason,
+    return {"schema": 1, "scope": CI_SCOPE if _ci else SCOPE, "outcome": "UNKNOWN", "reason_code": reason,
             "recordPersistence": "UNKNOWN", "savedRecord": "NOT_ESTABLISHED",
             "finalParentCompletion": "NOT_ESTABLISHED", "observed": observed, **_FALSE}
+
+
+
+def ci_public_summary(report, reason=None, record=None, digest=None):
+    """Fixed redacted DATA only; reconstruct the same CI protocol, never adopt it."""
+    protocol = ProgressProtocol(_ci=True)
+    frames = report.get("progressFrames")
+    if type(frames) is list:
+        try:
+            for frame in frames:
+                protocol.feed((json.dumps(frame, separators=(",", ":"), allow_nan=False) + "\n").encode())
+            inner = report.get("innerReport")
+            if inner is not None:
+                final = {"schema": 1, "protocol": "fixed-enclosure-progress@2", "kind": "FINAL", "report": inner}
+                protocol.feed((json.dumps(final, separators=(",", ":"), allow_nan=False) + "\n").encode())
+        except Exception:
+            protocol.invalid = True
+    inner = protocol.finish()
+    observed = protocol.observation()
+    prefix = bool(protocol.frames)
+    phases = inner["phases"] if inner is not None else observed["endedPhases"]
+    completed = {row["name"] for row in phases if row["outcome"] == "COMPLETED"}
+    def number(value):
+        return value if type(value) in (int, float) and math.isfinite(value) and 0 <= value <= 9007199254740991 else None
+    def selected(key, allowed):
+        value = report.get(key)
+        return value if type(value) is str and value in allowed else "UNKNOWN"
+    def boolean(key):
+        return report.get(key) if type(report.get(key)) is bool else None
+    filename = None
+    if record is not None:
+        require(type(record) is str and type(digest) is str and re.fullmatch(r"[a-f0-9]{64}", digest))
+        filename = Path(record).name
+        require(re.fullmatch(r"enclosure-ci-preparation-[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}\.json", filename))
+    allowed_reasons = {"UNKNOWN", "CANCELLED", "BODY_DEADLINE", "COLLECTION_UNAVAILABLE", "CLOCK_UNAVAILABLE", "OUTPUT_LIMIT", "STREAM_CLOSE_UNAVAILABLE", "EXIT_MONITOR_CLOSE_UNAVAILABLE", "SELECTOR_CLOSE_UNAVAILABLE", "OWNED_CLEANUP_UNKNOWN", "CHILD_SIGNAL_OBSERVED", "STDERR_OBSERVED", "CHILD_PROTOCOL_UNAVAILABLE", "CHILD_EXIT_NOT_ACCEPTED", "CLEANUP_DEADLINE", "INNER_PREPARATION_UNKNOWN", "PREPARATION_OBSERVED", "PRECONDITION_UNAVAILABLE", "SOURCE_CURRENTNESS_UNAVAILABLE", "POST_COLLECTION_UNAVAILABLE", "PERSISTENCE_UNAVAILABLE", "CANCELLATION_HANDLER_RESTORE_UNAVAILABLE"}
+    current_reason = reason if reason in allowed_reasons else selected("reason_code", allowed_reasons)
+    if reason is None and report.get("outcome") == "BUILT_NOT_EXECUTED" and inner is None:
+        current_reason = "CHILD_PROTOCOL_UNAVAILABLE"
+    complete = (reason is None and filename is not None and report.get("outcome") == "BUILT_NOT_EXECUTED"
+                and inner is not None and inner["outcome"] == "BUILT_NOT_EXECUTED"
+                and report.get("childReaped") is True and report.get("groupAbsentAfterReap") is True
+                and type(report.get("childExitCode")) is int and report["childExitCode"] == 0 and report.get("childSignal") is None
+                and report.get("cleanupSignal") in ("SENT", "GROUP_ALREADY_ABSENT", "NOT_ATTEMPTED_CHILD_EXIT_OBSERVED")
+                and report.get("finalSourceCurrentness") == "ENDPOINTS_OBSERVED")
+    if reason is None and report.get("outcome") == "BUILT_NOT_EXECUTED" and inner is not None and not complete:
+        current_reason = "POST_COLLECTION_UNAVAILABLE"
+    value = {"schema": 1, "scope": CI_SCOPE, "summaryInterpretation": "fixed-ci-enclosure-preparation-summary@1",
+             "profile": CI_PROFILE, "expectedBuildProfile": "fixed-enclosure-ci-sdk26.5-toolpair-a@1",
+             "expectedFixtureProfile": "fixed-native-assets-ci-sdk26.5-toolpair-a@1", "expectedSourceVersion": "fixed-canary-finite-enclosure-source@2",
+             "sourceVersionObserved": "fixed-canary-finite-enclosure-source@2" if "enclosureSource" in completed else None,
+             "fixtureProfileObserved": "fixed-native-assets-ci-sdk26.5-toolpair-a@1" if "enclosureSource" in completed else None,
+             "buildProfileObserved": "fixed-enclosure-ci-sdk26.5-toolpair-a@1" if "finalValidation" in completed else None,
+             "outcome": "BUILT_NOT_EXECUTED" if complete else "UNKNOWN",
+             "reason_code": current_reason, "record": filename, "sha256": digest if filename is not None else None,
+             "enclosureSourceRefusal": inner["enclosureSourceRefusal"] if inner is not None else None,
+             "originalCurrentRefusal": inner["originalCurrentRefusal"] if inner is not None else None,
+             "countsMeaning": "FINAL_VALIDATED_RETURNED_FACTS" if inner is not None else "RETURNED_OBSERVATIONS_LOWER_BOUND" if prefix else "UNKNOWN",
+             "buildAttemptCount": inner["buildAttemptCount"] if inner is not None else observed["buildAttemptCountLowerBound"] if prefix else None,
+             "buildResultCount": inner["buildResultCount"] if inner is not None else observed["buildResultCountLowerBound"] if prefix else None,
+             "observedProcessCount": inner["observedProcessCount"] if inner is not None else sum(row["pidObserved"] for row in observed["builds"]) if prefix else None,
+             "compilerBuildOutcome": inner["compilerBuildOutcome"] if inner is not None else observed["compilerBuildOutcome"] if prefix else "UNKNOWN",
+             "completedPhaseCount": len(completed) if prefix else None, "phases": phases,
+             "failedPhase": inner["failedPhase"] if inner is not None else phases[-1]["name"] if phases and phases[-1]["outcome"] == "UNKNOWN" else None,
+             "inProgressPhase": observed["inProgressPhase"] if prefix else None,
+             "validatedProgressFrameCount": observed["validatedFrameCount"] if prefix else None,
+             "protocolStatus": observed["protocolStatus"] if prefix else "NOT_OBSERVED",
+             "activeDispatchCount": "UNKNOWN", "childReaped": boolean("childReaped"),
+             "childExitCode": number(report.get("childExitCode")), "childSignal": number(report.get("childSignal")),
+             "cleanupSignal": selected("cleanupSignal", {"NOT_ATTEMPTED", "SENT", "GROUP_ALREADY_ABSENT", "NOT_ATTEMPTED_CHILD_EXIT_OBSERVED", "UNKNOWN"}),
+             "groupAbsentAfterReap": boolean("groupAbsentAfterReap"), "groupClosureScope": "OWNED_PREPARATION_NODE_GROUP_ONLY",
+             "exitMonitorState": selected("exitMonitorState", {"NO_MONITOR", "NOT_QUERIED", "EXIT_OBSERVED", "EXIT_NOT_OBSERVED", "UNKNOWN"}),
+             "elapsedMs": number(report.get("elapsedMs")), "bodyElapsedMs": number(report.get("bodyElapsedMs")),
+             "finalSourceCurrentness": selected("finalSourceCurrentness", {"ENDPOINTS_OBSERVED", "UNKNOWN"}),
+             "recordAuthority": "NONE", "completeSdkClosure": "NOT_ESTABLISHED", "hostedCompatibility": "NOT_ESTABLISHED", "publicDataOnly": True, "originAuthority": False, "receiptAuthority": False, "nativeAuthenticated": False, "nativeIntervalBarrier": "NOT_ESTABLISHED", "finalParentCompletion": "NOT_ESTABLISHED_BY_DATA_SUMMARY", **_FALSE}
+    # <=19 bounded phase rows (~2.5KiB) plus fixed fields (<4KiB), including
+    # longest numeric forms. No raw wire, source rows, absolute paths or secrets.
+    require(len(json.dumps(value, separators=(",", ":"), allow_nan=False).encode()) <= 8192)
+    return value
 
 
 def native_main():
@@ -1039,28 +1139,44 @@ def native_main():
 def main():
     if sys.argv[1:] == ["--native-run"]:
         return native_main()
+    if sys.argv[1:] == ["--ci-run"]:
+        return preparation_main(_ci=True)
     if sys.argv[1:] != ["--run"]:
         print(json.dumps({"scope": SCOPE, "outcome": "NOT_SELECTED", **_FALSE}))
         return 0
+    return preparation_main()
+
+
+def preparation_main(_ci=False):
+    require(type(_ci) is bool)
     begun = _PROCESS_STARTED
     timing = PreparationMonotonicClock(time.monotonic, begun)
-    report = {"schema": 1, "scope": SCOPE, "outcome": "UNKNOWN", "reason_code": "PRECONDITION_UNAVAILABLE", **_FALSE}
+    report = {"schema": 1, "scope": CI_SCOPE if _ci else SCOPE, "outcome": "UNKNOWN", "reason_code": "PRECONDITION_UNAVAILABLE", **_FALSE}
     phase = "PRECONDITIONS"
+    cancellation = NativeCancellation() if _ci else None
+    status = 74
     try:
-        repo, entry, node, rows = prerequisites()
+        if cancellation is not None:
+            cancellation.install()
+        repo, entry, node, rows = prerequisites(_ci=True) if _ci else prerequisites()
         directory_snapshot = prepare_record_directory(repo)
         prelaunch = timing()
         require(type(begun) in (int, float) and math.isfinite(begun)
                 and type(prelaunch) in (int, float) and math.isfinite(prelaunch) and begun <= prelaunch < begun + 60)
+        if _ci:
+            require(not cancellation.requested)
+            for row in rows:
+                file_current(row)
+            require(timing() < begun + 60 and not cancellation.requested)
         # No shell, credentials, settings or environment rewriting. The child
         # receives the existing safe environment unchanged, including proxies.
-        child = subprocess.Popen([str(node), str(entry), "--fixed-preparation-child"], cwd=repo,
+        child = subprocess.Popen([str(node), str(entry), "--fixed-ci-preparation-child" if _ci else "--fixed-preparation-child"], cwd=repo,
                                  env=os.environ.copy(), stdin=subprocess.DEVNULL,
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                  start_new_session=True, close_fds=True)
         # Include parent preflight/import/startup work in the original budget.
         exit_monitor = open_owned_exit_monitor(child)
-        report = collect(child, clock=timing, started=begun, exit_monitor=exit_monitor)
+        report = collect(child, clock=timing, started=begun, exit_monitor=exit_monitor, _ci=True, _native_cancellation=cancellation) if _ci else collect(child, clock=timing, started=begun, exit_monitor=exit_monitor)
         phase = "POST_COLLECTION"
         require(type(report.get("bodyElapsedMs")) in (int, float) and math.isfinite(report["bodyElapsedMs"]) and report["bodyElapsedMs"] >= 0)
         require(type(report.get("elapsedMs")) in (int, float) and math.isfinite(report["elapsedMs"]) and report["elapsedMs"] >= report["bodyElapsedMs"])
@@ -1068,7 +1184,7 @@ def main():
         parent_completion = begun + report["elapsedMs"] / 1000
         def post_current():
             value = timing()
-            require(parent_completion <= value < cleanup_deadline)
+            require(parent_completion <= value < cleanup_deadline and (cancellation is None or not cancellation.requested))
         post_current()
         try:
             for row in rows:
@@ -1078,15 +1194,28 @@ def main():
             report.update(outcome="UNKNOWN", reason_code="SOURCE_CURRENTNESS_UNAVAILABLE", finalSourceCurrentness="UNKNOWN")
         post_current()
         phase = "PERSISTENCE"
-        file, digest = save_record(repo, report, rows, directory_snapshot)
+        file, digest = save_record(repo, report, rows, directory_snapshot, _ci=True) if _ci else save_record(repo, report, rows, directory_snapshot)
         post_current()
-        emit_final({"scope": SCOPE, "outcome": report["outcome"], "reason_code": report["reason_code"],
-                    "record": file, "sha256": digest, **_FALSE}, deadline=cleanup_deadline, not_before=parent_completion, parent_clock=timing)
-        return 0 if report["outcome"] == "BUILT_NOT_EXECUTED" else 74
-    except Exception:
-        reason = "CLOCK_UNAVAILABLE" if not timing.valid else "PRECONDITION_UNAVAILABLE" if phase == "PRECONDITIONS" else "PERSISTENCE_UNAVAILABLE" if phase == "PERSISTENCE" else "POST_COLLECTION_UNAVAILABLE"
-        emit_final(unknown_with_observations(report, reason))
-        return 74
+        public = ci_public_summary(report, record=file, digest=digest) if _ci else {"scope": SCOPE, "outcome": report["outcome"], "reason_code": report["reason_code"], "record": file, "sha256": digest, **_FALSE}
+        emit_final(public, deadline=cleanup_deadline, not_before=parent_completion, parent_clock=timing, _native_cancellation=cancellation)
+        status = 0 if (public["outcome"] if _ci else report["outcome"]) == "BUILT_NOT_EXECUTED" else 74
+    except (Exception, KeyboardInterrupt) as interruption:
+        if isinstance(interruption, KeyboardInterrupt):
+            if not _ci:
+                raise
+            cancellation.requested = True
+        reason = "CANCELLED" if cancellation is not None and cancellation.requested else "CLOCK_UNAVAILABLE" if not timing.valid else "PRECONDITION_UNAVAILABLE" if phase == "PRECONDITIONS" else "PERSISTENCE_UNAVAILABLE" if phase == "PERSISTENCE" else "POST_COLLECTION_UNAVAILABLE"
+        emit_final(ci_public_summary(report, reason) if _ci else unknown_with_observations(report, reason))
+    finally:
+        if cancellation is not None:
+            restored = cancellation.restore()
+            if cancellation.requested and status != 74:
+                emit_final(ci_public_summary(report, "CANCELLED"))
+                status = 74
+            if not restored:
+                emit_final(ci_public_summary(report, "CANCELLATION_HANDLER_RESTORE_UNAVAILABLE"))
+                status = 74
+    return status
 
 
 if __name__ == "__main__":
