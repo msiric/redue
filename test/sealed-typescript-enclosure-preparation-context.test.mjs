@@ -30,7 +30,7 @@ test('identity predicate rejects copied, serialized, accessor and foreign object
 test('a distinct module instance has no adoption or cross-module getter interface',async()=>{
  const other=await import(new URL('./acceptance/sealed-typescript-enclosure-provisioning.mjs?dir278-independent-instance',import.meta.url));
  const empty=Object.freeze(Object.create(null));assert.equal(other.isFixedEnclosurePreparationContext(empty),false);assert.equal(isContext(empty),false);
- assert.deepEqual(Object.keys(other).sort(),['isFixedEnclosurePreparationContext','observeFixedEnclosurePreparation','prepareFixedEnclosureContext']);
+ assert.deepEqual(Object.keys(other).sort(),['isFixedEnclosurePreparationContext','observeFixedEnclosurePreparation','prepareFixedEnclosureContext','runFixedNativeEnclosureDiagnostic']);
 });
 
 test('one private sequence retains ten originals only after successful report serialization and final budget',()=>{
@@ -49,7 +49,7 @@ test('one private sequence retains ten originals only after successful report se
  const record=context.match(/preparedContexts\.set\(context,Object\.freeze\(\{([^}]+)\}\)\)/)[1];
  assert.deepEqual(record.split(',').map(row=>row.split(':')[0]),['pair','hostFixture','assetsBuild','pairedSource','pairedArtifacts','copies','projection','preparedNullSource','enclosureSource','enclosureBuild']);
  assert.equal((source.match(/preparedContexts\.set\(/g)||[]).length,1);
- assert(!/preparedContexts\.(?:get|delete)\(/.test(source));
+ const controller=source.slice(source.indexOf('export async function runFixedNativeEnclosureDiagnostic()'),source.indexOf('async function fixedOperations()'));assert.equal((controller.match(/preparedContexts\.get\(/g)||[]).length,1);assert.equal((controller.match(/preparedContexts\.delete\(/g)||[]).length,1);assert(!/preparedContexts\.(?:get|delete)\(/.test(source.replace(controller,'')));
  assert.match(source,/isFixedEnclosurePreparationContext\(value\)\{return arguments\.length===1&&preparedContexts\.has\(value\);\}/);
  assert.match(context,/outcome:'UNKNOWN',reason_code:'FINAL_REPORT_OR_BUDGET_UNAVAILABLE'\},context:null/);
  assert(!/spawn|execFile|writeFile|readFile|process\.env|process\.argv/.test(context));

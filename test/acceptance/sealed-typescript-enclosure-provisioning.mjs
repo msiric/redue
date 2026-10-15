@@ -1,9 +1,16 @@
 // Opt-in trusted/quiescent PRE-NATIVE observation only. Eight fixed C builds;
 // no built helper, TypeScript check, native agent, model or receipt executes.
 // Private mints stay in this process and are NOT restorable from its report.
+// CLI stays preparation-only; the separate native-controller export is unwired.
 // Preparation profile@2 explicitly permits 60s body; this does not change the
 // SDK27@1 enclosure builder's own 30s budget or any native/checker/model limit.
 import {isNativeError} from 'node:util/types';import {writeSync} from 'node:fs';import path from 'node:path';import os from 'node:os';import {fileURLToPath} from 'node:url';import {createHash} from 'node:crypto';
+import fs from 'node:fs';import {spawn} from 'node:child_process';
+import {REVIEWED_CLAUDE_NATIVE} from './portable-claude-native-profile.mjs';
+import {requireNativeDiagnosticActivation,nativeDiagnosticEnvironment,selectedStartupSourcesAbsent,validateNativePostStartupSources,readOwnedDiagnosticFile,putOwnedDiagnosticFile,validateOwnedDiagnosticManifest,collectNativeEnclosureDiagnostic,interpretCollectedNativeEnclosureDiagnostic,NODE_SHA} from './portable-claude-diagnostic.mjs';
+import {prepareSealedTypeScriptNativeEnclosureCommand} from './sealed-typescript-native-enclosure-command.mjs';
+import {prepareNativeEnclosureStartup,verifyNativeEnclosureStartup} from './sealed-typescript-native-enclosure-startup.mjs';
+import {observeSealedTypeScriptFixedCampaignEnclosurePostNativeEndpoint} from './sealed-typescript-fixed-campaign-enclosure-build.mjs';
 const scope='FIXED_ENCLOSURE_PROVISIONING_OBSERVATION_ONLY',profile='fixed-enclosure-preparation-local-sdk27@2',buildProfile='fixed-enclosure-local-sdk27@1';
 const enclosureRefusalStages=Object.freeze(['OPTIONS','ORIGINAL_DERIVATION','PREPARED_NULL_CURRENT','INITIAL_ORIGINAL_CURRENT','PROJECTION_INTERPRETATION','CAMPAIGN_RENDER','DERIVED_BINDINGS','COLLECTOR_FUNCTION_PIN','C_TEMPLATE_READ','COLLECTOR_TEMPLATE_READ','LAUNCHER_REBIND','ENCLOSURE_REBIND','FINAL_ORIGINAL_CURRENT','SOURCE_RESULT']);
 const originalCurrentRefusalStages=Object.freeze(['DERIVATION','PROJECTION_CURRENT','PREPARED_NULL_CURRENT','PROJECTION_RESULT','PREPARED_NULL_RESULT','C_SOURCE_READ','C_SOURCE_IDENTITY','COLLECTOR_SOURCE_READ','COLLECTOR_SOURCE_IDENTITY','C_SOURCE_NAMED','COLLECTOR_SOURCE_NAMED']);
@@ -76,6 +83,94 @@ export async function prepareFixedEnclosureContext(){
 // Identity only: no currency, read permission, native launch or execution GO.
 // Future consumption stays private; there is deliberately no getter/adoption API.
 export function isFixedEnclosurePreparationContext(value){return arguments.length===1&&preparedContexts.has(value);}
+// UNWIRED fixed diagnostic composition. No CLI mode or report can invoke this
+// route or transfer its private originals. A reviewed hard parent execution path
+// is still required before actual use. This is not a seal/receipt producer.
+export async function runFixedNativeEnclosureDiagnostic(){
+ guard(arguments.length===0);
+ const env=process.env,source=env.REDUE_CHECKED_SOURCE,started=performance.now(),cancelled=new AbortController();
+ let last=started,clockFailed=false,deadline=null,timer=null,phase='ACTIVATION_OR_RUNTIME_UNAVAILABLE',reason=null;
+ let preparation=null,resourcesAttempted=false,originals=null,startup=null,proposal=null,manifest=null,observed=null,observation=null,consumed=false;
+ let launchAttempts=0,pre=false,post=false,nativeEnv=null,argv=null,settings=null;
+ const equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b),digest=v=>createHash('sha256').update(v).digest('hex');
+ const clock=()=>{const now=performance.now();if(!Number.isFinite(started)||started<0||!Number.isFinite(now)||!Number.isFinite(last)||now<last)clockFailed=true;guard(!clockFailed);last=now;return now;};
+ const remaining=()=>{guard(deadline!==null);return deadline-clock();};
+ const available=()=>guard(remaining()>0&&!cancelled.signal.aborted);
+ const bounded=fn=>{available();const value=fn();available();return value;};
+ const cancel=()=>cancelled.abort();
+ const requiredArgs=(args,required)=>{let from=0;for(let at=0;at<required.length;at++){const found=args.indexOf(required[at],from);if(found<0)return false;if(at+1<required.length&&!required[at+1].startsWith('--')){if(args[found+1]!==required[++at])return false;from=found+2;}else from=found+1;}return true;};
+ try{
+  clock();requireNativeDiagnosticActivation({env,source});guard(fixedReady()&&!Object.hasOwn(env,'SIMPLE'));
+  guard(typeof env.REDUE_DIAGNOSTIC_JOB_STARTED_MS==='string'&&/^[0-9]{10,16}$/.test(env.REDUE_DIAGNOSTIC_JOB_STARTED_MS));
+  const jobStart=Number(env.REDUE_DIAGNOSTIC_JOB_STARTED_MS),elapsed=Date.now()-jobStart;
+  guard(Number.isSafeInteger(jobStart)&&Number.isFinite(elapsed)&&elapsed>=0&&elapsed<115000);deadline=started+120000-elapsed;available();
+  const nativeBase=env.REDUE_DIAGNOSTIC_BASE;guard(typeof nativeBase==='string'&&/^\/private\/tmp\/redue-claude-diagnostic-[A-Za-z0-9]{6}$/.exec(nativeBase)?.[0]===nativeBase);
+  const native=nativeBase+'/native/claude';
+  guard(typeof env.HOME==='string'&&path.isAbsolute(env.HOME)&&path.normalize(env.HOME)===env.HOME&&!/[\0\r\n]/.test(env.HOME));const originalHome=env.HOME;
+  phase='PINNED_RUNTIME_OR_ENVIRONMENT_UNAVAILABLE';
+  bounded(()=>nativeDiagnosticEnvironment(env,{host:nativeBase}));
+  guard(bounded(()=>readOwnedDiagnosticFile(process.execPath,128*1024*1024)).digest===NODE_SHA);
+  const nativeShape=()=>{const row=fs.lstatSync(native);guard(fs.realpathSync(native)===native&&row.isFile()&&!row.isSymbolicLink()&&row.uid===process.getuid()&&row.nlink===1&&(row.mode&0o7777)===0o700);};
+  bounded(nativeShape);const nativeRow=bounded(()=>readOwnedDiagnosticFile(native,224*1024*1024));guard(nativeRow.digest===REVIEWED_CLAUDE_NATIVE.sha256);bounded(nativeShape);
+  for(const signal of ['SIGINT','SIGTERM','SIGHUP'])process.on(signal,cancel);
+  timer=setTimeout(cancel,Math.max(0,remaining()));
+  phase='GENUINE_PREPARATION_UNAVAILABLE';resourcesAttempted=true;
+  const prepared=await prepareFixedEnclosureContext();
+  // Consume FIRST, synchronously after preparation: no await, public report
+  // validation, clock, path or resource operation can precede this deletion.
+  originals=preparedContexts.get(prepared.context);preparedContexts.delete(prepared.context);
+  preparation=prepared.report;available();guard(originals&&preparation.outcome==='BUILT_NOT_EXECUTED');
+  const commandOptions={...originals,claudeExecutable:native,claudeSha256:REVIEWED_CLAUDE_NATIVE.sha256,claudeVersion:REVIEWED_CLAUDE_NATIVE.version};
+  phase='ORIGINAL_COMMAND_OR_STARTUP_UNAVAILABLE';
+  proposal=bounded(()=>prepareSealedTypeScriptNativeEnclosureCommand(commandOptions));
+  guard(proposal.scope==='DISABLED_FIXED_NATIVE_ENCLOSURE_COMMAND_PROPOSAL_ONLY'&&proposal.preparation_profile_proposed===buildProfile&&proposal.parent_timeout_ms_proposed===120000&&proposal.max_turns_proposed===4&&proposal.tool_timeout_ms_proposed===15000);
+  startup=bounded(()=>prepareNativeEnclosureStartup(originals));
+  const host=originals.enclosureSource.bindings.hostBase,assets={host:host+'/claude-host',code:proposal.cwd_proposed};
+  guard(startup.outcome==='STARTUP_PREPARED_NOT_LAUNCHED'&&startup.hostBase===host&&startup.buildProfileId===buildProfile&&proposal.settings_file_proposed===assets.host+'/settings.json');
+  const appliedSettings=()=>{const value=structuredClone(proposal.settings_proposed);Object.assign(value,startup.requiredSettings);
+   value.sandbox.credentials.envVars.push({name:'REDUE_PREFLIGHT_SENTINEL',mode:'deny'});
+   for(const tail of ['Library/Keychains','.ssh','.aws','.npmrc','.claude','.config','.git-credentials'])value.sandbox.filesystem.denyRead.push(path.join(originalHome,tail));
+   value.sandbox.filesystem.denyWrite.push(path.join(originalHome,'Library/Keychains'));return value;
+  };
+  phase='EXCLUSIVE_SETTINGS_OR_BINDINGS_UNAVAILABLE';settings=freeze(appliedSettings());const settingsBytes=Buffer.from(JSON.stringify(settings)+'\n');
+  bounded(()=>putOwnedDiagnosticFile(proposal.settings_file_proposed,settingsBytes));const settingsRow=bounded(()=>readOwnedDiagnosticFile(proposal.settings_file_proposed,262144));guard(settingsRow.digest===digest(settingsBytes));
+  manifest={base:host,native,files:[{file:native,digest:nativeRow.digest,fingerprint:nativeRow.fingerprint},{file:proposal.settings_file_proposed,digest:settingsRow.digest,fingerprint:settingsRow.fingerprint}]};
+  nativeEnv=Object.freeze({...bounded(()=>nativeDiagnosticEnvironment(env,{host:assets.host})),...startup.environmentBindings});argv=Object.freeze([...proposal.argv_proposed]);
+  const actualBindings=()=>env.HOME===originalHome&&equal(nativeEnv,{...nativeDiagnosticEnvironment(env,{host:assets.host}),...startup.environmentBindings})&&equal(settings,appliedSettings())&&equal(argv,proposal.argv_proposed)&&startup.requiredAbsentEnvironmentKeys.every(key=>!Object.hasOwn(nativeEnv,key))&&startup.forbiddenArgv.every(arg=>!argv.includes(arg))&&requiredArgs(argv,startup.requiredArgv);
+  const startupCurrent=when=>{const s=bounded(()=>verifyNativeEnclosureStartup(startup,when));guard(s.outcome==='STARTUP_CURRENTLY_OBSERVED_SOURCE_ONLY'&&s.phase===when&&s.hostBase===host&&s.buildProfileId===buildProfile&&s.sourceBasisCurrent===true&&s.sourceVersion===originals.enclosureSource.version&&s.projectionVersion===originals.projection.version&&s.projectionSha256===originals.enclosureSource.projectionSha256);return true;};
+  const prelaunch=()=>{
+   bounded(()=>guard(actualBindings()));bounded(()=>selectedStartupSourcesAbsent(assets));bounded(nativeShape);bounded(()=>validateOwnedDiagnosticManifest(manifest));bounded(nativeShape);
+   guard(equal(bounded(()=>prepareSealedTypeScriptNativeEnclosureCommand(commandOptions)),proposal));startupCurrent('BEFORE_NATIVE');
+   bounded(()=>requireNativeDiagnosticActivation({env,source}));guard(remaining()>5000&&!cancelled.signal.aborted);pre=true;
+  };
+  phase='PRE_NATIVE_CURRENTNESS_UNAVAILABLE';prelaunch();
+  const binding={hostBase:host,baseA:originals.enclosureSource.bindings.baseA,command:proposal.command_proposed,cwd:proposal.cwd_proposed,sourceVersion:originals.enclosureSource.version,projectionVersion:originals.projection.version,projectionSha256:originals.enclosureSource.projectionSha256,binarySha256:proposal.binary_sha256_proposed,nativeSha256:REVIEWED_CLAUDE_NATIVE.sha256,nativeVersion:REVIEWED_CLAUDE_NATIVE.version,transportInterpretation:'finite-enclosure-normal-collection@2'};
+  phase='NATIVE_COLLECTION_UNAVAILABLE';
+  observed=await collectNativeEnclosureDiagnostic(()=>{guard(launchAttempts===0);prelaunch();launchAttempts++;return spawn(native,argv,{cwd:proposal.cwd_proposed,env:nativeEnv,detached:false,stdio:['ignore','pipe','pipe']});},{binding,activation:{env,source},timeoutMs:Math.min(115000,Math.floor(remaining()-5000)),cleanupMs:5000,signal:cancelled.signal});
+  guard(observed.owned_native_reaped===true&&observed.native_exit_observed===true&&observed.native_exit_code===0&&observed.native_signal===null&&observed.timed_out===false&&!observed.transport_error);available();
+  phase='POST_NATIVE_ENDPOINT_OR_STARTUP_UNAVAILABLE';
+  // Intentional actor controls retire the full pair/tool/build/command checks.
+  // Only ORIGINAL six-code endpoint + original startup AFTER + manifest remain.
+  const endpoint=bounded(()=>observeSealedTypeScriptFixedCampaignEnclosurePostNativeEndpoint(originals.enclosureBuild));
+  guard(endpoint.scope==='FIXED_CANARY_ENCLOSURE_CODE_ENDPOINT_DATA_ONLY'&&endpoint.outcome==='ENCLOSURE_CODE_POST_NATIVE_ENDPOINT_CURRENTLY_OBSERVED'&&endpoint.observationPhase==='POST_NATIVE_ENDPOINT'&&endpoint.observationExtent==='ENDPOINT_ONLY_NOT_INTERVAL'&&endpoint.nativeIntervalBarrier==='NOT_ESTABLISHED'&&endpoint.hostBase===host&&endpoint.projectionSha256===binding.projectionSha256&&equal(endpoint.files,originals.enclosureBuild.report.files));
+  startupCurrent('AFTER_NATIVE');bounded(()=>guard(actualBindings()));bounded(nativeShape);bounded(()=>validateOwnedDiagnosticManifest(manifest));bounded(nativeShape);
+  guard(bounded(()=>validateNativePostStartupSources(assets))==='EXACT_NATIVE_EMPTY_SENTINEL');post=true;
+  phase='NATIVE_INTERPRETATION_UNAVAILABLE';consumed=true;
+  observation=await interpretCollectedNativeEnclosureDiagnostic(observed,{sourceCurrent:true,enclosureCurrent:true,reviewedBuildMatches:true,nativeCurrent:true,startupPreconditions:pre,noHooksCurrent:true,postNativeEndpointCurrent:post,sourceVersion:binding.sourceVersion,projectionVersion:binding.projectionVersion,projectionSha256:binding.projectionSha256,binarySha256:binding.binarySha256,nativeSha256:binding.nativeSha256,transportInterpretation:binding.transportInterpretation});available();
+ }catch{reason=clockFailed?'CLOCK_UNAVAILABLE':phase;}
+ finally{
+  // The async consumer deletes before its first await. Attempt exactly once
+  // even on failed postconditions, cancellation or an expired overall budget.
+  if(observed&&!consumed){consumed=true;try{observation=await interpretCollectedNativeEnclosureDiagnostic(observed,{});}catch{reason??='NATIVE_INTERPRETATION_UNAVAILABLE';}}
+  if(timer!==null)clearTimeout(timer);for(const signal of ['SIGINT','SIGTERM','SIGHUP'])process.removeListener(signal,cancel);
+ }
+ try{clock();available();}catch{reason??=clockFailed?'CLOCK_UNAVAILABLE':'OVERALL_BUDGET_OR_CANCELLATION';}
+ if(reason&&observation)observation=freeze({...observation,completionDataValid:false});
+ return freeze({schema:1,scope:'UNWIRED_FIXED_NATIVE_ENCLOSURE_DIAGNOSTIC_ONLY',outcome:observation?.outcome==='FAIL'?'FAIL':'UNKNOWN',reason:reason??'SYNTACTIC_NATIVE_COLLECTION_ONLY',preparation,observation,
+  preparationAttempted:resourcesAttempted,nativeSpawnAttempts:launchAttempts,nativeSpawnObserved:observed?.native_process_spawn_observed??false,nativeExit:observed?.native_exit_code??null,nativeSignal:observed?.native_signal??null,nativeCloseObserved:observed?.native_exit_observed??false,nativeReaped:observed?.owned_native_reaped??false,timedOut:observed?.timed_out??false,
+  milliseconds:clockFailed?null:last-started,overallBudgetExceeded:deadline===null||clockFailed?null:last>=deadline,cancelled:cancelled.signal.aborted,remainingBudgetMs:deadline===null||clockFailed?null:Math.max(0,deadline-last),resources:resourcesAttempted?'RETAINED_NOT_DELETED':'NOT_CREATED',detachedDescendantClosure:'UNKNOWN',nativeLaunches:observed?.native_process_spawn_observed===true?1:launchAttempts?null:0,models:launchAttempts?null:0,helperExecutions:launchAttempts?null:0,
+  publicDataOnly:true,nativeAuthenticated:false,nativeEnforcement:'NOT_ESTABLISHED',nativeIntervalBarrier:'NOT_ESTABLISHED',completeSdkClosure:'NOT_ESTABLISHED',preMainLoader:'NOT_ESTABLISHED',hostedCompatibility:'NOT_ESTABLISHED',originAuthority:false,receiptAuthority:false,recordAdoptionAuthority:false,sealed:false,reuseEligible:false,rawTranscriptRetained:false,rawStderrRetained:false});
+}
 async function fixedOperations(){
  const pair=await import('./sealed-typescript-base-exchange-pair.mjs'),fixture=await import('./sealed-typescript-synthetic-fixture.mjs'),assets=await import('./sealed-typescript-base-exchange-assets.mjs'),paired=await import('./sealed-typescript-paired-stage-source.mjs'),copies=await import('./sealed-typescript-fixed-campaign-copies.mjs'),nullSource=await import('./sealed-typescript-fixed-campaign-prepared-null-source.mjs'),enclosure=await import('./sealed-typescript-fixed-campaign-enclosure-source.mjs'),build=await import('./sealed-typescript-fixed-campaign-enclosure-build.mjs');
  return{preparePair:pair.prepareSealedTypeScriptBaseExchangePair,createHost:fixture.createSealedTypeScriptCIBootstrap,prepareHostFixture:fixture.prepareSealedTypeScriptCISyntheticFixture,buildAssets:assets.buildSealedTypeScriptBaseExchangeAssets,verifyAssets:assets.verifySealedTypeScriptBaseExchangeAssets,preparePairedSource:paired.prepareSealedTypeScriptPairedStageSource,buildPaired:assets.buildSealedTypeScriptPairedStageArtifacts,verifyPaired:assets.verifySealedTypeScriptPairedStageArtifacts,provisionCopies:copies.provisionSealedTypeScriptFixedCampaignCopies,verifyCopies:copies.verifySealedTypeScriptFixedCampaignCopies,buildLauncher:assets.buildSealedTypeScriptFixedCampaignLauncher,verifyLauncher:assets.verifySealedTypeScriptFixedCampaignLauncherBuild,prepareProjection:assets.prepareSealedTypeScriptFixedCanaryProtectedInputProjection,prepareNull:nullSource.prepareSealedTypeScriptFixedCampaignPreparedNullSource,prepareEnclosure:enclosure.prepareSealedTypeScriptFixedCampaignEnclosureSource,buildEnclosure:build.buildSealedTypeScriptFixedCampaignEnclosure,verifyEnclosure:build.verifySealedTypeScriptFixedCampaignEnclosureBuild,assetsMatchPair:assets.sealedTypeScriptBaseExchangeAssetsMatchPair,assetsMatchHostFixture:assets.sealedTypeScriptBaseExchangeAssetsMatchHostFixture,pairedSourceMatches:paired.sealedTypeScriptPairedStageSourceMatchesDerivation,pairedArtifactsMatch:assets.sealedTypeScriptPairedStageArtifactsMatchDerivation,copiesMatch:copies.sealedTypeScriptFixedCampaignCopiesMatchDerivation,launcherMatches:assets.sealedTypeScriptFixedCampaignLauncherBuildMatchesDerivation,projectionMatches:assets.sealedTypeScriptFixedCanaryProtectedInputProjectionMatchesDerivation,sourceMatches:enclosure.sealedTypeScriptFixedCampaignEnclosureSourceMatchesDerivation,buildMatches:build.sealedTypeScriptFixedCampaignEnclosureBuildMatchesSource};
