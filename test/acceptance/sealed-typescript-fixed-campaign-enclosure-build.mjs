@@ -56,9 +56,35 @@ export function buildSealedTypeScriptFixedCampaignEnclosure(options){
    reason='OUTPUT_IDENTITY_UNAVAILABLE';const binary=read(output,owner,2*1024*1024,null,tick);guard(binary.arm64&&(fs.lstatSync(output,{bigint:true}).mode&0o100n)!==0n);record.rows.push(binary);completeCurrent(record,tick);
   }
   reason='FINAL_CURRENTNESS_UNAVAILABLE';completeCurrent(record,tick);elapsedMs=tick();
-  const newRows=record.rows.filter(row=>source.files.some(source=>source.file===row.file)||fixed.outputs.includes(row.file));guard(newRows.length===6);
+  const newRows=record.rows.filter(row=>source.files.some(source=>source.file===row.file)||fixed.outputs.includes(row.file));guard(newRows.length===6);record.newCodeRows=Object.freeze([...newRows]);
   report={hostBase:fixed.h,bindings:source.bindings,sourceVersion:source.version,projectionSha256:source.projectionSha256,files:newRows.map(row=>({file:row.file,digest:row.digest,mark:row.mark,lineage:row.lineage.map(row=>[...row])})),profileId:'fixed-enclosure-local-sdk27@1',builds,elapsedMs,originalRowsScope:'POSTBUILD_PRE_NATIVE_ENDPOINTS_ONLY',nativeIntervalBarrier:'NOT_ESTABLISHED'};
  }catch{record=null;report=null;/* Retain partial files/counts/process facts. Never overwrite/delete/adopt. */}
  const result=authority({outcome:report?'BUILT_NOT_EXECUTED':'UNKNOWN',reason_code:report?'BUILT_NOT_EXECUTED':reason,report,builds,createdSourcePaths,attemptedOutputPaths,...counters,dispatchAttemptCount,dispatchResultCount:builds.length,observedProcessCount:builds.filter(row=>row.pidObserved).length,elapsedMs});if(record&&report)minted.set(result,record);return result;
 }
 export function verifySealedTypeScriptFixedCampaignEnclosureBuild(value){const record=minted.get(value);if(arguments.length!==1||!record||record.invalid)return authority({outcome:'UNKNOWN'});try{completeCurrent(record,clock());return authority({outcome:'ENCLOSURE_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED',hostBase:value.report.hostBase,bindings:value.report.bindings,files:value.report.files,originalRowsScope:'POSTBUILD_PRE_NATIVE_ENDPOINTS_ONLY',nativeIntervalBarrier:'NOT_ESTABLISHED'});}catch{record.invalid=true;return authority({outcome:'UNKNOWN'});}}
+
+// Identity is intentionally separate from both prelaunch and endpoint currency.
+// Foreign/copied capabilities cannot select paths or invoke a getter here.
+export function sealedTypeScriptFixedCampaignEnclosureBuildMatchesSource(value,source){const record=minted.get(value);return arguments.length===2&&!!record&&!record.invalid&&record.source===source;}
+
+// This fixed observation is NOT the prelaunch verifier above. Intentional actor
+// workspace controls may make original full-pair/tool validation inappropriate
+// after execution. Only the ORIGINAL projection END/source guards, original H
+// directories/ancestry and six ORIGINAL postbuild code rows are observed here.
+// No new baseline is minted; no interval, no-write barrier or native execution
+// is established by an endpoint observation, regardless of this function's name.
+export function observeSealedTypeScriptFixedCampaignEnclosurePostNativeEndpoint(value){
+ const record=minted.get(value);
+ const result=fields=>authority({...fields,scope:'FIXED_CANARY_ENCLOSURE_CODE_ENDPOINT_DATA_ONLY',observationPhase:'POST_NATIVE_ENDPOINT',observationExtent:'ENDPOINT_ONLY_NOT_INTERVAL',nativeIntervalBarrier:'NOT_ESTABLISHED'});
+ if(arguments.length!==1||!record||record.invalid)return result({outcome:'UNKNOWN'});
+ try{
+  const tick=clock();
+  const endpoint=()=>{guard(!record.invalid);sourceCurrent(record,tick);for(const before of record.directories)guard(JSON.stringify(directory(before.file,record.owner,tick))===JSON.stringify(before));guard(!record.invalid);tick();};
+  guard(record.newCodeRows?.length===6);
+  endpoint();for(const row of record.newCodeRows)current(row,tick);
+  endpoint();for(const row of record.newCodeRows)named(row,tick);
+  endpoint();for(const row of record.newCodeRows)named(row,tick);
+  guard(!record.invalid);tick();
+  return result({outcome:'ENCLOSURE_CODE_POST_NATIVE_ENDPOINT_CURRENTLY_OBSERVED',hostBase:record.hostBase,projectionSha256:record.projectionSha256,files:record.newCodeRows.map(row=>({file:row.file,digest:row.digest,mark:row.mark,lineage:row.lineage.map(row=>[...row])}))});
+ }catch{record.invalid=true;return result({outcome:'UNKNOWN'});}
+}
