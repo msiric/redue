@@ -4,19 +4,22 @@ import test from 'node:test';import assert from 'node:assert/strict';import fs f
 import {prepareSealedTypeScriptNativeEnclosureCommand as actual} from './acceptance/sealed-typescript-native-enclosure-command.mjs';
 import {prepareClaudeReceiverInvocation,REVIEWED_CLAUDE_NATIVE} from './acceptance/portable-claude-invocation.mjs';
 const source=fs.readFileSync(new URL('./acceptance/sealed-typescript-native-enclosure-command.mjs',import.meta.url),'utf8');
-const imports=['createHash','path','REVIEWED_CLAUDE_NATIVE','prepareSealedTypeScriptNativeBaseCommand','sealedTypeScriptBaseExchangeAssetsMatchPair','sealedTypeScriptBaseExchangeAssetsMatchHostFixture','sealedTypeScriptFixedCanaryProtectedInputProjectionHCodeReadLeaves','sealedTypeScriptPairedStageSourceMatchesDerivation','sealedTypeScriptFixedCampaignEnclosureSourceMatchesDerivation','sealedTypeScriptFixedCampaignEnclosureBuildMatchesSource','verifySealedTypeScriptFixedCampaignEnclosureBuild','structuredClone'];
+const imports=['createHash','path','REVIEWED_CLAUDE_NATIVE','prepareSealedTypeScriptNativeBaseCommand','sealedTypeScriptBaseExchangeAssetsMatchPair','sealedTypeScriptBaseExchangeAssetsMatchHostFixture','sealedTypeScriptBaseExchangeAssetsFixtureProfile','sealedTypeScriptFixedCanaryProtectedInputProjectionHCodeReadLeaves','sealedTypeScriptPairedStageSourceMatchesDerivation','sealedTypeScriptFixedCampaignEnclosureSourceMatchesDerivation','sealedTypeScriptFixedCampaignEnclosureBuildMatchesSource','verifySealedTypeScriptFixedCampaignEnclosureBuild','structuredClone'];
 const construct=Function(...imports,source.replace(/^import .*;$/gm,'').replace('export function ','function ')+';return prepareSealedTypeScriptNativeEnclosureCommand;');
 const a='/private/tmp/redue-ci-recipient-11111111',b='/private/tmp/redue-ci-recipient-22222222',h='/private/tmp/redue-ci-recipient-33333333',code=h+'/prefix/native-probes',cwd=a+'/Checkout 空间/.sealed-native-canaries',baseCode=code+'/sealed-typescript-base-exchange-sentinel';
 const self=code+'/paired-stage-enclosure',launcher=code+'/paired-stage-enclosed-campaign-launch',six=[code+'/paired-stage-enclosed-original-inputs.mjs',code+'/paired-stage-enclosed-campaign.mjs',launcher+'.c',self+'.c',launcher,self];
 const originalNames=['sealed-typescript-native-sentinel.mjs','sealed-typescript-map-sentinel.c','sealed-typescript-exchange-sentinel.c','sealed-typescript-map-sentinel','sealed-typescript-exchange-sentinel','sealed-typescript-base-exchange-sentinel.c','sealed-typescript-base-exchange-sentinel','sealed-typescript-paired-stage-node.mjs','sealed-typescript-paired-stage-map.c','sealed-typescript-paired-stage-exchange.c','sealed-typescript-paired-stage-map','sealed-typescript-paired-stage-exchange','paired-stage-campaign.mjs','paired-stage-campaign-launch.c','paired-stage-campaign-launch'];
 const originalLeaves=[...originalNames.map(name=>code+'/'+name),h+'/runtime/node-v22.13.0-darwin-arm64/bin/node',...['sealed-typescript-base-exchange-result.mjs','sealed-typescript-stage-exchange-result.mjs','sealed-typescript-stage-result.mjs','sealed-typescript-map-result.mjs'].map(name=>h+'/prefix/test/acceptance/'+name),h+'/prefix/src/portable-envelope.mjs'];
 const refusal=call=>assert.throws(call,error=>error.code==='NATIVE_ENCLOSURE_COMMAND_UNAVAILABLE'&&error.message==='NATIVE_ENCLOSURE_COMMAND_UNAVAILABLE');
-function fixture(){
+function fixture(fixtureProfile='fixed-native-assets-local-sdk27@1'){
+ const ci=fixtureProfile==='fixed-native-assets-ci-sdk26.5-toolpair-a@1';
  const caps=Object.fromEntries(['pair','hostFixture','assetsBuild','pairedSource','pairedArtifacts','copies','projection','preparedNullSource','enclosureSource','enclosureBuild'].map(key=>[key,{}]));
  const collectionTransport={interpretation:'finite-enclosure-normal-collection@2',frame:'RDE2',completeCollectionExit:0,incompleteCollectionExit:74,collectorExit:{E:74,F:1},assertionAuthority:'JSON_BODY_ONLY_NOT_OUTER_EXIT',nativeResultAcceptance:'NOT_TESTED'};
  Object.assign(caps.projection,{version:'fixed-canary-original-input-projection@3',projectionSha256:'a'.repeat(64)});
  Object.assign(caps.enclosureSource,{scope:'DISABLED_FIXED_CANARY_FINITE_ENCLOSURE_SOURCE_DATA_ONLY',version:'fixed-canary-finite-enclosure-source@2',disabled:true,runnable:false,executionAuthority:'NONE',projectionSha256:'a'.repeat(64),collectionTransport,
   bindings:{baseA:a,baseB:b,hostBase:h,node:h+'/runtime/node-v22.13.0-darwin-arm64/bin/node',entry:six[1],projectionEntry:six[0],launcher,self,cwd},files:six.slice(0,4).map((file,at)=>({file,sourceSha256:String(at+1).repeat(64)}))});
+ caps.enclosureBuild.report={profileId:ci?'fixed-enclosure-ci-sdk26.5-toolpair-a@1':'fixed-enclosure-local-sdk27@1'};
+ if(ci)caps.enclosureSource.fixtureProfileId=fixtureProfile;
  const observed={scope:'FIXED_CANARY_ENCLOSURE_POSTBUILD_DATA_ONLY',outcome:'ENCLOSURE_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED',hostBase:h,bindings:caps.enclosureSource.bindings,files:six.map((file,at)=>({file,digest:String(at+1).repeat(64),mark:'MOCK_ORIGINAL',lineage:[]})),originalRowsScope:'POSTBUILD_PRE_NATIVE_ENDPOINTS_ONLY',nativeIntervalBarrier:'NOT_ESTABLISHED'};
  const leafData={outcome:'FIXED_ORIGINAL_H_CODE_READ_LEAVES_DATA_ONLY',version:'fixed-canary-original-input-projection@3',hostBase:h,readLeaves:originalLeaves,currency:'NOT_CHECKED'};
  const native={claudeExecutable:h+'/native/claude',claudeSha256:REVIEWED_CLAUDE_NATIVE.sha256,claudeVersion:REVIEWED_CLAUDE_NATIVE.version};
@@ -28,9 +31,10 @@ function fixture(){
   settings_file_proposed:h+'/claude-host/settings.json',host_config_directory_proposed:h+'/claude-host/claude-config',gh_config_directory_proposed:h+'/claude-host/gh-config',
   argv_proposed:['--print','--verbose','--output-format','stream-json','--max-turns','4','--permission-mode','dontAsk','--tools','Bash','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--setting-sources','','--settings',h+'/claude-host/settings.json','--no-session-persistence','FIXED_OLD_PROMPT'],settings_proposed:settings,
   max_turns_proposed:4,parent_timeout_ms_proposed:120000,tool_timeout_ms_proposed:15000,policy_interpretation:'redue-native187-paired-base-canary@1',blockers:['PENDING_NATIVE'],commands:[],nativeLaunches:0,models:0,inferencePermitted:false,nativeEnforcement:'NOT_TESTED',sealed:false,reuseEligible:false};
- const options={...caps,...native},counts={build:0,base:0,leaves:0,clone:0},events=[],state={invalid:false,late:false,during:null};
+ const options={...caps,...native},counts={build:0,base:0,leaves:0,clone:0},events=[],state={invalid:false,late:false,during:null,retired:false,fixtureProfile};
  const equal=(values,expected)=>values.length===expected.length&&values.every((value,at)=>value===expected[at]);
  const funcs={createHash,path,REVIEWED_CLAUDE_NATIVE,
+  sealedTypeScriptBaseExchangeAssetsFixtureProfile:value=>value===caps.assetsBuild&&!state.retired?state.fixtureProfile:null,
   sealedTypeScriptFixedCampaignEnclosureSourceMatchesDerivation:(...values)=>equal(values,[caps.enclosureSource,caps.assetsBuild,caps.pairedSource,caps.pairedArtifacts,caps.copies,caps.projection,caps.preparedNullSource]),
   sealedTypeScriptFixedCampaignEnclosureBuildMatchesSource:(...values)=>equal(values,[caps.enclosureBuild,caps.enclosureSource]),
   sealedTypeScriptBaseExchangeAssetsMatchPair:(...values)=>equal(values,[caps.assetsBuild,caps.pair]),
@@ -45,6 +49,9 @@ function fixture(){
 }
 test('fixed literal exec enclosure adds exactly original21/new6 read leaves and preserves all other native policy',()=>{
  const f=fixture(),before=structuredClone(f.direct),out=f.make(f.options),expected=structuredClone(before.settings_proposed);
+ // Frozen held-stable local output observed from original2663eae adapter using
+ // these same source/private-capability mocks; not native enforcement.
+ assert.equal(createHash('sha256').update(JSON.stringify(out)).digest('hex'),'5b4d4ef15d45beeb8362b3b067d6ebaeb7c61e3c85c92193736a0306b5198553');
  expected.permissions.allow=[`Bash(exec '${self}')`];for(const file of [...originalLeaves,...six])if(!expected.sandbox.filesystem.allowRead.includes(file))expected.sandbox.filesystem.allowRead.push(file);
  assert.equal(out.command_proposed,`exec '${self}'`);assert.equal(out.exact_executable_leaf,self);assert.equal(out.argv0_proposed,self);assert.deepEqual(out.exact_code_read_leaves,[...originalLeaves,...six]);assert.equal(out.exact_code_read_leaves.length,27);assert.equal(new Set(out.exact_code_read_leaves).size,27);assert.deepEqual(out.settings_proposed,expected);assert.deepEqual(f.direct,before);
  assert.equal(out.settings_proposed.sandbox.filesystem.allowRead.length,30);for(const file of [h,h+'/prefix',code,h+'/claude-host',h+'/claude-host/settings.json'])assert(!out.settings_proposed.sandbox.filesystem.allowRead.includes(file));
@@ -57,7 +64,7 @@ for(const key of ['pair','hostFixture','assetsBuild','pairedSource','pairedArtif
 });
 test('extra selectors/options, getters and wrong arity never select a command or read scope',()=>{
  const f=fixture();let touched=0;const getter={...f.options};Object.defineProperty(getter,'enclosureSource',{get(){touched++;return f.caps.enclosureSource;}});
- for(const value of [null,{},Object.assign(Object.create({}),f.options),getter,...['command','argv','env','allowRead','settings','manifest','trust'].map(key=>({...f.options,[key]:[]}))])refusal(()=>f.make(value));refusal(()=>f.make(f.options,{}));assert.equal(touched,0);assert.equal(f.counts.build,0);
+ for(const value of [null,{},Object.assign(Object.create({}),f.options),getter,...['command','argv','env','allowRead','settings','manifest','trust','profileId','fixtureProfileId'].map(key=>({...f.options,[key]:[]}))])refusal(()=>f.make(value));refusal(()=>f.make(f.options,{}));assert.equal(touched,0);assert.equal(f.counts.build,0);
 });
 for(const during of ['leaves','base','clone','final-base'])test('late changes during '+during+' cannot pass final unchanged full build guard',()=>{const f=fixture();f.state.during=during;refusal(()=>f.make(f.options));assert.equal(f.events.at(-1),'build');assert.equal(f.counts.build,2);});
 test('stale build fails before native base policy and final stale observation remains refused',()=>{for(const late of [false,true]){const f=fixture();if(late)f.state.late=true;else f.state.invalid=true;refusal(()=>f.make(f.options));assert.equal(f.counts.base,late?2:0);}});
@@ -73,4 +80,31 @@ test('command source never starts processes, writes settings, reads environment 
 
 test('unreviewed/coercible native options fail before private verifier or policy IO',()=>{
  for(const patch of [{claudeExecutable:{}},{claudeExecutable:'relative/claude'},{claudeExecutable:'/path/../claude'},{claudeExecutable:'/path/other'},{claudeExecutable:'/path/claude\n'},{claudeSha256:'0'.repeat(64)},{claudeVersion:'OTHER'}]){const f=fixture();refusal(()=>f.make({...f.options,...patch}));assert.deepEqual(f.counts,{build:0,base:0,leaves:0,clone:0});}
+});
+
+const ciFixtureProfile='fixed-native-assets-ci-sdk26.5-toolpair-a@1';
+test('original reviewed CI assets select only CI preparation metadata and preserve the literal command/settings/read27 policy',()=>{
+ const local=fixture(),ci=fixture(ciFixtureProfile),a=local.make(local.options),b=ci.make(ci.options);
+ for(const key of ['command_proposed','argv_proposed','settings_proposed','settings_sha256_proposed','exact_code_read_leaves','exact_executable_leaf','argv0_proposed','binary_sha256_proposed','projection_sha256_proposed','collection_transport_proposed'])assert.deepEqual(b[key],a[key],key);
+ assert.equal(b.preparation_profile_proposed,'fixed-enclosure-ci-sdk26.5-toolpair-a@1');
+ assert(b.blockers.includes('CI_PREPARATION_IS_NOT_COMPLETE_HOSTED_COMPATIBILITY'));assert(!b.blockers.includes('LOCAL_SDK27_PREPARATION_IS_NOT_HOSTED_SDK26_5_COMPATIBILITY'));
+ for(const key of ['inferencePermitted','sealed','reuseEligible','runnable'])assert.equal(b[key],false);
+ assert.equal(b.hostedCompatibility,'NOT_ESTABLISHED');assert.deepEqual(ci.counts,local.counts);
+});
+for(const profile of [null,undefined,'fixed-native-assets-ci-sdk26.5-toolpair-a@2','fixed-native-assets-local-sdk27@2','redue-native-stdio-preauth-ci-sdk26.5@1'])test('unknown or retired original asset profile '+String(profile)+' never starts full command validation',()=>{
+ const f=fixture();f.state.fixtureProfile=profile;refusal(()=>f.make(f.options));assert.deepEqual(f.counts,{build:0,base:0,leaves:0,clone:0});
+});
+for(const identity of ['fixed-native-assets-local-sdk27@1',ciFixtureProfile])test('original '+identity+' profile refuses copied/mixed parents and mismatched source/build profile',()=>{
+ for(const key of ['pair','hostFixture','assetsBuild','pairedSource','pairedArtifacts','copies','projection','preparedNullSource','enclosureSource','enclosureBuild']){
+  const f=fixture(identity),other=fixture(identity===ciFixtureProfile?'fixed-native-assets-local-sdk27@1':ciFixtureProfile);
+  refusal(()=>f.make({...f.options,[key]:other.options[key]}));assert.deepEqual(f.counts,{build:0,base:0,leaves:0,clone:0});
+ }
+ for(const patch of [f=>f.caps.enclosureBuild.report.profileId=identity===ciFixtureProfile?'fixed-enclosure-local-sdk27@1':'fixed-enclosure-ci-sdk26.5-toolpair-a@1',f=>f.caps.enclosureSource.fixtureProfileId=identity===ciFixtureProfile?undefined:ciFixtureProfile]){
+  const f=fixture(identity);patch(f);refusal(()=>f.make(f.options));assert.equal(f.counts.base,0);assert.equal(f.counts.leaves,0);
+ }
+ const f=fixture(identity);f.state.retired=true;refusal(()=>f.make(f.options));assert.equal(f.counts.build,0);
+});
+test('profile loss during final full validation never authorizes a copied earlier CI proposal',()=>{
+ const f=fixture(ciFixtureProfile),original=f.make(f.options);assert.equal(original.inferencePermitted,false);
+ f.state.retired=true;refusal(()=>f.make(f.options));assert.equal(f.counts.build,2);
 });

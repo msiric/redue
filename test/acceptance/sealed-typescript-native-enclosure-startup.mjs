@@ -4,8 +4,8 @@
 // capability identity and startup/control rows only, never retired pair/tool
 // guards after intentional actors. No native authentication or interval proof.
 import fs from 'node:fs';import path from 'node:path';import {createHash} from 'node:crypto';
-import {NATIVE_STDIO_STARTUP_BASIS} from './sealed-typescript-native-stdio-startup.mjs';
-import {sealedTypeScriptBaseExchangeAssetsMatchPair,sealedTypeScriptBaseExchangeAssetsMatchHostFixture} from './sealed-typescript-base-exchange-assets.mjs';
+import {NATIVE_STDIO_STARTUP_BASIS,NATIVE_STDIO_CI_STARTUP_BASIS} from './sealed-typescript-native-stdio-startup.mjs';
+import {sealedTypeScriptBaseExchangeAssetsMatchPair,sealedTypeScriptBaseExchangeAssetsMatchHostFixture,sealedTypeScriptBaseExchangeAssetsFixtureProfile} from './sealed-typescript-base-exchange-assets.mjs';
 import {sealedTypeScriptPairedStageSourceMatchesDerivation} from './sealed-typescript-paired-stage-source.mjs';
 import {sealedTypeScriptFixedCampaignEnclosureSourceMatchesDerivation} from './sealed-typescript-fixed-campaign-enclosure-source.mjs';
 import {sealedTypeScriptFixedCampaignEnclosureBuildMatchesSource,verifySealedTypeScriptFixedCampaignEnclosureBuild} from './sealed-typescript-fixed-campaign-enclosure-build.mjs';
@@ -51,19 +51,25 @@ function absent(file){try{fs.lstatSync(file,{bigint:true});}catch(error){guard(e
 function owned(file){const s=fs.lstatSync(file,{bigint:true});guard(fs.realpathSync(file)===file&&s.isDirectory()&&!s.isSymbolicLink()&&s.uid===BigInt(process.getuid())&&(s.mode&0o7777n)===0o700n);return {file,mark:parentMark(s),parents:parents(file)};}
 function directoryNames(file){const names=fs.readdirSync(file);guard(Array.isArray(names)&&names.length<=2&&names.every(n=>typeof n==='string'&&!/[\/\\\0]/.test(n)));return names.sort();}
 const keys=['pair','hostFixture','assetsBuild','pairedSource','pairedArtifacts','copies','projection','preparedNullSource','enclosureSource','enclosureBuild'];
-const profileId='fixed-enclosure-local-sdk27@1',interpretation='redue-native187-local-enclosure-startup-source@1';
+// Selection is private original identity only, never public build/profile labels.
+function originalProfile(assetsBuild){
+ const fixtureProfile=sealedTypeScriptBaseExchangeAssetsFixtureProfile(assetsBuild);
+ if(fixtureProfile==='fixed-native-assets-local-sdk27@1')return {fixtureProfile,profileId:'fixed-enclosure-local-sdk27@1',interpretation:'redue-native187-local-enclosure-startup-source@1',basis:NATIVE_STDIO_STARTUP_BASIS,ci:false};
+ if(fixtureProfile==='fixed-native-assets-ci-sdk26.5-toolpair-a@1')return {fixtureProfile,profileId:'fixed-enclosure-ci-sdk26.5-toolpair-a@1',interpretation:'redue-native187-ci-enclosure-startup-source@1',basis:NATIVE_STDIO_CI_STARTUP_BASIS,ci:true};
+ fail();
+}
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b),hash=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.exec(v)?.[0]===v;
 // All ten exact original identities are checked without touching public
 // capability properties or paths; no report, witness, callback or copy adopts.
-function linked(i){return sealedTypeScriptFixedCampaignEnclosureSourceMatchesDerivation(i.enclosureSource,i.assetsBuild,i.pairedSource,i.pairedArtifacts,i.copies,i.projection,i.preparedNullSource)&&sealedTypeScriptFixedCampaignEnclosureBuildMatchesSource(i.enclosureBuild,i.enclosureSource)&&sealedTypeScriptBaseExchangeAssetsMatchPair(i.assetsBuild,i.pair)&&sealedTypeScriptBaseExchangeAssetsMatchHostFixture(i.assetsBuild,i.hostFixture)&&sealedTypeScriptPairedStageSourceMatchesDerivation(i.pairedSource,i.pair,i.assetsBuild);}
+function linked(i){const profile=sealedTypeScriptBaseExchangeAssetsFixtureProfile(i.assetsBuild);return (profile==='fixed-native-assets-local-sdk27@1'||profile==='fixed-native-assets-ci-sdk26.5-toolpair-a@1')&&sealedTypeScriptFixedCampaignEnclosureSourceMatchesDerivation(i.enclosureSource,i.assetsBuild,i.pairedSource,i.pairedArtifacts,i.copies,i.projection,i.preparedNullSource)&&sealedTypeScriptFixedCampaignEnclosureBuildMatchesSource(i.enclosureBuild,i.enclosureSource)&&sealedTypeScriptBaseExchangeAssetsMatchPair(i.assetsBuild,i.pair)&&sealedTypeScriptBaseExchangeAssetsMatchHostFixture(i.assetsBuild,i.hostFixture)&&sealedTypeScriptPairedStageSourceMatchesDerivation(i.pairedSource,i.pair,i.assetsBuild);}
 function originalBinding(i){
- guard(linked(i));const s=i.enclosureSource,p=i.projection,b=i.enclosureBuild.report,binding=s.bindings;
+ guard(linked(i));const profile=originalProfile(i.assetsBuild),{profileId}=profile,s=i.enclosureSource,p=i.projection,b=i.enclosureBuild.report,binding=s.bindings;
  const {baseA:a,baseB:other,hostBase:h}=binding,root=/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}$/;
- guard([a,other,h].every(v=>typeof v==='string'&&root.exec(v)?.[0]===v)&&new Set([a,other,h]).size===3&&s.version==='fixed-canary-finite-enclosure-source@2'&&p.version==='fixed-canary-original-input-projection@3'&&hash(s.projectionSha256)&&p.projectionSha256===s.projectionSha256&&b.profileId===profileId&&b.sourceVersion===s.version&&b.projectionSha256===s.projectionSha256&&same(b.bindings,binding)&&binding.cwd===a+'/Checkout 空间/.sealed-native-canaries'&&binding.self===h+'/prefix/native-probes/paired-stage-enclosure'&&binding.launcher===h+'/prefix/native-probes/paired-stage-enclosed-campaign-launch'&&binding.entry===h+'/prefix/native-probes/paired-stage-enclosed-campaign.mjs'&&binding.projectionEntry===h+'/prefix/native-probes/paired-stage-enclosed-original-inputs.mjs'&&binding.node===h+'/runtime/node-v22.13.0-darwin-arm64/bin/node');
- return {base:h,fingerprint:JSON.stringify([binding,s.version,p.version,s.projectionSha256,profileId]),basis:NATIVE_STDIO_STARTUP_BASIS};
+ guard([a,other,h].every(v=>typeof v==='string'&&root.exec(v)?.[0]===v)&&new Set([a,other,h]).size===3&&(profile.ci?s.fixtureProfileId===profile.fixtureProfile:s.fixtureProfileId===undefined)&&s.version==='fixed-canary-finite-enclosure-source@2'&&p.version==='fixed-canary-original-input-projection@3'&&hash(s.projectionSha256)&&p.projectionSha256===s.projectionSha256&&b.profileId===profileId&&b.sourceVersion===s.version&&b.projectionSha256===s.projectionSha256&&same(b.bindings,binding)&&binding.cwd===a+'/Checkout 空间/.sealed-native-canaries'&&binding.self===h+'/prefix/native-probes/paired-stage-enclosure'&&binding.launcher===h+'/prefix/native-probes/paired-stage-enclosed-campaign-launch'&&binding.entry===h+'/prefix/native-probes/paired-stage-enclosed-campaign.mjs'&&binding.projectionEntry===h+'/prefix/native-probes/paired-stage-enclosed-original-inputs.mjs'&&binding.node===h+'/runtime/node-v22.13.0-darwin-arm64/bin/node');
+ return {base:h,fingerprint:JSON.stringify([binding,s.version,p.version,s.projectionSha256,profileId]),basis:profile.basis,profileId,interpretation:profile.interpretation};
 }
 function fullBinding(i){
- guard(linked(i));const checked=verifySealedTypeScriptFixedCampaignEnclosureBuild(i.enclosureBuild);
+ guard(linked(i));originalProfile(i.assetsBuild);const checked=verifySealedTypeScriptFixedCampaignEnclosureBuild(i.enclosureBuild);
  guard(checked.outcome==='ENCLOSURE_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED'&&checked.scope==='FIXED_CANARY_ENCLOSURE_POSTBUILD_DATA_ONLY'&&checked.originalRowsScope==='POSTBUILD_PRE_NATIVE_ENDPOINTS_ONLY'&&checked.nativeIntervalBarrier==='NOT_ESTABLISHED');
  const original=originalBinding(i);guard(checked.hostBase===original.base&&same(checked.bindings,i.enclosureSource.bindings)&&same(checked.files,i.enclosureBuild.report.files));return {...original,fullFingerprint:JSON.stringify(checked)};
 }
@@ -118,7 +124,7 @@ export function prepareNativeEnclosureStartup(options){
  const inputs=Object.fromEntries(keys.map(k=>[k,Object.getOwnPropertyDescriptor(options,k).value]));let record=null,reason='PRIVATE_BINDING_UNAVAILABLE';
  try{
   // No public capability property or filesystem access precedes private links.
-  const observed=fullBinding(inputs),first=observed.fullFingerprint,base=observed.base,basis=observed.basis;
+  const observed=fullBinding(inputs),first=observed.fullFingerprint,base=observed.base,basis=observed.basis,profileId=observed.profileId,interpretation=observed.interpretation;
   reason='INHERITED_STARTUP_INPUT_UNAVAILABLE';environmentAbsent();
   guard(process.platform==='darwin'&&process.arch==='arm64'&&process.version==='v22.13.0'&&process.getuid()>0&&process.getuid()===process.geteuid()&&process.getgid()===process.getegid()&&fs.constants.O_NOFOLLOW!==undefined&&fs.constants.O_NONBLOCK!==undefined);
   reason='STOCK_LOGIN_BASIS_UNAVAILABLE';for(const file of basis.requiredAbsentSystemStartupPaths)absent(file);const alias=etcAlias();

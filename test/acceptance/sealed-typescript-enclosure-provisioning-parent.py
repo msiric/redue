@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """Fixed --run/local and --ci-run/CI preparation: 60s body + <=5s cleanup,
-65s total. Separate --native-run/local diagnostic: 115s work + <=5s cleanup,
+65s total. Separate --native-run/local and --ci-native-run/CI diagnostics:
+115s work + <=5s cleanup,
 120s total, including original process/job start. Sync filesystem calls are
 checked at boundaries, not OS-interruptible. No supplied command/path or
 restored private authority. Node-group closure is not detached Bash closure.
@@ -27,7 +28,7 @@ import subprocess
 import sys
 import uuid
 
-INNER_SHA256 = "3d7bf5e8a121e6df98c8df08be1a860966d0d1f6bee443d759d943397f93dc47"
+INNER_SHA256 = "a3fde5180c6cc9cc0cedae7cd045138130a1396737fea0ffbab990eef1a5ea13"
 ENCLOSURE_REFUSAL_STAGES = ("OPTIONS", "ORIGINAL_DERIVATION", "PREPARED_NULL_CURRENT", "INITIAL_ORIGINAL_CURRENT", "PROJECTION_INTERPRETATION", "CAMPAIGN_RENDER", "DERIVED_BINDINGS", "COLLECTOR_FUNCTION_PIN", "C_TEMPLATE_READ", "COLLECTOR_TEMPLATE_READ", "LAUNCHER_REBIND", "ENCLOSURE_REBIND", "FINAL_ORIGINAL_CURRENT", "SOURCE_RESULT")
 ORIGINAL_CURRENT_REFUSAL_STAGES = ("DERIVATION", "PROJECTION_CURRENT", "PREPARED_NULL_CURRENT", "PROJECTION_RESULT", "PREPARED_NULL_RESULT", "C_SOURCE_READ", "C_SOURCE_IDENTITY", "COLLECTOR_SOURCE_READ", "COLLECTOR_SOURCE_IDENTITY", "C_SOURCE_NAMED", "COLLECTOR_SOURCE_NAMED")
 NODE_SHA256 = "5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc"
@@ -37,7 +38,7 @@ CI_SCOPE = "FIXED_CI_ENCLOSURE_PREPARATION_PARENT_ONLY"
 CI_PROFILE = "fixed-enclosure-preparation-ci-sdk26.5-toolpair-a@1"
 PARENT_SOURCE_LIMIT = 131072  # Only this owned, reviewed Python source file.
 NATIVE_ENTRY_NAME = "sealed-typescript-native-enclosure-child.mjs"
-NATIVE_ENTRY_SHA256 = "231ab81534dea2565b0f5bb547a6de827409e7f3f1e4ed4394c99fb175d31ff3"
+NATIVE_ENTRY_SHA256 = "df04570a11118380c07d1fe55576ca7ba81c7061caefd71b1a66d8691e39da03"
 # Finite reviewed literal JS import closure. No runtime graph or path selector.
 NATIVE_SOURCE_PINS = (
     ("portable-claude-diagnostic.mjs", "239111f87bbe1ae229ba83127c3ce174333179b76f1bc7da2eb9f907bb007d5a"),
@@ -54,7 +55,7 @@ NATIVE_SEALED_SOURCE_PINS = (
     ("base-exchange-source.mjs", "1a66abed15ecff05ee41266ff3e3a5230fc109164a0e74ecafce83525d1c16f6"),
     ("claude-policy.mjs", "d19957530cd238ea2f1b3b7b7ae95f5d7ccc65f457fb3763edef85a1e844407d"),
     ("closed-read-policy.mjs", "d171a31ea942d81f7f93134a26f73bf0b1ccb826edf9bcb878debd82f3397f3d"),
-    ("enclosure-provisioning.mjs", "3d7bf5e8a121e6df98c8df08be1a860966d0d1f6bee443d759d943397f93dc47"),
+    ("enclosure-provisioning.mjs", "a3fde5180c6cc9cc0cedae7cd045138130a1396737fea0ffbab990eef1a5ea13"),
     ("fixed-campaign-copies.mjs", "06380846f206a66100c7b5216f969ae55fc8ee2188449e8183e81f8827132a59"),
     ("fixed-campaign-enclosed-collector.mjs", "a15fee9374767e14483575264bcfa85732d90eab503c8a1f2b770c5156395878"),
     ("fixed-campaign-enclosure-build.mjs", "ebd8ecda96e0ca3028b39c6be2fdeb7dea2e2519b5d6daed715a18f796f2b3f2"),
@@ -66,8 +67,8 @@ NATIVE_SEALED_SOURCE_PINS = (
     ("native-assets-build.mjs", "28af4f9f02a70673a5d8486f38efc5311faa3735d868dade35fb12b2db123b84"),
     ("native-assets-proposal.mjs", "74b0d1f96e85ccb66e2336897a29661c052c0e15d3c27596a3001ed798df8dc9"),
     ("native-base-command.mjs", "fd34d5ad1eb2f252c18aaa3130dd3db08c7f03fdf6e7f17b1b0db0ea63a12a14"),
-    ("native-enclosure-command.mjs", "0b1e4fa3ad93eb511140fc352d04d7645cd953108cd7a69019402a1e1ed58178"),
-    ("native-enclosure-startup.mjs", "a942b2f0dbfc99e7390f7d1320a1b179bf280a474e94d9c09181e6e5d73d0c01"),
+    ("native-enclosure-command.mjs", "5be0f3701094b57a0e446c673e72983ed8f83246f221678d07bd750359d60ea5"),
+    ("native-enclosure-startup.mjs", "5764b7e07d9fbf8907c9ecd7f6d82dcbeb35ccb87a2f386aadfec29a3380d216"),
     ("native-enclosure-trace.mjs", "e03ef28fe63604a182e897933a50cf1300ced7c7244174ed25e023ab5b0a866e"),
     ("native-startup-witness.mjs", "61eeb17831e5b2641078bb520a42b8baa81d74f0cb0e5a7695cf0b306eb3439f"),
     ("native-stdio-build.mjs", "2056ac09bccde1e7ec1f053a389bc05f2f08f696c9152ab5ea452e75cbd9f3e9"),
@@ -85,6 +86,7 @@ NATIVE_ROOT_SOURCE_PINS = (
     ("src/portable-envelope.mjs", "3a10d9546b5b71ceb99121412471f250676cb71a2c943532ddec39a3ac836482"),
 )
 NATIVE_SCOPE = "FIXED_NATIVE_ENCLOSURE_PARENT_DATA_ONLY"
+CI_NATIVE_SCOPE = "FIXED_CI_NATIVE_ENCLOSURE_PARENT_DATA_ONLY"
 _NATIVE_FALSE = {"publicDataOnly": True, "nativeAuthenticated": False, "nativeEnforcement": "NOT_ESTABLISHED", "nativeIntervalBarrier": "NOT_ESTABLISHED", "originAuthority": False, "receiptAuthority": False, "recordAdoptionAuthority": False, "sealed": False, "reuseEligible": False, "groupClosureScope": "OWNED_NODE_GROUP_ONLY", "detachedDescendantClosure": "UNKNOWN", "resources": "RETAINED_NOT_DELETED"}
 
 _FALSE = {"compilerCheckExecutions": 0, "helperExecutions": 0,
@@ -146,8 +148,8 @@ def file_current(row):
     require(after == row)
 
 
-def prerequisites(_native=False, _ci=False):
-    require(type(_native) is bool and type(_ci) is bool and not (_native and _ci))
+def prerequisites(_native=False, _ci=False, _native_ci=False):
+    require(type(_native) is bool and type(_ci) is bool and type(_native_ci) is bool and not (_native and _ci) and (not _native_ci or _native))
     uid = os.getuid()
     require(sys.flags.isolated == 1 and sys.flags.no_site == 1)
     require(sys.platform == "darwin" and platform.machine() == "arm64"
@@ -156,7 +158,7 @@ def prerequisites(_native=False, _ci=False):
     require(not any(forbidden.search(key) for key in os.environ))
     if _native:
         require(not any(key in os.environ for key in ("REDUE_DECISION_PROFILE", "REDUE_DECISION_PROFILE_FILE", "REDUE_PROFILE_CONTEXT")))
-    if _ci:
+    if _ci or _native_ci:
         ci_forbidden = re.compile(r"^(?:SIMPLE|REDUE_DECISION_PROFILE|REDUE_DECISION_PROFILE_FILE|REDUE_PROFILE_CONTEXT)$", re.I)
         require(not any(ci_forbidden.search(key) for key in os.environ))
     here = Path(__file__).absolute()
@@ -164,7 +166,7 @@ def prerequisites(_native=False, _ci=False):
     repo = here.parents[2]
     require((repo / "package.json").is_file())
     entry = here.parent / (NATIVE_ENTRY_NAME if _native else ENTRY_NAME)
-    if _ci:
+    if _ci or _native_ci:
         host_path = os.environ.get("PATH")
         require(type(host_path) is str and 0 < len(host_path) <= 16384 and not re.search(r"[\x00\r\n]", host_path))
         selected = shutil.which("node", path=host_path)
@@ -175,7 +177,7 @@ def prerequisites(_native=False, _ci=False):
     rows = [inspect_file(here, uid, PARENT_SOURCE_LIMIT),
             inspect_file(entry, uid, 65536, NATIVE_ENTRY_SHA256 if _native else INNER_SHA256),
             inspect_file(node, uid, 128 * 1024 * 1024, NODE_SHA256)]
-    if _ci:
+    if _ci or _native_ci:
         require(rows[2]["mark"][6] == 121593488)
     if _native or _ci:
         rows.extend(inspect_file(here.parent / name, uid, 131072, pin) for name, pin in NATIVE_SOURCE_PINS)
@@ -309,14 +311,70 @@ NATIVE_REASONS = {"ACTIVATION_OR_RUNTIME_UNAVAILABLE", "PINNED_RUNTIME_OR_ENVIRO
 NATIVE_SIGNALS = {"SIGHUP", "SIGINT", "SIGQUIT", "SIGILL", "SIGTRAP", "SIGABRT", "SIGIOT", "SIGBUS", "SIGFPE", "SIGKILL", "SIGUSR1", "SIGSEGV", "SIGUSR2", "SIGPIPE", "SIGALRM", "SIGTERM", "SIGCHLD", "SIGCONT", "SIGSTOP", "SIGTSTP", "SIGTTIN", "SIGTTOU", "SIGURG", "SIGXCPU", "SIGXFSZ", "SIGVTALRM", "SIGPROF", "SIGWINCH", "SIGIO", "SIGINFO", "SIGSYS"}
 
 
-def parse_native_final(body):
+def validate_ci_checker_summary(value):
+    # Closed DATA projection of the original strict body parser, never a new
+    # checker parser or authentication claim. Row IDs are role-local name
+    # indices in native187-enclosure-checker-rows@1 (the pinned child source).
+    require(value["checkerInterpretation"] == "native187-enclosure-checker-rows@1"
+            and type(value["toolExecutionMatched"]) is bool)
+    phases = value["checkerPhases"]
+    if phases is None:
+        require(value["toolExecutionMatched"] is False and all(value[key] is None for key in
+                ("toolUseIdSha256", "checkerBegin", "checkerEnd", "checkerLaunchedCount", "checkerClosedCount")))
+        require(value["outcome"] != "FAIL" and not value["completionDataValid"])
+        return
+    require(value["toolExecutionMatched"] is True and type(value["toolUseIdSha256"]) is str
+            and re.fullmatch(r"[a-f0-9]{64}", value["toolUseIdSha256"])
+            and value["commandSha256"] is not None and value["parsedBodySha256"] is not None)
+    require(value["checkerBegin"] is True and type(value["checkerEnd"]) is bool
+            and type(phases) is list and 1 <= len(phases) <= 4
+            and type(value["checkerLaunchedCount"]) is int and value["checkerLaunchedCount"] == len(phases)
+            and type(value["checkerClosedCount"]) is int and 0 <= value["checkerClosedCount"] <= len(phases))
+    roles = ("whole_base", "stage_exchange", "node_stage", "mapper")
+    results = {"PASS", "FAIL", "UNKNOWN", "NOT_PERFORMED", "NOT_IMPLEMENTED"}
+    classifications = {"EXACT_REVIEWED_FIXTURE_ROUTE_REQUIRED", "FRESH_SINGLE_LINK_MARKER_FILES_OBSERVED", "UNKNOWN_OR_UNAVAILABLE", "NOT_PERFORMED", "OWNED_DESCRIPTORS_AND_MAPPINGS_CLOSED", "SHARED_CHANGE_AND_RESTORE_OBSERVED", "ASSERTION_FAILED", "IDENTITY_AND_BODY_PRESERVED", "ACCESS_SUCCEEDED", "DENIED_PERMISSION_ERROR", "READ_ONLY_FD_CONSTRAINT_OBSERVED"}
+    errors = {"NONE", "EPERM", "EACCES", "ENOENT", "ENOTDIR", "ELOOP", "EINVAL", "ENOMEM", "ENODEV", "ENXIO", "EIO", "EINTR", "EMFILE", "ENFILE", "EBADF", "OTHER"}
+    closed = failed = 0
+    for at, phase in enumerate(phases):
+        require(type(phase) is dict and set(phase) == {"role", "assertionOutcome", "process", "implementedAssertionsOutcome", "checks"}
+                and phase["role"] == roles[at] and phase["assertionOutcome"] in ("UNKNOWN", "FAIL")
+                and phase["implementedAssertionsOutcome"] in ("UNKNOWN", "FAIL", "ALL_IMPLEMENTED_ROWS_OBSERVED"))
+        process, checks = phase["process"], phase["checks"]
+        require(type(process) is list and len(process) == 5 and all(type(v) is bool for v in process[:3])
+                and (process[3] is None or type(process[3]) is int and 0 <= process[3] <= 255)
+                and (process[4] is None or process[4] in NATIVE_SIGNALS) and not (process[3] is not None and process[4] is not None))
+        require(not process[2] or process[0] and process[1] and (process[3] is not None or process[4] is not None))
+        require(process[1] or not process[2] and process[3] is None and process[4] is None)
+        closed += int(process[1] and process[2]);failed += int(phase["assertionOutcome"] == "FAIL")
+        require(type(checks) is list and 1 <= len(checks) <= (6, 5, 18, 7)[at])
+        indices = []
+        for row in checks:
+            require(type(row) is list and len(row) == 3 and type(row[0]) is int)
+            indices.append(row[0])
+            require(type(row[1]) is str and row[1] in (classifications if at == 3 else results))
+            if at == 3:
+                require(type(row[2]) is str and row[2] in errors)
+            else:
+                require(type(row[2]) is bool)
+        expected = [list(range((6, 5, 18, 7)[at]))]
+        if at == 2:
+            expected += [[0], [0, 1], [i for i in range(18) if i != 12]]
+        require(indices in expected)
+    require(closed == value["checkerClosedCount"] and failed == int(value["outcome"] == "FAIL"))
+    require(not value["checkerEnd"] or closed == len(phases))
+
+
+def parse_native_final(body, _ci=False):
+    require(type(_ci) is bool)
     require(type(body) in (bytes, bytearray) and 0 < len(body) <= 4096
             and body.endswith(b"\n") and body.count(b"\n") == 1)
     text = body.decode("utf-8", "strict")
     require(not text.startswith("\ufeff"))
     value = unique_json(text, _native=True)
-    fixed = {"schema": 1, "scope": "FIXED_NATIVE_ENCLOSURE_CHILD_SUMMARY_ONLY", "interpretation": "fixed-native-enclosure-child-summary@1", "bodyDigestScope": "PARSED_BODY_SERIALIZATION_NOT_ORIGINAL_WIRE", "bodyRetained": False, "publicDataOnly": True, "nativeAuthenticated": False, "nativeEnforcement": "NOT_ESTABLISHED", "nativeIntervalBarrier": "NOT_ESTABLISHED", "detachedDescendantClosure": "UNKNOWN", "resources": "RETAINED_NOT_DELETED", "originAuthority": False, "receiptAuthority": False, "recordAdoptionAuthority": False, "sealed": False, "reuseEligible": False}
+    fixed = {"schema": 1, "scope": "FIXED_CI_NATIVE_ENCLOSURE_CHILD_SUMMARY_ONLY" if _ci else "FIXED_NATIVE_ENCLOSURE_CHILD_SUMMARY_ONLY", "interpretation": "fixed-ci-native-enclosure-child-summary@1" if _ci else "fixed-native-enclosure-child-summary@1", "bodyDigestScope": "PARSED_BODY_SERIALIZATION_NOT_ORIGINAL_WIRE", "bodyRetained": False, "publicDataOnly": True, "nativeAuthenticated": False, "nativeEnforcement": "NOT_ESTABLISHED", "nativeIntervalBarrier": "NOT_ESTABLISHED", "detachedDescendantClosure": "UNKNOWN", "resources": "RETAINED_NOT_DELETED", "originAuthority": False, "receiptAuthority": False, "recordAdoptionAuthority": False, "sealed": False, "reuseEligible": False}
     fields = {"reportStatus", "outcome", "reportedAssertionOutcome", "reason", "preparationAttempted", "preparationOutcome", "preparationBuildAttemptCount", "preparationBuildResultCount", "preparationObservedProcessCount", "preparationProcessesComplete", "compilerBuildOutcome", "nativeSpawnAttempts", "nativeLaunches", "models", "helperExecutions", "nativeSpawnObserved", "nativeExit", "nativeSignal", "nativeCloseObserved", "nativeReaped", "timedOut", "cancelled", "overallBudgetExceeded", "milliseconds", "traceSyntaxValid", "completionDataValid", "commandSha256", "parsedBodySha256"}
+    if _ci:
+        fields |= {"checkerInterpretation", "toolExecutionMatched", "toolUseIdSha256", "checkerBegin", "checkerEnd", "checkerLaunchedCount", "checkerClosedCount", "checkerPhases"}
     require(type(value) is dict and set(value) == fields | set(fixed))
     require(all(type(value[key]) is type(item) and value[key] == item for key, item in fixed.items()))
     require(value["reportStatus"] in ("CONTROLLER_RETURNED", "RESULT_UNAVAILABLE")
@@ -369,6 +427,8 @@ def parse_native_final(body):
         require(value["outcome"] == "UNKNOWN" and value["reason"] == "CONTROLLER_RESULT_UNAVAILABLE"
                 and not value["traceSyntaxValid"] and not value["completionDataValid"] and not value["preparationProcessesComplete"]
                 and all(value[key] is None for key in ("models", "helperExecutions", "nativeLaunches", "nativeSpawnAttempts", "preparationAttempted", "nativeSpawnObserved", "nativeCloseObserved", "nativeReaped")))
+    if _ci:
+        validate_ci_checker_summary(value)
     return value
 
 
@@ -382,15 +442,16 @@ def native_deadline(timing):
     return deadline
 
 
-def native_unknown(report, reason):
+def native_unknown(report, reason, _ci=False):
+    require(type(_ci) is bool)
     summary = report.get("nativeSummary")
     try:
-        summary = parse_native_final((json.dumps(summary, allow_nan=False) + "\n").encode())
+        summary = parse_native_final((json.dumps(summary, allow_nan=False) + "\n").encode(), _ci=_ci)
     except Exception:
         summary = None
     failed = summary is not None and summary["reportedAssertionOutcome"] == "FAIL"
     observed = {key: report[key] for key in ("childReaped", "childExitCode", "childSignal", "cleanupSignal", "cleanupExceptionFamily", "cleanupErrno", "groupAbsentAfterReap", "exitMonitorState", "elapsedMs", "bodyElapsedMs", "stdoutBytes", "stderrBytes") if key in report}
-    return {"schema": 1, "scope": NATIVE_SCOPE, "outcome": "FAIL" if failed else "UNKNOWN", "reportedAssertionOutcome": "FAIL" if failed else "UNKNOWN", "reason_code": reason, "collectionStatus": "UNKNOWN", "nativeSummary": summary, "observed": observed,
+    return {"schema": 1, "scope": CI_NATIVE_SCOPE if _ci else NATIVE_SCOPE, "outcome": "FAIL" if failed else "UNKNOWN", "reportedAssertionOutcome": "FAIL" if failed else "UNKNOWN", "reason_code": reason, "collectionStatus": "UNKNOWN", "nativeSummary": summary, "observed": observed,
             "models": summary["models"] if summary else None, "helperExecutions": summary["helperExecutions"] if summary else None, "nativeAgentLaunches": summary["nativeLaunches"] if summary else None, "recordPersistence": "UNKNOWN", "finalParentCompletion": "NOT_ESTABLISHED", **_NATIVE_FALSE}
 
 
@@ -640,7 +701,7 @@ class NativeCancellation:
 
 
 def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelector,
-            read=os.read, killpg=os.killpg, started=None, exit_monitor=None, _native_deadline=None, _native_cancellation=None, _ci=False):
+            read=os.read, killpg=os.killpg, started=None, exit_monitor=None, _native_deadline=None, _native_cancellation=None, _ci=False, _native_ci=False):
     """Fixed process envelope; injection is for source/mock tests only.
 
     Never poll/wait/communicate before the cleanup decision. The Popen PID
@@ -650,7 +711,7 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
     timing = clock if type(clock) is PreparationMonotonicClock else PreparationMonotonicClock(clock, started)
     began = timing.started
     native = _native_deadline is not None
-    require(type(_ci) is bool and not (native and _ci))
+    require(type(_ci) is bool and type(_native_ci) is bool and not (native and _ci) and (not _native_ci or native))
     cancellable = native or _ci
     require(_native_cancellation is None or cancellable and type(_native_cancellation) is NativeCancellation)
     require(not native or type(_native_deadline) in (int, float) and math.isfinite(_native_deadline)
@@ -675,7 +736,7 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
         if not native:
             return protocol.finish()
         try:
-            return parse_native_final(output)
+            return parse_native_final(output, _ci=_native_ci)
         except Exception:
             return None
     body_end = None
@@ -874,7 +935,7 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
     if native:
         failed = inner is not None and inner["reportedAssertionOutcome"] == "FAIL"
         complete = normal and code == 0 and inner is not None and inner["reportStatus"] == "CONTROLLER_RETURNED"
-        return {"schema": 1, "scope": NATIVE_SCOPE, "outcome": "FAIL" if failed else "UNKNOWN", "reportedAssertionOutcome": "FAIL" if failed else "UNKNOWN", "reason_code": "NATIVE_DATA_REPORT_OBSERVED" if complete else reason, "collectionStatus": "COMPLETE_DATA_REPORT" if complete else "UNKNOWN",
+        return {"schema": 1, "scope": CI_NATIVE_SCOPE if _native_ci else NATIVE_SCOPE, "outcome": "FAIL" if failed else "UNKNOWN", "reportedAssertionOutcome": "FAIL" if failed else "UNKNOWN", "reason_code": "NATIVE_DATA_REPORT_OBSERVED" if complete else reason, "collectionStatus": "COMPLETE_DATA_REPORT" if complete else "UNKNOWN",
                 "childReaped": reaped, "childExitCode": code if type(code) is int and code >= 0 else None, "childSignal": -code if type(code) is int and code < 0 else None, "cleanupSignal": cleanup_signal, "cleanupExceptionFamily": cleanup_exception_family, "cleanupErrno": cleanup_errno, "groupAbsentAfterReap": absent, "exitMonitorState": exit_monitor_state,
                 "stdoutBytes": len(output), "stderrBytes": len(error), "elapsedMs": elapsed * 1000 if elapsed is not None else None, "bodyElapsedMs": (body_end - began) * 1000 if timing.valid and body_end is not None else None, "nativeSummary": inner,
                 "models": inner["models"] if inner else None, "helperExecutions": inner["helperExecutions"] if inner else None, "nativeAgentLaunches": inner["nativeLaunches"] if inner else None, **_NATIVE_FALSE}
@@ -1082,28 +1143,29 @@ def ci_public_summary(report, reason=None, record=None, digest=None):
     return value
 
 
-def native_main():
+def native_main(_ci=False):
+    require(type(_ci) is bool)
     timing = PreparationMonotonicClock(time.monotonic, _PROCESS_STARTED)
-    report = native_unknown({}, "PRECONDITION_UNAVAILABLE")
+    report = native_unknown({}, "PRECONDITION_UNAVAILABLE", _ci=_ci)
     phase = "PRECONDITIONS"
     cancellation = NativeCancellation()
     status = 74
     try:
         cancellation.install()
         deadline = native_deadline(timing)
-        repo, entry, node, rows = prerequisites(_native=True)
+        repo, entry, node, rows = prerequisites(_native=True, _native_ci=True) if _ci else prerequisites(_native=True)
         directory_snapshot = prepare_record_directory(repo)
         require(not cancellation.requested and timing() < deadline - 5)
         # Recheck every pinned source/binary at the last prelaunch boundary.
         for row in rows:
             file_current(row)
         require(not cancellation.requested and timing() < deadline - 5)
-        child = subprocess.Popen([str(node), str(entry)], cwd=repo,
+        child = subprocess.Popen([str(node), str(entry), "--fixed-ci-native-child"] if _ci else [str(node), str(entry)], cwd=repo,
                                  env=os.environ.copy(), stdin=subprocess.DEVNULL,
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                  start_new_session=True, close_fds=True)
         monitor = open_owned_exit_monitor(child)
-        report = collect(child, clock=timing, started=timing.started, exit_monitor=monitor, _native_deadline=deadline, _native_cancellation=cancellation)
+        report = collect(child, clock=timing, started=timing.started, exit_monitor=monitor, _native_deadline=deadline, _native_cancellation=cancellation, _native_ci=True) if _ci else collect(child, clock=timing, started=timing.started, exit_monitor=monitor, _native_deadline=deadline, _native_cancellation=cancellation)
         phase = "POST_COLLECTION"
         require(type(report.get("bodyElapsedMs")) in (int, float) and math.isfinite(report["bodyElapsedMs"]) and report["bodyElapsedMs"] >= 0)
         require(type(report.get("elapsedMs")) in (int, float) and math.isfinite(report["elapsedMs"]) and report["elapsedMs"] >= report["bodyElapsedMs"])
@@ -1118,25 +1180,27 @@ def native_main():
         phase = "PERSISTENCE"
         file, digest = save_record(repo, report, rows, directory_snapshot, _native=True)
         current_time()
-        emit_final({"scope": NATIVE_SCOPE, "outcome": report["outcome"], "reportedAssertionOutcome": report["reportedAssertionOutcome"], "collectionStatus": report["collectionStatus"], "reason_code": report["reason_code"], "record": file, "sha256": digest, "models": report["models"], "helperExecutions": report["helperExecutions"], "nativeAgentLaunches": report["nativeAgentLaunches"], **_NATIVE_FALSE}, deadline=cleanup_end, not_before=completion, parent_clock=timing, _native_cancellation=cancellation)
+        emit_final({"scope": CI_NATIVE_SCOPE if _ci else NATIVE_SCOPE, "outcome": report["outcome"], "reportedAssertionOutcome": report["reportedAssertionOutcome"], "collectionStatus": report["collectionStatus"], "reason_code": report["reason_code"], "record": Path(file).name if _ci else file, "sha256": digest, "models": report["models"], "helperExecutions": report["helperExecutions"], "nativeAgentLaunches": report["nativeAgentLaunches"], **({"nativeSummary": report.get("nativeSummary")} if _ci else {}), **_NATIVE_FALSE}, deadline=cleanup_end, not_before=completion, parent_clock=timing, _native_cancellation=cancellation)
         status = 1 if report["outcome"] == "FAIL" else 0 if report["collectionStatus"] == "COMPLETE_DATA_REPORT" else 74
     except (Exception, KeyboardInterrupt) as interruption:
         if isinstance(interruption, KeyboardInterrupt):
             cancellation.requested = True
         reason = "CANCELLED" if cancellation.requested else "CLOCK_UNAVAILABLE" if not timing.valid else "PRECONDITION_UNAVAILABLE" if phase == "PRECONDITIONS" else "PERSISTENCE_UNAVAILABLE" if phase == "PERSISTENCE" else "POST_COLLECTION_UNAVAILABLE"
-        emit_final(native_unknown(report, reason))
+        emit_final(native_unknown(report, reason, _ci=_ci))
     finally:
         restored = cancellation.restore()
         if cancellation.requested and status != 74:
-            emit_final(native_unknown(report, "CANCELLED"))
+            emit_final(native_unknown(report, "CANCELLED", _ci=_ci))
             status = 74
         if not restored:
-            emit_final(native_unknown(report, "CANCELLATION_HANDLER_RESTORE_UNAVAILABLE"))
+            emit_final(native_unknown(report, "CANCELLATION_HANDLER_RESTORE_UNAVAILABLE", _ci=_ci))
             status = 74
     return status
 
 
 def main():
+    if sys.argv[1:] == ["--ci-native-run"]:
+        return native_main(_ci=True)
     if sys.argv[1:] == ["--native-run"]:
         return native_main()
     if sys.argv[1:] == ["--ci-run"]:

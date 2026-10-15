@@ -30,7 +30,7 @@ test('identity predicate rejects copied, serialized, accessor and foreign object
 test('a distinct module instance has no adoption or cross-module getter interface',async()=>{
  const other=await import(new URL('./acceptance/sealed-typescript-enclosure-provisioning.mjs?dir278-independent-instance',import.meta.url));
  const empty=Object.freeze(Object.create(null));assert.equal(other.isFixedEnclosurePreparationContext(empty),false);assert.equal(isContext(empty),false);
- assert.deepEqual(Object.keys(other).sort(),['isFixedEnclosurePreparationContext','observeFixedCIEnclosurePreparation','observeFixedEnclosurePreparation','prepareFixedCIEnclosureContext','prepareFixedCIEnclosurePreparation','prepareFixedEnclosureContext','runFixedNativeEnclosureDiagnostic']);
+ assert.deepEqual(Object.keys(other).sort(),['isFixedEnclosurePreparationContext','observeFixedCIEnclosurePreparation','observeFixedEnclosurePreparation','prepareFixedCIEnclosureContext','prepareFixedCIEnclosurePreparation','prepareFixedEnclosureContext','runFixedCINativeEnclosureDiagnostic','runFixedNativeEnclosureDiagnostic']);
 });
 
 test('one private sequence retains ten originals only after successful report serialization and final budget',()=>{

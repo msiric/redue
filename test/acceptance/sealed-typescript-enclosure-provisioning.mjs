@@ -1,7 +1,9 @@
-// Opt-in trusted/quiescent PRE-NATIVE observation only. Eight fixed C builds;
-// no built helper, TypeScript check, native agent, model or receipt executes.
+// Preparation CLI is opt-in trusted/quiescent PRE-NATIVE observation only:
+// eight fixed C builds, no built helper, TypeScript check, native agent, model
+// or receipt execution. Separate fixed native exports require their own gates.
 // Private mints stay in this process and are NOT restorable from its report.
-// CLI stays preparation-only; the separate native-controller export is unwired.
+// Driver CLI stays preparation-only; the separate fixed native child owns
+// literal opt-in native modes. This module never adopts a public report.
 // Preparation profile@2 explicitly permits 60s body; this does not change the
 // SDK27@1 enclosure builder's own 30s budget or any native/checker/model limit.
 import {isNativeError} from 'node:util/types';import {writeSync} from 'node:fs';import path from 'node:path';import os from 'node:os';import {fileURLToPath} from 'node:url';import {createHash} from 'node:crypto';
@@ -10,6 +12,7 @@ import {REVIEWED_CLAUDE_NATIVE} from './portable-claude-native-profile.mjs';
 import {requireNativeDiagnosticActivation,nativeDiagnosticEnvironment,selectedStartupSourcesAbsent,validateNativePostStartupSources,readOwnedDiagnosticFile,putOwnedDiagnosticFile,validateOwnedDiagnosticManifest,collectNativeEnclosureDiagnostic,interpretCollectedNativeEnclosureDiagnostic,NODE_SHA} from './portable-claude-diagnostic.mjs';
 import {prepareSealedTypeScriptNativeEnclosureCommand} from './sealed-typescript-native-enclosure-command.mjs';
 import {prepareNativeEnclosureStartup,verifyNativeEnclosureStartup} from './sealed-typescript-native-enclosure-startup.mjs';
+import {sealedTypeScriptBaseExchangeAssetsFixtureProfile} from './sealed-typescript-base-exchange-assets.mjs';
 import {observeSealedTypeScriptFixedCampaignEnclosurePostNativeEndpoint} from './sealed-typescript-fixed-campaign-enclosure-build.mjs';
 const scope='FIXED_ENCLOSURE_PROVISIONING_OBSERVATION_ONLY',profile='fixed-enclosure-preparation-local-sdk27@2',buildProfile='fixed-enclosure-local-sdk27@1';
 const ciPreparationProfile='fixed-enclosure-preparation-ci-sdk26.5-toolpair-a@1',ciBuildProfile='fixed-enclosure-ci-sdk26.5-toolpair-a@1',ciFixtureProfile='fixed-native-assets-ci-sdk26.5-toolpair-a@1';
@@ -116,11 +119,12 @@ async function prepareFixedContext(ci){
 // Identity only: no currency, read permission, native launch or execution GO.
 // Future consumption stays private; there is deliberately no getter/adoption API.
 export function isFixedEnclosurePreparationContext(value){return arguments.length===1&&preparedContexts.has(value);}
-// UNWIRED fixed diagnostic composition. No CLI mode or report can invoke this
-// route or transfer its private originals. A reviewed hard parent execution path
-// is still required before actual use. This is not a seal/receipt producer.
-export async function runFixedNativeEnclosureDiagnostic(){
- guard(arguments.length===0);
+// Fixed local/CI diagnostic composition. Only separate literal opt-in child
+// modes invoke it; a report never transfers private originals. The reviewed
+// hard parent and actual prerequisites remain required. Not a seal/receipt producer.
+export async function runFixedNativeEnclosureDiagnostic(){guard(arguments.length===0);return runFixedNativeDiagnostic(false);}
+export async function runFixedCINativeEnclosureDiagnostic(){guard(arguments.length===0);return runFixedNativeDiagnostic(true);}
+async function runFixedNativeDiagnostic(ci){
  const env=process.env,source=env.REDUE_CHECKED_SOURCE,started=performance.now(),cancelled=new AbortController();
  let last=started,clockFailed=false,deadline=null,timer=null,phase='ACTIVATION_OR_RUNTIME_UNAVAILABLE',reason=null;
  let preparation=null,resourcesAttempted=false,originals=null,startup=null,proposal=null,manifest=null,observed=null,observation=null,consumed=false;
@@ -133,7 +137,7 @@ export async function runFixedNativeEnclosureDiagnostic(){
  const cancel=()=>cancelled.abort();
  const requiredArgs=(args,required)=>{let from=0;for(let at=0;at<required.length;at++){const found=args.indexOf(required[at],from);if(found<0)return false;if(at+1<required.length&&!required[at+1].startsWith('--')){if(args[found+1]!==required[++at])return false;from=found+2;}else from=found+1;}return true;};
  try{
-  clock();requireNativeDiagnosticActivation({env,source});guard(fixedReady()&&!Object.hasOwn(env,'SIMPLE'));
+  clock();requireNativeDiagnosticActivation({env,source});guard((ci?fixedCIReady():fixedReady())&&!Object.hasOwn(env,'SIMPLE'));
   guard(typeof env.REDUE_DIAGNOSTIC_JOB_STARTED_MS==='string'&&/^[0-9]{10,16}$/.test(env.REDUE_DIAGNOSTIC_JOB_STARTED_MS));
   const jobStart=Number(env.REDUE_DIAGNOSTIC_JOB_STARTED_MS),elapsed=Date.now()-jobStart;
   guard(Number.isSafeInteger(jobStart)&&Number.isFinite(elapsed)&&elapsed>=0&&elapsed<115000);deadline=started+120000-elapsed;available();
@@ -148,18 +152,21 @@ export async function runFixedNativeEnclosureDiagnostic(){
   for(const signal of ['SIGINT','SIGTERM','SIGHUP'])process.on(signal,cancel);
   timer=setTimeout(cancel,Math.max(0,remaining()));
   phase='GENUINE_PREPARATION_UNAVAILABLE';resourcesAttempted=true;
-  const prepared=await prepareFixedEnclosureContext();
+  const prepared=await (ci?prepareFixedCIEnclosureContext():prepareFixedEnclosureContext());
   // Consume FIRST, synchronously after preparation: no await, public report
   // validation, clock, path or resource operation can precede this deletion.
   originals=preparedContexts.get(prepared.context);preparedContexts.delete(prepared.context);
   preparation=prepared.report;available();guard(originals&&preparation.outcome==='BUILT_NOT_EXECUTED');
+  const selectedBuild=ci?ciBuildProfile:buildProfile,selectedPreparation=ci?ciPreparationProfile:profile;
+  guard(preparation.profile===selectedPreparation&&sealedTypeScriptBaseExchangeAssetsFixtureProfile(originals.assetsBuild)===(ci?ciFixtureProfile:'fixed-native-assets-local-sdk27@1'));
+  guard(originals.enclosureBuild.report.profileId===selectedBuild&&(ci?originals.enclosureSource.fixtureProfileId===ciFixtureProfile:originals.enclosureSource.fixtureProfileId===undefined));
   const commandOptions={...originals,claudeExecutable:native,claudeSha256:REVIEWED_CLAUDE_NATIVE.sha256,claudeVersion:REVIEWED_CLAUDE_NATIVE.version};
   phase='ORIGINAL_COMMAND_OR_STARTUP_UNAVAILABLE';
   proposal=bounded(()=>prepareSealedTypeScriptNativeEnclosureCommand(commandOptions));
-  guard(proposal.scope==='DISABLED_FIXED_NATIVE_ENCLOSURE_COMMAND_PROPOSAL_ONLY'&&proposal.preparation_profile_proposed===buildProfile&&proposal.parent_timeout_ms_proposed===120000&&proposal.max_turns_proposed===4&&proposal.tool_timeout_ms_proposed===15000);
+  guard(proposal.scope==='DISABLED_FIXED_NATIVE_ENCLOSURE_COMMAND_PROPOSAL_ONLY'&&proposal.preparation_profile_proposed===selectedBuild&&proposal.parent_timeout_ms_proposed===120000&&proposal.max_turns_proposed===4&&proposal.tool_timeout_ms_proposed===15000);
   startup=bounded(()=>prepareNativeEnclosureStartup(originals));
   const host=originals.enclosureSource.bindings.hostBase,assets={host:host+'/claude-host',code:proposal.cwd_proposed};
-  guard(startup.outcome==='STARTUP_PREPARED_NOT_LAUNCHED'&&startup.hostBase===host&&startup.buildProfileId===buildProfile&&proposal.settings_file_proposed===assets.host+'/settings.json');
+  guard(startup.outcome==='STARTUP_PREPARED_NOT_LAUNCHED'&&startup.hostBase===host&&startup.buildProfileId===selectedBuild&&proposal.settings_file_proposed===assets.host+'/settings.json');
   const appliedSettings=()=>{const value=structuredClone(proposal.settings_proposed);Object.assign(value,startup.requiredSettings);
    value.sandbox.credentials.envVars.push({name:'REDUE_PREFLIGHT_SENTINEL',mode:'deny'});
    for(const tail of ['Library/Keychains','.ssh','.aws','.npmrc','.claude','.config','.git-credentials'])value.sandbox.filesystem.denyRead.push(path.join(originalHome,tail));
@@ -170,7 +177,7 @@ export async function runFixedNativeEnclosureDiagnostic(){
   manifest={base:host,native,files:[{file:native,digest:nativeRow.digest,fingerprint:nativeRow.fingerprint},{file:proposal.settings_file_proposed,digest:settingsRow.digest,fingerprint:settingsRow.fingerprint}]};
   nativeEnv=Object.freeze({...bounded(()=>nativeDiagnosticEnvironment(env,{host:assets.host})),...startup.environmentBindings});argv=Object.freeze([...proposal.argv_proposed]);
   const actualBindings=()=>env.HOME===originalHome&&equal(nativeEnv,{...nativeDiagnosticEnvironment(env,{host:assets.host}),...startup.environmentBindings})&&equal(settings,appliedSettings())&&equal(argv,proposal.argv_proposed)&&startup.requiredAbsentEnvironmentKeys.every(key=>!Object.hasOwn(nativeEnv,key))&&startup.forbiddenArgv.every(arg=>!argv.includes(arg))&&requiredArgs(argv,startup.requiredArgv);
-  const startupCurrent=when=>{const s=bounded(()=>verifyNativeEnclosureStartup(startup,when));guard(s.outcome==='STARTUP_CURRENTLY_OBSERVED_SOURCE_ONLY'&&s.phase===when&&s.hostBase===host&&s.buildProfileId===buildProfile&&s.sourceBasisCurrent===true&&s.sourceVersion===originals.enclosureSource.version&&s.projectionVersion===originals.projection.version&&s.projectionSha256===originals.enclosureSource.projectionSha256);return true;};
+  const startupCurrent=when=>{const s=bounded(()=>verifyNativeEnclosureStartup(startup,when));guard(s.outcome==='STARTUP_CURRENTLY_OBSERVED_SOURCE_ONLY'&&s.phase===when&&s.hostBase===host&&s.buildProfileId===selectedBuild&&s.sourceBasisCurrent===true&&s.sourceVersion===originals.enclosureSource.version&&s.projectionVersion===originals.projection.version&&s.projectionSha256===originals.enclosureSource.projectionSha256);return true;};
   const prelaunch=()=>{
    bounded(()=>guard(actualBindings()));bounded(()=>selectedStartupSourcesAbsent(assets));bounded(nativeShape);bounded(()=>validateOwnedDiagnosticManifest(manifest));bounded(nativeShape);
    guard(equal(bounded(()=>prepareSealedTypeScriptNativeEnclosureCommand(commandOptions)),proposal));startupCurrent('BEFORE_NATIVE');
@@ -199,7 +206,7 @@ export async function runFixedNativeEnclosureDiagnostic(){
  }
  try{clock();available();}catch{reason??=clockFailed?'CLOCK_UNAVAILABLE':'OVERALL_BUDGET_OR_CANCELLATION';}
  if(reason&&observation)observation=freeze({...observation,completionDataValid:false});
- return freeze({schema:1,scope:'UNWIRED_FIXED_NATIVE_ENCLOSURE_DIAGNOSTIC_ONLY',outcome:observation?.outcome==='FAIL'?'FAIL':'UNKNOWN',reason:reason??'SYNTACTIC_NATIVE_COLLECTION_ONLY',preparation,observation,
+ return freeze({schema:1,scope:ci?'FIXED_CI_NATIVE_ENCLOSURE_DIAGNOSTIC_ONLY':'UNWIRED_FIXED_NATIVE_ENCLOSURE_DIAGNOSTIC_ONLY',outcome:observation?.outcome==='FAIL'?'FAIL':'UNKNOWN',reason:reason??'SYNTACTIC_NATIVE_COLLECTION_ONLY',preparation,observation,
   preparationAttempted:resourcesAttempted,nativeSpawnAttempts:launchAttempts,nativeSpawnObserved:observed?.native_process_spawn_observed??false,nativeExit:observed?.native_exit_code??null,nativeSignal:observed?.native_signal??null,nativeCloseObserved:observed?.native_exit_observed??false,nativeReaped:observed?.owned_native_reaped??false,timedOut:observed?.timed_out??false,
   milliseconds:clockFailed?null:last-started,overallBudgetExceeded:deadline===null||clockFailed?null:last>=deadline,cancelled:cancelled.signal.aborted,remainingBudgetMs:deadline===null||clockFailed?null:Math.max(0,deadline-last),resources:resourcesAttempted?'RETAINED_NOT_DELETED':'NOT_CREATED',detachedDescendantClosure:'UNKNOWN',nativeLaunches:observed?.native_process_spawn_observed===true?1:launchAttempts?null:0,models:launchAttempts?null:0,helperExecutions:launchAttempts?null:0,
   publicDataOnly:true,nativeAuthenticated:false,nativeEnforcement:'NOT_ESTABLISHED',nativeIntervalBarrier:'NOT_ESTABLISHED',completeSdkClosure:'NOT_ESTABLISHED',preMainLoader:'NOT_ESTABLISHED',hostedCompatibility:'NOT_ESTABLISHED',originAuthority:false,receiptAuthority:false,recordAdoptionAuthority:false,sealed:false,reuseEligible:false,rawTranscriptRetained:false,rawStderrRetained:false});

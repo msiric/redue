@@ -4,7 +4,7 @@ import {writeSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {runFixedNativeEnclosureDiagnostic} from './sealed-typescript-enclosure-provisioning.mjs';
+import {runFixedNativeEnclosureDiagnostic,runFixedCINativeEnclosureDiagnostic} from './sealed-typescript-enclosure-provisioning.mjs';
 
 const reasons=new Set([
   'ACTIVATION_OR_RUNTIME_UNAVAILABLE', 'PINNED_RUNTIME_OR_ENVIRONMENT_UNAVAILABLE',
@@ -22,11 +22,31 @@ const signals=new Set([
 ]);
 const integer=(v,max)=>Number.isInteger(v)&&v>=0&&v<=max?v:null;
 
+// Role-local assertion IDs are literal names from the strict original body
+// parsers, not caller labels. Compact tuples preserve observed classifications
+// within the existing4KiB summary: [nameIndex,result,attempted-or-errno].
+const checkerNames=[
+ ['synthetic_base_pair_identities_observed','synthetic_exchange_inventory_observed','workspace_atomic_exchange_and_restore_control','base_atomic_exchange_denied','base_pair_identities_preserved','other_native_stage_assertions'],
+ ['synthetic_exchange_inventory_observed','workspace_atomic_exchange_and_restore_control','stage_parent_atomic_exchange_denied','stage_parent_identity_and_inventory_preserved','base_atomic_exchange_denied'],
+ ['fresh_synthetic_fixture_readable','owned_workspace_write_permitted','case_alias_resolves_to_same_stage_canary','stage_case_alias_write_denied','stage_file_write_denied','stage_file_chmod_denied','stage_file_unlink_denied','stage_file_rename_denied','stage_parent_replacement_denied','outside_hardlink_creation_denied','write_through_created_alias_denied','owned_workspace_parent_symlink_creation_control','parent_symlink_resolves_to_same_stage_canary','stage_parent_symlink_alias_write_denied','stage_fixture_identity_and_bytes_preserved','map_shared_writable_mapping_denied','stage_parent_atomic_exchange_denied','base_atomic_exchange_denied'],
+ ['fixed_fixture_precondition','workspace_rw_shared_change_restore','staged_rdwr_acquisition','staged_readonly_shared_read_mprotect_write','staged_readonly_shared_write_map','staged_identity_and_body_preserved','owned_descriptors_and_mappings_closed'],
+];
+function checkerSummary(observation){
+ const b=observation?.body,matched=typeof observation?.toolUseId==='string'&&/^toolu_[A-Za-z0-9]{6,100}$/.test(observation.toolUseId)
+  &&typeof observation.commandSha256==='string'&&/^[a-f0-9]{64}$/.test(observation.commandSha256);
+ const phases=matched&&b?.scope==='ENCLOSED_FIXED_CANARY_DIAGNOSTICS_ONLY'&&Array.isArray(b.phases)?b.phases:null;
+ return {checkerInterpretation:'native187-enclosure-checker-rows@1',toolExecutionMatched:!!(matched&&phases),
+  toolUseIdSha256:matched&&phases?createHash('sha256').update(observation.toolUseId).digest('hex'):null,
+  checkerBegin:phases?b.begin:null,checkerEnd:phases?b.end:null,checkerLaunchedCount:phases?b.launchedCount:null,checkerClosedCount:phases?b.closedCount:null,
+  checkerPhases:phases?phases.map((p,at)=>({role:p.role,assertionOutcome:p.outcome,process:[p.spawnObserved,p.closeObserved,p.exitObserved,p.exitCode,p.signal],implementedAssertionsOutcome:p.implementedAssertionsOutcome,
+   checks:p.checks.map(row=>[checkerNames[at].indexOf(row.name),at===3?row.classification:row.result,at===3?row.errno_code:row.attempted])})):null};
+}
+
 // Only the fixed controller supplies this value. There is no report import,
 // callback, command selection or public summary projection interface.
-function summary(r){
+function summary(r,ci=false){
   const known=r?.schema===1
-    &&r.scope==='UNWIRED_FIXED_NATIVE_ENCLOSURE_DIAGNOSTIC_ONLY'
+    &&r.scope===(ci?'FIXED_CI_NATIVE_ENCLOSURE_DIAGNOSTIC_ONLY':'UNWIRED_FIXED_NATIVE_ENCLOSURE_DIAGNOSTIC_ONLY')
     &&['UNKNOWN','FAIL'].includes(r.outcome)
     &&r.nativeAuthenticated===false&&r.originAuthority===false
     &&r.receiptAuthority===false&&r.recordAdoptionAuthority===false
@@ -42,8 +62,9 @@ function summary(r){
       &&row.status===0&&row.signal===null&&row.spawnError==='NONE'));
   const sha=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.exec(v)?.[0]===v?v:null;
   return {
-    schema:1,scope:'FIXED_NATIVE_ENCLOSURE_CHILD_SUMMARY_ONLY',
-    interpretation:'fixed-native-enclosure-child-summary@1',
+    schema:1,scope:ci?'FIXED_CI_NATIVE_ENCLOSURE_CHILD_SUMMARY_ONLY':'FIXED_NATIVE_ENCLOSURE_CHILD_SUMMARY_ONLY',
+    interpretation:ci?'fixed-ci-native-enclosure-child-summary@1':'fixed-native-enclosure-child-summary@1',
+    ...(ci?checkerSummary(o):{}),
     reportStatus:r?'CONTROLLER_RETURNED':'RESULT_UNAVAILABLE',
     outcome:failed?'FAIL':'UNKNOWN',reportedAssertionOutcome:failed?'FAIL':'UNKNOWN',
     reason:r&&reasons.has(r.reason)?r.reason:'CONTROLLER_RESULT_UNAVAILABLE',
@@ -83,10 +104,11 @@ function summary(r){
 if(process.argv[1]&&fileURLToPath(import.meta.url)===path.resolve(process.argv[1])){
   let result;
   try{
-    if(process.argv.length!==2)throw Error('NOT_SELECTED');
-    result=summary(await runFixedNativeEnclosureDiagnostic());
+    if(process.argv.length===2)result=summary(await runFixedNativeEnclosureDiagnostic());
+    else if(process.argv.length===3&&process.argv[2]==='--fixed-ci-native-child')result=summary(await runFixedCINativeEnclosureDiagnostic(),true);
+    else throw Error('NOT_SELECTED');
   }catch{
-    result=summary(null);
+    result=summary(null,process.argv.length===3&&process.argv[2]==='--fixed-ci-native-child');
   }
   const body=Buffer.from(JSON.stringify(result)+'\n');
   if(body.length>4096)throw Error('FIXED_NATIVE_SUMMARY_LIMIT');
