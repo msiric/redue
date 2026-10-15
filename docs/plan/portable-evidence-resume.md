@@ -36,9 +36,15 @@ The earlier `e6a20eab` clock counterexample and all seven UNKNOWN attempts remai
 historical evidence below; the defective revision was not run as an actual attempt.
 
 The native trace parser's DIR271 review found validated FAIL could be lost after
-END refusal or actor-reap timeout. The frozen repair `dcd493c` is under independent
-DIR276 review; it is not yet integrated. DIR275/277 are reviewing a same-process
-preparation context, without report adoption or native launch authority.
+END refusal or actor-reap timeout. DIR276 independently accepts exact `dcd493c`;
+the repaired tree is integrated at `64c3722`. All1,143 affected source/mock checks
+and44 independent collector/contradiction cases pass. Root's eight-file combined
+run has451 PASS/0 FAIL, TAP SHA256
+`2b2cd82f6b07ab6d28f864e2125e622df1f16c06ce5110f83608175cd3011735`.
+This is data interpretation only: public trace/binding JSON cannot authenticate
+native execution or create origin, sealing or reuse authority. DIR277 accepts
+the same-process private context design; DIR278 implements only that identity
+slice, without a native controller, report adoption or launch authority.
 
 The reviewed public-header workflow `3f07b38`, pinned runtime `3edffa5`, still
 awaits the one requested owner UI dispatch (CLI403 is not retried). No new run
