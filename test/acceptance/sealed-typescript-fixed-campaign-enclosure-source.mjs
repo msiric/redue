@@ -29,7 +29,7 @@ function current(record,note=null){
  // Both verifier calls retain their original order before either result test.
  // Split the existing conjunction without changing its short-circuit reads.
  at('PROJECTION_RESULT');guard(p.outcome==='FIXED_CANARY_ORIGINAL_INPUT_GUARDS_OBSERVED'&&p.version===projectionVersion&&p.sourceSha256===record.projectionSourceSha256);
- at('PREPARED_NULL_RESULT');guard(n.outcome==='CAMPAIGN_PREPARED_NULL_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED'&&n.version==='campaign-prepared-devnull-setexec@2'&&n.sourceSha256===record.preparedSourceSha256);
+ at('PREPARED_NULL_RESULT');guard(n.outcome==='CAMPAIGN_PREPARED_NULL_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED'&&n.version==='campaign-prepared-devnull-setexec@2'&&n.preparedNullIdentityInterpretation==='prepared-null-device-endpoints@1'&&n.sourceSha256===record.preparedSourceSha256);
  for(let index=0;index<record.rows.length;index++){const row=record.rows[index];at(index===0?'C_SOURCE_READ':'COLLECTOR_SOURCE_READ');const next=readSource(path.basename(row.file),row.pin);at(index===0?'C_SOURCE_IDENTITY':'COLLECTOR_SOURCE_IDENTITY');guard(next.mark===row.mark&&JSON.stringify(next.lineage)===JSON.stringify(row.lineage));}
  for(let index=0;index<record.rows.length;index++){at(index===0?'C_SOURCE_NAMED':'COLLECTOR_SOURCE_NAMED');named(record.rows[index]);}
 }
@@ -46,7 +46,7 @@ export function prepareSealedTypeScriptFixedCampaignEnclosureSource(options){
  // identity match is not currency; both private currency guards follow it.
  guard(sealedTypeScriptFixedCanaryProtectedInputProjectionMatchesDerivation(inputs.projection,inputs.assetsBuild,inputs.pairedSource,inputs.pairedArtifacts,inputs.copies));
  refusalStage='PREPARED_NULL_CURRENT';
- const preparedCheck=verifySealedTypeScriptFixedCampaignPreparedNullSource(inputs.preparedNullSource);guard(preparedCheck.outcome==='CAMPAIGN_PREPARED_NULL_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED'&&preparedCheck.version==='campaign-prepared-devnull-setexec@2');
+ const preparedCheck=verifySealedTypeScriptFixedCampaignPreparedNullSource(inputs.preparedNullSource);guard(preparedCheck.outcome==='CAMPAIGN_PREPARED_NULL_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED'&&preparedCheck.version==='campaign-prepared-devnull-setexec@2'&&preparedCheck.preparedNullIdentityInterpretation==='prepared-null-device-endpoints@1');
  refusalStage='INITIAL_ORIGINAL_CURRENT';
  const record={inputs,rows:[],projectionSourceSha256:inputs.projection.sourceSha256,preparedSourceSha256:preparedCheck.sourceSha256};current(record,noteOriginalCurrent);originalCurrentRefusal=null;
  refusalStage='PROJECTION_INTERPRETATION';
