@@ -67,7 +67,12 @@ DIR289's pinned-binary inspection confirms Bash is detached even when native
 inherits the Node group. Async native tree cancellation is not a proven whole-job
 lifetime enclosure. Source also shows the finite C worker calls setsid before
 arming its watchdog. DIR292 requires restoring the signal mask before setsid;
-DIR294 implements that narrow correction. Whole-native detached-tree closure is
+DIR296 accepts exact `299499a`, integrated at `fee2ebe`;635 combined source/mock
+checks PASS/1 explicit SKIP/0 FAIL, TAP SHA256
+`a0d73d4d15d5d79226f6c344137ec4efa0c103bdc005f9967f1cbabf24ebaf9b`.
+New C SHA256 is `cc9df8be524afecef42fb91ed49fb7f5bf038a7a25f65ce1ab0fb6815c4924d5`.
+No compilation, real signal or native execution of this revision is claimed.
+Whole-native detached-tree closure is
 not invented as a new prerequisite for the bounded non-authoritative diagnostic:
 timeout/cancellation must retain UNKNOWN closure/resources and grant no completion,
 seal or reuse. Normal finite output concerns only its reviewed internal actors.
