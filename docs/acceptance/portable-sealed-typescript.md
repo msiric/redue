@@ -1,5 +1,47 @@
 # Sealed-input TypeScript: current implementation boundary
 
+Latest trusted preparation at `3888e9d` completed `enclosureSource` under the
+reviewed `prepared-null-device-endpoints@1` interpretation, then reached the
+unchanged30s body deadline during `enclosureBuilds`. Parent30,005.527ms;
+33 valid prefix frames, six returned Clang exit0 results. New-phase dispatch
+and completion remain UNKNOWN. Owned kill/reap/group absence were observed.
+Report17,654B SHA256
+`805b4fe6f9ef033144c2e836a483f09958da2fff2761caf6c3891716bd71bfeb`.
+No native/helper/model/check or receipt ran. DIR260/261 review the build-only
+budget and remaining work before any further attempt; no unchanged retry.
+
+The sixth attempt at `d4d54d5` completed in23,547.987ms and precisely returned
+`FINAL_ORIGINAL_CURRENT / PREPARED_NULL_RESULT`; its exact changed property is
+not reconstructed. Report SHA256
+`e214ec414da55f748abe0926e2475f38d734edf363bcfa74b8ffdc06cb925852`.
+The existing paired-dependency observation scope is DIR251 accepted: source/mock
+counts show fewer duplicate reads, and one observed paired-build phase fell
+from7,294.764ms to2,999.636ms. This is preparation-only evidence, not a product
+latency distribution or complete-path speedup claim.
+
+DIR253/257 independently reviewed the new exact-device endpoint interpretation.
+Only `/dev/null` mtime/ctime are excluded; type/dev/ino/rdev/mode/ownership/link
+count/size/canonical ancestry and source/SDK timestamp/hash checks remain.
+Both consumers reject missing/obsolete interpretations; C source bytes remain
+unchanged. Apple devfs source supports this relevance distinction, not a claim
+about the historical refusal or an immutable interval. Root17-file integration:
+1,242 PASS/2 actual-child SKIP/0 FAIL,1,718.231ms, TAP SHA256
+`639288fd7206f07763be9cdacbe5a1740674e361da5d43ea1da704b988359c49`.
+
+Fixed public CI-header observation is DIR255 accepted and integrated `3edffa5`:
+154 source/mock controls PASS. Reviewed workflow `3f07b38` is pushed on
+`dev/portable-sealed-host-preflight`, runtime pinned to `3edffa5631342a087bf5999cef031a3dcd102381`.
+It uses only two approved standard VMs, read-only permissions and bounded public
+metadata/hash observations; no C build, native/model, artifact, signing or trust.
+DIR256's BSD stat formatting defect was corrected before execution and DIR258
+accepted the exact workflow SHA256
+`abcc3dcb2161196e3865822ac345e9f07ac23ba40906784abe4a8beb38193020`.
+No job was active when checked. One owner UI dispatch is requested because the
+existing CLI403 remains; no denied-operation retry or alternate transport.
+Actual hosted header/machine acceptance is NOT RUN until the new result exists.
+
+Earlier actual attempts and their separate failure scopes follow unchanged.
+
 Latest trusted preparation at `6f5bb90` reached BODY_DEADLINE at30,005.345ms.
 Its31 validated progress frames retain six actual Clang exit0 results and
 `enclosureSource` BEGIN without END/FINAL. No inner-refusal label or final
