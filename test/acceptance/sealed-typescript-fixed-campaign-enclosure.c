@@ -3,8 +3,11 @@
  * collector alone creates four pinned NO-PROCESS-CREATION actors; actual close
  * of every launched actor precedes original END. Reap/EOF/group absence alone
  * are NOT that proof. Pre-main loader, complete SDK and native policy remain
- * separate unmet prerequisites. No native-capture writes before valid END and
- * normal all-owned-child cleanup. Interruptions/forced completion are UNKNOWN.
+ * separate unmet prerequisites. Normal E publication requires original END
+ * and normal owned-child cleanup. Known assertion FAIL F publication instead
+ * requires controlled owned-group cleanup; END may remain false. Neither
+ * branch publishes before worker reap and group absence. Other incomplete or
+ * interrupted collection remains UNKNOWN; cleanup never substitutes for END.
  */
 #define _DARWIN_C_SOURCE 1
 #include <unistd.h>
@@ -152,8 +155,10 @@ int main(int argc,char **argv){
  /* Supplemental normal-completion confirmation only. EPERM is NOT absence.
   * All actor closure must already precede END in the protected collector. */
  if(kill(-child,0)==0||errno!=ESRCH||!timely(began+14750))return 74;
- /* First native-capture publication, AFTER valid END, direct worker reap and
-  * additional group absence. Partial/interrupted writes cannot be accepted. */
+ /* First native-capture publication, AFTER worker reap and additional group
+  * absence. E requires original END and normal collector/worker completion.
+  * F retains a known assertion FAIL after controlled owned-group cleanup;
+  * it does NOT require or invent END. Partial writes cannot be accepted. */
  size_t at=0;const unsigned char *payload=bytes+sizeof(struct ack)+sizeof(result);
  while(at<result.length&&timely(absolute_limit)){const ssize_t n=write(1,payload+at,result.length-at);if(n>0)at+=(size_t)n;else if(n<0&&errno==EINTR)continue;else return 74;}
  (void)at;return 74;
