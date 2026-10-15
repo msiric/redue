@@ -1,8 +1,8 @@
 // Disabled campaign-only C source data. No compiler, process or configuration IO.
 // Trusted/quiescent source/SDK reads are not an immutable native namespace.
 import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';import {createHash} from 'node:crypto';
-const version='campaign-prepared-devnull-setexec@1',sdk='/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk';
-const templatePin='de6b9561b60ea9c255be7d2972b47e72c42e3deda054a3cdf5946614b240e14e';
+const version='campaign-prepared-devnull-setexec@2',sdk='/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk';
+const templatePin='ecff1f5d828aa83e1050da066f1f8037fef3f7c15949cae45674371ae85ea35b';
 const headerPins=Object.freeze({'spawn.h':'2d90f16beec60b2080553613234f004b58f384003feaa5eb809fe5e91b42b884','sys/spawn.h':'988afa3a6d7a1ce18df118d234240c02eff0715b5712784ac28b44e7f66254dc'});
 const minted=new WeakMap(),sha=body=>createHash('sha256').update(body).digest('hex');
 const guard=value=>{if(!value)throw Error('CAMPAIGN_PREPARED_NULL_SOURCE_UNKNOWN');};
@@ -17,9 +17,12 @@ function read(file,owner,pin){let fd,row,failed=false;try{guard(fs.constants.O_N
 function sdkIdentity(){try{const s=fs.lstatSync(sdk,{bigint:true});guard(fs.realpathSync(sdk)===sdk&&s.isDirectory()&&!s.isSymbolicLink()&&s.uid===0n&&(s.mode&0o22n)===0n);return JSON.stringify([parentMark(s),parents(sdk)]);}catch{guard(false);}}
 // Fixed metadata only: no open/read of /dev/null and no caller-supplied tuple.
 // Endpoints during trusted/quiescent preparation do not prove an immutable interval.
-const unsigned=(value,max)=>{guard(typeof value==='bigint'&&value>=0n&&value<=max);return value.toString(10);};
+// Pinned Node 22.13.0 exposes signed BigInt64 stat slots. Darwin dev_t is
+// signed32; accept only ino_t's verified nonnegative signed64 subset. Negative
+// inode/high-bit representations remain UNKNOWN; never reinterpret or normalize.
+const integer=(stat,key,min,max)=>{const field=Object.getOwnPropertyDescriptor(stat,key);guard(field&&Object.hasOwn(field,'value'));const value=field.value;guard(typeof value==='bigint'&&value>=min&&value<=max);return value.toString(10);};
 function nullSnapshot(){const s=fs.lstatSync('/dev/null',{bigint:true});guard(s.isCharacterDevice()&&!s.isSymbolicLink()&&typeof s.mode==='bigint'&&(s.mode&0o170000n)===0o020000n);
- const tuple={dev:unsigned(s.dev,2147483647n),ino:unsigned(s.ino,18446744073709551615n),rdev:unsigned(s.rdev,2147483647n)};return{tuple,mark:mark(s)};}
+ const tuple={dev:integer(s,'dev',-2147483648n,2147483647n),ino:integer(s,'ino',0n,9223372036854775807n),rdev:integer(s,'rdev',-2147483648n,2147483647n)};return{tuple,mark:mark(s)};}
 function nullIdentity(){try{const file='/dev/null';guard(fs.realpathSync(file)===file);const before=nullSnapshot(),lineage=parents(file),identity=JSON.stringify([before,lineage]);guard(fs.realpathSync(file)===file&&JSON.stringify(nullSnapshot())===JSON.stringify(before)&&JSON.stringify(parents(file))===JSON.stringify(lineage));return{tuple:before.tuple,identity};
  }catch{guard(false);}}
 function currentNull(record){guard(nullIdentity().identity===record.nullIdentity);}
@@ -32,7 +35,7 @@ export function prepareSealedTypeScriptFixedCampaignPreparedNullSource(options){
  // The caller's hostBase supplies no filesystem or provisioning authority.
  const preparedNull=nullIdentity(),identity=sdkIdentity(),rows=[read(fileURLToPath(new URL('./sealed-typescript-fixed-campaign-prepared-null.c',import.meta.url)),process.getuid(),templatePin),...Object.entries(headerPins).map(([name,pin])=>read(sdk+'/usr/include/'+name,0,pin))];
  const bindings={node:h+'/runtime/node-v22.13.0-darwin-arm64/bin/node',entry:h+'/prefix/native-probes/paired-stage-campaign.mjs',launcher:h+'/prefix/native-probes/paired-stage-campaign-launch'};
- let source=rows[0].source;for(const[token,value]of [['NODE',bindings.node],['ENTRY',bindings.entry],['LAUNCHER',bindings.launcher]]){const marker='__REVIEWED_FIXED_CAMPAIGN_'+token+'__';guard(source.split(marker).length===2);source=source.replace(marker,value);}for(const [token,value] of Object.entries(preparedNull.tuple)){const marker='__REVIEWED_FIXED_CAMPAIGN_NULL_'+token.toUpperCase()+'__';guard(source.split(marker).length===2&&/^(0|[1-9][0-9]*)$/.test(value));source=source.replace(marker,value);}guard(!/__REVIEWED_[A-Z_]+__/.test(source)&&Buffer.byteLength(source)<=65536);
+ let source=rows[0].source;for(const[token,value]of [['NODE',bindings.node],['ENTRY',bindings.entry],['LAUNCHER',bindings.launcher]]){const marker='__REVIEWED_FIXED_CAMPAIGN_'+token+'__';guard(source.split(marker).length===2);source=source.replace(marker,value);}for(const [token,value] of Object.entries(preparedNull.tuple)){const marker='__REVIEWED_FIXED_CAMPAIGN_NULL_'+token.toUpperCase()+'__';guard(source.split(marker).length===2&&/^(0|-?[1-9][0-9]*)$/.test(value));source=source.replace(marker,value);}guard(!/__REVIEWED_[A-Z_]+__/.test(source)&&Buffer.byteLength(source)<=65536);
  const record={rows,sdkIdentity:identity,nullIdentity:preparedNull.identity};current(record);const result=authority({disabled:true,version,bindings,source,sourceBytes:Buffer.byteLength(source),sourceSha256:sha(source),templateSha256:templatePin,requiredSdkHeaderPins:headerPins,completeSdkClosure:'NOT_ESTABLISHED',descriptorScope:'C_TO_NODE_NONSTDIO_ONLY',stdioOwnership:'NOT_ESTABLISHED',devNullMetadataPermission:'PREPARATION_ENDPOINTS_ONLY',preparedNullIdentityScope:'TRUSTED_QUIESCENT_PREPARATION_ENDPOINTS_ONLY',captureNamespace:'NOT_ESTABLISHED',fifoParentOwnership:'NOT_ESTABLISHED',preMainLoader:'NOT_ESTABLISHED'});minted.set(result,record);return result;
 }
 export function verifySealedTypeScriptFixedCampaignPreparedNullSource(proposal){const record=minted.get(proposal),unknown=()=>authority({outcome:'UNKNOWN'});if(!record||record.invalid)return unknown();try{current(record);guard(!record.invalid);return authority({outcome:'CAMPAIGN_PREPARED_NULL_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED',version,sourceSha256:proposal.sourceSha256,templateSha256:templatePin});}catch{record.invalid=true;return unknown();}}

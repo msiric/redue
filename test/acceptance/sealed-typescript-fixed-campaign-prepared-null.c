@@ -1,4 +1,4 @@
-/* DISABLED campaign-prepared-devnull-setexec@1 template; source data only.
+/* DISABLED campaign-prepared-devnull-setexec@2 template; source data only.
  * Main cannot protect this binary's own pre-main loader. The enclosing parent
  * must establish current protected bytes, native identity/effective policy,
  * authentication/capacity, parent-held handles and the complete namespace.
@@ -16,13 +16,16 @@
 #include <spawn.h>
 
 /* Pinned Darwin arm64 ABI bounds, not proof of complete SDK closure. */
+_Static_assert(sizeof(long long) == 8, "64-bit signed literals required");
 _Static_assert(sizeof(unsigned long long) == 8, "64-bit unsigned literals required");
+_Static_assert(sizeof(dev_t) == 4 && (dev_t)-1 < (dev_t)0, "signed 32-bit dev_t required");
+_Static_assert(sizeof(ino_t) == 8 && (ino_t)-1 > (ino_t)0, "unsigned 64-bit ino_t required");
 _Static_assert(sizeof(((struct stat *)0)->st_dev) == 4, "32-bit dev required");
 _Static_assert(sizeof(((struct stat *)0)->st_ino) == 8, "64-bit ino required");
 _Static_assert(sizeof(((struct stat *)0)->st_rdev) == 4, "32-bit rdev required");
-static const unsigned long long prepared_null_dev = __REVIEWED_FIXED_CAMPAIGN_NULL_DEV__ULL;
+static const long long prepared_null_dev = __REVIEWED_FIXED_CAMPAIGN_NULL_DEV__LL;
 static const unsigned long long prepared_null_ino = __REVIEWED_FIXED_CAMPAIGN_NULL_INO__ULL;
-static const unsigned long long prepared_null_rdev = __REVIEWED_FIXED_CAMPAIGN_NULL_RDEV__ULL;
+static const long long prepared_null_rdev = __REVIEWED_FIXED_CAMPAIGN_NULL_RDEV__LL;
 
 extern char **environ;
 static const char node[] = "__REVIEWED_FIXED_CAMPAIGN_NODE__";
@@ -81,9 +84,9 @@ static int descriptors_allowed(void) {
   struct stat input, output, error;
   if (fstat(STDIN_FILENO, &input) != 0 || fstat(STDOUT_FILENO, &output) != 0 ||
       fstat(STDERR_FILENO, &error) != 0) return 0;
-  if (!S_ISCHR(input.st_mode) || (unsigned long long)input.st_dev != prepared_null_dev ||
+  if (!S_ISCHR(input.st_mode) || (long long)input.st_dev != prepared_null_dev ||
       (unsigned long long)input.st_ino != prepared_null_ino ||
-      (unsigned long long)input.st_rdev != prepared_null_rdev ||
+      (long long)input.st_rdev != prepared_null_rdev ||
       !S_ISFIFO(output.st_mode) || !S_ISFIFO(error.st_mode)) return 0;
   const int input_flags = fcntl(STDIN_FILENO, F_GETFL);
   const int output_flags = fcntl(STDOUT_FILENO, F_GETFL);
