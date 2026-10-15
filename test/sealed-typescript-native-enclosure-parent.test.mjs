@@ -3,6 +3,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';import {createHash} from 'node:crypto';import {execFileSync} from 'node:child_process';
 const parentUrl=new URL('./acceptance/sealed-typescript-enclosure-provisioning-parent.py',import.meta.url),entryUrl=new URL('./acceptance/sealed-typescript-native-enclosure-child.mjs',import.meta.url),driverUrl=new URL('./acceptance/sealed-typescript-enclosure-provisioning.mjs',import.meta.url);
 const parent=fs.readFileSync(parentUrl,'utf8'),entry=fs.readFileSync(entryUrl,'utf8'),sha=v=>createHash('sha256').update(v).digest('hex');
+const posixMockOptions={skip:process.platform==='win32'?'POSIX Python source mocks require /usr/bin/python3, pwd and SIGHUP; native Windows mechanics are not exercised here':false};
 const summarize=Function('createHash',entry.slice(entry.indexOf('const reasons='),entry.indexOf('// Fixed FD1'))+';return summary;')(createHash);
 function controller({failed=false,launched=true}={}){const prepared={outcome:'BUILT_NOT_EXECUTED',buildAttemptCount:8,buildResultCount:8,observedProcessCount:8,compilerBuildOutcome:'EXIT_ZERO',builds:Array.from({length:8},()=>({pidObserved:true,completed:true,status:0,signal:null,spawnError:'NONE'}))};return {schema:1,scope:'UNWIRED_FIXED_NATIVE_ENCLOSURE_DIAGNOSTIC_ONLY',outcome:failed?'FAIL':'UNKNOWN',reason:launched?'SYNTACTIC_NATIVE_COLLECTION_ONLY':'ACTIVATION_OR_RUNTIME_UNAVAILABLE',preparation:launched?prepared:null,observation:launched?{outcome:failed?'FAIL':'UNKNOWN',reportedAssertionOutcome:failed?'FAIL':'UNKNOWN',traceSyntaxValid:true,completionDataValid:true,commandSha256:'c'.repeat(64),body:{scope:'SOURCE_MOCK_BODY_NOT_NATIVE_EVIDENCE'}}:null,preparationAttempted:launched,nativeSpawnAttempts:launched?1:0,nativeLaunches:launched?1:0,models:launched?null:0,helperExecutions:launched?null:0,nativeSpawnObserved:launched,nativeExit:launched?0:null,nativeSignal:null,nativeCloseObserved:launched,nativeReaped:launched,timedOut:false,cancelled:false,overallBudgetExceeded:false,milliseconds:10,publicDataOnly:true,nativeAuthenticated:false,originAuthority:false,receiptAuthority:false,recordAdoptionAuthority:false,sealed:false,reuseEligible:false};}
 const good=summarize(controller()),failed=summarize(controller({failed:true})),empty=summarize(null),early=summarize(controller({launched:false}));
@@ -20,12 +21,13 @@ def mock_signal(selected,handler):
  old=mock_handlers[selected];mock_handlers[selected]=handler;return old
 m.signal.signal=mock_signal
 `;
-test('flat child summary agrees with parent exact schema without raw body or source paths',()=>{for(const v of [good,failed,empty,early]){assert(Buffer.byteLength(JSON.stringify(v)+'\n')<4096);assert.equal(v.bodyRetained,false);assert.equal(Object.hasOwn(v,'body'),false);assert.equal(v.nativeAuthenticated,false);assert.equal(v.sealed,false);assert.equal(v.reuseEligible,false);}assert.equal(failed.outcome,'FAIL');assert.equal(empty.models,null);assert.equal(empty.nativeSpawnAttempts,null);assert.equal(early.models,0);const p=execute(setup+String.raw`
+test('flat child summary exposes bounded data without raw body, paths or authority',()=>{for(const v of [good,failed,empty,early]){assert(Buffer.byteLength(JSON.stringify(v)+'\n')<4096);assert.equal(v.bodyRetained,false);assert.equal(Object.hasOwn(v,'body'),false);assert.equal(v.nativeAuthenticated,false);assert.equal(v.sealed,false);assert.equal(v.reuseEligible,false);}assert.equal(failed.outcome,'FAIL');assert.equal(empty.models,null);assert.equal(empty.nativeSpawnAttempts,null);assert.equal(early.models,0);});
+test('POSIX parent accepts the exact flat summary schema',posixMockOptions,()=>{const p=execute(setup+String.raw`
 for value in data['values']:
  parsed=m.parse_native_final((json.dumps(value,separators=(',',':'))+'\n').encode());assert parsed==value;checks+=1
 print(json.dumps({'checks':checks,'testedPopen':0,'native':0}))
 `,{values:[good,failed,empty,early]});assert.equal(p.checks,4);assert.equal(p.testedPopen,0);});
-test('parent refuses malformed, duplicate, negative/nonfinite, oversized and authoritative summaries',()=>{const p=execute(setup+String.raw`
+test('parent refuses malformed, duplicate, negative/nonfinite, oversized and authoritative summaries',posixMockOptions,()=>{const p=execute(setup+String.raw`
 raw=(json.dumps(data['good'],separators=(',',':'))+'\n').encode()
 cases=[b'',raw[:-1],raw+b'\n',b'\xff\n',b'\xef\xbb\xbf'+raw,b'x'*65537,raw.replace(b'"schema":1',b'"schema":1,"sch\\u0065ma":1'),raw.replace(b'"milliseconds":10',b'"milliseconds":NaN'),raw.replace(b'"milliseconds":10',b'"milliseconds":1e999'),raw.replace(b'"milliseconds":10',b'"milliseconds":-0'),raw.replace(b'"nativeSpawnAttempts":1',b'"nativeSpawnAttempts":-0')]
 for patch in [{'sealed':True},{'nativeAuthenticated':True},{'outcome':'PASS'},{'extra':'PRIVATE'},{'schema':True},{'nativeSpawnAttempts':True},{'nativeLaunches':0},{'preparationOutcome':None},{'models':0},{'completionDataValid':True,'timedOut':True},{'preparationAttempted':False},{'preparationBuildAttemptCount':None,'preparationBuildResultCount':None,'preparationObservedProcessCount':None},{'commandSha256':None},{'parsedBodySha256':None}]:
@@ -36,7 +38,7 @@ for index,body in enumerate(cases):
 print(json.dumps({'checks':checks,'testedPopen':0}))
 `,{good});assert.equal(p.checks,25);});
 test('fixed entry, driver and finite literal source pins match actual source; no dynamic CLI selector',()=>{assert(Buffer.byteLength(parent)<=131072);assert(parent.includes('PARENT_SOURCE_LIMIT = 131072'));assert(parent.includes('inspect_file(here, uid, PARENT_SOURCE_LIMIT)'));assert(parent.includes('NATIVE_ENTRY_SHA256 = "'+sha(entry)+'"'));assert(parent.includes('INNER_SHA256 = "'+sha(fs.readFileSync(driverUrl))+'"'));const table=parent.slice(parent.indexOf('NATIVE_SOURCE_PINS = ('),parent.indexOf('NATIVE_SCOPE ='));const rows=[...table.matchAll(/\("([^"]+)", "([a-f0-9]{64})"\)/g)].map(row=>[row[0],row.index>=table.indexOf('NATIVE_SEALED_SOURCE_PINS')&&row.index<table.indexOf('NATIVE_ROOT_SOURCE_PINS')?'sealed-typescript-'+row[1]:row[1],row[2]]);assert.equal(rows.length,39);for(const [,name,pin]of rows){const url=name.startsWith('src/')?new URL('../'+name,import.meta.url):new URL('./acceptance/'+name,import.meta.url);assert.equal(sha(fs.readFileSync(url)),pin,name);}assert.match(parent,/sys\.argv\[1:\] == \["--native-run"\]/);assert.match(parent,/subprocess\.Popen\(\[str\(node\), str\(entry\)\], cwd=repo/);assert.match(entry,/process\.argv\.length!==2/);assert.match(entry,/writeSync\(1,body,offset,body\.length-offset\)/);assert(!/process\.env|spawn\(|execFile|readFile/.test(entry));});
-test('native-only profiling and preload presence checks run before any Node factory',()=>{const p=execute(setup+String.raw`
+test('native-only profiling and preload presence checks run before any Node factory',posixMockOptions,()=>{const p=execute(setup+String.raw`
 orig=(m.os.getuid,m.os.geteuid,m.os.getgid,m.os.getegid,m.sys.platform,m.platform.machine,m.pwd.getpwuid,m.inspect_file,m.file_current,m.os.environ)
 try:
  m.os.getuid=m.os.geteuid=lambda:501;m.os.getgid=m.os.getegid=lambda:20;m.sys.platform='darwin';m.platform.machine=lambda:'arm64';m.pwd.getpwuid=lambda uid:type('Owner',(),{'pw_dir':'/owned'})()
@@ -93,7 +95,7 @@ def run(value,initial=0,monitor=False,clock_failure=False):
  if not monitor or report['cleanupSignal']!='NOT_ATTEMPTED_CHILD_EXIT_OBSERVED':assert ('kill',signal.SIGKILL) in child.events[:waits[0]]
  return report,child
 `;
-test('native mode reuses one kill-before-wait/kernel gate, fixed deadlines, nullable counts and sticky FAIL',()=>{const p=execute(setup+lifecycle+String.raw`
+test('native mode reuses one kill-before-wait/kernel gate, fixed deadlines, nullable counts and sticky FAIL',posixMockOptions,()=>{const p=execute(setup+lifecycle+String.raw`
 for value in [data['good'],data['failed'],data['early']]:
  report,child=run(value,monitor=True);assert report['collectionStatus']=='COMPLETE_DATA_REPORT';assert report['groupClosureScope']=='OWNED_NODE_GROUP_ONLY' and report['detachedDescendantClosure']=='UNKNOWN';assert report['cleanupSignal']=='NOT_ATTEMPTED_CHILD_EXIT_OBSERVED';checks+=1
 report,child=run(None);assert report['collectionStatus']=='UNKNOWN' and report['models'] is None and report['nativeAgentLaunches'] is None;checks+=1
@@ -105,7 +107,7 @@ for value in [data['empty'],data['good']]:
  report,child=run(value);assert report['models'] is None;assert report['nativeAuthenticated'] is False;checks+=1
 print(json.dumps({'checks':checks,'testedPopen':0,'native':0,'signals':0,'kernelMonitors':0}))
 `,{good,failed,empty,early});assert.equal(p.checks,11);assert.equal(p.signals,0);});
-test('native main rejects stale/future start and late preflight, preserves failure through persistence deadline',()=>{const p=execute(setup+String.raw`
+test('native main rejects stale/future start and late preflight, preserves failure through persistence deadline',posixMockOptions,()=>{const p=execute(setup+String.raw`
 m._PROCESS_STARTED=0;m._PROCESS_STARTED_WALL_MS=1700000000000;m.os.environ={'REDUE_DIAGNOSTIC_JOB_STARTED_MS':'1700000000000'}
 state={'clock':0,'popen':0,'persist':0};m.time.monotonic=lambda:state['clock'];m.prepare_record_directory=lambda repo:[];m.file_current=lambda row:None
 m.prerequisites=lambda _native=False:(m.Path('/owned'),m.Path('/fixed/entry'),m.Path('/fixed/node'),[])
@@ -133,7 +135,7 @@ value=json.loads(out.getvalue());assert value['reportedAssertionOutcome']=='FAIL
 print(json.dumps({'checks':checks,'testedPopen':0,'kernelMonitors':0,'filesystemWrites':0}))
 `,{failed});assert.equal(p.checks,5);assert.equal(p.testedPopen,0);});
 
-test('fixed selectors and source pin refusal launch zero children',()=>{
+test('fixed selectors and source pin refusal launch zero children',posixMockOptions,()=>{
  const p=execute(setup+String.raw`
 m.time.monotonic=lambda:0;m._PROCESS_STARTED=0;m._PROCESS_STARTED_WALL_MS=1700000000000
 m.os.environ={'REDUE_DIAGNOSTIC_JOB_STARTED_MS':'1700000000000'}
@@ -160,7 +162,7 @@ print(json.dumps({'checks':checks,'testedPopen':0,'kernelMonitors':0}))
  assert.equal(p.checks,6);assert.equal(p.testedPopen,0);
 });
 
-test('stream caps, malformed output, cancellation and later transport failures remain non-authoritative',()=>{
+test('stream caps, malformed output, cancellation and later transport failures remain non-authoritative',posixMockOptions,()=>{
  const p=execute(setup+lifecycle+String.raw`
 def stream_case(stdout,stderr=b'',exit_code=0,interrupt=False):
  child=Child();chunks={10:[stdout,b''],11:[stderr,b'']};now=[0]
@@ -193,7 +195,7 @@ print(json.dumps({'checks':checks,'testedPopen':0,'signals':0,'kernelMonitors':0
  assert.equal(p.checks,8);assert.equal(p.signals,0);
 });
 
-test('native cancellation is latched across launch, collection, cleanup, persistence and emission',()=>{
+test('native cancellation is latched across launch, collection, cleanup, persistence and emission',posixMockOptions,()=>{
  const p=execute(setup+lifecycle+String.raw`
 original_collect=m.collect;original_dumps=m.json.dumps;original_print=print;original_signal_mock=m.signal.signal
 for selected in (signal.SIGTERM,signal.SIGHUP,signal.SIGINT):
@@ -274,7 +276,7 @@ print(json.dumps({'checks':checks,'testedPopen':0,'signals':0,'kernelMonitors':0
  assert.equal(p.checks,24);assert.equal(p.signals,0);assert.equal(p.testedPopen,0);
 });
 
-test('handler setup/refusal restores prior mock handlers; the old route never installs them',()=>{
+test('handler setup/refusal restores prior mock handlers; the old route never installs them',posixMockOptions,()=>{
  const p=execute(setup+String.raw`
 originals=mock_handlers.copy();calls=[];signal_mock=m.signal.signal
 m.time.monotonic=lambda:0;m._PROCESS_STARTED=0;m._PROCESS_STARTED_WALL_MS=1700000000000;m.os.environ={'REDUE_DIAGNOSTIC_JOB_STARTED_MS':'1700000000000'}
@@ -297,7 +299,7 @@ print(json.dumps({'checks':checks,'testedPopen':0,'signals':0,'kernelMonitors':0
  assert.equal(p.checks,2);assert.equal(p.signals,0);
 });
 
-test('currently installed INT handler at every restore boundary cannot skip later restoration attempts',()=>{
+test('currently installed INT handler at every restore boundary cannot skip later restoration attempts',posixMockOptions,()=>{
  const p=execute(setup+String.raw`
 original_dumps=m.json.dumps
 for boundary in range(3):

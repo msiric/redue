@@ -3,6 +3,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import {createHash} from 'node:crypto';import {execFileSync} from 'node:child_process';import {fileURLToPath} from 'node:url';
 import {observeFixedEnclosurePreparation as observe,isFixedEnclosurePreparationContext as isContext} from './acceptance/sealed-typescript-enclosure-provisioning.mjs';
 const parentPath=fileURLToPath(new URL('./acceptance/sealed-typescript-enclosure-provisioning-parent.py',import.meta.url));
+const posixMockOptions={skip:process.platform==='win32'?'POSIX Python source mocks require /usr/bin/python3 and pwd; native Windows mechanics are not exercised here':false};
 const innerSource=fs.readFileSync(new URL('./acceptance/sealed-typescript-enclosure-provisioning.mjs',import.meta.url),'utf8'),parentSource=fs.readFileSync(parentPath,'utf8');
 function mock(){let time=0;const calls=[],state={ready:true,fail:null,elapsedAt:null,nonzero:false};const flag={sealed:false,reuseEligible:false},value=outcome=>({outcome,...flag});const op={};
  const method=(name,fn)=>op[name]=(...args)=>{calls.push(name);if(state.elapsedAt===name)time=60000;if(state.fail===name)return value('UNKNOWN');return fn(...args);};
@@ -18,7 +19,7 @@ test('known actual nonzero mock compiler status remains separate from UNKNOWN pr
 for(const method of ['preparePair','buildAssets','buildLauncher','buildEnclosure','verifyEnclosure'])test('the same explicit 60s preparation budget includes '+method+' and stops later work',async()=>{const m=mock();m.state.elapsedAt=method;const v=await observe(m.options);assert.equal(v.outcome,'UNKNOWN');assert.equal(m.calls.at(-1),method);authority(v);});
 test('final validation is not exempt from body deadline',async()=>{const m=mock();let calls=0;m.op.verifyEnclosure=()=>{if(++calls===2)m.set(60000);return{outcome:'ENCLOSURE_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED',sealed:false,reuseEligible:false};};const v=await observe(m.options);assert.equal(v.outcome,'UNKNOWN');assert.equal(v.failedPhase,'finalValidation');assert.equal(v.buildResultCount,8);});
 test('parent pins exact inner bytes and fixed reviewed Node; no environment stripping or arbitrary command route',()=>{const sha=createHash('sha256').update(innerSource).digest('hex');assert(parentSource.includes('INNER_SHA256 = "'+sha+'"'));assert(parentSource.includes('NODE_SHA256 = "5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc"'));assert.match(parentSource,/start_new_session=True, close_fds=True/);assert.match(parentSource,/env=os\.environ\.copy\(\)/);assert.match(parentSource,/collect\(child, clock=timing, started=begun, exit_monitor=exit_monitor\)/);assert(!/child\.(?:poll|communicate)\(/.test(parentSource));assert(!/os\.environ\.(?:pop|clear|update)|shell=True|pexpect|pty\./.test(parentSource));assert.match(innerSource,/process\.execArgv\.length===0/);});
-test('mock Python parent proves kill-before-wait, no postreap destructive kill, EOF/cap/deadline/parser and SIGKILL races',async()=>{const frames=[];const good=await observe({...mock().options,observeProgress:frame=>frames.push(frame)});const python=String.raw`
+test('mock Python parent proves kill-before-wait, no postreap destructive kill, EOF/cap/deadline/parser and SIGKILL races',posixMockOptions,async()=>{const frames=[];const good=await observe({...mock().options,observeProgress:frame=>frames.push(frame)});const python=String.raw`
 import contextlib,copy,errno,importlib.util,io,json,os,signal,sys
 spec=importlib.util.spec_from_file_location('owned_enclosure_parent',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 payload=json.loads(sys.stdin.read());good=payload['good'];frames=payload['frames'];raw=b''.join((json.dumps(f,separators=(',',':'))+'\n').encode() for f in frames+[{'schema':1,'protocol':'fixed-enclosure-progress@2','kind':'FINAL','report':good}]);assert m.parse_inner((json.dumps(good)+'\n').encode())['outcome']=='BUILT_NOT_EXECUTED'
@@ -118,7 +119,7 @@ print(json.dumps({'scope':'PYTHON_PARENT_SOURCE_MOCKS_ONLY','passed':checks,'nat
 
 test('old enclosure source interpretation is refused before new build dispatch',async()=>{const m=mock();m.op.prepareEnclosure=()=>({outcome:'FIXED_CANARY_ENCLOSURE_SOURCES_PREPARED_NOT_PROVISIONED',version:'fixed-canary-finite-enclosure-source@1',sealed:false,reuseEligible:false});const v=await observe(m.options);assert.equal(v.outcome,'UNKNOWN');assert.equal(v.failedPhase,'enclosureSource');assert(!m.calls.includes('buildEnclosure'));});
 
-test('parent preserves large known-failed-build byte counts and late persistence facts, with no child for denied record directory',async()=>{const fixture=mock();fixture.state.nonzero=true;const failed=await observe(fixture.options);const python=String.raw`
+test('parent preserves large known-failed-build byte counts and late persistence facts, with no child for denied record directory',posixMockOptions,async()=>{const fixture=mock();fixture.state.nonzero=true;const failed=await observe(fixture.options);const python=String.raw`
 import contextlib,copy,importlib.util,io,json,sys
 sys.dont_write_bytecode=True
 spec=importlib.util.spec_from_file_location('owned_parent_observation_repairs',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
@@ -173,7 +174,7 @@ print(json.dumps({'scope':'OBSERVATION_PRESERVATION_SOURCE_MOCKS_ONLY','passed':
 `;
  const out=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify(failed),encoding:'utf8',timeout:5000,maxBuffer:16384});const v=JSON.parse(out);assert.equal(v.scope,'OBSERVATION_PRESERVATION_SOURCE_MOCKS_ONLY');assert.equal(v.passed,11);assert.equal(v.actualPopen,0);assert.equal(v.compilerBuilds,0);assert.equal(v.nativeExecutions,0);});
 
-test('record namespace accepts existing owned .local0755/private0700 only and retains its original identity',()=>{const python=String.raw`
+test('record namespace accepts existing owned .local0755/private0700 only and retains its original identity',posixMockOptions,()=>{const python=String.raw`
 import importlib.util,json,stat,sys,types
 sys.dont_write_bytecode=True
 spec=importlib.util.spec_from_file_location('record_namespace_source_mocks',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
@@ -208,7 +209,7 @@ test('fixed progress emits BEGIN before each synchronous operation, one-shot del
 });
 test('failed progress emission refuses later work and never certifies preparation',async()=>{const m=mock(),frames=[];m.options.observeProgress=frame=>{if(frame.name==='prerequisiteBuilds'&&frame.kind==='BEGIN')throw Error('PRIVATE');frames.push(frame);};const report=await observe(m.options);assert.equal(report.outcome,'UNKNOWN');assert(!m.calls.includes('buildAssets'));assert.equal(report.failedPhase,'prerequisiteBuilds');assert.equal(report.buildAttemptCount,0);assert(!JSON.stringify(report).includes('PRIVATE'));});
 
-test('finite parent protocol preserves valid prefix through timeout, partial final and malformed suffix; completed facts are lower bounds',async()=>{
+test('finite parent protocol preserves valid prefix through timeout, partial final and malformed suffix; completed facts are lower bounds',posixMockOptions,async()=>{
  const frames=[],good=await observe({...mock().options,observeProgress:frame=>frames.push(frame)});
  const failedMock=mock();failedMock.state.nonzero=true;const failedFrames=[],failed=await observe({...failedMock.options,observeProgress:frame=>failedFrames.push(frame)});
  const python=String.raw`
@@ -276,7 +277,7 @@ print(json.dumps({'scope':'FINITE_PROGRESS_SOURCE_MOCKS_ONLY','passed':checks,'a
  const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify({frames,good,failedFrames,failed}),encoding:'utf8',timeout:5000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.passed,22);assert.equal(result.actualPopen,0);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);
 });
 
-test('opt-in harmless one-child progress delivery before synchronous stall and owned cleanup HARNESS ONLY',{skip:process.env.REDUE_DIR220_HARMLESS_DELIVERY!=='1'},()=>{
+test('opt-in harmless one-child progress delivery before synchronous stall and owned cleanup HARNESS ONLY',{skip:process.platform!=='darwin'?'Darwin-only owned kqueue/process-group harness':process.env.REDUE_DIR220_HARMLESS_DELIVERY!=='1'?'Explicit harmless-delivery opt-in required':false},()=>{
  const python=String.raw`
 import hashlib,importlib.util,json,os,pwd,re,signal,subprocess,sys,time
 sys.dont_write_bytecode=True
@@ -312,11 +313,12 @@ print(json.dumps({'scope':'HARMLESS_FIXED_STDOUT_DELIVERY_HARNESS_ONLY','outcome
  const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{encoding:'utf8',timeout:8000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.scope,'HARMLESS_FIXED_STDOUT_DELIVERY_HARNESS_ONLY');assert.equal(result.outcome,'HARNESS_ASSERTIONS_PASS');assert.equal(result.actualPopen,1);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);assert.equal(result.models,0);console.log(JSON.stringify(result));
 });
 
-test('final build outcome and progress dispatch counts derive from bound facts, including known failures and partial returns',async()=>{
+test('final build outcome and progress dispatch counts derive from bound facts, including known failures and partial returns',async t=>{
  const failedMock=mock();failedMock.state.nonzero=true;const failedFrames=[],failed=await observe({...failedMock.options,observeProgress:frame=>failedFrames.push(frame)});
  const partialMock=mock();partialMock.op.buildAssets=()=>({outcome:'UNKNOWN',sealed:false,reuseEligible:false,dispatchAttemptCount:2,builds:[{pidObserved:true,completed:true,status:0,signal:null,spawnError:'NONE',stdoutBytes:0,stderrBytes:0}]});
  const partialFrames=[],partial=await observe({...partialMock.options,observeProgress:frame=>partialFrames.push(frame)});assert.equal(partial.outcome,'UNKNOWN');assert.equal(partial.buildAttemptCount,2);assert.equal(partial.buildResultCount,1);assert.equal(partial.compilerBuildOutcome,'UNKNOWN');
  const missingPid=mock(),build=missingPid.op.buildEnclosure;missingPid.op.buildEnclosure=(...args)=>{const value=build(...args);value.builds[0].pidObserved=false;return value;};const incomplete=await observe(missingPid.options);assert.equal(incomplete.outcome,'UNKNOWN');assert.equal(incomplete.buildResultCount,8);assert.equal(incomplete.compilerBuildOutcome,'UNKNOWN');
+ await t.test('POSIX parser preserves bound build/progress facts',posixMockOptions,()=>{
  const python=String.raw`
 import copy,importlib.util,json,sys
 sys.dont_write_bytecode=True
@@ -374,9 +376,10 @@ assert 41344+5888+16384+1536==65152<65536;checks+=1
 print(json.dumps({'scope':'BOUND_PROCESS_FACTS_SOURCE_MOCKS_ONLY','passed':checks,'actualPopen':0,'compilerBuilds':0,'nativeExecutions':0}))
 `;
  const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify({failed,failedFrames,partial,partialFrames}),encoding:'utf8',timeout:5000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.passed,13);assert.equal(result.actualPopen,0);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);
+ });
 });
 
-test('kernel-exit lifecycle gate for complete zero-success build rows preserves unknown closure',async()=>{
+test('kernel-exit lifecycle gate for complete zero-success build rows preserves unknown closure',posixMockOptions,async()=>{
  const goodFrames=[],good=await observe({...mock().options,observeProgress:frame=>goodFrames.push(frame)}),unknownMock=mock();unknownMock.state.fail='prepareEnclosure';const unknownFrames=[],unknown=await observe({...unknownMock.options,observeProgress:frame=>unknownFrames.push(frame)});const incompleteMock=mock();incompleteMock.state.nonzero=true;const incompleteFrames=[],incompleteReport=await observe({...incompleteMock.options,observeProgress:frame=>incompleteFrames.push(frame)});const partialMock=mock();partialMock.op.buildAssets=()=>({outcome:'UNKNOWN',sealed:false,reuseEligible:false,dispatchAttemptCount:2,builds:[{pidObserved:true,completed:true,status:0,signal:null,spawnError:'NONE',stdoutBytes:0,stderrBytes:0}]});const partialFrames=[],partialReport=await observe({...partialMock.options,observeProgress:frame=>partialFrames.push(frame)});
  const python=String.raw`
 import copy,errno,importlib.util,json,signal,sys,types
@@ -487,7 +490,7 @@ print(json.dumps({'scope':'NONREAPING_CHILD_EXIT_SOURCE_MOCKS_ONLY','passed':che
  const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify({good,goodFrames,unknown,unknownFrames,incompleteReport,incompleteFrames,partialReport,partialFrames}),encoding:'utf8',timeout:5000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.passed,21);assert.equal(result.actualPopen,0);assert.equal(result.actualSignals,0);assert.equal(result.nativeExecutions,0);
 });
 
-test('opt-in harmless owned normal child exit is observed without reaping before cleanup decision HARNESS ONLY',{skip:process.env.REDUE_DIR230_HARMLESS_NORMAL_EXIT!=='1'},async()=>{
+test('opt-in harmless owned normal child exit is observed without reaping before cleanup decision HARNESS ONLY',{skip:process.platform!=='darwin'?'Darwin-only owned kqueue/process-group harness':process.env.REDUE_DIR230_HARMLESS_NORMAL_EXIT!=='1'?'Explicit harmless-normal-exit opt-in required':false},async()=>{
  const fixture=mock();fixture.state.fail='prepareEnclosure';const frames=[],report=await observe({...fixture.options,observeProgress:frame=>frames.push(frame)});const wire=frames.map(frame=>JSON.stringify(frame)+'\n').join('')+JSON.stringify({schema:1,protocol:'fixed-enclosure-progress@2',kind:'FINAL',report})+'\n';
  const python=String.raw`
 import importlib.util,json,os,pwd,re,subprocess,sys,time
@@ -511,13 +514,14 @@ print(json.dumps({'scope':'HARMLESS_OWNED_NORMAL_EXIT_HARNESS_ONLY','outcome':'H
  const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:wire,encoding:'utf8',timeout:8000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.scope,'HARMLESS_OWNED_NORMAL_EXIT_HARNESS_ONLY');assert.equal(result.outcome,'HARNESS_ASSERTIONS_PASS');assert.equal(result.actualPopen,1);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);assert.equal(result.models,0);console.log(JSON.stringify(result));
 });
 
-test('enclosure factory refusal bridge records only immutable own static data at its phase, never messages/getters or raw errors',async()=>{
+test('enclosure factory refusal bridge records only immutable own static data at its phase, never messages/getters or raw errors',async t=>{
  const stages=['OPTIONS','ORIGINAL_DERIVATION','PREPARED_NULL_CURRENT','INITIAL_ORIGINAL_CURRENT','PROJECTION_INTERPRETATION','CAMPAIGN_RENDER','DERIVED_BINDINGS','COLLECTOR_FUNCTION_PIN','C_TEMPLATE_READ','COLLECTOR_TEMPLATE_READ','LAUNCHER_REBIND','ENCLOSURE_REBIND','FINAL_ORIGINAL_CURRENT','SOURCE_RESULT'];
  const error=stage=>{const e=new Error('PRIVATE');Object.defineProperty(e,'refusalStage',{value:stage,enumerable:true,writable:false,configurable:false});Object.defineProperty(e,'message',{get(){throw Error('MESSAGE_MUST_NOT_BE_READ');}});return e;};
  const results=[];
  for(const stage of stages){const m=mock(),frames=[];m.op.prepareEnclosure=()=>{throw error(stage);};const report=await observe({...m.options,observeProgress:frame=>frames.push(frame)});assert.equal(report.outcome,'UNKNOWN');assert.equal(report.failedPhase,'enclosureSource');assert.equal(report.enclosureSourceRefusal,stage);assert.equal(report.buildResultCount,6);assert(!JSON.stringify(report).includes('PRIVATE'));assert(frames.every(frame=>!Object.hasOwn(frame,'enclosureSourceRefusal')));results.push({report,frames});}
  for(const make of [()=>error('PRIVATE'),()=>({refusalStage:'OPTIONS'}),()=>Object.create(error('OPTIONS')),()=>{const e=new Error('PRIVATE');Object.defineProperty(e,'refusalStage',{get(){throw Error('GETTER_MUST_NOT_RUN');}});return e;},()=>new Proxy(error('OPTIONS'),{getOwnPropertyDescriptor(){throw Error('PROXY_TRAP_MUST_NOT_RUN');}}),()=>Object.assign(new Error('PRIVATE'),{refusalStage:'OPTIONS'})]){const m=mock();m.op.prepareEnclosure=()=>{throw make();};const report=await observe(m.options);assert.equal(report.outcome,'UNKNOWN');assert.equal(report.enclosureSourceRefusal,null);assert(!JSON.stringify(report).includes('PRIVATE'));}
  const other=mock();other.op.prepareProjection=()=>{throw error('OPTIONS');};assert.equal((await observe(other.options)).enclosureSourceRefusal,null);assert.equal((await observe(mock().options)).enclosureSourceRefusal,null);
+ await t.test('POSIX parser validates enclosure refusal metadata',posixMockOptions,()=>{
  const python=String.raw`
 import copy,importlib.util,json,sys
 sys.dont_write_bytecode=True
@@ -534,15 +538,17 @@ for edit in (lambda x:x.update(enclosureSourceRefusal='PRIVATE'),lambda x:x.upda
 print(json.dumps({'scope':'STATIC_REFUSAL_BRIDGE_SOURCE_MOCKS_ONLY','passed':checks,'actualPopen':0,'compilerBuilds':0,'nativeExecutions':0}))
 `;
  const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify(results),encoding:'utf8',timeout:5000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.passed,20);assert.equal(result.actualPopen,0);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);
+ });
 });
 
-test('original-current substage bridge is final-only static own data confined to the two enclosing currentness refusals',async()=>{
+test('original-current substage bridge is final-only static own data confined to the two enclosing currentness refusals',async t=>{
  const stages=['DERIVATION','PROJECTION_CURRENT','PREPARED_NULL_CURRENT','PROJECTION_RESULT','PREPARED_NULL_RESULT','C_SOURCE_READ','C_SOURCE_IDENTITY','COLLECTOR_SOURCE_READ','COLLECTOR_SOURCE_IDENTITY','C_SOURCE_NAMED','COLLECTOR_SOURCE_NAMED'];
  const owned=(top,inner)=>{const error=new Error('PRIVATE');Object.defineProperty(error,'refusalStage',{value:top,enumerable:true,writable:false,configurable:false});if(inner!==undefined)Object.defineProperty(error,'originalCurrentRefusal',{value:inner,enumerable:true,writable:false,configurable:false});Object.defineProperty(error,'message',{get(){throw Error('MESSAGE_MUST_NOT_RUN');}});return error;};
  const results=[];
  for(const top of ['INITIAL_ORIGINAL_CURRENT','FINAL_ORIGINAL_CURRENT'])for(const stage of stages){const m=mock(),frames=[];m.op.prepareEnclosure=()=>{throw owned(top,stage);};const report=await observe({...m.options,observeProgress:frame=>frames.push(frame)});assert.equal(report.outcome,'UNKNOWN');assert.equal(report.enclosureSourceRefusal,top);assert.equal(report.originalCurrentRefusal,stage);assert(!JSON.stringify(report).includes('PRIVATE'));assert(frames.every(frame=>!Object.hasOwn(frame,'originalCurrentRefusal')));results.push({report,frames});}
  for(const make of [()=>owned('FINAL_ORIGINAL_CURRENT','PRIVATE'),()=>owned('OPTIONS','DERIVATION'),()=>{const error=owned('FINAL_ORIGINAL_CURRENT');Object.defineProperty(error,'originalCurrentRefusal',{get(){throw Error('GETTER_MUST_NOT_RUN');}});return error;},()=>{const error=owned('FINAL_ORIGINAL_CURRENT');error.originalCurrentRefusal='DERIVATION';return error;},()=>new Proxy(owned('FINAL_ORIGINAL_CURRENT','DERIVATION'),{getOwnPropertyDescriptor(){throw Error('PROXY_TRAP_MUST_NOT_RUN');}})]){const m=mock();m.op.prepareEnclosure=()=>{throw make();};const report=await observe(m.options);assert.equal(report.originalCurrentRefusal,null);assert.equal(report.outcome,'UNKNOWN');assert(!JSON.stringify(report).includes('PRIVATE'));}
  const other=mock();other.op.prepareProjection=()=>{throw owned('FINAL_ORIGINAL_CURRENT','DERIVATION');};assert.equal((await observe(other.options)).originalCurrentRefusal,null);assert.equal((await observe(mock().options)).originalCurrentRefusal,null);
+ await t.test('POSIX parser validates original-current substage metadata',posixMockOptions,()=>{
  const python=String.raw`
 import copy,importlib.util,json,sys
 sys.dont_write_bytecode=True
@@ -569,13 +575,15 @@ assert 41344+5888+16384+1536==65152<65536;checks+=1
 print(json.dumps({'scope':'ORIGINAL_CURRENT_BRIDGE_SOURCE_MOCKS_ONLY','passed':checks,'actualPopen':0,'actualKernelMonitors':0,'compilerBuilds':0,'nativeExecutions':0}))
 `;
  const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify(results),encoding:'utf8',timeout:5000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.passed,31);assert.equal(result.actualPopen,0);assert.equal(result.actualKernelMonitors,0);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);
+ });
 });
 
-test('preparation profile2 binds60s body and5s cleanup while preserving enclosure build profile1',async()=>{
+test('preparation profile2 binds60s body and5s cleanup while preserving enclosure build profile1',async t=>{
  const m=mock();let count=0;const original=m.op.verifyEnclosure;m.op.verifyEnclosure=(...args)=>{if(++count===2)m.set(59999);return original(...args);};const frames=[],good=await observe({...m.options,observeProgress:frame=>frames.push(frame)});
  assert.equal(good.outcome,'BUILT_NOT_EXECUTED');assert.equal(good.profile,'fixed-enclosure-preparation-local-sdk27@2');assert.equal(good.elapsedMs,59999);assert.deepEqual([good.bodyBudgetMs,good.cleanupBudgetMs,good.totalBudgetMs],[60000,5000,65000]);assert(frames.every(frame=>frame.protocol==='fixed-enclosure-progress@2'));
  for(const time of [60000,60001,NaN,Infinity,-1]){const fixture=mock();fixture.op.verifyAssets=()=>{fixture.set(time);return{outcome:'BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED',sealed:false,reuseEligible:false};};const report=await observe(fixture.options);assert.equal(report.outcome,'UNKNOWN');assert.equal(report.failedPhase,'prerequisiteCurrent');assert(!fixture.calls.includes('preparePairedSource'));}
  const wrong=mock(),build=wrong.op.buildEnclosure;wrong.op.buildEnclosure=(...args)=>{const value=build(...args);value.report.profileId='fixed-enclosure-preparation-local-sdk27@2';return value;};const rejected=await observe(wrong.options);assert.equal(rejected.outcome,'UNKNOWN');assert.equal(rejected.failedPhase,'finalValidation');
+ await t.test('POSIX parent enforces preparation profile and deadlines',posixMockOptions,()=>{
  const python=String.raw`
 import contextlib,copy,errno,importlib.util,io,json,math,signal,sys
 sys.dont_write_bytecode=True
@@ -684,9 +692,10 @@ finally:
 print(json.dumps({'scope':'PREPARATION_PROFILE2_BUDGET_SOURCE_MOCKS_ONLY','passed':checks,'actualPopen':0,'actualKernelMonitors':0,'compilerBuilds':0,'nativeExecutions':0}))
 `;
  const output=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify({good,frames}),encoding:'utf8',timeout:5000,maxBuffer:16384});const result=JSON.parse(output);assert.equal(result.passed,26);assert.equal(result.actualPopen,0);assert.equal(result.actualKernelMonitors,0);assert.equal(result.compilerBuilds,0);assert.equal(result.nativeExecutions,0);
+ });
 });
 
-test('one parent clock latches cleanup regressions across grace wait completion and main without renewed authority',async()=>{
+test('one parent clock latches cleanup regressions across grace wait completion and main without renewed authority',posixMockOptions,async()=>{
  const frames=[],good=await observe({...mock().options,observeProgress:frame=>frames.push(frame)});
  const python=String.raw`
 import contextlib,copy,errno,importlib.util,io,json,signal,sys
