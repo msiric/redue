@@ -10,7 +10,7 @@ const cPin='cc9df8be524afecef42fb91ed49fb7f5bf038a7a25f65ce1ab0fb6815c4924d5',co
 const collectFunctionPin='0734891f42bc3efbd04a4194a29fd196946f421b23b08b8b907d036208bfbf42';
 export const SEALED_TYPESCRIPT_ENCLOSURE_SOURCE_REFUSAL_STAGES=Object.freeze(['OPTIONS','ORIGINAL_DERIVATION','PREPARED_NULL_CURRENT','INITIAL_ORIGINAL_CURRENT','PROJECTION_INTERPRETATION','CAMPAIGN_RENDER','DERIVED_BINDINGS','COLLECTOR_FUNCTION_PIN','C_TEMPLATE_READ','COLLECTOR_TEMPLATE_READ','LAUNCHER_REBIND','ENCLOSURE_REBIND','FINAL_ORIGINAL_CURRENT','SOURCE_RESULT']);
 export const SEALED_TYPESCRIPT_ENCLOSURE_ORIGINAL_CURRENT_REFUSALS=Object.freeze(['DERIVATION','PROJECTION_CURRENT','PREPARED_NULL_CURRENT','PROJECTION_RESULT','PREPARED_NULL_RESULT','C_SOURCE_READ','C_SOURCE_IDENTITY','COLLECTOR_SOURCE_READ','COLLECTOR_SOURCE_IDENTITY','C_SOURCE_NAMED','COLLECTOR_SOURCE_NAMED']);
-const localProfile='fixed-native-assets-local-sdk27@1',ciProfile='fixed-native-assets-ci-sdk26.5-toolpair-a@1';
+const localProfile='fixed-native-assets-local-sdk27@1',ciProfile='fixed-native-assets-ci-sdk26.5-toolpair-b@1';
 const keys=['assetsBuild','pairedSource','pairedArtifacts','copies','projection','preparedNullSource'];
 const minted=new WeakMap(),sha=value=>createHash('sha256').update(value).digest('hex');
 const guard=value=>{if(!value)throw Error('ENCLOSURE_SOURCE_UNAVAILABLE');};

@@ -14,9 +14,9 @@ import {
 } from './acceptance/sealed-typescript-enclosure-provisioning.mjs';
 const source=fs.readFileSync(new URL('./acceptance/sealed-typescript-enclosure-provisioning.mjs',import.meta.url),'utf8');
 const localProfile='fixed-enclosure-preparation-local-sdk27@2';
-const ciProfile='fixed-enclosure-preparation-ci-sdk26.5-toolpair-a@1';
-const fixtureProfile='fixed-native-assets-ci-sdk26.5-toolpair-a@1';
-const buildProfile='fixed-enclosure-ci-sdk26.5-toolpair-a@1';
+const ciProfile='fixed-enclosure-preparation-ci-sdk26.5-toolpair-b@1';
+const fixtureProfile='fixed-native-assets-ci-sdk26.5-toolpair-b@1';
+const buildProfile='fixed-enclosure-ci-sdk26.5-toolpair-b@1';
 const nodeSHA='5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc';
 const flags={sealed:false,reuseEligible:false};
 const outcome=name=>({outcome:name,...flags});
@@ -212,5 +212,13 @@ test('source-extracted CI capture failures return no token and never touch the a
   assert.equal(value.context,null);assert.equal(value.report.outcome,'UNKNOWN');
   assert.equal(value.report.reason_code,'FINAL_REPORT_OR_BUDGET_UNAVAILABLE');assert.equal(value.report.profile,ciProfile);
   assert.equal(fakeSets,fault==='set'?1:0);assert.equal(isContext(value),false);
+ }
+});
+
+test('retired A source/build markers cannot satisfy the fixed B preparation even after successful mock builds',async()=>{
+ for(const part of ['source','build']){const m=fixture();
+  if(part==='source'){const before=m.operations.prepareEnclosure;m.operations.prepareEnclosure=(...args)=>({...before(...args),fixtureProfileId:'fixed-native-assets-ci-sdk26.5-toolpair-a@1'});}
+  else{const before=m.operations.buildEnclosure;m.operations.buildEnclosure=(...args)=>{const value=before(...args);return {...value,report:{...value.report,profileId:'fixed-enclosure-ci-sdk26.5-toolpair-a@1'}};};}
+  const result=await ciObserve(m.options);assert.equal(result.outcome,'UNKNOWN');assert.equal(result.failedPhase,part==='source'?'enclosureSource':'finalValidation');noAuthority(result);
  }
 });

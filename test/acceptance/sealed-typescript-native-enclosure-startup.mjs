@@ -55,13 +55,13 @@ const keys=['pair','hostFixture','assetsBuild','pairedSource','pairedArtifacts',
 function originalProfile(assetsBuild){
  const fixtureProfile=sealedTypeScriptBaseExchangeAssetsFixtureProfile(assetsBuild);
  if(fixtureProfile==='fixed-native-assets-local-sdk27@1')return {fixtureProfile,profileId:'fixed-enclosure-local-sdk27@1',interpretation:'redue-native187-local-enclosure-startup-source@1',basis:NATIVE_STDIO_STARTUP_BASIS,ci:false};
- if(fixtureProfile==='fixed-native-assets-ci-sdk26.5-toolpair-a@1')return {fixtureProfile,profileId:'fixed-enclosure-ci-sdk26.5-toolpair-a@1',interpretation:'redue-native187-ci-enclosure-startup-source@1',basis:NATIVE_STDIO_CI_STARTUP_BASIS,ci:true};
+ if(fixtureProfile==='fixed-native-assets-ci-sdk26.5-toolpair-b@1')return {fixtureProfile,profileId:'fixed-enclosure-ci-sdk26.5-toolpair-b@1',interpretation:'redue-native187-ci-enclosure-startup-source@1',basis:NATIVE_STDIO_CI_STARTUP_BASIS,ci:true};
  fail();
 }
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b),hash=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.exec(v)?.[0]===v;
 // All ten exact original identities are checked without touching public
 // capability properties or paths; no report, witness, callback or copy adopts.
-function linked(i){const profile=sealedTypeScriptBaseExchangeAssetsFixtureProfile(i.assetsBuild);return (profile==='fixed-native-assets-local-sdk27@1'||profile==='fixed-native-assets-ci-sdk26.5-toolpair-a@1')&&sealedTypeScriptFixedCampaignEnclosureSourceMatchesDerivation(i.enclosureSource,i.assetsBuild,i.pairedSource,i.pairedArtifacts,i.copies,i.projection,i.preparedNullSource)&&sealedTypeScriptFixedCampaignEnclosureBuildMatchesSource(i.enclosureBuild,i.enclosureSource)&&sealedTypeScriptBaseExchangeAssetsMatchPair(i.assetsBuild,i.pair)&&sealedTypeScriptBaseExchangeAssetsMatchHostFixture(i.assetsBuild,i.hostFixture)&&sealedTypeScriptPairedStageSourceMatchesDerivation(i.pairedSource,i.pair,i.assetsBuild);}
+function linked(i){const profile=sealedTypeScriptBaseExchangeAssetsFixtureProfile(i.assetsBuild);return (profile==='fixed-native-assets-local-sdk27@1'||profile==='fixed-native-assets-ci-sdk26.5-toolpair-b@1')&&sealedTypeScriptFixedCampaignEnclosureSourceMatchesDerivation(i.enclosureSource,i.assetsBuild,i.pairedSource,i.pairedArtifacts,i.copies,i.projection,i.preparedNullSource)&&sealedTypeScriptFixedCampaignEnclosureBuildMatchesSource(i.enclosureBuild,i.enclosureSource)&&sealedTypeScriptBaseExchangeAssetsMatchPair(i.assetsBuild,i.pair)&&sealedTypeScriptBaseExchangeAssetsMatchHostFixture(i.assetsBuild,i.hostFixture)&&sealedTypeScriptPairedStageSourceMatchesDerivation(i.pairedSource,i.pair,i.assetsBuild);}
 function originalBinding(i){
  guard(linked(i));const profile=originalProfile(i.assetsBuild),{profileId}=profile,s=i.enclosureSource,p=i.projection,b=i.enclosureBuild.report,binding=s.bindings;
  const {baseA:a,baseB:other,hostBase:h}=binding,root=/^\/private\/tmp\/redue-ci-recipient-[a-f0-9]{8}$/;
