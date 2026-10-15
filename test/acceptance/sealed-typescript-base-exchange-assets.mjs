@@ -268,7 +268,16 @@ const pairedPins=['d206de2e8fa469768aecec6e7bf276a935a0071c470aa5b1ad053de6dd649
 const pairedAuthorityFalse=fields=>freeze({schema:1,scope:'PAIRED_STAGE_ENGINEERING_ARTIFACTS_DATA_ONLY',...fields,commands:[],recordAdoptionAuthority:false,compilerCheckExecutions:0,helperExecutions:0,nativeAgentLaunches:0,models:0,nativeEnforcement:'NOT_ESTABLISHED',noInheritedWritableHandlesVerified:false,sealed:false,reuseEligible:false});
 function pairedDependencies(record){
  guard(sealedTypeScriptBaseExchangeAssetsMatchPair(record.assetsBuild,record.pair)&&sealedTypeScriptPairedStageSourceMatchesDerivation(record.proposal,record.pair,record.assetsBuild));
- const assets=verifySealedTypeScriptBaseExchangeAssets(record.assetsBuild),source=verifySealedTypeScriptPairedStageSource(record.proposal);
+ let assets,source;
+ const inspect=()=>{assets=verifySealedTypeScriptBaseExchangeAssets(record.assetsBuild);source=verifySealedTypeScriptPairedStageSource(record.proposal);};
+ // A fresh independent group hashes the original rows once in the existing
+ // synchronous scope. Inside an ALREADY owned group, both verifiers still
+ // demand its live barriers; map presence alone grants no currency. Never
+ // open a nested public observation or retain this scope across writes/builds.
+ // These remain trusted/quiescent endpoints, not hostile-writer protection.
+ if(activeBaseAssetsObservations.has(record.assetsBuild))inspect();
+ else observeSealedTypeScriptBaseExchangeAssets(record.assetsBuild,inspect);
+ // No result escapes an owned observation before its closing barriers.
  guard(assets.scope==='OBSERVED_BASE_EXCHANGE_BUILD_DATA_ONLY'&&assets.outcome==='BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED'&&source.scope==='DISABLED_PAIRED_STAGE_ASSERTION_SOURCES_DATA_ONLY'&&source.outcome==='PAIRED_STAGE_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED'&&assets.baseA===source.baseA&&assets.baseB===source.baseB&&assets.hostBase===source.hostBase&&source.node===source.hostBase+'/runtime/node-v22.13.0-darwin-arm64/bin/node');
  return{assets,source};
 }

@@ -12,7 +12,7 @@ function mock(fault=null){
  const sources=['checker','mapper','exchange'].map((kind,at)=>{const body='// FIXED_'+kind+'_A_TARGET\n';return{kind,file:code+'/'+names[at],templateSha256:pins[at],source:body,sha256:sha(body),sourceBytes:Buffer.byteLength(body)};});
  const proposal={scope:'DISABLED_PAIRED_STAGE_ASSERTION_SOURCES_DATA_ONLY',disabled:true,node:bindings.node,bindings,sources};
  const nodes=new Map(),handles=new Map(),mint=new WeakMap([[assetsBuild,{pair,hostFixture}]]);let inode=1,fd=100;
- const state={valid:{assets:true,source:true},calls:[],writes:[],reads:[],fsTouches:0,assetChecks:0,sourceChecks:0,toolCalls:0,binaryReads:new Map(),late:null};
+ const state={valid:{assets:true,source:true},calls:[],writes:[],reads:[],fsTouches:0,assetChecks:0,sourceChecks:0,toolCalls:0,scopeCalls:0,scopeCloses:0,onScopeClose:null,binaryReads:new Map(),late:null};
  const put=(name,type='d',body=Buffer.alloc(0),mode=type==='d'?0o40700n:0o100600n)=>{nodes.set(name,{type,body:Buffer.from(body),dev:1n,ino:BigInt(inode++),mode,uid:501n,gid:20n,nlink:1n,size:BigInt(body.length),mtimeNs:1n,ctimeNs:1n});};
  for(const name of ['/','/private','/private/tmp',a,b,h,h+'/prefix',code])put(name);
  if(fault==='existing-source')put(sources[1].file,'f',Buffer.from('PRESERVED'));
@@ -54,9 +54,10 @@ function mock(fault=null){
   if(fault==='assets-after-compiler')state.valid.assets=false;if(fault==='source-after-compiler-proof')state.valid.source=false;
   return{pid:fault==='no-pid'?undefined:42,status:fault==='compiler-fail'?1:fault==='compiler-signal'?null:0,signal:fault==='compiler-signal'?'SIGKILL':null,error:fault==='compiler-timeout'?Error('PRIVATE_TIMEOUT'):undefined,stdout:'',stderr:''};};
  const stripped=moduleSource.replace(/^import .*;$/gm,'').replaceAll('export function ','function ').replace('const mintedAssets=new WeakMap();','const mintedAssets=controlledMint;')+
-  '\nverifySealedTypeScriptBaseExchangeAssets=controlledAssetVerify;return {build:buildSealedTypeScriptPairedStageArtifacts,verify:verifySealedTypeScriptPairedStageArtifacts,matches:sealedTypeScriptPairedStageArtifactsMatchDerivation,pairMatches:sealedTypeScriptBaseExchangeAssetsMatchPair};';
- const api=Function('fs','path','createHash','spawnSync','process','controlledMint','controlledAssetVerify','verifySealedTypeScriptPairedStageSource','sealedTypeScriptPairedStageSourceMatchesDerivation','prepareSealedTypeScriptNativeAssetsProposal','sealedAssetsBuildCompleted','sealedAssetsBuildProcessSummary',stripped)(io,path.posix,createHash,spawn,{getuid:()=>501},mint,
+  '\nverifySealedTypeScriptBaseExchangeAssets=controlledAssetVerify;observeSealedTypeScriptBaseExchangeAssets=controlledAssetObserve;return {build:buildSealedTypeScriptPairedStageArtifacts,verify:verifySealedTypeScriptPairedStageArtifacts,matches:sealedTypeScriptPairedStageArtifactsMatchDerivation,pairMatches:sealedTypeScriptBaseExchangeAssetsMatchPair};';
+ const api=Function('fs','path','createHash','spawnSync','process','controlledMint','controlledAssetVerify','controlledAssetObserve','verifySealedTypeScriptPairedStageSource','sealedTypeScriptPairedStageSourceMatchesDerivation','prepareSealedTypeScriptNativeAssetsProposal','sealedAssetsBuildCompleted','sealedAssetsBuildProcessSummary',stripped)(io,path.posix,createHash,spawn,{getuid:()=>501},mint,
   value=>{state.assetChecks++;return value===assetsBuild&&state.valid.assets?assetObservation():{outcome:'UNKNOWN'};},
+  (value,inspect)=>{assert.equal(value,assetsBuild);state.scopeCalls++;assert.equal(inspect(),undefined);state.scopeCloses++;if(state.onScopeClose)state.onScopeClose();},
   value=>{state.sourceChecks++;if(state.late==='new-file-after-final-source'&&(state.binaryReads.get(code+'/'+names[2].slice(0,-2))||0)>=3)nodes.get(code+'/'+names[0]).ino++;return value===proposal&&state.valid.source?sourceObservation():{outcome:'UNKNOWN'};},
   (value,p,assets)=>value===proposal&&p===pair&&assets===assetsBuild,
   options=>{state.toolCalls++;assert.equal(options.fixture,hostFixture);if(fault==='runtime-during-tool-proposal'||fault==='sdk-during-tool-proposal')state.valid.assets=false;return tool;},sealedAssetsBuildCompleted,sealedAssetsBuildProcessSummary);
@@ -129,3 +130,77 @@ test('an exclusive create race preserves the preexisting entry and records attem
 test('close failure before known closure is UNKNOWN and cannot launch a child or claim inherited-handle safety',()=>{
  const m=mock('write-close-before'),value=m.build(m.options);assert.equal(value.outcome,'UNKNOWN');assert.equal(value.dispatchAttemptCount,0);assert.equal(value.fileCreateCount,1);assert.equal(m.handles.size,1,'fault injection deliberately leaves descriptor disposition unknown');assert.equal(value.noInheritedWritableHandlesVerified,false);falseAuthority(value);
 });
+
+// Compose the ACTUAL existing base-assets observation, actual base verifier and
+// actual new dependency group. Only the native-observer boundary/paired source
+// and filesystem are synthetic. Counters below are requests and mock-row reads,
+// not measured runtime/SDK bytes, latency or native enforcement evidence.
+function scopedDependencies(){
+ const a='/private/tmp/redue-ci-recipient-11111111',b='/private/tmp/redue-ci-recipient-22222222',h='/private/tmp/redue-ci-recipient-33333333',pair={},host={},hostBuild={},assets={},source={};
+ const minted=new WeakMap(),active=new WeakMap(),nodes=new Map(),handles=new Map();let nextIno=1n,nextFd=10,api;
+ const state={valid:{pair:true,host:true,native:true},nativeCalls:0,nativeBarriers:0,sourceChecks:0,sourceUnknown:false,sourceThrow:null,scopeGetter:false,scopeGetterThrow:false,sourceAction:null,onNativeClose:null,onNativeBarrier:null,nativeSkip:false,events:[],reads:new Map()};
+ const put=(file,body=null)=>{nodes.set(file,{dev:1n,ino:nextIno++,mode:body===null?0o40700n:0o100600n,uid:501n,gid:20n,nlink:body===null?2n:1n,size:BigInt(body?.length??0),mtimeNs:1n,ctimeNs:1n,body:body===null?null:Buffer.from(body)});};
+ for(const name of ['/','/private','/private/tmp',a,b,h,h+'/prefix',h+'/prefix/native-probes'])put(name);
+ const names=[h+'/prefix/native-probes/sealed-typescript-base-exchange-sentinel.c',h+'/prefix/native-probes/sealed-typescript-base-exchange-sentinel'];for(const file of names)put(file,Buffer.from('MOCK_ORIGINAL_BASE_ROW_'+file));
+ const stat=file=>{const row=nodes.get(file);assert(row);return{...row,isDirectory:()=>row.body===null,isFile:()=>row.body!==null,isSymbolicLink:()=>false};};
+ const io={constants:{O_RDONLY:0,O_NOFOLLOW:256,O_NONBLOCK:4},realpathSync:file=>file,lstatSync:stat,
+  openSync(file,flags){assert.equal(flags,260);const fd=nextFd++;handles.set(fd,file);return fd;},fstatSync:fd=>stat(handles.get(fd)),
+  readSync(fd,bytes,offset,length,position){const file=handles.get(fd);if(position===0)state.reads.set(file,(state.reads.get(file)??0)+1);return nodes.get(file).body.copy(bytes,offset,position,Math.min(position+length,nodes.get(file).body.length));},closeSync:fd=>assert(handles.delete(fd))};
+ const initialPair={outcome:'BASE_EXCHANGE_PAIR_CURRENTLY_OBSERVED',baseA:a,baseB:b};
+ const nativeObserve=(value,inspect)=>{assert.equal(value,hostBuild);state.nativeCalls++;state.events.push('native-open');assert(state.valid.native,'synthetic original native entry invalid');if(state.nativeSkip){state.events.push('native-close');return;}
+  const barrier=()=>{state.nativeBarriers++;if(state.onNativeBarrier)state.onNativeBarrier();assert(state.valid.native,'synthetic original native barrier invalid');};
+  assert.equal(inspect(barrier),undefined);if(state.onNativeClose)state.onNativeClose();barrier();state.events.push('native-close');
+ };
+ const verifySource=value=>{state.sourceChecks++;state.events.push('source');assert.equal(value,source);if(state.sourceThrow)throw state.sourceThrow;if(state.sourceAction)state.sourceAction();
+  // Faithfully model the two asset requests made by the real derive() before
+  // and after its fixed source construction; actual asset verifiers run here.
+  const before=api.base(assets),after=api.base(assets);if(before.outcome!=='BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED'||after.outcome!==before.outcome)return{outcome:'UNKNOWN'};
+  const observed={outcome:state.sourceUnknown?'UNKNOWN':'PAIRED_STAGE_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED',baseA:a,baseB:b,hostBase:h,node:h+'/runtime/node-v22.13.0-darwin-arm64/bin/node'};
+  Object.defineProperty(observed,'scope',{enumerable:true,get(){if(state.scopeGetter)state.events.push('result-scope');if(state.scopeGetterThrow)throw Error('PRIVATE_SOURCE_GETTER');return'DISABLED_PAIRED_STAGE_ASSERTION_SOURCES_DATA_ONLY';}});return observed;
+ };
+ const text=moduleSource.replace(/^import .*;$/gm,'').replaceAll('export function ','function ').replace('const mintedAssets=new WeakMap();','const mintedAssets=controlledMint;').replace('const activeBaseAssetsObservations=new WeakMap();','const activeBaseAssetsObservations=controlledActive;')+';return {deps:pairedDependencies,observe:observeSealedTypeScriptBaseExchangeAssets,base:verifySealedTypeScriptBaseExchangeAssets,row:bounded,root:rootIdentity};';
+ api=Function('fs','path','createHash','process','controlledMint','controlledActive','verifySealedTypeScriptBaseExchangePair','verifySealedTypeScriptSyntheticFixture','observeSealedTypeScriptNativeAssetsBuild','verifySealedTypeScriptPairedStageSource','sealedTypeScriptPairedStageSourceMatchesDerivation',text)(io,path.posix,createHash,{getuid:()=>501},minted,active,value=>value===pair&&state.valid.pair?initialPair:{outcome:'UNKNOWN'},value=>({outcome:value===host&&state.valid.host?'SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED':'UNKNOWN'}),nativeObserve,verifySource,(value,p,build)=>value===source&&p===pair&&build===assets);
+ const original={pair,hostFixture:host,hostBuild,initialPair,roots:[a,b,h].map(file=>[file,api.root(file)]),source:api.row(names[0],65536),binary:api.row(names[1],2*1024*1024)};minted.set(assets,original);state.reads.clear();
+ const record={assetsBuild:assets,pair,proposal:source};return{...api,state,record,assets,source,original,active,nodes,names,handles};
+}
+test('standalone dependency group requests exactly one fresh native observation and reads each original base row twice',()=>{
+ const m=scopedDependencies();m.state.scopeGetter=true;const value=m.deps(m.record);m.state.events.push('returned');assert.equal(value.assets.outcome,'BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED');assert.equal(m.state.nativeCalls,1);assert.equal(m.state.sourceChecks,1);for(const name of m.names)assert.equal(m.state.reads.get(name),2);assert(m.state.nativeBarriers>=2);assert(m.state.events.indexOf('native-close')<m.state.events.indexOf('result-scope'));assert.equal(m.state.events.at(-1),'returned');assert.equal(m.active.has(m.assets),false);
+ m.deps(m.record);assert.equal(m.state.nativeCalls,2,'next independent call observes anew');for(const name of m.names)assert.equal(m.state.reads.get(name),4);assert.equal(m.handles.size,0);
+});
+test('already-active same-original group makes no nested public observation and still invokes live barriers',()=>{
+ const m=scopedDependencies();m.observe(m.assets,()=>{const before=m.state.nativeBarriers;assert.equal(m.deps(m.record).source.outcome,'PAIRED_STAGE_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED');assert(m.state.nativeBarriers>before);assert.equal(m.state.nativeCalls,1);});assert.equal(m.state.nativeCalls,1);for(const name of m.names)assert.equal(m.state.reads.get(name),2);assert.equal(m.active.has(m.assets),false);
+});
+for(const fault of ['enabled','failed'])test('mere presence of '+fault+' active operation never grants dependency currency',()=>{
+ const m=scopedDependencies();assert.throws(()=>m.observe(m.assets,()=>{const operation=m.active.get(m.assets);if(fault==='enabled')operation.enabled=false;else operation.failed=true;assert.throws(()=>m.deps(m.record));}));assert.equal(m.original.invalid,true);assert.equal(m.state.nativeCalls,1);assert.equal(m.active.has(m.assets),false);assert.throws(()=>m.deps(m.record));
+});
+for(const kind of ['pair','host','native'])test('active group retains changing original '+kind+' boundary guards',()=>{
+ const m=scopedDependencies();assert.throws(()=>m.observe(m.assets,()=>{m.state.valid[kind]=false;m.deps(m.record);}));assert.equal(m.original.invalid,true);assert.equal(m.active.has(m.assets),false);
+});
+test('public nested observation remains refused and cannot be rescued by dependency group',()=>{
+ const m=scopedDependencies();assert.throws(()=>m.observe(m.assets,()=>{assert.throws(()=>m.observe(m.assets,()=>{}));assert.throws(()=>m.deps(m.record));}));assert.equal(m.original.invalid,true);assert.equal(m.state.nativeCalls,1);assert.equal(m.active.has(m.assets),false);
+});
+test('source UNKNOWN result is checked after closure without falsely invalidating a healthy original assets owner',()=>{
+ const m=scopedDependencies();m.state.sourceUnknown=true;m.state.scopeGetter=true;assert.throws(()=>m.deps(m.record));assert.notEqual(m.original.invalid,true);assert(m.state.events.indexOf('native-close')<m.state.events.indexOf('result-scope'));m.state.sourceUnknown=false;assert.equal(m.deps(m.record).source.outcome,'PAIRED_STAGE_SOURCE_CURRENTLY_OBSERVED_NOT_PROVISIONED');assert.equal(m.state.nativeCalls,2);
+});
+for(const fault of ['source-throw','source-getter','close-throw','unfinished'])test('uncertain '+fault+' never lets a dependency result escape',()=>{
+ const m=scopedDependencies();let returned=false;if(fault==='source-throw')m.state.sourceThrow=new Proxy({},{get(){assert.fail('foreign exception inspected');}});if(fault==='source-getter')m.state.scopeGetterThrow=true;if(fault==='close-throw')m.state.onNativeClose=()=>{throw Error('PRIVATE_CLOSE');};if(fault==='unfinished')m.state.nativeSkip=true;
+ assert.throws(()=>{m.deps(m.record);returned=true;});assert.equal(returned,false);assert.equal(m.active.has(m.assets),false);
+});
+for(const kind of ['old-source-content','old-binary-identity','root-identity'])test('late observation close mutation '+kind+' retains the existing endpoint/premise boundary',()=>{
+ const m=scopedDependencies();m.state.onNativeClose=()=>{if(kind==='old-source-content')m.nodes.get(m.names[0]).body[0]^=1;else if(kind==='old-binary-identity')m.nodes.get(m.names[1]).ino++;else m.nodes.get(m.original.roots[2][0]).ino++;};
+ // Held-metadata content mutation AFTER the last hash is explicitly outside
+ // the existing trusted/quiescent premise; never claim hostile-write closure.
+ if(kind==='old-source-content'){assert.equal(m.deps(m.record).assets.outcome,'BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED');m.state.onNativeClose=null;assert.throws(()=>m.deps(m.record),'next fresh original hash observes changed content');}
+ else assert.throws(()=>m.deps(m.record));assert.equal(m.original.invalid,true);
+});
+test('mixed/private source or pair refuses before native observation and original content reads',()=>{
+ for(const key of ['assetsBuild','pair','proposal']){const m=scopedDependencies(),forged=new Proxy({},{get(){assert.fail('foreign field read');}});assert.throws(()=>m.deps({...m.record,[key]:forged}));assert.equal(m.state.nativeCalls,0);assert.equal(m.state.reads.size,0);}
+});
+for(const target of ['source','binary'])test('final dependency close mutating earlier '+target+' is caught by retained consumer ending checks',()=>{
+ const m=mock();let closes=0;m.state.onScopeClose=()=>{if(++closes===16)m.nodes.get(m.code+'/'+(target==='source'?m.names[0]:m.names[1].slice(0,-2))).ino++;};const value=m.build(m.options);assert.equal(value.outcome,'UNKNOWN');assert.equal(value.dispatchAttemptCount,2);assert.equal(value.dispatchResultCount,2);assert.equal(value.report,null);assert.equal(m.state.scopeCalls,16);
+ const later=mock(),built=later.build(later.options);assert.equal(built.outcome,'BUILT_NOT_EXECUTED');let last=0;const file=later.code+'/'+(target==='source'?later.names[0]:later.names[1].slice(0,-2)),row=later.nodes.get(file),original=row.ino;later.state.onScopeClose=()=>{if(++last===3)row.ino++;};assert.equal(later.verify(built).outcome,'UNKNOWN');row.ino=original;later.state.onScopeClose=null;assert.equal(later.verify(built).outcome,'UNKNOWN');assert.equal(built.outcome,'BUILT_NOT_EXECUTED');
+});
+test('stable paired build uses sixteen independent guarded dependency observations, not a build-long cache',()=>{const m=mock(),value=m.build(m.options);assert.equal(value.outcome,'BUILT_NOT_EXECUTED');assert.equal(m.state.scopeCalls,16);assert.equal(m.state.scopeCloses,16);const before=m.state.scopeCalls;assert.equal(m.verify(value).outcome,'PAIRED_STAGE_ARTIFACTS_CURRENTLY_OBSERVED_NOT_EXECUTED');assert.equal(m.state.scopeCalls-before,3);});
+
+test('source callback reentry into public observation refuses and invalidates the owned group',()=>{const m=scopedDependencies();m.state.sourceAction=()=>m.observe(m.assets,()=>{});assert.throws(()=>m.deps(m.record));assert.equal(m.original.invalid,true);assert.equal(m.active.has(m.assets),false);assert.equal(m.state.nativeCalls,1);});
+for(const kind of ['pair','host','native','old-source','old-binary'])test('fresh independent dependency group retains original entry '+kind+' checks',()=>{const m=scopedDependencies();if(kind==='old-source'||kind==='old-binary')m.nodes.get(m.names[kind==='old-source'?0:1]).body[0]^=1;else m.state.valid[kind]=false;assert.throws(()=>m.deps(m.record));assert.equal(m.original.invalid,true);assert.equal(m.active.has(m.assets),false);});
