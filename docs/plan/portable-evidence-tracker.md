@@ -24,12 +24,37 @@ redacted execution log324,062 bytes SHA256
 Raw model frames/error text were deliberately not retained. Eight independent pure
 controls validate the interpretation's limits; no actual failed operand is inferred.
 
-Next: bounded DIR139 pinned-source review and DIR140 static foreground-refusal
-classification, with unchanged acceptance predicates/access order and fresh review
-before any further operation. No additional native run is queued. Earlier scoped
-six-check prerequisite remains closed; this new witness is not G2/seal/reuse.
-Copilot included Actions capacity remains separately pending. G0partial/G1–G4
-incomplete, alpha.11 unpublished, fixed pilot and immutable evidence preserved.
+DIR139 pinned public source review verifies the nine recorded foreground source
+spans. No normal five-field/renderer or exact quoted-command allow contradiction
+was established. A permission refusal or command error can yield an error-shaped
+result; neither is inferred for this actual attempt.
+
+DIR140/141 ACCEPT is integrated/pushed as runtime
+`8f316f96d62b1e6ee8af46f3b9e2800f03a11eed`. It adds only the first static failed
+foreground predicate when that remains the primary reason. Every original operand,
+access order, both parser calls, accepted result and authority check is preserved.
+Reviewer205 supplied+31 independent equivalence controls pass; root205 focused and
+1086 shared PASS/1 optional actual C-build SKIP. Shared585.015ms, TAP SHA256
+`edbc24479770f5531bcf11f0336b8edea7ad1a9bbe0c5d195c18fa03889fc0fc`.
+These are source/mock controls plus three owned temporary-file controls, not native
+execution evidence. Actual prior subcause remains unobserved.
+
+DIR142/143 workflow ACCEPT is pushed and remotely verified at
+`de38ff6770f3b56639d426e50869f02e7549268f`, SHA256
+`c396e5f174d8fee6ff29aae20869d677a45c07f5fdcecef5a8c430cea15c5a74`.
+Only two source pins change. Root9 source/mock/syntax and reviewer8 source/pure-mock
+controls pass. Protected source alone is aligned, preserving owner reviewed_at
+2026-10-14T19:26:03Z. Provenance input validation passes, digest
+`e147913d4c44759e7eacbb3a0a6a5222c4a086978ea929fa7cc58c297c412cd1`.
+No secret value, trust or permission change; four turns/two minutes/$0 unchanged.
+
+Next: one NEW normal owner Actions UI run on dev/portable-claude-diagnostic,
+not Re-run jobs. CLI dispatch403 remains unchanged and is not retried. Obtain the
+specific missing foreground classification, then independently assess it before
+any further operation; no retries until green. Earlier scoped six-check prerequisite
+stays closed; this new witness is not G2/seal/reuse. Copilot included Actions capacity
+is separately pending. G0partial/G1–G4 incomplete; alpha.11 unpublished, pilot and
+immutable evidence preserved. No native attempt has used the new label yet.
 
 ## Historical checkpoint — exact witness input reviewed; one changed-procedure attempt ready
 
