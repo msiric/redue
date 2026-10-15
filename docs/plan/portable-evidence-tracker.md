@@ -7,6 +7,23 @@ recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gat
 
 ## Current checkpoint — paired endpoints match; CI preparation wiring reviewed
 
+Owner status review at2026-10-15 20:39UTC: rough effort estimate40% complete /
+60% remaining, low confidence; this is not a gate-completion percentage. Core
+origin/seal and final cross-agent/two-machine acceptance dominate the remaining
+risk. Day0 remains2026-10-10 21:24UTC; Day14 October24 and Day28 November7 are
+conditional targets, with no new promised completion date. Lane-blocked intervals
+remain recorded separately; no total blocked-hours figure is invented. Existing
+hosted security success and historical transport acceptance remain distinct from
+the unestablished sealed origin and final-model gates.
+
+Delivery correction after the owner's pace review: freeze scope/infrastructure;
+batch coherent source/binding/workflow review and affected tests; prioritize the
+next actual runner build-only result, then native boundary and real handoff. Add
+no controller/framework or speculative diagnostics. Report gate outcomes and
+preserved failures rather than using test/commit totals as completion evidence.
+Critical-boundary independent review, original limits and owner-only operations
+remain mandatory. No date/gate/security requirement is relaxed.
+
 Owner approval for [run38748867165](https://github.com/msiric/redue/actions/runs/38748867165)
 was applied; the completed attempt is already preserved below. Its accepted native
 output reports **UNKNOWN / DESCRIPTOR_METADATA_UNAVAILABLE**, not enforcement or
