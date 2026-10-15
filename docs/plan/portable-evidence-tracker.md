@@ -39,9 +39,19 @@ Both VMs reported image20261013.0424.1, and all22 inspected hash/size pairs matc
 Node, Clang, linker and nineteen literal SDK26.5 headers. Observer checkpoint
 costs415.490/314.736ms are inspection-only, not whole-workflow economics. These
 are matching public endpoints, not complete SDK/profile/native/seal/reuse proof.
-No further inventory is needed for the currently guarded subset. DIR309 is
-implementing the explicit CI fixture-profile slice; local SDK27 guards remain
-unchanged. Actual CI preparation must validate its current resources again.
+No further inventory is needed for the currently guarded subset. DIR313 accepts
+first CI asset-profile slice `cf34cb7`, integrated at `618379d`; DIR314 accepts
+only its four exact import-pin updates. Canonical current Node and exact tool/SDK
+bindings are retained in original private asset records; local behavior remains
+covered. Root sealed-TypeScript regressions:4,977 PASS/11 explicit SKIP/0 FAIL,
+TAP SHA256 `30554d1df7330af0495eb72f446daca2a63f8167e6bb453b7b0bcdd675d9f06f`.
+These are local regressions, not actual CI builds or model acceptance.
+
+DIR315 owns the remaining fixed launcher/null/enclosure consumers. DIR316 owns
+only fixed CI preparation/context wiring and its driver pin. Their files are
+isolated; the director owns integration. Command/startup/native-CI and parent-CI
+routes remain unwired. Actual CI preparation must validate current resources again;
+no SDK closure, native enforcement or origin authority is inferred.
 
 Earlier retained run (different images/tools, not retroactively relabeled):
 
