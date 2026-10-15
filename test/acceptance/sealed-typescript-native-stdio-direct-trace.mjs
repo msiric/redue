@@ -35,8 +35,35 @@ const freeze=v=>{if(v&&typeof v==='object'){for(const child of Object.values(v))
 const authority=fields=>freeze({schema:1,scope:'SINGLE_DIRECT_NATIVE_STDIO_PRECONDITION_ONLY',interpretation:NATIVE_STDIO_DIRECT_INTERPRETATION,...fields,
  helperKernelClose:'NOT_OBSERVED',helperReap:'NOT_OBSERVED',helperSignal:'NOT_OBSERVED',
  nativeEnforcement:'NOT_ESTABLISHED',stdioOwnership:'NOT_ESTABLISHED',preMainLoader:'NOT_ESTABLISHED',sealed:false,reuseEligible:false});
+// Post-refusal shape metadata only, for previously validated plain JSON. No
+// body/value, arbitrary key name, path, length or hash is retained. Diagnostics
+// never admit this shape. Non-object containers expose no element/key details.
+function foregroundShapeSummary(event,item,raw){
+ const known=['stdout','stderr','interrupted','rawOutputPath','isImage','backgroundTaskId','backgroundedByUser','dangerouslyDisableSandbox','returnCodeInterpretation','noOutputExpected','structuredContent','persistedOutputPath','persistedOutputSize','staleReadFileStateHint','ghRateLimitHint','gitOperation'];
+ const present=Object.hasOwn(event,'tool_use_result'),kind=!present?'absent':raw===null?'null':Array.isArray(raw)?'array':typeof raw;
+ const object=kind==='object',descriptor=Object.getOwnPropertyDescriptor(item,'is_error');
+ return {rawOwnPropertyPresent:present,rawContainerKind:kind,knownFieldPresence:Object.fromEntries(known.map(key=>[key,object&&Object.hasOwn(raw,key)])),
+  unknownKeysPresent:object&&Object.keys(raw).some(key=>!known.includes(key)),
+  itemIsErrorState:!descriptor?'MISSING':!Object.hasOwn(descriptor,'value')?'UNSUPPORTED':descriptor.value===false?'FALSE':descriptor.value===true?'TRUE':'UNSUPPORTED'};
+}
+// Native headless nonallow history is not a final-denial or execution proof.
+// Inspect only after primary raw-shape refusal, never to satisfy final/metadata.
+function foregroundNonallowHistory(events,init,session,tool){
+ const result=(status,matchingAcceptedToolNonallowRecord=null)=>({status,matchingAcceptedToolNonallowRecord});
+ if(!init||!tool)return result('UNAVAILABLE');
+ const candidates=events.filter(event=>event?.type==='result');if(candidates.length!==1)return result('UNAVAILABLE');
+ const event=candidates[0];
+ if(event.session_id!==session||typeof event.subtype!=='string'||!Number.isInteger(event.num_turns)||event.num_turns<1||event.num_turns>4||typeof event.is_error!=='boolean'||!Object.hasOwn(event,'permission_denials'))return result('UNAVAILABLE');
+ const rows=event.permission_denials;if(!Array.isArray(rows))return result('MALFORMED');if(rows.length>64)return result('LIMIT_EXCEEDED');
+ let match=false;
+ for(const row of rows){
+  if(!exact(row,['tool_name','tool_use_id','tool_input'])||typeof row.tool_name!=='string'||typeof row.tool_use_id!=='string'||row.tool_input===null||typeof row.tool_input!=='object'||Array.isArray(row.tool_input)||![Object.prototype,null].includes(Object.getPrototypeOf(row.tool_input)))return result('MALFORMED');
+  if(row.tool_use_id===tool.id){if(row.tool_name!=='Bash')return result('MALFORMED');match=true;}
+ }
+ return result('OBSERVED',match);
+}
 function foregroundResult(event,item,witness,reportRefusal){
- const refused=(classification,value)=>{if(value)reportRefusal(classification);return value;};
+ const refused=(classification,value)=>{if(value)reportRefusal(classification,classification==='RAW_SHAPE_INVALID'?foregroundShapeSummary(event,item,raw):null);return value;};
  const raw=event.tool_use_result;
  // Each wrapper observes only its original reached predicate; no extra raw
  // access or unperformed assertion. Labels never contain native/model values.
@@ -65,7 +92,7 @@ function interpretFixedDirectTrace(events,binding,completion,witness){
    Buffer.byteLength(JSON.stringify(events))>2097152)return unknown('INPUT_UNAVAILABLE');
  if(!exact(binding,witness?['hostBase','helperSha256','sourceSha256','nativeSha256','interpretation']:['hostBase','helperSha256','sourceSha256','nativeSha256'])||!full(hash,binding.helperSha256)||binding.sourceSha256!==(witness?NATIVE_STARTUP_WITNESS_SOURCE_SHA256:NATIVE_STDIO_SOURCE_SHA256)||witness&&binding.interpretation!==NATIVE_STARTUP_WITNESS_INTERPRETATION||binding.nativeSha256!==REVIEWED_CLAUDE_NATIVE.sha256)return unknown('IDENTITY_BINDING_UNKNOWN');
  let command;try{command=nativeStdioDirectCommand(binding.hostBase);}catch{return unknown('IDENTITY_BINDING_UNKNOWN');}
- const cwd=binding.hostBase+'/prefix/native-probes';let init=false,session=null,tool=null,metadata=null,final=null,reason=null,toolItemsObserved=0,toolScopeRefusal=null,foregroundRefusalClass=null;const messages=new Set();
+ const cwd=binding.hostBase+'/prefix/native-probes';let init=false,session=null,tool=null,metadata=null,final=null,reason=null,toolItemsObserved=0,toolScopeRefusal=null,foregroundRefusalClass=null,foregroundShape=null;const messages=new Set();
  const reject=v=>{reason??=v;};
  for(const event of events){
   if(!event||typeof event!=='object'||Array.isArray(event)){reject('STREAM_MALFORMED');continue;}
@@ -102,7 +129,7 @@ function interpretFixedDirectTrace(events,binding,completion,witness){
      Object.keys(event).some(k=>!['type','session_id','parent_tool_use_id','message','tool_use_result','uuid','timestamp','isSynthetic'].includes(k))){reject('NATIVE_RESULT_CONTEXT');continue;}
    const item=event.message.content[0];
    if(!tool||!exact(item,['type','tool_use_id','content','is_error'])||item.type!=='tool_result'||item.tool_use_id!==tool.id){reject('NATIVE_RESULT_ID');continue;}
-   let refusalClass=null;const result=foregroundResult(event,item,witness,classification=>{refusalClass=classification;});if(!result){foregroundRefusalClass??=refusalClass;reject('FOREGROUND_RAW_OR_RENDERED_RESULT_UNAVAILABLE');continue;}metadata=result;continue;
+   let refusalClass=null,shape=null;const result=foregroundResult(event,item,witness,(classification,summary)=>{refusalClass=classification;shape=summary;});if(!result){if(foregroundRefusalClass===null){foregroundRefusalClass=refusalClass;foregroundShape=shape;}reject('FOREGROUND_RAW_OR_RENDERED_RESULT_UNAVAILABLE');continue;}metadata=result;continue;
   }
   if(event.type==='result'){
    if(!init||!tool||!metadata||final||event.session_id!==session||!Number.isInteger(event.num_turns)||event.num_turns<1||event.num_turns>4||typeof event.is_error!=='boolean'){reject('NATIVE_FINAL_CONTEXT');continue;}
@@ -113,7 +140,7 @@ function interpretFixedDirectTrace(events,binding,completion,witness){
   if(event.type==='rate_limit_event'){if(Object.hasOwn(event,'session_id')&&event.session_id!==session)reject('NATIVE_SESSION_CONTEXT');continue;}
   reject('NATIVE_STREAM_UNKNOWN');
  }
- if(reason||!init||!tool||!metadata||!final?.success)return unknown(reason??'NATIVE_TRACE_INCOMPLETE',reason==='NATIVE_TOOL_SCOPE'?{toolScopeRefusal}:reason==='FOREGROUND_RAW_OR_RENDERED_RESULT_UNAVAILABLE'?{foregroundRefusalClass}:{});
+ if(reason||!init||!tool||!metadata||!final?.success)return unknown(reason??'NATIVE_TRACE_INCOMPLETE',reason==='NATIVE_TOOL_SCOPE'?{toolScopeRefusal}:reason==='FOREGROUND_RAW_OR_RENDERED_RESULT_UNAVAILABLE'?{foregroundRefusalClass,...(foregroundRefusalClass==='RAW_SHAPE_INVALID'?{foregroundShape,nativeNonallowHistory:foregroundNonallowHistory(events,init,session,tool)}:{})}:{});
  const observed={metadata,toolUseId:tool.id,commandSha256:tool.commandSha256,helperSha256:binding.helperSha256};
  const completionKeys=['sourceCurrent','helperCurrent','reviewedBuildMatches','nativeCurrent','sourceSha256','helperSha256','nativeSha256','nativeExit','nativeSignal','timedOut','reaped','startupPreconditions','noHooksCurrent',witness?'interpretation':'controlledShellStartup'];
  if(!exact(completion,completionKeys)||

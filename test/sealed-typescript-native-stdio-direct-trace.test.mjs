@@ -228,7 +228,7 @@ test('only primary foreground reason carries first static label; later failures 
 // Private source seam for predicate/order tests only. No helper/model/native
 // execution or native acceptance. Parser/Buffer fault cases are synthetic.
 const directSource=fs.readFileSync(new URL('./acceptance/sealed-typescript-native-stdio-direct-trace.mjs',import.meta.url),'utf8');
-const foregroundSource=directSource.slice(directSource.indexOf('function foregroundResult('),directSource.indexOf('// completion supplies'));
+const foregroundSource=directSource.slice(directSource.indexOf('function foregroundShapeSummary('),directSource.indexOf('// completion supplies'));
 const exactForeground=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).length===keys.length&&keys.every(k=>Object.hasOwn(v,k));
 const newForeground=(parse=parseNativeStdioMetadata,buffer=Buffer)=>Function('exact','parseNativeStartupWitness','parseNativeStdioMetadata','Buffer',foregroundSource+';return foregroundResult;')(exactForeground,parse,parse,buffer);
 // Exact bc50 foreground predicate reference; no acceptance or IO authority.
@@ -257,4 +257,56 @@ test('raw predicates preserve short-circuit getter access exactly under private 
   for(const key of order.slice(order.indexOf(field)+1))Object.defineProperty(raw,key,{enumerable:true,get(){reads++;throw Error('PRIVATE_LATER_GETTER');}});
   assert.equal(priorForeground(d.event,d.item,false),null);assert.equal(reads,0);let code=null;assert.equal(newForeground()(d.event,d.item,false,v=>code=v),null);assert.equal(code,label);assert.equal(reads,0);
  }
+});
+
+const fixedRawShapeFields=['stdout','stderr','interrupted','rawOutputPath','isImage','backgroundTaskId','backgroundedByUser','dangerouslyDisableSandbox','returnCodeInterpretation','noOutputExpected','structuredContent','persistedOutputPath','persistedOutputSize','staleReadFileStateHint','ghRateLimitHint','gitOperation'];
+const rawShapeEvents=()=>{const e=events(witnessMetadata());e[2].tool_use_result='PRIVATE_RAW_BODY';return e;};
+for(const witness of [false,true])for(const [kind,raw]of [['absent',undefined],['null',null],['boolean',true],['number',123],['string','PRIVATE_RAW_BODY'],['array',['PRIVATE_ARRAY_BODY']],['object',{PRIVATE_UNKNOWN:'PRIVATE_RAW_BODY'}]])test('fixed raw container metadata '+kind+' '+(witness?'witness':'old'),()=>{
+ const e=events(witness?witnessMetadata():metadata());if(kind==='absent')delete e[2].tool_use_result;else e[2].tool_use_result=raw;
+ const v=witness?witnessObserve(e):observe(e);assert.equal(v.reason,'FOREGROUND_RAW_OR_RENDERED_RESULT_UNAVAILABLE');assert.equal(v.foregroundRefusalClass,'RAW_SHAPE_INVALID');assert.equal(v.foregroundShape.rawOwnPropertyPresent,kind!=='absent');assert.equal(v.foregroundShape.rawContainerKind,kind);assert.deepEqual(Object.keys(v.foregroundShape.knownFieldPresence),fixedRawShapeFields);assert(Object.values(v.foregroundShape.knownFieldPresence).every(value=>value===false));assert.equal(v.foregroundShape.unknownKeysPresent,kind==='object');assert.equal(v.foregroundShape.itemIsErrorState,'FALSE');assert.equal(JSON.stringify(v).includes('PRIVATE_'),false);assert(Object.isFrozen(v.foregroundShape));assert.equal(v.nativeNonallowHistory.status,'UNAVAILABLE');assert.equal(v.nativeNonallowHistory.matchingAcceptedToolNonallowRecord,null);
+});
+for(const field of ['stdout','stderr','interrupted','isImage','noOutputExpected'])test('missing required raw '+field+' reports only fixed presence metadata',()=>{
+ const e=events(witnessMetadata());delete e[2].tool_use_result[field];const v=witnessObserve(e);assert.equal(v.foregroundShape.knownFieldPresence[field],false);assert.equal(v.foregroundShape.unknownKeysPresent,false);assert.equal(v.foregroundRefusalClass,'RAW_SHAPE_INVALID');
+});
+for(const field of fixedRawShapeFields.filter(k=>!['stdout','stderr','interrupted','isImage','noOutputExpected'].includes(k)))test('known optional raw '+field+' remains refused without body collection',()=>{
+ const e=events(witnessMetadata());e[2].tool_use_result[field]='PRIVATE_VALUE';const v=witnessObserve(e);assert.equal(v.foregroundShape.knownFieldPresence[field],true);assert.equal(v.foregroundShape.unknownKeysPresent,false);assert.equal(v.foregroundRefusalClass,'RAW_SHAPE_INVALID');assert.equal(v.outcome,'UNKNOWN');assert.equal(JSON.stringify(v).includes('PRIVATE_'),false);
+});
+test('first raw-shape summary cannot be overwritten by later shapes or earlier unrelated refusals',()=>{
+ const e=rawShapeEvents(),later=clone(e[2]);later.tool_use_result={PRIVATE_UNKNOWN:true};e.splice(3,0,later);const v=witnessObserve(e);assert.equal(v.foregroundShape.rawContainerKind,'string');assert.equal(v.foregroundShape.unknownKeysPresent,false);
+ const f=events(witnessMetadata());f[2].tool_use_result.stderr='PRIVATE_WARNING';const second=clone(f[2]);second.tool_use_result='PRIVATE_LATER_BODY';f.splice(3,0,second);const r=witnessObserve(f);assert.equal(r.foregroundRefusalClass,'STDERR_NOT_EMPTY');assert.equal(Object.hasOwn(r,'foregroundShape'),false);assert.equal(Object.hasOwn(r,'nativeNonallowHistory'),false);
+ const g=rawShapeEvents();g[1].message.content[0].input.command='PRIVATE_COMMAND';const q=witnessObserve(g);assert.equal(q.reason,'NATIVE_TOOL_SCOPE');assert.equal(Object.hasOwn(q,'foregroundShape'),false);
+ for(const q of [observe(),witnessObserve()]){assert.equal(Object.hasOwn(q,'foregroundShape'),false);assert.equal(Object.hasOwn(q,'nativeNonallowHistory'),false);}
+});
+for(const state of ['TRUE','FALSE','UNSUPPORTED'])test('raw-shape diagnostic item error closed state '+state,()=>{
+ const e=rawShapeEvents();e[2].message.content[0].is_error=state==='TRUE'?true:state==='FALSE'?false:'PRIVATE_ERROR';const v=witnessObserve(e);assert.equal(v.foregroundShape.itemIsErrorState,state);assert.equal(v.outcome,'UNKNOWN');assert.equal(JSON.stringify(v).includes('PRIVATE_'),false);
+});
+test('foreign raw-shape accessors are rejected before any getter read or shape/history diagnostic',()=>{
+ let reads=0;for(const raw of [{get stdout(){reads++;throw Error('PRIVATE');}},{get PRIVATE_UNKNOWN(){reads++;throw Error('PRIVATE');}}]){const e=rawShapeEvents();e[2].tool_use_result=raw;const v=witnessObserve(e);assert.equal(v.reason,'INPUT_UNAVAILABLE');assert.equal(Object.hasOwn(v,'foregroundShape'),false);}assert.equal(reads,0);
+});
+const nonallowRow=(override={})=>({tool_name:'Bash',tool_use_id:id,tool_input:{PRIVATE_INPUT:'PRIVATE_BODY'},...override});
+const withNonallow=(rows=[])=>{const e=rawShapeEvents();e[3].permission_denials=rows;return e;};
+for(const [rows,match]of [[[],false],[[nonallowRow()],true],[[nonallowRow({tool_use_id:'toolu_OTHERID'})],false]])test('source-shaped nonallow history diagnostic observed matching '+match+' rows '+rows.length,()=>{
+ const v=witnessObserve(withNonallow(rows));assert.deepEqual(v.nativeNonallowHistory,{status:'OBSERVED',matchingAcceptedToolNonallowRecord:match});assert.equal(v.outcome,'UNKNOWN');assert.equal(v.nativeEnforcement,'NOT_ESTABLISHED');assert.equal(v.sealed,false);assert.equal(v.reuseEligible,false);assert.equal(Object.hasOwn(v,'helperProcessOutcome'),false);assert.equal(JSON.stringify(v).includes('PRIVATE_'),false);
+});
+test('missing/foreign/duplicate/unreviewed final is unavailable rather than zero nonallow records',()=>{
+ for(const mutate of [e=>delete e[3].permission_denials,e=>e[3].session_id=foreign,e=>e.push(clone(e[3])),e=>e[3].num_turns=5,e=>e[3].subtype=5,e=>e[3].is_error='PRIVATE',e=>e.pop()]){const e=withNonallow([]);mutate(e);const v=witnessObserve(e);assert.deepEqual(v.nativeNonallowHistory,{status:'UNAVAILABLE',matchingAcceptedToolNonallowRecord:null});assert.equal(v.foregroundRefusalClass,'RAW_SHAPE_INVALID');assert.equal(v.outcome,'UNKNOWN');}
+});
+for(const rows of [null,{},['PRIVATE_ROW'],[nonallowRow({tool_name:'PRIVATE_OTHER_NAME'})],[nonallowRow({tool_input:null})],[nonallowRow({tool_input:[]})],[nonallowRow({PRIVATE_EXTRA:true})],[{tool_name:'Bash',tool_use_id:id}]])test('malformed nonallow diagnostic remains nullable without names/inputs',()=>{
+ const v=witnessObserve(withNonallow(rows));assert.deepEqual(v.nativeNonallowHistory,{status:'MALFORMED',matchingAcceptedToolNonallowRecord:null});assert.equal(JSON.stringify(v).includes('PRIVATE_'),false);assert.equal(v.outcome,'UNKNOWN');
+});
+test('diagnostic nonallow cap does not alter original foreground refusal or reveal counts',()=>{
+ const v=witnessObserve(withNonallow(Array.from({length:65},()=>nonallowRow())));assert.deepEqual(v.nativeNonallowHistory,{status:'LIMIT_EXCEEDED',matchingAcceptedToolNonallowRecord:null});assert.equal(v.foregroundRefusalClass,'RAW_SHAPE_INVALID');assert.equal(v.outcome,'UNKNOWN');
+});
+test('nonallow input getters never run; original data prerequisite refuses before diagnostics',()=>{
+ let reads=0;const input={};Object.defineProperty(input,'PRIVATE',{enumerable:true,get(){reads++;throw Error('PRIVATE');}});const v=witnessObserve(withNonallow([nonallowRow({tool_input:input})]));assert.equal(v.reason,'INPUT_UNAVAILABLE');assert.equal(reads,0);assert.equal(Object.hasOwn(v,'nativeNonallowHistory'),false);
+});
+
+test('missing item error is diagnostic MISSING only in private shape seam; actual frame still refuses earlier',()=>{
+ const e=rawShapeEvents();delete e[2].message.content[0].is_error;let classification=null,summary=null;
+ assert.equal(newForeground()(e[2],e[2].message.content[0],false,(code,shape)=>{classification=code;summary=shape;}),null);assert.equal(classification,'RAW_SHAPE_INVALID');assert.equal(summary.itemIsErrorState,'MISSING');
+ const v=witnessObserve(e);assert.equal(v.reason,'NATIVE_RESULT_ID');assert.equal(Object.hasOwn(v,'foregroundShape'),false);
+});
+test('nonallow diagnostic helper does not read input field values after record-type validation (private source seam)',()=>{
+ const history=Function('exact',foregroundSource+';return foregroundNonallowHistory;')(exactForeground);let reads=0;const input={};Object.defineProperty(input,'PRIVATE',{enumerable:true,get(){reads++;throw Error('PRIVATE');}});
+ const e=withNonallow([nonallowRow({tool_input:input})]);assert.deepEqual(history(e,true,session,{id}),{status:'OBSERVED',matchingAcceptedToolNonallowRecord:true});assert.equal(reads,0); // exported interpreter still rejects this non-JSON getter, tested above
 });
