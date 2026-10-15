@@ -19,7 +19,7 @@ for(const method of ['preparePair','buildAssets','buildLauncher','buildEnclosure
 test('final validation is not exempt from body deadline',async()=>{const m=mock();let calls=0;m.op.verifyEnclosure=()=>{if(++calls===2)m.set(30000);return{outcome:'ENCLOSURE_BUILD_CURRENTLY_OBSERVED_NOT_EXECUTED',sealed:false,reuseEligible:false};};const v=await observe(m.options);assert.equal(v.outcome,'UNKNOWN');assert.equal(v.failedPhase,'finalValidation');assert.equal(v.buildResultCount,8);});
 test('parent pins exact inner bytes and fixed reviewed Node; no environment stripping or arbitrary command route',()=>{const sha=createHash('sha256').update(innerSource).digest('hex');assert(parentSource.includes('INNER_SHA256 = "'+sha+'"'));assert(parentSource.includes('NODE_SHA256 = "5c79f8e198fd2456ea6660aaa6be218f9f44747f2306c7d0f5f97b087b2f2dfc"'));assert.match(parentSource,/start_new_session=True, close_fds=True/);assert.match(parentSource,/env=os\.environ\.copy\(\)/);assert.match(parentSource,/collect\(child, started=begun\)/);assert(!/child\.(?:poll|communicate)\(/.test(parentSource));assert(!/os\.environ\.(?:pop|clear|update)|shell=True|pexpect|pty\./.test(parentSource));assert.match(innerSource,/process\.execArgv\.length===0/);});
 test('mock Python parent proves kill-before-wait, no postreap destructive kill, EOF/cap/deadline/parser and SIGKILL races',async()=>{const good=await observe(mock().options);const python=String.raw`
-import contextlib,copy,importlib.util,io,json,os,signal,sys
+import contextlib,copy,errno,importlib.util,io,json,os,signal,sys
 spec=importlib.util.spec_from_file_location('owned_enclosure_parent',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 good=json.loads(sys.stdin.read());raw=(json.dumps(good)+'\n').encode();assert m.parse_inner(raw)['outcome']=='BUILT_NOT_EXECUTED'
 class Stream:
@@ -45,12 +45,13 @@ class Selector:
 original=m.os.set_blocking;m.os.set_blocking=lambda *args:None
 checks=0
 try:
- def run(body=raw,stderr=b'',code=0,deadline=False,kill_denied=False,started=None):
+ def run(body=raw,stderr=b'',code=0,deadline=False,kill_denied=False,started=None,kill_error=None):
   c=Child(code);chunks={10:[body,b''],11:[stderr,b'']};t=[0]
   def read(fd,n):return chunks[fd].pop(0)
   def clock():t[0]+=31 if deadline else .01;return t[0]
   def kill(pid,sig):
    c.events.append(('kill',pid,sig))
+   if kill_error is not None and sig==signal.SIGKILL:raise kill_error
    if kill_denied:raise PermissionError()
    if sig==0:raise ProcessLookupError()
   result=m.collect(c,clock=clock,selector_factory=Selector,read=read,killpg=kill,started=started)
@@ -60,6 +61,12 @@ try:
  result,c=run();assert result['outcome']=='BUILT_NOT_EXECUTED' and result['childReaped'];checks+=1
  for args in [dict(body=b'PRIVATE'),dict(body=raw+b'{}\n'),dict(body=b'x'*65537),dict(stderr=b'PRIVATE'),dict(code=-9),dict(code=74),dict(deadline=True,started=0),dict(kill_denied=True)]:
   result,c=run(**args);assert result['outcome']=='UNKNOWN';assert 'PRIVATE' not in json.dumps(result);checks+=1
+ # Only bounded exception family/errno facts are retained; no message/class
+ # name/path/value disclosure, and no change to UNKNOWN or signal ordering.
+ class PRIVATE_EXCEPTION_NAME(Exception):pass
+ for error,family,code in [(PermissionError(errno.EPERM,'PRIVATE'), 'PERMISSION_ERROR','EPERM'),(PermissionError(errno.EACCES,'PRIVATE'),'PERMISSION_ERROR','EACCES'),(TypeError('PRIVATE'),'TYPE_ERROR','NOT_PRESENT'),(OSError(999999,'PRIVATE'),'OS_ERROR','UNKNOWN'),(PRIVATE_EXCEPTION_NAME('PRIVATE'),'OTHER_EXCEPTION','NOT_PRESENT')]:
+  result,c=run(kill_error=error);assert result['outcome']=='UNKNOWN' and result['cleanupExceptionFamily']==family and result['cleanupErrno']==code and 'PRIVATE' not in json.dumps(result);checks+=1
+ result,c=run(kill_error=ProcessLookupError(errno.ESRCH,'PRIVATE'));assert result['cleanupSignal']=='GROUP_ALREADY_ABSENT' and result['cleanupExceptionFamily']=='PROCESS_LOOKUP_ERROR' and result['cleanupErrno']=='ESRCH' and result['outcome']=='BUILT_NOT_EXECUTED';checks+=1
  # The existing parent's elapsed body origin is not reset after preflight.
  result,c=run(deadline=True,started=0);assert result['reason_code']=='BODY_DEADLINE';checks+=1
  for edit in [lambda v:v.update(schema=True),lambda v:v.update(models=1),lambda v:v['newFileDigests'][0].update(index=1),lambda v:v['phases'][1].update(name='freshHost'),lambda v:v.update(UNREVIEWED='PRIVATE')]:
@@ -97,7 +104,7 @@ try:
 finally:m.os.set_blocking=original
 print(json.dumps({'scope':'PYTHON_PARENT_SOURCE_MOCKS_ONLY','passed':checks,'nativeExecutions':0,'compilerBuilds':0}))
 `;
- const out=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify(good),encoding:'utf8',timeout:5000,maxBuffer:16384});const v=JSON.parse(out);assert.equal(v.scope,'PYTHON_PARENT_SOURCE_MOCKS_ONLY');assert.equal(v.passed,19);assert.equal(v.nativeExecutions,0);assert.equal(v.compilerBuilds,0);});
+ const out=execFileSync('/usr/bin/python3',['-I','-S','-c',python,parentPath],{input:JSON.stringify(good),encoding:'utf8',timeout:5000,maxBuffer:16384});const v=JSON.parse(out);assert.equal(v.scope,'PYTHON_PARENT_SOURCE_MOCKS_ONLY');assert.equal(v.passed,25);assert.equal(v.nativeExecutions,0);assert.equal(v.compilerBuilds,0);});
 
 test('old enclosure source interpretation is refused before new build dispatch',async()=>{const m=mock();m.op.prepareEnclosure=()=>({outcome:'FIXED_CANARY_ENCLOSURE_SOURCES_PREPARED_NOT_PROVISIONED',version:'fixed-canary-finite-enclosure-source@1',sealed:false,reuseEligible:false});const v=await observe(m.options);assert.equal(v.outcome,'UNKNOWN');assert.equal(v.failedPhase,'enclosureSource');assert(!m.calls.includes('buildEnclosure'));});
 
@@ -129,7 +136,7 @@ try:
  # compiler outcome, owned root names, exact child exit or cleanup observation.
  m.prepare_record_directory=lambda repo:[('PRIVATE_TEST_SNAPSHOT',)]
  large_failed=copy.deepcopy(failed);large_failed['builds'][0]['stderrBytes']=8193
- observed={'schema':1,'scope':m.SCOPE,'outcome':'UNKNOWN','reason_code':'INNER_PREPARATION_UNKNOWN','childReaped':True,'childExitCode':74,'childSignal':None,'cleanupSignal':'GROUP_ALREADY_ABSENT','groupAbsentAfterReap':True,'stdoutBytes':1234,'stderrBytes':0,'elapsedMs':1200,'innerReport':large_failed,**m._FALSE}
+ observed={'schema':1,'scope':m.SCOPE,'outcome':'UNKNOWN','reason_code':'INNER_PREPARATION_UNKNOWN','childReaped':True,'childExitCode':74,'childSignal':None,'cleanupSignal':'UNKNOWN','cleanupExceptionFamily':'PERMISSION_ERROR','cleanupErrno':'EPERM','groupAbsentAfterReap':True,'stdoutBytes':1234,'stderrBytes':0,'elapsedMs':1200,'innerReport':large_failed,**m._FALSE}
  m.collect=lambda child,started=None:copy.deepcopy(observed)
  m.file_current=lambda row:None
  def denied_persistence(*args):raise PermissionError('PRIVATE_PERSISTENCE_ERROR')
@@ -138,7 +145,7 @@ try:
  with contextlib.redirect_stdout(capture):assert m.main()==74
  result=json.loads(capture.getvalue());assert calls==['POpen'] and result['outcome']=='UNKNOWN' and result['recordPersistence']=='UNKNOWN' and result['savedRecord']=='NOT_ESTABLISHED' and result['finalParentCompletion']=='NOT_ESTABLISHED'
  assert 'record' not in result and 'sha256' not in result and 'PRIVATE' not in capture.getvalue() and len(capture.getvalue().encode())<=65536
- kept=result['observed'];assert kept['childReaped'] and kept['childExitCode']==74 and kept['childSignal'] is None and kept['cleanupSignal']=='GROUP_ALREADY_ABSENT' and kept['groupAbsentAfterReap']
+ kept=result['observed'];assert kept['childReaped'] and kept['childExitCode']==74 and kept['childSignal'] is None and kept['cleanupSignal']=='UNKNOWN' and kept['cleanupExceptionFamily']=='PERMISSION_ERROR' and kept['cleanupErrno']=='EPERM' and kept['groupAbsentAfterReap']
  assert kept['innerReport']['ownedRootNames']==failed['ownedRootNames'] and kept['innerReport']['compilerBuildOutcome']=='EXIT_NONZERO' and kept['innerReport']['builds'][0]['status']==1 and kept['innerReport']['builds'][0]['stderrBytes']==8193
  assert kept['innerReport']['buildResultCount']==failed['buildResultCount'];checks+=1
 finally:

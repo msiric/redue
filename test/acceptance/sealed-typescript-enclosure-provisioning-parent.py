@@ -9,6 +9,7 @@ import time
 _PROCESS_STARTED = time.monotonic()
 
 import hashlib
+import errno
 import json
 import os
 from pathlib import Path
@@ -172,6 +173,28 @@ def parse_inner(body):
     return value
 
 
+def cleanup_error_classification(error):
+    # Fixed exception classes and errno names only. Never serialize a message,
+    # repr/type name, PID, path, environment or arbitrary numeric error value.
+    families = {ProcessLookupError: "PROCESS_LOOKUP_ERROR", PermissionError: "PERMISSION_ERROR",
+                OSError: "OS_ERROR", InterruptedError: "INTERRUPTED_ERROR",
+                BlockingIOError: "BLOCKING_IO_ERROR", TimeoutError: "TIMEOUT_ERROR",
+                FileNotFoundError: "FILE_NOT_FOUND_ERROR", TypeError: "TYPE_ERROR",
+                ValueError: "VALUE_ERROR", OverflowError: "OVERFLOW_ERROR",
+                SystemError: "SYSTEM_ERROR", RuntimeError: "RUNTIME_ERROR"}
+    family = families.get(type(error), "OTHER_EXCEPTION")
+    os_errors = {ProcessLookupError, PermissionError, OSError, InterruptedError,
+                 BlockingIOError, TimeoutError, FileNotFoundError}
+    if type(error) not in os_errors:
+        return family, "NOT_PRESENT"
+    code = error.errno
+    if code is None:
+        return family, "NOT_PRESENT"
+    allowed = {getattr(errno, key): key for key in
+               ("EPERM", "EACCES", "ESRCH", "EINVAL", "EINTR", "EIO", "EFAULT", "EBADF", "ENOSYS", "EOVERFLOW")}
+    return family, allowed.get(code, "UNKNOWN") if type(code) is int else "UNKNOWN"
+
+
 def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelector,
             read=os.read, killpg=os.killpg, started=None):
     """Fixed process envelope; injection is for source/mock tests only.
@@ -188,6 +211,7 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
     reaped = False
     kill_attempted = False
     cleanup_signal = "NOT_ATTEMPTED"
+    cleanup_exception_family, cleanup_errno = "NONE", "NONE"
     reason = "UNKNOWN"
     code = None
     inner = None
@@ -241,10 +265,12 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
             kill_attempted = True
             killpg(owned_pid, signal.SIGKILL)
             cleanup_signal = "SENT"
-        except ProcessLookupError:
+        except ProcessLookupError as cleanup_error:
             cleanup_signal = "GROUP_ALREADY_ABSENT"
-        except Exception:
+            cleanup_exception_family, cleanup_errno = cleanup_error_classification(cleanup_error)
+        except Exception as cleanup_error:
             cleanup_signal = "UNKNOWN"
+            cleanup_exception_family, cleanup_errno = cleanup_error_classification(cleanup_error)
         try:
             require(owned_pid is not None and kill_attempted)
             remaining = 5.0 if began is None else max(0.0, min(5.0, began + 35 - clock()))
@@ -302,7 +328,8 @@ def collect(child, clock=time.monotonic, selector_factory=selectors.DefaultSelec
             "reason_code": "PREPARATION_OBSERVED" if success else reason,
             "childReaped": reaped, "childExitCode": code if isinstance(code, int) and code >= 0 else None,
             "childSignal": -code if isinstance(code, int) and code < 0 else None,
-            "cleanupSignal": cleanup_signal, "groupAbsentAfterReap": absent,
+            "cleanupSignal": cleanup_signal, "cleanupExceptionFamily": cleanup_exception_family,
+            "cleanupErrno": cleanup_errno, "groupAbsentAfterReap": absent,
             "stdoutBytes": len(output), "stderrBytes": len(error), "elapsedMs": elapsed * 1000,
             "innerReport": inner, **_FALSE}
 
@@ -375,7 +402,7 @@ def emit_final(value):
 def unknown_with_observations(report, reason):
     observed = {}
     for key in ("childReaped", "childExitCode", "childSignal", "cleanupSignal",
-                "groupAbsentAfterReap", "stdoutBytes", "stderrBytes", "elapsedMs",
+                "cleanupExceptionFamily", "cleanupErrno", "groupAbsentAfterReap", "stdoutBytes", "stderrBytes", "elapsedMs",
                 "finalSourceCurrentness"):
         if key in report:
             observed[key] = report[key]
