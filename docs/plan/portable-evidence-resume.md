@@ -49,8 +49,15 @@ is claimed; old routes, permissions and evidence authority remain unchanged.
 
 Next is the bounded real-FIFO parent direction reviewed by DIR178: no capture writes
 inside the original BEGIN/all-actors-gone/END interval; interruptions remain UNKNOWN.
+A reviewed finite FIFO/private-memory primitive is integrated atda861c2, but has no
+main, invocation, publication or interval/actor-closure authority. DIR186366 mocks
+and root local SDK27 preparation/C syntax-only pass; no built code executes. Its
+control budget is not a runnable campaign deadline. DIR185 rejects a speculative
+read-only-image pivot as an established solution. DIR187 is the active source task:
+bind original protected inputs separately from intentionally mutable workspace
+controls and close the enclosing BEGIN/all-actors-gone/END plus cancellation path.
 Complete enclosing source closure and actual boundary proof are still prerequisites,
-not facts established by this leaf. No new native/model attempt is queued.
+not facts established by these leaves. No new native/model attempt is queued.
 Descriptor authority, native compiler namespace closure, fresh producer bindings
 and G1–G4 remain pending; Copilot capacity is separate.
 Prior UNKNOWN38729509357 and cancelled duplicate remain preserved. Alpha.11 stays

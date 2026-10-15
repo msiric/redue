@@ -33,7 +33,11 @@ syntax-only preparation pass; no native checker, hosted compatibility, seal or
 CURRENT is established. Initial @1 preparation refusal remains historical UNKNOWN.
 The next bounded source direction defers capture writes until after original
 input-boundary validation and all actors finish; forced completion cannot qualify.
-No permission expansion or new native attempt is queued.
+No permission expansion or new native attempt is queued. The finite FIFO primitive
+at da861c2 is reviewed, syntax-checked source data only: no invocation, publication
+or input-interval authority exists. Original protected-input projection and complete
+actor/cancellation closure remain implementation prerequisites; intended workspace
+control changes must not be hidden by reminting a baseline after execution.
 
 Run38729509357, workflow `fb93787` / runtime `b812589`, did not establish helper
 completion, native sealing or portable reuse. Independent DIR164 accepts only

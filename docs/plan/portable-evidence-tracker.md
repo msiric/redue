@@ -117,6 +117,25 @@ other writers or complete startup closure. No capture alias, unsafe condition,
 seal or reuse has been observed. No further native attempt is queued; outside
 compiler namespace/denial-versus-absence coverage remains separately unresolved.
 
+DIR184 author50c2fbb, fresh DIR186 ACCEPT_AS_DISABLED_LEAF, is integrated at
+`da861c2`: a finite real-FIFO/private-memory primitive with **no main, invocation,
+publication, BEGIN/END or all-actor authority**. All API results remain unrunnable.
+Reviewer366 source/mock controls pass. Root local SDK27 private-source preparation
+and pinned Clang syntax-only validation pass; no object/child/collector/native
+executes. Template SHA256
+`857fcda1591e714b1c9b44a6fbb8e6bf3637fce64bf620c03979b2c44f87fa94`.
+These checks advance no D12 enforcement gate. Its four-second control budget is
+not a runnable campaign deadline. Direct reap/EOF cannot certify descendants.
+
+DIR185 rejects a speculative read-only-image pivot as a ready solution: backing
+storage and mount lifecycle need separate enforcement, while compiler namespace
+closure remains. No mount, new privilege, infrastructure or permission was used.
+DIR187 now examines one coherent enclosure using original protected-input bindings,
+actual actor closure and matching END. Intended writable-workspace control changes
+cannot pass an unchanged whole-fixture snapshot; a separately reviewed original
+protected-input projection is needed, never a post-run replacement baseline.
+No additional owner action is pending for this source work.
+
 ## Historical checkpoint — fixed-marker attempt UNKNOWN; diagnostic loop stopped
 
 2026-10-15: [run38729509357](https://github.com/msiric/redue/actions/runs/38729509357)
