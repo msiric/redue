@@ -5,36 +5,47 @@ recorded in [decisions](portable-evidence-decisions.md). Applicability/trust gat
 
 
 
-## Current checkpoint — exact tool-pair guard repaired; preparation deadline now measured
+## Current checkpoint — tool guard repaired; bounded preparation still UNKNOWN
 
-The independently reviewed closed A/B tuple implementation `d3acd01` is integrated
-at `2b77aef`. Root's existing sealed regressions pass: 5,108 PASS, 12 explicit SKIP,
-zero FAIL; TAP SHA-256
-`5aa6df3418df01087c93543293c974460e82bac6b83afe5b47227bbfa41719a1`.
-DIR359 independently accepts private tuple binding, unchanged-choice currentness,
-all eight-build consumers, conservative parent reporting and unchanged local behavior.
-DIR360 accepts workflow `99a0f61`, SHA-256
-`7c21d4af43bb117a45b96be58c2492a27936760492c78c859af41f481f772374`.
+The independently reviewed exact A/B tool binding is integrated; GitHub dispatch
+works through the existing personal account without changing the shared default.
+Native-only ancestry batching `3aae253` is integrated at `8de0f61`. Independent
+DIR369 accepts the unchanged base helper, retained full reads/closing guards and
+native-only endpoint change. Local sealed regressions: 5,116 PASS, 12 explicit
+SKIP, zero FAIL; TAP SHA-256
+`dedf09a8518bdbc9a0c281d1a81c5097096425dc4685c428fec2d49f8fa607b3`.
+The identical source/mock audit removes 8,120 of 29,303 lstat calls, with content
+reads and outcome unchanged. These are mock work counts, not native timing proof.
 
-Actual [run 38825999937](https://github.com/msiric/redue/actions/runs/38825999937)
-was dispatched once through the existing personal account without an owner UI step.
-Both machines passed the former tool guard and returned six preparatory compiler
-process observations each. Both then reached the unchanged 60-second body deadline;
-UNKNOWN and lower-bound counts are retained. The producer spent 32,523.990ms in
-`oldLauncherBuild` and 6,689.871ms in `oldLauncherCurrent`; the receiver spent
-22,282.646ms and 4,920.880ms respectively. The receiver also completed a 7,359.619ms
-`originalProjection` and 4,970.386ms `enclosureSource` before the deadline during
-`enclosureBuilds`. Cost groups overlap: their inclusive times must not be summed.
-No validated FINAL means the selected/expected pair fields correctly remain null.
+Actual [run 38827998496](https://github.com/msiric/redue/actions/runs/38827998496)
+used reviewed workflow `712ec27` / runtime `3aae253`. Both machines reached the
+unchanged 60-second body deadline. Receiver B returned eight preparatory compiler
+observations and completed eighteen phases, stopping in `finalValidation`;
+producer A returned six and completed sixteen phases, stopping in `enclosureBuilds`.
+Counts remain lower bounds; no FINAL means compiler outcome UNKNOWN and null
+selected/expected pair fields. Independent DIR371 accepts these observations.
+No built helper, native agent, model, TypeScript check or receipt executed.
 
-Images/tool pairs differed between the VMs. Complete recipient profile matching
-remains NOT ESTABLISHED; these public facts alone prove neither full compatibility
-nor incompatibility. No built helper, native agent, model, TypeScript check or
-receipt executed. There is no origin, seal or reuse authority. Public records:
-35,473B SHA-256 `2ab4fa687785b37f551acb1b6b8f3ef6d5d3f06c1dea01540d754056b0165540`.
-Next: independently inspect the measured repeated launcher-validation calls and
-use the existing same-call guarded observation only where justified. No unchanged
-retry, deadline increase, cross-write/clang/await cache or relaxed currentness.
+The earlier [run 38825999937](https://github.com/msiric/redue/actions/runs/38825999937)
+also timed out, with six returned observations per VM. Comparing individual runs
+by tool pair, launcher build A was 22.283s then 20.158s; B was 32.524s then 15.322s.
+Different VMs and uncontrolled load/cache conditions prevent a causal or general
+speedup claim. The complete preparation has not passed its budget.
+
+The latest receiver COST prefix isolates 27 completed `enclosure_tool` calls /
+11.761s, versus 628 row checks / 0.102s. These sampled inclusive groups are not
+summable or final totals. DIR373 accepts a narrow existing-observation composition
+within one read-only `completeCurrent` only; exact implementation/review and hosted
+benefit remain pending. All boundaries remain; no scope may span writes, Clang,
+await or an independent validation. Do not increase deadlines or retry unchanged.
+
+Current public records: 36,297B SHA-256
+`6e9ee550ebdf83ca92a7491b601d2b8f865ae0eeb341f9e93430e22d3ca03f93`;
+previous records: 35,473B SHA-256
+`2ab4fa687785b37f551acb1b6b8f3ef6d5d3f06c1dea01540d754056b0165540`.
+Both actual failures remain retained. Complete recipient profile compatibility,
+native enforcement, origin/seal authority and portable agent reuse remain
+unestablished. No model launches while the corresponding prerequisite is UNKNOWN.
 
 ### Preserved previous checkpoint
 
