@@ -13,47 +13,49 @@ resource limits, history or the next acceptance outcome.
 
 
 
-## Current checkpoint — tool guard repaired; bounded preparation still UNKNOWN
+## Current checkpoint — GitHub access restored; preparation budget decision required
 
-The independently reviewed exact A/B tool binding is integrated; GitHub dispatch
-works through the existing personal account without changing the shared default.
-Native-only ancestry batching `3aae253` is integrated at `8de0f61`. Independent
-DIR369 accepts the unchanged base helper, retained full reads/closing guards and
-native-only endpoint change. Local sealed regressions: 5,116 PASS, 12 explicit
-SKIP, zero FAIL; TAP SHA-256
-`dedf09a8518bdbc9a0c281d1a81c5097096425dc4685c428fec2d49f8fa607b3`.
-The identical source/mock audit removes 8,120 of 29,303 lstat calls, with content
-reads and outcome unchanged. These are mock work counts, not native timing proof.
+Routine CLI reads/writes now use the approved existing personal `msiric` account
+through the independently reviewed process-local credential route. The shared
+account default is unchanged. No owner UI dispatch is currently needed.
 
-Actual [run 38827998496](https://github.com/msiric/redue/actions/runs/38827998496)
-used reviewed workflow `712ec27` / runtime `3aae253`. Both machines reached the
-unchanged 60-second body deadline. Receiver B returned eight preparatory compiler
-observations and completed eighteen phases, stopping in `finalValidation`;
-producer A returned six and completed sixteen phases, stopping in `enclosureBuilds`.
-Counts remain lower bounds; no FINAL means compiler outcome UNKNOWN and null
-selected/expected pair fields. Independent DIR371 accepts these observations.
-No built helper, native agent, model, TypeScript check or receipt executed.
+The reviewed same-call tool-observation change `de8c1e6` is integrated at
+`8077e0e`. Independent DIR375 accepts the exact source and retained guards;
+DIR376 accepts workflow `7fcb5c3`. Integrated sealed regressions: 5,139 PASS,
+12 explicit SKIP, zero FAIL; TAP SHA-256
+`517c5ddbf0442c7c4ecc188b8061a1c80f31d2851241226058e2901a9f2b9bd3`.
+Source/mock counts establish reduced repeated discovery, not hosted speedup.
 
-The earlier [run 38825999937](https://github.com/msiric/redue/actions/runs/38825999937)
-also timed out, with six returned observations per VM. Comparing individual runs
-by tool pair, launcher build A was 22.283s then 20.158s; B was 32.524s then 15.322s.
-Different VMs and uncontrolled load/cache conditions prevent a causal or general
-speedup claim. The complete preparation has not passed its budget.
+Actual [run 38829883159](https://github.com/msiric/redue/actions/runs/38829883159)
+used that exact workflow/runtime. Both VMs hit the unchanged 60-second body
+limit. Producer returned six compiler observations / sixteen completed phases,
+stopping in `enclosureBuilds`; receiver returned eight / seventeen, stopping in
+`enclosureCurrent`. These are lower bounds. Neither produced an accepted FINAL:
+compiler outcome UNKNOWN, selected/expected profile fields null. No built helper,
+native agent, model, TypeScript check or receipt executed. Public records: 36,149B,
+SHA-256 `1eb49b0c980f41a9eaff84f9d43ee010608ce3ae85f0401335b78d8c4aaf455f`.
+DIR378 independently verifies the failure/UNKNOWN classification and exact logs.
 
-The latest receiver COST prefix isolates 27 completed `enclosure_tool` calls /
-11.761s, versus 628 row checks / 0.102s. These sampled inclusive groups are not
-summable or final totals. DIR373 accepts a narrow existing-observation composition
-within one read-only `completeCurrent` only; exact implementation/review and hosted
-benefit remain pending. All boundaries remain; no scope may span writes, Clang,
-await or an independent validation. Do not increase deadlines or retry unchanged.
+After two materially different reviewed corrections, stop speculative optimization
+and unchanged retries. The remaining proposed owner decision is ONE build-only
+CI trial with a 90-second body, at most five seconds cleanup / 95 seconds total,
+and a three-minute job cap on the same standard VM pair at $0. This is a setup
+budget change, not a speed improvement, proof of necessity/sufficiency, or relaxed
+acceptance. Until approved, retain all existing limits. If approved, coherently
+update/review the finite build-only child, parent, protocol, timing validators,
+workflow and pins; keep shared native preparation and native/model/checker limits
+unchanged. Build success alone would remain BUILT_NOT_EXECUTED, not enforcement,
+origin authority, full profile compatibility or agent reuse.
 
-Current public records: 36,297B SHA-256
-`6e9ee550ebdf83ca92a7491b601d2b8f865ae0eeb341f9e93430e22d3ca03f93`;
-previous records: 35,473B SHA-256
-`2ab4fa687785b37f551acb1b6b8f3ef6d5d3f06c1dea01540d754056b0165540`.
-Both actual failures remain retained. Complete recipient profile compatibility,
-native enforcement, origin/seal authority and portable agent reuse remain
-unestablished. No model launches while the corresponding prerequisite is UNKNOWN.
+Earlier actual failures `38825999937` and `38827998496`, independent reviews and
+source/mock audits remain retained in Git history and protected local evidence.
+Their censored inclusive cost groups and different VM/load/cache conditions do
+not establish a causal speedup or an irreducible duration above sixty seconds.
+Claude's provisioned OAuth secret is present, but its time-bounded account fact
+requires a genuine owner refresh before a runnable native attempt; do not repeat
+login/setup or silently renew that fact. Copilot included Actions billing and the
+pinned 1.0.91 four-credit control remain separately unverified. Alpha.11 remains
+unpublished and unchanged. G1–G4 completion is not claimed.
 
 ### Preserved previous checkpoint
 
