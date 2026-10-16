@@ -75,10 +75,19 @@ which seat/quota actually applies before inference. An organization-provided
 license can also impose CLI policy and billing restrictions. Account existence
 is already settled; do not ask for it again.
 
-The one remaining Copilot owner action is confirmation that account `msiric`'s
-CLI use in this repository is permitted by that seat/policy, has at least the
-reviewed initial credit reservation included, and has no additional-charge
-route under the $0 cap. The initial proposal is one process, at most four AI
+The remaining owner/billing-admin fact is confirmation that account `msiric`'s
+CLI use in this personal repository draws from available included capacity under
+its applicable seat/policy, with no additional-charge route under the $0 cap.
+Repository administration and a historical usage report do not establish that.
+The documented user billing endpoint excludes organization/enterprise-managed
+Copilot licenses and reports past usage rather than a future spending guarantee.
+[GitHub billing API](https://docs.github.com/en/rest/billing/usage#get-billing-ai-credit-usage-report-for-a-user)
+
+Separately, the proposed four-credit limit's acceptance and enforcement remain
+**UNVERIFIED for pinned CLI 1.0.91**. Flag/help presence alone is insufficient;
+help from a different installed version cannot establish this pin's semantics.
+Keep the proposal disabled until that control and the included charging route
+are established. Do not silently raise the limit or substitute another version. The initial proposal is one process, at most four AI
 credits, at most300seconds, no fleet/autopilot continuation, no capacity retry
 or API/BYOK fallback. These are proposed maxima, not permission to charge.
 If GitHub does not expose a hard included-capacity stop, require the owner to
