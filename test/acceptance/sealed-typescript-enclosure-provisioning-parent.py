@@ -49,7 +49,7 @@ NATIVE_SOURCE_PINS = (
 NATIVE_SEALED_SOURCE_PINS = (
     ("base-collector-copies.mjs", "70b129684c8896e7f7e1c4b134b46a29f9f84818f10c8b7e65a094b1579cc699"),
     ("base-collector-source.mjs", "88b60905f59af6aedf62d80492bacc8e60ee8c58b1ed45d2abeed4c03a19c421"),
-    ("base-exchange-assets.mjs", "b32cfc0ff601794754bd734af4b461136899c02e6a5219e0a89459f06eb541b3"),
+    ("base-exchange-assets.mjs", "2556ec45cacfd05e5ef06e69f2c75eee5f49ae804c20f9baa7e4011d3ce7a5e6"),
     ("base-exchange-pair.mjs", "1eb18eaa4768ece210afcdea400d88fedf1408adf7ffec4caf190109ae403196"),
     ("base-exchange-result.mjs", "be2d30edf40597f52a6a9e919b5a3ee26e15bf0dc9f942badda0fb54db10b05d"),
     ("base-exchange-source.mjs", "1a66abed15ecff05ee41266ff3e3a5230fc109164a0e74ecafce83525d1c16f6"),
