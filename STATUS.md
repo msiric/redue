@@ -32,10 +32,10 @@ Day0: 2026-10-10 21:24UTC. Day14/28 remain conditional, not promised dates.
    contract against the actual mapped-change,
    outside-resolution, runtime and selection counterexamples. Define exactly
    which producer/runtime assumptions replace stronger sealing claims.
-2. Inspection-only code is integrated for independent review. Existing
+2. Inspection-only code passed independent review (PE-CI-04). Existing
    `evidence inspect FILE --json` recognizes the distinct controlled-CI claim;
    import/export/trust/eligibility are not enabled. Seven affected suites:108 PASS.
-   Next implement checked discovery using the existing pinned5.5.2 traversal,
+   ACTIVE PE-CI-05: checked discovery using the existing pinned5.5.2 traversal,
    then the smallest versioned recipe. Old evidence gains no new authority.
 3. Demonstrate real execution/export/import/recipient invalidation in separate
    checkouts, then approved matched VMs. Keep failed preconditions fail-closed.
@@ -43,6 +43,14 @@ Day0: 2026-10-10 21:24UTC. Day14/28 remain conditional, not promised dates.
    account facts and native prerequisites hold. Keep CLI/model results separate.
 5. Measure the complete path and prepare the exact installed candidate plus
    remaining V01–V22/G1–G4 evidence for owner release review.
+
+Validation of this slice: focused108 PASS; shared containment/receipt checks61
+PASS,8 explicit SKIP. Seven legacy positive tests failed identically at base
+32007a7 because their continuous-origin prerequisite is unavailable. Their bodies
+and assertions are unchanged; explicit capability gating now reports them SKIP,
+not passed reuse. Failed logs are retained. Independent review also ran135 PASS,
+1 platform SKIP and1,601 old-format differential comparisons. No full package,
+platform, signing or model acceptance of the new contract is claimed.
 
 ## Current limits and frozen experiment
 

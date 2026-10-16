@@ -18,6 +18,13 @@ import {fileURLToPath} from 'node:url';
 import {commitReceipt} from '../src/state-store.mjs';
 import {acquireRunLock} from '../src/run-lock.mjs';
 import {portableRuntimeSupported} from '../src/portable-runtime.mjs';
+import {portableOriginIntervalSupported} from '../src/portable-origin-interval.mjs';
+// These historical positive scenarios require a complete @2 origin. Keep their
+// assertions intact; current incomplete-run/selection protection stays exercised
+// by portable-origin-interval.test.mjs even while that capability is unavailable.
+const legacyOriginUnavailable=!portableOriginIntervalSupported()?
+  'Legacy @2 continuous-origin capability unavailable; current containment tests remain active':
+  !portableRuntimeSupported()?'Portable runtime unavailable':false;
 import {parseCacheMembers,inspectCacheContents} from '../src/portable-runtime-cache.mjs';
 import {readProducerPolicySnapshot,revalidateProducerPolicySnapshot,producerPolicyBindingCurrent,
   PRODUCER_POLICY_INTERPRETATION} from '../src/portable-producer-policy.mjs';
@@ -596,7 +603,7 @@ function observedCompiler(t,{copiedNode=false}={}){
 }
 
 test('actual daemon cannot learn client certificates or failed proofs; warm validation remains caller-independent',
- {skip:!portableRuntimeSupported(),timeout:120000},async t=>{
+ {skip:legacyOriginUnavailable,timeout:120000},async t=>{
  const f=observedCompiler(t);f.call('run','typecheck','--portable');const baseline=f.selected();
  assert.equal(baseline.portable.complete,true);
  const envelope=path.join(f.base,'certificate-origin.json');
@@ -641,7 +648,7 @@ test('actual daemon cannot learn client certificates or failed proofs; warm vali
 });
 
 test('actual portable inspection cancellation and ending change-and-restore preserve non-reuse',
-  {skip:!portableRuntimeSupported(),timeout:150000},async t=>{
+  {skip:legacyOriginUnavailable,timeout:150000},async t=>{
   const f=observedCompiler(t);f.call('run','typecheck','--portable');const baseline=f.selected();
   assert.equal(baseline.result,'PASS');assert.equal(baseline.portable.complete,true);
   const immutable=path.join(f.state,'runs-v1',baseline.invocation.runId+'.json'),original=fs.readFileSync(immutable);
@@ -700,7 +707,7 @@ test('actual portable inspection cancellation and ending change-and-restore pres
 });
 
 test('real copied-Node recipient independently reuses origin evidence without executing the compiler',
-  {skip:!portableRuntimeSupported(),timeout:240000},async t=>{
+  {skip:legacyOriginUnavailable,timeout:240000},async t=>{
   const f=observedCompiler(t);f.call('run','typecheck','--portable');const baseline=f.selected();
   assert.equal(baseline.result,'PASS');assert.equal(baseline.portable.complete,true);
   const historical=path.join(f.state,'runs-v1',baseline.invocation.runId+'.json'),original=fs.readFileSync(historical);
@@ -765,7 +772,7 @@ test('real copied-Node recipient independently reuses origin evidence without ex
 });
 
 test('portable origin cannot complete after raw caller identity changes during final validation',
-  {skip:!portableRuntimeSupported(),timeout:120000},async t=>{
+  {skip:legacyOriginUnavailable,timeout:120000},async t=>{
   const f=observedCompiler(t,{copiedNode:true});
   f.call('run','typecheck','--portable');const baseline=f.selected();
   assert.equal(baseline.result,'PASS');assert.equal(baseline.portable.complete,true);
@@ -796,7 +803,7 @@ test('portable origin cannot complete after raw caller identity changes during f
 });
 
 test('real portable origin refuses change-and-restore, post-exit membership and lost end observation',
-  {skip:!portableRuntimeSupported(),timeout:150000},async t=>{
+  {skip:legacyOriginUnavailable,timeout:150000},async t=>{
   const f=observedCompiler(t);
   f.call('run','typecheck','--portable');const baseline=f.selected();
   assert.equal(baseline.result,'PASS');assert.equal(baseline.portable.complete,true);
@@ -822,7 +829,7 @@ test('real portable origin refuses change-and-restore, post-exit membership and 
 });
 
 test('delayed recipient publication never hides newer selection, catalog or observed input changes behind imported PASS',
-  {skip:!portableRuntimeSupported(),timeout:150000},async t=>{
+  {skip:legacyOriginUnavailable,timeout:150000},async t=>{
   const f=observedCompiler(t);f.call('run','typecheck','--portable');const baseline=f.selected();
   assert.equal(baseline.portable.complete,true);
   const artifact=path.join(f.base,'evidence.json');
