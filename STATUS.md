@@ -19,6 +19,8 @@ Day0: 2026-10-10 21:24UTC. Day14/28 remain conditional, not promised dates.
   exist; current portable origin interpretation is intentionally contained.
 - Local and earlier hosted Claude diagnostics passed within their recorded scope;
   they do not establish ordinary-project handoff or the new native boundary.
+- The new controlled-CI inspection reports UNVERIFIED, claim-only and no trust or
+  reuse authority. Actual CLI demonstration used synthetic data, not CI evidence.
 - GitHub CLI works with the approved existing personal account. No routine manual
   workflow dispatch is needed; global account settings are not changed.
 - Reviewed runtime `de8c1e6` is integrated at `8077e0e`; local sealed suite:
@@ -30,10 +32,11 @@ Day0: 2026-10-10 21:24UTC. Day14/28 remain conditional, not promised dates.
    contract against the actual mapped-change,
    outside-resolution, runtime and selection counterexamples. Define exactly
    which producer/runtime assumptions replace stronger sealing claims.
-2. ACTIVE: implement strict inspection-only representation through the existing
-   evidence-inspection command, then the smallest versioned recipe using export,
-   discovery and trust machinery. Old evidence must not gain new authority.
-   Independent review covers the complete applicability/trust change.
+2. Inspection-only code is integrated for independent review. Existing
+   `evidence inspect FILE --json` recognizes the distinct controlled-CI claim;
+   import/export/trust/eligibility are not enabled. Seven affected suites:108 PASS.
+   Next implement checked discovery using the existing pinned5.5.2 traversal,
+   then the smallest versioned recipe. Old evidence gains no new authority.
 3. Demonstrate real execution/export/import/recipient invalidation in separate
    checkouts, then approved matched VMs. Keep failed preconditions fail-closed.
 4. Complete the bounded cross-agent handoff when actual included capacity,
@@ -41,7 +44,7 @@ Day0: 2026-10-10 21:24UTC. Day14/28 remain conditional, not promised dates.
 5. Measure the complete path and prepare the exact installed candidate plus
    remaining V01–V22/G1–G4 evidence for owner release review.
 
-## Frozen approach and latest actual result
+## Current limits and frozen experiment
 
 Sealing/native-enclosure work is frozen, not deleted or declared unnecessary.
 Do not run another build, increase its deadline, hash more OS state or resume
@@ -53,6 +56,10 @@ No accepted FINAL; compiler UNKNOWN, no native/model/check/receipt execution.
 Independent DIR378 accepted this classification. Public records SHA-256:
 `1eb49b0c980f41a9eaff84f9d43ee010608ce3ae85f0401335b78d8c4aaf455f`.
 Earlier failures, counterexamples and source reviews remain in Git/protected files.
+
+Checking-phase audit: real TS5.5.2 NodeNext fixture added resolution questions
+without changing getSourceFiles membership. Reuse existing diagnostic traversal;
+do not infer complete checking coverage from file lists. No contract is enabled.
 
 ## Owner asks / external prerequisites
 

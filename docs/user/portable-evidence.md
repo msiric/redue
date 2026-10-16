@@ -30,6 +30,28 @@ Those claims require the actual matched environments and host trials in
 [REDUE-PE-001](../plan/portable-evidence.md). The authenticated CI route also needs
 separate acceptance before it can replace manual file approval.
 
+## Controlled-CI claim inspection (development candidate only)
+
+The existing command also recognizes the distinct proposed interpretation
+`redue-portable-controlled-ci-direct-typescript@1`:
+
+```sh
+redue evidence inspect FILE --json
+```
+
+Its `TRUSTED_QUIESCENT_ISOLATED_JOB` assurance and host/runtime profile are
+**unverified producer claims**. Inspection checks bounded structure and digests;
+it reports `claim_only: true`, `freshness: UNVERIFIED`, `producer_accepted: false`,
+`reuse_eligible: false` and checking coverage `NOT_ESTABLISHED`. No matched runtime
+profile or controlled job is established by declaring its digest. This format
+cannot yet be exported, imported, authenticated or used for a reuse decision.
+Manual approval cannot turn it into the older interpretation. Do not rename or
+edit old evidence to create it. The existing origin containment remains in force.
+
+The narrower contract is being evaluated with explicit stable-job and trusted
+host-runtime assumptions; it does not claim native sealing or detection of every
+concurrent change-and-restore. This is not a new published support claim.
+
 ## Install and select the obligation
 
 Each recipient needs its own accessible REDUE installation, checkout, normally

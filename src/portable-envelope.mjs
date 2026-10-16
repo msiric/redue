@@ -2,6 +2,9 @@ import {createHash} from 'node:crypto';
 
 export const PORTABLE_PREDICATE_TYPE='https://redue.dev/attestation/direct-typescript/v1';
 export const PORTABLE_INTERPRETATION='redue-portable-direct-typescript@2';
+// A distinct, inspect-only claim. It is not an admitted producer contract.
+export const CONTROLLED_CI_PREDICATE_TYPE='https://redue.dev/attestation/controlled-ci-direct-typescript/v1';
+export const CONTROLLED_CI_INTERPRETATION='redue-portable-controlled-ci-direct-typescript@1';
 export const PORTABLE_LIMITS=Object.freeze({bytes:8*1024*1024,depth:24,nodes:500000,
   string:16384,manifest:100000,context:256});
 const STATEMENT_TYPE='https://in-toto.io/Statement/v1',HEX=/^[a-f0-9]{64}$/;
@@ -170,22 +173,25 @@ function validateFacts(facts){
   pairs(facts.discovery.configs,'configuration manifest');pairs(facts.discovery.files,'compiler input manifest');
   schema(hash(facts.discovery.queriesSha256),'compiler query identity');
 }
-function validatePredicate(predicate){
-  exact(predicate,['schema','interpretation','origin','facts'],'predicate');
-  schema(predicate.schema===1&&predicate.interpretation===PORTABLE_INTERPRETATION,'predicate interpretation');
-  exact(predicate.origin,['runId','check','result','invocation','complete'],'origin');
-  schema(typeof predicate.origin.runId==='string'&&UUID.test(predicate.origin.runId)&&text(predicate.origin.check,256)&&
-    ['PASS','FAIL',null].includes(predicate.origin.result)&&typeof predicate.origin.complete==='boolean','origin identity');
-  exact(predicate.origin.invocation,['status','exitCode','signal'],'origin invocation');
-  const invocation=predicate.origin.invocation;
+function validateOriginFacts(origin,facts){
+  exact(origin,['runId','check','result','invocation','complete'],'origin');
+  schema(typeof origin.runId==='string'&&UUID.test(origin.runId)&&text(origin.check,256)&&
+    ['PASS','FAIL',null].includes(origin.result)&&typeof origin.complete==='boolean','origin identity');
+  exact(origin.invocation,['status','exitCode','signal'],'origin invocation');
+  const invocation=origin.invocation;
   schema(['exited','interrupted','start_failed'].includes(invocation.status)&&
     (invocation.exitCode===null||Number.isSafeInteger(invocation.exitCode))&&
     (invocation.signal===null||text(invocation.signal,64)),'origin invocation outcome');
   schema(invocation.status!=='exited'||invocation.exitCode!==null&&invocation.signal===null,'completed invocation');
   const expected=invocation.status==='exited'?(invocation.exitCode===0?'PASS':'FAIL'):null;
-  schema(predicate.origin.result===expected,'origin result consistency');
-  schema(!predicate.origin.complete||invocation.status==='exited'&&predicate.facts!==null,'complete origin facts');
-  validateFacts(predicate.facts);
+  schema(origin.result===expected,'origin result consistency');
+  schema(!origin.complete||invocation.status==='exited'&&facts!==null,'complete origin facts');
+  validateFacts(facts);
+}
+function validatePredicate(predicate){
+  exact(predicate,['schema','interpretation','origin','facts'],'predicate');
+  schema(predicate.schema===1&&predicate.interpretation===PORTABLE_INTERPRETATION,'predicate interpretation');
+  validateOriginFacts(predicate.origin,predicate.facts);
 }
 function freeze(value){if(value&&typeof value==='object'){
   for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;}
@@ -200,26 +206,82 @@ export function encodeEnvelope(predicate){
   canonical(envelope);return freeze(envelope);
 }
 
-export function parseEnvelope(bytes){
-  const envelope=parseJson(bytes);exact(envelope,['schema','statement','digest'],'envelope');
+function validateEnvelope(envelope,predicateType,validate){
+  exact(envelope,['schema','statement','digest'],'envelope');
   schema(envelope.schema===1&&hash(envelope.digest),'envelope identity');
   const statement=envelope.statement;
   exact(statement,['_type','subject','predicateType','predicate'],'statement');
-  schema(statement._type===STATEMENT_TYPE&&statement.predicateType===PORTABLE_PREDICATE_TYPE,'statement interpretation');
+  schema(statement._type===STATEMENT_TYPE&&statement.predicateType===predicateType,'statement interpretation');
   schema(Array.isArray(statement.subject)&&statement.subject.length===1,'statement subject');
   exact(statement.subject[0],['name','digest'],'statement subject');
   exact(statement.subject[0].digest,['sha256'],'statement subject digest');
   schema(statement.subject[0].name==='redue-evidence'&&hash(statement.subject[0].digest.sha256),'statement subject identity');
-  validatePredicate(statement.predicate);
+  validate(statement.predicate);
   if(statement.subject[0].digest.sha256!==sha256(canonical(statement.predicate))||
     envelope.digest!==digestPayload(statement))fail('PORTABLE_DIGEST','Portable envelope digest does not match its payload');
   return freeze(envelope);
 }
 
-export function inspectEnvelope(bytes){
-  const {statement,digest}=parseEnvelope(bytes),{origin,facts}=statement.predicate;
+export function parseEnvelope(bytes){
+  return validateEnvelope(parseJson(bytes),PORTABLE_PREDICATE_TYPE,validatePredicate);
+}
+
+function inspectParsedEnvelope({statement,digest}){
+  const {origin,facts}=statement.predicate;
   return freeze({schema:1,digest,evidence_preserved:true,evidence_understood:true,
     producer_accepted:false,reuse_eligible:false,origin:{...origin},
     recipe:facts?.recipe??null,input_count:facts?.files.length??0,
     limitation:'Inspection verifies structure and digest only; it neither authenticates the producer nor establishes recipient applicability.'});
+}
+
+export function inspectEnvelope(bytes){return inspectParsedEnvelope(parseEnvelope(bytes));}
+
+// Deliberately separate from validatePredicate/parseEnvelope: existing exports,
+// imports, CI authentication and recipient decisions remain bound to @2. These
+// are producer CLAIMS, never a mint of trusted job state or local applicability.
+function validateControlledCIPredicate(predicate){
+  exact(predicate,['schema','interpretation','origin','facts','assurance'],'controlled CI predicate');
+  schema(predicate.schema===1&&predicate.interpretation===CONTROLLED_CI_INTERPRETATION,
+    'controlled CI interpretation');
+  // Reuse structural origin/result/facts checks, not @2 interpretation or
+  // applicability. Neither a complete flag nor a digest authenticates a job.
+  validateOriginFacts(predicate.origin,predicate.facts);
+  const assurance=predicate.assurance;
+  exact(assurance,['interpretation','model','sealing','hostRuntimeProfile'],'controlled CI assurance');
+  schema(assurance.interpretation==='redue-controlled-ci-assurance@1'&&
+    assurance.model==='TRUSTED_QUIESCENT_ISOLATED_JOB'&&assurance.sealing==='NOT_CLAIMED',
+    'controlled CI assurance model');
+  const profile=assurance.hostRuntimeProfile;
+  exact(profile,['interpretation','match','sha256'],'controlled CI host runtime profile');
+  schema(profile.interpretation==='redue-controlled-ci-host-runtime-profile@1'&&
+    profile.match==='RECIPIENT_MUST_ESTABLISH_EXACT_MATCH'&&hash(profile.sha256),
+    'controlled CI host runtime assumptions');
+  const facts=predicate.facts;
+  schema(facts!==null&&facts.platform.os==='darwin'&&facts.platform.arch==='arm64'&&
+    facts.runtime.version==='v22.13.0'&&facts.compiler.version==='5.5.2',
+    'controlled CI supported profile');
+}
+function inspectControlledCI(envelope){
+  const {statement,digest}=envelope,{origin,facts,assurance}=statement.predicate;
+  return freeze({schema:1,digest,interpretation:CONTROLLED_CI_INTERPRETATION,
+    evidence_preserved:true,evidence_understood:true,claim_only:true,
+    producer_accepted:false,reuse_eligible:false,freshness:'UNVERIFIED',
+    producer_assurance:'NOT_VERIFIED',recipient_applicability:'NOT_ESTABLISHED',
+    checking_input_coverage:'NOT_ESTABLISHED',origin:{...origin},assurance,
+    claimed_host_runtime:{platform:facts.platform,runtime:facts.runtime,compiler:facts.compiler},
+    recipe:facts.recipe,input_count:facts.files.length,
+    limitation:'Inspection verifies structure and digest only. Trusted quiescent isolated-job assurance and exact matched host/runtime profile are unverified producer claims, not sealing. Checking-phase input coverage, producer authentication and recipient applicability are not established; this interpretation cannot be imported or reused.'});
+}
+// Existing inspection command only; no new encoder, import or trust route. The
+// declared type selects one exact validator, never catch-and-fallback parsing.
+export function inspectEvidenceEnvelope(bytes){
+  const envelope=parseJson(bytes);
+  exact(envelope,['schema','statement','digest'],'envelope');
+  const type=envelope.statement?.predicateType;
+  if(type===PORTABLE_PREDICATE_TYPE){
+    // Keep the historical @2 inspection's exact output and validation behavior.
+    return inspectParsedEnvelope(validateEnvelope(envelope,PORTABLE_PREDICATE_TYPE,validatePredicate));
+  }
+  schema(type===CONTROLLED_CI_PREDICATE_TYPE,'statement interpretation');
+  return inspectControlledCI(validateEnvelope(envelope,CONTROLLED_CI_PREDICATE_TYPE,validateControlledCIPredicate));
 }

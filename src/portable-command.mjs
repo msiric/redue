@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {receiptRevision} from './state-store.mjs';
 import {assertOwnedStatePlacement} from './owned-state.mjs';
-import {canonical,encodeEnvelope,inspectEnvelope,parsePortableJson,
+import {canonical,encodeEnvelope,inspectEvidenceEnvelope,parsePortableJson,
   PORTABLE_INTERPRETATION,PORTABLE_LIMITS,PortableEnvelopeError} from './portable-envelope.mjs';
 import {importEvidence} from './portable-store.mjs';
 import {readProducerPolicySnapshot,revalidateProducerPolicySnapshot} from './portable-producer-policy.mjs';
@@ -193,7 +193,7 @@ function parseOptions(args){
 
 export async function portableCommand(args,context={}){
   const {action,target,flags}=parseOptions(args);let result;
-  if(action==='inspect')result={action,...inspectEnvelope(readBoundedPortableFile(target))};
+  if(action==='inspect')result={action,...inspectEvidenceEnvelope(readBoundedPortableFile(target))};
   else if(action==='export')result=exportEvidence(target,flags['--output'],Boolean(flags['--dry-run']),context);
   else{
     const project=projectSelection(context,flags['--check']);
