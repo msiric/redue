@@ -3,7 +3,7 @@
 import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';import {createHash} from 'node:crypto';
 import {collectFixedEnclosedCampaign} from './sealed-typescript-fixed-campaign-enclosed-collector.mjs';
 import {prepareSealedTypeScriptFixedCampaignSource} from './sealed-typescript-fixed-campaign.mjs';
-import {sealedTypeScriptBaseExchangeAssetsFixtureProfile,prepareSealedTypeScriptBaseExchangeBuildToolchain,verifySealedTypeScriptFixedCanaryProtectedInputProjection,sealedTypeScriptFixedCanaryProtectedInputProjectionMatchesDerivation} from './sealed-typescript-base-exchange-assets.mjs';
+import {sealedTypeScriptBaseExchangeAssetsFixtureProfile,observeSealedTypeScriptBaseExchangeAssets,prepareSealedTypeScriptBaseExchangeBuildToolchain,verifySealedTypeScriptFixedCanaryProtectedInputProjection,sealedTypeScriptFixedCanaryProtectedInputProjectionMatchesDerivation} from './sealed-typescript-base-exchange-assets.mjs';
 import {verifySealedTypeScriptFixedCampaignPreparedNullSource,sealedTypeScriptFixedCampaignPreparedNullSourceMatchesReviewedCIAssets} from './sealed-typescript-fixed-campaign-prepared-null-source.mjs';
 const version='fixed-canary-finite-enclosure-source@2',projectionVersion='fixed-canary-original-input-projection@3';
 const cPin='cc9df8be524afecef42fb91ed49fb7f5bf038a7a25f65ce1ab0fb6815c4924d5',collectorPin='a15fee9374767e14483575264bcfa85732d90eab503c8a1f2b770c5156395878';
@@ -103,4 +103,20 @@ export function prepareSealedTypeScriptFixedCampaignEnclosureBuildToolchain(prop
   current(record);
   return authority({outcome:'BUILD_TOOLCHAIN_ORIGINAL_INPUTS_CURRENTLY_OBSERVED_DATA_ONLY',base:selected.base,proposedBuilds:selected.proposedBuilds,toolchain:selected.toolchain});
  }catch{record.invalid=true;return authority({outcome:'UNKNOWN'});}
+}
+
+// Read-only synchronous composition of this ORIGINAL source and its ORIGINAL
+// asset owner. No callback, barrier, public report or result survives as currency.
+// Writes, Clang, awaits and independent calls require separate observations.
+export function observeSealedTypeScriptFixedCampaignEnclosureBuildToolchain(proposal,inspect){
+ const record=minted.get(proposal);
+ if(record?.observing){record.invalid=true;guard(false);}
+ guard(arguments.length===2&&record&&!record.invalid&&typeof inspect==='function'&&Object.getPrototypeOf(inspect)===Function.prototype);
+ record.observing=true;
+ try{current(record);guard(!record.invalid);
+  observeSealedTypeScriptBaseExchangeAssets(record.inputs.assetsBuild,()=>{current(record);guard(!record.invalid);guard(inspect()===undefined&&!record.invalid);current(record);guard(!record.invalid);});
+  // Close source/template/projection rows AFTER the original asset owner's
+  // outer closing checks. This is endpoint validation, not an interval claim.
+  current(record);guard(!record.invalid);
+ }catch(error){record.invalid=true;throw error;}finally{record.observing=false;}
 }

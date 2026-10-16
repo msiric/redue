@@ -135,11 +135,16 @@ export function prepareSealedTypeScriptBaseExchangeBuildToolchain(assetsBuild){
  const original=mintedAssets.get(assetsBuild);
  if(arguments.length!==1||!original||original.invalid)return buildToolchainData({outcome:'UNKNOWN'});
  try{let selected;
-  observeSealedTypeScriptNativeAssetsBuild(original.hostBuild,nativeBarrier=>{
+  const derive=()=>{const proposal=original.prepareProposal({fixture:original.hostFixture});guard(proposal.scope==='FIXED_SYNTHETIC_NATIVE_ASSETS_PROPOSAL_ONLY'&&proposal.base===original.roots[2][0]&&proposal.proposedBuilds.length===2);selected={base:proposal.base,proposedBuilds:proposal.proposedBuilds,toolchain:proposal.toolchain};};
+  const enclosing=activeBaseAssetsObservations.get(assetsBuild);
+  if(enclosing){
+   // Same original, ACTIVE+ENABLED synchronous observation only. Its live
+   // barriers recheck all original rows/fixtures/ancestry; map presence or an
+   // earlier public result does not authorize joining or a later call.
+   enclosing.barrier();derive();enclosing.barrier();
+  }else observeSealedTypeScriptNativeAssetsBuild(original.hostBuild,nativeBarrier=>{
    baseAssetsBoundary(original);current(original.source);current(original.binary);nativeBarrier();baseAssetsNamedRows(original);
-   const proposal=original.prepareProposal({fixture:original.hostFixture});
-   guard(proposal.scope==='FIXED_SYNTHETIC_NATIVE_ASSETS_PROPOSAL_ONLY'&&proposal.base===original.roots[2][0]&&proposal.proposedBuilds.length===2);
-   selected={base:proposal.base,proposedBuilds:proposal.proposedBuilds,toolchain:proposal.toolchain};
+   derive();
    baseAssetsBoundary(original);current(original.source);current(original.binary);nativeBarrier();baseAssetsNamedRows(original);
   });
   baseAssetsBoundary(original);baseAssetsNamedRows(original);
