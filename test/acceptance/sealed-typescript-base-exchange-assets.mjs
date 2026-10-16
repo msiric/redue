@@ -80,7 +80,16 @@ export function verifySealedTypeScriptBaseExchangeAssets(build){
 
 
 function baseAssetsBoundary(record){guard(JSON.stringify(verifySealedTypeScriptBaseExchangePair(record.pair))===JSON.stringify(record.initialPair)&&verifySealedTypeScriptSyntheticFixture(record.hostFixture).outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED');for(const[file,before]of record.roots)guard(JSON.stringify(rootIdentity(file))===JSON.stringify(before));}
-function baseAssetsNamedRows(record){for(const row of [record.source,record.binary])namedCurrent(row);}
+function baseAssetsNamedRows(record){
+ // One synchronous trusted/quiescent endpoint barrier, never a cross-call
+ // cache or an atomic/transient-change guarantee. Original rows alone select
+ // ancestors; conflicting original expectations cannot be reconciled here.
+ const rows=[record.source,record.binary],originalAncestors=new Map();
+ for(const row of rows)for(const[file,expected]of row.lineage){guard(!originalAncestors.has(file)||originalAncestors.get(file)===expected);originalAncestors.set(file,expected);}
+ const ancestorsCurrent=()=>{for(const[file,expected]of originalAncestors){const s=fs.lstatSync(file,{bigint:true});guard(s.isDirectory()&&!s.isSymbolicLink()&&parentMark(s)===expected);}};
+ const leavesCurrent=()=>{for(const row of rows)guard(mark(fs.lstatSync(row.file,{bigint:true}))===row.mark);};
+ ancestorsCurrent();leavesCurrent();ancestorsCurrent();leavesCurrent();
+}
 function baseAssetsObserved(record){return freeze({schema:1,scope:'OBSERVED_BASE_EXCHANGE_BUILD_DATA_ONLY',outcome:'BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED',baseA:record.initialPair.baseA,baseB:record.initialPair.baseB,hostBase:record.roots[2][0],commands:[],sealed:false,reuseEligible:false});}
 // Same private build, one synchronous call only. Full native/base hashing is
 // unchanged before enabling nested metadata observations. The live native
