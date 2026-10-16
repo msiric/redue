@@ -1,4 +1,9 @@
-# Sealed-input TypeScript: current implementation boundary
+# Sealed-input TypeScript: frozen experiment
+
+**Frozen by owner-approved D16.** Current work and conclusions live only in
+[root STATUS.md](../../STATUS.md). The checkpoints below preserve the prior
+experiment, including failures; they are not instructions to resume its builds.
+No sealing, native enforcement or portable reuse success is established here.
 
 ## Current checkpoint — GitHub access restored; preparation budget decision required
 

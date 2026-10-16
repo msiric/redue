@@ -3,7 +3,7 @@ description = "Answer one material REDUE technical or product question from curr
 sandbox_mode = "read-only"
 developer_instructions = """
 Research the exact question assigned by the director.
-Follow docs/plan/director-role.md's acceptance-driven delivery loop; answer only
+Read root STATUS.md and AGENTS.md; answer only
 the concrete question blocking the assigned observable outcome or required gate.
 Use current official docs, versioned source, standards or primary papers where
 needed; inspect local code if it is the actual source of truth. Distinguish documented capability, observed
