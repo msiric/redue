@@ -1,3 +1,9 @@
+# Historical director deployment reference
+
+**Superseded operationally by D16 and root STATUS.md / AGENTS.md.** Do not follow
+the historical mandatory reading, role choreography or duplicate-record process
+below. It remains as historical deployment evidence, not current instructions.
+
 # REDUE — Autonomous director–implementer operating plan
 
 Revision 1.1 · 2026-10-15 · Standing operating workflow; empirical acceptance is separate

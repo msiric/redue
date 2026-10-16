@@ -1,6 +1,44 @@
 # REDUE — Portable Verification Evidence
 
-## Accelerated delivery plan
+## Current operating amendment — 2026-10-16 (D16)
+
+Start/resume with root [STATUS.md](../../STATUS.md) and AGENTS.md; this full plan is
+reference material for the relevant scope/gates, not required whole-file reading.
+The owner approved freezing the sealing experiment and evaluating a narrower
+explicitly trusted controlled-CI producer contract. Do not continue native-enclosure
+builds, increase their budget or treat the old threat model as a mandate for more
+machinery. Preserve all counterexamples, receipts and old interpretation refusals.
+Exact revised assumptions require critical-boundary review before activation;
+no existing evidence is retrospectively authorized. G1–G4 and the existing goal
+remain open until demonstrated under an explicitly adopted, truthful contract.
+No new spending, trust, permissions or publication authority is supplied.
+
+### Controlled-CI contract being evaluated (not enabled)
+
+The proposed obligation is direct local TypeScript compilation in a fresh,
+trusted single-job CI workspace after setup is complete. During capture, execution
+and final validation there are no concurrent writers, generation, surviving
+install hooks, shared writable input caches or preexisting writable mappings.
+These are explicit trusted job-construction assumptions, not claims that endpoint
+hashes or an attestation detect every transient write. The mapped-change
+counterexample remains valid outside this narrower boundary.
+
+The receiver independently validates its own complete inputs, membership,
+resolution/absence queries and context during a quiescent decision phase. A
+reviewed host-runtime compatibility profile can replace system-library byte
+identity only under explicit recipient policy adoption. Exact Node/compiler
+implementation checks, loader restrictions, actual exit/signal, failure/selection
+rules, interrupted-write protection and producer authentication remain.
+
+This first evaluation does not qualify arbitrary concurrent developer workspaces,
+merely matching commits/lockfiles/OS labels, unobserved checking-phase reads,
+unknown profiles or untrusted setup. Current getSourceFiles discovery alone is
+not assumed to cover all reads performed during checking. The new representation
+is separately versioned and initially inspection-only. Existing @2 origin
+containment, receipts and producer policies remain unchanged. Fresh evidence and
+independent review precede any new eligibility or accepted producer binding.
+
+## Accelerated delivery plan (reference)
 
 > **Verification evidence survives changes of agent, session, tool, and—eventually—machine, while retaining a clear statement of where it applies.**
 

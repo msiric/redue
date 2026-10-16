@@ -425,3 +425,21 @@ credentials, scopes, accounts or cross-machine export and never passes the token
 to Git, CI or models. The normal Git route pushed the reviewed task branches;
 the scoped API dispatched run38824095716 once. That run failed its existing
 compiler guard; account access does not establish any product acceptance gate.
+
+## D16 — Lean delivery and controlled-CI evaluation — owner approved 2026-10-16
+
+Owner answer: “Excellent. Proceed” to the reviewed recommendation following the
+Opus assessment. Root STATUS.md becomes the only required project-memory startup
+reading; AGENTS.md is persistent guidance. Old tracker/resume history remains in
+Git at32007a7 and protected evidence is untouched. Review coherent PRs by risk;
+ordinary changes need tests/CI, critical evidence/authentication/security boundaries
+need independent review. Delegation is optional, one integration owner remains.
+
+Freeze the sealed-input/native-enclosure experiment and withdraw the proposed
+90-second build trial as the next priority. Evaluate a narrower explicitly trusted,
+controlled-CI producer contract against actual counterexamples and existing code.
+This is approval to develop/review a concrete contract, not to turn off containment,
+auto-trust CI, exclude concurrency silently, assert arbitrary runtime equivalence,
+change signed producer bindings or activate a new interpretation by configuration.
+State material guarantee changes before use. Keep separate actual machine/agent
+acceptance, complete-path economics and the unchanged owner publication boundary.
