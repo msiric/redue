@@ -19,7 +19,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 2
     env:
-      REVIEWED_SOURCE: 3aae253d4e29ebba0dfec2df9184d185e1a4f583
+      REVIEWED_SOURCE: de8c1e67c8667897a5a8f7a1140a1fc18823f6f4
     steps:
       - name: Refuse a missing reviewed runtime binding before checkout
         shell: bash
@@ -61,7 +61,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$REVIEWED_SOURCE"
           test "$(uname -m)" = arm64
           test "$(node --version)" = v22.13.0
-          node --test test/sealed-typescript-named-row-ancestry.test.mjs test/sealed-typescript-ci-enclosure-headers.test.mjs test/sealed-typescript-host-tool-inventory.test.mjs test/sealed-typescript-ci-native-assets.test.mjs test/sealed-typescript-ci-enclosure-consumers.test.mjs test/sealed-typescript-ci-enclosure-preparation.test.mjs test/sealed-typescript-ci-enclosure-parent.test.mjs test/sealed-typescript-preparation-cost.test.mjs
+          node --test test/sealed-typescript-enclosure-tool-observation.test.mjs test/sealed-typescript-named-row-ancestry.test.mjs test/sealed-typescript-ci-enclosure-headers.test.mjs test/sealed-typescript-host-tool-inventory.test.mjs test/sealed-typescript-ci-native-assets.test.mjs test/sealed-typescript-ci-enclosure-consumers.test.mjs test/sealed-typescript-ci-enclosure-preparation.test.mjs test/sealed-typescript-ci-enclosure-parent.test.mjs test/sealed-typescript-preparation-cost.test.mjs
       - name: Fixed public facts and eight-build preparation, no helper execution
         if: ${{ !cancelled() && steps.source_classifier.outcome == 'success' }}
         shell: bash
