@@ -61,7 +61,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$REVIEWED_SOURCE"
           test "$(uname -m)" = arm64
           test "$(node --version)" = v22.13.0
-          node --test test/sealed-typescript-ci-enclosure-headers.test.mjs test/sealed-typescript-host-tool-inventory.test.mjs test/sealed-typescript-ci-native-assets.test.mjs test/sealed-typescript-ci-enclosure-consumers.test.mjs test/sealed-typescript-ci-enclosure-preparation.test.mjs test/sealed-typescript-ci-enclosure-parent.test.mjs test/sealed-typescript-preparation-cost.test.mjs
+          node --test test/sealed-typescript-named-row-ancestry.test.mjs test/sealed-typescript-ci-enclosure-headers.test.mjs test/sealed-typescript-host-tool-inventory.test.mjs test/sealed-typescript-ci-native-assets.test.mjs test/sealed-typescript-ci-enclosure-consumers.test.mjs test/sealed-typescript-ci-enclosure-preparation.test.mjs test/sealed-typescript-ci-enclosure-parent.test.mjs test/sealed-typescript-preparation-cost.test.mjs
       - name: Fixed public facts and eight-build preparation, no helper execution
         if: ${{ !cancelled() && steps.source_classifier.outcome == 'success' }}
         shell: bash
