@@ -90,7 +90,16 @@ function buildFixedAssets(options,ci){
 // applicability decision or persistent-record adoption route. Observed failure
 // irreversibly invalidates this mint; restored labels cannot revive it.
 function nativeBuildBoundary(record){guard(verifySealedTypeScriptSyntheticFixture(record.fixture).outcome==='SYNTHETIC_FIXTURE_CURRENTLY_OBSERVED'&&ownedDirectory(record.base)===record.baseIdentity&&record.identities.every(([file,before])=>ownedDirectory(file)===before)&&fs.realpathSync(record.sdk)===record.sdk&&parentMark(fs.lstatSync(record.sdk,{bigint:true}))===record.sdkIdentity);}
-function nativeBuildNamedRows(record){for(const row of record.rows)guard(mark(fs.lstatSync(row.file,{bigint:true}))===row.mark&&JSON.stringify(parents(row.file))===JSON.stringify(row.lineage));}
+function nativeBuildNamedRows(record){
+ // One synchronous trusted/quiescent endpoint barrier, never a cross-call
+ // cache or an atomic/transient-change guarantee. Original rows alone select
+ // ancestors; conflicting original expectations cannot be reconciled here.
+ const rows=record.rows,originalAncestors=new Map();
+ for(const row of rows)for(const[file,expected]of row.lineage){guard(!originalAncestors.has(file)||originalAncestors.get(file)===expected);originalAncestors.set(file,expected);}
+ const ancestorsCurrent=()=>{for(const[file,expected]of originalAncestors){const s=fs.lstatSync(file,{bigint:true});guard(s.isDirectory()&&!s.isSymbolicLink()&&parentMark(s)===expected);}};
+ const leavesCurrent=()=>{for(const row of rows)guard(mark(fs.lstatSync(row.file,{bigint:true}))===row.mark);};
+ ancestorsCurrent();leavesCurrent();ancestorsCurrent();leavesCurrent();
+}
 export function verifySealedTypeScriptNativeAssetsBuild(build){
  const record=mintedBuilds.get(build);const unknown=()=>freeze({schema:1,scope:'OBSERVED_BUILD_DATA_ONLY',outcome:'UNKNOWN',commands:[],sealed:false,reuseEligible:false});
  if(!record||record.invalid)return unknown();

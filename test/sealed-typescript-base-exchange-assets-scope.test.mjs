@@ -38,3 +38,9 @@ for(const target of ['/runtime','/compiler','/linker','/SDK/header',code+'/copie
 for(const target of ['/runtime','/compiler','/SDK/header',code+'/copied-runtime'])test('native closing metadata change '+path.basename(target)+' cannot escape final original-native barrier',()=>{const m=mock();m.state.onClose=()=>m.nodes.get(target).ctimeNs++;assert.throws(()=>m.observe(m.build,()=>{}));assert.equal(m.verify(m.build).outcome,'UNKNOWN');});
 test('unchanged-metadata hostile writes remain an explicit engineering limitation; next independent hash rejects',()=>{const m=mock();m.observe(m.build,()=>{m.nodes.get('/runtime').body[0]^=1;assert.equal(m.verify(m.build).outcome,'BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED');});assert.equal(m.verify(m.build).outcome,'UNKNOWN');});
 test('forged different build cannot borrow the active private observation or avoid its own validation',()=>{const m=mock();m.observe(m.build,()=>{const before=m.hashes();assert.equal(m.verify({outcome:'BUILT_NOT_EXECUTED'}).outcome,'UNKNOWN');assert.deepEqual(m.hashes(),before);});assert.equal(m.verify(m.build).outcome,'BASE_EXCHANGE_ASSETS_CURRENTLY_OBSERVED');});
+
+for(const kind of ['native','base'])test(kind+' conflicting original ancestor expectations permanently invalidate an active observation even after restoration',()=>{
+ const m=mock(),row=kind==='native'?m.nativeRecord.rows[1]:m.assetRecord.binary,original=row.lineage.map(value=>[...value]);
+ assert.throws(()=>m.observe(m.build,()=>{row.lineage.push([row.lineage[0][0],row.lineage[0][1]+':CONFLICT']);assert.equal(m.verify(m.build).outcome,'UNKNOWN');row.lineage=original;}));
+ assert.equal(m.verify(m.build).outcome,'UNKNOWN');assert.equal(m.assetRecord.invalid,true);assert.equal(m.fds.size,0);
+});

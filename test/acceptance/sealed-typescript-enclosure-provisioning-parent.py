@@ -49,7 +49,7 @@ NATIVE_SOURCE_PINS = (
 NATIVE_SEALED_SOURCE_PINS = (
     ("base-collector-copies.mjs", "70b129684c8896e7f7e1c4b134b46a29f9f84818f10c8b7e65a094b1579cc699"),
     ("base-collector-source.mjs", "88b60905f59af6aedf62d80492bacc8e60ee8c58b1ed45d2abeed4c03a19c421"),
-    ("base-exchange-assets.mjs", "2556ec45cacfd05e5ef06e69f2c75eee5f49ae804c20f9baa7e4011d3ce7a5e6"),
+    ("base-exchange-assets.mjs", "b32cfc0ff601794754bd734af4b461136899c02e6a5219e0a89459f06eb541b3"),
     ("base-exchange-pair.mjs", "1eb18eaa4768ece210afcdea400d88fedf1408adf7ffec4caf190109ae403196"),
     ("base-exchange-result.mjs", "be2d30edf40597f52a6a9e919b5a3ee26e15bf0dc9f942badda0fb54db10b05d"),
     ("base-exchange-source.mjs", "1a66abed15ecff05ee41266ff3e3a5230fc109164a0e74ecafce83525d1c16f6"),
@@ -64,7 +64,7 @@ NATIVE_SEALED_SOURCE_PINS = (
     ("fixed-campaign-prepared-null-source.mjs", "fbbab8a59c8f561b536dd5bf69ab486795fb4c52fa261206eb6d5dee08d68628"),
     ("fixed-campaign.mjs", "9984ffa1719401dd5cf3ab2b10313d8e9606524fac361905d31fb14172860f21"),
     ("map-result.mjs", "d19e3d1f33394b74c2771207d24ed3697ba1665e1e0d5f49564ecb80e0dcce13"),
-    ("native-assets-build.mjs", "bc4487243c662285edb334487b4313997d74a7af048415ed0744d62d49ed7f13"),
+    ("native-assets-build.mjs", "94cbc0caaf2aeac575ca50987f27ff7b5d0be19223b602b13ab6f5178ffaba22"),
     ("native-assets-proposal.mjs", "0230cdb42a39c9d5f54107466fea0fa431986fdf54277f3083db96759f266bad"),
     ("native-base-command.mjs", "fd34d5ad1eb2f252c18aaa3130dd3db08c7f03fdf6e7f17b1b0db0ea63a12a14"),
     ("native-enclosure-command.mjs", "6ed0eade1f974639b266e32f0dbcb3c72109fa04b53d4a874b74880999c09311"),
