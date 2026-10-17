@@ -64,8 +64,11 @@ test('a stat is checked against every fact about its path, including its parent 
 
 test('only the exact compiler tree and the case-swapped entry stat are exempt',()=>{
   assert.equal(runRecordIssue(record(['read',path.join(tsRoot,'lib/other.d.ts'),digest('x')]),certificate),null);
+  // Windows paths compare case-insensitively, so there the variant is the same tree.
   const variant=path.join(path.dirname(tsRoot),'TypeScript','lib/lib.d.ts');
-  assert.match(runRecordIssue(record(['read',variant,digest('lib')]),certificate),/not in the discovery certificate/);
+  const issue=runRecordIssue(record(['read',variant,digest('lib')]),certificate);
+  if(process.platform==='win32')assert.equal(issue,null);
+  else assert.match(issue,/not in the discovery certificate/);
 });
 
 // Integration: the real compiler, through redue run, on a project with errors.
