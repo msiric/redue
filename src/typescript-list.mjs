@@ -21,6 +21,19 @@ export function queryAnswer(kind,file,options) {
     // Directory entries include names/types, including newly created candidates.
     if(kind==='entries')return fs.readdirSync(file,{withFileTypes:true})
       .map(entry=>[entry.name,entry.isDirectory()?'d':entry.isSymbolicLink()?'l':'f']).sort();
+    // A compiler directory listing: subdirectories and files with a requested
+    // extension, classifying links by their targets as matchFiles does.
+    if(kind==='listing'){
+      const suffixes=options?.extensions?.map(value=>value.toLowerCase());
+      return fs.readdirSync(file,{withFileTypes:true}).flatMap(entry=>{
+        let type=entry;
+        if(entry.isSymbolicLink())try{type=fs.statSync(path.join(file,entry.name));}catch{return [];}
+        if(type.isDirectory())return [[entry.name,'d']];
+        if(type.isFile()&&(!suffixes||suffixes.some(value=>entry.name.toLowerCase().endsWith(value))))
+          return [[entry.name,'f']];
+        return [];
+      }).sort();
+    }
     throw Error('unknown compiler filesystem question');
   }catch(error){if(['ENOENT','ENOTDIR'].includes(error.code))return null;throw error;}
 }
@@ -33,20 +46,45 @@ export function compilerFiles(tsRoot,cwd) {
   const require=createRequire(import.meta.url),ts=require(tsRoot);
   if(typeof ts.createProgram!=='function'||typeof ts.createCompilerHost!=='function')return null;
   const queries=new Map();
-  const remember=(kind,file)=>{
-    const full=path.resolve(file),answer=queryAnswer(kind,full);
-    queries.set(kind+'\0'+full,[kind,full,answer]);return answer;
+  const remember=(kind,file,options)=>{
+    const full=path.resolve(file),answer=queryAnswer(kind,full,options);
+    queries.set(kind+'\0'+full+(options?JSON.stringify(options):''),
+      options?[kind,full,answer,options]:[kind,full,answer]);return answer;
   };
   const readFile=file=>{remember('readFile',file);return ts.sys.readFile(file);};
   const fileExists=file=>{remember('fileExists',file);return ts.sys.fileExists(file);};
   const directoryExists=file=>{remember('directoryExists',file);return ts.sys.directoryExists(file);};
   const getDirectories=file=>{remember('directories',file);return ts.sys.getDirectories(file);};
   const readDirectory=(dir,...args)=>{
-    const result=ts.sys.readDirectory(dir,...args);
+    // Reviewed compilers enumerate each visited directory through fs.readdirSync.
+    // Record those listings as ordinary questions so a validator without the
+    // compiler API can replay this answer; the listing itself stays authoritative.
+    const listed=[],readdirSync=fs.readdirSync;
+    fs.readdirSync=function(file,...rest){listed.push(path.resolve(String(file)));
+      return readdirSync.call(this,file,...rest);};
+    let result;try{result=ts.sys.readDirectory(dir,...args);}finally{fs.readdirSync=readdirSync;}
     // JSON turns undefined array entries into null. TypeScript distinguishes
     // them (an omitted exclude list is not a null list), so retain that fact.
     const full=path.resolve(dir),options={tsRoot,args,argsVersion:1,
       undefinedArguments:args.flatMap((value,i)=>value===undefined?[i]:[])};
+    const visited=new Set(listed);
+    if(typeof ts.getFileMatcherPatterns==='function'&&
+      result.every(file=>visited.has(path.dirname(path.resolve(file)))))try{
+      // Base paths and symlinked directories reach matchFiles through realpath
+      // deduplication without a listing; a retargeted link changes this answer.
+      for(const base of ts.getFileMatcherPatterns(full,args[1],args[2],
+        ts.sys.useCaseSensitiveFileNames,process.cwd()).basePaths)remember('realpath',base);
+      const extensions=Array.isArray(args[0])?args[0]:null;
+      for(const directory of visited){
+        remember('listing',directory,{extensions});
+        let entries=[];
+        try{entries=fs.readdirSync(directory,{withFileTypes:true});}
+        catch(error){if(!['ENOENT','ENOTDIR'].includes(error.code))throw error;}
+        for(const entry of entries)
+          if(entry.isSymbolicLink())remember('realpath',path.join(directory,entry.name));
+      }
+      options.covered=1;
+    }catch{/* uncovered listings are replayed only through the compiler API */}
     queries.set('readDirectory\0'+full+JSON.stringify(args),
       ['readDirectory',full,[...result].sort(),options]);
     return result;
@@ -56,7 +94,7 @@ export function compilerFiles(tsRoot,cwd) {
       onUnRecoverableConfigFileDiagnostic(){}});
   if(!parsed||parsed.errors?.length)throw Error('TypeScript configuration unavailable');
   const host=ts.createCompilerHost(parsed.options);
-  Object.assign(host,{readFile,fileExists,directoryExists,getDirectories,
+  Object.assign(host,{readFile,fileExists,directoryExists,getDirectories,readDirectory,
     realpath(file){remember('realpath',file);return ts.sys.realpath(file);},
     getSourceFile(file,languageVersion,onError){
       const text=readFile(file);return text===undefined?undefined:
@@ -68,5 +106,33 @@ export function compilerFiles(tsRoot,cwd) {
   // Stable answers are necessary even at first capture; a concurrent edit
   // cannot become the basis for a reusable discovery result.
   const facts=[...queries.values()];
-  return {files,queries:queriesMatch(facts)?facts:null};
+  // A certificate must cover every program file; references parse further
+  // configurations outside this host and are not certified.
+  const complete=!parsed.projectReferences?.length&&files.every(file=>queries.has('readFile\0'+file));
+  return {files,queries:complete&&queriesMatch(facts)?facts:null};
+}
+// Identity of a read file and, for a link, of its target. Writes through any
+// alias change ctime. A file changed within the last 2 s has no identity, so a
+// coarse timestamp cannot hide a second write in the same tick (git's racy rule).
+export function fileIdentity(file,now=Date.now()) {
+  try{const link=fs.lstatSync(file,{bigint:true}),target=link.isSymbolicLink()?fs.statSync(file,{bigint:true}):link;
+    if(Number(link.ctimeNs/1000000n)>=now-2000||Number(target.ctimeNs/1000000n)>=now-2000)return null;
+    const fields=st=>['dev','ino','mode','nlink','size','mtimeNs','ctimeNs'].map(key=>String(st[key]));
+    return JSON.stringify([fields(target),target===link?null:[fs.realpathSync(file),...fields(link)]]);}
+  catch(error){if(['ENOENT','ENOTDIR'].includes(error.code))return null;throw error;}
+}
+// In-process replay of a certificate. Covered directory listings are checked
+// through their recorded listings instead of loading the compiler API. A read
+// file is re-hashed until a match records its identity, taken before the read,
+// and again whenever that identity changes.
+export function queriesHold(queries,identities=new Map()) {
+  if(!queries?.length)return false;
+  return queries.every(([kind,file,answer,options])=>{
+    if(kind==='readDirectory')return options?.covered===1;
+    const identity=kind==='readFile'?fileIdentity(file):null;
+    if(identity&&identities.get(file)===identity)return true;
+    const held=JSON.stringify(queryAnswer(kind,file,options))===JSON.stringify(answer);
+    if(kind==='readFile'){if(held&&identity)identities.set(file,identity);else identities.delete(file);}
+    return held;
+  });
 }

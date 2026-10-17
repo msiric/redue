@@ -32,7 +32,7 @@ try{
     }
     const raw=Buffer.concat(chunks).toString('utf8');mark('certificate.input_complete',{bytes});
     const certificate=JSON.parse(raw),kinds=new Set(['readDirectory','readFile',
-      'fileExists','directoryExists','realpath','directories','entries']);
+      'fileExists','directoryExists','realpath','directories','entries','listing']);
     if(certificate.schema!==1||certificate.context!==contextHash||
       !Array.isArray(certificate.queries)||!certificate.queries.length||
       certificate.queries.some(q=>!Array.isArray(q)||q.length<3||q.length>4||
