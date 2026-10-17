@@ -41,6 +41,7 @@ user-visible improvements to that, quickly and correctly.
   that affect correctness or the rules above; list the rest in the PR as optional.
 - After two failed approaches to the same problem, stop and tell me: what failed,
   why, and whether narrowing the claim would solve it.
+- Never add Co-Authored-By trailers or 'Generated with Claude Code' lines to commits or PRs.
 - Never publish to npm, create tags/releases, or force-push. Never delete
   untracked or ignored files (`.local/` holds owner data).
 - Branches `dev/portable-*` and `archive/*` are reference only. Don't read their
