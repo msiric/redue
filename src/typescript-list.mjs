@@ -14,7 +14,8 @@ export function queryAnswer(kind,file,options) {
     if(kind==='readFile')return hash(fs.readFileSync(file,'utf8'));
     if(kind==='fileExists')return fs.statSync(file).isFile();
     if(kind==='directoryExists')return fs.statSync(file).isDirectory();
-    if(kind==='realpath')return fs.realpathSync(file);
+    // The compiler resolves through realpathSync.native outside Windows.
+    if(kind==='realpath')return process.platform==='win32'?fs.realpathSync(file):fs.realpathSync.native(file);
     if(kind==='directories')return fs.readdirSync(file,{withFileTypes:true})
       .filter(entry=>entry.isDirectory()||entry.isSymbolicLink()&&
         fs.statSync(path.join(file,entry.name)).isDirectory()).map(entry=>entry.name).sort();
@@ -76,6 +77,8 @@ export function compilerFiles(tsRoot,cwd) {
         ts.sys.useCaseSensitiveFileNames,process.cwd()).basePaths)remember('realpath',base);
       const extensions=Array.isArray(args[0])?args[0]:null;
       for(const directory of visited){
+        // matchFiles also resolves every visited directory to detect cycles.
+        remember('realpath',directory);
         remember('listing',directory,{extensions});
         let entries=[];
         try{entries=fs.readdirSync(directory,{withFileTypes:true});}

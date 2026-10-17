@@ -34,6 +34,16 @@ Daemon probes use daemon environment, wrapper probes use caller environment; the
 normal checkpoint comparison remains authoritative. Raw caller context is never
 replaced with daemon context. A changed command/interpretation changes plan identity.
 
+On macOS and Linux, `redue run` does not probe when the start snapshot carries a
+discovery certificate. The compiler runs with `--require src/run-recorder.cjs`,
+which records the answers of the `node:fs` calls tsc uses (`readFileSync`,
+`statSync`, `readdirSync`, `realpathSync`) and writes them to fd 3. Any write or
+other read API makes the record unusable. The CLI accepts the run's inputs only
+if each answer outside the compiler tree matches the certificate (schema 2), and
+the execution context (Node, compiler entry and digest) matches.
+The compiler tree is covered by the daemon's toolchain identity at both snapshots.
+Without a certificate, the run probes before and after, as on Windows.
+
 Tests: `test/direct-typescript.test.mjs`, the retained notifier counterexample
 `test/npm-proxy-relevance.test.mjs`, and exact installed `package-smoke.mjs`.
 Public alpha.3 impact and containment are separate: `docs/acceptance/npm-launcher-boundary.md`.

@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import net from 'node:net';import {spawn,spawnSync,execFileSync} from 'node:child_process';
 import {readReceipts,readReceiptSnapshot} from '../src/state-store.mjs';import {controlEndpoint} from '../src/control-endpoint.mjs';
-const bin=path.resolve(process.env.REDUE_UNAVAILABLE_TEST_BIN||'bin/redue.mjs'),mac={skip:process.platform!=='darwin'};
+const bin=path.resolve(process.env.REDUE_UNAVAILABLE_TEST_BIN||'bin/redue.mjs'),unix={skip:process.platform==='win32'};
 const put=(file,value)=>{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,value);};
 function fixture(t){const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'ru-'))),root=path.join(base,'project'),state=path.join(base,'redue-state'),profile=path.join(base,'profile');
  put(path.join(root,'package.json'),JSON.stringify({name:'owned-fixture',version:'1.0.0',scripts:{typecheck:'tsc --noEmit'}}));put(path.join(root,'package-lock.json'),'{"lockfileVersion":3}');
@@ -19,9 +19,9 @@ function launched(f,extra={}){const child=spawn(process.execPath,[bin,'--state-d
 async function paused(f,phase){for(const file of ['test-run-paused','test-run-release'])fs.rmSync(path.join(f.state,file),{force:true});const run=launched(f,{VSTATE_TEST_RUN_BOUNDARY:phase});for(let i=0;i<400&&!fs.existsSync(path.join(f.state,'test-run-paused'));i++)await new Promise(r=>setTimeout(r,10));assert(fs.existsSync(path.join(f.state,'test-run-paused')));return run;}
 const release=f=>put(path.join(f.state,'test-run-release'),'continue');
 const control=(f,message)=>new Promise((resolve,reject)=>{const c=net.createConnection(controlEndpoint(f.state).address);let data='';c.on('connect',()=>c.write(JSON.stringify(message)+'\n'));c.on('data',b=>data+=b);c.on('end',()=>{try{resolve(JSON.parse(data));}catch(e){reject(e);}});c.on('error',reject);});
-function assertSkipped(f,offset){const p=marks(f).slice(offset);assert.equal(p.filter(p=>p.phase==='cli.run_validation_skipped').length,1);assert.equal(p.filter(p=>['cli.probe','cli.run_certificate','cli.end_checkpoint'].includes(p.phase)).length,0);}
+function assertSkipped(f,offset){const p=marks(f).slice(offset);assert.equal(p.filter(p=>p.phase==='cli.run_validation_skipped').length,1);assert.equal(p.filter(p=>['cli.probe','cli.run_certificate','cli.run_recording','cli.end_checkpoint'].includes(p.phase)).length,0);}
 
-test('unavailable direct recording omits qualification work, selects real PASS/FAIL and never recovers old green',mac,t=>{
+test('unavailable direct recording omits qualification work, selects real PASS/FAIL and never recovers old green',unix,t=>{
  const f=fixture(t);call(f,['start']);call(f,['run','typecheck']);const first=receipt(f);assert(row(f).reuse_eligible);call(f,['stop']);
  for(const result of ['PASS','FAIL']){put(path.join(f.root,'src/main.ts'),result==='PASS'?'export const value: number = 1;':'export const value: number = "bad";');const offset=marks(f).length,r=invoke(f,['run','typecheck']);assert.equal(r.status,result==='PASS'?0:2,r.stderr+r.stdout);const selected=receipt(f);assert.notEqual(selected.invocation.runId,first.invocation.runId);assert.equal(selected.invocation.status,'exited');assert.equal(selected.invocation.exitCode,result==='PASS'?0:2);assertSkipped(f,offset);
   const cached=JSON.parse(call(f,['status','--json'])).checks[0];assert.equal(cached.invocation.runId,selected.invocation.runId);assert(!cached.reuse_eligible);
@@ -30,27 +30,27 @@ test('unavailable direct recording omits qualification work, selects real PASS/F
  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(f.state,'runs-v1',first.invocation.runId+'.json'))).receipt,first);
 });
 
-test('healthy certificates reuse and missing certificates still force full caller validation',mac,async t=>{
- const f=fixture(t);call(f,['start']);let offset=marks(f).length;call(f,['run','typecheck']);assert(row(f).reuse_eligible);assert.equal(marks(f).slice(offset).filter(p=>p.phase==='cli.run_certificate'&&p.outcome==='reused').length,2);
+test('healthy certificates reuse and missing certificates still force full caller validation',unix,async t=>{
+ const f=fixture(t);call(f,['start']);let offset=marks(f).length;call(f,['run','typecheck']);assert(row(f).reuse_eligible);const used=marks(f).slice(offset);assert.equal(used.filter(p=>p.phase==='cli.run_certificate'&&p.outcome==='available').length,1);assert.equal(used.filter(p=>p.phase==='cli.run_recording'&&p.outcome==='validated').length,1);assert.equal(used.filter(p=>p.phase==='cli.probe').length,0);
  const snapshot=await control(f,{action:'snapshot',name:'typecheck',runCertificate:1});assert(snapshot.snapshots.typecheck.observationHealthy);delete snapshot.snapshots.typecheck.discoveryCertificate;call(f,['stop']);
  // Controlled response fixture for a healthy older observer without a certificate.
  const actions=[],server=net.createServer(c=>{let data='';c.on('data',b=>{data+=b;if(!data.includes('\n'))return;const m=JSON.parse(data);actions.push(m.action);c.end(JSON.stringify(m.action==='snapshot'?snapshot:{ok:true})+'\n');});});await new Promise(r=>server.listen(controlEndpoint(f.state).address,r));
  try{offset=marks(f).length;const r=await launched(f).done;assert.equal(r.code,0,r.output);const p=marks(f).slice(offset);assert.equal(p.filter(p=>p.phase==='cli.probe').length,2);assert.equal(p.filter(p=>p.phase==='cli.run_validation_skipped').length,0);assert.equal(actions.filter(a=>a==='snapshot').length,2);}finally{await new Promise(r=>server.close(r));}
 });
 
-test('failed or unhealthy starting response cannot be repaired by later healthy responses',mac,async t=>{
+test('failed or unhealthy starting response cannot be repaired by later healthy responses',unix,async t=>{
  const f=fixture(t);call(f,['start']);const snapshot=await control(f,{action:'snapshot',name:'typecheck'});call(f,['stop']);
  for(const kind of ['malformed','unhealthy']){const actions=[],server=net.createServer(c=>{let data='';c.on('data',b=>{data+=b;if(!data.includes('\n'))return;const m=JSON.parse(data);actions.push(m.action);if(m.action==='snapshot'&&actions.length===1){if(kind==='malformed')c.end('incomplete{\n');else c.end(JSON.stringify({...snapshot,snapshots:{typecheck:{...snapshot.snapshots.typecheck,observationHealthy:false}}})+'\n');}else c.end(JSON.stringify(snapshot)+'\n');});});await new Promise(r=>server.listen(controlEndpoint(f.state).address,r));
   try{const offset=marks(f).length,r=await launched(f).done;assert.equal(r.code,0,r.output);assertSkipped(f,offset);assert.equal(actions.filter(a=>a==='snapshot').length,1);assert(!receipt(f).stable);}finally{await new Promise(r=>server.close(r));}
   call(f,['start']);evidence(f,receipt(f),'PASS');call(f,['stop']);}
 });
 
-test('recovery before launch or after exit and relevant changes cannot repair missing start observation',mac,async t=>{
+test('recovery before launch or after exit and relevant changes cannot repair missing start observation',unix,async t=>{
  const f=fixture(t);call(f,['start']);call(f,['stop']);
  for(const phase of ['after-start-checkpoint','after-exit']){const offset=marks(f).length,r=await paused(f,phase);fs.appendFileSync(path.join(f.root,'src/main.ts'),'\n// changed while non-reusable\n');call(f,['start']);release(f);const done=await r.done;assert.equal(done.code,0,done.output);const own=marks(f).slice(offset).filter(p=>p.phase==='cli.run_validation_skipped');assert.equal(own.length,1);evidence(f,receipt(f),'PASS');call(f,['stop']);}
 });
 
-test('observer can recover during the actual compiler process without qualifying its outcome',mac,async t=>{
+test('observer can recover during the actual compiler process without qualifying its outcome',unix,async t=>{
  const f=fixture(t);call(f,['start']);call(f,['stop']);const offset=marks(f).length,r=launched(f);let started;
  for(let i=0;i<400&&!started;i++){started=marks(f).slice(offset).find(p=>p.phase==='cli.child_started');if(!started)await new Promise(r=>setTimeout(r,10));}assert(started);process.kill(started.childPid,0);
  // Pause only the owned compiler process to place real observer recovery
@@ -60,7 +60,7 @@ test('observer can recover during the actual compiler process without qualifying
  const readyAt=Date.now(),done=await r.done;assert.equal(done.code,0,done.output);const selected=receipt(f);assert(readyAt<=selected.invocation.startedAt+selected.invocation.durationMs,'observer recovery must occur during actual execution');evidence(f,selected,'PASS');
 });
 
-test('non-reusable start failure, cancellation and incomplete persistence preserve true outcomes and selection',mac,async t=>{
+test('non-reusable start failure, cancellation and incomplete persistence preserve true outcomes and selection',unix,async t=>{
  const f=fixture(t);call(f,['start']);call(f,['run','typecheck']);call(f,['stop']);
  let r=await paused(f,'before-launch');fs.renameSync(f.root,f.root+'-moved');release(f);let done=await r.done;fs.renameSync(f.root+'-moved',f.root);assert.equal(done.code,127,done.output);assert.equal(receipt(f).invocation.status,'start_failed');assert.equal(receipt(f).result,null);assert(!receipt(f).stable);
  r=await paused(f,'before-launch');r.child.kill('SIGINT');await new Promise(r=>setTimeout(r,30));release(f);done=await r.done;assert.equal(done.code,130,done.output);assert.equal(receipt(f).invocation.status,'interrupted');assert(!fs.existsSync(path.join(f.state,'run.lock')));
@@ -68,7 +68,7 @@ test('non-reusable start failure, cancellation and incomplete persistence preser
  call(f,['start']);assert(!row(f).reuse_eligible);call(f,['run','typecheck']);assert(row(f).reuse_eligible);
 });
 
-test('ownership and selected configuration errors remain refusals; custom probes keep executing',mac,t=>{
+test('ownership and selected configuration errors remain refusals; custom probes keep executing',unix,t=>{
  const f=fixture(t);call(f,['start']);call(f,['run','typecheck']);call(f,['stop']);const old=receipt(f).invocation.runId,config=path.join(f.root,'redue.config.json'),original=fs.readFileSync(config);let c=JSON.parse(original);c.checks[0].inputs.push('extra/**');put(config,JSON.stringify(c));assert.notEqual(invoke(f,['run','typecheck']).status,0);assert.equal(receipt(f).invocation.runId,old);fs.writeFileSync(config,original);
  const owner=path.join(f.state,'vstate-owner-v1.json'),owned=fs.readFileSync(owner);put(owner,'{}');assert.notEqual(invoke(f,['run','typecheck']).status,0);fs.writeFileSync(owner,owned);assert.equal(receipt(f).invocation.runId,old);
  const counter=path.join(f.base,'custom-count');for(const direct of [false,true]){c=JSON.parse(original);if(!direct){delete c.checks[0].qualification;delete c.checks[0].script;c.checks[0].command=['@node','-e','process.exit(0)'];}c.checks[0].probes=[['@node','-e',`require('node:fs').appendFileSync(${JSON.stringify(counter)},'x')`]];put(config,JSON.stringify(c));call(f,['start']);call(f,['stop']);put(counter,'');const offset=marks(f).length;call(f,['run','typecheck']);assert.equal(fs.readFileSync(counter,'utf8'),'xx');assert.equal(marks(f).slice(offset).filter(p=>p.phase==='cli.run_validation_skipped').length,0);assert(!receipt(f).stable);}

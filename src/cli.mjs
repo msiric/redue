@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import {directQualification,directInterpretation,observedNpmContext} from './direct-typescript.mjs';
-import {directRunCertificateAllowed,validateDirectRunCertificate} from './direct-run-certificate.mjs';
+import {directRunCertificateAllowed,directRunCertificate,validateRunRecord} from './direct-run-certificate.mjs';
 import path from 'node:path';
 import net from 'node:net';
 import os from 'node:os';
@@ -225,7 +225,7 @@ async function execute() {
     timing('cli.start_checkpoint',startSnapshotStarted,{available:before?.snapshots?.[name]?1:0});
     // Missing discovery metadata can recover through a full probe. A missing
     // healthy start boundary cannot: freeze this decision before any recovery.
-    // Only the reviewed macOS direct recipe enters this qualification shortcut.
+    // Only the reviewed direct recipe on macOS and Linux enters this shortcut.
     const unobservedDirectRun=callerCertificate&&
       before?.snapshots?.[name]?.observationHealthy!==true;
     if(unobservedDirectRun){
@@ -235,7 +235,16 @@ async function execute() {
     await testRunBoundary('after-start-checkpoint');
     // Start the observed interval before caller validation, not after it. Any
     // intervening edit (even restored before launch) remains disqualifying.
-    if(callerCertificate&&!unobservedDirectRun)probeBefore=validateDirectRunCertificate(plan,selected,before?.snapshots?.[name])??probeHash(probePlan);
+    // With a certificate, the compile records its own answers instead of two probes.
+    let certificate=null;
+    if(callerCertificate&&!unobservedDirectRun){
+      certificate=directRunCertificate(plan,selected,before?.snapshots?.[name],root);
+      probeBefore=certificate?.value??probeHash(probePlan);
+    }
+    // The record arrives on fd 3, so the compiler's environment is unchanged.
+    const launched=certificate?[command[0],'--require',path.join(here,'run-recorder.cjs'),
+      ...command.slice(1)]:command;
+    const record=[];
     // A Windows full reconciliation may finish while queued watcher callbacks
     // are still arriving. Fold callbacks delivered before process launch into
     // the starting checkpoint; callbacks after launch still disqualify reuse.
@@ -256,10 +265,11 @@ async function execute() {
       if(requestedSignal){resolve({status:'interrupted',exitCode:null,signal:requestedSignal});return;}
       let child,spawnError=null;
       try{runLock.phase('launching');
-        const launch=windowsLaunch(command);
+        const launch=windowsLaunch(launched);
         child=spawn(launch.file,launch.args,{cwd:plan.cwd,
-        stdio:'inherit',env:process.env,detached:process.platform==='linux',
-        ...launch.options});}
+        stdio:certificate?['inherit','inherit','inherit','pipe']:'inherit',env:process.env,
+        detached:process.platform==='linux',...launch.options});
+        child.stdio[3]?.on('data',chunk=>record.push(chunk));}
       catch(e){resolve({status:'start_failed',exitCode:null,signal:null,errorCode:e.code||e.name});return;}
       activeChild=child;runLock.phase('running',child.pid??null);
       mark('cli.child_started',{childPid:child.pid});
@@ -293,7 +303,12 @@ async function execute() {
     const target={source:'direct-command',status:invocation.status==='exited'?'direct_executed':'unknown'};
     const afterContextStarted=performance.now(),environmentAfter=contextHashes()[name];
     timing('cli.context_after',afterContextStarted);
-    const probeAfter=unobservedDirectRun?null:((callerCertificate?validateDirectRunCertificate(plan,selected,before?.snapshots?.[name]):null)??probeHash(probePlan));
+    let probeAfter=null;
+    if(certificate){
+      const issue=validateRunRecord(Buffer.concat(record).toString('utf8'),certificate);
+      if(issue)captureIssues.push(`compiler inputs differ from discovery certificate (${issue})`);
+      probeAfter=certificate.value;
+    }else if(!unobservedDirectRun)probeAfter=probeHash(probePlan);
     const endSnapshotStarted=performance.now();
     if(!unobservedDirectRun){
       try{after=await call({action:'snapshot',name,contextHashes:contextHashes()},captureTimeout);}

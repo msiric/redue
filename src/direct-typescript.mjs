@@ -58,6 +58,11 @@ export function directCompiler(root,{verify=true}={}){
   }
   return {tsRoot,version,entry:path.join(tsRoot,spec.entry),digest:spec.digest};
 }
+// The execution context a direct probe certifies and a recorded run must match.
+export function directContextHash(compiler,node){
+  return hash(JSON.stringify({interpretation:directInterpretation,compiler:compiler.digest,
+    entry:compiler.entry,node}));
+}
 export function directProject(root,script,{verify=true}={}){
   const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json')));
   if(pkg.workspaces||pkg.packageManager&&!/^npm@/.test(pkg.packageManager)||
