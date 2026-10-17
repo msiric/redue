@@ -33,12 +33,15 @@ user-visible improvements to that, quickly and correctly.
 
 ## How to work
 
-- One PR per improvement, branched from `main`, with focused tests. Keep commits
-  meaningful; don't commit status or tracking documents on their own.
+- Commit straight to main; no PRs unless I ask.
+- Before each commit, run the affected tests, plus the bench for performance
+  work. For daemon, observation or trust changes, also run /code-review and fix
+  the findings that affect correctness.
+- Commit with a clear message, push, and continue. Don't wait for CI.
+- At the start of each session, run `gh run list --branch main --limit 3`. If
+  the latest run failed, fix that first.
 - Prefer the smallest change that makes the behavior right. Before adding a new
   subsystem, native code, a CI workflow, or a new config surface, stop and ask.
-- Before opening a PR, run `/code-review` (fresh-context review). Fix findings
-  that affect correctness or the rules above; list the rest in the PR as optional.
 - After two failed approaches to the same problem, stop and tell me: what failed,
   why, and whether narrowing the claim would solve it.
 - Never add Co-Authored-By trailers or 'Generated with Claude Code' lines to commits or PRs.
