@@ -94,6 +94,11 @@ async function until(f,predicate,limitMs=10000){const started=Date.now();
     await new Promise(resolve=>setTimeout(resolve,80));}
   assert.fail('status did not converge: '+JSON.stringify(status(f))+
     '\nrecent events: '+JSON.stringify(events(f).slice(-20)));}
+// On failure, name the observer's reason and recent events: macOS CI once saw
+// UNVERIFIED here without a local repro.
+function freshness(f,expected){const value=row(f);
+  assert.equal(value.freshness,expected,`${value.freshness} (${value.reason}), expected ${expected}\n`+
+    'recent events: '+JSON.stringify(events(f).slice(-20)));return value;}
 function oracle(file){return createHash('sha256').update(fs.readFileSync(file)).digest('hex');}
 
 test('short startup wait reports owned initialization instead of a false launch failure',async t=>{
@@ -124,17 +129,17 @@ test('Windows prelaunch checkpoint incorporates delivered input events without c
 
 test('receipt survives unrelated changes; source, generated, installed and absence changes stale it',async t=>{
   const f=withFixture(t,{absent:true});ok(f,'start');ok(f,'run','check');
-  const first=row(f);assert.equal(first.freshness,'CURRENT');
+  const first=freshness(f,'CURRENT');
   const firstRun=path.join(f.state,'runs-v1',first.invocation.runId+'.json');
   const immutable=fs.readFileSync(firstRun,'utf8');
-  put(path.join(f.root,'notes.md'),'unrelated');assert.equal(row(f).freshness,'CURRENT');
+  put(path.join(f.root,'notes.md'),'unrelated');freshness(f,'CURRENT');
   put(path.join(f.root,'src/input.txt'),'PASS changed\n');
   assert.match(row(f).reason,/src\/input.txt changed/);
-  assert.equal(row(f).result,'PASS');ok(f,'run','check');assert.equal(row(f).freshness,'CURRENT');
+  assert.equal(row(f).result,'PASS');ok(f,'run','check');freshness(f,'CURRENT');
   put(path.join(f.root,'generated/data.txt'),'generated-2\n');
-  assert.equal(row(f).freshness,'STALE');ok(f,'run','check');
+  freshness(f,'STALE');ok(f,'run','check');
   put(path.join(f.root,'node_modules/pkg/index.js'),'module.exports=2;\n');
-  assert.equal(row(f).freshness,'STALE');ok(f,'run','check');
+  freshness(f,'STALE');ok(f,'run','check');
   put(path.join(f.root,'node_modules/optional/index.js'),'module.exports=1;\n');
   assert.equal((await until(f,s=>s.checks[0].freshness==='STALE')).checks[0].freshness,'STALE');
   assert.equal(fs.readFileSync(firstRun,'utf8'),immutable);
