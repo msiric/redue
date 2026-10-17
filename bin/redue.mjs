@@ -9,12 +9,10 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {spawn,spawnSync} from 'node:child_process';
 import {createRequire} from 'node:module';
-import {fileURLToPath} from 'node:url';
-import {discoverNodeProject} from '../src/node-onboarding.mjs';
+import {fileURLToPath,pathToFileURL} from 'node:url';
 import {processAlive} from '../src/process-liveness.mjs';
 import {samePath,withinPath,realObservedPath} from '../src/path-identity.mjs';
 import {discoverConfig,projectState,canonicalConfig} from '../src/project-location.mjs';
-import {agentCommand} from '../src/agent-integration.mjs';
 import {findExecutable} from '../src/executable-lookup.mjs';
 import {readCachedStatus} from '../src/cached-state.mjs';
 import {assertOwnedStatePlacement} from '../src/owned-state.mjs';
@@ -62,6 +60,8 @@ try{configFile??=command==='init'||stateOverride&&['stop','remove-state'].includ
 catch(e){error(e.message);}
 if(fs.existsSync(path.dirname(configFile)))configFile=canonicalConfig(configFile);
 if(command==='agent'){
+  // Loaded on demand: onboarding and agent setup are not on the run/status path.
+  const {agentCommand}=await import('../src/agent-integration.mjs');
   try{await agentCommand(args,{configFile,stateOverride,entry:fileURLToPath(import.meta.url)});}
   catch(e){error(e.message);}
   process.exit(0);
@@ -88,6 +88,7 @@ if(short&&(command!=='status'||json||sync))error('--short is a cached status opt
 if(dryRun&&command!=='init')error('--dry-run is for init');
 
 if(command==='init'){
+  const {discoverNodeProject}=await import('../src/node-onboarding.mjs');
   let discovery;try{discovery=discoverNodeProject(process.cwd(),{recipe:recipeSelection});}
   catch(e){error(e.message);}
   if(workspaceSelection||checkSelection){
@@ -322,7 +323,13 @@ if(command==='status'&&!sync){
 const details=command==='detail'||command==='explain';
 const internal=command==='remove-state'?'uninstall':
   details?'sync':command==='status'&&sync?'sync':command;
-if(command==='run'){
+// On macOS and Linux the engine runs in this process, which saves a Node startup
+// on every run; its own handlers receive SIGINT and SIGTERM. Windows keeps a
+// child engine because cancellation reaches it over IPC.
+if(command==='run'&&process.platform!=='win32'){
+  process.argv=[process.argv[0],engine,runtimeFile,internal,check,...(!json?['--human']:[])];
+  await import(pathToFileURL(engine).href);
+}else if(command==='run'){
   const child=spawn(process.execPath,[engine,runtimeFile,internal,check,...(!json?['--human']:[])],
     {stdio:['inherit','inherit','inherit','ipc'],env:process.env});
   const forward=signal=>{if(child.exitCode!==null)return;
@@ -337,19 +344,20 @@ if(command==='run'){
   process.off('SIGINT',interrupt);process.off('SIGTERM',terminate);
   if(outcome.error)error(outcome.error.message);
   process.exit(outcome.status??(outcome.signal?128+os.constants.signals[outcome.signal]:1));
+}else{
+  mark('client.engine_submit');
+  const result=spawnSync(process.execPath,[engine,runtimeFile,internal,...(check?[check]:[])],
+    {stdio:['inherit','pipe','inherit'],
+      encoding:'utf8',env:traceEnvironment()});
+  mark('client.engine_complete',{exit:result.status,signal:result.signal});
+  if(result.error)error(result.error.message);
+  if(result.stdout){
+    if(['status','detail','explain'].includes(command)){
+      let value;try{value=JSON.parse(result.stdout);}catch{error('status response could not be read; applicability is unknown');}
+      if(details&&check)value={...value,checks:value.checks.filter(row=>row.name===check)};
+      if(json)console.log(JSON.stringify(value));
+      else console.log(details?renderExplain(value,check):renderStatus(value,{short}));
+    }else printLifecycle(result.stdout,command,json);
+  }
+  process.exit(result.status??1);
 }
-mark('client.engine_submit');
-const result=spawnSync(process.execPath,[engine,runtimeFile,internal,...(check?[check]:[])],
-  {stdio:['inherit','pipe','inherit'],
-    encoding:'utf8',env:traceEnvironment()});
-mark('client.engine_complete',{exit:result.status,signal:result.signal});
-if(result.error)error(result.error.message);
-if(result.stdout){
-  if(['status','detail','explain'].includes(command)){
-    let value;try{value=JSON.parse(result.stdout);}catch{error('status response could not be read; applicability is unknown');}
-    if(details&&check)value={...value,checks:value.checks.filter(row=>row.name===check)};
-    if(json)console.log(JSON.stringify(value));
-    else console.log(details?renderExplain(value,check):renderStatus(value,{short}));
-  }else printLifecycle(result.stdout,command,json);
-}
-process.exit(result.status??1);

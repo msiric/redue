@@ -121,7 +121,6 @@ function continuityBarrier() {
     healthy&&watcher&&!planning&&!recovering&&!planDirty&&!index?.unavailable&&
     !pending.size&&!pendingChecks.size&&!external.size&&verifyRoot();
 }
-function macProbeBarrier() {return process.platform==='darwin'&&continuityBarrier();}
 // The basis a full direct probe is checked against: plan guard, observation
 // continuity, and the compiler tree and Node identity taken before the probe.
 function certificateBasis(row) {
@@ -995,15 +994,16 @@ async function request(message) {
             probeHash:row.probeHash,
             observationHealthy:healthy&&!planning&&!recovering&&applicableExternal(name).every(e=>e.healthy)};
       // Export only a currently guarded, check-specific discovery certificate.
-      // The caller must independently validate it in its own environment. The
+      // The caller compares it with the answers its own compile received. Schema 2
+      // certifies the realpath of every directory readDirectory visits. The
       // snapshot stays the start of the observed interval, including validation.
-      if(message.runCertificate===1&&macProbeBarrier()){
+      if(message.runCertificate===1&&continuityBarrier()){
         const row=index?.checks.get(message.name),cache=row?.probeCache;
         if(row?.plan.qualification==='npm-typescript-direct-v1'&&
           !row.plan.unresolved.length&&cache?.schema===1&&cache.input===inputKey(row)&&
           cache.hash===row.probeHash&&cache.guard===planGuard(index.bundle)&&
           cache.output&&cache.queryData&&data.snapshots[message.name])
-          data.snapshots[message.name].discoveryCertificate={schema:1,planId:row.plan.id,
+          data.snapshots[message.name].discoveryCertificate={schema:2,planId:row.plan.id,
             cwd:row.plan.cwd,probeDefinition:sha(JSON.stringify(row.plan.probes)),
             context:cache.context,output:cache.output,stderrHash:cache.stderrHash,
             queryData:cache.queryData};

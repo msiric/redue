@@ -30,5 +30,5 @@ test('fixed complementary groups execute every current macOS fixture exactly onc
  assert(recording.length>0);assert.deepEqual(selected[0],names.filter(name=>!recording.includes(name)));assert.deepEqual(selected[1],recording);
  const counts=new Map(names.map(name=>[name,0]));for(const group of selected)for(const name of group){assert(counts.has(name));counts.set(name,counts.get(name)+1);}
  assert.deepEqual([...counts.values()],names.map(()=>1));
- assert.deepEqual(directTypeScriptFixtureGroups.filter(([file])=>file!==suite),[['test/direct-typescript.test.mjs',[]]]);
+ assert.deepEqual(directTypeScriptFixtureGroups.filter(([file])=>file!==suite),[['test/direct-typescript.test.mjs',[]],['test/run-recording.test.mjs',[]]]);
 });

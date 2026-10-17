@@ -5,7 +5,6 @@ import path from 'node:path';
 import os from 'node:os';
 import net from 'node:net';
 import {spawn,spawnSync,execFileSync} from 'node:child_process';
-import {inflateSync} from 'node:zlib';
 import {randomUUID} from 'node:crypto';
 import {controlEndpoint} from '../src/control-endpoint.mjs';
 import {commitReceipt,readReceipts} from '../src/state-store.mjs';
@@ -50,42 +49,20 @@ function control(f,action){return new Promise((resolve,reject)=>{
   c.on('end',()=>{try{resolve(JSON.parse(data));}catch(e){reject(e);}});c.on('error',reject);
 });}
 
-test('direct certificate validation rejects missing/obsolete/malformed queries and implementation substitution',t=>{
-  const f=fixture(t).fast;
-  const invoke=(args,input,env={})=>spawnSync(process.execPath,[probe,f.root,'typecheck',...args],
-    {cwd:f.root,env:{...f.env,...env},input,encoding:'utf8',timeout:15000});
-  const full=invoke(['--redue-checkpoint']);assert.equal(full.status,0,full.stderr);
-  const c=JSON.parse(full.stdout),queries=JSON.parse(inflateSync(Buffer.from(c.queryData,'base64')));
-  const certificate={schema:1,context:c.context,queries};
-  const valid=invoke(['--redue-validate-queries'],JSON.stringify(certificate));assert.equal(valid.status,0,valid.stderr);assert.equal(valid.stdout,c.context);
-  for(const bad of [{...certificate,schema:0},{...certificate,queries:[]},{...certificate,queries:null},
-    {...certificate,context:'wrong'},{...certificate,queries:[['unrecognized',f.root,null]]},
-    {...certificate,queries:[['readDirectory',f.root,[],{tsRoot:path.join(f.root,'other'),args:[]}]]}])
-    assert.notEqual(invoke(['--redue-validate-queries'],JSON.stringify(bad)).status,0);
-  assert.notEqual(invoke(['--redue-validate-queries'],'{').status,0);
-  assert.notEqual(invoke(['--redue-validate-queries'],JSON.stringify(certificate),{NODE_ENV:'development'}).status,0);
-  put(path.join(f.root,'node_modules/typescript/lib/typescript.js'),'throw Error("must not load replacement");');
-  const replaced=invoke(['--redue-validate-queries'],JSON.stringify(certificate));
-  assert.match(replaced.stderr,/implementation-unreviewed/);
-});
-
 test('ETW overrides and default loader additions cannot execute through any direct probe mode',t=>{
   const f=fixture(t).fast,marker=path.join(f.root,'etw-loaded');
   const injected=path.join(f.root,'owned-etw.cjs');
   put(injected,`require('node:fs').writeFileSync(${JSON.stringify(marker)},'loaded');`);
-  const invoke=(args,input,env={})=>spawnSync(process.execPath,[probe,f.root,'typecheck',...args],
-    {cwd:f.root,env:{...f.env,...env},input,encoding:'utf8',timeout:15000});
-  const full=invoke(['--redue-checkpoint']);assert.equal(full.status,0,full.stderr);
-  const c=JSON.parse(full.stdout),input=JSON.stringify({schema:1,context:c.context,
-    queries:JSON.parse(inflateSync(Buffer.from(c.queryData,'base64')))});
-  const modes=[[],['--redue-context'],['--redue-validate-queries']];
+  const invoke=(args,env={})=>spawnSync(process.execPath,[probe,f.root,'typecheck',...args],
+    {cwd:f.root,env:{...f.env,...env},encoding:'utf8',timeout:15000});
+  const modes=[[],['--redue-context'],['--redue-checkpoint']];
   for(const env of [{TS_ETW_MODULE_PATH:injected},{TS_ETW_MODULE_PATH:''},{ts_etw_module_path:injected}])
-    for(const args of modes){const r=invoke(args,input,env);
+    for(const args of modes){const r=invoke(args,env);
       assert.equal(r.status,2);assert.match(r.stderr,/direct-execution-environment-unsupported/);
       assert.equal(r.stdout,'');assert(!fs.existsSync(marker),'unreviewed ETW module ran');}
   put(path.join(f.root,'node_modules/typescript/lib/node_modules/@microsoft/typescript-etw/index.js'),
     fs.readFileSync(injected));
-  for(const args of modes){const r=invoke(args,input);
+  for(const args of modes){const r=invoke(args);
     assert.equal(r.status,2);assert.match(r.stderr,/direct-typescript-implementation-unreviewed/);
     assert.equal(r.stdout,'');assert(!fs.existsSync(marker),'default loader addition ran');}
 });
@@ -166,26 +143,6 @@ test('macOS post-probe continuity barrier observes an edit queued during validat
   assert.equal(await done,0,stderr);assert.equal(JSON.parse(stdout).checks[0].reuse_eligible,false);
 });
 
-test('certificate input is bounded, handles chunked delivery, and validates after EOF',async t=>{
- const f=fixture(t).fast;
- const full=spawnSync(process.execPath,[probe,f.root,'typecheck','--redue-checkpoint'],{cwd:f.root,env:f.env,encoding:'utf8',timeout:15000});
- assert.equal(full.status,0,full.stderr);const c=JSON.parse(full.stdout);
- const certificate=JSON.stringify({schema:1,context:c.context,queries:JSON.parse(inflateSync(Buffer.from(c.queryData,'base64')))});
- async function stream(input,mutate){
-  const child=spawn(process.execPath,[probe,f.root,'typecheck','--redue-validate-queries'],{cwd:f.root,env:f.env});
-  let stdout='',stderr='';child.stdout.on('data',b=>stdout+=b);child.stderr.on('data',b=>stderr+=b);child.stdin.on('error',()=>{});
-  const done=new Promise(resolve=>child.once('exit',code=>resolve({code,stdout,stderr})));
-  const timer=setTimeout(()=>child.kill('SIGKILL'),15000);
-  for(let offset=0;offset<input.length;offset+=4096){child.stdin.write(input.slice(offset,offset+4096));await new Promise(r=>setImmediate(r));}
-  if(mutate)mutate();child.stdin.end();const result=await done;clearTimeout(timer);return result;
- }
- const good=await stream(certificate);assert.equal(good.code,0,good.stderr);assert.equal(good.stdout,c.context);
- const changed=await stream(certificate,()=>put(path.join(f.root,'src/main.ts'),'export const changed=1;'));
- assert.equal(changed.code,2);assert.equal(changed.stdout,'');
- const malformed=await stream('{');assert.equal(malformed.code,2);
- const oversized=await stream(' '.repeat(8*1024*1024+1));assert.equal(oversized.code,2);
-});
-
 test('newer failed selection during delayed response remains authoritative',
  {skip:process.platform!=='darwin'},async t=>{
  const {fast:f}=fixture(t),signal=path.join(f.state,'probe-signal');
@@ -201,8 +158,8 @@ test('newer failed selection during delayed response remains authoritative',
  assert.equal(visible.result,'FAIL');assert.equal(visible.invocation.runId,failed.invocation.runId);assert.equal(visible.reuse_eligible,false);
 });
 
-test('caller run certificates bind check, plan, probe, implementation and retained queries',
- {skip:process.platform!=='darwin'},async t=>{
+test('caller run certificates bind check, plan, probe, environment and compiler',
+ {skip:process.platform==='win32'},async t=>{
  const {fast:f,root}=fixture(t);call(f,['start']);
  const value=await control(f,{action:'snapshot',name:'typecheck',runCertificate:1});
  const snapshot=value.snapshots.typecheck;assert(snapshot.discoveryCertificate);
@@ -210,24 +167,26 @@ test('caller run certificates bind check, plan, probe, implementation and retain
  const selected=JSON.parse(fs.readFileSync(path.join(f.state,'project-runtime-v1.json'))).checks.find(c=>c.name==='typecheck');
  const helper=pathToFileURL(path.resolve('src/direct-run-certificate.mjs')).href;
  const invoke=(snap=snapshot,p=plan,s=selected,extra={})=>{
-   const code=`import fs from 'node:fs';import {validateDirectRunCertificate as validate} from ${JSON.stringify(helper)};const [p,s,c]=JSON.parse(fs.readFileSync(0));console.log(JSON.stringify(validate(p,s,c)));`;
+   const code=`import fs from 'node:fs';import {directRunCertificate} from ${JSON.stringify(helper)};const [p,s,c,r]=JSON.parse(fs.readFileSync(0));console.log(JSON.stringify(directRunCertificate(p,s,c,r)?.value??null));`;
    const r=spawnSync(process.execPath,['--input-type=module','-e',code],{cwd:root,env:{...f.env,...extra},
-     input:JSON.stringify([p,s,snap]),encoding:'utf8',timeout:15000});assert.equal(r.status,0,r.stderr);return JSON.parse(r.stdout);
+     input:JSON.stringify([p,s,snap,root]),encoding:'utf8',timeout:15000});assert.equal(r.status,0,r.stderr);return JSON.parse(r.stdout);
  };
  assert.equal(invoke(),snapshot.probeHash);
  for(const change of [null,{schema:0},{planId:'other-check'},{cwd:root+'/other'},
-   {queryData:'invalid'},{queryData:'x'.repeat(512*1024+1)},{context:'0'.repeat(64)},
-   {output:'0'.repeat(64)},{probeDefinition:'0'.repeat(64)}]){
+   {queryData:'invalid'},{queryData:'x'.repeat(512*1024+1)},{context:'invalid'},
+   {output:'0'.repeat(64)},{probeDefinition:'0'.repeat(64)},{queryData:''}]){
    const s=structuredClone(snapshot);s.discoveryCertificate=change?{...s.discoveryCertificate,...change}:null;
    assert.equal(invoke(s),null);
  }
+ assert.equal(invoke({...snapshot,probeHash:'0'.repeat(64)}),null);
+ assert.equal(invoke({...snapshot,observationHealthy:false}),null);
  assert.equal(invoke(snapshot,{...plan,id:'another-plan'}),null);
  assert.equal(invoke(snapshot,plan,{...selected,qualification:'explicit'}),null);
  assert.equal(invoke(snapshot,plan,selected,{TS_ETW_MODULE_PATH:''}),null);
  assert.equal(invoke(snapshot,plan,selected,{NODE_OPTIONS:'--trace-warnings'}),null);
- const added=path.join(root,'src/new.ts');put(added,'export const added=1;');assert.equal(invoke(),null);fs.unlinkSync(added);
- const optional=path.join(root,'node_modules/optional/index.d.ts');put(optional,'export const x: number;');assert.equal(invoke(),null);fs.rmSync(path.dirname(optional),{recursive:true});
- put(path.join(root,'node_modules/typescript/lib/typescript.js'),'throw Error("must not load");');assert.equal(invoke(),null);
+ assert.equal(invoke(snapshot,plan,{...selected,command:[selected.command[0],path.join(root,'other.js'),'--noEmit']}),null);
+ // Content and execution context are checked against the run's own record;
+ // see run-recording.test.mjs.
 });
 
 test('wrapped guarded and full paths execute real compiler outcomes with current boundaries',
@@ -240,8 +199,11 @@ test('wrapped guarded and full paths execute real compiler outcomes with current
  for(const f of fixtures){call(f,['run','typecheck']);assert(row(f).reuse_eligible);}
  fixtures.forEach((f,i)=>assert.notEqual(row(f).invocation.runId,first[i]));
  const records=f=>fs.readFileSync(f.env.REDUE_DECISION_PROFILE_FILE,'utf8').split('\n').filter(l=>l.startsWith('REDUE_TIMING ')).map(l=>JSON.parse(l.slice(13)));
- assert(records(fixtures[0]).filter(p=>p.phase==='cli.run_certificate'&&p.outcome==='reused').length>=4);
- assert.equal(records(fixtures[1]).filter(p=>p.phase==='cli.run_certificate'&&p.outcome==='reused').length,0);
+ const count=(f,phase,outcome)=>records(f).filter(p=>p.phase===phase&&p.outcome===outcome).length;
+ assert(count(fixtures[0],'cli.run_certificate','available')>=2);
+ assert.equal(count(fixtures[0],'cli.run_recording','validated'),count(fixtures[0],'cli.run_certificate','available'));
+ assert.equal(count(fixtures[0],'cli.probe','ok'),0);
+ assert.equal(count(fixtures[1],'cli.run_certificate','available'),0);
  put(path.join(root,'src/error.ts'),'export const value: number = "bad";');
  for(const f of fixtures){const r=spawnSync(process.execPath,[cli,'--state-dir',f.state,'run','typecheck'],{cwd:root,env:f.env,encoding:'utf8',timeout:45000});assert.equal(r.status,2,r.stderr+r.stdout);
    const failed=await settled(f);assert.equal(failed.result,'FAIL');assert(!failed.reuse_eligible);}
