@@ -8,15 +8,16 @@ user-visible improvements to that, quickly and correctly.
 
 - `npm ci`, then `npm run pretest` once (installs the TS 5.5.2 test fixture).
 - Single test file: `node --test test/<name>.test.mjs`. Full suite: `npm test`
-  (~5 min, serial). Run the full suite before opening a PR, not after every edit.
+  (~5 min, serial). Run the full suite before pushing, not after every edit.
 - Benchmark (the acceptance loop for performance work):
   `node bench/setup.mjs ../redue-bench-800 800` once, then
   `node bench/run.mjs ../redue-bench-800`. It prints a `BENCH_RESULT` JSON line
   and exits 1 if any returned state is wrong.
 - The direct-TypeScript recipe refuses most `NODE_*` variables; the bench strips
   them. If `init` says `direct-execution-environment-unsupported`, check `env`.
-- PR CI runs the full suite on macOS, Linux and Windows. Tests for other
-  platforms skip locally; CI is where they run.
+- CI runs the full suite on macOS, Linux and Windows for each push to main.
+  Pushes that change only docs or Markdown skip it. Tests for other platforms
+  skip locally; CI is where they run.
 
 ## Product rules
 
@@ -28,8 +29,8 @@ user-visible improvements to that, quickly and correctly.
   run. Document out-of-scope limits; don't build machinery against them.
 - Performance is part of correctness. Targets on the bench: warm `status --sync`
   adds < 100 ms over cached `status`; zero probe processes while idle; `redue run`
-  overhead < 10% of plain `tsc`. Report BENCH_RESULT before/after in every
-  performance PR.
+  overhead < 10% of plain `tsc`. Put BENCH_RESULT before/after in the commit
+  message for performance work.
 
 ## How to work
 
@@ -37,7 +38,8 @@ user-visible improvements to that, quickly and correctly.
 - Before each commit, run the affected tests, plus the bench for performance
   work. For daemon, observation or trust changes, also run /code-review and fix
   the findings that affect correctness.
-- Commit with a clear message, push, and continue. Don't wait for CI.
+- Commit with a clear message, push, and continue. Don't wait for CI. Don't
+  commit status or tracking documents on their own.
 - At the start of each session, run `gh run list --branch main --limit 3`. If
   the latest run failed, fix that first.
 - Prefer the smallest change that makes the behavior right. Before adding a new
@@ -52,5 +54,5 @@ user-visible improvements to that, quickly and correctly.
 
 ## Writing
 
-Plain, short sentences. PR descriptions: what changed, why, before/after numbers,
+Plain, short sentences. Commit messages: what changed, why, before/after numbers,
 known limits. No hedging vocabulary ("bounded", "retained", "without authority").
