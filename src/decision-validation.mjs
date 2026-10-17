@@ -39,3 +39,13 @@ export function planGuard(bundle) {
   const rootStat=fs.statSync(root,{bigint:true});
   return sha(JSON.stringify([String(rootStat.dev),String(rootStat.ino),values]));
 }
+// Identity of the reviewed compiler tree and the probe's Node executable. A full
+// probe verifies their bytes after this is taken, so any later write changes it.
+export function toolchainKey(tsRoot,executable) {
+  const values=[];
+  const visit=file=>{const st=fs.lstatSync(file,{bigint:true});
+    values.push([file,...['dev','ino','mode','nlink','size','mtimeNs','ctimeNs'].map(key=>String(st[key]))]);
+    if(st.isDirectory())for(const name of fs.readdirSync(file).sort())visit(path.join(file,name));};
+  visit(tsRoot);visit(fs.realpathSync(executable));
+  return sha(JSON.stringify(values));
+}

@@ -153,7 +153,10 @@ test('direct compiler checkpoint equals the independent CLI listing result',t=>{
     captured=spawnSync(process.execPath,[...args,'--redue-checkpoint'],{cwd:root,env,encoding:'utf8',timeout:15000});
   assert.equal(normal.status,0,normal.stderr);assert.equal(captured.status,0,captured.stderr);
   const value=JSON.parse(captured.stdout);assert.equal(value.output,normal.stdout);
-  assert(JSON.parse(inflateSync(Buffer.from(value.queryData,'base64'))).length>0);
+  // Daemon and caller both hash stderr into the probe identity.
+  assert.equal(captured.stderr,normal.stderr);
+  const queries=JSON.parse(inflateSync(Buffer.from(value.queryData,'base64')));
+  assert(queries.length>0);assert(queries.find(q=>q[0]==='readDirectory')[3].covered===1);
 });
 
 test('retained compiler queries cannot load replaced or obsolete implementations',async t=>{

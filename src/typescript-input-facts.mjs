@@ -60,6 +60,9 @@ export function typeScriptInputFacts(root,tsRoot,tsc){
     .map(file=>path.resolve(file));
   if(!files.length||files.some(file=>!within(realObservedPath(file),root)))
     fail('typescript-input-outside-repository');
+  // Every hashed configuration must also be a certified question.
+  const queries=captured?.queries&&[...configReads].every(file=>
+    captured.queries.some(([kind,read])=>kind==='readFile'&&read===file))?captured.queries:null;
   return {configs:[...configReads].sort().map(file=>[hash(file),digestFile(file)]),
-    files:[...new Set(files)].sort().map(file=>[hash(file),digestFile(file)]),queries:captured?.queries};
+    files:[...new Set(files)].sort().map(file=>[hash(file),digestFile(file)]),queries};
 }

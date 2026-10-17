@@ -15,8 +15,10 @@ import {InputIndex} from './index.mjs';
 import {permittedRoots} from './installed-inputs.mjs';
 import {assertOwnedStatePlacement} from './owned-state.mjs';
 import {atomicJson,readReceipts,readReceiptSnapshot,receiptRevision} from './state-store.mjs';
-import {history} from './observation.mjs';
-import {inputKey,planGuard} from './decision-validation.mjs';
+import {history,closeHistory} from './observation.mjs';
+import {inputKey,planGuard,toolchainKey} from './decision-validation.mjs';
+import {queriesHold} from './typescript-list.mjs';
+import {directProject} from './direct-typescript.mjs';
 import {timing,mark,traceBase,traceContext,traceScope,traceEnvironment,traceId} from './decision-profile.mjs';
 
 const configFile=path.resolve(process.argv[2]);
@@ -111,12 +113,46 @@ function persistedPlan(bundle) {
       return [name,safe];
     }))};
 }
-function macProbeBarrier() {
-  return process.platform==='darwin'&&hasHistory&&!historyDisabled&&healthy&&
-    watcher&&!planning&&!recovering&&!planDirty&&!index?.unavailable&&
+// Continuity for in-process certificate reuse: every observed change is applied.
+// macOS needs its history cursor; Linux has the synchronize barrier in catchUp.
+// Windows reconciles content at each decision and keeps its own reuse path.
+function continuityBarrier() {
+  return process.platform!=='win32'&&(process.platform!=='darwin'||hasHistory&&!historyDisabled)&&
+    healthy&&watcher&&!planning&&!recovering&&!planDirty&&!index?.unavailable&&
     !pending.size&&!pendingChecks.size&&!external.size&&verifyRoot();
 }
-function probe(row,allowReuse=false) {
+function macProbeBarrier() {return process.platform==='darwin'&&continuityBarrier();}
+// The basis a full direct probe is checked against: plan guard, observation
+// continuity, and the compiler tree and Node identity taken before the probe.
+function certificateBasis(row) {
+  const argv=row.plan.probes[0],compiler=directProject(argv[2],argv[3],{verify:false});
+  return {guard:planGuard(index.bundle),gaps:metrics.gaps,
+    compiler:JSON.stringify([compiler.tsRoot,compiler.entry,compiler.digest]),
+    toolchain:toolchainKey(compiler.tsRoot,argv[0])};
+}
+// Returns null after reusing the last full probe, otherwise why a full probe is needed.
+function reuseCertificate(row,key,allowReuse,forceFull,checked) {
+  const started=performance.now(),cache=row.probeCache;
+  if(forceFull)return 'forced_full_reference';
+  if(!allowReuse||!continuityBarrier())return 'continuity_unavailable';
+  if(row.plan.unresolved.length)return 'coverage_unresolved';
+  if(!cache?.queries?.length)return 'no_validated_result';
+  if(cache.input!==key)return 'inputs_changed';
+  if(cache.gaps!==metrics.gaps)return 'observation_gap';
+  let reason=null;
+  try{const basis=checked.basis=certificateBasis(row);
+    if(basis.guard!==cache.guard){planDirty=true;reason='plan_guard_changed';}
+    else if(basis.compiler!==cache.compiler||basis.toolchain!==cache.toolchain)reason='toolchain_changed';
+    else if(!queriesHold(cache.queries,cache.identities))reason='compiler_queries_changed';}
+  catch{reason='validation_unavailable';}
+  timing('daemon.probe_validation',started,{outcome:reason?'changed_or_unavailable':'reused',
+    reason:reason||'content_and_context_unchanged',queries:cache.queries.length});
+  if(reason)return reason;
+  row.probeHash=cache.hash;row.probeAt=Date.now();row.probeError=null;
+  metrics.probeReuses=(metrics.probeReuses||0)+1;
+  return null;
+}
+function probe(row,allowReuse=false,{launch=true}={}) {
   const started=performance.now();
   const supported=new Map([
     ['typescript-noemit-v1','typescript-contract-probe.mjs'],
@@ -124,47 +160,49 @@ function probe(row,allowReuse=false) {
     ['yarn-workspace-tsc-v1','yarn-workspace-typecheck-probe.mjs'],
     ['pnpm-tsc-v1','pnpm-typecheck-probe.mjs']]);
   const expected=supported.get(row.plan.qualification);
-  const macDirect=process.platform==='darwin'&&row.plan.qualification==='npm-typescript-direct-v1';
-  const cacheable=(process.platform==='win32'||macDirect)&&row.plan.probes.length===1&&expected&&
+  const builtIn=row.plan.probes.length===1&&expected&&
     row.plan.probes[0][1]===fileURLToPath(new URL(expected,import.meta.url));
+  const inProcess=builtIn&&process.platform!=='win32'&&row.plan.qualification==='npm-typescript-direct-v1';
+  const cacheable=builtIn&&(process.platform==='win32'||inProcess);
   const key=inputKey(row);
-  let guard=null,guardReason=null;
-  if(macDirect&&cacheable)try{guard=planGuard(index.bundle);}catch{guardReason='plan_guard_unavailable';}
-  const cache=row.probeCache;
-  const macGuarded=!macDirect||(macProbeBarrier()&&!row.plan.unresolved.length&&
-    guard!==null&&cache?.schema===1&&cache.guard===guard&&
-    Array.isArray(cache.queries)&&cache.queries.length>0);
   const forceFull=process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_FULL_PROBES==='1';
-  if(cacheable&&allowReuse&&macGuarded&&!forceFull&&cache?.input===key){
+  let fullReason=null;const checked={};
+  if(inProcess){
+    fullReason=reuseCertificate(row,key,allowReuse,forceFull,checked);
+    if(!fullReason)return;
+  }
+  // Idle revalidation never launches a process. An unconfirmed result expires.
+  if(!launch&&row.plan.probes.length)return;
+  if(process.platform==='win32'&&cacheable&&allowReuse&&!forceFull&&row.probeCache?.input===key){
     const argv=row.plan.probes[0];
     mark('daemon.probe_launch',{mode:'certificate',deadlineMs:10000});
-    const out=spawnSync(argv[0],[...argv.slice(1),macDirect?'--redue-validate-queries':'--redue-context'],{
-      cwd:row.plan.cwd,timeout:10000,maxBuffer:1024*1024,env:traceEnvironment(),
-      ...(macDirect?{input:JSON.stringify({schema:cache.schema,context:cache.context,queries:cache.queries})}:
-        {stdio:['ignore','pipe','pipe']})});
+    const out=spawnSync(argv[0],[...argv.slice(1),'--redue-context'],{
+      cwd:row.plan.cwd,timeout:10000,maxBuffer:1024*1024,env:traceEnvironment(),stdio:['ignore','pipe','pipe']});
     mark('daemon.probe_complete',{mode:'certificate',childPid:out.pid,exit:out.status,signal:out.signal,code:out.error?.code});
     metrics.probeContextProcesses=(metrics.probeContextProcesses||0)+1;
-    let stillValid=!macDirect;
-    if(macDirect)try{stillValid=macProbeBarrier()&&inputKey(row)===key&&planGuard(index.bundle)===guard;}catch{}
-    if(!out.error&&!out.signal&&out.status===0&&
-      out.stdout.toString()===cache.context&&stillValid){
+    if(!out.error&&!out.signal&&out.status===0&&out.stdout.toString()===row.probeCache.context){
       row.probeHash=row.probeCache.hash;row.probeAt=Date.now();row.probeError=null;
       metrics.probeReuses=(metrics.probeReuses||0)+1;
       timing('daemon.probe_context_validation',started,{outcome:'reused',reason:'content_and_context_unchanged'});
       return;
     }
-    guardReason='context_or_compiler_queries_changed';
+    fullReason='context_or_compiler_queries_changed';
     timing('daemon.probe_context_validation',started,{outcome:'changed_or_unavailable'});
   }
-  if(macDirect&&cache?.guard&&guard!==cache.guard)planDirty=true;
-  const fullReason=forceFull?'forced_full_reference':guardReason||
-    (macDirect&&!macGuarded?'mac_validation_basis_unavailable':!cacheable?'generic_probe':
-    !row.probeCache?'no_validated_result':row.probeCache.input!==key?'inputs_changed':'context_changed');
-  timing('daemon.probe_reason',started,{reason:fullReason});
-  metrics.fullProbeReasons??={};metrics.fullProbeReasons[fullReason]=(metrics.fullProbeReasons[fullReason]||0)+1;
-  metrics.fullProbes=(metrics.fullProbes||0)+1;
+  fullReason??=forceFull?'forced_full_reference':!cacheable?'generic_probe':
+    !row.probeCache?'no_validated_result':row.probeCache.input!==key?'inputs_changed':'context_changed';
+  if(row.plan.probes.length){
+    timing('daemon.probe_reason',started,{reason:fullReason});
+    metrics.fullProbeReasons??={};metrics.fullProbeReasons[fullReason]=(metrics.fullProbeReasons[fullReason]||0)+1;
+    metrics.fullProbes=(metrics.fullProbes||0)+1;
+  }
   // A failed or incomplete full probe must not leave an older certificate usable.
-  if(macDirect)row.probeCache=null;
+  let basis=checked.basis||null;
+  if(inProcess){
+    if(!basis)try{basis=certificateBasis(row);}catch{}
+    if(row.probeCache?.guard&&basis&&basis.guard!==row.probeCache.guard)planDirty=true;
+    row.probeCache=null;
+  }
   const values=[];let checkpoint=null;
   for(const argv of row.plan.probes) {
     // Supported TypeScript probes perform bounded input/toolchain hashing.
@@ -237,8 +275,9 @@ function probe(row,allowReuse=false) {
   if((row.probeHash!==null&&row.probeHash!==value)||row.probeError){
     row.revision++;row.lastReason='declared state probe changed or recovered';}
   row.probeHash=value;row.probeAt=Date.now();row.probeError=null;
-  if(checkpoint)row.probeCache=checkpoint.queries?{input:key,context:checkpoint.context,
-    hash:value,queries:checkpoint.queries,...(macDirect?{schema:1,guard,
+  if(checkpoint)row.probeCache=checkpoint.queries&&(!inProcess||basis)?{input:key,context:checkpoint.context,
+    hash:value,queries:checkpoint.queries,...(inProcess?{schema:1,...basis,
+      identities:new Map(),
       output:checkpoint.output,queryData:checkpoint.queryData,stderrHash:values[0][3]}: {})}:null;
   timing('daemon.probe',started,{outcome:'ok',commands:values.length,
     reusable:row.probeCache?1:0,queries:row.probeCache?.queries.length||0});
@@ -295,7 +334,10 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       item.reason='input coverage unresolved: '+row.plan.unresolved.join('; ')+checkpoint+probeIssue;
       return item;
     }
-    if(row.probeError||!row.probeAt||Date.now()-row.probeAt>10000){item.reason=row.probeError||'state probe observation expired';return item;}
+    if(row.probeError){item.reason=row.probeError;return item;}
+    // An expired probe or missing execution context cannot confirm CURRENT, but
+    // observed input content that already differs from the receipt is STALE.
+    let unconfirmed=!row.probeAt||Date.now()-row.probeAt>10000?'state probe observation expired':null;
     if(row.plan.synchronizedInstalledRead&&!synchronizedInstalled){
       item.reason='installed inputs require a synchronized content read';return item;}
     if(process.platform==='win32'&&!synchronizedFilesystem){
@@ -315,8 +357,7 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       ...(row.plan.environment.pathExecutables||[]).map(name=>
         `__vstate_path_executable_${name}__`),
       ...(row.plan.environment.executableIdentity?['__vstate_node_identity__']:[])];
-    if(names.length&&!contextHashes?.[name]){
-      item.reason='execution environment context not supplied';return item;}
+    if(names.length&&!contextHashes?.[name])unconfirmed??='execution environment context not supplied';
     item.freshness='STALE';
     if(r.planId!==row.plan.id){
       const before=new Map((r.resolutionLinks||[]).map(link=>[link.path,link.targetHash]));
@@ -324,7 +365,7 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       item.reason=changed?`installed input link changed: ${changed.path}`:'input plan changed';
       if(changed)item.changed_inputs=[changed.path];
     }
-    else if(names.some(key=>contextHashes[name]?.[key]!==r.environmentHashes?.[key]))
+    else if(contextHashes?.[name]&&names.some(key=>contextHashes[name][key]!==r.environmentHashes?.[key]))
       item.reason='declared execution environment changed';
     else if(r.fingerprint!==combinedSummary(name).fingerprint) {
       const key=r.fingerprint+'\0'+combinedSummary(name).fingerprint;
@@ -346,6 +387,9 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
         row.staleReasonKey=key;
       }
       item.reason=row.staleReason;item.changed_inputs=row.staleInputs||[];
+      if(unconfirmed&&!(r.files&&row.staleInputs?.length)){item.freshness='UNVERIFIED';
+        item.reason=unconfirmed;item.changed_inputs=[];}
+    } else if(unconfirmed){item.freshness='UNVERIFIED';item.reason=unconfirmed;
     } else {item.freshness='CURRENT';item.reason=result==='FAIL'?'last command failed':'declared inputs match';
       item.reuse_eligible=result==='PASS';}
     return item;
@@ -871,7 +915,13 @@ async function request(message) {
     if(needsContentReconciliation&&message.action!=='prelaunch'){
       const started=performance.now();await refreshPlan({forceCold:true,reuse:true});
       timing('daemon.request_content_validation',started,{healthy:healthy?1:0});}
-    if(healthy)try{const started=performance.now();await catchUp();
+    // Without synchronized installed reads, the continuity barrier runs once,
+    // after probing: in-process validation reads the live filesystem, and the
+    // barrier then applies every change before the response is computed.
+    const deferBarrier=process.platform!=='win32'&&!needsContentReconciliation&&
+      message.action!=='prelaunch'&&index&&healthy&&!planning&&![...index.checks].some(([name,row])=>
+        row.plan.synchronizedInstalledRead&&(!message.name||message.name===name));
+    if(healthy&&!deferBarrier)try{const started=performance.now();await catchUp();
       timing('daemon.request_catch_up',started);}catch(e){observationGap('historical_query',e);}
     if(flushTimer||pending.size||planDirty||[...external.values()].some(e=>e.pending.size))flush();
     let synchronizedInstalled=false;
@@ -907,16 +957,29 @@ async function request(message) {
     }
     const probeStarted=performance.now();
     if(index&&healthy&&!validatedColdIndex&&message.action!=='prelaunch'){
-      const macReuse=macProbeBarrier();
-      for(const row of index.checks.values())probe(row,macReuse);
-      if(macReuse&&process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_MAC_PROBE_SIGNAL){
+      const continuous=continuityBarrier(),probed=index,gaps=metrics.gaps,decided=Date.now();
+      const selected=[...index.checks].filter(([name])=>!message.name||message.name===name);
+      const keys=new Map(selected.map(([name,row])=>[name,inputKey(row)]));
+      // With a deferred barrier, validate in-process first and launch any full
+      // probe only after the barrier, so a queued edit costs one probe, not two.
+      for(const [,row] of selected)probe(row,continuous,{launch:!deferBarrier});
+      if(continuous&&process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_MAC_PROBE_SIGNAL){
         fs.writeFileSync(process.env.VSTATE_TEST_MAC_PROBE_SIGNAL,'validated');
         await new Promise(resolve=>setTimeout(resolve,200));
       }
-      // Child validation blocks JS event delivery. Finish with another continuity
+      // Validation and probes block JS event delivery. Finish with a continuity
       // barrier so queued edits/gaps cannot be published using the pre-probe index.
-      if(macReuse)try{await catchUp();if(planDirty||pending.size||flushTimer)flush();}
-        catch(e){observationGap('post_probe_history',e);}
+      if(continuous||deferBarrier)try{const started=performance.now();
+        await catchUp();if(planDirty||pending.size||flushTimer)flush();
+        timing('daemon.request_catch_up',started,{after:'probes'});
+        // Rows not yet confirmed, or whose inputs moved meanwhile, are probed
+        // from the barrier, as an undeferred decision would have done.
+        const rest=index===probed&&healthy&&!planning?selected.filter(([name,row])=>row.probeAt<decided||
+          metrics.gaps!==gaps||inputKey(row)!==keys.get(name)):[];
+        const launched=metrics.fullProbes||0;
+        for(const [,row] of rest)probe(row,continuityBarrier());
+        if(continuous&&(metrics.fullProbes||0)>launched){await catchUp();if(planDirty||pending.size||flushTimer)flush();}
+      }catch(e){observationGap('post_probe_history',e);}
     }
     timing('daemon.request_probes',probeStarted,{checks:index?.checks.size||0});
     lastObservation=Date.now();publish();
@@ -968,7 +1031,7 @@ async function shutdown() {
         healthy=true;retainIndex();healthy=false;}
     } catch(e){event('index_retention_unavailable',{classification:e.name||'Error'});}
   }
-  planningWorker?.terminate().catch(()=>{});
+  closeHistory();planningWorker?.terminate().catch(()=>{});
   clearInterval(heartbeat);clearInterval(probeTimer);clearTimeout(recoveryTimer);
   watcher?.unsubscribe().catch(()=>{});server.close();
   for(const entry of external.values()){
@@ -1056,21 +1119,21 @@ const heartbeat=setInterval(()=>{
   }
   publish();
 },1000);
+// Idle revalidation keeps probe results fresh for cached status without
+// launching a process: certificates are replayed in-process, and one that no
+// longer holds expires so the next decision runs the full probe. macOS history
+// replay would fork, so cached status there relies on live notifications.
 const probeTimer=setInterval(()=>traceScope({request:traceId(),work:'periodic'},async()=>{
   mark('server.periodic_start',{pending:pending.size,planDirty,planning,decisionRequests});
   // Windows cached reads are conservatively UNVERIFIED until a full decision
-  // reconciliation. Periodic synchronous probes cannot strengthen that cache,
-  // but can block control requests behind several seconds of child work.
+  // reconciliation, so idle revalidation cannot strengthen them.
   if(process.platform==='win32')return;
-  if(healthy&&index&&!planning&&!decisionRequests){
-  try{await catchUp();
-    if(healthy&&!planning&&!recovering){const macReuse=macProbeBarrier();
-      for(const row of index.checks.values())probe(row,macReuse);
-      if(macReuse){await catchUp();if(planDirty||pending.size||flushTimer)flush();}
-    }
-    publish();}
-  catch(e){observationGap('periodic_query',e);}
-}
+  if(healthy&&index&&!planning&&!recovering&&!decisionRequests){
+    try{if(!hasHistory)await catchUp();}catch(e){observationGap('periodic_query',e);}
+    if(healthy&&index&&!planning&&!recovering)
+      for(const row of index.checks.values())probe(row,true,{launch:false});
+    if(planDirty)flush();else publish();
+  }
   mark('server.periodic_complete');
 }),5000);
 process.on('uncaughtExceptionMonitor',error=>{

@@ -9,17 +9,39 @@ import {fileURLToPath} from 'node:url';
 // subscription is healthy; history may accelerate catch-up; a fresh scan is
 // the deterministic fallback. A failed history operation never updates cursor.
 const workerFile=path.join(path.dirname(fileURLToPath(import.meta.url)),'history-worker.mjs');
+// Each query runs in a fresh helper: a reused native history session can take
+// ten times longer. The next helper is forked once a query settles, so its
+// startup is off the decision path. A failed or late helper is killed.
+let spare=null,queue=Promise.resolve(),closed=false;
+// After the observer's last query no helper is kept or started.
+export function closeHistory() {closed=true;spare?.kill('SIGKILL');spare=null;}
+function startHelper() {
+  const child=fork(workerFile,[],{stdio:['ignore','ignore','ignore','ipc'],env:traceEnvironment()});
+  child.abandoned=new Set();child.on('error',()=>{});
+  child.once('exit',()=>{if(spare===child)spare=null;
+    child.reply?.({ok:false,lost:Error(`history helper exited ${child.exitCode??child.signalCode}`)});
+    for(const next of child.abandoned)try{fs.unlinkSync(next);}catch{}});
+  return child;
+}
 export function history(root,cursor,backend,deadlineMs,faultFile) {
+  const run=()=>query(root,cursor,backend,deadlineMs,faultFile);
+  const result=queue.then(run,run);queue=result.catch(()=>{});return result;
+}
+function query(root,cursor,backend,deadlineMs,faultFile) {
   const next=cursor+'.'+randomUUID()+'.next';
   return new Promise((resolve,reject)=>{
     mark('history.submit',{deadlineMs});
-    const worker=fork(workerFile,[root,fs.existsSync(cursor)?cursor:'',next,backend,
-      faultFile||''],{stdio:['ignore','ignore','ignore','ipc'],env:traceEnvironment()});
-    let settled=false,abandoned=false;
+    const worker=spare??startHelper();spare=null;
+    worker.ref();worker.channel?.ref();
+    let settled=false;
     const finish=(error,value)=>{
-      if(settled)return;settled=true;mark('history.complete',{childPid:worker.pid,outcome:error?.code||error?.name||'ok',events:value?.length});clearTimeout(timer);
+      if(settled)return;settled=true;worker.reply=null;clearTimeout(timer);
+      mark('history.complete',{childPid:worker.pid,outcome:error?.code||error?.name||'ok',events:value?.length});
+      if(error)worker.abandoned.add(next);
       worker.kill('SIGKILL');
-      if(error){abandoned=true;try{fs.unlinkSync(next);}catch{}
+      // A failed query disables history for this observer; keep no helper.
+      if(!closed&&!error){spare=startHelper();spare.unref();spare.channel?.unref();}
+      if(error){try{fs.unlinkSync(next);}catch{}
         reject(error);return;}
       try{fs.renameSync(next,cursor);resolve(value);}
       catch(e){try{fs.unlinkSync(next);}catch{}reject(e);}
@@ -28,12 +50,10 @@ export function history(root,cursor,backend,deadlineMs,faultFile) {
       const e=Error(`history query did not settle within ${deadlineMs} ms`);
       e.code='ETIMEDOUT';finish(e);
     },deadlineMs);
-    worker.on('message',message=>message.ok?finish(null,message.changes):
-      finish(Object.assign(Error(message.error),{code:message.code})));
-    worker.once('error',e=>finish(e));
-    worker.once('exit',(code,signal)=>{
-      if(abandoned)try{fs.unlinkSync(next);}catch{}
-      if(!settled)finish(Error(`history helper exited ${code??signal}`));
-    });
+    worker.reply=message=>message.lost?finish(message.lost):message.ok?finish(null,message.changes):
+      finish(Object.assign(Error(message.error),{code:message.code}));
+    worker.on('message',message=>worker.reply?.(message));
+    try{worker.send({root,previous:fs.existsSync(cursor)?cursor:'',next,backend,faultFile:faultFile||''});}
+    catch(e){finish(e);}
   });
 }
