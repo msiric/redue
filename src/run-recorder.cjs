@@ -7,7 +7,7 @@ const fs=require('node:fs'),path=require('node:path'),{createHash}=require('node
 const original={readFileSync:fs.readFileSync,statSync:fs.statSync,readdirSync:fs.readdirSync,
   realpathSync:fs.realpathSync,native:fs.realpathSync.native,writeSync:fs.writeSync,openSync:fs.openSync};
 const real=file=>(process.platform==='win32'?original.native:original.realpathSync)(file);
-const facts=new Map();let unsupported=null,conflict=null,main=null,compilerRoot=null;
+const facts=new Map(),compilerReads=new Set();let unsupported=null,conflict=null,main=null,compilerRoot=null;
 try{main=real(process.argv[1]);compilerRoot=path.dirname(path.dirname(main));}
 catch{unsupported='main module unavailable';}
 const kindOf=st=>st.isFile()?'f':st.isDirectory()?'d':'o';
@@ -19,7 +19,9 @@ const inCompiler=full=>full===compilerRoot||full.startsWith(compilerRoot+path.se
 function observe(kind,call,answer) {
   return function(file,...rest){
     let value,full=null;
-    try{if(typeof file==='string'){full=path.resolve(file);if(inCompiler(full))full=null;}
+    // Compiler-tree reads are named only: which lib files a program loads.
+    try{if(typeof file==='string'){full=path.resolve(file);
+      if(inCompiler(full)){if(kind==='read')compilerReads.add(full);full=null;}}
       else unsupported??=`${kind} of a non-string path`;}
     catch{unsupported??='recorder failure';}
     if(full===null)return call.call(this,file,...rest);
@@ -69,7 +71,7 @@ for(const name of ['readFile','stat','lstat','readdir','realpath','access','open
 process.on('exit',()=>{
   try{
     const buffer=Buffer.from(JSON.stringify({schema:1,node:[real(process.execPath),process.version],main,
-      unsupported,conflict,facts:[...facts].map(([key,value])=>{const at=key.indexOf('\0');
+      unsupported,conflict,compilerReads:[...compilerReads],facts:[...facts].map(([key,value])=>{const at=key.indexOf('\0');
         return [key.slice(0,at),key.slice(at+1),JSON.parse(value)];})}));
     for(let at=0;at<buffer.length;)at+=original.writeSync(3,buffer,at,buffer.length-at);
   }catch{}

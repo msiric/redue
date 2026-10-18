@@ -130,7 +130,11 @@ test('recorded runs keep tsc output and exit code, and replace both probes',unix
     assert.equal(JSON.parse(summary).result,exit?'FAIL':'PASS');
     const r=receipt(f);assert(r.stable,JSON.stringify(r.checkpoint));assert.equal(r.invocation.exitCode,exit);
     const used=marks(f).slice(offset);
-    assert.equal(used.filter(p=>p.phase==='cli.run_recording'&&p.outcome==='validated').length,1,JSON.stringify(used.filter(p=>p.phase==='cli.run_recording')));
+    // The client validates against a start certificate; after an edit the daemon
+    // validates the recording as the new certificate instead.
+    const validated=used.filter(p=>p.phase==='cli.run_recording'&&p.outcome==='validated'||
+      p.phase==='daemon.recorded_certificate'&&p.outcome==='accepted');
+    assert.equal(validated.length,1,JSON.stringify(used.filter(p=>/record/.test(p.phase))));
     assert.equal(used.filter(p=>p.phase==='cli.probe').length,0);
   }
 });
@@ -165,4 +169,55 @@ test('a lookup outside the checkout that appears during the run makes the receip
   const r=receipt(f);assert(!r.stable);
   assert.match(r.checkpoint.issues.join(';'),/compiler inputs differ from discovery certificate \(.*node_modules/);
   fs.rmSync(path.join(f.base,'node_modules'),{recursive:true});
+});
+
+const fullProbes=(f,offset)=>marks(f).slice(offset).filter(p=>p.phase==='daemon.probe_launch'&&p.mode==='full').length;
+const synced=f=>JSON.parse(call(f,['status','--sync','--json'])).checks[0];
+test('after an edit, the run recording becomes the certificate without a full probe',unix,t=>{
+  const f=fixture(t);call(f,['start']);call(f,['run','typecheck']);assert.equal(synced(f).freshness,'CURRENT');
+  fs.appendFileSync(path.join(f.root,'src/other.ts'),'export const more = 3;\n');
+  assert.equal(synced(f).freshness,'STALE');
+  const offset=marks(f).length;call(f,['run','typecheck']);
+  const r=receipt(f);assert(r.stable,JSON.stringify(r.checkpoint));
+  const used=marks(f).slice(offset);
+  assert.equal(used.filter(p=>p.phase==='daemon.recorded_certificate'&&p.outcome==='accepted').length,1,
+    JSON.stringify(used.filter(p=>/record/.test(p.phase))));
+  const after=synced(f);assert.equal(after.freshness,'CURRENT',JSON.stringify(after));assert.equal(after.reuse_eligible,true);
+  assert.equal(fullProbes(f,offset),0);
+  assert.deepEqual(fs.readdirSync(f.state).filter(name=>name.startsWith('run-record-')),[]);
+  // A full probe of the same state computes the same certificate value.
+  call(f,['stop']);call(f,['start']);
+  const restarted=synced(f);assert.equal(restarted.freshness,'CURRENT',JSON.stringify(restarted));
+  assert.equal(restarted.invocation.runId,after.invocation.runId);
+});
+
+test('an edit that changes what the compiler reads falls back to a full probe at the end',unix,t=>{
+  const f=fixture(t);call(f,['start']);call(f,['run','typecheck']);
+  put(path.join(f.root,'src/third.ts'),'export const third = 4;\n');
+  const main=path.join(f.root,'src/main.ts');
+  for(const [edit,reason] of [[()=>put(main,'import {other} from "./other";\nimport {third} from "./third";\nexport const value: number = other + third;\n'),/./],
+    // Same files outside the compiler tree, another lib file inside it.
+    [()=>fs.writeFileSync(main,'/// <reference lib="es2015.collection" />\n'+fs.readFileSync(main,'utf8')),/lib files/]]){
+    edit();assert.equal(synced(f).freshness,'STALE');
+    const offset=marks(f).length;call(f,['run','typecheck']);
+    const r=receipt(f);assert(r.stable,JSON.stringify(r.checkpoint));
+    const used=marks(f).slice(offset),rejected=used.filter(p=>p.phase==='daemon.recorded_certificate'&&p.outcome==='rejected');
+    assert.equal(rejected.length,1,JSON.stringify(used.filter(p=>/record/.test(p.phase))));
+    assert.match(rejected[0].reason,reason);
+    assert.equal(used.filter(p=>p.phase==='cli.run_recording'&&p.outcome==='validated').length,1);
+    assert.equal(fullProbes(f,offset),1);
+    const after=synced(f);assert.equal(after.freshness,'CURRENT',JSON.stringify(after));assert.equal(after.reuse_eligible,true);
+  }
+});
+
+test('an observed edit during a recording run makes the receipt non-reusable',unix,async t=>{
+  const f=fixture(t);call(f,['start']);call(f,['run','typecheck']);
+  fs.appendFileSync(path.join(f.root,'src/other.ts'),'export const more = 3;\n');assert.equal(synced(f).freshness,'STALE');
+  const run=await paused(f,'before-launch');
+  fs.appendFileSync(path.join(f.root,'src/main.ts'),'export const during = 5;\n');
+  await new Promise(r=>setTimeout(r,300));
+  const {code,output}=await run.release();assert.equal(code,0,output);
+  const r=receipt(f);assert(!r.stable);
+  assert.match(r.checkpoint.issues.join(';'),/declared input event occurred during execution/);
+  assert.equal(synced(f).reuse_eligible,false);
 });

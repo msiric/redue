@@ -75,6 +75,17 @@ export function directCompiler(root,{verify=true}={}){
   }
   return {tsRoot,version,entry:path.join(tsRoot,spec.entry),digest:spec.digest};
 }
+// The direct probe's output: root, script, configuration and program files with
+// their byte digests, and the execution context. A recorded run rebuilds it from
+// the same layout (direct-run-certificate.mjs).
+export function directProbeOutput({root,script,configs,files,context}){
+  const named=list=>list.map(([file,digest])=>[hash(file),digest]);
+  return hash(JSON.stringify({root,script,configs:named(configs),files:named(files),...context}));
+}
+// The probe value the daemon stores for one direct probe's checkpoint output.
+export function directProbeValue(argv,output,stderrHash){
+  return hash(JSON.stringify([[argv,0,hash(output),stderrHash]]));
+}
 // The execution context a direct probe certifies and a recorded run must match.
 export function directContextHash(compiler,node){
   return hash(JSON.stringify({interpretation:directInterpretation,compiler:compiler.digest,

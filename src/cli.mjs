@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import {directQualification,directInterpretation,observedNpmContext} from './direct-typescript.mjs';
-import {directRunCertificateAllowed,directRunCertificate,validateRunRecord} from './direct-run-certificate.mjs';
+import {directRunCertificateAllowed,directRunCertificate,directRunRecording,validateRunRecord} from './direct-run-certificate.mjs';
 import path from 'node:path';
 import net from 'node:net';
 import os from 'node:os';
@@ -236,13 +236,16 @@ async function execute() {
     // Start the observed interval before caller validation, not after it. Any
     // intervening edit (even restored before launch) remains disqualifying.
     // With a certificate, the compile records its own answers instead of two probes.
-    let certificate=null;
+    // Without one after an edit, the recording can become the certificate at the
+    // end checkpoint; that checkpoint probes in full if it cannot.
+    let certificate=null,recording=null;
     if(callerCertificate&&!unobservedDirectRun){
       certificate=directRunCertificate(plan,selected,before?.snapshots?.[name],root);
-      probeBefore=certificate?.value??probeHash(probePlan);
+      if(!certificate)recording=directRunRecording(plan,selected,before?.snapshots?.[name],root);
+      probeBefore=certificate?.value??(recording?null:probeHash(probePlan));
     }
     // The record arrives on fd 3, so the compiler's environment is unchanged.
-    const launched=certificate?[command[0],'--require',path.join(here,'run-recorder.cjs'),
+    const launched=certificate||recording?[command[0],'--require',path.join(here,'run-recorder.cjs'),
       ...command.slice(1)]:command;
     const record=[];
     // A Windows full reconciliation may finish while queued watcher callbacks
@@ -267,7 +270,7 @@ async function execute() {
       try{runLock.phase('launching');
         const launch=windowsLaunch(launched);
         child=spawn(launch.file,launch.args,{cwd:plan.cwd,
-        stdio:certificate?['inherit','inherit','inherit','pipe']:'inherit',env:process.env,
+        stdio:certificate||recording?['inherit','inherit','inherit','pipe']:'inherit',env:process.env,
         detached:process.platform==='linux',...launch.options});
         child.stdio[3]?.on('data',chunk=>record.push(chunk));}
       catch(e){resolve({status:'start_failed',exitCode:null,signal:null,errorCode:e.code||e.name});return;}
@@ -304,22 +307,43 @@ async function execute() {
     const afterContextStarted=performance.now(),environmentAfter=contextHashes()[name];
     timing('cli.context_after',afterContextStarted);
     let probeAfter=null;
+    const recordText=Buffer.concat(record).toString('utf8');
     if(certificate){
-      const issue=validateRunRecord(Buffer.concat(record).toString('utf8'),certificate);
+      const issue=validateRunRecord(recordText,certificate);
       if(issue)captureIssues.push(`compiler inputs differ from discovery certificate (${issue})`);
       probeAfter=certificate.value;
-    }else if(!unobservedDirectRun)probeAfter=probeHash(probePlan);
+    }else if(!unobservedDirectRun&&!recording)probeAfter=probeHash(probePlan);
+    // The daemon reads the recording from owned state; control requests are small.
+    const recordFile=recording&&path.join(state,`run-record-${recording}.json`);
+    if(recordFile)try{fs.writeFileSync(recordFile,recordText,{mode:0o600});}catch{}
     const endSnapshotStarted=performance.now();
     if(!unobservedDirectRun){
-      try{after=await call({action:'snapshot',name,contextHashes:contextHashes()},captureTimeout);}
+      try{after=await call({action:'snapshot',name,contextHashes:contextHashes(),
+        ...(recording?{runCertificate:1,adopt:recording}:{})},captureTimeout);}
       catch{captureIssues.push('end observation unavailable');}
+      finally{if(recordFile)fs.rmSync(recordFile,{force:true});}
       timing('cli.end_checkpoint',endSnapshotStarted,{available:after?.snapshots?.[name]?1:0});
     }
     const end=after?.snapshots?.[name];
+    // The end certificate, recorded or probed, must cover what this compile received.
+    // With no input event, gap or content change in between, it also holds at the start.
+    if(recording&&end?.recordingAccepted===true)probeBefore=probeAfter=end.probeHash;
+    else if(recording){
+      const endCertificate=directRunCertificate(plan,selected,end,root);
+      if(!endCertificate)captureIssues.push('no discovery certificate at the end checkpoint');
+      else{
+        const issue=validateRunRecord(recordText,endCertificate);
+        if(issue)captureIssues.push(`compiler inputs differ from discovery certificate (${issue})`);
+        probeBefore=probeAfter=endCertificate.value;
+      }
+    }
+    if(recording&&snap?.observationGaps!==end?.observationGaps)
+      captureIssues.push('observation gap during execution');
     if(!unobservedDirectRun&&(!end||!end.observationHealthy))captureIssues.push('end checkpoint unavailable');
     if(JSON.stringify(environmentBefore)!==JSON.stringify(environmentAfter))
       captureIssues.push('declared environment changed during execution');
-    if(!unobservedDirectRun&&(!probeBefore||!probeAfter||probeBefore!==snap?.probeHash||probeAfter!==end?.probeHash))
+    if(!unobservedDirectRun&&(!probeBefore||!probeAfter||probeBefore!==(recording?end:snap)?.probeHash||
+      probeAfter!==end?.probeHash))
       captureIssues.push('declared state probe unavailable or changed');
     if(before?.observation?.generation!==after?.observation?.generation)
       captureIssues.push('observer generation changed during execution');
@@ -327,7 +351,8 @@ async function execute() {
       captureIssues.push('input plan rebuilt during execution');
     if(snap?.inputEventSerial!==end?.inputEventSerial)
       captureIssues.push('declared input event occurred during execution');
-    if(!snap||!end||snap.planId!==end.planId||snap.fingerprint!==end.fingerprint||
+    // A recorded certificate changes only the probe part of the fingerprint.
+    if(!snap||!end||snap.planId!==end.planId||(recording?snap.inputKey!==end.inputKey:snap.fingerprint!==end.fingerprint)||
       snap.revision!==end.revision)captureIssues.push('declared inputs changed or were not observed');
     const stable=captureIssues.length===0;
     const receipt={result,invocation,target,stable,fingerprintVersion:1,
@@ -338,7 +363,7 @@ async function execute() {
         ...(process.env.REDUE_PUBLIC_INPUT_TRACE==='1'?{
           startInputEventSerial:snap?.inputEventSerial??null,
           endInputEventSerial:end?.inputEventSerial??null}: {})},
-      planId:snap?.planId??plan.id,fingerprint:snap?.fingerprint??null,
+      planId:snap?.planId??plan.id,fingerprint:(recording?end:snap)?.fingerprint??null,
       provider:plan.provider,environmentHashes:environmentBefore,
       ...(observedContext?{observedContext,verificationRecipe:directInterpretation}:{}),
       files:snap?.files??null,observerGeneration:before?.observation?.generation??null,

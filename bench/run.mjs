@@ -107,7 +107,7 @@ try {
   append('src/m3.ts', `\nexport const touched${Date.now()} = 1;\n`);
   const relevant = timed('status --sync (after relevant edit)', [redue, 'status', '--sync', '--json']);
   expect('relevant source edit (immediately)', 'STALE/PASS/not-eligible');
-  timed('redue run (after edit)', [redue, 'run', 'typecheck']);
+  const edited = timed('redue run (after edit)', [redue, 'run', 'typecheck']);
   expect('after rerun', 'CURRENT/PASS/eligible');
 
   console.log('\nTimings (ms):');
@@ -124,6 +124,8 @@ try {
     warmSyncOverCachedMs: Math.round(median(sync.samples) - median(cached.samples)),
     unrelatedEditSyncMs: Math.round(unrelated.samples[0]),
     relevantEditSyncMs: Math.round(relevant.samples[0]),
+    runAfterEditMs: Math.round(edited.samples[0]),
+    runAfterEditOverheadPct: Math.round((edited.samples[0] / median(plain.samples) - 1) * 100),
     idleSeconds, idleProbeLaunches,
     statesCorrect: failures.length === 0,
   };

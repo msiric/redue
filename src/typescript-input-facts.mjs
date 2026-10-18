@@ -63,6 +63,6 @@ export function typeScriptInputFacts(root,tsRoot,tsc){
   // Every hashed configuration must also be a certified question.
   const queries=captured?.queries&&[...configReads].every(file=>
     captured.queries.some(([kind,read])=>kind==='readFile'&&read===file))?captured.queries:null;
-  return {configs:[...configReads].sort().map(file=>[hash(file),digestFile(file)]),
-    files:[...new Set(files)].sort().map(file=>[hash(file),digestFile(file)]),queries};
+  return {configs:[...configReads].sort().map(file=>[file,digestFile(file)]),
+    files:[...new Set(files)].sort().map(file=>[file,digestFile(file)]),queries};
 }

@@ -9,11 +9,15 @@ export function contextOnly(context) {
   }
   return false;
 }
-export function probeResult(output,context,queries=null) {
+// A layout lets a recorded run rebuild the output after a content-only edit.
+export function probeResult(output,context,queries=null,layout=null) {
   if(!process.argv.includes('--redue-checkpoint')){process.stdout.write(output);return;}
   const raw=queries?JSON.stringify(queries):null;
-  let value=JSON.stringify({output,context,queryData:raw&&Buffer.byteLength(raw)<=8*1024*1024?
-    deflateSync(raw).toString('base64'):null});
+  const queryData=raw&&Buffer.byteLength(raw)<=8*1024*1024?deflateSync(raw).toString('base64'):null;
+  let value=JSON.stringify({output,context,queryData,
+    ...(layout?{layoutData:deflateSync(JSON.stringify(layout)).toString('base64')}:{})});
+  // The layout is dropped first: it only shortens the run after an edit.
+  if(Buffer.byteLength(value)>512*1024)value=JSON.stringify({output,context,queryData});
   // Optimization metadata must not overflow the ordinary probe channel.
   // Larger contracts keep the normal complete probe, without result reuse.
   if(Buffer.byteLength(value)>512*1024)value=JSON.stringify({output,context,queries:null});

@@ -1,4 +1,4 @@
-import {inflateSync} from 'node:zlib';
+import {inflateSync,deflateSync} from 'node:zlib';
 import fs from 'node:fs';
 import path from 'node:path';
 import net from 'node:net';
@@ -18,7 +18,8 @@ import {atomicJson,readReceipts,readReceiptSnapshot,receiptRevision} from './sta
 import {history,closeHistory} from './observation.mjs';
 import {inputKey,planGuard,toolchainKey} from './decision-validation.mjs';
 import {queriesHold} from './typescript-list.mjs';
-import {directProject} from './direct-typescript.mjs';
+import {directProject,directProbeValue} from './direct-typescript.mjs';
+import {recordedCertificate} from './direct-run-certificate.mjs';
 import {timing,mark,traceBase,traceContext,traceScope,traceEnvironment,traceId} from './decision-profile.mjs';
 
 const configFile=path.resolve(process.argv[2]);
@@ -264,6 +265,10 @@ function probe(row,allowReuse=false,{launch=true}={}) {
       try{checkpoint=JSON.parse(out.stdout);
         checkpoint.queries=checkpoint.queryData?JSON.parse(inflateSync(
           Buffer.from(checkpoint.queryData,'base64'),{maxOutputLength:8*1024*1024})):null;
+        // Optional: without a layout, a run after an edit falls back to a full probe.
+        try{checkpoint.layout=checkpoint.layoutData?JSON.parse(inflateSync(
+          Buffer.from(checkpoint.layoutData,'base64'),{maxOutputLength:8*1024*1024})):null;}
+        catch{checkpoint.layout=null;}
         if(!/^[a-f0-9]{64}$/.test(checkpoint.output)||!/^[a-f0-9]{64}$/.test(checkpoint.context))
           throw Error('invalid supported probe checkpoint');}
       catch{row.probeHash=null;row.probeAt=0;row.probeError='probe checkpoint unavailable';return;}
@@ -277,7 +282,8 @@ function probe(row,allowReuse=false,{launch=true}={}) {
   if(checkpoint)row.probeCache=checkpoint.queries&&(!inProcess||basis)?{input:key,context:checkpoint.context,
     hash:value,queries:checkpoint.queries,...(inProcess?{schema:1,...basis,
       identities:new Map(),
-      output:checkpoint.output,queryData:checkpoint.queryData,stderrHash:values[0][3]}: {})}:null;
+      output:checkpoint.output,queryData:checkpoint.queryData,layout:checkpoint.layout,
+      stderrHash:values[0][3]}: {})}:null;
   timing('daemon.probe',started,{outcome:'ok',commands:values.length,
     reusable:row.probeCache?1:0,queries:row.probeCache?.queries.length||0});
 }
@@ -397,13 +403,52 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
 }
 // The indexed inputs already differ from the latest receipt, so no probe result
 // can make this check CURRENT. A sync answers STALE without a full probe. A run
-// still probes, and a revert makes the inputs match and probes again.
+// probes, or builds the certificate from its recording (adopt), and a revert
+// makes the inputs match and probes again.
 function knownStale(name,row) {
   const r=receipts[name];
   if(!r?.files||r.planId!==row.plan.id||row.probeError||pendingChecks.has(name)||
     row.probeCache?.input===inputKey(row))return false;
   const current=combinedFiles(name),files=Object.keys(current);
   return files.length!==Object.keys(r.files).length||files.some(file=>r.files[file]!==current[file]);
+}
+// A run can rebuild a certificate that no longer applies only because indexed
+// inputs changed: same plan guard, compiler, toolchain and observation.
+function adoptable(row) {
+  const cache=row.probeCache;
+  if(process.platform==='win32'||row.plan.qualification!=='npm-typescript-direct-v1'||
+    row.plan.unresolved.length||row.probeError||cache?.schema!==1||!cache.layout||!cache.queries?.length||
+    cache.input===inputKey(row)||cache.gaps!==metrics.gaps||!continuityBarrier())return false;
+  try{const basis=certificateBasis(row);
+    return basis.guard===cache.guard&&basis.compiler===cache.compiler&&basis.toolchain===cache.toolchain;}
+  catch{return false;}
+}
+// The end checkpoint of a run that started without a certificate. Its recorded
+// answers become the candidate certificate when nothing observed changed during
+// the run. The probe that follows validates it, or runs in full as before.
+function adopt(name,row,token) {
+  const started=performance.now(),pending=row.adoption,file=path.join(state,`run-record-${token}.json`);
+  row.adoption=null;
+  let text=null;
+  try{text=fs.readFileSync(file,'utf8');}catch{}
+  const done=issue=>{timing('daemon.recorded_certificate',started,{outcome:issue?'rejected':'accepted',
+    ...(issue?{reason:issue}:{})});return issue;};
+  if(!pending||pending.token!==token||text===null)return done('recording unavailable');
+  if(inputEventSerial.get(name)!==pending.serial||metrics.gaps!==pending.gaps||inputKey(row)!==pending.input||
+    row.probeCache!==pending.cache||row.probeHash!==null)
+    return done('inputs or certificate changed during the run');
+  const cache=pending.cache,argv=row.plan.probes[0];
+  let result;
+  try{result=recordedCertificate(text,cache,directProject(argv[2],argv[3],{verify:false}));}
+  catch{return done('recording unreadable');}
+  if(result.issue)return done(result.issue);
+  const identities=new Map(cache.identities);
+  for(const changed of result.changed)identities.delete(changed);
+  row.probeCache={...cache,hash:directProbeValue(argv,result.output,cache.stderrHash),
+    queries:result.queries,identities,output:result.output,layout:result.layout,input:pending.input,recorded:token,
+    queryData:deflateSync(JSON.stringify(result.queries)).toString('base64')};
+  metrics.recordedCertificates=(metrics.recordedCertificates||0)+1;
+  return done(null);
 }
 function status(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=false) {
   // Reload notifications accelerate visibility but are not required for it: a
@@ -974,15 +1019,23 @@ async function request(message) {
       }catch(e){installedRecheck=null;observationGap('installed_recheck',e);}
     }
     const probeStarted=performance.now();
+    // A run's start checkpoint skips the full probe when its recording can
+    // replace the certificate; the end checkpoint offers that recording.
+    let adoptIntent=false,recorded;const adopting=new Set();
     if(index&&healthy&&!validatedColdIndex&&message.action!=='prelaunch'){
       const continuous=continuityBarrier(),probed=index,gaps=metrics.gaps,decided=Date.now();
       const selected=[...index.checks].filter(([name])=>!message.name||message.name===name);
+      if(message.action==='snapshot'&&typeof message.adopt==='string'&&/^[0-9a-f-]{36}$/.test(message.adopt)){
+        const row=index.checks.get(message.name);
+        recorded=row?adopt(message.name,row,message.adopt):'recording unavailable';
+      }
+      adoptIntent=message.action==='snapshot'&&message.runCertificate===1&&!message.adopt&&continuous;
       const keys=new Map(selected.map(([name,row])=>[name,inputKey(row)]));
       const skip=message.action==='sync'?knownStale:()=>false;
       if(message.action==='sync')refreshReceipts();
       // With a deferred barrier, validate in-process first and launch any full
       // probe only after the barrier, so a queued edit costs one probe, not two.
-      for(const [name,row] of selected)if(!skip(name,row))probe(row,continuous,{launch:!deferBarrier});
+      for(const [name,row] of selected)if(!skip(name,row))probe(row,continuous,{launch:!deferBarrier&&!adoptIntent});
       if(continuous&&process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_MAC_PROBE_SIGNAL){
         fs.writeFileSync(process.env.VSTATE_TEST_MAC_PROBE_SIGNAL,'validated');
         await new Promise(resolve=>setTimeout(resolve,200));
@@ -994,8 +1047,17 @@ async function request(message) {
         timing('daemon.request_catch_up',started,{after:'probes'});
         // Rows not yet confirmed, or whose inputs moved meanwhile, are probed
         // from the barrier, as an undeferred decision would have done.
+        // Decided once, after the barrier. The start probe value is already out
+        // of date; clearing it means whichever probe comes next sets the value
+        // for this unchanged interval without counting as a change during the run.
+        if(adoptIntent&&index===probed&&healthy&&!planning)for(const [name,row] of selected)
+          if(row.probeAt<decided&&adoptable(row)){
+            adopting.add(name);row.probeHash=null;
+            row.adoption={token:randomUUID(),serial:inputEventSerial.get(name)||0,gaps:metrics.gaps,
+              input:inputKey(row),cache:row.probeCache};
+          }
         const rest=index===probed&&healthy&&!planning?selected.filter(([name,row])=>!skip(name,row)&&
-          (row.probeAt<decided||metrics.gaps!==gaps||inputKey(row)!==keys.get(name))):[];
+          !adopting.has(name)&&(row.probeAt<decided||metrics.gaps!==gaps||inputKey(row)!==keys.get(name))):[];
         const launched=metrics.fullProbes||0;
         for(const [,row] of rest)probe(row,continuityBarrier());
         if(continuous&&(metrics.fullProbes||0)>launched){await catchUp();if(planDirty||pending.size||flushTimer)flush();}
@@ -1012,7 +1074,7 @@ async function request(message) {
           data.snapshots[name]={...combinedSummary(name),files:combinedFiles(name),
           planGeneration:row.plan.id,
             inputEventSerial:inputEventSerial.get(name)||0,
-            probeHash:row.probeHash,
+            probeHash:row.probeHash,inputKey:inputKey(row),observationGaps:metrics.gaps,
             observationHealthy:healthy&&!planning&&!recovering&&applicableExternal(name).every(e=>e.healthy)};
       // Export only a currently guarded, check-specific discovery certificate.
       // The caller compares it with the answers its own compile received. Schema 2
@@ -1020,7 +1082,11 @@ async function request(message) {
       // snapshot stays the start of the observed interval, including validation.
       if(message.runCertificate===1&&continuityBarrier()){
         const row=index?.checks.get(message.name),cache=row?.probeCache;
-        if(row?.plan.qualification==='npm-typescript-direct-v1'&&
+        // The daemon checked the recording against the certificate it then validated.
+        if(recorded===null&&cache?.recorded===message.adopt&&cache.hash===row.probeHash&&
+          cache.input===inputKey(row)&&data.snapshots[message.name])
+          data.snapshots[message.name].recordingAccepted=true;
+        else if(row?.plan.qualification==='npm-typescript-direct-v1'&&
           !row.plan.unresolved.length&&cache?.schema===1&&cache.input===inputKey(row)&&
           cache.hash===row.probeHash&&cache.guard===planGuard(index.bundle)&&
           cache.output&&cache.queryData&&data.snapshots[message.name])
@@ -1029,6 +1095,10 @@ async function request(message) {
             context:cache.context,output:cache.output,stderrHash:cache.stderrHash,
             queryData:cache.queryData};
       }
+      const row=index?.checks.get(message.name);
+      if(adopting.has(message.name)&&row?.adoption&&data.snapshots[message.name])
+        data.snapshots[message.name].recordedCertificate=row.adoption.token;
+      if(typeof recorded==='string'&&data.snapshots[message.name])data.snapshots[message.name].recordingIssue=recorded;
     }
     timing('daemon.request_applicability',applicabilityStarted,{checks:data.checks.length});
     timing('daemon.request_total',totalStarted,{action:message.action,

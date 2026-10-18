@@ -1,12 +1,13 @@
 // A caller validates discovery, never an execution outcome. No persistent cache.
 // The direct compiler run records the answers it received (run-recorder.cjs);
 // those answers, not a separate probe, show it consumed the certified inputs.
+import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {inflateSync} from 'node:zlib';
 import {fileURLToPath} from 'node:url';
 import {timing} from './decision-profile.mjs';
-import {directCompiler,directContextHash,directEnvironmentIssue} from './direct-typescript.mjs';
+import {directCompiler,directContextHash,directEnvironmentIssue,directProbeOutput,directProbeValue} from './direct-typescript.mjs';
 import {withinPath} from './path-identity.mjs';
 const hash=value=>createHash('sha256').update(value).digest('hex');
 export function directRunCertificateAllowed(selected) {
@@ -31,7 +32,7 @@ export function directRunCertificate(plan,selected,snapshot,root) {
   if(directEnvironmentIssue())return fallback('environment_unsupported');
   try{
     const argv=selected.probes[0];
-    const value=hash(JSON.stringify([[argv,0,hash(c.output),c.stderrHash]]));
+    const value=directProbeValue(argv,c.output,c.stderrHash);
     if(value!==snapshot.probeHash)return fallback('probe_identity_changed');
     // Bytes were verified by the daemon's full probe; its toolchain identity
     // check at the start and end snapshots covers later changes.
@@ -42,6 +43,16 @@ export function directRunCertificate(plan,selected,snapshot,root) {
     timing('cli.run_certificate',started,{outcome:'available',queries:queries.length});
     return {value,queries,context:c.context,compiler};
   }catch{return fallback('certificate_invalid');}
+}
+// Without a start certificate, the daemon may offer to build one from this run's
+// recording at the end checkpoint. Returns its token, or null for full probes.
+export function directRunRecording(plan,selected,snapshot,root) {
+  const token=snapshot?.recordedCertificate;
+  if(!directRunCertificateAllowed(selected)||!snapshot.observationHealthy||
+    typeof token!=='string'||!/^[0-9a-f-]{36}$/.test(token)||snapshot.planId!==plan.id||directEnvironmentIssue())
+    return null;
+  try{if(selected.command[1]!==directCompiler(root,{verify:false}).entry)return null;}catch{return null;}
+  return token;
 }
 // Answers derived from a recorded raw listing, exactly as queryAnswer computes them.
 function derived(kind,entries,options) {
@@ -80,6 +91,8 @@ function statAgrees([kind,file,answer,options],target,result) {
     return result==='d'||listed&&result==='f'?false:undefined;}
   return null;
 }
+const withinCompiler=compiler=>file=>withinPath(file,compiler.tsRoot)||
+  file!==compiler.entry&&file.toLowerCase()===compiler.entry.toLowerCase();
 // Null when every answer the run received agrees with the certified state,
 // otherwise why not. The compiler is deterministic given its context and its
 // answers, so a run whose answers all agree computed the certified result.
@@ -94,8 +107,7 @@ export function runRecordIssue(record,certificate) {
   const {compiler,queries}=certificate;
   if(record.main!==compiler.entry||!Array.isArray(record.node)||
     directContextHash(compiler,record.node)!==certificate.context)return 'execution context changed';
-  const inCompiler=file=>withinPath(file,compiler.tsRoot)||
-    file!==compiler.entry&&file.toLowerCase()===compiler.entry.toLowerCase();
+  const inCompiler=withinCompiler(compiler);
   const facts=new Map();
   for(const query of queries){if(!facts.has(query[1]))facts.set(query[1],[]);facts.get(query[1]).push(query);}
   for(const [kind,file,answer] of record.facts){
@@ -126,4 +138,48 @@ export function validateRunRecord(text,certificate) {
   timing('cli.run_recording',started,{outcome:issue?'rejected':'validated',
     facts:record?.facts?.length||0,...(issue?{reason:issue}:{})});
   return issue;
+}
+// A certificate for the current inputs, built from a recorded run and the
+// certificate of the last full probe, or {issue}. The run must read the same
+// files, with the same configuration, and every answer it received must be
+// covered by the old questions; only file contents may differ. The program
+// layout is then the same, so the output is rebuilt as the probe computes it.
+// Limit: a file whose role changes (a package.json newly imported as a module)
+// keeps its old role, so a later full probe can report the check STALE.
+export function recordedCertificate(text,cache,compiler) {
+  let record=null;
+  try{record=JSON.parse(text);}catch{}
+  if(record?.schema!==1||!Array.isArray(record.facts))return {issue:'record unavailable'};
+  if(!cache?.layout||!cache.queries?.length)return {issue:'no previous layout'};
+  const inCompiler=withinCompiler(compiler),reads=new Map();
+  for(const [kind,file,answer] of record.facts)if(kind==='read'&&!inCompiler(file)){
+    if(answer!==null&&typeof answer!=='string')return {issue:`read ${file} failed`};
+    reads.set(file,answer);
+  }
+  const before=new Map(cache.queries.filter(q=>q[0]==='readFile'&&!inCompiler(q[1])).map(q=>[q[1],q[2]]));
+  if(reads.size!==before.size||[...before.keys()].some(file=>!reads.has(file)))
+    return {issue:'the run read different files'};
+  if(cache.layout.configs.some(([file])=>!reads.has(file)||reads.get(file)!==before.get(file)))
+    return {issue:'configuration changed'};
+  // Lib files are in the compiler tree: their bytes are covered by its identity,
+  // but which of them the program loads must not change.
+  const libs=list=>[...new Set(list.filter(file=>inCompiler(file)&&file.endsWith('.d.ts')))].sort();
+  if(!Array.isArray(record.compilerReads)||JSON.stringify(libs(record.compilerReads))!==
+    JSON.stringify(libs(cache.queries.filter(q=>q[0]==='readFile').map(q=>q[1]))))
+    return {issue:'the run loaded different lib files'};
+  const changed=new Set([...reads].filter(([file,answer])=>before.get(file)!==answer).map(([file])=>file));
+  const queries=cache.queries.map(q=>q[0]==='readFile'&&changed.has(q[1])?[q[0],q[1],reads.get(q[1]),...q.slice(3)]:q);
+  const issue=runRecordIssue(record,{compiler,queries,context:cache.context});
+  if(issue)return {issue};
+  const files=[];
+  for(const [file,digest] of cache.layout.files){
+    if(!changed.has(file)){files.push([file,digest]);continue;}
+    let bytes;
+    try{bytes=fs.readFileSync(file);}catch{return {issue:`${file} unreadable`};}
+    // The same answer the compiler received (queryAnswer's readFile).
+    if(hash(JSON.stringify(bytes.toString('utf8')))!==reads.get(file))return {issue:`${file} changed after the run`};
+    files.push([file,hash(bytes)]);
+  }
+  const layout={...cache.layout,files};
+  return {queries,layout,output:directProbeOutput(layout),changed};
 }
