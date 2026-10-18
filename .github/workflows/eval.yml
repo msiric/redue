@@ -1,0 +1,64 @@
+name: Agent A/B eval (manual)
+# Runs eval/screen.mjs or eval/run.mjs on a Linux runner and uploads
+# .local/eval/ as an artifact. Sessions authenticate with the
+# CLAUDE_CODE_OAUTH_TOKEN repository secret (from `claude setup-token`).
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: What to run
+        required: true
+        type: choice
+        options: [screen, run]
+        default: run
+      args:
+        description: 'Arguments, e.g. "--pilot" for run, or "owner/name owner/name@commit" for screen'
+        required: false
+        type: string
+        default: --pilot
+      claude_version:
+        description: Claude Code version for the sessions
+        required: false
+        type: string
+        default: 2.1.302
+permissions:
+  contents: read
+concurrency:
+  group: agent-eval
+  cancel-in-progress: false
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Room for inotify watches on large repos
+        run: |
+          sudo sysctl -w fs.inotify.max_user_watches=1048576
+          sudo sysctl -w fs.inotify.max_user_instances=1024
+      - name: Claude Code
+        if: inputs.command == 'run'
+        run: npm install -g "@anthropic-ai/claude-code@${{ inputs.claude_version }}" && claude --version
+      - name: Screen repos
+        if: inputs.command == 'screen'
+        env:
+          ARGS: ${{ inputs.args }}
+        run: node eval/screen.mjs $ARGS
+      - name: Run sessions
+        if: inputs.command == 'run'
+        env:
+          ARGS: ${{ inputs.args }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          CLAUDE_CODE_RETRY_WATCHDOG: '1'
+        run: node eval/run.mjs $ARGS --out .local/eval/run-ci
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-${{ inputs.command }}-${{ github.run_id }}
+          path: .local/eval/
+          retention-days: 14
+          if-no-files-found: warn

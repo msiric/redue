@@ -13,7 +13,7 @@ import path from 'node:path';
 import {checkoutRedue, evalDir, freshClone, installedTypeScript, localDir, mirror, plainTsc, readJson,
   redue, reviewedTypeScript, sh, slug, stamp, tmpRoot, checkStatus, waitReady} from './lib.mjs';
 
-const args = process.argv.slice(2);
+const args = process.argv.slice(2).filter(arg => !arg.startsWith('-'));
 const repos = args.length ? args.map(arg => {
   const [name, commit] = arg.split('@');
   return {name, url: `https://github.com/${name}.git`, commit};

@@ -32,6 +32,19 @@ node eval/run.mjs --repo owner/name --task docs-edit --arms redue
 inside a Claude Code session. It strips the parent session's `CLAUDE_CODE_*`
 variables.
 
+In CI, `.github/workflows/eval.yml` runs either script on a Linux runner and
+uploads `.local/eval/` as an artifact:
+
+```sh
+gh workflow run eval.yml -f command=screen -f args="owner/name owner/name@commit"
+gh workflow run eval.yml -f command=run -f args="--pilot"
+```
+
+Sessions there authenticate with the `CLAUDE_CODE_OAUTH_TOKEN` repository secret
+(create it with `claude setup-token`). Only the `claude` process receives it,
+and every result file is scanned and the token replaced with `<redacted>`
+before upload.
+
 ## What a run does
 
 1. Fresh local clone at the pinned commit, then `npm ci --prefer-offline --ignore-scripts`.

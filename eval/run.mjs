@@ -18,7 +18,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {parseArgs} from 'node:util';
 import {checkoutRedue, evalDir, freshClone, harnessEnv, localDir, plainTsc, readJson, redue, sh, slug, stamp,
-  tmpRoot, checkStatus, must, waitReady} from './lib.mjs';
+  tmpRoot, checkStatus, must, waitReady, sessionAuth, redactDir} from './lib.mjs';
 import {writeWrapper} from './wrapper.mjs';
 import {analyze} from './analyze.mjs';
 import {report} from './report.mjs';
@@ -59,7 +59,9 @@ function verifyTree(dir, tree, scratch) {
   fs.rmSync(scratch, {recursive: true, force: true});
   fs.mkdirSync(scratch, {recursive: true});
   must(sh('sh', ['-c', `git archive ${tree} | tar -x -C "${scratch}"`], {cwd: dir}), 'git archive');
-  must(sh('cp', ['-cR', path.join(dir, 'node_modules'), path.join(scratch, 'node_modules')]), 'copy node_modules');
+  // Copy-on-write clone where the filesystem supports it.
+  must(sh('cp', [process.platform === 'darwin' ? '-cR' : '-a', ...(process.platform === 'linux' ? ['--reflink=auto'] : []),
+    path.join(dir, 'node_modules'), path.join(scratch, 'node_modules')]), 'copy node_modules');
   const result = plainTsc(scratch);
   fs.rmSync(scratch, {recursive: true, force: true});
   return result;
@@ -116,7 +118,7 @@ function runSession(task, repo, arm, id) {
     '--tools', tools, '--allowedTools', tools, '--permission-mode', 'dontAsk'];
   fs.writeFileSync(path.join(runDir, 'session.json'), JSON.stringify({cwd: dir, args}, null, 2) + '\n');
   started = performance.now();
-  const session = sh('claude', args, {cwd: dir, env, timeout: 45 * 60_000});
+  const session = sh('claude', args, {cwd: dir, env: {...env, ...sessionAuth()}, timeout: 45 * 60_000});
   row.wall_ms = Math.round(performance.now() - started);
   row.exit = session.status ?? session.signal;
   fs.writeFileSync(path.join(runDir, 'transcript.jsonl'), session.stdout);
@@ -155,6 +157,7 @@ function runSession(task, repo, arm, id) {
       `skipped "${s.command}" but plain tsc fails on that tree` : `skipped "${s.command}" but its tree could not be checked`),
   ];
   fs.writeFileSync(path.join(runDir, 'result.json'), JSON.stringify(row, null, 2) + '\n');
+  redactDir(runDir);
   if (!opt.keep) fs.rmSync(work, {recursive: true, force: true});
   const m = row.metrics;
   console.log(`   ${m.outcome}, ${Math.round(row.wall_ms / 1000)} s, ${m.turns} turns, $${m.cost_usd?.toFixed(2)}, ` +
@@ -181,4 +184,5 @@ for (const task of selected) {
 }
 fs.writeFileSync(path.join(out, 'results.json'), JSON.stringify({model: opt.model, max_turns: +opt['max-turns'], redue: entry, rows}, null, 2) + '\n');
 fs.writeFileSync(path.join(out, 'results.md'), report(rows, {model: opt.model, maxTurns: opt['max-turns'], out}));
+redactDir(out);
 console.log(`\nwrote ${path.join(out, 'results.md')}`);

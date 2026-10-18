@@ -104,3 +104,23 @@ export function waitReady(entry, dir, {timeout = 15 * 60_000, env} = {}) {
   }
   throw new Error(`observer not ready after ${timeout / 1000} s`);
 }
+
+// In CI the session authenticates with CLAUDE_CODE_OAUTH_TOKEN, which
+// harnessEnv strips with the other CLAUDE_CODE_* variables. Only the claude
+// process gets it back.
+export function sessionAuth() {
+  return Object.fromEntries(Object.entries(process.env).filter(([key]) =>
+    key === 'CLAUDE_CODE_OAUTH_TOKEN' || key.startsWith('CLAUDE_CODE_RETRY_WATCHDOG')));
+}
+
+// The agent's Bash tool could print its environment. Results get uploaded,
+// so replace the token wherever it appears in them.
+export function redactDir(dir) {
+  const token = process.env.CLAUDE_CODE_OAUTH_TOKEN;
+  if (!token || token.length < 8) return;
+  for (const entry of fs.readdirSync(dir, {withFileTypes: true, recursive: true})) {
+    if (!entry.isFile()) continue;
+    const file = path.join(entry.parentPath, entry.name), text = fs.readFileSync(file, 'utf8');
+    if (text.includes(token)) fs.writeFileSync(file, text.split(token).join('<redacted>'));
+  }
+}
