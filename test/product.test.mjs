@@ -627,6 +627,14 @@ test('Linux/Windows daemon crash with a missed edit reconciles the historical re
   assert.match(recovered.checks[0].reason,/src\/input.txt changed/);
 });
 
+// A new checkout root at `to`: sources copied, the installation moved, as when
+// a checkout is moved. Installed files are observed by identity, so a copied
+// installation would be a change.
+function replaceRoot(from,to){
+  fs.cpSync(from,to,{recursive:true,filter:file=>file!==path.join(from,'node_modules')});
+  if(fs.existsSync(path.join(from,'node_modules')))
+    renameRetry(path.join(from,'node_modules'),path.join(to,'node_modules'));
+}
 // Windows can briefly refuse a rename while the observer still holds a handle.
 function renameRetry(from,to){
   for(let attempt=0;;attempt++){
@@ -655,11 +663,7 @@ test('checkout root replacement reattaches and reconciles before retaining CURRE
   for(let iteration=0;iteration<Number(process.env.REDUE_ROOT_STRESS||1);iteration++){
   const moved=path.join(f.base,'old-project-'+iteration);
   const before=events(f).length;
-  // A new root: sources copied, the installation moved (installed files are
-  // observed by identity, so a copied installation is a change).
-  fs.renameSync(f.root,moved);
-  fs.cpSync(moved,f.root,{recursive:true,filter:file=>file!==path.join(moved,'node_modules')});
-  renameRetry(path.join(moved,'node_modules'),path.join(f.root,'node_modules'));
+  fs.renameSync(f.root,moved);replaceRoot(moved,f.root);
   let result;
   try{result=await until(f,s=>s.observation.healthy&&
       s.checks[0].freshness==='CURRENT'&&
@@ -738,7 +742,7 @@ test('Windows replacement after failed recovery and successful sync starts a new
   ok(f,'start');ok(f,'run','check');const receipt=row(f).invocation.runId;
   put(f.env.VSTATE_TEST_RECOVERY_FINALIZE_FAULT,'fail');
   fs.renameSync(f.root,path.join(f.base,'first-root'));
-  fs.cpSync(path.join(f.base,'first-root'),f.root,{recursive:true});
+  replaceRoot(path.join(f.base,'first-root'),f.root);
   for(let n=0;n<150;n++){
     if(events(f).filter(e=>e.kind==='reconciliation_failed').length>=2)break;
     await new Promise(resolve=>setTimeout(resolve,50));
@@ -749,7 +753,7 @@ test('Windows replacement after failed recovery and successful sync starts a new
   assert.equal(restored.checks[0].invocation.runId,receipt);
   const gaps=events(f).filter(e=>e.kind==='observation_root_replaced').length;
   fs.renameSync(f.root,path.join(f.base,'second-root'));
-  fs.cpSync(path.join(f.base,'second-root'),f.root,{recursive:true});
+  replaceRoot(path.join(f.base,'second-root'),f.root);
   const again=await until(f,s=>s.checks[0].freshness==='CURRENT'&&
     events(f).filter(e=>e.kind==='observation_root_replaced').length>gaps);
   assert.equal(again.checks[0].invocation.runId,receipt);
