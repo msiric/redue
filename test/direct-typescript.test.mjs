@@ -127,8 +127,6 @@ test('real direct compiler evidence crosses proxy contexts, but not relevant inp
     ['src/new.d.ts','declare const added: number;\n'],['tsconfig.json',JSON.stringify({compilerOptions:{strict:false},include:['src']})]]){
     put(path.join(root,name),content);assert.equal(status().freshness,'STALE');run();assert.equal(status().reuse_eligible,true);
   }
-  const installed=path.join(root,'node_modules/typescript/README.md'),original=fs.readFileSync(installed);
-  fs.appendFileSync(installed,'\n');assert.equal(status().reuse_eligible,false);fs.writeFileSync(installed,original);
   // Inert Node settings are accepted and recorded: a different value is not reusable.
   const node={NODE_OPTIONS:'--max-old-space-size=4096',NODE_EXTRA_CA_CERTS:path.join(root,'missing-ca.pem'),NODE_PATH:root};
   const nodeRun=call(['run','typecheck'],{...contextA,...node});assert.equal(nodeRun.status,0,nodeRun.stderr+nodeRun.stdout);
@@ -138,6 +136,8 @@ test('real direct compiler evidence crosses proxy contexts, but not relevant inp
     const r=status({...contextA,...other});assert.equal(r.reuse_eligible,false,JSON.stringify(other));
     assert.match(r.reason,/declared execution environment changed/);
   }
+  const installed=path.join(root,'node_modules/typescript/README.md'),original=fs.readFileSync(installed);
+  fs.appendFileSync(installed,'\n');assert.equal(status().reuse_eligible,false);fs.writeFileSync(installed,original);
   const probe=path.resolve('src/direct-typescript-probe.mjs');
   const injected=path.join(root,'unreviewed-etw.cjs'),marker=path.join(root,'unreviewed-etw-ran');
   put(injected,`require('node:fs').writeFileSync(${JSON.stringify(marker)},'unreviewed');`);
