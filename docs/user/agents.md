@@ -71,6 +71,42 @@ setup requires `--apply`. `--dry-run` never writes. Installing REDUE or running
 `init` does not connect an agent automatically. Setup does not start an observer
 or execute verification. Use `redue start` when you want observation.
 
+## Claude Code typecheck hook
+
+`redue agent setup claude --apply` also adds a PreToolUse hook to
+`.claude/settings.local.json`. The hook needs a local REDUE install, so it is
+per-developer; keep that file out of commits. Other settings in the file are kept,
+but the file is rewritten as 2-space JSON. `.claude/settings.json` is not touched.
+`redue agent remove claude --apply` removes only the entry REDUE added.
+
+The hook skips an exact rerun of a configured typecheck: a check with
+`kind: "typecheck"` or named `typecheck`. It matches these commands, run from the
+project root:
+
+- `redue run CHECK`
+- `npm run SCRIPT`, when the check has an npm script
+- `npx tsc --noEmit`, for the direct-TypeScript recipe
+- the check's `command`, when it has no `@` tokens
+
+Each form may end with `2>&1` and then one `| tail -n N`, `| head -n N`,
+`| tail -N` or `| head -N`. Nothing else matches. Each form has its own `if`
+rule, so other Bash commands never start the hook.
+
+On a match, the hook runs `redue status --sync --json` with a 2-second timeout.
+It blocks the command only when the check is CURRENT, PASS and
+`reuse_eligible: true`. The message names the check and the receipt's run ID. Every
+other result allows the command: STALE, UNVERIFIED, FAILED, a timeout, an error, or
+a missing `redue`. A command that starts with `REDUE_FORCE=1` always runs.
+
+Limits:
+
+- The hook judges its own environment, which Claude Code passes to it. The Bash
+  tool can add variables from your shell profile. The hook cannot see those.
+- Commands run from a subdirectory, or combined with `&&`, `;` or other pipes,
+  are not matched.
+- Only the Bash tool is covered, not PowerShell.
+- Run setup again after you rename a check or script.
+
 ## Update an existing connection
 
 Installing a newer package does **not** rewrite project instructions. From the
@@ -138,7 +174,8 @@ request; it does not synchronize or run these probes.
 config resolution, cached observer health, a bounded read-only control-access probe,
 managed-file integrity, detected host
 version, and loading guidance. `behavior_verified: false` is deliberate: intact
-files do not prove the agent followed them. No hooks are installed. Doctor neither
+files do not prove the agent followed them. For Claude, doctor reports whether the
+typecheck hook is installed. Doctor neither
 executes checks nor starts observers, reconciles inputs, or installs a host.
 
 Doctor separates missing/unreadable state, a missing or refused endpoint, an

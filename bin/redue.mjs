@@ -44,6 +44,12 @@ No checks run in the background. Direct commands outside redue create no receipt
 
 function error(message){console.error(`redue: ${message}`);process.exit(2);}
 const args=process.argv.slice(2);
+if(args.length===3&&args[0]==='agent'&&args[1]==='hook'&&args[2]==='claude'){
+  // Runs before config discovery: the hook must exit 0 on every failure,
+  // because Claude Code treats exit 2 as a block.
+  const {runClaudeHook}=await import('../src/claude-hook.mjs');
+  await runClaudeHook(fileURLToPath(import.meta.url));process.exit(0);
+}
 if(args.length===1&&args[0]==='--version'){console.log(version);process.exit(0);}
 if(args.includes('--help')||args.includes('-h')||!args.length){console.log(help);process.exit(0);}
 let configFile=null,stateOverride=null;
@@ -64,6 +70,8 @@ if(command==='agent'){
   const {agentCommand}=await import('../src/agent-integration.mjs');
   try{await agentCommand(args,{configFile,stateOverride,entry:fileURLToPath(import.meta.url)});}
   catch(e){error(e.message);}
+  // Exiting with piped output still queued truncates it (8 KB on macOS).
+  await new Promise(resolve=>process.stdout.write('',resolve));
   process.exit(0);
 }
 if(!['init','start','stop','status','detail','explain','run','remove-state'].includes(command))

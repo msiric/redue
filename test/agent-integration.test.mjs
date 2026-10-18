@@ -178,3 +178,45 @@ test('recognized prior template upgrades intact content for both hosts; edited l
     }
   }
 });
+
+test('claude setup adds one typecheck hook to settings.local.json; removal restores existing settings',t=>{
+  const f=fixture(t),local='.claude/settings.local.json';
+  const existing={permissions:{allow:['Bash(ls)']},env:{EXAMPLE:'1'},
+    hooks:{PreToolUse:[{matcher:'Edit',hooks:[{type:'command',command:'echo edit'}]}],
+      PostToolUse:[{matcher:'Bash',hooks:[{type:'command',command:'echo after'}]}]}};
+  f.put(local,JSON.stringify(existing,null,4));const shared='{ "model": "x" }\n';f.put('.claude/settings.json',shared);
+  const preview=JSON.parse(f.ok('agent','setup','claude','--dry-run','--json').stdout);
+  assert.equal(preview.hooks,`${local} PreToolUse`);
+  const shown=preview.changes.find(c=>c.path===local);
+  assert.equal(shown.operation,'update');assert(!shown.content.includes('EXAMPLE'),'preview must not echo local settings');
+  f.ok('agent','setup','claude','--apply');
+  const installed=JSON.parse(f.read(local));
+  assert.deepEqual({...installed,hooks:{...installed.hooks,PreToolUse:installed.hooks.PreToolUse.slice(0,1)}},existing);
+  assert.deepEqual(installed.hooks.PreToolUse[1],{matcher:'Bash',hooks:[{type:'command',
+    if:'Bash(redue run typecheck*)',command:'redue agent hook claude',timeout:5}]});
+  const once=f.read(local);f.ok('agent','setup','claude','--apply');assert.equal(f.read(local),once);
+  const doctor=JSON.parse(f.ok('agent','doctor','claude','--json').stdout);
+  assert.equal(doctor.hosts[0].hook,doctor.command.path?'installed':'installed, but redue is not on PATH, so it never runs');
+  f.ok('agent','setup','codex','--apply');f.ok('agent','remove','codex','--apply');assert.equal(f.read(local),once);
+  f.ok('agent','remove','claude','--apply');
+  assert.deepEqual(JSON.parse(f.read(local)),existing);assert.equal(f.read('.claude/settings.json'),shared);
+});
+test('claude hook settings: created file is removed; edited or duplicate entries are replaced; invalid settings block setup',t=>{
+  const f=fixture(t),local='.claude/settings.local.json';
+  f.ok('agent','setup','claude','--apply');assert.equal(JSON.parse(f.read(local)).hooks.PreToolUse.length,1);
+  // Another checkout shares the committed record but not the local file.
+  fs.unlinkSync(path.join(f.root,local));f.ok('agent','setup','claude','--apply');
+  assert.equal(JSON.parse(f.read(local)).hooks.PreToolUse.length,1);
+  f.ok('agent','remove','claude','--apply');assert(!fs.existsSync(path.join(f.root,local)));
+  // REDUE's entry is found by its command: an edited copy and a stale duplicate
+  // collapse into one current entry, in place, and removal takes both.
+  f.ok('agent','setup','claude','--apply');const fresh=JSON.parse(f.read(local)).hooks.PreToolUse[0];
+  const other={matcher:'Bash',hooks:[{type:'command',command:'echo mine'}]};
+  const stale={...fresh,hooks:[{...fresh.hooks[0],if:'Bash(redue run old*)',timeout:9}]};
+  f.put(local,JSON.stringify({hooks:{PreToolUse:[stale,other,fresh]}}));
+  f.ok('agent','setup','claude','--apply');assert.deepEqual(JSON.parse(f.read(local)).hooks.PreToolUse,[fresh,other]);
+  f.ok('agent','remove','claude','--apply');assert.deepEqual(JSON.parse(f.read(local)),{hooks:{PreToolUse:[other]}});
+  const g=fixture(t);g.put(local,'{"permissions": ');
+  assert.match(g.run('agent','setup','claude','--apply').stderr,/not valid JSON/);
+  assert.equal(g.read(local),'{"permissions": ');assert(!fs.existsSync(path.join(g.root,'CLAUDE.md')));
+});
