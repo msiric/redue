@@ -1,0 +1,20 @@
+{
+  "repos": [
+    {
+      "name": "twilio/twilio-node",
+      "url": "https://github.com/twilio/twilio-node.git",
+      "commit": "1f261bdcf665bc50bc8ca5b67e407e723de07c68",
+      "script": "test:typescript",
+      "test": "npm run test:javascript --silent",
+      "why": "Largest qualifying repo: 777 TS files, mostly generated API types. Plain tsc 4.4 s warm, 8.3 s cold. Jest suite passes in about 25 s."
+    },
+    {
+      "name": "cheeriojs/cheerio",
+      "url": "https://github.com/cheeriojs/cheerio.git",
+      "commit": "74daca06dcd36ecd8acc5832cf933a66ce05032b",
+      "script": "lint:ts",
+      "test": "npx vitest run",
+      "why": "Well-known library with a public API and clear docs. Plain tsc 2.2 s warm. Vitest passes in about 7 s; `npm test` also runs lint, which fails at this commit."
+    }
+  ]
+}
