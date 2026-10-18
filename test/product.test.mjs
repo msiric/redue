@@ -315,6 +315,7 @@ for(const fault of ['hang','fail'])test(`history ${fault} falls back to determin
   const uncertain=status(f);
   assert.equal(uncertain.checks[0].freshness,'UNVERIFIED');
   assert.equal(uncertain.checks[0].result,'PASS');
+  assert.match(uncertain.checks[0].reason,fault==='hang'?/did not settle within 1000 ms/:/injected history failure/);
   // Suppress test notifications to model a missed edit during the gap. The
   // independent file oracle, rather than the old index, establishes change.
   put(path.join(f.state,'drop-events'),'1');

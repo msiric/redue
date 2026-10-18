@@ -757,7 +757,8 @@ function observationGap(classification,error) {
   // Once continuity is uncertain, a cursor is no longer authority. Do not
   // retry native history in this observer generation after reconciliation.
   historyDisabled=true;
-  healthy=false;reason=`observation unavailable: ${classification}; deterministic reconciliation pending`;
+  const cause=error?.message?` (${error.message})`:'';
+  healthy=false;reason=`observation unavailable: ${classification}${cause}; deterministic reconciliation pending`;
   metrics.gaps++;
   event('observation_gap',{classification,error_code:error?.code||null});publish();
   // One bounded attempt per gap; a later independent gap may try again.
