@@ -2,7 +2,9 @@
 // Scripted check of the Claude Code typecheck hook on a bench project
 // (create one with bench/setup.mjs). It installs the hook, records a PASS, then
 // feeds PreToolUse input to `redue agent hook claude`, the command Claude Code runs:
-// the hook must deny after a doc-only edit and allow after a source edit.
+// the hook must deny after a doc-only edit and allow after a source edit. The
+// allowed command is rewritten to `redue run`; running it makes the next
+// identical command get denied.
 //
 //   node bench/claude-hook.mjs <bench-dir>
 //
@@ -34,14 +36,21 @@ function decide(label, command, wanted) {
   const out = spawnSync(process.execPath, [redue, 'agent', 'hook', 'claude'], {cwd: dir, env, encoding: 'utf8',
     input: JSON.stringify({hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: {command}, cwd: dir})});
   const ms = Math.round(performance.now() - started);
-  let got = `exit ${out.status}`;
-  if (out.status === 0) try { got = out.stdout ? JSON.parse(out.stdout).hookSpecificOutput.permissionDecision : 'allow'; } catch {}
+  let got = `exit ${out.status}`, rewritten = null;
+  if (out.status === 0) try {
+    const hook = out.stdout ? JSON.parse(out.stdout).hookSpecificOutput : null;
+    got = hook ? hook.permissionDecision : 'allow';
+    rewritten = hook?.updatedInput?.command ?? null;
+  } catch {}
   const ok = got === wanted;
   console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${label}: ${got} in ${ms} ms${ok ? '' : ` (expected ${wanted})`}`);
   if (got === 'deny') console.log(`       ${JSON.parse(out.stdout).hookSpecificOutput.permissionDecisionReason}`);
+  if (rewritten) console.log(`       rewritten to: ${rewritten}`);
   if (!ok) failures.push(`${label}: got ${got}, expected ${wanted}`);
   const sync = cli('status', '--sync', '--json'), row = JSON.parse(sync.stdout || '{}').checks?.[0];
-  decisions.push({label, command, decision: got, ms, status_after: `${row?.freshness}/${row?.result}: ${row?.reason}`});
+  decisions.push({label, command, decision: got, ...(rewritten ? {rewritten} : {}), ms,
+    status_after: `${row?.freshness}/${row?.result}: ${row?.reason}`});
+  return rewritten;
 }
 const restore = () => execFileSync('git', ['checkout', '-q', '--', 'src/m3.ts', 'docs/notes.md'], {cwd: dir});
 
@@ -64,7 +73,11 @@ try {
   decide('direct compiler form', 'npx tsc --noEmit', 'deny');
   decide('REDUE_FORCE=1', 'REDUE_FORCE=1 npm run typecheck', 'allow');
   fs.appendFileSync(path.join(dir, 'src/m3.ts'), '\nexport const hookEdit = 1;\n');
-  decide('after source edit', 'npm run typecheck', 'allow');
+  const rewritten = decide('after source edit', 'npm run typecheck', 'allow');
+  if (rewritten !== 'redue run typecheck') failures.push(`after source edit: rewritten to ${rewritten}, expected redue run typecheck`);
+  // What Claude Code then runs; `redue` here is this checkout's bin.
+  else cli(...rewritten.split(' ').slice(1));
+  decide('same command after the rewritten run', 'npm run typecheck', 'deny');
 } finally {
   try { restore(); } catch {}
   cli('stop');

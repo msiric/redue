@@ -1,7 +1,8 @@
 // Claude Code PreToolUse hook: skip an exact typecheck rerun when REDUE reports
-// CURRENT/PASS with reuse_eligible on the current inputs. Every other outcome,
-// including errors and timeouts, allows the command. Never exit 2: Claude Code
-// treats exit 2 as a block.
+// CURRENT/PASS with reuse_eligible on the current inputs. When the check is not
+// CURRENT, the command becomes `redue run <check>` so the run is recorded. Every
+// other outcome, including errors and timeouts, allows the command unchanged.
+// Never exit 2: Claude Code treats exit 2 as a block.
 import fs from 'node:fs';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
@@ -32,11 +33,22 @@ export function hookForms(config){
 
 // Accept only an optional trailing `2>&1`, then an optional `| tail|head -n N`
 // or `-N`. Newlines separate commands, so they never match.
-export function matchCheck(command,config){
+function split(command){
   if(typeof command!=='string'||/[\r\n]/.test(command))return null;
-  const base=command.trim().replace(/[ \t]+/g,' ')
-    .match(/^(.*?)(?: 2>&1)?(?: \| (?:tail|head) (?:-n \d+|-\d+))?$/)[1];
-  return hookForms(config).find(row=>row.forms.includes(base))?.check||null;
+  const [,base,suffix]=command.trim().replace(/[ \t]+/g,' ')
+    .match(/^(.*?)((?: 2>&1)?(?: \| (?:tail|head) (?:-n \d+|-\d+))?)$/);
+  return {base,suffix};
+}
+export function matchCheck(command,config){
+  const parts=split(command);
+  return parts&&hookForms(config).find(row=>row.forms.includes(parts.base))?.check||null;
+}
+// The same check through REDUE, keeping the output suffix; null if it already is.
+export function recordedCommand(command,name,configFile='redue.config.json'){
+  const parts=split(command);
+  if(!parts||!safe.test(name)||!safe.test(configFile))return null;
+  const run=`redue ${configFile==='redue.config.json'?'':`--config ${configFile} `}run ${name}`;
+  return parts.base===run||parts.base===`redue run ${name}`?null:run+parts.suffix;
 }
 
 export function verdict(status,name){
@@ -79,9 +91,18 @@ export async function claudeHook(input,{entry,timeout=2000}){
   const config=path.join(root,record.config);
   const name=matchCheck(command,JSON.parse(fs.readFileSync(config,'utf8')));
   if(!name)return null;
-  const reason=verdict(await synchronizedStatus(entry,config,root,timeout),name);
-  return reason?{hookSpecificOutput:{hookEventName:'PreToolUse',
-    permissionDecision:'deny',permissionDecisionReason:reason}}:null;
+  const status=await synchronizedStatus(entry,config,root,timeout),reason=verdict(status,name);
+  if(reason)return {hookSpecificOutput:{hookEventName:'PreToolUse',
+    permissionDecision:'deny',permissionDecisionReason:reason}};
+  // Rewrite only on a healthy answer for this check: without an observer,
+  // `redue run` cannot record, so the command stays as Claude sent it.
+  const rewritten=status?.schema===1&&status.observation?.healthy===true&&Array.isArray(status.checks)&&
+    status.checks.some(item=>item?.name===name)?recordedCommand(command,name,record.config):null;
+  // updatedInput replaces the whole tool input. Deny and ask rules still apply
+  // to the rewritten command; "allow" skips only the prompt.
+  return rewritten?{hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'allow',
+    permissionDecisionReason:`REDUE: check ${JSON.stringify(name)} is not CURRENT; running it through redue run so the result is recorded.`,
+    updatedInput:{...input.tool_input,command:rewritten}}}:null;
 }
 
 export async function runClaudeHook(entry){

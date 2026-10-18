@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawnSync,execFileSync} from 'node:child_process';
-import {claudeHook,hookForms,matchCheck} from '../src/claude-hook.mjs';
+import {claudeHook,hookForms,matchCheck,recordedCommand} from '../src/claude-hook.mjs';
 import {findExecutable} from '../src/executable-lookup.mjs';
 const bin=path.resolve('bin/redue.mjs');
 const put=(f,s)=>{fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,s);};
@@ -36,6 +36,20 @@ test('matches each typecheck form with only the allowed output suffixes',()=>{
     ['redue run typecheck']);
 });
 
+test('a matched command becomes redue run with the same output suffix',()=>{
+  for(const [command,rewritten] of [['npm run typecheck','redue run typecheck'],
+    ['npm run typecheck 2>&1 | tail -n 20','redue run typecheck 2>&1 | tail -n 20'],
+    ['  npx   tsc --noEmit | head -5','redue run typecheck | head -5'],['npx tsc --noEmit 2>&1','redue run typecheck 2>&1']])
+    assert.equal(recordedCommand(command,'typecheck'),rewritten,command);
+  // Already recorded: nothing to change.
+  for(const command of ['redue run typecheck','redue run typecheck 2>&1 | tail -n 5'])
+    assert.equal(recordedCommand(command,'typecheck'),null,command);
+  assert.equal(recordedCommand('npm run typecheck','typecheck','vstate.config.json'),'redue --config vstate.config.json run typecheck');
+  assert.equal(recordedCommand('redue --config vstate.config.json run typecheck','typecheck','vstate.config.json'),null);
+  assert.equal(recordedCommand('npm run typecheck','typecheck','my config.json'),null);
+  assert.equal(recordedCommand('npm run typecheck\nrm -rf x','typecheck'),null);
+});
+
 function project(t){
   const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-hook-')),root=fs.realpathSync(base);
   t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
@@ -61,20 +75,33 @@ test('blocks only CURRENT/PASS with reuse_eligible and a run id',async t=>{
   assert.match(blocked.hookSpecificOutput.permissionDecisionReason,new RegExp(`run ${runId}`));
   assert.match(blocked.hookSpecificOutput.permissionDecisionReason,/REDUE_FORCE=1/);
   assert.deepEqual(p.calls(),[`--config ${path.join(p.root,'redue.config.json')} status --sync --json`]);
-  const allowed={
+  // A healthy answer that is not CURRENT/PASS/eligible: run it through REDUE so it is recorded.
+  const recorded={
     stale:status({freshness:'STALE',reuse_eligible:false,reason:'src/a.ts changed'}),
     unverified:status({freshness:'UNVERIFIED',reuse_eligible:false,reason:'observation unavailable'}),
     failed:status({result:'FAIL',reuse_eligible:false,reason:'last command failed'}),
     noReceipt:status({result:null,freshness:'UNVERIFIED',invocation:null,reuse_eligible:false}),
     ineligible:status({reuse_eligible:false}),
     eligibilityMissing:status({reuse_eligible:undefined}),
+    noRunId:status({invocation:{}}),
+  };
+  const input={...bash('npm run typecheck 2>&1 | tail -n 30',p.root),
+    tool_input:{command:'npm run typecheck 2>&1 | tail -n 30',description:'Typecheck',timeout:120000}};
+  for(const [name,value] of Object.entries(recorded)){
+    const out=(await claudeHook(input,{entry:p.fake(name,replying(value))}))?.hookSpecificOutput;
+    assert.equal(out?.permissionDecision,'allow',name);assert.equal(out.hookEventName,'PreToolUse');
+    assert.deepEqual(out.updatedInput,{command:'redue run typecheck 2>&1 | tail -n 30',description:'Typecheck',timeout:120000},name);
+    assert.match(out.permissionDecisionReason,/not CURRENT/);
+  }
+  // No healthy answer for this check, or already `redue run`: unchanged.
+  const unchanged={
     unhealthy:{...status({}),observation:{healthy:false}},
     schema:{...status({}),schema:2},
-    noRunId:status({invocation:{}}),
     otherCheck:status({name:'other'}),
   };
-  for(const [name,value] of Object.entries(allowed))
+  for(const [name,value] of Object.entries(unchanged))
     assert.equal(await claudeHook(bash('npm run typecheck',p.root),{entry:p.fake(name,replying(value))}),null,name);
+  assert.equal(await claudeHook(bash('redue run typecheck',p.root),{entry:p.fake('staleRun',replying(recorded.stale))}),null);
 });
 
 test('timeout, error exit, unreadable output and missing REDUE all allow',async t=>{
