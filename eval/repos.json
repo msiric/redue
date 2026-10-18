@@ -6,7 +6,7 @@
       "commit": "1f261bdcf665bc50bc8ca5b67e407e723de07c68",
       "script": "test:typescript",
       "test": "npm run test:javascript --silent",
-      "why": "Largest qualifying repo: 777 TS files, mostly generated API types. Plain tsc 4.4 s warm, 8.3 s cold. Jest suite passes in about 25 s."
+      "why": "Largest qualifying npm repo with TypeScript 5.9: 777 TS files, mostly generated API types. Plain tsc 13 s on a GitHub Linux runner (4.4 s on an M4 Mac). Jest suite passes in about 40 s in CI."
     },
     {
       "name": "cheeriojs/cheerio",
@@ -15,6 +15,14 @@
       "script": "lint:ts",
       "test": "npx vitest run",
       "why": "Well-known library with a public API and clear docs. Plain tsc 2.2 s warm. Vitest passes in about 7 s; `npm test` also runs lint, which fails at this commit."
+    },
+    {
+      "name": "nteract/semiotic",
+      "url": "https://github.com/nteract/semiotic.git",
+      "commit": "5df91760930955a01dfbd978bbfa3ecda0d5fdbb",
+      "script": "typescript",
+      "test": null,
+      "why": "Large TypeScript 6.0.3 library: 2,793 TS files, plain tsc about 18 s on a GitHub Linux runner. Ships its own AGENTS.md and CLAUDE.md that tell agents to run `npm run typescript`. Its vitest suite takes over 3 minutes, so success is checked with tsc and the task checks only."
     }
   ]
 }
