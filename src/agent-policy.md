@@ -1,6 +1,6 @@
 ---
 name: redue-verification
-description: Use before running, skipping or reporting a typecheck or other configured check.
+description: {{DESCRIPTION}}
 ---
 
 REDUE tells you whether a check's last result still applies to the files you

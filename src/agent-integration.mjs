@@ -139,8 +139,14 @@ function skillFor(relative,host,config){
       `- Run a check with \`${redue} run CHECK\`, so the result is recorded.\n`);
   const fresh=`If the user asks for a fresh run or names a command, run exactly that command`+
     (rows.length?` with a\n  \`REDUE_FORCE=1 \` prefix.`:'.');
+  // Claude Code lists the description in every session. With the hook, a plain
+  // typecheck needs only the CLAUDE.md block, so the description must not
+  // send the agent here for one.
+  const description=rows.length?'Rules and exact commands for redue status, redue run and other redue commands. '+
+    'A plain typecheck needs only the REDUE section of CLAUDE.md.':
+    'Use before running, skipping or reporting a typecheck or other configured check.';
   // Replacer functions, so `$` in a config name is never a replacement pattern.
-  return policy.replace('{{CONFIG}}',()=>JSON.stringify(relative)).replace('{{COMMANDS}}',()=>commands.trimEnd())
+  return policy.replace('{{DESCRIPTION}}',()=>description).replace('{{CONFIG}}',()=>JSON.stringify(relative)).replace('{{COMMANDS}}',()=>commands.trimEnd())
     .replace('{{STATUS}}',()=>status).replace('{{FRESH}}',()=>fresh);}
 function inspect(root,host,record){
   if(!record)return {installed:false,integrity:'absent'};

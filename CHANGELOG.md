@@ -14,7 +14,7 @@
   `&&` chain. When it skips one, the message names the rest of the chain. The
   skill lists the exact commands the hook matches for the selected config.
 - Shorter agent instructions: the CLAUDE.md block is 327 bytes instead of 739,
-  the skill 1.7 KB instead of 5 KB. The reuse rules are unchanged.
+  the skill 1.8 KB instead of 5 KB. The reuse rules are unchanged.
 - Releases are published to the `latest` npm tag as well as `alpha`, so
   `npm install -g @redue/cli` installs the newest release.
 
