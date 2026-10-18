@@ -5,7 +5,7 @@ import {createHash} from 'node:crypto';
 import micromatch from './glob.mjs';
 import {sha} from './plan.mjs';
 import {resolveLinks} from './installed-inputs.mjs';
-import {validInputRelative} from './path-identity.mjs';
+import {validInputRelative,identityFields,racyUntil} from './path-identity.mjs';
 
 const tracked = root => [...new Set(execFileSync('git',
   ['ls-files','--cached','--others','--exclude-standard','-z'],
@@ -35,65 +35,43 @@ const pathPrefixes = rel => {
   return prefixes;
 };
 
-// An installed file is observed by identity, not content. Every write changes
-// ctime, so a changed file still changes its entry, without reading the whole
-// installation. The compiler's own reads are content-hashed by its probe and
-// certificate. Kernel timestamps tick in milliseconds, so a second same-size
-// write in the same tick can keep the identity (git's racy rule). A file changed
-// in the last 2 s is therefore also content-hashed, and if a later record finds
-// other content under the same identity, a generation in the entry moves. The
-// entry never depends on timing alone, so an unchanged file never flips.
-const identityFields=['dev','ino','mode','nlink','size','mtimeNs','ctimeNs'];
-const racyStat=(st,now=Date.now())=>
-  Number(st.ctimeNs/1000000n)>=now-2000||Number(st.mtimeNs/1000000n)>=now-2000;
-function installedEntry(rel,st,content,state) {
-  const identity=identityFields.map(key=>String(st[key])).join(':'),racy=racyStat(st);
-  let generation=state.generation.get(rel)||0;
-  const previous=state.content.get(rel);
-  if(racy||previous?.identity===identity){
-    const current=content();
-    if(previous?.identity===identity&&previous.content!==current)generation++;
-    if(racy)state.content.set(rel,{identity,content:current});else state.content.delete(rel);
-  } else state.content.delete(rel);
-  if(generation)state.generation.set(rel,generation);
-  return 'stat:'+identity+(generation?'#'+generation:'');
-}
+// An installed file is observed by identity, not content: every write changes
+// ctime, so its entry changes without reading the whole installation. The
+// compiler's own reads are content-checked by its probe and certificate. A file
+// changed within the racy window could still be rewritten in the same timestamp
+// tick at the same size; such files are tracked in `racy`, and the daemon waits
+// the window out and records them again before it writes a run checkpoint.
+const identity=st=>identityFields.map(key=>String(st[key])).join(':');
 function fileHash(root, rel,installed=false,before=fs.lstatSync(path.join(root,rel),
-  {bigint:true}),racy=null) {
+  {bigint:true})) {
   const file=path.join(root, rel);
-  let value,references=[],bytes=Number(before.size);
+  let value,references=[],bytes=installed?0:Number(before.size),racy=0;
   if(before.isSymbolicLink()){
     const resolution=resolveLinks(file,root,[],true);
     if(!resolution.physical)throw Error(`symlink input target observation unavailable: ${rel}: ${resolution.reason}`);
     const target=fs.statSync(resolution.physical,{bigint:true});
     if(!target.isFile())throw Error(`directory input symlink unsupported: ${rel}`);
-    bytes=installed&&racy?0:Number(target.size);
-    const content=()=>{bytes=Number(target.size);return hashRegular(resolution.physical).hash;};
-    value='link:'+JSON.stringify(resolution.links)+':'+(installed&&racy?
-      installedEntry(rel,target,content,racy):target.mode+':'+
-      (installed&&target.nlink>1?target.nlink+':':'')+content());
+    if(installed)racy=racyUntil(target);else bytes=Number(target.size);
+    value='link:'+JSON.stringify(resolution.links)+':'+(installed?'stat:'+identity(target):
+      target.mode+':'+hashRegular(resolution.physical).hash);
     references=[...new Set([...resolution.links.map(link=>path.relative(root,link.path)
       .split(path.sep).join('/')),path.relative(root,resolution.physical)
       .split(path.sep).join('/')])];
     const targetAfter=fs.statSync(resolution.physical,{bigint:true});
-    for(const key of ['dev','ino','mode','nlink','size','mtimeNs','ctimeNs'])
+    for(const key of identityFields)
       if(target[key]!==targetAfter[key])throw Error(`input changed during inspection: ${rel}`);
     const resolutionAfter=resolveLinks(file,root,[],true);
     if(resolutionAfter.physical!==resolution.physical||
       JSON.stringify(resolutionAfter.links)!==JSON.stringify(resolution.links))
       throw Error(`input link changed during inspection: ${rel}`);
   }
-  else if(before.isFile()&&installed&&racy){
-    bytes=0;
-    value=installedEntry(rel,before,()=>{bytes=Number(before.size);return hashRegular(file).hash;},racy);
-  }
-  else if(before.isFile()) value='file:'+before.mode+':'+
-    (installed&&before.nlink>1?before.nlink+':':'')+hashRegular(file).hash;
+  else if(before.isFile()&&installed){value='stat:'+identity(before);racy=racyUntil(before);}
+  else if(before.isFile()) value='file:'+before.mode+':'+hashRegular(file).hash;
   else throw Error(`non-file input: ${rel}`);
   const after=fs.lstatSync(file,{bigint:true});
-  for(const key of ['dev','ino','mode','nlink','size','mtimeNs','ctimeNs'])
+  for(const key of identityFields)
     if(before[key]!==after[key]) throw Error(`input changed during inspection: ${rel}`);
-  return {hash:sha(value),references,bytes};
+  return {hash:sha(value),references,bytes,racy};
 }
 const readBuffer=Buffer.allocUnsafe(65536);
 function hashRegular(file) {
@@ -109,7 +87,7 @@ export class InputIndex {
     const matcherStarted=performance.now();
     this.bundle=bundle; this.root=bundle.root; this.files=new Map(); this.members=new Map();
     this.symlinkRefs=new Map();this.aliasDependencies=new Map();
-    this.racy={content:new Map(),generation:new Map()};
+    this.racy=new Map();
     this.trackGit=options.trackGit!==false;
     this.installedRoots=[...new Set(Object.values(bundle.plans).flatMap(plan=>
       plan.installedPhysicalRoots||[]))];
@@ -178,6 +156,17 @@ export class InputIndex {
     }
     return {files,bytes,durationMs:performance.now()-started};
   }
+  // When the racy window of the named checks' installed members ends (0: none).
+  racyUntil(names=null) {
+    let until=0;
+    for(const [rel,time] of this.racy)
+      if(!names||[...this.members.get(rel)||[]].some(name=>names.includes(name)))until=Math.max(until,time);
+    return until;
+  }
+  // Records again every installed file whose racy window has passed.
+  settleRacy() {
+    for(const [rel,time] of [...this.racy])if(time<=Date.now())this.record(rel,rel+' changed');
+  }
   summary(name) { const row=this.checks.get(name); return {fingerprint:this.fingerprint(name),
     revision:row.revision,planId:row.plan.id,files:row.files.size,probeAt:row.probeAt}; }
   record(rel, changeReason=rel+' changed', observedStat=null) {
@@ -192,7 +181,7 @@ export class InputIndex {
     catch(e){if(e.code!=='ENOENT'){this.unavailable=String(e);return false;}}
     if(stat&&(stat.isFile()||stat.isSymbolicLink())) {
       const installed=this.installedPath(rel);
-      try{const started=performance.now();inspection=fileHash(this.root,rel,installed,stat,this.racy);
+      try{const started=performance.now();inspection=fileHash(this.root,rel,installed,stat);
         fresh=inspection.hash;
         this.profile.hashingMs+=performance.now()-started;
         this.rehashedFiles++;this.rehashedBytes+=inspection.bytes;}
@@ -211,6 +200,7 @@ export class InputIndex {
       }
     }
     const oldNames=this.members.get(rel)||new Set(), newNames=new Set(fresh===undefined?[]:matched);
+    if(inspection?.racy>Date.now()&&newNames.size)this.racy.set(rel,inspection.racy);else this.racy.delete(rel);
     if(old===fresh && oldNames.size===newNames.size && [...oldNames].every(n=>newNames.has(n))) return false;
     for(const name of new Set([...oldNames,...newNames])) {
       const row=this.checks.get(name);
@@ -332,4 +322,15 @@ export class InputIndex {
     for(const file of row.files) out[file]=this.files.get(file);
     return out;
   }
+}
+
+// The index state a worker sends and a restart retains; hydrate() in daemon.mjs
+// reads it back.
+export function dehydrateIndex(value) {
+  return {files:[...value.files],
+    aliasDependencies:[...value.aliasDependencies].map(([name,refs])=>[name,[...refs]]),
+    rows:[...value.checks].map(([name,row])=>({name,files:[...row.files],
+      sum:row.sum.toString('hex'),revision:row.revision,lastReason:row.lastReason})),
+    eventCount:value.eventCount,rehashedFiles:value.rehashedFiles,
+    rehashedBytes:value.rehashedBytes,profile:value.profile,racy:[...value.racy]};
 }

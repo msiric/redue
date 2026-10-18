@@ -72,7 +72,7 @@ test('macOS guarded and full decisions agree for content, membership, resolution
   const {root,fast,full,fixtures}=fixture(t);
   for(const f of fixtures){call(f,['start']);call(f,['run','typecheck']);const initial=await settled(f);
     assert(initial.reuse_eligible,JSON.stringify(initial));}
-  const ids=fixtures.map(f=>row(f).invocation.runId);
+  let ids=fixtures.map(f=>row(f).invocation.runId);
   const compare=async(expected,extra)=>{const rows=extra?fixtures.map(f=>row(f,extra)):await Promise.all(fixtures.map(settled));
     assert.deepEqual(semantic(rows[0]),semantic(rows[1]));
     assert.equal(rows[0].freshness,expected,JSON.stringify(rows));
@@ -97,7 +97,10 @@ test('macOS guarded and full decisions agree for content, membership, resolution
   const compiler=path.join(root,'node_modules/typescript/lib/tsc.js'),bytes=fs.readFileSync(compiler);
   // A changed compiler file is an indexed input: STALE without probing the unreviewed bytes.
   fs.appendFileSync(compiler,'\n');const unsupported=await compare('STALE');assert(!unsupported[0].reuse_eligible);
-  fs.writeFileSync(compiler,bytes);await compare('CURRENT');
+  // Installed files are observed by identity: restored bytes are still a change.
+  fs.writeFileSync(compiler,bytes);await compare('STALE');
+  for(const f of fixtures)call(f,['run','typecheck']);ids=fixtures.map(f=>row(f).invocation.runId);
+  await compare('CURRENT');
   await compare('STALE',{NODE_ENV:'production'});
   const preload=fixtures.map(f=>row(f,{NODE_OPTIONS:'--trace-warnings'}));assert(preload.every(r=>!r.reuse_eligible));
   await compare('CURRENT',{npm_config_proxy:'http://localhost:12345'});
@@ -127,7 +130,10 @@ test('macOS gap, missed edit, failed reconciliation and restart cannot retain a 
   call(f,['stop']);fs.unlinkSync(path.join(f.state,'history-fault'));fs.unlinkSync(path.join(f.state,'drop-events'));
   call(f,['start']);assert.equal(row(f).invocation.runId,id);const metrics=await control(f,'metrics');
   assert(metrics.metrics.fullProbes>=1,'restart requires fresh discovery certificate');
-  const old=root+'-old';fs.renameSync(root,old);fs.cpSync(old,root,{recursive:true});
+  // A new root: sources copied, the installation moved, as when a checkout is moved.
+  const old=root+'-old';fs.renameSync(root,old);
+  fs.cpSync(old,root,{recursive:true,filter:file=>file!==path.join(old,'node_modules')});
+  fs.renameSync(path.join(old,'node_modules'),path.join(root,'node_modules'));
   const result=await settled(f);assert.equal(result.invocation.runId,id);assert.equal(result.freshness,'CURRENT');
 });
 

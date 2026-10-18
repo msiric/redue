@@ -143,11 +143,14 @@ test('pnpm workspace, generated and project-installed content match independent 
   assert.deepEqual(bundle.plans.app.unresolved,[]);
   const index=new InputIndex(bundle,{trackGit:false});index.coldScan();
   assert.equal(index.unavailable,null);
-  const baseline=index.fingerprint('app');
+  let baseline=index.fingerprint('app');
   const oracle=()=>{const fresh=new InputIndex(discoverDeclared(config),{trackGit:false});
     fresh.coldScan();assert.equal(fresh.unavailable,null);return fresh.fingerprint('app');};
   assert.equal(baseline,oracle());
-  const change=(file,value)=>{put(path.join(root,file),value);index.updatePath(file);
+  // Installed files are observed by identity; a rewrite in the same timestamp
+  // tick as the previous write could keep it, so writes are spaced past one.
+  const change=(file,value)=>{Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,20);
+    put(path.join(root,file),value);index.updatePath(file);
     assert.equal(index.fingerprint('app'),oracle());};
   change('packages/sibling/src/index.ts','export const other = 2;\n');
   assert.equal(index.fingerprint('app'),baseline);
@@ -164,8 +167,9 @@ test('pnpm workspace, generated and project-installed content match independent 
   const installed=path.relative(root,path.join(external,'index.d.ts')).split(path.sep).join('/');
   change(installed,'export declare const ext: string;\n');
   assert.notEqual(index.fingerprint('app'),baseline);
+  // Installed files are observed by identity: restored bytes are still a change.
   change(installed,'export declare const ext: number;\n');
-  assert.equal(index.fingerprint('app'),baseline);
+  assert.notEqual(index.fingerprint('app'),baseline);baseline=index.fingerprint('app');
   change(`${path.dirname(installed)}/new-input.js`,'module.exports = 1;\n');
   assert.notEqual(index.fingerprint('app'),baseline);
   fs.rmSync(path.join(root,path.dirname(installed),'new-input.js'));

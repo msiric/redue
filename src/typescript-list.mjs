@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
+import {identityFields,racyUntil} from './path-identity.mjs';
 const require=createRequire(import.meta.url);
 const hash=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 export function queryAnswer(kind,file,options) {
@@ -119,8 +120,8 @@ export function compilerFiles(tsRoot,cwd) {
 // coarse timestamp cannot hide a second write in the same tick (git's racy rule).
 export function fileIdentity(file,now=Date.now()) {
   try{const link=fs.lstatSync(file,{bigint:true}),target=link.isSymbolicLink()?fs.statSync(file,{bigint:true}):link;
-    if(Number(link.ctimeNs/1000000n)>=now-2000||Number(target.ctimeNs/1000000n)>=now-2000)return null;
-    const fields=st=>['dev','ino','mode','nlink','size','mtimeNs','ctimeNs'].map(key=>String(st[key]));
+    if(racyUntil(link)>=now||racyUntil(target)>=now)return null;
+    const fields=st=>identityFields.map(key=>String(st[key]));
     return JSON.stringify([fields(target),target===link?null:[fs.realpathSync(file),...fields(link)]]);}
   catch(error){if(['ENOENT','ENOTDIR'].includes(error.code))return null;throw error;}
 }

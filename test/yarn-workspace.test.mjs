@@ -140,11 +140,14 @@ test('incremental workspace, generated and installed membership matches fresh re
   const bundle=discoverDeclared(config),name='chosen',index=new InputIndex(bundle,{trackGit:false});
   assert.deepEqual(bundle.plans[name].unresolved,[]);
   index.coldScan();assert.equal(index.unavailable,null);
-  const baseline=index.fingerprint(name);
+  let baseline=index.fingerprint(name);
   const oracle=()=>{const fresh=new InputIndex(discoverDeclared(config),{trackGit:false});
     fresh.coldScan();assert.equal(fresh.unavailable,null);return fresh.fingerprint(name);};
   assert.equal(baseline,oracle());
-  const change=(rel,content)=>{put(path.join(root,rel),content);index.updatePath(rel);
+  // Installed files are observed by identity; a rewrite in the same timestamp
+  // tick as the previous write could keep it, so writes are spaced past one.
+  const change=(rel,content)=>{Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,20);
+    put(path.join(root,rel),content);index.updatePath(rel);
     assert.equal(index.fingerprint(name),oracle());};
   change('packages/sibling/src/index.ts','export const value=99;\n');
   assert.equal(index.fingerprint(name),baseline);
@@ -168,8 +171,9 @@ test('incremental workspace, generated and installed membership matches fresh re
   assert.equal(index.fingerprint(name),baseline);
   change('node_modules/external/index.d.ts','export declare const e: string;\n');
   assert.notEqual(index.fingerprint(name),baseline);
+  // Installed files are observed by identity: restored bytes are still a change.
   change('node_modules/external/index.d.ts','export declare const e: number;\n');
-  assert.equal(index.fingerprint(name),baseline);
+  assert.notEqual(index.fingerprint(name),baseline);baseline=index.fingerprint(name);
   change('node_modules/external/new.d.ts','export declare const n: number;\n');
   assert.notEqual(index.fingerprint(name),baseline);
   fs.rmSync(path.join(root,'node_modules/external/new.d.ts'));

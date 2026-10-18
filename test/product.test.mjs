@@ -627,6 +627,14 @@ test('Linux/Windows daemon crash with a missed edit reconciles the historical re
   assert.match(recovered.checks[0].reason,/src\/input.txt changed/);
 });
 
+// Windows can briefly refuse a rename while the observer still holds a handle.
+function renameRetry(from,to){
+  for(let attempt=0;;attempt++){
+    try{fs.renameSync(from,to);return;}
+    catch(error){if(attempt>=40||!['EPERM','EBUSY','EACCES'].includes(error.code))throw error;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,50);}
+  }
+}
 test('checkout root replacement reattaches and reconciles before retaining CURRENT',async t=>{
   const f=withFixture(t);ok(f,'start');ok(f,'stop');
   // Retain the real child handle in this stress harness so native exit codes
@@ -647,7 +655,11 @@ test('checkout root replacement reattaches and reconciles before retaining CURRE
   for(let iteration=0;iteration<Number(process.env.REDUE_ROOT_STRESS||1);iteration++){
   const moved=path.join(f.base,'old-project-'+iteration);
   const before=events(f).length;
-  fs.renameSync(f.root,moved);fs.cpSync(moved,f.root,{recursive:true});
+  // A new root: sources copied, the installation moved (installed files are
+  // observed by identity, so a copied installation is a change).
+  fs.renameSync(f.root,moved);
+  fs.cpSync(moved,f.root,{recursive:true,filter:file=>file!==path.join(moved,'node_modules')});
+  renameRetry(path.join(moved,'node_modules'),path.join(f.root,'node_modules'));
   let result;
   try{result=await until(f,s=>s.observation.healthy&&
       s.checks[0].freshness==='CURRENT'&&
@@ -681,7 +693,9 @@ test('external installed-input root replacement is reconciled',async t=>{
   put(f.config,JSON.stringify(config));
   ok(f,'start');ok(f,'run','check');assert.equal(row(f).freshness,'CURRENT');
   const moved=path.join(f.base,'old-external');
-  fs.renameSync(external,moved);fs.cpSync(moved,external,{recursive:true});
+  // A new external root holding the same installed files (moved, not copied).
+  fs.renameSync(external,moved);fs.mkdirSync(external);
+  renameRetry(path.join(moved,'pkg'),path.join(external,'pkg'));
   const item=(await until(f,s=>s.checks[0].freshness==='CURRENT'&&
     events(f).some(e=>e.kind==='reconciliation_completed'),10000)).checks[0];
   assert.equal(item.result,'PASS');

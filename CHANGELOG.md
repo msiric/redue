@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Large installations reach ready quickly. Installed files are observed by
+  identity (inode, size, mode, link count, times), not by hashing their contents;
+  the compiler's own reads stay content-checked by the probe. On macOS:
+  Recordly (75k files in `node_modules`) ready in 7 s instead of failing after
+  120 s; worldmonitor (143k) in 30 s instead of not ready after 15 min.
+  Behavior change: reinstalling identical packages, restoring an installed
+  file's bytes or copying the installation now makes the check STALE once.
+- The direct TypeScript recipe supports TypeScript 6.0.2 and 6.0.3.
+
 ## 0.1.0-alpha.11 — 2026-10-18
 
 Bench numbers below are from one 800-file project on macOS arm64, Node 22.13.0.

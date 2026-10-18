@@ -58,3 +58,17 @@ override unsupported storage, unresolved links, missing inputs, or observation f
 
 Changing commands, relevant configuration, installed material, or consumed inputs
 invalidates prior applicability. It does not erase historical execution outcomes.
+
+Installed inputs (under `node_modules` or other installed roots) are observed by
+file identity: inode, size, mode, link count, and modification and change times.
+REDUE does not read every installed file, so large installations become ready
+quickly. Any write to an installed file makes dependent checks STALE until they
+run again, even when it restores earlier bytes, reinstalls identical packages
+(`npm ci`), copies the installation, or remounts it under another device. Timestamps tick in milliseconds, so a file
+changed in the last 2 seconds could be rewritten at the same size without a new
+identity; `redue run` waits until such files are 2 seconds old before it records
+a checkpoint, which adds up to 2 seconds right after an install. Source files are
+content-hashed, and the direct TypeScript recipe's probe content-checks every file
+the compiler reads. The 2-second window assumes the filesystem clock matches this
+machine's; on a network or VM-shared mount whose clock runs behind, keep the
+installation on a local disk.

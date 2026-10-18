@@ -4,7 +4,9 @@
 
 - `src/declared-plan.mjs` resolves explicit check input plans.
 - `src/installed-inputs.mjs` resolves permitted linked installed paths;
-  `src/index.mjs` hashes file contents and membership.
+  `src/index.mjs` hashes source file contents and membership, and observes
+  installed files by identity; files within the 2 s racy window are tracked and
+  settled before run checkpoints (`src/daemon.mjs`).
 - `src/yarn-workspace-inputs.mjs` derives the narrow Yarn workspace typecheck
   input plan; `src/yarn-workspace-typecheck-probe.mjs` checks its effective
   TypeScript file list without running the check.

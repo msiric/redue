@@ -8,10 +8,10 @@ import {Worker} from 'node:worker_threads';
 import {fileURLToPath} from 'node:url';
 import {subscribe,hasHistory,backend} from './platform-observation.mjs';
 import {controlEndpoint} from './control-endpoint.mjs';
-import {observedRelative,withinPath,realObservedPath} from './path-identity.mjs';
+import {observedRelative,withinPath,realObservedPath,racyWindowMs} from './path-identity.mjs';
 import micromatch from './glob.mjs';
 import {sha} from './plan.mjs';
-import {InputIndex} from './index.mjs';
+import {InputIndex,dehydrateIndex} from './index.mjs';
 import {permittedRoots} from './installed-inputs.mjs';
 import {assertOwnedStatePlacement} from './owned-state.mjs';
 import {atomicJson,readReceipts,readReceiptSnapshot,receiptRevision} from './state-store.mjs';
@@ -496,18 +496,10 @@ function hydrate(bundle,saved) {
   }
   next.eventCount=saved.eventCount;next.rehashedFiles=saved.rehashedFiles;
   next.rehashedBytes=saved.rehashedBytes;next.profile=saved.profile;
-  next.racy={content:new Map(saved.racy||[]),generation:new Map(saved.generations||[])};
+  next.racy=new Map(saved.racy||[]);
   return next;
 }
-function dehydrate(value) {
-  return {files:[...value.files],
-    aliasDependencies:[...value.aliasDependencies].map(([name,refs])=>[name,[...refs]]),
-    rows:[...value.checks].map(([name,row])=>({name,files:[...row.files],
-      sum:row.sum.toString('hex'),revision:row.revision,lastReason:row.lastReason})),
-    eventCount:value.eventCount,rehashedFiles:value.rehashedFiles,
-    rehashedBytes:value.rehashedBytes,profile:value.profile,
-    racy:[...value.racy.content],generations:[...value.racy.generation]};
-}
+const dehydrate=dehydrateIndex;
 function retainIndex() {
   if(!index||!healthy||planning||pending.size||planDirty||historyDisabled||
     !fs.existsSync(snapshotPath))return;
@@ -960,7 +952,7 @@ async function request(message) {
     mark('server.decision_start',{decision,pending:pending.size,planDirty,planning,recovering,healthy,historyDisabled,decisionRequests,historyDeadlineMs,reconciliationDeadlineMs});
     timing('daemon.decision_reason',totalStarted,{decision,action:message.action,
       plan:process.platform==='win32'?'validate_dependencies_before_reuse':'existing_plan',
-      probe:'reuse_only_with_identical_content_and_context',installed:'current_content_required',
+      probe:'reuse_only_with_identical_content_and_context',installed:'current_identity_required',
       planPhase:metrics.planPhase||'initializing',pending:pending.size,
       notifications:metrics.notifications,planRebuilds:metrics.planRebuilds});
     if(process.platform==='win32'&&process.env.VSTATE_TEST_FAULTS==='1'&&
@@ -1067,6 +1059,20 @@ async function request(message) {
     }
     timing('daemon.request_probes',probeStarted,{checks:index?.checks.size||0});
     lastObservation=Date.now();publish();
+    // A run checkpoint never holds an installed identity from the racy window:
+    // a same-size write in the same timestamp tick would keep it. Wait the
+    // window out (at most 2 s), record those files again, and mark the
+    // checkpoint unusable if one is still inside it.
+    let racy=false;
+    if(message.action==='snapshot'||message.action==='prelaunch'){
+      const names=message.name?[message.name]:null;
+      const indexes=()=>[index,...[...external.values()].map(e=>e.index)].filter(Boolean);
+      const wait=Math.min(racyWindowMs,Math.max(0,...indexes().map(i=>i.racyUntil(names)))-Date.now());
+      if(wait>0){metrics.racyWaits=(metrics.racyWaits||0)+1;await new Promise(resolve=>setTimeout(resolve,wait+5));}
+      for(const i of indexes())i.settleRacy();
+      racy=indexes().some(i=>i.racyUntil(names)>Date.now());
+      if(racy)metrics.racyCheckpoints=(metrics.racyCheckpoints||0)+1;
+    }
     const applicabilityStarted=performance.now();
     const data=status(message.contextHashes,synchronizedInstalled,
       process.platform==='win32'&&healthy&&!planning&&!planDirty);
@@ -1077,7 +1083,7 @@ async function request(message) {
           planGeneration:row.plan.id,
             inputEventSerial:inputEventSerial.get(name)||0,
             probeHash:row.probeHash,inputKey:inputKey(row),observationGaps:metrics.gaps,
-            observationHealthy:healthy&&!planning&&!recovering&&applicableExternal(name).every(e=>e.healthy)};
+            observationHealthy:healthy&&!planning&&!recovering&&!racy&&applicableExternal(name).every(e=>e.healthy)};
       // Export only a currently guarded, check-specific discovery certificate.
       // The caller compares it with the answers its own compile received. Schema 2
       // certifies the realpath of every directory readDirectory visits. The

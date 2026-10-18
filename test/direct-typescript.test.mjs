@@ -176,16 +176,18 @@ test('a relevant edit is STALE without a full probe; reverting it is CURRENT aga
 test('installed files are observed by identity: no installed bytes read, a same-size write is STALE',async t=>{
   const {root,state}=project(t),extra=path.join(root,'node_modules/extra/index.d.ts');
   put(extra,'export declare const extra: number;\n');
-  // Past the 2 s racy window, installed files are not content-hashed.
-  await new Promise(resolve=>setTimeout(resolve,2100));
-  init(root,state);good(root,state,'start');good(root,state,'run','typecheck');
-  assert.equal(sync(root,state).checks[0].freshness,'CURRENT');
-  const metrics=await new Promise((resolve,reject)=>{
+  const metrics=()=>new Promise((resolve,reject)=>{
     const c=net.createConnection(controlEndpoint(state).address);let data='';
     c.on('connect',()=>c.write('{"action":"metrics"}\n'));c.on('data',b=>data+=b);
     c.on('end',()=>{try{resolve(JSON.parse(data));}catch(e){reject(e);}});c.on('error',reject);});
-  assert(metrics.index.files>100,JSON.stringify(metrics.index));
-  assert(metrics.index.rehashedBytes<1e6,`installed bytes were read: ${metrics.index.rehashedBytes}`);
+  // The installation was just written: the run waits out the racy window
+  // before its checkpoint, and its receipt is reusable.
+  init(root,state);good(root,state,'start');good(root,state,'run','typecheck');
+  assert.equal(sync(root,state).checks[0].freshness,'CURRENT');
+  const first=await metrics();
+  assert(first.metrics.racyWaits>=1,JSON.stringify(first.metrics));
+  assert(first.index.files>100,JSON.stringify(first.index));
+  assert(first.index.rehashedBytes<1e6,`installed bytes were read: ${first.index.rehashedBytes}`);
   // Same size, mtime put back, while nothing observes it: only ctime changes.
   good(root,state,'stop');
   const before=fs.statSync(extra);fs.writeFileSync(extra,'export declare const extrb: number;\n');
@@ -195,6 +197,17 @@ test('installed files are observed by identity: no installed bytes read, a same-
   const stale=sync(root,state).checks[0];
   assert.equal(stale.freshness,'STALE',JSON.stringify(stale));
   assert.deepEqual(stale.changed_inputs,['node_modules/extra/index.d.ts']);
+  // A copied installation with identical bytes is a change once; a rerun is CURRENT.
+  good(root,state,'run','typecheck');assert.equal(sync(root,state).checks[0].freshness,'CURRENT');
+  good(root,state,'stop');
+  const installed=path.join(root,'node_modules'),copy=path.join(path.dirname(root),'node_modules-copy');
+  fs.cpSync(installed,copy,{recursive:true,verbatimSymlinks:true});fs.rmSync(installed,{recursive:true});
+  fs.renameSync(copy,installed);
+  good(root,state,'start');
+  assert.equal(sync(root,state).checks[0].freshness,'STALE');
+  good(root,state,'run','typecheck');
+  const again=sync(root,state).checks[0];
+  assert.equal(again.freshness,'CURRENT',JSON.stringify(again));assert.equal(again.reuse_eligible,true);
 });
 test('old npm evidence cannot satisfy the new recipe; extra caller-sensitive probes are unqualified',t=>{
   const {root,state,config}=project(t);good(root,state,'init');good(root,state,'start');good(root,state,'run','typecheck');

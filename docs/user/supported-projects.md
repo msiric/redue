@@ -62,10 +62,10 @@ global virtual stores, injected workspace dependencies, and external links
 without an observed boundary remain recording-only with a reason. Installed
 files with hard-linked aliases outside the checkout remain recording-only on
 macOS: writes through an unseen alias cannot support CURRENT there. On Linux,
-redue watches project-installed file inodes and rehashes the selected
-installed inputs on every synchronized read. A cached read remains UNVERIFIED
-for these pnpm checks; a synchronized read can establish CURRENT after the
-rehash. If an inode watch cannot be installed, observation becomes unavailable
+redue watches project-installed file inodes and re-reads the identity of the
+selected installed inputs on every synchronized read. A cached read remains UNVERIFIED
+for these pnpm checks; a synchronized read can establish CURRENT after that
+re-read. If an inode watch cannot be installed, observation becomes unavailable
 instead of dropping that file. The global store is not watched. An absent
 optional package remains unqualified when Node could later
 resolve it from an unobserved ancestor `node_modules`; project-local candidate

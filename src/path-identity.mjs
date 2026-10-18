@@ -41,3 +41,11 @@ export function validInputRelative(rel,platform=process.platform) {
     rel.includes('\\')))return false;
   return true;
 }
+
+// File identity fields. Any write changes ctime, but timestamps tick in
+// milliseconds: a file changed within the racy window could be rewritten in the
+// same tick at the same size without changing them (git's racy rule).
+export const identityFields=['dev','ino','mode','nlink','size','mtimeNs','ctimeNs'];
+export const racyWindowMs=2000;
+// ctime, which no ordinary tool can set ahead, ends the window.
+export const racyUntil=st=>Number(st.ctimeNs/1000000n)+racyWindowMs;

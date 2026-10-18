@@ -78,7 +78,9 @@ Node preloads/loaders/compile-cache settings, `TS_ETW_MODULE_PATH` (including em
 incremental/composite configuration, outside-root inputs and uncertain observation
 withhold applicability. Extra custom probes cannot inherit this recipe's context
 exception. Relevant source, declaration, config, membership and installed-content
-changes invalidate or withdraw applicability normally.
+changes invalidate or withdraw applicability normally. Installed files are observed
+by identity, so reinstalling identical packages or restoring an installed file's
+bytes also needs one rerun (see [configuration](configuration.md)).
 
 The versioned `npm-direct-typescript@1` interpretation retains relevant Node context
 and identity. Reviewed compiler code does not parse npm settings or proxy variables;

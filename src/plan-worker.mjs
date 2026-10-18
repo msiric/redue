@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {discover} from './plan.mjs';
-import {InputIndex} from './index.mjs';
+import {InputIndex,dehydrateIndex} from './index.mjs';
 import {directProject,directQualification} from './direct-typescript.mjs';
 import {queriesMatch} from './typescript-list.mjs';
 import {planGuard,inputKey} from './decision-validation.mjs';
@@ -113,28 +113,14 @@ try {
     const outside=new InputIndex({root:boundary,plans},{trackGit:false,includeInstalled:true});
     outside.coldScan();
     if(outside.unavailable)throw Error(outside.unavailable);
-    external[boundary]={files:[...outside.files],
-      aliasDependencies:[...outside.aliasDependencies].map(([name,refs])=>[name,[...refs]]),
-      rows:[...outside.checks]
-      .map(([name,row])=>({name,files:[...row.files],sum:row.sum.toString('hex'),
-        revision:row.revision,lastReason:row.lastReason})),
-      eventCount:outside.eventCount,rehashedFiles:outside.rehashedFiles,
-      rehashedBytes:outside.rehashedBytes,profile:outside.profile,
-      racy:[...outside.racy.content],generations:[...outside.racy.generation]};
+    external[boundary]=dehydrateIndex(outside);
   }
   timing('worker.total',totalStarted,{mode:'cold',files:index.files.size});
   parentPort.postMessage({ok:true,bundle,discoveryMs,indexingMs,guard,planReused,
     inputKeys:Object.fromEntries([...index.checks].map(([name,row])=>[name,inputKey(row)])),
     restartMode:'cold-index',
     external,
-    index:{files:[...index.files],
-      aliasDependencies:[...index.aliasDependencies].map(([name,refs])=>[name,[...refs]]),
-      rows:[...index.checks].map(([name,row])=>({
-      name,files:[...row.files],sum:row.sum.toString('hex'),revision:row.revision,
-      lastReason:row.lastReason})),
-    eventCount:index.eventCount,rehashedFiles:index.rehashedFiles,
-    rehashedBytes:index.rehashedBytes,profile:index.profile,
-    racy:[...index.racy.content],generations:[...index.racy.generation]}});
+    index:dehydrateIndex(index)});
   }
 } catch(error) {
   parentPort.postMessage({ok:false,error:error?.message||String(error),
