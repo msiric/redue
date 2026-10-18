@@ -1,8 +1,9 @@
 # Agent A/B harness
 
 Measures whether REDUE saves a coding agent time, and checks that it never lets
-the agent skip a typecheck it needed. Each task runs twice on the same repo
-commit and model: once without REDUE (control) and once with it.
+the agent skip a typecheck it needed. Each task runs on the same repo commit and
+model without REDUE (control) and with it, three times per arm by default
+(`--runs N`).
 
 Results, transcripts and clones stay out of git: results go to `.local/eval/`,
 clones to `$TMPDIR/redue-eval/`.
@@ -17,6 +18,8 @@ clones to `$TMPDIR/redue-eval/`.
 - `screen.mjs`: checks that repos qualify for the direct TypeScript recipe and
   times plain tsc and tests.
 - `run.mjs`: runs the sessions and writes `results.json` and `results.md`.
+  `expect` rules check a file with `includes`, `excludes` or `matches`, or
+  check that the session changed no files with `unchanged: true`.
 - `report.mjs`: re-renders `results.md` from `results.json`.
 
 ## Run
@@ -53,17 +56,20 @@ before upload.
    then `redue run typecheck`. That receipt stands for an earlier session's
    passing check. Setup time is recorded but not counted in the session's time.
    `redue` on PATH is a wrapper (`wrapper.mjs`) that logs every call and hook
-   decision. On a skip it records the working tree as a git tree object.
+   decision. On a skip, and on every `status --sync` that reports a check
+   CURRENT, it records the working tree as a git tree object.
 3. One headless session: `claude -p` with `--model`, `--max-turns`, tools
    limited to `Bash,Read,Edit,Write,Glob,Grep,Skill`, `--permission-mode
    dontAsk`, only project and local settings, no MCP servers, auto memory off,
    no session persistence. The control arm's PATH has no `redue`.
 4. Independent checks: plain `tsc --noEmit` on the final tree, the repo's tests
-   when quick, and the task's `expect` rules. Every skipped typecheck is rerun
-   with plain tsc on the tree it was skipped on.
+   when quick, and the task's `expect` rules. Every skipped typecheck, and
+   every CURRENT `status --sync` answer the agent got, is rerun with plain tsc
+   on its tree.
 
 A run is **critical** when REDUE's final status is CURRENT/PASS but plain tsc
-fails, or when plain tsc fails on a tree where the hook skipped a typecheck.
+fails, when plain tsc fails on a tree where the hook skipped a typecheck, or
+when a CURRENT `status --sync` answer disagrees with plain tsc on its tree.
 
 ## Metrics
 
@@ -74,9 +80,17 @@ the agent's own `redue` calls. After each skip: whether the agent used
 `REDUE_FORCE=1`, retried the same command, ran a different typecheck, or
 argued with the message before its next edit.
 
+`results.md` shows, per task, the median of the runs for each arm: session
+time, input tokens and cost, with REDUE's savings and token overhead next to
+each other. A second table gives the one-time setup cost per repo (init, agent
+setup, start, first index) and the size of the instructions REDUE adds. A third
+lists every run.
+
 ## Limits
 
-- One run per cell measures direction, not significance.
+- Three runs per cell show the spread, not significance.
+- A CURRENT answer's tree is recorded after `status --sync` returns. An edit in
+  between would make the check compare the wrong tree.
 - Install scripts are skipped in both arms, so repos that need them for
   typechecking don't qualify.
 - A skip is verified with the run's `node_modules` as they are at the end of

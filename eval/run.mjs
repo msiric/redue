@@ -4,7 +4,8 @@
 //   node eval/run.mjs --pilot                  # tasks marked "pilot" in eval/tasks.json
 //   node eval/run.mjs --repo NAME --task ID    # narrow the selection
 //
-// Options: --arms control,redue  --model claude-sonnet-5-5  --max-turns 30
+// Options: --arms control,redue  --runs 3 (sessions per arm and task)
+//          --model claude-sonnet-5-5  --max-turns 30
 //          --redue PATH (REDUE entry for the REDUE arm; default: this checkout)
 //          --keep (keep each run's clone)  --out DIR
 //
@@ -12,8 +13,9 @@
 // --ignore-scripts`, and its own `claude -p` session. The REDUE arm also runs
 // init, agent setup claude --apply, start and one `redue run typecheck` before
 // the session: the receipt stands for an earlier session's passing check.
-// Afterwards plain tsc (and quick tests) check the final tree, and each skipped
-// typecheck is rerun with plain tsc on the tree it was skipped on.
+// Afterwards plain tsc (and quick tests) check the final tree. Each skipped
+// typecheck, and each `status --sync` that answered CURRENT, is checked with
+// plain tsc on the tree it was about.
 import fs from 'node:fs';
 import path from 'node:path';
 import {parseArgs} from 'node:util';
@@ -25,6 +27,7 @@ import {report} from './report.mjs';
 
 const {values: opt} = parseArgs({options: {
   pilot: {type: 'boolean'}, repo: {type: 'string'}, task: {type: 'string'}, arms: {type: 'string', default: 'control,redue'},
+  runs: {type: 'string', default: '3'},
   model: {type: 'string', default: 'claude-sonnet-5-5'}, 'max-turns': {type: 'string', default: '30'},
   redue: {type: 'string', default: checkoutRedue}, keep: {type: 'boolean'}, out: {type: 'string'},
 }});
@@ -54,7 +57,7 @@ function treeOf(dir) {
   return tree;
 }
 
-// Plain tsc on the tree a typecheck was skipped on, with the run's node_modules.
+// Plain tsc on a tree an answer was about, with the run's node_modules.
 function verifyTree(dir, tree, scratch) {
   fs.rmSync(scratch, {recursive: true, force: true});
   fs.mkdirSync(scratch, {recursive: true});
@@ -67,8 +70,9 @@ function verifyTree(dir, tree, scratch) {
   return result;
 }
 
-function expectations(dir, task) {
+function expectations(dir, task, changed) {
   return (task.expect || []).map(e => {
+    if (e.unchanged) return {...e, ok: changed.length === 0};
     let text = '';
     try { text = fs.readFileSync(path.join(dir, e.file), 'utf8'); } catch {}
     const ok = e.includes !== undefined ? text.includes(e.includes) : e.excludes !== undefined ? !text.includes(e.excludes) :
@@ -77,8 +81,8 @@ function expectations(dir, task) {
   });
 }
 
-function runOne(task, repo, arm, index) {
-  const id = `${String(index).padStart(2, '0')}-${slug(repo.name)}-${task.id}-${arm}`;
+function runOne(task, repo, arm, index, rep) {
+  const id = `${String(index).padStart(2, '0')}-${slug(repo.name)}-${task.id}-${arm}-${rep}`;
   const dir = path.join(tmpRoot, 'runs', id, 'repo');
   try { return runSession(task, repo, arm, id); }
   finally { if (arm === 'redue' && fs.existsSync(dir)) redue(entry, dir, 'stop'); }
@@ -87,7 +91,7 @@ function runOne(task, repo, arm, index) {
 function runSession(task, repo, arm, id) {
   const runDir = path.join(out, id), work = path.join(tmpRoot, 'runs', id), dir = path.join(work, 'repo');
   fs.mkdirSync(runDir, {recursive: true});
-  const row = {id, repo: repo.name, commit: repo.commit, task: task.id, kind: task.kind, arm, setup: {}};
+  const row = {id, repo: repo.name, commit: repo.commit, task: task.id, kind: task.kind, arm, rep: +id.split('-').at(-1), setup: {}};
   console.log(`\n== ${id}`);
   let started = performance.now();
   freshClone(repo, repo.commit, dir);
@@ -107,6 +111,9 @@ function runSession(task, repo, arm, id) {
     row.setup.index_ms = waitReady(entry, dir, {env});
     step('seed_run_ms', 'run', 'typecheck');
     row.setup.seed_status = checkStatus(entry, dir);
+    // What the agent always has in context (the managed block) and reads on demand (the skill).
+    const record = readJson(path.join(dir, '.redue', 'agents', 'claude.json'));
+    row.setup.instruction_bytes = {block: Buffer.byteLength(record.block), skill: fs.statSync(path.join(dir, record.skill)).size};
     fs.renameSync(log, path.join(runDir, 'setup-calls.jsonl'));
   }
   const baseTree = treeOf(dir);
@@ -142,19 +149,32 @@ function runSession(task, repo, arm, id) {
     row.tests = {pass: test.status === 0, ms: test.ms};
     if (test.status !== 0) fs.writeFileSync(path.join(runDir, 'tests.txt'), (test.stdout + test.stderr).slice(-8000));
   }
-  row.expect = expectations(dir, task);
+  row.expect = expectations(dir, task, row.changed_files);
 
   row.metrics = analyze({transcript: path.join(runDir, 'transcript.jsonl'), wrapperLog: log, script: repo.script});
+  const verified = new Map();
+  const tscOn = tree => {
+    if (!verified.has(tree)) verified.set(tree, verifyTree(dir, tree, path.join(work, 'tree-check')).pass);
+    return verified.get(tree);
+  };
   // A skipped typecheck must pass when plain tsc runs on the tree it was skipped on.
-  row.skip_checks = row.metrics.hook.decisions.filter(d => d.decision === 'deny').map(d => {
-    const result = d.tree ? verifyTree(dir, d.tree, path.join(work, 'skip-check')) : null;
-    return {command: d.command, tree: d.tree, tsc_pass: result?.pass ?? null};
+  row.skip_checks = row.metrics.hook.decisions.filter(d => d.decision === 'deny').map(d =>
+    ({command: d.command, tree: d.tree, tsc_pass: d.tree ? tscOn(d.tree) : null}));
+  // A CURRENT answer must match plain tsc on the tree it was given for.
+  row.sync_checks = row.metrics.redue_cli.filter(c => c.status).map(c => {
+    const check = c.status.find(s => s.name === 'typecheck');
+    return {argv: c.argv, freshness: check?.freshness ?? null, result: check?.result ?? null,
+      reuse_eligible: check?.reuse_eligible ?? null, tree: c.tree,
+      tsc_pass: check?.freshness === 'CURRENT' && c.tree ? tscOn(c.tree) : null};
   });
   row.critical = [
     ...(row.final_status?.freshness === 'CURRENT' && row.final_status.result === 'PASS' && !tsc.pass ?
       ['final status CURRENT/PASS but plain tsc fails'] : []),
     ...row.skip_checks.filter(s => s.tsc_pass !== true).map(s => s.tsc_pass === false ?
       `skipped "${s.command}" but plain tsc fails on that tree` : `skipped "${s.command}" but its tree could not be checked`),
+    ...row.sync_checks.filter(s => s.freshness === 'CURRENT' && (s.tsc_pass === null || s.tsc_pass !== (s.result === 'PASS'))).map(s =>
+      s.tsc_pass === null ? `"${s.argv}" said CURRENT but its tree could not be checked` :
+        `"${s.argv}" said CURRENT/${s.result} but plain tsc ${s.tsc_pass ? 'passes' : 'fails'} on that tree`),
   ];
   fs.writeFileSync(path.join(runDir, 'result.json'), JSON.stringify(row, null, 2) + '\n');
   redactDir(runDir);
@@ -162,27 +182,31 @@ function runSession(task, repo, arm, id) {
   const m = row.metrics;
   console.log(`   ${m.outcome}, ${Math.round(row.wall_ms / 1000)} s, ${m.turns} turns, $${m.cost_usd?.toFixed(2)}, ` +
     `typecheck ${m.typecheck.attempted} attempted / ${m.typecheck.skipped} skipped / ${m.typecheck.rewritten} rewritten, ` +
+    `${row.sync_checks.filter(s => s.freshness === 'CURRENT').length} CURRENT syncs checked, ` +
     `final tsc ${tsc.pass ? 'pass' : 'FAIL'}${row.critical.length ? `, CRITICAL: ${row.critical.join('; ')}` : ''}`);
   return row;
 }
 
 const rows = [];
-let index = 0;
+let index = 0, pair = 0;
 for (const task of selected) {
   const repo = repos.find(r => r.name === task.repo);
   if (!repo) throw new Error(`task ${task.id}: unknown repo ${task.repo}`);
-  // Alternate which arm goes first, so machine drift does not favour one arm.
-  const arms = opt.arms.split(',');
-  if (index / arms.length % 2 === 1) arms.reverse();
-  for (const arm of arms) {
-    try { rows.push(runOne(task, repo, arm, ++index)); }
-    catch (error) {
-      console.error(`   run failed: ${error.message}`);
-      rows.push({id: `${index}-${slug(repo.name)}-${task.id}-${arm}`, repo: repo.name, task: task.id, kind: task.kind, arm, error: error.message});
+  for (let rep = 1; rep <= +opt.runs; rep++) {
+    // Alternate which arm goes first, so machine drift does not favour one arm.
+    const arms = opt.arms.split(',');
+    if (pair++ % 2 === 1) arms.reverse();
+    for (const arm of arms) {
+      try { rows.push(runOne(task, repo, arm, ++index, rep)); }
+      catch (error) {
+        console.error(`   run failed: ${error.message}`);
+        rows.push({id: `${index}-${slug(repo.name)}-${task.id}-${arm}-${rep}`, repo: repo.name, task: task.id, kind: task.kind, arm, rep, error: error.message});
+      }
     }
   }
 }
-fs.writeFileSync(path.join(out, 'results.json'), JSON.stringify({model: opt.model, max_turns: +opt['max-turns'], redue: entry, rows}, null, 2) + '\n');
-fs.writeFileSync(path.join(out, 'results.md'), report(rows, {model: opt.model, maxTurns: opt['max-turns'], out}));
+const meta = {model: opt.model, max_turns: +opt['max-turns'], runs: +opt.runs, redue: entry};
+fs.writeFileSync(path.join(out, 'results.json'), JSON.stringify({...meta, rows}, null, 2) + '\n');
+fs.writeFileSync(path.join(out, 'results.md'), report(rows, {...meta, out}));
 redactDir(out);
 console.log(`\nwrote ${path.join(out, 'results.md')}`);

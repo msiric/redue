@@ -17,8 +17,13 @@
       "repo": "twilio/twilio-node",
       "id": "reverify",
       "kind": "reverify",
+      "pilot": true,
       "prompt": "I pulled some changes and want to know whether the project still typechecks. Check it and tell me the result. Don't change any files.",
-      "expect": []
+      "expect": [
+        {
+          "unchanged": true
+        }
+      ]
     },
     {
       "repo": "twilio/twilio-node",
@@ -71,7 +76,11 @@
       "id": "reverify",
       "kind": "reverify",
       "prompt": "I pulled some changes and want to know whether the project still typechecks. Check it and tell me the result. Don't change any files.",
-      "expect": []
+      "expect": [
+        {
+          "unchanged": true
+        }
+      ]
     },
     {
       "repo": "cheeriojs/cheerio",
@@ -126,8 +135,13 @@
       "repo": "nteract/semiotic",
       "id": "reverify",
       "kind": "reverify",
+      "pilot": true,
       "prompt": "I pulled some changes and want to know whether the project still typechecks. Check it and tell me the result. Don't change any files.",
-      "expect": []
+      "expect": [
+        {
+          "unchanged": true
+        }
+      ]
     },
     {
       "repo": "nteract/semiotic",

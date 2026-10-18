@@ -75,6 +75,6 @@ export function analyze({transcript, wrapperLog, script}) {
     },
     hook: {calls: hooks.length, decisions: hooks.map(h => ({command: h.command, decision: h.decision, rewritten: h.rewritten, hook_ms: h.hook_ms, tree: h.tree}))},
     after_skip: followUps,
-    redue_cli: cli.map(r => ({argv: r.argv.join(' '), exit: r.exit, ms: r.ms})),
+    redue_cli: cli.map(r => ({argv: r.argv.join(' '), exit: r.exit, ms: r.ms, ...(r.status ? {status: r.status, tree: r.tree} : {})})),
   };
 }
