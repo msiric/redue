@@ -674,14 +674,18 @@ function pnpmTopologyChanged(type,rel) {
     return stat.isDirectory()||stat.isSymbolicLink();}
   catch(e){return e.code==='ENOENT';}
 }
-function markInputEvent(name,rel,type) {
+function markInputEvent(name,rel,type,replay) {
   pendingChecks.add(name);
-  inputEventSerial.set(name,(inputEventSerial.get(name)||0)+1);
+  // macOS delivers each edit twice: live, and again from history replay. The
+  // live copy can arrive late, inside a later run. With history, count only the
+  // replay copy: the history cursor places it in the right interval.
+  if(!hasHistory||historyDisabled||replay)
+    inputEventSerial.set(name,(inputEventSerial.get(name)||0)+1);
   // Disposable public CI only. Never enabled for normal/local repositories.
   if(process.env.REDUE_PUBLIC_INPUT_TRACE==='1'&&rel&&diagnosticInputEvents++<5000)
-    event('public_input_notification',{path:rel,type:type||'unknown',planning});
+    event('public_input_notification',{path:rel,type:type||'unknown',planning,replay});
 }
-function notification(type,filename) {
+function notification(type,filename,replay=false) {
   metrics.notifications++;
   metrics.lastNotificationAt=Date.now();
   if(!filename){observationGap('unnamed_event');return;}
@@ -689,7 +693,7 @@ function notification(type,filename) {
   if(rel==='.git'||rel.startsWith('.git/'))return;
   if(planning) {
     if(index)for(const name of index.candidates(rel))
-      if(index.matches(index.checks.get(name),rel))markInputEvent(name,rel,type);
+      if(index.matches(index.checks.get(name),rel))markInputEvent(name,rel,type,replay);
     pending.add(rel);metrics.maxQueue=Math.max(metrics.maxQueue,pending.size);
     if(planTrigger(rel)||candidateDescendants.has(rel)||pnpmTopologyChanged(type,rel))
       planDirty=true;
@@ -713,9 +717,9 @@ function notification(type,filename) {
   pending.add(rel);metrics.maxQueue=Math.max(metrics.maxQueue,pending.size);
   if(index) {
     for(const name of index.candidates(rel))
-      if(index.matches(index.checks.get(name),rel))markInputEvent(name,rel,type);
+      if(index.matches(index.checks.get(name),rel))markInputEvent(name,rel,type,replay);
     for(const [prefix,names] of index.prefixes)
-      if(prefix.startsWith(rel+'/'))for(const name of names)markInputEvent(name,rel,type);
+      if(prefix.startsWith(rel+'/'))for(const name of names)markInputEvent(name,rel,type,replay);
   }
   if(pending.size>50000){healthy=false;reason='observation backlog overflow';metrics.gaps++;
     event('observation_gap',{classification:'backlog_overflow'});publish();
@@ -724,23 +728,23 @@ function notification(type,filename) {
   if(planDirty){healthy=false;reason='input plan possibly changed';}
   if(planDirty||pendingChecks.size)publish();
 }
-function externalNotification(entry,type,filename) {
+function externalNotification(entry,type,filename,replay=false) {
   metrics.notifications++;
   metrics.lastNotificationAt=Date.now();
   if(!filename){externalGap(entry,'unnamed_event');return;}
   const rel=filename.toString().split(path.sep).join('/');
   const absolute=path.join(entry.root,rel);
   if(planning&&entry.index)for(const name of entry.index.candidates(rel))
-    if(entry.index.matches(entry.index.checks.get(name),rel))markInputEvent(name,rel,type);
+    if(entry.index.matches(entry.index.checks.get(name),rel))markInputEvent(name,rel,type,replay);
   if(planTrigger(absolute)&&triggerChanged(absolute))planDirty=true;
   if(candidateTriggerChanged(absolute))planDirty=true;
   entry.pending.add(rel);metrics.maxQueue=Math.max(metrics.maxQueue,
     pending.size+[...external.values()].reduce((n,e)=>n+e.pending.size,0));
   if(entry.index) {
     for(const name of entry.index.candidates(rel))
-      if(entry.index.matches(entry.index.checks.get(name),rel))markInputEvent(name,rel,type);
+      if(entry.index.matches(entry.index.checks.get(name),rel))markInputEvent(name,rel,type,replay);
     for(const [prefix,names] of entry.index.prefixes)
-      if(prefix.startsWith(rel+'/'))for(const name of names)markInputEvent(name,rel,type);
+      if(prefix.startsWith(rel+'/'))for(const name of names)markInputEvent(name,rel,type,replay);
   }
   if(planDirty){healthy=false;reason='input plan possibly changed';}
   publish();clearTimeout(flushTimer);flushTimer=setTimeout(flush,60);
@@ -852,7 +856,7 @@ async function catchUp() {
     if(!fs.existsSync(snapshotPath))throw Error('historical cursor missing');
     {
       const changes=await queryHistory(root,snapshotPath,'root replay');
-      for(const change of changes)notification(change.type,path.relative(root,change.path));
+      for(const change of changes)notification(change.type,path.relative(root,change.path),true);
       if(!planning&&(flushTimer||pending.size||planDirty))flush();
       for(const entry of external.values())if(entry.index) {
         try{
@@ -862,7 +866,7 @@ async function catchUp() {
           if(!entry.watcher||!fs.existsSync(entry.snapshot))throw Error('external cursor unavailable');
           const changes=await queryHistory(entry.root,entry.snapshot,'external replay');
           for(const change of changes)externalNotification(entry,change.type,
-            path.relative(entry.root,change.path));
+            path.relative(entry.root,change.path),true);
         }catch(e){if(e.code==='ETIMEDOUT')throw e;
           externalGap(entry,'historical_replay_failed',e);}
       }
