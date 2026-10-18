@@ -95,7 +95,8 @@ test('macOS guarded and full decisions agree for content, membership, resolution
   put(alias,'export const x: string;');assert.equal(fs.readFileSync(optional,'utf8'),'export const x: string;');await compare('STALE');
   fs.rmSync(path.dirname(optional),{recursive:true});fs.unlinkSync(alias);await compare('CURRENT');
   const compiler=path.join(root,'node_modules/typescript/lib/tsc.js'),bytes=fs.readFileSync(compiler);
-  fs.appendFileSync(compiler,'\n');const unsupported=await compare('UNVERIFIED');assert(!unsupported[0].reuse_eligible);
+  // A changed compiler file is an indexed input: STALE without probing the unreviewed bytes.
+  fs.appendFileSync(compiler,'\n');const unsupported=await compare('STALE');assert(!unsupported[0].reuse_eligible);
   fs.writeFileSync(compiler,bytes);await compare('CURRENT');
   await compare('STALE',{NODE_ENV:'production'});
   const preload=fixtures.map(f=>row(f,{NODE_OPTIONS:'--trace-warnings'}));assert(preload.every(r=>!r.reuse_eligible));

@@ -11,6 +11,8 @@ import os from 'node:os';
 import {spawnSync,execFileSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import {findExecutable} from '../src/executable-lookup.mjs';
+import net from 'node:net';
+import {controlEndpoint} from '../src/control-endpoint.mjs';
 
 const require=createRequire(import.meta.url),bin=path.resolve('bin/redue.mjs');
 const compilerPackage=process.env.REDUE_TEST_COMPILER_PACKAGE||'typescript';
@@ -57,6 +59,11 @@ function good(root,state,...args){const result=invoke(root,state,...args);
   assert.equal(result.status,0,`${args.join(' ')}: ${result.stderr}\n${result.stdout}`);
   return result.stdout;}
 const sync=(root,state)=>JSON.parse(good(root,state,'status','--sync','--json'));
+const fullProbes=state=>new Promise((resolve,reject)=>{
+  const c=net.createConnection(controlEndpoint(state).address);let data='';
+  c.on('connect',()=>c.write('{"action":"metrics"}\n'));c.on('data',b=>data+=b);
+  c.on('end',()=>{try{resolve(JSON.parse(data).metrics.fullProbes||0);}catch(e){reject(e);}});c.on('error',reject);
+});
 
 
 const init=(root,state)=>good(root,state,'init','--recipe','typescript-direct');
@@ -151,6 +158,20 @@ test('real direct compiler evidence crosses proxy contexts, but not relevant inp
   assert.notEqual(call(['run','typecheck']).status,0);assert.equal(status().result,'FAIL');assert.equal(status().reuse_eligible,false);
   assert.deepEqual(fs.readFileSync(receiptFile),bytes);
   good(root,state,'stop');assert.equal(JSON.parse(call(['status','--json']).stdout).checks[0].reuse_eligible,false);
+});
+test('a relevant edit is STALE without a full probe; reverting it is CURRENT again',async t=>{
+  const {root,state}=project(t);init(root,state);good(root,state,'start');good(root,state,'run','typecheck');
+  const first=sync(root,state).checks[0];assert.equal(first.freshness,'CURRENT',JSON.stringify(first));
+  const file=path.join(root,'src/main.ts'),original=fs.readFileSync(file);
+  const probes=await fullProbes(state);
+  put(file,'export const value: number = 2;\n');
+  const stale=sync(root,state).checks[0];
+  assert.equal(stale.freshness,'STALE',JSON.stringify(stale));assert.deepEqual(stale.changed_inputs,['src/main.ts']);
+  assert.equal(await fullProbes(state),probes,'known STALE launched a full probe');
+  fs.writeFileSync(file,original);
+  const back=sync(root,state).checks[0];
+  assert.equal(back.freshness,'CURRENT',JSON.stringify(back));assert.equal(back.reuse_eligible,true);
+  assert.equal(back.invocation.runId,first.invocation.runId);
 });
 test('old npm evidence cannot satisfy the new recipe; extra caller-sensitive probes are unqualified',t=>{
   const {root,state,config}=project(t);good(root,state,'init');good(root,state,'start');good(root,state,'run','typecheck');

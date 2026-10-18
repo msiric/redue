@@ -92,14 +92,15 @@ test('idle observer launches no probe and a relevant edit is STALE immediately',
   const unedited=await metrics(f);
   fs.appendFileSync(path.join(f.root,'src/main.ts'),'export const edited = 2;\n');
   const edited=sync(f);
-  if(inProcess)assert.equal((await metrics(f)).full,unedited.full+1,'an edit costs one full probe');
+  // The inputs already differ from the receipt, so the answer is STALE without a probe.
+  if(inProcess)assert.equal((await metrics(f)).full,unedited.full,'a known-STALE edit costs no full probe');
   if(process.platform==='darwin'){
     // Without live notifications only the decision's history barrier delivers
-    // the edit: validation fails first, and the one full probe follows the barrier.
+    // the edit. The check is already STALE, so no full probe follows the barrier.
     const queued=await metrics(f);put(path.join(f.state,'drop-events'),'');
     fs.appendFileSync(path.join(f.root,'src/main.ts'),'export const queued = 4;\n');
     assert.equal(state(sync(f)),'STALE/PASS/not-eligible');fs.rmSync(path.join(f.state,'drop-events'));
-    assert.equal((await metrics(f)).full,queued.full+1,'a queued edit costs one full probe');
+    assert.equal((await metrics(f)).full,queued.full,'a queued known-STALE edit costs no full probe');
   }
   assert.equal(state(edited),'STALE/PASS/not-eligible');assert.deepEqual(edited.changed_inputs,['src/main.ts']);
   if(inProcess){

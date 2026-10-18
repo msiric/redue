@@ -395,6 +395,16 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
     return item;
   });
 }
+// The indexed inputs already differ from the latest receipt, so no probe result
+// can make this check CURRENT. A sync answers STALE without a full probe. A run
+// still probes, and a revert makes the inputs match and probes again.
+function knownStale(name,row) {
+  const r=receipts[name];
+  if(!r?.files||r.planId!==row.plan.id||row.probeError||pendingChecks.has(name)||
+    row.probeCache?.input===inputKey(row))return false;
+  const current=combinedFiles(name),files=Object.keys(current);
+  return files.length!==Object.keys(r.files).length||files.some(file=>r.files[file]!==current[file]);
+}
 function status(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=false) {
   // Reload notifications accelerate visibility but are not required for it: a
   // wrapper may persist its outcome even when its control connection is denied.
@@ -965,9 +975,11 @@ async function request(message) {
       const continuous=continuityBarrier(),probed=index,gaps=metrics.gaps,decided=Date.now();
       const selected=[...index.checks].filter(([name])=>!message.name||message.name===name);
       const keys=new Map(selected.map(([name,row])=>[name,inputKey(row)]));
+      const skip=message.action==='sync'?knownStale:()=>false;
+      if(message.action==='sync')refreshReceipts();
       // With a deferred barrier, validate in-process first and launch any full
       // probe only after the barrier, so a queued edit costs one probe, not two.
-      for(const [,row] of selected)probe(row,continuous,{launch:!deferBarrier});
+      for(const [name,row] of selected)if(!skip(name,row))probe(row,continuous,{launch:!deferBarrier});
       if(continuous&&process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_MAC_PROBE_SIGNAL){
         fs.writeFileSync(process.env.VSTATE_TEST_MAC_PROBE_SIGNAL,'validated');
         await new Promise(resolve=>setTimeout(resolve,200));
@@ -979,8 +991,8 @@ async function request(message) {
         timing('daemon.request_catch_up',started,{after:'probes'});
         // Rows not yet confirmed, or whose inputs moved meanwhile, are probed
         // from the barrier, as an undeferred decision would have done.
-        const rest=index===probed&&healthy&&!planning?selected.filter(([name,row])=>row.probeAt<decided||
-          metrics.gaps!==gaps||inputKey(row)!==keys.get(name)):[];
+        const rest=index===probed&&healthy&&!planning?selected.filter(([name,row])=>!skip(name,row)&&
+          (row.probeAt<decided||metrics.gaps!==gaps||inputKey(row)!==keys.get(name))):[];
         const launched=metrics.fullProbes||0;
         for(const [,row] of rest)probe(row,continuityBarrier());
         if(continuous&&(metrics.fullProbes||0)>launched){await catchUp();if(planDirty||pending.size||flushTimer)flush();}
