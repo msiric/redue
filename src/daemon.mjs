@@ -349,7 +349,8 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       item.reason=`target execution ${r.target?.status||'unavailable'}`;return item;}
     if(r.target.status==='failed'&&result!=='FAIL'){
       item.reason='target failure conflicts with outer invocation outcome';return item;}
-    if(!r.stable){item.reason='inputs changed during execution or observation gap';return item;}
+    if(!r.stable){const issues=r.checkpoint?.issues?.length?` (${r.checkpoint.issues.join('; ')})`:'';
+      item.reason=`inputs changed during execution or observation gap${issues}`;return item;}
     const names=[...(row.plan.environment.variables||[]),
       ...(row.plan.environment.prefixes||[]).map(prefix=>
         `__vstate_env_prefix_${prefix.toLowerCase()}__`),
