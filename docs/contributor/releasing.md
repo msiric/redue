@@ -55,25 +55,26 @@ gh run watch <publish run id> --exit-status
 checks out its commit, verifies the downloaded tarball against its manifest
 and `SHA256SUMS`, and checks that package.json and the tarball carry the
 requested version and that the version is not yet on npm. It then publishes
-those exact bytes with `--tag alpha` (npm 11.5.1+, provenance is automatic) and
-creates the GitHub prerelease `vVERSION` at that commit, with only that
+those exact bytes with `--tag alpha` (npm 11.21.0+, provenance is automatic),
+points `latest` at the same version with `npm dist-tag add`, and creates the
+GitHub prerelease `vVERSION` at that commit, with only that
 version's CHANGELOG entry as notes and the tarball, `SHA256SUMS` and
 `manifest.json` attached.
 
 Its `public-smoke` job then downloads the published package on macOS, Linux and
 Windows, compares its SHA256 with the tested tarball, runs the package smoke,
-and prints `npm view @redue/cli dist-tags`.
+and checks that `alpha` and `latest` both name the published version.
 
 The Actions token cannot create a tag on a commit that changes
 `.github/workflows`. When the release commit does, push the tag first from a
 maintainer checkout (`git tag vVERSION COMMIT && git push origin vVERSION`); the
 workflow then creates the release on that tag. A rerun skips npm when the same
 bytes are already published and skips an existing release, so a failed later step
-can be rerun. Stop on failure and diagnose it. Do not rebuild, republish different
+can be rerun. The `latest` move runs on every attempt. Stop on failure and diagnose it. Do not rebuild, republish different
 bytes, or move a tag. On npm, `@redue/cli` has one trusted publisher: repository
-`msiric/redue`, workflow `publish.yml`, no environment, with `npm publish`
-allowed. If npm also assigns `latest`, verify and report both tags; do not
-repeatedly try to remove `latest`.
+`msiric/redue`, workflow `publish.yml`, no environment, with `npm publish` and
+**Allow npm dist-tag** enabled. Without the dist-tag permission the `latest` step
+fails after the publish; enable it on npmjs.com and rerun the workflow.
 
 ## Alpha.1 migration pointer
 
@@ -93,7 +94,7 @@ Do not add a long-lived publishing token. No automatic migration to the unscoped
 name is planned.
 
 Published versions are immutable. Fix forward with a new alpha. If necessary,
-move `alpha` to a previous tested version and deprecate the defective version with
+move `alpha` and `latest` to a previous tested version and deprecate the defective version with
 an actionable message. Do not assume unpublish is possible or delete user evidence.
 Incompatible state must fail clearly rather than being reinterpreted.
 

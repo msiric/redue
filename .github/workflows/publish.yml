@@ -1,8 +1,9 @@
 name: Publish exact tested tarball to npm
 # Publishes the exact-release-candidate artifact of a successful
 # release-package.yml run through npm trusted publishing (OIDC, no token),
-# creates the GitHub prerelease from that version's CHANGELOG entry, then
-# smoke-tests the public package on three OSes.
+# points both the alpha and latest dist-tags at it, creates the GitHub
+# prerelease from that version's CHANGELOG entry, then smoke-tests the public
+# package on three OSes.
 on:
   workflow_dispatch:
     inputs:
@@ -47,9 +48,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: npm 11.5.1 or later for trusted publishing
+      - name: npm 11.21.0 or later for trusted publishing and dist-tags
         run: |
-          npm install -g npm@11.6.2
+          npm install -g npm@11.21.0
           node -e 'const [a,b]=process.versions.node.split(".").map(Number);if(a<22||(a===22&&b<14))process.exit(1)'
           npm --version
       - uses: actions/download-artifact@v4
@@ -81,6 +82,10 @@ jobs:
       - name: npm publish (trusted publishing)
         if: steps.artifact.outputs.published != 'true'
         run: npm publish "${{ steps.artifact.outputs.file }}" --tag alpha --access public --registry=https://registry.npmjs.org
+      - name: Point latest at this version too
+        # Needs "Allow npm dist-tag" on the package's trusted publisher. It also
+        # runs when npm publish was skipped, so a rerun retries a failed move.
+        run: npm dist-tag add "@redue/cli@$VERSION" latest --registry=https://registry.npmjs.org
       - name: GitHub prerelease
         # The Actions token cannot create a tag on a commit that changes
         # .github/workflows. For such a commit, push the tag first:
@@ -132,6 +137,15 @@ jobs:
           node test/acceptance/package-artifact.mjs record "$smoke/manifest.json"
           cmp release-candidate/SHA256SUMS "$smoke/SHA256SUMS"
           node test/acceptance/package-smoke.mjs --manifest "$smoke/manifest.json"
-      - name: dist-tags
+      - name: alpha and latest point at this version
         if: matrix.os == 'ubuntu-latest'
-        run: npm view @redue/cli dist-tags --registry=https://registry.npmjs.org
+        run: |
+          # The registry can serve old dist-tags for a few minutes.
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            tags=$(npm view @redue/cli dist-tags --json --registry=https://registry.npmjs.org)
+            if [ "$(jq -r .alpha <<<"$tags")" = "${{ inputs.version }}" ] && [ "$(jq -r .latest <<<"$tags")" = "${{ inputs.version }}" ]; then
+              echo "$tags"; exit 0
+            fi
+            sleep 30
+          done
+          echo "$tags"; exit 1
