@@ -13,8 +13,9 @@ user-visible improvements to that, quickly and correctly.
   `node bench/setup.mjs ../redue-bench-800 800` once, then
   `node bench/run.mjs ../redue-bench-800`. It prints a `BENCH_RESULT` JSON line
   and exits 1 if any returned state is wrong.
-- The direct-TypeScript recipe refuses most `NODE_*` variables; the bench strips
-  them. If `init` says `direct-execution-environment-unsupported`, check `env`.
+- The direct-TypeScript recipe refuses `NODE_*` values it cannot classify
+  (`directVariableIssue` in src/direct-typescript.mjs); the bench strips only
+  those. If `init` says `direct-execution-environment-unsupported`, check `env`.
 - CI runs the full suite on macOS, Linux and Windows for each push to main.
   Pushes that change only docs or Markdown skip it. Tests for other platforms
   skip locally; CI is where they run.

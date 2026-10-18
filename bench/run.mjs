@@ -13,7 +13,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {spawnSync, execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {cleanEnv, strippedKeys} from './env.mjs';
+import {cleanEnv, strippedKeys, keptNodeKeys} from './env.mjs';
 
 const args = process.argv.slice(2);
 const flag = (name, fallback) => {
@@ -74,6 +74,8 @@ const restore = () => execFileSync('git', ['checkout', '-q', '--', 'src/m3.ts', 
 
 const stripped = strippedKeys();
 if (stripped.length) console.log(`Removed from benchmark environment: ${stripped.join(', ')}`);
+const kept = keptNodeKeys();
+if (kept.length) console.log(`Node settings kept: ${kept.map(key => `${key}=${process.env[key]}`).join(' ')}`);
 console.log(`Bench: ${dir}\nREDUE: ${redue}\nNode ${process.version} on ${process.platform}/${process.arch}\n`);
 
 cli('stop'); cli('remove-state');

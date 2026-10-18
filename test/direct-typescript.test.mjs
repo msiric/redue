@@ -85,12 +85,21 @@ test('direct compiler identity rejects replacements/additions and unsafe runtime
   fs.appendFileSync(file,'\n');assert.throws(()=>directCompiler(root),/implementation-unreviewed/);fs.writeFileSync(file,bytes);
   put(path.join(root,'node_modules/typescript/unreviewed.js'),'');assert.throws(()=>directCompiler(root),/implementation-unreviewed/);
   for(const env of [{NODE_ENV:'development'},{NODE_OPTIONS:'--require ./helper.cjs'},
-    {NODE_PATH:root},{NODE_COMPILE_CACHE:root},{LD_PRELOAD:'helper'},{DYLD_INSERT_LIBRARIES:'helper'},
+    {NODE_OPTIONS:'--max-old-space-size=4096 --require ./helper.cjs'},{NODE_OPTIONS:'--max-old-space-size=4096 --require helper.cjs'},
+    {NODE_OPTIONS:'-r helper.cjs'},{NODE_OPTIONS:'--import=helper.mjs'},
+    {NODE_OPTIONS:'--import=./helper.mjs'},{NODE_OPTIONS:'--loader ./helper.mjs'},{NODE_OPTIONS:'--trace-warnings'},
+    {NODE_OPTIONS:'--max-old-space-size="4096"'},{NODE_OPTIONS:'--max_old_space_size=4096'},
+    {NODE_OPTIONS:'--max-old-space-size=4096\t--inspect'},{NODE_OPTIONS:'--openssl-legacy-provider'},
+    {node_options:'--max-old-space-size=4096'},{VSCODE_INSPECTOR_OPTIONS:'{}'},{vscode_inspector_options:'{}'},
+    {NODE_COMPILE_CACHE:root},{LD_PRELOAD:'helper'},{DYLD_INSERT_LIBRARIES:'helper'},
     {TSC_WATCHFILE:'anything'},{NODE_INSPECT_RESUME_ON_START:'1'},
-    {TS_ETW_MODULE_PATH:'./unreviewed.cjs'},{TS_ETW_MODULE_PATH:''},{ts_etw_module_path:'./unreviewed.cjs'}])assert(directEnvironmentIssue(env));
+    {TS_ETW_MODULE_PATH:'./unreviewed.cjs'},{TS_ETW_MODULE_PATH:''},{ts_etw_module_path:'./unreviewed.cjs'}])
+    assert(directEnvironmentIssue(env),JSON.stringify(env));
   for(const env of [{},{NODE_ENV:'production'},{npm_config_proxy:'http://localhost:1000'},
-    {npm_config_unknown:'ignored by canonical compiler'},{NPM_CONFIG_PROXY:'',npm_config_proxy:'different'}])
-    assert.equal(directEnvironmentIssue(env),null);
+    {npm_config_unknown:'ignored by canonical compiler'},{NPM_CONFIG_PROXY:'',npm_config_proxy:'different'},
+    {NODE_PATH:root},{NODE_EXTRA_CA_CERTS:path.join(root,'ca.pem')},{NODE_OPTIONS:'--max-old-space-size=4096'},
+    {NODE_OPTIONS:' --max-old-space-size=4096  --use-openssl-ca --dns-result-order=ipv4first '}])
+    assert.equal(directEnvironmentIssue(env),null,JSON.stringify(env));
   assert.equal(directEnvironmentIssue({NODE_USE_ENV_PROXY:'1'}),process.version==='v22.13.0'?null:'direct-execution-environment-unsupported');
   assert(directEnvironmentIssue({NODE_USE_ENV_PROXY:'invalid'}));
   assert.notEqual(observedNpmContext({npm_config_proxy:'a'}),observedNpmContext({npm_config_proxy:'b'}));
@@ -120,10 +129,19 @@ test('real direct compiler evidence crosses proxy contexts, but not relevant inp
   }
   const installed=path.join(root,'node_modules/typescript/README.md'),original=fs.readFileSync(installed);
   fs.appendFileSync(installed,'\n');assert.equal(status().reuse_eligible,false);fs.writeFileSync(installed,original);
+  // Inert Node settings are accepted and recorded: a different value is not reusable.
+  const node={NODE_OPTIONS:'--max-old-space-size=4096',NODE_EXTRA_CA_CERTS:path.join(root,'missing-ca.pem'),NODE_PATH:root};
+  const nodeRun=call(['run','typecheck'],{...contextA,...node});assert.equal(nodeRun.status,0,nodeRun.stderr+nodeRun.stdout);
+  const n=status({...contextA,...node});assert.equal(n.freshness,'CURRENT',JSON.stringify(n));assert.equal(n.reuse_eligible,true);
+  for(const other of [{...node,NODE_OPTIONS:'--max-old-space-size=2048'},{...node,NODE_PATH:path.dirname(root)},
+    {NODE_EXTRA_CA_CERTS:node.NODE_EXTRA_CA_CERTS},{}]){
+    const r=status({...contextA,...other});assert.equal(r.reuse_eligible,false,JSON.stringify(other));
+    assert.match(r.reason,/declared execution environment changed/);
+  }
   const probe=path.resolve('src/direct-typescript-probe.mjs');
   const injected=path.join(root,'unreviewed-etw.cjs'),marker=path.join(root,'unreviewed-etw-ran');
   put(injected,`require('node:fs').writeFileSync(${JSON.stringify(marker)},'unreviewed');`);
-  for(const env of [{NODE_ENV:'development'},{NODE_OPTIONS:'--trace-warnings'},{NODE_PATH:root},{NODE_COMPILE_CACHE:path.join(root,'cache')},{TS_ETW_MODULE_PATH:injected},{TS_ETW_MODULE_PATH:''}]){
+  for(const env of [{NODE_ENV:'development'},{NODE_OPTIONS:'--trace-warnings'},{NODE_COMPILE_CACHE:path.join(root,'cache')},{TS_ETW_MODULE_PATH:injected},{TS_ETW_MODULE_PATH:''}]){
     for(const extra of [[],['--redue-context']]){
       const r=spawnSync(process.execPath,[probe,root,'typecheck',...extra],{cwd:root,env:{...baseEnv,...env},encoding:'utf8',timeout:15000});
       assert.equal(r.status,2);assert.match(r.stderr,/VSTATE_REASON:/);assert(!fs.existsSync(marker),'unreviewed ETW module executed');
