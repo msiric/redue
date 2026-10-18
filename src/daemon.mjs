@@ -505,7 +505,7 @@ function buildInWorker(forceCold=false,reuse=null) {
       reject(Error(`input-plan worker exited ${code}`));}});
   });
 }
-async function refreshPlan({forceCold=false,reuse=false}={}) {
+async function refreshPlan({forceCold=false,reuse=false,skip=null}={}) {
   if(planning||stopping)return;
   const totalStarted=performance.now();
   const previousProbes=new Map([...(index?.checks||[])].map(([name,row])=>[name,row.probeCache]));
@@ -588,7 +588,8 @@ async function refreshPlan({forceCold=false,reuse=false}={}) {
     atomic(path.join(state,'plans-v1.json'),persistedPlan(bundle));
     metrics.lastPlanPersistenceMs=performance.now()-persistenceStarted;
     const probeStarted=performance.now();
-    for(const row of index.checks.values())probe(row,built.planReused);
+    if(skip)refreshReceipts();
+    for(const [name,row] of index.checks)if(!skip?.(name,row))probe(row,built.planReused);
     timing('daemon.plan_probes',probeStarted,{checks:index.checks.size});
     lastObservation=Date.now();
     event(built.planReused?'plan_validated':'plan_rebuilt',{checks:Object.keys(bundle.plans),workspace_count:bundle.workspaceCount});
@@ -928,7 +929,9 @@ async function request(message) {
     // has been disabled: a recovered subscription may still have queued events.
     const needsContentReconciliation=process.platform==='win32'||(hasHistory&&historyDisabled);
     if(needsContentReconciliation&&message.action!=='prelaunch'){
-      const started=performance.now();await refreshPlan({forceCold:true,reuse:true});
+      // Windows probes inside the reconciliation, so a known-STALE sync skips it there.
+      const started=performance.now();
+      await refreshPlan({forceCold:true,reuse:true,skip:message.action==='sync'?knownStale:null});
       timing('daemon.request_content_validation',started,{healthy:healthy?1:0});}
     // Without synchronized installed reads, the continuity barrier runs once,
     // after probing: in-process validation reads the live filesystem, and the
