@@ -6,7 +6,7 @@ import path from 'node:path';
 import {spawn,spawnSync,execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {runRecordIssue} from '../src/direct-run-certificate.mjs';
-import {directContextHash} from '../src/direct-typescript.mjs';
+import {directCompiler,directContextHash} from '../src/direct-typescript.mjs';
 import {readReceipts} from '../src/state-store.mjs';
 
 const digest=text=>createHash('sha256').update(JSON.stringify(text)).digest('hex');
@@ -98,6 +98,7 @@ const invoke=(f,args,env={})=>spawnSync(process.execPath,[cli,'--state-dir',f.st
   {cwd:f.root,env:{...f.env,...env},encoding:'utf8',timeout:45000});
 function call(f,args){const r=invoke(f,args);assert.equal(r.status,0,r.stderr+r.stdout);return r.stdout;}
 const receipt=f=>readReceipts(f.state).checks.typecheck;
+const compilerMajor=f=>Number(directCompiler(f.root).version.split('.')[0]);
 const marks=f=>fs.readFileSync(f.profile,'utf8').split('\n').filter(l=>l.startsWith('REDUE_TIMING '))
   .map(l=>JSON.parse(l.slice(13)));
 async function paused(f,phase){
@@ -113,8 +114,7 @@ async function paused(f,phase){
 
 test('recorded runs keep tsc output and exit code, and replace both probes',unix,t=>{
   const f=fixture(t);call(f,['start']);
-  const tsc=path.join(f.root,'node_modules/typescript',
-    JSON.parse(fs.readFileSync(path.join(f.root,'node_modules/typescript/package.json'))).version==='5.9.3'?'lib/_tsc.js':'lib/tsc.js');
+  const tsc=directCompiler(f.root).entry;
   for(const [source,exit] of [['export const value: number = other;\n',0],
     ['export const value: string = other;\nexport const missing: number = undefinedName;\n',2]]){
     put(path.join(f.root,'src/main.ts'),'import {other} from "./other";\n'+source);
@@ -161,7 +161,11 @@ test('a compiler file changed during the run makes the receipt non-reusable',uni
 });
 
 test('a lookup outside the checkout that appears during the run makes the receipt non-reusable',unix,async t=>{
-  const f=fixture(t);call(f,['start']);call(f,['run','typecheck']);assert(receipt(f).stable);
+  const f=fixture(t);
+  // TypeScript 6 reads ancestor node_modules/@types only when asked to.
+  if(compilerMajor(f)>=6)
+    put(path.join(f.root,'tsconfig.json'),JSON.stringify({compilerOptions:{strict:true,noEmit:true,types:['*']},include:['src']}));
+  call(f,['start']);call(f,['run','typecheck']);assert(receipt(f).stable);
   const run=await paused(f,'before-launch');
   // The compiler looks for ancestor node_modules/@types; the watcher does not see this path.
   put(path.join(f.base,'node_modules/@types/extra/index.d.ts'),'declare const extraGlobal: number;\n');
@@ -193,11 +197,15 @@ test('after an edit, the run recording becomes the certificate without a full pr
 
 test('an edit that changes what the compiler reads falls back to a full probe at the end',unix,t=>{
   const f=fixture(t);call(f,['start']);call(f,['run','typecheck']);
-  put(path.join(f.root,'src/third.ts'),'export const third = 4;\n');
+  // A lib outside the compiler's default set: TypeScript 6 targets ES2025 by default.
+  const lib=compilerMajor(f)>=6?
+    'esnext.disposable':'es2015.collection';
+  // Outside include, so only the new import makes the compiler read it.
+  put(path.join(f.root,'lib/third.ts'),'export const third = 4;\n');
   const main=path.join(f.root,'src/main.ts');
-  for(const [edit,reason] of [[()=>put(main,'import {other} from "./other";\nimport {third} from "./third";\nexport const value: number = other + third;\n'),/./],
+  for(const [edit,reason] of [[()=>put(main,'import {other} from "./other";\nimport {third} from "../lib/third";\nexport const value: number = other + third;\n'),/./],
     // Same files outside the compiler tree, another lib file inside it.
-    [()=>fs.writeFileSync(main,'/// <reference lib="es2015.collection" />\n'+fs.readFileSync(main,'utf8')),/lib files/]]){
+    [()=>fs.writeFileSync(main,`/// <reference lib="${lib}" />\n`+fs.readFileSync(main,'utf8')),/lib files/]]){
     edit();assert.equal(synced(f).freshness,'STALE');
     const offset=marks(f).length;call(f,['run','typecheck']);
     const r=receipt(f);assert(r.stable,JSON.stringify(r.checkpoint));

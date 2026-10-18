@@ -10,7 +10,10 @@ const reviewed={
   '5.5.2':{entry:'lib/tsc.js',digest:'953b4844b5f6edc745be844b6c367c227b59029b73c4182f508f90cc47e21816'},
   '5.6.3':{entry:'lib/tsc.js',digest:'e674b5dc4dac50f6e91be30094aeea983a1f340231717e62b0b6199ae3049eb2'},
   '5.9.3':{entry:'lib/_tsc.js',digest:'d1b32e75475710fdc85102b1365254d84ceb192d3639d962c53fe1355ce274ca'},
+  '6.0.2':{entry:'lib/_tsc.js',digest:'273e16620fe23362e085980d6dd822e1315d81ba792221c9b6008755fdafccdd'},
+  '6.0.3':{entry:'lib/_tsc.js',digest:'e0a6519f0d0a90125b7fd3bdbbcf700e167656beb3baf8aca8ed8bc037494537'},
 };
+export const reviewedTypeScriptVersions=Object.keys(reviewed);
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 export const directEnvironment={variables:['NODE_ENV','NODE_OPTIONS','NODE_PATH','NODE_COMPILE_CACHE','VSCODE_INSPECTOR_OPTIONS'],

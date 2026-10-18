@@ -6,7 +6,8 @@ user-visible improvements to that, quickly and correctly.
 
 ## Commands
 
-- `npm ci`, then `npm run pretest` once (installs the TS 5.5.2 test fixture).
+- `npm ci`, then `npm run pretest` once (installs the TS 5.5.2, 6.0.2 and 6.0.3
+  test fixtures).
 - Single test file: `node --test test/<name>.test.mjs`. Full suite: `npm test`
   (~5 min, serial). Run the full suite before pushing, not after every edit.
 - Benchmark (the acceptance loop for performance work):

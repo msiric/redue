@@ -18,7 +18,7 @@ import {atomicJson,readReceipts,readReceiptSnapshot,receiptRevision} from './sta
 import {history,closeHistory} from './observation.mjs';
 import {inputKey,planGuard,toolchainKey} from './decision-validation.mjs';
 import {queriesHold} from './typescript-list.mjs';
-import {directProject,directProbeValue} from './direct-typescript.mjs';
+import {directProject,directProbeValue,reviewedTypeScriptVersions} from './direct-typescript.mjs';
 import {recordedCertificate} from './direct-run-certificate.mjs';
 import {timing,mark,traceBase,traceContext,traceScope,traceEnvironment,traceId} from './decision-profile.mjs';
 
@@ -223,7 +223,7 @@ function probe(row,allowReuse=false,{launch=true}={}) {
         /VSTATE_REASON:([a-z-]+)/.exec(out.stderr?.toString()||'')?.[1]:null;
       const explanations={
         'direct-typescript-implementation-unreviewed':'installed TypeScript bytes or membership differ from the reviewed compiler',
-        'direct-typescript-version-unsupported':'direct compiler recipe supports reviewed TypeScript 5.5.2, 5.6.3 and 5.9.3 only',
+        'direct-typescript-version-unsupported':`direct compiler recipe supports reviewed TypeScript ${reviewedTypeScriptVersions.join(', ')} only`,
         'direct-execution-environment-unsupported':'direct compiler rejects development helpers, Node cache/preloads, and unreviewed runtime overrides',
         'direct-node-version-unsupported':'direct compiler recipe supports Node 22 and 24',
         'npm-launcher-unobserved-inputs':'npm launcher uses unobserved notifier inputs; execution is recording-only',

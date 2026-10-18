@@ -19,7 +19,7 @@ project script. Automatic npm-launcher applicability was withdrawn in alpha.4;
 ordinary npm scripts remain recording-only. See the [maintainer notice](npm-launcher-notice.md).
 The direct recipe is opt-in, available since alpha.5. The opt-in `init --recipe typescript-direct` supports
 a standalone `tsc --noEmit` script in a single-package npm installation using
-reviewed TypeScript 5.5.2/5.6.3/5.9.3 and Node 22/24. It executes the local compiler,
+reviewed TypeScript 5.5.2/5.6.3/5.9.3/6.0.2/6.0.3 and Node 22/24. It executes the local compiler,
 not npm. Full installed compiler identity, config/membership, installed inputs
 and relevant Node environment are checked before reuse. See the
 [exact direct boundary](direct-typescript.md). Unsupported plugins, preloads,

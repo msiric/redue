@@ -2,7 +2,8 @@
 
 Interpretation `npm-direct-typescript@1`, not a projection of npm launcher evidence.
 Reviewed official registry distributions: [TypeScript 5.6.3](https://registry.npmjs.org/typescript/-/typescript-5.6.3.tgz)
-and [5.9.3](https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz). Registry SHA-512
+and [5.9.3](https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz); 5.5.2, 6.0.2 and
+6.0.3 are added below. Registry SHA-512
 integrities were independently verified before source review. Whole-package canonical
 SHA-256 identities are pinned in `src/direct-typescript.mjs`; hash lexically sorted
 POSIX relative path + NUL + file SHA-256 + NUL. Links/special files and additional or
@@ -109,3 +110,40 @@ a fresh baseline as needed. The fixture verifies an injected module never runs
 and that caller-only override changes cannot reuse a clean receipt. No published
 5.5.2 contract exists; the previously measured candidate preceded this guard and
 must not be released. Repacked bytes require fresh exact-artifact acceptance.
+
+## Additional reviewed implementations: 6.0.2 and 6.0.3
+
+Adds exactly official TypeScript **6.0.2** and **6.0.3**, the TypeScript 6 releases
+current public npm projects lock. It does not admit other 6.x versions or change
+compiler argv, project selection, package-manager layout or Node/environment rules.
+
+[6.0.2 registry distribution](https://registry.npmjs.org/typescript/-/typescript-6.0.2.tgz)
+SHA-512: `bGdAIrZ0wiGDo5l8c++HWtbaNCWTS4UTv7RaTH/ThVIgjkveJt83m74bBHMJkuCbslY8ixgLBVZJIOiQlQTjfQ==`.
+[6.0.3 registry distribution](https://registry.npmjs.org/typescript/-/typescript-6.0.3.tgz)
+SHA-512: `y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==`.
+Both integrities match public `package-lock.json` files that resolve from
+registry.npmjs.org. Each package has 140 files. Canonical SHA-256: 6.0.2
+`273e16620fe23362e085980d6dd822e1315d81ba792221c9b6008755fdafccdd`, 6.0.3
+`e0a6519f0d0a90125b7fd3bdbbcf700e167656beb3baf8aca8ed8bc037494537`; an ordinary
+npm installation of 6.0.3 has the same identity.
+
+As in 5.9.3, `lib/tsc.js` only attempts `node:module.enableCompileCache` and then
+requires `_tsc.js`; the recipe runs `lib/_tsc.js`. Compared with 5.9.3, the CLI
+(`_tsc.js`) and the API the probes load (`typescript.js`) require the same modules
+and read the same environment variables, plus `FORCE_COLOR`, which only affects
+diagnostic colors like the TTY/color variables above. The NODE_ENV
+source-map-support branch is unchanged and stays rejected. Neither contains the
+5.5.2 ETW loader.
+
+TypeScript 6 changes defaults, not the contract. `types` defaults to `[]`, so a
+project no longer reads ancestor `node_modules/@types` unless it sets
+`"types": ["*"]`; the default target is ES2025, which changes the default lib
+files. Discovery and run recording observe whatever the compiler reads, so both
+follow automatically. Two recording tests now pick their outside lookup and their
+extra lib by compiler version.
+
+Interpretation remains `npm-direct-typescript@1`; the compiler digest and entry are
+bound into checkpoints, so a 5.x receipt cannot authorize 6.0.x. The shared
+adversarial suite runs against 5.6.3, 5.5.2, 6.0.2 and 6.0.3; the exact-package
+release smoke additionally installs 6.0.3 through ordinary npm. This is a package
+and behavior review, not a line-by-line review of the 6.0 compiler sources.

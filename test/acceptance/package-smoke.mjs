@@ -12,7 +12,7 @@ import {readArtifact} from './package-artifact.mjs';
 
 const product=process.cwd();
 const compilerAt=process.argv.indexOf('--compiler'),compilerVersion=compilerAt<0?'5.6.3':process.argv[compilerAt+1];
-assert(['5.5.2','5.6.3'].includes(compilerVersion));
+assert(['5.5.2','5.6.3','6.0.3'].includes(compilerVersion));
 const productPackage=JSON.parse(fs.readFileSync(path.join(product,'package.json'),'utf8'));
 assert.equal(productPackage.bin.redue,'./bin/redue.mjs');
 const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-package-'));
