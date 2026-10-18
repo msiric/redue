@@ -196,12 +196,14 @@ test('after an edit, the run recording becomes the certificate without a full pr
 });
 
 test('an edit that changes what the compiler reads falls back to a full probe at the end',unix,t=>{
-  const f=fixture(t);call(f,['start']);call(f,['run','typecheck']);
+  const f=fixture(t);
+  // Outside include, so only the new import makes the compiler read it. Written
+  // before the observer starts: on Linux a new directory needs its watch first.
+  put(path.join(f.root,'lib/third.ts'),'export const third = 4;\n');
+  call(f,['start']);call(f,['run','typecheck']);
   // A lib outside the compiler's default set: TypeScript 6 targets ES2025 by default.
   const lib=compilerMajor(f)>=6?
     'esnext.disposable':'es2015.collection';
-  // Outside include, so only the new import makes the compiler read it.
-  put(path.join(f.root,'lib/third.ts'),'export const third = 4;\n');
   const main=path.join(f.root,'src/main.ts');
   for(const [edit,reason] of [[()=>put(main,'import {other} from "./other";\nimport {third} from "../lib/third";\nexport const value: number = other + third;\n'),/./],
     // Same files outside the compiler tree, another lib file inside it.
