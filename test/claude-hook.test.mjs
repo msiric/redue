@@ -15,9 +15,13 @@ const direct={schema:1,packageManager:'npm',checks:[{name:'typecheck',script:'ty
 test('matches each typecheck form with only the allowed output suffixes',()=>{
   for(const command of ['redue run typecheck','npm run typecheck','npx tsc --noEmit','  npm   run\ttypecheck ',
     'npm run typecheck 2>&1','npm run typecheck | tail -n 20','npm run typecheck 2>&1 | head -5',
-    'npx tsc --noEmit 2>&1 | tail -40','redue run typecheck | head -n 3'])
+    'npx tsc --noEmit 2>&1 | tail -40','redue run typecheck | head -n 3',
+    // The first command of a `;` or `&&` chain.
+    'npm run typecheck && npm test','npm run typecheck; echo done','npm run typecheck;npm test',
+    'npm run typecheck 2>&1 | tail -n 20 && git status'])
     assert.equal(matchCheck(command,direct),'typecheck',command);
-  for(const command of ['npm run typecheck && npm test','cd src && npm run typecheck','npm run typecheck | grep x',
+  for(const command of ['cd src && npm run typecheck','npm run typecheck | grep x','npm run typecheck || true',
+    'npm run typecheck & npm test','npm run typecheck;','npm run typecheck &&& ls','npm run typecheck | grep x; ls',
     'npm run typecheck > out.txt','npm run typecheck | tail -n 20 | head -5','npm run typecheck\nrm -rf x',
     'npm run typecheck -- --watch','npm run typecheck:watch','npx tsc --noEmit --watch','npx tsc',
     'npm run typecheck | tail -n','npm run typecheck | tail -n20','npm run typecheck 2>&1 2>&1','yarn typecheck'])
@@ -34,6 +38,11 @@ test('matches each typecheck form with only the allowed output suffixes',()=>{
   // The npm form needs npm; other managers' script checks get only `redue run`.
   assert.deepEqual(hookForms({...direct,packageManager:'pnpm',checks:[{...direct.checks[0],qualification:'pnpm-tsc-v1'}]})[0].forms,
     ['redue run typecheck']);
+  // Another config file: the redue form names it, exactly as the instructions do.
+  assert.deepEqual(hookForms(direct,'vstate.config.json')[0].forms,
+    ['redue --config vstate.config.json run typecheck','npm run typecheck','npx tsc --noEmit']);
+  assert.equal(matchCheck('redue run typecheck',direct,'vstate.config.json'),null);
+  assert.deepEqual(hookForms(direct,'my config.json')[0].forms,['npm run typecheck','npx tsc --noEmit']);
 });
 
 test('a matched command becomes redue run with the same output suffix',()=>{
@@ -48,6 +57,8 @@ test('a matched command becomes redue run with the same output suffix',()=>{
   assert.equal(recordedCommand('redue --config vstate.config.json run typecheck','typecheck','vstate.config.json'),null);
   assert.equal(recordedCommand('npm run typecheck','typecheck','my config.json'),null);
   assert.equal(recordedCommand('npm run typecheck\nrm -rf x','typecheck'),null);
+  // A chain is never rewritten: "allow" would also skip the prompt for the rest.
+  assert.equal(recordedCommand('npm run typecheck && git push','typecheck'),null);
 });
 
 function project(t){
@@ -75,6 +86,14 @@ test('blocks only CURRENT/PASS with reuse_eligible and a run id',async t=>{
   assert.match(blocked.hookSpecificOutput.permissionDecisionReason,new RegExp(`run ${runId}`));
   assert.match(blocked.hookSpecificOutput.permissionDecisionReason,/REDUE_FORCE=1/);
   assert.deepEqual(p.calls(),[`--config ${path.join(p.root,'redue.config.json')} status --sync --json`]);
+  assert.doesNotMatch(blocked.hookSpecificOutput.permissionDecisionReason,/Nothing else/);
+  // A chain is denied whole; the reason names the rest so the agent can run it.
+  const chain=await claudeHook(bash('npm run typecheck && npm test -- --runInBand',p.root),{entry:p.fake('current',replying(status({})))});
+  assert.equal(chain.hookSpecificOutput.permissionDecision,'deny');
+  assert.match(chain.hookSpecificOutput.permissionDecisionReason,/rerun skipped.*run the rest on its own: npm test -- --runInBand$/);
+  // The rest is quoted as the agent wrote it, spacing included.
+  const spaced=await claudeHook(bash('npm  run typecheck  2>&1 |  tail -5 ;  git commit -m "two  spaces\there"',p.root),{entry:p.fake('current',replying(status({})))});
+  assert(spaced.hookSpecificOutput.permissionDecisionReason.endsWith('run the rest on its own: git commit -m "two  spaces\there"'));
   // A healthy answer that is not CURRENT/PASS/eligible: run it through REDUE so it is recorded.
   const recorded={
     stale:status({freshness:'STALE',reuse_eligible:false,reason:'src/a.ts changed'}),
@@ -102,6 +121,7 @@ test('blocks only CURRENT/PASS with reuse_eligible and a run id',async t=>{
   for(const [name,value] of Object.entries(unchanged))
     assert.equal(await claudeHook(bash('npm run typecheck',p.root),{entry:p.fake(name,replying(value))}),null,name);
   assert.equal(await claudeHook(bash('redue run typecheck',p.root),{entry:p.fake('staleRun',replying(recorded.stale))}),null);
+  assert.equal(await claudeHook(bash('npm run typecheck; npm test',p.root),{entry:p.fake('staleChain',replying(recorded.stale))}),null);
 });
 
 test('timeout, error exit, unreadable output and missing REDUE all allow',async t=>{
@@ -121,7 +141,7 @@ test('timeout, error exit, unreadable output and missing REDUE all allow',async 
 test('REDUE_FORCE=1, other tools and non-matching commands allow without querying status',async t=>{
   const p=project(t),entry=p.fake('current',replying(status({})));
   for(const input of [bash('REDUE_FORCE=1 npm run typecheck',p.root),bash('  REDUE_FORCE=1 redue run typecheck | tail -5',p.root),
-    bash('npm test',p.root),bash('npm run typecheck && git push',p.root),
+    bash('npm test',p.root),bash('cd src && npm run typecheck',p.root),bash('npm run typecheck || git push',p.root),
     {...bash('npm run typecheck',p.root),tool_name:'PowerShell'},bash('npm run typecheck','relative')])
     assert.equal(await claudeHook(input,{entry}),null,JSON.stringify(input));
   assert.deepEqual(p.calls(),[]);

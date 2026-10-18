@@ -83,20 +83,25 @@ The hook skips an exact rerun of a configured typecheck: a check with
 `kind: "typecheck"` or named `typecheck`. It matches these commands, run from the
 project root:
 
-- `redue run CHECK`
+- `redue run CHECK`, or `redue --config FILE run CHECK` when the config is not
+  `redue.config.json`
 - `npm run SCRIPT`, when the check has an npm script
 - `npx tsc --noEmit`, for the direct-TypeScript recipe
 - the check's `command`, when it has no `@` tokens
 
 Each form may end with `2>&1` and then one `| tail -n N`, `| head -n N`,
-`| tail -N` or `| head -N`. Nothing else matches. Each form has its own `if`
-rule, so other Bash commands never start the hook.
+`| tail -N` or `| head -N`. It may also be the first command of a `;` or `&&`
+chain. Nothing else matches. Each form has its own `if` rule, so other Bash
+commands never start the hook. The installed skill lists these exact commands,
+so the agent uses forms the hook recognizes.
 
 On a match, the hook runs `redue status --sync --json` with a 2-second timeout.
 It blocks the command only when the check is CURRENT, PASS and
 `reuse_eligible: true`. The message names the check and the receipt's run ID. Every
 other result allows the command: STALE, UNVERIFIED, FAILED, a timeout, an error, or
-a missing `redue`. A command that starts with `REDUE_FORCE=1` always runs.
+a missing `redue`. A command that starts with `REDUE_FORCE=1` always runs. A
+blocked chain runs none of its commands; the message names the rest of the chain
+so the agent can run it on its own.
 
 When the check is not CURRENT but the observer answered for it, the hook rewrites
 the command to `redue run CHECK` and allows it, keeping any `2>&1` and
@@ -104,13 +109,17 @@ the command to `redue run CHECK` and allows it, keeping any `2>&1` and
 `redue.config.json`. The run is recorded, so the next identical command can be
 skipped. Without a healthy answer (timeout, error, no observer) the command runs
 as typed. Claude Code still applies deny and ask rules to the rewritten command.
+A chain is never rewritten: the rewrite is allowed without a prompt, and that
+would also skip the prompt for the rest of the chain.
 
 Limits:
 
 - The hook judges its own environment, which Claude Code passes to it. The Bash
   tool can add variables from your shell profile. The hook cannot see those.
-- Commands run from a subdirectory, or combined with `&&`, `;` or other pipes,
-  are not matched.
+- Commands run from a subdirectory, after another command (`cd x && tsc`), or
+  combined with `||`, `&` or other pipes, are not matched.
+- A skip writes nothing. If a typecheck command also emits files, later
+  commands see the files from its last run.
 - Only the Bash tool is covered, not PowerShell.
 - Run setup again after you rename a check or script.
 - The rewrite is allowed without a permission prompt, even where the original

@@ -13,8 +13,8 @@ execution obligation from a reuse decision:
 - To evaluate reuse for a check whose selected config has
   `qualification: "npm-typescript-direct-v1"` and the direct compiler command
   (or whose receipt metadata has `verification_recipe: "npm-direct-typescript@1"`
-  consistent with that config), use one `redue --config CONFIG status --sync --json`
-  directly. Cached status cannot establish this recipe's caller eligibility.
+  consistent with that config), use one `status --sync --json` (the exact command
+  under Selected configuration) directly. Cached status cannot establish this recipe's caller eligibility.
   Do not infer the recipe from a check's name or precede sync with cached status
   solely as a ritual. Evaluate each check separately in mixed configurations.
 - For other or unidentified recipes, start with ordinary `status --json` and
@@ -41,8 +41,8 @@ checks merely for freshness.
   or simpler. Synchronization is not always cheaper than a check.
 - Historical FAIL (displayed as FAILED): report the failure honestly; it is not
   green evidence, even when its inputs are CURRENT.
-- Use `redue run CHECK` to execute and record needed verification. This command
-  always executes. A successful recording-only run can remain UNVERIFIED; describe
+- Use `redue run CHECK` to execute and record needed verification. It executes
+  unless the Claude Code hook reports a skip; prefix `REDUE_FORCE=1` to force it. A successful recording-only run can remain UNVERIFIED; describe
   it as an observed PASS, never reusable CURRENT.
 - A direct compiler recipe verifies the configured local compiler, not npm or its
   lifecycle scripts. Inspect the configuration/verification_recipe before claiming

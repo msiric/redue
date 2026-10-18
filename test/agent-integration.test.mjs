@@ -194,6 +194,9 @@ test('claude setup adds one typecheck hook to settings.local.json; removal resto
   assert.deepEqual({...installed,hooks:{...installed.hooks,PreToolUse:installed.hooks.PreToolUse.slice(0,1)}},existing);
   assert.deepEqual(installed.hooks.PreToolUse[1],{matcher:'Bash',hooks:[{type:'command',
     if:'Bash(redue run typecheck*)',command:'redue agent hook claude',timeout:5}]});
+  // The skill gives the agent the same command the hook matches.
+  assert.match(f.read('.claude/skills/redue-verification/SKILL.md'),/^- typecheck: `redue run typecheck`$/m);
+  assert.match(f.read('.claude/skills/redue-verification/SKILL.md'),/^- Status: `redue status --sync --json`$/m);
   const once=f.read(local);f.ok('agent','setup','claude','--apply');assert.equal(f.read(local),once);
   const doctor=JSON.parse(f.ok('agent','doctor','claude','--json').stdout);
   assert.equal(doctor.hosts[0].hook,doctor.command.path?'installed':'installed, but redue is not on PATH, so it never runs');

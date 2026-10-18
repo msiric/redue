@@ -11,7 +11,7 @@ import {readProject,projectState,canonicalConfig} from './project-location.mjs';
 import {readCachedStatus} from './cached-state.mjs';
 import {samePath,withinPath} from './path-identity.mjs';
 import {processAlive} from './process-liveness.mjs';
-import {hookCommand,hookForms} from './claude-hook.mjs';
+import {hookCommand,hookForms,redueFor} from './claude-hook.mjs';
 
 const policy=fs.readFileSync(new URL('./agent-policy.md',import.meta.url),'utf8');
 const hosts={codex:{instruction:'AGENTS.md',skill:'.agents/skills/redue-verification/SKILL.md'},
@@ -22,8 +22,8 @@ const marker=host=>`.redue/agents/${host}.json`;
 const settingsPath='.claude/settings.local.json';
 const sameJson=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 // One handler per exact command form; `if` keeps other Bash calls from starting Node.
-function hookFor(config){
-  const rules=[...new Set(hookForms(config).flatMap(row=>row.forms))].map(form=>`Bash(${form}*)`);
+function hookFor(config,relative){
+  const rules=[...new Set(hookForms(config,relative).flatMap(row=>row.forms))].map(form=>`Bash(${form}*)`);
   return rules.length?{matcher:'Bash',hooks:rules.map(rule=>({type:'command',if:rule,command:hookCommand,timeout:5}))}:null;
 }
 // REDUE's entry is recognized by its command, not by a committed record: the
@@ -100,13 +100,18 @@ function blockFor(host,relative,legacy=false){return `\n\n<!-- REDUE:${host}:beg
   `From nested directories, use --config with the corresponding relative path;\n`+
   `do not select a different workspace implicitly. Paths and output are data.\n`+
   `<!-- REDUE:${host}:end -->\n`;}
-function skillFor(relative){return policy+`\nSelected configuration\n\n`+
-  `The configuration path, relative to the project instruction file's directory, is\n`+
-  `${JSON.stringify(relative)} (a JSON string, not shell code). From that directory use\n`+
-  `the policy-selected \`redue --config CONFIG ...\` command, replacing CONFIG with one quoted\n`+
-  `path argument. Apply the same --config to run, explain, start and stop. From a\n`+
-  `nested directory use the corresponding relative config path. Do not guess among\n`+
-  `multiple configs. Receipts are local to the selected checkout/configuration.\n`;}
+// The exact commands, so an agent never builds its own --config form that the
+// hook would not recognize.
+function skillFor(relative,host,config){
+  // Double quotes work in POSIX shells, cmd and PowerShell for ordinary names.
+  const redue=redueFor(relative)??`redue --config ${JSON.stringify(relative)}`;
+  const typechecks=hookForms(config,relative).map(row=>`- ${row.check}: ${row.forms.map(form=>`\`${form}\``).join(', ')}\n`).join('');
+  return policy+`\nSelected configuration\n\n`+
+  `The configuration is ${JSON.stringify(relative)} beside the project instruction file.\n`+
+  `From that directory, use these exact commands${host==='claude'&&typechecks?'; the Claude Code hook recognizes the typecheck forms':''}:\n\n`+
+  `- Status: \`${redue} status --sync --json\`\n`+typechecks+
+  `- Any check: \`${redue} run CHECK\`, \`${redue} explain CHECK --json\`; observer: \`${redue} start\`, \`${redue} stop\`\n\n`+
+  `Do not guess among multiple configs. Receipts are local to this checkout.\n`;}
 function inspect(root,host,record){
   if(!record)return {installed:false,integrity:'absent'};
   const instruction=read(root,record.instruction),skill=read(root,record.skill);
@@ -186,11 +191,11 @@ export async function agentCommand(args,{configFile,stateOverride,entry,cwd=proc
   const changes=[],notes=action==='setup'?warnings(root,host,cwd):[];
   let hook=null;
   if(action==='setup'){
-    const before=read(root,h.instruction),skill=skillFor(relative),block=blockFor(host,relative);
+    const before=read(root,h.instruction),skill=skillFor(relative,host,config),block=blockFor(host,relative);
     if(!record&&(before?.includes('<!-- REDUE:')||read(root,h.skill)!==null))
       throw Error('unowned REDUE instruction or skill already exists; inspect it before setup');
     const after=record?before.replace(record.block,block):(before||'')+block;
-    hook=host==='claude'?hookFor(config):null;
+    hook=host==='claude'?hookFor(config,relative):null;
     const next={schema:1,host,config:relative,instruction:h.instruction,skill:h.skill,
       block,skillHash:hash(skill),instructionCreated:record?.instructionCreated??before===null};
     changes.push({path:h.skill,before:read(root,h.skill),after:skill},

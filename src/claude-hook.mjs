@@ -11,15 +11,20 @@ export const hookCommand='redue agent hook claude';
 const safe=/^[A-Za-z0-9_./:=,+-]+$/;
 const typecheck=check=>check?.kind==='typecheck'||check?.name==='typecheck';
 
+export const defaultConfig='redue.config.json';
+// The `redue` prefix for a config beside the project root; null when the name
+// would need shell quoting.
+export const redueFor=(configFile=defaultConfig)=>configFile===defaultConfig?'redue':
+  safe.test(configFile)?`redue --config ${configFile}`:null;
 // Exact commands that rerun each configured typecheck. Names that would need
 // shell quoting get no form, so the hook never fires for them.
-export function hookForms(config){
-  const rows=[];
+export function hookForms(config,configFile=defaultConfig){
+  const rows=[],redue=redueFor(configFile);
   for(const check of config?.checks||[]){
     if(!typecheck(check)||typeof check.name!=='string'||!safe.test(check.name))continue;
-    const forms=[`redue run ${check.name}`];
+    const forms=redue?[`${redue} run ${check.name}`]:[];
     // Other forms run from the project root, so they match only a root check.
-    if(check.cwd!==undefined&&check.cwd!=='.'){rows.push({check:check.name,forms});continue;}
+    if(check.cwd!==undefined&&check.cwd!=='.'){if(forms.length)rows.push({check:check.name,forms});continue;}
     if(config.packageManager==='npm'&&typeof check.script==='string'&&safe.test(check.script))
       forms.push(`npm run ${check.script}`);
     if(check.qualification==='npm-typescript-direct-v1')forms.push('npx tsc --noEmit');
@@ -32,33 +37,39 @@ export function hookForms(config){
 }
 
 // Accept only an optional trailing `2>&1`, then an optional `| tail|head -n N`
-// or `-N`. Newlines separate commands, so they never match.
+// or `-N`, then optionally `;` or `&&` and the rest of the command. A form has
+// no shell metacharacters, so the first separator after it ends it. Newlines
+// separate commands, so they never match. The rest keeps its own spacing.
 function split(command){
   if(typeof command!=='string'||/[\r\n]/.test(command))return null;
-  const [,base,suffix]=command.trim().replace(/[ \t]+/g,' ')
-    .match(/^(.*?)((?: 2>&1)?(?: \| (?:tail|head) (?:-n \d+|-\d+))?)$/);
-  return {base,suffix};
+  const [,base,suffix,rest=null]=command.trim()
+    .match(/^(.*?)((?:[ \t]+2>&1)?(?:[ \t]+\|[ \t]+(?:tail|head)[ \t]+(?:-n[ \t]+\d+|-\d+))?)(?:[ \t]*(?:;|&&)[ \t]*([^\s;&|].*))?$/);
+  const one=text=>text.replace(/[ \t]+/g,' ');
+  return {base:one(base),suffix:one(suffix),rest};
 }
-export function matchCheck(command,config){
-  const parts=split(command);
-  return parts&&hookForms(config).find(row=>row.forms.includes(parts.base))?.check||null;
+function matched(command,config,configFile){
+  const parts=split(command),check=parts&&hookForms(config,configFile).find(row=>row.forms.includes(parts.base))?.check;
+  return check?{check,rest:parts.rest}:null;
 }
-// The same check through REDUE, keeping the output suffix; null if it already is.
-export function recordedCommand(command,name,configFile='redue.config.json'){
-  const parts=split(command);
-  if(!parts||!safe.test(name)||!safe.test(configFile))return null;
-  const run=`redue ${configFile==='redue.config.json'?'':`--config ${configFile} `}run ${name}`;
-  return parts.base===run||parts.base===`redue run ${name}`?null:run+parts.suffix;
+export function matchCheck(command,config,configFile){return matched(command,config,configFile)?.check||null;}
+// The same check through REDUE, keeping the output suffix; null if it already
+// is, or if more commands follow it.
+export function recordedCommand(command,name,configFile=defaultConfig){
+  const parts=split(command),redue=redueFor(configFile);
+  if(!parts||parts.rest!==null||!safe.test(name)||!redue)return null;
+  const run=`${redue} run ${name}`;
+  return parts.base===run?null:run+parts.suffix;
 }
 
-export function verdict(status,name){
+export function verdict(status,name,rest=null){
   const row=status?.schema===1&&status.observation?.healthy===true&&Array.isArray(status.checks)?
     status.checks.find(item=>item?.name===name):null;
   const runId=row?.invocation?.runId;
   if(!row||row.freshness!=='CURRENT'||row.result!=='PASS'||row.reuse_eligible!==true||
     typeof runId!=='string'||!/^[0-9a-f-]{36}$/.test(runId))return null;
   return `REDUE: check ${JSON.stringify(name)} passed on these exact inputs (run ${runId}); `+
-    'rerun skipped. To run it anyway, prefix the command with REDUE_FORCE=1.';
+    'rerun skipped. To run it anyway, prefix the command with REDUE_FORCE=1.'+
+    (rest===null?'':` Nothing else in the command ran either; run the rest on its own: ${rest}`);
 }
 
 function synchronizedStatus(entry,config,root,timeout){
@@ -89,13 +100,15 @@ export async function claudeHook(input,{entry,timeout=2000}){
   if(record?.schema!==1||record.host!=='claude'||typeof record.config!=='string'||
     !/^[^/\\]+\.json$/.test(record.config))return null;
   const config=path.join(root,record.config);
-  const name=matchCheck(command,JSON.parse(fs.readFileSync(config,'utf8')));
-  if(!name)return null;
-  const status=await synchronizedStatus(entry,config,root,timeout),reason=verdict(status,name);
+  const match=matched(command,JSON.parse(fs.readFileSync(config,'utf8')),record.config);
+  if(!match)return null;
+  const name=match.check,status=await synchronizedStatus(entry,config,root,timeout),reason=verdict(status,name,match.rest);
   if(reason)return {hookSpecificOutput:{hookEventName:'PreToolUse',
     permissionDecision:'deny',permissionDecisionReason:reason}};
   // Rewrite only on a healthy answer for this check: without an observer,
-  // `redue run` cannot record, so the command stays as Claude sent it.
+  // `redue run` cannot record, so the command stays as Claude sent it. A chain
+  // stays too: the rewrite returns "allow", which would also skip the prompt
+  // for the rest of the chain.
   const rewritten=status?.schema===1&&status.observation?.healthy===true&&Array.isArray(status.checks)&&
     status.checks.some(item=>item?.name===name)?recordedCommand(command,name,record.config):null;
   // updatedInput replaces the whole tool input. Deny and ask rules still apply
