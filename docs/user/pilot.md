@@ -1,4 +1,4 @@
-# Opt-in development pilot: alpha.10
+# Opt-in development pilot: alpha.11
 
 Use one fixed build for several ordinary development sessions. The owner will
 invite two or three willing testers and approve their projects; nothing is
@@ -16,7 +16,8 @@ outside-root inputs are added by this pilot. Do not downgrade or change your
 project to fit; record an unsupported setup as feedback.
 
 Development-mode source-map support, Node preloads/inspectors/compile-cache
-overrides and `TS_ETW_MODULE_PATH` are unsupported. The injected
+overrides and `TS_ETW_MODULE_PATH` are unsupported. A few inert Node settings
+are accepted; see [Node settings](direct-typescript.md#node-settings). The injected
 `NODE_USE_ENV_PROXY=1` context is reviewed only on Node **22.13.0**; leave the
 environment and security controls intact. See the [full recipe boundary](direct-typescript.md).
 
@@ -24,15 +25,17 @@ CLI/package mechanics are tested on macOS/APFS, native Linux and Windows/NTFS;
 Linux also needs Python 3 and [supported native storage](getting-started.md).
 Actual fresh-session behavior was tested with Codex **0.162.0 on macOS**, Node
 22.13.0 and the approved exact checkout/state/socket access. This is not general
-sandbox compatibility. Claude mechanics are tested; Claude behavior and cross-host
-handoff are **NOT RUN**. The recording shortcut is macOS/direct-recipe only.
+sandbox compatibility. Claude mechanics are tested, and the
+[Claude Code typecheck hook](agents.md#claude-code-typecheck-hook) was exercised in
+Claude Code 2.1.302 (`claude -p`). Broader Claude behavior and cross-host handoff
+are **NOT RUN**. The recording shortcut is macOS/direct-recipe only.
 
 ## Install and connect explicitly
 
 For a new default npm installation:
 
 ```sh
-npm install --global @redue/cli@0.1.0-alpha.10
+npm install --global @redue/cli@0.1.0-alpha.11
 redue --version
 cd my-project
 redue --config redue.config.json init --recipe typescript-direct --check typecheck --dry-run
@@ -86,7 +89,7 @@ using it; keep the same npm prefix, config and any explicit state selection.
 
 ```sh
 redue --config redue.config.json stop
-npm install --global @redue/cli@0.1.0-alpha.10
+npm install --global @redue/cli@0.1.0-alpha.11
 redue --config redue.config.json agent setup codex --dry-run
 redue --config redue.config.json agent setup codex --apply
 redue --config redue.config.json start

@@ -94,3 +94,21 @@ explicit request for `npm run typecheck` is not satisfied by this different comm
 The injected `NODE_USE_ENV_PROXY=1` setting is admitted only on Node 22.13.0,
 where it is inert; it remains strictly tracked. Other Node versions with this
 setting need review and stay unqualified. REDUE does not alter the setting.
+
+## Node settings
+
+Since alpha.11 the direct recipe accepts these `NODE_*` settings:
+
+- `NODE_OPTIONS`, when every token is one of `--max-old-space-size=<n>`,
+  `--max-semi-space-size=<n>`, `--use-openssl-ca`, `--use-bundled-ca`,
+  `--use-system-ca` or `--dns-result-order=ipv4first|ipv6first|verbatim`.
+  Any other flag, quotes, backslashes or tabs are refused.
+- `NODE_EXTRA_CA_CERTS`.
+- `NODE_PATH`.
+
+`NODE_ENV` set to `production`, `test` or empty was already accepted. Every other non-empty
+`NODE_*` setting withholds applicability. The values are part of the recorded
+execution context: a run under one value is not reusable under another. A
+`--require` in `NODE_OPTIONS` still runs inside REDUE's own process before REDUE
+refuses it. The npm, pnpm and Yarn recipes still refuse `NODE_OPTIONS` and
+`NODE_PATH`.

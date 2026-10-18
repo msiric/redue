@@ -1,5 +1,58 @@
 # Changelog
 
+## 0.1.0-alpha.11 — 2026-10-18
+
+Bench numbers below are from one 800-file project on macOS arm64, Node 22.13.0.
+Released alpha.10 and this build ran back to back on the same machine.
+
+- Faster status decisions for the direct TypeScript recipe on macOS and Linux.
+  The observer checks the compiler's recorded filesystem questions in-process
+  instead of starting a probe that rebuilds the whole program. A full probe runs
+  only when that check fails, the plan or toolchain changes, or observation was
+  interrupted. While idle it no longer starts any probe process.
+  - warm `status --sync`: 741 → 194 ms (+683 → +154 ms over cached `status`)
+  - `status --sync` after an unrelated edit: 619 → 219 ms
+  - `status --sync` after a relevant edit: 1472 → 321 ms. It answers STALE without
+    a full probe when the edited inputs already differ from the receipt.
+  - probe processes started in 20 s idle: 4 → 0
+- Cheaper `redue run` on macOS and Linux. The compiler records its own inputs
+  while it runs, so REDUE no longer probes before and after the compile. After
+  a relevant edit, the run builds the new certificate from that recording instead
+  of running a full probe. Output and exit code are those of plain `tsc`.
+  - repeat run: 4143 → 2752 ms, overhead over plain `tsc` 72% → 16%
+  - run right after a relevant edit: 3990 → 2802 ms, overhead 65% → 18%
+- The direct TypeScript recipe accepts inert Node settings. Before, any non-empty
+  `NODE_*` setting other than `NODE_ENV` kept a check from becoming CURRENT.
+  Now accepted: `NODE_EXTRA_CA_CERTS`, `NODE_PATH`, and `NODE_OPTIONS` made only of
+  `--max-old-space-size`, `--max-semi-space-size`, `--use-openssl-ca`,
+  `--use-bundled-ca`, `--use-system-ca` and `--dns-result-order`. A run under one
+  value is not reused under another. See [Node settings](docs/user/direct-typescript.md#node-settings).
+- `redue agent setup claude --apply` adds a Claude Code hook to
+  `.claude/settings.local.json`. When the agent reruns a configured typecheck
+  that is CURRENT and PASS, the hook blocks it and names the passing run. When
+  the check is not CURRENT, it rewrites the command to `redue run CHECK`, so the
+  result is recorded and the next identical command can be skipped. Prefix a
+  command with `REDUE_FORCE=1` to always run it. On the bench: a skip decision
+  takes about 155 ms; a forced command adds 39 ms. Tested live with Claude Code
+  2.1.302 (`claude -p`). See [the hook](docs/user/agents.md#claude-code-typecheck-hook).
+- Unstable-run and observation-gap reasons now name the failed check or operation.
+- macOS counts each input event once, which removes an intermittent UNVERIFIED
+  after an edit.
+
+Known limits:
+
+- Two bench targets are still missed: warm sync adds 154 ms over cached status
+  (target < 100 ms), and `redue run` adds 16–18% over plain `tsc` (target < 10%).
+- An edit that changes imports, configuration or lib files still costs one full
+  probe, at the end of the next run.
+- Windows keeps the earlier probe-based path, except the STALE shortcut. Yarn
+  and pnpm recipes still probe on each decision. The bench was not run on Linux.
+- The Claude hook covers the Bash tool only, from the project root. It allows the
+  rewritten command without a permission prompt. It judges its own environment,
+  not variables the Bash tool adds from your shell profile.
+- To upgrade, stop observers, install into the same prefix, and keep config, state
+  and receipts. Rerun `redue agent setup claude --apply` to add the hook.
+
 ## 0.1.0-alpha.10 — 2026-10-10
 
 - Combine guarded caller-discovery reuse and cheaper non-reusable recording on

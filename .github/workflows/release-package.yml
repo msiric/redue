@@ -81,3 +81,5 @@ jobs:
         run: node test/acceptance/agent-policy-upgrade.mjs --manifest release-candidate/manifest.json
       - name: Public alpha.8 upgrade and receipt-preserving pilot exit
         run: node test/acceptance/agent-policy-upgrade.mjs --manifest release-candidate/manifest.json --prior @redue/cli@0.1.0-alpha.8
+      - name: Public alpha.10 pilot upgrade and receipt-preserving pilot exit
+        run: node test/acceptance/agent-policy-upgrade.mjs --manifest release-candidate/manifest.json --prior @redue/cli@0.1.0-alpha.10

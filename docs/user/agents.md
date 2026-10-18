@@ -98,6 +98,13 @@ It blocks the command only when the check is CURRENT, PASS and
 other result allows the command: STALE, UNVERIFIED, FAILED, a timeout, an error, or
 a missing `redue`. A command that starts with `REDUE_FORCE=1` always runs.
 
+When the check is not CURRENT but the observer answered for it, the hook rewrites
+the command to `redue run CHECK` and allows it, keeping any `2>&1` and
+`| tail`/`| head` suffix. It adds `--config FILE` when the config is not
+`redue.config.json`. The run is recorded, so the next identical command can be
+skipped. Without a healthy answer (timeout, error, no observer) the command runs
+as typed. Claude Code still applies deny and ask rules to the rewritten command.
+
 Limits:
 
 - The hook judges its own environment, which Claude Code passes to it. The Bash
@@ -106,6 +113,8 @@ Limits:
   are not matched.
 - Only the Bash tool is covered, not PowerShell.
 - Run setup again after you rename a check or script.
+- The rewrite is allowed without a permission prompt, even where the original
+  command would have prompted.
 
 ## Update an existing connection
 
