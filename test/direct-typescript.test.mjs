@@ -173,6 +173,29 @@ test('a relevant edit is STALE without a full probe; reverting it is CURRENT aga
   assert.equal(back.freshness,'CURRENT',JSON.stringify(back));assert.equal(back.reuse_eligible,true);
   assert.equal(back.invocation.runId,first.invocation.runId);
 });
+test('installed files are observed by identity: no installed bytes read, a same-size write is STALE',async t=>{
+  const {root,state}=project(t),extra=path.join(root,'node_modules/extra/index.d.ts');
+  put(extra,'export declare const extra: number;\n');
+  // Past the 2 s racy window, installed files are not content-hashed.
+  await new Promise(resolve=>setTimeout(resolve,2100));
+  init(root,state);good(root,state,'start');good(root,state,'run','typecheck');
+  assert.equal(sync(root,state).checks[0].freshness,'CURRENT');
+  const metrics=await new Promise((resolve,reject)=>{
+    const c=net.createConnection(controlEndpoint(state).address);let data='';
+    c.on('connect',()=>c.write('{"action":"metrics"}\n'));c.on('data',b=>data+=b);
+    c.on('end',()=>{try{resolve(JSON.parse(data));}catch(e){reject(e);}});c.on('error',reject);});
+  assert(metrics.index.files>100,JSON.stringify(metrics.index));
+  assert(metrics.index.rehashedBytes<1e6,`installed bytes were read: ${metrics.index.rehashedBytes}`);
+  // Same size, mtime put back, while nothing observes it: only ctime changes.
+  good(root,state,'stop');
+  const before=fs.statSync(extra);fs.writeFileSync(extra,'export declare const extrb: number;\n');
+  fs.utimesSync(extra,before.atime,before.mtime);
+  await new Promise(resolve=>setTimeout(resolve,2100));
+  good(root,state,'start');
+  const stale=sync(root,state).checks[0];
+  assert.equal(stale.freshness,'STALE',JSON.stringify(stale));
+  assert.deepEqual(stale.changed_inputs,['node_modules/extra/index.d.ts']);
+});
 test('old npm evidence cannot satisfy the new recipe; extra caller-sensitive probes are unqualified',t=>{
   const {root,state,config}=project(t);good(root,state,'init');good(root,state,'start');good(root,state,'run','typecheck');
   const old=sync(root,state).checks[0];assert.equal(old.reuse_eligible,false);good(root,state,'stop');

@@ -123,3 +123,27 @@ test('plan content keys detect installed mutation through a hardlink alias',t=>{
   const next=new InputIndex(bundle);next.coldScan();
   assert.notEqual(inputKey(next.checks.get('check')),identity);
 });
+test('installed entries are identities; same-identity new content moves a generation, never timing',async t=>{
+  const root=fixture(t),file=path.join(root,'node_modules/pkg/index.d.ts'),rel='node_modules/pkg/index.d.ts';
+  put(file,'export declare const a: number;\n');
+  const plan={id:'fixture',patterns:['src/**','node_modules/pkg/**'],installedPhysicalRoots:['node_modules/pkg']};
+  const index=new InputIndex({root,plans:{check:plan}});index.coldScan();
+  const first=index.files.get(rel);
+  // A just-written file is content-hashed alongside its identity.
+  assert(index.racy.content.has(rel));assert.equal(index.rehashedBytes>0,true);
+  // An earlier observation saw other content under this same identity (a
+  // same-tick, same-size write): the entry moves.
+  index.racy.content.set(rel,{...index.racy.content.get(rel),content:'earlier'});
+  assert.equal(index.record(rel,'rewrite'),true);
+  const second=index.files.get(rel);assert.notEqual(second,first);
+  // The same identity and content again changes nothing.
+  assert.equal(index.record(rel,'again'),false);
+  // Leaving the racy window changes nothing: the entry built while the file was
+  // just written equals the one built later, which does not read the file.
+  const fresh=new InputIndex({root,plans:{check:plan}});fresh.coldScan();
+  assert(fresh.racy.content.has(rel));
+  await new Promise(resolve=>setTimeout(resolve,2100));
+  const aged=new InputIndex({root,plans:{check:plan}});aged.coldScan();
+  assert(!aged.racy.content.has(rel));
+  assert.equal(aged.files.get(rel),fresh.files.get(rel));
+});

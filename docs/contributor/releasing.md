@@ -64,8 +64,13 @@ Its `public-smoke` job then downloads the published package on macOS, Linux and
 Windows, compares its SHA256 with the tested tarball, runs the package smoke,
 and prints `npm view @redue/cli dist-tags`.
 
-Stop on failure and diagnose it. Do not rebuild, republish different bytes, or
-move a tag. On npm, `@redue/cli` has one trusted publisher: repository
+The Actions token cannot create a tag on a commit that changes
+`.github/workflows`. When the release commit does, push the tag first from a
+maintainer checkout (`git tag vVERSION COMMIT && git push origin vVERSION`); the
+workflow then creates the release on that tag. A rerun skips npm when the same
+bytes are already published and skips an existing release, so a failed later step
+can be rerun. Stop on failure and diagnose it. Do not rebuild, republish different
+bytes, or move a tag. On npm, `@redue/cli` has one trusted publisher: repository
 `msiric/redue`, workflow `publish.yml`, no environment, with `npm publish`
 allowed. If npm also assigns `latest`, verify and report both tags; do not
 repeatedly try to remove `latest`.

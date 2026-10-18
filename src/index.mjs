@@ -35,8 +35,31 @@ const pathPrefixes = rel => {
   return prefixes;
 };
 
+// An installed file is observed by identity, not content. Every write changes
+// ctime, so a changed file still changes its entry, without reading the whole
+// installation. The compiler's own reads are content-hashed by its probe and
+// certificate. Kernel timestamps tick in milliseconds, so a second same-size
+// write in the same tick can keep the identity (git's racy rule). A file changed
+// in the last 2 s is therefore also content-hashed, and if a later record finds
+// other content under the same identity, a generation in the entry moves. The
+// entry never depends on timing alone, so an unchanged file never flips.
+const identityFields=['dev','ino','mode','nlink','size','mtimeNs','ctimeNs'];
+const racyStat=(st,now=Date.now())=>
+  Number(st.ctimeNs/1000000n)>=now-2000||Number(st.mtimeNs/1000000n)>=now-2000;
+function installedEntry(rel,st,content,state) {
+  const identity=identityFields.map(key=>String(st[key])).join(':'),racy=racyStat(st);
+  let generation=state.generation.get(rel)||0;
+  const previous=state.content.get(rel);
+  if(racy||previous?.identity===identity){
+    const current=content();
+    if(previous?.identity===identity&&previous.content!==current)generation++;
+    if(racy)state.content.set(rel,{identity,content:current});else state.content.delete(rel);
+  } else state.content.delete(rel);
+  if(generation)state.generation.set(rel,generation);
+  return 'stat:'+identity+(generation?'#'+generation:'');
+}
 function fileHash(root, rel,installed=false,before=fs.lstatSync(path.join(root,rel),
-  {bigint:true})) {
+  {bigint:true}),racy=null) {
   const file=path.join(root, rel);
   let value,references=[],bytes=Number(before.size);
   if(before.isSymbolicLink()){
@@ -44,13 +67,14 @@ function fileHash(root, rel,installed=false,before=fs.lstatSync(path.join(root,r
     if(!resolution.physical)throw Error(`symlink input target observation unavailable: ${rel}: ${resolution.reason}`);
     const target=fs.statSync(resolution.physical,{bigint:true});
     if(!target.isFile())throw Error(`directory input symlink unsupported: ${rel}`);
-    value='link:'+JSON.stringify(resolution.links)+':'+target.mode+':'+
-      (installed&&target.nlink>1?target.nlink+':':'')+
-      hashRegular(resolution.physical).hash;
+    bytes=installed&&racy?0:Number(target.size);
+    const content=()=>{bytes=Number(target.size);return hashRegular(resolution.physical).hash;};
+    value='link:'+JSON.stringify(resolution.links)+':'+(installed&&racy?
+      installedEntry(rel,target,content,racy):target.mode+':'+
+      (installed&&target.nlink>1?target.nlink+':':'')+content());
     references=[...new Set([...resolution.links.map(link=>path.relative(root,link.path)
       .split(path.sep).join('/')),path.relative(root,resolution.physical)
       .split(path.sep).join('/')])];
-    bytes=Number(target.size);
     const targetAfter=fs.statSync(resolution.physical,{bigint:true});
     for(const key of ['dev','ino','mode','nlink','size','mtimeNs','ctimeNs'])
       if(target[key]!==targetAfter[key])throw Error(`input changed during inspection: ${rel}`);
@@ -58,6 +82,10 @@ function fileHash(root, rel,installed=false,before=fs.lstatSync(path.join(root,r
     if(resolutionAfter.physical!==resolution.physical||
       JSON.stringify(resolutionAfter.links)!==JSON.stringify(resolution.links))
       throw Error(`input link changed during inspection: ${rel}`);
+  }
+  else if(before.isFile()&&installed&&racy){
+    bytes=0;
+    value=installedEntry(rel,before,()=>{bytes=Number(before.size);return hashRegular(file).hash;},racy);
   }
   else if(before.isFile()) value='file:'+before.mode+':'+
     (installed&&before.nlink>1?before.nlink+':':'')+hashRegular(file).hash;
@@ -81,6 +109,7 @@ export class InputIndex {
     const matcherStarted=performance.now();
     this.bundle=bundle; this.root=bundle.root; this.files=new Map(); this.members=new Map();
     this.symlinkRefs=new Map();this.aliasDependencies=new Map();
+    this.racy={content:new Map(),generation:new Map()};
     this.trackGit=options.trackGit!==false;
     this.installedRoots=[...new Set(Object.values(bundle.plans).flatMap(plan=>
       plan.installedPhysicalRoots||[]))];
@@ -163,7 +192,7 @@ export class InputIndex {
     catch(e){if(e.code!=='ENOENT'){this.unavailable=String(e);return false;}}
     if(stat&&(stat.isFile()||stat.isSymbolicLink())) {
       const installed=this.installedPath(rel);
-      try{const started=performance.now();inspection=fileHash(this.root,rel,installed,stat);
+      try{const started=performance.now();inspection=fileHash(this.root,rel,installed,stat,this.racy);
         fresh=inspection.hash;
         this.profile.hashingMs+=performance.now()-started;
         this.rehashedFiles++;this.rehashedBytes+=inspection.bytes;}

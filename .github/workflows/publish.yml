@@ -65,9 +65,13 @@ jobs:
           test "$(node -p 'require("./package.json").version')" = "$VERSION"
           test "$(tar -xzOf "$artifact" package/package.json | jq -r .version)" = "$VERSION"
           node test/acceptance/registry-name.mjs
-          if npm view "@redue/cli@$VERSION" version --registry=https://registry.npmjs.org 2>/dev/null | grep -q .; then
-            echo "@redue/cli@$VERSION is already published"; exit 1
+          # A rerun after a later step failed: the same bytes may already be on npm.
+          published=$(npm view "@redue/cli@$VERSION" dist.integrity --registry=https://registry.npmjs.org 2>/dev/null || true)
+          if [ -n "$published" ]; then
+            test "$published" = "$(jq -r '.[0].integrity' release-candidate/manifest.json)" || { echo "@redue/cli@$VERSION is published with other bytes"; exit 1; }
+            echo "@redue/cli@$VERSION is already published with these bytes"
           fi
+          echo "published=$([ -n "$published" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "file=$artifact" >> "$GITHUB_OUTPUT"
       - name: Release notes from this version's CHANGELOG entry
         run: |
@@ -75,11 +79,24 @@ jobs:
           test -s release-notes.md
           cat release-notes.md
       - name: npm publish (trusted publishing)
+        if: steps.artifact.outputs.published != 'true'
         run: npm publish "${{ steps.artifact.outputs.file }}" --tag alpha --access public --registry=https://registry.npmjs.org
       - name: GitHub prerelease
+        # The Actions token cannot create a tag on a commit that changes
+        # .github/workflows. For such a commit, push the tag first:
+        #   git tag vVERSION COMMIT && git push origin vVERSION
         run: |
+          if gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release v$VERSION already exists"; exit 0
+          fi
+          if [ -n "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" -q .object.sha 2>/dev/null)" ]; then
+            test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" -q .object.sha)" = "${{ steps.source.outputs.commit }}"
+            target=(--verify-tag)
+          else
+            target=(--target "${{ steps.source.outputs.commit }}")
+          fi
           gh release create "v$VERSION" "${{ steps.artifact.outputs.file }}" release-candidate/SHA256SUMS release-candidate/manifest.json \
-            --repo "$GITHUB_REPOSITORY" --target "${{ steps.source.outputs.commit }}" --prerelease \
+            --repo "$GITHUB_REPOSITORY" "${target[@]}" --prerelease \
             --title "REDUE v$VERSION" --notes-file release-notes.md
   public-smoke:
     needs: publish

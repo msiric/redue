@@ -119,7 +119,8 @@ try {
       .map(([name,row])=>({name,files:[...row.files],sum:row.sum.toString('hex'),
         revision:row.revision,lastReason:row.lastReason})),
       eventCount:outside.eventCount,rehashedFiles:outside.rehashedFiles,
-      rehashedBytes:outside.rehashedBytes,profile:outside.profile};
+      rehashedBytes:outside.rehashedBytes,profile:outside.profile,
+      racy:[...outside.racy.content],generations:[...outside.racy.generation]};
   }
   timing('worker.total',totalStarted,{mode:'cold',files:index.files.size});
   parentPort.postMessage({ok:true,bundle,discoveryMs,indexingMs,guard,planReused,
@@ -132,7 +133,8 @@ try {
       name,files:[...row.files],sum:row.sum.toString('hex'),revision:row.revision,
       lastReason:row.lastReason})),
     eventCount:index.eventCount,rehashedFiles:index.rehashedFiles,
-    rehashedBytes:index.rehashedBytes,profile:index.profile}});
+    rehashedBytes:index.rehashedBytes,profile:index.profile,
+    racy:[...index.racy.content],generations:[...index.racy.generation]}});
   }
 } catch(error) {
   parentPort.postMessage({ok:false,error:error?.message||String(error),

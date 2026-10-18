@@ -496,6 +496,7 @@ function hydrate(bundle,saved) {
   }
   next.eventCount=saved.eventCount;next.rehashedFiles=saved.rehashedFiles;
   next.rehashedBytes=saved.rehashedBytes;next.profile=saved.profile;
+  next.racy={content:new Map(saved.racy||[]),generation:new Map(saved.generations||[])};
   return next;
 }
 function dehydrate(value) {
@@ -504,7 +505,8 @@ function dehydrate(value) {
     rows:[...value.checks].map(([name,row])=>({name,files:[...row.files],
       sum:row.sum.toString('hex'),revision:row.revision,lastReason:row.lastReason})),
     eventCount:value.eventCount,rehashedFiles:value.rehashedFiles,
-    rehashedBytes:value.rehashedBytes,profile:value.profile};
+    rehashedBytes:value.rehashedBytes,profile:value.profile,
+    racy:[...value.racy.content],generations:[...value.racy.generation]};
 }
 function retainIndex() {
   if(!index||!healthy||planning||pending.size||planDirty||historyDisabled||
