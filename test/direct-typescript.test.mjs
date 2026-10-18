@@ -185,7 +185,8 @@ test('installed files are observed by identity: no installed bytes read, a same-
   init(root,state);good(root,state,'start');good(root,state,'run','typecheck');
   assert.equal(sync(root,state).checks[0].freshness,'CURRENT');
   const first=await metrics();
-  assert(first.metrics.racyWaits>=1,JSON.stringify(first.metrics));
+  // Windows reconciles from scratch first, which outlasts the window.
+  if(process.platform!=='win32')assert(first.metrics.racyWaits>=1,JSON.stringify(first.metrics));
   assert(first.index.files>100,JSON.stringify(first.index));
   assert(first.index.rehashedBytes<1e6,`installed bytes were read: ${first.index.rehashedBytes}`);
   // Same size, mtime put back, while nothing observes it: only ctime changes.
