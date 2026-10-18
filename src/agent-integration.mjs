@@ -91,8 +91,8 @@ function saved(root,host){const text=read(root,marker(host));if(text===null)retu
 // means; that path needs nothing else. Everything else is in the skill.
 function blockFor(host,forms=[]){return `\n\n<!-- REDUE:${host}:begin -->\n`+
   (forms.length?`Typecheck with ${forms.map(form=>`\`${form}\``).join(' and ')}. If its last pass still applies to\n`+
-    `these exact files, a REDUE hook skips the run and says so; that counts as a pass.\n`+
-    `Before you use any other redue command or skip a check yourself, read\n`:
+    `these exact files, a REDUE hook skips the run and says so. The skip counts as\n`+
+    `a pass; don't check it again. Only before running another redue command, read\n`:
     `Before you run, skip or report a typecheck or other configured check, read\n`)+
   `${hosts[host].skill}.\n`+
   `<!-- REDUE:${host}:end -->\n`;}
@@ -132,7 +132,8 @@ function skillFor(relative,host,config){
   const commands=rows.map(row=>`- ${row.check==='typecheck'?'Typecheck':`Typecheck \`${row.check}\``}: `+
     `${row.forms.map(form=>`\`${form}\``).join(' or ')}.\n`).join('')+
     (rows.length?`  If the last pass still applies to these exact files, a hook skips the run\n`+
-      `  and says so. That counts as a pass. Otherwise the run is recorded.\n`+
+      `  and says so. That counts as a pass; don't confirm it with status. Otherwise\n`+
+      `  the run is recorded.\n`+
       `- Other checks: \`${redue} run CHECK\`. To ask without running: \`${status}\`.\n`:
       `- Before rerunning a check, ask: \`${status}\`.\n`+
       `- Run a check with \`${redue} run CHECK\`, so the result is recorded.\n`);

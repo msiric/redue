@@ -68,7 +68,8 @@ export function verdict(status,name,rest=null){
   if(!row||row.freshness!=='CURRENT'||row.result!=='PASS'||row.reuse_eligible!==true||
     typeof runId!=='string'||!/^[0-9a-f-]{36}$/.test(runId))return null;
   return `REDUE: check ${JSON.stringify(name)} passed on these exact inputs (run ${runId}); `+
-    'rerun skipped. To run it anyway, prefix the command with REDUE_FORCE=1.'+
+    'rerun skipped. This counts as a pass for the current files; no status check is needed. '+
+    'To run it anyway, prefix the command with REDUE_FORCE=1.'+
     (rest===null?'':` Nothing else in the command ran either; run the rest on its own: ${rest}`);
 }
 
