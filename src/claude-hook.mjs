@@ -31,7 +31,7 @@ export function hookForms(config,configFile=defaultConfig){
     if(Array.isArray(check.command)&&check.command.length&&
       check.command.every(v=>typeof v==='string'&&safe.test(v)&&!v.startsWith('@')))
       forms.push(check.command.join(' '));
-    rows.push({check:check.name,forms:[...new Set(forms)]});
+    if(forms.length)rows.push({check:check.name,forms:[...new Set(forms)]});
   }
   return rows;
 }

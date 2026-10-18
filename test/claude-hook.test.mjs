@@ -43,6 +43,8 @@ test('matches each typecheck form with only the allowed output suffixes',()=>{
     ['redue --config vstate.config.json run typecheck','npm run typecheck','npx tsc --noEmit']);
   assert.equal(matchCheck('redue run typecheck',direct,'vstate.config.json'),null);
   assert.deepEqual(hookForms(direct,'my config.json')[0].forms,['npm run typecheck','npx tsc --noEmit']);
+  // No form at all: no row, so setup names no command for it.
+  assert.deepEqual(hookForms({schema:1,checks:[{name:'typecheck',command:['@node','check.mjs']}]},'my config.json'),[]);
 });
 
 test('a matched command becomes redue run with the same output suffix',()=>{

@@ -161,10 +161,11 @@ historical evidence, but setup may make them STALE or UNVERIFIED. Reassess norma
 and run required checks; an upgrade is not a promise that existing receipts remain
 CURRENT. Do not suppress that invalidation or reset state.
 
-Codex gets a short managed section in project `AGENTS.md` and
-`.agents/skills/redue-verification/SKILL.md`. Claude Code gets a managed section
-in `CLAUDE.md` and `.claude/skills/redue-verification/SKILL.md`. Each uses the same
-policy source; detailed guidance is loaded when verification is relevant. Small
+Codex gets a short managed section in project `AGENTS.md` that points to
+`.agents/skills/redue-verification/SKILL.md`. Claude Code gets one in `CLAUDE.md`
+that names the typecheck command the hook matches and says what a skip means,
+plus `.claude/skills/redue-verification/SKILL.md`. The skill holds the reuse
+rules and the exact commands for the selected config. Small
 ownership records in `.redue/agents/` support safe updates/removal. These are
 portable project files, not receipts; review and commit them if the team wants
 this integration. Do not ignore just the ownership records while committing the
@@ -247,8 +248,8 @@ instruction file containing user content.
 
 Commands from nested directories search toward the nearest Git root. If more than
 one configuration applies, select one with `--config FILE`; REDUE refuses to guess.
-The generated instruction names its project-relative configuration and applies it
-to status/run/explain. External configs or custom machine-local `--state-dir`
+The generated skill names its project-relative configuration and gives the exact
+status and run commands for it. External configs or custom machine-local `--state-dir`
 setups should use a reviewed generic instruction instead of committing absolute
 paths. Other worktrees and remote containers have separate local evidence.
 

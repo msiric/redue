@@ -26,7 +26,7 @@ try{
     cli(old,['agent','setup',host,'--apply']);fs.appendFileSync(path.join(root,file),'User policy after.\n');
     const before=read(file),skillBefore=read(skill);assert.match(skillBefore,/Query ordinary|npm-typescript-direct-v1/);
     cli(next,['agent','setup',host,'--dry-run']);assert.equal(read(file),before);assert.equal(read(skill),skillBefore);
-    cli(next,['agent','setup',host,'--apply']);assert.match(read(skill),/npm-typescript-direct-v1/);assert.match(read(file),/caller-aware sync/);
+    cli(next,['agent','setup',host,'--apply']);assert.match(read(skill),/reuse_eligible: true/);assert.match(read(file),/redue-verification\/SKILL\.md\.\n<!-- REDUE:/);
     const once=read(file);cli(next,['agent','setup',host,'--apply']);assert.equal(read(file),once);
     cli(next,['agent','remove',host,'--apply']);assert.equal(read(file),'User policy before.\r\nUser policy after.\n');
     cli(old,['agent','setup',host,'--apply']);fs.appendFileSync(path.join(root,skill),'User changed managed policy.\n');
