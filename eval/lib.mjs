@@ -6,12 +6,13 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {cleanEnv} from '../bench/env.mjs';
+import {reviewedTypeScriptVersions} from '../src/direct-typescript.mjs';
 
 export const evalDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(evalDir, '..');
 export const localDir = path.join(repoRoot, '.local', 'eval');
 export const tmpRoot = path.join(fs.realpathSync(os.tmpdir()), 'redue-eval');
-export const reviewedTypeScript = ['5.5.2', '5.6.3', '5.9.3'];
+export const reviewedTypeScript = reviewedTypeScriptVersions;
 export const checkoutRedue = path.join(repoRoot, 'bin', 'redue.mjs');
 
 // The bench's NODE_* cleanup, minus the variables that tie a child process to
