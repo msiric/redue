@@ -37,59 +37,38 @@ A temporary candidate branch can supply the workflow before main advances. The
 release target must include the reviewed scoped metadata; it must not target the
 obsolete unscoped candidate. The source runtime is not rebuilt during packaging.
 
-## Direct publication, after approval
+## Publication through CI, after approval
 
-From the clean checkout at the reviewed release commit, with the downloaded
-candidate in `.local/release-candidates/<version>/`:
+Publication runs in GitHub Actions through npm trusted publishing (OIDC); no
+npm token exists. Local publication is not used: the maintainer's network
+blocks `registry.npmjs.org`.
 
-```sh
-(
-set -eu
-redue_release_commit=$(git rev-parse HEAD)
-redue_version=$(node -p 'require("./package.json").version')
-redue_release_dir=".local/release-candidates/$redue_version"
-test -z "$(git status --porcelain)"
-test "$(npm whoami --registry=https://registry.npmjs.org)" = msiric
-node test/acceptance/registry-name.mjs
-redue_artifact=$(node test/acceptance/package-artifact.mjs verify "$redue_release_dir/manifest.json")
-git push origin main
-npm publish "$redue_artifact" --tag alpha --access public --registry=https://registry.npmjs.org
-gh release create "v$redue_version" "$redue_artifact" "$redue_release_dir/SHA256SUMS" "$redue_release_dir/manifest.json" --repo msiric/redue --target "$redue_release_commit" --prerelease --title "REDUE v$redue_version" --notes-file CHANGELOG.md
-)
-```
-
-Stop on failure and diagnose it. Do not silently switch coordinates, rebuild,
-republish different bytes, or move a tag. The maintainer completes npm's interactive
-2FA challenge. Use direct publication, not staged publishing, for the first version.
-Publish with `--tag alpha`. On a brand-new package npm may also assign `latest`
-automatically. Verify and report both tags; if `alpha` and the artifact are correct,
-that registry behavior is not a failed release. Do not repeatedly attempt removal
-of `latest` after a registry rejection.
-GitHub private vulnerability reporting is already enabled.
-
-## Public-registry smoke
-
-Download from the registry, compare with the validated checksum, then exercise the
-installed public command. This does not replace a user's installation.
+After the release commit is on main and **Exact release tarball smoke** passed
+for it:
 
 ```sh
-(
-set -eu
-redue_smoke=$(mktemp -d /tmp/redue-postpublish.XXXXXX)
-redue_version=$(node -p 'require("./package.json").version')
-redue_coordinate=$(node -p 'const p=require("./package.json"); p.name+"@"+p.version')
-npm pack "$redue_coordinate" --json --registry=https://registry.npmjs.org --pack-destination "$redue_smoke" > "$redue_smoke/manifest.json"
-node test/acceptance/package-artifact.mjs record "$redue_smoke/manifest.json"
-cmp ".local/release-candidates/$redue_version/SHA256SUMS" "$redue_smoke/SHA256SUMS"
-node test/acceptance/package-smoke.mjs --manifest "$redue_smoke/manifest.json"
-redue_download=$(node test/acceptance/package-artifact.mjs verify "$redue_smoke/manifest.json")
-rm "$redue_download" "$redue_smoke/manifest.json" "$redue_smoke/SHA256SUMS"
-rmdir "$redue_smoke"
-)
+gh workflow run publish.yml --ref main -f version=0.1.0-alpha.N -f artifact_run_id=<smoke run id>
+gh run watch <publish run id> --exit-status
 ```
 
-Verify public npm version/dist-tags, repository visibility, release target and
-attached checksums. Keep failure diagnostics if any step fails.
+`publish.yml` checks that the run is a successful `release-package.yml` run,
+checks out its commit, verifies the downloaded tarball against its manifest
+and `SHA256SUMS`, and checks that package.json and the tarball carry the
+requested version and that the version is not yet on npm. It then publishes
+those exact bytes with `--tag alpha` (npm 11.5.1+, provenance is automatic) and
+creates the GitHub prerelease `vVERSION` at that commit, with only that
+version's CHANGELOG entry as notes and the tarball, `SHA256SUMS` and
+`manifest.json` attached.
+
+Its `public-smoke` job then downloads the published package on macOS, Linux and
+Windows, compares its SHA256 with the tested tarball, runs the package smoke,
+and prints `npm view @redue/cli dist-tags`.
+
+Stop on failure and diagnose it. Do not rebuild, republish different bytes, or
+move a tag. On npm, `@redue/cli` has one trusted publisher: repository
+`msiric/redue`, workflow `publish.yml`, no environment, with `npm publish`
+allowed. If npm also assigns `latest`, verify and report both tags; do not
+repeatedly try to remove `latest`.
 
 ## Alpha.1 migration pointer
 
@@ -105,9 +84,8 @@ or delete the historical alpha.1 GitHub release, tag, assets or package bytes.
 
 ## Later automation and rollback
 
-Trusted publishing through GitHub Actions/OIDC is a separate follow-up after the
-package exists. Do not add a long-lived publishing token or release automation as
-part of the first release. No automatic migration to the unscoped name is planned.
+Do not add a long-lived publishing token. No automatic migration to the unscoped
+name is planned.
 
 Published versions are immutable. Fix forward with a new alpha. If necessary,
 move `alpha` to a previous tested version and deprecate the defective version with

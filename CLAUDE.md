@@ -16,6 +16,12 @@ user-visible improvements to that, quickly and correctly.
 - The direct-TypeScript recipe refuses `NODE_*` values it cannot classify
   (`directVariableIssue` in src/direct-typescript.mjs); the bench strips only
   those. If `init` says `direct-execution-environment-unsupported`, check `env`.
+- On the owner's Mac, `~/.zshenv` refreshes a work npm token with
+  `git credential fill`, only in an interactive terminal (fixed 2026-10-18).
+  If Bash commands hang with "Updating NPM credential", that guard is gone; ask
+  the owner. `~/.claude/settings.json` sets `GCM_INTERACTIVE=false` and
+  `GIT_TERMINAL_PROMPT=0` so git never waits for a sign-in. npm's registry
+  there is a company feed; publish from CI, not from the Mac.
 - CI runs the full suite on macOS, Linux and Windows for each push to main.
   Pushes that change only docs or Markdown skip it. Tests for other platforms
   skip locally; CI is where they run.

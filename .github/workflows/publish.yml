@@ -1,0 +1,120 @@
+name: Publish exact tested tarball to npm
+# Publishes the exact-release-candidate artifact of a successful
+# release-package.yml run through npm trusted publishing (OIDC, no token),
+# creates the GitHub prerelease from that version's CHANGELOG entry, then
+# smoke-tests the public package on three OSes.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to publish, e.g. 0.1.0-alpha.11
+        required: true
+        type: string
+      artifact_run_id:
+        description: Successful "Exact release tarball smoke" run whose exact-release-candidate to publish
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+      id-token: write
+    env:
+      VERSION: ${{ inputs.version }}
+      RUN_ID: ${{ inputs.artifact_run_id }}
+      GH_TOKEN: ${{ github.token }}
+    outputs:
+      commit: ${{ steps.source.outputs.commit }}
+    steps:
+      - name: Tested run and commit
+        id: source
+        run: |
+          run=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID")
+          test "$(jq -r .path <<<"$run")" = .github/workflows/release-package.yml
+          test "$(jq -r .conclusion <<<"$run")" = success
+          echo "commit=$(jq -r .head_sha <<<"$run")" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.source.outputs.commit }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: npm 11.5.1 or later for trusted publishing
+        run: |
+          npm install -g npm@11.6.2
+          node -e 'const [a,b]=process.versions.node.split(".").map(Number);if(a<22||(a===22&&b<14))process.exit(1)'
+          npm --version
+      - uses: actions/download-artifact@v4
+        with:
+          name: exact-release-candidate
+          path: release-candidate
+          run-id: ${{ inputs.artifact_run_id }}
+          github-token: ${{ github.token }}
+      - name: Verify artifact, version and registry state
+        id: artifact
+        run: |
+          artifact=$(node test/acceptance/package-artifact.mjs verify release-candidate/manifest.json)
+          test "$(node -p 'require("./package.json").version')" = "$VERSION"
+          test "$(tar -xzOf "$artifact" package/package.json | jq -r .version)" = "$VERSION"
+          node test/acceptance/registry-name.mjs
+          if npm view "@redue/cli@$VERSION" version --registry=https://registry.npmjs.org 2>/dev/null | grep -q .; then
+            echo "@redue/cli@$VERSION is already published"; exit 1
+          fi
+          echo "file=$artifact" >> "$GITHUB_OUTPUT"
+      - name: Release notes from this version's CHANGELOG entry
+        run: |
+          awk -v v="$VERSION" '$0 ~ "^## "v"( |$)" {f=1; next} /^## / {if (f) exit} f' CHANGELOG.md > release-notes.md
+          test -s release-notes.md
+          cat release-notes.md
+      - name: npm publish (trusted publishing)
+        run: npm publish "${{ steps.artifact.outputs.file }}" --tag alpha --access public --registry=https://registry.npmjs.org
+      - name: GitHub prerelease
+        run: |
+          gh release create "v$VERSION" "${{ steps.artifact.outputs.file }}" release-candidate/SHA256SUMS release-candidate/manifest.json \
+            --repo "$GITHUB_REPOSITORY" --target "${{ steps.source.outputs.commit }}" --prerelease \
+            --title "REDUE v$VERSION" --notes-file release-notes.md
+  public-smoke:
+    needs: publish
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.publish.outputs.commit }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - uses: actions/download-artifact@v4
+        with:
+          name: exact-release-candidate
+          path: release-candidate
+          run-id: ${{ inputs.artifact_run_id }}
+          github-token: ${{ github.token }}
+      - name: Public package matches the tested tarball and works
+        shell: bash
+        run: |
+          set -eu
+          smoke=$(mktemp -d)
+          npm pack "@redue/cli@${{ inputs.version }}" --json --registry=https://registry.npmjs.org --pack-destination "$smoke" > "$smoke/manifest.json"
+          node test/acceptance/package-artifact.mjs record "$smoke/manifest.json"
+          cmp release-candidate/SHA256SUMS "$smoke/SHA256SUMS"
+          node test/acceptance/package-smoke.mjs --manifest "$smoke/manifest.json"
+      - name: dist-tags
+        if: matrix.os == 'ubuntu-latest'
+        run: npm view @redue/cli dist-tags --registry=https://registry.npmjs.org
