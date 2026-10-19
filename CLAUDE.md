@@ -59,6 +59,9 @@ user-visible improvements to that, quickly and correctly.
   untracked or ignored files (`.local/` holds owner data).
 - Branches `dev/portable-*` and `archive/*` are reference only. Don't read their
   `docs/plan` or `docs/acceptance` files unless I ask; they are very large.
+- Deferred: the asynchronous daemon probe. `wip/async-probe-v1` and
+  `wip/async-probe-v2` are reference only; reviews found event-ordering
+  problems in both. Don't resume it unless I ask.
 
 ## Writing
 
