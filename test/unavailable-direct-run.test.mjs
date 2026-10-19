@@ -65,7 +65,7 @@ test('non-reusable start failure, cancellation and incomplete persistence preser
  let r=await paused(f,'before-launch');fs.renameSync(f.root,f.root+'-moved');release(f);let done=await r.done;fs.renameSync(f.root+'-moved',f.root);assert.equal(done.code,127,done.output);assert.equal(receipt(f).invocation.status,'start_failed');assert.equal(receipt(f).result,null);assert(!receipt(f).stable);
  r=await paused(f,'before-launch');r.child.kill('SIGINT');await new Promise(r=>setTimeout(r,30));release(f);done=await r.done;assert.equal(done.code,130,done.output);assert.equal(receipt(f).invocation.status,'interrupted');assert(!fs.existsSync(path.join(f.state,'run.lock')));
  const before=receipt(f),offset=marks(f).length;r=await paused(f,'before-launch');const pid=marks(f).slice(offset).find(p=>p.phase==='cli.loaded').pid;const temp=path.join(f.state,`receipts-v1.json.${pid}.tmp`);fs.mkdirSync(temp);release(f);done=await r.done;assert.notEqual(done.code,0);assert.throws(()=>readReceiptSnapshot(f.state),/incomplete/);assert.equal(receipt(f).invocation.runId,before.invocation.runId);fs.rmdirSync(temp);
- call(f,['start']);assert(!row(f).reuse_eligible);call(f,['run','typecheck']);assert(row(f).reuse_eligible);
+ call(f,['start']);assert(!row(f).reuse_eligible);call(f,['run','typecheck']);assert(row(f).reuse_eligible,JSON.stringify(receipt(f).checkpoint)+JSON.stringify(row(f)));
 });
 
 test('ownership and selected configuration errors remain refusals; custom probes keep executing',unix,t=>{

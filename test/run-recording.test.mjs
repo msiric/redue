@@ -130,11 +130,13 @@ test('recorded runs keep tsc output and exit code, and replace both probes',unix
     assert.equal(JSON.parse(summary).result,exit?'FAIL':'PASS');
     const r=receipt(f);assert(r.stable,JSON.stringify(r.checkpoint));assert.equal(r.invocation.exitCode,exit);
     const used=marks(f).slice(offset);
-    // The client validates against a start certificate; after an edit the daemon
-    // validates the recording as the new certificate instead.
-    const validated=used.filter(p=>p.phase==='cli.run_recording'&&p.outcome==='validated'||
-      p.phase==='daemon.recorded_certificate'&&p.outcome==='accepted');
-    assert.equal(validated.length,1,JSON.stringify(used.filter(p=>/record/.test(p.phase))));
+    // The client validates against the start certificate, or after an edit
+    // against the end one the daemon built from the recording; it collects run
+    // facts either way.
+    const count=(phase,outcome)=>used.filter(p=>p.phase===phase&&p.outcome===outcome).length;
+    const shown=JSON.stringify(used.filter(p=>/record/.test(p.phase)));
+    assert.equal(count('cli.run_recording','validated'),1,shown);
+    assert(count('daemon.recorded_certificate','accepted')<=1,shown);
     assert.equal(used.filter(p=>p.phase==='cli.probe').length,0);
   }
 });

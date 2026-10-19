@@ -10,10 +10,16 @@ import {timing} from './decision-profile.mjs';
 import {directCompiler,directContextHash,directEnvironmentIssue,directProbeOutput,directProbeValue} from './direct-typescript.mjs';
 import {withinPath} from './path-identity.mjs';
 const hash=value=>createHash('sha256').update(value).digest('hex');
-export function directRunCertificateAllowed(selected) {
+// Whether a direct run is recorded at all: on macOS and Linux, always, so its
+// run facts are known even when full probes check it.
+export function directRunRecordable(selected) {
   return ['darwin','linux'].includes(process.platform)&&selected.qualification==='npm-typescript-direct-v1'&&
     selected.probes?.length===1&&
-    selected.probes[0][1]===fileURLToPath(new URL('direct-typescript-probe.mjs',import.meta.url))&&
+    selected.probes[0][1]===fileURLToPath(new URL('direct-typescript-probe.mjs',import.meta.url));
+}
+// Whether a recorded run may replace the probes (tests can force full probes).
+export function directRunCertificateAllowed(selected) {
+  return directRunRecordable(selected)&&
     !(process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_FULL_RUN_PROBES==='1');
 }
 // The start snapshot's discovery certificate, checked without a child process.
@@ -26,7 +32,7 @@ export function directRunCertificate(plan,selected,snapshot,root) {
     c.planId!==snapshot.planId||c.cwd!==plan.cwd||
     c.probeDefinition!==hash(JSON.stringify(selected.probes))||
     ![c.output,c.context,c.stderrHash].every(s=>typeof s==='string'&&/^[a-f0-9]{64}$/.test(s))||
-    typeof c.queryData!=='string'||c.queryData.length>512*1024)
+    typeof c.queryData!=='string'||c.queryData.length>1024*1024)
     return fallback('certificate_unavailable');
   // The compile runs in this process's environment; the daemon's is never substituted.
   if(directEnvironmentIssue())return fallback('environment_unsupported');
@@ -43,6 +49,18 @@ export function directRunCertificate(plan,selected,snapshot,root) {
     timing('cli.run_certificate',started,{outcome:'available',queries:queries.length});
     return {value,queries,context:c.context,compiler};
   }catch{return fallback('certificate_invalid');}
+}
+// The last probe's questions, sent for a run checked by full probes. They only
+// show which of the run's lookups are run facts; the full probes, not these,
+// establish the result.
+export function probeQuestions(selected,snapshot,root) {
+  const q=snapshot?.probeQuestions;
+  if(!directRunRecordable(selected)||typeof q?.queryData!=='string'||
+    q.queryData.length>1024*1024||typeof q.context!=='string')return null;
+  try{const queries=JSON.parse(inflateSync(Buffer.from(q.queryData,'base64'),{maxOutputLength:8*1024*1024}));
+    if(!Array.isArray(queries)||!queries.length)return null;
+    return {queries,context:q.context,compiler:directCompiler(root,{verify:false})};}
+  catch{return null;}
 }
 // Without a start certificate, the daemon may offer to build one from this run's
 // recording at the end checkpoint. Returns its token, or null for full probes.
@@ -93,6 +111,18 @@ function statAgrees([kind,file,answer,options],target,result) {
 }
 const withinCompiler=compiler=>file=>withinPath(file,compiler.tsRoot)||
   file!==compiler.entry&&file.toLowerCase()===compiler.entry.toLowerCase();
+// The certificate question that asks again what a run's stat, realpath or
+// package.json read answered, in queryAnswer's terms; null when it cannot be asked again.
+function runFact(kind,file,answer) {
+  if(kind==='stat')return answer===null||answer==='f'?['fileExists',file,answer&&true]:
+    answer==='d'?['directoryExists',file,true]:null;
+  if(kind==='realpath')return answer===null||typeof answer==='string'?['realpath',file,answer]:null;
+  // Declaration checks read the package.json of each dependency they resolve.
+  // Its content hash is asked again like any other run fact; other reads are not.
+  if(kind==='read'&&path.basename(file)==='package.json')
+    return answer===null||typeof answer==='string'?['readFile',file,answer]:null;
+  return null;
+}
 // Null when every answer the run received agrees with the certified state,
 // otherwise why not. The compiler is deterministic given its context and its
 // answers, so a run whose answers all agree computed the certified result.
@@ -100,7 +130,12 @@ const withinCompiler=compiler=>file=>withinPath(file,compiler.tsRoot)||
 // compiler tree are covered by the daemon's toolchain identity instead. tsc
 // also stats a case-swapped copy of its own path to detect case sensitivity;
 // only that one stat is exempt.
-export function runRecordIssue(record,certificate) {
+// With a `facts` array, a stat or realpath the probe never asked about is
+// added to it instead (declaration diagnostics resolve module paths that
+// building the program does not), as is a read of a package.json. The receipt
+// keeps those run facts, and status asks them again before every CURRENT
+// answer. Any other uncovered read, and any directory listing, is an issue.
+export function runRecordIssue(record,certificate,runFacts=null) {
   if(record?.schema!==1||!Array.isArray(record.facts))return 'record unavailable';
   if(record.unsupported)return `unsupported ${record.unsupported}`;
   if(record.conflict)return `answer changed during the run: ${record.conflict}`;
@@ -123,26 +158,36 @@ export function runRecordIssue(record,certificate) {
     else if(kind==='stat')checks=[...known,...(facts.get(path.dirname(file))||[])]
       .map(q=>statAgrees(q,file,answer)).filter(value=>value!==null);
     else return `unknown answer ${kind}`;
-    if(!checks.some(value=>value!==undefined))return `${kind} ${file} is not in the discovery certificate`;
+    if(!checks.some(value=>value!==undefined)){
+      const fact=runFacts&&runFact(kind,file,answer);
+      if(fact){runFacts.push(fact);continue;}
+      return `${kind} ${file} is not in the discovery certificate`;
+    }
     if(checks.includes(false))return `${kind} ${file} differs from the discovery certificate`;
+    // Covered only by a listing of its directory: a later probe may keep the
+    // same program while that listing changes, so the run's own lookup stays
+    // a run fact.
+    if(kind==='stat'&&runFacts&&!known.length){const fact=runFact(kind,file,answer);if(fact)runFacts.push(fact);}
   }
   return null;
 }
-// Compares the record run-recorder.cjs wrote to fd 3.
-export function validateRunRecord(text,certificate) {
+// Compares the record run-recorder.cjs wrote to fd 3. Run facts go to `facts`.
+export function validateRunRecord(text,certificate,facts=[]) {
   const started=performance.now();
   let record=null;
   try{record=JSON.parse(text);}catch{}
   let issue;
-  try{issue=runRecordIssue(record,certificate);}catch{issue='record unreadable';}
+  try{issue=runRecordIssue(record,certificate,facts);}catch{issue='record unreadable';}
   timing('cli.run_recording',started,{outcome:issue?'rejected':'validated',
-    facts:record?.facts?.length||0,...(issue?{reason:issue}:{})});
+    facts:record?.facts?.length||0,runFacts:facts.length,...(issue?{reason:issue}:{})});
   return issue;
 }
 // A certificate for the current inputs, built from a recorded run and the
 // certificate of the last full probe, or {issue}. The run must read the same
 // files, with the same configuration, and every answer it received must be
-// covered by the old questions; only file contents may differ. The program
+// covered by the old questions or be a run fact; only file contents may differ.
+// Run facts stay out of this certificate: the receipt keeps them, and status
+// asks them again for every answer. The program
 // layout is then the same, so the output is rebuilt as the probe computes it.
 // Limit: a file whose role changes (a package.json newly imported as a module)
 // keeps its old role, so a later full probe can report the check STALE.
@@ -152,11 +197,13 @@ export function recordedCertificate(text,cache,compiler) {
   if(record?.schema!==1||!Array.isArray(record.facts))return {issue:'record unavailable'};
   if(!cache?.layout||!cache.queries?.length)return {issue:'no previous layout'};
   const inCompiler=withinCompiler(compiler),reads=new Map();
+  const before=new Map(cache.queries.filter(q=>q[0]==='readFile'&&!inCompiler(q[1])).map(q=>[q[1],q[2]]));
   for(const [kind,file,answer] of record.facts)if(kind==='read'&&!inCompiler(file)){
     if(answer!==null&&typeof answer!=='string')return {issue:`read ${file} failed`};
+    // A package.json only declaration checks read is a run fact, not a program read.
+    if(!before.has(file)&&path.basename(file)==='package.json')continue;
     reads.set(file,answer);
   }
-  const before=new Map(cache.queries.filter(q=>q[0]==='readFile'&&!inCompiler(q[1])).map(q=>[q[1],q[2]]));
   if(reads.size!==before.size||[...before.keys()].some(file=>!reads.has(file)))
     return {issue:'the run read different files'};
   if(cache.layout.configs.some(([file])=>!reads.has(file)||reads.get(file)!==before.get(file)))
@@ -169,7 +216,9 @@ export function recordedCertificate(text,cache,compiler) {
     return {issue:'the run loaded different lib files'};
   const changed=new Set([...reads].filter(([file,answer])=>before.get(file)!==answer).map(([file])=>file));
   const queries=cache.queries.map(q=>q[0]==='readFile'&&changed.has(q[1])?[q[0],q[1],reads.get(q[1]),...q.slice(3)]:q);
-  const issue=runRecordIssue(record,{compiler,queries,context:cache.context});
+  // Run facts belong to the receipt, which the caller builds; they do not
+  // change the program layout.
+  const issue=runRecordIssue(record,{compiler,queries,context:cache.context},[]);
   if(issue)return {issue};
   const files=[];
   for(const [file,digest] of cache.layout.files){

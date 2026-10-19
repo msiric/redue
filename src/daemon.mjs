@@ -17,7 +17,8 @@ import {assertOwnedStatePlacement} from './owned-state.mjs';
 import {atomicJson,readReceipts,readReceiptSnapshot,receiptRevision} from './state-store.mjs';
 import {history,closeHistory} from './observation.mjs';
 import {inputKey,planGuard,toolchainKey} from './decision-validation.mjs';
-import {queriesHold} from './typescript-list.mjs';
+import {queriesHold,runFactReason as runFactChanged} from './typescript-list.mjs';
+import {statusSummary} from './cached-state.mjs';
 import {directProject,directProbeValue,reviewedTypeScriptVersions} from './direct-typescript.mjs';
 import {recordedCertificate} from './direct-run-certificate.mjs';
 import {timing,mark,traceBase,traceContext,traceScope,traceEnvironment,traceId} from './decision-profile.mjs';
@@ -319,7 +320,8 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       plan_id:row.plan.id,observed_at:lastObservation,
       invocation:r?.invocation||null,target_provenance:r?.target||null,
       ...(r?.verificationRecipe?{verification_recipe:r.verificationRecipe}:{}),
-      coverage_at_run:r?.coverage||null,declared_inputs_match:null,reuse_eligible:false};
+      coverage_at_run:r?.coverage||null,declared_inputs_match:null,reuse_eligible:false,
+      ...(r?.runFacts?.length?{run_facts:r.runFacts.length}:{})};
     if(receiptStateError){item.reason=receiptStateError;return item;}
     if(!healthy||planning||recovering||index.unavailable){item.reason=
       (planning||recovering)?'input observation reconciliation pending':
@@ -330,7 +332,8 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
     if(pendingChecks.has(name)){item.reason='filesystem change pending content inspection';return item;}
     if(r&&r.planId) item.declared_inputs_match=r.planId===row.plan.id&&
       r.fingerprint===combinedSummary(name).fingerprint;
-    if(r&&r.fingerprintVersion!==1){item.reason='receipt uses earlier input-resolution format';return item;}
+    if(r&&!(r.fingerprintVersion===1||r.fingerprintVersion===2&&Array.isArray(r.runFacts))){
+      item.reason='receipt uses earlier input-resolution format';return item;}
     if(row.plan.unresolved.length){
       const checkpoint=item.declared_inputs_match===false?
         r.planId!==row.plan.id?'; observed input plan changed':
@@ -396,10 +399,23 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       if(unconfirmed&&!(r.files&&row.staleInputs?.length)){item.freshness='UNVERIFIED';
         item.reason=unconfirmed;item.changed_inputs=[];}
     } else if(unconfirmed){item.freshness='UNVERIFIED';item.reason=unconfirmed;
+    // Lookups the run made outside the certificate are asked again for every
+    // answer, cached or synchronized, before it can say CURRENT.
+    // A direct run recorded before run facts may have made lookups no probe
+    // asks; only Windows, which never records direct runs, keeps reusing them.
+    } else if(r.fingerprintVersion===1&&r.verificationRecipe==='npm-direct-typescript@1'&&process.platform!=='win32'){
+      item.freshness='UNVERIFIED';item.reason='receipt predates run facts; run the check again';
+    } else if(r.runFacts&&(item.reason=runFactReason(r.runFacts))){item.changed_inputs=[];
     } else {item.freshness='CURRENT';item.reason=result==='FAIL'?'last command failed':'declared inputs match';
       item.reuse_eligible=result==='PASS';}
     return item;
   });
+}
+// Null when every run fact in a receipt answers as it did during the run.
+function runFactReason(facts) {
+  const started=performance.now(),reason=runFactChanged(facts);
+  timing('daemon.run_facts',started,{facts:facts.length,changed:reason?1:0});
+  return reason;
 }
 // The indexed inputs already differ from the latest receipt, so no probe result
 // can make this check CURRENT. A sync answers STALE without a full probe. A run
@@ -454,14 +470,8 @@ function status(contextHashes,synchronizedInstalled=false,synchronizedFilesystem
   // Reload notifications accelerate visibility but are not required for it: a
   // wrapper may persist its outcome even when its control connection is denied.
   refreshReceipts();
-  const checks=rows(contextHashes,synchronizedInstalled,synchronizedFilesystem), current=checks.filter(r=>r.freshness==='CURRENT'&&r.result==='PASS').length,
-    failed=checks.filter(r=>r.freshness==='CURRENT'&&r.result==='FAIL').length,
-    observedFailed=checks.filter(r=>r.result==='FAIL').length,
-    stale=checks.filter(r=>r.freshness==='STALE').length,
-    unverified=checks.filter(r=>r.freshness==='UNVERIFIED').length||(!checks.length?1:0);
-  const stateName=failed?'failed':unverified?'unverified':stale?'stale':'current';
-  const now=Date.now();return {schema:1,receipt_revision:receiptStateRevision,state:stateName,current,failed,observed_failed:observedFailed,
-    stale,unverified,checks,
+  const checks=rows(contextHashes,synchronizedInstalled,synchronizedFilesystem);
+  const now=Date.now();return {schema:1,receipt_revision:receiptStateRevision,...statusSummary(checks),checks,
     observation:{healthy:healthy&&!planning&&!recovering&&!index?.unavailable,
       generation,observed_at:lastObservation,
       events:(index?.eventCount||0)+[...external.values()].reduce((n,e)=>n+(e.index?.eventCount||0),0),
@@ -1090,11 +1100,9 @@ async function request(message) {
       // snapshot stays the start of the observed interval, including validation.
       if(message.runCertificate===1&&continuityBarrier()){
         const row=index?.checks.get(message.name),cache=row?.probeCache;
-        // The daemon checked the recording against the certificate it then validated.
-        if(recorded===null&&cache?.recorded===message.adopt&&cache.hash===row.probeHash&&
-          cache.input===inputKey(row)&&data.snapshots[message.name])
-          data.snapshots[message.name].recordingAccepted=true;
-        else if(row?.plan.qualification==='npm-typescript-direct-v1'&&
+        // Also after an accepted recording: the caller compares its record with
+        // this certificate and finds its run facts with it.
+        if(row?.plan.qualification==='npm-typescript-direct-v1'&&
           !row.plan.unresolved.length&&cache?.schema===1&&cache.input===inputKey(row)&&
           cache.hash===row.probeHash&&cache.guard===planGuard(index.bundle)&&
           cache.output&&cache.queryData&&data.snapshots[message.name])
@@ -1102,6 +1110,15 @@ async function request(message) {
             cwd:row.plan.cwd,probeDefinition:sha(JSON.stringify(row.plan.probes)),
             context:cache.context,output:cache.output,stderrHash:cache.stderrHash,
             queryData:cache.queryData};
+      }
+      // For a run checked by full probes: the last probe's questions, only to
+      // find the run's lookups outside them. Never evidence for reuse.
+      if(message.runFacts===1&&data.snapshots[message.name]){
+        const row=index?.checks.get(message.name),cache=row?.probeCache;
+        if(row?.plan.qualification==='npm-typescript-direct-v1'&&cache?.queryData&&
+          typeof cache.context==='string'&&cache.input===inputKey(row)&&cache.hash===row.probeHash&&
+          cache.guard===planGuard(index.bundle))
+          data.snapshots[message.name].probeQuestions={context:cache.context,queryData:cache.queryData};
       }
       const row=index?.checks.get(message.name);
       if(adopting.has(message.name)&&row?.adoption&&data.snapshots[message.name])

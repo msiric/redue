@@ -82,6 +82,22 @@ changes invalidate or withdraw applicability normally. Installed files are obser
 by identity, so reinstalling identical packages or restoring an installed file's
 bytes also needs one rerun (see [configuration](configuration.md)).
 
+On macOS and Linux, `redue run` records which files the compiler looked up and
+compares them with what the observer's last probe saw. The probe only builds the
+program. With `declaration: true`, tsc also resolves the project's dependencies
+while it checks declarations, so the run looks up files the probe never did,
+some outside the checkout, and reads those dependencies' `package.json`. The
+receipt keeps the run's answers to those existence, `realpath` and
+`package.json` lookups as run facts. Before every CURRENT answer, status asks
+each one again; a cached `redue status` asks them again when it is read. If any
+now answers differently, the check is STALE and the reason names the path. Any
+other file the run read, or a directory it listed, that the probe never did
+still makes the run non-reusable, as do more than 10,000 run facts. Receipts
+with run facts use a new format, so earlier observers do not reuse them. A
+direct receipt recorded before run facts is UNVERIFIED until the check runs
+again. Windows does not record direct runs, so it has no run facts: there, a
+lookup only declaration checks make is not checked again.
+
 The versioned `npm-direct-typescript@1` interpretation retains relevant Node context
 and identity. Reviewed compiler code does not parse npm settings or proxy variables;
 these remain untouched in the child environment and are recorded only as a digest

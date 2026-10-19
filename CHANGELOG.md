@@ -25,6 +25,17 @@
   was UNVERIFIED until a full reindex and probe finished, about 5 s on a
   26k-file project. Input patterns that name a `.git` directory are now
   refused; REDUE never observed changes there.
+- Direct TypeScript recipe: runs with `declaration: true` are reusable. tsc's
+  declaration checks look up files that building the program does not, and
+  read dependencies' `package.json`; before, any such lookup made the run
+  UNVERIFIED. The receipt now keeps those existence, `realpath` and
+  `package.json` answers as run facts, and status asks them again before every
+  CURRENT answer, including when a cached status is read. Every direct run is
+  now recorded, also one checked by full probes. The probe also records
+  `realpath` while it parses a tsconfig `extends` from a package.
+  Behavior change: a direct receipt recorded by an earlier version is
+  UNVERIFIED until the check runs again (macOS and Linux). Limit: Windows does
+  not record direct runs, so declaration-only lookups are not checked there.
 - Releases are published to the `latest` npm tag as well as `alpha`, so
   `npm install -g @redue/cli` installs the newest release.
 

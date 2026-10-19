@@ -30,6 +30,7 @@ Stable-enough-for-alpha fields:
 | `result` | Historical `PASS`, `FAIL`, or null. A failed invocation is not green even with CURRENT applicability. |
 | `freshness` | `CURRENT`, `STALE`, or `UNVERIFIED`, independent of result. |
 | `reuse_eligible` | True only for qualified, applicable passing evidence. Never derive permission to reuse from outcome alone. Missing means false. |
+| `run_facts` | Number of lookups outside the discovery certificate that the receipt's run made (direct TypeScript recipe). Status asks each again before answering CURRENT. Absent when there are none. |
 | `reason` | Human explanation; not a stable machine enum. Do not parse it to authorize reuse. |
 | `changed_inputs` | Known changed relevant paths when available, possibly only the first difference; empty/missing is not proof of no changes. |
 | `invocation` | Null without a receipt; otherwise run ID, completion `status`, duration, exit code/signal when known. Status distinguishes exited, interrupted, and start/capture failure. |

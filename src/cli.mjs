@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import {directQualification,directInterpretation,observedNpmContext} from './direct-typescript.mjs';
-import {directRunCertificateAllowed,directRunCertificate,directRunRecording,validateRunRecord} from './direct-run-certificate.mjs';
+import {directRunCertificateAllowed,directRunCertificate,directRunRecordable,directRunRecording,probeQuestions,validateRunRecord} from './direct-run-certificate.mjs';
+import {runFactChange} from './typescript-list.mjs';
 import path from 'node:path';
 import net from 'node:net';
 import os from 'node:os';
@@ -245,7 +246,10 @@ async function execute() {
       probeBefore=certificate?.value??(recording?null:probeHash(probePlan));
     }
     // The record arrives on fd 3, so the compiler's environment is unchanged.
-    const launched=certificate||recording?[command[0],'--require',path.join(here,'run-recorder.cjs'),
+    // Every direct run is recorded: even one checked by full probes needs its
+    // lookups outside the certificate, which no probe makes.
+    const recorded=directRunRecordable(selected)&&!unobservedDirectRun;
+    const launched=recorded?[command[0],'--require',path.join(here,'run-recorder.cjs'),
       ...command.slice(1)]:command;
     const record=[];
     // A Windows full reconciliation may finish while queued watcher callbacks
@@ -270,7 +274,7 @@ async function execute() {
       try{runLock.phase('launching');
         const launch=windowsLaunch(launched);
         child=spawn(launch.file,launch.args,{cwd:plan.cwd,
-        stdio:certificate||recording?['inherit','inherit','inherit','pipe']:'inherit',env:process.env,
+        stdio:recorded?['inherit','inherit','inherit','pipe']:'inherit',env:process.env,
         detached:process.platform==='linux',...launch.options});
         child.stdio[3]?.on('data',chunk=>record.push(chunk));}
       catch(e){resolve({status:'start_failed',exitCode:null,signal:null,errorCode:e.code||e.name});return;}
@@ -308,8 +312,10 @@ async function execute() {
     timing('cli.context_after',afterContextStarted);
     let probeAfter=null;
     const recordText=Buffer.concat(record).toString('utf8');
+    // Lookups the certificate does not cover, kept with the receipt.
+    let runFacts=[];
     if(certificate){
-      const issue=validateRunRecord(recordText,certificate);
+      const issue=validateRunRecord(recordText,certificate,runFacts);
       if(issue)captureIssues.push(`compiler inputs differ from discovery certificate (${issue})`);
       probeAfter=certificate.value;
     }else if(!unobservedDirectRun&&!recording)probeAfter=probeHash(probePlan);
@@ -319,7 +325,7 @@ async function execute() {
     const endSnapshotStarted=performance.now();
     if(!unobservedDirectRun){
       try{after=await call({action:'snapshot',name,contextHashes:contextHashes(),
-        ...(recording?{runCertificate:1,adopt:recording}:{})},captureTimeout);}
+        ...(recording?{runCertificate:1,adopt:recording}:recorded&&!certificate?{runCertificate:1,runFacts:1}:{})},captureTimeout);}
       catch{captureIssues.push('end observation unavailable');}
       finally{if(recordFile)fs.rmSync(recordFile,{force:true});}
       timing('cli.end_checkpoint',endSnapshotStarted,{available:after?.snapshots?.[name]?1:0});
@@ -327,16 +333,22 @@ async function execute() {
     const end=after?.snapshots?.[name];
     // The end certificate, recorded or probed, must cover what this compile received.
     // With no input event, gap or content change in between, it also holds at the start.
-    if(recording&&end?.recordingAccepted===true)probeBefore=probeAfter=end.probeHash;
-    else if(recording){
-      const endCertificate=directRunCertificate(plan,selected,end,root);
-      if(!endCertificate)captureIssues.push('no discovery certificate at the end checkpoint');
+    // A run checked by full probes is compared with it too, for its run facts.
+    if(recorded&&!certificate){
+      const endCertificate=directRunCertificate(plan,selected,end,root),
+        questions=endCertificate||(!recording&&probeQuestions(selected,end,root));
+      if(!questions)captureIssues.push('no discovery certificate at the end checkpoint');
       else{
-        const issue=validateRunRecord(recordText,endCertificate);
+        const issue=validateRunRecord(recordText,questions,runFacts=[]);
         if(issue)captureIssues.push(`compiler inputs differ from discovery certificate (${issue})`);
-        probeBefore=probeAfter=endCertificate.value;
+        if(recording)probeBefore=probeAfter=endCertificate.value;
       }
     }
+    // The receipt holds only run facts that still answer as they did during the run.
+    runFacts.sort();
+    if(runFacts.length>10000)captureIssues.push('too many lookups outside the discovery certificate');
+    else{const changed=runFactChange(runFacts);
+      if(changed)captureIssues.push(`a lookup outside the discovery certificate changed during execution: ${changed}`);}
     if(recording&&snap?.observationGaps!==end?.observationGaps)
       captureIssues.push('observation gap during execution');
     if(!unobservedDirectRun&&(!end||!end.observationHealthy))captureIssues.push('end checkpoint unavailable');
@@ -355,7 +367,10 @@ async function execute() {
     if(!snap||!end||snap.planId!==end.planId||(recording?snap.inputKey!==end.inputKey:snap.fingerprint!==end.fingerprint)||
       snap.revision!==end.revision)captureIssues.push('declared inputs changed or were not observed');
     const stable=captureIssues.length===0;
-    const receipt={result,invocation,target,stable,fingerprintVersion:1,
+    // A recorded run's receipt carries its run facts, even none; observers that
+    // predate run facts do not reuse version 2.
+    const receipt={result,invocation,target,stable,fingerprintVersion:recorded?2:1,
+      ...(recorded?{runFacts}:{}),
       resolutionLinks:plan.resolutionLinks||[],
       coverage:{qualified:plan.unresolved.length===0,unresolved:plan.unresolved},
       checkpoint:{status:stable?'stable':'unavailable_or_changed',issues:captureIssues,

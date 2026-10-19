@@ -39,6 +39,24 @@ export function queryAnswer(kind,file,options) {
     throw Error('unknown compiler filesystem question');
   }catch(error){if(['ENOENT','ENOTDIR'].includes(error.code))return null;throw error;}
 }
+// Null when every run fact answers as it did during the run, otherwise the
+// first path that does not. Asked in-process; nothing is launched.
+export function runFactChange(facts) {
+  if(!Array.isArray(facts))return 'an unreadable run fact';
+  for(const fact of facts){
+    if(!Array.isArray(fact)||!['fileExists','directoryExists','realpath','readFile'].includes(fact[0])||
+      typeof fact[1]!=='string')return 'an unreadable run fact';
+    const [kind,file,answer]=fact;
+    let now;try{now=queryAnswer(kind,file);}catch{return file;}
+    if(now!==answer)return file;
+  }
+  return null;
+}
+// Why a receipt's run facts no longer hold, or null when they all do.
+export function runFactReason(facts) {
+  const changed=runFactChange(facts);
+  return changed&&`a lookup the last run made answers differently now: ${changed}`;
+}
 export function queriesMatch(queries) {
   if(!queries?.length)return false;
   return queries.every(([kind,file,answer,options])=>
@@ -93,13 +111,15 @@ export function compilerFiles(tsRoot,cwd) {
       ['readDirectory',full,[...result].sort(),options]);
     return result;
   };
+  const realpath=file=>{remember('realpath',file);return ts.sys.realpath(file);};
+  // `extends` of a package config resolves through realpath too.
   const parsed=ts.getParsedCommandLineOfConfigFile(path.join(cwd,'tsconfig.json'),{},
-    {...ts.sys,readFile,fileExists,directoryExists,getDirectories,readDirectory,
+    {...ts.sys,readFile,fileExists,directoryExists,getDirectories,readDirectory,realpath,
       onUnRecoverableConfigFileDiagnostic(){}});
   if(!parsed||parsed.errors?.length)throw Error('TypeScript configuration unavailable');
   const host=ts.createCompilerHost(parsed.options);
   Object.assign(host,{readFile,fileExists,directoryExists,getDirectories,readDirectory,
-    realpath(file){remember('realpath',file);return ts.sys.realpath(file);},
+    realpath,
     getSourceFile(file,languageVersion,onError){
       const text=readFile(file);return text===undefined?undefined:
         ts.createSourceFile(file,text,languageVersion);
