@@ -31,6 +31,9 @@ node eval/run.mjs --pilot            # pilot set, both arms
 node eval/run.mjs --repo owner/name --task docs-edit --arms redue
 ```
 
+`--profile` makes the REDUE arm write REDUE's timing trace to each run's
+`profile.jsonl`, for finding where a slow hook or status call spends its time.
+
 `claude` must be logged in. `run.mjs` works from a normal terminal or from
 inside a Claude Code session. It strips the parent session's `CLAUDE_CODE_*`
 variables.

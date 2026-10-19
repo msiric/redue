@@ -8,6 +8,7 @@
 //          --model claude-sonnet-5-5  --max-turns 30
 //          --redue PATH (REDUE entry for the REDUE arm; default: this checkout)
 //          --keep (keep each run's clone)  --out DIR
+//          --profile (REDUE arm: write REDUE's timing trace to each run's profile.jsonl)
 //
 // Every run gets a fresh clone at the repo's pinned commit, `npm ci
 // --ignore-scripts`, and its own `claude -p` session. The REDUE arm also runs
@@ -29,7 +30,7 @@ const {values: opt} = parseArgs({options: {
   pilot: {type: 'boolean'}, repo: {type: 'string'}, task: {type: 'string'}, arms: {type: 'string', default: 'control,redue'},
   runs: {type: 'string', default: '3'},
   model: {type: 'string', default: 'claude-sonnet-5-5'}, 'max-turns': {type: 'string', default: '30'},
-  redue: {type: 'string', default: checkoutRedue}, keep: {type: 'boolean'}, out: {type: 'string'},
+  redue: {type: 'string', default: checkoutRedue}, keep: {type: 'boolean'}, out: {type: 'string'}, profile: {type: 'boolean'},
 }});
 const entry = path.resolve(opt.redue);
 const repos = readJson(path.join(evalDir, 'repos.json')).repos;
@@ -98,7 +99,8 @@ function runSession(task, repo, arm, id) {
   row.setup.clone_ms = Math.round(performance.now() - started);
 
   const log = path.join(runDir, 'redue-calls.jsonl'), bin = path.join(work, 'bin');
-  const env = harnessEnv({PATH: pathWithout(arm === 'redue' ? bin : null)});
+  const env = harnessEnv({PATH: pathWithout(arm === 'redue' ? bin : null),
+    ...(opt.profile && arm === 'redue' ? {REDUE_DECISION_PROFILE: '1', REDUE_DECISION_PROFILE_FILE: path.join(runDir, 'profile.jsonl')} : {})});
   if (arm === 'redue') {
     writeWrapper(bin, entry, log);
     const step = (label, ...argv) => {
