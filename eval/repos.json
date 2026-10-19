@@ -23,6 +23,22 @@
       "script": "typescript",
       "test": null,
       "why": "Large TypeScript 6.0.3 library: 2,793 TS files, plain tsc about 18 s on a GitHub Linux runner. Ships its own AGENTS.md and CLAUDE.md that tell agents to run `npm run typescript`. Its vitest suite takes over 3 minutes, so success is checked with tsc and the task checks only."
+    },
+    {
+      "name": "WJDDesigns/Ultra-Card",
+      "url": "https://github.com/WJDDesigns/Ultra-Card.git",
+      "commit": "bb7433f986a1863a66a8f8c8aceeca9dc4528d20",
+      "script": "typecheck",
+      "test": null,
+      "why": "Home Assistant card in TypeScript 5.9 with declaration: true. Plain tsc about 19 s on a GitHub Linux runner. Qualified once run facts covered its declaration lookups (alpha.12). Success is checked with tsc and the task checks only."
+    },
+    {
+      "name": "oldj/SwitchHosts",
+      "url": "https://github.com/oldj/SwitchHosts.git",
+      "commit": "46b3bca79d07e755b07316cad03132172d52f581",
+      "script": "typecheck",
+      "test": null,
+      "why": "Tauri desktop app with a TypeScript 6.0.3 renderer and declaration: true. Plain tsc about 13 s on a GitHub Linux runner. Qualified once run facts covered its checker lookups (alpha.12). Success is checked with tsc and the task checks only."
     }
   ]
 }

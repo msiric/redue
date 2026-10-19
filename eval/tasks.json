@@ -180,6 +180,128 @@
           "includes": "median"
         }
       ]
+    },
+    {
+      "repo": "WJDDesigns/Ultra-Card",
+      "id": "docs-edit",
+      "kind": "docs",
+      "pilot": true,
+      "prompt": "The \"Technical Details\" section of README.md doesn't tell contributors how to check their changes. Add a bullet saying to run `npm run typecheck` before opening a pull request. Before you finish, make sure the project still typechecks.",
+      "expect": [
+        {
+          "file": "README.md",
+          "matches": "## Technical Details[\\s\\S]*npm run typecheck[\\s\\S]*## License"
+        }
+      ]
+    },
+    {
+      "repo": "WJDDesigns/Ultra-Card",
+      "id": "reverify",
+      "kind": "reverify",
+      "pilot": true,
+      "prompt": "I pulled some changes and want to know whether the project still typechecks. Check it and tell me the result. Don't change any files.",
+      "expect": [
+        {
+          "unchanged": true
+        }
+      ]
+    },
+    {
+      "repo": "WJDDesigns/Ultra-Card",
+      "id": "source-then-docs",
+      "kind": "mixed",
+      "pilot": true,
+      "prompt": "In src/utils/parse-locale-number.ts, make `parseLocaleNumber` treat \"none\" as missing too, and match \"unknown\", \"unavailable\" and \"none\" case-insensitively, so \"Unknown\" and \"NONE\" return NaN. Run the typecheck after the change. Then add a line about it at the top of RELEASE_NOTES.md, under a new \"## Unreleased\" heading. Before you finish, confirm the project still typechecks.",
+      "expect": [
+        {
+          "file": "src/utils/parse-locale-number.ts",
+          "includes": "none"
+        },
+        {
+          "file": "src/utils/parse-locale-number.ts",
+          "matches": "toLowerCase\\(\\)"
+        },
+        {
+          "file": "RELEASE_NOTES.md",
+          "includes": "Unreleased"
+        }
+      ]
+    },
+    {
+      "repo": "WJDDesigns/Ultra-Card",
+      "id": "source",
+      "kind": "source",
+      "pilot": true,
+      "prompt": "Add an exported `parseLocalePercent(val: unknown): number` to src/utils/parse-locale-number.ts. It accepts the same inputs as `parseLocaleNumber`, plus strings with a trailing percent sign and optional space (\"42%\", \"42,5 %\"), and returns the number without the sign (42, 42.5); numbers pass through unchanged. Add vitest tests to src/utils/parse-locale-number.test.ts. Make sure the typecheck and that test file pass (run only that test file: `npx vitest run src/utils/parse-locale-number.test.ts`).",
+      "expect": [
+        {
+          "file": "src/utils/parse-locale-number.ts",
+          "includes": "parseLocalePercent"
+        },
+        {
+          "file": "src/utils/parse-locale-number.test.ts",
+          "includes": "parseLocalePercent"
+        }
+      ]
+    },
+    {
+      "repo": "oldj/SwitchHosts",
+      "id": "docs-edit",
+      "kind": "docs",
+      "pilot": true,
+      "prompt": "Add a short note to the \"Backup\" section of README.md saying to quit SwitchHosts before copying the `~/.SwitchHosts` folder, so the copy is consistent. Before you finish, make sure the project still typechecks.",
+      "expect": [
+        {
+          "file": "README.md",
+          "matches": "## Backup[\\s\\S]*[Qq]uit[\\s\\S]*## Develop and build"
+        }
+      ]
+    },
+    {
+      "repo": "oldj/SwitchHosts",
+      "id": "reverify",
+      "kind": "reverify",
+      "pilot": true,
+      "prompt": "I pulled some changes and want to know whether the project still typechecks. Check it and tell me the result. Don't change any files.",
+      "expect": [
+        {
+          "unchanged": true
+        }
+      ]
+    },
+    {
+      "repo": "oldj/SwitchHosts",
+      "id": "source-then-docs",
+      "kind": "mixed",
+      "pilot": true,
+      "prompt": "In src/common/hostsFn.ts, make `extractDomain` return the domain in lower case, since domain names are case-insensitive (\"GitHub.COM\" becomes \"github.com\"). Run the typecheck after the change. Then add a sentence about it to the \"Features\" section of README.md. Before you finish, confirm the project still typechecks.",
+      "expect": [
+        {
+          "file": "src/common/hostsFn.ts",
+          "matches": "toLowerCase\\(\\)"
+        },
+        {
+          "file": "README.md",
+          "matches": "## Features[\\s\\S]*(lower|case)[\\s\\S]*## Install"
+        }
+      ]
+    },
+    {
+      "repo": "oldj/SwitchHosts",
+      "id": "source",
+      "kind": "source",
+      "pilot": true,
+      "prompt": "Add an exported `normalizeDomainList(list: string[]): string[]` to src/common/dns.ts. It trims each entry, drops entries that `extractDomain` rejects, uses the extracted domain in lower case, removes duplicates while keeping the first one, and keeps at most `MAX_DOMAINS` entries. Add vitest tests to src/common/dns.test.ts. Make sure the typecheck and that test file pass (run only that test file: `npx vitest --config ./vitest.config.mts --watch=false src/common/dns.test.ts`).",
+      "expect": [
+        {
+          "file": "src/common/dns.ts",
+          "includes": "normalizeDomainList"
+        },
+        {
+          "file": "src/common/dns.test.ts",
+          "includes": "normalizeDomainList"
+        }
+      ]
     }
   ]
 }
