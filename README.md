@@ -96,9 +96,42 @@ Setup is explicit, reversible, and does not change tool permissions or run check
 
 The experimental claim is **opt-in project-local agent activation and direct TypeScript
 evidence, with fresh-session reuse demonstrated in the tested Codex/macOS
-configuration**. Claude setup/removal mechanics are tested; Claude behavior and
-cross-host reuse are not. This is experimental guidance, not guaranteed agent
-compliance, general sandbox compatibility, or a promise of time savings.
+configuration and measured for Claude Code below**. Cross-host reuse is not
+tested. This is experimental guidance, not guaranteed agent compliance, general
+sandbox compatibility, or a promise of time savings.
+
+### Measured with Claude Code
+
+Four public TypeScript projects, four tasks each, three sessions per task with
+and without REDUE: 96 headless Claude Code sessions (Sonnet 5.5, CI Linux
+runner, alpha.12 code, October 2026). Plain `tsc --noEmit` takes 10–19 s on
+these projects. Medians per task, summed over the four projects:
+
+| Task | Session time, without → with REDUE | Input tokens | Typechecks skipped |
+|---|---|---|---|
+| Docs edit, then "make sure it still typechecks" | 97 → 45 s | 169k → 162k | 12 of 12 |
+| "Does it still typecheck?" after a pull | 74 → 22 s | 117k → 89k | 12 of 12 |
+| Source change, typecheck, then a docs edit | 141 → 112 s | 210k → 200k | 9 of 12 |
+| Source change with tests | 152 → 151 s | 269k → 234k | 0 of 12 |
+| **All tasks** | **464 → 330 s** | **765k → 685k** | 33 |
+
+- **Correctness:** every typecheck REDUE skipped was checked afterwards with
+  plain tsc on the exact tree it was skipped on. All 33 agreed, and all 96
+  final trees passed plain tsc and the task checks in both arms.
+- **Cost:** API cost was the same ($0.65 without, $0.66 with). One-time setup
+  per checkout was 3–5 s, plus one recorded typecheck; the CLAUDE.md section
+  REDUE adds is about 60 tokens.
+- **How:** each session gets a fresh clone at a pinned commit; the REDUE arm
+  first runs `redue init`, `agent setup claude`, `start` and one
+  `redue run typecheck`, standing for an earlier session's passing check.
+  The harness, tasks and raw results are in [`eval/`](eval/README.md).
+- **Limits:** four projects and three runs per cell show direction, not a
+  general rate. Savings come only when an earlier pass still applies: tasks
+  that change source code save nothing, and on one project the docs edit came
+  after source edits that made the result STALE, so nothing was skipped. The
+  projects were chosen because they qualify for the direct TypeScript recipe;
+  of 38 screened projects, 19 qualified at alpha.12 and 22 at alpha.13. Times are agent session
+  time only, on one runner type.
 
 ## What the states mean
 
