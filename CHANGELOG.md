@@ -1,6 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-alpha.13 — 2026-10-19
+
+Bench numbers below are from one 800-file project on macOS arm64, Node 22.13.0.
+Released alpha.12 and this build ran interleaved on the same machine; the
+decision path is unchanged within noise (warm `status --sync` 192/197 ms on
+alpha.12, 174/198 ms on alpha.13; states correct, no idle probe launches).
+On the CI screen of 38 public TypeScript projects, 22 qualify for the direct
+recipe, up from 19 at alpha.12: worldmonitor, Recordly and open-cowork, which
+the fixed 5 s probe deadline blocked.
 
 - A full state probe may run longer on large projects. Its deadline was a
   fixed 5 s (10 s on Windows and for pnpm); now it is the larger of twice the
