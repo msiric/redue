@@ -95,7 +95,7 @@ test('a program that uses a referenced project\'s files is not qualified',{skip:
   assert.notEqual(row.freshness,'CURRENT');assert.match(row.reason,/referenced project/);
 });
 
-test('only the configured build-info file may be written, and its checks are left out',()=>{
+test('only the configured build-info file may be written, and its checks are left out',{skip:!supported},()=>{
   const info='/p/node_modules/.cache/tsconfig.tsbuildinfo';
   const facts=[['read',info,null],['stat','/p/node_modules/.cache',null],['stat','/p/node_modules','d'],
     ['mkdir','/p/node_modules/.cache',null],['write',info,null],['stat','/p/src/a.ts','f'],['read','/p/src/a.ts','h']];
