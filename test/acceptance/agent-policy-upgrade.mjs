@@ -24,7 +24,8 @@ try{
   for(const [host,file,skill] of [['codex','AGENTS.md','.agents/skills/redue-verification/SKILL.md'],['claude','CLAUDE.md','.claude/skills/redue-verification/SKILL.md']]){
     const read=f=>fs.readFileSync(path.join(root,f),'utf8');write(path.join(root,file),'User policy before.\r\n');
     cli(old,['agent','setup',host,'--apply']);fs.appendFileSync(path.join(root,file),'User policy after.\n');
-    const before=read(file),skillBefore=read(skill);assert.match(skillBefore,/Query ordinary|npm-typescript-direct-v1/);
+    const before=read(file),skillBefore=read(skill);// Any owned skill a released version wrote; alpha.12 shortened the wording.
+    assert.match(skillBefore,/Query ordinary|npm-typescript-direct-v1|reuse_eligible: true/);
     cli(next,['agent','setup',host,'--dry-run']);assert.equal(read(file),before);assert.equal(read(skill),skillBefore);
     cli(next,['agent','setup',host,'--apply']);assert.match(read(skill),/reuse_eligible: true/);assert.match(read(file),/redue-verification\/SKILL\.md\.\n<!-- REDUE:/);
     const once=read(file);cli(next,['agent','setup',host,'--apply']);assert.equal(read(file),once);
