@@ -180,9 +180,11 @@ test('installed files are observed by identity: no installed bytes read, a same-
     const c=net.createConnection(controlEndpoint(state).address);let data='';
     c.on('connect',()=>c.write('{"action":"metrics"}\n'));c.on('data',b=>data+=b);
     c.on('end',()=>{try{resolve(JSON.parse(data));}catch(e){reject(e);}});c.on('error',reject);});
-  // The installation was just written: the run waits out the racy window
-  // before its checkpoint, and its receipt is reusable.
-  init(root,state);good(root,state,'start');good(root,state,'run','typecheck');
+  // An installed file written just before the run: the run waits out the racy
+  // window before its checkpoint, and its receipt is reusable. Written after
+  // start, so a slow start cannot let the window pass first.
+  init(root,state);good(root,state,'start');
+  put(extra,'export declare const extra: number;\n');good(root,state,'run','typecheck');
   assert.equal(sync(root,state).checks[0].freshness,'CURRENT');
   const first=await metrics();
   // Windows reconciles from scratch first, which outlasts the window.
