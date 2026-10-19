@@ -1,6 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-alpha.12 — 2026-10-19
+
+Bench numbers below are from one 800-file project on macOS arm64, Node 22.13.0.
+Released alpha.11 and this build ran interleaved on the same machine; the
+decision path is unchanged within noise (warm `status --sync` 183/410 ms on
+alpha.11, 298/174 ms on alpha.12; states correct, no idle probe launches).
+On a screen of 38 public TypeScript projects in CI, 10 qualified for the
+direct recipe before the run-facts change, 17 after it and 19 after incremental
+and references support. worldmonitor and Recordly now stop at the 5 s probe
+timeout, and open-cowork at its end-checkpoint probe.
 
 - Large installations reach ready quickly. Installed files are observed by
   identity (inode, size, mode, link count, times), not by hashing their contents;
