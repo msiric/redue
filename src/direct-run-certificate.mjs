@@ -115,7 +115,7 @@ const withinCompiler=compiler=>file=>withinPath(file,compiler.tsRoot)||
   file!==compiler.entry&&file.toLowerCase()===compiler.entry.toLowerCase();
 // The certificate question that asks again what a run's stat, realpath or
 // package.json read answered, in queryAnswer's terms; null when it cannot be asked again.
-function runFact(kind,file,answer) {
+export function runFact(kind,file,answer) {
   if(kind==='stat')return answer===null||answer==='f'?['fileExists',file,answer&&true]:
     answer==='d'?['directoryExists',file,true]:null;
   if(kind==='realpath')return answer===null||typeof answer==='string'?['realpath',file,answer]:null;

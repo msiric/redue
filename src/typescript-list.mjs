@@ -44,11 +44,12 @@ export function queryAnswer(kind,file,options) {
 export function runFactChange(facts) {
   if(!Array.isArray(facts))return 'an unreadable run fact';
   for(const fact of facts){
-    if(!Array.isArray(fact)||!['fileExists','directoryExists','realpath','readFile'].includes(fact[0])||
+    if(!Array.isArray(fact)||!['fileExists','directoryExists','realpath','readFile','entries'].includes(fact[0])||
       typeof fact[1]!=='string')return 'an unreadable run fact';
     const [kind,file,answer]=fact;
     let now;try{now=queryAnswer(kind,file);}catch{return file;}
-    if(now!==answer)return file;
+    // A test run's directory listings are arrays.
+    if(kind==='entries'?JSON.stringify(now)!==JSON.stringify(answer):now!==answer)return file;
   }
   return null;
 }
