@@ -98,7 +98,8 @@ export function report(rows, {model, max_turns, maxTurns = max_turns, runs, out}
   lines.push(`| run | ${head.join(' | ')} |`, `|${'---|'.repeat(head.length + 1)}`);
   for (const row of rows) lines.push(`| ${row.id} | ${runCells(row).join(' | ')} |`);
   lines.push('', '`tc att/exec/skip/rewr`: typecheck commands the agent attempted / that ran / the hook skipped / the hook rewrote to `redue run`. ' +
-    '`FORCE`: commands prefixed with `REDUE_FORCE=1`. `after skip`: what the agent did after a skip, before its next edit. ' +
+    '`FORCE`: commands prefixed with `REDUE_FORCE=1`. `after skip`: what the agent did after a skip, before its next edit; ' +
+    '`argued` means its next text said the typecheck could not be run or verified. ' +
     '`CURRENT syncs ok`: CURRENT `status --sync` answers that plain tsc agreed with.', '');
   const replies = rows.flatMap(r => (r.metrics?.after_skip || []).filter(a => a.reply).map(a => `- ${r.id}: ${a.reply.replace(/\s+/g, ' ').slice(0, 300)}`));
   if (replies.length) lines.push('## Agent text after each skip', '', ...replies, '');

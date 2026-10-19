@@ -81,7 +81,8 @@ command that runs a typecheck (tsc, `redue run`, or a typecheck npm script).
 From the wrapper log: hook decisions (skip, rewrite to `redue run`, allow) and
 the agent's own `redue` calls. After each skip: whether the agent used
 `REDUE_FORCE=1`, retried the same command, ran a different typecheck, or
-argued with the message before its next edit.
+argued: its next text says the typecheck could not be run or verified.
+Naming the hook or the skip does not count.
 
 `results.md` shows, per task, the median of the runs for each arm: session
 time, input tokens and cost, with REDUE's savings and token overhead next to

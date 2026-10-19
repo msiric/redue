@@ -36,6 +36,7 @@ export function analyze({transcript, wrapperLog, script}) {
   const checks = bash.filter(e => typecheckLike(e.command, script));
   const skipped = checks.filter(e => e.result && denied(e.result.text));
 
+  const disputed = /\b(?:(?:couldn't|could not|can't|cannot|wasn't able to|was unable to|unable to) (?:run|verify|confirm|check)|not (?:been )?(?:verified|confirmed)|unverified|wouldn't let|won't let|not allowed to)\b/i;
   // What the agent did after each skip, up to its next file edit.
   const followUps = skipped.map(skip => {
     const start = events.findIndex(e => e.id === skip.id), after = [];
@@ -50,7 +51,8 @@ export function analyze({transcript, wrapperLog, script}) {
       forced: after.some(c => /^\s*REDUE_FORCE=1\s/.test(c)),
       retried: after.some(c => !/^\s*REDUE_FORCE=1\s/.test(c) && base(c) === base(skip.command)),
       workaround: after.some(c => base(c) !== base(skip.command)),
-      argued: reply !== null && /\b(hook|block|denied|deny|refus|prevent|not allowed|won't let)/i.test(reply)};
+      // Treats the skipped typecheck as not done. Naming the hook or the skip is not arguing.
+      argued: reply !== null && disputed.test(reply)};
   });
 
   const hooks = log.filter(r => r.kind === 'hook');
