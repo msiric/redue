@@ -93,13 +93,19 @@ test('read identities skip unchanged bytes but observe touches, alias writes and
   fs.writeFileSync(alias,fs.readFileSync(main,'utf8').replace('optional','optionaL'));
   assert(!queriesHold(first.queries,identities),'same-size bytes written through an alias are re-hashed');
 });
-test('compiler certificates are withheld for project references',t=>{
+test('compiler certificates cover referenced configurations',t=>{
   const {root}=nested(t);
   put(path.join(root,'lib/tsconfig.json'),JSON.stringify({compilerOptions:{composite:true},include:['*.ts']}));
   put(path.join(root,'lib/l.ts'),'export const l=1;');
   put(path.join(root,'tsconfig.json'),JSON.stringify({compilerOptions:{noEmit:true},include:['src'],
     references:[{path:'./lib'}]}));
-  assert.equal(compilerFiles(tsRoot,root).queries,null);
+  const {queries}=compilerFiles(tsRoot,root);
+  // The referenced config and its file list are questions the certificate asks again.
+  assert(queries.some(([kind,file])=>kind==='readFile'&&file===path.join(root,'lib/tsconfig.json')));
+  assert(queries.some(([kind,file])=>kind==='readDirectory'&&file===path.join(root,'lib')));
+  assert(queriesHold(queries));
+  put(path.join(root,'lib/m.ts'),'export const m=1;');
+  assert(!queriesHold(queries),'a new file in the referenced project changes the certificate');
 });
 test('plan guards include workspace membership, optional configuration and link targets',t=>{
   const root=fixture(t),bundle={root,plans:{check:{resolutionTriggers:['node_modules/pkg']}},

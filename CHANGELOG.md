@@ -36,6 +36,11 @@
   Behavior change: a direct receipt recorded by an earlier version is
   UNVERIFIED until the check runs again (macOS and Linux). Limit: Windows does
   not record direct runs, so declaration-only lookups are not checked there.
+- Direct TypeScript recipe: a root tsconfig with `incremental: true` is
+  supported. Its build-info file is left out of the inputs, and the run may
+  write only that file. A root tsconfig that references a composite config
+  (such as Vite's `tsconfig.node.json`) is supported when the program does not
+  use the referenced project's files. A `composite` root is still refused.
 - Releases are published to the `latest` npm tag as well as `alpha`, so
   `npm install -g @redue/cli` installs the newest release.
 

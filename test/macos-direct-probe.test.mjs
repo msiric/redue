@@ -225,7 +225,8 @@ test('wrapped start, launch and post-exit edits or observer loss cannot record e
  const source=path.join(root,'src/main.ts'),original=fs.readFileSync(source);
  for(const [phase,kind] of [['after-start-checkpoint','restore'],['before-launch','membership'],['before-launch','root'],
    ['after-exit','source'],['after-exit','stop']]){
-   call(f,['run','typecheck']);assert(row(f).reuse_eligible);
+   call(f,['run','typecheck']);{const current=row(f);assert(current.reuse_eligible,
+     `${phase}/${kind}: ${current.reason}; ${JSON.stringify(readReceipts(f.state).checks.typecheck.checkpoint)}`);}
    const paused=path.join(f.state,'test-run-paused'),release=path.join(f.state,'test-run-release');
    fs.rmSync(paused,{force:true});fs.rmSync(release,{force:true});
    const child=spawn(process.execPath,[cli,'--state-dir',f.state,'run','typecheck'],{cwd:root,env:{...f.env,VSTATE_TEST_RUN_BOUNDARY:phase}});

@@ -5,6 +5,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {permittedRoots,resolveDeclaredInstalled} from './installed-inputs.mjs';
 import {qualifyTypeScript} from './typescript-qualification.mjs';
+import {directBuildInfo} from './direct-typescript.mjs';
 import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
 import {pnpmTypecheckInputs} from './pnpm-inputs.mjs';
 import {observedRelative,withinPath,realObservedPath} from './path-identity.mjs';
@@ -67,14 +68,22 @@ export function discoverDeclared(config) {
       catch(e){workspaceIssue=e.message;}
     }
     timing('plan.workspace_inputs',workspaceStarted,{available:workspace?1:0});
+    // An incremental direct check writes its build-info file during each run.
+    // It is compiler state, not an input, so the plan leaves it out. Read when
+    // the plan is built: a later change to it needs an observer restart, and
+    // until then the run reports the unexpected write and is not reusable.
+    let buildInfo=null;
+    if(selected.qualification==='npm-typescript-direct-v1')
+      try{buildInfo=directBuildInfo(root,selected.script);}catch{}
+    const excluded=buildInfo?['!'+buildInfo]:[];
     const installedStarted=performance.now();
     const installed=resolveDeclaredInstalled(root,
-      [...(selected.installedInputs||[]),...(workspace?.installed||[])],allowedRoots);
+      [...(selected.installedInputs||[]),...(workspace?.installed||[]),...excluded],allowedRoots);
     timing('plan.installed_resolution',installedStarted,{mappings:installed.mappings.length});
     const automatic=qualifyTypeScript(root,selected,
       {workspace,issue:workspaceIssue});
     const sourcePatterns=[...new Set([...selected.inputs,...(workspace?.source||[]),
-      ...(workspace?.generated||[])])].sort();
+      ...(workspace?.generated||[]),...excluded])].sort();
     const additivePatterns=[...new Set([...(selected.generatedInputs||[]),
       ...installed.internalPatterns])].sort();
     const unresolved=[...installed.unresolved,...(automatic?.issues||[]),
@@ -115,6 +124,7 @@ export function discoverDeclared(config) {
       installedMappings:installed.mappings,effectiveEnvironmentGlobs:{},
       probes:selected.probes||[],environment:selected.environment||{},
       qualification:selected.qualification||null,
+      ...(buildInfo?{buildInfo}:{}),
       executionProvenance:'declared-command',
       unresolved:[...new Set(unresolved)].sort()};
     plan.resolutionCandidates=workspace?.resolutionCandidates||[];

@@ -20,7 +20,7 @@ import {inputKey,planGuard,toolchainKey} from './decision-validation.mjs';
 import {queriesHold,runFactReason as runFactChanged} from './typescript-list.mjs';
 import {statusSummary} from './cached-state.mjs';
 import {directProject,directProbeValue,reviewedTypeScriptVersions} from './direct-typescript.mjs';
-import {recordedCertificate} from './direct-run-certificate.mjs';
+import {buildInfoPath,recordedCertificate} from './direct-run-certificate.mjs';
 import {timing,mark,traceBase,traceContext,traceScope,traceEnvironment,traceId} from './decision-profile.mjs';
 
 const configFile=path.resolve(process.argv[2]);
@@ -233,7 +233,11 @@ function probe(row,allowReuse=false,{launch=true}={}) {
         'typescript-executable-changed':'local TypeScript executable changed or is missing',
         'typescript-config-unavailable':'TypeScript configuration cannot be resolved',
         'typescript-config-graph-unsupported':'TypeScript configuration extends, references, or uses compiler features outside this contract',
-        'typescript-incremental-unsupported':'TypeScript incremental or composite compilation needs explicit review',
+        'typescript-incremental-unsupported':'TypeScript composite compilation needs explicit review',
+        'typescript-buildinfo-outside-repository':'TypeScript incremental build-info file is outside the observed repository',
+        'typescript-incremental-unsound':'TypeScript assumeChangesOnlyAffectDirectDependencies makes an incremental result depend on build history',
+        'typescript-buildinfo-name-unsupported':'TypeScript build-info file needs a plain name ending in .tsbuildinfo',
+        'typescript-project-reference-consumed':'TypeScript program uses files of a referenced project, which plain tsc does not build',
         'typescript-config-outside-repository':'TypeScript configuration extends outside the observed repository',
         'typescript-plugin-unsupported':'TypeScript compiler plugin needs explicit review',
         'typescript-input-list-unavailable':'TypeScript input listing did not complete',
@@ -343,6 +347,9 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       return item;
     }
     if(row.probeError){item.reason=row.probeError;return item;}
+    // The plan leaves out the build-info file it saw at start; the probe sees the current one.
+    if(row.probeCache?.layout&&(row.probeCache.layout.buildInfo||null)!==(row.plan.buildInfo||null)){
+      item.reason='the incremental build-info setting changed after the observer started; restart the observer';return item;}
     // An expired probe or missing execution context cannot confirm CURRENT, but
     // observed input content that already differs from the receipt is STALE.
     let unconfirmed=!row.probeAt||Date.now()-row.probeAt>10000?'state probe observation expired':null;
@@ -455,7 +462,7 @@ function adopt(name,row,token) {
     return done('inputs or certificate changed during the run');
   const cache=pending.cache,argv=row.plan.probes[0];
   let result;
-  try{result=recordedCertificate(text,cache,directProject(argv[2],argv[3],{verify:false}));}
+  try{result=recordedCertificate(text,cache,directProject(argv[2],argv[3],{verify:false}),buildInfoPath(row.plan));}
   catch{return done('recording unreadable');}
   if(result.issue)return done(result.issue);
   const identities=new Map(cache.identities);

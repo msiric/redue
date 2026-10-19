@@ -22,6 +22,8 @@ export function directRunCertificateAllowed(selected) {
   return directRunRecordable(selected)&&
     !(process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_FULL_RUN_PROBES==='1');
 }
+// The incremental build-info file the plan leaves out of the inputs, if any.
+export const buildInfoPath=plan=>typeof plan?.buildInfo==='string'?path.join(plan.root,plan.buildInfo):null;
 // The start snapshot's discovery certificate, checked without a child process.
 // Returns what a recorded run is compared against, or null for full probes.
 export function directRunCertificate(plan,selected,snapshot,root) {
@@ -47,19 +49,19 @@ export function directRunCertificate(plan,selected,snapshot,root) {
     const queries=JSON.parse(inflateSync(Buffer.from(c.queryData,'base64'),{maxOutputLength:8*1024*1024}));
     if(!Array.isArray(queries)||!queries.length)return fallback('certificate_invalid');
     timing('cli.run_certificate',started,{outcome:'available',queries:queries.length});
-    return {value,queries,context:c.context,compiler};
+    return {value,queries,context:c.context,compiler,buildInfo:buildInfoPath(plan)};
   }catch{return fallback('certificate_invalid');}
 }
 // The last probe's questions, sent for a run checked by full probes. They only
 // show which of the run's lookups are run facts; the full probes, not these,
 // establish the result.
-export function probeQuestions(selected,snapshot,root) {
+export function probeQuestions(plan,selected,snapshot,root) {
   const q=snapshot?.probeQuestions;
   if(!directRunRecordable(selected)||typeof q?.queryData!=='string'||
     q.queryData.length>1024*1024||typeof q.context!=='string')return null;
   try{const queries=JSON.parse(inflateSync(Buffer.from(q.queryData,'base64'),{maxOutputLength:8*1024*1024}));
     if(!Array.isArray(queries)||!queries.length)return null;
-    return {queries,context:q.context,compiler:directCompiler(root,{verify:false})};}
+    return {queries,context:q.context,compiler:directCompiler(root,{verify:false}),buildInfo:buildInfoPath(plan)};}
   catch{return null;}
 }
 // Without a start certificate, the daemon may offer to build one from this run's
@@ -135,17 +137,31 @@ function runFact(kind,file,answer) {
 // building the program does not), as is a read of a package.json. The receipt
 // keeps those run facts, and status asks them again before every CURRENT
 // answer. Any other uncovered read, and any directory listing, is an issue.
+// The record's facts without the build-info file an incremental run reads and
+// writes, or {issue} when the run wrote anything else. That file is compiler
+// state, not an input. A directory tsc created for it was missing when tsc
+// checked it, so that check goes too; every other check stays.
+export function withoutBuildInfo(facts,buildInfo) {
+  const created=new Set(facts.filter(([kind])=>kind==='mkdir').map(([,file])=>file));
+  for(const [kind,file] of facts){
+    if(kind==='write'&&file!==buildInfo)return {issue:`the compiler wrote ${file}`};
+    if(kind==='mkdir'&&!buildInfo?.startsWith(file+path.sep))return {issue:`the compiler created ${file}`};
+  }
+  return {facts:facts.filter(([kind,file])=>kind!=='write'&&kind!=='mkdir'&&file!==buildInfo&&
+    !(kind==='stat'&&created.has(file)))};
+}
 export function runRecordIssue(record,certificate,runFacts=null) {
   if(record?.schema!==1||!Array.isArray(record.facts))return 'record unavailable';
   if(record.unsupported)return `unsupported ${record.unsupported}`;
   if(record.conflict)return `answer changed during the run: ${record.conflict}`;
-  const {compiler,queries}=certificate;
+  const {compiler,queries}=certificate,kept=withoutBuildInfo(record.facts,certificate.buildInfo||null);
+  if(kept.issue)return kept.issue;
   if(record.main!==compiler.entry||!Array.isArray(record.node)||
     directContextHash(compiler,record.node)!==certificate.context)return 'execution context changed';
   const inCompiler=withinCompiler(compiler);
   const facts=new Map();
   for(const query of queries){if(!facts.has(query[1]))facts.set(query[1],[]);facts.get(query[1]).push(query);}
-  for(const [kind,file,answer] of record.facts){
+  for(const [kind,file,answer] of kept.facts){
     if(inCompiler(file))continue;
     const known=facts.get(file)||[];
     let checks=[];
@@ -191,14 +207,16 @@ export function validateRunRecord(text,certificate,facts=[]) {
 // layout is then the same, so the output is rebuilt as the probe computes it.
 // Limit: a file whose role changes (a package.json newly imported as a module)
 // keeps its old role, so a later full probe can report the check STALE.
-export function recordedCertificate(text,cache,compiler) {
+export function recordedCertificate(text,cache,compiler,buildInfo=null) {
   let record=null;
   try{record=JSON.parse(text);}catch{}
   if(record?.schema!==1||!Array.isArray(record.facts))return {issue:'record unavailable'};
   if(!cache?.layout||!cache.queries?.length)return {issue:'no previous layout'};
+  const kept=withoutBuildInfo(record.facts,buildInfo);
+  if(kept.issue)return {issue:kept.issue};
   const inCompiler=withinCompiler(compiler),reads=new Map();
   const before=new Map(cache.queries.filter(q=>q[0]==='readFile'&&!inCompiler(q[1])).map(q=>[q[1],q[2]]));
-  for(const [kind,file,answer] of record.facts)if(kind==='read'&&!inCompiler(file)){
+  for(const [kind,file,answer] of kept.facts)if(kind==='read'&&!inCompiler(file)){
     if(answer!==null&&typeof answer!=='string')return {issue:`read ${file} failed`};
     // A package.json only declaration checks read is a run fact, not a program read.
     if(!before.has(file)&&path.basename(file)==='package.json')continue;
@@ -218,7 +236,7 @@ export function recordedCertificate(text,cache,compiler) {
   const queries=cache.queries.map(q=>q[0]==='readFile'&&changed.has(q[1])?[q[0],q[1],reads.get(q[1]),...q.slice(3)]:q);
   // Run facts belong to the receipt, which the caller builds; they do not
   // change the program layout.
-  const issue=runRecordIssue(record,{compiler,queries,context:cache.context},[]);
+  const issue=runRecordIssue({...record,facts:kept.facts},{compiler,queries,context:cache.context},[]);
   if(issue)return {issue};
   const files=[];
   for(const [file,digest] of cache.layout.files){

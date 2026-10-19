@@ -51,13 +51,26 @@ const realpath=observe('realpath',original.realpathSync,value=>value);
 realpath.native=observe('realpath',original.native,value=>value);
 fs.realpathSync=realpath;
 // readFileSync opens through fs.openSync; only a writable open is a write.
+// The one write a direct run may make is its build-info file (incremental);
+// it is recorded, and the caller checks it is the configured one.
+const buildInfo=file=>typeof file==='string'&&file.endsWith('.tsbuildinfo');
 fs.openSync=function(file,flags,...rest){
-  if(!(flags===undefined||flags==='r'||flags==='rs'||flags===fs.constants.O_RDONLY))unsupported??='openSync';
+  if(!(flags===undefined||flags==='r'||flags==='rs'||flags===fs.constants.O_RDONLY)){
+    if(flags==='w'&&buildInfo(file))note('write',path.resolve(file),null);
+    else unsupported??='openSync';
+  }
   return original.openSync.call(this,file,flags,...rest);
+};
+// tsc creates the build-info directory one level at a time; each is recorded.
+const mkdirSync=fs.mkdirSync;
+fs.mkdirSync=function(file,options,...rest){
+  if(typeof file==='string'&&options===undefined)note('mkdir',path.resolve(file),null);
+  else unsupported??='mkdirSync';
+  return mkdirSync.call(this,file,options,...rest);
 };
 // Writes, and reads this record cannot answer for, make it unusable. readSync
 // and fstatSync stay open: readFileSync reads through them.
-for(const name of ['writeFileSync','appendFileSync','mkdirSync','unlinkSync','utimesSync',
+for(const name of ['writeFileSync','appendFileSync','unlinkSync','utimesSync',
   'renameSync','rmSync','watch','watchFile','existsSync','lstatSync','accessSync','opendirSync',
   'readlinkSync','readFile','stat','lstat','readdir','realpath','access','exists','open','opendir',
   'readlink','createReadStream']){

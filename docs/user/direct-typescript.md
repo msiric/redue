@@ -74,13 +74,33 @@ accidentally when intending to preserve the original selection.
 Pre/post scripts, compound commands, wrappers, environment assignments, workspace
 projects and unsupported compiler versions are not automatically converted.
 Init retains the original script with a reason. Development-mode source-map helpers,
-Node preloads/loaders/compile-cache settings, `TS_ETW_MODULE_PATH` (including empty or case aliases), unsupported compiler plugins or
-incremental/composite configuration, outside-root inputs and uncertain observation
-withhold applicability. Extra custom probes cannot inherit this recipe's context
+Node preloads/loaders/compile-cache settings, `TS_ETW_MODULE_PATH` (including empty or case aliases), unsupported compiler plugins, a
+`composite` root tsconfig, a program that uses a referenced project's files,
+outside-root inputs and uncertain observation withhold applicability. Extra custom probes cannot inherit this recipe's context
 exception. Relevant source, declaration, config, membership and installed-content
 changes invalidate or withdraw applicability normally. Installed files are observed
 by identity, so reinstalling identical packages or restoring an installed file's
 bytes also needs one rerun (see [configuration](configuration.md)).
+
+A root tsconfig with `incremental: true` is supported. tsc reads and writes
+its build-info file (`tsBuildInfoFile`, or the default next to the config) on
+each run, so REDUE leaves that file out of the inputs and lets the run write
+only that file and the directories it needs; any other write makes the run
+non-reusable. The result is what your own incremental tsc reports, so it
+trusts TypeScript's build-info cache, which TypeScript discards after a
+compiler or option change. The file must be inside the checkout and named
+`*.tsbuildinfo`, with no glob characters in its path.
+`assumeChangesOnlyAffectDirectDependencies` is refused: with it, the result
+depends on earlier runs. REDUE reads the setting when the observer starts:
+after turning `incremental` on or moving the file, restart the observer;
+status says so until then. On Linux, a run that creates the build-info directory is an
+observation gap, so the first run after that is not reusable.
+
+A root tsconfig may reference other configs (`references`), for example a
+composite `tsconfig.node.json`. Plain `tsc --noEmit` reads those configs but
+does not build them, so REDUE treats them as configuration. If the program
+uses a referenced project's sources or built outputs, the check is not
+qualified.
 
 On macOS and Linux, `redue run` records which files the compiler looked up and
 compares them with what the observer's last probe saw. The probe only builds the

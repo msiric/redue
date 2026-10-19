@@ -130,9 +130,9 @@ export function compilerFiles(tsRoot,cwd) {
   // Stable answers are necessary even at first capture; a concurrent edit
   // cannot become the basis for a reusable discovery result.
   const facts=[...queries.values()];
-  // A certificate must cover every program file; references parse further
-  // configurations outside this host and are not certified.
-  const complete=!parsed.projectReferences?.length&&files.every(file=>queries.has('readFile\0'+file));
+  // A certificate must cover every program file. Referenced configurations
+  // are parsed through this host, so their reads and listings are certified.
+  const complete=files.every(file=>queries.has('readFile\0'+file));
   return {files,queries:complete&&queriesMatch(facts)?facts:null};
 }
 // Identity of a read file and, for a link, of its target. Writes through any

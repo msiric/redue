@@ -336,7 +336,7 @@ async function execute() {
     // A run checked by full probes is compared with it too, for its run facts.
     if(recorded&&!certificate){
       const endCertificate=directRunCertificate(plan,selected,end,root),
-        questions=endCertificate||(!recording&&probeQuestions(selected,end,root));
+        questions=endCertificate||(!recording&&probeQuestions(plan,selected,end,root));
       if(!questions)captureIssues.push('no discovery certificate at the end checkpoint');
       else{
         const issue=validateRunRecord(recordText,questions,runFacts=[]);

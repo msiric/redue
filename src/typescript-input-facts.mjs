@@ -2,18 +2,20 @@
 import fs from 'node:fs';import path from 'node:path';import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';import {spawnSync} from 'node:child_process';
 import {compilerFiles} from './typescript-list.mjs';
+import {buildInfoFor} from './direct-typescript.mjs';
 import {withinPath as within,realObservedPath} from './path-identity.mjs';
 import {timing} from './decision-profile.mjs';
 const require=createRequire(import.meta.url),hash=value=>createHash('sha256').update(value).digest('hex');
 const digestFile=file=>hash(fs.readFileSync(file));
 const fail=code=>{throw Object.assign(Error(code),{code});};
 export function typeScriptInputFacts(root,tsRoot,tsc){
-  const configReads=new Set(),visited=new Set();
+  const configReads=new Set(),visited=new Set(),referenced=[];
+  let buildInfo=null;
   let ts;try{ts=require(tsRoot);}catch{}
   if(typeof ts?.getParsedCommandLineOfConfigFile==='function'){
     const host={...ts.sys,readFile(file){configReads.add(path.resolve(file));
       return ts.sys.readFile(file);},onUnRecoverableConfigFileDiagnostic(){}};
-    const parseConfig=file=>{
+    const parseConfig=(file,top=false)=>{
       const absolute=path.resolve(file);
       if(!within(absolute,root))fail('typescript-config-outside-repository');
       if(visited.has(absolute))return;visited.add(absolute);
@@ -21,13 +23,20 @@ export function typeScriptInputFacts(root,tsRoot,tsc){
       const parsed=ts.getParsedCommandLineOfConfigFile(absolute,{},host);
       if(!parsed||parsed.errors?.length)fail('typescript-config-unavailable');
       if(parsed.options?.plugins?.length)fail('typescript-plugin-unsupported');
-      if(parsed.options?.incremental||parsed.options?.composite)
-        fail('typescript-incremental-unsupported');
+      // Plain tsc reads a referenced config but never builds it, so only the
+      // root config's build settings matter. An incremental root reads and
+      // writes one build-info file, which must be inside the checkout.
+      if(top){
+        if(parsed.options?.composite)fail('typescript-incremental-unsupported');
+        const found=buildInfoFor(ts,parsed.options,root);
+        if(found.issue)fail(found.issue);
+        buildInfo=found.file||null;
+      }else referenced.push(parsed);
       for(const reference of parsed.projectReferences||[])
         parseConfig(reference.path.endsWith('.json')?reference.path:
           path.join(reference.path,'tsconfig.json'));
     };
-    parseConfig(path.join(root,'tsconfig.json'));
+    parseConfig(path.join(root,'tsconfig.json'),true);
   }else{
     // TypeScript 7's native compiler does not expose the previous config API.
     // Its CLI reports the effective config; restrict this path to one direct
@@ -60,9 +69,23 @@ export function typeScriptInputFacts(root,tsRoot,tsc){
     .map(file=>path.resolve(file));
   if(!files.length||files.some(file=>!within(realObservedPath(file),root)))
     fail('typescript-input-outside-repository');
+  // A program that uses a referenced project's sources or outputs depends on
+  // that project's build, which plain tsc does not run. tsc redirects only
+  // TypeScript sources; a shared .d.ts or .json is an ordinary input.
+  const declaration=/\.d\.[cm]?ts$|\.json$/;
+  const sources=new Set(),outputs=new Set(),outDirs=[];
+  for(const parsed of referenced){
+    const dirs=[parsed.options.outDir,parsed.options.declarationDir].filter(Boolean).map(dir=>path.resolve(dir));
+    outDirs.push(...dirs);
+    for(const file of parsed.fileNames.map(name=>path.resolve(name)))if(!declaration.test(file)){
+      sources.add(file);if(!dirs.length)outputs.add(file.replace(/\.[cm]?tsx?$/,ext=>ext.replace(/tsx?$/,'d.ts')));}
+  }
+  if(files.some(file=>sources.has(file)||outputs.has(file)||outDirs.some(dir=>within(file,dir))))
+    fail('typescript-project-reference-consumed');
   // Every hashed configuration must also be a certified question.
   const queries=captured?.queries&&[...configReads].every(file=>
     captured.queries.some(([kind,read])=>kind==='readFile'&&read===file))?captured.queries:null;
   return {configs:[...configReads].sort().map(file=>[file,digestFile(file)]),
-    files:[...new Set(files)].sort().map(file=>[file,digestFile(file)]),queries};
+    files:[...new Set(files)].sort().map(file=>[file,digestFile(file)]),queries,
+    ...(buildInfo?{buildInfo}:{})};
 }

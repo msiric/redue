@@ -15,8 +15,8 @@ try{
     entry:compiler.entry,node:[realObservedPath(process.execPath),process.version]};
   const contextHash=directContextHash(compiler,context.node);
   if(!contextOnly(contextHash)){
-    const {queries,configs,files}=typeScriptInputFacts(root,compiler.tsRoot,compiler.entry);
-    const layout={root,script,configs,files,context};
+    const {queries,configs,files,buildInfo}=typeScriptInputFacts(root,compiler.tsRoot,compiler.entry);
+    const layout={root,script,configs,files,context,...(buildInfo?{buildInfo}:{})};
     probeResult(directProbeOutput(layout),contextHash,queries,layout);
   }
 }catch(e){console.error(`VSTATE_REASON:${e.code&&/^[a-z-]+$/.test(e.code)?e.code:'typescript-contract-unavailable'}`);process.exitCode=2;}

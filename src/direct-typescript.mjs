@@ -81,9 +81,35 @@ export function directCompiler(root,{verify=true}={}){
 // The direct probe's output: root, script, configuration and program files with
 // their byte digests, and the execution context. A recorded run rebuilds it from
 // the same layout (direct-run-certificate.mjs).
-export function directProbeOutput({root,script,configs,files,context}){
+export function directProbeOutput({root,script,configs,files,context,buildInfo}){
   const named=list=>list.map(([file,digest])=>[hash(file),digest]);
-  return hash(JSON.stringify({root,script,configs:named(configs),files:named(files),...context}));
+  return hash(JSON.stringify({root,script,configs:named(configs),files:named(files),...context,
+    ...(buildInfo?{buildInfo}:{})}));
+}
+// The build-info file an incremental root config makes tsc read and write,
+// as {file} relative to the root, {} when not incremental, or {issue}. The
+// probe and the plan both use this rule. It must be inside the checkout, end
+// in .tsbuildinfo (the only write the run recorder allows) and contain no glob
+// characters (the plan excludes it with a pattern). An option that makes the
+// result depend on the build-info history is refused.
+export function buildInfoFor(ts,options,root) {
+  if(!options?.incremental)return {};
+  if(options.assumeChangesOnlyAffectDirectDependencies)return {issue:'typescript-incremental-unsound'};
+  const file=ts.getTsBuildInfoEmitOutputFilePath?.(options);
+  if(!file||!withinPath(path.resolve(file),root))return {issue:'typescript-buildinfo-outside-repository'};
+  const relative=path.relative(root,path.resolve(file)).split(path.sep).join('/');
+  if(!relative.endsWith('.tsbuildinfo')||/[*?[\]{}()!+@,]/.test(relative))return {issue:'typescript-buildinfo-name-unsupported'};
+  return {file:relative};
+}
+// The plan's build-info file, or null. The compiler is loaded only when the
+// root config sets incremental or extends another config.
+export function directBuildInfo(root,script) {
+  const config=path.join(root,'tsconfig.json');
+  let raw;try{raw=fs.readFileSync(config,'utf8');}catch{return null;}
+  if(!/"(?:incremental|extends)"\s*:/.test(raw))return null;
+  const compiler=directProject(root,script,{verify:false}),ts=createRequire(import.meta.url)(compiler.tsRoot);
+  const parsed=ts.getParsedCommandLineOfConfigFile(config,{},{...ts.sys,onUnRecoverableConfigFileDiagnostic(){}});
+  return parsed?.options?.composite?null:buildInfoFor(ts,parsed?.options,root).file??null;
 }
 // The probe value the daemon stores for one direct probe's checkpoint output.
 export function directProbeValue(argv,output,stderrHash){
