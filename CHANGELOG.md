@@ -13,8 +13,10 @@
 - Claude Code: the typecheck hook also matches a typecheck that starts a `;` or
   `&&` chain. When it skips one, the message names the rest of the chain. The
   skill lists the exact commands the hook matches for the selected config.
-- Shorter agent instructions: the CLAUDE.md block is 327 bytes instead of 739,
-  the skill 1.8 KB instead of 5 KB. The reuse rules are unchanged.
+- Shorter agent instructions: the CLAUDE.md block is 235 bytes instead of 739,
+  the skill 1.8 KB instead of 5 KB. The reuse rules are unchanged. When the
+  Claude Code hook matches a typecheck, the block no longer points to the
+  skill; the skill stays for agents that look for it.
 - Releases are published to the `latest` npm tag as well as `alpha`, so
   `npm install -g @redue/cli` installs the newest release.
 

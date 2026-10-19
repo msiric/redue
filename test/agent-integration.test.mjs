@@ -212,6 +212,8 @@ test('claude setup adds one typecheck hook to settings.local.json; removal resto
   // The skill gives the agent the same command the hook matches.
   assert.match(f.read('.claude/skills/redue-verification/SKILL.md'),/^- Typecheck: `redue run typecheck`\.$/m);
   assert.match(f.read('CLAUDE.md'),/^Typecheck with `redue run typecheck`\. /m);
+  // The hook does the work; the block does not send the agent to the skill.
+  assert(!f.read('CLAUDE.md').includes('SKILL.md'));
   assert.match(f.read('.claude/skills/redue-verification/SKILL.md'),/To ask without running: `redue status --sync --json`/);
   const once=f.read(local);f.ok('agent','setup','claude','--apply');assert.equal(f.read(local),once);
   const doctor=JSON.parse(f.ok('agent','doctor','claude','--json').stdout);

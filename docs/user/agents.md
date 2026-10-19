@@ -165,7 +165,9 @@ Codex gets a short managed section in project `AGENTS.md` that points to
 `.agents/skills/redue-verification/SKILL.md`. Claude Code gets one in `CLAUDE.md`
 that names the typecheck command the hook matches and says what a skip means,
 plus `.claude/skills/redue-verification/SKILL.md`. The skill holds the reuse
-rules and the exact commands for the selected config. Small
+rules and the exact commands for the selected config. When the hook matches a
+typecheck, the `CLAUDE.md` section does not point to the skill: the hook does
+the work, and the skill is there for agents that look for it. Small
 ownership records in `.redue/agents/` support safe updates/removal. These are
 portable project files, not receipts; review and commit them if the team wants
 this integration. Do not ignore just the ownership records while committing the

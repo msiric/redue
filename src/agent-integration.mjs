@@ -88,13 +88,14 @@ function saved(root,host){const text=read(root,marker(host));if(text===null)retu
 }
 // The managed block is always in the agent's context, so it stays short. For
 // Claude Code it names the typecheck command the hook matches and what a skip
-// means; that path needs nothing else. Everything else is in the skill.
+// means. The hook does the rest, so the block does not point to the skill;
+// the skill stays for agents that look for it.
 function blockFor(host,forms=[]){return `\n\n<!-- REDUE:${host}:begin -->\n`+
   (forms.length?`Typecheck with ${forms.map(form=>`\`${form}\``).join(' and ')}. If its last pass still applies to\n`+
     `these exact files, a REDUE hook skips the run and says so. The skip counts as\n`+
-    `a pass; don't check it again. Only before running another redue command, read\n`:
-    `Before you run, skip or report a typecheck or other configured check, read\n`)+
-  `${hosts[host].skill}.\n`+
+    `a pass; don't check it again.\n`:
+    `Before you run, skip or report a typecheck or other configured check, read\n`+
+    `${hosts[host].skill}.\n`)+
   `<!-- REDUE:${host}:end -->\n`;}
 // One form per typecheck: the npm script when there is one, since that is what
 // the project's own instructions usually name.
