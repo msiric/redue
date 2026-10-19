@@ -26,3 +26,13 @@ test('patched YAML rejects pathological nesting as a parse error, not stack exha
   assert(doc.errors.length>0);
   assert(doc.errors.every(error=>error.name==='YAMLParseError'));
 });
+
+test('input patterns may exclude a .git directory but never name one',async t=>{
+  const {discoverDeclared}=await import('../src/declared-plan.mjs');
+  const fs=await import('node:fs'),os=await import('node:os'),path=await import('node:path');
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'redue-git-pattern-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+  const plan=inputs=>discoverDeclared({root,checks:[{name:'c',command:['node','c.js'],inputs}]});
+  for(const inputs of [['.git/HEAD'],['src/**','vendor/lib/.git/**']])
+    assert.throws(()=>plan(inputs),/names a \.git directory/,inputs.join());
+  assert.doesNotThrow(()=>plan(['src/**','!.git/**','!**/.git/**']));
+});

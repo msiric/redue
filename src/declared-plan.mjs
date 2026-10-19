@@ -16,6 +16,8 @@ const safePattern=value=>{
   const raw=value.startsWith('!')?value.slice(1):value;
   if(!raw||path.isAbsolute(raw)||raw.split(/[\\/]/).includes('..'))
     throw Error(`unsafe repository-relative input pattern: ${value}`);
+  // The observer never watches .git directories; excluding one is fine.
+  if(raw===value&&raw.split(/[\\/]/).includes('.git'))throw Error(`input pattern names a .git directory, which is not observed: ${value}`);
   return value;
 };
 

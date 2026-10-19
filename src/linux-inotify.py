@@ -73,10 +73,18 @@ def main(root):
     file_paths = {}
     intentional_removals = set()
 
+    # No input lies in a .git directory (config refuses such patterns and the
+    # index skips them), so none is watched: git creates object directories
+    # there on most commits, and each would be an observation gap.
+    def in_git(target):
+        return '.git' in os.path.relpath(target, root).split(os.sep)
+
     def add_tree(folder):
         stack = [folder]
         while stack:
             current = stack.pop()
+            if in_git(current):
+                continue
             wd = libc.inotify_add_watch(fd, os.fsencode(current), MASK)
             if wd < 0:
                 raise OSError(ctypes.get_errno(), 'inotify_add_watch failed')
@@ -119,6 +127,8 @@ def main(root):
                     emit('gap', reason='inotify_watch_unknown')
                     return False
                 target = os.path.join(parent, os.fsdecode(raw)) if raw else parent
+                if in_git(target):
+                    continue
                 if mask & (IN_UNMOUNT | IN_DELETE_SELF | IN_MOVE_SELF | IN_IGNORED):
                     emit('gap', reason='inotify_watch_lost')
                     return False

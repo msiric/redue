@@ -17,6 +17,11 @@
   the skill 1.8 KB instead of 5 KB. The reuse rules are unchanged. When the
   Claude Code hook matches a typecheck, the block no longer points to the
   skill; the skill stays for agents that look for it.
+- Linux: the observer no longer watches `.git` directories. Before, each new
+  directory git created there (on most commits) was an observation gap: status
+  was UNVERIFIED until a full reindex and probe finished, about 5 s on a
+  26k-file project. Input patterns that name a `.git` directory are now
+  refused; REDUE never observed changes there.
 - Releases are published to the `latest` npm tag as well as `alpha`, so
   `npm install -g @redue/cli` installs the newest release.
 

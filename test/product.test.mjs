@@ -468,6 +468,22 @@ test('Linux overflow, watch loss, and watch exhaustion withhold CURRENT then rec
   }
 });
 
+test('Linux: git writing new directories under .git is no observation gap',
+  {skip:process.platform!=='linux'},async t=>{
+  const f=withFixture(t),nested=path.join(f.root,'vendor','lib');
+  put(path.join(nested,'a.txt'),'a\n');execFileSync('git',['init','-q'],{cwd:nested});
+  ok(f,'start');ok(f,'run','check');
+  const gaps=()=>events(f).filter(e=>e.kind==='observation_gap').length,before=gaps();
+  // A commit writes loose objects into new .git/objects/xx directories, also in a nested repo.
+  const commit=cwd=>execFileSync('git',['-c','user.name=t','-c','user.email=t@example.com','commit','-qm','x'],{cwd});
+  commit(f.root);execFileSync('git',['add','a.txt'],{cwd:nested});commit(nested);
+  await new Promise(resolve=>setTimeout(resolve,500));
+  assert.equal(row(f).freshness,'CURRENT');assert.equal(gaps(),before);
+  // A new directory elsewhere in the checkout still is one.
+  fs.mkdirSync(path.join(f.root,'src','nested'));
+  await until(f,()=>gaps()>before);
+});
+
 test('Linux hung synchronization leaves cached status and stop responsive',
   {skip:process.platform!=='linux'},async t=>{
   const f=withFixture(t);ok(f,'start');ok(f,'run','check');

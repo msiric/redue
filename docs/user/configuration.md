@@ -56,6 +56,9 @@ Advanced explicit contracts may declare `generatedInputs`, `installedInputs`, na
 reviewed escape hatches, not onboarding requirements. A coverage rationale cannot
 override unsupported storage, unresolved links, missing inputs, or observation failure.
 
+Input patterns are relative to the project root. They cannot name a `.git`
+directory, because REDUE does not observe one; `!.git/**` is fine.
+
 Changing commands, relevant configuration, installed material, or consumed inputs
 invalidates prior applicability. It does not erase historical execution outcomes.
 
