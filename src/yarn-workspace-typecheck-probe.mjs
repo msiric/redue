@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Read-only applicability probe. Its output is one digest or a fixed reason;
 // source, configuration, environment values, and command output are not logged.
+import {probeTimeLeft} from './probe-deadline.mjs';
 import {compilerFiles} from './typescript-list.mjs';
 import {contextOnly,probeResult} from './probe-result.mjs';
 import fs from 'node:fs';
@@ -79,7 +80,7 @@ try{
   const tsc=yarnLocalTsc(root);
   const captured=process.argv.includes('--redue-checkpoint')?compilerFiles(path.join(root,'node_modules/typescript'),cwd):null;
   const listed=captured?{status:0,stdout:captured.files.join('\n')}:spawnSync(process.execPath,[tsc,'-p','.','--listFilesOnly'],
-    {cwd,env:process.env,encoding:'utf8',timeout:4000,maxBuffer:16*1024*1024,
+    {cwd,env:process.env,encoding:'utf8',timeout:probeTimeLeft(4000),maxBuffer:16*1024*1024,
       stdio:['ignore','pipe','pipe']});
   if(listed.error||listed.signal||listed.status!==0)fail('typescript-input-list-unavailable');
   const inputs=listed.stdout.trim().split(/\r?\n/).filter(Boolean)

@@ -31,6 +31,7 @@ Stable-enough-for-alpha fields:
 | `freshness` | `CURRENT`, `STALE`, or `UNVERIFIED`, independent of result. |
 | `reuse_eligible` | True only for qualified, applicable passing evidence. Never derive permission to reuse from outcome alone. Missing means false. |
 | `run_facts` | Number of lookups outside the discovery certificate that the receipt's run made (direct TypeScript recipe). Status asks each again before answering CURRENT. Absent when there are none. |
+| `probe_deadline_ms` | Top level. How long the full state probes of one decision may take in total: each check's deadline (5 s to 60 s, from earlier probes and runs) times its probe count, summed. Callers wait at least this long plus 10 s for a synchronized answer. |
 | `reason` | Human explanation; not a stable machine enum. Do not parse it to authorize reuse. |
 | `changed_inputs` | Known changed relevant paths when available, possibly only the first difference; empty/missing is not proof of no changes. |
 | `invocation` | Null without a receipt; otherwise run ID, completion `status`, duration, exit code/signal when known. Status distinguishes exited, interrupted, and start/capture failure. |

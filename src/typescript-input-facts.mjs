@@ -3,6 +3,7 @@ import fs from 'node:fs';import path from 'node:path';import {createHash} from '
 import {createRequire} from 'node:module';import {spawnSync} from 'node:child_process';
 import {compilerFiles} from './typescript-list.mjs';
 import {buildInfoFor} from './direct-typescript.mjs';
+import {probeTimeLeft} from './probe-deadline.mjs';
 import {withinPath as within,realObservedPath} from './path-identity.mjs';
 import {timing} from './decision-profile.mjs';
 const require=createRequire(import.meta.url),hash=value=>createHash('sha256').update(value).digest('hex');
@@ -45,7 +46,7 @@ export function typeScriptInputFacts(root,tsRoot,tsc){
     if(/"(?:extends|references|plugins|incremental|composite)"\s*:/.test(raw))
       fail('typescript-config-graph-unsupported');
     const shown=spawnSync(process.execPath,[tsc,'--showConfig'],{cwd:root,
-      env:process.env,encoding:'utf8',timeout:4000,maxBuffer:16*1024*1024,
+      env:process.env,encoding:'utf8',timeout:probeTimeLeft(4000),maxBuffer:16*1024*1024,
       stdio:['ignore','pipe','pipe']});
     if(shown.error||shown.signal||shown.status!==0)fail('typescript-config-unavailable');
     const effective=JSON.parse(shown.stdout);
@@ -59,7 +60,7 @@ export function typeScriptInputFacts(root,tsRoot,tsc){
   const listingStarted=performance.now();
   const captured=process.argv.includes('--redue-checkpoint')?compilerFiles(tsRoot,root):null;
   const listed=captured?{status:0,stdout:captured.files.join('\n')}:spawnSync(process.execPath,[tsc,'--noEmit','--listFilesOnly'],
-    {cwd:root,env:process.env,encoding:'utf8',timeout:process.platform==='win32'?10000:4000,
+    {cwd:root,env:process.env,encoding:'utf8',timeout:probeTimeLeft(process.platform==='win32'?10000:4000),
       maxBuffer:16*1024*1024,
       stdio:['ignore','pipe','pipe']});
   timing('typescript_contract.list_files',listingStarted,{status:listed.status??null,

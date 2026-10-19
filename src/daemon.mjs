@@ -18,6 +18,7 @@ import {atomicJson,readReceipts,readReceiptSnapshot,receiptRevision} from './sta
 import {history,closeHistory} from './observation.mjs';
 import {inputKey,planGuard,toolchainKey} from './decision-validation.mjs';
 import {queriesHold,runFactReason as runFactChanged} from './typescript-list.mjs';
+import {nextProbeHint,probeDeadline,probeFloorMs} from './probe-deadline.mjs';
 import {statusSummary} from './cached-state.mjs';
 import {directProject,directProbeValue,reviewedTypeScriptVersions} from './direct-typescript.mjs';
 import {buildInfoPath,recordedCertificate} from './direct-run-certificate.mjs';
@@ -153,6 +154,14 @@ function reuseCertificate(row,key,allowReuse,forceFull,checked) {
   metrics.probeReuses=(metrics.probeReuses||0)+1;
   return null;
 }
+// The current full-probe deadline for a check; see probe-deadline.mjs. Hints
+// are kept per check name, so a plan rebuild (each Windows decision) keeps them.
+const probeHints=new Map();
+function fullProbeDeadline(row) {
+  const run=receipts[row.plan.name]?.invocation;
+  return probeDeadline({floor:probeFloorMs(row.plan.qualification),hint:probeHints.get(row.plan.name),
+    runMs:run?.status==='exited'?run.durationMs:0});
+}
 function probe(row,allowReuse=false,{launch=true}={}) {
   const started=performance.now();
   const supported=new Map([
@@ -205,18 +214,21 @@ function probe(row,allowReuse=false,{launch=true}={}) {
     row.probeCache=null;
   }
   const values=[];let checkpoint=null;
+  // The slowest of this check's probes sets the hint for all of them.
+  const deadline=fullProbeDeadline(row);let hint=0;
+  const learn=()=>{if(hint)probeHints.set(row.plan.name,hint);};
   for(const argv of row.plan.probes) {
-    // Supported TypeScript probes perform bounded input/toolchain hashing.
-    // Native NTFS runs have exceeded the generic 5 s cap under load, despite
-    // completing normally and with the duplicated work already removed.
-    const timeout=row.plan.qualification==='pnpm-tsc-v1'||
-      (process.platform==='win32'&&['typescript-noemit-v1','npm-typescript-direct-v1','yarn-workspace-tsc-v1']
-        .includes(row.plan.qualification))?10000:5000;
+    const timeout=deadline,launched=performance.now();
     mark('daemon.probe_launch',{mode:'full',reason:fullReason,deadlineMs:timeout});
-    const out=spawnSync(argv[0],[...argv.slice(1),...(cacheable?['--redue-checkpoint']:[])],{cwd:row.plan.cwd,
+    // A built-in probe gets its deadline, so its inner compiler calls share it.
+    const out=spawnSync(argv[0],[...argv.slice(1),...(cacheable?['--redue-checkpoint']:[]),
+      ...(builtIn?[`--redue-deadline=${timeout}`]:[])],{cwd:row.plan.cwd,
       timeout,maxBuffer:1024*1024,stdio:['ignore','pipe','pipe'],env:traceEnvironment()});
     mark('daemon.probe_complete',{mode:'full',childPid:out.pid,exit:out.status,signal:out.signal,code:out.error?.code});
+    const timedOut=out.error?.code==='ETIMEDOUT';
+    if(!out.error||timedOut)hint=Math.max(hint,nextProbeHint({durationMs:performance.now()-launched,deadlineMs:timeout,timedOut}));
     if(out.error||out.signal||out.status!==0) {
+      learn();
       if(!row.probeError){row.revision++;row.lastReason='declared state probe became unavailable';}
       row.probeHash=null;row.probeAt=0;
       const code=['typescript-noemit-v1','npm-typescript-direct-v1','yarn-workspace-tsc-v1','pnpm-tsc-v1']
@@ -280,6 +292,7 @@ function probe(row,allowReuse=false,{launch=true}={}) {
     }
     values.push([argv,out.status,sha(cacheable?checkpoint.output:out.stdout),sha(out.stderr)]);
   }
+  learn();
   const value=sha(JSON.stringify(values));
   if((row.probeHash!==null&&row.probeHash!==value)||row.probeError){
     row.revision++;row.lastReason='declared state probe changed or recovered';}
@@ -478,7 +491,10 @@ function status(contextHashes,synchronizedInstalled=false,synchronizedFilesystem
   // wrapper may persist its outcome even when its control connection is denied.
   refreshReceipts();
   const checks=rows(contextHashes,synchronizedInstalled,synchronizedFilesystem);
+  // A decision may run every check's probes in turn: callers wait for all of them.
+  const probing=[...(index?.checks.values()||[])].filter(row=>row.plan.probes.length);
   const now=Date.now();return {schema:1,receipt_revision:receiptStateRevision,...statusSummary(checks),checks,
+    ...(probing.length?{probe_deadline_ms:probing.reduce((sum,row)=>sum+fullProbeDeadline(row)*row.plan.probes.length,0)}:{}),
     observation:{healthy:healthy&&!planning&&!recovering&&!index?.unavailable,
       generation,observed_at:lastObservation,
       events:(index?.eventCount||0)+[...external.values()].reduce((n,e)=>n+(e.index?.eventCount||0),0),

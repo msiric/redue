@@ -1,6 +1,7 @@
 // Pinned pnpm 12 node-modules installation provider. The engine sees only
 // repository-relative input sets and resolution relationships, never pnpm
 // virtual-store names as semantic identities.
+import {probeTimeLeft} from './probe-deadline.mjs';
 import {compilerFiles} from './typescript-list.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -96,7 +97,7 @@ export function pnpmWorkspacePackages(root,patterns){
   const files=execFileSync('git',['ls-files','--cached','--others','--exclude-standard',
     '-z','--',':(glob)**/package.json'],{cwd:root,
     env:{...process.env,GIT_OPTIONAL_LOCKS:'0'},maxBuffer:32*1024*1024,
-    timeout:5000}).toString().split('\0').filter(Boolean);
+    timeout:probeTimeLeft(5000)}).toString().split('\0').filter(Boolean);
   for(const file of files){
     const dir=path.posix.dirname(file);
     if(dir==='.'||dir.split('/').includes('node_modules')||
@@ -202,7 +203,7 @@ function listedTypeScriptFiles(root,selected,tsc){
     {cwd:path.join(root,selected.dir),env:process.env,encoding:'utf8',
       // The native NTFS public workspace takes 3-5 s to list ~770 inputs;
       // 5 s sometimes expired despite bounded, progressing compiler work.
-      timeout:10000,maxBuffer:32*1024*1024,stdio:['ignore','pipe','pipe']});
+      timeout:probeTimeLeft(10000),maxBuffer:32*1024*1024,stdio:['ignore','pipe','pipe']});
   if(out.error||out.signal||out.status!==0)
     throw Error('TypeScript input listing is unavailable');
   const files=out.stdout.trim().split(/\r?\n/).filter(Boolean)

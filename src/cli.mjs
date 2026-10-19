@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {builtInProbe,probeFloorMs,publishedDeadline} from './probe-deadline.mjs';
 import fs from 'node:fs';
 import {directQualification,directInterpretation,observedNpmContext} from './direct-typescript.mjs';
 import {directRunCertificateAllowed,directRunCertificate,directRunRecordable,directRunRecording,probeQuestions,validateRunRecord} from './direct-run-certificate.mjs';
@@ -43,7 +44,14 @@ timing('cli.config_resolution',configStarted);
 // A native Windows decision reconciles declared contents instead of trusting
 // watcher history. The measured 6k-file pnpm workspace can legitimately need
 // more than the former 15 s default; uncertainty still wins on expiry.
-const decisionDeadlineMs=process.platform==='win32'?30000:15000;
+// A decision can include a full probe, whose deadline the observer publishes.
+// Read when a wait starts, so a deadline the previous decision raised counts.
+const decisionBaseMs=process.platform==='win32'?30000:15000;
+function publishedProbeDeadline() {
+  try{return publishedDeadline(JSON.parse(fs.readFileSync(path.join(state,'status.json'),'utf8')).probe_deadline_ms);}
+  catch{return 0;}
+}
+const decisionDeadline=()=>Math.max(decisionBaseMs,publishedProbeDeadline()+10000);
 const digest=value=>createHash('sha256').update(value).digest('hex');
 function nodeIdentity() {const real=fs.realpathSync(process.execPath),st=fs.statSync(real,{bigint:true});
   return digest(JSON.stringify([real,process.version,...['dev','ino','mode','size','mtimeNs','ctimeNs']
@@ -69,11 +77,10 @@ function contextHashes() {return Object.fromEntries(config.checks.map(check=>[
 function probeHash(plan) {
   const started=performance.now();
   const values=[];
+  // The observer's current deadline, so a large project's probe is not cut short.
+  const timeout=Math.max(probeFloorMs(plan.qualification),publishedProbeDeadline());
   for(const argv of plan.probes||[]) {
-    const timeout=plan.qualification==='pnpm-tsc-v1'||
-      (process.platform==='win32'&&['typescript-noemit-v1','npm-typescript-direct-v1','yarn-workspace-tsc-v1']
-        .includes(plan.qualification))?10000:5000;
-    const out=spawnSync(argv[0],argv.slice(1),{cwd:plan.cwd,
+    const out=spawnSync(argv[0],[...argv.slice(1),...(builtInProbe(argv)?[`--redue-deadline=${timeout}`]:[])],{cwd:plan.cwd,
       timeout,maxBuffer:1024*1024,stdio:['ignore','pipe','pipe'],env:process.env});
     if(out.error||out.signal||out.status!==0){
       timing('cli.probe',started,{outcome:out.error?.code||out.signal||out.status||'error',
@@ -210,7 +217,7 @@ async function execute() {
     const observedContext=selected.qualification===directQualification?{interpretation:directInterpretation,npmProxyDigest:observedNpmContext()}:null;
     timing('cli.context_before',contextStarted);
     const
-      captureTimeout=Number(process.env.VSTATE_CAPTURE_TIMEOUT_MS||decisionDeadlineMs);
+      captureTimeout=Number(process.env.VSTATE_CAPTURE_TIMEOUT_MS||decisionDeadline());
     let before=null,after=null;
     // Expensive state probes can take seconds. Keep the filesystem checkpoint
     // adjacent to process launch so a late notification from earlier work
@@ -325,7 +332,9 @@ async function execute() {
     const endSnapshotStarted=performance.now();
     if(!unobservedDirectRun){
       try{after=await call({action:'snapshot',name,contextHashes:contextHashes(),
-        ...(recording?{runCertificate:1,adopt:recording}:recorded&&!certificate?{runCertificate:1,runFacts:1}:{})},captureTimeout);}
+        ...(recording?{runCertificate:1,adopt:recording}:recorded&&!certificate?{runCertificate:1,runFacts:1}:{})},
+        // The start checkpoint's probe may have raised the deadline.
+        Number(process.env.VSTATE_CAPTURE_TIMEOUT_MS||decisionDeadline()));}
       catch{captureIssues.push('end observation unavailable');}
       finally{if(recordFile)fs.rmSync(recordFile,{force:true});}
       timing('cli.end_checkpoint',endSnapshotStarted,{available:after?.snapshots?.[name]?1:0});
@@ -489,7 +498,7 @@ async function main(){
         observedNpmDigest:observedNpmContext(),proxyShapes});
     }
     let value;try{value=await decisionCall({action:'sync',contextHashes:contextHashes()},
-      Number(process.env.VSTATE_SYNC_TIMEOUT_MS||decisionDeadlineMs));
+      Number(process.env.VSTATE_SYNC_TIMEOUT_MS||decisionDeadline()));
       // A client upgrade can encounter an older running observer. Its successful
       // control response does not establish that it evaluated the latest receipt.
       if(value.receipt_revision===null){

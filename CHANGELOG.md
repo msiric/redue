@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- A full state probe may run longer on large projects. Its deadline was a
+  fixed 5 s (10 s on Windows and for pnpm); now it is the larger of twice the
+  last successful probe and the last completed run, at least that floor and at
+  most 60 s, doubling after a timeout. A probe that never finishes is still
+  killed at its deadline and the check stays UNVERIFIED. `redue status --sync`
+  and `redue run` wait for the observer up to the sum of its checks' probe
+  deadlines plus 10 s (`probe_deadline_ms` in status JSON), never less than
+  before. While a full probe runs the observer does not answer, so with a hung
+  probe a decision can wait up to 60 s per check before it is UNVERIFIED.
+
 ## 0.1.0-alpha.12 — 2026-10-19
 
 Bench numbers below are from one 800-file project on macOS arm64, Node 22.13.0.
