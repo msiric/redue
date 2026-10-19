@@ -65,9 +65,16 @@ Its `public-smoke` job then downloads the published package on macOS, Linux and
 Windows, compares its SHA256 with the tested tarball, runs the package smoke,
 and checks that `alpha` and `latest` both name the published version.
 
+npm can hold a trusted publish as a staged version for many minutes (about 30
+for alpha.12) before it serves it or applies the `latest` move. Publishing
+again in that window fails with `409 ... previously staged version`. The
+publish step treats that as published and waits up to 30 minutes for the
+registry to serve the same bytes.
+
 The Actions token cannot create a tag on a commit that changes
-`.github/workflows`. When the release commit does, push the tag first from a
-maintainer checkout (`git tag vVERSION COMMIT && git push origin vVERSION`); the
+`.github/workflows`. It also failed (HTTP 404) for alpha.12, whose release
+commit changed no workflow but followed one that did. When that happens, push
+the tag first from a maintainer checkout (`git tag vVERSION COMMIT && git push origin vVERSION`); the
 workflow then creates the release on that tag. A rerun skips npm when the same
 bytes are already published and skips an existing release, so a failed later step
 can be rerun. The `latest` move runs on every attempt. Stop on failure and diagnose it. Do not rebuild, republish different

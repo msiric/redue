@@ -23,7 +23,7 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     permissions:
       contents: write
       actions: read
@@ -81,7 +81,20 @@ jobs:
           cat release-notes.md
       - name: npm publish (trusted publishing)
         if: steps.artifact.outputs.published != 'true'
-        run: npm publish "${{ steps.artifact.outputs.file }}" --tag alpha --access public --registry=https://registry.npmjs.org
+        run: |
+          # npm can hold a trusted publish as staged for many minutes before it
+          # serves it; publishing again meanwhile fails with "previously staged".
+          if ! out=$(npm publish "${{ steps.artifact.outputs.file }}" --tag alpha --access public --registry=https://registry.npmjs.org 2>&1); then
+            echo "$out"; grep -q 'previously staged version' <<<"$out" || exit 1
+          else echo "$out"; fi
+          want=$(jq -r '.[0].integrity' release-candidate/manifest.json)
+          for attempt in $(seq 1 60); do
+            got=$(npm view "@redue/cli@$VERSION" dist.integrity --registry=https://registry.npmjs.org 2>/dev/null || true)
+            if [ "$got" = "$want" ]; then exit 0; fi
+            if [ -n "$got" ]; then echo "@redue/cli@$VERSION is published with other bytes"; exit 1; fi
+            sleep 30
+          done
+          echo "@redue/cli@$VERSION is still not visible on npm after 30 minutes"; exit 1
       - name: Point latest at this version too
         # Needs "Allow npm dist-tag" on the package's trusted publisher. It also
         # runs when npm publish was skipped, so a rerun retries a failed move.
