@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawnSync,execFileSync} from 'node:child_process';
-import {claudeHook,hookForms,matchCheck,recordedCommand} from '../src/claude-hook.mjs';
+import {claudeHook,hookForms,lastRunTimeout,matchCheck,recordedCommand,statusTimeout} from '../src/claude-hook.mjs';
 import {findExecutable} from '../src/executable-lookup.mjs';
 const bin=path.resolve('bin/redue.mjs');
 const put=(f,s)=>{fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,s);};
@@ -140,6 +140,18 @@ test('timeout, error exit, unreadable output and missing REDUE all allow',async 
   if(shell)assert.equal(spawnSync(shell,['-c','redue agent hook claude'],{env:{...process.env,PATH:path.join(p.root,'empty')},input:'{}'}).status,127);
 });
 
+test('the status wait is half the last completed run, at most 10 s, or 2 s with none',()=>{
+  const published=(durationMs,status='exited')=>({checks:[{name:'typecheck',invocation:{status,durationMs}}]});
+  assert.equal(statusTimeout(published(3000),'typecheck'),1500);
+  assert.equal(statusTimeout(published(400),'typecheck'),200);
+  assert.equal(statusTimeout(published(60000),'typecheck'),10000);
+  // An interrupted or failed start says nothing about how long the check takes.
+  for(const value of [published(0,'interrupted'),published(5,'start_failed'),published(undefined),published(-1),
+    published('9000'),{checks:[]},{checks:[{name:'typecheck',invocation:null}]},null])
+    assert.equal(statusTimeout(value,'typecheck'),2000);
+  assert.equal(statusTimeout(published(3000),'other'),2000);
+});
+
 test('REDUE_FORCE=1, other tools and non-matching commands allow without querying status',async t=>{
   const p=project(t),entry=p.fake('current',replying(status({})));
   for(const input of [bash('REDUE_FORCE=1 npm run typecheck',p.root),bash('  REDUE_FORCE=1 redue run typecheck | tail -5',p.root),
@@ -175,7 +187,9 @@ test('real observer: blocks after a non-input edit, allows after a source edit o
     coverage:Object.fromEntries(categories.map(k=>[k,true])),
     coverageReview:Object.fromEntries(categories.map(k=>[k,'reviewed fixture contract']))}]}));
   put(path.join(root,'package.json'),'{"name":"redue-hook-fixture","version":"1"}\n');
-  put(path.join(root,'check.cjs'),"process.exitCode=require('node:fs').readFileSync('src/a.ts','utf8').includes('FAIL')?1:0;\n");
+  // Long enough that half of it covers a status call.
+  put(path.join(root,'check.cjs'),"const end=Date.now()+3000;while(Date.now()<end);\n"+
+    "process.exitCode=require('node:fs').readFileSync('src/a.ts','utf8').includes('FAIL')?1:0;\n");
   put(path.join(root,'src/a.ts'),'export const a=1;\n');put(path.join(root,'docs/notes.md'),'# Notes\n');
   const env={...process.env,VSTATE_START_READY_WAIT_MS:'10000'};
   const redue=(...args)=>{const r=spawnSync(process.execPath,[bin,...args],{cwd:root,env,encoding:'utf8',timeout:30000});
@@ -183,6 +197,9 @@ test('real observer: blocks after a non-input edit, allows after a source edit o
   t.after(()=>{spawnSync(process.execPath,[bin,'remove-state'],{cwd:root,env,timeout:30000});
     fs.rmSync(base,{recursive:true,force:true});});
   redue('agent','setup','claude','--apply');redue('start');redue('run','typecheck');
+  const configFile=path.join(root,'redue.config.json');
+  const wait=lastRunTimeout(configFile,JSON.parse(fs.readFileSync(configFile,'utf8')),'typecheck');
+  assert(wait>=1500&&wait<=10000,`status wait ${wait} ms`);
   const decide=command=>hook(bash(command,root),root,env)?.hookSpecificOutput?.permissionDecision||'allow';
   assert.equal(decide('redue run typecheck'),'deny');
   fs.appendFileSync(path.join(root,'docs/notes.md'),'More notes.\n');

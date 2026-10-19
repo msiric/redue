@@ -22,9 +22,10 @@ const marker=host=>`.redue/agents/${host}.json`;
 const settingsPath='.claude/settings.local.json';
 const sameJson=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 // One handler per exact command form; `if` keeps other Bash calls from starting Node.
+// The hook waits for status up to 10 s; 15 s leaves room for starting Node.
 function hookFor(config,relative){
   const rules=[...new Set(hookForms(config,relative).flatMap(row=>row.forms))].map(form=>`Bash(${form}*)`);
-  return rules.length?{matcher:'Bash',hooks:rules.map(rule=>({type:'command',if:rule,command:hookCommand,timeout:5}))}:null;
+  return rules.length?{matcher:'Bash',hooks:rules.map(rule=>({type:'command',if:rule,command:hookCommand,timeout:15}))}:null;
 }
 // REDUE's entry is recognized by its command, not by a committed record: the
 // local file differs between checkouts, and users may edit the entry.

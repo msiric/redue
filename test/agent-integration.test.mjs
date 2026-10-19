@@ -208,7 +208,7 @@ test('claude setup adds one typecheck hook to settings.local.json; removal resto
   const installed=JSON.parse(f.read(local));
   assert.deepEqual({...installed,hooks:{...installed.hooks,PreToolUse:installed.hooks.PreToolUse.slice(0,1)}},existing);
   assert.deepEqual(installed.hooks.PreToolUse[1],{matcher:'Bash',hooks:[{type:'command',
-    if:'Bash(redue run typecheck*)',command:'redue agent hook claude',timeout:5}]});
+    if:'Bash(redue run typecheck*)',command:'redue agent hook claude',timeout:15}]});
   // The skill gives the agent the same command the hook matches.
   assert.match(f.read('.claude/skills/redue-verification/SKILL.md'),/^- Typecheck: `redue run typecheck`\.$/m);
   assert.match(f.read('CLAUDE.md'),/^Typecheck with `redue run typecheck`\. /m);

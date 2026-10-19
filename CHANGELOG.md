@@ -17,6 +17,9 @@
   the skill 1.8 KB instead of 5 KB. The reuse rules are unchanged. When the
   Claude Code hook matches a typecheck, the block no longer points to the
   skill; the skill stays for agents that look for it.
+- Claude Code hook: it waits for status up to half the last completed run's
+  duration, at most 10 s, instead of a fixed 2 s. Run `redue agent setup claude
+  --apply` again to raise the hook's Claude Code timeout from 5 s to 15 s.
 - Linux: the observer no longer watches `.git` directories. Before, each new
   directory git created there (on most commits) was an observation gap: status
   was UNVERIFIED until a full reindex and probe finished, about 5 s on a

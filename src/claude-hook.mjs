@@ -6,6 +6,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
+import {projectState} from './project-location.mjs';
+import {realObservedPath} from './path-identity.mjs';
 
 export const hookCommand='redue agent hook claude';
 const safe=/^[A-Za-z0-9_./:=,+-]+$/;
@@ -76,10 +78,12 @@ export function verdict(status,name,rest=null){
 function synchronizedStatus(entry,config,root,timeout){
   return new Promise(resolve=>{
     let child,out='',done=false;
-    const finish=value=>{if(done)return;done=true;clearTimeout(timer);
+    const finish=value=>{if(done)return;done=true;clearTimeout(timer);process.off('SIGTERM',stop);
       if(child?.pid&&child.exitCode===null)try{process.platform==='win32'?child.kill('SIGKILL'):process.kill(-child.pid,'SIGKILL');}catch{}
       resolve(value);};
     const timer=setTimeout(()=>finish(null),timeout);
+    // Claude Code ends a hook that outlives its own timeout; end the status call with it.
+    const stop=()=>finish(null);process.once('SIGTERM',stop);
     // Its own process group on POSIX, so a timeout also ends the engine it starts.
     try{child=spawn(process.execPath,[entry,'--config',config,'status','--sync','--json'],
       {cwd:root,stdio:['ignore','pipe','ignore'],env:process.env,windowsHide:true,detached:process.platform!=='win32'});}
@@ -91,8 +95,22 @@ function synchronizedStatus(entry,config,root,timeout){
   });
 }
 
+// Waiting for status never costs more than half the check: half the last
+// completed run's duration, at most 10 s. With no completed run, 2 s.
+export function statusTimeout(status,name){
+  const run=Array.isArray(status?.checks)?status.checks.find(row=>row?.name===name)?.invocation:null;
+  return run?.status==='exited'&&Number.isFinite(run.durationMs)&&run.durationMs>=0?
+    Math.min(run.durationMs/2,10000):2000;
+}
+// From the observer's last published status, which is small, not the receipts.
+export function lastRunTimeout(config,parsed,name){
+  try{const root=realObservedPath(path.resolve(path.dirname(config),parsed.root||'.'));
+    return statusTimeout(JSON.parse(fs.readFileSync(path.join(projectState(root,config),'status.json'),'utf8')),name);}
+  catch{return 2000;}
+}
+
 // Returns the hook's stdout object, or null to allow the command.
-export async function claudeHook(input,{entry,timeout=2000}){
+export async function claudeHook(input,{entry,timeout}){
   if(input?.tool_name!=='Bash')return null;
   const command=input.tool_input?.command,root=input.cwd;
   if(typeof command!=='string'||/^\s*REDUE_FORCE=1(?:\s|$)/.test(command))return null;
@@ -101,9 +119,10 @@ export async function claudeHook(input,{entry,timeout=2000}){
   if(record?.schema!==1||record.host!=='claude'||typeof record.config!=='string'||
     !/^[^/\\]+\.json$/.test(record.config))return null;
   const config=path.join(root,record.config);
-  const match=matched(command,JSON.parse(fs.readFileSync(config,'utf8')),record.config);
+  const parsed=JSON.parse(fs.readFileSync(config,'utf8')),match=matched(command,parsed,record.config);
   if(!match)return null;
-  const name=match.check,status=await synchronizedStatus(entry,config,root,timeout),reason=verdict(status,name,match.rest);
+  const name=match.check,status=await synchronizedStatus(entry,config,root,timeout??lastRunTimeout(config,parsed,name)),
+    reason=verdict(status,name,match.rest);
   if(reason)return {hookSpecificOutput:{hookEventName:'PreToolUse',
     permissionDecision:'deny',permissionDecisionReason:reason}};
   // Rewrite only on a healthy answer for this check: without an observer,

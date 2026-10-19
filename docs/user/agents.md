@@ -95,7 +95,12 @@ chain. Nothing else matches. Each form has its own `if` rule, so other Bash
 commands never start the hook. The installed skill lists these exact commands,
 so the agent uses forms the hook recognizes.
 
-On a match, the hook runs `redue status --sync --json` with a 2-second timeout.
+On a match, the hook runs `redue status --sync --json`. It waits up to half the
+duration of the check's last completed run, at most 10 seconds, so waiting never
+costs more than half a run. With no completed run it waits 2 seconds. A check
+that takes a few hundred milliseconds is therefore rarely skipped; skipping it
+would save almost nothing, and the hook does not rewrite it to `redue run`
+either. Claude Code's own limit for the hook is 15 seconds.
 It blocks the command only when the check is CURRENT, PASS and
 `reuse_eligible: true`. The message names the check and the receipt's run ID. Every
 other result allows the command: STALE, UNVERIFIED, FAILED, a timeout, an error, or
