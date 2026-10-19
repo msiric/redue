@@ -2,7 +2,7 @@
 // A/B runs of headless Claude Code sessions with and without REDUE.
 //
 //   node eval/run.mjs --pilot                  # tasks marked "pilot" in eval/tasks.json
-//   node eval/run.mjs --repo NAME --task ID    # narrow the selection
+//   node eval/run.mjs --repo NAME --task ID[,ID]    # narrow the selection
 //
 // Options: --arms control,redue  --runs 3 (sessions per arm and task)
 //          --model claude-sonnet-5-5  --max-turns 30
@@ -35,7 +35,7 @@ const {values: opt} = parseArgs({options: {
 const entry = path.resolve(opt.redue);
 const repos = readJson(path.join(evalDir, 'repos.json')).repos;
 const tasks = readJson(path.join(evalDir, 'tasks.json')).tasks;
-const selected = tasks.filter(t => (!opt.pilot || t.pilot) && (!opt.repo || t.repo === opt.repo) && (!opt.task || t.id === opt.task));
+const selected = tasks.filter(t => (!opt.pilot || t.pilot) && (!opt.repo || t.repo === opt.repo) && (!opt.task || opt.task.split(',').includes(t.id)));
 if (!selected.length) { console.error('no tasks selected'); process.exit(2); }
 const out = path.resolve(opt.out || path.join(localDir, `run-${stamp()}`));
 fs.mkdirSync(out, {recursive: true});
