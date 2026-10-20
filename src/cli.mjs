@@ -64,12 +64,12 @@ function pathExecutableIdentity(name) {
   catch{}
   return digest('<unavailable>');
 }
-// The variables each test check's last run read while unset (see testRunGuard).
-const unsetFile=path.join(state,'environment-unset-v1.json');
-function unsetReads() {
-  try{const value=JSON.parse(fs.readFileSync(unsetFile,'utf8'));return value?.schema===1&&value.checks||{};}catch{return {};}
+// The variables each test check's last run read directly (see testRunGuard).
+const readsFile=path.join(state,'environment-reads-v1.json');
+function environmentReads() {
+  try{const value=JSON.parse(fs.readFileSync(readsFile,'utf8'));return value?.schema===1&&value.checks||{};}catch{return {};}
 }
-function contextHashes() {const unset=config.checks.some(check=>check.qualification===testsQualification)?unsetReads():{};
+function contextHashes() {const reads=config.checks.some(check=>check.qualification===testsQualification)?environmentReads():{};
   return Object.fromEntries(config.checks.map(check=>[
   check.name,Object.fromEntries([...(check.environment?.variables||[])
     .map(key=>[key,digest(process.env[key]??'<unset>')]),
@@ -81,9 +81,12 @@ function contextHashes() {const unset=config.checks.some(check=>check.qualificat
     ...(check.environment?.pathExecutables||[]).map(name=>[
       `__vstate_path_executable_${name}__`,pathExecutableIdentity(name)]),
     ...(check.environment?.executableIdentity?[['__vstate_node_identity__',nodeIdentity()]]:[]),
-    // The list is named too, so a status for an older list confirms nothing.
-    ...(Array.isArray(unset[check.name])?[['__redue_env_unset_list__',digest(JSON.stringify(unset[check.name]))],
-      ['__redue_env_unset__',digest(JSON.stringify([unset[check.name],unset[check.name].filter(key=>process.env[key]!==undefined)]))]]:[])])]));}
+    // The variables the last test run read directly, compared here: which
+    // list was compared, and the first variable whose value now differs.
+    // Control requests are small, so the values stay out of them.
+    ...(reads[check.name]?[['__redue_env_reads__',digest(JSON.stringify(reads[check.name]))],
+      ['__redue_env_changed__',Object.keys(reads[check.name]).find(key=>
+        (process.env[key]===undefined?'<unset>':digest(process.env[key]))!==reads[check.name][key])||'']]:[])])]));}
 function probeHash(plan) {
   const started=performance.now();
   const values=[];
@@ -425,7 +428,7 @@ async function execute() {
     // Two runs on the same inputs, environment and plan that disagree make the
     // check nondeterministic until its inputs change.
     let nondeterministic=false;
-    const declared=hashes=>Object.entries(hashes||{}).filter(([key])=>!key.startsWith('__redue_env_unset'));
+    const declared=hashes=>Object.entries(hashes||{}).filter(([key])=>!key.startsWith('__redue_env_'));
     if(testRun&&stable&&result){
       const prior=readReceipts(state).checks[name];
       // A difference explained by inputs REDUE did not observe proves nothing.
@@ -433,7 +436,7 @@ async function execute() {
         prior.fingerprint===((recording||outputs?end:snap)?.fingerprint??null)&&
         JSON.stringify(declared(prior.environmentHashes))===JSON.stringify(declared(environmentBefore))&&
         JSON.stringify(prior.runFacts||[])===JSON.stringify([...runFacts].sort())&&
-        JSON.stringify(prior.environmentUnset||[])===JSON.stringify(guard?.environmentUnset||[])&&
+        JSON.stringify(prior.environmentReads||{})===JSON.stringify(guard?.environmentReads||{})&&
         (prior.result!==result||prior.nondeterministic===true));
     }
     // A recorded run's receipt carries its run facts, even none; observers that
@@ -441,7 +444,7 @@ async function execute() {
     const receipt={result,invocation,target,stable,fingerprintVersion:recorded||testRun?2:1,
       ...(recorded||testRun?{runFacts}:{}),
       ...(testRun?{verificationRecipe:testsInterpretation,guardIssues:guard?.issues||['the run record is unavailable'],
-        environmentUnset:guard?.environmentUnset||[],...(nondeterministic?{nondeterministic}:{})}:{}),
+        environmentReads:guard?.environmentReads||{},...(nondeterministic?{nondeterministic}:{})}:{}),
       resolutionLinks:plan.resolutionLinks||[],
       coverage:{qualified:plan.unresolved.length===0,unresolved:plan.unresolved},
       checkpoint:{status:stable?'stable':'unavailable_or_changed',issues:captureIssues,
@@ -456,7 +459,7 @@ async function execute() {
       startRevision:snap?.revision??null,endRevision:end?.revision??null};
     const persistenceStarted=performance.now();
     commitReceipt(state,name,receipt);
-    if(testRun){const unset=unsetReads();unset[name]=receipt.environmentUnset;atomicJson(unsetFile,{schema:1,checks:unset});}
+    if(testRun){const reads=environmentReads();reads[name]=receipt.environmentReads;atomicJson(readsFile,{schema:1,checks:reads});}
     timing('cli.receipt_persistence',persistenceStarted);
     const reloadStarted=performance.now();
     try{await call({action:'reload'});}catch{/* receipt revisions invalidate older status even when reload IPC is unavailable */}

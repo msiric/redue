@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {recordedEnvironment,testGuardConfig,testRunGuard} from '../src/test-direct.mjs';
 
 const unsupported=process.platform==='win32'?'the test recipe records runs on macOS and Linux':false;
@@ -88,16 +89,22 @@ test('lookups outside the project become run facts; reads outside are issues; te
   assert.ok(r.runFacts.some(([kind,file,answer])=>kind==='directoryExists'&&file==='/usr'&&answer===true));
 });
 
-test('environment: compared and display variables pass; others are issues or must stay unset',{skip:unsupported},async()=>{
+test('environment: every directly read variable is kept by value; display variables and copies are not',{skip:unsupported},async()=>{
   const r=await recorded(`const copy={...process.env};Object.keys(process.env);process.env.REDUE_GUARD_OWN='x';
     void process.env.NODE_ENV,process.env.TERM,process.env.REDUE_GUARD_OWN,process.env.LC_ALL;
     void process.env.REDUE_GUARD_SET;void ('REDUE_GUARD_UNSET' in process.env);
     require('child_process').spawnSync(process.execPath,['-e','void process.env.REDUE_GUARD_CHILD'],{stdio:'inherit'});`,
   {env:{REDUE_GUARD_SET:'1',REDUE_GUARD_CHILD:'2',NODE_ENV:'test'}});
   assert.equal(r.code,0,r.output);
-  assert.deepEqual(r.issues.sort(),['read environment variable REDUE_GUARD_CHILD','read environment variable REDUE_GUARD_SET']);
-  assert.ok(r.environmentUnset.includes('REDUE_GUARD_UNSET'));
-  assert.ok(r.environmentUnset.includes('REDUE_GUARD_OWN'),'unset in the caller, so it must stay unset');
+  assert.deepEqual(r.issues,[]);
+  const digest=value=>createHash('sha256').update(value).digest('hex');
+  assert.equal(r.environmentReads.REDUE_GUARD_SET,digest('1'));
+  assert.equal(r.environmentReads.REDUE_GUARD_CHILD,digest('2'));
+  assert.equal(r.environmentReads.REDUE_GUARD_UNSET,'<unset>');
+  assert.equal(r.environmentReads.REDUE_GUARD_OWN,'<unset>','unset in the caller, so it must stay unset');
+  for(const key of ['TERM','NODE_ENV','LC_ALL'])assert.equal(key in r.environmentReads,false,key);
+  // Only what was read: the copy at the top reads nothing.
+  assert.equal('HOME' in r.environmentReads,false);
 });
 
 test('replacing process.env and Jest 29 process copies stay recorded',{skip:unsupported},async()=>{
@@ -106,7 +113,8 @@ test('replacing process.env and Jest 29 process copies stay recorded',{skip:unsu
   {env:{REDUE_GUARD_A:'1',REDUE_GUARD_B:'2'},files:{'node_modules/jest-util/build/createProcessObject.js':
     `exports.default=()=>{const p={};p.env=Object.assign({},process.env);return p;};`}});
   assert.equal(r.code,0,r.output);
-  assert.deepEqual(r.issues,['read environment variable REDUE_GUARD_A','read environment variable REDUE_GUARD_B']);
+  assert.deepEqual(r.issues,[]);
+  assert.deepEqual(Object.keys(r.environmentReads).filter(key=>key.startsWith('REDUE_GUARD')),['REDUE_GUARD_A','REDUE_GUARD_B']);
 });
 
 test('network use other than loopback is an issue',{skip:unsupported},async()=>{

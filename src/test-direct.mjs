@@ -16,15 +16,16 @@ import {queryAnswer} from './typescript-list.mjs';
 
 const digest=value=>createHash('sha256').update(value).digest('hex');
 export const testRecorder=fileURLToPath(new URL('test-recorder.cjs',import.meta.url));
-// Compared by the caller-context machinery: a change makes a result STALE.
-// SHELL is stable for a user; runners read it to detect their host.
-export const testEnvironment={variables:['TZ','LANG','CI','FORCE_COLOR','NO_COLOR','SHELL'],
-  prefixes:['NODE_','LC_','VITE_','VITEST_','JEST_','DYLD_','LD_'],executableIdentity:true};
-// Variables that change only how output looks. Color switches are compared
-// instead: snapshots can capture colored output. `_` is the shell's last
-// command; argument parsers (yargs) use it only for help text.
-export const presentationVariables=['TERM','TERM_PROGRAM','TERM_PROGRAM_VERSION','COLORTERM',
-  'FORCE_TTY','COLUMNS','LINES','AI_AGENT','_','REDUE_RUN_RECORD'];
+// Variables the recorder cannot see being read, compared by the
+// caller-context machinery: Node and libc read TZ, LANG, LC_*, NODE_*, DYLD_*
+// and LD_* natively, and Vite picks VITE_* by listing the environment. Every
+// other variable the run reads directly is compared by value (environmentReads).
+export const testEnvironment={variables:['TZ','LANG'],
+  prefixes:['NODE_','LC_','VITE_','DYLD_','LD_'],executableIdentity:true};
+// Display-only variables, not compared. `_` is the shell's last command;
+// argument parsers (yargs) use it only for help text.
+export const displayVariables=['_','TERM','TERM_PROGRAM','TERM_PROGRAM_VERSION','COLORTERM','FORCE_COLOR','NO_COLOR',
+  'FORCE_TTY','COLUMNS','LINES','AI_AGENT','REDUE_RUN_RECORD'];
 // The runners' own data directories, like their caches, are not inputs:
 // Vitest keeps its API token in <user data>/vitest (env-paths' data
 // directory, not the state directory REDUE uses). A relative XDG_DATA_HOME
@@ -54,7 +55,9 @@ export function recordedEnvironment(guardFile,env=process.env) {
 
 // What the run used beyond its observed inputs. `files` maps each observed
 // input (relative path) at the start checkpoint to its digest; `runner` is the
-// PID of the process REDUE started. Returns {issues, runFacts, environmentUnset}.
+// PID of the process REDUE started. Returns {issues, runFacts, environmentReads,
+// isOutput}: environmentReads maps each variable the run read directly to the
+// caller's value digest, or '<unset>'.
 export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=testEnvironment}) {
   // The recipe's variables and any the project declares are compared, not guarded.
   const compared=name=>(environment.variables||[]).includes(name)||
@@ -67,7 +70,7 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
   const headers=new Map(),records=[];
   let names=[];
   try{names=fs.readdirSync(dir).filter(name=>name.endsWith('.jsonl'));}
-  catch{return {issues:['the run record is unavailable'],runFacts:[],environmentUnset:[],isOutput:()=>false};}
+  catch{return {issues:['the run record is unavailable'],runFacts:[],environmentReads:{},isOutput:()=>false};}
   for(const name of names){
     let rows;
     try{rows=fs.readFileSync(path.join(dir,name),'utf8').split('\n').filter(Boolean).map(line=>JSON.parse(line));}
@@ -80,7 +83,7 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
   if(!headers.has(`${runner}-0`))add('the test runner did not load the REDUE recorder');
   // Answers per question; a question answered two ways changed during the run.
   const answers=new Map(),ask=(key,answer)=>{const set=answers.get(key)||new Set();set.add(JSON.stringify(answer));answers.set(key,set);};
-  const reads=new Map(),produced=new Set(),created=new Set(),unset=new Set(),spawned=new Map();
+  const reads=new Map(),produced=new Set(),created=new Set(),environmentReads={},spawned=new Map();
   for(const {header,rows} of records){
     for(const row of rows){
       const [kind,...value]=Array.isArray(row)?row:[];
@@ -92,8 +95,8 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
       else if(kind==='D')ask(`entries\0${value[0]}`,value[1]);
       else if(kind==='O')ask(`outside-${value[0]}\0${value[1]}`,value[2]);
       else if(kind==='E'){const [name,state]=value;
-        if(compared(name)||presentationVariables.includes(name))continue;
-        if(state==='set')add(`read environment variable ${name}`);else unset.add(name);}
+        if(compared(name)||displayVariables.includes(name)||typeof name!=='string')continue;
+        environmentReads[name]=typeof state==='string'?state:'<unset>';}
       else if(kind==='N')add(`network: ${value[0]}`);
       else if(kind==='C'||kind==='S'){
         const list=spawned.get(header.pid)||[];list.push({pid:kind==='C'?value[0]:null,file:value[kind==='C'?1:0]});
@@ -165,7 +168,7 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
     produced.has(checkout(rel))&&reads.get(rel)!==true);
   return {issues:issues.length>issueLimit?[...issues.slice(0,issueLimit),`${issues.length-issueLimit} more`]:issues,
     runFacts:runFacts.length>factLimit?[]:[...new Map(runFacts.map(f=>[JSON.stringify(f),f])).values()],
-    environmentUnset:[...unset].sort(),isOutput};
+    environmentReads:Object.fromEntries(Object.entries(environmentReads).sort(([a],[b])=>a<b?-1:a>b?1:0)),isOutput};
 }
 // The observed files that differ between two checkpoints' file maps.
 export function changedFiles(before,after){

@@ -196,11 +196,12 @@ function install(){
   function envRead(source,key){
     if(typeof key!=='string'||envSeen.has(key))return;
     try{
-      if(!Object.hasOwn(caller,key)){envSeen.add(key);emit(['E',key,'unset']);return;}
+      // The caller's value as a digest, or null when the caller left it unset.
+      if(!Object.hasOwn(caller,key)){envSeen.add(key);emit(['E',key,null]);return;}
       const value=source[key];
       // A value the run set itself is not the caller's.
       if(typeof value!=='string'||digest(value)!==caller[key])return;
-      envSeen.add(key);emit(['E',key,'set']);
+      envSeen.add(key);emit(['E',key,caller[key]]);
     }catch{failed('recorder failure');}
   }
   const recordingEnv=source=>new Proxy(source,{

@@ -399,13 +399,13 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
     }
     else if(contextHashes?.[name]&&names.some(key=>contextHashes[name][key]!==r.environmentHashes?.[key]))
       item.reason='declared execution environment changed';
-    // Variables a test run read while the caller left them unset must still be
-    // unset. The caller names the list it checked, so an older list confirms nothing.
-    else if(r.environmentUnset?.length&&contextHashes?.[name]&&
-      contextHashes[name].__redue_env_unset__!==sha(JSON.stringify([r.environmentUnset,[]]))){
-      if(contextHashes[name].__redue_env_unset_list__===sha(JSON.stringify(r.environmentUnset)))
-        item.reason='an environment variable the last run read while unset is now set';
-      else{item.freshness='UNVERIFIED';item.reason='environment variables the last run read could not be confirmed';}
+    // Every variable a test run read directly must have the same value. The
+    // caller compares them and names the list it used; another list confirms nothing.
+    else if(r.environmentReads&&contextHashes?.[name]&&
+      (contextHashes[name].__redue_env_reads__!==sha(JSON.stringify(r.environmentReads))||contextHashes[name].__redue_env_changed__)){
+      if(contextHashes[name].__redue_env_reads__!==sha(JSON.stringify(r.environmentReads))){
+        item.freshness='UNVERIFIED';item.reason='environment variables the last run read were not compared';}
+      else item.reason=`environment variable ${contextHashes[name].__redue_env_changed__} differs from the last run`;
     }
     else if(r.fingerprint!==combinedSummary(name).fingerprint) {
       const key=r.fingerprint+'\0'+combinedSummary(name).fingerprint;

@@ -27,10 +27,14 @@ REDUE runs the local runner with Node directly. npm, its lifecycle scripts and
 ## What REDUE claims
 
 CURRENT means the last run's inputs are unchanged: every file in the checkout
-outside `node_modules`, the installed files in
-`node_modules`, the Node binary, the exact command, and these environment
-variables: `TZ`, `LANG`, `CI`, `FORCE_COLOR`, `NO_COLOR`, `SHELL` and every
-`NODE_*`, `LC_*`, `VITE_*`, `VITEST_*`, `JEST_*`, `DYLD_*` and `LD_*` variable.
+outside `node_modules`, the installed files in `node_modules`, the Node binary,
+the exact command, and the environment. Every environment variable the run's
+JavaScript read directly must have the same value, or still be unset. Node and
+libc read some variables natively, and Vite lists the environment for its own,
+so these are always compared: `TZ`, `LANG` and every `NODE_*`, `LC_*`,
+`VITE_*`, `DYLD_*` and `LD_*` variable. Display-only variables are not
+compared: `_`, `TERM`, `TERM_PROGRAM`, `COLORTERM`, `FORCE_COLOR`, `NO_COLOR`,
+`FORCE_TTY`, `COLUMNS`, `LINES` and `AI_AGENT`.
 It does not mean a rerun would give the same result. A test that depends on the
 time of day or on randomness can pass now and fail later on the same inputs.
 
@@ -54,9 +58,6 @@ kept but marked UNVERIFIED, with the reason, when the run:
 - read or listed a file outside the checkout, other than files and directories
   the run created, Jest's cache directory and the runners' data directories
   (Vitest's `vitest` folder in the user data directory);
-- read an environment variable that is set and not compared above, other than
-  `TERM`, `TERM_PROGRAM`, `COLORTERM`, `FORCE_TTY`, `COLUMNS`, `LINES`,
-  `AI_AGENT` and the shell's `_`;
 - connected to anything other than loopback or a local socket, or asked DNS
   about a name other than localhost;
 - started a process that did not load the recorder: a shell, a binary, or a
@@ -65,7 +66,6 @@ kept but marked UNVERIFIED, with the reason, when the run:
 Lookups that can be asked again become run facts, checked before every CURRENT
 answer: whether a path outside the checkout exists, where a link resolves, and
 the existence and listings of excluded or ignored files in the checkout.
-Environment variables the run read while unset must still be unset.
 
 When two runs on the same inputs and environment give different results, the
 check is UNVERIFIED until the inputs change.

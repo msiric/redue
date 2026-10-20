@@ -16,6 +16,7 @@ const fakeRunner=`import fs from 'node:fs';import os from 'node:os';import path 
 const value=fs.readFileSync('src/value.js','utf8');
 if(value.includes('readme'))fs.readFileSync('README.md');
 if(value.includes('flag'))void process.env.REDUE_FAKE_FLAG;
+if(value.includes('many'))for(let i=0;i<300;i++)void process.env['REDUE_FAKE_MANY_'+i];
 if(value.includes('shell'))void process.env.SHELL,process.env._;
 // Output in a git-ignored directory: written and read back, or a leftover read first.
 if(value.includes('leftover'))fs.readFileSync('test/tmp/out.txt');
@@ -107,7 +108,7 @@ test('a recorded test pass stays CURRENT across documentation edits and goes STA
   assert.equal(status.reuse_eligible,false);
 });
 
-test('a test run that reads an excluded file or a set variable is UNVERIFIED; an unset one must stay unset',{skip:unsupported},t=>{
+test('reading an excluded file is UNVERIFIED; a variable the run read must keep its value, set or unset',{skip:unsupported},t=>{
   const {root,state}=project(t);
   good(root,state,'init','--recipe','tests-direct','--check','test');good(root,state,'start');
   write(root,'src/value.js','readme\n');good(root,state,'run','test');
@@ -117,14 +118,27 @@ test('a test run that reads an excluded file or a set variable is UNVERIFIED; an
   write(root,'src/value.js','flag\n');
   assert.equal(invoke(root,state,{REDUE_FAKE_FLAG:'1'},'run','test').status,0);
   status=row(root,state,{REDUE_FAKE_FLAG:'1'});
-  assert.equal(status.freshness,'UNVERIFIED');
-  assert.match(status.reason,/read environment variable REDUE_FAKE_FLAG/);
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  for(const env of [{REDUE_FAKE_FLAG:'2'},{}]){
+    status=row(root,state,env);
+    assert.equal(status.freshness,'STALE');
+    assert.match(status.reason,/environment variable REDUE_FAKE_FLAG differs from the last run/);
+  }
   good(root,state,'run','test');
   status=row(root,state);
   assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
   status=row(root,state,{REDUE_FAKE_FLAG:'1'});
   assert.equal(status.freshness,'STALE');
-  assert.match(status.reason,/read while unset is now set/);
+});
+
+test('a run that reads hundreds of variables still gets an answer',{skip:unsupported},t=>{
+  const {root,state}=project(t);
+  good(root,state,'init','--recipe','tests-direct','--check','test');good(root,state,'start');
+  write(root,'src/value.js','many\n');good(root,state,'run','test');
+  let status=row(root,state);
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  status=row(root,state,{REDUE_FAKE_MANY_299:'x'});
+  assert.match(status.reason,/environment variable REDUE_FAKE_MANY_299 differs/);
 });
 
 test('runs on the same inputs with different results make the check UNVERIFIED until the inputs change',{skip:unsupported},t=>{
@@ -175,7 +189,7 @@ test('a run\'s output in an ignored directory is not an input; reading a leftove
   assert.match(status.reason,/input event occurred during execution/);
 });
 
-test('SHELL is compared; the shell\'s `_` is ignored',{skip:unsupported},t=>{
+test('a SHELL the run read is compared; the shell\'s `_` is ignored',{skip:unsupported},t=>{
   const {root,state}=project(t);
   good(root,state,'init','--recipe','tests-direct','--check','test');good(root,state,'start');
   write(root,'src/value.js','shell\n');
@@ -184,5 +198,5 @@ test('SHELL is compared; the shell\'s `_` is ignored',{skip:unsupported},t=>{
   assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
   status=row(root,state,{SHELL:'/bin/zsh'});
   assert.equal(status.freshness,'STALE');
-  assert.match(status.reason,/environment changed/);
+  assert.match(status.reason,/environment variable SHELL differs/);
 });
