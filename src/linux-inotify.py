@@ -87,12 +87,21 @@ def main(root):
                 continue
             wd = libc.inotify_add_watch(fd, os.fsencode(current), MASK)
             if wd < 0:
-                raise OSError(ctypes.get_errno(), 'inotify_add_watch failed')
+                error = ctypes.get_errno()
+                # A new directory deleted before its watch: nothing to watch,
+                # and its parent reports the deletion.
+                if current != root and error in (errno.ENOENT, errno.ENOTDIR):
+                    continue
+                raise OSError(error, 'inotify_add_watch failed')
             watches[wd] = current
-            with os.scandir(current) as entries:
-                for entry in entries:
-                    if entry.is_dir(follow_symlinks=False):
-                        stack.append(entry.path)
+            try:
+                with os.scandir(current) as entries:
+                    for entry in entries:
+                        if entry.is_dir(follow_symlinks=False):
+                            stack.append(entry.path)
+            except (FileNotFoundError, NotADirectoryError):
+                if current == root:
+                    raise
 
     def drain():
         while True:
@@ -129,6 +138,13 @@ def main(root):
                 target = os.path.join(parent, os.fsdecode(raw)) if raw else parent
                 if in_git(target):
                     continue
+                if mask & IN_DELETE_SELF and parent != root:
+                    # A watched directory was deleted: its IN_IGNORED follows
+                    # and is expected. The engine rescans the path.
+                    del watches[wd]
+                    intentional_removals.add(wd)
+                    emit('event', type='delete', path=parent)
+                    continue
                 if mask & (IN_UNMOUNT | IN_DELETE_SELF | IN_MOVE_SELF | IN_IGNORED):
                     emit('gap', reason='inotify_watch_lost')
                     return False
@@ -138,11 +154,14 @@ def main(root):
                     except OSError as error:
                         emit('gap', reason='inotify_watch_add_failed', errno=error.errno)
                         return False
-                    # Contents can appear before their new directory receives
-                    # a watch. The engine reconciles instead of guessing.
-                    emit('gap', reason='inotify_new_directory')
-                    return False
-                if (mask & IN_ISDIR) and (mask & (IN_DELETE | IN_MOVED_FROM)):
+                    # Contents can appear before the new directory has its
+                    # watch. The watches exist now, so later changes raise
+                    # events; the engine rescans the directory on this event
+                    # and finds what came before.
+                    emit('event', type='create', path=target)
+                    continue
+                # A moved-away directory keeps watches under its old paths.
+                if (mask & IN_ISDIR) and (mask & IN_MOVED_FROM):
                     emit('gap', reason='inotify_directory_removed')
                     return False
                 event = ('delete' if mask & (IN_DELETE | IN_MOVED_FROM) else

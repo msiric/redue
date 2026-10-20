@@ -378,10 +378,12 @@ test('fresh reconciliation detects membership and linked installed-target replac
   fs.rmSync(path.join(f.root,'node_modules/pkg'));
   linkDir('../workspace/b',path.join(f.root,'node_modules/pkg'));
   put(path.join(f.root,'node_modules/optional/index.js'),'now present\n');
+  // Dropped events need an observed gap: on Linux a missed kernel event is an
+  // overflow; a new directory alone is not one.
   if(process.platform==='darwin'){
     const uncertain=await faultObserved(f);
     assert.equal(uncertain.checks[0].freshness,'UNVERIFIED');
-  }
+  }else if(process.platform==='linux')await faultObserved(f);
   const result=await until(f,s=>s.checks[0].freshness==='STALE');
   assert.equal(result.checks[0].result,'PASS');
   assert(fs.existsSync(path.join(f.root,'generated/new.txt')));
@@ -468,7 +470,7 @@ test('Linux overflow, watch loss, and watch exhaustion withhold CURRENT then rec
   }
 });
 
-test('Linux: git writing new directories under .git is no observation gap',
+test('Linux: git writing new directories under .git, and new or deleted checkout directories, are no observation gap',
   {skip:process.platform!=='linux'},async t=>{
   const f=withFixture(t),nested=path.join(f.root,'vendor','lib');
   put(path.join(nested,'a.txt'),'a\n');execFileSync('git',['init','-q'],{cwd:nested});
@@ -479,9 +481,17 @@ test('Linux: git writing new directories under .git is no observation gap',
   commit(f.root);execFileSync('git',['add','a.txt'],{cwd:nested});commit(nested);
   await new Promise(resolve=>setTimeout(resolve,500));
   assert.equal(row(f).freshness,'CURRENT');assert.equal(gaps(),before);
-  // A new directory elsewhere in the checkout still is one.
-  fs.mkdirSync(path.join(f.root,'src','nested'));
-  await until(f,()=>gaps()>before);
+  // A new directory in the checkout gets its watch; files written in it right
+  // away are found by the rescan that follows, so the check goes STALE.
+  put(path.join(f.root,'src','nested','deep','a.txt'),'a\n');
+  await until(f,s=>s.checks[0].freshness==='STALE');
+  fs.rmSync(path.join(f.root,'src','nested'),{recursive:true});
+  await until(f,s=>s.checks[0].freshness==='CURRENT');
+  // Directories outside the inputs come and go without a gap too.
+  fs.mkdirSync(path.join(f.root,'coverage','lcov'),{recursive:true});
+  fs.rmSync(path.join(f.root,'coverage'),{recursive:true});
+  await new Promise(resolve=>setTimeout(resolve,500));
+  assert.equal(row(f).freshness,'CURRENT');assert.equal(gaps(),before);
 });
 
 test('Linux hung synchronization leaves cached status and stop responsive',

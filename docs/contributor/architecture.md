@@ -15,7 +15,10 @@
 - `src/daemon.mjs` owns one checkout observer, reconciliation and applicability.
 - `src/platform-observation.mjs` selects macOS FSEvents, Windows native events, or the Linux inotify
   transport. The Linux helper reports overflow/watch loss and runs on local
-  ext2/3/4, XFS, Btrfs, F2FS, tmpfs, or ZFS. Network, FUSE, overlay, and
+  ext2/3/4, XFS, Btrfs, F2FS, tmpfs, or ZFS. A new directory gets its watches
+  before the helper reports it, and the daemon rescans it, so files written
+  into it first are not missed; a deleted directory is reported as a deletion.
+  A moved-away directory is still a gap. Network, FUSE, overlay, and
   unrecognized mounts are unavailable rather than assumed observable. The
   helper needs Python 3; inotify watch exhaustion also withholds CURRENT.
 - `src/cli.mjs` executes checks against before/after checkpoints and records
