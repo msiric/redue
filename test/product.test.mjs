@@ -106,7 +106,16 @@ test('short startup wait reports owned initialization instead of a false launch 
   const started=JSON.parse(ok(f,'start','--json').stdout);
   assert.equal(typeof started.ready,'boolean');
   if(!started.ready)assert.equal(started.health.healthy,false);
-  const usable=await until(f,value=>value.observation.healthy);
+  // Until the observer's socket exists, status --sync answers UNVERIFIED and
+  // exits 2; that is correct, so keep asking.
+  let usable=null;
+  for(let n=0;n<125&&!usable?.observation?.healthy;n++){
+    const out=call(f,'status','--sync','--json');
+    if(out.status===0)usable=JSON.parse(out.stdout);
+    else{assert.equal(out.status,2,out.stderr);assert.equal(JSON.parse(out.stdout).checks[0].freshness,'UNVERIFIED');}
+    await new Promise(resolve=>setTimeout(resolve,80));
+  }
+  assert.equal(usable?.observation?.healthy,true,JSON.stringify(usable));
   assert.equal(usable.checks[0].freshness,'UNVERIFIED');
 });
 
