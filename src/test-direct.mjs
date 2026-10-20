@@ -9,6 +9,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
+import {spawnSync} from 'node:child_process';
 import micromatch from './glob.mjs';
 import {runFact} from './direct-run-certificate.mjs';
 import {queryAnswer} from './typescript-list.mjs';
@@ -16,19 +17,31 @@ import {queryAnswer} from './typescript-list.mjs';
 const digest=value=>createHash('sha256').update(value).digest('hex');
 export const testRecorder=fileURLToPath(new URL('test-recorder.cjs',import.meta.url));
 // Compared by the caller-context machinery: a change makes a result STALE.
-export const testEnvironment={variables:['TZ','LANG','CI','FORCE_COLOR','NO_COLOR'],
+// SHELL is stable for a user; runners read it to detect their host.
+export const testEnvironment={variables:['TZ','LANG','CI','FORCE_COLOR','NO_COLOR','SHELL'],
   prefixes:['NODE_','LC_','VITE_','VITEST_','JEST_','DYLD_','LD_'],executableIdentity:true};
 // Variables that change only how output looks. Color switches are compared
-// instead: snapshots can capture colored output.
+// instead: snapshots can capture colored output. `_` is the shell's last
+// command; argument parsers (yargs) use it only for help text.
 export const presentationVariables=['TERM','TERM_PROGRAM','TERM_PROGRAM_VERSION','COLORTERM',
-  'FORCE_TTY','COLUMNS','LINES','AI_AGENT','REDUE_RUN_RECORD'];
+  'FORCE_TTY','COLUMNS','LINES','AI_AGENT','_','REDUE_RUN_RECORD'];
+// The runners' own data directories, like their caches, are not inputs:
+// Vitest keeps its API token in <user data>/vitest (env-paths' data
+// directory, not the state directory REDUE uses). A relative XDG_DATA_HOME
+// is ignored, as the XDG specification says.
+export function runnerDataDirectories(env=process.env){
+  const data=process.platform==='darwin'?path.join(os.homedir(),'Library','Application Support'):
+    path.isAbsolute(env.XDG_DATA_HOME||'')?env.XDG_DATA_HOME:path.join(os.homedir(),'.local','share');
+  return [path.join(data,'vitest')];
+}
 const issueLimit=20,factLimit=10000;
 
 // The guard file the recorder reads: where to write, what counts as the
 // checkout and as temporary space, and digests of the caller's environment.
 export function testGuardConfig(dir,root,env=process.env) {
   const tmp=[...new Set([path.resolve(os.tmpdir()),fs.realpathSync(os.tmpdir())])];
-  return {schema:1,dir,root,tmp,
+  const real=dir=>{try{return fs.realpathSync(dir);}catch{return dir;}};
+  return {schema:1,dir,root,tmp,runnerData:[...new Set(runnerDataDirectories(env).flatMap(dir=>[path.resolve(dir),real(dir)]))],
     env:Object.fromEntries(Object.entries(env).filter(([,value])=>typeof value==='string').map(([key,value])=>[key,digest(value)]))};
 }
 
@@ -54,7 +67,7 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
   const headers=new Map(),records=[];
   let names=[];
   try{names=fs.readdirSync(dir).filter(name=>name.endsWith('.jsonl'));}
-  catch{return {issues:['the run record is unavailable'],runFacts:[],environmentUnset:[]};}
+  catch{return {issues:['the run record is unavailable'],runFacts:[],environmentUnset:[],isOutput:()=>false};}
   for(const name of names){
     let rows;
     try{rows=fs.readFileSync(path.join(dir,name),'utf8').split('\n').filter(Boolean).map(line=>JSON.parse(line));}
@@ -112,14 +125,15 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
     if(!included(rel))add(`read ${rel}, which the check's inputs exclude`);
     else if(found&&!observed(rel))add(`read ${rel}, which REDUE does not observe (ignored by git)`);
     // A missing file may be ignored by git, so the index would not see it appear.
-    else if(!found)runFacts.push(['fileExists',checkout(rel),null]);
+    else if(!found&&!produced.has(checkout(rel)))runFacts.push(['fileExists',checkout(rel),null]);
   }
   for(const [key,set] of [...answers].sort(([a],[b])=>a<b?-1:a>b?1:0)){
     const [question,where]=key.split('\0');
     const answer=JSON.parse([...set][0]);
     if(question==='stat'||question==='entries'){
       const full=checkout(where);
-      if(madeByRun(full))continue;
+      // A path the run made answers differently afterwards; it is output, not input.
+      if(madeByRun(full)||produced.has(full))continue;
       if(set.size>1){add(`${where} changed during the run`);continue;}
       if(question==='stat'){
         // Observed files and directories: the index covers them. A missing
@@ -143,9 +157,28 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
       `${kind} of ${file} outside the project gave ${answer}`);
   }
   if(runFacts.length>factLimit)add('too many lookups during the run');
+  // A checkout path the run wrote without reading what was there before:
+  // inside a directory it created, or a file it created or truncated and no
+  // process read first.
+  // A read that found nothing read no leftover.
+  const isOutput=rel=>!rel.startsWith('external:')&&(inCreated(checkout(rel))||created.has(checkout(rel))||
+    produced.has(checkout(rel))&&reads.get(rel)!==true);
   return {issues:issues.length>issueLimit?[...issues.slice(0,issueLimit),`${issues.length-issueLimit} more`]:issues,
     runFacts:runFacts.length>factLimit?[]:[...new Map(runFacts.map(f=>[JSON.stringify(f),f])).values()],
-    environmentUnset:[...unset].sort()};
+    environmentUnset:[...unset].sort(),isOutput};
+}
+// The observed files that differ between two checkpoints' file maps.
+export function changedFiles(before,after){
+  return [...new Set([...Object.keys(before||{}),...Object.keys(after||{})])].filter(file=>before?.[file]!==after?.[file]).sort();
+}
+// Files git ignores among `files`, in one call. A leading `./` keeps a name
+// that starts with `:` from being read as pathspec magic. An error counts as
+// not ignored.
+export function gitIgnored(root,files){
+  if(!files.length)return new Set();
+  const out=spawnSync('git',['check-ignore','--stdin','-z'],{cwd:root,input:files.map(file=>'./'+file).join('\0')+'\0',
+    encoding:'utf8',maxBuffer:64*1024*1024,timeout:10000,env:{...process.env,GIT_OPTIONAL_LOCKS:'0'}});
+  return new Set(out.status===0?out.stdout.split('\0').filter(Boolean).map(file=>file.replace(/^\.\//,'')):[]);
 }
 // The listing now, when it differs from the run's only by entries the run made.
 function listingAfter(full,during,madeByRun){
@@ -255,13 +288,14 @@ export function testProject(root,script){
   }
   return {runner,version,args,entry};
 }
-// Inputs: the whole checkout except documentation, and the coverage report a
-// --coverage run writes. Installed files are observed by identity; Vite's
+// Inputs: the whole checkout except documentation and the coverage report a
+// --coverage run writes. Git-ignored files the run creates are handled per
+// run (cli.mjs). Installed files are observed by identity; Vite's
 // caches inside node_modules are written by every Vitest run.
 export function testCheckInputs({runner,args}){
   return {inputs:['**','!node_modules/**','!.git/**','!**/*.md','!**/*.mdx',
     ...(args.includes('--coverage')?['!coverage/**']:[])],
-  installedInputs:['node_modules/**',...(runner==='vitest'?['!node_modules/.vite/**','!node_modules/.vite-temp/**']:[])]};
+  installedInputs:['node_modules/**',...(runner==='vitest'?['!node_modules/.vite/**','!node_modules/.vite-temp/**','!node_modules/.vitest/**']:[])]};
 }
 // The caller's environment, when it would load code before the recorder or
 // the Node version is not one the recipe supports. Compared variables are
@@ -289,12 +323,12 @@ export function qualifyTests(root,selected){
     const positives=(selected.inputs||[]).filter(p=>!p.startsWith('!'));
     if(positives.length!==1||positives[0]!=='**'||!selected.inputs.includes('!node_modules/**')||
       JSON.stringify([...(selected.installedInputs||[])].sort())!==JSON.stringify([...testCheckInputs(project).installedInputs].sort()))
-      issues.push('test inputs must be the whole checkout, with node_modules observed as installed files');
+      issues.push('test inputs must be the whole checkout, with node_modules observed as installed files; run redue init again');
   }catch(e){issues.push(e.code||'test runner prerequisites unavailable');}
   if(!selected.environment?.executableIdentity||
     !testEnvironment.variables.every(key=>selected.environment?.variables?.includes(key))||
     !testEnvironment.prefixes.every(key=>selected.environment?.prefixes?.includes(key)))
-    issues.push('test execution context incomplete');
+    issues.push('test execution context incomplete; run redue init again');
   if(selected.probes?.length)issues.push('the test recipe takes no probes');
   if(selected.generatedInputs?.length)issues.push('the test recipe takes no generated inputs');
   return {qualified:issues.length===0,issues};

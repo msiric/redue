@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {directQualification,directInterpretation,observedNpmContext} from './direct-typescript.mjs';
 import {directRunCertificateAllowed,directRunCertificate,directRunRecordable,directRunRecording,probeQuestions,validateRunRecord} from './direct-run-certificate.mjs';
 import {runFactChange} from './typescript-list.mjs';
-import {recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testsInterpretation,testsQualification} from './test-direct.mjs';
+import {changedFiles,gitIgnored,recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testsInterpretation,testsQualification} from './test-direct.mjs';
 import path from 'node:path';
 import net from 'node:net';
 import os from 'node:os';
@@ -362,6 +362,7 @@ async function execute() {
     const endSnapshotStarted=performance.now();
     if(!unobservedDirectRun){
       try{after=await call({action:'snapshot',name,contextHashes:contextHashes(),
+        ...(testRun&&Number.isSafeInteger(snap?.inputEventSerial)?{sinceSerial:snap.inputEventSerial}:{}),
         ...(recording?{runCertificate:1,adopt:recording}:recorded&&!certificate?{runCertificate:1,runFacts:1}:{})},
         // The start checkpoint's probe may have raised the deadline.
         Number(process.env.VSTATE_CAPTURE_TIMEOUT_MS||decisionDeadline()));}
@@ -370,6 +371,21 @@ async function execute() {
       timing('cli.end_checkpoint',endSnapshotStarted,{available:after?.snapshots?.[name]?1:0});
     }
     const end=after?.snapshots?.[name];
+    // A test run's own outputs: git-ignored files it created without reading
+    // what was there (test/tmp). When they are the only observed change, the
+    // run is kept with the end checkpoint, which includes them.
+    let outputs=null;
+    let eventsExplained=false;
+    if(guard&&snap&&end&&snap.planId===end.planId&&snap.probeHash===end.probeHash&&snap.observationHealthy&&end.observationHealthy&&
+      (snap.inputEventSerial===end.inputEventSerial||end.inputEventPathsComplete===true)){
+      // A directory event is not an input change; a change to its files shows
+      // in the end checkpoint's file map, which is compared too. A link is kept.
+      const directory=rel=>{try{return fs.lstatSync(path.join(root,rel)).isDirectory();}catch{return false;}};
+      const changed=changedFiles(snap.files,end.files),events=(end.inputEventPaths||[]).filter(rel=>!directory(rel));
+      const touched=[...new Set([...changed,...events])].sort();
+      const ignored=touched.length&&touched.every(guard.isOutput)?gitIgnored(root,touched):new Set();
+      if(touched.every(file=>ignored.has(file))){eventsExplained=true;if(changed.length)outputs=changed;}
+    }
     // The end certificate, recorded or probed, must cover what this compile received.
     // With no input event, gap or content change in between, it also holds at the start.
     // A run checked by full probes is compared with it too, for its run facts.
@@ -400,11 +416,11 @@ async function execute() {
       captureIssues.push('observer generation changed during execution');
     if(snap?.planGeneration!==end?.planGeneration)
       captureIssues.push('input plan rebuilt during execution');
-    if(snap?.inputEventSerial!==end?.inputEventSerial)
+    if(snap?.inputEventSerial!==end?.inputEventSerial&&!eventsExplained)
       captureIssues.push('declared input event occurred during execution');
     // A recorded certificate changes only the probe part of the fingerprint.
-    if(!snap||!end||snap.planId!==end.planId||(recording?snap.inputKey!==end.inputKey:snap.fingerprint!==end.fingerprint)||
-      snap.revision!==end.revision)captureIssues.push('declared inputs changed or were not observed');
+    if(!outputs&&(!snap||!end||snap.planId!==end.planId||(recording?snap.inputKey!==end.inputKey:snap.fingerprint!==end.fingerprint)||
+      snap.revision!==end.revision))captureIssues.push('declared inputs changed or were not observed');
     const stable=captureIssues.length===0;
     // Two runs on the same inputs, environment and plan that disagree make the
     // check nondeterministic until its inputs change.
@@ -414,7 +430,7 @@ async function execute() {
       const prior=readReceipts(state).checks[name];
       // A difference explained by inputs REDUE did not observe proves nothing.
       nondeterministic=Boolean(!guard?.issues.length&&prior?.stable&&!prior.guardIssues?.length&&prior.result&&prior.planId===(snap?.planId??plan.id)&&
-        prior.fingerprint===((recording?end:snap)?.fingerprint??null)&&
+        prior.fingerprint===((recording||outputs?end:snap)?.fingerprint??null)&&
         JSON.stringify(declared(prior.environmentHashes))===JSON.stringify(declared(environmentBefore))&&
         JSON.stringify(prior.runFacts||[])===JSON.stringify([...runFacts].sort())&&
         JSON.stringify(prior.environmentUnset||[])===JSON.stringify(guard?.environmentUnset||[])&&
@@ -433,10 +449,10 @@ async function execute() {
         ...(process.env.REDUE_PUBLIC_INPUT_TRACE==='1'?{
           startInputEventSerial:snap?.inputEventSerial??null,
           endInputEventSerial:end?.inputEventSerial??null}: {})},
-      planId:snap?.planId??plan.id,fingerprint:(recording?end:snap)?.fingerprint??null,
+      planId:snap?.planId??plan.id,fingerprint:(recording||outputs?end:snap)?.fingerprint??null,
       provider:plan.provider,environmentHashes:environmentBefore,
       ...(observedContext?{observedContext,verificationRecipe:directInterpretation}:{}),
-      files:snap?.files??null,observerGeneration:before?.observation?.generation??null,
+      files:(outputs?end:snap)?.files??null,observerGeneration:before?.observation?.generation??null,
       startRevision:snap?.revision??null,endRevision:end?.revision??null};
     const persistenceStarted=performance.now();
     commitReceipt(state,name,receipt);

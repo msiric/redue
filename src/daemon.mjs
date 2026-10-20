@@ -50,6 +50,9 @@ let pending=new Set(), pendingChecks=new Set(), flushTimer, planDirty=false, pla
 let decisionRequests=0;
 let decisionSequence=0;
 let inputEventSerial=new Map();
+// The last input-event paths per check, with their serials, so a test run can
+// show that every event during it was one of its own outputs.
+const inputEventPaths=new Map(),eventPathLimit=10000;
 let diagnosticInputEvents=0;
 let synchronizing=null;
 let installedRecheck=null;
@@ -776,8 +779,15 @@ function markInputEvent(name,rel,type,replay) {
   // macOS delivers each edit twice: live, and again from history replay. The
   // live copy can arrive late, inside a later run. With history, count only the
   // replay copy: the history cursor places it in the right interval.
-  if(!hasHistory||historyDisabled||replay)
-    inputEventSerial.set(name,(inputEventSerial.get(name)||0)+1);
+  if(!hasHistory||historyDisabled||replay){
+    const serial=(inputEventSerial.get(name)||0)+1;
+    inputEventSerial.set(name,serial);
+    // Kept only for test checks; trimmed in batches.
+    if(index?.checks.get(name)?.plan.qualification==='npm-tests-direct-v1'){
+      const list=inputEventPaths.get(name)||[];list.push([serial,rel]);
+      if(list.length>2*eventPathLimit)list.splice(0,list.length-eventPathLimit);inputEventPaths.set(name,list);
+    }
+  }
   // Disposable public CI only. Never enabled for normal/local repositories.
   if(process.env.REDUE_PUBLIC_INPUT_TRACE==='1'&&rel&&diagnosticInputEvents++<5000)
     event('public_input_notification',{path:rel,type:type||'unknown',planning,replay});
@@ -832,16 +842,16 @@ function externalNotification(entry,type,filename,replay=false) {
   const rel=filename.toString().split(path.sep).join('/');
   const absolute=path.join(entry.root,rel);
   if(planning&&entry.index)for(const name of entry.index.candidates(rel))
-    if(entry.index.matches(entry.index.checks.get(name),rel))markInputEvent(name,rel,type,replay);
+    if(entry.index.matches(entry.index.checks.get(name),rel))markInputEvent(name,`external:${entry.root}:${rel}`,type,replay);
   if(planTrigger(absolute)&&triggerChanged(absolute))planDirty=true;
   if(candidateTriggerChanged(absolute))planDirty=true;
   entry.pending.add(rel);metrics.maxQueue=Math.max(metrics.maxQueue,
     pending.size+[...external.values()].reduce((n,e)=>n+e.pending.size,0));
   if(entry.index) {
     for(const name of entry.index.candidates(rel))
-      if(entry.index.matches(entry.index.checks.get(name),rel))markInputEvent(name,rel,type,replay);
+      if(entry.index.matches(entry.index.checks.get(name),rel))markInputEvent(name,`external:${entry.root}:${rel}`,type,replay);
     for(const [prefix,names] of entry.index.prefixes)
-      if(prefix.startsWith(rel+'/'))for(const name of names)markInputEvent(name,rel,type,replay);
+      if(prefix.startsWith(rel+'/'))for(const name of names)markInputEvent(name,`external:${entry.root}:${rel}`,type,replay);
   }
   if(planDirty){healthy=false;reason='input plan possibly changed';}
   publish();clearTimeout(flushTimer);flushTimer=setTimeout(flush,60);
@@ -1129,6 +1139,11 @@ async function request(message) {
           data.snapshots[name]={...combinedSummary(name),files:combinedFiles(name),
           planGeneration:row.plan.id,
             inputEventSerial:inputEventSerial.get(name)||0,
+            // Complete only when the oldest kept event follows the given serial.
+            ...(Number.isSafeInteger(message.sinceSerial)?(()=>{const list=inputEventPaths.get(name)||[],
+              since=message.sinceSerial,later=list.filter(([serial])=>serial>since);
+              return {inputEventPaths:later.map(([,rel])=>rel),
+                inputEventPathsComplete:(inputEventSerial.get(name)||0)-since===later.length};})():{}),
             probeHash:row.probeHash,inputKey:inputKey(row),observationGaps:metrics.gaps,
             observationHealthy:healthy&&!planning&&!recovering&&!racy&&applicableExternal(name).every(e=>e.healthy)};
       // Export only a currently guarded, check-specific discovery certificate.

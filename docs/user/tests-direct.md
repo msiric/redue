@@ -27,16 +27,19 @@ REDUE runs the local runner with Node directly. npm, its lifecycle scripts and
 ## What REDUE claims
 
 CURRENT means the last run's inputs are unchanged: every file in the checkout
-outside `node_modules`, the installed files in `node_modules`, the Node binary,
-the exact command, and these environment variables: `TZ`, `LANG`, `CI`,
-`FORCE_COLOR`, `NO_COLOR` and every `NODE_*`, `LC_*`, `VITE_*`, `VITEST_*`,
-`JEST_*`, `DYLD_*` and `LD_*` variable. It does not mean a rerun would give
-the same result. A test that depends on the time of day or on randomness can
-pass now and fail later on the same inputs.
+outside `node_modules`, the installed files in
+`node_modules`, the Node binary, the exact command, and these environment
+variables: `TZ`, `LANG`, `CI`, `FORCE_COLOR`, `NO_COLOR`, `SHELL` and every
+`NODE_*`, `LC_*`, `VITE_*`, `VITEST_*`, `JEST_*`, `DYLD_*` and `LD_*` variable.
+It does not mean a rerun would give the same result. A test that depends on the
+time of day or on randomness can pass now and fail later on the same inputs.
 
 The default config excludes `**/*.md`, `**/*.mdx` and, with `--coverage`,
 `coverage/**`. Editing those files keeps a result CURRENT unless the run read
-them.
+them. A run may create git-ignored files (for example under `test/tmp`) and
+read back what it wrote, in the same process or inside a directory it created:
+when every change during the run is such an output, the result keeps the files
+as the run left them.
 
 ## The guard
 
@@ -44,18 +47,20 @@ Every Node process and worker thread of the run loads a recorder
 (`src/test-recorder.cjs`). After the run REDUE checks the record. The result is
 kept but marked UNVERIFIED, with the reason, when the run:
 
-- read a file that the config excludes, or one git ignores (REDUE does not
-  observe ignored files);
+- read a file that the config excludes, or a git-ignored file REDUE does not
+  observe, that the run did not create first;
+- changed an input during the run, or read a git-ignored output an earlier
+  run left before writing it again: the result depends on that leftover;
 - read or listed a file outside the checkout, other than files and directories
-  the run created and Jest's cache directory;
+  the run created, Jest's cache directory and the runners' data directories
+  (Vitest's `vitest` folder in the user data directory);
 - read an environment variable that is set and not compared above, other than
-  `TERM`, `TERM_PROGRAM`, `COLORTERM`, `FORCE_TTY`, `COLUMNS`, `LINES` and
-  `AI_AGENT`;
+  `TERM`, `TERM_PROGRAM`, `COLORTERM`, `FORCE_TTY`, `COLUMNS`, `LINES`,
+  `AI_AGENT` and the shell's `_`;
 - connected to anything other than loopback or a local socket, or asked DNS
   about a name other than localhost;
 - started a process that did not load the recorder: a shell, a binary, or a
   Node process with its own environment;
-- wrote to a file that is an input.
 
 Lookups that can be asked again become run facts, checked before every CURRENT
 answer: whether a path outside the checkout exists, where a link resolves, and
@@ -67,25 +72,26 @@ check is UNVERIFIED until the inputs change.
 
 ## Known causes of UNVERIFIED
 
-Measured on public projects in October 2026:
-
-- Vitest reads `SHELL` (through `std-env`, to detect StackBlitz) and Jest reads
-  `SHELL` and `_` (through `yargs`). Every run of both runners is UNVERIFIED
-  on a machine where `SHELL` is set.
-- Vitest 5 reads `~/Library/Application Support/vitest/.vitest-secret-token`
-  on macOS.
-- Jest lists and reads every JavaScript file under its roots, including an
-  earlier run's `coverage/` report.
-- Tests that write files inside the checkout change the run's inputs.
+Measured on public projects in October 2026: Jest lists and reads every
+JavaScript file under its roots, including an earlier run's `coverage/`
+report. A `--coverage` run in a checkout that already has that report is
+UNVERIFIED; the first run after deleting `coverage/` is not. Tests that write
+files git does not ignore change the run's inputs.
 
 ## Limits
 
-- Runner caches are trusted: `node_modules/.vite`, `node_modules/.vite-temp`
-  and Jest's cache directory are not inputs.
+- Runner caches and data are trusted: `node_modules/.vite`,
+  `node_modules/.vite-temp`, `node_modules/.vitest`, Jest's cache directory and
+  Vitest's user data directory are not inputs.
 - Code that copies the environment and reads the copy, and native code that
   reads files, environment variables or the network, is not seen.
 - Metadata of excluded files (size, times) is not compared, only their
   existence.
 - A file the run creates and another process reads is the run's output only
   when it is inside a directory the run created.
+- Outputs a run keeps are part of the result's inputs afterwards. Deleting
+  them, or an observer restart that reindexes without them (git-ignored files
+  are not indexed at start), makes the result STALE.
+- A config written by an earlier build of this recipe is UNVERIFIED with "run
+  redue init again"; move `redue.config.json` aside and run init.
 - Windows is not supported; the check stays recording-only there.

@@ -16,6 +16,16 @@ const fakeRunner=`import fs from 'node:fs';import os from 'node:os';import path 
 const value=fs.readFileSync('src/value.js','utf8');
 if(value.includes('readme'))fs.readFileSync('README.md');
 if(value.includes('flag'))void process.env.REDUE_FAKE_FLAG;
+if(value.includes('shell'))void process.env.SHELL,process.env._;
+// Output in a git-ignored directory: written and read back, or a leftover read first.
+if(value.includes('leftover'))fs.readFileSync('test/tmp/out.txt');
+if(value.includes('output')||value.includes('leftover')){
+  fs.mkdirSync('test/tmp',{recursive:true});fs.writeFileSync('test/tmp/out.txt','run');fs.readFileSync('test/tmp/out.txt');
+}
+// Check, fail to read, then write a new file in an existing ignored directory.
+if(value.includes('probe')&&!fs.existsSync('test/tmp/new.json')){
+  try{fs.readFileSync('test/tmp/new.json');}catch{}fs.writeFileSync('test/tmp/new.json','{}');fs.readFileSync('test/tmp/new.json');
+}
 if(value.includes('flip')){
   // State REDUE does not observe: a runner cache in the temporary directory.
   const dir=path.join(os.tmpdir(),'jest_redue-fake-'+createHash('sha256').update(process.cwd()).digest('hex').slice(0,12));
@@ -31,7 +41,7 @@ function project(t,{script='vitest run',runner='vitest',version='4.1.4'}={}){
   put(path.join(root,'package-lock.json'),'{"name":"tests-fixture","lockfileVersion":3}');
   put(path.join(root,'src/value.js'),'pass\n');
   put(path.join(root,'README.md'),'# fixture\n');
-  put(path.join(root,'.gitignore'),'node_modules/\n.env.local\n');
+  put(path.join(root,'.gitignore'),'node_modules/\n.env.local\ntest/tmp\n');
   const entry=runner==='vitest'?'vitest.mjs':'bin/jest.js';
   put(path.join(root,'node_modules',runner,'package.json'),JSON.stringify({name:runner,version,bin:{[runner]:entry},type:'module'}));
   put(path.join(root,'node_modules',runner,entry),fakeRunner);
@@ -79,7 +89,7 @@ test('a recorded test pass stays CURRENT across documentation edits and goes STA
   const check=JSON.parse(fs.readFileSync(config,'utf8')).checks[0];
   assert.deepEqual(check.command,['@node','@test-runner:vitest','run']);
   assert.equal(check.qualification,'npm-tests-direct-v1');
-  assert.deepEqual(check.installedInputs,['node_modules/**','!node_modules/.vite/**','!node_modules/.vite-temp/**']);
+  assert.deepEqual(check.installedInputs,['node_modules/**','!node_modules/.vite/**','!node_modules/.vite-temp/**','!node_modules/.vitest/**']);
   good(root,state,'start');
   good(root,state,'run','test');
   let status=row(root,state);
@@ -145,4 +155,34 @@ test('init: Jest coverage excludes its report; watch mode and other scripts stay
   const old=project(t,{version:'3.2.4'});
   const older=JSON.parse(good(old.root,old.state,'init','--recipe','tests-direct','--check','test','--dry-run','--json'));
   assert.match(older.checks[0].reason,/test-runner-version-unsupported/);
+});
+
+test('a run\'s output in an ignored directory is not an input; reading a leftover first is UNVERIFIED',{skip:unsupported},t=>{
+  const {root,state}=project(t);
+  good(root,state,'init','--recipe','tests-direct','--check','test');good(root,state,'start');
+  write(root,'src/value.js','output\n');good(root,state,'run','test');
+  let status=row(root,state);
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  good(root,state,'run','test');
+  status=row(root,state);
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  write(root,'src/value.js','probe\n');good(root,state,'run','test');
+  status=row(root,state);
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  write(root,'src/value.js','leftover\n');good(root,state,'run','test');
+  status=row(root,state);
+  assert.equal(status.freshness,'UNVERIFIED');
+  assert.match(status.reason,/input event occurred during execution/);
+});
+
+test('SHELL is compared; the shell\'s `_` is ignored',{skip:unsupported},t=>{
+  const {root,state}=project(t);
+  good(root,state,'init','--recipe','tests-direct','--check','test');good(root,state,'start');
+  write(root,'src/value.js','shell\n');
+  assert.equal(invoke(root,state,{SHELL:'/bin/sh',_:'/usr/bin/one'},'run','test').status,0);
+  let status=row(root,state,{SHELL:'/bin/sh',_:'/usr/bin/two'});
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  status=row(root,state,{SHELL:'/bin/zsh'});
+  assert.equal(status.freshness,'STALE');
+  assert.match(status.reason,/environment changed/);
 });

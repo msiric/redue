@@ -74,7 +74,9 @@ function install(){
     if(!produced.size)return false;
     for(let at=full;;at=path.dirname(at)){if(produced.has(at))return true;if(path.dirname(at)===at)return false;}
   }
-  const runnerCache=full=>tmp.some(dir=>within(full,dir)&&full.slice(dir.length+1).split(sep)[0].startsWith('jest_'));
+  const runnerData=config.runnerData||[];
+  const runnerCache=full=>tmp.some(dir=>within(full,dir)&&full.slice(dir.length+1).split(sep)[0].startsWith('jest_'))||
+    runnerData.some(dir=>within(full,dir));
   // One filesystem access by its role: read (content), produce, touch (a write
   // that keeps earlier content), mkdir, mkdtemp, list, stat or realpath.
   function access(role,file,error=null,result=undefined,recursive=false){
