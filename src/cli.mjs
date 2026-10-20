@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import {directQualification,directInterpretation,observedNpmContext} from './direct-typescript.mjs';
 import {directRunCertificateAllowed,directRunCertificate,directRunRecordable,directRunRecording,probeQuestions,validateRunRecord} from './direct-run-certificate.mjs';
 import {runFactChange} from './typescript-list.mjs';
+import {recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testsInterpretation,testsQualification} from './test-direct.mjs';
 import path from 'node:path';
 import net from 'node:net';
 import os from 'node:os';
@@ -19,7 +20,7 @@ import {createHash,randomUUID} from 'node:crypto';
 import {assertOwnedStatePlacement} from './owned-state.mjs';
 import {permittedRoots} from './installed-inputs.mjs';
 import {acquireRunLock,inspectRunLock,recoverRunLock} from './run-lock.mjs';
-import {atomicJson,commitReceipt,receiptRevision} from './state-store.mjs';
+import {atomicJson,commitReceipt,readReceipts,receiptRevision} from './state-store.mjs';
 import {timing,profiling,mark,traceContext} from './decision-profile.mjs';
 import {readCachedStatus,unavailableCached} from './cached-state.mjs';
 import {renderRun} from './presentation.mjs';
@@ -63,7 +64,13 @@ function pathExecutableIdentity(name) {
   catch{}
   return digest('<unavailable>');
 }
-function contextHashes() {return Object.fromEntries(config.checks.map(check=>[
+// The variables each test check's last run read while unset (see testRunGuard).
+const unsetFile=path.join(state,'environment-unset-v1.json');
+function unsetReads() {
+  try{const value=JSON.parse(fs.readFileSync(unsetFile,'utf8'));return value?.schema===1&&value.checks||{};}catch{return {};}
+}
+function contextHashes() {const unset=config.checks.some(check=>check.qualification===testsQualification)?unsetReads():{};
+  return Object.fromEntries(config.checks.map(check=>[
   check.name,Object.fromEntries([...(check.environment?.variables||[])
     .map(key=>[key,digest(process.env[key]??'<unset>')]),
     ...(check.environment?.prefixes||[]).map(prefix=>[
@@ -73,7 +80,10 @@ function contextHashes() {return Object.fromEntries(config.checks.map(check=>[
           .sort(([a],[b])=>a.localeCompare(b))))]),
     ...(check.environment?.pathExecutables||[]).map(name=>[
       `__vstate_path_executable_${name}__`,pathExecutableIdentity(name)]),
-    ...(check.environment?.executableIdentity?[['__vstate_node_identity__',nodeIdentity()]]:[])])]));}
+    ...(check.environment?.executableIdentity?[['__vstate_node_identity__',nodeIdentity()]]:[]),
+    // The list is named too, so a status for an older list confirms nothing.
+    ...(Array.isArray(unset[check.name])?[['__redue_env_unset_list__',digest(JSON.stringify(unset[check.name]))],
+      ['__redue_env_unset__',digest(JSON.stringify([unset[check.name],unset[check.name].filter(key=>process.env[key]!==undefined)]))]]:[])])]));}
 function probeHash(plan) {
   const started=performance.now();
   const values=[];
@@ -258,6 +268,19 @@ async function execute() {
     const recorded=directRunRecordable(selected)&&!unobservedDirectRun;
     const launched=recorded?[command[0],'--require',path.join(here,'run-recorder.cjs'),
       ...command.slice(1)]:command;
+    // A test run's processes record what the guard checks (test-recorder.cjs).
+    const testRun=selected.qualification===testsQualification&&['darwin','linux'].includes(process.platform);
+    let testRecord=null,launchEnv=process.env;
+    if(testRun){
+      const environmentIssue=testEnvironmentIssue();
+      if(environmentIssue)captureIssues.push(environmentIssue);
+      testRecord=path.join(state,`test-record-${runId}`);
+      fs.mkdirSync(testRecord,{mode:0o700});
+      const guardFile=path.join(testRecord,'guard.json');
+      fs.writeFileSync(guardFile,JSON.stringify(testGuardConfig(testRecord,root)),{mode:0o600});
+      launchEnv=recordedEnvironment(guardFile);
+    }
+    let runnerPid=null;
     const record=[];
     // A Windows full reconciliation may finish while queued watcher callbacks
     // are still arriving. Fold callbacks delivered before process launch into
@@ -281,11 +304,11 @@ async function execute() {
       try{runLock.phase('launching');
         const launch=windowsLaunch(launched);
         child=spawn(launch.file,launch.args,{cwd:plan.cwd,
-        stdio:recorded?['inherit','inherit','inherit','pipe']:'inherit',env:process.env,
+        stdio:recorded?['inherit','inherit','inherit','pipe']:'inherit',env:launchEnv,
         detached:process.platform==='linux',...launch.options});
         child.stdio[3]?.on('data',chunk=>record.push(chunk));}
       catch(e){resolve({status:'start_failed',exitCode:null,signal:null,errorCode:e.code||e.name});return;}
-      activeChild=child;runLock.phase('running',child.pid??null);
+      activeChild=child;runnerPid=child.pid??null;runLock.phase('running',child.pid??null);
       mark('cli.child_started',{childPid:child.pid});
       if(requestedSignal)forward(requestedSignal);
       child.on('error',e=>{spawnError=e.code||e.name;});
@@ -326,6 +349,13 @@ async function execute() {
       if(issue)captureIssues.push(`compiler inputs differ from discovery certificate (${issue})`);
       probeAfter=certificate.value;
     }else if(!unobservedDirectRun&&!recording)probeAfter=probeHash(probePlan);
+    let guard=null;
+    if(testRecord){
+      guard=testRunGuard(testRecord,{root,sourcePatterns:plan.sourcePatterns||plan.patterns,files:snap?.files,
+        runner:runnerPid,environment:selected.environment||{}});
+      runFacts=guard.runFacts;
+      fs.rmSync(testRecord,{recursive:true,force:true});
+    }
     // The daemon reads the recording from owned state; control requests are small.
     const recordFile=recording&&path.join(state,`run-record-${recording}.json`);
     if(recordFile)try{fs.writeFileSync(recordFile,recordText,{mode:0o600});}catch{}
@@ -376,10 +406,26 @@ async function execute() {
     if(!snap||!end||snap.planId!==end.planId||(recording?snap.inputKey!==end.inputKey:snap.fingerprint!==end.fingerprint)||
       snap.revision!==end.revision)captureIssues.push('declared inputs changed or were not observed');
     const stable=captureIssues.length===0;
+    // Two runs on the same inputs, environment and plan that disagree make the
+    // check nondeterministic until its inputs change.
+    let nondeterministic=false;
+    const declared=hashes=>Object.entries(hashes||{}).filter(([key])=>!key.startsWith('__redue_env_unset'));
+    if(testRun&&stable&&result){
+      const prior=readReceipts(state).checks[name];
+      // A difference explained by inputs REDUE did not observe proves nothing.
+      nondeterministic=Boolean(!guard?.issues.length&&prior?.stable&&!prior.guardIssues?.length&&prior.result&&prior.planId===(snap?.planId??plan.id)&&
+        prior.fingerprint===((recording?end:snap)?.fingerprint??null)&&
+        JSON.stringify(declared(prior.environmentHashes))===JSON.stringify(declared(environmentBefore))&&
+        JSON.stringify(prior.runFacts||[])===JSON.stringify([...runFacts].sort())&&
+        JSON.stringify(prior.environmentUnset||[])===JSON.stringify(guard?.environmentUnset||[])&&
+        (prior.result!==result||prior.nondeterministic===true));
+    }
     // A recorded run's receipt carries its run facts, even none; observers that
     // predate run facts do not reuse version 2.
-    const receipt={result,invocation,target,stable,fingerprintVersion:recorded?2:1,
-      ...(recorded?{runFacts}:{}),
+    const receipt={result,invocation,target,stable,fingerprintVersion:recorded||testRun?2:1,
+      ...(recorded||testRun?{runFacts}:{}),
+      ...(testRun?{verificationRecipe:testsInterpretation,guardIssues:guard?.issues||['the run record is unavailable'],
+        environmentUnset:guard?.environmentUnset||[],...(nondeterministic?{nondeterministic}:{})}:{}),
       resolutionLinks:plan.resolutionLinks||[],
       coverage:{qualified:plan.unresolved.length===0,unresolved:plan.unresolved},
       checkpoint:{status:stable?'stable':'unavailable_or_changed',issues:captureIssues,
@@ -394,6 +440,7 @@ async function execute() {
       startRevision:snap?.revision??null,endRevision:end?.revision??null};
     const persistenceStarted=performance.now();
     commitReceipt(state,name,receipt);
+    if(testRun){const unset=unsetReads();unset[name]=receipt.environmentUnset;atomicJson(unsetFile,{schema:1,checks:unset});}
     timing('cli.receipt_persistence',persistenceStarted);
     const reloadStarted=performance.now();
     try{await call({action:'reload'});}catch{/* receipt revisions invalidate older status even when reload IPC is unavailable */}

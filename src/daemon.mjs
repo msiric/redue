@@ -396,6 +396,14 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
     }
     else if(contextHashes?.[name]&&names.some(key=>contextHashes[name][key]!==r.environmentHashes?.[key]))
       item.reason='declared execution environment changed';
+    // Variables a test run read while the caller left them unset must still be
+    // unset. The caller names the list it checked, so an older list confirms nothing.
+    else if(r.environmentUnset?.length&&contextHashes?.[name]&&
+      contextHashes[name].__redue_env_unset__!==sha(JSON.stringify([r.environmentUnset,[]]))){
+      if(contextHashes[name].__redue_env_unset_list__===sha(JSON.stringify(r.environmentUnset)))
+        item.reason='an environment variable the last run read while unset is now set';
+      else{item.freshness='UNVERIFIED';item.reason='environment variables the last run read could not be confirmed';}
+    }
     else if(r.fingerprint!==combinedSummary(name).fingerprint) {
       const key=r.fingerprint+'\0'+combinedSummary(name).fingerprint;
       if(row.staleReasonKey!==key){
@@ -426,6 +434,12 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
     } else if(r.fingerprintVersion===1&&r.verificationRecipe==='npm-direct-typescript@1'&&process.platform!=='win32'){
       item.freshness='UNVERIFIED';item.reason='receipt predates run facts; run the check again';
     } else if(r.runFacts&&(item.reason=runFactReason(r.runFacts))){item.changed_inputs=[];
+    // A recorded test run that used something REDUE does not observe, or
+    // whose result differed from an earlier run on the same inputs.
+    } else if(r.guardIssues?.length){item.freshness='UNVERIFIED';
+      item.reason=`the run used inputs REDUE does not observe: ${r.guardIssues.slice(0,3).join('; ')}`+
+        (r.guardIssues.length>3?`; and ${r.guardIssues.length-3} more`:'');
+    } else if(r.nondeterministic){item.freshness='UNVERIFIED';item.reason='runs on these exact inputs had different results';
     } else {item.freshness='CURRENT';item.reason=result==='FAIL'?'last command failed':'declared inputs match';
       item.reuse_eligible=result==='PASS';}
     return item;

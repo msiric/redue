@@ -4,6 +4,7 @@ import {mark,traceBase,traceContext,traceEnvironment,traceId} from '../src/decis
 traceBase({...traceContext(),request:traceId(),work:'client'});
 mark('client.loaded');
 import {directCompiler,directQualification,directEnvironment,directInterpretation} from '../src/direct-typescript.mjs';
+import {testEnvironment,testRunnerEntry,testsInterpretation,testsQualification} from '../src/test-direct.mjs';
 import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
@@ -25,7 +26,7 @@ const help=`REDUE ${version}
 Usage: redue [--config FILE] [--state-dir DIR] COMMAND [OPTIONS]
 
 Commands:
-  init [--dry-run] [--workspace NAME] [--check KIND] [--recipe typescript-direct]
+  init [--dry-run] [--workspace NAME] [--check KIND] [--recipe typescript-direct|tests-direct]
                        Discover existing scripts; optionally select one workspace/check
   agent setup codex|claude [--dry-run|--apply] [--json]
   agent doctor [codex|claude] [--json]
@@ -128,7 +129,8 @@ if(command==='init'){
       console.log(`  ${row.name} (${row.script||row.command?.join(' ')}) — `+
         `${{ready:'ready to qualify',recording:'recording-only',unsupported:'unsupported'}[row.level]||row.level}: ${row.reason}`);
       if(row.script&&row.command)console.log(`    Recorded invocation: ${row.command.map(value=>
-        value==='@node'?'node':value==='@typescript-compiler:.'?'[reviewed local TypeScript compiler implementation]':value.startsWith('@typescript-bin:')?
+        value==='@node'?'node':value==='@typescript-compiler:.'?'[reviewed local TypeScript compiler implementation]':
+          value.startsWith('@test-runner:')?`[local ${value.slice('@test-runner:'.length)}]`:value.startsWith('@typescript-bin:')?
           `[installed TypeScript in ${value.slice('@typescript-bin:'.length)}]`:value).join(' ')}`);
     }
     for(const row of summary.ambiguous)
@@ -198,6 +200,11 @@ function token(value){
   if(value==='@typescript-compiler:.'){
     try{return directCompiler(root,{verify:false}).entry;}catch(e){error(`direct compiler unavailable: ${e.code||e.message}`);}
   }
+  if(value.startsWith('@test-runner:')){
+    // Qualification reports a missing runner; status and stop still work.
+    try{return testRunnerEntry(root,value.slice('@test-runner:'.length));}
+    catch{return path.join(root,'node_modules',value.slice('@test-runner:'.length),'<unavailable>');}
+  }
   if(value==='@vstate/direct-typescript-probe')return path.join(productRoot,'src','direct-typescript-probe.mjs');
   if(value.startsWith('@typescript-bin:')){
     const dir=value.slice('@typescript-bin:'.length);
@@ -237,7 +244,8 @@ const checks=publicConfig.checks.map(check=>{
     error(`${check.name}: reviewed coverage ${category} needs a rationale`);
   const npmDirect=check.qualification===directQualification;
   const pnpmTypecheck=check.qualification==='pnpm-tsc-v1';
-  if(check.script&&check.command&&!pnpmTypecheck&&!npmDirect)
+  const testsDirect=check.qualification===testsQualification;
+  if(check.script&&check.command&&!pnpmTypecheck&&!npmDirect&&!testsDirect)
     error(`${check.name}: choose script or command, not both`);
   const manager=publicConfig.packageManager;
   if(check.script&&!['npm','yarn','pnpm'].includes(manager))
@@ -246,11 +254,15 @@ const checks=publicConfig.checks.map(check=>{
     [`@which:${manager}`,'run',check.script]:null;
   const npmAutomatic=check.qualification==='typescript-noemit-v1';
   const yarnWorkspace=check.qualification==='yarn-workspace-tsc-v1';
-  if(check.qualification&&!npmAutomatic&&!npmDirect&&!yarnWorkspace&&!pnpmTypecheck)
+  if(check.qualification&&!npmAutomatic&&!npmDirect&&!yarnWorkspace&&!pnpmTypecheck&&!testsDirect)
     error(`${check.name}: unknown qualification contract`);
   if(npmDirect&&(manager!=='npm'||!check.script||check.cwd&&check.cwd!=='.'||
     JSON.stringify(check.command)!==JSON.stringify(['@node','@typescript-compiler:.','--noEmit'])))
     error(`${check.name}: direct recipe requires its explicit local compiler command`);
+  // The script's own arguments follow the runner; qualification compares them with the script.
+  if(testsDirect&&(manager!=='npm'||!check.script||check.cwd&&check.cwd!=='.'||!Array.isArray(check.command)||
+    check.command[0]!=='@node'||!/^@test-runner:(?:vitest|jest)$/.test(check.command[1]||'')))
+    error(`${check.name}: test recipe requires its explicit local test runner command`);
   if(npmAutomatic&&(manager!=='npm'||check.cwd&&check.cwd!=='.'))
     error(`${check.name}: automatic TypeScript qualification currently needs root npm script`);
   if(yarnWorkspace&&(manager!=='yarn'||!check.workspace||check.cwd&&check.cwd!=='.'||
@@ -276,7 +288,7 @@ const checks=publicConfig.checks.map(check=>{
       check.workspace||'.',check.script]]:[];
   const windowsContext=process.platform==='win32'?
     ['ComSpec','COMSPEC','PATHEXT','USERPROFILE']:[];
-  const autoEnvironment=npmDirect?directEnvironment:npmAutomatic?{variables:['NODE_OPTIONS','NODE_PATH','CI','HOME',
+  const autoEnvironment=npmDirect?directEnvironment:testsDirect?testEnvironment:npmAutomatic?{variables:['NODE_OPTIONS','NODE_PATH','CI','HOME',
     'NODE_ENV','BASH_ENV','ENV',...windowsContext],prefixes:['npm_config_','DYLD_','TSGO_'],
     pathExecutables:['node','npm'],executableIdentity:true}:yarnWorkspace?
     {variables:['NODE_OPTIONS','NODE_PATH','CI','HOME','NODE_ENV','BASH_ENV','ENV',...windowsContext],
@@ -288,7 +300,7 @@ const checks=publicConfig.checks.map(check=>{
   return {name:check.name,command:argv(scriptCommand||check.command,`${check.name}.command`),
     cwd:check.cwd,inputs:check.inputs||[],generatedInputs:check.generatedInputs||[],
     installedInputs:check.installedInputs||(
-      npmAutomatic||npmDirect?['node_modules/**']:[]),
+      npmAutomatic||npmDirect||testsDirect?['node_modules/**']:[]),
     allowedExternalRoots:check.allowedExternalRoots||[],
     probes:[...(check.probes||[]),...autoProbes]
       .map((p,i)=>argv(p,`${check.name}.probes[${i}]`)),
@@ -299,6 +311,7 @@ const checks=publicConfig.checks.map(check=>{
     qualification:check.qualification||null,script:check.script||null,
     ...(npmAutomatic?{qualificationInterpretation:'npm-launcher-withheld@1'}:{}),
     ...(npmDirect?{qualificationInterpretation:directInterpretation}:{}),
+    ...(testsDirect?{qualificationInterpretation:testsInterpretation}:{}),
     workspace:check.workspace||null,kind:check.kind||null};
 });
 const runtime={schema:1,provider:'declared-project@1',root,state,checks};

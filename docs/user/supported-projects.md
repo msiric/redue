@@ -38,7 +38,10 @@ only its source does not stale the selected check until the consumed output
 changes. Unsupported custom resolution, project references, outside-root
 source links, and installation modes remain recording-only. Other Yarn
 typechecks, Vitest/Jest, ESLint, and builds start recording-only unless a
-separately justified explicit contract is provided.
+separately justified explicit contract is provided. For a single-package npm
+project whose test script runs Vitest 4/5 or Jest 29 directly, the opt-in
+`init --recipe tests-direct` records the run and guards its inputs; see
+[direct tests](tests-direct.md).
 In particular, test caches and build-generated inputs are not excluded to
 make evidence green.
 

@@ -154,3 +154,148 @@ function listingAfter(full,during,madeByRun){
   return JSON.stringify(own(now))===JSON.stringify(own(during))?now:during;
 }
 
+// The recipe: a package.json script that runs Vitest or Jest directly, run by
+// REDUE with the local runner and Node, never through npm.
+export const testsQualification='npm-tests-direct-v1';
+export const testsInterpretation='npm-direct-tests@1';
+const fail=code=>{throw Object.assign(Error(code),{code});};
+// Majors whose recorded runs were checked; Jest's per-file environment copy
+// is recorded through jest-util 29.
+const runners={vitest:{majors:[4,5]},jest:{majors:[29]}};
+// Flags that keep the run a single, deterministic pass over the selected
+// tests. Watch, changed-file, snapshot-update, shuffle and shard flags are not
+// here. `value` flags take the next argument unless written with `=`.
+const flags={
+  vitest:{plain:['--run','--no-watch','--coverage','--silent','--passWithNoTests','--typecheck','--globals',
+    '--no-file-parallelism','--allowOnly'],
+    value:['--config','-c','--root','-r','--dir','--project','--reporter','--environment','--pool','--maxWorkers',
+      '--testTimeout','--hookTimeout','--bail','--retry','--exclude']},
+  jest:{plain:['--coverage','--ci','--detectOpenHandles','--forceExit','--runInBand','-i','--silent','--verbose',
+    '--passWithNoTests','--colors','--no-cache','--logHeapUsage','--noStackTrace','--no-watchman','--errorOnDeprecated','--useStderr'],
+    value:['--config','-c','--testPathIgnorePatterns','--testPathPattern','--testPathPatterns','--maxWorkers','-w',
+      '--testTimeout','--selectProjects','--testNamePattern','-t','--bail']},
+};
+// A script's runner and arguments, or an error code. Shell syntax (quotes,
+// globs, variables, chaining) would change what runs, so it is refused.
+export function testScript(value){
+  const text=typeof value==='string'?value.trim():'';
+  if(!/^[A-Za-z0-9_./:=,@+-]+(?: [A-Za-z0-9_./:=,@+-]+)*$/.test(text))fail('test-script-unsupported');
+  const [runner,...args]=text.split(' ');
+  if(!runners[runner])fail('test-runner-unsupported');
+  const allowed=flags[runner];
+  let watchOff=false,positional=0;
+  for(let i=0;i<args.length;i++){
+    const arg=args[i];
+    if(!arg.startsWith('-')){
+      // Vitest takes its first positional argument as the command, after
+      // flags too. Its only command here is `run`; others are filters.
+      if(runner==='vitest'&&positional++===0){
+        if(['watch','dev','related','bench','init','list','typecheck'].includes(arg))fail('test-arguments-unsupported');
+        if(arg==='run')watchOff=true;
+      }
+      continue;
+    }
+    const [name,inline]=arg.split(/=(.*)/s);
+    if(runner==='vitest'&&(arg==='--watch=false'||arg==='--run'||arg==='--no-watch')){watchOff=true;continue;}
+    if(allowed.plain.includes(arg))continue;
+    if(allowed.value.includes(name)){
+      if(inline===undefined){if(i+1>=args.length||args[i+1].startsWith('-'))fail('test-arguments-unsupported');i++;}
+      else if(!inline)fail('test-arguments-unsupported');
+      continue;
+    }
+    fail('test-arguments-unsupported');
+  }
+  // Without `run`, Vitest watches when it has a terminal.
+  if(runner==='vitest'&&!watchOff)fail('test-watch-mode');
+  return {runner,args};
+}
+// The script `init` picks: a familiar name when it runs a runner directly,
+// otherwise the only script that does.
+export function testRecipeScript(scripts){
+  const issue=name=>{try{testScript(scripts[name]);return null;}catch(e){return e.code;}};
+  const runs=name=>typeof scripts[name]==='string'&&/^(?:vitest|jest)(?:\s|$)/.test(scripts[name].trim());
+  const preferred=['test','test:unit','test:check'].find(name=>typeof scripts[name]==='string'&&!issue(name));
+  if(preferred)return {script:preferred};
+  const candidates=Object.keys(scripts).filter(name=>runs(name)&&!issue(name));
+  if(candidates.length)return candidates.length===1?{script:candidates[0]}:{ambiguous:candidates};
+  // Why the nearest script does not qualify.
+  const near=Object.keys(scripts).find(runs);
+  return near?{issue:issue(near)}:{};
+}
+const majorOf=version=>Number(String(version).split('.')[0]);
+// The runner's executable inside the checkout's node_modules.
+export function testRunnerEntry(root,runner){
+  if(!runners[runner])fail('test-runner-unsupported');
+  const dir=path.join(root,'node_modules',runner);
+  let pkg,real;
+  try{real=fs.realpathSync(dir);pkg=JSON.parse(fs.readFileSync(path.join(real,'package.json'),'utf8'));}
+  catch{fail('test-runner-missing');}
+  if(real!==dir||pkg.name!==runner)fail('test-runner-layout-unsupported');
+  const bin=typeof pkg.bin==='string'?pkg.bin:pkg.bin?.[runner];
+  const entry=typeof bin==='string'?path.resolve(real,bin):null;
+  if(!entry||!entry.startsWith(real+path.sep)||!fs.existsSync(entry))fail('test-runner-layout-unsupported');
+  return entry;
+}
+// The project facts the recipe needs, or an error code.
+export function testProject(root,script){
+  const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
+  if(pkg.workspaces||pkg.packageManager&&!/^npm@/.test(pkg.packageManager)||
+    !['package-lock.json','npm-shrinkwrap.json'].some(file=>fs.existsSync(path.join(root,file)))||
+    ['yarn.lock','pnpm-lock.yaml','bun.lock','bun.lockb'].some(file=>fs.existsSync(path.join(root,file))))
+    fail('test-npm-project-unsupported');
+  if(typeof pkg.scripts?.[script]!=='string'||pkg.scripts['pre'+script]||pkg.scripts['post'+script])fail('test-script-changed');
+  const {runner,args}=testScript(pkg.scripts[script]);
+  const entry=testRunnerEntry(root,runner);
+  const version=JSON.parse(fs.readFileSync(path.join(root,'node_modules',runner,'package.json'),'utf8')).version;
+  if(!runners[runner].majors.includes(majorOf(version)))fail('test-runner-version-unsupported');
+  if(runner==='jest'){
+    let util=null;try{util=JSON.parse(fs.readFileSync(path.join(root,'node_modules/jest-util/package.json'),'utf8')).version;}catch{}
+    if(majorOf(util)!==29||!fs.existsSync(path.join(root,'node_modules/jest-util/build/createProcessObject.js')))
+      fail('test-runner-layout-unsupported');
+  }
+  return {runner,version,args,entry};
+}
+// Inputs: the whole checkout except documentation, and the coverage report a
+// --coverage run writes. Installed files are observed by identity; Vite's
+// caches inside node_modules are written by every Vitest run.
+export function testCheckInputs({runner,args}){
+  return {inputs:['**','!node_modules/**','!.git/**','!**/*.md','!**/*.mdx',
+    ...(args.includes('--coverage')?['!coverage/**']:[])],
+  installedInputs:['node_modules/**',...(runner==='vitest'?['!node_modules/.vite/**','!node_modules/.vite-temp/**']:[])]};
+}
+// The caller's environment, when it would load code before the recorder or
+// the Node version is not one the recipe supports. Compared variables are
+// fingerprinted separately.
+export function testEnvironmentIssue(env=process.env){
+  if(![22,24].includes(majorOf(process.versions.node)))return 'the test recipe supports Node 22 and 24';
+  const options=(env.NODE_OPTIONS||'').trim();
+  if(options&&!(/^[A-Za-z0-9=._ -]*$/.test(options)&&options.split(' ').filter(Boolean).every(flag=>
+    /^--max-(?:old|semi)-space-size=\d+$/.test(flag)||/^--use-(?:openssl|bundled|system)-ca$/.test(flag)||
+    /^--dns-result-order=(?:ipv4first|ipv6first|verbatim)$/.test(flag))))
+    return 'NODE_OPTIONS could load code before the REDUE recorder';
+  return null;
+}
+// Plan qualification: the check is exactly what `init` writes for the
+// project's current script.
+export function qualifyTests(root,selected){
+  const issues=[];
+  if(!['darwin','linux'].includes(process.platform))issues.push('the test recipe records runs on macOS and Linux only');
+  try{
+    const project=testProject(root,selected.script);
+    if(JSON.stringify(selected.command)!==JSON.stringify([process.execPath,project.entry,...project.args])||
+      selected.cwd&&selected.cwd!=='.')issues.push('test runner invocation changed; run redue init again');
+    // Every checkout file but installed ones is a content input; the recorder
+    // skips node_modules because it is observed as installed files.
+    const positives=(selected.inputs||[]).filter(p=>!p.startsWith('!'));
+    if(positives.length!==1||positives[0]!=='**'||!selected.inputs.includes('!node_modules/**')||
+      JSON.stringify([...(selected.installedInputs||[])].sort())!==JSON.stringify([...testCheckInputs(project).installedInputs].sort()))
+      issues.push('test inputs must be the whole checkout, with node_modules observed as installed files');
+  }catch(e){issues.push(e.code||'test runner prerequisites unavailable');}
+  if(!selected.environment?.executableIdentity||
+    !testEnvironment.variables.every(key=>selected.environment?.variables?.includes(key))||
+    !testEnvironment.prefixes.every(key=>selected.environment?.prefixes?.includes(key)))
+    issues.push('test execution context incomplete');
+  if(selected.probes?.length)issues.push('the test recipe takes no probes');
+  if(selected.generatedInputs?.length)issues.push('the test recipe takes no generated inputs');
+  return {qualified:issues.length===0,issues};
+}

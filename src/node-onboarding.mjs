@@ -1,4 +1,5 @@
 import {directProject,directQualification} from './direct-typescript.mjs';
+import {testProject,testRecipeScript,testCheckInputs,testsQualification} from './test-direct.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
@@ -161,7 +162,7 @@ function workspaceManifests(root,patterns) {
   return matched.map(file=>({file,pkg:readJson(path.join(root,file))}));
 }
 export function discoverNodeProject(root,{recipe=null}={}) {
-  if(recipe&&recipe!=='typescript-direct')throw Error('unknown recipe; use typescript-direct');
+  if(recipe&&!['typescript-direct','tests-direct'].includes(recipe))throw Error('unknown recipe; use typescript-direct or tests-direct');
   root=realObservedPath(root);
   const packageFile=path.join(root,'package.json');
   if(!exists(packageFile))throw Error('run init from a repository containing package.json');
@@ -196,6 +197,19 @@ export function discoverNodeProject(root,{recipe=null}={}) {
         classification={level:'ready',qualification:directQualification,
           reason:`explicit local TypeScript ${compiler.version} compilation; npm launcher/lifecycle scripts are not executed; package.json stays unchanged`};
       }catch(e){classification={level:'recording',reason:`Direct recipe unavailable (${e.code||e.message}); original npm script retained, without bypassing required behavior`};}
+    }
+    if(recipe==='tests-direct'&&kind==='test'){
+      try{
+        if(pm.name!=='npm'||workspaces||observationIssue||pm.issue)throw Error('test recipe requires a supported single-package npm checkout');
+        const chosen=testRecipeScript(scripts);
+        if(chosen.ambiguous)throw Error(`several scripts run Vitest or Jest directly (${chosen.ambiguous.join(', ')})`);
+        if(!chosen.script)throw Error(chosen.issue||'no script runs Vitest or Jest directly');
+        const project=testProject(root,chosen.script);
+        Object.assign(check,{script:chosen.script,command:['@node',`@test-runner:${project.runner}`,...project.args],cwd:'.',
+          ...testCheckInputs(project)});
+        classification={level:'ready',qualification:testsQualification,
+          reason:`explicit local ${project.runner} ${project.version} run of script ${JSON.stringify(chosen.script)}; the whole checkout is its input; npm and lifecycle scripts are not executed`};
+      }catch(e){classification={level:'recording',reason:`Test recipe unavailable (${e.code||e.message}); original npm script retained`};}
     }
     if(pm.name==='pnpm'&&kind==='typecheck'&&!workspaces&&!pm.issue&&
       /^(?:tsc --noEmit|tsc -p (?:\.|tsconfig\.json)(?: --noEmit)?)$/.test(scripts[script].trim())){

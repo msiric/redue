@@ -6,6 +6,7 @@ import {createHash} from 'node:crypto';
 import {permittedRoots,resolveDeclaredInstalled} from './installed-inputs.mjs';
 import {qualifyTypeScript} from './typescript-qualification.mjs';
 import {directBuildInfo} from './direct-typescript.mjs';
+import {qualifyTests,testsQualification} from './test-direct.mjs';
 import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
 import {pnpmTypecheckInputs} from './pnpm-inputs.mjs';
 import {observedRelative,withinPath,realObservedPath} from './path-identity.mjs';
@@ -80,8 +81,8 @@ export function discoverDeclared(config) {
     const installed=resolveDeclaredInstalled(root,
       [...(selected.installedInputs||[]),...(workspace?.installed||[]),...excluded],allowedRoots);
     timing('plan.installed_resolution',installedStarted,{mappings:installed.mappings.length});
-    const automatic=qualifyTypeScript(root,selected,
-      {workspace,issue:workspaceIssue});
+    const automatic=selected.qualification===testsQualification?qualifyTests(root,selected):
+      qualifyTypeScript(root,selected,{workspace,issue:workspaceIssue});
     const sourcePatterns=[...new Set([...selected.inputs,...(workspace?.source||[]),
       ...(workspace?.generated||[]),...excluded])].sort();
     const additivePatterns=[...new Set([...(selected.generatedInputs||[]),
