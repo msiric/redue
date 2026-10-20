@@ -16,6 +16,11 @@ const fakeRunner=`import fs from 'node:fs';import os from 'node:os';import path 
 const value=fs.readFileSync('src/value.js','utf8');
 if(value.includes('readme'))fs.readFileSync('README.md');
 if(value.includes('flag'))void process.env.REDUE_FAKE_FLAG;
+// Read an earlier coverage report, as Jest's haste map does, then write a new one.
+if(value.includes('coverage')){
+  try{fs.readFileSync('coverage/lcov-report/sorter.js');}catch{}
+  fs.mkdirSync('coverage/lcov-report',{recursive:true});fs.writeFileSync('coverage/lcov-report/sorter.js','report');
+}
 if(value.includes('many'))for(let i=0;i<300;i++)void process.env['REDUE_FAKE_MANY_'+i];
 if(value.includes('shell'))void process.env.SHELL,process.env._;
 // Output in a git-ignored directory: written and read back, or a leftover read first.
@@ -199,4 +204,18 @@ test('a SHELL the run read is compared; the shell\'s `_` is ignored',{skip:unsup
   status=row(root,state,{SHELL:'/bin/zsh'});
   assert.equal(status.freshness,'STALE');
   assert.match(status.reason,/environment variable SHELL differs/);
+});
+
+test('a --coverage run may read back its report, unless the project sets coverage thresholds',{skip:unsupported},t=>{
+  for(const thresholds of [false,true]){
+    const {root,state}=project(t,{script:'jest spec --coverage',runner:'jest',version:'29.7.0'});
+    if(thresholds){const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
+      pkg.jest={coverageThreshold:{global:{lines:80}}};write(root,'package.json',JSON.stringify(pkg));
+      execFileSync('git',['add','package.json'],{cwd:root});}
+    good(root,state,'init','--recipe','tests-direct','--check','test');good(root,state,'start');
+    write(root,'src/value.js','coverage\n');good(root,state,'run','test');good(root,state,'run','test');
+    const status=row(root,state);
+    if(thresholds){assert.equal(status.freshness,'UNVERIFIED');assert.match(status.reason,/read coverage\/lcov-report\/sorter\.js/);}
+    else assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  }
 });

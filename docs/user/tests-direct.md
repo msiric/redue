@@ -70,13 +70,18 @@ the existence and listings of excluded or ignored files in the checkout.
 When two runs on the same inputs and environment give different results, the
 check is UNVERIFIED until the inputs change.
 
+A `--coverage` run may read back the default `coverage/` report: Jest reads
+every JavaScript file under its roots, an earlier report's included, only to
+map dependencies, and that does not decide pass or fail. This is not allowed
+when the configuration names coverage thresholds, which make the report decide
+the result, or another report directory. Configuration can be code, so REDUE
+looks for `coverageThreshold`, `thresholds`, `coverageDirectory` and
+`reportsDirectory` in `package.json`'s `jest` field and the runner's config
+files; when one appears, reading an old report is UNVERIFIED.
+
 ## Known causes of UNVERIFIED
 
-Measured on public projects in October 2026: Jest lists and reads every
-JavaScript file under its roots, including an earlier run's `coverage/`
-report. A `--coverage` run in a checkout that already has that report is
-UNVERIFIED; the first run after deleting `coverage/` is not. Tests that write
-files git does not ignore change the run's inputs.
+Tests that write files git does not ignore change the run's inputs.
 
 ## Limits
 

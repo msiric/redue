@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {directQualification,directInterpretation,observedNpmContext} from './direct-typescript.mjs';
 import {directRunCertificateAllowed,directRunCertificate,directRunRecordable,directRunRecording,probeQuestions,validateRunRecord} from './direct-run-certificate.mjs';
 import {runFactChange} from './typescript-list.mjs';
-import {changedFiles,gitIgnored,recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testsInterpretation,testsQualification} from './test-direct.mjs';
+import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testProject,testEnvironmentIssue,testGuardConfig,testRunGuard,testsInterpretation,testsQualification} from './test-direct.mjs';
 import path from 'node:path';
 import net from 'node:net';
 import os from 'node:os';
@@ -354,8 +354,9 @@ async function execute() {
     }else if(!unobservedDirectRun&&!recording)probeAfter=probeHash(probePlan);
     let guard=null;
     if(testRecord){
+      let coverage=null;try{coverage=coverageReadable(root,testProject(root,selected.script));}catch{}
       guard=testRunGuard(testRecord,{root,sourcePatterns:plan.sourcePatterns||plan.patterns,files:snap?.files,
-        runner:runnerPid,environment:selected.environment||{}});
+        runner:runnerPid,environment:selected.environment||{},coverage});
       runFacts=guard.runFacts;
       fs.rmSync(testRecord,{recursive:true,force:true});
     }

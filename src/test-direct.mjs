@@ -58,7 +58,7 @@ export function recordedEnvironment(guardFile,env=process.env) {
 // PID of the process REDUE started. Returns {issues, runFacts, environmentReads,
 // isOutput}: environmentReads maps each variable the run read directly to the
 // caller's value digest, or '<unset>'.
-export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=testEnvironment}) {
+export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=testEnvironment,coverage=null}) {
   // The recipe's variables and any the project declares are compared, not guarded.
   const compared=name=>(environment.variables||[]).includes(name)||
     (environment.prefixes||[]).some(prefix=>name.toLowerCase().startsWith(prefix.toLowerCase()));
@@ -122,9 +122,12 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
   const madeByRun=full=>created.has(full)||inCreated(full);
   const runFacts=[];
   const checkout=rel=>path.join(root,rel);
+  // The coverage report a --coverage run writes and may read back
+  // (coverageReadable); its contents do not decide pass or fail.
+  const inCoverage=rel=>coverage!==null&&(rel===coverage||rel.startsWith(coverage+'/'));
   // File content in the checkout must be an observed input.
   for(const [rel,found] of [...reads].sort(([a],[b])=>a<b?-1:a>b?1:0)){
-    if(inCreated(checkout(rel)))continue;
+    if(inCreated(checkout(rel))||inCoverage(rel))continue;
     if(!included(rel))add(`read ${rel}, which the check's inputs exclude`);
     else if(found&&!observed(rel))add(`read ${rel}, which REDUE does not observe (ignored by git)`);
     // A missing file may be ignored by git, so the index would not see it appear.
@@ -136,7 +139,7 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
     if(question==='stat'||question==='entries'){
       const full=checkout(where);
       // A path the run made answers differently afterwards; it is output, not input.
-      if(madeByRun(full)||produced.has(full))continue;
+      if(madeByRun(full)||produced.has(full)||inCoverage(where))continue;
       if(set.size>1){add(`${where} changed during the run`);continue;}
       if(question==='stat'){
         // Observed files and directories: the index covers them. A missing
@@ -299,6 +302,28 @@ export function testCheckInputs({runner,args}){
   return {inputs:['**','!node_modules/**','!.git/**','!**/*.md','!**/*.mdx',
     ...(args.includes('--coverage')?['!coverage/**']:[])],
   installedInputs:['node_modules/**',...(runner==='vitest'?['!node_modules/.vite/**','!node_modules/.vite-temp/**','!node_modules/.vitest/**']:[])]};
+}
+// The coverage directory a --coverage run may read back: Jest reads every
+// .js file under its roots, an earlier report's included, to map dependencies,
+// and that does not decide pass or fail. Only the default directory, and only
+// when no configuration names thresholds (which make the report decide the
+// result) or another report directory. Configuration can be code, so this
+// reads its text.
+export function coverageReadable(root,{runner,args}){
+  if(!args.includes('--coverage'))return null;
+  const names=runner==='jest'?['jest.config.js','jest.config.ts','jest.config.mjs','jest.config.cjs','jest.config.json']:
+    ['vitest.config.ts','vitest.config.mts','vitest.config.cts','vitest.config.js','vitest.config.mjs','vitest.config.cjs',
+      'vite.config.ts','vite.config.mts','vite.config.cts','vite.config.js','vite.config.mjs','vite.config.cjs',
+      'vitest.workspace.ts','vitest.workspace.js','vitest.workspace.json'];
+  const at=args.findIndex(arg=>arg==='--config'||arg==='-c'),inline=args.find(arg=>/^(?:--config|-c)=/.test(arg));
+  const given=at>=0?args[at+1]:inline?.split(/=(.*)/s)[1];
+  const texts=[];
+  for(const name of [...names,...(given?[given]:[])]){
+    try{texts.push(fs.readFileSync(path.resolve(root,name),'utf8'));}catch{}
+  }
+  try{const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
+    if(runner==='jest'&&pkg.jest)texts.push(JSON.stringify(pkg.jest));}catch{return null;}
+  return texts.some(text=>/coverageThreshold|thresholds|coverageDirectory|reportsDirectory/.test(text))?null:'coverage';
 }
 // The caller's environment, when it would load code before the recorder or
 // the Node version is not one the recipe supports. Compared variables are
