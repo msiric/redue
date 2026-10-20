@@ -1,5 +1,5 @@
-// Claude Code PreToolUse hook: skip an exact typecheck rerun when REDUE reports
-// CURRENT/PASS with reuse_eligible on the current inputs. When the check is not
+// Claude Code PreToolUse hook: skip an exact typecheck or test rerun when REDUE
+// reports CURRENT/PASS with reuse_eligible on the current inputs. When the check is not
 // CURRENT, the command becomes `redue run <check>` so the run is recorded. Every
 // other outcome, including errors and timeouts, allows the command unchanged.
 // Never exit 2: Claude Code treats exit 2 as a block.
@@ -12,28 +12,38 @@ import {realObservedPath} from './path-identity.mjs';
 export const hookCommand='redue agent hook claude';
 const safe=/^[A-Za-z0-9_./:=,+-]+$/;
 const typecheck=check=>check?.kind==='typecheck'||check?.name==='typecheck';
+// A direct test check: its command is the runner and the script's arguments.
+const tests=check=>check?.qualification==='npm-tests-direct-v1'&&Array.isArray(check.command)&&
+  /^@test-runner:(?:vitest|jest)$/.test(check.command[1]||'');
+export const checkKind=check=>tests(check)?'test':'typecheck';
 
 export const defaultConfig='redue.config.json';
 // The `redue` prefix for a config beside the project root; null when the name
 // would need shell quoting.
 export const redueFor=(configFile=defaultConfig)=>configFile===defaultConfig?'redue':
   safe.test(configFile)?`redue --config ${configFile}`:null;
-// Exact commands that rerun each configured typecheck. Names that would need
-// shell quoting get no form, so the hook never fires for them.
+// Exact commands that rerun each configured typecheck or direct test check.
+// Names that would need shell quoting get no form, so the hook never fires for them.
 export function hookForms(config,configFile=defaultConfig){
   const rows=[],redue=redueFor(configFile);
   for(const check of config?.checks||[]){
-    if(!typecheck(check)||typeof check.name!=='string'||!safe.test(check.name))continue;
+    if(!(typecheck(check)||tests(check))||typeof check.name!=='string'||!safe.test(check.name))continue;
     const forms=redue?[`${redue} run ${check.name}`]:[];
     // Other forms run from the project root, so they match only a root check.
     if(check.cwd!==undefined&&check.cwd!=='.'){if(forms.length)rows.push({check:check.name,forms});continue;}
     if(config.packageManager==='npm'&&typeof check.script==='string'&&safe.test(check.script))
       forms.push(`npm run ${check.script}`);
     if(check.qualification==='npm-typescript-direct-v1')forms.push('npx tsc --noEmit');
-    if(Array.isArray(check.command)&&check.command.length&&
+    if(!tests(check)&&Array.isArray(check.command)&&check.command.length&&
       check.command.every(v=>typeof v==='string'&&safe.test(v)&&!v.startsWith('@')))
       forms.push(check.command.join(' '));
-    if(forms.length)rows.push({check:check.name,forms:[...new Set(forms)]});
+    // The script's own text, which runs the same runner with the same arguments.
+    if(tests(check)){
+      if(check.script==='test'&&config.packageManager==='npm')forms.push('npm test');
+      const text=[check.command[1].slice('@test-runner:'.length),...check.command.slice(2)];
+      if(text.every(v=>typeof v==='string'&&safe.test(v)))forms.push(text.join(' '),`npx ${text.join(' ')}`);
+    }
+    if(forms.length)rows.push({check:check.name,kind:checkKind(check),forms:[...new Set(forms)]});
   }
   return rows;
 }

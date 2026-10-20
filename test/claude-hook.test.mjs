@@ -28,7 +28,7 @@ test('matches each typecheck form with only the allowed output suffixes',()=>{
     assert.equal(matchCheck(command,direct),null,command);
   const literal={schema:1,checks:[{name:'types',kind:'typecheck',command:['tsc','-p','tsconfig.json','--noEmit']},
     {name:'lint',command:['eslint','.']},{name:'type check',kind:'typecheck',command:['tsc']}]};
-  assert.deepEqual(hookForms(literal),[{check:'types',forms:['redue run types','tsc -p tsconfig.json --noEmit']}]);
+  assert.deepEqual(hookForms(literal),[{check:'types',kind:'typecheck',forms:['redue run types','tsc -p tsconfig.json --noEmit']}]);
   assert.equal(matchCheck('tsc -p tsconfig.json --noEmit 2>&1',literal),'types');
   assert.equal(matchCheck('redue run lint',literal),null);
   // A check that runs in a subdirectory: the same text at the root is a different command.
@@ -45,6 +45,19 @@ test('matches each typecheck form with only the allowed output suffixes',()=>{
   assert.deepEqual(hookForms(direct,'my config.json')[0].forms,['npm run typecheck','npx tsc --noEmit']);
   // No form at all: no row, so setup names no command for it.
   assert.deepEqual(hookForms({schema:1,checks:[{name:'typecheck',command:['@node','check.mjs']}]},'my config.json'),[]);
+});
+
+test('a direct test check matches its script, npm test and the runner command, not a subset',()=>{
+  const config={schema:1,packageManager:'npm',checks:[{name:'test',kind:'test',script:'test',
+    qualification:'npm-tests-direct-v1',command:['@node','@test-runner:vitest','run']}]};
+  assert.deepEqual(hookForms(config),[{check:'test',kind:'test',
+    forms:['redue run test','npm run test','npm test','vitest run','npx vitest run']}]);
+  for(const command of ['npm test','npx vitest run 2>&1 | tail -n 20','npm run test && git status'])
+    assert.equal(matchCheck(command,config),'test',command);
+  for(const command of ['npx vitest run src/a.test.ts','npx vitest','npm test -- -u'])
+    assert.equal(matchCheck(command,config),null,command);
+  // A recording-only test script gets no form.
+  assert.deepEqual(hookForms({...config,checks:[{name:'test',kind:'test',script:'test'}]}),[]);
 });
 
 test('a matched command becomes redue run with the same output suffix',()=>{

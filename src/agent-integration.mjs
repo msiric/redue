@@ -88,20 +88,27 @@ function saved(root,host){const text=read(root,marker(host));if(text===null)retu
   return value;
 }
 // The managed block is always in the agent's context, so it stays short. For
-// Claude Code it names the typecheck command the hook matches and what a skip
-// means. The hook does the rest, so the block does not point to the skill;
-// the skill stays for agents that look for it.
-function blockFor(host,forms=[]){return `\n\n<!-- REDUE:${host}:begin -->\n`+
-  (forms.length?`Typecheck with ${forms.map(form=>`\`${form}\``).join(' and ')}. If its last pass still applies to\n`+
+// Claude Code it names the typecheck and test commands the hook matches and
+// what a skip means. The hook does the rest, so the block does not point to
+// the skill; the skill stays for agents that look for it. A typecheck-only
+// block keeps its earlier wording.
+const quoted=forms=>forms.map(form=>`\`${form}\``).join(' and ');
+function blockFor(host,rows=[]){
+  const typechecks=rows.filter(row=>row.kind!=='test').map(row=>row.form),tests=rows.filter(row=>row.kind==='test').map(row=>row.form);
+  return `\n\n<!-- REDUE:${host}:begin -->\n`+
+  (!rows.length?`Before you run, skip or report a typecheck or other configured check, read\n`+
+    `${hosts[host].skill}.\n`:!tests.length?`Typecheck with ${quoted(typechecks)}. If its last pass still applies to\n`+
     `these exact files, a REDUE hook skips the run and says so. The skip counts as\n`+
     `a pass; don't check it again.\n`:
-    `Before you run, skip or report a typecheck or other configured check, read\n`+
-    `${hosts[host].skill}.\n`)+
+    (typechecks.length?`Typecheck with ${quoted(typechecks)}.\n`:'')+
+    `Run the unit tests with ${quoted(tests)}.\n`+
+    `If a check's last pass still applies to these exact files, a REDUE hook skips\n`+
+    `the run and says so. The skip counts as a pass; don't check it again.\n`)+
   `<!-- REDUE:${host}:end -->\n`;}
-// One form per typecheck: the npm script when there is one, since that is what
+// One form per check: the npm script when there is one, since that is what
 // the project's own instructions usually name.
-const blockForms=(host,config,relative)=>host!=='claude'?[]:hookForms(config,relative).map(row=>
-  row.forms.find(form=>form.startsWith('npm run '))??row.forms.find(form=>!form.startsWith('redue '))??row.forms[0]);
+const blockForms=(host,config,relative)=>host!=='claude'?[]:hookForms(config,relative).map(row=>({kind:row.kind,
+  form:row.forms.find(form=>form.startsWith('npm run '))??row.forms.find(form=>!form.startsWith('redue '))??row.forms[0]}));
 const priorBlocks=(host,relative)=>[false,true].map(legacy=>`\n\n<!-- REDUE:${host}:begin -->\n`+
   `Before deciding whether configured verification needs repeating, use REDUE.\n`+
   (legacy?`Read ${hosts[host].skill} for the decision policy, then query ordinary status\n`+
@@ -120,9 +127,11 @@ const priorBlocks=(host,relative)=>[false,true].map(legacy=>`\n\n<!-- REDUE:${ho
 // varies, and only in the safe character set. Earlier owned versions are
 // recognized so setup can replace them; other stored text never is.
 function knownBlock(host,relative,block){
-  const named=/^\n\n<!-- REDUE:[a-z]+:begin -->\nTypecheck with ((?:`[A-Za-z0-9_./:=,+ -]+`(?: and )?)+)\. /.exec(block);
-  const forms=named?[...named[1].matchAll(/`([^`]+)`/g)].map(m=>m[1]):[];
-  return block===blockFor(host,forms)||priorBlocks(host,relative).includes(block);
+  const list='((?:`[A-Za-z0-9_./:=,+ -]+`(?: and )?)+)';
+  const forms=pattern=>{const named=new RegExp(pattern).exec(block);return named?[...named[1].matchAll(/`([^`]+)`/g)].map(m=>m[1]):[];};
+  const rows=[...forms(`^\\n\\n<!-- REDUE:[a-z]+:begin -->\\nTypecheck with ${list}\\.`).map(form=>({kind:'typecheck',form})),
+    ...forms(`Run the unit tests with ${list}\\.\\n`).map(form=>({kind:'test',form}))];
+  return block===blockFor(host,rows)||priorBlocks(host,relative).includes(block);
 }
 // The policy with the exact commands for this config, so an agent never builds
 // a --config form the hook would not recognize. Claude Code gets the typecheck
@@ -131,7 +140,9 @@ function skillFor(relative,host,config){
   // Double quotes work in POSIX shells, cmd and PowerShell for ordinary names.
   const redue=redueFor(relative)??`redue --config ${JSON.stringify(relative)}`,status=`${redue} status --sync --json`;
   const rows=host==='claude'?hookForms(config,relative):[];
-  const commands=rows.map(row=>`- ${row.check==='typecheck'?'Typecheck':`Typecheck \`${row.check}\``}: `+
+  const label=row=>row.kind==='test'?(row.check==='test'?'Unit tests':`Unit tests \`${row.check}\``):
+    row.check==='typecheck'?'Typecheck':`Typecheck \`${row.check}\``;
+  const commands=rows.map(row=>`- ${label(row)}: `+
     `${row.forms.map(form=>`\`${form}\``).join(' or ')}.\n`).join('')+
     (rows.length?`  If the last pass still applies to these exact files, a hook skips the run\n`+
       `  and says so. That counts as a pass; don't confirm it with status. Otherwise\n`+
@@ -145,7 +156,7 @@ function skillFor(relative,host,config){
   // typecheck needs only the CLAUDE.md block, so the description must not
   // send the agent here for one.
   const description=rows.length?'Rules and exact commands for redue status, redue run and other redue commands. '+
-    'A plain typecheck needs only the REDUE section of CLAUDE.md.':
+    `A plain ${rows.some(row=>row.kind==='test')?'typecheck or test run':'typecheck'} needs only the REDUE section of CLAUDE.md.`:
     'Use before running, skipping or reporting a typecheck or other configured check.';
   // Replacer functions, so `$` in a config name is never a replacement pattern.
   return policy.replace('{{DESCRIPTION}}',()=>description).replace('{{CONFIG}}',()=>JSON.stringify(relative)).replace('{{COMMANDS}}',()=>commands.trimEnd())
@@ -241,7 +252,7 @@ export async function agentCommand(args,{configFile,stateOverride,entry,cwd=proc
       {path:h.instruction,before,after});
     if(host==='claude'){const settings=read(root,settingsPath);
       changes.push({path:settingsPath,before:settings,after:settingsWith(settings,hook),
-        content:hook?JSON.stringify(hook,null,2):'remove the REDUE PreToolUse hook (no typecheck check to match)'});}
+        content:hook?JSON.stringify(hook,null,2):'remove the REDUE PreToolUse hook (no typecheck or test check to match)'});}
     changes.push({path:marker(host),before:read(root,marker(host)),after:JSON.stringify(next,null,2)+'\n'});
   }else if(record){
     const before=read(root,h.instruction),after=before.replace(record.block,'');

@@ -222,6 +222,21 @@ test('claude setup adds one typecheck hook to settings.local.json; removal resto
   f.ok('agent','remove','claude','--apply');
   assert.deepEqual(JSON.parse(f.read(local)),existing);assert.equal(f.read('.claude/settings.json'),shared);
 });
+test('claude setup names the test command beside the typecheck and recognizes its own block again',t=>{
+  const f=fixture(t);
+  f.put('redue.config.json',JSON.stringify({schema:1,packageManager:'npm',checks:[
+    {name:'typecheck',command:['@node','check.mjs'],inputs:['src/**']},
+    {name:'test',kind:'test',script:'test:vi',qualification:'npm-tests-direct-v1',
+      command:['@node','@test-runner:vitest','run'],inputs:['**','!node_modules/**']}]}));
+  f.ok('agent','setup','claude','--apply');
+  const block=f.read('CLAUDE.md');
+  assert.match(block,/^Typecheck with `redue run typecheck`\.\nRun the unit tests with `npm run test:vi`\.\n/m);
+  assert.match(f.read('.claude/skills/redue-verification/SKILL.md'),/^- Unit tests: `redue run test` or `npm run test:vi` or `vitest run` or `npx vitest run`\.$/m);
+  assert.ok(JSON.parse(f.read('.claude/settings.local.json')).hooks.PreToolUse[0].hooks.some(h=>h.if==='Bash(npx vitest run*)'));
+  f.ok('agent','setup','claude','--apply');assert.equal(f.read('CLAUDE.md'),block);
+  f.ok('agent','remove','claude','--apply');assert(!fs.existsSync(path.join(f.root,'CLAUDE.md')));
+});
+
 test('claude hook settings: created file is removed; edited or duplicate entries are replaced; invalid settings block setup',t=>{
   const f=fixture(t),local='.claude/settings.local.json';
   f.ok('agent','setup','claude','--apply');assert.equal(JSON.parse(f.read(local)).hooks.PreToolUse.length,1);
