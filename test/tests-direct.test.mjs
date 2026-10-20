@@ -95,7 +95,8 @@ test('a recorded test pass stays CURRENT across documentation edits and goes STA
   const check=JSON.parse(fs.readFileSync(config,'utf8')).checks[0];
   assert.deepEqual(check.command,['@node','@test-runner:vitest','run']);
   assert.equal(check.qualification,'npm-tests-direct-v1');
-  assert.deepEqual(check.installedInputs,['node_modules/**','!node_modules/.vite/**','!node_modules/.vite-temp/**','!node_modules/.vitest/**']);
+  assert.deepEqual(check.installedInputs,['node_modules/**','!node_modules/.vite/**','!node_modules/.vite-temp/**','!node_modules/.vitest/**',
+    '!node_modules/vitest/dist/tsconfig.tmp.tsbuildinfo']);
   good(root,state,'start');
   good(root,state,'run','test');
   let status=row(root,state);

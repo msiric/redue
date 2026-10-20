@@ -105,6 +105,13 @@ function install(){
         return;
       }
       if(runnerCache(full))return;
+      // A small file read outside the checkout is kept by its content, as
+      // queryAnswer's readFile hashes it, so status can ask again.
+      if(role==='read'&&!error){
+        let answer='present';
+        try{if(original.statSync(full).size<=1024*1024)answer={content:digest(JSON.stringify(original.readFileSync(full,'utf8')))};}catch{}
+        once(['O','read',full,answer]);return;
+      }
       if(role==='read'||role==='list'){once(['O',role,full,error?missing(error):'present']);return;}
       if(role==='realpath'){once(['O','realpath',full,error?missing(error):String(result)]);return;}
       if(error){once(['O','stat',full,missing(error)]);return;}

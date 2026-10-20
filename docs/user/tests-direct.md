@@ -55,16 +55,19 @@ kept but marked UNVERIFIED, with the reason, when the run:
   observe, that the run did not create first;
 - changed an input during the run, or read a git-ignored output an earlier
   run left before writing it again: the result depends on that leftover;
-- read or listed a file outside the checkout, other than files and directories
-  the run created, Jest's cache directory and the runners' data directories
-  (Vitest's `vitest` folder in the user data directory);
+- listed a directory, or read a file over 1 MB, outside the checkout, other
+  than files and directories the run created, Jest's cache directory and the
+  runners' data directories (Vitest's `vitest` folder in the user data
+  directory);
 - connected to anything other than loopback or a local socket, or asked DNS
   about a name other than localhost;
 - started a process that did not load the recorder: a shell, a binary, or a
   Node process with its own environment;
 
 Lookups that can be asked again become run facts, checked before every CURRENT
-answer: whether a path outside the checkout exists, where a link resolves, and
+answer: whether a path outside the checkout exists, where a link resolves, the
+content of each smaller file read outside it (Linux native bindings read
+`/proc/version` and `/usr/bin/ldd` to pick their C library), and
 the existence and listings of excluded or ignored files in the checkout.
 
 When two runs on the same inputs and environment give different results, the
@@ -86,8 +89,9 @@ Tests that write files git does not ignore change the run's inputs.
 ## Limits
 
 - Runner caches and data are trusted: `node_modules/.vite`,
-  `node_modules/.vite-temp`, `node_modules/.vitest`, Jest's cache directory and
-  Vitest's user data directory are not inputs.
+  `node_modules/.vite-temp`, `node_modules/.vitest`, Vitest's typecheck build
+  info in `node_modules/vitest/dist`, Jest's cache directory and Vitest's user
+  data directory are not inputs.
 - Code that copies the environment and reads the copy, and native code that
   reads files, environment variables or the network, is not seen.
 - Metadata of excluded files (size, times) is not compared, only their

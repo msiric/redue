@@ -157,7 +157,7 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
     if(madeByRun(file))continue;
     if(set.size>1){add(`${file} changed during the run`);continue;}
     const fact=answer==='error'?null:kind==='stat'||kind==='realpath'?runFact(kind,file,answer):
-      answer===null?['fileExists',file,null]:null;
+      answer===null?['fileExists',file,null]:kind==='read'&&typeof answer?.content==='string'?['readFile',file,answer.content]:null;
     if(fact)runFacts.push(fact);
     else add(kind==='read'?`read ${file}, outside the project`:kind==='list'?`listed ${file}, outside the project`:
       `${kind} of ${file} outside the project gave ${answer}`);
@@ -301,7 +301,9 @@ export function testProject(root,script){
 export function testCheckInputs({runner,args}){
   return {inputs:['**','!node_modules/**','!.git/**','!**/*.md','!**/*.mdx',
     ...(args.includes('--coverage')?['!coverage/**']:[])],
-  installedInputs:['node_modules/**',...(runner==='vitest'?['!node_modules/.vite/**','!node_modules/.vite-temp/**','!node_modules/.vitest/**']:[])]};
+  // Vitest's typecheck mode keeps tsc's build info in its own dist directory.
+  installedInputs:['node_modules/**',...(runner==='vitest'?['!node_modules/.vite/**','!node_modules/.vite-temp/**','!node_modules/.vitest/**',
+    '!node_modules/vitest/dist/tsconfig.tmp.tsbuildinfo']:[])]};
 }
 // The coverage directory a --coverage run may read back: Jest reads every
 // .js file under its roots, an earlier report's included, to map dependencies,

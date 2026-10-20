@@ -6,6 +6,7 @@ import path from 'node:path';
 import {spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {recordedEnvironment,testGuardConfig,testRunGuard} from '../src/test-direct.mjs';
+import {queryAnswer} from '../src/typescript-list.mjs';
 
 const unsupported=process.platform==='win32'?'the test recipe records runs on macOS and Linux':false;
 const patterns=['**','!node_modules/**','!.git/**','!**/*.md'];
@@ -76,15 +77,17 @@ test('reading a file the index does not observe is an issue; a missing input is 
   assert.deepEqual(r.issues,['read .env.local, which REDUE does not observe (ignored by git)']);
 });
 
-test('lookups outside the project become run facts; reads outside are issues; temporary files are not',{skip:unsupported},async()=>{
+test('lookups and small file reads outside the project become run facts; listings outside are issues',{skip:unsupported},async()=>{
   const missing=path.join(fs.realpathSync('/'),'redue-guard-missing-'+process.pid);
   const r=await recorded(`const fs=require('fs'),os=require('os'),path=require('path');
     fs.existsSync(${JSON.stringify(missing)});
     try{fs.statSync(${JSON.stringify(missing)});}catch{}
     const t=path.join(os.tmpdir(),'redue-guard-'+process.pid);fs.writeFileSync(t,'x');fs.readFileSync(t);fs.rmSync(t);
-    fs.readFileSync('/etc/hosts');fs.statSync('/usr');`);
+    fs.readFileSync('/etc/hosts');fs.statSync('/usr');fs.readdirSync('/usr');`);
   assert.equal(r.code,0,r.output);
-  assert.deepEqual(r.issues,[`read ${fs.realpathSync('/etc')}/hosts, outside the project`]);
+  assert.deepEqual(r.issues,[`listed ${fs.realpathSync('/usr')}, outside the project`]);
+  const hosts=path.join(fs.realpathSync('/etc'),'hosts');
+  assert.deepEqual(r.runFacts.find(f=>f[1]===hosts),['readFile',hosts,queryAnswer('readFile',hosts)]);
   assert.deepEqual(r.runFacts.filter(f=>f[1]===missing),[['fileExists',missing,null]]);
   assert.ok(r.runFacts.some(([kind,file,answer])=>kind==='directoryExists'&&file==='/usr'&&answer===true));
 });
