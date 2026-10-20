@@ -74,6 +74,12 @@ export function installedTypeScript(dir) {
   try { return readJson(path.join(dir, 'node_modules/typescript/package.json')).version; } catch { return null; }
 }
 
+// The repo's test command, as the harness runs it on a final or recorded tree.
+export function plainTests(dir, command) {
+  const r = sh('sh', ['-c', command], {cwd: dir, timeout: 300_000});
+  return {pass: r.status === 0, ms: r.ms, output: (r.stdout + r.stderr).slice(-8000)};
+}
+
 export function plainTsc(dir) {
   const r = sh(process.execPath, [path.join(dir, 'node_modules/typescript/bin/tsc'), '--noEmit'], {cwd: dir, timeout: 600_000});
   return {pass: r.status === 0, ms: r.ms, output: (r.stdout + r.stderr).slice(-3000)};
@@ -83,10 +89,10 @@ export function redue(entry, dir, ...argv) {
   return sh(process.execPath, [entry, ...argv], {cwd: dir});
 }
 
-export function checkStatus(entry, dir) {
+export function checkStatus(entry, dir, name = 'typecheck') {
   const r = redue(entry, dir, 'status', '--sync', '--json');
   try {
-    const status = JSON.parse(r.stdout), row = status.checks?.find(c => c.name === 'typecheck');
+    const status = JSON.parse(r.stdout), row = status.checks?.find(c => c.name === name);
     return {freshness: row?.freshness, result: row?.result, reuse_eligible: row?.reuse_eligible,
       reason: row?.reason, healthy: status.observation?.healthy};
   } catch { return {error: `exit ${r.status}: ${(r.stderr || r.stdout).slice(-400)}`}; }
