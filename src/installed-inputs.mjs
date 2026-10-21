@@ -99,7 +99,9 @@ export function resolveDeclaredInstalled(root,patterns,allowed=[]) {
     else {if(!external.has(boundary))external.set(boundary,new Set());
       external.get(boundary).add(mapped);}
     if(!negative)roots.add(resolved.physical);
-    result.mappings.push({logical:pattern,physical:resolved.physical,root:boundary,
+    // An exclusion maps to the same pattern whether or not its path exists, so
+    // the plan stays the same when a run creates it (a runner cache).
+    if(!negative)result.mappings.push({logical:pattern,physical:resolved.physical,root:boundary,
       links:resolved.links.map(link=>link.path)});
   }
   result.internalPatterns=[...internal].sort();

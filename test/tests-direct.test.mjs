@@ -6,6 +6,7 @@ import os from 'node:os';
 import {spawnSync,execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {testScript,testRecipeScript} from '../src/test-direct.mjs';
+import {resolveDeclaredInstalled} from '../src/installed-inputs.mjs';
 
 const bin=path.resolve('bin/redue.mjs');
 const unsupported=process.platform==='win32'?'the test recipe records runs on macOS and Linux':false;
@@ -219,4 +220,16 @@ test('a --coverage run may read back its report, unless the project sets coverag
     if(thresholds){assert.equal(status.freshness,'UNVERIFIED');assert.match(status.reason,/read coverage\/lcov-report\/sorter\.js/);}
     else assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
   }
+});
+
+test('an excluded runner cache appearing does not change the input plan',()=>{
+  const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'rt-plan-')));
+  try{
+    put(path.join(root,'node_modules/vitest/package.json'),'{}');
+    const patterns=['node_modules/**','!node_modules/.vite/**','!node_modules/vitest/dist/tsconfig.tmp.tsbuildinfo'];
+    const before=resolveDeclaredInstalled(root,patterns);
+    put(path.join(root,'node_modules/.vite/vitest/results.json'),'{}');
+    put(path.join(root,'node_modules/vitest/dist/tsconfig.tmp.tsbuildinfo'),'{}');
+    assert.deepEqual(resolveDeclaredInstalled(root,patterns),before);
+  }finally{fs.rmSync(root,{recursive:true,force:true});}
 });
