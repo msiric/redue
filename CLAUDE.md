@@ -48,6 +48,9 @@ user-visible improvements to that, quickly and correctly.
   the findings that affect correctness.
 - Commit with a clear message, push, and continue. Don't wait for CI. Don't
   commit status or tracking documents on their own.
+- Before each push, check whether CI on the previous push failed
+  (`gh run list --branch main --limit 3`); ignore runs still in progress. If it
+  failed, fix that first.
 - At the start of each session, run `gh run list --branch main --limit 3`. If
   the latest run failed, fix that first.
 - Prefer the smallest change that makes the behavior right. Before adding a new
