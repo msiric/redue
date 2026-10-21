@@ -29,6 +29,31 @@ const textOf = content => typeof content === 'string' ? content :
   Array.isArray(content) ? content.map(part => part.text ?? '').join('\n') : '';
 const denied = text => /rerun skipped/.test(text) && /REDUE/.test(text);
 
+// Bash commands that write files: in-place sed, redirection to a file, tee,
+// or a script that opens a file for writing.
+const writes = command => /\bsed\s+(-[a-zA-Z]*\s+)*-i\b|\btee\s+(?!\/dev\/)|[^0-9&>]>\s*(?!\/dev\/|&)[\w./-]|open\([^)]*,\s*['"][wa]/.test(command);
+const passClaim = /\b(tests?|suite|specs?)\b[^.\n]{0,80}\b(pass|passed|passing|green|succeed|succeeded)\b/i;
+// Files the agent changed after its last run of the measured check (run or
+// skipped by the hook), and whether REDUE vouched for that final tree: no
+// check command follows the changes, so only a `redue status` command after
+// them, with a CURRENT/PASS answer in the wrapper log, can. Null when nothing
+// changed after the last run.
+export function finalUntested(events, measured, cli = [], result = null) {
+  const tools = events.filter(e => e.kind === 'tool');
+  const lastRun = tools.findLastIndex(e => e.name === 'Bash' && measured(String(e.input?.command ?? '')));
+  const later = tools.slice(lastRun + 1);
+  const changes = later.filter(e => ['Edit', 'Write', 'NotebookEdit'].includes(e.name) ||
+    e.name === 'Bash' && writes(String(e.input?.command ?? '')));
+  if (lastRun < 0 || !changes.length) return null;
+  const lastChange = later.lastIndexOf(changes.at(-1));
+  const asked = later.slice(lastChange + 1).some(e => e.name === 'Bash' && /\bredue\b.*\bstatus\b/.test(String(e.input?.command ?? '')));
+  const files = [...new Set(changes.map(e => e.input?.file_path ?? e.input?.notebook_path ?? `(bash) ${String(e.input?.command ?? '').slice(0, 80)}`))];
+  const text = typeof result?.result === 'string' ? result.result : '';
+  return {files: files.map(f => f.replace(/^.*\/repo\//, '')),
+    vouched_by_redue: asked && cli.some(c => c.status?.some(s => s.freshness === 'CURRENT' && s.result === 'PASS')),
+    claims_pass: passClaim.test(text), last_run: String(tools[lastRun].input?.command ?? '').slice(0, 120)};
+}
+
 export function analyze({transcript, wrapperLog, script, testScript, check = 'typecheck'}) {
   const messages = lines(transcript), log = lines(wrapperLog);
   const init = messages.find(m => m.type === 'system' && m.subtype === 'init');
@@ -90,6 +115,7 @@ export function analyze({transcript, wrapperLog, script, testScript, check = 'ty
     other_check_commands: bash.filter(e => check === 'test' ? typecheckLike(e.command, script) : tests(e.command)).length,
     hook: {calls: hooks.length, decisions: hooks.map(h => ({command: h.command, decision: h.decision, rewritten: h.rewritten, hook_ms: h.hook_ms, tree: h.tree}))},
     after_skip: followUps,
+    final_untested: finalUntested(events, measured, cli, result),
     redue_cli: cli.map(r => ({argv: r.argv.join(' '), exit: r.exit, ms: r.ms, ...(r.status ? {status: r.status, tree: r.tree} : {})})),
   };
 }

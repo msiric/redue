@@ -106,11 +106,35 @@ export function report(rows, {model, max_turns, maxTurns = max_turns, runs, out}
     '`CURRENT syncs ok`: CURRENT `status --sync` answers that plain tsc agreed with.', '');
   const replies = rows.flatMap(r => (r.metrics?.after_skip || []).filter(a => a.reply).map(a => `- ${r.id}: ${a.reply.replace(/\s+/g, ' ').slice(0, 300)}`));
   if (replies.length) lines.push('## Agent text after each skip', '', ...replies, '');
+  // Sessions that changed files after their last run of the measured check.
+  const untested = ok.filter(r => r.metrics.final_untested);
+  if (untested.length) {
+    lines.push('## Final check left out', '', 'Sessions that changed files after their last run of the measured check (run or skipped). ' +
+      '`REDUE vouched`: a `redue status` after the last change answered CURRENT/PASS; without it the agent decided on its own. ' +
+      '`claims pass`: the final answer says the tests or check pass. `plain on final tree`: the harness run of the final files.', '');
+    lines.push('| run | arm | changed after last run | REDUE vouched | claims pass | plain on final tree |', `|${'---|'.repeat(6)}`);
+    for (const r of untested) {
+      const u = r.metrics.final_untested, plain = (r.check || 'typecheck') === 'test' ? r.tests?.pass : r.final_tsc?.pass;
+      const flag = r.arm === 'redue' && !u.vouched_by_redue ? ' **(agent skipped on its own)**' : '';
+      lines.push(`| ${r.id} | ${r.arm}${flag} | ${u.files.join(', ')} | ${u.vouched_by_redue ? 'yes' : 'no'} | ${u.claims_pass ? 'yes' : 'no'} | ${yes(plain)} |`);
+    }
+    lines.push('');
+  }
   return lines.join('\n');
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const dir = path.resolve(process.argv[2] || '.');
   const {rows, ...meta} = JSON.parse(fs.readFileSync(path.join(dir, 'results.json'), 'utf8'));
+  // Results from an older harness: recompute what the transcripts can tell.
+  const {analyze} = await import('./analyze.mjs');
+  const repos = JSON.parse(fs.readFileSync(new URL('./repos.json', import.meta.url), 'utf8')).repos;
+  for (const row of rows) {
+    const transcript = path.join(dir, row.id, 'transcript.jsonl');
+    if (!row.metrics || 'final_untested' in row.metrics || !fs.existsSync(transcript)) continue;
+    const repo = repos.find(r => r.name === row.repo) || {};
+    row.metrics.final_untested = analyze({transcript, wrapperLog: path.join(dir, row.id, 'redue-calls.jsonl'),
+      script: repo.script, testScript: repo.testScript, check: row.check || 'typecheck'}).final_untested;
+  }
   process.stdout.write(report(rows, {...meta, out: dir}));
 }
