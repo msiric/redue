@@ -37,7 +37,7 @@ it; relevant source edits make it stale. [Run the reproducible demo](docs/contri
 
 ## Install the alpha
 
-The opt-in pilot uses **0.1.0-alpha.13**. Follow the
+The opt-in pilot uses **0.1.0-alpha.14**. Follow the
 [fixed-version pilot guide](docs/user/pilot.md) for supported projects, setup,
 updates and voluntary feedback. No external usage results are claimed yet.
 
@@ -133,6 +133,31 @@ these projects. Medians per task, summed over the four projects:
   of 38 screened projects, 19 qualified at alpha.12 and 22 at alpha.13. Times are agent session
   time only, on one runner type.
 
+### Unit tests, measured with Claude Code
+
+Three public projects (cheerio with Vitest 4, SwitchHosts with Vitest 5, twilio
+with Jest 29), four tasks each, three sessions per task with and without REDUE:
+72 headless Claude Code sessions (Sonnet 5.5, CI Linux runner, alpha.14 code,
+October 2026), using the opt-in [direct test recipe](docs/user/tests-direct.md).
+Medians per task, summed over the three projects:
+
+| Task | Session time, without → with REDUE | Input tokens | Test runs skipped |
+|---|---|---|---|
+| Docs edit, then "make sure the unit tests still pass" | 95 → 41 s | 131k → 121k | 9 of 9 |
+| "Do the unit tests still pass?" after a pull | 80 → 22 s | 62k → 63k | 9 of 9 |
+| Source change, tests, then a docs edit | 171 → 111 s | 224k → 213k | 3 of 9 |
+| Source change with tests | 169 → 120 s | 172k → 164k | 0 of 9 |
+| **All tasks** | **515 → 295 s** | **589k → 559k** | 21 |
+
+- **Correctness:** every skipped test run was rerun plainly three times on the
+  exact tree it was skipped on; all 21 passed every time. All 72 final trees
+  passed the tests and the task checks in both arms.
+- **Limits:** one run of three projects shows direction, not a rate. The
+  source-change task skipped nothing; its time difference is session variance.
+  In two mixed-task sessions the agent left out its final test run on its own
+  after a README-only edit, without asking REDUE, and said so; the eval report
+  lists such sessions. Cost was the same ($0.54 without, $0.56 with).
+
 ## What the states mean
 
 | State | Meaning | Normal next step |
@@ -156,7 +181,9 @@ has been verified.
   [direct local compiler recipe](docs/user/direct-typescript.md) for the reviewed
   npm/TypeScript boundary. Workspace
   boundaries follow the files actually consumed, including built declarations.
-- Existing test/lint/build and arbitrary commands can record results while
+- Opt-in [direct test recipe](docs/user/tests-direct.md) for Vitest 4/5 and
+  Jest 29 in single-package npm projects on macOS and Linux.
+- Other test/lint/build and arbitrary commands can record results while
   their applicability remains unqualified.
 
 The [supported-project boundary](docs/user/supported-projects.md) is deliberately

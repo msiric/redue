@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.1.0-alpha.14 — 2026-10-21
+
+Bench numbers below are from one 800-file project on macOS arm64, Node 22.13.0.
+Released alpha.13 and this build ran interleaved on the same machine; the
+typecheck decision path is unchanged within noise (warm `status --sync` 162/157
+ms on alpha.13, 169/166/289 ms on alpha.14; `redue run` overhead 12/14% and
+12/7/18%; states correct, no idle probe launches).
+
+- New opt-in recipe for unit tests: `redue init --recipe tests-direct --check
+  test` records a single-package npm project's Vitest 4/5 or Jest 29 run on
+  macOS and Linux. The check's inputs are the whole checkout (minus `*.md`,
+  `*.mdx` and, with `--coverage`, `coverage/`), the installed files, the Node
+  binary, the exact command, and every environment variable the run's
+  JavaScript reads directly, compared by value. A recorder loaded into every
+  Node process and worker thread of the run guards the rest: reading an
+  excluded or git-ignored file, a directory listing or large file outside the
+  checkout, network use other than loopback, or a process that escaped the
+  recorder makes the result UNVERIFIED with the reason. Lookups outside the
+  checkout become run facts that status checks again. Two runs on the same
+  inputs with different results make the check UNVERIFIED until the inputs
+  change. See [direct tests](docs/user/tests-direct.md) for the claim and its
+  limits.
+- Claude Code: the hook skips or records a direct test check's runs (`npm run
+  <script>`, `npm test`, the script's own command) like the typecheck's.
+- Linux: a directory created or deleted in the checkout is now an event, not
+  an observation gap. Before, every new directory forced a full reconciliation,
+  and a second one during it left the observer UNVERIFIED (`plan_gap`).
+- An excluded installed path appearing (a runner cache, a TypeScript build-info
+  file) no longer changes the input plan. Checks with such an exclusion are
+  STALE with "input plan changed" once after the upgrade, until their next run.
+- Measured with Claude Code on three public projects (Sonnet 5.5, CI Linux,
+  72 sessions): agents skipped 21 test runs, every skip confirmed by three
+  plain reruns on its tree, and session time fell from 515 to 295 s summed over
+  the task medians. In two sessions the agent itself left out its final test
+  run after a README-only edit, without asking REDUE; both said so, and the
+  final trees passed.
+
 ## 0.1.0-alpha.13 — 2026-10-19
 
 Bench numbers below are from one 800-file project on macOS arm64, Node 22.13.0.
