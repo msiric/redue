@@ -7,6 +7,7 @@ import {spawnSync,execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {testScript,testRecipeScript} from '../src/test-direct.mjs';
 import {resolveDeclaredInstalled} from '../src/installed-inputs.mjs';
+import {realObservedPath} from '../src/path-identity.mjs';
 
 const bin=path.resolve('bin/redue.mjs');
 const unsupported=process.platform==='win32'?'the test recipe records runs on macOS and Linux':false;
@@ -223,7 +224,8 @@ test('a --coverage run may read back its report, unless the project sets coverag
 });
 
 test('an excluded runner cache appearing does not change the input plan',()=>{
-  const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'rt-plan-')));
+  // The observed spelling: on Windows the native realpath, not an 8.3 short name.
+  const root=realObservedPath(fs.mkdtempSync(path.join(os.tmpdir(),'rt-plan-')));
   try{
     put(path.join(root,'node_modules/vitest/package.json'),'{}');
     const patterns=['node_modules/**','!node_modules/.vite/**','!node_modules/vitest/dist/tsconfig.tmp.tsbuildinfo'];
