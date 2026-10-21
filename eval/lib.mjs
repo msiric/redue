@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {spawnSync} from 'node:child_process';
+import {spawn,spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {cleanEnv} from '../bench/env.mjs';
 import {reviewedTypeScriptVersions} from '../src/direct-typescript.mjs';
@@ -33,6 +33,36 @@ export function sh(cmd, args, {cwd, env = harnessEnv(), timeout = 600_000, input
   const out = spawnSync(cmd, args, {cwd, env, timeout, input, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024});
   return {status: out.status, signal: out.signal, stdout: out.stdout || '', stderr: out.stderr || '',
     ms: Math.round(performance.now() - started), error: out.error?.message};
+}
+
+// The account hit its API rate limit: the session was stopped instead of
+// waiting in Claude Code's retries, and runs again after `delayMs`.
+export class RateLimited extends Error {
+  constructor(delayMs) { super(`API rate limit; retry in ${Math.round(delayMs / 60_000)} min`); this.delayMs = delayMs; }
+}
+
+// One headless `claude -p` session with stream-json output. A rate-limit
+// retry longer than `limitMs` ends it with `rateLimited` set to the delay.
+export function claudeSession(args, {cwd, env, timeout, limitMs = 120_000}) {
+  return new Promise(resolve => {
+    const started = performance.now(), child = spawn('claude', args, {cwd, env, stdio: ['ignore', 'pipe', 'pipe']});
+    let stdout = '', stderr = '', pending = '', rateLimited = null, timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; child.kill('SIGTERM'); }, timeout);
+    child.stdout.on('data', data => {
+      stdout += data; pending += data;
+      for (let end; (end = pending.indexOf('\n')) >= 0;) {
+        const line = pending.slice(0, end); pending = pending.slice(end + 1);
+        let message; try { message = JSON.parse(line); } catch { continue; }
+        if (!rateLimited && message.type === 'system' && message.subtype === 'api_retry' && message.error_status === 429 &&
+          message.retry_delay_ms > limitMs) { rateLimited = message.retry_delay_ms; child.kill('SIGTERM'); }
+      }
+    });
+    child.stderr.on('data', data => { stderr += data; });
+    child.on('close', (status, signal) => {
+      clearTimeout(timer);
+      resolve({status, signal: timedOut ? 'SIGTERM' : signal, stdout, stderr, ms: Math.round(performance.now() - started), rateLimited});
+    });
+  });
 }
 
 export function must(result, label) {

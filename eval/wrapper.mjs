@@ -34,7 +34,13 @@ if (argv.join(' ') === 'agent hook claude') {
   try { hook = out.stdout.trim() ? JSON.parse(out.stdout).hookSpecificOutput : null; } catch {}
   const decision = !hook ? 'allow' : hook.updatedInput ? 'rewrite' : hook.permissionDecision;
   const tree = decision === 'deny' ? snapshot(root) : null;
-  write({kind: 'hook', hook_ms: hookMs, command, decision, rewritten: hook?.updatedInput?.command ?? null, reason: hook?.permissionDecisionReason ?? null, tree, exit: out.status});
+  // Diagnostics only (REDUE_EVAL_DIAG=1): what status said, in the hook's environment, when the hook did not skip.
+  let status = null;
+  if (process.env.REDUE_EVAL_DIAG === '1' && decision !== 'deny') {
+    try { status = JSON.parse(spawnSync(process.execPath, [entry, 'status', '--sync', '--json'], {cwd: root, encoding: 'utf8'}).stdout)
+      .checks.map(c => ({name: c.name, freshness: c.freshness, reason: c.reason})); } catch {}
+  }
+  write({kind: 'hook', hook_ms: hookMs, command, decision, rewritten: hook?.updatedInput?.command ?? null, reason: hook?.permissionDecisionReason ?? null, tree, exit: out.status, ...(status ? {status} : {})});
   process.exit(out.status ?? 1);
 }
 if (argv.includes('status') && argv.includes('--sync')) {

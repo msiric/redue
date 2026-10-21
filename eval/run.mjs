@@ -21,7 +21,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {parseArgs} from 'node:util';
-import {checkoutRedue, evalDir, freshClone, harnessEnv, localDir, plainTests, plainTsc, readJson, redue, sh, slug, stamp,
+import {checkoutRedue, claudeSession, evalDir, freshClone, harnessEnv, localDir, plainTests, plainTsc, RateLimited, readJson, redue, sh, slug, stamp,
   tmpRoot, checkStatus, must, waitReady, sessionAuth, redactDir} from './lib.mjs';
 import {writeWrapper} from './wrapper.mjs';
 import {analyze} from './analyze.mjs';
@@ -89,14 +89,21 @@ function expectations(dir, task, changed) {
   });
 }
 
-function runOne(task, repo, arm, index, rep) {
+async function runOne(task, repo, arm, index, rep) {
   const id = `${String(index).padStart(2, '0')}-${slug(repo.name)}-${task.id}-${arm}-${rep}`;
   const dir = path.join(tmpRoot, 'runs', id, 'repo');
-  try { return runSession(task, repo, arm, id); }
+  try { return await runSession(task, repo, arm, id); }
   finally { if (arm === 'redue' && fs.existsSync(dir)) redue(entry, dir, 'stop'); }
 }
 
-function runSession(task, repo, arm, id) {
+// The flags every session gets; only the prompt and turn limit differ.
+const sessionArgs = (prompt, maxTurns) => ['-p', prompt, '--model', opt.model, '--max-turns', String(maxTurns),
+  '--output-format', 'stream-json', '--verbose', '--no-session-persistence',
+  '--setting-sources', 'project,local', '--settings', JSON.stringify({autoMemoryEnabled: false}),
+  '--strict-mcp-config', '--mcp-config', JSON.stringify({mcpServers: {}}),
+  '--tools', tools, '--allowedTools', tools, '--permission-mode', 'dontAsk'];
+
+async function runSession(task, repo, arm, id) {
   const runDir = path.join(out, id), work = path.join(tmpRoot, 'runs', id), dir = path.join(work, 'repo');
   fs.mkdirSync(runDir, {recursive: true});
   const check = task.check || 'typecheck';
@@ -119,8 +126,23 @@ function runSession(task, repo, arm, id) {
     step('agent_setup_ms', 'agent', 'setup', 'claude', '--apply');
     step('start_ms', 'start');
     row.setup.index_ms = waitReady(entry, dir, {env});
-    step('seed_run_ms', 'run', check);
-    row.setup.seed_status = checkStatus(entry, dir, check);
+    if (check === 'test') {
+      // The seed is an earlier session's passing run: a short session runs
+      // `redue run test` in its Bash tool, so the run's environment (PATH
+      // included) is the agent's. Nothing may be chained to it.
+      const seed = await claudeSession(sessionArgs(`Run exactly this command from the project root, once, as a command of its own with nothing added before or after it, then report its exit status: redue run ${check}`, 5),
+        {cwd: dir, env: {...env, ...sessionAuth()}, timeout: 15 * 60_000});
+      fs.writeFileSync(path.join(runDir, 'seed-transcript.jsonl'), seed.stdout);
+      if (seed.rateLimited) throw new RateLimited(seed.rateLimited);
+      row.setup.seed_run_ms = seed.ms;
+      const runs = fs.existsSync(log) ? fs.readFileSync(log, 'utf8').trim().split('\n').filter(Boolean).map(line => JSON.parse(line))
+        .filter(r => r.kind === 'cli' && r.argv.join(' ') === `run ${check}`) : [];
+      if (!runs.length) throw new Error('the seed session did not record a test run');
+      row.setup.seed_status = {result: runs.at(-1).exit === 0 ? 'PASS' : 'FAIL', recorded_by: 'seed session'};
+    } else {
+      step('seed_run_ms', 'run', check);
+      row.setup.seed_status = checkStatus(entry, dir, check);
+    }
     // What the agent always has in context (the managed block) and reads on demand (the skill).
     const record = readJson(path.join(dir, '.redue', 'agents', 'claude.json'));
     row.setup.instruction_bytes = {block: Buffer.byteLength(record.block), skill: fs.statSync(path.join(dir, record.skill)).size};
@@ -128,15 +150,11 @@ function runSession(task, repo, arm, id) {
   }
   const baseTree = treeOf(dir);
 
-  const args = ['-p', task.prompt, '--model', opt.model, '--max-turns', opt['max-turns'],
-    '--output-format', 'stream-json', '--verbose', '--no-session-persistence',
-    '--setting-sources', 'project,local', '--settings', JSON.stringify({autoMemoryEnabled: false}),
-    '--strict-mcp-config', '--mcp-config', JSON.stringify({mcpServers: {}}),
-    '--tools', tools, '--allowedTools', tools, '--permission-mode', 'dontAsk'];
+  const args = sessionArgs(task.prompt, opt['max-turns']);
   fs.writeFileSync(path.join(runDir, 'session.json'), JSON.stringify({cwd: dir, args}, null, 2) + '\n');
-  started = performance.now();
-  const session = sh('claude', args, {cwd: dir, env: {...env, ...sessionAuth()}, timeout: 45 * 60_000});
-  row.wall_ms = Math.round(performance.now() - started);
+  const session = await claudeSession(args, {cwd: dir, env: {...env, ...sessionAuth()}, timeout: 45 * 60_000});
+  if (session.rateLimited) throw new RateLimited(session.rateLimited);
+  row.wall_ms = session.ms;
   row.exit = session.status ?? session.signal;
   fs.writeFileSync(path.join(runDir, 'transcript.jsonl'), session.stdout);
   if (session.stderr) fs.writeFileSync(path.join(runDir, 'stderr.txt'), session.stderr);
@@ -214,10 +232,22 @@ for (const task of selected) {
     const arms = opt.arms.split(',');
     if (pair++ % 2 === 1) arms.reverse();
     for (const arm of arms) {
-      try { rows.push(runOne(task, repo, arm, ++index, rep)); }
-      catch (error) {
-        console.error(`   run failed: ${error.message}`);
-        rows.push({id: `${index}-${slug(repo.name)}-${task.id}-${arm}-${rep}`, repo: repo.name, task: task.id, kind: task.kind, arm, rep, error: error.message});
+      ++index;
+      // A rate-limited session runs again after the limit resets (at most an
+      // hour's wait, three attempts); it never counts as a slow session.
+      for (let attempt = 1; ; attempt++) {
+        try { rows.push(await runOne(task, repo, arm, index, rep)); break; }
+        catch (error) {
+          if (error instanceof RateLimited && attempt < 3) {
+            const wait = Math.min(error.delayMs + 60_000, 60 * 60_000);
+            console.error(`   ${error.message}; waiting ${Math.round(wait / 60_000)} min, attempt ${attempt + 1}`);
+            await new Promise(resolve => setTimeout(resolve, wait));
+            continue;
+          }
+          console.error(`   run failed: ${error.message}`);
+          rows.push({id: `${index}-${slug(repo.name)}-${task.id}-${arm}-${rep}`, repo: repo.name, task: task.id, kind: task.kind, arm, rep, error: error.message});
+          break;
+        }
       }
     }
   }
