@@ -71,11 +71,13 @@ again in that window fails with `409 ... previously staged version`. The
 publish step treats that as published and waits up to 30 minutes for the
 registry to serve the same bytes.
 
-The Actions token cannot create a tag on a commit that changes
-`.github/workflows`. It also failed (HTTP 404) for alpha.12, whose release
-commit changed no workflow but followed one that did. When that happens, push
-the tag first from a maintainer checkout (`git tag vVERSION COMMIT && git push origin vVERSION`); the
-workflow then creates the release on that tag. A rerun skips npm when the same
+The workflow creates the tag `vVERSION` at the tested commit first, through
+the Git refs API, before anything is published. Up to alpha.14 it created the
+tag inside `gh release create`, after the npm publish, and that failed with
+HTTP 404 for alpha.12 and alpha.14 although alpha.14 followed no workflow change. If
+the tag step is refused, it prints GitHub's response and stops before npm;
+push the tag from a maintainer checkout (`git tag vVERSION COMMIT && git push
+origin vVERSION`) and rerun. The workflow then creates the release on that tag. A rerun skips npm when the same
 bytes are already published and skips an existing release, so a failed later step
 can be rerun. The `latest` move runs on every attempt. Stop on failure and diagnose it. Do not rebuild, republish different
 bytes, or move a tag. On npm, `@redue/cli` has one trusted publisher: repository
