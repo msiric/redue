@@ -44,7 +44,8 @@ npm token exists. Local publication is not used: the maintainer's network
 blocks `registry.npmjs.org`.
 
 After the release commit is on main and **Exact release tarball smoke** passed
-for it:
+for it (smoke main's HEAD, and push no workflow change until the publish is
+done; see the tag paragraph below):
 
 ```sh
 gh workflow run publish.yml --ref main -f version=0.1.0-alpha.N -f artifact_run_id=<smoke run id>
@@ -72,12 +73,17 @@ publish step treats that as published and waits up to 30 minutes for the
 registry to serve the same bytes.
 
 The workflow creates the tag `vVERSION` at the tested commit first, through
-the Git refs API, before anything is published. Up to alpha.14 it created the
-tag inside `gh release create`, after the npm publish, and that failed with
-HTTP 404 for alpha.12 and alpha.14 although alpha.14 followed no workflow change. If
-the tag step is refused, it prints GitHub's response and stops before npm;
-push the tag from a maintainer checkout (`git tag vVERSION COMMIT && git push
-origin vVERSION`) and rerun. The workflow then creates the release on that tag. A rerun skips npm when the same
+the Git refs API, before anything is published. GitHub refuses the workflow
+token (HTTP 403, `X-Accepted-Github-Permissions: contents=write,workflows=write`)
+when the tested commit's `.github/workflows` differ from the default branch's,
+because creating that ref counts as a workflow change and `GITHUB_TOKEN` can
+never have `workflows: write`. That is why alpha.12, alpha.14 and the first
+alpha.15 attempts failed: main had workflow edits past the tested commit.
+Smoking main's HEAD and publishing before the next workflow change avoids it;
+alpha.15 was tagged by the workflow that way. If the tag step is still
+refused, it prints GitHub's response and stops before npm; push the tag from
+a maintainer checkout (`git tag vVERSION COMMIT && git push origin vVERSION`)
+and rerun. The workflow then creates the release on that tag. A rerun skips npm when the same
 bytes are already published and skips an existing release, so a failed later step
 can be rerun. The `latest` move runs on every attempt. Stop on failure and diagnose it. Do not rebuild, republish different
 bytes, or move a tag. On npm, `@redue/cli` has one trusted publisher: repository

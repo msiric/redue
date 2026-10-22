@@ -94,7 +94,7 @@ jobs:
           fi
           if ! out=$(gh api -i -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/v$VERSION" -f sha="$sha" 2>&1); then
             echo "$out"
-            echo "::error::The workflow token could not create v$VERSION. Push it from a maintainer checkout (git tag v$VERSION $sha && git push origin v$VERSION), then rerun this workflow."
+            echo "::error::The workflow token could not create v$VERSION. A 403 asking for workflows=write means $sha's .github/workflows differ from the default branch's: smoke and publish main's HEAD instead, or push the tag from a maintainer checkout (git tag v$VERSION $sha && git push origin v$VERSION) and rerun this workflow."
             exit 1
           fi
           echo "Created v$VERSION at $sha"
