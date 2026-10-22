@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {directQualification,directInterpretation,observedNpmContext} from './direct-typescript.mjs';
 import {directRunCertificateAllowed,directRunCertificate,directRunRecordable,directRunRecording,probeQuestions,validateRunRecord} from './direct-run-certificate.mjs';
 import {runFactChange} from './typescript-list.mjs';
-import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testProject,testEnvironmentIssue,testGuardConfig,testRunGuard,sharedInstalledFile,testsInterpretation,testsQualification} from './test-direct.mjs';
+import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testRunFacts,sharedInstalledFile,testsInterpretation,testsQualification} from './test-direct.mjs';
 import path from 'node:path';
 import net from 'node:net';
 import os from 'node:os';
@@ -273,14 +273,17 @@ async function execute() {
       ...command.slice(1)]:command;
     // A test run's processes record what the guard checks (test-recorder.cjs).
     const testRun=selected.qualification===testsQualification&&['darwin','linux'].includes(process.platform);
-    let testRecord=null,launchEnv=process.env;
+    let testRecord=null,launchEnv=process.env,testFacts={};
     if(testRun){
+      // The package directory and installed node_modules, as the plan has them.
+      try{testFacts=testRunFacts(root,selected);}
+      catch(e){captureIssues.push(`test run facts unavailable (${e.code||e.message})`);}
       const environmentIssue=testEnvironmentIssue();
       if(environmentIssue)captureIssues.push(environmentIssue);
       testRecord=path.join(state,`test-record-${runId}`);
       fs.mkdirSync(testRecord,{mode:0o700});
       const guardFile=path.join(testRecord,'guard.json');
-      fs.writeFileSync(guardFile,JSON.stringify(testGuardConfig(testRecord,root)),{mode:0o600});
+      fs.writeFileSync(guardFile,JSON.stringify(testGuardConfig(testRecord,root,process.env,testFacts)),{mode:0o600});
       launchEnv=recordedEnvironment(guardFile);
     }
     let runnerPid=null;
@@ -354,11 +357,11 @@ async function execute() {
     }else if(!unobservedDirectRun&&!recording)probeAfter=probeHash(probePlan);
     let guard=null;
     if(testRecord){
-      let coverage=null;try{coverage=coverageReadable(root,testProject(root,selected.script));}catch{}
+      let coverage=null;try{coverage=coverageReadable(root,testFacts);}catch{}
       guard=testRunGuard(testRecord,{root,sourcePatterns:plan.sourcePatterns||plan.patterns,files:snap?.files,
         runner:runnerPid,environment:selected.environment||{},coverage});
       runFacts=guard.runFacts;
-      const shared=sharedInstalledFile(root);
+      const shared=sharedInstalledFile(root,testFacts);
       if(shared)guard.issues.push(`installed file ${shared} has another hard link, likely into a package store; a change through it is not observed`);
       fs.rmSync(testRecord,{recursive:true,force:true});
     }

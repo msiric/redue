@@ -6,7 +6,7 @@ import {createHash} from 'node:crypto';
 import {permittedRoots,resolveDeclaredInstalled} from './installed-inputs.mjs';
 import {qualifyTypeScript} from './typescript-qualification.mjs';
 import {directBuildInfo} from './direct-typescript.mjs';
-import {qualifyTests,testsQualification} from './test-direct.mjs';
+import {qualifyTests,testWorkspacePatterns,testsQualification} from './test-direct.mjs';
 import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
 import {pnpmTypecheckInputs} from './pnpm-inputs.mjs';
 import {observedRelative,withinPath,realObservedPath} from './path-identity.mjs';
@@ -92,6 +92,13 @@ export function discoverDeclared(config) {
       ...(workspaceIssue?[workspaceIssue]:[])];
     for(const item of workspace?.configurationInputs||[])configurationInputs.add(item);
     for(const item of workspace?.workspacePatterns||[])workspacePatterns.add(item);
+    // A workspace test check is qualified against the current package list: a
+    // package manifest appearing or pnpm's package list changing re-plans.
+    if(selected.qualification===testsQualification&&selected.workspace)try{
+      for(const item of testWorkspacePatterns(root,JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'))))
+        workspacePatterns.add(item);
+      if(fs.existsSync(path.join(root,'pnpm-workspace.yaml')))configurationInputs.add('pnpm-workspace.yaml');
+    }catch{}
     for(const item of workspace?.closure||[])workspaceManifests.add(item.manifest);
     if(!automatic)for(const category of ['source','generated','installedDependencies',
       'environment','toolchain','runtime'])if(!selected.coverage?.[category])

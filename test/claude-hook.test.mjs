@@ -324,6 +324,12 @@ test('workspace checks match their package-manager forms from the root and their
     command:['@which:npm','run','typecheck','--workspace','a'],inputs:['package.json','package-lock.json','packages/a/**','!packages/a/node_modules/**']}]};
   assert.deepEqual(hookForms(npm)[0].forms,['redue run a:typecheck','npm run typecheck -w a','npm run typecheck --workspace a',
     'npm run typecheck --workspace=a','npm -w a run typecheck']);
+  // A direct test check in a package: its script, and the runner after a cd.
+  const tests={schema:1,packageManager:'npm',checks:[{name:'a:test',kind:'test',workspace:'a',script:'test',cwd:'packages/a',
+    qualification:'npm-tests-direct-v1',command:['@node','@test-runner:vitest','run'],inputs:['**']}]};
+  assert.deepEqual(hookForms(tests)[0],{check:'a:test',kind:'test',dir:'packages/a',
+    forms:['redue run a:test','npm run test -w a','npm run test --workspace a','npm run test --workspace=a','npm -w a run test'],
+    local:['npm run test','npm test','vitest run','npx vitest run']});
   // Two candidate directories: no package forms, only `redue run`.
   assert.deepEqual(hookForms({...yarn,checks:[{...yarn.checks[0],inputs:['packages/shared/**','!packages/shared/node_modules/**','packages/a/package.json']}]})[0],
     {check:'a:typecheck',kind:'typecheck',dir:null,forms:['redue run a:typecheck'],local:[]});

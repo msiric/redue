@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import {spawnSync,execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {testPackageManager,testScript,testRecipeScript} from '../src/test-direct.mjs';
+import {testPackageManager,testRunnerAt,testScript,testRecipeScript,testWorkspaceDirs} from '../src/test-direct.mjs';
 import {resolveDeclaredInstalled} from '../src/installed-inputs.mjs';
 import {realObservedPath} from '../src/path-identity.mjs';
 
@@ -18,6 +18,8 @@ const fakeRunner=`import fs from 'node:fs';import os from 'node:os';import path 
 const value=fs.readFileSync('src/value.js','utf8');
 if(value.includes('readme'))fs.readFileSync('README.md');
 if(value.includes('flag'))void process.env.REDUE_FAKE_FLAG;
+// A sibling workspace package's installed dependency.
+if(value.includes('nested'))fs.readFileSync('../c/node_modules/dep/index.js');
 // Read an earlier coverage report, as Jest's haste map does, then write a new one.
 if(value.includes('coverage')){
   try{fs.readFileSync('coverage/lcov-report/sorter.js');}catch{}
@@ -331,3 +333,103 @@ test('installed links: one to the checkout root is refused; an event on an obser
   assert.notEqual(status.freshness,'CURRENT',status.reason);
   good(root,state,'stop');
 });
+
+// A two-package workspace whose package a runs Vitest directly. npm hoists the
+// runner to the root; pnpm keeps it in its store and links it from the package.
+function workspace(t,manager){
+  const base=fs.mkdtempSync(path.join(os.tmpdir(),'rtw-')),root=path.join(base,'project'),state=path.join(base,'redue-state');
+  t.after(()=>{try{invoke(root,state,{},'stop');}catch{}fs.rmSync(base,{recursive:true,force:true});});
+  put(path.join(root,'package.json'),JSON.stringify({name:'mono',private:true,
+    ...(manager==='npm'?{workspaces:['packages/*']}:{packageManager:'pnpm@10.8.1'})}));
+  for(const [name,scripts] of [['a',{test:'vitest run'}],['b',{test:'jest'}]]){
+    put(path.join(root,'packages',name,'package.json'),JSON.stringify({name,version:'1.0.0',scripts}));
+    put(path.join(root,'packages',name,'src/value.js'),'pass\n');
+  }
+  put(path.join(root,'README.md'),'# mono\n');put(path.join(root,'.gitignore'),'node_modules/\n');
+  const runner=manager==='pnpm'?path.join(root,'node_modules/.pnpm/vitest@4.1.4/node_modules/vitest'):path.join(root,'node_modules/vitest');
+  put(path.join(runner,'package.json'),JSON.stringify({name:'vitest',version:'4.1.4',bin:{vitest:'vitest.mjs'},type:'module'}));
+  put(path.join(runner,'vitest.mjs'),fakeRunner);
+  if(manager==='npm')put(path.join(root,'package-lock.json'),'{"name":"mono","lockfileVersion":3}');
+  else{
+    put(path.join(root,'pnpm-workspace.yaml'),'packages:\n  - packages/*\n');put(path.join(root,'pnpm-lock.yaml'),"lockfileVersion: '9.0'\n");
+    put(path.join(root,'node_modules/.modules.yaml'),JSON.stringify({nodeLinker:'isolated',packageManager:'pnpm@10.8.1',virtualStoreDir:'.pnpm'}));
+    put(path.join(root,'node_modules/.pnpm/lock.yaml'),"lockfileVersion: '9.0'\n");
+    fs.mkdirSync(path.join(root,'packages/a/node_modules'),{recursive:true});
+    fs.symlinkSync(path.relative(path.join(root,'packages/a/node_modules'),runner),path.join(root,'packages/a/node_modules/vitest'),'dir');
+  }
+  execFileSync('git',['init','-q'],{cwd:root});execFileSync('git',['add','.'],{cwd:root});
+  return {root,state,config:path.join(root,'redue.config.json')};
+}
+
+test('workspace packages: a Vitest script runs in its package with the whole checkout as input; Jest is refused there',{skip:unsupported},t=>{
+  for(const manager of ['npm','pnpm']){
+    const {root,state,config}=workspace(t,manager);
+    const init=JSON.parse(good(root,state,'init','--recipe','tests-direct','--check','test','--json'));
+    const a=init.checks.find(c=>c.name==='a:test'),b=init.checks.find(c=>c.name==='b:test');
+    assert.equal(a?.level,'ready',`${manager}: ${a?.reason}`);
+    assert.match(b.reason,/test-runner-unsupported/);
+    const check=JSON.parse(fs.readFileSync(config,'utf8')).checks.find(c=>c.name==='a:test');
+    assert.deepEqual({cwd:check.cwd,workspace:check.workspace,command:check.command},{cwd:'packages/a',workspace:'a',command:['@node','@test-runner:vitest','run']});
+    assert(check.installedInputs.includes('packages/a/node_modules/**')&&check.installedInputs.includes('!packages/b/node_modules/.vite/**'),check.installedInputs.join(' '));
+    good(root,state,'start');good(root,state,'run','a:test');
+    const status=()=>{const r=invoke(root,state,{},'status','--sync','--json');assert.equal(r.status,0,r.stderr);
+      return JSON.parse(r.stdout).checks.find(c=>c.name==='a:test');};
+    let row=status();assert.equal(`${row.freshness}/${row.result}`,'CURRENT/PASS',`${manager}: ${row.reason}`);
+    // Documentation and Vite's cache inside the package stay out; another package is in.
+    write(root,'README.md','# mono\n\nMore.\n');
+    put(path.join(root,'packages/a/node_modules/.vite/vitest/results.json'),'{}');
+    row=status();assert.equal(`${row.freshness}/${row.result}`,'CURRENT/PASS',`${manager}: ${row.reason}`);
+    write(root,'packages/b/src/value.js','changed\n');
+    row=status();assert.equal(row.freshness,'STALE',`${manager}: ${row.reason}`);
+    good(root,state,'stop');
+  }
+});
+
+test('workspace checks: a package added after init, a mismatched workspace and extra exclusions are not CURRENT',{skip:unsupported},t=>{
+  for(const manager of ['npm','pnpm']){
+  const {root,state,config}=workspace(t,manager);
+  good(root,state,'init','--recipe','tests-direct','--check','test','--json');
+  good(root,state,'start');
+  // Package c arrives after init, with an installed dependency the test reads.
+  put(path.join(root,'packages/c/package.json'),JSON.stringify({name:'c',version:'1.0.0'}));
+  put(path.join(root,'packages/c/node_modules/dep/index.js'),'module.exports=1;\n');
+  write(root,'packages/a/src/value.js','pass nested\n');
+  good(root,state,'run','a:test');
+  const status=()=>JSON.parse(invoke(root,state,{},'status','--sync','--json').stdout).checks.find(c=>c.name==='a:test');
+  // The new package's manifest re-plans at once: init again before any reuse.
+  let row=status();
+  for(let i=0;i<20&&!/run redue init again/.test(row.reason);i++){
+    assert.equal(row.freshness,'UNVERIFIED',row.reason);Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,250);row=status();}
+  assert.equal(row.freshness,'UNVERIFIED');assert.match(row.reason,/run redue init again/);
+  good(root,state,'stop');
+  // Hand edits the recipe does not generate: another package's name, an extra exclusion.
+  const original=JSON.parse(fs.readFileSync(config,'utf8'));
+  for(const edit of [check=>({...check,workspace:'b'}),check=>({...check,inputs:[...check.inputs,'!packages/b/**']})]){
+    fs.writeFileSync(config,JSON.stringify({...original,checks:original.checks.map(c=>c.name==='a:test'?edit(c):c)}));
+    good(root,state,'start');
+    row=status();assert.equal(row.freshness,'UNVERIFIED');assert.match(row.reason,/run redue init again/);
+    good(root,state,'stop');
+  }
+  }
+});
+
+test('workspace patterns: a negated pattern excludes packages',t=>{
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'rtw-neg-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+  for(const dir of ['packages/a','packages/legacy','test/fixtures/app'])put(path.join(root,dir,'package.json'),JSON.stringify({name:path.basename(dir)}));
+  execFileSync('git',['init','-q'],{cwd:root});
+  assert.deepEqual(testWorkspaceDirs(root,{workspaces:['packages/*','!packages/legacy','!**/fixtures/**']}),['packages/a']);
+});
+
+test('a workspace package\'s runner: Node\'s lookup, skipping broken candidates, landing in an observed node_modules',t=>{
+  const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'rtw-run-')));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+  const runner=dir=>{put(path.join(root,dir,'package.json'),JSON.stringify({name:'vitest',bin:{vitest:'vitest.mjs'}}));put(path.join(root,dir,'vitest.mjs'),'');};
+  runner('node_modules/vitest');fs.mkdirSync(path.join(root,'packages/a/node_modules'),{recursive:true});
+  // A dangling link in the package: Node goes on to the root's.
+  fs.symlinkSync('../../../missing',path.join(root,'packages/a/node_modules/vitest'),'dir');
+  assert.equal(testRunnerAt(root,'packages/a','vitest',['packages/a']).logical,'node_modules/vitest');
+  // A link into a node_modules REDUE does not observe as installed.
+  runner('tools/node_modules/vitest');fs.unlinkSync(path.join(root,'packages/a/node_modules/vitest'));
+  fs.symlinkSync('../../../tools/node_modules/vitest',path.join(root,'packages/a/node_modules/vitest'),'dir');
+  assert.throws(()=>testRunnerAt(root,'packages/a','vitest',['packages/a']),{code:'test-runner-layout-unsupported'});
+});
+

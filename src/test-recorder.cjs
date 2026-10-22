@@ -24,7 +24,8 @@ function install(){
     for(let at=0;at<line.length;)at+=original.writeSync(fd,line,at,line.length-at);}catch{}};
   const failed=reason=>emit(['U',reason]);
   emit(['H',{pid:process.pid,ppid:process.ppid,threadId}]);
-  const sep=path.sep,root=config.root,installed=path.join(root,'node_modules'),
+  // Every node_modules observed as installed: the root's and each workspace package's.
+  const sep=path.sep,root=config.root,installed=Array.isArray(config.installed)?config.installed:[path.join(root,'node_modules')],
     tmp=config.tmp;
   const within=(file,dir)=>file===dir||file.startsWith(dir+sep);
   const digest=value=>createHash('sha256').update(value).digest('hex');
@@ -85,7 +86,7 @@ function install(){
       if(full===undefined)return;
       if(full===null){if(!['produce','touch','mkdir'].includes(role))failed(`${role} of an unsupported path argument`);return;}
       // Installed files are observed by identity.
-      if(within(full,installed))return;
+      if(installed.some(dir=>within(full,dir)))return;
       if(role==='produce'){if(!error)produced.add(full);if(!error&&within(full,root))once(['P',rel(full)]);return;}
       // A directory the run created held nothing before it, so everything in
       // it is the run's output, whichever process reads it.

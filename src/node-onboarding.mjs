@@ -3,11 +3,11 @@ import {testProject,testRecipeScript,testCheckInputs,testsQualification} from '.
 import fs from 'node:fs';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
-import micromatch from './glob.mjs';
 import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
 import {pnpmInstallInfo,pnpmProjectInfo,pnpmTypecheckInputs} from './pnpm-inputs.mjs';
 import {realObservedPath} from './path-identity.mjs';
 import {findExecutable} from './executable-lookup.mjs';
+import {workspaceManifests} from './workspace-manifests.mjs';
 
 const exists=file=>{try{fs.accessSync(file);return true;}catch{return false;}};
 const readJson=file=>JSON.parse(fs.readFileSync(file,'utf8'));
@@ -147,20 +147,6 @@ function selectScript(kind,names,scripts) {
   return candidates.length===1?{script:candidates[0]}:
     candidates.length>1?{ambiguous:candidates}:{};
 }
-function workspaceManifests(root,patterns) {
-  const listing=spawnSync('git',['ls-files','--cached','--others','--exclude-standard',
-    '-z','--',':(glob)**/package.json'],{cwd:root,encoding:'utf8',timeout:5000,
-    maxBuffer:32*1024*1024,stdio:['ignore','pipe','ignore'],
-    env:{...process.env,GIT_OPTIONAL_LOCKS:'0'}});
-  if(listing.status!==0||listing.error)throw Error('workspace package manifests cannot be inspected');
-  const matched=listing.stdout.split('\0').filter(Boolean).filter(file=>{
-    const dir=path.posix.dirname(file);
-    return dir!=='.'&&!dir.split('/').includes('node_modules')&&
-      micromatch.isMatch(dir,patterns,{dot:true});
-  }).sort();
-  if(matched.length>50)throw Error('more than 50 workspace packages found; select checks explicitly');
-  return matched.map(file=>({file,pkg:readJson(path.join(root,file))}));
-}
 // Workspace packages as init finds them, with their scripts; [] without workspaces.
 export function workspacePackages(root){
   root=realObservedPath(root);
@@ -287,6 +273,14 @@ export function discoverNodeProject(root,{recipe=null}={}) {
               `${dir}/src/**`];
             level='ready';reason='pnpm workspace TypeScript inputs; checked again before reuse';
           }catch(e){reason=`pnpm TypeScript contract needs review: ${e.message}`;}
+        }
+        if(recipe==='tests-direct'&&kind==='test'&&!pm.issue){
+          try{const project=testProject(root,selected.script,dir);
+            Object.assign(check,{workspace:name,script:selected.script,cwd:dir,
+              command:['@node',`@test-runner:${project.runner}`,...project.args],...testCheckInputs(project),
+              qualification:testsQualification});
+            level='ready';reason=`explicit local ${project.runner} ${project.version} run of ${name}'s script ${JSON.stringify(selected.script)}; the whole checkout is its input; the package manager and lifecycle scripts are not executed`;
+          }catch(e){reason=`Test recipe unavailable (${e.code||e.message}); original script retained`;}
         }
         checks.push({config:check,level,reason});
       }

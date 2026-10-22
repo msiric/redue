@@ -11,6 +11,16 @@ runner is the package `node_modules/RUNNER` links to, inside the checkout.
 Jest also needs jest-util 29 at `node_modules/jest-util`, which pnpm does not
 place there unless it hoists.
 
+In a workspace (npm or Yarn `workspaces`, or `packages` in
+`pnpm-workspace.yaml`), `init` gives each package whose test script runs
+Vitest directly its own check, `PACKAGE:test`, run in the package's directory
+with the Vitest that Node finds from there. Its inputs are still the whole
+checkout, so an edit in any package makes it STALE. The root's and every
+package's `node_modules` are observed as installed files, without Vite's
+caches in them. Jest is not supported in workspace packages, and neither is a
+test script at the workspace root. A package added later needs `init` again:
+its manifest appearing makes the workspace's checks UNVERIFIED until then.
+
 ## Setup
 
 ```sh

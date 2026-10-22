@@ -13,7 +13,8 @@ import {spawnSync} from 'node:child_process';
 import micromatch from './glob.mjs';
 import {runFact} from './direct-run-certificate.mjs';
 import {queryAnswer} from './typescript-list.mjs';
-import {pnpmInstallInfo} from './pnpm-inputs.mjs';
+import {pnpmInstallInfo,pnpmProjectInfo} from './pnpm-inputs.mjs';
+import {workspaceManifests} from './workspace-manifests.mjs';
 
 const digest=value=>createHash('sha256').update(value).digest('hex');
 export const testRecorder=fileURLToPath(new URL('test-recorder.cjs',import.meta.url));
@@ -40,10 +41,10 @@ const issueLimit=20,factLimit=10000;
 
 // The guard file the recorder reads: where to write, what counts as the
 // checkout and as temporary space, and digests of the caller's environment.
-export function testGuardConfig(dir,root,env=process.env) {
+export function testGuardConfig(dir,root,env=process.env,project={}) {
   const tmp=[...new Set([path.resolve(os.tmpdir()),fs.realpathSync(os.tmpdir())])];
   const real=dir=>{try{return fs.realpathSync(dir);}catch{return dir;}};
-  return {schema:1,dir,root,tmp,runnerData:[...new Set(runnerDataDirectories(env).flatMap(dir=>[path.resolve(dir),real(dir)]))],
+  return {schema:1,dir,root,tmp,installed:modulesDirs(project).map(at=>path.join(root,at)),runnerData:[...new Set(runnerDataDirectories(env).flatMap(dir=>[path.resolve(dir),real(dir)]))],
     env:Object.fromEntries(Object.entries(env).filter(([,value])=>typeof value==='string').map(([key,value])=>[key,digest(value)]))};
 }
 
@@ -278,10 +279,11 @@ export function testRunnerEntry(root,runner){
   if(!entry||!entry.startsWith(real+path.sep)||!fs.existsSync(entry))fail('test-runner-layout-unsupported');
   return entry;
 }
-// The package manager of a single-package checkout whose install the recipe
-// observes in node_modules: npm, pnpm 9-12 (isolated or hoisted), or Yarn with
-// the node-modules linker. One lockfile kind, agreeing with any declaration.
-export function testPackageManager(root,pkg){
+// The package manager of a checkout whose install the recipe observes in
+// node_modules: npm, pnpm 9-12 (isolated or hoisted), or Yarn with the
+// node-modules linker. One lockfile kind, agreeing with any declaration.
+// Workspaces are refused unless `workspaces` is set.
+export function testPackageManager(root,pkg,{workspaces=false}={}){
   const has=file=>fs.existsSync(path.join(root,file));
   const kinds=new Set([has('package-lock.json')||has('npm-shrinkwrap.json')?'npm':null,has('pnpm-lock.yaml')?'pnpm':null,
     has('yarn.lock')?'yarn':null,has('bun.lock')||has('bun.lockb')?'bun':null].filter(Boolean));
@@ -291,11 +293,11 @@ export function testPackageManager(root,pkg){
   const name=kinds.size===1?[...kinds][0]:null;
   if(!name||!has({npm:'package-lock.json',pnpm:'pnpm-lock.yaml',yarn:'yarn.lock',bun:'bun.lock'}[name])&&
     !(name==='npm'&&has('npm-shrinkwrap.json')))fail('test-package-manager-unsupported');
-  if(pkg.workspaces)fail('test-workspace-unsupported');
+  if(pkg.workspaces&&!workspaces)fail('test-workspace-unsupported');
   if(name==='pnpm'){
     // pnpm 10+ keeps settings in pnpm-workspace.yaml; only `packages` makes a workspace.
     let install;try{install=pnpmInstallInfo(root);}catch{fail('test-pnpm-install-unsupported');}
-    if(install.patterns.length)fail('test-workspace-unsupported');
+    if(install.patterns.length&&!workspaces)fail('test-workspace-unsupported');
   }
   if(name==='yarn'){
     // Yarn 2+ needs top-level `nodeLinker: node-modules` and the classic nmMode
@@ -309,12 +311,37 @@ export function testPackageManager(root,pkg){
   if(name==='bun')fail('test-package-manager-unsupported');
   return name;
 }
+// What a recorded run needs, from the check itself rather than the checkout:
+// the package directory, the workspace node_modules its installed inputs
+// list, and the runner and arguments of the package's script. A package
+// added since init is then not treated as installed, so reads there are
+// unobserved and make the run UNVERIFIED.
+export function testRunFacts(root,check){
+  const dir=check.cwd&&check.cwd!=='.'?check.cwd:'.';
+  const dirs=(check.installedInputs||[]).map(p=>/^([^!*]+)\/node_modules\/\*\*$/.exec(p)?.[1]).filter(Boolean);
+  const own=JSON.parse(fs.readFileSync(path.join(root,dir,'package.json'),'utf8'));
+  if(typeof own.scripts?.[check.script]!=='string')fail('test-script-changed');
+  return {...testScript(own.scripts[check.script]),dir,dirs};
+}
+// The checkout's workspace patterns: pnpm's `packages`, else package.json's.
+export function testWorkspacePatterns(root,pkg){
+  return fs.existsSync(path.join(root,'pnpm-lock.yaml'))?pnpmProjectInfo(root).patterns:
+    Array.isArray(pkg.workspaces)?pkg.workspaces:pkg.workspaces?.packages??[];
+}
+// The checkout's workspace package directories, [] for a single package.
+export function testWorkspaceDirs(root,pkg){
+  const patterns=testWorkspacePatterns(root,pkg);
+  return patterns.length?workspaceManifests(root,patterns).map(({file})=>path.posix.dirname(file)):[];
+}
+// Each node_modules the recipe observes as installed: the root's and every
+// workspace package's, relative to the root.
+const modulesDirs=({dirs=[]})=>['node_modules',...dirs.map(dir=>`${dir}/node_modules`)];
 // The first installed file with more than one link, or null. A package store
 // outside the checkout (pnpm's default on Linux, Yarn's hardlinks modes) can
 // change such a file with no event here. Checked at every recorded run: a later
 // install that adds links replaces the files, which is a change REDUE sees.
-export function sharedInstalledFile(root){
-  const stack=[path.join(root,'node_modules')];
+export function sharedInstalledFile(root,project={}){
+  const stack=modulesDirs(project).map(dir=>path.join(root,dir));
   while(stack.length){
     const dir=stack.pop();let entries;
     try{entries=fs.readdirSync(dir,{withFileTypes:true});}catch{continue;}
@@ -326,32 +353,61 @@ export function sharedInstalledFile(root){
   }
   return null;
 }
-// The project facts the recipe needs, or an error code.
-export function testProject(root,script){
+// The runner a package's script reaches: Node's lookup from the package
+// directory up to the root, skipping candidates that are not the runner. Its
+// files must be in an observed node_modules (`dirs`: workspace packages).
+// `logical` is where the lookup found it, before links, relative to the root.
+export function testRunnerAt(root,dir,runner,dirs=[]){
+  if(dir==='.')return {entry:testRunnerEntry(root,runner),logical:`node_modules/${runner}`};
+  if(!runners[runner])fail('test-runner-unsupported');
+  const rootReal=fs.realpathSync(root),observed=modulesDirs({dirs}).map(at=>path.join(rootReal,at)+path.sep);
+  for(let at=dir;;at=path.posix.dirname(at)){
+    const logical=at==='.'?`node_modules/${runner}`:`${at}/node_modules/${runner}`;
+    let real,pkg;
+    try{real=fs.realpathSync(path.join(root,logical));pkg=JSON.parse(fs.readFileSync(path.join(real,'package.json'),'utf8'));}catch{}
+    if(pkg?.name===runner){
+      if(!observed.some(prefix=>real.startsWith(prefix)))fail('test-runner-layout-unsupported');
+      const bin=typeof pkg.bin==='string'?pkg.bin:pkg.bin?.[runner];
+      const entry=typeof bin==='string'?path.resolve(real,bin):null;
+      if(!entry||!entry.startsWith(real+path.sep)||!fs.existsSync(entry))fail('test-runner-layout-unsupported');
+      return {entry,logical};
+    }
+    if(at==='.')fail('test-runner-missing');
+  }
+}
+// The project facts the recipe needs, or an error code. `dir` is a workspace
+// package's directory; there the recipe supports Vitest only.
+export function testProject(root,script,dir='.'){
   const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
-  testPackageManager(root,pkg);
-  if(typeof pkg.scripts?.[script]!=='string'||pkg.scripts['pre'+script]||pkg.scripts['post'+script])fail('test-script-changed');
-  const {runner,args}=testScript(pkg.scripts[script]);
-  const entry=testRunnerEntry(root,runner);
-  const version=JSON.parse(fs.readFileSync(path.join(root,'node_modules',runner,'package.json'),'utf8')).version;
+  testPackageManager(root,pkg,{workspaces:dir!=='.'});
+  const dirs=dir==='.'?[]:testWorkspaceDirs(root,pkg);
+  if(dir!=='.'&&!dirs.includes(dir))fail('test-workspace-unsupported');
+  const own=dir==='.'?pkg:JSON.parse(fs.readFileSync(path.join(root,dir,'package.json'),'utf8'));
+  if(typeof own.scripts?.[script]!=='string'||own.scripts['pre'+script]||own.scripts['post'+script])fail('test-script-changed');
+  const {runner,args}=testScript(own.scripts[script]);
+  if(dir!=='.'&&runner!=='vitest')fail('test-runner-unsupported');
+  const {entry,logical}=testRunnerAt(root,dir,runner,dirs);
+  const version=JSON.parse(fs.readFileSync(path.join(root,logical,'package.json'),'utf8')).version;
   if(!runners[runner].majors.includes(majorOf(version)))fail('test-runner-version-unsupported');
   if(runner==='jest'){
     let util=null;try{util=JSON.parse(fs.readFileSync(path.join(root,'node_modules/jest-util/package.json'),'utf8')).version;}catch{}
     if(majorOf(util)!==29||!fs.existsSync(path.join(root,'node_modules/jest-util/build/createProcessObject.js')))
       fail('test-runner-layout-unsupported');
   }
-  return {runner,version,args,entry};
+  return {runner,version,args,entry,dir,dirs,logical};
 }
 // Inputs: the whole checkout except documentation and the coverage report a
 // --coverage run writes. Git-ignored files the run creates are handled per
-// run (cli.mjs). Installed files are observed by identity; Vite's
-// caches inside node_modules are written by every Vitest run.
-export function testCheckInputs({runner,args}){
-  return {inputs:['**','!node_modules/**','!.git/**','!**/*.md','!**/*.mdx',
-    ...(args.includes('--coverage')?['!coverage/**']:[])],
+// run (cli.mjs). Installed files, in the root's node_modules and every
+// workspace package's, are observed by identity; Vite's caches inside them
+// are written by every Vitest run.
+export function testCheckInputs({runner,args,dir='.',dirs=[],logical=`node_modules/${runner}`}){
+  const modules=modulesDirs({dirs});
+  return {inputs:['**',...modules.map(at=>`!${at}/**`),'!.git/**','!**/*.md','!**/*.mdx',
+    ...(args.includes('--coverage')?[`!${dir==='.'?'':dir+'/'}coverage/**`]:[])],
   // Vitest's typecheck mode keeps tsc's build info in its own dist directory.
-  installedInputs:['node_modules/**',...(runner==='vitest'?['!node_modules/.vite/**','!node_modules/.vite-temp/**','!node_modules/.vitest/**',
-    '!node_modules/vitest/dist/tsconfig.tmp.tsbuildinfo']:[])]};
+  installedInputs:modules.flatMap(at=>[`${at}/**`,...(runner==='vitest'?[`!${at}/.vite/**`,`!${at}/.vite-temp/**`,`!${at}/.vitest/**`]:[])])
+    .concat(runner==='vitest'?[`!${logical}/dist/tsconfig.tmp.tsbuildinfo`]:[])};
 }
 // The coverage directory a --coverage run may read back: Jest reads every
 // .js file under its roots, an earlier report's included, to map dependencies,
@@ -359,21 +415,26 @@ export function testCheckInputs({runner,args}){
 // when no configuration names thresholds (which make the report decide the
 // result) or another report directory. Configuration can be code, so this
 // reads its text.
-export function coverageReadable(root,{runner,args}){
+export function coverageReadable(checkout,{runner,args,dir='.'}){
   if(!args.includes('--coverage'))return null;
+  // A workspace package's configuration and report live in its directory.
+  const root=path.join(checkout,dir);
   const names=runner==='jest'?['jest.config.js','jest.config.ts','jest.config.mjs','jest.config.cjs','jest.config.json']:
     ['vitest.config.ts','vitest.config.mts','vitest.config.cts','vitest.config.js','vitest.config.mjs','vitest.config.cjs',
       'vite.config.ts','vite.config.mts','vite.config.cts','vite.config.js','vite.config.mjs','vite.config.cjs',
       'vitest.workspace.ts','vitest.workspace.js','vitest.workspace.json'];
   const at=args.findIndex(arg=>arg==='--config'||arg==='-c'),inline=args.find(arg=>/^(?:--config|-c)=/.test(arg));
   const given=at>=0?args[at+1]:inline?.split(/=(.*)/s)[1];
-  const texts=[];
-  for(const name of [...names,...(given?[given]:[])]){
-    try{texts.push(fs.readFileSync(path.resolve(root,name),'utf8'));}catch{}
+  // Vitest finds its configuration in the package directory or a parent.
+  const texts=[],folders=[];
+  for(let at=dir;;at=path.posix.dirname(at)){folders.push(path.join(checkout,at));if(at==='.')break;}
+  for(const name of [...names,...(given?[given]:[])])for(const folder of folders){
+    try{texts.push(fs.readFileSync(path.resolve(folder,name),'utf8'));}catch{}
   }
   try{const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
     if(runner==='jest'&&pkg.jest)texts.push(JSON.stringify(pkg.jest));}catch{return null;}
-  return texts.some(text=>/coverageThreshold|thresholds|coverageDirectory|reportsDirectory/.test(text))?null:'coverage';
+  return texts.some(text=>/coverageThreshold|thresholds|coverageDirectory|reportsDirectory/.test(text))?null:
+    dir==='.'?'coverage':`${dir}/coverage`;
 }
 // The caller's environment, when it would load code before the recorder or
 // the Node version is not one the recipe supports. Compared variables are
@@ -393,13 +454,17 @@ export function qualifyTests(root,selected){
   const issues=[];
   if(!['darwin','linux'].includes(process.platform))issues.push('the test recipe records runs on macOS and Linux only');
   try{
-    const project=testProject(root,selected.script);
-    if(JSON.stringify(selected.command)!==JSON.stringify([process.execPath,project.entry,...project.args])||
-      selected.cwd&&selected.cwd!=='.')issues.push('test runner invocation changed; run redue init again');
+    const dir=selected.cwd&&selected.cwd!=='.'?selected.cwd:'.';
+    if(dir!=='.'&&!selected.workspace)throw Object.assign(Error(),{code:'a test check in a directory needs its workspace'});
+    const project=testProject(root,selected.script,dir);
+    if(JSON.stringify(selected.command)!==JSON.stringify([process.execPath,project.entry,...project.args]))
+      issues.push('test runner invocation changed; run redue init again');
     // Every checkout file but installed ones is a content input; the recorder
     // skips node_modules because it is observed as installed files.
-    const positives=(selected.inputs||[]).filter(p=>!p.startsWith('!'));
-    if(positives.length!==1||positives[0]!=='**'||!selected.inputs.includes('!node_modules/**')||
+    if(dir!=='.'&&JSON.parse(fs.readFileSync(path.join(root,dir,'package.json'),'utf8')).name!==selected.workspace)
+      issues.push('the test check names another workspace package than its directory holds; run redue init again');
+    const expected=testCheckInputs(project),sorted=list=>JSON.stringify([...(list||[])].sort());
+    if(sorted(selected.inputs)!==sorted(expected.inputs)||
       JSON.stringify([...(selected.installedInputs||[])].sort())!==JSON.stringify([...testCheckInputs(project).installedInputs].sort()))
       issues.push('test inputs must be the whole checkout, with node_modules observed as installed files; run redue init again');
   }catch(e){issues.push(e.code||'test runner prerequisites unavailable');}

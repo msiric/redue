@@ -4,7 +4,7 @@ import {mark,traceBase,traceContext,traceEnvironment,traceId} from '../src/decis
 traceBase({...traceContext(),request:traceId(),work:'client'});
 mark('client.loaded');
 import {directCompiler,directQualification,directEnvironment,directInterpretation} from '../src/direct-typescript.mjs';
-import {testEnvironment,testRunnerEntry,testsInterpretation,testsQualification} from '../src/test-direct.mjs';
+import {testEnvironment,testRunnerAt,testsInterpretation,testsQualification} from '../src/test-direct.mjs';
 import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
@@ -194,7 +194,7 @@ function which(name){
   if(found)return found;
   error(`cannot resolve executable ${name} on PATH`);
 }
-function token(value){
+function token(value,cwd='.'){
   if(value==='@node')return process.execPath;
   if(value==='@project')return root;
   if(value==='@typescript-compiler:.'){
@@ -202,8 +202,8 @@ function token(value){
   }
   if(value.startsWith('@test-runner:')){
     // Qualification reports a missing runner; status and stop still work.
-    try{return testRunnerEntry(root,value.slice('@test-runner:'.length));}
-    catch{return path.join(root,'node_modules',value.slice('@test-runner:'.length),'<unavailable>');}
+    try{return testRunnerAt(root,cwd,value.slice('@test-runner:'.length)).entry;}
+    catch{return path.join(root,cwd,'node_modules',value.slice('@test-runner:'.length),'<unavailable>');}
   }
   if(value==='@vstate/direct-typescript-probe')return path.join(productRoot,'src','direct-typescript-probe.mjs');
   if(value.startsWith('@typescript-bin:')){
@@ -226,10 +226,10 @@ function token(value){
   if(value.startsWith('@which:'))return which(value.slice(7));
   return value;
 }
-function argv(values,label){
+function argv(values,label,cwd){
   if(!Array.isArray(values)||!values.length||values.some(v=>typeof v!=='string'||!v))
     error(`${label} must be nonempty exact argv`);
-  return values.map(token);
+  return values.map(value=>token(value,cwd));
 }
 const categories=['source','generated','installedDependencies','environment','toolchain','runtime',
   'probeContinuity'];
@@ -260,7 +260,7 @@ const checks=publicConfig.checks.map(check=>{
     JSON.stringify(check.command)!==JSON.stringify(['@node','@typescript-compiler:.','--noEmit'])))
     error(`${check.name}: direct recipe requires its explicit local compiler command`);
   // The script's own arguments follow the runner; qualification compares them with the script.
-  if(testsDirect&&(!['npm','pnpm','yarn'].includes(manager)||!check.script||check.cwd&&check.cwd!=='.'||!Array.isArray(check.command)||
+  if(testsDirect&&(!['npm','pnpm','yarn'].includes(manager)||!check.script||check.cwd&&check.cwd!=='.'&&!check.workspace||!Array.isArray(check.command)||
     check.command[0]!=='@node'||!/^@test-runner:(?:vitest|jest)$/.test(check.command[1]||'')))
     error(`${check.name}: test recipe requires its explicit local test runner command`);
   if(npmAutomatic&&(manager!=='npm'||check.cwd&&check.cwd!=='.'))
@@ -297,7 +297,8 @@ const checks=publicConfig.checks.map(check=>{
     {variables:['NODE_OPTIONS','NODE_PATH','CI','HOME','NODE_ENV','BASH_ENV','ENV',...windowsContext],
       prefixes:['PNPM_','COREPACK_','npm_config_','DYLD_','TSGO_'],
       pathExecutables:['node'],executableIdentity:true}:{};
-  return {name:check.name,command:argv(scriptCommand||check.command,`${check.name}.command`),
+  return {name:check.name,command:argv(scriptCommand||check.command,`${check.name}.command`,
+    typeof check.cwd==='string'&&check.cwd&&!path.isAbsolute(check.cwd)&&!check.cwd.split('/').includes('..')?check.cwd:'.'),
     cwd:check.cwd,inputs:check.inputs||[],generatedInputs:check.generatedInputs||[],
     installedInputs:check.installedInputs||(
       npmAutomatic||npmDirect||testsDirect?['node_modules/**']:[]),
