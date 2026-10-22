@@ -85,8 +85,10 @@ jobs:
         # `gh release create`, so a refusal shows GitHub's own response.
         run: |
           sha="${{ steps.source.outputs.commit }}"
-          existing=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" -q .object.sha 2>/dev/null || true)
-          if [ -n "$existing" ]; then
+          # On a 404 gh still prints the error body, so go by the exit status.
+          # The commits API resolves an annotated tag to its commit.
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" >/dev/null 2>&1; then
+            existing=$(gh api "repos/$GITHUB_REPOSITORY/commits/refs/tags/v$VERSION" -q .sha)
             test "$existing" = "$sha" || { echo "v$VERSION already points at $existing"; exit 1; }
             echo "v$VERSION already points at $sha"; exit 0
           fi
