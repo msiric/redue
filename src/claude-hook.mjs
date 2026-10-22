@@ -76,8 +76,10 @@ export function recordedCommand(command,name,configFile=defaultConfig){
 // A leading `cd DIR;` or `cd DIR &&` into the project root, which agents
 // often add before a check: {prefix, command} with the rest of the command,
 // the whole command when there is no such prefix, or null when it enters
-// another directory. DIR may be quoted; it may not use variables, `~` or escapes.
-const cdPrefix=/^[ \t]*cd[ \t]+(?:"([^"$`\\]*)"|'([^']*)'|([^\s;&|'"$`\\~]+))[ \t]*(?:;|&&)[ \t]*/;
+// another directory. DIR may be quoted; it may not use variables, a leading
+// `~` or escapes. Inside double quotes a backslash before anything but
+// $ ` " \ is literal, so a quoted Windows path matches; unquoted it is an escape.
+const cdPrefix=/^[ \t]*cd[ \t]+(?:"((?:[^"$`\\]|\\(?![$`"\\\n]))*)"|'([^']*)'|((?!~)[^\s;&|'"$`\\]+))[ \t]*(?:;|&&)[ \t]*/;
 export function rootCd(command,cwd,projectRoot){
   const prefix=typeof command==='string'?cdPrefix.exec(command):null;
   if(!prefix)return {prefix:'',command};
