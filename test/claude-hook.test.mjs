@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawnSync,execFileSync} from 'node:child_process';
-import {claudeHook,hookForms,lastRunTimeout,matchCheck,recordedCommand,rootCd,sessionStart,statusTimeout} from '../src/claude-hook.mjs';
+import {claudeHook,hookForms,lastRunTimeout,matchCheck,recordedCommand,enteredDir,fanout,fanoutChecks,fanoutVerdict,sessionStart,statusTimeout} from '../src/claude-hook.mjs';
 import {findExecutable} from '../src/executable-lookup.mjs';
 import {realObservedPath} from '../src/path-identity.mjs';
 const bin=path.resolve('bin/redue.mjs');
@@ -30,16 +30,22 @@ test('matches each typecheck form with only the allowed output suffixes',()=>{
     assert.equal(matchCheck(command,direct),null,command);
   const literal={schema:1,checks:[{name:'types',kind:'typecheck',command:['tsc','-p','tsconfig.json','--noEmit']},
     {name:'lint',command:['eslint','.']},{name:'type check',kind:'typecheck',command:['tsc']}]};
-  assert.deepEqual(hookForms(literal),[{check:'types',kind:'typecheck',forms:['redue run types','tsc -p tsconfig.json --noEmit']}]);
+  assert.deepEqual(hookForms(literal),[{check:'types',kind:'typecheck',dir:'.',forms:['redue run types','tsc -p tsconfig.json --noEmit'],local:[]}]);
   assert.equal(matchCheck('tsc -p tsconfig.json --noEmit 2>&1',literal),'types');
   assert.equal(matchCheck('redue run lint',literal),null);
   // A check that runs in a subdirectory: the same text at the root is a different command.
   const nested={...direct,checks:[{...direct.checks[0],qualification:undefined,cwd:'packages/app',command:['tsc','--noEmit']}]};
   assert.deepEqual(hookForms(nested)[0].forms,['redue run typecheck']);
   assert.equal(matchCheck('tsc --noEmit',nested),null);assert.equal(matchCheck('npm run typecheck',nested),null);
-  // The npm form needs npm; other managers' script checks get only `redue run`.
-  assert.deepEqual(hookForms({...direct,packageManager:'pnpm',checks:[{...direct.checks[0],qualification:'pnpm-tsc-v1'}]})[0].forms,
-    ['redue run typecheck']);
+  // Each package manager's own forms; a bare `tsc` is not one, since it is rarely on PATH.
+  const pnpm={...direct,packageManager:'pnpm',checks:[{...direct.checks[0],qualification:'pnpm-tsc-v1',command:['@node','@typescript-bin:.','-p','.']}]};
+  assert.deepEqual(hookForms(pnpm)[0].forms,
+    ['redue run typecheck','pnpm typecheck','pnpm run typecheck','npx tsc -p .','pnpm exec tsc -p .']);
+  assert.deepEqual(hookForms({...direct,packageManager:'yarn'})[0].forms,
+    ['redue run typecheck','yarn typecheck','yarn run typecheck','npx tsc --noEmit']);
+  // A script named like a package-manager command gets only the `run` form.
+  assert.deepEqual(hookForms({...pnpm,checks:[{...pnpm.checks[0],script:'install'}]})[0].forms.filter(f=>f.startsWith('pnpm ')),
+    ['pnpm run install','pnpm exec tsc -p .']);
   // Another config file: the redue form names it, exactly as the instructions do.
   assert.deepEqual(hookForms(direct,'vstate.config.json')[0].forms,
     ['redue --config vstate.config.json run typecheck','npm run typecheck','npx tsc --noEmit']);
@@ -52,8 +58,8 @@ test('matches each typecheck form with only the allowed output suffixes',()=>{
 test('a direct test check matches its script, npm test and the runner command, not a subset',()=>{
   const config={schema:1,packageManager:'npm',checks:[{name:'test',kind:'test',script:'test',
     qualification:'npm-tests-direct-v1',command:['@node','@test-runner:vitest','run']}]};
-  assert.deepEqual(hookForms(config),[{check:'test',kind:'test',
-    forms:['redue run test','npm run test','npm test','vitest run','npx vitest run']}]);
+  assert.deepEqual(hookForms(config),[{check:'test',kind:'test',dir:'.',
+    forms:['redue run test','npm run test','npm test','vitest run','npx vitest run'],local:[]}]);
   for(const command of ['npm test','npx vitest run 2>&1 | tail -n 20','npm run test && git status'])
     assert.equal(matchCheck(command,config),'test',command);
   for(const command of ['npx vitest run src/a.test.ts','npx vitest','npm test -- -u'])
@@ -62,18 +68,25 @@ test('a direct test check matches its script, npm test and the runner command, n
   assert.deepEqual(hookForms({...config,checks:[{name:'test',kind:'test',script:'test'}]}),[]);
 });
 
-test('a leading cd into the project root is set aside; any other directory stops the match',()=>{
+test('a leading cd into the project or one of its directories is set aside; a directory outside it stops the match',t=>{
   // Unquoted, a backslash is an escape in the shell, so those paths use /.
-  const root=realObservedPath(os.tmpdir()),dir=slashes(root),parent=slashes(path.dirname(root));
+  const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-hook-cd-')),root=realObservedPath(base);
+  t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
+  fs.mkdirSync(path.join(root,'packages','a'),{recursive:true});
+  const dir=slashes(root),parent=slashes(path.dirname(root));
   for(const [command,prefix] of [[`cd ${dir} && npm run typecheck`,`cd ${dir} && `],[`cd ${dir}; npm run typecheck`,`cd ${dir}; `],
     [`  cd "${root}" &&  npm run typecheck`,`  cd "${root}" &&  `],[`cd '${root}';npm run typecheck`,`cd '${root}';`],['cd . && npm run typecheck','cd . && ']])
-    assert.deepEqual(rootCd(command,root,root),{prefix,command:'npm run typecheck'},command);
+    assert.deepEqual(enteredDir(command,root,root),{prefix,command:'npm run typecheck',dir:'.'},command);
+  for(const [command,prefix] of [['cd packages/a && pnpm typecheck','cd packages/a && '],[`cd "${path.join(root,'packages','a')}"; pnpm typecheck`,`cd "${path.join(root,'packages','a')}"; `]])
+    assert.deepEqual(enteredDir(command,root,root),{prefix,command:'pnpm typecheck',dir:'packages/a'},command);
   for(const command of [`cd ${parent} && npm run typecheck`,'cd .. && npm run typecheck',`cd ${dir}/missing; npm run typecheck`])
-    assert.equal(rootCd(command,root,root),null,command);
+    assert.equal(enteredDir(command,root,root),null,command);
   // Without a plain prefix the command stays whole, so no check form matches it.
   for(const command of ['npm run typecheck','cd ~ && npm run typecheck','cd ~/x && npm run typecheck','cd $HOME && npm run typecheck',
     `cd ${dir} || npm run typecheck`,'cd "a\\$b" && npm run typecheck'])
-    assert.deepEqual(rootCd(command,root,root),{prefix:'',command},command);
+    assert.deepEqual(enteredDir(command,root,root),{prefix:'',command,dir:'.'},command);
+  // No prefix: the command runs where the session is, as before.
+  assert.deepEqual(enteredDir('npm run typecheck',path.dirname(root),root),{prefix:'',command:'npm run typecheck',dir:'.'});
 });
 
 test('a matched command becomes redue run with the same output suffix',()=>{
@@ -279,9 +292,148 @@ test('SessionStart starts the observer when none runs, prints nothing, and leave
     try{healthy=JSON.parse(redue('status','--json').stdout).observation?.healthy===true;}catch{}
     if(!healthy)Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,200);
   }
-  assert(healthy,'observer did not become healthy after SessionStart');
+  if(!healthy){const doctor=JSON.parse(redue('agent','doctor','claude','--json').stdout);
+    let log='';try{log=fs.readFileSync(path.join(doctor.project.state,'observer.log'),'utf8').slice(-1500);}catch(e){log=e.message;}
+    assert.fail(`observer did not become healthy after SessionStart: ${JSON.stringify(doctor.observer_process)} ${redue('status','--json').stdout.slice(0,300)}\n${log}`);}
   // Resume, clear or compact in the same project: the running observer stays.
   assert.equal(sessionStart({...start,source:'resume'},{entry:bin}),'running');
   assert.equal(hook({...start,source:'compact'},root,env),null);
   assert.equal(redue('stop').status,0);
+});
+
+test('workspace checks match their package-manager forms from the root and their script after a cd into the package',()=>{
+  const pnpm={schema:1,packageManager:'pnpm',checks:[{name:'@acme/web:typecheck',kind:'typecheck',workspace:'@acme/web',
+    qualification:'pnpm-tsc-v1',script:'typecheck',cwd:'packages/web',command:['@node','@typescript-bin:packages/web','--noEmit'],
+    inputs:['package.json','pnpm-lock.yaml','packages/web/package.json','packages/web/src/**']}]};
+  assert.deepEqual(hookForms(pnpm),[{check:'@acme/web:typecheck',kind:'typecheck',dir:'packages/web',
+    forms:['redue run @acme/web:typecheck','pnpm --filter @acme/web typecheck','pnpm --filter @acme/web run typecheck',
+      'pnpm --filter=@acme/web typecheck','pnpm --filter=@acme/web run typecheck','pnpm -F @acme/web typecheck','pnpm -F @acme/web run typecheck'],
+    local:['pnpm typecheck','pnpm run typecheck','npx tsc --noEmit','pnpm exec tsc --noEmit']}]);
+  assert.equal(matchCheck('pnpm -F @acme/web typecheck 2>&1 | tail -n 5',pnpm),'@acme/web:typecheck');
+  assert.equal(matchCheck('pnpm typecheck',pnpm,undefined,'packages/web'),'@acme/web:typecheck');
+  // Run elsewhere, the same script is another package's.
+  assert.equal(matchCheck('pnpm typecheck',pnpm),null);
+  assert.equal(matchCheck('pnpm typecheck',pnpm,undefined,'packages/api'),null);
+  // Generated recording-only workspace checks: the directory comes from their inputs.
+  const yarn={schema:1,packageManager:'yarn',checks:[{name:'a:typecheck',kind:'typecheck',
+    command:['@which:yarn','workspace','a','run','check-types'],inputs:['package.json','yarn.lock','packages/a/**','!packages/a/node_modules/**']}]};
+  assert.deepEqual(hookForms(yarn)[0],{check:'a:typecheck',kind:'typecheck',dir:'packages/a',
+    forms:['redue run a:typecheck','yarn workspace a check-types','yarn workspace a run check-types'],
+    local:['yarn check-types','yarn run check-types']});
+  const npm={schema:1,packageManager:'npm',checks:[{name:'a:typecheck',kind:'typecheck',
+    command:['@which:npm','run','typecheck','--workspace','a'],inputs:['package.json','package-lock.json','packages/a/**','!packages/a/node_modules/**']}]};
+  assert.deepEqual(hookForms(npm)[0].forms,['redue run a:typecheck','npm run typecheck -w a','npm run typecheck --workspace a',
+    'npm run typecheck --workspace=a','npm -w a run typecheck']);
+  // Two candidate directories: no package forms, only `redue run`.
+  assert.deepEqual(hookForms({...yarn,checks:[{...yarn.checks[0],inputs:['packages/shared/**','!packages/shared/node_modules/**','packages/a/package.json']}]})[0],
+    {check:'a:typecheck',kind:'typecheck',dir:null,forms:['redue run a:typecheck'],local:[]});
+  // A colon in a root check's name does not make it a workspace check.
+  assert.deepEqual(hookForms({schema:1,packageManager:'npm',checks:[{name:'typecheck:strict',kind:'typecheck',script:'typecheck:strict',inputs:['src/**']}]})[0].forms,
+    ['redue run typecheck:strict','npm run typecheck:strict']);
+  // A root check that runs in a subdirectory: its script is the root's, so after a cd nothing matches.
+  const nested={schema:1,packageManager:'npm',checks:[{name:'typecheck',kind:'typecheck',script:'typecheck',cwd:'packages/app',command:['tsc','--noEmit']}]};
+  assert.deepEqual(hookForms(nested)[0],{check:'typecheck',kind:'typecheck',dir:null,forms:['redue run typecheck'],local:[]});
+});
+
+test('turbo and pnpm -r commands parse to the task they run; filters, nx and other forms do not',()=>{
+  for(const [command,value] of [['turbo run typecheck',{tool:'turbo',task:'typecheck'}],
+    ['npx turbo typecheck',{tool:'turbo',task:'typecheck'}],['pnpm exec turbo run test',{tool:'turbo',task:'test'}],
+    ['pnpm -r typecheck',{tool:'pnpm',task:'typecheck'}],['pnpm --recursive run test',{tool:'pnpm',task:'test'}]])
+    assert.deepEqual(fanout(command),value,command);
+  for(const command of ['turbo run typecheck lint','turbo run typecheck --filter=a','turbo run typecheck --force',
+    'pnpm turbo run typecheck','yarn turbo typecheck','nx run-many -t typecheck','pnpm -r --parallel typecheck','nx affected -t typecheck'])
+    assert.equal(fanout(command),null,command);
+});
+
+// A Git-tracked npm workspace with packages a and b, both with a typecheck
+// script, and a config with a check for each.
+function workspaceProject(t,{turbo={tasks:{typecheck:{}}},nx}={}){
+  const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-hook-ws-')),root=realObservedPath(base);
+  t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
+  execFileSync('git',['init','-q'],{cwd:root});
+  put(path.join(root,'package.json'),JSON.stringify({name:'mono',workspaces:['packages/*'],
+    scripts:{typecheck:'turbo run typecheck',test:'nx run-many -t test',lint:'turbo run lint'}}));
+  put(path.join(root,'package-lock.json'),'{}');
+  if(turbo)put(path.join(root,'turbo.json'),JSON.stringify(turbo));
+  if(nx)put(path.join(root,'nx.json'),JSON.stringify(nx));
+  for(const name of ['a','b'])put(path.join(root,'packages',name,'package.json'),
+    JSON.stringify({name,scripts:{typecheck:'tsc --noEmit',test:'vitest run'}}));
+  const check=name=>({name:`${name}:typecheck`,kind:'typecheck',command:['@which:npm','run','typecheck','--workspace',name],
+    inputs:['package.json','package-lock.json',`packages/${name}/**`,`!packages/${name}/node_modules/**`]});
+  const config={schema:1,packageManager:'npm',checks:[check('a'),check('b')]};
+  put(path.join(root,'redue.config.json'),JSON.stringify(config));
+  put(path.join(root,'.redue/agents/claude.json'),JSON.stringify({schema:1,host:'claude',config:'redue.config.json'}));
+  return {root,config};
+}
+
+test('a fan-out covers one configured check per package with the script, and nothing when the tool may run more',async t=>{
+  const p=workspaceProject(t);
+  const covered=async(command,config=p.config)=>fanoutChecks(fanout(command),config,p.root);
+  assert.deepEqual(await covered('turbo run typecheck'),['a:typecheck','b:typecheck']);
+  // A package with the script but no check: the command runs something REDUE never saw.
+  assert.equal(await covered('turbo run typecheck',{...p.config,checks:[p.config.checks[0]]}),null);
+  // No package has the script.
+  assert.equal(await covered('turbo run lint'),null);
+  // turbo: the same task in dependencies first is covered; anything else turbo may run is not.
+  for(const [tasks,value] of [[{typecheck:{dependsOn:['^typecheck'],outputs:[]}},['a:typecheck','b:typecheck']],
+    [{typecheck:{dependsOn:['^build']}},null],[{typecheck:{dependsOn:['build']}},null],[{typecheck:{with:['a#dev']}},null],
+    [{typecheck:{},'//#typecheck':{}},null],[{typecheck:{},'b#typecheck':{dependsOn:['codegen']}},null],[{build:{}},null]]){
+    put(path.join(p.root,'turbo.json'),JSON.stringify({tasks}));
+    assert.deepEqual(await covered('turbo run typecheck'),value,JSON.stringify(tasks));
+  }
+  put(path.join(p.root,'turbo.json'),JSON.stringify({tasks:{typecheck:{}}}));
+  put(path.join(p.root,'packages/b/turbo.json'),JSON.stringify({extends:['//'],tasks:{typecheck:{dependsOn:['build']}}}));
+  assert.equal(await covered('turbo run typecheck'),null);
+  fs.rmSync(path.join(p.root,'packages/b/turbo.json'));fs.rmSync(path.join(p.root,'turbo.json'));
+  assert.equal(await covered('turbo run typecheck'),null);
+  // pnpm -r: only in a pnpm project, and not when it also runs the workspace root.
+  assert.equal(await covered('pnpm -r typecheck'),null);
+  const pnpm={...p.config,packageManager:'pnpm'};
+  assert.deepEqual(await covered('pnpm -r typecheck',pnpm),['a:typecheck','b:typecheck']);
+  put(path.join(p.root,'.npmrc'),'include-workspace-root=true\n');
+  assert.equal(await covered('pnpm -r typecheck',pnpm),null);
+});
+
+test('a fan-out is skipped only when every check it runs is CURRENT, and is never rewritten',async t=>{
+  const p=workspaceProject(t);
+  const fake=(name,body)=>{const file=path.join(p.root,'fake',name+'.mjs');put(file,body);return file;};
+  const row=(name,extra={})=>({name,freshness:'CURRENT',result:'PASS',reuse_eligible:true,invocation:{runId},reason:'declared inputs match',...extra});
+  const reply=checks=>fake(String(checks.length)+checks.map(c=>c.freshness).join(''),replying({schema:1,observation:{healthy:true},checks}));
+  const current=reply([row('a:typecheck'),row('b:typecheck')]);
+  for(const command of ['turbo run typecheck','npx turbo typecheck 2>&1 | tail -n 20','npm run typecheck']){
+    const out=await claudeHook(bash(command,p.root),{entry:current});
+    assert.equal(out?.hookSpecificOutput.permissionDecision,'deny',command);
+    assert.match(out.hookSpecificOutput.permissionDecisionReason,/all 2 checks this command runs \(a:typecheck, b:typecheck\) passed/);
+  }
+  const chain=await claudeHook(bash('turbo run typecheck && git status',p.root),{entry:current});
+  assert.match(chain.hookSpecificOutput.permissionDecisionReason,/passed.*run the rest on its own: git status$/);
+  // A root script with a pre- or post-script runs more than the fan-out: no match.
+  const pkg=JSON.parse(fs.readFileSync(path.join(p.root,'package.json'),'utf8'));
+  put(path.join(p.root,'package.json'),JSON.stringify({...pkg,scripts:{...pkg.scripts,pretypecheck:'node gen.mjs'}}));
+  assert.equal(await claudeHook(bash('npm run typecheck',p.root),{entry:current}),null);
+  put(path.join(p.root,'package.json'),JSON.stringify(pkg));
+  // One check STALE: the command runs as typed, with no rewrite.
+  const stale=reply([row('a:typecheck'),row('b:typecheck',{freshness:'STALE',reuse_eligible:false})]);
+  for(const command of ['turbo run typecheck','npm run typecheck'])
+    assert.equal(await claudeHook(bash(command,p.root),{entry:stale}),null,command);
+  // A workspace check run inside its package is rewritten with the config's relative path.
+  const out=(await claudeHook(bash('cd packages/a && npm run typecheck',p.root),
+    {entry:reply([row('a:typecheck',{freshness:'STALE',reuse_eligible:false}),row('b:typecheck')])}))?.hookSpecificOutput;
+  assert.equal(out?.permissionDecision,'allow');
+  assert.equal(out.updatedInput.command,'cd packages/a && redue --config ../../redue.config.json run a:typecheck');
+});
+
+test('after a cd into a package, the rewrite names the config by its path from there, when the config root is not the session directory',async t=>{
+  const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-hook-root-')),session=realObservedPath(base);
+  t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
+  fs.mkdirSync(path.join(session,'app','packages','a'),{recursive:true});
+  const config={schema:1,root:'app',packageManager:'npm',checks:[{name:'a:typecheck',kind:'typecheck',
+    command:['@which:npm','run','typecheck','--workspace','a'],inputs:['package.json','packages/a/**','!packages/a/node_modules/**']}]};
+  put(path.join(session,'redue.config.json'),JSON.stringify(config));
+  put(path.join(session,'.redue/agents/claude.json'),JSON.stringify({schema:1,host:'claude',config:'redue.config.json'}));
+  const entry=path.join(session,'fake.mjs');
+  put(entry,replying({schema:1,observation:{healthy:true},checks:[{name:'a:typecheck',freshness:'STALE',result:'PASS',
+    reuse_eligible:false,invocation:{runId},reason:'changed'}]}));
+  const out=(await claudeHook(bash('cd app/packages/a && npm run typecheck',session),{entry}))?.hookSpecificOutput;
+  assert.equal(out?.updatedInput.command,'cd app/packages/a && redue --config ../../../redue.config.json run a:typecheck');
 });

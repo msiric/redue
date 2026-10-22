@@ -269,3 +269,22 @@ test('claude hook settings: created file is removed; edited or duplicate entries
   assert.match(g.run('agent','setup','claude','--apply').stderr,/not valid JSON/);
   assert.equal(g.read(local),'{"permissions": ');assert(!fs.existsSync(path.join(g.root,'CLAUDE.md')));
 });
+
+test('claude setup for workspace checks: pnpm forms, a cd into the package, and fan-out rules for turbo, pnpm -r and root scripts',t=>{
+  const f=fixture(t),local='.claude/settings.local.json';
+  f.put('package.json',JSON.stringify({name:'mono',scripts:{typecheck:'turbo run typecheck',build:'turbo run build'}}));
+  f.put('redue.config.json',JSON.stringify({schema:1,packageManager:'pnpm',checks:[{name:'@acme/web:typecheck',kind:'typecheck',
+    workspace:'@acme/web',qualification:'pnpm-tsc-v1',script:'typecheck',cwd:'packages/web',
+    command:['@node','@typescript-bin:packages/web','--noEmit'],inputs:['package.json','packages/web/src/**']}]}));
+  f.ok('agent','setup','claude','--apply');
+  const rules=JSON.parse(f.read(local)).hooks.PreToolUse[0].hooks.map(h=>h.if);
+  for(const rule of ['Bash(pnpm --filter @acme/web typecheck*)','Bash(pnpm typecheck*)','Bash(pnpm exec tsc --noEmit*)',
+    'Bash(turbo run typecheck*)','Bash(pnpm exec turbo typecheck*)','Bash(pnpm -r typecheck*)'])
+    assert(rules.includes(rule),rule);
+  // A task no check runs, such as the root build, never starts the hook.
+  assert(!rules.some(rule=>/build|turbo \*|\bnx\b/.test(rule)),rules.join(' '));
+  assert.match(f.read('CLAUDE.md'),/^Typecheck with `pnpm --filter @acme\/web typecheck`\. /m);
+  // The block with a scoped name is recognized again.
+  const once=f.read('CLAUDE.md');f.ok('agent','setup','claude','--apply');assert.equal(f.read('CLAUDE.md'),once);
+  f.ok('agent','remove','claude','--apply');
+});

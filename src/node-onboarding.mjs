@@ -161,6 +161,15 @@ function workspaceManifests(root,patterns) {
   if(matched.length>50)throw Error('more than 50 workspace packages found; select checks explicitly');
   return matched.map(file=>({file,pkg:readJson(path.join(root,file))}));
 }
+// Workspace packages as init finds them, with their scripts; [] without workspaces.
+export function workspacePackages(root){
+  root=realObservedPath(root);
+  const pkg=readJson(path.join(root,'package.json')),pm=manager(root,pkg);
+  const patterns=pm.name==='pnpm'?pm.workspacePatterns:Array.isArray(pkg.workspaces)?pkg.workspaces:pkg.workspaces?.packages;
+  if(!Array.isArray(patterns)||!patterns.length)return [];
+  return workspaceManifests(root,patterns).map(({file,pkg:member})=>
+    ({name:member.name,dir:path.posix.dirname(file),scripts:member.scripts&&typeof member.scripts==='object'?member.scripts:{}}));
+}
 export function discoverNodeProject(root,{recipe=null}={}) {
   if(recipe&&!['typescript-direct','tests-direct'].includes(recipe))throw Error('unknown recipe; use typescript-direct or tests-direct');
   root=realObservedPath(root);

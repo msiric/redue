@@ -11,7 +11,7 @@ import {readProject,projectState,canonicalConfig} from './project-location.mjs';
 import {readCachedStatus} from './cached-state.mjs';
 import {samePath,withinPath} from './path-identity.mjs';
 import {processAlive} from './process-liveness.mjs';
-import {hookCommand,hookForms,redueFor} from './claude-hook.mjs';
+import {fanoutRules,hookCommand,hookForms,redueFor} from './claude-hook.mjs';
 
 const policy=fs.readFileSync(new URL('./agent-policy.md',import.meta.url),'utf8');
 const hosts={codex:{instruction:'AGENTS.md',skill:'.agents/skills/redue-verification/SKILL.md'},
@@ -23,8 +23,11 @@ const settingsPath='.claude/settings.local.json';
 const sameJson=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 // One handler per exact command form; `if` keeps other Bash calls from starting Node.
 // The hook waits for status up to 10 s; 15 s leaves room for starting Node.
-function hookFor(config,relative){
-  const rules=[...new Set(hookForms(config,relative).flatMap(row=>row.forms))].map(form=>`Bash(${form}*)`);
+// Fan-out commands (turbo, nx, `pnpm -r`) and root scripts that run one get
+// prefix rules; the hook decides from the full command.
+function hookFor(config,relative,scripts){
+  const rules=[...new Set([...hookForms(config,relative).flatMap(row=>[...row.forms,...row.local]),
+    ...fanoutRules(config,scripts)])].map(form=>`Bash(${form}*)`);
   return rules.length?{matcher:'Bash',hooks:rules.map(rule=>({type:'command',if:rule,command:hookCommand,timeout:15}))}:null;
 }
 // The same command on SessionStart starts the observer; it needs no check to match.
@@ -129,10 +132,10 @@ function earlierBlock(host,rows=[]){
     `If a check's last pass still applies to these exact files, a REDUE hook skips\n`+
     `the run and says so. The skip counts as a pass; don't check it again.\n`);
 }
-// One form per check: the npm script when there is one, since that is what
-// the project's own instructions usually name.
+// One form per check: the package manager's script form when there is one,
+// since that is what the project's own instructions usually name.
 const blockForms=(host,config,relative)=>host!=='claude'?[]:hookForms(config,relative).map(row=>({kind:row.kind,
-  form:row.forms.find(form=>form.startsWith('npm run '))??row.forms.find(form=>!form.startsWith('redue '))??row.forms[0]}));
+  form:row.forms.find(form=>/^(?:npm run|pnpm|yarn) /.test(form))??row.forms.find(form=>!form.startsWith('redue '))??row.forms[0]}));
 const priorBlocks=(host,relative)=>[false,true].map(legacy=>`\n\n<!-- REDUE:${host}:begin -->\n`+
   `Before deciding whether configured verification needs repeating, use REDUE.\n`+
   (legacy?`Read ${hosts[host].skill} for the decision policy, then query ordinary status\n`+
@@ -151,7 +154,7 @@ const priorBlocks=(host,relative)=>[false,true].map(legacy=>`\n\n<!-- REDUE:${ho
 // varies, and only in the safe character set. Earlier owned versions are
 // recognized so setup can replace them; other stored text never is.
 function knownBlock(host,relative,block){
-  const list='((?:`[A-Za-z0-9_./:=,+ -]+`(?: and )?)+)';
+  const list='((?:`[A-Za-z0-9_./:=,+@ -]+`(?: and )?)+)';
   const forms=pattern=>{const named=new RegExp(pattern).exec(block);return named?[...named[1].matchAll(/`([^`]+)`/g)].map(m=>m[1]):[];};
   const rows=[...forms(`^\\n\\n<!-- REDUE:[a-z]+:begin -->\\nTypecheck with ${list}\\.`).map(form=>({kind:'typecheck',form})),
     ...forms(`Run the unit tests with ${list}\\.\\n`).map(form=>({kind:'test',form}))];
@@ -269,7 +272,8 @@ export async function agentCommand(args,{configFile,stateOverride,entry,cwd=proc
     if(!record&&(before?.includes('<!-- REDUE:')||read(root,h.skill)!==null))
       throw Error('unowned REDUE instruction or skill already exists; inspect it before setup');
     const after=record?before.replace(record.block,block):(before||'')+block;
-    hook=host==='claude'?hookFor(config,relative):null;
+    let scripts={};try{scripts=JSON.parse(read(root,'package.json')??'{}').scripts||{};}catch{}
+    hook=host==='claude'?hookFor(config,relative,scripts):null;
     const next={schema:1,host,config:relative,instruction:h.instruction,skill:h.skill,
       block,skillHash:hash(skill),instructionCreated:record?.instructionCreated??before===null};
     changes.push({path:h.skill,before:read(root,h.skill),after:skill},

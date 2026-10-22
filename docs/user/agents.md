@@ -90,15 +90,37 @@ again with the next session; remove the hook to prevent that. Setups from
 alpha.15 or earlier get the hook by running `redue agent setup claude --apply`
 again.
 
-The hook skips an exact rerun of a configured typecheck: a check with
-`kind: "typecheck"` or named `typecheck`. It matches these commands, run from the
-project root:
+The hook skips an exact rerun of a configured typecheck (a check with
+`kind: "typecheck"` or named `typecheck`) or direct test check. It matches
+these commands, run from the project root:
 
 - `redue run CHECK`, or `redue --config FILE run CHECK` when the config is not
   `redue.config.json`
-- `npm run SCRIPT`, when the check has an npm script
-- `npx tsc --noEmit`, for the direct-TypeScript recipe
+- the check's script through the project's package manager: `npm run SCRIPT`
+  (and `npm test`), `pnpm SCRIPT`, `pnpm run SCRIPT`, `yarn SCRIPT` or
+  `yarn run SCRIPT`. The short form is left out when the script is named like
+  one of the package manager's own commands.
+- the tool the check runs: `npx tsc ARGS` (and `pnpm exec tsc ARGS` with pnpm)
+  for a direct TypeScript check, or the runner's command, alone or after `npx`,
+  for a direct test check
 - the check's `command`, when it has no `@` tokens
+- for a workspace package's check: `pnpm --filter NAME SCRIPT` (also
+  `--filter=NAME`, `-F NAME`, and with `run`), `yarn workspace NAME SCRIPT`, or
+  `npm run SCRIPT -w NAME` (also `--workspace NAME`, `--workspace=NAME` and
+  `npm -w NAME run SCRIPT`). After `cd` into the package's directory, the
+  package-manager script forms and tool forms match that check.
+
+A `turbo run TASK` (or `turbo TASK`, alone or after `npx` or `pnpm exec`) or,
+in a pnpm project, `pnpm -r TASK` (`--recursive`, with or without `run`) that
+runs a checked task in every workspace package is skipped only when every check
+it would run is CURRENT, PASS and `reuse_eligible`. Every package with the
+task's script must have a check. turbo must define the task, with `dependsOn`
+listing at most `^TASK`, no `with`, no `PACKAGE#TASK` entries and no package
+`turbo.json`; `pnpm -r` must not include the workspace root. A root script
+whose text is such a command counts as that command, unless it has pre- or
+post-scripts. In every other case the command runs as typed: turbo caches its
+own results, so the hook never rewrites it. Filters (`--filter`) and nx are not
+matched.
 
 Each form may end with `2>&1` and then one `| tail -n N`, `| head -n N`,
 `| tail -N` or `| head -N`. It may also be the first command of a `;` or `&&`
@@ -132,8 +154,10 @@ Limits:
 
 - The hook judges its own environment, which Claude Code passes to it. The Bash
   tool can add variables from your shell profile. The hook cannot see those.
-- Commands run from a subdirectory, after a `cd` into any directory other than
-  the project root, or combined with `||`, `&` or other pipes, are not matched.
+- Commands run from a session that started in a subdirectory, after a `cd`
+  outside the project, or combined with `||`, `&` or other pipes, are not
+  matched. After a `cd` into any other directory than the root or a checked
+  package's, nothing matches.
 - A skip writes nothing. If a typecheck command also emits files, later
   commands see the files from its last run.
 - Only the Bash tool is covered, not PowerShell.
