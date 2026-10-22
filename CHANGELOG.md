@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.1.0-alpha.15 — 2026-10-22
+
+No change to observation, status or `redue run` since alpha.14; the changes
+are to the Claude Code integration.
+
+- The CLAUDE.md block now tells agents to run the typecheck or test command
+  before saying it passes, even after an edit that seems irrelevant, and to
+  leave skipping to REDUE's hook. In the alpha.14 eval, two of six mixed-task
+  sessions skipped their final test run on their own after a README edit;
+  with the new block, none of six did (twilio and SwitchHosts, CI
+  39702429765), at the same token cost. Run `redue agent setup claude --apply`
+  again to update the block; the earlier wording is recognized and replaced.
+- The hook also matches a typecheck or test command after a leading
+  `cd <project root>;` or `cd <project root> &&`. A skip denies the whole
+  command; a rewrite keeps the `cd`. A `cd` to any other directory matches
+  nothing.
+
 ## 0.1.0-alpha.14 — 2026-10-21
 
 Bench numbers below are from one 800-file project on macOS arm64, Node 22.13.0.

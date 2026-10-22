@@ -37,7 +37,7 @@ it; relevant source edits make it stale. [Run the reproducible demo](docs/contri
 
 ## Install the alpha
 
-The opt-in pilot uses **0.1.0-alpha.14**. Follow the
+The opt-in pilot uses **0.1.0-alpha.15**. Follow the
 [fixed-version pilot guide](docs/user/pilot.md) for supported projects, setup,
 updates and voluntary feedback. No external usage results are claimed yet.
 
@@ -156,7 +156,9 @@ Medians per task, summed over the three projects:
   source-change task skipped nothing; its time difference is session variance.
   In two mixed-task sessions the agent left out its final test run on its own
   after a README-only edit, without asking REDUE, and said so; the eval report
-  lists such sessions. Cost was the same ($0.54 without, $0.56 with).
+  lists such sessions. Since alpha.15 the agent instructions ask agents to run
+  the check and leave skipping to REDUE; in a 12-session rerun of that task,
+  no agent left it out. Cost was the same ($0.54 without, $0.56 with).
 
 ## What the states mean
 
