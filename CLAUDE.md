@@ -58,7 +58,10 @@ user-visible improvements to that, quickly and correctly.
 - After two failed approaches to the same problem, stop and tell me: what failed,
   why, and whether narrowing the claim would solve it.
 - Never add Co-Authored-By trailers or 'Generated with Claude Code' lines to commits or PRs.
-- Never publish to npm, create tags/releases, or force-push. Never delete
+- Alpha releases: you may tag and publish one through the publish workflow
+  (docs/contributor/releasing.md), only from main, only when CI on that commit
+  is green, and only after the release conditions I gave for it are met.
+  Nothing else is published, tagged or released. Never force-push. Never delete
   untracked or ignored files (`.local/` holds owner data).
 - Branches `dev/portable-*` and `archive/*` are reference only. Don't read their
   `docs/plan` or `docs/acceptance` files unless I ask; they are very large.
