@@ -124,7 +124,12 @@ test('macOS gap, missed edit, failed reconciliation and restart cannot retain a 
   assert.equal(row(f).freshness,'UNVERIFIED');fs.unlinkSync(path.join(f.state,'reconcile-fault'));
   let changed;for(let i=0;i<25;i++){changed=row(f);if(changed.freshness==='STALE')break;await new Promise(r=>setTimeout(r,100));}
   assert.equal(changed.freshness,'STALE',JSON.stringify(changed));assert.equal(changed.invocation.runId,id);
-  fs.unlinkSync(path.join(root,'src/added.ts'));assert.equal(row(f).freshness,'CURRENT');
+  // Removing the file is found by reconciliation, with history and events
+  // faulted; until then the answer is UNVERIFIED. Each answer is logged.
+  fs.unlinkSync(path.join(root,'src/added.ts'));
+  let restored;for(let i=0;i<25;i++){restored=row(f);t.diagnostic(`after delete: ${restored.freshness} ${restored.reason}`);
+    if(restored.freshness==='CURRENT')break;await new Promise(r=>setTimeout(r,100));}
+  assert.equal(restored.freshness,'CURRENT',JSON.stringify(restored));
   const before=(await control(f,'metrics')).metrics.probeReuses||0;row(f);
   assert.equal((await control(f,'metrics')).metrics.probeReuses||0,before,'disabled history must not reuse mac certificate');
   call(f,['stop']);fs.unlinkSync(path.join(f.state,'history-fault'));fs.unlinkSync(path.join(f.state,'drop-events'));
