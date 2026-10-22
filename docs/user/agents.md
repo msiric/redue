@@ -69,15 +69,26 @@ Start a fresh agent session in this checkout, then give it your ordinary task.
 Interactive setup shows the changes and asks before applying; noninteractive
 setup requires `--apply`. `--dry-run` never writes. Installing REDUE or running
 `init` does not connect an agent automatically. Setup does not start an observer
-or execute verification. Use `redue start` when you want observation.
+or execute verification. With Claude Code, a SessionStart hook starts the
+observer when a session starts (below); otherwise use `redue start`.
 
 ## Claude Code typecheck hook
 
-`redue agent setup claude --apply` also adds a PreToolUse hook to
-`.claude/settings.local.json`. The hook needs a local REDUE install, so it is
+`redue agent setup claude --apply` also adds a PreToolUse hook and a
+SessionStart hook to `.claude/settings.local.json`. Both run
+`redue agent hook claude`, which needs a local REDUE install, so they are
 per-developer; keep that file out of commits. Other settings in the file are kept,
 but the file is rewritten as 2-space JSON. `.claude/settings.json` is not touched.
-`redue agent remove claude --apply` removes only the entry REDUE added.
+`redue agent remove claude --apply` removes only the entries REDUE added.
+
+When a session starts, resumes, clears or compacts, the SessionStart hook starts
+this project's observer if none is running. It launches `redue start` in the
+background and returns at once, and prints nothing, so it adds nothing to the
+agent's context. Until the observer's first index is done, checks are
+UNVERIFIED and run as typed. An observer you stopped with `redue stop` starts
+again with the next session; remove the hook to prevent that. Setups from
+alpha.15 or earlier get the hook by running `redue agent setup claude --apply`
+again.
 
 The hook skips an exact rerun of a configured typecheck: a check with
 `kind: "typecheck"` or named `typecheck`. It matches these commands, run from the
@@ -121,8 +132,8 @@ Limits:
 
 - The hook judges its own environment, which Claude Code passes to it. The Bash
   tool can add variables from your shell profile. The hook cannot see those.
-- Commands run from a subdirectory, after another command (`cd x && tsc`), or
-  combined with `||`, `&` or other pipes, are not matched.
+- Commands run from a subdirectory, after a `cd` into any directory other than
+  the project root, or combined with `||`, `&` or other pipes, are not matched.
 - A skip writes nothing. If a typecheck command also emits files, later
   commands see the files from its last run.
 - Only the Bash tool is covered, not PowerShell.

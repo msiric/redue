@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawnSync,execFileSync} from 'node:child_process';
-import {claudeHook,hookForms,lastRunTimeout,matchCheck,recordedCommand,rootCd,statusTimeout} from '../src/claude-hook.mjs';
+import {claudeHook,hookForms,lastRunTimeout,matchCheck,recordedCommand,rootCd,sessionStart,statusTimeout} from '../src/claude-hook.mjs';
 import {findExecutable} from '../src/executable-lookup.mjs';
 import {realObservedPath} from '../src/path-identity.mjs';
 const bin=path.resolve('bin/redue.mjs');
@@ -211,6 +211,9 @@ test('the CLI hook exits 0 with no output when it cannot decide',t=>{
     assert.equal(hook(input,p.root),null);
   fs.rmSync(path.join(p.root,'.redue'),{recursive:true});
   assert.equal(hook(bash('npm run typecheck',p.root),p.root),null);
+  // Without a setup record, SessionStart starts nothing.
+  assert.equal(hook({hook_event_name:'SessionStart',source:'startup',cwd:p.root},p.root),null);
+  assert.deepEqual(p.calls(),[]);
   // An ambiguous config at the hook's own cwd must not reach the CLI's exit 2.
   put(path.join(p.root,'vstate.config.json'),JSON.stringify(direct));
   assert.equal(hook(bash('npm run typecheck',p.root),p.root),null);
@@ -252,4 +255,33 @@ test('real observer: blocks after a non-input edit, allows after a source edit o
   fs.appendFileSync(path.join(root,'src/a.ts'),'// FAIL\n');
   assert.equal(spawnSync(process.execPath,[bin,'run','typecheck'],{cwd:root,env,timeout:30000}).status,1);
   assert.equal(decide('redue run typecheck'),'allow');
+});
+
+test('SessionStart starts the observer when none runs, prints nothing, and leaves a running one alone',t=>{
+  const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-hook-start-')),root=path.join(fs.realpathSync(base),'project');
+  fs.mkdirSync(root);execFileSync('git',['init','-q'],{cwd:root});
+  const categories=['source','generated','installedDependencies','environment','toolchain','runtime'];
+  put(path.join(root,'redue.config.json'),JSON.stringify({schema:1,checks:[{name:'typecheck',kind:'typecheck',
+    command:['@node','check.cjs'],inputs:['src/**','check.cjs'],
+    coverage:Object.fromEntries(categories.map(k=>[k,true])),
+    coverageReview:Object.fromEntries(categories.map(k=>[k,'reviewed fixture contract']))}]}));
+  put(path.join(root,'package.json'),'{"name":"redue-hook-start","version":"1"}\n');
+  put(path.join(root,'check.cjs'),'\n');put(path.join(root,'src/a.ts'),'export const a=1;\n');
+  const env={...process.env,VSTATE_START_READY_WAIT_MS:'10000'};
+  const redue=(...args)=>spawnSync(process.execPath,[bin,...args],{cwd:root,env,encoding:'utf8',timeout:30000});
+  t.after(()=>{redue('remove-state');fs.rmSync(base,{recursive:true,force:true});});
+  assert.equal(redue('agent','setup','claude','--apply').status,0);
+  const start={hook_event_name:'SessionStart',source:'startup',cwd:root};
+  assert.equal(hook(start,root,env),null);
+  // The hook returned at once; the observer it launched becomes healthy.
+  let healthy=false;
+  for(const until=Date.now()+20000;!healthy&&Date.now()<until;){
+    try{healthy=JSON.parse(redue('status','--json').stdout).observation?.healthy===true;}catch{}
+    if(!healthy)Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,200);
+  }
+  assert(healthy,'observer did not become healthy after SessionStart');
+  // Resume, clear or compact in the same project: the running observer stays.
+  assert.equal(sessionStart({...start,source:'resume'},{entry:bin}),'running');
+  assert.equal(hook({...start,source:'compact'},root,env),null);
+  assert.equal(redue('stop').status,0);
 });

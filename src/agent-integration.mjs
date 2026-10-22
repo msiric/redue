@@ -27,6 +27,9 @@ function hookFor(config,relative){
   const rules=[...new Set(hookForms(config,relative).flatMap(row=>row.forms))].map(form=>`Bash(${form}*)`);
   return rules.length?{matcher:'Bash',hooks:rules.map(rule=>({type:'command',if:rule,command:hookCommand,timeout:15}))}:null;
 }
+// The same command on SessionStart starts the observer; it needs no check to match.
+const sessionHook={hooks:[{type:'command',command:hookCommand,timeout:10}]};
+const events=['PreToolUse','SessionStart'];
 // REDUE's entry is recognized by its command, not by a committed record: the
 // local file differs between checkouts, and users may edit the entry.
 const ownedHook=entry=>Array.isArray(entry?.hooks)&&entry.hooks.length>0&&entry.hooks.every(h=>h?.command===hookCommand);
@@ -35,23 +38,28 @@ function parseSettings(text){
   let value;try{value=JSON.parse(text);}catch{throw Error(`${settingsPath} is not valid JSON; fix it before agent setup or removal`);}
   if(!value||typeof value!=='object'||Array.isArray(value)||value.hooks!==undefined&&
     (!value.hooks||typeof value.hooks!=='object'||Array.isArray(value.hooks)||
-      value.hooks.PreToolUse!==undefined&&!Array.isArray(value.hooks.PreToolUse)))
+      events.some(event=>value.hooks[event]!==undefined&&!Array.isArray(value.hooks[event]))))
     throw Error(`${settingsPath} has an unexpected shape; fix it before agent setup or removal`);
   return value;
 }
-// Replace REDUE's entries with `next` (or remove them). Unchanged input returns
-// the same text, so idempotent setup does not rewrite the file.
+// Replace REDUE's entry for each event with next[event] (or remove it; a null
+// `next` removes them all). Unchanged input returns the same text, so
+// idempotent setup does not rewrite the file.
 function settingsWith(text,next){
-  const value=parseSettings(text),old=value.hooks?.PreToolUse||[];
-  const at=old.findIndex(ownedHook),list=old.filter(entry=>!ownedHook(entry));
-  if(next)list.splice(at<0?list.length:at,0,next);
-  if(sameJson(list,old))return text;
-  if(list.length)value.hooks={...value.hooks,PreToolUse:list};
-  else if(value.hooks){delete value.hooks.PreToolUse;if(!Object.keys(value.hooks).length)delete value.hooks;}
+  const value=parseSettings(text);let changed=false;
+  for(const event of events){
+    const old=value.hooks?.[event]||[],at=old.findIndex(ownedHook),list=old.filter(entry=>!ownedHook(entry));
+    if(next?.[event])list.splice(at<0?list.length:at,0,next[event]);
+    if(sameJson(list,old))continue;
+    changed=true;
+    if(list.length)value.hooks={...value.hooks,[event]:list};
+    else if(value.hooks){delete value.hooks[event];if(!Object.keys(value.hooks).length)delete value.hooks;}
+  }
+  if(!changed)return text;
   return Object.keys(value).length?JSON.stringify(value,null,2)+'\n':null;
 }
-function hookInstalled(root){
-  try{return (parseSettings(read(root,settingsPath)).hooks?.PreToolUse||[]).some(ownedHook);}
+function hookInstalled(root,event='PreToolUse'){
+  try{return (parseSettings(read(root,settingsPath)).hooks?.[event]||[]).some(ownedHook);}
   catch{return false;}
 }
 function safeFile(root,relative){
@@ -245,7 +253,7 @@ export async function agentCommand(args,{configFile,stateOverride,entry,cwd=proc
       if(value.state_access)console.log(`State access: ${value.state_access.status}${value.state_access.reason?' — '+value.state_access.reason:''}`);
       if(value.compatibility?.reason)console.log(`Observer compatibility: ${value.compatibility.reason}`);
       if(value.applicability?.requires_reassessment)console.log('Applicability: cached evidence needs reassessment; choose synchronization or execution deliberately.');
-      for(const row of value.hosts)console.log(`${row.host}: ${row.version||'host unavailable'}; integration ${row.integrity}; hook ${row.hook}; behavioral validation NOT VERIFIED by doctor${row.reason?' — '+row.reason:''}`);
+      for(const row of value.hosts)console.log(`${row.host}: ${row.version||'host unavailable'}; integration ${row.integrity}; hook ${row.hook}${row.host==='claude'?`; session start ${row.session_start}`:''}; behavioral validation NOT VERIFIED by doctor${row.reason?' — '+row.reason:''}`);
       console.log('Doctor does not start observers, execute checks, or prove agent behavior.');
       for(const warning of value.warnings)console.log(`Review: ${warning}`);
     }return value;
@@ -266,9 +274,10 @@ export async function agentCommand(args,{configFile,stateOverride,entry,cwd=proc
       block,skillHash:hash(skill),instructionCreated:record?.instructionCreated??before===null};
     changes.push({path:h.skill,before:read(root,h.skill),after:skill},
       {path:h.instruction,before,after});
-    if(host==='claude'){const settings=read(root,settingsPath);
-      changes.push({path:settingsPath,before:settings,after:settingsWith(settings,hook),
-        content:hook?JSON.stringify(hook,null,2):'remove the REDUE PreToolUse hook (no typecheck or test check to match)'});}
+    if(host==='claude'){const settings=read(root,settingsPath),next={PreToolUse:hook,SessionStart:sessionHook};
+      changes.push({path:settingsPath,before:settings,after:settingsWith(settings,next),
+        content:JSON.stringify(hook?next:{SessionStart:sessionHook},null,2)+
+          (hook?'':'\nno PreToolUse hook: no typecheck or test check to match')});}
     changes.push({path:marker(host),before:read(root,marker(host)),after:JSON.stringify(next,null,2)+'\n'});
   }else if(record){
     const before=read(root,h.instruction),after=before.replace(record.block,'');
@@ -282,7 +291,7 @@ export async function agentCommand(args,{configFile,stateOverride,entry,cwd=proc
   const summary={schema:1,action,host,config:configFile,applied:false,
     changes:actual.map(c=>({path:c.path,operation:c.after===null?'remove':c.before===null?'create':'update',
       ...(action==='setup'?{content:c.path===h.instruction?block:c.content??c.after}: {})})),
-    warnings:notes,hooks:hook?`${settingsPath} PreToolUse`:'none',behavior_verified:false};
+    warnings:notes,hooks:host!=='claude'||action!=='setup'?'none':`${settingsPath} ${hook?'PreToolUse, ':''}SessionStart`,behavior_verified:false};
   if(!json){console.log(`${action} ${host}: ${configFile}`);
     for(const c of summary.changes)console.log(`  ${c.operation} ${c.path}${c.content?'\n'+c.content:''}`);
     if(!actual.length)console.log('Already in the requested state.');
@@ -302,7 +311,7 @@ export async function agentCommand(args,{configFile,stateOverride,entry,cwd=proc
 export async function doctor({configFile,stateOverride,entry,cwd,host}){
   const value={schema:1,command:{path:findExecutable('redue'),invoked:entry},project:{config:configFile},
     observation:null,control:null,state_access:null,observer_process:null,compatibility:null,
-    applicability:null,hosts:[],warnings:[],hooks:`claude only: PreToolUse typecheck hook in ${settingsPath}`,behavior_verified:false};
+    applicability:null,hosts:[],warnings:[],hooks:`claude only: PreToolUse check hook and SessionStart observer start in ${settingsPath}`,behavior_verified:false};
   let p;try{p=project(configFile);value.project.root=p.root;
     const state=stateOverride||projectState(p.root,configFile);value.project.state=state;
     const cached=readCachedStatus(state,p.config.checks);value.observation=cached.observation;
@@ -333,12 +342,14 @@ export async function doctor({configFile,stateOverride,entry,cwd,host}){
     if(executable){const launch=windowsLaunch([executable,'--version']);
       const out=spawnSync(launch.file,launch.args,{...launch.options,encoding:'utf8',timeout:2000,maxBuffer:4096,stdio:['ignore','pipe','pipe']});
       if(out.status===0)version=out.stdout.trim();}
-    let integration={installed:false,integrity:'unknown'},hook=name==='claude'?'absent':'none';
+    let integration={installed:false,integrity:'unknown'},hook=name==='claude'?'absent':'none',sessionHook=hook;
+    const installed=()=>value.command.path?'installed':'installed, but redue is not on PATH, so it never runs';
     if(p)try{const record=saved(p.root,name);integration=inspect(p.root,name,record);
-      if(name==='claude'&&hookInstalled(p.root))hook=value.command.path?'installed':'installed, but redue is not on PATH, so it never runs';
+      if(name==='claude'&&hookInstalled(p.root))hook=installed();
+      if(name==='claude'&&hookInstalled(p.root,'SessionStart'))sessionHook=installed();
       value.warnings.push(...warnings(p.root,name,cwd));
     }catch(e){integration={installed:false,integrity:'conflict',reason:e.message};}
-    value.hosts.push({host:name,executable,version,...integration,hook,behavior_verified:false,
+    value.hosts.push({host:name,executable,version,...integration,hook,session_start:sessionHook,behavior_verified:false,
       loading:name==='codex'?'AGENTS.md at session start; .agents/skills; overrides and size limits apply':
         'CLAUDE.md at session start; .claude/skills; managed/user policies and exclusions apply'});
   }

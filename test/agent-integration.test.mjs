@@ -194,21 +194,24 @@ test('recognized prior template upgrades intact content for both hosts; edited l
   }
 });
 
-test('claude setup adds one typecheck hook to settings.local.json; removal restores existing settings',t=>{
+test('claude setup adds one typecheck hook and a SessionStart hook to settings.local.json; removal restores existing settings',t=>{
   const f=fixture(t),local='.claude/settings.local.json';
   const existing={permissions:{allow:['Bash(ls)']},env:{EXAMPLE:'1'},
     hooks:{PreToolUse:[{matcher:'Edit',hooks:[{type:'command',command:'echo edit'}]}],
       PostToolUse:[{matcher:'Bash',hooks:[{type:'command',command:'echo after'}]}]}};
   f.put(local,JSON.stringify(existing,null,4));const shared='{ "model": "x" }\n';f.put('.claude/settings.json',shared);
   const preview=JSON.parse(f.ok('agent','setup','claude','--dry-run','--json').stdout);
-  assert.equal(preview.hooks,`${local} PreToolUse`);
+  assert.equal(preview.hooks,`${local} PreToolUse, SessionStart`);
   const shown=preview.changes.find(c=>c.path===local);
   assert.equal(shown.operation,'update');assert(!shown.content.includes('EXAMPLE'),'preview must not echo local settings');
   f.ok('agent','setup','claude','--apply');
   const installed=JSON.parse(f.read(local));
-  assert.deepEqual({...installed,hooks:{...installed.hooks,PreToolUse:installed.hooks.PreToolUse.slice(0,1)}},existing);
+  const {SessionStart,...hooks}=installed.hooks;
+  assert.deepEqual({...installed,hooks:{...hooks,PreToolUse:installed.hooks.PreToolUse.slice(0,1)}},existing);
   assert.deepEqual(installed.hooks.PreToolUse[1],{matcher:'Bash',hooks:[{type:'command',
     if:'Bash(redue run typecheck*)',command:'redue agent hook claude',timeout:15}]});
+  // The same command starts the observer when a session starts.
+  assert.deepEqual(SessionStart,[{hooks:[{type:'command',command:'redue agent hook claude',timeout:10}]}]);
   // The skill gives the agent the same command the hook matches.
   assert.match(f.read('.claude/skills/redue-verification/SKILL.md'),/^- Typecheck: `redue run typecheck`\.$/m);
   assert.match(f.read('CLAUDE.md'),/^Typecheck with `redue run typecheck`\. /m);
@@ -218,6 +221,7 @@ test('claude setup adds one typecheck hook to settings.local.json; removal resto
   const once=f.read(local);f.ok('agent','setup','claude','--apply');assert.equal(f.read(local),once);
   const doctor=JSON.parse(f.ok('agent','doctor','claude','--json').stdout);
   assert.equal(doctor.hosts[0].hook,doctor.command.path?'installed':'installed, but redue is not on PATH, so it never runs');
+  assert.equal(doctor.hosts[0].session_start,doctor.hosts[0].hook);
   f.ok('agent','setup','codex','--apply');f.ok('agent','remove','codex','--apply');assert.equal(f.read(local),once);
   f.ok('agent','remove','claude','--apply');
   assert.deepEqual(JSON.parse(f.read(local)),existing);assert.equal(f.read('.claude/settings.json'),shared);

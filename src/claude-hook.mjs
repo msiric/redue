@@ -2,12 +2,14 @@
 // reports CURRENT/PASS with reuse_eligible on the current inputs. When the check is not
 // CURRENT, the command becomes `redue run <check>` so the run is recorded. Every
 // other outcome, including errors and timeouts, allows the command unchanged.
+// The same command handles SessionStart: it starts the project's observer.
 // Never exit 2: Claude Code treats exit 2 as a block.
 import fs from 'node:fs';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
 import {projectState} from './project-location.mjs';
 import {realObservedPath,samePath} from './path-identity.mjs';
+import {processAlive} from './process-liveness.mjs';
 
 export const hookCommand='redue agent hook claude';
 const safe=/^[A-Za-z0-9_./:=,+-]+$/;
@@ -134,18 +136,42 @@ export function lastRunTimeout(config,parsed,name){
   catch{return 2000;}
 }
 
-// Returns the hook's stdout object, or null to allow the command.
-export async function claudeHook(input,{entry,timeout}){
-  if(input?.tool_name!=='Bash')return null;
-  const command=input.tool_input?.command,root=input.cwd;
-  if(typeof command!=='string'||/^\s*REDUE_FORCE=1(?:\s|$)/.test(command))return null;
+// The project set up in the session's directory: its setup record, the config
+// beside it and the project root. null when there is none; throws on bad files.
+function hookProject(root){
   if(typeof root!=='string'||!path.isAbsolute(root))return null;
   const record=JSON.parse(fs.readFileSync(path.join(root,'.redue','agents','claude.json'),'utf8'));
   if(record?.schema!==1||record.host!=='claude'||typeof record.config!=='string'||
     !/^[^/\\]+\.json$/.test(record.config))return null;
   const config=path.join(root,record.config);
   const parsed=JSON.parse(fs.readFileSync(config,'utf8'));
-  const entered=rootCd(command,root,realObservedPath(path.resolve(path.dirname(config),parsed.root||'.')));
+  return {record,config,parsed,projectRoot:realObservedPath(path.resolve(path.dirname(config),parsed.root||'.'))};
+}
+
+// SessionStart: start the observer when none is running, so the session's
+// checks can be skipped or recorded without a manual `redue start`. It
+// launches `redue start` detached and returns at once, and prints nothing:
+// SessionStart output becomes agent context. Returns what it did.
+export function sessionStart(input,{entry}){
+  const project=hookProject(input?.cwd);
+  if(!project)return null;
+  try{const pid=Number(fs.readFileSync(path.join(projectState(project.projectRoot,project.config),'observer.lock','pid'),'utf8'));
+    if(Number.isSafeInteger(pid)&&pid>0&&processAlive(pid))return 'running';}catch{}
+  const child=spawn(process.execPath,[entry,'--config',project.config,'start'],
+    {cwd:input.cwd,detached:true,stdio:'ignore',windowsHide:true,env:process.env});
+  child.on('error',()=>{});child.unref();
+  return 'started';
+}
+
+// Returns the hook's stdout object, or null to allow the command.
+export async function claudeHook(input,{entry,timeout}){
+  if(input?.tool_name!=='Bash')return null;
+  const command=input.tool_input?.command,root=input.cwd;
+  if(typeof command!=='string'||/^\s*REDUE_FORCE=1(?:\s|$)/.test(command))return null;
+  const project=hookProject(root);
+  if(!project)return null;
+  const {record,config,parsed}=project;
+  const entered=rootCd(command,root,project.projectRoot);
   const match=entered&&matched(entered.command,parsed,record.config);
   if(!match)return null;
   const name=match.check,status=await synchronizedStatus(entry,config,root,timeout??lastRunTimeout(config,parsed,name)),
@@ -169,7 +195,9 @@ export async function runClaudeHook(entry){
   try{
     let text='';process.stdin.setEncoding('utf8');
     for await(const chunk of process.stdin){text+=chunk;if(text.length>1024*1024)return;}
-    const output=await claudeHook(JSON.parse(text),{entry});
+    const input=JSON.parse(text);
+    if(input?.hook_event_name==='SessionStart'){sessionStart(input,{entry});return;}
+    const output=await claudeHook(input,{entry});
     if(output)await new Promise(resolve=>process.stdout.write(JSON.stringify(output)+'\n',resolve));
   }catch{}
 }
