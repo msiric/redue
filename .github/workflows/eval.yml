@@ -1,6 +1,7 @@
 name: Agent A/B eval (manual)
 # Runs eval/screen.mjs or eval/run.mjs on a Linux runner and uploads
-# .local/eval/ as an artifact. Sessions authenticate with the
+# .local/eval/ as an artifact. `census` runs eval/census.mjs over
+# eval/census-repos.json in 20 parallel shards. Sessions authenticate with the
 # CLAUDE_CODE_OAUTH_TOKEN repository secret (from `claude setup-token`).
 on:
   workflow_dispatch:
@@ -9,7 +10,7 @@ on:
         description: What to run
         required: true
         type: choice
-        options: [screen, run]
+        options: [screen, run, census]
         default: run
       args:
         description: 'Arguments, e.g. "--pilot" for run, or "owner/name owner/name@commit" for screen'
@@ -28,6 +29,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   eval:
+    if: inputs.command != 'census'
     runs-on: ubuntu-latest
     timeout-minutes: 330
     steps:
@@ -59,6 +61,28 @@ jobs:
         if: always()
         with:
           name: eval-${{ inputs.command }}-${{ github.run_id }}
+          path: .local/eval/
+          retention-days: 14
+          if-no-files-found: warn
+  census:
+    if: inputs.command == 'census'
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - run: node eval/census.mjs --shard ${{ matrix.shard }}/20
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-census-${{ github.run_id }}-${{ matrix.shard }}
           path: .local/eval/
           retention-days: 14
           if-no-files-found: warn

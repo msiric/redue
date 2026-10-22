@@ -21,6 +21,9 @@ clones to `$TMPDIR/redue-eval/`.
   `expect` rules check a file with `includes`, `excludes` or `matches`, or
   check that the session changed no files with `unchanged: true`.
 - `report.mjs`: re-renders `results.md` from `results.json`.
+- `census.mjs`: for each repo in `census-repos.json` (or named), installs it,
+  records what `redue init` makes of it, and times its typecheck, lint, build
+  and test scripts. Research data, not a pass/fail screen.
 
 ## Run
 
@@ -44,6 +47,7 @@ uploads `.local/eval/` as an artifact:
 ```sh
 gh workflow run eval.yml -f command=screen -f args="owner/name owner/name@commit"
 gh workflow run eval.yml -f command=run -f args="--pilot"
+gh workflow run eval.yml -f command=census   # 20 parallel shards
 ```
 
 Sessions there authenticate with the `CLAUDE_CODE_OAUTH_TOKEN` repository secret
