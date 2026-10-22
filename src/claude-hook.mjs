@@ -343,7 +343,8 @@ export async function claudeHook(input,{entry,timeout}){
   // for the rest of the chain.
   const rewritten=status?.schema===1&&status.observation?.healthy===true&&Array.isArray(status.checks)&&
     status.checks.some(item=>item?.name===name)?recordedCommand(entered.command,name,
-      !entered.prefix?record.config:path.relative(path.join(project.projectRoot,entered.dir),config).split(path.sep).join('/')):null;
+      // Both sides resolved alike: Windows can spell the same directory RUNNER~1 or by its long name.
+      !entered.prefix?record.config:path.relative(path.join(project.projectRoot,entered.dir),realObservedPath(config)).split(path.sep).join('/')):null;
   // updatedInput replaces the whole tool input. Deny and ask rules still apply
   // to the rewritten command; "allow" skips only the prompt.
   return rewritten?{hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'allow',
