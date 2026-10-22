@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
 import {projectState} from './project-location.mjs';
-import {realObservedPath} from './path-identity.mjs';
+import {realObservedPath,samePath} from './path-identity.mjs';
 
 export const hookCommand='redue agent hook claude';
 const safe=/^[A-Za-z0-9_./:=,+-]+$/;
@@ -73,6 +73,19 @@ export function recordedCommand(command,name,configFile=defaultConfig){
   return parts.base===run?null:run+parts.suffix;
 }
 
+// A leading `cd DIR;` or `cd DIR &&` into the project root, which agents
+// often add before a check: {prefix, command} with the rest of the command,
+// the whole command when there is no such prefix, or null when it enters
+// another directory. DIR may be quoted; it may not use variables, `~` or escapes.
+const cdPrefix=/^[ \t]*cd[ \t]+(?:"([^"$`\\]*)"|'([^']*)'|([^\s;&|'"$`\\~]+))[ \t]*(?:;|&&)[ \t]*/;
+export function rootCd(command,cwd,projectRoot){
+  const prefix=typeof command==='string'?cdPrefix.exec(command):null;
+  if(!prefix)return {prefix:'',command};
+  const dir=prefix[1]??prefix[2]??prefix[3];
+  try{if(!samePath(realObservedPath(path.resolve(cwd,dir)),projectRoot))return null;}catch{return null;}
+  return {prefix:prefix[0],command:command.slice(prefix[0].length)};
+}
+
 export function verdict(status,name,rest=null){
   const row=status?.schema===1&&status.observation?.healthy===true&&Array.isArray(status.checks)?
     status.checks.find(item=>item?.name===name):null;
@@ -129,7 +142,9 @@ export async function claudeHook(input,{entry,timeout}){
   if(record?.schema!==1||record.host!=='claude'||typeof record.config!=='string'||
     !/^[^/\\]+\.json$/.test(record.config))return null;
   const config=path.join(root,record.config);
-  const parsed=JSON.parse(fs.readFileSync(config,'utf8')),match=matched(command,parsed,record.config);
+  const parsed=JSON.parse(fs.readFileSync(config,'utf8'));
+  const entered=rootCd(command,root,realObservedPath(path.resolve(path.dirname(config),parsed.root||'.')));
+  const match=entered&&matched(entered.command,parsed,record.config);
   if(!match)return null;
   const name=match.check,status=await synchronizedStatus(entry,config,root,timeout??lastRunTimeout(config,parsed,name)),
     reason=verdict(status,name,match.rest);
@@ -140,12 +155,12 @@ export async function claudeHook(input,{entry,timeout}){
   // stays too: the rewrite returns "allow", which would also skip the prompt
   // for the rest of the chain.
   const rewritten=status?.schema===1&&status.observation?.healthy===true&&Array.isArray(status.checks)&&
-    status.checks.some(item=>item?.name===name)?recordedCommand(command,name,record.config):null;
+    status.checks.some(item=>item?.name===name)?recordedCommand(entered.command,name,record.config):null;
   // updatedInput replaces the whole tool input. Deny and ask rules still apply
   // to the rewritten command; "allow" skips only the prompt.
   return rewritten?{hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'allow',
     permissionDecisionReason:`REDUE: check ${JSON.stringify(name)} is not CURRENT; running it through redue run so the result is recorded.`,
-    updatedInput:{...input.tool_input,command:rewritten}}}:null;
+    updatedInput:{...input.tool_input,command:entered.prefix+rewritten}}}:null;
 }
 
 export async function runClaudeHook(entry){

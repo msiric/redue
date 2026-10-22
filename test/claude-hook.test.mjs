@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawnSync,execFileSync} from 'node:child_process';
-import {claudeHook,hookForms,lastRunTimeout,matchCheck,recordedCommand,statusTimeout} from '../src/claude-hook.mjs';
+import {claudeHook,hookForms,lastRunTimeout,matchCheck,recordedCommand,rootCd,statusTimeout} from '../src/claude-hook.mjs';
 import {findExecutable} from '../src/executable-lookup.mjs';
 const bin=path.resolve('bin/redue.mjs');
 const put=(f,s)=>{fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,s);};
@@ -58,6 +58,18 @@ test('a direct test check matches its script, npm test and the runner command, n
     assert.equal(matchCheck(command,config),null,command);
   // A recording-only test script gets no form.
   assert.deepEqual(hookForms({...config,checks:[{name:'test',kind:'test',script:'test'}]}),[]);
+});
+
+test('a leading cd into the project root is set aside; any other directory stops the match',()=>{
+  const root=fs.realpathSync(os.tmpdir()),parent=path.dirname(root);
+  for(const [command,prefix] of [[`cd ${root} && npm run typecheck`,`cd ${root} && `],[`cd ${root}; npm run typecheck`,`cd ${root}; `],
+    [`  cd "${root}" &&  npm run typecheck`,`  cd "${root}" &&  `],[`cd '${root}';npm run typecheck`,`cd '${root}';`],['cd . && npm run typecheck','cd . && ']])
+    assert.deepEqual(rootCd(command,root,root),{prefix,command:'npm run typecheck'},command);
+  for(const command of [`cd ${parent} && npm run typecheck`,'cd .. && npm run typecheck',`cd ${root}/missing; npm run typecheck`])
+    assert.equal(rootCd(command,root,root),null,command);
+  // Without a plain prefix the command stays whole, so no check form matches it.
+  for(const command of ['npm run typecheck','cd ~ && npm run typecheck','cd $HOME && npm run typecheck',`cd ${root} || npm run typecheck`])
+    assert.deepEqual(rootCd(command,root,root),{prefix:'',command},command);
 });
 
 test('a matched command becomes redue run with the same output suffix',()=>{
@@ -127,6 +139,15 @@ test('blocks only CURRENT/PASS with reuse_eligible and a run id',async t=>{
     assert.deepEqual(out.updatedInput,{command:'redue run typecheck 2>&1 | tail -n 30',description:'Typecheck',timeout:120000},name);
     assert.match(out.permissionDecisionReason,/not CURRENT/);
   }
+  // A leading cd into the project root stays in front of the recorded command.
+  const entered=(await claudeHook(bash(`cd ${p.root} && npm run typecheck 2>&1 | tail -n 30`,p.root),
+    {entry:p.fake('enteredStale',replying(recorded.stale))}))?.hookSpecificOutput;
+  assert.equal(entered.updatedInput.command,`cd ${p.root} && redue run typecheck 2>&1 | tail -n 30`);
+  const enteredSkip=await claudeHook(bash(`cd ${p.root}; npm run typecheck`,p.root),{entry:p.fake('enteredCurrent',replying(status({})))});
+  assert.equal(enteredSkip.hookSpecificOutput.permissionDecision,'deny');
+  // Another directory: the command is not this project's check, and status is not asked.
+  assert.equal(await claudeHook(bash(`cd ${path.dirname(p.root)} && npm run typecheck`,p.root),
+    {entry:p.fake('elsewhere',replying(status({})))}),null);
   // No healthy answer for this check, or already `redue run`: unchanged.
   const unchanged={
     unhealthy:{...status({}),observation:{healthy:false}},
@@ -218,6 +239,10 @@ test('real observer: blocks after a non-input edit, allows after a source edit o
   fs.appendFileSync(path.join(root,'docs/notes.md'),'More notes.\n');
   assert.equal(decide('redue run typecheck 2>&1 | tail -n 20'),'deny');
   assert.equal(decide('REDUE_FORCE=1 redue run typecheck'),'allow');
+  // A leading cd into the project root is the same command; another directory is not.
+  assert.equal(decide(`cd ${root} && redue run typecheck`),'deny');
+  assert.equal(decide(`cd "${root}"; redue run typecheck 2>&1 | tail -n 20`),'deny');
+  assert.equal(decide(`cd ${path.dirname(root)} && redue run typecheck`),'allow');
   fs.appendFileSync(path.join(root,'src/a.ts'),'export const b=2;\n');
   assert.equal(decide('redue run typecheck'),'allow');
   fs.appendFileSync(path.join(root,'src/a.ts'),'// FAIL\n');
