@@ -313,6 +313,8 @@ test('pnpm: a settings-only pnpm-workspace.yaml is no workspace; packages make o
   // A second link to an installed file, as a package store would hold.
   const store=fs.mkdtempSync(path.join(os.tmpdir(),'rt-store-'));t.after(()=>fs.rmSync(store,{recursive:true,force:true}));
   fs.linkSync(fs.realpathSync(path.join(root,'node_modules/vitest/vitest.mjs')),path.join(store,'vitest.mjs'));
+  // Linux reports the new link as a change to the installed file; let that settle first.
+  row(root,state);
   good(root,state,'run','test');
   const status=row(root,state);
   assert.equal(status.freshness,'UNVERIFIED');assert.match(status.reason,/has another hard link/);
@@ -361,6 +363,11 @@ function workspace(t,manager){
   return {root,state,config:path.join(root,'redue.config.json')};
 }
 
+// Keep only the checks the recipe made ready: a recording-only pnpm check
+// needs pnpm on PATH, which the CI runners do not have.
+const readyOnly=config=>{const value=JSON.parse(fs.readFileSync(config,'utf8'));
+  fs.writeFileSync(config,JSON.stringify({...value,checks:value.checks.filter(c=>c.qualification)}));};
+
 test('workspace packages: a Vitest script runs in its package with the whole checkout as input; Jest is refused there',{skip:unsupported},t=>{
   for(const manager of ['npm','pnpm']){
     const {root,state,config}=workspace(t,manager);
@@ -371,6 +378,7 @@ test('workspace packages: a Vitest script runs in its package with the whole che
     const check=JSON.parse(fs.readFileSync(config,'utf8')).checks.find(c=>c.name==='a:test');
     assert.deepEqual({cwd:check.cwd,workspace:check.workspace,command:check.command},{cwd:'packages/a',workspace:'a',command:['@node','@test-runner:vitest','run']});
     assert(check.installedInputs.includes('packages/a/node_modules/**')&&check.installedInputs.includes('!packages/b/node_modules/.vite/**'),check.installedInputs.join(' '));
+    readyOnly(config);
     good(root,state,'start');good(root,state,'run','a:test');
     const status=()=>{const r=invoke(root,state,{},'status','--sync','--json');assert.equal(r.status,0,r.stderr);
       return JSON.parse(r.stdout).checks.find(c=>c.name==='a:test');};
@@ -389,6 +397,7 @@ test('workspace checks: a package added after init, a mismatched workspace and e
   for(const manager of ['npm','pnpm']){
   const {root,state,config}=workspace(t,manager);
   good(root,state,'init','--recipe','tests-direct','--check','test','--json');
+  readyOnly(config);
   good(root,state,'start');
   // Package c arrives after init, with an installed dependency the test reads.
   put(path.join(root,'packages/c/package.json'),JSON.stringify({name:'c',version:'1.0.0'}));
