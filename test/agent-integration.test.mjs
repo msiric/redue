@@ -234,6 +234,15 @@ test('claude setup names the test command beside the typecheck and recognizes it
   assert.match(f.read('.claude/skills/redue-verification/SKILL.md'),/^- Unit tests: `redue run test` or `npm run test:vi` or `vitest run` or `npx vitest run`\.$/m);
   assert.ok(JSON.parse(f.read('.claude/settings.local.json')).hooks.PreToolUse[0].hooks.some(h=>h.if==='Bash(npx vitest run*)'));
   f.ok('agent','setup','claude','--apply');assert.equal(f.read('CLAUDE.md'),block);
+  assert.match(block,/don't skip it yourself/);
+  // A block with the alpha.14 wording is recognized and replaced.
+  const earlier='\n\n<!-- REDUE:claude:begin -->\nTypecheck with `redue run typecheck`.\nRun the unit tests with `npm run test:vi`.\n'+
+    "If a check's last pass still applies to these exact files, a REDUE hook skips\nthe run and says so. The skip counts as a pass; don't check it again.\n"+
+    '<!-- REDUE:claude:end -->\n';
+  const record=JSON.parse(f.read('.redue/agents/claude.json'));
+  f.put('CLAUDE.md',f.read('CLAUDE.md').replace(record.block,earlier));
+  f.put('.redue/agents/claude.json',JSON.stringify({...record,block:earlier},null,2)+'\n');
+  f.ok('agent','setup','claude','--apply');assert.equal(f.read('CLAUDE.md'),block);
   f.ok('agent','remove','claude','--apply');assert(!fs.existsSync(path.join(f.root,'CLAUDE.md')));
 });
 
