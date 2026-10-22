@@ -323,7 +323,13 @@ if(maintenance&&!fs.existsSync(runtimeFile)){
   process.exit(0);
 }
 if(!maintenance)fs.mkdirSync(state,{recursive:true,mode:0o700});
-if(!maintenance&&fs.existsSync(runtimeFile)){
+// Two commands can meet on fresh state (SessionStart's start and the first
+// status): whichever creates the runtime file first wins, and the other
+// treats it as existing.
+let created=false;
+if(!maintenance&&!fs.existsSync(runtimeFile))
+  try{fs.writeFileSync(runtimeFile,serialized,{flag:'wx',mode:0o600});created=true;}catch(e){if(e.code!=='EEXIST')throw e;}
+if(!maintenance&&!created){
   const previous=fs.readFileSync(runtimeFile,'utf8');
   if(previous!==serialized){
     const pidFile=path.join(state,'observer.lock','pid');
@@ -333,7 +339,7 @@ if(!maintenance&&fs.existsSync(runtimeFile)){
     }
     fs.writeFileSync(runtimeFile,serialized,{mode:0o600});
   }
-}else if(!maintenance)fs.writeFileSync(runtimeFile,serialized,{flag:'wx',mode:0o600});
+}
 
 if(command==='status'&&!sync){
   const value=readCachedStatus(state,publicConfig.checks);

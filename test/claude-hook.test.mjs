@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {spawnSync,execFileSync} from 'node:child_process';
+import {spawn,spawnSync,execFileSync} from 'node:child_process';
 import {claudeHook,hookForms,lastRunTimeout,matchCheck,recordedCommand,enteredDir,fanout,fanoutChecks,fanoutVerdict,sessionStart,statusTimeout} from '../src/claude-hook.mjs';
 import {findExecutable} from '../src/executable-lookup.mjs';
 import {realObservedPath} from '../src/path-identity.mjs';
@@ -436,4 +436,23 @@ test('after a cd into a package, the rewrite names the config by its path from t
     reuse_eligible:false,invocation:{runId},reason:'changed'}]}));
   const out=(await claudeHook(bash('cd app/packages/a && npm run typecheck',session),{entry}))?.hookSpecificOutput;
   assert.equal(out?.updatedInput.command,'cd app/packages/a && redue --config ../../../redue.config.json run a:typecheck');
+});
+
+test('start and status meeting on fresh state: start still starts the observer',async t=>{
+  const categories=['source','generated','installedDependencies','environment','toolchain','runtime'];
+  const projects=Array.from({length:6},()=>{
+    const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-race-')),root=path.join(fs.realpathSync(base),'project');
+    fs.mkdirSync(root);execFileSync('git',['init','-q'],{cwd:root});
+    put(path.join(root,'redue.config.json'),JSON.stringify({schema:1,checks:[{name:'typecheck',kind:'typecheck',
+      command:['@node','check.cjs'],inputs:['src/**','check.cjs'],coverage:Object.fromEntries(categories.map(k=>[k,true])),
+      coverageReview:Object.fromEntries(categories.map(k=>[k,'reviewed fixture contract']))}]}));
+    put(path.join(root,'package.json'),'{"name":"redue-race","version":"1"}\n');put(path.join(root,'check.cjs'),'\n');put(path.join(root,'src/a.ts'),'x\n');
+    return {base,root};
+  });
+  const env={...process.env,VSTATE_START_READY_WAIT_MS:'10000'};
+  const run=(root,...args)=>new Promise(resolve=>{const child=spawn(process.execPath,[bin,...args],{cwd:root,env,stdio:['ignore','pipe','pipe']});
+    let err='';child.stderr.on('data',d=>{err+=d;});child.on('close',code=>resolve({code,err}));});
+  t.after(()=>{for(const p of projects){spawnSync(process.execPath,[bin,'remove-state'],{cwd:p.root,env,timeout:30000});fs.rmSync(p.base,{recursive:true,force:true});}});
+  const results=await Promise.all(projects.map(async p=>{const [start]=await Promise.all([run(p.root,'start'),run(p.root,'status','--json'),run(p.root,'status','--json')]);return start;}));
+  for(const result of results)assert.equal(result.code,0,result.err);
 });
