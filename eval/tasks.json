@@ -483,6 +483,31 @@
         }
       ],
       "check": "test"
+    },
+    {
+      "repo": "The-DevOps-Daily/devops-daily",
+      "id": "test-docs-edit",
+      "kind": "docs",
+      "prompt": "The \"Scripts\" section of README.md doesn't list the test commands. Add `pnpm test` (unit tests with Vitest) and `pnpm test:e2e` (Playwright end-to-end tests) to that list. Before you finish, make sure the unit tests still pass (`pnpm test`).",
+      "expect": [
+        {
+          "file": "README.md",
+          "matches": "## Scripts[\\s\\S]*pnpm test:e2e[\\s\\S]*## 🤝 Contributing"
+        }
+      ],
+      "check": "test"
+    },
+    {
+      "repo": "The-DevOps-Daily/devops-daily",
+      "id": "test-reverify",
+      "kind": "reverify",
+      "prompt": "I pulled some changes and want to know whether the unit tests still pass. Run them (`pnpm test`) and tell me the result. Don't change any files.",
+      "expect": [
+        {
+          "unchanged": true
+        }
+      ],
+      "check": "test"
     }
   ]
 }

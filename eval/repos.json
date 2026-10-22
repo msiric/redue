@@ -42,6 +42,15 @@
       "test": "npx vitest --config ./vitest.config.mts --watch=false",
       "why": "Tauri desktop app with a TypeScript 6.0.3 renderer and declaration: true. Plain tsc about 13 s on a GitHub Linux runner. Qualified once run facts covered its checker lookups (alpha.12). Its vitest unit suite (`npm run test:unit`) passes in about 15 s.",
       "testScript": "test:unit"
+    },
+    {
+      "name": "The-DevOps-Daily/devops-daily",
+      "url": "https://github.com/The-DevOps-Daily/devops-daily.git",
+      "commit": "4d8f60bd62fbc56b0255d309311e6d3b453d3017",
+      "script": "typecheck",
+      "test": "npx vitest run",
+      "why": "Single-package pnpm 10 project (Next.js content site) whose test script is `vitest run`; the suite passed in 7 s in the census. Added for alpha.17 to run the tests recipe on a real pnpm install. On a Linux runner pnpm hard-links installed files to its store, so recorded runs are expected to be UNVERIFIED there.",
+      "testScript": "test"
     }
   ]
 }

@@ -7,13 +7,13 @@ const lines = file => fs.existsSync(file) ? fs.readFileSync(file, 'utf8').split(
 }) : [];
 
 // Commands that run a typecheck: tsc itself, `redue run`, or a typecheck-like
-// npm script, including the repo's own script name.
+// npm, pnpm or yarn script, including the repo's own script name.
 export function typecheckLike(command, script) {
   const base = command.replace(/^\s*REDUE_FORCE=1\s+/, '');
   if (/(^|[\s;&|(])(npx\s+)?(\.\/node_modules\/\.bin\/)?tsc(\s|$)/.test(base)) return true;
   if (/(^|[\s;&|])redue\s+(--config\s+\S+\s+)?run\s/.test(base)) return true;
-  if (/npm\s+run\s+(type-?check|check-?types|types|tsc|lint:ts)\b/.test(base)) return true;
-  return Boolean(script) && new RegExp(`npm\\s+run\\s+${script.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`).test(base);
+  if (/(npm\s+run|pnpm(\s+run)?|yarn(\s+run)?)\s+(type-?check|check-?types|types|tsc|lint:ts)\b/.test(base)) return true;
+  return Boolean(script) && new RegExp(`(npm\\s+run|pnpm(\\s+run)?|yarn(\\s+run)?)\\s+${script.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`).test(base);
 }
 
 // Commands that run the unit tests: the runner itself, the test script, or `redue run test`.
@@ -21,8 +21,9 @@ export function testLike(command, script) {
   const base = command.replace(/^\s*REDUE_FORCE=1\s+/, '');
   if (/(^|[\s;&|(])(npx\s+)?(\.\/node_modules\/\.bin\/)?(vitest|jest)(\s|$)/.test(base)) return true;
   if (/(^|[\s;&|])redue\s+(--config\s+\S+\s+)?run\s+test(\s|$)/.test(base)) return true;
-  if (/(^|[\s;&|])npm\s+(run\s+)?test(\s|$)/.test(base)) return true;
-  return Boolean(script) && new RegExp(`npm\\s+run\\s+${script.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`).test(base);
+  if (/(^|[\s;&|])(npm|pnpm|yarn)\s+(run\s+)?test(\s|$)/.test(base)) return true;
+  if (/(^|[\s;&|(])pnpm\s+exec\s+(vitest|jest)(\s|$)/.test(base)) return true;
+  return Boolean(script) && new RegExp(`(npm\\s+run|pnpm(\\s+run)?|yarn(\\s+run)?)\\s+${script.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`).test(base);
 }
 
 const textOf = content => typeof content === 'string' ? content :

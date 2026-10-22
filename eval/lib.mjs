@@ -84,8 +84,9 @@ export function mirror(repo) {
   return dir;
 }
 
-// Fresh clone at the pinned commit with dependencies installed. Install
-// scripts are skipped in both arms: these are third-party repos.
+// Fresh clone at the pinned commit with dependencies installed (npm, or pnpm
+// when the repo has its lockfile). Install scripts are skipped in both arms:
+// these are third-party repos.
 export function freshClone(repo, commit, dir) {
   fs.rmSync(dir, {recursive: true, force: true});
   // A local clone cannot fetch blobs the blobless mirror lacks, so the mirror
@@ -96,7 +97,11 @@ export function freshClone(repo, commit, dir) {
   must(sh('git', ['-c', 'advice.detachedHead=false', 'checkout', '-q', commit], {cwd: dir}), `checkout ${commit}`);
   const dirty = sh('git', ['status', '--porcelain'], {cwd: dir}).stdout.trim();
   if (dirty) throw new Error(`checkout ${commit} incomplete: ${dirty.split('\n')[0]}`);
-  must(sh('npm', ['ci', '--prefer-offline', '--ignore-scripts', '--no-audit', '--no-fund'], {cwd: dir, timeout: 900_000}), 'npm ci');
+  // pnpm projects install with their pinned pnpm through Corepack.
+  if (fs.existsSync(path.join(dir, 'pnpm-lock.yaml')))
+    must(sh('corepack', ['pnpm', 'install', '--frozen-lockfile', '--ignore-scripts'],
+      {cwd: dir, timeout: 900_000, env: harnessEnv({COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'})}), 'pnpm install');
+  else must(sh('npm', ['ci', '--prefer-offline', '--ignore-scripts', '--no-audit', '--no-fund'], {cwd: dir, timeout: 900_000}), 'npm ci');
   return dir;
 }
 
