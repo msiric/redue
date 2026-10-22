@@ -47,7 +47,8 @@ uploads `.local/eval/` as an artifact:
 ```sh
 gh workflow run eval.yml -f command=screen -f args="owner/name owner/name@commit"
 gh workflow run eval.yml -f command=run -f args="--pilot"
-gh workflow run eval.yml -f command=census   # 20 parallel shards
+gh workflow run eval.yml -f command=census -f args=--init-only   # 20 parallel shards
+node eval/census-report.mjs DIR    # the progress metric from downloaded shard artifacts
 ```
 
 Sessions there authenticate with the `CLAUDE_CODE_OAUTH_TOKEN` repository secret

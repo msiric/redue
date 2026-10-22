@@ -5,6 +5,8 @@
 //
 //   node eval/census.mjs --shard 3/20        # repos in eval/census-repos.json
 //   node eval/census.mjs owner/name ...
+//   --init-only: skip the scripts; what init makes of each repo is the
+//   progress metric, and running the scripts is what takes long.
 //
 // Clones the default branch, installs with the repo's package manager
 // (through Corepack, install scripts skipped), runs `init --dry-run --json`
@@ -16,6 +18,7 @@ import {checkoutRedue, evalDir, harnessEnv, localDir, readJson, sh, slug, stamp,
 
 const argv = process.argv.slice(2);
 const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : null;
+const initOnly = argv.includes('--init-only');
 let names = argv.filter((arg, i) => !arg.startsWith('-') && argv[i - 1] !== '--shard');
 if (!names.length) {
   names = readJson(path.join(evalDir, 'census-repos.json')).repos;
@@ -95,7 +98,7 @@ function census(name) {
     const picked = initPick(kind) ? [initPick(kind), pkg.scripts[initPick(kind)]] : scriptPick[kind](scripts);
     if (!picked) continue;
     row.scripts[kind] = {name: picked[0], text: picked[1]};
-    if (!row.install.pass) continue;
+    if (!row.install.pass || initOnly) continue;
     row.timings[kind] = timeScript(dir, pm, picked[0], timeout);
   }
   if (row.timings.typecheck) row.timings.typecheckAgain = timeScript(dir, pm, row.scripts.typecheck.name, 600_000);

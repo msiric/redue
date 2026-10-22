@@ -78,7 +78,9 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci --no-audit --no-fund
-      - run: node eval/census.mjs --shard ${{ matrix.shard }}/20
+      - env:
+          ARGS: ${{ inputs.args }}
+        run: node eval/census.mjs --shard ${{ matrix.shard }}/20 $ARGS
       - uses: actions/upload-artifact@v4
         if: always()
         with:
