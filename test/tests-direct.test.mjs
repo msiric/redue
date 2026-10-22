@@ -313,8 +313,10 @@ test('pnpm: a settings-only pnpm-workspace.yaml is no workspace; packages make o
   // A second link to an installed file, as a package store would hold.
   const store=fs.mkdtempSync(path.join(os.tmpdir(),'rt-store-'));t.after(()=>fs.rmSync(store,{recursive:true,force:true}));
   fs.linkSync(fs.realpathSync(path.join(root,'node_modules/vitest/vitest.mjs')),path.join(store,'vitest.mjs'));
-  // Linux reports the new link as a change to the installed file; let that settle first.
-  row(root,state);
+  // The new link changes the file's ctime; a file changed within the last
+  // 2 s is racy and keeps the run's start checkpoint unhealthy. A real store's
+  // links are made at install, long before a run.
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,2500);row(root,state);
   good(root,state,'run','test');
   const status=row(root,state);
   assert.equal(status.freshness,'UNVERIFIED');assert.match(status.reason,/has another hard link/);
