@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.1.0-alpha.17 — 2026-10-22
+
+Workspaces and package managers beyond npm. In the census of 108 public
+TypeScript repos, the ones `init` makes ready went from 5 to 8 for typecheck
+and from 6 to 22 for tests.
+
+- pnpm 9-12 for the pnpm TypeScript contract (it took only an exact pnpm 12
+  pin). The installed `.modules.yaml` names the version; a pin is optional,
+  with or without Corepack's `+sha512` hash (pins with a hash never matched
+  before). `.npmrc` settings that only change what gets installed are
+  accepted; settings that move or copy installed files, or run code during
+  install, are refused in either file: custom modules, virtual-store or
+  lockfile directories, the global virtual store, injected workspace
+  packages, separate lockfiles, pnpmfile hooks, `configDependencies`.
+- The tests recipe takes single-package pnpm 9-12 and Yarn `node-modules`
+  installs, and gives each workspace package (npm or Yarn `workspaces`, pnpm
+  `packages`) whose test script runs Vitest directly its own `PACKAGE:test`
+  check, run in the package directory. Inputs stay the whole checkout; every
+  package's node_modules is an installed input. Jest and root test scripts in
+  workspaces stay recording-only. A package added later makes the
+  workspace's checks UNVERIFIED until `init` runs again.
+- A recorded test run is UNVERIFIED when an installed file has another hard
+  link: a package store outside the checkout (pnpm's default on Linux, Yarn's
+  hardlinks modes) could change it unseen. pnpm on macOS clones files and is
+  not affected; on Linux, pnpm test checks qualify but are not reused unless
+  pnpm copies files.
+- Observer: an installed link to a directory (pnpm links every package) is
+  observed by its link chain when the target is itself observed installed;
+  any other directory link still makes observation unavailable.
+- Workspace patterns honour `!pattern` exclusions; before, a negated pattern
+  matched every directory.
+- Fixed: a new workspace package manifest did not re-plan a test check, for
+  npm workspaces too.
+
+Eval on alpha.17 code (CI 39828002753, 84 sessions, test tasks on twilio,
+cheerio and SwitchHosts plus the pnpm project devops-daily): 0 critical
+findings; 23 skipped test runs, each passing three plain reruns; nothing was
+skipped on devops-daily, whose recorded runs were UNVERIFIED on the Linux
+runner.
 ## 0.1.0-alpha.16 — 2026-10-22
 
 Changes to the Claude Code integration, and one fix for commands that meet
