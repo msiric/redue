@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {directQualification,directInterpretation,observedNpmContext} from './direct-typescript.mjs';
 import {directRunCertificateAllowed,directRunCertificate,directRunRecordable,directRunRecording,probeQuestions,validateRunRecord} from './direct-run-certificate.mjs';
 import {runFactChange} from './typescript-list.mjs';
-import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testProject,testEnvironmentIssue,testGuardConfig,testRunGuard,testsInterpretation,testsQualification} from './test-direct.mjs';
+import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testProject,testEnvironmentIssue,testGuardConfig,testRunGuard,sharedInstalledFile,testsInterpretation,testsQualification} from './test-direct.mjs';
 import path from 'node:path';
 import net from 'node:net';
 import os from 'node:os';
@@ -358,6 +358,8 @@ async function execute() {
       guard=testRunGuard(testRecord,{root,sourcePatterns:plan.sourcePatterns||plan.patterns,files:snap?.files,
         runner:runnerPid,environment:selected.environment||{},coverage});
       runFacts=guard.runFacts;
+      const shared=sharedInstalledFile(root);
+      if(shared)guard.issues.push(`installed file ${shared} has another hard link, likely into a package store; a change through it is not observed`);
       fs.rmSync(testRecord,{recursive:true,force:true});
     }
     // The daemon reads the recording from owned state; control requests are small.

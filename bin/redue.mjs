@@ -260,7 +260,7 @@ const checks=publicConfig.checks.map(check=>{
     JSON.stringify(check.command)!==JSON.stringify(['@node','@typescript-compiler:.','--noEmit'])))
     error(`${check.name}: direct recipe requires its explicit local compiler command`);
   // The script's own arguments follow the runner; qualification compares them with the script.
-  if(testsDirect&&(manager!=='npm'||!check.script||check.cwd&&check.cwd!=='.'||!Array.isArray(check.command)||
+  if(testsDirect&&(!['npm','pnpm','yarn'].includes(manager)||!check.script||check.cwd&&check.cwd!=='.'||!Array.isArray(check.command)||
     check.command[0]!=='@node'||!/^@test-runner:(?:vitest|jest)$/.test(check.command[1]||'')))
     error(`${check.name}: test recipe requires its explicit local test runner command`);
   if(npmAutomatic&&(manager!=='npm'||check.cwd&&check.cwd!=='.'))

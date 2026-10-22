@@ -13,6 +13,7 @@ import {spawnSync} from 'node:child_process';
 import micromatch from './glob.mjs';
 import {runFact} from './direct-run-certificate.mjs';
 import {queryAnswer} from './typescript-list.mjs';
+import {pnpmInstallInfo} from './pnpm-inputs.mjs';
 
 const digest=value=>createHash('sha256').update(value).digest('hex');
 export const testRecorder=fileURLToPath(new URL('test-recorder.cjs',import.meta.url));
@@ -262,26 +263,73 @@ export function testRecipeScript(scripts){
   return near?{issue:issue(near)}:{};
 }
 const majorOf=version=>Number(String(version).split('.')[0]);
-// The runner's executable inside the checkout's node_modules.
+// The runner's executable inside the checkout's node_modules. pnpm links
+// node_modules/RUNNER into node_modules/.pnpm; the files stay in node_modules.
 export function testRunnerEntry(root,runner){
   if(!runners[runner])fail('test-runner-unsupported');
   const dir=path.join(root,'node_modules',runner);
   let pkg,real;
   try{real=fs.realpathSync(dir);pkg=JSON.parse(fs.readFileSync(path.join(real,'package.json'),'utf8'));}
   catch{fail('test-runner-missing');}
-  if(real!==dir||pkg.name!==runner)fail('test-runner-layout-unsupported');
+  const modules=fs.realpathSync(path.join(root,'node_modules'));
+  if(!real.startsWith(modules+path.sep)||pkg.name!==runner)fail('test-runner-layout-unsupported');
   const bin=typeof pkg.bin==='string'?pkg.bin:pkg.bin?.[runner];
   const entry=typeof bin==='string'?path.resolve(real,bin):null;
   if(!entry||!entry.startsWith(real+path.sep)||!fs.existsSync(entry))fail('test-runner-layout-unsupported');
   return entry;
 }
+// The package manager of a single-package checkout whose install the recipe
+// observes in node_modules: npm, pnpm 9-12 (isolated or hoisted), or Yarn with
+// the node-modules linker. One lockfile kind, agreeing with any declaration.
+export function testPackageManager(root,pkg){
+  const has=file=>fs.existsSync(path.join(root,file));
+  const kinds=new Set([has('package-lock.json')||has('npm-shrinkwrap.json')?'npm':null,has('pnpm-lock.yaml')?'pnpm':null,
+    has('yarn.lock')?'yarn':null,has('bun.lock')||has('bun.lockb')?'bun':null].filter(Boolean));
+  const declared=/^(npm|pnpm|yarn|bun)@/.exec(pkg.packageManager||'')?.[1];
+  if(pkg.packageManager!==undefined&&!declared)fail('test-package-manager-unsupported');
+  if(declared)kinds.add(declared);
+  const name=kinds.size===1?[...kinds][0]:null;
+  if(!name||!has({npm:'package-lock.json',pnpm:'pnpm-lock.yaml',yarn:'yarn.lock',bun:'bun.lock'}[name])&&
+    !(name==='npm'&&has('npm-shrinkwrap.json')))fail('test-package-manager-unsupported');
+  if(pkg.workspaces)fail('test-workspace-unsupported');
+  if(name==='pnpm'){
+    // pnpm 10+ keeps settings in pnpm-workspace.yaml; only `packages` makes a workspace.
+    let install;try{install=pnpmInstallInfo(root);}catch{fail('test-pnpm-install-unsupported');}
+    if(install.patterns.length)fail('test-workspace-unsupported');
+  }
+  if(name==='yarn'){
+    // Yarn 2+ needs top-level `nodeLinker: node-modules` and the classic nmMode
+    // (no hard links); Yarn 1 always installs node_modules.
+    const rc=has('.yarnrc.yml')?fs.readFileSync(path.join(root,'.yarnrc.yml'),'utf8'):null;
+    const top=key=>rc?new RegExp(`^${key}\\s*:\\s*['"]?([\\w-]+)`,'m').exec(rc)?.[1]:undefined;
+    const version=/^yarn@(\d+)\./.exec(pkg.packageManager||'')?.[1];
+    if(!version||(version==='1'?rc!==null:top('nodeLinker')!=='node-modules'||![undefined,'classic'].includes(top('nmMode'))))
+      fail('test-yarn-install-unsupported');
+  }
+  if(name==='bun')fail('test-package-manager-unsupported');
+  return name;
+}
+// The first installed file with more than one link, or null. A package store
+// outside the checkout (pnpm's default on Linux, Yarn's hardlinks modes) can
+// change such a file with no event here. Checked at every recorded run: a later
+// install that adds links replaces the files, which is a change REDUE sees.
+export function sharedInstalledFile(root){
+  const stack=[path.join(root,'node_modules')];
+  while(stack.length){
+    const dir=stack.pop();let entries;
+    try{entries=fs.readdirSync(dir,{withFileTypes:true});}catch{continue;}
+    for(const entry of entries){
+      const file=path.join(dir,entry.name);
+      if(entry.isDirectory())stack.push(file);
+      else if(entry.isFile())try{if(fs.lstatSync(file).nlink>1)return path.relative(root,file).split(path.sep).join('/');}catch{}
+    }
+  }
+  return null;
+}
 // The project facts the recipe needs, or an error code.
 export function testProject(root,script){
   const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
-  if(pkg.workspaces||pkg.packageManager&&!/^npm@/.test(pkg.packageManager)||
-    !['package-lock.json','npm-shrinkwrap.json'].some(file=>fs.existsSync(path.join(root,file)))||
-    ['yarn.lock','pnpm-lock.yaml','bun.lock','bun.lockb'].some(file=>fs.existsSync(path.join(root,file))))
-    fail('test-npm-project-unsupported');
+  testPackageManager(root,pkg);
   if(typeof pkg.scripts?.[script]!=='string'||pkg.scripts['pre'+script]||pkg.scripts['post'+script])fail('test-script-changed');
   const {runner,args}=testScript(pkg.scripts[script]);
   const entry=testRunnerEntry(root,runner);

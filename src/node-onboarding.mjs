@@ -209,7 +209,8 @@ export function discoverNodeProject(root,{recipe=null}={}) {
     }
     if(recipe==='tests-direct'&&kind==='test'){
       try{
-        if(pm.name!=='npm'||workspaces||observationIssue||pm.issue)throw Error('test recipe requires a supported single-package npm checkout');
+        if(!['npm','pnpm','yarn'].includes(pm.name)||workspaces||observationIssue||pm.issue)
+          throw Error('test recipe requires a supported single-package npm, pnpm or Yarn checkout');
         const chosen=testRecipeScript(scripts);
         if(chosen.ambiguous)throw Error(`several scripts run Vitest or Jest directly (${chosen.ambiguous.join(', ')})`);
         if(!chosen.script)throw Error(chosen.issue||'no script runs Vitest or Jest directly');

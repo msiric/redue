@@ -2,8 +2,14 @@
 
 `redue init --recipe tests-direct --check test` records a project's unit test
 run and reports later whether that result still applies to the files you have.
-It supports a single-package npm project whose test script runs Vitest 4 or 5,
-or Jest 29, directly. It runs on macOS and Linux with Node 22 or 24.
+It supports a single-package project installed by npm, pnpm 9-12 (isolated or
+hoisted `node_modules`) or Yarn with the `node-modules` linker, whose test
+script runs Vitest 4 or 5, or Jest 29, directly. It runs on macOS and Linux with
+Node 22 or 24. The project has one lockfile kind, matching any
+`packageManager` declaration; Yarn needs that declaration. With pnpm, the
+runner is the package `node_modules/RUNNER` links to, inside the checkout.
+Jest also needs jest-util 29 at `node_modules/jest-util`, which pnpm does not
+place there unless it hoists.
 
 ## Setup
 
@@ -21,8 +27,8 @@ runner invocation: no `&&`, quotes, globs or variable assignments. Watch mode,
 Jest's `--onlyChanged` are refused. Vitest needs `run`, `--run` or
 `--watch=false`. Other scripts stay recording-only.
 
-REDUE runs the local runner with Node directly. npm, its lifecycle scripts and
-`package.json` are not changed or executed.
+REDUE runs the local runner with Node directly. The package manager, its
+lifecycle scripts and `package.json` are not changed or executed.
 
 ## What REDUE claims
 

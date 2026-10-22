@@ -42,24 +42,33 @@ const pathPrefixes = rel => {
 // tick at the same size; such files are tracked in `racy`, and the daemon waits
 // the window out and records them again before it writes a run checkpoint.
 const identity=st=>identityFields.map(key=>String(st[key])).join(':');
+// An installed link to a directory (pnpm links every package this way) is
+// observed by its link chain alone, when `observedDir` says the directory it
+// resolves to is itself observed installed: its own entries carry its contents.
 function fileHash(root, rel,installed=false,before=fs.lstatSync(path.join(root,rel),
-  {bigint:true})) {
+  {bigint:true}),observedDir=null) {
   const file=path.join(root, rel);
   let value,references=[],bytes=installed?0:Number(before.size),racy=0;
   if(before.isSymbolicLink()){
     const resolution=resolveLinks(file,root,[],true);
     if(!resolution.physical)throw Error(`symlink input target observation unavailable: ${rel}: ${resolution.reason}`);
     const target=fs.statSync(resolution.physical,{bigint:true});
-    if(!target.isFile())throw Error(`directory input symlink unsupported: ${rel}`);
-    if(installed)racy=racyUntil(target);else bytes=Number(target.size);
-    value='link:'+JSON.stringify(resolution.links)+':'+(installed?'stat:'+identity(target):
-      target.mode+':'+hashRegular(resolution.physical).hash);
+    const physical=path.relative(root,resolution.physical).split(path.sep).join('/');
+    const directory=target.isDirectory()&&installed&&observedDir?.(physical);
+    if(!target.isFile()&&!directory)throw Error(`directory input symlink unsupported: ${rel}`);
+    if(directory)value='dirlink:'+JSON.stringify(resolution.links)+':'+physical;
+    else{
+      if(installed)racy=racyUntil(target);else bytes=Number(target.size);
+      value='link:'+JSON.stringify(resolution.links)+':'+(installed?'stat:'+identity(target):
+        target.mode+':'+hashRegular(resolution.physical).hash);
+    }
     references=[...new Set([...resolution.links.map(link=>path.relative(root,link.path)
       .split(path.sep).join('/')),path.relative(root,resolution.physical)
       .split(path.sep).join('/')])];
-    const targetAfter=fs.statSync(resolution.physical,{bigint:true});
-    for(const key of identityFields)
-      if(target[key]!==targetAfter[key])throw Error(`input changed during inspection: ${rel}`);
+    // A directory's own timestamps follow its entries, which are observed separately.
+    if(!directory){const targetAfter=fs.statSync(resolution.physical,{bigint:true});
+      for(const key of identityFields)
+        if(target[key]!==targetAfter[key])throw Error(`input changed during inspection: ${rel}`);}
     const resolutionAfter=resolveLinks(file,root,[],true);
     if(resolutionAfter.physical!==resolution.physical||
       JSON.stringify(resolutionAfter.links)!==JSON.stringify(resolution.links))
@@ -181,7 +190,14 @@ export class InputIndex {
     catch(e){if(e.code!=='ENOENT'){this.unavailable=String(e);return false;}}
     if(stat&&(stat.isFile()||stat.isSymbolicLink())) {
       const installed=this.installedPath(rel);
-      try{const started=performance.now();inspection=fileHash(this.root,rel,installed,stat);
+      try{const started=performance.now();
+        // A linked directory counts as observed only strictly inside an
+        // installed root, and only if every check matching the link also
+        // observes the directory's own files (its package.json stands for them).
+        const observedDir=installed?physical=>!this.includeInstalled&&
+          [...this.installedRootSet].some(root=>physical.startsWith(root+'/'))&&
+          matched.every(name=>this.matches(this.checks.get(name),physical+'/package.json')):null;
+        inspection=fileHash(this.root,rel,installed,stat,observedDir);
         fresh=inspection.hash;
         this.profile.hashingMs+=performance.now()-started;
         this.rehashedFiles++;this.rehashedBytes+=inspection.bytes;}
@@ -302,9 +318,10 @@ export class InputIndex {
     const full=path.join(this.root,rel);
     let subtree=false;
     try {
-      if(fs.lstatSync(full).isSymbolicLink()&&fs.statSync(full).isDirectory()){
-        this.unavailable=`directory symlink input unsupported: ${rel}`;return;}
-      if(fs.statSync(full).isDirectory()) {this.scanSubtree(rel);subtree=true;}
+      // A link is an entry of its own: record() accepts an observed installed
+      // directory link and refuses any other.
+      if(fs.lstatSync(full).isSymbolicLink())this.record(rel);
+      else if(fs.statSync(full).isDirectory()) {this.scanSubtree(rel);subtree=true;}
       else this.record(rel);
     } catch(e) {
       if(e.code==='ENOENT') {

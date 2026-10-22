@@ -84,6 +84,10 @@ export function resolveDeclaredInstalled(root,patterns,allowed=[]) {
     if(!resolved.physical){
       if(resolved.reason==='resolved target missing'&&!resolved.links.length){
         internal.add(pattern);continue;}
+      // An exclusion of a path that does not exist yet, through links (a runner
+      // cache inside a linked package): exclude it where the links lead.
+      if(negative&&resolved.reason==='resolved target missing'&&resolved.prospective&&within(resolved.prospective,root)){
+        internal.add('!'+posix(path.relative(root,resolved.prospective))+(suffix?'/'+suffix:''));continue;}
       result.unresolved.push(`${prefix}: ${resolved.reason}`);continue;
     }
     const boundary=within(resolved.physical,root)?root:

@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import {spawnSync,execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {testScript,testRecipeScript} from '../src/test-direct.mjs';
+import {testPackageManager,testScript,testRecipeScript} from '../src/test-direct.mjs';
 import {resolveDeclaredInstalled} from '../src/installed-inputs.mjs';
 import {realObservedPath} from '../src/path-identity.mjs';
 
@@ -42,17 +42,27 @@ if(value.includes('flip')){
 }
 process.exit(value.includes('fail')?1:0);
 `;
-function project(t,{script='vitest run',runner='vitest',version='4.1.4'}={}){
+function project(t,{script='vitest run',runner='vitest',version='4.1.4',manager='npm'}={}){
   const base=fs.mkdtempSync(path.join(os.tmpdir(),'rt-')),
     root=path.join(base,'project'),state=path.join(base,'redue-state');
-  put(path.join(root,'package.json'),JSON.stringify({name:'tests-fixture',version:'1.0.0',scripts:{test:script}}));
-  put(path.join(root,'package-lock.json'),'{"name":"tests-fixture","lockfileVersion":3}');
+  const pin={npm:undefined,pnpm:'pnpm@10.8.1+sha512.0a1b',yarn:'yarn@4.12.0'}[manager];
+  put(path.join(root,'package.json'),JSON.stringify({name:'tests-fixture',version:'1.0.0',scripts:{test:script},...(pin?{packageManager:pin}:{})}));
+  if(manager==='npm')put(path.join(root,'package-lock.json'),'{"name":"tests-fixture","lockfileVersion":3}');
+  if(manager==='yarn'){put(path.join(root,'yarn.lock'),'__metadata:\n  version: 8\n');put(path.join(root,'.yarnrc.yml'),'nodeLinker: node-modules\n');}
+  if(manager==='pnpm'){
+    put(path.join(root,'pnpm-lock.yaml'),"lockfileVersion: '9.0'\n");
+    put(path.join(root,'node_modules/.modules.yaml'),JSON.stringify({nodeLinker:'isolated',packageManager:'pnpm@10.8.1',virtualStoreDir:'.pnpm'}));
+    put(path.join(root,'node_modules/.pnpm/lock.yaml'),"lockfileVersion: '9.0'\n");
+  }
   put(path.join(root,'src/value.js'),'pass\n');
   put(path.join(root,'README.md'),'# fixture\n');
   put(path.join(root,'.gitignore'),'node_modules/\n.env.local\ntest/tmp\n');
   const entry=runner==='vitest'?'vitest.mjs':'bin/jest.js';
-  put(path.join(root,'node_modules',runner,'package.json'),JSON.stringify({name:runner,version,bin:{[runner]:entry},type:'module'}));
-  put(path.join(root,'node_modules',runner,entry),fakeRunner);
+  // pnpm keeps the package in its virtual store and links it from node_modules.
+  const installed=manager==='pnpm'?path.join(root,'node_modules/.pnpm',`${runner}@${version}`,'node_modules',runner):path.join(root,'node_modules',runner);
+  put(path.join(installed,'package.json'),JSON.stringify({name:runner,version,bin:{[runner]:entry},type:'module'}));
+  put(path.join(installed,entry),fakeRunner);
+  if(manager==='pnpm')fs.symlinkSync(path.relative(path.join(root,'node_modules'),installed),path.join(root,'node_modules',runner),'dir');
   if(runner==='jest'){
     put(path.join(root,'node_modules/jest-util/package.json'),JSON.stringify({name:'jest-util',version:'29.7.0'}));
     put(path.join(root,'node_modules/jest-util/build/createProcessObject.js'),'exports.default=()=>process;\n');
@@ -234,4 +244,90 @@ test('an excluded runner cache appearing does not change the input plan',()=>{
     put(path.join(root,'node_modules/vitest/dist/tsconfig.tmp.tsbuildinfo'),'{}');
     assert.deepEqual(resolveDeclaredInstalled(root,patterns),before);
   }finally{fs.rmSync(root,{recursive:true,force:true});}
+});
+
+test('pnpm and Yarn node-modules installs qualify like npm; the runner may be linked into the virtual store',{skip:unsupported},t=>{
+  for(const manager of ['pnpm','yarn']){
+    const {root,state,config}=project(t,{manager});
+    const init=JSON.parse(good(root,state,'init','--recipe','tests-direct','--check','test','--json'));
+    assert.equal(init.checks[0].level,'ready',`${manager}: ${init.checks[0].reason}`);
+    assert.equal(JSON.parse(fs.readFileSync(config,'utf8')).packageManager,manager);
+    good(root,state,'start');good(root,state,'run','test');
+    let status=row(root,state);
+    assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',`${manager}: ${status.reason}`);
+    write(root,'src/value.js','fail\n');
+    status=row(root,state);assert.equal(status.freshness,'STALE',`${manager}: ${status.reason}`);
+    write(root,'src/value.js','pass\n');good(root,state,'run','test');
+    // The runner's installed files are inputs, through the link too.
+    const real=fs.realpathSync(path.join(root,'node_modules/vitest/vitest.mjs'));
+    fs.appendFileSync(real,'\n');
+    status=row(root,state);assert.notEqual(status.freshness,'CURRENT',`${manager}: ${status.reason}`);
+    good(root,state,'stop');
+  }
+});
+
+test('the test recipe takes one supported package manager without workspaces',t=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rt-pm-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+  const pm=(files,pkg={})=>{const root=fs.mkdtempSync(path.join(dir,'p-'));
+    for(const [file,text] of Object.entries(files))put(path.join(root,file),text);
+    try{return testPackageManager(root,{name:'x',...pkg});}catch(e){return e.code;}};
+  assert.equal(pm({'package-lock.json':'{}'}),'npm');
+  assert.equal(pm({'yarn.lock':'','.yarnrc.yml':'nodeLinker: node-modules\n'},{packageManager:'yarn@4.12.0'}),'yarn');
+  assert.equal(pm({'yarn.lock':''},{packageManager:'yarn@1.22.22'}),'yarn');
+  for(const [files,pkg,code] of [
+    [{'yarn.lock':'','.yarnrc.yml':'nodeLinker: pnp\n'},{packageManager:'yarn@4.12.0'},'test-yarn-install-unsupported'],
+    [{'yarn.lock':''},{packageManager:'yarn@4.12.0'},'test-yarn-install-unsupported'],
+    [{'yarn.lock':''},{},'test-yarn-install-unsupported'],
+    [{'pnpm-lock.yaml':''},{packageManager:'pnpm@10.8.1'},'test-pnpm-install-unsupported'],
+    [{'bun.lock':''},{},'test-package-manager-unsupported'],
+    [{'package-lock.json':'{}','yarn.lock':''},{},'test-package-manager-unsupported'],
+    [{'package-lock.json':'{}'},{packageManager:'pnpm@10.8.1'},'test-package-manager-unsupported'],
+    [{},{},'test-package-manager-unsupported'],
+    [{'package-lock.json':'{}'},{workspaces:['packages/*']},'test-workspace-unsupported'],
+    [{'yarn.lock':'','.yarnrc.yml':'nodeLinker: node-modules\nnmMode: hardlinks-global\n'},{packageManager:'yarn@4.12.0'},'test-yarn-install-unsupported'],
+    [{'yarn.lock':'','.yarnrc.yml':'packageExtensions:\n  nodeLinker: node-modules\n'},{packageManager:'yarn@4.12.0'},'test-yarn-install-unsupported']])
+    assert.equal(pm(files,pkg),code,JSON.stringify([files,pkg]));
+});
+
+test('an installed link to a directory outside the installed tree still makes observation unavailable',{skip:unsupported},t=>{
+  const {root,state}=project(t,{manager:'pnpm'});
+  good(root,state,'init','--recipe','tests-direct','--check','test','--json');
+  fs.symlinkSync('../src',path.join(root,'node_modules','stray'),'dir');
+  good(root,state,'start');
+  const cached=JSON.parse(invoke(root,state,{},'status','--json').stdout).observation;
+  assert.equal(cached.healthy,false);assert.match(cached.reason,/directory input symlink unsupported: node_modules\/stray/);
+  good(root,state,'stop');
+});
+
+test('pnpm: a settings-only pnpm-workspace.yaml is no workspace; packages make one; hard-linked installs are UNVERIFIED',{skip:unsupported},t=>{
+  const {root,state}=project(t,{manager:'pnpm'});
+  put(path.join(root,'pnpm-workspace.yaml'),'onlyBuiltDependencies:\n  - esbuild\n');
+  assert.equal(testPackageManager(root,JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'))),'pnpm');
+  put(path.join(root,'pnpm-workspace.yaml'),'packages:\n  - packages/*\n');
+  assert.throws(()=>testPackageManager(root,JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'))),{code:'test-workspace-unsupported'});
+  fs.rmSync(path.join(root,'pnpm-workspace.yaml'));
+  good(root,state,'init','--recipe','tests-direct','--check','test','--json');
+  good(root,state,'start');
+  // A second link to an installed file, as a package store would hold.
+  const store=fs.mkdtempSync(path.join(os.tmpdir(),'rt-store-'));t.after(()=>fs.rmSync(store,{recursive:true,force:true}));
+  fs.linkSync(fs.realpathSync(path.join(root,'node_modules/vitest/vitest.mjs')),path.join(store,'vitest.mjs'));
+  good(root,state,'run','test');
+  const status=row(root,state);
+  assert.equal(status.freshness,'UNVERIFIED');assert.match(status.reason,/has another hard link/);
+  good(root,state,'stop');
+});
+
+test('installed links: one to the checkout root is refused; an event on an observed package link keeps observation',{skip:unsupported},t=>{
+  const {root,state}=project(t,{manager:'pnpm'});
+  good(root,state,'init','--recipe','tests-direct','--check','test','--json');
+  good(root,state,'start');good(root,state,'run','test');
+  // pnpm re-creating the package link: an event on the link itself.
+  const link=path.join(root,'node_modules/vitest'),target=fs.readlinkSync(link);
+  fs.unlinkSync(link);fs.symlinkSync(target,link,'dir');
+  let status=row(root,state);
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  fs.symlinkSync('..',path.join(root,'node_modules/self'),'dir');
+  status=row(root,state);
+  assert.notEqual(status.freshness,'CURRENT',status.reason);
+  good(root,state,'stop');
 });
