@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.1.0-alpha.16 — 2026-10-22
+
+Changes to the Claude Code integration, and one fix for commands that meet
+on fresh state. Run `redue agent setup claude --apply` again to get the new
+hook entries.
+
+- A SessionStart hook starts the project's observer when a session starts,
+  resumes, clears or compacts, if none is running. It returns at once and
+  prints nothing. Without a running observer every check was UNVERIFIED, so
+  the hook could neither skip nor record. `agent doctor` reports it.
+- The hook matches more command forms, each mapping to one configured check:
+  `pnpm SCRIPT`, `pnpm run SCRIPT`, `yarn SCRIPT`, `yarn run SCRIPT`,
+  `pnpm exec tsc ...`; for a workspace package's check, `pnpm --filter NAME
+  SCRIPT`, `yarn workspace NAME SCRIPT`, `npm run SCRIPT -w NAME`, and its
+  script after a `cd` into the package. In the census of 108 public
+  TypeScript repos, 61 use pnpm or Yarn.
+- `turbo run TASK` and, in pnpm projects, `pnpm -r TASK` (or a root script
+  that is one of them) are skipped only when every workspace package with the
+  task's script has a check and all are CURRENT; otherwise they run as typed,
+  never rewritten. No skip when turbo may run more (other `dependsOn` tasks,
+  `with`, package-scoped keys, a package turbo.json), when pnpm includes the
+  workspace root, or for a root script with pre/post scripts. Filters and nx
+  are not matched.
+- Fixed: when two commands met on fresh state (SessionStart's `start` and the
+  first `status`), the second failed and no observer started.
+
+Pilot eval on alpha.16 code (CI 39799994225, 96 sessions over twilio,
+semiotic, Ultra-Card and SwitchHosts): 0 critical findings; 29 skipped
+typechecks, each confirmed by a plain rerun.
 ## 0.1.0-alpha.15 — 2026-10-22
 
 No change to observation, status or `redue run` since alpha.14; the changes
