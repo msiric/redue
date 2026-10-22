@@ -102,8 +102,12 @@ test('npm launcher records immutable outcomes but cannot grant applicability',as
 test('unsupported manager and workspace boundary are explicit',t=>{
   const pnpm=project(t,{manager:'pnpm'});
   const recording=JSON.parse(good(pnpm.root,pnpm.state,'init','--json'));
-  assert.equal(recording.installation_layout,'recording-only');
-  assert.match(recording.issue,/exact pnpm 12/);
+  // Unpinned pnpm is read from its install; without one, nothing qualifies.
+  assert.equal(recording.installation_layout,'isolated');
+  assert.match(recording.issue,/installed pnpm module metadata is missing/);
+  const old=project(t,{manager:'pnpm'});
+  fs.writeFileSync(path.join(old.root,'package.json'),JSON.stringify({...JSON.parse(fs.readFileSync(path.join(old.root,'package.json'),'utf8')),packageManager:'pnpm@8.15.9'}));
+  assert.match(JSON.parse(good(old.root,old.state,'init','--dry-run','--json')).issue,/"pnpm@8\.15\.9" is outside pnpm 9-12/);
   assert.equal(recording.checks[0].level,'recording');
   assert(fs.existsSync(pnpm.config));
   const workspace=project(t,{workspaces:true});

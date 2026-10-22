@@ -230,7 +230,7 @@ export function discoverNodeProject(root,{recipe=null}={}) {
         check.inputs=['package.json','pnpm-lock.yaml',
           ...(exists(path.join(root,'pnpm-workspace.yaml'))?['pnpm-workspace.yaml']:[]),
           'tsconfig.json','src/**'];
-        classification={level:'ready',reason:'pinned pnpm TypeScript inputs and installation; checked again before reuse',
+        classification={level:'ready',reason:'pnpm TypeScript inputs and installation; checked again before reuse',
           qualification:'pnpm-tsc-v1'};}
       catch(e){classification={level:'recording',reason:`pnpm TypeScript contract needs review: ${e.message}`};}
     }
@@ -284,7 +284,7 @@ export function discoverNodeProject(root,{recipe=null}={}) {
               ...member.scripts[selected.script].trim().split(/\s+/).slice(1)];
             check.inputs=['package.json','pnpm-lock.yaml','pnpm-workspace.yaml',file,
               `${dir}/src/**`];
-            level='ready';reason='pinned pnpm workspace TypeScript inputs; checked again before reuse';
+            level='ready';reason='pnpm workspace TypeScript inputs; checked again before reuse';
           }catch(e){reason=`pnpm TypeScript contract needs review: ${e.message}`;}
         }
         checks.push({config:check,level,reason});

@@ -271,7 +271,7 @@ function probe(row,allowReuse=false,{launch=true}={}) {
         'workspace-typecheck-contract-unavailable':'workspace TypeScript applicability probe could not establish inputs'
         ,'pnpm-execution-environment-unsupported':'pnpm or Node launcher environment override needs review'
         ,'pnpm-distribution-unobservable':'pnpm executable contents cannot be observed'
-        ,'pnpm-version-mismatch':'pnpm executable differs from the pinned version'
+        ,'pnpm-version-mismatch':'pnpm executable differs from the installed version'
         ,'typescript-input-outside-pnpm-contract':'TypeScript reads outside the selected workspace, linked outputs, or installed inputs'
         ,'pnpm-input-coverage-unavailable':'pnpm installed-input coverage became unavailable; inspect check details'
         ,'pnpm-typecheck-contract-unavailable':'pnpm TypeScript input contract could not be established'

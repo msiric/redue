@@ -96,6 +96,50 @@ test('pnpm 12 implicit project-local virtual store is accepted only when physica
   assert.throws(()=>pnpmInstallInfo(root),/nonstandard or incomplete/);
 });
 
+test('pnpm 9-12: the install names the version, a pin may carry a hash, and only layout settings are refused',t=>{
+  const {root}=fixture(t);
+  const pkgFile=path.join(root,'package.json'),modulesFile=path.join(root,'node_modules','.modules.yaml');
+  const pkg=JSON.parse(fs.readFileSync(pkgFile,'utf8')),modules=JSON.parse(fs.readFileSync(modulesFile,'utf8'));
+  const install=(pin,installed)=>{
+    json(pkgFile,pin===null?(({packageManager,...rest})=>rest)(pkg):{...pkg,packageManager:pin});
+    json(modulesFile,{...modules,packageManager:installed});
+    return pnpmInstallInfo(root);
+  };
+  // Corepack pins carry a hash; the install records the bare version.
+  assert.equal(install('pnpm@12.4.1+sha512.abc','pnpm@12.4.1').version,'12.4.1');
+  for(const version of ['9.15.9','10.8.1','11.4.0'])assert.equal(install(`pnpm@${version}`,`pnpm@${version}`).version,version);
+  // Unpinned: the installed version decides.
+  assert.equal(install(null,'pnpm@10.8.1').version,'10.8.1');
+  assert.throws(()=>install('pnpm@10.8.1','pnpm@10.9.0'),/linker or version differs/);
+  assert.throws(()=>install(null,'pnpm@8.15.9'),/outside pnpm 9-12/);
+  assert.throws(()=>install('pnpm@8.15.9','pnpm@8.15.9'),/outside pnpm 9-12/);
+  install('pnpm@12.4.1','pnpm@12.4.1');
+  // .npmrc: install-time settings are fine; settings that move installed files are not.
+  put(path.join(root,'.npmrc'),'auto-install-peers=true\nstrict-peer-dependencies=false\nshamefully-hoist=true\nregistry=https://registry.npmjs.org/\n');
+  assert.equal(pnpmTypecheckInputs(root,'@fixture/app','typecheck').limitations.length,0);
+  // Refused whichever file pnpm reads; parsed as pnpm's ini parser does (BOM, bare key, quotes).
+  for(const [line,error] of [['virtual-store-dir=.vs',/custom pnpm modules or virtual-store/],['modules-dir=deps',/custom pnpm modules or virtual-store/],
+    ['lockfile-dir=..',/custom pnpm modules or virtual-store/],['inject-workspace-packages=true',/injected workspace/],
+    ['inject-workspace-packages',/injected workspace/],['shared-workspace-lockfile="false"',/separate workspace lockfiles/],
+    ['\uFEFFshared-workspace-lockfile=false',/separate workspace lockfiles/],['pnpmfile=hooks.cjs',/installation hooks/]]){
+    put(path.join(root,'.npmrc'),line+'\n');
+    assert.throws(()=>pnpmInstallInfo(root),error,line);
+  }
+  put(path.join(root,'.npmrc'),'shared-workspace-lockfile=true\ninject-workspace-packages=false\n');
+  assert.equal(pnpmInstallInfo(root).linker,'isolated');
+  const workspace=fs.readFileSync(path.join(root,'pnpm-workspace.yaml'),'utf8');
+  put(path.join(root,'pnpm-workspace.yaml'),workspace+'configDependencies:\n  pnpm-plugin-x: 1.0.0+sha512-abc\n');
+  assert.throws(()=>pnpmInstallInfo(root),/installation hooks/);
+  put(path.join(root,'pnpm-workspace.yaml'),workspace);
+  // The linker comes from the file the installed major reads: pnpm 12 ignores .npmrc, pnpm 9 reads it.
+  put(path.join(root,'.npmrc'),'node-linker=hoisted\n');
+  assert.equal(pnpmInstallInfo(root).linker,'isolated');
+  assert.throws(()=>install('pnpm@9.15.9','pnpm@9.15.9'),/linker or version differs/);
+  put(path.join(root,'.npmrc'),'node-linker=pnp\n');
+  assert.throws(()=>install('pnpm@9.15.9','pnpm@9.15.9'),/pnp linker is recording-only/);
+  fs.rmSync(path.join(root,'.npmrc'));install('pnpm@12.4.1','pnpm@12.4.1');
+});
+
 test('opt-in decision timing cannot change pnpm probe evidence',t=>{
   const {root}=fixture(t),file=path.join(os.tmpdir(),`redue-probe-timing-${process.pid}-${Date.now()}.jsonl`);
   t.after(()=>fs.rmSync(file,{force:true}));

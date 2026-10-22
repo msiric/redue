@@ -45,13 +45,26 @@ project whose test script runs Vitest 4/5 or Jest 29 directly, the opt-in
 In particular, test caches and build-generated inputs are not excluded to
 make evidence green.
 
-Pinned pnpm 12 projects are read from `packageManager`, `pnpm-workspace.yaml`,
-the lockfile, and the installed `node_modules/.modules.yaml` metadata. The
+pnpm 9-12 projects are read from `packageManager`, `pnpm-workspace.yaml`,
+`.npmrc`, the lockfile, and the installed `node_modules/.modules.yaml`
+metadata. The installed metadata names the pnpm version; a `packageManager`
+pin is optional, and when present (with or without Corepack's `+sha512` hash)
+it must name the installed version. Settings that only change what gets
+installed are accepted, because the installed files are what REDUE observes.
+Settings that move or copy installed files, or run code during install, are
+not: custom `modulesDir`, `virtualStoreDir` or `lockfileDir`, the global
+virtual store, injected workspace packages, separate workspace lockfiles,
+pnpmfile hooks and `configDependencies`. They are refused when either
+`pnpm-workspace.yaml` or `.npmrc` sets them. The linker is read from the file
+the installed major reads (`.npmrc` for pnpm 9, `pnpm-workspace.yaml` then
+`.npmrc` for pnpm 10, `pnpm-workspace.yaml` for pnpm 11 and 12) and must match
+the installed one. Only the project's files are read: settings from a user or
+global rc file, or `npm_config_*` variables during install, are not. The
 supported local layouts are pnpm's standard isolated and hoisted
 `node_modules` with a project-local `.pnpm` virtual store. `init` can discover
 root and workspace scripts. For a standalone `tsc --noEmit` or `tsc -p ...`
 script in the narrow TypeScript contract, it records the exact installed
-compiler invocation directly. This avoids pnpm 12's task-run bookkeeping
+compiler invocation directly. This avoids pnpm's task-run bookkeeping
 writes during `pnpm run`; it does not alter the project's script. Test, lint,
 build, and ambiguous TypeScript scripts still execute through `pnpm run` and
 start recording-only. The generated `@typescript-bin:WORKSPACE` token resolves

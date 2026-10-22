@@ -1,4 +1,4 @@
-// Pinned pnpm 12 node-modules installation provider. The engine sees only
+// pnpm 9-12 node-modules installation provider. The engine sees only
 // repository-relative input sets and resolution relationships, never pnpm
 // virtual-store names as semantic identities.
 import {probeTimeLeft} from './probe-deadline.mjs';
@@ -27,40 +27,81 @@ function safePatterns(values){
     throw Error('pnpm workspace patterns are unsupported');
   return values;
 }
+// The supported pnpm majors. pnpm 9 reads settings from .npmrc, pnpm 10 from
+// pnpm-workspace.yaml first and then .npmrc, pnpm 11 and 12 from
+// pnpm-workspace.yaml only.
+export const pnpmMajors=[9,10,11,12];
+// Settings that move or copy installed files, or run code during install,
+// where the contract does not look; by pnpm-workspace.yaml and .npmrc name.
+// Other settings change only what gets installed, and the installed files are
+// what the contract observes. These are refused when either file sets them,
+// whichever file the installed pnpm reads. Only the project's files are read:
+// user or global rc files and npm_config_* variables at install time are not.
+const refused=[['modulesDir','modules-dir'],['virtualStoreDir','virtual-store-dir'],['lockfileDir','lockfile-dir'],
+  ['enableGlobalVirtualStore','enable-global-virtual-store'],['injectWorkspacePackages','inject-workspace-packages'],
+  ['sharedWorkspaceLockfile','shared-workspace-lockfile'],['pnpmfile','pnpmfile'],['globalPnpmfile','global-pnpmfile'],
+  ['configDependencies','config-dependencies']];
+// .npmrc read as pnpm's ini parser reads it: a BOM is dropped, a bare key is
+// true, quotes are removed, and "true"/"false" become booleans.
+function npmrc(file){
+  const settings={};
+  if(!exists(file))return settings;
+  for(const line of fs.readFileSync(file,'utf8').replace(/^\uFEFF/,'').split(/\r?\n/)){
+    const trimmed=line.trim();if(!trimmed||/^[#;]/.test(trimmed))continue;
+    const at=trimmed.indexOf('='),key=(at<0?trimmed:trimmed.slice(0,at)).trim();
+    let value=at<0?true:trimmed.slice(at+1).trim();
+    if(typeof value==='string'&&/^(["']).*\1$/.test(value))value=value.slice(1,-1);
+    settings[key]=value==='true'?true:value==='false'?false:value;
+  }
+  return settings;
+}
+// Whether a refused setting is set: present at all, except that only
+// sharedWorkspaceLockfile=false and injectWorkspacePackages=true move files.
+const setting=(key,value)=>value!==undefined&&
+  (key==='sharedWorkspaceLockfile'?value===false:key==='injectWorkspacePackages'?value===true:true);
 export function pnpmProjectInfo(root){
   root=realObservedPath(root);
   const pkg=read(path.join(root,'package.json'));
-  const pin=/^pnpm@(12\.\d+\.\d+)(?:\+[^\s]+)?$/.exec(pkg.packageManager||'');
-  if(!pin)throw Error('an exact pnpm 12 packageManager pin is required');
+  // A pin is optional; when present it names pnpm 9-12, and the install must match it.
+  const pin=pkg.packageManager===undefined?null:/^pnpm@((\d+)\.\d+\.\d+)(?:\+[^\s]+)?$/.exec(pkg.packageManager);
+  if(pkg.packageManager!==undefined&&(!pin||!pnpmMajors.includes(Number(pin[2]))))
+    throw Error(`packageManager ${JSON.stringify(String(pkg.packageManager).split('+')[0])} is outside pnpm ${pnpmMajors[0]}-${pnpmMajors.at(-1)}`);
   const workspaceFile=path.join(root,'pnpm-workspace.yaml');
-  const settings=exists(workspaceFile)?yaml(workspaceFile):{};
-  const patterns=safePatterns(settings.packages||[]);
-  const linker=settings.nodeLinker||'isolated';
-  return {version:pin[1],linker,patterns,settings};
+  const workspace=exists(workspaceFile)?yaml(workspaceFile):{},rc=npmrc(path.join(root,'.npmrc'));
+  const patterns=safePatterns(workspace.packages||[]);
+  // The linker the given pnpm major reads; without a major, the one any reads.
+  const linkerFor=major=>(major===9?rc['node-linker']:major>=11?workspace.nodeLinker:
+    workspace.nodeLinker??rc['node-linker'])||'isolated';
+  const major=pin?Number(pin[2]):null;
+  return {version:pin?.[1]??null,linker:linkerFor(major),linkerFor,patterns,settings:workspace,
+    refused:refused.filter(([key,name])=>setting(key,workspace[key])||setting(key,rc[name])).map(([key])=>key)};
 }
 export function pnpmInstallInfo(root){
   const started=performance.now();
   root=realObservedPath(root);
-  const pkg=read(path.join(root,'package.json'));
-  const {version,linker,patterns,settings}=pnpmProjectInfo(root);
+  const {version,linkerFor,patterns,settings,refused}=pnpmProjectInfo(root);
   const workspaceFile=path.join(root,'pnpm-workspace.yaml');
-  if(!['isolated','hoisted'].includes(linker))throw Error(`pnpm ${linker} linker is recording-only`);
-  if(settings.modulesDir||settings.virtualStoreDir||settings.enableGlobalVirtualStore)
-    throw Error('custom pnpm modules or virtual-store location is recording-only');
-  if(settings.injectWorkspacePackages)
-    throw Error('injected workspace dependencies are recording-only');
-  if(settings.sharedWorkspaceLockfile===false)
-    throw Error('separate workspace lockfiles are recording-only');
-  if(exists(path.join(root,'.pnpmfile.cjs'))||exists(path.join(root,'.pnpmfile.mjs')))
+  if(refused.some(key=>['pnpmfile','globalPnpmfile','configDependencies'].includes(key))||
+    exists(path.join(root,'.pnpmfile.cjs'))||exists(path.join(root,'.pnpmfile.mjs')))
     throw Error('custom pnpm installation hooks need review');
+  if(refused.some(key=>['modulesDir','virtualStoreDir','lockfileDir','enableGlobalVirtualStore'].includes(key)))
+    throw Error('custom pnpm modules or virtual-store location is recording-only');
+  if(refused.includes('injectWorkspacePackages'))throw Error('injected workspace dependencies are recording-only');
+  if(refused.includes('sharedWorkspaceLockfile'))throw Error('separate workspace lockfiles are recording-only');
   const modulesFile=path.join(root,'node_modules','.modules.yaml');
   if(!exists(modulesFile))throw Error('installed pnpm module metadata is missing');
   const modules=yaml(modulesFile);
-  if(modules.nodeLinker!==linker||modules.packageManager!==pkg.packageManager)
+  const installed=/^pnpm@((\d+)\.\d+\.\d+)$/.exec(String(modules.packageManager));
+  if(!installed||!pnpmMajors.includes(Number(installed[2])))
+    throw Error(`installed by ${JSON.stringify(String(modules.packageManager))}, outside pnpm ${pnpmMajors[0]}-${pnpmMajors.at(-1)}`);
+  const linker=linkerFor(Number(installed[2]));
+  if(!['isolated','hoisted'].includes(linker))throw Error(`pnpm ${linker} linker is recording-only`);
+  if(modules.nodeLinker!==linker||version!==null&&installed[1]!==version)
     throw Error('installed pnpm linker or version differs from project configuration');
   const virtualStore=path.join(root,'node_modules','.pnpm');
-  // pnpm 12 on Windows can omit virtualStoreDir when using its project-local
-  // default. Accept only the observed, ordinary local directory in that case.
+  // pnpm can omit virtualStoreDir when using its project-local default
+  // (seen with pnpm 12 on Windows). Accept only the observed, ordinary local
+  // directory in that case.
   const declared=modules.virtualStoreDir;
   const selected=declared===undefined?virtualStore:
     path.resolve(path.dirname(modulesFile),declared);
@@ -72,18 +113,8 @@ export function pnpmInstallInfo(root){
     throw Error('nonstandard or incomplete project-local pnpm virtual store');
   if(!exists(path.join(root,'pnpm-lock.yaml')))
     throw Error('pnpm lockfile is missing');
-  if(exists(path.join(root,'.npmrc'))){
-    // pnpm 12 reads project settings from pnpm-workspace.yaml. Registry/auth
-    // entries affect acquisition, not a completed local TypeScript invocation.
-    for(const line of fs.readFileSync(path.join(root,'.npmrc'),'utf8').split(/\r?\n/)){
-      const trimmed=line.trim();if(!trimmed||/^[#;]/.test(trimmed))continue;
-      const key=trimmed.split('=')[0].trim();
-      if(key!=='registry'&&!/^\/\/[^\s]+\/:_authToken$/.test(key))
-        throw Error('project .npmrc has execution-relevant pnpm settings requiring review');
-    }
-  }
   timing('pnpm.install_metadata',started);
-  return {version,linker,patterns,settings,modulesFile,
+  return {version:installed[1],linker,patterns,settings,modulesFile,
     configurationInputs:['package.json','pnpm-lock.yaml',
       ...(exists(workspaceFile)?['pnpm-workspace.yaml']:[]),
       ...(exists(path.join(root,'.npmrc'))?['.npmrc']:[]),
