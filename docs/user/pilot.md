@@ -1,4 +1,4 @@
-# Opt-in development pilot: alpha.17
+# Opt-in development pilot: alpha.18
 
 Use one fixed build for several ordinary development sessions. The owner will
 invite two or three willing testers and approve their projects; nothing is
@@ -36,7 +36,7 @@ are **NOT RUN**. The recording shortcut is macOS/direct-recipe only.
 For a new default npm installation:
 
 ```sh
-npm install --global @redue/cli@0.1.0-alpha.17
+npm install --global @redue/cli@0.1.0-alpha.18
 redue --version
 cd my-project
 redue --config redue.config.json init --recipe typescript-direct --check typecheck --dry-run
@@ -90,7 +90,7 @@ using it; keep the same npm prefix, config and any explicit state selection.
 
 ```sh
 redue --config redue.config.json stop
-npm install --global @redue/cli@0.1.0-alpha.17
+npm install --global @redue/cli@0.1.0-alpha.18
 redue --config redue.config.json agent setup codex --dry-run
 redue --config redue.config.json agent setup codex --apply
 redue --config redue.config.json start

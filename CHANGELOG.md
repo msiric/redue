@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-alpha.18 — 2026-10-23
+
+Typecheck in more project shapes, and pnpm test reuse on Linux. In the census
+of 108 public TypeScript repos, the ones `init` makes ready went from 8 to 11
+for typecheck (the census clones each repo's current head, so one or two
+repos move between runs) and stayed at 22 for tests.
 
 - pnpm test checks are reused on Linux. A recorded run accepts an installed
   file hard-linked into the pnpm store the install recorded, when the store

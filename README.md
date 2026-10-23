@@ -37,7 +37,7 @@ it; relevant source edits make it stale. [Run the reproducible demo](docs/contri
 
 ## Install the alpha
 
-The opt-in pilot uses **0.1.0-alpha.17**. Follow the
+The opt-in pilot uses **0.1.0-alpha.18**. Follow the
 [fixed-version pilot guide](docs/user/pilot.md) for supported projects, setup,
 updates and voluntary feedback. No external usage results are claimed yet.
 
