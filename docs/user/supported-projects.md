@@ -21,7 +21,9 @@ The direct recipe is opt-in, available since alpha.5. The opt-in `init --recipe 
 a typecheck script of `tsc --noEmit` runs in any argument order, chained runs,
 or no typecheck script at all (a proposed `tsc --noEmit`; see
 [script forms](direct-typescript.md#script-forms)), in a single-package npm installation using
-reviewed TypeScript 5.5.2/5.6.3/5.9.3/6.0.2/6.0.3 and Node 22/24. It executes the local compiler,
+TypeScript 5.x or 6.0 (a reviewed release, or one whose installed files match the
+tarball package-lock.json names in npm's cache; see
+[compiler identity](direct-typescript.md#compiler-identity)) and Node 22/24. It executes the local compiler,
 not npm. Full installed compiler identity, config/membership, installed inputs
 and relevant Node environment are checked before reuse. See the
 [exact direct boundary](direct-typescript.md). Unsupported plugins, preloads,

@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {fixtureLockfile} from './helpers/compiler-lock.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -18,7 +19,7 @@ const put=(f,s)=>{fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSyn
 function fixture(t){
   const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'rm-'))),root=path.join(base,'project');
   put(path.join(root,'package.json'),JSON.stringify({name:'owned-direct-fixture',version:'1.0.0',scripts:{typecheck:'tsc --noEmit'}}));
-  put(path.join(root,'package-lock.json'),'{"lockfileVersion":3}');
+  put(path.join(root,'package-lock.json'),fixtureLockfile(undefined,path.resolve('node_modules',process.env.REDUE_TEST_COMPILER_PACKAGE||'typescript')));
   put(path.join(root,'tsconfig.json'),JSON.stringify({compilerOptions:{noEmit:true,strict:true},include:['src']}));
   put(path.join(root,'src/main.ts'),'// @ts-ignore optional missing module\nimport {x} from "optional";\nexport const value: number = 1;\n');
   put(path.join(root,'src/other.ts'),'export const other = 2;\n');

@@ -37,6 +37,17 @@
   sync request carries about 1.5 KB of context digests per check; status
   showed "Unexpected end of JSON input" for every check. The limit is 1 MiB.
 
+- The direct npm TypeScript recipe takes any TypeScript 5.x or 6.0, not only
+  the five reviewed releases. Another release qualifies when package-lock.json
+  records the registry's `typescript` at that version with an integrity
+  (sha512, or sha1 from registries that record only sha1), npm's cache holds
+  the tarball under it, and the installed package is exactly the tarball's
+  files. Nothing is downloaded; a missing tarball
+  keeps the check recording-only with `npm-tarball-uncached`. The check takes
+  about 100 ms per full probe (TypeScript 5.x and 6.0 tarballs, 120-140 files).
+  CI runs the direct contract suite against 5.0.4, 5.1.6, 5.2.2, 5.3.3, 5.4.5,
+  5.5.4, 5.7.3 and 5.8.3.
+
 ## 0.1.0-alpha.17 — 2026-10-22
 
 Workspaces and package managers beyond npm. In the census of 108 public

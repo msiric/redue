@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {fixtureLockfile} from './helpers/compiler-lock.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -78,7 +79,7 @@ function fixture(t){
   const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'rr-'))),root=path.join(base,'project'),
     state=path.join(base,'redue-state'),profile=path.join(base,'profile');
   put(path.join(root,'package.json'),JSON.stringify({name:'recorded-fixture',version:'1.0.0',scripts:{typecheck:'tsc --noEmit'}}));
-  put(path.join(root,'package-lock.json'),'{"lockfileVersion":3}');
+  put(path.join(root,'package-lock.json'),fixtureLockfile(undefined,path.resolve('node_modules',process.env.REDUE_TEST_COMPILER_PACKAGE||'typescript')));
   put(path.join(root,'tsconfig.json'),JSON.stringify({compilerOptions:{strict:true,noEmit:true},include:['src']}));
   put(path.join(root,'src/main.ts'),'import {other} from "./other";\nexport const value: number = other;\n');
   put(path.join(root,'src/other.ts'),'export const other = 2;\n');

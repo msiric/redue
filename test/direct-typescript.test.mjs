@@ -13,6 +13,7 @@ import {createRequire} from 'node:module';
 import {findExecutable} from '../src/executable-lookup.mjs';
 import net from 'node:net';
 import {controlEndpoint} from '../src/control-endpoint.mjs';
+import {fixtureLockfile} from './helpers/compiler-lock.mjs';
 
 const require=createRequire(import.meta.url),bin=path.resolve('bin/redue.mjs');
 const compilerPackage=process.env.REDUE_TEST_COMPILER_PACKAGE||'typescript';
@@ -27,7 +28,7 @@ function project(t,{manager='npm',declaredManager=null,
   fs.mkdirSync(root);put(path.join(root,'package.json'),JSON.stringify({name:'public-ts-fixture',
     version:'1.0.0',scripts,...(declaredManager?{packageManager:declaredManager}:{}),
     ...(workspaces?{workspaces:['packages/*']}:{})}));
-  if(manager==='npm')put(path.join(root,'package-lock.json'),'{"name":"public-ts-fixture","lockfileVersion":3}');
+  if(manager==='npm')put(path.join(root,'package-lock.json'),fixtureLockfile('public-ts-fixture',sourceTypeScript));
   if(manager==='yarn')put(path.join(root,'yarn.lock'),'# yarn lockfile v1\n');
   if(manager==='pnpm')put(path.join(root,'pnpm-lock.yaml'),'lockfileVersion: 9.0\n');
   put(path.join(root,'tsconfig.json'),JSON.stringify({compilerOptions:{noEmit:true,strict:true,

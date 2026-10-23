@@ -9,8 +9,9 @@ controlled compiler/agent trials are acceptance evidence, not independent adopti
 
 Start with a trusted, single-package npm Git checkout, normally installed locked
 dependencies, and an existing standalone `tsc --noEmit` script without pre/post
-scripts. The direct recipe accepts only the official, unchanged TypeScript
-**5.5.2, 5.6.3, 5.9.3, 6.0.2 or 6.0.3** packages and Node **22 or 24**. No workspaces, named
+scripts. The direct recipe accepts only an official, unchanged TypeScript **5.x or
+6.0** package (a reviewed release, or one matching the tarball package-lock.json
+names in npm's cache) and Node **22 or 24**. No workspaces, named
 tsconfig selection, emitted/incremental/composite builds, custom loaders or
 outside-root inputs are added by this pilot. Do not downgrade or change your
 project to fit; record an unsupported setup as feedback.

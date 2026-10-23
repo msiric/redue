@@ -45,3 +45,25 @@ jobs:
           $packageName = (Get-Content package.json | ConvertFrom-Json).name
           npm.cmd uninstall --global --prefix $prefix $packageName --no-audit --no-fund
           exit $LASTEXITCODE
+  typescript-versions:
+    # The direct recipe takes any TypeScript 5.x or 6.0 whose installed files
+    # match the tarball the lockfile names in npm's cache. The shared contract
+    # suite runs against the last release of each minor from 5.0 to 5.8 that
+    # the reviewed releases do not already cover.
+    strategy:
+      fail-fast: false
+      matrix:
+        typescript: ['5.0.4', '5.1.6', '5.2.2', '5.3.3', '5.4.5', '5.5.4', '5.7.3', '5.8.3']
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Install the compiler fixture (its tarball lands in npm's cache)
+        run: node test/helpers/install-typescript-fixture.mjs ${{ matrix.typescript }}
+      - run: node --test test/direct-typescript-versions.test.mjs
+        env:
+          REDUE_TEST_TYPESCRIPT: ${{ matrix.typescript }}

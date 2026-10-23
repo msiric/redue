@@ -12,6 +12,7 @@ import YAML from 'yaml';
 import {resolveLinks} from './installed-inputs.mjs';
 import {withinPath as within,realObservedPath,samePath} from './path-identity.mjs';
 import {timing} from './decision-profile.mjs';
+import {npmrc} from './npmrc.mjs';
 import {runConfig,tscRun,tscRuns} from './typescript-invocation.mjs';
 
 const rel=(root,file)=>path.relative(root,file).split(path.sep).join('/');
@@ -42,20 +43,6 @@ const refused=[['modulesDir','modules-dir'],['virtualStoreDir','virtual-store-di
   ['enableGlobalVirtualStore','enable-global-virtual-store'],['injectWorkspacePackages','inject-workspace-packages'],
   ['sharedWorkspaceLockfile','shared-workspace-lockfile'],['pnpmfile','pnpmfile'],['globalPnpmfile','global-pnpmfile'],
   ['configDependencies','config-dependencies']];
-// .npmrc read as pnpm's ini parser reads it: a BOM is dropped, a bare key is
-// true, quotes are removed, and "true"/"false" become booleans.
-function npmrc(file){
-  const settings={};
-  if(!exists(file))return settings;
-  for(const line of fs.readFileSync(file,'utf8').replace(/^\uFEFF/,'').split(/\r?\n/)){
-    const trimmed=line.trim();if(!trimmed||/^[#;]/.test(trimmed))continue;
-    const at=trimmed.indexOf('='),key=(at<0?trimmed:trimmed.slice(0,at)).trim();
-    let value=at<0?true:trimmed.slice(at+1).trim();
-    if(typeof value==='string'&&/^(["']).*\1$/.test(value))value=value.slice(1,-1);
-    settings[key]=value==='true'?true:value==='false'?false:value;
-  }
-  return settings;
-}
 // Whether a refused setting is set: present at all, except that only
 // sharedWorkspaceLockfile=false and injectWorkspacePackages=true move files.
 const setting=(key,value)=>value!==undefined&&

@@ -20,7 +20,8 @@ import {inputKey,planGuard,toolchainKey} from './decision-validation.mjs';
 import {queriesHold,runFactReason as runFactChanged} from './typescript-list.mjs';
 import {nextProbeHint,probeDeadline,probeFloorMs} from './probe-deadline.mjs';
 import {statusSummary} from './cached-state.mjs';
-import {directProject,directProbeValue,reviewedTypeScriptVersions} from './direct-typescript.mjs';
+import {directProject,directProbeValue} from './direct-typescript.mjs';
+import {npmCacheDir} from './npm-integrity.mjs';
 import {runFromArgv} from './typescript-invocation.mjs';
 import {buildInfoPath,recordedCertificate} from './direct-run-certificate.mjs';
 import {timing,mark,traceBase,traceContext,traceScope,traceEnvironment,traceId} from './decision-profile.mjs';
@@ -239,8 +240,18 @@ function probe(row,allowReuse=false,{launch=true}={}) {
         .includes(row.plan.qualification)?
         /VSTATE_REASON:([a-z-]+)/.exec(out.stderr?.toString()||'')?.[1]:null;
       const explanations={
-        'direct-typescript-implementation-unreviewed':'installed TypeScript bytes or membership differ from the reviewed compiler',
-        'direct-typescript-version-unsupported':`direct compiler recipe supports reviewed TypeScript ${reviewedTypeScriptVersions.join(', ')} only`,
+        'direct-typescript-implementation-unreviewed':'installed TypeScript files differ from the reviewed compiler or from the tarball package-lock.json names',
+        'direct-typescript-version-unsupported':'direct compiler recipe supports TypeScript 5.x and 6.0',
+        'direct-typescript-lockfile-source-unsupported':'package-lock.json installs TypeScript from somewhere other than the registry\'s typescript package (an alias, a file or a git source)',
+        'npm-shrinkwrap-unsupported':'npm-shrinkwrap.json is not read; the reviewed TypeScript releases still qualify',
+        'direct-typescript-lockfile-integrity-missing':'package-lock.json records no integrity for the installed TypeScript',
+        'direct-typescript-lockfile-version-differs':'installed TypeScript version differs from package-lock.json; run npm ci',
+        'npm-lockfile-unreadable':'package-lock.json cannot be read',
+        'npm-lockfile-integrity-unsupported':'package-lock.json records TypeScript integrity with neither sha512 nor sha1',
+        'npm-tarball-uncached':`the TypeScript tarball package-lock.json names is not in npm's cache (${npmCacheDir(root)}); run npm ci or npm cache add`,
+        'npm-tarball-corrupt':"npm's cached TypeScript tarball does not match its integrity",
+        'npm-tarball-invalid':"npm's cached TypeScript tarball cannot be read",
+        'npm-tarball-link-unsupported':"npm's cached TypeScript tarball holds links",
         'direct-execution-environment-unsupported':'direct compiler rejects development helpers, Node cache/preloads, and unreviewed runtime overrides',
         'direct-node-version-unsupported':'direct compiler recipe supports Node 22 and 24',
         'npm-launcher-unobserved-inputs':'npm launcher uses unobserved notifier inputs; execution is recording-only',

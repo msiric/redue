@@ -6,7 +6,8 @@ not mean npm or npm lifecycle scripts completed.
 
 For a supported single-package npm project with a typecheck script of `tsc`
 runs (see [script forms](#script-forms)) or no typecheck script and a root
-`tsconfig.json`, installed dependencies, Node 22/24 and TypeScript 5.5.2/5.6.3/5.9.3/6.0.2/6.0.3:
+`tsconfig.json`, installed dependencies, Node 22/24 and TypeScript 5.x or 6.0
+(see [compiler identity](#compiler-identity)):
 
 ```sh
 redue init --recipe typescript-direct --check typecheck --dry-run
@@ -34,9 +35,35 @@ A generated check contains:
 
 `script` identifies the reviewed source recipe; `command` is what actually runs:
 the resolved Node executable and local TypeScript implementation, with exact argv
-and no shell. TypeScript 5.5.2 and 5.6.3 use `lib/tsc.js`; 5.9.3, 6.0.2 and 6.0.3 use `lib/_tsc.js` directly,
-without its outer compile-cache-enabling shim. No compiler is fetched or bundled.
-The entire installed package must match reviewed official distribution bytes.
+and no shell. The entry is `lib/_tsc.js` where the package has one (5.7 and
+later), without its outer compile-cache-enabling shim, and `lib/tsc.js`
+otherwise. No compiler is fetched or bundled.
+
+## Compiler identity
+
+The entire installed `node_modules/typescript` must be an official package,
+byte for byte, in one of two ways:
+
+- TypeScript 5.5.2, 5.6.3, 5.9.3, 6.0.2 or 6.0.3: its files match the digest
+  REDUE ships for that release.
+- Any other TypeScript 5.x or 6.0 release: package-lock.json records the
+  registry's `typescript` package at the installed version (no alias, an
+  `https` tarball URL, not a file or git source) with an integrity (sha512,
+  or sha1 where a registry records only sha1), npm's cache holds the tarball
+  under that integrity, and the installed files are exactly the tarball's
+  files. REDUE reads the cache only; it never downloads. The cache is the one
+  npm uses: `npm_config_cache`, else `cache` in the project's `.npmrc`, then
+  the user's, else `~/.npm` (`%LocalAppData%\npm-cache` on Windows); the
+  global npmrc is not read. `npm-shrinkwrap.json` is not read on this path.
+  `npm ci` fills the cache. When the tarball is missing the check stays
+  recording-only with the reason `npm-tarball-uncached`; `npm cache add
+  typescript@VERSION` adds it. The check's compiler identity is then the
+  lockfile integrity, so a lockfile change re-probes.
+
+CI runs the same contract suite against the last release of each minor from
+5.0 to 5.8 that the reviewed releases do not cover. Later minors (6.1 and up)
+wait until CI covers them. TypeScript 7 (the native compiler) is not
+supported.
 
 ## Script forms
 

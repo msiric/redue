@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
-import {realObservedPath,withinPath} from './path-identity.mjs';
+import {racyUntil,realObservedPath,withinPath} from './path-identity.mjs';
+import {cachedTarball,lockedPackage,matchTarball,npmCacheDir,registryPackage,tarballFiles} from './npm-integrity.mjs';
 import {runConfig,tscRun} from './typescript-invocation.mjs';
 export const directInterpretation='npm-direct-typescript@1';
 export const directQualification='npm-typescript-direct-v1';
@@ -61,8 +62,9 @@ export function directCompiler(root,{verify=true}={}){
   const tsRoot=path.dirname(realObservedPath(manifest));
   if(!withinPath(tsRoot,root)||tsRoot!==realObservedPath(path.join(root,'node_modules/typescript')))
     fail('direct-typescript-layout-unsupported');
-  const version=JSON.parse(fs.readFileSync(manifest)).version,spec=reviewed[version];
-  if(!spec)fail('direct-typescript-version-unsupported');
+  const version=JSON.parse(fs.readFileSync(manifest)).version;
+  if(!reviewed[version])return lockedCompiler(root,tsRoot,version,verify);
+  const spec=reviewed[version];
   if(verify){
     const files=[];
     const walk=(dir,relative='')=>{
@@ -78,6 +80,42 @@ export function directCompiler(root,{verify=true}={}){
     if(digest.digest('hex')!==spec.digest)fail('direct-typescript-implementation-unreviewed');
   }
   return {tsRoot,version,entry:path.join(tsRoot,spec.entry),digest:spec.digest};
+}
+// A TypeScript 5.x or 6.0 the lockfile records: the installed package must be
+// the registry's `typescript` at that version, holding exactly the files of
+// the tarball npm cached under the lockfile's integrity. Its identity is that
+// integrity. The entry is lib/_tsc.js where the package has one (5.7 and
+// later), as for the reviewed versions, else lib/tsc.js. A verified tree is
+// remembered per process while its files keep their identity.
+const verifiedTrees=new Map();
+function treeIdentity(tsRoot){
+  const parts=[],now=Date.now();
+  const walk=folder=>{for(const entry of fs.readdirSync(folder,{withFileTypes:true})){
+    const full=path.join(folder,entry.name),st=fs.lstatSync(full,{bigint:true});
+    if(racyUntil(st)>now)return null;
+    parts.push([full,st.dev,st.ino,st.size,st.mtimeNs,st.ctimeNs].join(':'));
+    if(entry.isDirectory()&&walk(full)===null)return null;
+  }};
+  try{if(walk(tsRoot)===null)return null;}catch{return null;}
+  return hash(parts.sort().join('\n'));
+}
+function lockedCompiler(root,tsRoot,version,verify){
+  if(!/^(?:5\.\d+|6\.0)\.\d+$/.test(version))fail('direct-typescript-version-unsupported');
+  let locked;try{locked=lockedPackage(root,'typescript');}
+  catch(e){fail(['npm-lockfile-unreadable','npm-shrinkwrap-unsupported'].includes(e.code)?e.code:'direct-typescript-lockfile-integrity-missing');}
+  if(locked.version!==version)fail('direct-typescript-lockfile-version-differs');
+  if(!registryPackage(locked,'typescript',version)||
+    JSON.parse(fs.readFileSync(path.join(tsRoot,'package.json'),'utf8')).name!=='typescript')
+    fail('direct-typescript-lockfile-source-unsupported');
+  if(verify){
+    const tree=treeIdentity(tsRoot);
+    if(!tree||verifiedTrees.get(locked.integrity)!==tree){
+      matchTarball(tsRoot,tarballFiles(cachedTarball(npmCacheDir(root),locked.integrity)));
+      if(tree)verifiedTrees.set(locked.integrity,tree);
+    }
+  }
+  const entry=fs.existsSync(path.join(tsRoot,'lib','_tsc.js'))?'lib/_tsc.js':'lib/tsc.js';
+  return {tsRoot,version,entry:path.join(tsRoot,entry),digest:hash('npm-integrity\0'+locked.integrity)};
 }
 // The direct probe's output: root, script, configuration and program files with
 // their byte digests, and the execution context. A recorded run rebuilds it from
