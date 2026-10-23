@@ -4,7 +4,7 @@
 // choosing what to support next; it records, it does not judge.
 //
 //   node eval/census.mjs --shard 3/20        # repos in eval/census-repos.json
-//   node eval/census.mjs owner/name ...
+//   node eval/census.mjs owner/name ...    # also with --shard
 //   --init-only: skip the scripts; what init makes of each repo is the
 //   progress metric, and running the scripts is what takes long.
 //   --recorded: instead of timing, run the typecheck, lint and test scripts
@@ -24,10 +24,9 @@ const argv = process.argv.slice(2);
 const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : null;
 const initOnly = argv.includes('--init-only'), recorded = argv.includes('--recorded');
 let names = argv.filter((arg, i) => !arg.startsWith('-') && argv[i - 1] !== '--shard');
-if (!names.length) {
-  names = readJson(path.join(evalDir, 'census-repos.json')).repos;
-  if (shardArg) { const [k, n] = shardArg.split('/').map(Number); names = names.filter((_, i) => i % n === k - 1); }
-}
+if (!names.length) names = readJson(path.join(evalDir, 'census-repos.json')).repos;
+// Named repos are sharded too, so CI can rerun a list across its shards.
+if (shardArg) { const [k, n] = shardArg.split('/').map(Number); names = names.filter((_, i) => i % n === k - 1); }
 const env = harnessEnv({COREPACK_ENABLE_DOWNLOAD_PROMPT: '0', COREPACK_ENABLE_STRICT: '0', HUSKY: '0',
   NEXT_TELEMETRY_DISABLED: '1', TURBO_TELEMETRY_DISABLED: '1', NX_DAEMON: 'false', NX_NO_CLOUD: 'true', NX_TUI: 'false'});
 const run = (cmd, args, cwd, timeout) => sh(cmd, args, {cwd, env, timeout});
