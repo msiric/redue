@@ -6,8 +6,10 @@ import {spawnSync} from 'node:child_process';
 import {findExecutable} from '../../src/executable-lookup.mjs';
 import {windowsLaunch} from '../../src/windows-command.mjs';
 const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!/^npm_config_/i.test(key)));
+// The limit only catches a hang: test/direct-typescript.test.mjs alone takes
+// over 3 min on the Windows runner since alpha.18's chain tests.
 function run(argv){const launch=windowsLaunch(argv),r=spawnSync(launch.file,launch.args,
-  {...launch.options,env,encoding:'utf8',timeout:180000,maxBuffer:8*1024*1024});
+  {...launch.options,env,encoding:'utf8',timeout:360000,maxBuffer:8*1024*1024});
   process.stdout.write(r.stdout||'');process.stderr.write(r.stderr||'');
   assert.equal(r.status,0,r.error?.message);return r.stdout;}
 assert.equal(run([findExecutable('npm'),'--version']).trim(),'10.9.2');
