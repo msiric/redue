@@ -7,6 +7,9 @@
 //   node eval/census.mjs owner/name ...
 //   --init-only: skip the scripts; what init makes of each repo is the
 //   progress metric, and running the scripts is what takes long.
+//   --recorded: instead of timing, run the typecheck, lint and test scripts
+//   twice each under REDUE's run recorder through the package manager
+//   (eval/recorded-run.mjs), for a general Node-script recipe.
 //
 // Clones the default branch, installs with the repo's package manager
 // (through Corepack, install scripts skipped), runs `init --dry-run --json`
@@ -15,10 +18,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {checkoutRedue, evalDir, harnessEnv, localDir, readJson, sh, slug, stamp, tmpRoot} from './lib.mjs';
+import {analyzeRun, compareRuns, hasStrace, recordedRun, snapshot} from './recorded-run.mjs';
 
 const argv = process.argv.slice(2);
 const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : null;
-const initOnly = argv.includes('--init-only');
+const initOnly = argv.includes('--init-only'), recorded = argv.includes('--recorded');
 let names = argv.filter((arg, i) => !arg.startsWith('-') && argv[i - 1] !== '--shard');
 if (!names.length) {
   names = readJson(path.join(evalDir, 'census-repos.json')).repos;
@@ -73,6 +77,36 @@ function timeScript(dir, pm, name, timeout) {
   return {ms: r.ms, pass: r.status === 0, timedOut: r.signal === 'SIGTERM', cached: cached(r.stdout + r.stderr), tail: r.status === 0 ? undefined : tail(r, 300)};
 }
 
+// Each picked typecheck, lint and test script, run twice under the recorder
+// through the project's package manager, with update notifications off.
+function recordScripts(dir, pm, row) {
+  const out = {strace: hasStrace};
+  for (const kind of ['typecheck', 'lint', 'test']) {
+    const script = row.scripts[kind];
+    if (!script) continue;
+    if (!row.install.pass) { out[kind] = {script: script.name, notRun: 'install failed'}; continue; }
+    if (!['npm', 'pnpm', 'yarn'].includes(pm.name)) { out[kind] = {script: script.name, notRun: `package manager ${pm.name}`}; continue; }
+    const argv = pm.name === 'npm' ? ['npm', 'run', script.name] : ['corepack', pm.name, 'run', script.name];
+    const runEnv = {...env, npm_config_update_notifier: 'false'};
+    const runs = [];
+    let before = snapshot(dir);
+    for (const n of [1, 2]) {
+      const result = recordedRun({root: dir, argv, env: runEnv, timeout: 600_000, label: `${kind}${n}`});
+      const after = snapshot(dir, before);
+      runs.push({...result, ...analyzeRun(result, {root: dir, before, after})});
+      before = after;
+    }
+    const verdict = compareRuns(runs[0], runs[1]);
+    out[kind] = {script: script.name, text: script.text, pass: runs.map(r => r.status === 0), timedOut: runs.some(r => r.timedOut),
+      ms: runs.map(r => r.ms), reasons: verdict.reasons, qualifies: verdict.reasons.length === 0 && !runs.some(r => r.timedOut),
+      shellCommands: runs[0].shellCommands, shellStatic: runs.every(r => r.shellStatic), envReads: runs[0].envReads,
+      outputs: runs[0].outputs.size, tail: runs.find(r => r.tail)?.tail, earlierOutputs: verdict.earlierOutputs,
+      examples: runs.map(r => r.examples)};
+    console.error(`  ${kind} ${script.name}: ${out[kind].qualifies ? 'QUALIFIES' : out[kind].reasons.join('; ') || 'timeout'}`);
+  }
+  return out;
+}
+
 function census(name) {
   const row = {name, started: new Date().toISOString()};
   const dir = path.join(tmpRoot, 'census', slug(name));
@@ -98,10 +132,11 @@ function census(name) {
     const picked = initPick(kind) ? [initPick(kind), pkg.scripts[initPick(kind)]] : scriptPick[kind](scripts);
     if (!picked) continue;
     row.scripts[kind] = {name: picked[0], text: picked[1]};
-    if (!row.install.pass || initOnly) continue;
+    if (!row.install.pass || initOnly || recorded) continue;
     row.timings[kind] = timeScript(dir, pm, picked[0], timeout);
   }
   if (row.timings.typecheck) row.timings.typecheckAgain = timeScript(dir, pm, row.scripts.typecheck.name, 600_000);
+  if (recorded) row.recorded = recordScripts(dir, pm, row);
   fs.rmSync(dir, {recursive: true, force: true});
   return row;
 }

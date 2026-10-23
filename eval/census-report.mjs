@@ -22,3 +22,28 @@ const count = (words, root) => node.filter(row => ready(row, words).some(check =
 console.log(`repos ${rows.size}, with a root package.json ${node.length}, errors ${node.filter(row => row.error).length}`);
 console.log(`typecheck ready: ${count(typecheck)} (at the root ${count(typecheck, true)})`);
 console.log(`tests ready: ${count(test)} (at the root ${count(test, true)})`);
+
+// `census.mjs --recorded` rows: per check type, how many scripts would qualify
+// for a general recipe (both recorded runs clean, same inputs), and why the
+// rest do not. "Outside file read" is a separate tier: small files outside the
+// checkout that REDUE could keep by content.
+const recordedRows = node.filter(row => row.recorded);
+if (recordedRows.length) {
+  const tier = reason => reason.startsWith('outside file read:');
+  for (const kindName of ['typecheck', 'lint', 'test']) {
+    const all = recordedRows.map(row => [row, row.recorded[kindName]]).filter(([, r]) => r);
+    const ran = all.filter(([, r]) => !r.notRun);
+    const strict = ran.filter(([, r]) => r.qualifies);
+    const facts = ran.filter(([, r]) => !r.timedOut && r.reasons.every(tier));
+    const passing = list => list.filter(([, r]) => r.pass?.every(Boolean)).length;
+    console.log(`\n${kindName}: ${all.length} scripts, ${ran.length} run, qualify ${strict.length} (${passing(strict)} passing)` +
+      `, with small outside files kept by content ${facts.length} (${passing(facts)} passing)`);
+    const counts = new Map();
+    for (const [, r] of ran) for (const reason of new Set([...(r.timedOut ? ['timed out'] : []), ...r.reasons]))
+      counts.set(reason, (counts.get(reason) ?? 0) + 1);
+    for (const [reason, n] of [...counts].sort((a, b) => b[1] - a[1]).slice(0, 15)) console.log(`  ${String(n).padStart(3)}  ${reason}`);
+    const notRun = new Map();
+    for (const [, r] of all.filter(([, r]) => r.notRun)) notRun.set(r.notRun, (notRun.get(r.notRun) ?? 0) + 1);
+    if (notRun.size) console.log(`  not run: ${[...notRun].map(([k, n]) => `${k} ${n}`).join(', ')}`);
+  }
+}

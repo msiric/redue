@@ -78,6 +78,9 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci --no-audit --no-fund
+      - name: strace, for the programs a recorded run executes
+        if: contains(inputs.args, '--recorded')
+        run: sudo apt-get install -y -qq strace
       - env:
           ARGS: ${{ inputs.args }}
         run: node eval/census.mjs --shard ${{ matrix.shard }}/20 $ARGS
