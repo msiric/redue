@@ -49,7 +49,16 @@
       "commit": "4d8f60bd62fbc56b0255d309311e6d3b453d3017",
       "script": "typecheck",
       "test": "npx vitest run",
-      "why": "Single-package pnpm 10 project (Next.js content site) whose test script is `vitest run`; the suite passed in 7 s in the census. Added for alpha.17 to run the tests recipe on a real pnpm install. On a Linux runner pnpm hard-links installed files to its store, so recorded runs are expected to be UNVERIFIED there.",
+      "why": "Single-package pnpm 10 project (Next.js content site) whose test script is `vitest run`. Its suite runs `npx tsx scripts/generate-devto-feed.ts`, which rewrites public/feed-devto.xml and writes an npm log during the run, so every recorded run is UNVERIFIED (inputs changed during execution). Kept as a case that must never skip.",
+      "testScript": "test"
+    },
+    {
+      "name": "hodfords-solutions/nestjs-api-gateway",
+      "url": "https://github.com/hodfords-solutions/nestjs-api-gateway.git",
+      "commit": "a216fe3639cb82dbdc2b32e6dd4710bc80adca0c",
+      "script": "typecheck",
+      "test": "npx vitest run",
+      "why": "Single-package pnpm 12 NestJS library whose test script is `vitest run` (18 spec files, about 4.5 s in the census, no subprocesses or file writes). Added to show pnpm test checks reused on Linux, where pnpm hard-links installed files to its store.",
       "testScript": "test"
     }
   ]

@@ -508,6 +508,31 @@
         }
       ],
       "check": "test"
+    },
+    {
+      "repo": "hodfords-solutions/nestjs-api-gateway",
+      "id": "test-docs-edit",
+      "kind": "docs",
+      "prompt": "README.md doesn't say how to run the tests. Add a short \"## Testing\" section at the end of README.md that says to run `pnpm test` (Vitest unit tests). Before you finish, make sure the unit tests still pass (`pnpm test`).",
+      "expect": [
+        {
+          "file": "README.md",
+          "matches": "## Testing[\\s\\S]*pnpm test"
+        }
+      ],
+      "check": "test"
+    },
+    {
+      "repo": "hodfords-solutions/nestjs-api-gateway",
+      "id": "test-reverify",
+      "kind": "reverify",
+      "prompt": "I pulled some changes and want to know whether the unit tests still pass. Run them (`pnpm test`) and tell me the result. Don't change any files.",
+      "expect": [
+        {
+          "unchanged": true
+        }
+      ],
+      "check": "test"
     }
   ]
 }
