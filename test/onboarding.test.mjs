@@ -185,3 +185,16 @@ test('retired npm probe rejects full and cached-context qualification',()=>{
     assert.equal(r.status,2);assert.equal(r.stdout,'');assert.match(r.stderr,/npm-launcher-unobserved-inputs/);
   }
 });
+test('synchronized status answers for a config with many checks',t=>{
+  const {root,state,config}=project(t);
+  // Each check's context digests travel in the sync request: about 1.5 KB
+  // for a check with a full environment declaration.
+  const environment={variables:Array.from({length:12},(_,i)=>`REDUE_FIXTURE_${i}`),prefixes:['npm_config_','PNPM_','YARN_'],executableIdentity:true};
+  fs.writeFileSync(config,JSON.stringify({schema:1,packageManager:'npm',checks:Array.from({length:8},(_,i)=>
+    ({name:`check-${i}`,kind:'lint',command:[process.execPath,'-e','0'],inputs:['src/**'],environment}))}));
+  good(root,state,'start');
+  const value=sync(root,state);
+  assert.equal(value.observation.healthy,true,value.observation.reason);
+  assert.equal(value.checks.length,8);
+  good(root,state,'stop');
+});

@@ -1217,7 +1217,9 @@ const server=net.createServer(client=>{
     event('control_reply_unavailable',{classification:handled?'closed_without_reply':
       'closed_before_request',request_bytes:text.length});});
   client.on('data',d=>{
-    if(handled)return;text+=d;if(text.length>4096){event('control_request_rejected',
+    // A sync request carries each check's context digests, about 1.5 KB per
+    // check; 1 MiB leaves room for hundreds of checks.
+    if(handled)return;text+=d;if(text.length>1024*1024){event('control_request_rejected',
       {classification:'request_too_large',request_bytes:text.length});client.destroy();return;}
     if(!text.includes('\n'))return;handled=true;
     try{const message=JSON.parse(text);
