@@ -13,7 +13,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
-import {testRecorder} from '../src/test-direct.mjs';
+import {runnerDataDirectories, testRecorder} from '../src/test-direct.mjs';
 
 const sha = value => createHash('sha256').update(value).digest('hex');
 export const hasStrace = process.platform === 'linux' && spawnSync('strace', ['-V']).status === 0;
@@ -129,15 +129,24 @@ function staticallyNode(command, root, binDirs) {
   return true;
 }
 
-// Outside-the-checkout paths by who owns them.
-function outsideKind(file, {nodePrefix, home}) {
+// Outside-the-checkout paths by who owns them. Toolchain, package-manager
+// state, OS and runner caches are not inputs; the rest are.
+const cacheNames = /^(tsx-\d+|v8-compile-cache(-\d+)?|jiti|node-jiti|jest_\w+|vitest|vite|babel|ts-node|\.cache)(\/|$)/;
+export const ignoredOutside = new Set(['toolchain', 'package-manager state', 'os', 'runner cache']);
+function outsideKind(file, {nodePrefix, home, tmp, env}) {
   const under = dir => file === dir || file.startsWith(dir + path.sep);
-  if (under(nodePrefix) || under(path.join(home, '.cache', 'node', 'corepack')) || process.env.COREPACK_HOME && under(process.env.COREPACK_HOME)) return 'toolchain';
+  if (under(nodePrefix) || under(path.join(home, '.cache', 'node', 'corepack')) || env.COREPACK_HOME && under(env.COREPACK_HOME)) return 'toolchain';
   if (['.npm', '.local/state/pnpm', '.cache/pnpm', '.local/share/pnpm', '.yarn', '.cache/yarn', '.yarn-cache', 'Library/pnpm', 'Library/Caches/Yarn', 'Library/Caches/pnpm']
     .some(dir => under(path.join(home, dir)))) return 'package-manager state';
   if (/^\/(proc|sys|dev)\//.test(file)) return 'os';
+  if (runnerDataDirectories(env).some(under) || under(path.join(home, '.cache'))) return 'runner cache';
+  for (const dir of tmp) if (under(dir)) {
+    if (cacheNames.test(path.relative(dir, file))) return 'runner cache';
+    return env.RUNNER_TEMP && under(env.RUNNER_TEMP) ? 'ci' : 'temp';
+  }
+  if (env.RUNNER_TEMP && under(env.RUNNER_TEMP)) return 'ci';
   if (under(home) && /^\.(npmrc|yarnrc(\.yml)?|config)/.test(path.relative(home, file))) return 'user config';
-  if (under('/etc')) return 'system config';
+  if (['/etc', '/usr', '/lib', '/lib64', '/bin', '/sbin', '/opt'].some(under)) return 'system';
   return 'other';
 }
 
@@ -147,7 +156,7 @@ export function recordedRun({root, argv, env, timeout, label}) {
   fs.mkdirSync(records);
   const dirs = modulesDirs(root), tmp = [...new Set([path.resolve(os.tmpdir()), fs.realpathSync(os.tmpdir())])];
   const guard = path.join(work, 'guard.json');
-  fs.writeFileSync(guard, JSON.stringify({schema: 1, dir: records, root, tmp, installed: dirs, runnerData: [],
+  fs.writeFileSync(guard, JSON.stringify({schema: 1, dir: records, root, tmp, installed: dirs, runnerData: runnerDataDirectories(env),
     env: Object.fromEntries(Object.entries(env).map(([key, value]) => [key, sha(value)]))}));
   const preload = `--require "${testRecorder}"`;
   const runEnv = {...env, NODE_OPTIONS: env.NODE_OPTIONS ? `${env.NODE_OPTIONS} ${preload}` : preload, REDUE_RUN_RECORD: guard};
@@ -172,9 +181,10 @@ export function recordedRun({root, argv, env, timeout, label}) {
 
 // What stops one run from qualifying, as reasons (empty: clean), plus facts
 // the cross-run comparison needs.
-export function analyzeRun(run, {root, before, after}) {
+export function analyzeRun(run, {root, before, after, env = process.env}) {
   const reasons = [], add = reason => { if (!reasons.includes(reason)) reasons.push(reason); };
   const nodePrefix = path.dirname(path.dirname(fs.realpathSync(process.execPath))), home = os.homedir();
+  const tmp = [...new Set([path.resolve(os.tmpdir()), fs.realpathSync(os.tmpdir())])];
   const reads = new Set(), produced = new Set(), made = [], outside = {}, headers = [];
   let envReads = 0;
   for (const rows of run.rows) {
@@ -187,11 +197,11 @@ export function analyzeRun(run, {root, before, after}) {
       else if (kind === 'M') { const rel = path.relative(root, value[0]).split(path.sep).join('/'); if (!rel.startsWith('..')) made.push(rel); }
       else if (kind === 'E') envReads++;
       else if (kind === 'O') {
-        const [question, file, answer] = value, where = outsideKind(file, {nodePrefix, home});
-        if (where === 'toolchain' || where === 'package-manager state' || where === 'os') continue;
+        const [question, file, answer] = value, where = outsideKind(file, {nodePrefix, home, tmp, env});
+        if (ignoredOutside.has(where)) continue;
         // A missing path, a kind or a link resolution is a re-checkable fact;
         // a small read is kept by content; a listing or a large read is not.
-        const fact = answer === null || question === 'stat' || question === 'realpath' ? 'lookup' :
+        const fact = answer === null || answer === 'error' || question === 'stat' || question === 'realpath' ? 'lookup' :
           question === 'read' && typeof answer?.content === 'string' ? 'content' : 'unrecordable';
         (outside[fact] ??= new Set()).add(`${where}\t${question}\t${file}`);
       }
@@ -244,6 +254,7 @@ export function analyzeRun(run, {root, before, after}) {
   const installed = run.installedChanged.filter(rel => !cachePath(rel));
   if (installed.length) add('changes installed packages');
   return {reasons, reads, outputs, produced, envReads, shellCommands: shellCommands.length, shellStatic,
+    outsidePaths: Object.entries(outside).flatMap(([tier, set]) => [...set].map(item => `${tier}\t${item}`)).slice(0, 300),
     examples: {programs: others, unexplained: unexplained.slice(0, 5), installed: installed.slice(0, 5),
       outside: Object.fromEntries(Object.entries(outside).map(([k, v]) => [k, [...v].slice(0, 8).map(item => item.split('\t').join(' '))]))}};
 }

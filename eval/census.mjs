@@ -92,7 +92,7 @@ function recordScripts(dir, pm, row) {
     for (const n of [1, 2]) {
       const result = recordedRun({root: dir, argv, env: runEnv, timeout: 600_000, label: `${kind}${n}`});
       const after = snapshot(dir, before);
-      runs.push({...result, ...analyzeRun(result, {root: dir, before, after})});
+      runs.push({...result, ...analyzeRun(result, {root: dir, before, after, env: runEnv})});
       before = after;
     }
     const verdict = compareRuns(runs[0], runs[1]);
@@ -100,7 +100,7 @@ function recordScripts(dir, pm, row) {
       ms: runs.map(r => r.ms), reasons: verdict.reasons, qualifies: verdict.reasons.length === 0 && !runs.some(r => r.timedOut),
       shellCommands: runs[0].shellCommands, shellStatic: runs.every(r => r.shellStatic), envReads: runs[0].envReads,
       outputs: runs[0].outputs.size, tail: runs.find(r => r.tail)?.tail, earlierOutputs: verdict.earlierOutputs,
-      examples: runs.map(r => r.examples)};
+      examples: runs.map(r => r.examples), outsidePaths: runs.map(r => r.outsidePaths)};
     console.error(`  ${kind} ${script.name}: ${out[kind].qualifies ? 'QUALIFIES' : out[kind].reasons.join('; ') || 'timeout'}`);
   }
   return out;
