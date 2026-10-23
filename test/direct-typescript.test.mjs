@@ -288,6 +288,9 @@ test('direct recipe: tsc forms in any order, one check per chained run, a propos
   ({value}=preview({typecheck:'tsc --noEmit && tsc --noEmit -p tsconfig.app.json'}));
   assert.deepEqual(value.checks.filter(c=>c.name.startsWith('typecheck')).map(c=>[c.name,c.level,c.script,c.command.slice(2)]),
     [['typecheck.1','ready','typecheck',['--noEmit']],['typecheck.2','ready','typecheck',['--noEmit','-p','tsconfig.app.json']]]);
+  // Found by its command: a lone plain tsc --noEmit beats other tsc shapes.
+  ({value}=preview({typescript:'tsc --noEmit','typescript:mcp':'tsc -p tsconfig.app.json --noEmit','typescript:tests:raw':'tsc -p tsconfig.app.json --noEmit --pretty false'}));
+  assert.equal(value.checks[0].script,'typescript');assert.equal(value.checks[0].level,'ready');
   ({value}=preview({test:'vitest run'}));
   const proposed=value.checks.find(c=>c.name==='typecheck');
   assert.equal(proposed.level,'ready');assert.equal(proposed.script,null);

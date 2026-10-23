@@ -167,6 +167,10 @@ function selectScript(kind,names,scripts) {
     if(kind==='lint')return /^eslint(?:\s|$)/.test(value);
     return /^vite\s+build(?:\s|$)/.test(value);
   });
+  // A lone plain `tsc --noEmit` wins over other tsc shapes beside it (a
+  // project's `typescript` next to `typescript:tests:raw`).
+  const exact=kind==='typecheck'?candidates.filter(name=>exactTypeScript(scripts[name])):[];
+  if(exact.length===1)return {script:exact[0]};
   return candidates.length===1?{script:candidates[0]}:
     candidates.length>1?{ambiguous:candidates}:{};
 }
