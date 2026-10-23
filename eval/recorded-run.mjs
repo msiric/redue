@@ -20,7 +20,7 @@ export const hasStrace = process.platform === 'linux' && spawnSync('strace', ['-
 
 // Runner and package-manager caches: written by honest tools keyed on their
 // own inputs, so they are not inputs of the check.
-export const cachePath = rel => /(^|\/)(\.cache|\.vite|\.vitest|\.turbo|\.nx|\.swc|\.jest-cache|\.parcel-cache|\.angular\/cache|\.next\/cache|\.tmp)(\/|$)|\.tsbuildinfo$|(^|\/)\.(eslint|stylelint|prettier)cache$/.test(rel);
+export const cachePath = rel => /(^|\/)(\.cache|\.vite|\.vitest|\.vitest-cache|\.turbo|\.nx|\.swc|\.jest-cache|\.parcel-cache|\.angular\/cache|\.next\/cache|\.tmp)(\/|$)|\.tsbuildinfo$|^node_modules\/\.pnpm-workspace-state[^/]*$|(^|\/)\.(eslint|stylelint|prettier)cache$/.test(rel);
 
 // Every node_modules directory in the checkout, not descending into them.
 export function modulesDirs(root) {
@@ -240,12 +240,12 @@ export function analyzeRun(run, {root, before, after, env = process.env}) {
   const shellStatic = shellCommands.every(command => staticallyNode(command, root, binDirs));
   // Checkout changes: recorded outputs, caches, or unexplained.
   const inMade = rel => made.some(dir => rel === dir || rel.startsWith(dir + '/'));
-  const outputs = new Set(), unexplained = [];
+  const outputs = new Set(), unexplained = [], rewritten = [];
   for (const [rel, how] of changes(before, after)) {
     if (cachePath(rel)) continue;
     if (how !== 'deleted' && (produced.has(rel) || inMade(rel))) {
       outputs.add(rel);
-      if (reads.has(rel) && !inMade(rel)) add('rewrites a file it reads');
+      if (reads.has(rel) && !inMade(rel)) { add('rewrites a file it reads'); rewritten.push(rel); }
       continue;
     }
     unexplained.push([rel, how]);
@@ -255,7 +255,7 @@ export function analyzeRun(run, {root, before, after, env = process.env}) {
   if (installed.length) add('changes installed packages');
   return {reasons, reads, outputs, produced, envReads, shellCommands: shellCommands.length, shellStatic,
     outsidePaths: Object.entries(outside).flatMap(([tier, set]) => [...set].map(item => `${tier}\t${item}`)).slice(0, 300),
-    examples: {programs: others, unexplained: unexplained.slice(0, 5), installed: installed.slice(0, 5),
+    examples: {programs: others, rewritten: rewritten.slice(0, 5), unexplained: unexplained.slice(0, 5), installed: installed.slice(0, 5),
       outside: Object.fromEntries(Object.entries(outside).map(([k, v]) => [k, [...v].slice(0, 8).map(item => item.split('\t').join(' '))]))}};
 }
 
