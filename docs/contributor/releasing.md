@@ -24,6 +24,8 @@ A registry 404 does not establish scope ownership or guarantee publication.
    It audits dependencies and packs once. All three OS jobs install the identical
    artifact selected from `npm pack --json`, verifying its checksum and exercising
    the real `redue` binary, freshness workflow, restart and scoped cleanup.
+   It also runs the direct-recipe suite against TypeScript 5.0–5.8
+   (typescript-versions.yml, which otherwise runs weekly).
 5. Download `exact-release-candidate` into a separately owned local candidate
    directory. Retain its `manifest.json`, `SHA256SUMS` and reported tarball. The
    optional **Prepare alpha package** workflow does not replace the three-OS gate.
