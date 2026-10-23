@@ -312,7 +312,7 @@ test('direct chain parts and a proposed check run and stay CURRENT; a changed ch
   good(root,state,'start');
   good(root,state,'run','typecheck.1');good(root,state,'run','typecheck.2');
   const row=name=>sync(root,state).checks.find(c=>c.name===name);
-  assert.equal(row('typecheck.1').freshness,'CURRENT');assert.equal(row('typecheck.2').freshness,'CURRENT');
+  for(const name of ['typecheck.1','typecheck.2']){const item=row(name);assert.equal(item.freshness,'CURRENT',`${name}: ${item.reason}`);}
   put(path.join(root,'src/main.ts'),'export const value: number = 2;\n');
   assert.equal(row('typecheck.2').freshness,'STALE');
   good(root,state,'run','typecheck.2');assert.equal(row('typecheck.2').freshness,'CURRENT');

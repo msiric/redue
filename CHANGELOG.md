@@ -48,9 +48,10 @@
   CI runs the direct contract suite against 5.0.4, 5.1.6, 5.2.2, 5.3.3, 5.4.5,
   5.5.4, 5.7.3 and 5.8.3.
 
-- Contributors: `npm test` runs four test files at a time and takes about
-  6 minutes on the owner's Mac (was 19.6, one file at a time). The two
-  TypeScript 6 fixture suites are separate files so they run side by side.
+- Contributors: `npm test` runs up to four test files at a time, keeping two
+  cores free (a 3-core CI macOS runner runs one at a time), and takes about
+  6 minutes on the owner's Mac (was 19.6). The two TypeScript 6 fixture
+  suites are separate files so they run side by side.
 
 ## 0.1.0-alpha.17 — 2026-10-22
 

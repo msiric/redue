@@ -22,7 +22,8 @@ export function runFixtureSuite(version){
   const r=spawnSync(process.execPath,['--test','--test-reporter=tap','--test-concurrency=1',
    ...selection,file],{
    env:{...Object.fromEntries(Object.entries(process.env).filter(([key])=>!['NODE_TEST_CONTEXT','NODE_TEST_WORKER_ID'].includes(key))),REDUE_TEST_COMPILER_PACKAGE:compiler},
-   encoding:'utf8',timeout:process.platform==='win32'?300000:180000,maxBuffer:8e6});
+   // Twice as long while other test files run beside this one (run-suite.mjs).
+  encoding:'utf8',timeout:(process.platform==='win32'?300000:180000)*(Number(process.env.REDUE_TEST_CONCURRENCY)>1?2:1),maxBuffer:8e6});
   assert.equal(r.status,0,`${file} ${selection.join(' ')||'all'}: ${r.error?.code||r.signal||''}\n${r.stdout}${r.stderr}`);
   assert.match(r.stdout,/# tests [1-9][0-9]*/,'nested suite must actually execute');
  }
