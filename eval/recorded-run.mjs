@@ -68,17 +68,44 @@ function installedChanges(root, dirs, marker) {
   return (out.stdout || '').split('\n').filter(Boolean).map(file => path.relative(root, file).split(path.sep).join('/'));
 }
 
-// Final program image per process, from `strace -f -e trace=execve`.
+// Final program image per process, and the process that started it, from
+// `strace -f -e trace=execve,clone,clone3,fork,vfork`. A thread's clones
+// count for its process.
 function programs(file) {
-  const byPid = new Map();
   let text = ''; try { text = fs.readFileSync(file, 'utf8'); } catch { return null; }
-  for (const line of text.split('\n')) {
-    const match = /^(\d+)\s+execve\("((?:[^"\\]|\\.)*)", \[(.*)\], .*\) = 0$/.exec(line);
-    if (!match) continue;
-    const argv = [...match[3].matchAll(/"((?:[^"\\]|\\.)*)"/g)].map(m => JSON.parse(`"${m[1].replace(/\\x([0-9a-f]{2})/gi, '\\u00$1')}"`));
-    byPid.set(match[1], {file: match[2], argv});
+  // strace splits a call another process interrupted into two lines, and a
+  // child's first line can come before its parent's clone returns.
+  const pending = new Map(), lines = [];
+  for (let line of text.split('\n')) {
+    const pid = /^(\d+)\s/.exec(line)?.[1];
+    if (!pid) continue;
+    if (line.endsWith('<unfinished ...>')) { pending.set(pid, line.slice(0, -'<unfinished ...>'.length)); continue; }
+    const resumed = /^\d+\s+<\.\.\. \w+ resumed>(.*)$/.exec(line);
+    if (resumed) { line = (pending.get(pid) ?? `${pid} ?(`) + resumed[1]; pending.delete(pid); }
+    lines.push(line);
   }
-  return [...byPid.values()];
+  const parentOf = new Map(), processOf = new Map();
+  for (const line of lines) {
+    const fork = /^(\d+)\s+(clone3?|v?fork)\(.*= (\d+)$/.exec(line);
+    if (fork) (/CLONE_THREAD/.test(line) ? processOf : parentOf).set(fork[3], fork[1]);
+  }
+  const owner = pid => processOf.has(pid) ? owner(processOf.get(pid)) : pid;
+  // Each process runs its parent's image until it execs.
+  const current = new Map(), last = new Map();
+  const imageOf = pid => current.get(pid) ?? (parentOf.has(pid) ? imageOf(owner(parentOf.get(pid))) : null);
+  for (const line of lines) {
+    const exec = /^(\d+)\s+execve\("((?:[^"\\]|\\.)*)", \[(.*?)\], .*\)\s*= 0$/.exec(line);
+    if (!exec) continue;
+    const pid = owner(exec[1]);
+    const argv = [...exec[3].matchAll(/"((?:[^"\\]|\\.)*)"/g)].map(m => { try { return JSON.parse(`"${m[1].replace(/\\x([0-9a-f]{2})/gi, '\\u00$1')}"`); } catch { return m[1]; } });
+    const from = last.get(pid)?.parent ?? (parentOf.has(pid) ? imageOf(owner(parentOf.get(pid))) : null);
+    const program = {file: exec[2], argv, parent: from ? {file: from.file, argv: from.argv} : null};
+    current.set(pid, program);
+    // The final image per process: a shebang script, then the interpreter
+    // it execs, counts as the interpreter.
+    last.set(pid, program);
+  }
+  return [...last.values()];
 }
 
 const shells = new Set(['sh', 'bash', 'dash', 'zsh']);
@@ -127,7 +154,7 @@ export function recordedRun({root, argv, env, timeout, label}) {
   const marker = path.join(work, 'marker');
   fs.writeFileSync(marker, '');
   const trace = path.join(work, 'strace');
-  const [cmd, args] = hasStrace ? ['strace', ['-f', '-qq', '-s', '4096', '-e', 'trace=execve', '-o', trace, ...argv]] : [argv[0], argv.slice(1)];
+  const [cmd, args] = hasStrace ? ['strace', ['-f', '-qq', '-s', '4096', '-e', 'trace=execve,clone,clone3,fork,vfork', '-o', trace, ...argv]] : [argv[0], argv.slice(1)];
   const started = performance.now();
   const out = spawnSync(cmd, args, {cwd: root, env: runEnv, timeout, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024});
   const ms = Math.round(performance.now() - started);
@@ -176,6 +203,7 @@ export function analyzeRun(run, {root, before, after}) {
   for (const item of outside.content ?? []) add(`outside file read: ${item.split('\t')[0]}`);
   // Programs other than Node and shells; Node processes without the recorder.
   let shellCommands = [];
+  const others = [];
   if (run.programs) {
     for (const program of run.programs) {
       const base = path.basename(program.file);
@@ -183,6 +211,10 @@ export function analyzeRun(run, {root, before, after}) {
       if (shells.has(base)) { const at = program.argv.indexOf('-c'); if (at >= 0) shellCommands.push(program.argv[at + 1]); continue; }
       if (base === 'strace') continue;
       add(`runs ${base}`);
+      const short = argv => argv.join(' ').slice(0, 160);
+      if (others.length < 25 && !others.some(o => o.program === base && o.parent === (program.parent ? path.basename(program.parent.file) : null)))
+        others.push({program: base, argv: short(program.argv), parent: program.parent ? path.basename(program.parent.file) : null,
+          parentArgv: program.parent ? short(program.parent.argv) : null});
     }
     const nodeCount = run.programs.filter(p => /^node(js)?$/.test(path.basename(p.file))).length;
     if (headers.filter(h => h.threadId === 0).length < nodeCount) add('a Node process did not load the recorder');
@@ -212,7 +244,7 @@ export function analyzeRun(run, {root, before, after}) {
   const installed = run.installedChanged.filter(rel => !cachePath(rel));
   if (installed.length) add('changes installed packages');
   return {reasons, reads, outputs, produced, envReads, shellCommands: shellCommands.length, shellStatic,
-    examples: {unexplained: unexplained.slice(0, 5), installed: installed.slice(0, 5),
+    examples: {programs: others, unexplained: unexplained.slice(0, 5), installed: installed.slice(0, 5),
       outside: Object.fromEntries(Object.entries(outside).map(([k, v]) => [k, [...v].slice(0, 8).map(item => item.split('\t').join(' '))]))}};
 }
 

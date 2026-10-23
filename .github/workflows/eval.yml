@@ -1,7 +1,7 @@
 name: Agent A/B eval (manual)
 # Runs eval/screen.mjs or eval/run.mjs on a Linux runner and uploads
 # .local/eval/ as an artifact. `census` runs eval/census.mjs over
-# eval/census-repos.json in 20 parallel shards. Sessions authenticate with the
+# eval/census-repos.json in 40 shards. Sessions authenticate with the
 # CLAUDE_CODE_OAUTH_TOKEN repository secret (from `claude setup-token`).
 on:
   workflow_dispatch:
@@ -71,7 +71,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+                21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -83,7 +84,7 @@ jobs:
         run: sudo apt-get install -y -qq strace
       - env:
           ARGS: ${{ inputs.args }}
-        run: node eval/census.mjs --shard ${{ matrix.shard }}/20 $ARGS
+        run: node eval/census.mjs --shard ${{ matrix.shard }}/40 $ARGS
       - uses: actions/upload-artifact@v4
         if: always()
         with:
