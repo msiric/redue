@@ -109,6 +109,7 @@ function project(t){
   const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-hook-')),root=fs.realpathSync(base);
   t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
   put(path.join(root,'redue.config.json'),JSON.stringify(direct));
+  put(path.join(root,'package.json'),JSON.stringify({scripts:{typecheck:'tsc --noEmit'}}));
   put(path.join(root,'.redue/agents/claude.json'),JSON.stringify({schema:1,host:'claude',config:'redue.config.json'}));
   // A stand-in for bin/redue.mjs: records each call, then behaves as told.
   const fake=(name,body)=>{const file=path.join(root,'fake',name+'.mjs');
@@ -305,7 +306,8 @@ test('workspace checks match their package-manager forms from the root and their
   const pnpm={schema:1,packageManager:'pnpm',checks:[{name:'@acme/web:typecheck',kind:'typecheck',workspace:'@acme/web',
     qualification:'pnpm-tsc-v1',script:'typecheck',cwd:'packages/web',command:['@node','@typescript-bin:packages/web','--noEmit'],
     inputs:['package.json','pnpm-lock.yaml','packages/web/package.json','packages/web/src/**']}]};
-  assert.deepEqual(hookForms(pnpm),[{check:'@acme/web:typecheck',kind:'typecheck',dir:'packages/web',
+  const shape=rows=>rows.map(({check,kind,dir,forms,local})=>({check,kind,dir,forms,local}));
+  assert.deepEqual(shape(hookForms(pnpm)),[{check:'@acme/web:typecheck',kind:'typecheck',dir:'packages/web',
     forms:['redue run @acme/web:typecheck','pnpm --filter @acme/web typecheck','pnpm --filter @acme/web run typecheck',
       'pnpm --filter=@acme/web typecheck','pnpm --filter=@acme/web run typecheck','pnpm -F @acme/web typecheck','pnpm -F @acme/web run typecheck'],
     local:['pnpm typecheck','pnpm run typecheck','npx tsc --noEmit','pnpm exec tsc --noEmit']}]);
@@ -461,4 +463,44 @@ test('start and status meeting on fresh state: start still starts the observer',
   t.after(()=>{for(const p of projects){spawnSync(process.execPath,[bin,'remove-state'],{cwd:p.root,env,timeout:30000});fs.rmSync(p.base,{recursive:true,force:true});}});
   const results=await Promise.all(projects.map(async p=>{const [start]=await Promise.all([run(p.root,'start'),run(p.root,'status','--json'),run(p.root,'status','--json')]);return start;}));
   for(const result of results)assert.equal(result.code,0,result.err);
+});
+
+test('a script chain: each run keeps its own forms; the script skips only when every run is CURRENT, else runs the rest',async t=>{
+  const part=(i,args)=>({name:`typecheck.${i}`,kind:'typecheck',script:'typecheck',cwd:'.',
+    command:['@node','@typescript-compiler:.',...args],qualification:'npm-typescript-direct-v1'});
+  const chain={schema:1,packageManager:'npm',checks:[part(1,['--noEmit']),part(2,['--noEmit','-p','tsconfig.app.json'])]};
+  assert.deepEqual(hookForms(chain).map(row=>[row.check,row.checks??null,row.part??false,row.forms]),[
+    ['typecheck.1',null,true,['redue run typecheck.1','npx tsc --noEmit']],
+    ['typecheck.2',null,true,['redue run typecheck.2','npx tsc --noEmit -p tsconfig.app.json']],
+    ['typecheck',['typecheck.1','typecheck.2'],false,['npm run typecheck']]]);
+  assert.equal(matchCheck('npm run typecheck 2>&1',chain),'typecheck.1 && typecheck.2');
+  assert.equal(matchCheck('npx tsc --noEmit -p tsconfig.app.json',chain),'typecheck.2');
+  assert.equal(recordedCommand('npm run typecheck 2>&1 | tail -n 5',['typecheck.1','typecheck.2']),
+    '(redue run typecheck.1 && redue run typecheck.2) 2>&1 | tail -n 5');
+  assert.equal(recordedCommand('npm run typecheck',['typecheck.2']),'redue run typecheck.2');
+  const p=project(t);put(path.join(p.root,'redue.config.json'),JSON.stringify(chain));
+  const scripts=value=>put(path.join(p.root,'package.json'),JSON.stringify({scripts:{typecheck:value}}));
+  scripts('tsc --noEmit -p tsconfig.app.json && tsc --noEmit');
+  const row=(name,extra={})=>({name,freshness:'CURRENT',result:'PASS',reuse_eligible:true,invocation:{runId},reason:'declared inputs match',...extra});
+  const answer=rows=>({schema:1,observation:{healthy:true},checks:rows});
+  const hook=async(name,rows)=>(await claudeHook(bash('npm run typecheck',p.root),{entry:p.fake(name,replying(answer(rows)))}))?.hookSpecificOutput??null;
+  let out=await hook('both',[row('typecheck.1'),row('typecheck.2')]);
+  assert.equal(out.permissionDecision,'deny');assert.match(out.permissionDecisionReason,/all 2 checks/);
+  out=await hook('one',[row('typecheck.1'),row('typecheck.2',{freshness:'STALE'})]);
+  assert.equal(out.permissionDecision,'allow');assert.equal(out.updatedInput.command,'redue run typecheck.2');
+  // The script's order, not the config's.
+  out=await hook('none',[row('typecheck.1',{result:'FAIL'}),row('typecheck.2',{freshness:'STALE'})]);
+  assert.equal(out.updatedInput.command,'redue run typecheck.2 && redue run typecheck.1');
+  // The script gained a run, lost one, or has a pre script: the command runs as typed.
+  for(const value of ['tsc --noEmit && tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p b.json','tsc --noEmit','tsc --noEmit && eslint .']){
+    scripts(value);assert.equal(await hook('changed',[row('typecheck.1'),row('typecheck.2')]),null,value);}
+  put(path.join(p.root,'package.json'),JSON.stringify({scripts:{typecheck:'tsc --noEmit && tsc --noEmit -p tsconfig.app.json',pretypecheck:'node x.js'}}));
+  assert.equal(await hook('pre',[row('typecheck.1'),row('typecheck.2')]),null);
+  // One check for a script that now has two runs: never skipped for one of them.
+  const single={...chain,checks:[{...chain.checks[0],name:'typecheck'}]};
+  put(path.join(p.root,'redue.config.json'),JSON.stringify(single));
+  scripts('tsc --noEmit && tsc --noEmit -p tsconfig.app.json');
+  assert.equal(await hook('single',[row('typecheck')]),null);
+  scripts('tsc --noEmit');
+  assert.equal((await hook('single-ok',[row('typecheck')])).permissionDecision,'deny');
 });

@@ -18,7 +18,9 @@ matches are reported as ambiguous rather than guessed. It never creates a new
 project script. Automatic npm-launcher applicability was withdrawn in alpha.4;
 ordinary npm scripts remain recording-only. See the [maintainer notice](npm-launcher-notice.md).
 The direct recipe is opt-in, available since alpha.5. The opt-in `init --recipe typescript-direct` supports
-a standalone `tsc --noEmit` script in a single-package npm installation using
+a typecheck script of `tsc --noEmit` runs in any argument order, chained runs,
+or no typecheck script at all (a proposed `tsc --noEmit`; see
+[script forms](direct-typescript.md#script-forms)), in a single-package npm installation using
 reviewed TypeScript 5.5.2/5.6.3/5.9.3/6.0.2/6.0.3 and Node 22/24. It executes the local compiler,
 not npm. Full installed compiler identity, config/membership, installed inputs
 and relevant Node environment are checked before reuse. See the
@@ -62,9 +64,14 @@ the installed one. Only the project's files are read: settings from a user or
 global rc file, or `npm_config_*` variables during install, are not. The
 supported local layouts are pnpm's standard isolated and hoisted
 `node_modules` with a project-local `.pnpm` virtual store. `init` can discover
-root and workspace scripts. For a standalone `tsc --noEmit` or `tsc -p ...`
-script in the narrow TypeScript contract, it records the exact installed
-compiler invocation directly. This avoids pnpm's task-run bookkeeping
+root and workspace scripts. For a typecheck script of `tsc` runs
+([script forms](direct-typescript.md#script-forms); `tsc -p .` without
+`--noEmit` is also accepted), or a package with a `tsconfig.json` and no
+typecheck script, it records the exact installed compiler invocation directly.
+The source inputs are the directories the config's `include` covers, as
+TypeScript itself computes them for new files, minus `node_modules` (`exclude`
+entries stay inputs: an import can still reach an excluded file); a file the
+program reads outside them keeps the check recording-only. This avoids pnpm's task-run bookkeeping
 writes during `pnpm run`; it does not alter the project's script. Test, lint,
 build, and ambiguous TypeScript scripts still execute through `pnpm run` and
 start recording-only. The generated `@typescript-bin:WORKSPACE` token resolves

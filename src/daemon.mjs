@@ -21,6 +21,7 @@ import {queriesHold,runFactReason as runFactChanged} from './typescript-list.mjs
 import {nextProbeHint,probeDeadline,probeFloorMs} from './probe-deadline.mjs';
 import {statusSummary} from './cached-state.mjs';
 import {directProject,directProbeValue,reviewedTypeScriptVersions} from './direct-typescript.mjs';
+import {runFromArgv} from './typescript-invocation.mjs';
 import {buildInfoPath,recordedCertificate} from './direct-run-certificate.mjs';
 import {timing,mark,traceBase,traceContext,traceScope,traceEnvironment,traceId} from './decision-profile.mjs';
 
@@ -130,7 +131,7 @@ function continuityBarrier() {
 // The basis a full direct probe is checked against: plan guard, observation
 // continuity, and the compiler tree and Node identity taken before the probe.
 function certificateBasis(row) {
-  const argv=row.plan.probes[0],compiler=directProject(argv[2],argv[3],{verify:false});
+  const argv=row.plan.probes[0],compiler=directProject(argv[2],runFromArgv(argv.slice(3)),{verify:false});
   return {guard:planGuard(index.bundle),gaps:metrics.gaps,
     compiler:JSON.stringify([compiler.tsRoot,compiler.entry,compiler.digest]),
     toolchain:toolchainKey(compiler.tsRoot,argv[0])};
@@ -492,7 +493,7 @@ function adopt(name,row,token) {
     return done('inputs or certificate changed during the run');
   const cache=pending.cache,argv=row.plan.probes[0];
   let result;
-  try{result=recordedCertificate(text,cache,directProject(argv[2],argv[3],{verify:false}),buildInfoPath(row.plan));}
+  try{result=recordedCertificate(text,cache,directProject(argv[2],runFromArgv(argv.slice(3)),{verify:false}),buildInfoPath(row.plan));}
   catch{return done('recording unreadable');}
   if(result.issue)return done(result.issue);
   const identities=new Map(cache.identities);

@@ -4,8 +4,9 @@ This check means: the reviewed local TypeScript compiler completed the configure
 check against declared, observed inputs and relevant execution context. It does
 not mean npm or npm lifecycle scripts completed.
 
-For a supported single-package npm project with an existing standalone
-`tsc --noEmit` script, installed dependencies, Node 22/24 and TypeScript 5.5.2/5.6.3/5.9.3/6.0.2/6.0.3:
+For a supported single-package npm project with a typecheck script of `tsc`
+runs (see [script forms](#script-forms)) or no typecheck script and a root
+`tsconfig.json`, installed dependencies, Node 22/24 and TypeScript 5.5.2/5.6.3/5.9.3/6.0.2/6.0.3:
 
 ```sh
 redue init --recipe typescript-direct --check typecheck --dry-run
@@ -36,6 +37,35 @@ the resolved Node executable and local TypeScript implementation, with exact arg
 and no shell. TypeScript 5.5.2 and 5.6.3 use `lib/tsc.js`; 5.9.3, 6.0.2 and 6.0.3 use `lib/_tsc.js` directly,
 without its outer compile-cache-enabling shim. No compiler is fetched or bundled.
 The entire installed package must match reviewed official distribution bytes.
+
+## Script forms
+
+A typecheck script qualifies when it is one or more `tsc` runs joined by `&&`,
+each with `--noEmit` and only these arguments, in any order: `-p`/`--project`
+with a config file or directory inside the project, `--skipLibCheck`, and
+`--pretty` (optionally `true` or `false`). For example
+`tsc -p tsconfig.app.json --noEmit` or
+`tsc --noEmit && tsc --noEmit -p tsconfig.node.json`. `tsc -b`, `--watch`,
+other options, quotes, variables and other commands keep the script
+recording-only.
+
+A chain gets one check per run, named `typecheck.1`, `typecheck.2` and so on,
+each with the script's name and that run's arguments in its command. Each run
+is checked as its own program against its own config, and is reused only while
+the script still has as many runs as the config has checks for it, one of them
+with exactly those arguments. Adding or removing a run, or a pre- or
+post-script, makes every check of the script not reusable until `init` runs
+again. The script as a whole
+(`npm run typecheck`) is skipped only when its current runs and the configured
+checks correspond one to one and all are CURRENT (see [agents](agents.md)).
+
+With no typecheck script and a root `tsconfig.json`, init proposes a
+`tsc --noEmit` check with no `script` field, unless a script already runs a
+TypeScript checker in another form (`tsc -b`, `vue-tsc`, `svelte-check`,
+`tsgo`, `astro check`, `nuxi typecheck`). package.json is not changed. The
+check is written only when the contract holds; otherwise no typecheck check is
+added. The pnpm contract does the same for each workspace package with a
+`tsconfig.json` and no typecheck script.
 
 Existing configs are never overwritten. To compare choices, use a new project-local
 `--config redue.direct.config.json` with init; this explicitly selects separate

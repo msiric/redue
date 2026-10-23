@@ -12,7 +12,8 @@ for (const dir of process.argv.slice(2))
   for (const file of fs.readdirSync(dir, {recursive: true}).filter(f => /census-.*\.json$/.test(path.basename(String(f)))))
     for (const row of JSON.parse(fs.readFileSync(path.join(dir, String(file)), 'utf8'))) rows.set(row.name, row);
 
-const kind = (name, words) => words.some(word => name === word || name.endsWith(':' + word));
+// A chain's parts are NAME.1 ... NAME.n.
+const kind = (name, words) => words.some(word => name.replace(/\.\d+$/, '') === word || name.replace(/\.\d+$/, '').endsWith(':' + word));
 const typecheck = ['typecheck', 'type-check', 'check-types', 'types', 'tsc'], test = ['test', 'test:unit'];
 const node = [...rows.values()].filter(row => row.error !== 'no root package.json');
 const ready = (row, words) => ['plain', 'typescript', 'tests'].flatMap(k => row.init?.[k]?.checks ?? [])

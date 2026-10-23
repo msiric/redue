@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
-import micromatch from './glob.mjs';
+import {patternMatcher} from './glob.mjs';
 
 export function workspaceManifests(root,patterns) {
   const listing=spawnSync('git',['ls-files','--cached','--others','--exclude-standard',
@@ -12,11 +12,10 @@ export function workspaceManifests(root,patterns) {
     env:{...process.env,GIT_OPTIONAL_LOCKS:'0'}});
   if(listing.status!==0||listing.error)throw Error('workspace package manifests cannot be inspected');
   // `!pattern` entries exclude, as in pnpm-workspace.yaml.
-  const positive=patterns.filter(p=>!p.startsWith('!')),negative=patterns.filter(p=>p.startsWith('!')).map(p=>p.slice(1));
+  const included=patternMatcher(patterns);
   const matched=listing.stdout.split('\0').filter(Boolean).filter(file=>{
     const dir=path.posix.dirname(file);
-    return dir!=='.'&&!dir.split('/').includes('node_modules')&&
-      micromatch.isMatch(dir,positive,{dot:true})&&!(negative.length&&micromatch.isMatch(dir,negative,{dot:true}));
+    return dir!=='.'&&!dir.split('/').includes('node_modules')&&included(dir);
   }).sort();
   if(matched.length>50)throw Error('more than 50 workspace packages found; select checks explicitly');
   return matched.map(file=>({file,pkg:JSON.parse(fs.readFileSync(path.join(root,file),'utf8'))}));

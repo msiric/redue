@@ -71,7 +71,7 @@ function runtime(root){
     qualification:'pnpm-tsc-v1',inputs:['package.json','pnpm-lock.yaml',
       'pnpm-workspace.yaml','packages/app/package.json','packages/app/src/**'],
     probes:[[process.execPath,path.resolve('src/pnpm-typecheck-probe.mjs'),root,
-      '@fixture/app','typecheck']],environment:{executableIdentity:true,
+      '@fixture/app','typecheck','1','-p','.']],environment:{executableIdentity:true,
       pathExecutables:['node'],prefixes:['PNPM_','COREPACK_','npm_config_',
         'DYLD_','TSGO_']}}]};
 }
@@ -144,7 +144,7 @@ test('opt-in decision timing cannot change pnpm probe evidence',t=>{
   const {root}=fixture(t),file=path.join(os.tmpdir(),`redue-probe-timing-${process.pid}-${Date.now()}.jsonl`);
   t.after(()=>fs.rmSync(file,{force:true}));
   const probe=path.resolve('src/pnpm-typecheck-probe.mjs');
-  const run=()=>spawnSync(process.execPath,[probe,root,'@fixture/app','typecheck'],
+  const run=()=>spawnSync(process.execPath,[probe,root,'@fixture/app','typecheck','1','-p','.'],
     {encoding:'utf8',env:{...cleanEnv,REDUE_DECISION_PROFILE:'1',
       REDUE_DECISION_PROFILE_FILE:file}});
   const first=run(),second=run();
@@ -273,7 +273,7 @@ test('pnpm hoisted metadata is distinct and shared hardlinks with unknown aliase
     assert(bundle.plans.app.unresolved.some(reason=>/hardlinks/.test(reason)));
   }
   const probe=spawnSync(process.execPath,[path.resolve('src/pnpm-typecheck-probe.mjs'),
-    root,'@fixture/app','typecheck'],{encoding:'utf8',env:cleanEnv});
+    root,'@fixture/app','typecheck','1','-p','.'],{encoding:'utf8',env:cleanEnv});
   if(['linux','win32'].includes(process.platform))assert.equal(probe.status,0);
   else{
     assert.equal(probe.status,2);
@@ -402,7 +402,7 @@ test('pnpm hoisted installation can record and reuse a qualified TypeScript chec
   await waitReady(call);
   assert.equal(JSON.parse(call('run','@fixture/app:typecheck','--json')).result,'PASS');
   const status=()=>JSON.parse(call('status','--sync','--json')).checks[0];
-  assert.equal(status().freshness,'CURRENT');
+  {const s=status();assert.equal(s.freshness,'CURRENT',JSON.stringify(s));}
   put(path.join(root,'unrelated.md'),'unrelated');
   assert.equal(status().freshness,'CURRENT');
   put(path.join(external,'index.d.ts'),'export declare const ext: number;\n// hoisted edit\n');
@@ -418,10 +418,56 @@ test('pnpm hoisted installation can record and reuse a qualified TypeScript chec
 
 
 test('pnpm compiler certificate preserves independently listed CLI input identity',t=>{
-  const {root}=fixture(t),args=[path.resolve('src/pnpm-typecheck-probe.mjs'),root,'@fixture/app','typecheck'];
+  const {root}=fixture(t),args=[path.resolve('src/pnpm-typecheck-probe.mjs'),root,'@fixture/app','typecheck','1','-p','.'];
   const run=extra=>spawnSync(process.execPath,[...args,...extra],{cwd:path.join(root,'packages/app'),env:cleanEnv,encoding:'utf8',timeout:15000});
   const normal=run([]),certified=run(['--redue-checkpoint']);
   assert.equal(normal.status,0,normal.stderr);assert.equal(certified.status,0,certified.stderr);
   const value=JSON.parse(certified.stdout);assert.equal(value.output,normal.stdout);
   assert(JSON.parse(inflateSync(Buffer.from(value.queryData,'base64'))).length>0);
+});
+
+test('pnpm contract: sources follow tsconfig include; -p, any order and chains; a package without a script gets a proposed check',async t=>{
+  const {root,app,beforeRemove}=fixture(t);
+  json(path.join(app,'tsconfig.json'),{extends:'../../tsconfig.json',include:['src','test'],exclude:['test/fixtures']});
+  put(path.join(app,'test','a.ts'),'export const a: number = 1;\n');
+  json(path.join(app,'tsconfig.check.json'),{extends:'./tsconfig.json',include:['src']});
+  const pkg=JSON.parse(fs.readFileSync(path.join(app,'package.json'),'utf8'));
+  pkg.scripts.typecheck='tsc --noEmit -p tsconfig.check.json && tsc --project . --noEmit';
+  json(path.join(app,'package.json'),pkg);
+  execFileSync('git',['add','packages'],{cwd:root});
+  const files='*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,json}';
+  const second=pnpmTypecheckInputs(root,'@fixture/app',{script:'typecheck',args:['--project','.','--noEmit'],count:2});
+  // exclude does not stop an import, so excluded files stay inputs.
+  assert.deepEqual(second.sourcePatterns,[`packages/app/src/**/${files}`,`packages/app/test/**/${files}`,
+    '!packages/app/src/**/node_modules/**','!packages/app/test/**/node_modules/**']);
+  assert(second.listedFiles.some(file=>file.endsWith(path.join('test','a.ts'))));
+  const first=pnpmTypecheckInputs(root,'@fixture/app',{script:'typecheck',args:['--noEmit','-p','tsconfig.check.json'],count:2});
+  assert.deepEqual(first.sourcePatterns,[`packages/app/src/**/${files}`,'!packages/app/src/**/node_modules/**']);
+  assert(first.configs.includes('packages/app/tsconfig.check.json'));
+  assert.throws(()=>pnpmTypecheckInputs(root,'@fixture/app',{script:'typecheck',args:['-p','tsconfig.check.json','--noEmit'],count:2}),/script changed/);
+  assert.throws(()=>pnpmTypecheckInputs(root,'@fixture/app',{script:'typecheck',args:['--noEmit','-p','tsconfig.check.json']}),/script changed/);
+  const state=fs.mkdtempSync(path.join(os.tmpdir(),'vstate-pnpm-forms-'));fs.rmdirSync(state);
+  const call=(...args)=>execFileSync(process.execPath,[path.resolve('bin/redue.mjs'),'--state-dir',state,...args],
+    {cwd:root,encoding:'utf8',timeout:process.platform==='win32'?45000:15000,env:cleanEnv});
+  beforeRemove(()=>{call('stop');call('remove-state');});
+  const init=JSON.parse(call('init','--check','typecheck','--json'));
+  const ready=Object.fromEntries(init.checks.filter(c=>c.level==='ready').map(c=>[c.name,c.script]));
+  assert.deepEqual(ready,{'@fixture/app:typecheck.1':'typecheck','@fixture/app:typecheck.2':'typecheck',
+    '@fixture/dep:typecheck':null,'@fixture/sibling:typecheck':null});
+  call('start');await waitReady(call);
+  const status=name=>{const r=spawnSync(process.execPath,[path.resolve('bin/redue.mjs'),'--state-dir',state,'status','--sync','--json'],
+    {cwd:root,encoding:'utf8',timeout:30000,env:cleanEnv});
+    assert.equal(r.status,0,r.stderr+r.stdout);return JSON.parse(r.stdout).checks.find(c=>c.name===name);};
+  for(const name of Object.keys(ready))assert.equal(JSON.parse(call('run',name,'--json')).result,'PASS',name);
+  for(const name of Object.keys(ready))assert.equal(status(name).freshness,'CURRENT',name);
+  // A new file the include picks up is an input of the run that includes it.
+  put(path.join(app,'test','b.ts'),'export const b: number = 2;\n');
+  assert.equal(status('@fixture/app:typecheck.2').freshness,'STALE');
+  assert.equal(status('@fixture/app:typecheck.1').freshness,'CURRENT');
+  assert.equal(JSON.parse(call('run','@fixture/app:typecheck.2','--json')).result,'PASS');
+  // An excluded directory is still an input: an import can reach it.
+  put(path.join(app,'test','fixtures','c.ts'),'export const c: number = 3;\n');
+  assert.equal(status('@fixture/app:typecheck.2').freshness,'STALE');
+  assert.equal(JSON.parse(call('run','@fixture/app:typecheck.2','--json')).result,'PASS');
+  assert.equal(status('@fixture/app:typecheck.2').freshness,'CURRENT');
 });

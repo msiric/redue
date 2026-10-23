@@ -10,7 +10,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
-import micromatch from './glob.mjs';
+import {patternMatcher} from './glob.mjs';
 import {runFact} from './direct-run-certificate.mjs';
 import {queryAnswer} from './typescript-list.mjs';
 import {pnpmInstallInfo,pnpmProjectInfo,yaml} from './pnpm-inputs.mjs';
@@ -67,9 +67,7 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
   const compared=name=>(environment.variables||[]).includes(name)||
     (environment.prefixes||[]).some(prefix=>name.toLowerCase().startsWith(prefix.toLowerCase()));
   const issues=[],add=issue=>{if(!issues.includes(issue))issues.push(issue);};
-  const positive=sourcePatterns.filter(p=>!p.startsWith('!')).map(p=>micromatch.matcher(p,{dot:true}));
-  const negative=sourcePatterns.filter(p=>p.startsWith('!')).map(p=>micromatch.matcher(p.slice(1),{dot:true}));
-  const included=rel=>positive.some(fn=>fn(rel))&&!negative.some(fn=>fn(rel));
+  const included=patternMatcher(sourcePatterns);
   const observed=rel=>Object.hasOwn(files||{},rel);
   const headers=new Map(),records=[];
   let names=[];

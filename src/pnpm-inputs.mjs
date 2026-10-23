@@ -7,11 +7,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {createRequire} from 'node:module';
 import {execFileSync,spawnSync} from 'node:child_process';
-import micromatch from './glob.mjs';
+import micromatch,{patternMatcher} from './glob.mjs';
 import YAML from 'yaml';
 import {resolveLinks} from './installed-inputs.mjs';
 import {withinPath as within,realObservedPath,samePath} from './path-identity.mjs';
 import {timing} from './decision-profile.mjs';
+import {runConfig,tscRun,tscRuns} from './typescript-invocation.mjs';
 
 const rel=(root,file)=>path.relative(root,file).split(path.sep).join('/');
 const read=file=>JSON.parse(fs.readFileSync(file,'utf8'));
@@ -204,16 +205,37 @@ function packageAt(root,requester,name){
   }
   return {physical:null,candidates};
 }
-function parsedTypeScript(root,dir,ts){
-  const config=path.join(root,dir,'tsconfig.json'),reads=new Set();
+// Files TypeScript may consume from its own include: each directory its
+// include patterns watch for new files (TypeScript's own
+// wildcardDirectories), and each file it lists. node_modules below them is
+// left out, as TypeScript's wildcards leave it out; installed files a program
+// reads are installed inputs. `exclude` entries stay inputs: an import can
+// still reach an excluded file.
+const sourceFiles='*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,json}';
+function sourcePatterns(root,parsed){
+  const patterns=new Set(),excluded=new Set();
+  for(const [folder,flags] of Object.entries(parsed.wildcardDirectories||{})){
+    // TypeScript 4 lowercases these keys on case-insensitive file systems;
+    // the native realpath gives the directory's own spelling.
+    let at;try{at=fs.realpathSync.native(folder);}catch{at=path.resolve(folder);}
+    if(!within(at,root))throw Error('TypeScript source membership escapes the checkout');
+    const prefix=rel(root,at)?rel(root,at)+'/':'';
+    if(flags&1){patterns.add(`${prefix}**/${sourceFiles}`);excluded.add(`!${prefix}**/node_modules/**`);}
+    else patterns.add(prefix+sourceFiles);
+  }
+  const included=patternMatcher([...patterns,...excluded]);
+  for(const file of parsed.fileNames.map(name=>path.resolve(name))){
+    if(!within(file,root))throw Error('TypeScript source membership escapes the checkout');
+    if(!included(rel(root,file)))patterns.add(rel(root,file));
+  }
+  return [...patterns,...excluded];
+}
+function parsedTypeScript(root,dir,ts,configName='tsconfig.json'){
+  const config=path.join(root,dir,configName),reads=new Set();
   const host={...ts.sys,readFile(file){reads.add(path.resolve(file));return ts.sys.readFile(file);},
     onUnRecoverableConfigFileDiagnostic(){}};
   const parsed=ts.getParsedCommandLineOfConfigFile(config,{},host);
   if(!parsed||parsed.errors?.length)throw Error('TypeScript configuration unavailable');
-  const raw=ts.readConfigFile(config,ts.sys.readFile);
-  if(raw.error||!Array.isArray(raw.config?.include)||raw.config.include.length!==1||
-    !/^src(?:$|\/)/.test(raw.config.include[0]))
-    throw Error('TypeScript source file membership is outside the supported src include');
   if(parsed.options.plugins?.length||parsed.options.incremental||parsed.options.composite||
     parsed.projectReferences?.length||parsed.options.paths||parsed.options.baseUrl||
     parsed.options.rootDirs?.length||parsed.options.typeRoots?.length||
@@ -225,12 +247,13 @@ function parsedTypeScript(root,dir,ts){
     throw Error('TypeScript module resolver is outside the supported Node contract');
   for(const file of reads)if(!within(realObservedPath(file),root))
     throw Error('TypeScript configuration escapes the checkout');
-  return {parsed,configs:[...reads].map(file=>rel(root,file)).sort()};
+  return {parsed,configs:[...reads].map(file=>rel(root,file)).sort(),
+    sourcePatterns:sourcePatterns(root,parsed)};
 }
-function listedTypeScriptFiles(root,selected,tsc){
+function listedTypeScriptFiles(root,selected,tsc,configName){
   // --listFilesOnly resolves the compiler's effective module/file set but
   // performs no typecheck and emits no project outputs.
-  const out=spawnSync(process.execPath,[tsc,'-p','tsconfig.json','--listFilesOnly'],
+  const out=spawnSync(process.execPath,[tsc,'-p',configName,'--listFilesOnly'],
     {cwd:path.join(root,selected.dir),env:process.env,encoding:'utf8',
       // The native NTFS public workspace takes 3-5 s to list ~770 inputs;
       // 5 s sometimes expired despite bounded, progressing compiler work.
@@ -267,17 +290,23 @@ function sharedHardlinkIn(folder){
   }
   return false;
 }
-export function pnpmTypecheckInputs(root,workspace,script,{captureQueries=false}={}){
+// `run`: the check's {script, part, args}, or a script name for its only run.
+export function pnpmTypecheckInputs(root,workspace,run,{captureQueries=false}={}){
   const totalStarted=performance.now();
   root=realObservedPath(root);
   const install=pnpmInstallInfo(root),members=pnpmWorkspacePackages(root,install.patterns);
   const selected=workspace==='.'?{name:'.',dir:'.',manifest:'package.json',
     pkg:read(path.join(root,'package.json'))}:members.get(workspace);
   if(!selected)throw Error(`workspace ${workspace} is not declared`);
-  if(!/^(?:tsc --noEmit|tsc -p (?:\.|tsconfig\.json)(?: --noEmit)?)$/.test(
-    selected.pkg.scripts?.[script]?.trim()||'')||
-    selected.pkg.scripts?.['pre'+script]||selected.pkg.scripts?.['post'+script])
-    throw Error('typecheck must be one standalone TypeScript invocation');
+  // A script name stands for its only run.
+  if(typeof run==='string'){const runs=tscRuns(selected.pkg.scripts?.[run]);run={script:run,args:runs?.length===1?runs[0].args:[]};}
+  const {run:own,issue}=tscRun(selected.pkg.scripts,run);
+  if(issue)throw Error(`typecheck must be standalone TypeScript runs: ${issue}`);
+  // `tsc -p .` without --noEmit predates the other forms.
+  if(!own.noEmit&&!['-p .','-p tsconfig.json'].includes(run.args.join(' ')))
+    throw Error('typecheck must pass --noEmit');
+  const configName=runConfig(path.join(root,selected.dir),run.args);
+  if(!configName)throw Error('TypeScript project is outside the package');
   const selectedDir=path.join(root,selected.dir),lookup=createRequire(path.join(selectedDir,'package.json'));
   let tsPackage;try{tsPackage=realObservedPath(lookup.resolve('typescript/package.json'));}
   catch{throw Error('installed TypeScript compiler cannot be resolved');}
@@ -286,7 +315,8 @@ export function pnpmTypecheckInputs(root,workspace,script,{captureQueries=false}
   const tsc=path.join(tsRoot,'bin','tsc');
   if(!exists(tsc))throw Error('installed TypeScript executable is missing');
   const configStarted=performance.now();
-  const {configs}=parsedTypeScript(root,selected.dir,ts);
+  const {configs,sourcePatterns:sources}=parsedTypeScript(root,selected.dir,ts,configName);
+  const isSource=patternMatcher(sources);
   timing('pnpm.ts_config',configStarted,{configs:configs.length});
   const closure=new Map(),installed=new Set(),generated=new Set(),
     links=new Set(),candidates=new Set(),absences=[],instances=new Map();
@@ -336,12 +366,12 @@ export function pnpmTypecheckInputs(root,workspace,script,{captureQueries=false}
     resolutionMs:Math.round(resolutionMs),workspaceLinks:links.size,
     candidates:candidates.size});
   const listingStarted=performance.now();
-  const captured=captureQueries?compilerFiles(tsRoot,path.join(root,selected.dir)):null;
-  const files=captured?captured.files.map(realObservedPath):listedTypeScriptFiles(root,selected,tsc);
+  const captured=captureQueries?compilerFiles(tsRoot,path.join(root,selected.dir),configName):null;
+  const files=captured?captured.files.map(realObservedPath):listedTypeScriptFiles(root,selected,tsc,configName);
   timing('pnpm.ts_input_listing',listingStarted,{files:files.length});
   const mappingStarted=performance.now();
   for(const file of files){
-    if(within(file,path.join(selectedDir,'src'))||
+    if(isSource(rel(root,file))||
       [...closure.values()].some(member=>within(file,path.join(root,member.dir))))continue;
     const packageRoot=installedPackageRoot(root,file);
     if(!packageRoot)throw Error(`TypeScript consumes a file outside the observed pnpm contract: ${rel(root,file)}`);
@@ -352,6 +382,16 @@ export function pnpmTypecheckInputs(root,workspace,script,{captureQueries=false}
   }
   timing('pnpm.input_mapping',mappingStarted,{instances:instances.size,
     installedPatterns:installed.size});
+  // A config extended from an installed package is an installed input too:
+  // source patterns leave node_modules out.
+  for(const config of configs){
+    const file=realObservedPath(path.join(root,config));
+    if(!within(file,path.join(root,'node_modules')))continue;
+    const packageRoot=installedPackageRoot(root,file);
+    if(!packageRoot)throw Error(`TypeScript configuration ${config} is outside an installed package`);
+    installed.add(`${rel(root,packageRoot)}/**`);
+    installed.add(`!${rel(root,packageRoot)}/node_modules/**`);
+  }
   installed.add(`${rel(root,tsRoot)}/**`);
   installed.add(`!${rel(root,tsRoot)}/node_modules/**`);
   if(!instances.has(tsRoot))instances.set(tsRoot,{name:'typescript',physicalRoot:rel(root,tsRoot)});
@@ -360,11 +400,12 @@ export function pnpmTypecheckInputs(root,workspace,script,{captureQueries=false}
   timing('pnpm.hardlink_inspection',sharedStarted,{instances:instances.size,
     shared:shared.length});
   const source=[...new Set([...install.configurationInputs,selected.manifest,
-    ...configs,`${selected.dir==='.'?'':selected.dir+'/'}src/**`,
+    ...configs,...sources,
     ...closure.values().map(member=>member.manifest),...generated])];
   timing('pnpm.total_discovery',totalStarted,{instances:instances.size,
     inputFiles:files.length});
   return {install,workspace:selected,closure:[...closure.values()],source,
+    sourcePatterns:sources,args:run.args,
     installed:[...installed],generated:[...generated],
     // The read-only state probe consumes this same resolved compiler file set.
     // It is deliberately omitted from the persisted user-facing input plan.

@@ -9,6 +9,7 @@ import {directBuildInfo} from './direct-typescript.mjs';
 import {qualifyTests,testWorkspacePatterns,testsQualification} from './test-direct.mjs';
 import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
 import {pnpmTypecheckInputs} from './pnpm-inputs.mjs';
+import {checkRun} from './typescript-invocation.mjs';
 import {observedRelative,withinPath,realObservedPath} from './path-identity.mjs';
 import {timing} from './decision-profile.mjs';
 
@@ -64,8 +65,7 @@ export function discoverDeclared(config) {
       catch(e){workspaceIssue=e.message;}
     }
     if(selected.qualification==='pnpm-tsc-v1'){
-      try{workspace=pnpmTypecheckInputs(root,selected.workspace||'.',
-        selected.script||selected.command.at(-1));}
+      try{workspace=pnpmTypecheckInputs(root,selected.workspace||'.',checkRun(selected));}
       catch(e){workspaceIssue=e.message;}
     }
     timing('plan.workspace_inputs',workspaceStarted,{available:workspace?1:0});
@@ -75,7 +75,7 @@ export function discoverDeclared(config) {
     // until then the run reports the unexpected write and is not reusable.
     let buildInfo=null;
     if(selected.qualification==='npm-typescript-direct-v1')
-      try{buildInfo=directBuildInfo(root,selected.script);}catch{}
+      try{buildInfo=directBuildInfo(root,checkRun(selected));}catch{}
     const excluded=buildInfo?['!'+buildInfo]:[];
     const installedStarted=performance.now();
     const installed=resolveDeclaredInstalled(root,

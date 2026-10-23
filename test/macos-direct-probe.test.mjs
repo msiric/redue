@@ -53,7 +53,7 @@ test('ETW overrides and default loader additions cannot execute through any dire
   const f=fixture(t).fast,marker=path.join(f.root,'etw-loaded');
   const injected=path.join(f.root,'owned-etw.cjs');
   put(injected,`require('node:fs').writeFileSync(${JSON.stringify(marker)},'loaded');`);
-  const invoke=(args,env={})=>spawnSync(process.execPath,[probe,f.root,'typecheck',...args],
+  const invoke=(args,env={})=>spawnSync(process.execPath,[probe,f.root,'typecheck','1','--noEmit',...args],
     {cwd:f.root,env:{...f.env,...env},encoding:'utf8',timeout:15000});
   const modes=[[],['--redue-context'],['--redue-checkpoint']];
   for(const env of [{TS_ETW_MODULE_PATH:injected},{TS_ETW_MODULE_PATH:''},{ts_etw_module_path:injected}])

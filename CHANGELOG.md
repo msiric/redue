@@ -11,6 +11,32 @@
   time. Limit: an in-place edit of an installed file in another project that
   shares the store file is not seen until the next recorded run.
 
+- Typecheck scripts in more shapes. A script of `tsc --noEmit` runs with
+  `-p`/`--project`, `--skipLibCheck` or `--pretty`, in any argument order,
+  qualifies for the direct npm recipe and the pnpm contract. A chain of such
+  runs joined by `&&` becomes one check per run (`typecheck.1`,
+  `typecheck.2`); the hook skips the script only when every run is CURRENT
+  and otherwise runs the stale ones through `redue run`. `check-types` joins
+  the recognized script names.
+- The hook acts on a typecheck script's form only while the script in
+  package.json still has exactly the configured `tsc` runs. Before, a script
+  changed to `tsc --noEmit && eslint .` was rewritten to `redue run
+  typecheck`, which ran tsc alone.
+- Without a typecheck script, `init` proposes a `tsc --noEmit` check for a
+  root `tsconfig.json` (direct npm recipe, pnpm) and for each pnpm workspace
+  package with one, unless a script runs a TypeScript checker in another form
+  (`tsc -b`, `vue-tsc`, ...). package.json is not changed; the check is
+  written only when the contract holds.
+- The pnpm contract no longer needs `include: ["src"]`. Its source inputs are
+  the directories the config's `include` covers, as TypeScript computes them
+  for new files, minus `node_modules`. `exclude` entries stay inputs, since an
+  import can still reach an excluded file. A config extended from an installed
+  package is an installed input.
+- Fixed: a config with three or more pnpm or test checks never got a
+  synchronized answer. The observer dropped control requests over 4 KB, and a
+  sync request carries about 1.5 KB of context digests per check; status
+  showed "Unexpected end of JSON input" for every check. The limit is 1 MiB.
+
 ## 0.1.0-alpha.17 — 2026-10-22
 
 Workspaces and package managers beyond npm. In the census of 108 public

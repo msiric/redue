@@ -150,7 +150,7 @@ test('real direct compiler evidence crosses proxy contexts, but not relevant inp
   put(injected,`require('node:fs').writeFileSync(${JSON.stringify(marker)},'unreviewed');`);
   for(const env of [{NODE_ENV:'development'},{NODE_OPTIONS:'--trace-warnings'},{NODE_COMPILE_CACHE:path.join(root,'cache')},{TS_ETW_MODULE_PATH:injected},{TS_ETW_MODULE_PATH:''}]){
     for(const extra of [[],['--redue-context']]){
-      const r=spawnSync(process.execPath,[probe,root,'typecheck',...extra],{cwd:root,env:{...baseEnv,...env},encoding:'utf8',timeout:15000});
+      const r=spawnSync(process.execPath,[probe,root,'typecheck','1','--noEmit',...extra],{cwd:root,env:{...baseEnv,...env},encoding:'utf8',timeout:15000});
       assert.equal(r.status,2);assert.match(r.stderr,/VSTATE_REASON:/);assert(!fs.existsSync(marker),'unreviewed ETW module executed');
     }
   }
@@ -225,7 +225,7 @@ test('old npm evidence cannot satisfy the new recipe; extra caller-sensitive pro
   const item=sync(root,state).checks[0];assert.equal(item.reuse_eligible,false);assert.match(item.reason,/direct compiler probe missing/);
 });
 test('direct compiler checkpoint equals the independent CLI listing result',t=>{
-  const {root}=project(t),args=[path.resolve('src/direct-typescript-probe.mjs'),root,'typecheck'];
+  const {root}=project(t),args=[path.resolve('src/direct-typescript-probe.mjs'),root,'typecheck','1','--noEmit'];
   const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!['NODE_TEST_CONTEXT','NODE_TEST_WORKER_ID'].includes(key)));
   const normal=spawnSync(process.execPath,args,{cwd:root,env,encoding:'utf8',timeout:15000}),
     captured=spawnSync(process.execPath,[...args,'--redue-checkpoint'],{cwd:root,env,encoding:'utf8',timeout:15000});
@@ -274,4 +274,68 @@ test('arbitrary proxy-reading command retains strict context and receives no dir
   assert.equal(a.reuse_eligible,true);
   const b=JSON.parse(call(['status','--sync','--json'],'b').stdout).checks[0];
   assert.equal(b.freshness,'STALE');assert.equal(b.reuse_eligible,false);assert.equal(b.invocation.runId,a.invocation.runId);
+});
+test('direct recipe: tsc forms in any order, one check per chained run, a proposed check without a script',t=>{
+  const preview=scripts=>{const other=project(t,{scripts});
+    put(path.join(other.root,'tsconfig.app.json'),JSON.stringify({extends:'./tsconfig.json',include:['src']}));
+    return {...other,value:JSON.parse(good(other.root,other.state,'init','--recipe','typescript-direct','--dry-run','--json'))};};
+  let {value}=preview({typecheck:'tsc -p tsconfig.app.json --noEmit'});
+  assert.equal(value.checks[0].level,'ready');
+  assert.deepEqual(value.checks[0].command,['@node','@typescript-compiler:.','-p','tsconfig.app.json','--noEmit']);
+  ({value}=preview({'check-types':'tsc --noEmit --project ./tsconfig.app.json --skipLibCheck'}));
+  assert.equal(value.checks[0].level,'ready');assert.equal(value.checks[0].script,'check-types');
+  ({value}=preview({typecheck:'tsc --noEmit && tsc --noEmit -p tsconfig.app.json'}));
+  assert.deepEqual(value.checks.filter(c=>c.name.startsWith('typecheck')).map(c=>[c.name,c.level,c.script,c.command.slice(2)]),
+    [['typecheck.1','ready','typecheck',['--noEmit']],['typecheck.2','ready','typecheck',['--noEmit','-p','tsconfig.app.json']]]);
+  ({value}=preview({test:'vitest run'}));
+  const proposed=value.checks.find(c=>c.name==='typecheck');
+  assert.equal(proposed.level,'ready');assert.equal(proposed.script,null);
+  assert.deepEqual(proposed.command,['@node','@typescript-compiler:.','--noEmit']);
+  for(const scripts of [{typecheck:'tsc --noEmit --watch'},{typecheck:'tsc -p tsconfig.app.json'},{typecheck:'tsc --noEmit -p ../outside.json'}]){
+    ({value}=preview(scripts));
+    assert.equal(value.checks[0].level,'recording',JSON.stringify(scripts));
+  }
+  // A script that typechecks in another form: no proposed tsc --noEmit.
+  for(const scripts of [{test:'vitest run','lint:types':'tsc -b'},{test:'vitest run',check:'vue-tsc --noEmit'}]){
+    ({value}=preview(scripts));
+    assert.equal(value.checks.find(c=>c.name==='typecheck'),undefined,JSON.stringify(scripts));
+  }
+});
+test('direct chain parts and a proposed check run and stay CURRENT; a changed chain is not reused',t=>{
+  const {root,state,config}=project(t,{scripts:{typecheck:'tsc --noEmit && tsc --noEmit -p tsconfig.app.json'}});
+  put(path.join(root,'tsconfig.app.json'),JSON.stringify({extends:'./tsconfig.json',include:['src']}));
+  execFileSync('git',['add','tsconfig.app.json'],{cwd:root});
+  init(root,state);
+  const written=JSON.parse(fs.readFileSync(config,'utf8'));
+  assert.deepEqual(written.checks.filter(c=>c.kind==='typecheck').map(c=>c.name),['typecheck.1','typecheck.2']);
+  good(root,state,'start');
+  good(root,state,'run','typecheck.1');good(root,state,'run','typecheck.2');
+  const row=name=>sync(root,state).checks.find(c=>c.name===name);
+  assert.equal(row('typecheck.1').freshness,'CURRENT');assert.equal(row('typecheck.2').freshness,'CURRENT');
+  put(path.join(root,'src/main.ts'),'export const value: number = 2;\n');
+  assert.equal(row('typecheck.2').freshness,'STALE');
+  good(root,state,'run','typecheck.2');assert.equal(row('typecheck.2').freshness,'CURRENT');
+  // The chain loses its second run: neither check is reused.
+  const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
+  pkg.scripts.typecheck='tsc --noEmit';fs.writeFileSync(path.join(root,'package.json'),JSON.stringify(pkg));
+  for(const name of ['typecheck.1','typecheck.2']){const item=row(name);
+    assert.notEqual(item.freshness,'CURRENT',name);assert.equal(item.reuse_eligible,false,name);}
+  good(root,state,'stop');
+  // No typecheck script: the proposed check runs the compiler directly.
+  const other=project(t,{scripts:{test:'vitest run'}});
+  good(other.root,other.state,'init','--recipe','typescript-direct','--check','typecheck');
+  good(other.root,other.state,'start');good(other.root,other.state,'run','typecheck');
+  assert.equal(sync(other.root,other.state).checks[0].freshness,'CURRENT');
+  good(other.root,other.state,'stop');
+  // One run's check, and the script gains a second run: not reused.
+  const single=project(t);
+  good(single.root,single.state,'init','--recipe','typescript-direct','--check','typecheck');
+  good(single.root,single.state,'start');good(single.root,single.state,'run','typecheck');
+  assert.equal(sync(single.root,single.state).checks[0].freshness,'CURRENT');
+  const grown=JSON.parse(fs.readFileSync(path.join(single.root,'package.json'),'utf8'));
+  grown.scripts.typecheck='tsc --noEmit && tsc --noEmit -p tsconfig.json';
+  fs.writeFileSync(path.join(single.root,'package.json'),JSON.stringify(grown));
+  assert.equal(sync(single.root,single.state).checks[0].reuse_eligible,false);
+  good(single.root,single.state,'stop');
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(other.root,'package.json'),'utf8')).scripts,{test:'vitest run'});
 });

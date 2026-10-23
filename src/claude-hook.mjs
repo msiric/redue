@@ -10,6 +10,7 @@ import {spawn} from 'node:child_process';
 import {projectState} from './project-location.mjs';
 import {realObservedPath} from './path-identity.mjs';
 import {processAlive} from './process-liveness.mjs';
+import {scriptRunChecks} from './typescript-invocation.mjs';
 
 export const hookCommand='redue agent hook claude';
 // No shell metacharacters; `@` starts scoped package names.
@@ -91,28 +92,64 @@ const checkScript=check=>typeof check.script==='string'?check.script:
   Array.isArray(check.command)&&/^@which:(?:npm|pnpm|yarn)$/.test(check.command[0])&&check.command.includes('run')?
     check.command[check.command.indexOf('run')+1]:null;
 
+// A typecheck check whose command is the compiler: its arguments are one tsc
+// run of its script (typescript-invocation.mjs).
+function tscCheck(check){return typecheck(check)&&/^tsc(?: |$)/.test(toolText(check)||'');}
 // Exact commands that rerun each configured typecheck or direct test check.
 // `forms` work from the project root; `local` ones work in the check's own
 // directory `dir`, after a `cd` into it. Names that would need shell quoting
-// get no form, so the hook never fires for them.
+// get no form, so the hook never fires for them. The script forms of compiler
+// checks name the script's checks as {checks, script}: the hook acts on them
+// only when the script's tsc runs are those checks' runs, one each. With one
+// check they stay on its row (`scriptForms`); a chain's checks get a row for
+// the script, and their own rows (`part`) keep only their own forms.
 export function hookForms(config,configFile=defaultConfig){
-  const rows=[],redue=redueFor(configFile),pm=config?.packageManager;
-  for(const check of config?.checks||[]){
-    if(!(typecheck(check)||tests(check))||typeof check.name!=='string'||!safe.test(check.name))continue;
-    const forms=redue?[`${redue} run ${check.name}`]:[],local=[],dir=checkDir(check),script=checkScript(check);
+  const rows=[],redue=redueFor(configFile),pm=config?.packageManager,scripts=new Map();
+  const eligible=(config?.checks||[]).filter(check=>(typecheck(check)||tests(check))&&typeof check.name==='string'&&safe.test(check.name));
+  const groupOf=check=>tscCheck(check)&&typeof checkScript(check)==='string'&&checkDir(check)!==null?
+    JSON.stringify([checkDir(check),checkScript(check),workspaceName(check)]):null;
+  for(const check of eligible){const key=groupOf(check);if(key)scripts.set(key,[...scripts.get(key)||[],check.name]);}
+  const scriptRow=(dir,script,workspace)=>({forms:dir==='.'?scriptForms(pm,script):dir!==null&&safe.test(dir)?workspaceForms(pm,workspace,script):[],
+    local:dir!=='.'&&dir!==null&&safe.test(dir)?scriptForms(pm,script):[]});
+  for(const check of eligible){
+    const forms=redue?[`${redue} run ${check.name}`]:[],local=[],dir=checkDir(check),key=groupOf(check),
+      group=key?scripts.get(key):null,part=group?.length>1;
+    const own=group?null:checkScript(check);
     if(dir==='.'){
-      forms.push(...scriptForms(pm,script),...toolForms(pm,toolText(check)));
+      forms.push(...scriptForms(pm,own),...toolForms(pm,toolText(check)));
       if(!tests(check)&&Array.isArray(check.command)&&check.command.length&&
         check.command.every(v=>typeof v==='string'&&safe.test(v)&&!v.startsWith('@')))
         forms.push(check.command.join(' '));
     }else if(dir!==null&&safe.test(dir)){
-      forms.push(...workspaceForms(pm,workspaceName(check),script));
-      local.push(...scriptForms(pm,script),...(check.cwd===dir?toolForms(pm,toolText(check)):[]));
+      forms.push(...workspaceForms(pm,workspaceName(check),own));
+      local.push(...scriptForms(pm,own),...(check.cwd===dir?toolForms(pm,toolText(check)):[]));
     }
+    let extra={};
+    if(group&&!part){
+      const {forms:scriptOnly,local:scriptLocal}=scriptRow(dir,checkScript(check),workspaceName(check));
+      forms.splice(redue?1:0,0,...scriptOnly);local.unshift(...scriptLocal);
+      extra={checks:group,script:checkScript(check),scriptForms:[...scriptOnly,...scriptLocal]};
+    }
+    if(part)extra={part:true};
     if(forms.length||local.length)rows.push({check:check.name,kind:checkKind(check),dir,
-      forms:[...new Set(forms)],local:[...new Set(local)]});
+      forms:[...new Set(forms)],local:[...new Set(local)],...extra});
+  }
+  for(const [key,checks] of scripts){
+    if(checks.length<2)continue;
+    const [dir,script,workspace]=JSON.parse(key),{forms,local}=scriptRow(dir,script,workspace);
+    if(forms.length||local.length)rows.push({check:checks[0].replace(/\.\d+$/,''),checks,script,
+      scriptForms:[...forms,...local],kind:'typecheck',dir,forms,local});
   }
   return rows;
+}
+// The checks a compiler script row runs, in the order of the script's runs in
+// the package's package.json now; null when they no longer correspond (the
+// script changed since init), so the hook leaves the command alone.
+export function scriptChecks(row,config,projectRoot){
+  let scripts;try{scripts=JSON.parse(fs.readFileSync(path.join(projectRoot,row.dir,'package.json'),'utf8')).scripts;}catch{return null;}
+  if(scripts?.['pre'+row.script]||scripts?.['post'+row.script])return null;
+  const args=name=>config.checks.find(check=>check.name===name)?.command?.slice(2);
+  return scriptRunChecks(scripts?.[row.script],row.checks.map(name=>({name,args:args(name)})));
 }
 
 // A turbo or `pnpm -r` command that runs one task in every workspace package:
@@ -166,10 +203,17 @@ export async function fanoutChecks(fan,config,projectRoot){
     return null;
   const names=[];
   for(const item of packages){
-    const check=config.checks.find(c=>(typecheck(c)||tests(c))&&typeof c.name==='string'&&
+    const own=config.checks.filter(c=>(typecheck(c)||tests(c))&&typeof c.name==='string'&&
       workspaceName(c)===item.name&&checkScript(c)===fan.task&&checkDir(c)===item.dir);
-    if(!check)return null;
-    names.push(check.name);
+    if(!own.length)return null;
+    // A compiler script's checks: one per tsc run it has now.
+    if(own.every(tscCheck)){
+      const ordered=scriptRunChecks(item.scripts[fan.task],own.map(c=>({name:c.name,args:c.command.slice(2)})));
+      if(!ordered)return null;
+      names.push(...ordered);continue;
+    }
+    if(own.length!==1)return null;
+    names.push(own[0].name);
   }
   return names;
 }
@@ -199,18 +243,23 @@ function matched(command,config,configFile,dir='.',scripts={}){
         return scripts['pre'+name]||scripts['post'+name]?null:{fanout:fanout(text.trim()),rest:parts.rest};
     if(fanout(parts.base))return {fanout:fanout(parts.base),rest:parts.rest};
   }
-  const check=hookForms(config,configFile).find(row=>dir==='.'?row.forms.includes(parts.base):
-    row.dir===dir&&row.local.includes(parts.base))?.check;
-  return check?{check,rest:parts.rest}:null;
+  const row=hookForms(config,configFile).find(row=>dir==='.'?row.forms.includes(parts.base):
+    row.dir===dir&&row.local.includes(parts.base));
+  // A script form of compiler checks is checked against the script first.
+  return row?.scriptForms?.includes(parts.base)?{row,rest:parts.rest}:row?{check:row.check,rest:parts.rest}:null;
 }
-export function matchCheck(command,config,configFile,dir,scripts){return matched(command,config,configFile,dir,scripts)?.check||null;}
-// The same check through REDUE, keeping the output suffix; null if it already
-// is, or if more commands follow it.
+export function matchCheck(command,config,configFile,dir,scripts){
+  const match=matched(command,config,configFile,dir,scripts);
+  return match?.row?match.row.checks.join(' && '):match?.check||null;
+}
+// The same check (or checks, in order) through REDUE, keeping the output
+// suffix; null if it already is, or if more commands follow it.
 export function recordedCommand(command,name,configFile=defaultConfig){
+  const names=Array.isArray(name)?name:[name];
   const parts=split(command),redue=redueFor(configFile);
-  if(!parts||parts.rest!==null||!safe.test(name)||!redue)return null;
-  const run=`${redue} run ${name}`;
-  return parts.base===run?null:run+parts.suffix;
+  if(!parts||parts.rest!==null||!names.length||!names.every(value=>safe.test(value))||!redue)return null;
+  const run=names.map(value=>`${redue} run ${value}`).join(' && ');
+  return parts.base===run?null:names.length>1&&parts.suffix?`(${run})${parts.suffix}`:run+parts.suffix;
 }
 
 // A leading `cd DIR;` or `cd DIR &&`, which agents often add before a check:
@@ -277,9 +326,11 @@ export function statusTimeout(status,name){
     Math.min(run.durationMs/2,10000):2000;
 }
 // From the observer's last published status, which is small, not the receipts.
-export function lastRunTimeout(config,parsed,name){
+// The longest wait among `names`, read once.
+export function lastRunTimeout(config,parsed,...names){
   try{const root=realObservedPath(path.resolve(path.dirname(config),parsed.root||'.'));
-    return statusTimeout(JSON.parse(fs.readFileSync(path.join(projectState(root,config),'status.json'),'utf8')),name);}
+    const status=JSON.parse(fs.readFileSync(path.join(projectState(root,config),'status.json'),'utf8'));
+    return Math.max(...names.map(name=>statusTimeout(status,name)));}
   catch{return 2000;}
 }
 
@@ -329,9 +380,33 @@ export async function claudeHook(input,{entry,timeout}){
   if(match.fanout){
     const names=await fanoutChecks(match.fanout,parsed,project.projectRoot);
     if(!names)return null;
-    const status=await synchronizedStatus(entry,config,root,timeout??Math.max(...names.map(name=>lastRunTimeout(config,parsed,name)))),
+    const status=await synchronizedStatus(entry,config,root,timeout??lastRunTimeout(config,parsed,...names)),
       reason=fanoutVerdict(status,names,match.rest);
     return reason?{hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:reason}}:null;
+  }
+  // The configured config path as the command's directory sees it.
+  // Both sides resolved alike: Windows can spell the same directory RUNNER~1 or by its long name.
+  const configPath=!entered.prefix?record.config:
+    path.relative(path.join(project.projectRoot,entered.dir),realObservedPath(config)).split(path.sep).join('/');
+  // A compiler script: its checks in the order of its runs, or nothing when
+  // they no longer correspond. One run is an ordinary check. A chain is
+  // skipped when every run is CURRENT, else the runs that are not run through
+  // redue run, in order.
+  if(match.row){
+    const names=scriptChecks(match.row,parsed,project.projectRoot);
+    if(!names)return null;
+    if(names.length===1)match.check=names[0];
+    else{
+      const status=await synchronizedStatus(entry,config,root,timeout??lastRunTimeout(config,parsed,...names)),
+        reason=fanoutVerdict(status,names,match.rest);
+      if(reason)return {hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:reason}};
+      const pending=names.filter(name=>!verdict(status,name));
+      const rewritten=status?.schema===1&&status.observation?.healthy===true&&Array.isArray(status.checks)&&
+        names.every(name=>status.checks.some(item=>item?.name===name))?recordedCommand(entered.command,pending,configPath):null;
+      return rewritten?{hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'allow',
+        permissionDecisionReason:`REDUE: ${pending.map(name=>JSON.stringify(name)).join(', ')} of this script's checks ${pending.length===1?'is':'are'} not CURRENT; running ${pending.length===1?'it':'them'} through redue run so the result is recorded.`,
+        updatedInput:{...input.tool_input,command:entered.prefix+rewritten}}}:null;
+    }
   }
   const name=match.check,status=await synchronizedStatus(entry,config,root,timeout??lastRunTimeout(config,parsed,name)),
     reason=verdict(status,name,match.rest);
@@ -342,9 +417,7 @@ export async function claudeHook(input,{entry,timeout}){
   // stays too: the rewrite returns "allow", which would also skip the prompt
   // for the rest of the chain.
   const rewritten=status?.schema===1&&status.observation?.healthy===true&&Array.isArray(status.checks)&&
-    status.checks.some(item=>item?.name===name)?recordedCommand(entered.command,name,
-      // Both sides resolved alike: Windows can spell the same directory RUNNER~1 or by its long name.
-      !entered.prefix?record.config:path.relative(path.join(project.projectRoot,entered.dir),realObservedPath(config)).split(path.sep).join('/')):null;
+    status.checks.some(item=>item?.name===name)?recordedCommand(entered.command,name,configPath):null;
   // updatedInput replaces the whole tool input. Deny and ask rules still apply
   // to the rewritten command; "allow" skips only the prompt.
   return rewritten?{hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'allow',

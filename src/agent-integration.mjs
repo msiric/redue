@@ -134,7 +134,7 @@ function earlierBlock(host,rows=[]){
 }
 // One form per check: the package manager's script form when there is one,
 // since that is what the project's own instructions usually name.
-const blockForms=(host,config,relative)=>host!=='claude'?[]:hookForms(config,relative).map(row=>({kind:row.kind,
+const blockForms=(host,config,relative)=>host!=='claude'?[]:hookForms(config,relative).filter(row=>!row.part).map(row=>({kind:row.kind,
   form:row.forms.find(form=>/^(?:npm run|pnpm|yarn) /.test(form))??row.forms.find(form=>!form.startsWith('redue '))??row.forms[0]}));
 const priorBlocks=(host,relative)=>[false,true].map(legacy=>`\n\n<!-- REDUE:${host}:begin -->\n`+
   `Before deciding whether configured verification needs repeating, use REDUE.\n`+
@@ -166,7 +166,7 @@ function knownBlock(host,relative,block){
 function skillFor(relative,host,config){
   // Double quotes work in POSIX shells, cmd and PowerShell for ordinary names.
   const redue=redueFor(relative)??`redue --config ${JSON.stringify(relative)}`,status=`${redue} status --sync --json`;
-  const rows=host==='claude'?hookForms(config,relative):[];
+  const rows=host==='claude'?hookForms(config,relative).filter(row=>!row.part):[];
   const label=row=>row.kind==='test'?(row.check==='test'?'Unit tests':`Unit tests \`${row.check}\``):
     row.check==='typecheck'?'Typecheck':`Typecheck \`${row.check}\``;
   const commands=rows.map(row=>`- ${label(row)}: `+

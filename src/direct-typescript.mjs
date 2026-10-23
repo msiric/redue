@@ -4,6 +4,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {realObservedPath,withinPath} from './path-identity.mjs';
+import {runConfig,tscRun} from './typescript-invocation.mjs';
 export const directInterpretation='npm-direct-typescript@1';
 export const directQualification='npm-typescript-direct-v1';
 const reviewed={
@@ -101,13 +102,16 @@ export function buildInfoFor(ts,options,root) {
   if(!relative.endsWith('.tsbuildinfo')||/[*?[\]{}()!+@,]/.test(relative))return {issue:'typescript-buildinfo-name-unsupported'};
   return {file:relative};
 }
+// The config a run's arguments name, relative to the root, or null.
+export const directConfig=(root,args)=>runConfig(root,args);
 // The plan's build-info file, or null. The compiler is loaded only when the
-// root config sets incremental or extends another config.
-export function directBuildInfo(root,script) {
-  const config=path.join(root,'tsconfig.json');
+// run's config sets incremental or extends another config.
+export function directBuildInfo(root,run) {
+  const name=directConfig(root,run.args);if(!name)return null;
+  const config=path.join(root,name);
   let raw;try{raw=fs.readFileSync(config,'utf8');}catch{return null;}
   if(!/"(?:incremental|extends)"\s*:/.test(raw))return null;
-  const compiler=directProject(root,script,{verify:false}),ts=createRequire(import.meta.url)(compiler.tsRoot);
+  const compiler=directProject(root,run,{verify:false}),ts=createRequire(import.meta.url)(compiler.tsRoot);
   const parsed=ts.getParsedCommandLineOfConfigFile(config,{},{...ts.sys,onUnRecoverableConfigFileDiagnostic(){}});
   return parsed?.options?.composite?null:buildInfoFor(ts,parsed?.options,root).file??null;
 }
@@ -120,16 +124,21 @@ export function directContextHash(compiler,node){
   return hash(JSON.stringify({interpretation:directInterpretation,compiler:compiler.digest,
     entry:compiler.entry,node}));
 }
-export function directProject(root,script,{verify=true}={}){
+// The compiler for one check run {script, part, args}: script null for a
+// check init proposed without one. The run must pass --noEmit and name a
+// config inside the root.
+export function directProject(root,run,{verify=true}={}){
   const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json')));
   if(pkg.workspaces||pkg.packageManager&&!/^npm@/.test(pkg.packageManager)||
     !['package-lock.json','npm-shrinkwrap.json'].some(file=>fs.existsSync(path.join(root,file)))||
     ['yarn.lock','pnpm-lock.yaml','bun.lock','bun.lockb'].some(file=>fs.existsSync(path.join(root,file))))
     fail('direct-npm-project-unsupported');
-  if(pkg.scripts?.[script]?.trim()!=='tsc --noEmit'||pkg.scripts?.['pre'+script]||pkg.scripts?.['post'+script])
-    fail('typecheck-script-changed');
+  const own=tscRun(pkg.scripts,run).run;
+  if(!own?.noEmit)fail('typecheck-script-changed');
+  const config=directConfig(root,run.args);
+  if(!config||!fs.existsSync(path.join(root,config)))fail('typescript-config-unavailable');
   const issue=directEnvironmentIssue();if(issue)fail(issue);
-  return directCompiler(root,{verify});
+  return {...directCompiler(root,{verify}),config};
 }
 // Provenance only: retain a digest, never proxy URLs/credentials or a raw dump.
 // No npm process runs in this recipe; these keys are not compiler applicability.

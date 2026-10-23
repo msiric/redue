@@ -8,11 +8,12 @@ import {pnpmInstallInfo,pnpmProjectInfo,pnpmTypecheckInputs} from './pnpm-inputs
 import {realObservedPath} from './path-identity.mjs';
 import {findExecutable} from './executable-lookup.mjs';
 import {workspaceManifests} from './workspace-manifests.mjs';
+import {partName,tscRuns} from './typescript-invocation.mjs';
 
 const exists=file=>{try{fs.accessSync(file);return true;}catch{return false;}};
 const readJson=file=>JSON.parse(fs.readFileSync(file,'utf8'));
 const scriptNames={
-  typecheck:['typecheck','type-check','check:types','types:check'],
+  typecheck:['typecheck','type-check','check:types','types:check','check-types'],
   test:['test','test:unit','test:check'],
   lint:['lint','lint:check'],
   build:['build'],
@@ -82,6 +83,28 @@ function manager(root,pkg) {
   return {name,version,layout:'node-modules/classic',issue:null,lockfiles:locks};
 }
 const exactTypeScript=script=>script.trim()==='tsc --noEmit';
+// A script of tsc runs that each pass --noEmit (typescript-invocation.mjs).
+const noEmitRuns=script=>Boolean(tscRuns(script)?.every(run=>run.noEmit));
+// Ready checks for a typecheck, one per tsc run: the script's runs (a chain
+// gives NAME.1 ... NAME.n), or with no script one proposed `tsc --noEmit`.
+// `make(run)` returns a run's command, cwd and inputs, or throws why its
+// contract does not hold.
+function tscChecks(name,script,scripts,make){
+  const runs=script===null?[{args:['--noEmit']}]:tscRuns(scripts[script]);
+  if(!runs)throw Error('the script is not tsc runs in a supported form');
+  return runs.map(({args},i)=>({name:partName(name,i+1,runs.length),
+    ...(script===null?{}:{script}),...make({script,args,count:runs.length})}));
+}
+// A proposed `tsc --noEmit` only where nothing typechecks already: a script
+// that runs any TypeScript checker in another form (tsc -b, vue-tsc,
+// svelte-check, tsgo, also quoted or wrapped by concurrently or run-p) is the
+// project's own typecheck, which plain tsc would not match.
+const typeChecker=/(?:^|[^\w-])(?:tsc|vue-tsc|tsgo|svelte-check|tsc-watch)(?=$|[^\w-])|\bastro check\b|\bnuxi typecheck\b/;
+const typechecks=scripts=>Object.values(scripts||{}).some(text=>typeof text==='string'&&typeChecker.test(text));
+const proposable=(dir,scripts)=>exists(path.join(dir,'tsconfig.json'))&&!typechecks(scripts);
+// The inputs a TypeScript contract adds to its check's config: no exclusions,
+// which would outlive the tsconfig they came from; the plan adds the current ones.
+const contractInputs=contract=>[...contract.configs,...contract.sourcePatterns.filter(p=>!p.startsWith('!'))];
 function sourceLinkIssue(root) {
   const stack=likelyDirs.filter(name=>exists(path.join(root,name)));
   let inspected=0;
@@ -139,13 +162,21 @@ function selectScript(kind,names,scripts) {
   const candidates=Object.keys(scripts).filter(name=>{
     const value=scripts[name]?.trim();
     if(typeof value!=='string')return false;
-    if(kind==='typecheck')return exactTypeScript(value);
+    if(kind==='typecheck')return noEmitRuns(value);
     if(kind==='test')return /^(?:vitest|jest)(?:\s|$)/.test(value);
     if(kind==='lint')return /^eslint(?:\s|$)/.test(value);
     return /^vite\s+build(?:\s|$)/.test(value);
   });
   return candidates.length===1?{script:candidates[0]}:
     candidates.length>1?{ambiguous:candidates}:{};
+}
+// A pnpm workspace package's TypeScript run, as its check's command, cwd and inputs.
+function pnpmCheck(root,name,dir,manifest,run){
+  const contract=pnpmTypecheckInputs(root,name,run);
+  if(contract.limitations.length)throw Error(contract.limitations.join('; '));
+  return {cwd:dir,command:['@node',`@typescript-bin:${dir}`,...run.args],
+    inputs:[...new Set(['package.json','pnpm-lock.yaml','pnpm-workspace.yaml',manifest,
+      ...contractInputs(contract)])]};
 }
 // Workspace packages as init finds them, with their scripts; [] without workspaces.
 export function workspacePackages(root){
@@ -178,19 +209,27 @@ export function discoverNodeProject(root,{recipe=null}={}) {
   for(const [kind,names] of Object.entries(scriptNames)) {
     const selected=selectScript(kind,names,scripts),script=selected.script;
     if(selected.ambiguous)ambiguous.push({kind,scripts:selected.ambiguous});
-    if(!script)continue;
+    // With no typecheck script, a root tsconfig.json gets a proposed
+    // `tsc --noEmit` check; package.json stays unchanged. It is kept only
+    // when a contract makes it ready.
+    const proposed=!script&&!selected.ambiguous&&kind==='typecheck'&&!observationIssue&&
+      proposable(root,scripts);
+    if(!script&&!proposed)continue;
     let classification=observationIssue?{level:'unsupported',reason:observationIssue}:
-      classify(kind,script,scripts[script],pkg,pm,root);
+      script?classify(kind,script,scripts[script],pkg,pm,root):{level:'recording',reason:'no typecheck script'};
+    let parts=null;
     if(workspaces&&classification.qualification==='typescript-noemit-v1')classification={level:'recording',
       reason:'workspace task and installed-input closure need explicit qualification'};
     const check={name:kind,script,kind,inputs:sourceInputs(root,kind,pm.lockfiles||[])};
     if(recipe==='typescript-direct'&&kind==='typecheck'){
       try{
         if(pm.name!=='npm'||workspaces||observationIssue||pm.issue)throw Error('direct recipe requires a supported single-package npm checkout');
-        const compiler=directProject(root,script);
-        check.command=['@node','@typescript-compiler:.','--noEmit'];check.cwd='.';
+        let version;
+        parts=tscChecks('typecheck',script??null,scripts,run=>{
+          version=directProject(root,run).version;
+          return {command:['@node','@typescript-compiler:.',...run.args],cwd:'.'};});
         classification={level:'ready',qualification:directQualification,
-          reason:`explicit local TypeScript ${compiler.version} compilation; npm launcher/lifecycle scripts are not executed; package.json stays unchanged`};
+          reason:`explicit local TypeScript ${version} compilation; npm launcher/lifecycle scripts are not executed; package.json stays unchanged`};
       }catch(e){classification={level:'recording',reason:`Direct recipe unavailable (${e.code||e.message}); original npm script retained, without bypassing required behavior`};}
     }
     if(recipe==='tests-direct'&&kind==='test'){
@@ -207,19 +246,23 @@ export function discoverNodeProject(root,{recipe=null}={}) {
           reason:`explicit local ${project.runner} ${project.version} run of script ${JSON.stringify(chosen.script)}; the whole checkout is its input; npm and lifecycle scripts are not executed`};
       }catch(e){classification={level:'recording',reason:`Test recipe unavailable (${e.code||e.message}); original npm script retained`};}
     }
-    if(pm.name==='pnpm'&&kind==='typecheck'&&!workspaces&&!pm.issue&&
-      /^(?:tsc --noEmit|tsc -p (?:\.|tsconfig\.json)(?: --noEmit)?)$/.test(scripts[script].trim())){
-      try{const contract=pnpmTypecheckInputs(root,'.',script);
-        if(contract.limitations.length)throw Error(contract.limitations.join('; '));
-        check.command=['@node','@typescript-bin:.',
-          ...scripts[script].trim().split(/\s+/).slice(1)];
-        check.cwd='.';
-        check.inputs=['package.json','pnpm-lock.yaml',
-          ...(exists(path.join(root,'pnpm-workspace.yaml'))?['pnpm-workspace.yaml']:[]),
-          'tsconfig.json','src/**'];
+    if(pm.name==='pnpm'&&kind==='typecheck'&&!workspaces&&!pm.issue&&(script===undefined||tscRuns(scripts[script]))){
+      try{
+        parts=tscChecks('typecheck',script??null,scripts,run=>{
+          const contract=pnpmTypecheckInputs(root,'.',run);
+          if(contract.limitations.length)throw Error(contract.limitations.join('; '));
+          return {command:['@node','@typescript-bin:.',...run.args],cwd:'.',
+            inputs:[...new Set(['package.json','pnpm-lock.yaml',
+              ...(exists(path.join(root,'pnpm-workspace.yaml'))?['pnpm-workspace.yaml']:[]),
+              ...contractInputs(contract)])]};});
         classification={level:'ready',reason:'pnpm TypeScript inputs and installation; checked again before reuse',
           qualification:'pnpm-tsc-v1'};}
       catch(e){classification={level:'recording',reason:`pnpm TypeScript contract needs review: ${e.message}`};}
+    }
+    if(!script&&classification.level!=='ready')continue;
+    if(parts&&classification.level==='ready'){
+      for(const part of parts)checks.push({config:{...check,...part,qualification:classification.qualification},...classification});
+      continue;
     }
     if(classification.qualification)check.qualification=classification.qualification;
     checks.push({config:check,...classification});
@@ -238,6 +281,16 @@ export function discoverNodeProject(root,{recipe=null}={}) {
         const selected=selectScript(kind,names,member.scripts||{});
         if(selected.ambiguous){ambiguous.push({kind:`${name}:${kind}`,
           scripts:selected.ambiguous});continue;}
+        // A pnpm package with a tsconfig.json and no typecheck script gets a
+        // proposed `tsc --noEmit` check when the pnpm contract holds.
+        if(!selected.script&&kind==='typecheck'&&pm.name==='pnpm'&&!pm.issue&&
+          proposable(path.join(root,dir),member.scripts)&&!typechecks(scripts)){
+          try{for(const part of tscChecks(`${name}:typecheck`,null,{},run=>pnpmCheck(root,name,dir,file,run)))
+            checks.push({config:{kind,workspace:name,qualification:'pnpm-tsc-v1',...part},level:'ready',
+              reason:'proposed tsc --noEmit for the package\'s tsconfig.json; pnpm workspace TypeScript inputs; checked again before reuse'});}
+          catch{}
+          continue;
+        }
         if(!selected.script)continue;
         const command=pm.name==='npm'?['@which:npm','run',selected.script,
           '--workspace',name]:pm.name==='yarn'?
@@ -258,20 +311,11 @@ export function discoverNodeProject(root,{recipe=null}={}) {
             level='ready';reason='pinned Yarn workspace tsc and installed inputs; checked again before reuse';
           }catch(e){reason=`workspace TypeScript contract needs review: ${e.message}`;}
         }
-        if(!pm.issue&&pm.name==='pnpm'&&kind==='typecheck'&&
-          /^(?:tsc --noEmit|tsc -p (?:\.|tsconfig\.json)(?: --noEmit)?)$/.test(
-            (member.scripts||{})[selected.script]?.trim()||'')&&
-          !member.scripts?.['pre'+selected.script]&&!member.scripts?.['post'+selected.script]){
-          try{const contract=pnpmTypecheckInputs(root,name,selected.script);
-            if(contract.limitations.length)throw Error(contract.limitations.join('; '));
-            check.workspace=name;check.qualification='pnpm-tsc-v1';
-            check.script=selected.script;
-            check.cwd=dir;
-            check.command=['@node',`@typescript-bin:${dir}`,
-              ...member.scripts[selected.script].trim().split(/\s+/).slice(1)];
-            check.inputs=['package.json','pnpm-lock.yaml','pnpm-workspace.yaml',file,
-              `${dir}/src/**`];
-            level='ready';reason='pnpm workspace TypeScript inputs; checked again before reuse';
+        if(!pm.issue&&pm.name==='pnpm'&&kind==='typecheck'&&tscRuns((member.scripts||{})[selected.script])){
+          try{const parts=tscChecks(`${name}:typecheck`,selected.script,member.scripts,run=>pnpmCheck(root,name,dir,file,run));
+            for(const part of parts)checks.push({config:{kind,workspace:name,qualification:'pnpm-tsc-v1',...part},level:'ready',
+              reason:'pnpm workspace TypeScript inputs; checked again before reuse'});
+            continue;
           }catch(e){reason=`pnpm TypeScript contract needs review: ${e.message}`;}
         }
         if(recipe==='tests-direct'&&kind==='test'&&!pm.issue){

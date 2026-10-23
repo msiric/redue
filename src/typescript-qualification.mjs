@@ -2,6 +2,7 @@ import {directProject,directQualification,directEnvironment} from './direct-type
 import fs from 'node:fs';
 import path from 'node:path';
 import {realObservedPath} from './path-identity.mjs';
+import {checkRun,runArgv} from './typescript-invocation.mjs';
 
 // This is a machine-enforced contract, not a claim inferred from a script name.
 // Runtime validation checks effective compiler membership, configuration and
@@ -11,10 +12,9 @@ export function qualifyTypeScript(root,selected,discovered={}) {
   if(selected.qualification===directQualification){
     const issues=[];
     try{
-      const compiler=directProject(root,selected.script);
-      if(selected.command?.length!==3||selected.command[0]!==process.execPath||
-        selected.command[1]!==compiler.entry||selected.command[2]!=='--noEmit'||
-        selected.cwd&&selected.cwd!=='.')issues.push('direct compiler invocation changed');
+      const compiler=directProject(root,checkRun(selected));
+      if(selected.command?.[0]!==process.execPath||
+        selected.command[1]!==compiler.entry||selected.cwd&&selected.cwd!=='.')issues.push('direct compiler invocation changed');
     }catch(e){issues.push(e.code||'direct compiler prerequisites unavailable');}
     if(!selected.inputs?.includes('**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,json,jsonc}')||
       !selected.inputs?.includes('package.json')||!selected.inputs?.includes('tsconfig.json')||
@@ -24,23 +24,22 @@ export function qualifyTypeScript(root,selected,discovered={}) {
       !directEnvironment.prefixes.every(key=>selected.environment?.prefixes?.includes(key)))
       issues.push('direct compiler execution context incomplete');
     if(selected.probes?.length!==1||!selected.probes?.some(argv=>path.basename(argv[1]||'')==='direct-typescript-probe.mjs'&&
-      argv[0]===process.execPath&&argv[2]===root&&argv[3]===selected.script))issues.push('direct compiler probe missing');
+      argv[0]===process.execPath&&argv[2]===root&&
+      JSON.stringify(argv.slice(3))===JSON.stringify(runArgv(checkRun(selected)))))issues.push('direct compiler probe missing');
     return {qualified:issues.length===0,issues};
   }
   if(selected.qualification==='pnpm-tsc-v1'){
     const issues=[];
     const workspace=selected.workspace||'.';
-    const script=selected.script||selected.command?.at(-1);
     try{
       if(discovered.issue)throw Error(discovered.issue);
       const contract=discovered.workspace;
       if(!contract)throw Error('pnpm TypeScript input discovery unavailable');
       issues.push(...contract.limitations);
-      const declared=contract.workspace.pkg.scripts[script].trim().split(/\s+/).slice(1);
+      // The arguments are checked against the script by the contract itself.
       if(path.resolve(root,selected.cwd||'.')!==path.join(root,contract.workspace.dir)||
         selected.command?.[0]!==process.execPath||
-        selected.command?.[1]!==contract.tsc||
-        JSON.stringify(selected.command.slice(2))!==JSON.stringify(declared))
+        selected.command?.[1]!==contract.tsc)
         issues.push('standalone TypeScript invocation changed');
     }catch(e){issues.push(e.message);}
     if(!selected.probes?.some(argv=>path.basename(argv[1]||'')==='pnpm-typecheck-probe.mjs'))

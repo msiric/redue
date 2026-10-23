@@ -63,7 +63,7 @@ export function queriesMatch(queries) {
   return queries.every(([kind,file,answer,options])=>
     JSON.stringify(queryAnswer(kind,file,options))===JSON.stringify(answer));
 }
-export function compilerFiles(tsRoot,cwd) {
+export function compilerFiles(tsRoot,cwd,config='tsconfig.json') {
   const require=createRequire(import.meta.url),ts=require(tsRoot);
   if(typeof ts.createProgram!=='function'||typeof ts.createCompilerHost!=='function')return null;
   const queries=new Map();
@@ -114,7 +114,7 @@ export function compilerFiles(tsRoot,cwd) {
   };
   const realpath=file=>{remember('realpath',file);return ts.sys.realpath(file);};
   // `extends` of a package config resolves through realpath too.
-  const parsed=ts.getParsedCommandLineOfConfigFile(path.join(cwd,'tsconfig.json'),{},
+  const parsed=ts.getParsedCommandLineOfConfigFile(path.join(cwd,config),{},
     {...ts.sys,readFile,fileExists,directoryExists,getDirectories,readDirectory,realpath,
       onUnRecoverableConfigFileDiagnostic(){}});
   if(!parsed||parsed.errors?.length)throw Error('TypeScript configuration unavailable');

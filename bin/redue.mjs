@@ -4,6 +4,7 @@ import {mark,traceBase,traceContext,traceEnvironment,traceId} from '../src/decis
 traceBase({...traceContext(),request:traceId(),work:'client'});
 mark('client.loaded');
 import {directCompiler,directQualification,directEnvironment,directInterpretation} from '../src/direct-typescript.mjs';
+import {runArgv,tscRun} from '../src/typescript-invocation.mjs';
 import {testEnvironment,testRunnerAt,testsInterpretation,testsQualification} from '../src/test-direct.mjs';
 import os from 'node:os';
 import path from 'node:path';
@@ -256,8 +257,9 @@ const checks=publicConfig.checks.map(check=>{
   const yarnWorkspace=check.qualification==='yarn-workspace-tsc-v1';
   if(check.qualification&&!npmAutomatic&&!npmDirect&&!yarnWorkspace&&!pnpmTypecheck&&!testsDirect)
     error(`${check.name}: unknown qualification contract`);
-  if(npmDirect&&(manager!=='npm'||!check.script||check.cwd&&check.cwd!=='.'||
-    JSON.stringify(check.command)!==JSON.stringify(['@node','@typescript-compiler:.','--noEmit'])))
+  if(npmDirect&&(manager!=='npm'||check.cwd&&check.cwd!=='.'||!Array.isArray(check.command)||
+    check.command[0]!=='@node'||check.command[1]!=='@typescript-compiler:.'||
+    !tscRun({},{script:null,args:check.command.slice(2)}).run?.noEmit))
     error(`${check.name}: direct recipe requires its explicit local compiler command`);
   // The script's own arguments follow the runner; qualification compares them with the script.
   if(testsDirect&&(!['npm','pnpm','yarn'].includes(manager)||!check.script||check.cwd&&check.cwd!=='.'&&!check.workspace||!Array.isArray(check.command)||
@@ -270,22 +272,29 @@ const checks=publicConfig.checks.map(check=>{
     check.command[1]!=='workspace'||check.command[2]!==check.workspace||
     check.command[3]!=='run'))
     error(`${check.name}: Yarn workspace qualification needs its discovered workspace command`);
-  if(pnpmTypecheck&&(manager!=='pnpm'||!check.script||!check.command||
+  if(pnpmTypecheck&&(manager!=='pnpm'||!Array.isArray(check.command)||
     check.command[0]!=='@node'||
     check.command[1]!==`@typescript-bin:${check.cwd||'.'}`||
     check.workspace&&check.cwd==='.'||
-    !check.command.slice(2).every(value=>typeof value==='string'&&value)))
+    !tscRun({},{script:null,args:check.command.slice(2)}).run))
     error(`${check.name}: pnpm qualification needs its discovered standalone TypeScript command`);
   const reason=check.kind==='test'?'test runtime, transforms and cache inputs need review':
     check.kind==='lint'?'lint plugins, config and resolver inputs need review':
     check.kind==='build'?'build environment and generated inputs need review':
     'check inputs need review';
-  const autoProbes=npmDirect?[['@node','@vstate/direct-typescript-probe','@project',check.script]]:npmAutomatic?[['@node','@vstate/typescript-contract-probe',
+  // A chained script has one check per tsc run: each check's run counts them,
+  // so a run added to or removed from the script invalidates them all.
+  const runCount=(npmDirect||pnpmTypecheck)&&check.script?publicConfig.checks.filter(other=>
+    other.qualification===check.qualification&&other.script===check.script&&
+    (other.cwd||'.')===(check.cwd||'.')&&(other.workspace||null)===(check.workspace||null)).length:1;
+  if(runCount>16)error(`${check.name}: more than 16 checks for script ${check.script}`);
+  const run=npmDirect||pnpmTypecheck?runArgv({script:check.script??null,args:check.command.slice(2),count:runCount}):null;
+  const autoProbes=npmDirect?[['@node','@vstate/direct-typescript-probe','@project',...run]]:npmAutomatic?[['@node','@vstate/typescript-contract-probe',
     '@project',check.script,'@which:npm']]:yarnWorkspace?
     [['@node','@vstate/yarn-workspace-typecheck-probe','@project',
       check.workspace,check.command[4],'@which:yarn']]:pnpmTypecheck?
     [['@node','@vstate/pnpm-typecheck-probe','@project',
-      check.workspace||'.',check.script]]:[];
+      check.workspace||'.',...run]]:[];
   const windowsContext=process.platform==='win32'?
     ['ComSpec','COMSPEC','PATHEXT','USERPROFILE']:[];
   const autoEnvironment=npmDirect?directEnvironment:testsDirect?testEnvironment:npmAutomatic?{variables:['NODE_OPTIONS','NODE_PATH','CI','HOME',
@@ -310,6 +319,7 @@ const checks=publicConfig.checks.map(check=>{
     coverageReasons:check.coverageReasons||Object.fromEntries(
       categories.map(category=>[category,reason])),
     qualification:check.qualification||null,script:check.script||null,
+    ...(runCount>1?{runCount}:{}),
     ...(npmAutomatic?{qualificationInterpretation:'npm-launcher-withheld@1'}:{}),
     ...(npmDirect?{qualificationInterpretation:directInterpretation}:{}),
     ...(testsDirect?{qualificationInterpretation:testsInterpretation}:{}),

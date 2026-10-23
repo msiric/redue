@@ -56,6 +56,10 @@ Advanced explicit contracts may declare `generatedInputs`, `installedInputs`, na
 reviewed escape hatches, not onboarding requirements. A coverage rationale cannot
 override unsupported storage, unresolved links, missing inputs, or observation failure.
 
+A chained typecheck script gets one generated check per `tsc` run, all with
+the script's name (see [script forms](direct-typescript.md#script-forms)). A
+proposed check for a project without a typecheck script has no `script`.
+
 Input patterns are relative to the project root. They cannot name a `.git`
 directory, because REDUE does not observe one; `!.git/**` is fine.
 

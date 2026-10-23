@@ -122,6 +122,17 @@ post-scripts. In every other case the command runs as typed: turbo caches its
 own results, so the hook never rewrites it. Filters (`--filter`) and nx are not
 matched.
 
+For a typecheck check that runs the compiler, the script's forms act only when
+the script in package.json still has exactly the configured runs: one `tsc`
+run per check with the same arguments, and no pre- or post-script. Otherwise
+the command runs as typed. A script that chains `tsc` runs with `&&` has one
+check per run, `typecheck.1`, `typecheck.2` and so on (see
+[direct TypeScript](direct-typescript.md#script-forms)); each run's own
+`npx tsc ...` form matches its check. The hook skips the script when all its
+runs are CURRENT, PASS and `reuse_eligible`, and otherwise rewrites it to
+`redue run` of the runs that are not, in the script's order, joined by `&&`.
+In a turbo or `pnpm -r` fan-out, a package's script counts only the same way.
+
 Each form may end with `2>&1` and then one `| tail -n N`, `| head -n N`,
 `| tail -N` or `| head -N`. It may also be the first command of a `;` or `&&`
 chain. Nothing else matches. Each form has its own `if` rule, so other Bash

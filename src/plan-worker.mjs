@@ -5,6 +5,7 @@ import {createHash} from 'node:crypto';
 import {discover} from './plan.mjs';
 import {InputIndex,dehydrateIndex} from './index.mjs';
 import {directProject,directQualification} from './direct-typescript.mjs';
+import {checkRun} from './typescript-invocation.mjs';
 import {queriesMatch} from './typescript-list.mjs';
 import {planGuard,inputKey} from './decision-validation.mjs';
 import {timing,traceBase} from './decision-profile.mjs';
@@ -25,8 +26,10 @@ try {
       const queryStarted=performance.now();
       // Cached membership queries load the compiler API; establish its reviewed
       // implementation before that optimization can execute project code.
+      // Every direct check (a chain has one per run) uses the root's compiler:
+      // its bytes are verified once.
       const directRoots=new Set(config.checks.filter(check=>check.qualification===directQualification)
-        .map(check=>directProject(config.root,check.script).tsRoot));
+        .map((check,i)=>directProject(config.root,checkRun(check),{verify:i===0}).tsRoot));
       if(directRoots.size&&(workerData.reuse.queries||[]).some(([kind,,,options])=>
         kind==='readDirectory'&&!directRoots.has(options?.tsRoot)))throw Error('retained compiler implementation changed');
       const queriesValid=guard===workerData.reuse.guard&&

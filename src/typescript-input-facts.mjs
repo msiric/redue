@@ -9,7 +9,7 @@ import {timing} from './decision-profile.mjs';
 const require=createRequire(import.meta.url),hash=value=>createHash('sha256').update(value).digest('hex');
 const digestFile=file=>hash(fs.readFileSync(file));
 const fail=code=>{throw Object.assign(Error(code),{code});};
-export function typeScriptInputFacts(root,tsRoot,tsc){
+export function typeScriptInputFacts(root,tsRoot,tsc,config='tsconfig.json'){
   const configReads=new Set(),visited=new Set(),referenced=[];
   let buildInfo=null;
   let ts;try{ts=require(tsRoot);}catch{}
@@ -37,15 +37,15 @@ export function typeScriptInputFacts(root,tsRoot,tsc){
         parseConfig(reference.path.endsWith('.json')?reference.path:
           path.join(reference.path,'tsconfig.json'));
     };
-    parseConfig(path.join(root,'tsconfig.json'),true);
+    parseConfig(path.join(root,config),true);
   }else{
     // TypeScript 7's native compiler does not expose the previous config API.
     // Its CLI reports the effective config; restrict this path to one direct
     // config rather than guessing about extends/reference provenance.
-    const config=path.join(root,'tsconfig.json'),raw=fs.readFileSync(config,'utf8');
+    const file=path.join(root,config),raw=fs.readFileSync(file,'utf8');
     if(/"(?:extends|references|plugins|incremental|composite)"\s*:/.test(raw))
       fail('typescript-config-graph-unsupported');
-    const shown=spawnSync(process.execPath,[tsc,'--showConfig'],{cwd:root,
+    const shown=spawnSync(process.execPath,[tsc,'--showConfig','-p',config],{cwd:root,
       env:process.env,encoding:'utf8',timeout:probeTimeLeft(4000),maxBuffer:16*1024*1024,
       stdio:['ignore','pipe','pipe']});
     if(shown.error||shown.signal||shown.status!==0)fail('typescript-config-unavailable');
@@ -53,13 +53,13 @@ export function typeScriptInputFacts(root,tsRoot,tsc){
     if(effective.compilerOptions?.plugins?.length||
       effective.compilerOptions?.incremental||effective.compilerOptions?.composite)
       fail('typescript-config-graph-unsupported');
-    configReads.add(config);
+    configReads.add(file);
   }
   for(const file of configReads)if(!within(realObservedPath(file),root))
     fail('typescript-config-outside-repository');
   const listingStarted=performance.now();
-  const captured=process.argv.includes('--redue-checkpoint')?compilerFiles(tsRoot,root):null;
-  const listed=captured?{status:0,stdout:captured.files.join('\n')}:spawnSync(process.execPath,[tsc,'--noEmit','--listFilesOnly'],
+  const captured=process.argv.includes('--redue-checkpoint')?compilerFiles(tsRoot,root,config):null;
+  const listed=captured?{status:0,stdout:captured.files.join('\n')}:spawnSync(process.execPath,[tsc,'--noEmit','--listFilesOnly','-p',config],
     {cwd:root,env:process.env,encoding:'utf8',timeout:probeTimeLeft(process.platform==='win32'?10000:4000),
       maxBuffer:16*1024*1024,
       stdio:['ignore','pipe','pipe']});
