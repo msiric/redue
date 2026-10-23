@@ -301,25 +301,47 @@ test('an installed link to a directory outside the installed tree still makes ob
   good(root,state,'stop');
 });
 
-test('pnpm: a settings-only pnpm-workspace.yaml is no workspace; packages make one; hard-linked installs are UNVERIFIED',{skip:unsupported},t=>{
+test('pnpm: a settings-only pnpm-workspace.yaml is no workspace; packages make one; hard links count only into pnpm\'s store',{skip:unsupported},t=>{
   const {root,state}=project(t,{manager:'pnpm'});
   put(path.join(root,'pnpm-workspace.yaml'),'onlyBuiltDependencies:\n  - esbuild\n');
   assert.equal(testPackageManager(root,JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'))),'pnpm');
   put(path.join(root,'pnpm-workspace.yaml'),'packages:\n  - packages/*\n');
   assert.throws(()=>testPackageManager(root,JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'))),{code:'test-workspace-unsupported'});
   fs.rmSync(path.join(root,'pnpm-workspace.yaml'));
+  // The store the install recorded, outside the checkout.
+  const store=fs.mkdtempSync(path.join(os.tmpdir(),'rt-store-'));t.after(()=>fs.rmSync(store,{recursive:true,force:true}));
+  const modules=path.join(root,'node_modules/.modules.yaml');
+  put(modules,JSON.stringify({...JSON.parse(fs.readFileSync(modules,'utf8')),storeDir:path.join(store,'v10')}));
   good(root,state,'init','--recipe','tests-direct','--check','test','--json');
   good(root,state,'start');
-  // A second link to an installed file, as a package store would hold.
-  const store=fs.mkdtempSync(path.join(os.tmpdir(),'rt-store-'));t.after(()=>fs.rmSync(store,{recursive:true,force:true}));
-  fs.linkSync(fs.realpathSync(path.join(root,'node_modules/vitest/vitest.mjs')),path.join(store,'vitest.mjs'));
-  // The new link changes the file's ctime; a file changed within the last
-  // 2 s is racy and keeps the run's start checkpoint unhealthy. A real store's
+  // A store file at its content address, and a second link somewhere else.
+  const installed=fs.realpathSync(path.join(root,'node_modules/vitest'));
+  const stored=file=>{const hex=createHash('sha512').update(fs.readFileSync(file)).digest('hex');
+    const at=path.join(store,'v10/files',hex.slice(0,2),hex.slice(2));fs.mkdirSync(path.dirname(at),{recursive:true});fs.linkSync(file,at);};
+  stored(path.join(installed,'vitest.mjs'));
+  const elsewhere=path.join(store,'package.json');fs.linkSync(path.join(installed,'package.json'),elsewhere);
+  // A new link changes the file's ctime; a file changed within the last 2 s
+  // is racy and keeps the run's start checkpoint unhealthy. A real store's
   // links are made at install, long before a run.
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,2500);row(root,state);
+  const settle=()=>{Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,2500);row(root,state);};
+  settle();good(root,state,'run','test');
+  let status=row(root,state);
+  assert.equal(status.freshness,'UNVERIFIED');assert.match(status.reason,/package\.json has another hard link outside pnpm's store/);
+  fs.unlinkSync(elsewhere);settle();
   good(root,state,'run','test');
-  const status=row(root,state);
-  assert.equal(status.freshness,'UNVERIFIED');assert.match(status.reason,/has another hard link/);
+  status=row(root,state);
+  assert.equal(status.freshness,'CURRENT',status.reason);
+  // The store check is remembered by file identity.
+  assert.equal(Object.keys(JSON.parse(fs.readFileSync(path.join(state,'pnpm-store-links-v1.json'),'utf8')).entries).length,1);
+  good(root,state,'run','test');
+  assert.equal(row(root,state).freshness,'CURRENT');
+  // An edit through the store's name: its content no longer matches the
+  // address, so the next recorded run is UNVERIFIED.
+  const address=Object.values(JSON.parse(fs.readFileSync(path.join(state,'pnpm-store-links-v1.json'),'utf8')).entries)[0][1];
+  fs.appendFileSync(path.join(store,'v10/files',address),'\n');settle();
+  good(root,state,'run','test');
+  status=row(root,state);
+  assert.equal(status.freshness,'UNVERIFIED');assert.match(status.reason,/vitest\.mjs has another hard link outside pnpm's store/);
   good(root,state,'stop');
 });
 

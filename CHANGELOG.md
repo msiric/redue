@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- pnpm test checks are reused on Linux. A recorded run accepts an installed
+  file hard-linked into the pnpm store the install recorded, when the store
+  holds it at its content address (pnpm names store files by their sha512).
+  Links anywhere else stay UNVERIFIED. Each file is hashed once; REDUE keeps
+  its identity and store path in its state and hashes it again only when the
+  identity changes. A 46 MB install takes about 160 ms to check the first
+  time. Limit: an in-place edit of an installed file in another project that
+  shares the store file is not seen until the next recorded run.
+
 ## 0.1.0-alpha.17 — 2026-10-22
 
 Workspaces and package managers beyond npm. In the census of 108 public

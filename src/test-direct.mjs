@@ -13,8 +13,10 @@ import {spawnSync} from 'node:child_process';
 import micromatch from './glob.mjs';
 import {runFact} from './direct-run-certificate.mjs';
 import {queryAnswer} from './typescript-list.mjs';
-import {pnpmInstallInfo,pnpmProjectInfo} from './pnpm-inputs.mjs';
+import {pnpmInstallInfo,pnpmProjectInfo,yaml} from './pnpm-inputs.mjs';
 import {workspaceManifests} from './workspace-manifests.mjs';
+import {atomicJson} from './state-store.mjs';
+import {racyUntil} from './path-identity.mjs';
 
 const digest=value=>createHash('sha256').update(value).digest('hex');
 export const testRecorder=fileURLToPath(new URL('test-recorder.cjs',import.meta.url));
@@ -336,21 +338,70 @@ export function testWorkspaceDirs(root,pkg){
 // Each node_modules the recipe observes as installed: the root's and every
 // workspace package's, relative to the root.
 const modulesDirs=({dirs=[]})=>['node_modules',...dirs.map(dir=>`${dir}/node_modules`)];
-// The first installed file with more than one link, or null. A package store
-// outside the checkout (pnpm's default on Linux, Yarn's hardlinks modes) can
-// change such a file with no event here. Checked at every recorded run: a later
-// install that adds links replaces the files, which is a change REDUE sees.
-export function sharedInstalledFile(root,project={}){
+// pnpm's content-addressed store, as the install recorded it in .modules.yaml:
+// files/<first 2 hex>/<rest of the content's sha512 hex>, "-exec" for
+// executables. pnpm writes new store files and never changes one in place.
+function pnpmStoreFiles(root){
+  try{const {storeDir}=yaml(path.join(root,'node_modules','.modules.yaml'));
+    return typeof storeDir==='string'&&path.isAbsolute(storeDir)?path.join(storeDir,'files'):null;}
+  catch{return null;}
+}
+const identity=st=>`${st.size}:${st.mtimeNs}:${st.ctimeNs}`;
+const sameFile=(file,st)=>{
+  try{const other=fs.statSync(file,{bigint:true});return other.dev===st.dev&&other.ino===st.ino;}
+  catch{return false;}};
+// The file's store path relative to `files`, or null when the store does not
+// hold this file at its content's address.
+function storePath(files,file,st){
+  const hash=createHash('sha512'),buffer=Buffer.alloc(1<<20),fd=fs.openSync(file,'r');
+  try{for(let n;(n=fs.readSync(fd,buffer,0,buffer.length,null))>0;)hash.update(buffer.subarray(0,n));}
+  finally{fs.closeSync(fd);}
+  const hex=hash.digest('hex'),at=path.join(hex.slice(0,2),hex.slice(2));
+  return [at,at+'-exec'].find(candidate=>sameFile(path.join(files,candidate),st))??null;
+}
+// The first installed file with more than one link, as {file, reason}, or
+// null. A package store outside the checkout (pnpm's default on Linux, Yarn's
+// hardlinks modes) can change such a file with no event here. A link into
+// pnpm's own store is accepted: the store's file is named by its content.
+// Checked at every recorded run: a later install that adds links replaces the
+// files, which is a change REDUE sees. `cache` (in owned state) keeps each
+// file found in the store with its identity and store path, so an unchanged
+// file is not hashed again; its store link is still checked.
+export function sharedInstalledFile(root,project={},cache=null){
   const stack=modulesDirs(project).map(dir=>path.join(root,dir));
+  const files=pnpmStoreFiles(root),now=Date.now();
+  let known={},changed=false;
+  if(files&&cache)try{const value=JSON.parse(fs.readFileSync(cache,'utf8'));
+    if(value?.files===files&&value.entries&&typeof value.entries==='object')known=value.entries;}catch{}
+  const found={};
+  const shared=(file,reason)=>({file:path.relative(root,file).split(path.sep).join('/'),reason});
   while(stack.length){
     const dir=stack.pop();let entries;
     try{entries=fs.readdirSync(dir,{withFileTypes:true});}catch{continue;}
     for(const entry of entries){
       const file=path.join(dir,entry.name);
-      if(entry.isDirectory())stack.push(file);
-      else if(entry.isFile())try{if(fs.lstatSync(file).nlink>1)return path.relative(root,file).split(path.sep).join('/');}catch{}
+      if(entry.isDirectory()){stack.push(file);continue;}
+      if(!entry.isFile())continue;
+      let st;try{st=fs.lstatSync(file,{bigint:true});}catch{continue;}
+      if(st.nlink<=1n)continue;
+      if(!files)return shared(file,'has another hard link, and the install records no pnpm store');
+      const key=`${st.dev}:${st.ino}`,cached=known[key];
+      let at=Array.isArray(cached)&&cached[0]===identity(st)&&typeof cached[1]==='string'&&
+        sameFile(path.join(files,cached[1]),st)?cached[1]:null;
+      if(!at){
+        try{at=storePath(files,file,st);}
+        catch(e){return shared(file,`could not be checked against pnpm's store (${e.code||e.message})`);}
+        if(!at)return shared(file,"has another hard link outside pnpm's store");
+        changed=true;
+      }
+      // A file changed within the racy window could change again unseen in
+      // the same timestamp tick; it is hashed again next time.
+      if(racyUntil(st)<=now)found[key]=[identity(st),at];
+      else changed=true;
     }
   }
+  if(files&&cache&&(changed||Object.keys(found).length!==Object.keys(known).length))
+    try{atomicJson(cache,{files,entries:found});}catch{}
   return null;
 }
 // The runner a package's script reaches: Node's lookup from the package

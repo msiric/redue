@@ -16,7 +16,7 @@ import {timing} from './decision-profile.mjs';
 const rel=(root,file)=>path.relative(root,file).split(path.sep).join('/');
 const read=file=>JSON.parse(fs.readFileSync(file,'utf8'));
 const exists=file=>{try{fs.lstatSync(file);return true;}catch{return false;}};
-function yaml(file){
+export function yaml(file){
   const doc=YAML.parseDocument(fs.readFileSync(file,'utf8'),{uniqueKeys:true});
   if(doc.errors.length)throw Error(`${path.basename(file)} cannot be interpreted safely`);
   return doc.toJS()||{};

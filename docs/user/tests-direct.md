@@ -79,6 +79,10 @@ kept but marked UNVERIFIED, with the reason, when the run:
   about a name other than localhost;
 - started a process that did not load the recorder: a shell, a binary, or a
   Node process with its own environment;
+- had an installed file with another hard link, other than a link into the
+  pnpm store the install recorded in `node_modules/.modules.yaml` (pnpm's
+  default on Linux). A change through a link elsewhere, such as Yarn's
+  hardlinks modes, is not seen.
 
 Lookups that can be asked again become run facts, checked before every CURRENT
 answer: whether a path outside the checkout exists, where a link resolves, the
@@ -119,4 +123,8 @@ Tests that write files git does not ignore change the run's inputs.
   are not indexed at start), makes the result STALE.
 - A config written by an earlier build of this recipe is UNVERIFIED with "run
   redue init again"; move `redue.config.json` aside and run init.
+- pnpm's store is trusted not to change a file in place, as pnpm never does.
+  Editing an installed file in another project that shares the same store
+  file changes it here too, unseen. Use `pnpm patch`, or a copying install
+  (`package-import-method=copy`), if you edit installed files.
 - Windows is not supported; the check stays recording-only there.

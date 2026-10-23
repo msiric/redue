@@ -361,8 +361,8 @@ async function execute() {
       guard=testRunGuard(testRecord,{root,sourcePatterns:plan.sourcePatterns||plan.patterns,files:snap?.files,
         runner:runnerPid,environment:selected.environment||{},coverage});
       runFacts=guard.runFacts;
-      const shared=sharedInstalledFile(root,testFacts);
-      if(shared)guard.issues.push(`installed file ${shared} has another hard link, likely into a package store; a change through it is not observed`);
+      const shared=sharedInstalledFile(root,testFacts,path.join(state,'pnpm-store-links-v1.json'));
+      if(shared)guard.issues.push(`installed file ${shared.file} ${shared.reason}; a change through it is not observed`);
       fs.rmSync(testRecord,{recursive:true,force:true});
     }
     // The daemon reads the recording from owned state; control requests are small.
