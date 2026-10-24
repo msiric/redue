@@ -1,5 +1,48 @@
 # Changelog
 
+## 0.1.0-alpha.19 — 2026-10-24
+
+A general recipe for typecheck and lint scripts that the strict recipes do not
+take. Test scripts stay on the direct test recipe (Vitest, Jest).
+
+- `redue init` tries the strict recipes first, then writes a general check
+  (`"qualification": "node-script-v1"`) for a root typecheck or lint script.
+  `redue run` runs the script through the project's package manager (npm,
+  pnpm 9-12 or Yarn with the `node-modules` linker) with REDUE's recorder in
+  every Node process, on macOS and Linux. The input is the whole checkout but
+  `.git`, `node_modules` and runner caches, plus every workspace
+  `node_modules` observed as installed files, the package manager and its
+  version, and the environment. See docs/user/node-script.md.
+- pnpm's launchers are trusted only when their text matches a template a pnpm
+  release writes (pnpm 8.0 to 12.14). The pnpm executable, Corepack's
+  pnpm-native included, is toolchain; its configuration files are kept by
+  content.
+- A run that starts a program REDUE does not record is UNVERIFIED and the
+  reason names it: native programs from installed packages (esbuild, turbo,
+  tsgolint, biome), git, find, and shells that read startup files.
+- `status` and the hook's skip message name the recipe that made the receipt
+  ("general recipe"). The Claude Code hook recognizes lint commands as it does
+  typecheck and test commands: `npm run lint`, `pnpm lint`, and for a script
+  that is one plain command, that command and its `npx` form.
+- In the census of 108 public TypeScript repos, the general recipe qualifies
+  23 typecheck and 21 lint scripts (both recorded runs clean, CURRENT after
+  the second). Of the scripts whose runs start only Node and the package
+  manager's own launchers (35 typecheck, 37 lint, measured with strace), init
+  proposes and observes about 21 and 22, and 18 of each qualify. The rest:
+  init does not pick script names such as `tsc:build`, fails in monorepos
+  over 50 packages, or refuses source directory links and custom install
+  setups; plans with submodules or dangling links are unavailable.
+- Known limits: on macOS, pnpm 12's temporary files in the project root can
+  arrive as an event on the root and make a run UNVERIFIED. Writes into
+  `node_modules` during a run make it UNVERIFIED, except pnpm's workspace
+  state and vue-tsc's global types, which stay inputs and are kept as the run
+  left them. A workspace's recording checks now leave out nested
+  `node_modules`, so `redue init` rewrites them once.
+
+- Contributors: `census.mjs --product` applies the product's own rule and
+  lists the files an unstable run touched; the eval kills a timed-out
+  command's whole process group; the agent eval has lint tasks.
+
 ## 0.1.0-alpha.18 — 2026-10-23
 
 Typecheck in more project shapes, and pnpm test reuse on Linux. In the census
