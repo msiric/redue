@@ -4,6 +4,7 @@ import {commandLineIssue,scriptCheckInputs,scriptPath,scriptProject,scriptQualif
 // Init proposes the general recipe for typecheck and lint scripts; test
 // scripts use the direct test recipe (Vitest, Jest).
 const generalKinds=['typecheck','lint'];
+const perPackageLimit=50;
 import fs from 'node:fs';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
@@ -239,7 +240,7 @@ export function discoverNodeProject(root,{recipe=null}={}) {
     workspacePatterns.some(value=>typeof value!=='string'||path.isAbsolute(value)||
       value.split('/').includes('..'))))
     throw Error('workspace patterns need a supported project-relative package list');
-  const checks=[],ambiguous=[];
+  const checks=[],ambiguous=[],skipped=[];
   for(const [kind,names] of Object.entries(scriptNames)) {
     const selected=selectScript(kind,names,scripts),script=selected.script;
     if(selected.ambiguous)ambiguous.push({kind,scripts:selected.ambiguous});
@@ -310,8 +311,11 @@ export function discoverNodeProject(root,{recipe=null}={}) {
     checks.push({config:check,...classification});
   }
   if(workspaces&&!observationIssue){
-    const seen=new Set();
-    for(const {file,pkg:member} of workspaceManifests(root,workspacePatterns)){
+    const seen=new Set(),members=workspaceManifests(root,workspacePatterns);
+    // Past 50 packages, init proposes the root's checks only and says so.
+    if(members.length>perPackageLimit)skipped.push({kind:'workspace',packages:members.length,
+      reason:`${members.length} workspace packages, more than ${perPackageLimit}: per-package checks were not proposed; add the ones you need to the config`});
+    for(const {file,pkg:member} of members.length>perPackageLimit?[]:members){
       const dir=path.posix.dirname(file),name=member.name;
       if(typeof name!=='string'||!name||seen.has(name)){
         ambiguous.push({kind:'workspace',scripts:[dir],reason:'missing or duplicate package name'});
@@ -373,6 +377,6 @@ export function discoverNodeProject(root,{recipe=null}={}) {
     }
   }
   return {schema:1,root,manager:pm,observationIssue,workspaces,node:process.version,
-    checks,ambiguous,
+    checks,ambiguous,skipped,
     config:{schema:1,packageManager:pm.name||'unknown',checks:checks.map(row=>row.config)}};
 }

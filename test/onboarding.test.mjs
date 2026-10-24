@@ -201,6 +201,17 @@ test('npm workspace scripts are discovered as recording-only named checks',t=>{
 });
 
 
+test('a workspace of more than 50 packages gets its root checks; per-package checks are skipped and named',t=>{
+  const {root,state}=project(t,{workspaces:true});
+  for(let i=0;i<51;i++)put(path.join(root,'packages',`p${i}`,'package.json'),JSON.stringify({name:`p${i}`,version:'1.0.0',scripts:{test:'vitest run'}}));
+  const preview=JSON.parse(good(root,state,'init','--dry-run','--json'));
+  assert(preview.checks.some(row=>row.name==='typecheck'));
+  assert(!preview.checks.some(row=>row.name.includes(':')));
+  assert.equal(preview.skipped.length,1);
+  assert.match(preview.skipped[0].reason,/51 workspace packages, more than 50: per-package checks were not proposed/);
+  assert.match(good(root,state,'init','--dry-run'),/Skipped: 51 workspace packages/);
+});
+
 test('retired npm probe rejects full and cached-context qualification',()=>{
   for(const extra of [[],['--redue-checkpoint'],['--redue-context-only']]){
     const r=spawnSync(process.execPath,[path.resolve('src/typescript-contract-probe.mjs'),...extra],{encoding:'utf8'});

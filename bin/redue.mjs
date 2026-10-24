@@ -118,7 +118,7 @@ if(command==='init'){
     package_manager:discovery.manager.name,version:discovery.manager.version,
     installation_layout:discovery.manager.layout,
     issue:discovery.observationIssue||discovery.manager.issue,workspaces:discovery.workspaces,
-    ambiguous:discovery.ambiguous,
+    ambiguous:discovery.ambiguous,skipped:discovery.skipped||[],
     checks:discovery.checks.map(({config:check,level,reason})=>({name:check.name,
       script:check.script||null,command:check.command||null,
       workspace:check.workspace||null,level,reason})),config:configFile,
@@ -137,6 +137,7 @@ if(command==='init'){
     }
     for(const row of summary.ambiguous)
       console.log(`  ${row.kind}: ambiguous scripts (${row.scripts.join(', ')}); choose one explicitly`);
+    for(const row of summary.skipped)console.log(`  Skipped: ${row.reason}`);
     if(!summary.checks.length)console.log('No useful existing verification scripts found.');
     console.log(configured?`Existing ${configFile} left unchanged.`:
       dryRun?`Preview only; ${configFile} was not written.`:
@@ -153,6 +154,8 @@ if(command==='init'){
       console.log('Use redue status first. --sync can establish applicability, but may cost more than rerunning a cheap check.');}
   } else if(unsupported&&!json)console.log(`No config written: ${summary.issue||'unsupported discovery boundary'}.`);
   if(json)console.log(JSON.stringify({...summary,proposed_config:discovery.config}));
+  // Exiting with piped output still queued truncates it (8 KB on macOS).
+  await new Promise(resolve=>process.stdout.write('',resolve));
   process.exit(0);
 }
 function printLifecycle(output,action,machine){
@@ -362,6 +365,7 @@ if(!maintenance&&!created){
 if(command==='status'&&!sync){
   const value=readCachedStatus(state,publicConfig.checks);
   console.log(json?JSON.stringify(value):renderStatus(value,{short}));
+  await new Promise(resolve=>process.stdout.write('',resolve));
   process.exit(0);
 }
 
