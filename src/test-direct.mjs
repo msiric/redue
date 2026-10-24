@@ -99,6 +99,7 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
   const answers=new Map(),ask=(key,answer)=>{const set=answers.get(key)||new Set();set.add(JSON.stringify(answer));answers.set(key,set);};
   // Every child with a PID, accepted shells too: a header with one of these
   // PIDs is that child, not an execSync child (which reports no PID).
+  const installedWrites=new Set();
   const reads=new Map(),produced=new Set(),created=new Set(),environmentReads={},spawned=new Map(),childPids=new Map();
   for(const {header,rows} of records){
     for(const row of rows){
@@ -106,6 +107,7 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
       if(kind==='U')add(`recorder: ${value[0]}`);
       else if(kind==='R')reads.set(value[0],reads.get(value[0])||value[1]===true);
       else if(kind==='P')produced.add(path.join(root,value[0]));
+      else if(kind==='I')installedWrites.add(value[0]);
       else if(kind==='M')created.add(value[0]);
       else if(kind==='L')ask(`stat\0${value[0]}`,value[1]);
       else if(kind==='D')ask(`entries\0${value[0]}`,value[1]);
@@ -203,7 +205,8 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
     produced.has(checkout(rel))&&reads.get(rel)!==true);
   return {issues:issues.length>issueLimit?[...issues.slice(0,issueLimit),`${issues.length-issueLimit} more`]:issues,
     runFacts:runFacts.length>factLimit?[]:[...new Map(runFacts.map(f=>[JSON.stringify(f),f])).values()],
-    environmentReads:Object.fromEntries(Object.entries(environmentReads).sort(([a],[b])=>a<b?-1:a>b?1:0)),isOutput,opaque};
+    environmentReads:Object.fromEntries(Object.entries(environmentReads).sort(([a],[b])=>a<b?-1:a>b?1:0)),isOutput,opaque,
+    wroteInstalled:rel=>installedWrites.has(rel)};
 }
 // The observed files that differ between two checkpoints' file maps.
 export function changedFiles(before,after){

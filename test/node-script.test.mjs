@@ -142,6 +142,10 @@ if(value.includes('spawn'))require('node:child_process').spawnSync('ls',['.']);
 // Through a link into a git-ignored directory, as a workspace package's built output.
 if(value.includes('linked'))fs.readFileSync('node_modules/generated/report.txt');
 if(value.includes('output')){fs.mkdirSync('out',{recursive:true});fs.writeFileSync('out/report.txt','r');}
+// vue-tsc's global types, written then read at every run; or another installed file.
+if(value.includes('vue')){fs.mkdirSync('node_modules/.vue-global-types',{recursive:true});
+  fs.writeFileSync('node_modules/.vue-global-types/vue_3.5_0_0_0.d.ts','// '+Date.now());fs.readFileSync('node_modules/.vue-global-types/vue_3.5_0_0_0.d.ts');}
+if(value.includes('installed'))fs.writeFileSync('node_modules/checker/state.txt',String(Date.now()));
 if(value.includes('cache')){fs.mkdirSync('.cache',{recursive:true});try{fs.readFileSync('.cache/state');}catch{}fs.writeFileSync('.cache/state',String(Date.now()));}
 process.exit(value.includes('fail')?1:0);
 `,0o755);
@@ -218,6 +222,25 @@ test('a general check that starts a native program is UNVERIFIED and names it; c
   good(root,state,'run','lint');
   status=row(root,state,'lint');
   assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+});
+
+test('installed files a tool rewrites during a run stay inputs; the run keeps them as it left them',{skip:unsupported},t=>{
+  const {root,state}=project(t,{lint:'checker'});
+  write(root,'src/value.js','vue\n');
+  good(root,state,'init');good(root,state,'start');
+  good(root,state,'run','lint');
+  let status=row(root,state,'lint');
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  good(root,state,'run','lint');
+  assert.equal(row(root,state,'lint').freshness,'CURRENT');
+  // A later change to the file is an input change.
+  write(root,'node_modules/.vue-global-types/vue_3.5_0_0_0.d.ts','// other');
+  assert.equal(row(root,state,'lint').freshness,'STALE');
+  // Any other installed file the run writes leaves it UNVERIFIED.
+  write(root,'src/value.js','installed\n');
+  good(root,state,'run','lint');
+  status=row(root,state,'lint');
+  assert.equal(status.freshness,'UNVERIFIED');
 });
 
 test("npm's node-options setting replaces NODE_OPTIONS: the run is UNVERIFIED, not CURRENT without a recorder",{skip:unsupported},t=>{

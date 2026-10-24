@@ -131,7 +131,8 @@ function sourceInputs(root,kind,lockfiles) {
     '!node_modules/**','!.git/**'])];
   const dirs=likelyDirs.filter(name=>exists(path.join(root,name)))
     .map(name=>`${name}/**`);
-  return [...new Set([...files,...(dirs.length?dirs:['package.json'])])];
+  // A workspace package's node_modules under them is installed, not source.
+  return [...new Set([...files,...(dirs.length?[...dirs,'!**/node_modules/**']:['package.json'])])];
 }
 function classify(kind,scriptName,script,pkg,managerInfo,root) {
   const value=script.trim();
@@ -330,7 +331,7 @@ export function discoverNodeProject(root,{recipe=null}={}) {
           ['@which:pnpm','--filter',name,'run',selected.script];
         const check={name:`${name}:${kind}`,kind,command,
           inputs:['package.json',...(pm.lockfiles||[]),`${dir}/**`,
-            `!${dir}/node_modules/**`]};
+            `!${dir}/node_modules/**`,`!${dir}/**/node_modules/**`]};
         let level=pm.issue&&pm.name!=='pnpm'?'unsupported':'recording';
         let reason=pm.issue||'workspace script found; shared configuration and installed inputs need review';
         if(!pm.issue&&pm.name==='yarn'&&pm.layout==='node-modules/classic'&&

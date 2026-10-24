@@ -7,6 +7,7 @@ import os from 'node:os';
 import {spawnSync,execFileSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import {findExecutable} from '../src/executable-lookup.mjs';
+import {checkDir} from '../src/claude-hook.mjs';
 
 const require=createRequire(import.meta.url),bin=path.resolve('bin/redue.mjs');
 const sourceTypeScript=path.dirname(require.resolve('typescript/package.json'));
@@ -76,6 +77,9 @@ test('init previews and writes a small script config without running project com
   const written=fs.readFileSync(config,'utf8');
   assert(!written.includes(root));
   assert.equal(JSON.parse(written).checks[0].qualification,'npm-typescript-direct-v1');
+  // A recording check's source directories leave out every node_modules: a
+  // workspace package's links there are installed, not source.
+  assert(JSON.parse(written).checks.find(check=>check.name==='build').inputs.includes('!**/node_modules/**'));
   const unchanged=good(root,state,'init');
   assert.match(unchanged,/left unchanged/);
   assert.equal(fs.readFileSync(config,'utf8'),written);
@@ -177,6 +181,9 @@ test('npm workspace scripts are discovered as recording-only named checks',t=>{
   const checks=JSON.parse(fs.readFileSync(config,'utf8')).checks;
   assert.deepEqual(checks[0].command,
     ['@which:npm','run','typecheck','--workspace','@fixture/library']);
+  assert(checks[0].inputs.includes('!packages/library/**/node_modules/**'));
+  // The Claude hook finds the package directory by its own node_modules exclusion.
+  assert.equal(checkDir(checks[0]),'packages/library');
   const yarn=project(t,{manager:'yarn',declaredManager:'yarn@1.22.22',
     scripts:{},workspaces:true});
   put(path.join(yarn.root,'packages','library','package.json'),JSON.stringify({

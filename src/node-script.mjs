@@ -42,6 +42,19 @@ export function scriptCheckInputs(dirs=[]){
   installedInputs:[...modules.flatMap(at=>[`${at}/**`,`!${at}/.cache/**`,`!${at}/.vite/**`,`!${at}/.vite-temp/**`,
     `!${at}/.vitest/**`,`!${at}/.vitest-cache/**`,`!${at}/**/*.tsbuildinfo`]),...installState]};
 }
+// Installed files a tool rewrites during a run: the workspace state pnpm
+// writes at the first run after an install, and the global types vue-tsc
+// writes before it reads them, in a workspace node_modules. They stay inputs;
+// when they are a run's only change and the run wrote them, the run is kept
+// with the files as the run left them.
+const pnpmState=rel=>/^node_modules\/\.pnpm-workspace-state(?:-v\d+)?\.json$/.test(rel);
+const vueTypes=rel=>{const parts=rel.split('/');
+  return /^[^/]+\.d\.ts$/.test(parts.at(-1))&&parts.at(-2)==='.vue-global-types'&&parts.at(-3)==='node_modules'&&
+    !parts.slice(0,-3).includes('node_modules')&&!rel.startsWith('external:');};
+export const toolOutputPath=rel=>pnpmState(rel)||vueTypes(rel);
+// The run wrote it: a recorded process did, or the pnpm executable ran, which
+// writes its state natively.
+export const toolOutput=(rel,guard)=>toolOutputPath(rel)&&(guard.wroteInstalled(rel)||pnpmState(rel)&&guard.opaque);
 // The installed paths the recorder treats as observed by identity.
 export const scriptInstalledPaths=(root,dirs=[])=>[...modulesDirs(dirs),...installState].map(at=>path.join(root,at));
 // Variables a recorded run cannot be seen reading: Node's and libc's (as in

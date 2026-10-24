@@ -14,14 +14,16 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {runnerDataDirectories, testRecorder} from '../src/test-direct.mjs';
+import {toolOutputPath} from '../src/node-script.mjs';
 import {sh} from './lib.mjs';
 
 const sha = value => createHash('sha256').update(value).digest('hex');
 export const hasStrace = process.platform === 'linux' && spawnSync('strace', ['-V']).status === 0;
 
 // Runner and package-manager caches: written by honest tools keyed on their
-// own inputs, so they are not inputs of the check.
-export const cachePath = rel => /(^|\/)(\.cache|\.vite|\.vitest|\.vitest-cache|\.turbo|\.nx|\.swc|\.jest-cache|\.parcel-cache|\.angular\/cache|\.next\/cache|\.tmp)(\/|$)|\.tsbuildinfo$|^node_modules\/\.pnpm-workspace-state[^/]*$|(^|\/)\.(eslint|stylelint|prettier)cache$/.test(rel);
+// own inputs, so they are not inputs of the check. pnpm's workspace state and
+// vue-tsc's global types are inputs the product keeps as a run left them.
+export const cachePath = rel => /(^|\/)(\.cache|\.vite|\.vitest|\.vitest-cache|\.turbo|\.nx|\.swc|\.jest-cache|\.parcel-cache|\.angular\/cache|\.next\/cache|\.tmp)(\/|$)|\.tsbuildinfo$|(^|\/)\.(eslint|stylelint|prettier)cache$/.test(rel) || toolOutputPath(rel);
 
 // Every node_modules directory in the checkout, not descending into them.
 export function modulesDirs(root) {

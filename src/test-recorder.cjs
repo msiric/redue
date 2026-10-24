@@ -101,7 +101,12 @@ function install(){
       if(installed.some(dir=>within(full,dir))){
         // A listing, lookup or realpath of the link itself follows it.
         const real=['list','stat','realpath'].includes(role)?realDir(full):path.join(realDir(path.dirname(full)),path.basename(full));
-        if(real===full||realInstalled().some(dir=>within(real,dir)))return;
+        // A write there is noted apart from checkout outputs: the guard does
+        // not see reads of installed files, so only named tool files use it.
+        if(real===full||realInstalled().some(dir=>within(real,dir))){
+          if(role==='produce'&&!error&&within(full,root))once(['I',rel(full)]);
+          return;
+        }
         full=real;
       }
       if(role==='produce'){if(!error)produced.add(full);if(!error&&within(full,root))once(['P',rel(full)]);return;}
