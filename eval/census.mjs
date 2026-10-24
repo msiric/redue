@@ -136,7 +136,19 @@ function productRuns(dir, row) {
     if (status?.observation?.healthy) break;
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2000);
   }
-  if (!status?.observation?.healthy) { out.observer = status?.observation?.reason ?? 'unavailable'; redue(['stop']); redue(['remove-state']); return out; }
+  if (!status?.observation?.healthy) {
+    out.observer = status?.observation?.reason ?? 'unavailable';
+    // A link the plan refused: where it leads, and the checks that matched it.
+    const link = /symlink unsupported: (\S+)/.exec(out.observer)?.[1];
+    if (link) {
+      const at = path.join(dir, link), info = {};
+      try { info.readlink = fs.readlinkSync(at); info.real = path.relative(dir, fs.realpathSync(at)); info.directory = fs.statSync(at).isDirectory(); } catch (e) { info.error = e.code; }
+      try { info.checks = readJson(config).checks.map(c => ({name: c.name, qualification: c.qualification, workspace: c.workspace,
+        installedInputs: (c.installedInputs ?? []).filter(p => !p.startsWith('!'))})); } catch {}
+      out.observerLink = info;
+    }
+    redue(['stop']); redue(['remove-state']); return out;
+  }
   for (const c of ready) {
     const runs = [];
     for (const n of [1, 2]) {

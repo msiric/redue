@@ -55,7 +55,7 @@ function fileHash(root, rel,installed=false,before=fs.lstatSync(path.join(root,r
     const target=fs.statSync(resolution.physical,{bigint:true});
     const physical=path.relative(root,resolution.physical).split(path.sep).join('/');
     const directory=target.isDirectory()&&installed&&observedDir?.(physical);
-    if(!target.isFile()&&!directory)throw Error(`directory input symlink unsupported: ${rel}`);
+    if(!target.isFile()&&!directory)throw Error(`directory input symlink unsupported: ${rel} -> ${physical}`);
     if(directory)value='dirlink:'+JSON.stringify(resolution.links)+':'+physical;
     else{
       if(installed)racy=racyUntil(target);else bytes=Number(target.size);
