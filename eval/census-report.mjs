@@ -30,14 +30,28 @@ console.log(`tests ready: ${count(test)} (at the root ${count(test, true)})`);
 const recordedRows = node.filter(row => row.recorded);
 if (recordedRows.length) {
   const tier = reason => reason.startsWith('outside file read:');
+  // Package-manager launchers: pnpm's .bin shell shims run sed, uname and
+  // dirname before exec'ing node; Corepack's pnpm runs ps and pnpm-native.
+  const shell = argv => /^(\/(usr\/)?bin\/)?(sh|bash|dash)$/.test((argv || '').split(' ')[0]);
+  const launcher = p => ['sed', 'uname', 'dirname', 'cygpath'].includes(p.program) && p.parent && !shell(p.parentArgv) ||
+    ['ps', 'pnpm-native'].includes(p.program) && /corepack pnpm|bin\/pnpm/.test(p.parentArgv || '');
+  const installedNative = p => /\/node_modules\//.test((p.argv || '').split(' ')[0]);
+  const excused = (r, allowed) => {
+    const programs = (r.examples ?? []).flatMap(e => e.programs ?? []);
+    const ok = name => programs.filter(p => p.program === name).every(allowed);
+    return !r.timedOut && r.reasons.every(reason => tier(reason) || reason.startsWith('runs ') && ok(reason.slice(5)));
+  };
   for (const kindName of ['typecheck', 'lint', 'test']) {
     const all = recordedRows.map(row => [row, row.recorded[kindName]]).filter(([, r]) => r);
     const ran = all.filter(([, r]) => !r.notRun);
     const strict = ran.filter(([, r]) => r.qualifies);
     const facts = ran.filter(([, r]) => !r.timedOut && r.reasons.every(tier));
     const passing = list => list.filter(([, r]) => r.pass?.every(Boolean)).length;
+    const launchers = ran.filter(([, r]) => excused(r, launcher)), native = ran.filter(([, r]) => excused(r, p => launcher(p) || installedNative(p)));
     console.log(`\n${kindName}: ${all.length} scripts, ${ran.length} run, qualify ${strict.length} (${passing(strict)} passing)` +
-      `, with small outside files kept by content ${facts.length} (${passing(facts)} passing)`);
+      `, with small outside files kept by content ${facts.length} (${passing(facts)} passing)` +
+      `, and package-manager launchers ${launchers.length} (${passing(launchers)} passing)` +
+      `, and native programs from installed packages ${native.length} (${passing(native)} passing)`);
     const counts = new Map();
     for (const [, r] of ran) for (const reason of new Set([...(r.timedOut ? ['timed out'] : []), ...r.reasons]))
       counts.set(reason, (counts.get(reason) ?? 0) + 1);
