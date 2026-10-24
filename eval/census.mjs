@@ -152,12 +152,18 @@ function productRuns(dir, row) {
   for (const c of ready) {
     const runs = [];
     for (const n of [1, 2]) {
+      // Files the run touched, for a run that is not stable.
+      const mark = path.join(tmpRoot, 'census-run-mark');
+      fs.writeFileSync(mark, '');
       const r = redue(['run', c.name, '--json'], 600_000);
+      const touched = () => run('find', ['.', '-newer', mark, '-not', '-path', './.git/*', '-not', '-name', '.census.redue.json'], dir)
+        .stdout.split('\n').filter(Boolean).slice(0, 40);
       const now = json(redue(['status', '--sync', '--json'], 300_000))?.checks?.find(x => x.name === c.name);
       let receipt = null; try { receipt = readJson(path.join(projectState(fs.realpathSync(dir), config), 'receipts-v1.json')).checks?.[c.name]; } catch {}
       runs.push({exit: r.status, timedOut: r.timedOut, ms: r.ms, result: receipt?.result ?? null, stable: receipt?.stable ?? null,
         guardIssues: receipt?.guardIssues ?? null, checkpointIssues: receipt?.checkpoint?.issues ?? null, fingerprint: receipt?.fingerprint ?? null,
-        freshness: now?.freshness ?? null, reason: now?.reason ?? null, tail: r.status === 0 ? undefined : tail(r, 300)});
+        freshness: now?.freshness ?? null, reason: now?.reason ?? null, tail: r.status === 0 ? undefined : tail(r, 300),
+        touched: receipt?.stable === false ? touched() : undefined});
     }
     const [first, second] = runs;
     const qualifies = !runs.some(x => x.timedOut) && second.stable === true && Array.isArray(second.guardIssues) && !second.guardIssues.length &&
