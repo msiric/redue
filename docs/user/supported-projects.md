@@ -12,7 +12,10 @@ is known. When npm is not pinned in `package.json`,
 leaves the version unknown rather than guessing if that inspection fails.
 
 At the repository root, `init` looks for existing typecheck, test, lint, and
-build scripts. It prefers familiar script names, then unique recognizable
+build scripts. It prefers familiar script names (for typecheck: `typecheck`,
+`type-check`, `check-types`, `check:types`, `types:check`, `tsc`, `types`,
+`lint:types`), then for typecheck one script named under such a name
+(`typecheck:test`, `tsc:build`; not a watch script), then unique recognizable
 `tsc`, Vitest/Jest, ESLint, or Vite commands under other names. Multiple
 matches are reported as ambiguous rather than guessed. It never creates a new
 project script. Without `--recipe`, `init` tries the strict recipes below first,

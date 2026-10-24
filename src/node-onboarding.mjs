@@ -17,7 +17,7 @@ import {partName,tscRuns} from './typescript-invocation.mjs';
 const exists=file=>{try{fs.accessSync(file);return true;}catch{return false;}};
 const readJson=file=>JSON.parse(fs.readFileSync(file,'utf8'));
 const scriptNames={
-  typecheck:['typecheck','type-check','check:types','types:check','check-types'],
+  typecheck:['typecheck','type-check','check:types','types:check','check-types','tsc','types','lint:types'],
   test:['test','test:unit','test:check'],
   lint:['lint','lint:check'],
   build:['build'],
@@ -160,10 +160,16 @@ function classify(kind,scriptName,script,pkg,managerInfo,root) {
     'Vite detected; build environment and generated inputs need review':
     'build script detected; generated and runtime inputs need review'};
 }
+// Typecheck scripts named under a typecheck name (`typecheck:test`,
+// `tsc:build`), watch scripts aside.
+const typecheckFamily=/^(?:typecheck|type-check|check-types|check:types|types:check|tsc):(?!.*watch)/;
 function selectScript(kind,names,scripts) {
   const preferred=names.find(name=>typeof scripts[name]==='string'&&
     scripts[name].trim()&&!/^echo\s+["']?Error: no test specified/.test(scripts[name]));
   if(preferred)return {script:preferred};
+  const family=kind==='typecheck'?Object.keys(scripts).filter(name=>typecheckFamily.test(name)&&
+    typeof scripts[name]==='string'&&scripts[name].trim()&&!/(?:^|\s)(?:--watch|-w)(?:\s|$)/.test(scripts[name])):[];
+  if(family.length===1)return {script:family[0]};
   const candidates=Object.keys(scripts).filter(name=>{
     const value=scripts[name]?.trim();
     if(typeof value!=='string')return false;
@@ -177,7 +183,7 @@ function selectScript(kind,names,scripts) {
   const exact=kind==='typecheck'?candidates.filter(name=>exactTypeScript(scripts[name])):[];
   if(exact.length===1)return {script:exact[0]};
   return candidates.length===1?{script:candidates[0]}:
-    candidates.length>1?{ambiguous:candidates}:{};
+    candidates.length>1?{ambiguous:candidates}:family.length>1?{ambiguous:family}:{};
 }
 // A pnpm workspace package's TypeScript run, as its check's command, cwd and inputs.
 function pnpmCheck(root,name,dir,manifest,run){
