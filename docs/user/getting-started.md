@@ -84,7 +84,8 @@ Initialization previews detected commands and qualification confidence before wr
 `redue.config.json`. An existing config is never overwritten. No checks are run and
 no dependencies installed. A missing/unsupported boundary is explained. `init` tries
 the strict recipes first and uses the [general recipe](node-script.md) for a root
-typecheck, test or lint script none of them takes.
+typecheck or lint script none of them takes. Test scripts use the
+[direct test recipe](tests-direct.md).
 
 “Ready to qualify” means REDUE has a supported recipe whose prerequisites will be
 validated. It is not a receipt. “Recording-only” can record PASS/FAIL without claiming

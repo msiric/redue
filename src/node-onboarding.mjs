@@ -1,6 +1,9 @@
 import {directProject,directQualification} from './direct-typescript.mjs';
 import {testProject,testRecipeScript,testCheckInputs,testEnvironmentIssue,testsQualification} from './test-direct.mjs';
-import {commandLineIssue,scriptCheckInputs,scriptKinds,scriptPath,scriptProject,scriptQualification} from './node-script.mjs';
+import {commandLineIssue,scriptCheckInputs,scriptPath,scriptProject,scriptQualification} from './node-script.mjs';
+// Init proposes the general recipe for typecheck and lint scripts; test
+// scripts use the direct test recipe (Vitest, Jest).
+const generalKinds=['typecheck','lint'];
 import fs from 'node:fs';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
@@ -284,7 +287,7 @@ export function discoverNodeProject(root,{recipe=null}={}) {
           qualification:'pnpm-tsc-v1'};}
       catch(e){classification={level:'recording',reason:`pnpm TypeScript contract needs review: ${e.message}`};}
     }
-    if((auto||recipe==='node-script')&&script&&scriptKinds.includes(kind)&&classification.level!=='ready'&&!observationIssue){
+    if((auto||recipe==='node-script')&&script&&generalKinds.includes(kind)&&classification.level!=='ready'&&!observationIssue){
       try{
         const general=generalCheck(root,kind,script);
         checks.push({config:general.config,level:'ready',qualification:scriptQualification,

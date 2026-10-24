@@ -1,12 +1,13 @@
-# General recipe (typecheck, test and lint scripts)
+# General recipe (typecheck and lint scripts)
 
-The general recipe records a project's own typecheck, test or lint script, run
+The general recipe records a project's own typecheck or lint script, run
 through its package manager, and reports later whether that result still
 applies to the files you have. It is a lower tier than the strict recipes:
 `redue init` tries the [direct TypeScript recipe](direct-typescript.md), the
 pnpm and Yarn TypeScript recipes and the [direct test recipe](tests-direct.md)
-first, and uses the general recipe for a root typecheck, test or lint script
-none of them takes.
+first, and uses the general recipe for a root typecheck or lint script none of
+them takes. Test scripts use the direct test recipe; `init` does not propose
+the general recipe for them.
 
 It supports a project installed by npm, pnpm 9-12 (isolated or hoisted
 `node_modules`) or Yarn with the `node-modules` linker, with one lockfile kind
@@ -147,6 +148,6 @@ inputs.
   not seen.
 - A project whose `.npmrc` sets `node-options` stays UNVERIFIED: npm replaces
   `NODE_OPTIONS` with it, which drops REDUE's recorder.
-- A script that runs a build first (`npm run build && vitest run`) usually
+- A script that runs a build first (`npm run build && tsc --noEmit`) usually
   starts esbuild or another native bundler and stays UNVERIFIED.
 - Windows is not supported; the check stays recording-only there.

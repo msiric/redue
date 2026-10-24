@@ -78,11 +78,12 @@ Windows.** REDUE does not choose or execute that tradeoff for you.
 
 `init` tries the strict recipes first: the [direct compiler recipe](docs/user/direct-typescript.md)
 for npm typechecks, the pnpm and Yarn TypeScript recipes, and the
-[direct test recipe](docs/user/tests-direct.md). A root typecheck, test or lint
+[direct test recipe](docs/user/tests-direct.md). A root typecheck or lint
 script none of them takes can use the [general recipe](docs/user/node-script.md),
 which runs the script through the package manager and records every Node
 process; a script that starts another program (git, esbuild, turbo) stays
-UNVERIFIED and the reason names it.
+UNVERIFIED and the reason names it. Test scripts use the direct test recipe
+(Vitest, Jest); other test scripts stay recording-only.
 
 ## Connect your agent (experimental)
 

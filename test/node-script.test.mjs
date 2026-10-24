@@ -167,12 +167,14 @@ const row=(root,state,name)=>{const result=invoke(root,state,'status','--sync','
   assert.equal(result.status,0,result.stderr);return JSON.parse(result.stdout).checks.find(c=>c.name===name);};
 const write=(root,file,text)=>fs.writeFileSync(path.join(root,file),text);
 
-test('init writes general checks for scripts the strict recipes do not take, and refuses ones that start other programs',{skip:unsupported},t=>{
+test('init writes general typecheck and lint checks for scripts the strict recipes do not take, and refuses ones that start other programs',{skip:unsupported},t=>{
   const {root,state}=project(t,{lint:'checker --max-warnings 0',test:'checker && node -e 1',typecheck:'checker && git diff'});
   const init=JSON.parse(good(root,state,'init','--dry-run','--json'));
   const by=Object.fromEntries(init.checks.map(check=>[check.name,check]));
   assert.equal(by.lint.level,'ready',by.lint.reason);
-  assert.equal(by.test.level,'ready',by.test.reason);
+  // Test scripts use the direct test recipe; init does not propose the general one for them.
+  assert.equal(by.test.level,'recording');
+  assert.notEqual(init.proposed_config.checks.find(check=>check.name==='test').qualification,'node-script-v1');
   assert.equal(by.typecheck.level,'recording');
   assert.match(by.typecheck.reason,/General recipe unavailable \(runs git, which is not a Node program\)/);
   const lint=init.proposed_config.checks.find(check=>check.name==='lint');

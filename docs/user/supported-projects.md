@@ -16,7 +16,7 @@ build scripts. It prefers familiar script names, then unique recognizable
 `tsc`, Vitest/Jest, ESLint, or Vite commands under other names. Multiple
 matches are reported as ambiguous rather than guessed. It never creates a new
 project script. Without `--recipe`, `init` tries the strict recipes below first,
-then the [general recipe](node-script.md) for a root typecheck, test or lint
+then the [general recipe](node-script.md) for a root typecheck or lint
 script: the script run through the package manager with every Node process
 recorded and the whole checkout as its input. `--recipe typescript-direct`,
 `tests-direct` or `node-script` selects one recipe alone. The direct TypeScript recipe supports
@@ -78,7 +78,7 @@ entries stay inputs: an import can still reach an excluded file); a file the
 program reads outside them keeps the check recording-only. This avoids pnpm's task-run bookkeeping
 writes during `pnpm run`; it does not alter the project's script. Test, lint,
 build, and ambiguous TypeScript scripts still execute through `pnpm run`; root
-ones can use the [general recipe](node-script.md). The generated `@typescript-bin:WORKSPACE` token resolves
+typecheck and lint ones can use the [general recipe](node-script.md). The generated `@typescript-bin:WORKSPACE` token resolves
 the local compiler when the check runs; it is not an absolute machine path.
 
 The pnpm contract indexes consumed installed package contents inside the

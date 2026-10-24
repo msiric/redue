@@ -36,7 +36,8 @@ runner directly, otherwise the only script that does. The script must be one
 runner invocation: no `&&`, quotes, globs or variable assignments. Watch mode,
 `--changed`, `related`, snapshot updates (`-u`), shuffling, sharding and
 Jest's `--onlyChanged` are refused. Vitest needs `run`, `--run` or
-`--watch=false`. Other test scripts can use the [general recipe](node-script.md).
+`--watch=false`. Other test scripts stay recording-only: the
+[general recipe](node-script.md) covers typecheck and lint scripts, not tests.
 
 REDUE runs the local runner with Node directly. The package manager, its
 lifecycle scripts and `package.json` are not changed or executed.
