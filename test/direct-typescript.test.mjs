@@ -304,10 +304,13 @@ test('direct recipe: tsc forms in any order, one check per chained run, a propos
     ({value}=preview(scripts));
     assert.equal(value.checks[0].level,'recording',JSON.stringify(scripts));
   }
-  // A script that typechecks in another form: no proposed tsc --noEmit.
+  // A script that typechecks in another form: no proposed tsc --noEmit. A
+  // typecheck name (`lint:types`) makes it the typecheck check itself.
   for(const scripts of [{test:'vitest run','lint:types':'tsc -b'},{test:'vitest run',check:'vue-tsc --noEmit'}]){
     ({value}=preview(scripts));
-    assert.equal(value.checks.find(c=>c.name==='typecheck'),undefined,JSON.stringify(scripts));
+    const typecheck=value.checks.find(c=>c.name==='typecheck');
+    if(scripts['lint:types'])assert.equal(typecheck?.script,'lint:types');
+    else assert.equal(typecheck,undefined,JSON.stringify(scripts));
   }
 });
 test('direct chain parts and a proposed check run and stay CURRENT; a changed chain is not reused',t=>{

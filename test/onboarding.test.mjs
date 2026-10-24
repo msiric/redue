@@ -161,6 +161,12 @@ test('discovers uniquely identifiable tool commands without relying on script na
   const other=JSON.parse(good(ambiguous.root,ambiguous.state,'init','--dry-run','--json'));
   assert.deepEqual(other.ambiguous,[{kind:'test',scripts:['unit','spec']}]);
   assert(!other.checks.some(row=>row.name==='test'));
+  // A typecheck script named under a typecheck name; watch scripts aside, two are ambiguous.
+  const named=project(t,{scripts:{'tsc:build':'tsc --build','typecheck:watch':'tsc --noEmit --watch'}});
+  assert.equal(JSON.parse(good(named.root,named.state,'init','--dry-run','--json')).checks.find(row=>row.name==='typecheck')?.script,'tsc:build');
+  const two=project(t,{scripts:{'typecheck:src':'tsc -p src','typecheck:test':'tsc -p test'}});
+  const twoPreview=JSON.parse(good(two.root,two.state,'init','--dry-run','--json'));
+  assert.deepEqual(twoPreview.ambiguous,[{kind:'typecheck',scripts:['typecheck:src','typecheck:test']}]);
   const lifecycle=project(t,{scripts:{check:'tsc --noEmit',precheck:'node preflight.js'}});
   // The direct recipe refuses a pre script; npm runs it, so the general recipe records it.
   const life=JSON.parse(good(lifecycle.root,lifecycle.state,'init','--dry-run','--json'));
