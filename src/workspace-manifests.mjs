@@ -5,7 +5,9 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {patternMatcher} from './glob.mjs';
 
-export function workspaceManifests(root,patterns) {
+// Up to 1000 packages: every workspace node_modules is an installed input of
+// a root check, so all of them are listed.
+export function workspaceManifests(root,patterns,limit=1000) {
   const listing=spawnSync('git',['ls-files','--cached','--others','--exclude-standard',
     '-z','--',':(glob)**/package.json'],{cwd:root,encoding:'utf8',timeout:5000,
     maxBuffer:32*1024*1024,stdio:['ignore','pipe','ignore'],
@@ -17,6 +19,6 @@ export function workspaceManifests(root,patterns) {
     const dir=path.posix.dirname(file);
     return dir!=='.'&&!dir.split('/').includes('node_modules')&&included(dir);
   }).sort();
-  if(matched.length>50)throw Error('more than 50 workspace packages found; select checks explicitly');
+  if(matched.length>limit)throw Error(`more than ${limit} workspace packages found; select checks explicitly`);
   return matched.map(file=>({file,pkg:JSON.parse(fs.readFileSync(path.join(root,file),'utf8'))}));
 }
