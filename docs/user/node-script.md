@@ -67,13 +67,14 @@ UNVERIFIED. At the top of each `node_modules`, only `.cache`, `.vite`,
 `.vite-temp`, `.vitest` and `.vitest-cache` are left out, and `*.tsbuildinfo`
 anywhere in it.
 
-Two installed files are rewritten by tools during a run: pnpm's
+Two installed files are rewritten by tools during a run. pnpm rewrites
 `node_modules/.pnpm-workspace-state-v1.json` at the first run after an
-install, and the `node_modules/.vue-global-types/*.d.ts` files vue-tsc writes
-before it reads them. They stay inputs. When they are the only files a run
-changed, and the run wrote them (a recorded process wrote the file, or the
-pnpm executable ran, for its state), the result is kept with the files as the
-run left them, and a later change to them makes it STALE.
+install, through a temporary `node_modules/.tmpXXXXXX` file. vue-tsc writes
+`node_modules/.vue-global-types/*.d.ts` before it reads them. These files stay
+inputs. When they are the only files a run changed, and the run wrote them,
+the result is kept with the files as the run left them. A recorded process
+counts as writing a file it wrote; for pnpm's files, the pnpm executable must
+have run. A later change to them makes the result STALE.
 
 It does not mean a rerun would give the same result: a test that depends on
 the time or on randomness can pass now and fail later on the same inputs.

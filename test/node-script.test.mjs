@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import {spawnSync,execFileSync} from 'node:child_process';
-import {childProgram,commandLineIssue,parseCommandLine,pnpmRunIssue,programKind,scriptCheckInputs,scriptPath} from '../src/node-script.mjs';
+import {childProgram,commandLineIssue,parseCommandLine,pnpmRunIssue,programKind,scriptCheckInputs,scriptPath,toolOutput} from '../src/node-script.mjs';
 import {pnpmShimTarget,shimTemplate} from '../src/pnpm-shims.mjs';
 
 const bin=path.resolve('bin/redue.mjs');
@@ -226,6 +226,19 @@ test('a general check that starts a native program is UNVERIFIED and names it; c
   good(root,state,'run','lint');
   status=row(root,state,'lint');
   assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+});
+
+test('tool outputs: pnpm state and its temporary files when the pnpm executable ran, vue-tsc types the run wrote',()=>{
+  const guard=(opaque,wrote=[])=>({opaque,wroteInstalled:rel=>wrote.includes(rel)});
+  assert.equal(toolOutput('node_modules/.pnpm-workspace-state-v1.json',guard(true)),true);
+  assert.equal(toolOutput('node_modules/.tmpfP0VHQ',guard(true)),true);
+  assert.equal(toolOutput('node_modules/.tmpfP0VHQ',guard(false)),false);
+  assert.equal(toolOutput('node_modules/foo/.tmpfP0VHQ',guard(true)),false);
+  assert.equal(toolOutput('packages/a/node_modules/.tmpfP0VHQ',guard(true)),false);
+  const types='packages/a/node_modules/.vue-global-types/vue_3.5_0_0_0.d.ts';
+  assert.equal(toolOutput(types,guard(false,[types])),true);
+  assert.equal(toolOutput(types,guard(true)),false);
+  assert.equal(toolOutput('node_modules/x/node_modules/.vue-global-types/a.d.ts',guard(false,['node_modules/x/node_modules/.vue-global-types/a.d.ts'])),false);
 });
 
 test('installed files a tool rewrites during a run stay inputs; the run keeps them as it left them',{skip:unsupported},t=>{
