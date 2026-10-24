@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.0-alpha.20 — 2026-10-24
+
+A fix for agents on macOS.
+
+- Fixed: on macOS, `redue status --sync --json`, `status --json` and
+  `explain --json` read by an agent's shell tool stopped at 8 KB, leaving
+  invalid JSON. The agent instructions REDUE installs run `status --sync
+  --json`; its output passes 8 KB at about 25 checks, or sooner when STALE
+  checks list many changed files. Through a shell pipe, `init --json`
+  stopped at 64 KB. The CLI exited with output still queued; it now writes
+  all of it first. Linux and Windows were not affected.
+
 ## 0.1.0-alpha.19 — 2026-10-24
 
 A general recipe for typecheck and lint scripts that the strict recipes do not
