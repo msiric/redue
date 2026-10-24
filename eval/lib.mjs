@@ -7,6 +7,7 @@ import {spawn,spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {cleanEnv} from '../bench/env.mjs';
 import {reviewedTypeScriptVersions} from '../src/direct-typescript.mjs';
+import {projectState} from '../src/project-location.mjs';
 
 export const evalDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(evalDir, '..');
@@ -138,6 +139,21 @@ export function checkStatus(entry, dir, name = 'typecheck') {
     return {freshness: row?.freshness, result: row?.result, reuse_eligible: row?.reuse_eligible,
       reason: row?.reason, healthy: status.observation?.healthy};
   } catch { return {error: `exit ${r.status}: ${(r.stderr || r.stdout).slice(-400)}`}; }
+}
+
+// What a check's latest receipt says about its own run: the result, whether
+// it was stable, and the guard's and checkpoint's issues.
+export function receiptOf(dir, name) {
+  try {
+    const file = path.join(projectState(fs.realpathSync(dir), path.join(dir, 'redue.config.json')), 'receipts-v1.json');
+    const r = JSON.parse(fs.readFileSync(file, 'utf8')).checks?.[name];
+    return r ? {result: r.result, stable: r.stable, recipe: r.recipe ?? null, guardIssues: r.guardIssues ?? null, checkpointIssues: r.checkpoint?.issues ?? null} : null;
+  } catch { return null; }
+}
+
+// Files in the checkout changed since `mark` was written, .git aside.
+export function touchedSince(dir, mark) {
+  return sh('find', ['.', '-newer', mark, '-not', '-path', './.git/*'], {cwd: dir}).stdout.split('\n').filter(Boolean).slice(0, 60);
 }
 
 // `redue run` refuses to record until the observer's first index is done.

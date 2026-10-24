@@ -22,7 +22,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {parseArgs} from 'node:util';
 import {checkoutRedue, claudeSession, evalDir, freshClone, harnessEnv, localDir, plainTests, plainTsc, RateLimited, readJson, redue, sh, slug, stamp,
-  tmpRoot, checkStatus, must, waitReady, sessionAuth, redactDir} from './lib.mjs';
+  tmpRoot, checkStatus, must, waitReady, sessionAuth, redactDir, receiptOf, touchedSince} from './lib.mjs';
 import {writeWrapper} from './wrapper.mjs';
 import {analyze} from './analyze.mjs';
 import {report} from './report.mjs';
@@ -131,6 +131,8 @@ async function runSession(task, repo, arm, id) {
       // The seed is an earlier session's passing run: a short session runs
       // `redue run CHECK` in its Bash tool, so the run's environment (PATH
       // included) is the agent's. Nothing may be chained to it.
+      const mark = path.join(runDir, 'seed-mark');
+      fs.writeFileSync(mark, '');
       const seed = await claudeSession(sessionArgs(`Run exactly this command from the project root, once, as a command of its own with nothing added before or after it, then report its exit status: redue run ${check}`, 5),
         {cwd: dir, env: {...env, ...sessionAuth()}, timeout: 15 * 60_000});
       fs.writeFileSync(path.join(runDir, 'seed-transcript.jsonl'), seed.stdout);
@@ -140,9 +142,13 @@ async function runSession(task, repo, arm, id) {
         .filter(r => r.kind === 'cli' && r.argv.join(' ') === `run ${check}`) : [];
       if (!runs.length) throw new Error(`the seed session did not record a ${check} run`);
       row.setup.seed_status = {result: runs.at(-1).exit === 0 ? 'PASS' : 'FAIL', recorded_by: 'seed session'};
+      // Why a seed run is not reusable, when it is not.
+      row.setup.seed_receipt = receiptOf(dir, check);
+      if (row.setup.seed_receipt?.stable === false) row.setup.seed_touched = touchedSince(dir, mark);
     } else {
       step('seed_run_ms', 'run', check);
       row.setup.seed_status = checkStatus(entry, dir, check);
+      row.setup.seed_receipt = receiptOf(dir, check);
     }
     // What the agent always has in context (the managed block) and reads on demand (the skill).
     const record = readJson(path.join(dir, '.redue', 'agents', 'claude.json'));
@@ -163,6 +169,7 @@ async function runSession(task, repo, arm, id) {
   // Independent checks on the final state.
   if (arm === 'redue') {
     row.final_status = checkStatus(entry, dir, check);
+    row.final_receipt = receiptOf(dir, check);
     redue(entry, dir, 'stop');
   }
   const finalTree = treeOf(dir);
