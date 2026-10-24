@@ -195,6 +195,20 @@ test('npm workspace scripts are discovered as recording-only named checks',t=>{
 });
 
 
+test('status and explain output over 8 KB reaches a reading program whole',t=>{
+  const {root,state,config}=project(t);
+  fs.writeFileSync(config,JSON.stringify({schema:1,packageManager:'npm',checks:Array.from({length:60},(_,i)=>
+    ({name:`check-${String(i).padStart(3,'0')}-with-a-longer-descriptive-name`,kind:'lint',command:[process.execPath,'-e','0'],inputs:['src/**']}))}));
+  good(root,state,'start');
+  // On macOS a Node program's pipe took 8 KB of it before the CLI exited.
+  for(const args of [['status','--json'],['status','--sync','--json'],['explain','--json']]){
+    const out=good(root,state,...args);
+    assert(out.length>8192,args.join(' '));
+    assert.equal(JSON.parse(out).checks.length,60,args.join(' '));
+  }
+  good(root,state,'stop');
+});
+
 test('retired npm probe rejects full and cached-context qualification',()=>{
   for(const extra of [[],['--redue-checkpoint'],['--redue-context-only']]){
     const r=spawnSync(process.execPath,[path.resolve('src/typescript-contract-probe.mjs'),...extra],{encoding:'utf8'});

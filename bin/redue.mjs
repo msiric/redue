@@ -46,6 +46,10 @@ Commands:
 No checks run in the background. Direct commands outside redue create no receipts.`;
 
 function error(message){console.error(`redue: ${message}`);process.exit(2);}
+// Exits once queued output is written. On macOS, output to a pipe is written
+// asynchronously; exiting with it queued cuts it (at 8 KB through the pipe a
+// Node program, such as an agent's shell tool, reads).
+async function exit(code){await new Promise(resolve=>process.stdout.write('',resolve));process.exit(code);}
 const args=process.argv.slice(2);
 if(args.length===3&&args[0]==='agent'&&args[1]==='hook'&&args[2]==='claude'){
   // Runs before config discovery: the hook must exit 0 on every failure,
@@ -54,7 +58,7 @@ if(args.length===3&&args[0]==='agent'&&args[1]==='hook'&&args[2]==='claude'){
   await runClaudeHook(fileURLToPath(import.meta.url));process.exit(0);
 }
 if(args.length===1&&args[0]==='--version'){console.log(version);process.exit(0);}
-if(args.includes('--help')||args.includes('-h')||!args.length){console.log(help);process.exit(0);}
+if(args.includes('--help')||args.includes('-h')||!args.length){console.log(help);await exit(0);}
 let configFile=null,stateOverride=null;
 for(let i=0;i<args.length;){
   if(args[i]==='--config'||args[i]==='--state-dir'){
@@ -73,9 +77,7 @@ if(command==='agent'){
   const {agentCommand}=await import('../src/agent-integration.mjs');
   try{await agentCommand(args,{configFile,stateOverride,entry:fileURLToPath(import.meta.url)});}
   catch(e){error(e.message);}
-  // Exiting with piped output still queued truncates it (8 KB on macOS).
-  await new Promise(resolve=>process.stdout.write('',resolve));
-  process.exit(0);
+  await exit(0);
 }
 if(!['init','start','stop','status','detail','explain','run','remove-state'].includes(command))
   error(`unknown command ${command||'<none>'}; use --help`);
@@ -153,7 +155,7 @@ if(command==='init'){
       console.log('Use redue status first. --sync can establish applicability, but may cost more than rerunning a cheap check.');}
   } else if(unsupported&&!json)console.log(`No config written: ${summary.issue||'unsupported discovery boundary'}.`);
   if(json)console.log(JSON.stringify({...summary,proposed_config:discovery.config}));
-  process.exit(0);
+  await exit(0);
 }
 function printLifecycle(output,action,machine){
   if(machine){process.stdout.write(output);return;}
@@ -175,7 +177,7 @@ if(stateOverride&&['stop','remove-state'].includes(command)){
     {cwd:os.tmpdir(),stdio:['inherit','pipe','inherit'],encoding:'utf8',env:process.env});
   if(result.error)error(result.error.message);
   if(result.stdout)printLifecycle(result.stdout,command,json);
-  process.exit(result.status??2);
+  await exit(result.status??2);
 }
 let publicConfig;
 try{publicConfig=JSON.parse(fs.readFileSync(configFile,'utf8'));}
@@ -362,7 +364,7 @@ if(!maintenance&&!created){
 if(command==='status'&&!sync){
   const value=readCachedStatus(state,publicConfig.checks);
   console.log(json?JSON.stringify(value):renderStatus(value,{short}));
-  process.exit(0);
+  await exit(0);
 }
 
 const details=command==='detail'||command==='explain';
@@ -404,5 +406,5 @@ if(command==='run'&&process.platform!=='win32'){
       else console.log(details?renderExplain(value,check):renderStatus(value,{short}));
     }else printLifecycle(result.stdout,command,json);
   }
-  process.exit(result.status??1);
+  await exit(result.status??1);
 }
