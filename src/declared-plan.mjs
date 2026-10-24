@@ -7,6 +7,7 @@ import {permittedRoots,resolveDeclaredInstalled} from './installed-inputs.mjs';
 import {qualifyTypeScript} from './typescript-qualification.mjs';
 import {directBuildInfo} from './direct-typescript.mjs';
 import {qualifyTests,testWorkspacePatterns,testsQualification} from './test-direct.mjs';
+import {qualifyNodeScript,scriptQualification} from './node-script.mjs';
 import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
 import {pnpmTypecheckInputs} from './pnpm-inputs.mjs';
 import {checkRun} from './typescript-invocation.mjs';
@@ -82,6 +83,7 @@ export function discoverDeclared(config) {
       [...(selected.installedInputs||[]),...(workspace?.installed||[]),...excluded],allowedRoots);
     timing('plan.installed_resolution',installedStarted,{mappings:installed.mappings.length});
     const automatic=selected.qualification===testsQualification?qualifyTests(root,selected):
+      selected.qualification===scriptQualification?qualifyNodeScript(root,selected):
       qualifyTypeScript(root,selected,{workspace,issue:workspaceIssue});
     const sourcePatterns=[...new Set([...selected.inputs,...(workspace?.source||[]),
       ...(workspace?.generated||[]),...excluded])].sort();
@@ -92,9 +94,10 @@ export function discoverDeclared(config) {
       ...(workspaceIssue?[workspaceIssue]:[])];
     for(const item of workspace?.configurationInputs||[])configurationInputs.add(item);
     for(const item of workspace?.workspacePatterns||[])workspacePatterns.add(item);
-    // A workspace test check is qualified against the current package list: a
-    // package manifest appearing or pnpm's package list changing re-plans.
-    if(selected.qualification===testsQualification&&selected.workspace)try{
+    // A workspace test check, and a general check in a workspace, is qualified
+    // against the current package list: a package manifest appearing or pnpm's
+    // package list changing re-plans.
+    if(selected.qualification===testsQualification&&selected.workspace||selected.qualification===scriptQualification)try{
       for(const item of testWorkspacePatterns(root,JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'))))
         workspacePatterns.add(item);
       if(fs.existsSync(path.join(root,'pnpm-workspace.yaml')))configurationInputs.add('pnpm-workspace.yaml');

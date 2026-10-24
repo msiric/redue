@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawn,spawnSync,execFileSync} from 'node:child_process';
-import {claudeHook,hookForms,lastRunTimeout,matchCheck,recordedCommand,enteredDir,fanout,fanoutChecks,fanoutVerdict,sessionStart,statusTimeout} from '../src/claude-hook.mjs';
+import {claudeHook,hookForms,lastRunTimeout,matchCheck,recordedCommand,enteredDir,fanout,fanoutChecks,fanoutVerdict,sessionStart,statusTimeout,verdict} from '../src/claude-hook.mjs';
 import {findExecutable} from '../src/executable-lookup.mjs';
 import {realObservedPath} from '../src/path-identity.mjs';
 const bin=path.resolve('bin/redue.mjs');
@@ -503,4 +503,24 @@ test('a script chain: each run keeps its own forms; the script skips only when e
   assert.equal(await hook('single',[row('typecheck')]),null);
   scripts('tsc --noEmit');
   assert.equal((await hook('single-ok',[row('typecheck')])).permissionDecision,'deny');
+});
+
+test('general checks: typecheck, test and lint scripts and their plain tool commands; the skip names the recipe',()=>{
+  const general={schema:1,packageManager:'pnpm',checks:['typecheck','test','lint'].map(kind=>
+    ({name:kind,script:kind,kind,qualification:'node-script-v1',inputs:['**']}))};
+  const scripts={typecheck:'tsc -b',test:'vitest run --coverage',lint:'eslint . --max-warnings 0'};
+  const rows=hookForms(general,'redue.config.json',scripts);
+  assert.deepEqual(rows.map(row=>[row.check,row.kind]),[['typecheck','typecheck'],['test','test'],['lint','lint']]);
+  assert.deepEqual(rows[2].forms,['redue run lint','pnpm lint','pnpm run lint','eslint . --max-warnings 0',
+    'npx eslint . --max-warnings 0','pnpm exec eslint . --max-warnings 0']);
+  for(const [command,name] of [['pnpm lint','lint'],['pnpm run lint 2>&1 | tail -n 20','lint'],['npx eslint . --max-warnings 0','lint'],
+    ['pnpm test','test'],['pnpm exec vitest run --coverage','test'],['npx tsc -b','typecheck'],['pnpm lint --fix',null],['eslint .',null]])
+    assert.equal(matchCheck(command,general,'redue.config.json','.',scripts),name,command);
+  // A pre script, or a script that is not one plain command, keeps only the script forms.
+  assert.equal(matchCheck('eslint . --max-warnings 0',general,'redue.config.json','.',{...scripts,prelint:'node x.js'}),null);
+  assert.equal(matchCheck('pnpm lint',general,'redue.config.json','.',{...scripts,lint:'eslint . && tsc'}),'lint');
+  const status=recipe=>({schema:1,observation:{healthy:true},checks:[{name:'lint',freshness:'CURRENT',result:'PASS',
+    reuse_eligible:true,invocation:{runId},recipe}]});
+  assert.match(verdict(status('node-script-v1'),'lint'),/\(run [0-9a-f-]+, general recipe\)/);
+  assert.match(verdict(status(undefined),'lint'),new RegExp(`\\(run ${runId}\\)`));
 });

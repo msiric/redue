@@ -6,6 +6,7 @@ mark('client.loaded');
 import {directCompiler,directQualification,directEnvironment,directInterpretation} from '../src/direct-typescript.mjs';
 import {runArgv,tscRun} from '../src/typescript-invocation.mjs';
 import {testEnvironment,testRunnerAt,testsInterpretation,testsQualification} from '../src/test-direct.mjs';
+import {scriptEnvironment,scriptInterpretation,scriptKinds,scriptQualification} from '../src/node-script.mjs';
 import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
@@ -27,7 +28,7 @@ const help=`REDUE ${version}
 Usage: redue [--config FILE] [--state-dir DIR] COMMAND [OPTIONS]
 
 Commands:
-  init [--dry-run] [--workspace NAME] [--check KIND] [--recipe typescript-direct|tests-direct]
+  init [--dry-run] [--workspace NAME] [--check KIND] [--recipe typescript-direct|tests-direct|node-script]
                        Discover existing scripts; optionally select one workspace/check
   agent setup codex|claude [--dry-run|--apply] [--json]
   agent doctor [codex|claude] [--json]
@@ -246,6 +247,7 @@ const checks=publicConfig.checks.map(check=>{
   const npmDirect=check.qualification===directQualification;
   const pnpmTypecheck=check.qualification==='pnpm-tsc-v1';
   const testsDirect=check.qualification===testsQualification;
+  const generalScript=check.qualification===scriptQualification;
   if(check.script&&check.command&&!pnpmTypecheck&&!npmDirect&&!testsDirect)
     error(`${check.name}: choose script or command, not both`);
   const manager=publicConfig.packageManager;
@@ -255,8 +257,12 @@ const checks=publicConfig.checks.map(check=>{
     [`@which:${manager}`,'run',check.script]:null;
   const npmAutomatic=check.qualification==='typescript-noemit-v1';
   const yarnWorkspace=check.qualification==='yarn-workspace-tsc-v1';
-  if(check.qualification&&!npmAutomatic&&!npmDirect&&!yarnWorkspace&&!pnpmTypecheck&&!testsDirect)
+  if(check.qualification&&!npmAutomatic&&!npmDirect&&!yarnWorkspace&&!pnpmTypecheck&&!testsDirect&&!generalScript)
     error(`${check.name}: unknown qualification contract`);
+  // The general recipe runs the root package script through the package manager.
+  if(generalScript&&(!['npm','pnpm','yarn'].includes(manager)||!check.script||check.command||check.cwd&&check.cwd!=='.'||
+    check.workspace||!scriptKinds.includes(check.kind)))
+    error(`${check.name}: the general recipe needs a root typecheck, test or lint script, without command or cwd`);
   if(npmDirect&&(manager!=='npm'||check.cwd&&check.cwd!=='.'||!Array.isArray(check.command)||
     check.command[0]!=='@node'||check.command[1]!=='@typescript-compiler:.'||
     !tscRun({},{script:null,args:check.command.slice(2)}).run?.noEmit))
@@ -297,7 +303,7 @@ const checks=publicConfig.checks.map(check=>{
       check.workspace||'.',...run]]:[];
   const windowsContext=process.platform==='win32'?
     ['ComSpec','COMSPEC','PATHEXT','USERPROFILE']:[];
-  const autoEnvironment=npmDirect?directEnvironment:testsDirect?testEnvironment:npmAutomatic?{variables:['NODE_OPTIONS','NODE_PATH','CI','HOME',
+  const autoEnvironment=npmDirect?directEnvironment:testsDirect?testEnvironment:generalScript?scriptEnvironment(manager):npmAutomatic?{variables:['NODE_OPTIONS','NODE_PATH','CI','HOME',
     'NODE_ENV','BASH_ENV','ENV',...windowsContext],prefixes:['npm_config_','DYLD_','TSGO_'],
     pathExecutables:['node','npm'],executableIdentity:true}:yarnWorkspace?
     {variables:['NODE_OPTIONS','NODE_PATH','CI','HOME','NODE_ENV','BASH_ENV','ENV',...windowsContext],
@@ -323,6 +329,7 @@ const checks=publicConfig.checks.map(check=>{
     ...(npmAutomatic?{qualificationInterpretation:'npm-launcher-withheld@1'}:{}),
     ...(npmDirect?{qualificationInterpretation:directInterpretation}:{}),
     ...(testsDirect?{qualificationInterpretation:testsInterpretation}:{}),
+    ...(generalScript?{qualificationInterpretation:scriptInterpretation}:{}),
     workspace:check.workspace||null,kind:check.kind||null};
 });
 const runtime={schema:1,provider:'declared-project@1',root,state,checks};

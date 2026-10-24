@@ -352,6 +352,7 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       plan_id:row.plan.id,observed_at:lastObservation,
       invocation:r?.invocation||null,target_provenance:r?.target||null,
       ...(r?.verificationRecipe?{verification_recipe:r.verificationRecipe}:{}),
+      ...(r?.recipe?{recipe:r.recipe}:{}),
       coverage_at_run:r?.coverage||null,declared_inputs_match:null,reuse_eligible:false,
       ...(r?.runFacts?.length?{run_facts:r.runFacts.length}:{})};
     if(receiptStateError){item.reason=receiptStateError;return item;}
@@ -794,8 +795,8 @@ function markInputEvent(name,rel,type,replay) {
   if(!hasHistory||historyDisabled||replay){
     const serial=(inputEventSerial.get(name)||0)+1;
     inputEventSerial.set(name,serial);
-    // Kept only for test checks; trimmed in batches.
-    if(index?.checks.get(name)?.plan.qualification==='npm-tests-direct-v1'){
+    // Kept only for recorded test and script checks; trimmed in batches.
+    if(['npm-tests-direct-v1','node-script-v1'].includes(index?.checks.get(name)?.plan.qualification)){
       const list=inputEventPaths.get(name)||[];list.push([serial,rel]);
       if(list.length>2*eventPathLimit)list.splice(0,list.length-eventPathLimit);inputEventPaths.set(name,list);
     }

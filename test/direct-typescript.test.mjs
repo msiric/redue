@@ -71,8 +71,10 @@ const init=(root,state)=>good(root,state,'init','--recipe','typescript-direct');
 test('direct recipe is an explicit previewable choice; no lifecycle or compound bypass',t=>{
   const {root,state,config}=project(t);
   const pkg=fs.readFileSync(path.join(root,'package.json'));
+  // Plain init tries the strict recipes first, so it proposes the same direct check.
   const before=JSON.parse(good(root,state,'init','--dry-run','--json'));
-  assert.equal(before.checks[0].level,'recording');
+  assert.equal(before.checks[0].level,'ready');
+  assert.deepEqual(before.checks[0].command,['@node','@typescript-compiler:.','--noEmit']);
   const preview=JSON.parse(good(root,state,'init','--recipe','typescript-direct','--dry-run','--json'));
   assert(!fs.existsSync(config));assert.equal(preview.checks[0].level,'ready');
   assert.deepEqual(preview.checks[0].command,['@node','@typescript-compiler:.','--noEmit']);
@@ -214,7 +216,10 @@ test('installed files are observed by identity: no installed bytes read, a same-
   assert.equal(again.freshness,'CURRENT',JSON.stringify(again));assert.equal(again.reuse_eligible,true);
 });
 test('old npm evidence cannot satisfy the new recipe; extra caller-sensitive probes are unqualified',t=>{
-  const {root,state,config}=project(t);good(root,state,'init');good(root,state,'start');good(root,state,'run','typecheck');
+  const {root,state,config}=project(t);
+  fs.writeFileSync(config,JSON.stringify({schema:1,packageManager:'npm',checks:[{name:'typecheck',script:'typecheck',kind:'typecheck',
+    qualification:'typescript-noemit-v1',inputs:['package.json','package-lock.json','tsconfig.json','src/**']}]}));
+  good(root,state,'start');good(root,state,'run','typecheck');
   const old=sync(root,state).checks[0];assert.equal(old.reuse_eligible,false);good(root,state,'stop');
   const preview=JSON.parse(good(root,state,'init','--recipe','typescript-direct','--dry-run','--json'));
   // Explicit acceptance edit, never automatic migration by a read or run.

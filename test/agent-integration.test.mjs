@@ -250,6 +250,22 @@ test('claude setup names the test command beside the typecheck and recognizes it
   f.ok('agent','remove','claude','--apply');assert(!fs.existsSync(path.join(f.root,'CLAUDE.md')));
 });
 
+test('claude setup names lint commands beside typecheck and test, hooks the lint tool command, and recognizes its own block again',t=>{
+  const f=fixture(t);
+  f.put('package.json',JSON.stringify({scripts:{lint:'eslint .',test:'vitest run'}}));
+  f.put('redue.config.json',JSON.stringify({schema:1,packageManager:'npm',checks:['test','lint'].map(kind=>
+    ({name:kind,script:kind,kind,qualification:'node-script-v1',inputs:['**']}))}));
+  f.ok('agent','setup','claude','--apply');
+  const block=f.read('CLAUDE.md');
+  assert.match(block,/^Run the unit tests with `npm run test`\.\nLint with `npm run lint`\.\nRun a check before/m);
+  const skill=f.read('.claude/skills/redue-verification/SKILL.md');
+  assert.match(skill,/^- Lint: `redue run lint` or `npm run lint`\.$/m);
+  assert.match(skill,/A plain typecheck, test or lint run needs only/);
+  assert.ok(JSON.parse(f.read('.claude/settings.local.json')).hooks.PreToolUse[0].hooks.some(h=>h.if==='Bash(npx eslint .*)'));
+  f.ok('agent','setup','claude','--apply');assert.equal(f.read('CLAUDE.md'),block);
+  f.ok('agent','remove','claude','--apply');assert(!fs.existsSync(path.join(f.root,'CLAUDE.md')));
+});
+
 test('claude hook settings: created file is removed; edited or duplicate entries are replaced; invalid settings block setup',t=>{
   const f=fixture(t),local='.claude/settings.local.json';
   f.ok('agent','setup','claude','--apply');assert.equal(JSON.parse(f.read(local)).hooks.PreToolUse.length,1);

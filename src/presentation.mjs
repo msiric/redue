@@ -1,4 +1,9 @@
 // Presentation consumes evidence; it never grants applicability.
+// The recipe that made a receipt, by the qualification it names.
+const recipes={'npm-typescript-direct-v1':'direct TypeScript recipe','npm-tests-direct-v1':'direct test recipe',
+  'node-script-v1':'general recipe','pnpm-tsc-v1':'pnpm TypeScript recipe','yarn-workspace-tsc-v1':'Yarn workspace TypeScript recipe',
+  'typescript-noemit-v1':'npm TypeScript recipe'};
+export const recipeLabel=recipe=>recipes[recipe]??null;
 export function checkLabel(row) {
   return row.result==='FAIL'?'FAILED':row.freshness;
 }
@@ -21,7 +26,8 @@ export function renderStatus(value,{short=false}={}) {
     const label=checkLabel(row),symbol=label==='CURRENT'&&row.result==='PASS'?'✓':label==='FAILED'?'✗':'?';
     const mark=label==='STALE'?'⚠':symbol;
     const historical=row.result?` / ${row.result}`:'';
-    lines.push(`${mark} ${row.name}  ${label}${historical}`);
+    const recipe=label==='CURRENT'?recipeLabel(row.recipe):null;
+    lines.push(`${mark} ${row.name}  ${label}${historical}${recipe?`  (${recipe})`:''}`);
     if(label!=='CURRENT')lines.push(`  ${row.result==='FAIL'?`Historical failure; applicability ${row.freshness}. `:''}${explanation(row)}`);
   }
   if(!lines.length)lines.push('UNVERIFIED — observation is initializing; no check state is available yet.');
@@ -34,6 +40,7 @@ export function renderExplain(value,name) {
     const lines=[`${row.name}: ${checkLabel(row)}${row.result?` / ${row.result}`:''}`];
     if(row.result==='FAIL')lines.push(`Historical failure; applicability: ${row.freshness}.`);
     if(row.verification_recipe==='npm-direct-typescript@1')lines.push('Recorded recipe: direct local TypeScript compiler; npm and lifecycle scripts were not executed.');
+    else if(recipeLabel(row.recipe))lines.push(`Recorded recipe: ${recipeLabel(row.recipe)}.`);
     lines.push(explanation(row));
     if(row.changed_inputs?.length)lines.push('Relevant inputs changed:',...row.changed_inputs.map(file=>`  ${file}`));
     if(row.freshness==='STALE')lines.push(`Due again when verification is needed: redue run ${JSON.stringify(row.name)}`);

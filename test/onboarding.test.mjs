@@ -42,7 +42,7 @@ function invoke(root,state,...args){
   // npm test injects npm_config_* into this test process. The fixture models a
   // developer invoking the CLI directly, not a nested npm lifecycle command.
   const env=Object.fromEntries(Object.entries(process.env)
-    .filter(([key])=>!/^npm_config_/i.test(key)));
+    .filter(([key])=>!/^npm_config_/i.test(key)&&!['NODE_TEST_CONTEXT','NODE_TEST_WORKER_ID'].includes(key)));
   return spawnSync(process.execPath,[bin,'--state-dir',state,...args],
     {cwd:root,env,encoding:'utf8',timeout:30000});
 }
@@ -67,12 +67,13 @@ test('init previews and writes a small script config without running project com
   const preview=JSON.parse(good(root,state,'init','--dry-run','--json'));
   assert(!fs.existsSync(config));
   assert.deepEqual(preview.checks.map(row=>row.name),['typecheck','test','lint','build']);
-  assert.equal(preview.checks[0].level,'recording');
+  // Init tries the strict recipes first: plain `tsc --noEmit` on npm is the direct recipe.
+  assert.equal(preview.checks[0].level,'ready');
   assert(preview.checks.slice(1).every(row=>row.level==='recording'));
   good(root,state,'init');
   const written=fs.readFileSync(config,'utf8');
   assert(!written.includes(root));
-  assert.equal(JSON.parse(written).checks[0].qualification,'typescript-noemit-v1');
+  assert.equal(JSON.parse(written).checks[0].qualification,'npm-typescript-direct-v1');
   const unchanged=good(root,state,'init');
   assert.match(unchanged,/left unchanged/);
   assert.equal(fs.readFileSync(config,'utf8'),written);
@@ -81,7 +82,10 @@ test('init previews and writes a small script config without running project com
 });
 
 test('npm launcher records immutable outcomes but cannot grant applicability',async t=>{
-  const {root,state}=project(t);good(root,state,'init');good(root,state,'start');
+  const {root,state,config}=project(t);
+  fs.writeFileSync(config,JSON.stringify({schema:1,packageManager:'npm',checks:[{name:'typecheck',script:'typecheck',kind:'typecheck',
+    qualification:'typescript-noemit-v1',inputs:['package.json','package-lock.json','tsconfig.json','src/**']}]}));
+  good(root,state,'start');
   good(root,state,'run','typecheck');
   const first=sync(root,state).checks[0];
   assert.equal(first.result,'PASS');assert.equal(first.freshness,'UNVERIFIED');
@@ -113,8 +117,9 @@ test('unsupported manager and workspace boundary are explicit',t=>{
   const workspace=project(t,{workspaces:true});
   const preview=JSON.parse(good(workspace.root,workspace.state,'init','--dry-run','--json'));
   assert.equal(preview.workspaces,true);
-  assert.equal(preview.checks[0].level,'recording');
-  assert.match(preview.checks[0].reason,/workspace/);
+  // The workspace root's typecheck is no strict recipe's; the general one runs it through npm.
+  assert.equal(preview.checks[0].level,'ready');
+  assert.equal(preview.proposed_config.checks[0].qualification,'node-script-v1');
   const unpinnedYarn=project(t,{manager:'yarn'});
   const yarnPreview=JSON.parse(good(unpinnedYarn.root,unpinnedYarn.state,'init','--json'));
   assert.match(yarnPreview.issue,/Yarn version is not declared/);
@@ -124,7 +129,7 @@ test('unsupported manager and workspace boundary are explicit',t=>{
   const pinned=JSON.parse(good(pinnedYarn.root,pinnedYarn.state,'init','--json'));
   assert.equal(pinned.installation_layout,'node-modules');
   assert.equal(pinned.written,true);
-  assert.equal(pinned.checks[0].level,'recording');
+  assert.equal(pinned.proposed_config.checks[0].qualification,'node-script-v1');
   const noGit=project(t);
   fs.rmSync(path.join(noGit.root,'.git'),{recursive:true});
   const withoutCheckout=JSON.parse(good(noGit.root,noGit.state,'init','--json'));
@@ -144,14 +149,15 @@ test('discovers uniquely identifiable tool commands without relying on script na
     style:'eslint .',bundle:'vite build'}});
   const preview=JSON.parse(good(root,state,'init','--dry-run','--json'));
   assert.deepEqual(preview.checks.map(row=>row.script),['check','unit','style','bundle']);
-  assert.equal(preview.checks[0].level,'recording');
+  assert.equal(preview.checks[0].level,'ready');
   const ambiguous=project(t,{scripts:{unit:'vitest run',spec:'jest --runInBand'}});
   const other=JSON.parse(good(ambiguous.root,ambiguous.state,'init','--dry-run','--json'));
   assert.deepEqual(other.ambiguous,[{kind:'test',scripts:['unit','spec']}]);
   assert(!other.checks.some(row=>row.name==='test'));
   const lifecycle=project(t,{scripts:{check:'tsc --noEmit',precheck:'node preflight.js'}});
+  // The direct recipe refuses a pre script; npm runs it, so the general recipe records it.
   const life=JSON.parse(good(lifecycle.root,lifecycle.state,'init','--dry-run','--json'));
-  assert.equal(life.checks[0].level,'recording');
+  assert.equal(life.proposed_config.checks[0].qualification,'node-script-v1');
 });
 
 test('npm workspace scripts are discovered as recording-only named checks',t=>{

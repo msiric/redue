@@ -291,13 +291,19 @@ test('the test recipe takes one supported package manager without workspaces',t=
     assert.equal(pm(files,pkg),code,JSON.stringify([files,pkg]));
 });
 
-test('an installed link to a directory outside the installed tree still makes observation unavailable',{skip:unsupported},t=>{
+test('an installed link to a checkout directory is observed through the files it leads to; one to node_modules elsewhere is not',{skip:unsupported},t=>{
   const {root,state}=project(t,{manager:'pnpm'});
   good(root,state,'init','--recipe','tests-direct','--check','test','--json');
+  // A workspace package's link: the recorder classifies reads through it where it leads.
   fs.symlinkSync('../src',path.join(root,'node_modules','stray'),'dir');
+  good(root,state,'start');good(root,state,'run','test');
+  assert.equal(`${row(root,state).freshness}/${row(root,state).result}`,'CURRENT/PASS');
+  good(root,state,'stop');
+  fs.mkdirSync(path.join(root,'other/node_modules'),{recursive:true});
+  fs.symlinkSync('../other/node_modules',path.join(root,'node_modules','elsewhere'),'dir');
   good(root,state,'start');
   const cached=JSON.parse(invoke(root,state,{},'status','--json').stdout).observation;
-  assert.equal(cached.healthy,false);assert.match(cached.reason,/directory input symlink unsupported: node_modules\/stray/);
+  assert.equal(cached.healthy,false);assert.match(cached.reason,/directory input symlink unsupported: node_modules\/elsewhere/);
   good(root,state,'stop');
 });
 

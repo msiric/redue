@@ -3,8 +3,9 @@ import {builtInProbe,probeFloorMs,publishedDeadline} from './probe-deadline.mjs'
 import fs from 'node:fs';
 import {directQualification,directInterpretation,observedNpmContext} from './direct-typescript.mjs';
 import {directRunCertificateAllowed,directRunCertificate,directRunRecordable,directRunRecording,probeQuestions,validateRunRecord} from './direct-run-certificate.mjs';
-import {runFactChange} from './typescript-list.mjs';
+import {queryAnswer,runFactChange} from './typescript-list.mjs';
 import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testRunFacts,sharedInstalledFile,testsInterpretation,testsQualification} from './test-direct.mjs';
+import {childProgram,pnpmConfigFiles,scriptCaches,scriptInstalledPaths,scriptInterpretation,scriptQualification,scriptRunFacts,toolchainDirs} from './node-script.mjs';
 import path from 'node:path';
 import net from 'node:net';
 import os from 'node:os';
@@ -69,7 +70,8 @@ const readsFile=path.join(state,'environment-reads-v1.json');
 function environmentReads() {
   try{const value=JSON.parse(fs.readFileSync(readsFile,'utf8'));return value?.schema===1&&value.checks||{};}catch{return {};}
 }
-function contextHashes() {const reads=config.checks.some(check=>check.qualification===testsQualification)?environmentReads():{};
+const recordedRecipes=[testsQualification,scriptQualification];
+function contextHashes() {const reads=config.checks.some(check=>recordedRecipes.includes(check.qualification))?environmentReads():{};
   return Object.fromEntries(config.checks.map(check=>[
   check.name,Object.fromEntries([...(check.environment?.variables||[])
     .map(key=>[key,digest(process.env[key]??'<unset>')]),
@@ -271,20 +273,26 @@ async function execute() {
     const recorded=directRunRecordable(selected)&&!unobservedDirectRun;
     const launched=recorded?[command[0],'--require',path.join(here,'run-recorder.cjs'),
       ...command.slice(1)]:command;
-    // A test run's processes record what the guard checks (test-recorder.cjs).
-    const testRun=selected.qualification===testsQualification&&['darwin','linux'].includes(process.platform);
-    let testRecord=null,launchEnv=process.env,testFacts={};
+    // A test run's processes record what the guard checks (test-recorder.cjs),
+    // and so do a general recipe run's, through the package manager.
+    const general=selected.qualification===scriptQualification;
+    const testRun=recordedRecipes.includes(selected.qualification)&&['darwin','linux'].includes(process.platform);
+    let testRecord=null,launchEnv=process.env,testFacts={},toolchain=[];
     if(testRun){
       // The package directory and installed node_modules, as the plan has them.
-      try{testFacts=testRunFacts(root,selected);}
-      catch(e){captureIssues.push(`test run facts unavailable (${e.code||e.message})`);}
+      try{testFacts=general?scriptRunFacts(root,selected):testRunFacts(root,selected);}
+      catch(e){captureIssues.push(`${general?'script':'test'} run facts unavailable (${e.code||e.message})`);}
       const environmentIssue=testEnvironmentIssue();
       if(environmentIssue)captureIssues.push(environmentIssue);
       testRecord=path.join(state,`test-record-${runId}`);
       fs.mkdirSync(testRecord,{mode:0o700});
-      const guardFile=path.join(testRecord,'guard.json');
-      fs.writeFileSync(guardFile,JSON.stringify(testGuardConfig(testRecord,root,process.env,testFacts)),{mode:0o600});
+      const guardFile=path.join(testRecord,'guard.json'),guardConfig=testGuardConfig(testRecord,root,process.env,testFacts);
+      if(general){toolchain=toolchainDirs();
+        Object.assign(guardConfig,{installed:scriptInstalledPaths(root,testFacts.dirs||[]),toolchain});}
+      fs.writeFileSync(guardFile,JSON.stringify(guardConfig),{mode:0o600});
       launchEnv=recordedEnvironment(guardFile);
+      // npm's and pnpm's update checks read state outside the checkout and the network.
+      if(general)launchEnv.npm_config_update_notifier='false';
     }
     let runnerPid=null;
     const record=[];
@@ -357,10 +365,16 @@ async function execute() {
     }else if(!unobservedDirectRun&&!recording)probeAfter=probeHash(probePlan);
     let guard=null;
     if(testRecord){
-      let coverage=null;try{coverage=coverageReadable(root,testFacts);}catch{}
+      let coverage=null;if(!general)try{coverage=coverageReadable(root,testFacts);}catch{}
+      const programs=general?{runner:{file:command[0],args:command.slice(1),cwd:plan.cwd,searchPath:process.env.PATH,
+        env:{preload:true,bashEnv:Boolean(process.env.BASH_ENV)}},
+        judge:(child,main)=>childProgram(child,{toolchain,parentMain:main}),trusted:scriptCaches}:null;
       guard=testRunGuard(testRecord,{root,sourcePatterns:plan.sourcePatterns||plan.patterns,files:snap?.files,
-        runner:runnerPid,environment:selected.environment||{},coverage});
+        runner:runnerPid,environment:selected.environment||{},coverage,programs});
       runFacts=guard.runFacts;
+      // The pnpm executable reads its configuration natively: kept by content.
+      if(guard.opaque)for(const file of pnpmConfigFiles())try{runFacts.push(['readFile',file,queryAnswer('readFile',file)]);}
+        catch{guard.issues.push(`pnpm configuration ${file} cannot be read`);}
       const shared=sharedInstalledFile(root,testFacts,path.join(state,'pnpm-store-links-v1.json'));
       if(shared)guard.issues.push(`installed file ${shared.file} ${shared.reason}; a change through it is not observed`);
       fs.rmSync(testRecord,{recursive:true,force:true});
@@ -447,9 +461,10 @@ async function execute() {
     }
     // A recorded run's receipt carries its run facts, even none; observers that
     // predate run facts do not reuse version 2.
-    const receipt={result,invocation,target,stable,fingerprintVersion:recorded||testRun?2:1,
+    // The recipe that made the receipt, which status and the hook name.
+    const receipt={result,invocation,target,stable,fingerprintVersion:recorded||testRun?2:1,recipe:selected.qualification||null,
       ...(recorded||testRun?{runFacts}:{}),
-      ...(testRun?{verificationRecipe:testsInterpretation,guardIssues:guard?.issues||['the run record is unavailable'],
+      ...(testRun?{verificationRecipe:general?scriptInterpretation:testsInterpretation,guardIssues:guard?.issues||['the run record is unavailable'],
         environmentReads:guard?.environmentReads||{},...(nondeterministic?{nondeterministic}:{})}:{}),
       resolutionLinks:plan.resolutionLinks||[],
       coverage:{qualified:plan.unresolved.length===0,unresolved:plan.unresolved},

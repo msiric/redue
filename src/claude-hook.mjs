@@ -1,4 +1,4 @@
-// Claude Code PreToolUse hook: skip an exact typecheck or test rerun when REDUE
+// Claude Code PreToolUse hook: skip an exact typecheck, test or lint rerun when REDUE
 // reports CURRENT/PASS with reuse_eligible on the current inputs. When the check is not
 // CURRENT, the command becomes `redue run <check>` so the run is recorded. Every
 // other outcome, including errors and timeouts, allows the command unchanged.
@@ -11,6 +11,7 @@ import {projectState} from './project-location.mjs';
 import {realObservedPath} from './path-identity.mjs';
 import {processAlive} from './process-liveness.mjs';
 import {scriptRunChecks} from './typescript-invocation.mjs';
+import {recipeLabel} from './presentation.mjs';
 
 export const hookCommand='redue agent hook claude';
 // No shell metacharacters; `@` starts scoped package names.
@@ -19,7 +20,11 @@ const typecheck=check=>check?.kind==='typecheck'||check?.name==='typecheck';
 // A direct test check: its command is the runner and the script's arguments.
 const tests=check=>check?.qualification==='npm-tests-direct-v1'&&Array.isArray(check.command)&&
   /^@test-runner:(?:vitest|jest)$/.test(check.command[1]||'');
-export const checkKind=check=>tests(check)?'test':'typecheck';
+// A general recipe check: a root typecheck, test or lint script run through the package manager.
+const general=check=>check?.qualification==='node-script-v1'&&['typecheck','test','lint'].includes(check.kind)&&
+  typeof check.script==='string';
+const eligibleCheck=check=>typecheck(check)||tests(check)||general(check);
+export const checkKind=check=>tests(check)?'test':general(check)?check.kind:'typecheck';
 
 export const defaultConfig='redue.config.json';
 // The `redue` prefix for a config beside the project root; null when the name
@@ -53,8 +58,12 @@ function workspaceForms(pm,name,script){
     `npm run ${script} --workspace=${name}`,`npm -w ${name} run ${script}`];
   return [];
 }
-// The tool a check runs, as typed: `tsc ARGS` or the test runner's command.
-function toolText(check){
+// The tool a check runs, as typed: `tsc ARGS` or the test runner's command;
+// for a general check, its script when the script is one plain command.
+function toolText(check,scripts){
+  if(general(check)){const text=typeof scripts?.[check.script]==='string'?scripts[check.script].trim().replace(/\s+/g,' '):'';
+    return safe.test(text.replace(/ /g,''))&&!/^(?:npm|npx|pnpm|pnpx|yarn|node)(?: |$)/.test(text)&&
+      !scripts['pre'+check.script]&&!scripts['post'+check.script]?text:null;}
   const command=check.command;
   if(!Array.isArray(command)||command[0]!=='@node')return null;
   const words=/^@typescript-(?:compiler|bin):/.test(command[1]||'')?['tsc',...command.slice(2)]:
@@ -103,9 +112,9 @@ function tscCheck(check){return typecheck(check)&&/^tsc(?: |$)/.test(toolText(ch
 // only when the script's tsc runs are those checks' runs, one each. With one
 // check they stay on its row (`scriptForms`); a chain's checks get a row for
 // the script, and their own rows (`part`) keep only their own forms.
-export function hookForms(config,configFile=defaultConfig){
+export function hookForms(config,configFile=defaultConfig,packageScripts=null){
   const rows=[],redue=redueFor(configFile),pm=config?.packageManager,scripts=new Map();
-  const eligible=(config?.checks||[]).filter(check=>(typecheck(check)||tests(check))&&typeof check.name==='string'&&safe.test(check.name));
+  const eligible=(config?.checks||[]).filter(check=>eligibleCheck(check)&&typeof check.name==='string'&&safe.test(check.name));
   const groupOf=check=>tscCheck(check)&&typeof checkScript(check)==='string'&&checkDir(check)!==null?
     JSON.stringify([checkDir(check),checkScript(check),workspaceName(check)]):null;
   for(const check of eligible){const key=groupOf(check);if(key)scripts.set(key,[...scripts.get(key)||[],check.name]);}
@@ -116,7 +125,7 @@ export function hookForms(config,configFile=defaultConfig){
       group=key?scripts.get(key):null,part=group?.length>1;
     const own=group?null:checkScript(check);
     if(dir==='.'){
-      forms.push(...scriptForms(pm,own),...toolForms(pm,toolText(check)));
+      forms.push(...scriptForms(pm,own),...toolForms(pm,toolText(check,packageScripts)));
       if(!tests(check)&&Array.isArray(check.command)&&check.command.length&&
         check.command.every(v=>typeof v==='string'&&safe.test(v)&&!v.startsWith('@')))
         forms.push(check.command.join(' '));
@@ -167,7 +176,7 @@ export function fanout(text){
 // Bash `if` rules for fan-out commands of a task some workspace check runs,
 // and for root scripts that run one; other turbo or nx commands never start the hook.
 export function fanoutRules(config,scripts={}){
-  const tasks=new Set((config?.checks||[]).filter(check=>(typecheck(check)||tests(check))&&typeof check.name==='string'&&
+  const tasks=new Set((config?.checks||[]).filter(check=>eligibleCheck(check)&&typeof check.name==='string'&&
     ![null,'.'].includes(checkDir(check))).map(checkScript).filter(task=>typeof task==='string'&&/^[A-Za-z0-9_:.-]+$/.test(task)));
   const rules=[];
   for(const task of tasks){
@@ -203,7 +212,7 @@ export async function fanoutChecks(fan,config,projectRoot){
     return null;
   const names=[];
   for(const item of packages){
-    const own=config.checks.filter(c=>(typecheck(c)||tests(c))&&typeof c.name==='string'&&
+    const own=config.checks.filter(c=>eligibleCheck(c)&&typeof c.name==='string'&&
       workspaceName(c)===item.name&&checkScript(c)===fan.task&&checkDir(c)===item.dir);
     if(!own.length)return null;
     // A compiler script's checks: one per tsc run it has now.
@@ -235,6 +244,10 @@ function split(command){
 function matched(command,config,configFile,dir='.',scripts={}){
   const parts=split(command);
   if(!parts)return null;
+  const row=hookForms(config,configFile,dir==='.'?scripts:null).find(row=>dir==='.'?row.forms.includes(parts.base):
+    row.dir===dir&&row.local.includes(parts.base));
+  // A root script that a general check runs is that check, even when the script fans out.
+  if(dir==='.'&&row&&general(config.checks.find(check=>check.name===row.check)))return {check:row.check,rest:parts.rest};
   if(dir==='.'){
     // A root script that runs a fan-out is that fan-out, unless pre/post scripts
     // run around it: then it matches nothing.
@@ -243,8 +256,6 @@ function matched(command,config,configFile,dir='.',scripts={}){
         return scripts['pre'+name]||scripts['post'+name]?null:{fanout:fanout(text.trim()),rest:parts.rest};
     if(fanout(parts.base))return {fanout:fanout(parts.base),rest:parts.rest};
   }
-  const row=hookForms(config,configFile).find(row=>dir==='.'?row.forms.includes(parts.base):
-    row.dir===dir&&row.local.includes(parts.base));
   // A script form of compiler checks is checked against the script first.
   return row?.scriptForms?.includes(parts.base)?{row,rest:parts.rest}:row?{check:row.check,rest:parts.rest}:null;
 }
@@ -292,7 +303,8 @@ export function verdict(status,name,rest=null){
   const runId=row?.invocation?.runId;
   if(!row||row.freshness!=='CURRENT'||row.result!=='PASS'||row.reuse_eligible!==true||
     typeof runId!=='string'||!/^[0-9a-f-]{36}$/.test(runId))return null;
-  return `REDUE: check ${JSON.stringify(name)} passed on these exact inputs (run ${runId}); `+
+  const recipe=recipeLabel(row.recipe);
+  return `REDUE: check ${JSON.stringify(name)} passed on these exact inputs (run ${runId}${recipe?`, ${recipe}`:''}); `+
     'rerun skipped. This counts as a pass for the current files; no status check is needed. '+
     'To run it anyway, prefix the command with REDUE_FORCE=1.'+
     (rest===null?'':` Nothing else in the command ran either; run the rest on its own: ${rest}`);

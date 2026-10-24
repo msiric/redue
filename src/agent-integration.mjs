@@ -26,7 +26,7 @@ const sameJson=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 // Fan-out commands (turbo, nx, `pnpm -r`) and root scripts that run one get
 // prefix rules; the hook decides from the full command.
 function hookFor(config,relative,scripts){
-  const rules=[...new Set([...hookForms(config,relative).flatMap(row=>[...row.forms,...row.local]),
+  const rules=[...new Set([...hookForms(config,relative,scripts).flatMap(row=>[...row.forms,...row.local]),
     ...fanoutRules(config,scripts)])].map(form=>`Bash(${form}*)`);
   return rules.length?{matcher:'Bash',hooks:rules.map(rule=>({type:'command',if:rule,command:hookCommand,timeout:15}))}:null;
 }
@@ -99,17 +99,23 @@ function saved(root,host){const text=read(root,marker(host));if(text===null)retu
   return value;
 }
 // The managed block is always in the agent's context, so it stays short. For
-// Claude Code it names the typecheck and test commands the hook matches, asks
+// Claude Code it names the typecheck, test and lint commands the hook matches, asks
 // the agent to run them rather than judge for itself that a rerun is not
 // needed, and says what a skip means. The hook does the rest, so the block
 // does not point to the skill; the skill stays for agents that look for it.
 const quoted=forms=>forms.map(form=>`\`${form}\``).join(' and ');
-const commandsOf=rows=>[rows.filter(row=>row.kind!=='test').map(row=>row.form),rows.filter(row=>row.kind==='test').map(row=>row.form)];
+const commandsOf=rows=>[rows.filter(row=>row.kind!=='test'&&row.kind!=='lint').map(row=>row.form),
+  rows.filter(row=>row.kind==='test').map(row=>row.form),rows.filter(row=>row.kind==='lint').map(row=>row.form)];
 const fence=(host,body)=>`\n\n<!-- REDUE:${host}:begin -->\n${body}<!-- REDUE:${host}:end -->\n`;
 const skillPointer=host=>`Before you run, skip or report a typecheck or other configured check, read\n${hosts[host].skill}.\n`;
 function blockFor(host,rows=[]){
-  const [typechecks,tests]=commandsOf(rows);
+  const [typechecks,tests,lints]=commandsOf(rows);
   if(!rows.length)return fence(host,skillPointer(host));
+  if(lints.length)return fence(host,(typechecks.length?`Typecheck with ${quoted(typechecks)}.\n`:'')+
+    (tests.length?`Run the unit tests with ${quoted(tests)}.\n`:'')+`Lint with ${quoted(lints)}.\n`+
+    `Run a check before you say it passes, even after an edit you think cannot\n`+
+    `matter; don't skip it yourself. If its last pass still applies to these exact\n`+
+    `files, a REDUE hook skips the run and says so. That skip counts as a pass.\n`);
   if(!tests.length)return fence(host,`Typecheck with ${quoted(typechecks)}. Run it before you say it passes, even after an\n`+
     `edit you think cannot matter; don't skip it yourself. If its last pass still\n`+
     `applies to these exact files, a REDUE hook skips the run and says so. That\n`+
@@ -157,7 +163,8 @@ function knownBlock(host,relative,block){
   const list='((?:`[A-Za-z0-9_./:=,+@ -]+`(?: and )?)+)';
   const forms=pattern=>{const named=new RegExp(pattern).exec(block);return named?[...named[1].matchAll(/`([^`]+)`/g)].map(m=>m[1]):[];};
   const rows=[...forms(`^\\n\\n<!-- REDUE:[a-z]+:begin -->\\nTypecheck with ${list}\\.`).map(form=>({kind:'typecheck',form})),
-    ...forms(`Run the unit tests with ${list}\\.\\n`).map(form=>({kind:'test',form}))];
+    ...forms(`Run the unit tests with ${list}\\.\\n`).map(form=>({kind:'test',form})),
+    ...forms(`Lint with ${list}\\.\\n`).map(form=>({kind:'lint',form}))];
   return block===blockFor(host,rows)||block===earlierBlock(host,rows)||priorBlocks(host,relative).includes(block);
 }
 // The policy with the exact commands for this config, so an agent never builds
@@ -168,6 +175,7 @@ function skillFor(relative,host,config){
   const redue=redueFor(relative)??`redue --config ${JSON.stringify(relative)}`,status=`${redue} status --sync --json`;
   const rows=host==='claude'?hookForms(config,relative).filter(row=>!row.part):[];
   const label=row=>row.kind==='test'?(row.check==='test'?'Unit tests':`Unit tests \`${row.check}\``):
+    row.kind==='lint'?(row.check==='lint'?'Lint':`Lint \`${row.check}\``):
     row.check==='typecheck'?'Typecheck':`Typecheck \`${row.check}\``;
   const commands=rows.map(row=>`- ${label(row)}: `+
     `${row.forms.map(form=>`\`${form}\``).join(' or ')}.\n`).join('')+
@@ -183,7 +191,7 @@ function skillFor(relative,host,config){
   // typecheck needs only the CLAUDE.md block, so the description must not
   // send the agent here for one.
   const description=rows.length?'Rules and exact commands for redue status, redue run and other redue commands. '+
-    `A plain ${rows.some(row=>row.kind==='test')?'typecheck or test run':'typecheck'} needs only the REDUE section of CLAUDE.md.`:
+    `A plain ${rows.some(row=>row.kind==='lint')?'typecheck, test or lint run':rows.some(row=>row.kind==='test')?'typecheck or test run':'typecheck'} needs only the REDUE section of CLAUDE.md.`:
     'Use before running, skipping or reporting a typecheck or other configured check.';
   // Replacer functions, so `$` in a config name is never a replacement pattern.
   return policy.replace('{{DESCRIPTION}}',()=>description).replace('{{CONFIG}}',()=>JSON.stringify(relative)).replace('{{COMMANDS}}',()=>commands.trimEnd())

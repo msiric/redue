@@ -30,6 +30,8 @@ out of version-controlled configuration.
 
 For the explicit direct compiler choice and generated exact argv, see
 [direct TypeScript](direct-typescript.md). Existing script receipts cannot satisfy it.
+A general check (`"qualification": "node-script-v1"`) has a `script` and no
+`command`; see the [general recipe](node-script.md).
 
 ## Arbitrary commands
 

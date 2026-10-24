@@ -1,5 +1,6 @@
 import {directProject,directQualification} from './direct-typescript.mjs';
-import {testProject,testRecipeScript,testCheckInputs,testsQualification} from './test-direct.mjs';
+import {testProject,testRecipeScript,testCheckInputs,testEnvironmentIssue,testsQualification} from './test-direct.mjs';
+import {commandLineIssue,scriptCheckInputs,scriptKinds,scriptPath,scriptProject,scriptQualification} from './node-script.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
@@ -191,8 +192,27 @@ export function workspacePackages(root){
   return workspaceManifests(root,patterns).map(({file,pkg:member})=>
     ({name:member.name,dir:path.posix.dirname(file),scripts:member.scripts&&typeof member.scripts==='object'?member.scripts:{}}));
 }
+// The general recipe for a root script, or why it does not apply: a
+// supported package manager and platform, and a script (with its pre and post
+// scripts) that, read as text, starts only Node programs.
+function generalCheck(root,kind,script){
+  if(!['darwin','linux'].includes(process.platform))throw Error('the general recipe records runs on macOS and Linux only');
+  const environmentIssue=testEnvironmentIssue();
+  if(environmentIssue)throw Error(environmentIssue);
+  let project;
+  try{project=scriptProject(root,script);}catch(e){throw Error(e.code?.replace(/^test-/,'')||e.message);}
+  for(const name of ['pre'+script,script,'post'+script]){
+    if(typeof project.scripts[name]!=='string')continue;
+    const issue=commandLineIssue(project.scripts[name],{cwd:root,searchPath:scriptPath(root,process.env.PATH)});
+    if(issue)throw Error(name===script?issue:`${name}: ${issue}`);
+  }
+  return {config:{name:kind,script,kind,qualification:scriptQualification,...scriptCheckInputs(project.dirs)},manager:project.manager};
+}
 export function discoverNodeProject(root,{recipe=null}={}) {
-  if(recipe&&!['typescript-direct','tests-direct'].includes(recipe))throw Error('unknown recipe; use typescript-direct or tests-direct');
+  if(recipe&&!['typescript-direct','tests-direct','node-script'].includes(recipe))
+    throw Error('unknown recipe; use typescript-direct, tests-direct or node-script');
+  // Without --recipe, init tries the strict recipes first, then the general one.
+  const auto=recipe===null;
   root=realObservedPath(root);
   const packageFile=path.join(root,'package.json');
   if(!exists(packageFile))throw Error('run init from a repository containing package.json');
@@ -225,7 +245,7 @@ export function discoverNodeProject(root,{recipe=null}={}) {
     if(workspaces&&classification.qualification==='typescript-noemit-v1')classification={level:'recording',
       reason:'workspace task and installed-input closure need explicit qualification'};
     const check={name:kind,script,kind,inputs:sourceInputs(root,kind,pm.lockfiles||[])};
-    if(recipe==='typescript-direct'&&kind==='typecheck'){
+    if((recipe==='typescript-direct'||auto&&pm.name==='npm'&&!workspaces)&&kind==='typecheck'){
       try{
         if(pm.name!=='npm'||workspaces||observationIssue||pm.issue)throw Error('direct recipe requires a supported single-package npm checkout');
         let version;
@@ -236,7 +256,7 @@ export function discoverNodeProject(root,{recipe=null}={}) {
           reason:`explicit local TypeScript ${version} compilation; npm launcher/lifecycle scripts are not executed; package.json stays unchanged`};
       }catch(e){classification={level:'recording',reason:`Direct recipe unavailable (${e.code||e.message}); original npm script retained, without bypassing required behavior`};}
     }
-    if(recipe==='tests-direct'&&kind==='test'){
+    if((recipe==='tests-direct'||auto)&&kind==='test'){
       try{
         if(!['npm','pnpm','yarn'].includes(pm.name)||workspaces||observationIssue||pm.issue)
           throw Error('test recipe requires a supported single-package npm, pnpm or Yarn checkout');
@@ -250,7 +270,7 @@ export function discoverNodeProject(root,{recipe=null}={}) {
           reason:`explicit local ${project.runner} ${project.version} run of script ${JSON.stringify(chosen.script)}; the whole checkout is its input; npm and lifecycle scripts are not executed`};
       }catch(e){classification={level:'recording',reason:`Test recipe unavailable (${e.code||e.message}); original npm script retained`};}
     }
-    if(pm.name==='pnpm'&&kind==='typecheck'&&!workspaces&&!pm.issue&&(script===undefined||tscRuns(scripts[script]))){
+    if(recipe!=='node-script'&&pm.name==='pnpm'&&kind==='typecheck'&&!workspaces&&!pm.issue&&(script===undefined||tscRuns(scripts[script]))){
       try{
         parts=tscChecks('typecheck',script??null,scripts,run=>{
           const contract=pnpmTypecheckInputs(root,'.',run);
@@ -262,6 +282,14 @@ export function discoverNodeProject(root,{recipe=null}={}) {
         classification={level:'ready',reason:'pnpm TypeScript inputs and installation; checked again before reuse',
           qualification:'pnpm-tsc-v1'};}
       catch(e){classification={level:'recording',reason:`pnpm TypeScript contract needs review: ${e.message}`};}
+    }
+    if((auto||recipe==='node-script')&&script&&scriptKinds.includes(kind)&&classification.level!=='ready'&&!observationIssue){
+      try{
+        const general=generalCheck(root,kind,script);
+        checks.push({config:general.config,level:'ready',qualification:scriptQualification,
+          reason:`general recipe: ${general.manager} runs script ${JSON.stringify(script)} with REDUE's recorder in every Node process; the whole checkout is its input`});
+        continue;
+      }catch(e){classification={...classification,reason:`General recipe unavailable (${e.message}); ${classification.reason}`};}
     }
     if(!script&&classification.level!=='ready')continue;
     if(parts&&classification.level==='ready'){

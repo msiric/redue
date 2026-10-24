@@ -15,9 +15,11 @@ At the repository root, `init` looks for existing typecheck, test, lint, and
 build scripts. It prefers familiar script names, then unique recognizable
 `tsc`, Vitest/Jest, ESLint, or Vite commands under other names. Multiple
 matches are reported as ambiguous rather than guessed. It never creates a new
-project script. Automatic npm-launcher applicability was withdrawn in alpha.4;
-ordinary npm scripts remain recording-only. See the [maintainer notice](npm-launcher-notice.md).
-The direct recipe is opt-in, available since alpha.5. The opt-in `init --recipe typescript-direct` supports
+project script. Without `--recipe`, `init` tries the strict recipes below first,
+then the [general recipe](node-script.md) for a root typecheck, test or lint
+script: the script run through the package manager with every Node process
+recorded and the whole checkout as its input. `--recipe typescript-direct`,
+`tests-direct` or `node-script` selects one recipe alone. The direct TypeScript recipe supports
 a typecheck script of `tsc --noEmit` runs in any argument order, chained runs,
 or no typecheck script at all (a proposed `tsc --noEmit`; see
 [script forms](direct-typescript.md#script-forms)), in a single-package npm installation using
@@ -41,11 +43,11 @@ When an internal dependency is consumed through built declarations, changing
 only its source does not stale the selected check until the consumed output
 changes. Unsupported custom resolution, project references, outside-root
 source links, and installation modes remain recording-only. Other Yarn
-typechecks, Vitest/Jest, ESLint, and builds start recording-only unless a
-separately justified explicit contract is provided. For a single-package npm
-project whose test script runs Vitest 4/5 or Jest 29 directly, the opt-in
-`init --recipe tests-direct` records the run and guards its inputs; see
-[direct tests](tests-direct.md).
+typechecks, Vitest/Jest, ESLint, and builds in workspace packages start
+recording-only unless a separately justified explicit contract is provided.
+For a single-package project whose test script runs Vitest 4/5 or Jest 29
+directly, `init` uses the direct test recipe, which records the run and guards
+its inputs; see [direct tests](tests-direct.md).
 In particular, test caches and build-generated inputs are not excluded to
 make evidence green.
 
@@ -75,8 +77,8 @@ TypeScript itself computes them for new files, minus `node_modules` (`exclude`
 entries stay inputs: an import can still reach an excluded file); a file the
 program reads outside them keeps the check recording-only. This avoids pnpm's task-run bookkeeping
 writes during `pnpm run`; it does not alter the project's script. Test, lint,
-build, and ambiguous TypeScript scripts still execute through `pnpm run` and
-start recording-only. The generated `@typescript-bin:WORKSPACE` token resolves
+build, and ambiguous TypeScript scripts still execute through `pnpm run`; root
+ones can use the [general recipe](node-script.md). The generated `@typescript-bin:WORKSPACE` token resolves
 the local compiler when the check runs; it is not an absolute machine path.
 
 The pnpm contract indexes consumed installed package contents inside the

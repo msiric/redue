@@ -82,9 +82,9 @@ Use a check actually printed by `init`. For a workspace:
 `redue init --workspace @example/package --check typecheck`.
 Initialization previews detected commands and qualification confidence before writing
 `redue.config.json`. An existing config is never overwritten. No checks are run and
-no dependencies installed. A missing/unsupported boundary is explained. Npm-launcher typechecks are
-recording-only in alpha.4; a passed execution is historical PASS with UNVERIFIED
-applicability, not reusable CURRENT.
+no dependencies installed. A missing/unsupported boundary is explained. `init` tries
+the strict recipes first and uses the [general recipe](node-script.md) for a root
+typecheck, test or lint script none of them takes.
 
 “Ready to qualify” means REDUE has a supported recipe whose prerequisites will be
 validated. It is not a receipt. “Recording-only” can record PASS/FAIL without claiming
@@ -92,10 +92,9 @@ reusability. Qualification can change when configuration or installation changes
 
 `run` streams normal output and preserves execution environment and cancellation.
 For the narrow pnpm TypeScript contract, `init` explicitly shows the direct installed
-compiler invocation it selects. Npm scripts remain recording-only;
-use `redue init --recipe typescript-direct --dry-run` to preview a distinct,
-explicit [local compiler recipe](direct-typescript.md). Other scripts run through
-the package manager. No existing configuration is silently migrated.
+compiler invocation it selects, and for npm the
+[local compiler recipe](direct-typescript.md). General checks and other scripts
+run through the package manager. No existing configuration is silently migrated.
 Only use configs and probes from trusted repositories: these execute local code.
 
 `status` is cached and conservative. `status --sync` and `explain` revalidate caller

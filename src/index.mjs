@@ -192,10 +192,16 @@ export class InputIndex {
       const installed=this.installedPath(rel);
       try{const started=performance.now();
         // A linked directory counts as observed only strictly inside an
-        // installed root, and only if every check matching the link also
-        // observes the directory's own files (its package.json stands for them).
+        // installed root, or as a checkout directory outside node_modules (a
+        // workspace package the package manager links), and only if every
+        // check matching the link also observes the directory's own files
+        // (its package.json stands for them).
+        // The second form is for recorded checks only: their recorder
+        // classifies a read through the link where it leads.
+        const recorded=name=>['node-script-v1','npm-tests-direct-v1'].includes(this.checks.get(name).plan.qualification);
         const observedDir=installed?physical=>!this.includeInstalled&&
-          [...this.installedRootSet].some(root=>physical.startsWith(root+'/'))&&
+          ([...this.installedRootSet].some(root=>physical.startsWith(root+'/'))||
+            !physical.split('/').includes('node_modules')&&!this.installedPath(physical+'/package.json')&&matched.every(recorded))&&
           matched.every(name=>this.matches(this.checks.get(name),physical+'/package.json')):null;
         inspection=fileHash(this.root,rel,installed,stat,observedDir);
         fresh=inspection.hash;

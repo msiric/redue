@@ -76,10 +76,13 @@ Start with ordinary `status`. When it cannot establish caller context, use
 **Synchronization can cost more than rerunning a cheap check, particularly on
 Windows.** REDUE does not choose or execute that tradeoff for you.
 
-Since alpha.4, ordinary npm scripts are recording-only after
-[an npm launcher applicability gap](docs/acceptance/npm-launcher-boundary.md).
-A separate explicit [direct compiler recipe](docs/user/direct-typescript.md) can
-qualify supported npm typechecks. It does not claim that npm/lifecycle scripts ran.
+`init` tries the strict recipes first: the [direct compiler recipe](docs/user/direct-typescript.md)
+for npm typechecks, the pnpm and Yarn TypeScript recipes, and the
+[direct test recipe](docs/user/tests-direct.md). A root typecheck, test or lint
+script none of them takes can use the [general recipe](docs/user/node-script.md),
+which runs the script through the package manager and records every Node
+process; a script that starts another program (git, esbuild, turbo) stays
+UNVERIFIED and the reason names it.
 
 ## Connect your agent (experimental)
 

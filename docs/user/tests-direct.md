@@ -1,7 +1,8 @@
 # Direct test recipe (Vitest and Jest)
 
-`redue init --recipe tests-direct --check test` records a project's unit test
-run and reports later whether that result still applies to the files you have.
+`redue init` (or `redue init --recipe tests-direct --check test` for this recipe
+alone) records a project's unit test run and reports later whether that result
+still applies to the files you have.
 It supports a single-package project installed by npm, pnpm 9-12 (isolated or
 hoisted `node_modules`) or Yarn with the `node-modules` linker, whose test
 script runs Vitest 4 or 5, or Jest 29, directly. It runs on macOS and Linux with
@@ -35,7 +36,7 @@ runner directly, otherwise the only script that does. The script must be one
 runner invocation: no `&&`, quotes, globs or variable assignments. Watch mode,
 `--changed`, `related`, snapshot updates (`-u`), shuffling, sharding and
 Jest's `--onlyChanged` are refused. Vitest needs `run`, `--run` or
-`--watch=false`. Other scripts stay recording-only.
+`--watch=false`. Other test scripts can use the [general recipe](node-script.md).
 
 REDUE runs the local runner with Node directly. The package manager, its
 lifecycle scripts and `package.json` are not changed or executed.

@@ -61,8 +61,12 @@ export function recordedEnvironment(guardFile,env=process.env) {
 // input (relative path) at the start checkpoint to its digest; `runner` is the
 // PID of the process REDUE started. Returns {issues, runFacts, environmentReads,
 // isOutput}: environmentReads maps each variable the run read directly to the
-// caller's value digest, or '<unset>'.
-export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=testEnvironment,coverage=null}) {
+// caller's value digest, or '<unset>'. `programs` is the general recipe's
+// account of processes (node-script.mjs): `judge(child, parentMain)` says
+// whether a started program is accounted for and must load the recorder,
+// `runner` describes the program REDUE started, and `trusted` names checkout
+// paths (runner caches) whose use is not an input.
+export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=testEnvironment,coverage=null,programs=null}) {
   // The recipe's variables and any the project declares are compared, not guarded.
   const compared=name=>(environment.variables||[]).includes(name)||
     (environment.prefixes||[]).some(prefix=>name.toLowerCase().startsWith(prefix.toLowerCase()));
@@ -82,10 +86,20 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
     headers.set(`${header.pid}-${header.threadId}`,header);
     records.push({header,rows:rows.slice(1)});
   }
-  if(!headers.has(`${runner}-0`))add('the test runner did not load the REDUE recorder');
+  let opaque=false;
+  if(!programs){if(!headers.has(`${runner}-0`))add('the test runner did not load the REDUE recorder');}
+  else{const judged=programs.judge(programs.runner,null);
+    if(judged.issue)add(judged.issue);
+    else if(judged.needsHeader&&!headers.has(`${runner}-0`))add('the package manager did not load the REDUE recorder');
+    opaque||=Boolean(judged.opaque);}
+  const trusted=programs?.trusted?patternMatcher(['**',...programs.trusted.map(pattern=>'!'+pattern)]):null;
+  // A cache directory itself, and everything in it.
+  const isTrusted=rel=>trusted!==null&&(!trusted(rel)||!trusted(rel+'/_'));
   // Answers per question; a question answered two ways changed during the run.
   const answers=new Map(),ask=(key,answer)=>{const set=answers.get(key)||new Set();set.add(JSON.stringify(answer));answers.set(key,set);};
-  const reads=new Map(),produced=new Set(),created=new Set(),environmentReads={},spawned=new Map();
+  // Every child with a PID, accepted shells too: a header with one of these
+  // PIDs is that child, not an execSync child (which reports no PID).
+  const reads=new Map(),produced=new Set(),created=new Set(),environmentReads={},spawned=new Map(),childPids=new Map();
   for(const {header,rows} of records){
     for(const row of rows){
       const [kind,...value]=Array.isArray(row)?row:[];
@@ -101,7 +115,15 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
         environmentReads[name]=typeof state==='string'?state:'<unset>';}
       else if(kind==='N')add(`network: ${value[0]}`);
       else if(kind==='C'||kind==='S'){
-        const list=spawned.get(header.pid)||[];list.push({pid:kind==='C'?value[0]:null,file:value[kind==='C'?1:0]});
+        const [file,args,cwd,searchPath,env]=kind==='C'?value.slice(1):value;
+        if(kind==='C')childPids.set(header.pid,[...childPids.get(header.pid)||[],value[0]]);
+        // The general recipe accounts for each program; one that needs no
+        // recorder (a shell, the pnpm executable) is not matched to a header.
+        if(programs){const judged=programs.judge({file,args,cwd,searchPath,env},header.main??null);
+          if(judged.issue){add(judged.issue);continue;}
+          opaque||=Boolean(judged.opaque);
+          if(!judged.needsHeader)continue;}
+        const list=spawned.get(header.pid)||[];list.push({pid:kind==='C'?value[0]:null,file});
         spawned.set(header.pid,list);}
       else if(kind==='T'){if(!headers.has(`${header.pid}-${value[0]}`))add('a worker thread did not load the REDUE recorder');}
       else if(kind!=='H')add('a run record is unreadable');
@@ -114,9 +136,14 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
     const unknown=children.filter(child=>child.pid===null);
     for(const child of children)if(child.pid!==null&&!recorded.some(h=>h.pid===child.pid))
       add(`started ${path.basename(child.file)}, which REDUE does not record`);
-    const matched=recorded.filter(h=>!children.some(child=>child.pid===h.pid)).length;
+    const matched=recorded.filter(h=>!(childPids.get(parent)||[]).includes(h.pid)).length;
     if(unknown.length>matched)add(`started ${path.basename(unknown[0].file)}, which REDUE does not record`);
   }
+  // What the pnpm executable starts is not seen. Its node-options setting
+  // replaces NODE_OPTIONS for everything it starts, so a run through it must
+  // show at least one recorded Node process the recorded ones did not start.
+  if(opaque&&![...headers.values()].some(h=>h.threadId===0&&h.pid!==runner&&!headers.has(`${h.ppid}-0`)))
+    add('no Node process the pnpm executable started loaded the REDUE recorder');
   // Inside a directory the run created. A file the run wrote excuses nothing:
   // another process may have read it before the write. Listings may differ
   // by such files (listingAfter).
@@ -128,8 +155,11 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
   // (coverageReadable); its contents do not decide pass or fail.
   const inCoverage=rel=>coverage!==null&&(rel===coverage||rel.startsWith(coverage+'/'));
   // File content in the checkout must be an observed input.
+  // A runner cache is git-ignored; a file in a cache path git keeps is source.
+  const trustedReads=[...reads].filter(([rel,found])=>found&&isTrusted(rel)&&!inCreated(checkout(rel))).map(([rel])=>rel);
+  const ignoredCaches=gitIgnored(root,trustedReads);
   for(const [rel,found] of [...reads].sort(([a],[b])=>a<b?-1:a>b?1:0)){
-    if(inCreated(checkout(rel))||inCoverage(rel))continue;
+    if(inCreated(checkout(rel))||inCoverage(rel)||isTrusted(rel)&&(!found||ignoredCaches.has(rel)||produced.has(checkout(rel))))continue;
     if(!included(rel))add(`read ${rel}, which the check's inputs exclude`);
     else if(found&&!observed(rel))add(`read ${rel}, which REDUE does not observe (ignored by git)`);
     // A missing file may be ignored by git, so the index would not see it appear.
@@ -141,7 +171,7 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
     if(question==='stat'||question==='entries'){
       const full=checkout(where);
       // A path the run made answers differently afterwards; it is output, not input.
-      if(madeByRun(full)||produced.has(full)||inCoverage(where))continue;
+      if(madeByRun(full)||produced.has(full)||inCoverage(where)||isTrusted(where))continue;
       if(set.size>1){add(`${where} changed during the run`);continue;}
       if(question==='stat'){
         // Observed files and directories: the index covers them. A missing
@@ -173,7 +203,7 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
     produced.has(checkout(rel))&&reads.get(rel)!==true);
   return {issues:issues.length>issueLimit?[...issues.slice(0,issueLimit),`${issues.length-issueLimit} more`]:issues,
     runFacts:runFacts.length>factLimit?[]:[...new Map(runFacts.map(f=>[JSON.stringify(f),f])).values()],
-    environmentReads:Object.fromEntries(Object.entries(environmentReads).sort(([a],[b])=>a<b?-1:a>b?1:0)),isOutput};
+    environmentReads:Object.fromEntries(Object.entries(environmentReads).sort(([a],[b])=>a<b?-1:a>b?1:0)),isOutput,opaque};
 }
 // The observed files that differ between two checkpoints' file maps.
 export function changedFiles(before,after){
