@@ -23,11 +23,15 @@ function install(){
   const emit=row=>{try{const line=Buffer.from(JSON.stringify(row)+'\n');
     for(let at=0;at<line.length;)at+=original.writeSync(fd,line,at,line.length-at);}catch{}};
   const failed=reason=>emit(['U',reason]);
-  emit(['H',{pid:process.pid,ppid:process.ppid,threadId}]);
+  // The main script tells the guard which program a process runs (a package
+  // manager may start helpers of its own).
+  emit(['H',{pid:process.pid,ppid:process.ppid,threadId,main:typeof process.argv[1]==='string'?process.argv[1]:null}]);
   // Every node_modules observed as installed: the root's and each workspace package's.
   const sep=path.sep,root=config.root,installed=Array.isArray(config.installed)?config.installed:[path.join(root,'node_modules')],
     tmp=config.tmp;
   const within=(file,dir)=>file===dir||file.startsWith(dir+sep);
+  let installedReal=null;
+  const realInstalled=()=>installedReal??=installed.map(dir=>realDir(dir));
   const digest=value=>createHash('sha256').update(value).digest('hex');
   // Directory realpaths, so a checkout path spelled through a link is still
   // classified as the checkout.
@@ -75,18 +79,27 @@ function install(){
     if(!produced.size)return false;
     for(let at=full;;at=path.dirname(at)){if(produced.has(at))return true;if(path.dirname(at)===at)return false;}
   }
-  const runnerData=config.runnerData||[];
+  // Runner data and the toolchain's own files (a package manager's install
+  // and logs) are not inputs.
+  const runnerData=[...(config.runnerData||[]),...(Array.isArray(config.toolchain)?config.toolchain:[])];
   const runnerCache=full=>tmp.some(dir=>within(full,dir)&&full.slice(dir.length+1).split(sep)[0].startsWith('jest_'))||
     runnerData.some(dir=>within(full,dir));
   // One filesystem access by its role: read (content), produce, touch (a write
   // that keeps earlier content), mkdir, mkdtemp, list, stat or realpath.
   function access(role,file,error=null,result=undefined,recursive=false){
     try{
-      const full=located(file);
+      let full=located(file);
       if(full===undefined)return;
       if(full===null){if(!['produce','touch','mkdir'].includes(role))failed(`${role} of an unsupported path argument`);return;}
-      // Installed files are observed by identity.
-      if(installed.some(dir=>within(full,dir)))return;
+      // Installed files are observed by identity. A path under node_modules
+      // that a link leads out of the installed tree (a workspace package's
+      // link) is classified where it leads.
+      if(installed.some(dir=>within(full,dir))){
+        // A listing, lookup or realpath of the link itself follows it.
+        const real=['list','stat','realpath'].includes(role)?realDir(full):path.join(realDir(path.dirname(full)),path.basename(full));
+        if(real===full||realInstalled().some(dir=>within(real,dir)))return;
+        full=real;
+      }
       if(role==='produce'){if(!error)produced.add(full);if(!error&&within(full,root))once(['P',rel(full)]);return;}
       // A directory the run created held nothing before it, so everything in
       // it is the run's output, whichever process reads it.
@@ -212,7 +225,8 @@ function install(){
       envSeen.add(key);emit(['E',key,caller[key]]);
     }catch{failed('recorder failure');}
   }
-  const recordingEnv=source=>new Proxy(source,{
+  const targets=new WeakMap();
+  const recordingEnv=source=>{const proxy=new Proxy(source,{
     ownKeys(t){const keys=Reflect.ownKeys(t),current={keys:new Set(keys),last:null,copy:nodeInternal()};enumeration=current;
       queueMicrotask(()=>{if(enumeration===current)enumeration=null;});return keys;},
     getOwnPropertyDescriptor(t,key){
@@ -225,7 +239,10 @@ function install(){
       return Reflect.get(t,key);},
     has(t,key){if(enumeration)enumeration.last=null;envRead(t,key);return Reflect.has(t,key);},
     set(t,key,value){t[key]=value;return true;},
-  });
+  });targets.set(proxy,source);return proxy;};
+  // PATH as a child receives it, read without recording a read.
+  const pathOf=env=>{try{const value=Reflect.get(targets.get(env)??env??{},'PATH');return typeof value==='string'?value:null;}
+    catch{return null;}};
   function wrapEnv(holder){
     let current=recordingEnv(holder.env);
     // Code that replaces the environment object keeps being recorded.
@@ -289,17 +306,48 @@ function install(){
     }
   // Child processes and threads must load this recorder too; the guard checks
   // for their headers. Children of execSync/execFileSync report no PID, so
-  // they are counted instead.
+  // they are counted instead. Each row names the program and its arguments
+  // as Node's spawn normalizes them (a `shell` option runs /bin/sh -c and the
+  // joined command), the working directory and PATH, so the guard can tell
+  // which program a name ran and read what a shell was asked to run.
+  // Arguments over 64 KB in all are left out (null).
+  const argsOf=args=>{try{const list=Array.isArray(args)?args.map(String):[];
+    return list.reduce((n,arg)=>n+arg.length,0)>65536?null:list;}catch{return null;}};
+  const normalized=(file,args,options,shell)=>{
+    if(!Array.isArray(args)){options=args;args=[];}
+    shell=options?.shell??shell;
+    if(!shell)return [String(file),argsOf(args)];
+    return [typeof shell==='string'?shell:'/bin/sh',['-c',[file,...args].join(' ')]];
+  };
+  // What the child's environment says: whether NODE_OPTIONS still loads this
+  // recorder for the same run (npm's and pnpm's `node-options` setting
+  // replaces it), and whether BASH_ENV is set (bash -c sources it).
+  const envFacts=lookupVar=>{
+    try{const options=lookupVar('NODE_OPTIONS');
+      return {preload:typeof options==='string'&&options.includes(__filename)&&lookupVar('REDUE_RUN_RECORD')===configFile,
+        bashEnv:Boolean(lookupVar('BASH_ENV'))};}
+    catch{return {preload:false,bashEnv:true};}
+  };
+  const envOf=env=>envFacts(name=>{const value=Reflect.get(targets.get(env)??env??{},name);return typeof value==='string'?value:undefined;});
+  const pairsOf=pairs=>envFacts(name=>{const pair=(pairs||[]).find(item=>typeof item==='string'&&item.startsWith(name+'='));
+    return pair?pair.slice(name.length+1):undefined;});
+  const where=options=>[path.resolve(typeof options?.cwd==='string'?options.cwd:options?.cwd instanceof URL?
+    require('node:url').fileURLToPath(options.cwd):'.'),pathOf(options?.env??process.env),envOf(options?.env??process.env)];
+  const optionsOf=(args,options)=>Array.isArray(args)?options:args;
   const childProcess=require('node:child_process'),spawn=childProcess.ChildProcess.prototype.spawn;
   childProcess.ChildProcess.prototype.spawn=function(options){
     const result=spawn.call(this,options);
-    try{if(this.pid)emit(['C',this.pid,String(options?.file)]);}catch{failed('recorder failure');}
+    try{if(this.pid){const pair=(options?.envPairs||[]).find(item=>typeof item==='string'&&item.startsWith('PATH='));
+      emit(['C',this.pid,String(options?.file),argsOf(options?.args?.slice(1)),where(options)[0],pair?pair.slice(5):null,
+        pairsOf(options?.envPairs)]);}}
+    catch{failed('recorder failure');}
     return result;
   };
   const spawnSync=childProcess.spawnSync;
   childProcess.spawnSync=function(file,...rest){
     const result=spawnSync.call(this,file,...rest);
-    try{if(result?.pid)emit(['C',result.pid,String(file)]);}catch{failed('recorder failure');}
+    try{if(result?.pid)emit(['C',result.pid,...normalized(file,rest[0],rest[1]),...where(optionsOf(rest[0],rest[1]))]);}
+    catch{failed('recorder failure');}
     return result;
   };
   for(const name of ['execSync','execFileSync']){
@@ -308,12 +356,17 @@ function install(){
       let started=true;
       try{return call.call(this,file,...rest);}
       catch(error){if(error?.code==='ENOENT'&&!error.pid)started=false;throw error;}
-      finally{if(started)emit(['S',String(file)]);}
+      finally{if(started)try{emit(['S',...name==='execSync'?normalized(file,[],rest[0],true):normalized(file,rest[0],rest[1]),
+        ...where(name==='execSync'?rest[0]:optionsOf(rest[0],rest[1]))]);}
+        catch{failed('recorder failure');}}
     };
   }
   const workers=require('node:worker_threads'),Worker=workers.Worker;
   workers.Worker=class extends Worker{
     constructor(...args){super(...args);try{emit(['T',this.threadId]);}catch{failed('recorder failure');}}
   };
+  // Node reads an environment file natively; this is the one JavaScript entry to it.
+  if(typeof process.loadEnvFile==='function'){const load=process.loadEnvFile;
+    process.loadEnvFile=function(file='.env',...rest){access('read',file);return load.call(this,file,...rest);};}
   try{Module.syncBuiltinESMExports();}catch{failed('recorder failure');}
 }

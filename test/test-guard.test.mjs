@@ -139,11 +139,11 @@ test('child processes and threads must load the recorder',{skip:unsupported},asy
   assert.equal(clean.code,0,clean.output);
   assert.deepEqual(clean.issues,[]);
   const escaped=await recorded(`const cp=require('child_process'),{Worker}=require('worker_threads');
-    cp.spawnSync('/bin/sh',['-c','exit 0']);cp.execSync('exit 0');
+    cp.spawnSync('/bin/sh',['-c','exit 0']);cp.execSync('exit 0',{shell:'/bin/bash'});
     new Worker('void 0',{eval:true,env:{}});`);
   assert.equal(escaped.code,0,escaped.output);
   assert.deepEqual(escaped.issues.sort(),['a worker thread did not load the REDUE recorder',
-    'started exit 0, which REDUE does not record','started sh, which REDUE does not record'].sort());
+    'started bash, which REDUE does not record','started sh, which REDUE does not record'].sort());
 });
 
 test('a runner that never loaded the recorder is an issue',{skip:unsupported},()=>{
