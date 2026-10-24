@@ -28,10 +28,17 @@ export function harnessEnv(extra = {}) {
   return {...env, ZDOTDIR: zdotdir, CI: '1', ...extra};
 }
 
+// On macOS and Linux a command runs in its own process group (group-run.mjs),
+// so a timeout stops everything it started; `timedOut` says it ran out.
+const groupRun = fileURLToPath(new URL('group-run.mjs', import.meta.url));
 export function sh(cmd, args, {cwd, env = harnessEnv(), timeout = 600_000, input} = {}) {
-  const started = performance.now();
-  const out = spawnSync(cmd, args, {cwd, env, timeout, input, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024});
-  return {status: out.status, signal: out.signal, stdout: out.stdout || '', stderr: out.stderr || '',
+  const started = performance.now(), grouped = process.platform !== 'win32' && input === undefined;
+  const out = grouped ?
+    spawnSync(process.execPath, [groupRun, String(timeout), cmd, ...args], {cwd, env, timeout: timeout + 60_000, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024}) :
+    spawnSync(cmd, args, {cwd, env, timeout, input, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024});
+  const timedOut = grouped ? out.status === 124 && /group-run: timed out after/.test(out.stderr || '') || out.error?.code === 'ETIMEDOUT' :
+    out.signal === 'SIGTERM' || out.error?.code === 'ETIMEDOUT';
+  return {status: timedOut ? null : out.status, signal: timedOut ? 'SIGTERM' : out.signal, timedOut, stdout: out.stdout || '', stderr: out.stderr || '',
     ms: Math.round(performance.now() - started), error: out.error?.message};
 }
 

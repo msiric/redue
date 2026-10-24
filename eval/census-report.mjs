@@ -61,3 +61,32 @@ if (recordedRows.length) {
     if (notRun.size) console.log(`  not run: ${[...notRun].map(([k, n]) => `${k} ${n}`).join(', ')}`);
   }
 }
+
+// `census.mjs --product` rows: the general recipe as the product applies it.
+// A check qualifies when its second recorded run is stable, the guard found
+// nothing, status says CURRENT and both runs saw the same inputs.
+const productRows = node.filter(row => row.product);
+if (productRows.length) {
+  console.log(`\nproduct rule (init --recipe node-script, two redue runs): ${productRows.length} repos`);
+  const short = reason => String(reason).replace(/\/[^\s,;)]+/g, 'PATH').replace(/read \S+, which/, 'read FILE, which').slice(0, 110);
+  for (const kind of ['typecheck', 'lint', 'test']) {
+    const all = productRows.map(row => [row, row.product[kind]]).filter(([, r]) => r);
+    const ready = all.filter(([, r]) => r.level === 'ready'), ran = ready.filter(([, r]) => r.runs);
+    const qualified = ran.filter(([, r]) => r.qualifies);
+    console.log(`\n${kind}: ${all.length} scripts, init ready ${ready.length}, run ${ran.length}, qualify ${qualified.length} ` +
+      `(${qualified.filter(([, r]) => r.pass?.every(Boolean)).length} passing)`);
+    const counts = new Map(), add = reason => counts.set(reason, (counts.get(reason) || 0) + 1);
+    for (const [, r] of all) {
+      if (r.level !== 'ready') { add(`init: ${short(r.reason?.replace(/^General recipe unavailable \(([^)]*)\).*$/, '$1'))}`); continue; }
+      if (!r.runs) { add('not run (observer unavailable)'); continue; }
+      if (r.qualifies) continue;
+      const last = r.runs.at(-1);
+      const reasons = new Set([...(last.guardIssues || []).map(short), ...(last.checkpointIssues || []).map(short),
+        ...(r.runs.some(x => x.timedOut) ? ['timed out'] : []),
+        ...(r.runs[0].fingerprint !== last.fingerprint ? ['inputs differ between the runs'] : [])]);
+      if (!reasons.size) reasons.add(short(last.reason || 'not CURRENT'));
+      for (const reason of reasons) add(reason);
+    }
+    for (const [reason, n] of [...counts].sort((a, b) => b[1] - a[1]).slice(0, 15)) console.log(`  ${String(n).padStart(3)}  ${reason}`);
+  }
+}

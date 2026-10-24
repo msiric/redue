@@ -42,6 +42,9 @@ jobs:
         run: |
           sudo sysctl -w fs.inotify.max_user_watches=1048576
           sudo sysctl -w fs.inotify.max_user_instances=1024
+      - name: pnpm and Yarn through Corepack, as projects pin them
+        if: inputs.command == 'run'
+        run: corepack enable
       - name: Claude Code
         if: inputs.command == 'run'
         run: npm install -g "@anthropic-ai/claude-code@${{ inputs.claude_version }}" && claude --version
@@ -82,6 +85,11 @@ jobs:
       - name: strace, for the programs a recorded run executes
         if: contains(inputs.args, '--recorded')
         run: sudo apt-get install -y -qq strace
+      - name: Room for inotify watches, for the observer --product starts
+        if: contains(inputs.args, '--product')
+        run: |
+          sudo sysctl -w fs.inotify.max_user_watches=1048576
+          sudo sysctl -w fs.inotify.max_user_instances=1024
       - env:
           ARGS: ${{ inputs.args }}
         run: node eval/census.mjs --shard ${{ matrix.shard }}/40 $ARGS

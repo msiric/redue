@@ -533,6 +533,60 @@
         }
       ],
       "check": "test"
+    },
+    {
+      "repo": "hodfords-solutions/nestjs-api-gateway",
+      "id": "lint-reverify",
+      "kind": "reverify",
+      "pilot": true,
+      "check": "lint",
+      "prompt": "I pulled some changes and want to know whether the project still passes lint. Run the linter (`pnpm lint`) and tell me the result. Don't change any files.",
+      "expect": [
+        {
+          "unchanged": true
+        }
+      ]
+    },
+    {
+      "repo": "hodfords-solutions/nestjs-api-gateway",
+      "id": "lint-source",
+      "kind": "source",
+      "pilot": true,
+      "check": "lint",
+      "prompt": "In src/config/env.config.ts, make `buildRedisTls` also treat `REDIS_TLS=1` as enabled, besides `REDIS_TLS=true`. Run the linter (`pnpm lint`) after the change and fix anything it reports.",
+      "expect": [
+        {
+          "file": "src/config/env.config.ts",
+          "matches": "REDIS_TLS[\\s\\S]{0,200}['\"]1['\"]"
+        }
+      ]
+    },
+    {
+      "repo": "aflsolutions/shadowgit-mcp",
+      "id": "lint-reverify",
+      "kind": "reverify",
+      "pilot": true,
+      "check": "lint",
+      "prompt": "I pulled some changes and want to know whether the project still passes lint. Run the linter (`npm run lint`) and tell me the result. Don't change any files.",
+      "expect": [
+        {
+          "unchanged": true
+        }
+      ]
+    },
+    {
+      "repo": "aflsolutions/shadowgit-mcp",
+      "id": "lint-source",
+      "kind": "source",
+      "pilot": true,
+      "check": "lint",
+      "prompt": "In src/tools/shared.ts, make `forRepo` also return an empty string when `repo` is an empty string. Run the linter (`npm run lint`) after the change and fix anything it reports.",
+      "expect": [
+        {
+          "file": "src/tools/shared.ts",
+          "matches": "===\\s*''|''\\s*===|!repo|repo\\s*\\?\\?|\\.length"
+        }
+      ]
     }
   ]
 }

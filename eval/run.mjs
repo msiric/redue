@@ -12,12 +12,12 @@
 //
 // Every run gets a fresh clone at the repo's pinned commit, `npm ci
 // --ignore-scripts`, and its own `claude -p` session. A task measures its
-// `check`: the typecheck (default) or the unit tests. The REDUE arm also runs
+// `check`: the typecheck (default), the unit tests or the lint. The REDUE arm also runs
 // init, agent setup claude --apply, start and one `redue run CHECK` before the
 // session: the receipt stands for an earlier session's passing check.
 // Afterwards plain tsc (and quick tests) check the final tree. Each skipped
 // check, and each `status --sync` that answered CURRENT, is checked with a
-// plain run on the tree it was about: tsc once, or the tests three times.
+// plain run on the tree it was about: tsc or the lint once, or the tests three times.
 import fs from 'node:fs';
 import path from 'node:path';
 import {parseArgs} from 'node:util';
@@ -59,10 +59,10 @@ function treeOf(dir) {
   return tree;
 }
 
-// Plain tsc, or the repo's tests three times, on a tree an answer was about,
-// with the run's node_modules. Tests that disagree across the three runs are
-// flaky, not a REDUE error.
-function verifyTree(dir, tree, scratch, testCommand = null) {
+// Plain tsc, the repo's lint once, or its tests three times, on a tree an
+// answer was about, with the run's node_modules. Tests that disagree across
+// the three runs are flaky, not a REDUE error.
+function verifyTree(dir, tree, scratch, testCommand = null, lintCommand = null) {
   fs.rmSync(scratch, {recursive: true, force: true});
   fs.mkdirSync(scratch, {recursive: true});
   must(sh('sh', ['-c', `git archive ${tree} | tar -x -C "${scratch}"`], {cwd: dir}), 'git archive');
@@ -70,7 +70,8 @@ function verifyTree(dir, tree, scratch, testCommand = null) {
   must(sh('cp', [process.platform === 'darwin' ? '-cR' : '-a', ...(process.platform === 'linux' ? ['--reflink=auto'] : []),
     path.join(dir, 'node_modules'), path.join(scratch, 'node_modules')]), 'copy node_modules');
   let result;
-  if (testCommand) {
+  if (lintCommand) result = plainTests(scratch, lintCommand);
+  else if (testCommand) {
     const runs = [0, 1, 2].map(() => plainTests(scratch, testCommand).pass);
     result = {pass: runs.every(Boolean) ? true : runs.some(Boolean) ? null : false, runs};
   } else result = plainTsc(scratch);
@@ -122,13 +123,13 @@ async function runSession(task, repo, arm, id) {
       const r = must(sh(path.join(bin, 'redue'), argv, {cwd: dir, env}), `redue ${argv.join(' ')}`);
       row.setup[label] = r.ms;
     };
-    step('init_ms', 'init', '--recipe', check === 'test' ? 'tests-direct' : 'typescript-direct', '--check', check);
+    step('init_ms', 'init', '--recipe', {test: 'tests-direct', lint: 'node-script'}[check] ?? 'typescript-direct', '--check', check);
     step('agent_setup_ms', 'agent', 'setup', 'claude', '--apply');
     step('start_ms', 'start');
     row.setup.index_ms = waitReady(entry, dir, {env});
-    if (check === 'test') {
+    if (check !== 'typecheck') {
       // The seed is an earlier session's passing run: a short session runs
-      // `redue run test` in its Bash tool, so the run's environment (PATH
+      // `redue run CHECK` in its Bash tool, so the run's environment (PATH
       // included) is the agent's. Nothing may be chained to it.
       const seed = await claudeSession(sessionArgs(`Run exactly this command from the project root, once, as a command of its own with nothing added before or after it, then report its exit status: redue run ${check}`, 5),
         {cwd: dir, env: {...env, ...sessionAuth()}, timeout: 15 * 60_000});
@@ -137,7 +138,7 @@ async function runSession(task, repo, arm, id) {
       row.setup.seed_run_ms = seed.ms;
       const runs = fs.existsSync(log) ? fs.readFileSync(log, 'utf8').trim().split('\n').filter(Boolean).map(line => JSON.parse(line))
         .filter(r => r.kind === 'cli' && r.argv.join(' ') === `run ${check}`) : [];
-      if (!runs.length) throw new Error('the seed session did not record a test run');
+      if (!runs.length) throw new Error(`the seed session did not record a ${check} run`);
       row.setup.seed_status = {result: runs.at(-1).exit === 0 ? 'PASS' : 'FAIL', recorded_by: 'seed session'};
     } else {
       step('seed_run_ms', 'run', check);
@@ -177,17 +178,23 @@ async function runSession(task, repo, arm, id) {
     row.tests = {pass: test.status === 0, ms: test.ms};
     if (test.status !== 0) fs.writeFileSync(path.join(runDir, 'tests.txt'), (test.stdout + test.stderr).slice(-8000));
   }
+  if (repo.lint) {
+    const lint = sh('sh', ['-c', repo.lint], {cwd: dir, timeout: 300_000});
+    row.lint = {pass: lint.status === 0, ms: lint.ms};
+    if (lint.status !== 0) fs.writeFileSync(path.join(runDir, 'lint.txt'), (lint.stdout + lint.stderr).slice(-8000));
+  }
   row.expect = expectations(dir, task, row.changed_files);
 
   row.metrics = analyze({transcript: path.join(runDir, 'transcript.jsonl'), wrapperLog: log, script: repo.script,
-    testScript: repo.testScript, check});
+    testScript: repo.testScript, lintScript: repo.lintScript, check});
   const verified = new Map();
   // pass: true, false, or null for tests that disagreed with each other.
   const tscOn = tree => {
-    if (!verified.has(tree)) verified.set(tree, verifyTree(dir, tree, path.join(work, 'tree-check'), check === 'test' ? repo.test : null));
+    if (!verified.has(tree)) verified.set(tree, verifyTree(dir, tree, path.join(work, 'tree-check'), check === 'test' ? repo.test : null,
+      check === 'lint' ? repo.lint : null));
     return verified.get(tree).pass;
   };
-  const plain = check === 'test' ? 'plain tests' : 'plain tsc';
+  const plain = {test: 'plain tests', lint: 'plain lint'}[check] ?? 'plain tsc';
   const flaky = tree => check === 'test' && verified.get(tree)?.runs && verified.get(tree).pass === null;
   // A skipped check must pass when it runs plainly on the tree it was skipped on.
   row.skip_checks = row.metrics.hook.decisions.filter(d => d.decision === 'deny').map(d =>
@@ -200,7 +207,7 @@ async function runSession(task, repo, arm, id) {
       tsc_pass: answer?.freshness === 'CURRENT' && c.tree ? tscOn(c.tree) : null,
       flaky: answer?.freshness === 'CURRENT' && c.tree ? flaky(c.tree) : false};
   });
-  const finalPass = check === 'test' ? row.tests?.pass : tsc.pass;
+  const finalPass = check === 'test' ? row.tests?.pass : check === 'lint' ? row.lint?.pass : tsc.pass;
   row.critical = [
     ...(row.final_status?.freshness === 'CURRENT' && row.final_status.result === 'PASS' && finalPass === false ?
       [`final status CURRENT/PASS but ${plain} fail`] : []),

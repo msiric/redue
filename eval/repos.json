@@ -58,8 +58,20 @@
       "commit": "a216fe3639cb82dbdc2b32e6dd4710bc80adca0c",
       "script": "typecheck",
       "test": "npx vitest run",
-      "why": "Single-package pnpm 12 NestJS library whose test script is `vitest run` (18 spec files, about 4.5 s in the census, no subprocesses or file writes). Added to show pnpm test checks reused on Linux, where pnpm hard-links installed files to its store.",
-      "testScript": "test"
+      "why": "Single-package pnpm 12 NestJS library whose test script is `vitest run` (18 spec files, about 4.5 s in the census, no subprocesses or file writes). Added to show pnpm test checks reused on Linux, where pnpm hard-links installed files to its store. Its lint script is `eslint` (about 7 s), recorded by the general recipe through Corepack's pnpm 12 executable and pnpm's launchers.",
+      "testScript": "test",
+      "lint": "npx eslint",
+      "lintScript": "lint"
+    },
+    {
+      "name": "aflsolutions/shadowgit-mcp",
+      "url": "https://github.com/aflsolutions/shadowgit-mcp.git",
+      "commit": "ddd35ffdc72193f2377758dedc1db7a5d25259a2",
+      "script": "typecheck",
+      "test": null,
+      "lint": "npx eslint .",
+      "lintScript": "lint",
+      "why": "Small npm MCP server in TypeScript whose lint script is `eslint .` (about 4 s) and qualifies for the general recipe in the census. Its test script builds with esbuild first, so only typecheck and lint are measured."
     }
   ]
 }

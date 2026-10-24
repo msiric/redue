@@ -26,6 +26,15 @@ export function testLike(command, script) {
   return Boolean(script) && new RegExp(`(npm\\s+run|pnpm(\\s+run)?|yarn(\\s+run)?)\\s+${script.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`).test(base);
 }
 
+// Commands that run the linter: ESLint itself, the lint script, or `redue run lint`.
+export function lintLike(command, script) {
+  const base = command.replace(/^\s*REDUE_FORCE=1\s+/, '');
+  if (/(^|[\s;&|(])(npx\s+|pnpm\s+exec\s+)?(\.\/node_modules\/\.bin\/)?eslint(\s|$)/.test(base)) return true;
+  if (/(^|[\s;&|])redue\s+(--config\s+\S+\s+)?run\s+lint(\s|$)/.test(base)) return true;
+  if (/(^|[\s;&|])(npm|pnpm|yarn)\s+(run\s+)?lint(\s|$)/.test(base)) return true;
+  return Boolean(script) && new RegExp(`(npm\\s+run|pnpm(\\s+run)?|yarn(\\s+run)?)\\s+${script.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`).test(base);
+}
+
 const textOf = content => typeof content === 'string' ? content :
   Array.isArray(content) ? content.map(part => part.text ?? '').join('\n') : '';
 const denied = text => /rerun skipped/.test(text) && /REDUE/.test(text);
@@ -55,7 +64,7 @@ export function finalUntested(events, measured, cli = [], result = null) {
     claims_pass: passClaim.test(text), last_run: String(tools[lastRun].input?.command ?? '').slice(0, 120)};
 }
 
-export function analyze({transcript, wrapperLog, script, testScript, check = 'typecheck'}) {
+export function analyze({transcript, wrapperLog, script, testScript, lintScript, check = 'typecheck'}) {
   const messages = lines(transcript), log = lines(wrapperLog);
   const init = messages.find(m => m.type === 'system' && m.subtype === 'init');
   const result = messages.findLast(m => m.type === 'result');
@@ -70,7 +79,7 @@ export function analyze({transcript, wrapperLog, script, testScript, check = 'ty
   const bash = events.filter(e => e.kind === 'tool' && e.name === 'Bash').map(e => ({...e, command: String(e.input?.command ?? ''), result: results.get(e.id)}));
   const tests = command => testLike(command, testScript);
   // The check this task measures; the other kind of command is counted too.
-  const measured = check === 'test' ? tests : command => typecheckLike(command, script);
+  const measured = check === 'test' ? tests : check === 'lint' ? command => lintLike(command, lintScript) : command => typecheckLike(command, script);
   const checks = bash.filter(e => measured(e.command));
   const skipped = checks.filter(e => e.result && denied(e.result.text));
 
@@ -113,7 +122,7 @@ export function analyze({transcript, wrapperLog, script, testScript, check = 'ty
       rewritten: hooks.filter(h => h.decision === 'rewrite' && measured(String(h.command ?? ''))).length,
       forced: checks.filter(e => /^\s*REDUE_FORCE=1\s/.test(e.command)).length,
     },
-    other_check_commands: bash.filter(e => check === 'test' ? typecheckLike(e.command, script) : tests(e.command)).length,
+    other_check_commands: bash.filter(e => check === 'typecheck' ? tests(e.command) : typecheckLike(e.command, script)).length,
     hook: {calls: hooks.length, decisions: hooks.map(h => ({command: h.command, decision: h.decision, rewritten: h.rewritten, hook_ms: h.hook_ms, tree: h.tree}))},
     after_skip: followUps,
     final_untested: finalUntested(events, measured, cli, result),

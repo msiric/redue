@@ -10,6 +10,9 @@
 //   --recorded: instead of timing, run the typecheck, lint and test scripts
 //   twice each under REDUE's run recorder through the package manager
 //   (eval/recorded-run.mjs), for a general Node-script recipe.
+//   --product: instead of timing, let the product decide: `init --recipe
+//   node-script`, then `redue run` twice for each typecheck, lint and test
+//   check it writes, and the receipts and status after each.
 //
 // Clones the default branch, installs with the repo's package manager
 // (through Corepack, install scripts skipped), runs `init --dry-run --json`
@@ -19,10 +22,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {checkoutRedue, evalDir, harnessEnv, localDir, readJson, sh, slug, stamp, tmpRoot} from './lib.mjs';
 import {analyzeRun, compareRuns, hasStrace, recordedRun, snapshot} from './recorded-run.mjs';
+import {projectState} from '../src/project-location.mjs';
 
 const argv = process.argv.slice(2);
 const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : null;
-const initOnly = argv.includes('--init-only'), recorded = argv.includes('--recorded');
+const initOnly = argv.includes('--init-only'), recorded = argv.includes('--recorded'), product = argv.includes('--product');
 let names = argv.filter((arg, i) => !arg.startsWith('-') && argv[i - 1] !== '--shard');
 if (!names.length) names = readJson(path.join(evalDir, 'census-repos.json')).repos;
 // Named repos are sharded too, so CI can rerun a list across its shards.
@@ -106,6 +110,53 @@ function recordScripts(dir, pm, row) {
   return out;
 }
 
+// The general recipe as the product applies it: init's checks, two recorded
+// runs each, and what the receipts and status say after each run.
+function productRuns(dir, row) {
+  // REDUE's own state location: a long --state-dir would not fit a Unix socket path.
+  const config = path.join(dir, '.census.redue.json');
+  const redue = (args, timeout = 120_000) => run(process.execPath, [checkoutRedue, '--config', config, ...args], dir, timeout);
+  const json = r => { try { return JSON.parse(r.stdout); } catch { return null; } };
+  const out = {};
+  if (!row.install.pass) return {notRun: 'install failed'};
+  const init = json(redue(['init', '--recipe', 'node-script', '--json']));
+  if (!init) return {error: 'init failed'};
+  out.init = {issue: init.issue, pm: init.package_manager, pmVersion: init.version};
+  const checks = (init.checks ?? []).filter(c => ['typecheck', 'lint', 'test'].includes(c.name));
+  for (const c of checks) out[c.name] = {script: c.script, level: c.level, reason: c.level === 'ready' ? undefined : c.reason,
+    text: readJson(path.join(dir, 'package.json')).scripts?.[c.script]};
+  const ready = checks.filter(c => c.level === 'ready');
+  if (!ready.length || !init.written) return out;
+  redue(['start']);
+  // The observer indexes the whole checkout first.
+  const deadline = Date.now() + 600_000;
+  let status = null;
+  while (Date.now() < deadline) {
+    status = json(redue(['status', '--sync', '--json'], 300_000));
+    if (status?.observation?.healthy) break;
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2000);
+  }
+  if (!status?.observation?.healthy) { out.observer = status?.observation?.reason ?? 'unavailable'; redue(['stop']); redue(['remove-state']); return out; }
+  for (const c of ready) {
+    const runs = [];
+    for (const n of [1, 2]) {
+      const r = redue(['run', c.name, '--json'], 600_000);
+      const now = json(redue(['status', '--sync', '--json'], 300_000))?.checks?.find(x => x.name === c.name);
+      let receipt = null; try { receipt = readJson(path.join(projectState(fs.realpathSync(dir), config), 'receipts-v1.json')).checks?.[c.name]; } catch {}
+      runs.push({exit: r.status, timedOut: r.timedOut, ms: r.ms, result: receipt?.result ?? null, stable: receipt?.stable ?? null,
+        guardIssues: receipt?.guardIssues ?? null, checkpointIssues: receipt?.checkpoint?.issues ?? null, fingerprint: receipt?.fingerprint ?? null,
+        freshness: now?.freshness ?? null, reason: now?.reason ?? null, tail: r.status === 0 ? undefined : tail(r, 300)});
+    }
+    const [first, second] = runs;
+    const qualifies = !runs.some(x => x.timedOut) && second.stable === true && Array.isArray(second.guardIssues) && !second.guardIssues.length &&
+      second.freshness === 'CURRENT' && first.fingerprint !== null && first.fingerprint === second.fingerprint;
+    Object.assign(out[c.name], {runs, qualifies, pass: runs.map(x => x.result === 'PASS')});
+    console.error(`  ${c.name} ${c.script}: ${qualifies ? 'QUALIFIES' : second.reason || 'not qualified'}`);
+  }
+  redue(['stop']);redue(['remove-state']);
+  return out;
+}
+
 function census(name) {
   const row = {name, started: new Date().toISOString()};
   const dir = path.join(tmpRoot, 'census', slug(name));
@@ -131,11 +182,12 @@ function census(name) {
     const picked = initPick(kind) ? [initPick(kind), pkg.scripts[initPick(kind)]] : scriptPick[kind](scripts);
     if (!picked) continue;
     row.scripts[kind] = {name: picked[0], text: picked[1]};
-    if (!row.install.pass || initOnly || recorded) continue;
+    if (!row.install.pass || initOnly || recorded || product) continue;
     row.timings[kind] = timeScript(dir, pm, picked[0], timeout);
   }
   if (row.timings.typecheck) row.timings.typecheckAgain = timeScript(dir, pm, row.scripts.typecheck.name, 600_000);
   if (recorded) row.recorded = recordScripts(dir, pm, row);
+  if (product) row.product = productRuns(dir, row);
   fs.rmSync(dir, {recursive: true, force: true});
   return row;
 }

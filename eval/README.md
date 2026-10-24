@@ -11,7 +11,8 @@ clones to `$TMPDIR/redue-eval/`.
 ## Files
 
 - `repos.json`: public repos, each pinned to a commit, with the npm script that
-  typechecks and whether its tests are quick enough to run as a check.
+  typechecks, whether its tests are quick enough to run as a check, and for
+  lint tasks the plain lint command (`lint`) and the lint script (`lintScript`).
 - `tasks.json`: agent prompts per repo. `kind` says whether REDUE should help
   (`docs`, `reverify`, `mixed`) or not (`source`). `expect` lists text the
   final files must contain. `pilot: true` marks the pilot set.
@@ -23,7 +24,14 @@ clones to `$TMPDIR/redue-eval/`.
 - `report.mjs`: re-renders `results.md` from `results.json`.
 - `census.mjs`: for each repo in `census-repos.json` (or named), installs it,
   records what `redue init` makes of it, and times its typecheck, lint, build
-  and test scripts. Research data, not a pass/fail screen.
+  and test scripts. Research data, not a pass/fail screen. `--product` instead
+  runs each general check REDUE's `init --recipe node-script` writes twice with
+  `redue run`, and `census-report.mjs` counts the checks that qualify. Every
+  command runs in its own process group (`group-run.mjs`), so a timeout stops
+  everything it started.
+- `pnpm-shim-templates.mjs`: rebuilds `src/pnpm-shim-templates.json`, the
+  launcher templates pnpm releases write, by installing a small workspace with
+  each release offline.
 
 ## Run
 
@@ -59,7 +67,8 @@ before upload.
 ## What a run does
 
 1. Fresh local clone at the pinned commit, then `npm ci --prefer-offline --ignore-scripts`.
-2. REDUE arm only: `redue init --recipe typescript-direct --check typecheck`,
+2. REDUE arm only: `redue init --recipe typescript-direct --check typecheck`
+   (`tests-direct` for test tasks, `node-script` for lint tasks),
    `redue agent setup claude --apply`, `redue start`, wait for the first index,
    then `redue run typecheck`. That receipt stands for an earlier session's
    passing check. Setup time is recorded but not counted in the session's time.

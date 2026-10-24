@@ -14,6 +14,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {runnerDataDirectories, testRecorder} from '../src/test-direct.mjs';
+import {sh} from './lib.mjs';
 
 const sha = value => createHash('sha256').update(value).digest('hex');
 export const hasStrace = process.platform === 'linux' && spawnSync('strace', ['-V']).status === 0;
@@ -165,14 +166,14 @@ export function recordedRun({root, argv, env, timeout, label}) {
   const trace = path.join(work, 'strace');
   const [cmd, args] = hasStrace ? ['strace', ['-f', '-qq', '-s', '4096', '-e', 'trace=execve,clone,clone3,fork,vfork', '-o', trace, ...argv]] : [argv[0], argv.slice(1)];
   const started = performance.now();
-  const out = spawnSync(cmd, args, {cwd: root, env: runEnv, timeout, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024});
+  const out = sh(cmd, args, {cwd: root, env: runEnv, timeout});
   const ms = Math.round(performance.now() - started);
   const rows = [];
   for (const name of fs.readdirSync(records)) {
     try { rows.push(fs.readFileSync(path.join(records, name), 'utf8').split('\n').filter(Boolean).map(line => JSON.parse(line))); }
     catch { rows.push([['U', 'unreadable record']]); }
   }
-  const result = {ms, status: out.status, timedOut: out.signal === 'SIGTERM' || out.error?.code === 'ETIMEDOUT',
+  const result = {ms, status: out.status, timedOut: out.timedOut,
     tail: out.status === 0 ? undefined : ((out.stderr || '') + '\n' + (out.stdout || '')).trim().slice(-400),
     rows, programs: hasStrace ? programs(trace) : null, installedChanged: installedChanges(root, dirs, marker)};
   fs.rmSync(work, {recursive: true, force: true});
