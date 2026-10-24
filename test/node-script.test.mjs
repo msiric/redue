@@ -62,6 +62,11 @@ test('a script may start only Node programs, the pnpm executable and shell built
   assert.equal(programKind(path.join(root,'node_modules/.bin/shimmed')),'node');
   assert.equal(programKind(path.join(root,'node_modules/.bin/native')),null);
   assert.equal(programKind(path.join(root,'pnpm-pkg/pnpm-native')),'pnpm');
+  // Yarn's bin wrapper, as the run saw it (Yarn removes it afterwards); nothing else in it.
+  const wrapper=extra=>`#!/bin/sh\nexec "${process.execPath}" '${root}/node_modules/tool/bin/tool.js'${extra} "$@"\n`;
+  assert.equal(programKind('/gone/xfs-1/tool',wrapper('')),'node');
+  assert.equal(programKind('/gone/xfs-1/tool',wrapper('; git status;')),null);
+  assert.equal(programKind('/gone/xfs-1/tool',wrapper('').replace(process.execPath,'/bin/bash')),null);
   assert.equal(issue('tool --flag && shimmed; echo done && cd node_modules && true'),null);
   assert.equal(issue('git status'),'runs git, which is not a Node program');
   assert.equal(issue('native'),'runs native, which is not a Node program');

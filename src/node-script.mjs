@@ -129,11 +129,15 @@ export function pnpmExecutable(file){
     return pkg.name!=='npm'&&pkg.name!=='yarn'&&pkg.name!=='corepack'&&typeof pkg.version==='string'?pkg.version:null;}
   catch{return null;}
 }
+// Yarn 2 and later run a package's bin through a wrapper they write into a
+// temporary directory: `exec "NODE" 'BIN' "$@"`.
+const yarnWrapper=/^#!\/bin\/sh\nexec "([^"$`\\\n]+)" ((?:'[^'\n]*'(?: '[^'\n]*')*)?) "\$@"\n$/;
+export const yarnWrapperNode=text=>{const match=yarnWrapper.exec(text);return match?match[1]:null;};
 // What a file run as a program is: 'node' for Node itself, a script Node runs
-// by its #! line, or a pnpm launcher; 'pnpm' for the pnpm executable; else
-// null.
-export function programKind(file){
-  const base=path.basename(file),bytes=head(file);
+// by its #! line, a pnpm launcher or a Yarn bin wrapper; 'pnpm' for the pnpm
+// executable; else null. `text` is the script as the run saw it, when known.
+export function programKind(file,known=null){
+  const base=path.basename(file),bytes=known!==null?Buffer.from(known):head(file);
   if(!bytes)return null;
   // Node itself is a native executable; a shim named node (asdf, nodenv) is a script.
   if(base==='node'||base==='nodejs')return nativeMagic(bytes)?'node':null;
@@ -143,8 +147,11 @@ export function programKind(file){
     // #!/usr/bin/env node, #!/usr/bin/env -S node --flag, or a path to node.
     const words=path.basename(line[0]||'')==='env'?line.slice(1).filter(word=>word!=='-S'):line;
     if(['node','nodejs'].includes(path.basename(words[0]||'')))return 'node';
-    if(text.startsWith('#!/bin/sh\n')&&pnpmShimTarget(file))return 'node';
-    return null;
+    if(!text.startsWith('#!/bin/sh\n'))return null;
+    let script=known;if(script===null)try{script=fs.readFileSync(file,'utf8');}catch{return null;}
+    if(pnpmShimTarget(file,script))return 'node';
+    const node=yarnWrapperNode(script),real=node&&lookup(node,'','/');
+    return real&&['node','nodejs'].includes(path.basename(node))&&programKind(real)==='node'?'node':null;
   }
   return pnpmExecutable(file)?'pnpm':null;
 }
@@ -284,8 +291,8 @@ const shells=new Set(['sh','bash','dash','zsh','ksh','mksh','fish','csh','tcsh']
 // that needs no recorder itself must pass it on. `toolchain` holds the
 // package managers' directories; `parentMain` is the starting process's main
 // script.
-export function childProgram({file,args,cwd,searchPath,env=null},{toolchain=[],parentMain=null}={}){
-  const resolved=lookup(file,searchPath,cwd||process.cwd());
+export function childProgram({file,args,cwd,searchPath,env=null,script=null},{toolchain=[],parentMain=null}={}){
+  const resolved=script?.file??lookup(file,searchPath,cwd||process.cwd());
   const name=path.basename(file);
   if(!resolved)return {issue:`ran ${name}, which REDUE cannot find`};
   const passesRecorder=()=>env?.preload===true?null:
@@ -299,7 +306,7 @@ export function childProgram({file,args,cwd,searchPath,env=null},{toolchain=[],p
     const issue=commandLineIssue(args[1],{cwd,searchPath});
     return issue?{issue}:passesRecorder()??{needsHeader:false};
   }
-  const kind=programKind(resolved);
+  const kind=programKind(resolved,typeof script?.text==='string'?script.text:null);
   if(kind==='node')return {needsHeader:true};
   if(kind==='pnpm'){const issue=pnpmRunIssue(args||[],{cwd,searchPath});return issue?{issue}:passesRecorder()??{needsHeader:false,opaque:true};}
   // pnpm, loaded into Corepack, lists processes to stop a script's children.

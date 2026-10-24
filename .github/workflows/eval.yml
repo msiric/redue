@@ -85,6 +85,9 @@ jobs:
       - name: strace, for the programs a recorded run executes
         if: contains(inputs.args, '--recorded')
         run: sudo apt-get install -y -qq strace
+      - name: pnpm and Yarn through Corepack, which --product's checks run as projects pin them
+        if: contains(inputs.args, '--product')
+        run: corepack enable
       - name: Room for inotify watches, for the observer --product starts
         if: contains(inputs.args, '--product')
         run: |

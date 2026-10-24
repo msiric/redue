@@ -115,11 +115,11 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
         environmentReads[name]=typeof state==='string'?state:'<unset>';}
       else if(kind==='N')add(`network: ${value[0]}`);
       else if(kind==='C'||kind==='S'){
-        const [file,args,cwd,searchPath,env]=kind==='C'?value.slice(1):value;
+        const [file,args,cwd,searchPath,env,script]=kind==='C'?value.slice(1):value;
         if(kind==='C')childPids.set(header.pid,[...childPids.get(header.pid)||[],value[0]]);
         // The general recipe accounts for each program; one that needs no
         // recorder (a shell, the pnpm executable) is not matched to a header.
-        if(programs){const judged=programs.judge({file,args,cwd,searchPath,env},header.main??null);
+        if(programs){const judged=programs.judge({file,args,cwd,searchPath,env,script},header.main??null);
           if(judged.issue){add(judged.issue);continue;}
           opaque||=Boolean(judged.opaque);
           if(!judged.needsHeader)continue;}

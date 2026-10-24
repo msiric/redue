@@ -48,7 +48,8 @@ function install(){
   // The absolute path an argument names; undefined for a descriptor, whose
   // open was recorded; null for anything else.
   function located(file){
-    if(typeof file==='number')return undefined;
+    // A descriptor or a FileHandle: its open was recorded.
+    if(typeof file==='number'||file&&typeof file==='object'&&typeof file.fd==='number'&&typeof file.close==='function')return undefined;
     if(Buffer.isBuffer(file))file=file.toString();
     else if(file instanceof URL){if(file.protocol!=='file:')return null;file=require('node:url').fileURLToPath(file);}
     if(typeof file!=='string')return null;
@@ -82,7 +83,10 @@ function install(){
   // Runner data and the toolchain's own files (a package manager's install
   // and logs) are not inputs.
   const runnerData=[...(config.runnerData||[]),...(Array.isArray(config.toolchain)?config.toolchain:[])];
-  const runnerCache=full=>tmp.some(dir=>within(full,dir)&&full.slice(dir.length+1).split(sep)[0].startsWith('jest_'))||
+  // Runner caches in the temporary directory, keyed by content: Jest's,
+  // Yarn 1's compile cache, tsx's, jiti's, ts-node's and Babel's.
+  const tmpCache=/^(?:jest_|v8-compile-cache|tsx-\d+$|jiti$|node-jiti$|ts-node|babel)/;
+  const runnerCache=full=>tmp.some(dir=>within(full,dir)&&tmpCache.test(full.slice(dir.length+1).split(sep)[0]))||
     runnerData.some(dir=>within(full,dir));
   // One filesystem access by its role: read (content), produce, touch (a write
   // that keeps earlier content), mkdir, mkdtemp, list, stat or realpath.
@@ -334,12 +338,27 @@ function install(){
   const where=options=>[path.resolve(typeof options?.cwd==='string'?options.cwd:options?.cwd instanceof URL?
     require('node:url').fileURLToPath(options.cwd):'.'),pathOf(options?.env??process.env),envOf(options?.env??process.env)];
   const optionsOf=(args,options)=>Array.isArray(args)?options:args;
+  // A #! script the child runs, as it is now: Yarn writes its bin wrappers
+  // into a temporary directory and removes them after the run.
+  function scriptOf(file,cwd,searchPath){
+    try{
+      const candidates=file.includes(sep)?[path.resolve(cwd,file)]:String(searchPath??'').split(path.delimiter).map(dir=>path.join(path.resolve(cwd,dir||'.'),file));
+      for(const candidate of candidates){
+        let st;try{st=original.statSync(candidate);}catch{continue;}
+        if(!st.isFile()||!(st.mode&0o111))continue;
+        if(st.size>16384)return null;
+        const text=original.readFileSync(candidate,'utf8');
+        return text.startsWith('#!')?{file:original.real(candidate),text}:null;
+      }
+    }catch{}
+    return null;
+  }
   const childProcess=require('node:child_process'),spawn=childProcess.ChildProcess.prototype.spawn;
   childProcess.ChildProcess.prototype.spawn=function(options){
     const result=spawn.call(this,options);
     try{if(this.pid){const pair=(options?.envPairs||[]).find(item=>typeof item==='string'&&item.startsWith('PATH='));
       emit(['C',this.pid,String(options?.file),argsOf(options?.args?.slice(1)),where(options)[0],pair?pair.slice(5):null,
-        pairsOf(options?.envPairs)]);}}
+        pairsOf(options?.envPairs),scriptOf(String(options?.file),where(options)[0],pair?pair.slice(5):null)]);}}
     catch{failed('recorder failure');}
     return result;
   };
