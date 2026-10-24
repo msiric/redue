@@ -50,6 +50,8 @@ function good(root,state,...args){const result=invoke(root,state,...args);
   assert.equal(result.status,0,`${args.join(' ')}: ${result.stderr}\n${result.stdout}`);
   return result.stdout;}
 const sync=(root,state)=>JSON.parse(good(root,state,'status','--sync','--json'));
+// The general recipe records runs on macOS and Linux only.
+const general=process.platform!=='win32';
 
 test('REDUE CLI identifies itself and keeps pre-release config compatibility',t=>{
   const {root,state,config}=project(t);
@@ -117,9 +119,10 @@ test('unsupported manager and workspace boundary are explicit',t=>{
   const workspace=project(t,{workspaces:true});
   const preview=JSON.parse(good(workspace.root,workspace.state,'init','--dry-run','--json'));
   assert.equal(preview.workspaces,true);
-  // The workspace root's typecheck is no strict recipe's; the general one runs it through npm.
-  assert.equal(preview.checks[0].level,'ready');
-  assert.equal(preview.proposed_config.checks[0].qualification,'node-script-v1');
+  // The workspace root's typecheck is no strict recipe's; the general one runs
+  // it through npm on macOS and Linux.
+  assert.equal(preview.checks[0].level,general?'ready':'recording');
+  assert.equal(preview.proposed_config.checks[0].qualification,general?'node-script-v1':undefined);
   const unpinnedYarn=project(t,{manager:'yarn'});
   const yarnPreview=JSON.parse(good(unpinnedYarn.root,unpinnedYarn.state,'init','--json'));
   assert.match(yarnPreview.issue,/Yarn version is not declared/);
@@ -129,7 +132,7 @@ test('unsupported manager and workspace boundary are explicit',t=>{
   const pinned=JSON.parse(good(pinnedYarn.root,pinnedYarn.state,'init','--json'));
   assert.equal(pinned.installation_layout,'node-modules');
   assert.equal(pinned.written,true);
-  assert.equal(pinned.proposed_config.checks[0].qualification,'node-script-v1');
+  assert.equal(pinned.proposed_config.checks[0].qualification,general?'node-script-v1':undefined);
   const noGit=project(t);
   fs.rmSync(path.join(noGit.root,'.git'),{recursive:true});
   const withoutCheckout=JSON.parse(good(noGit.root,noGit.state,'init','--json'));
@@ -157,7 +160,7 @@ test('discovers uniquely identifiable tool commands without relying on script na
   const lifecycle=project(t,{scripts:{check:'tsc --noEmit',precheck:'node preflight.js'}});
   // The direct recipe refuses a pre script; npm runs it, so the general recipe records it.
   const life=JSON.parse(good(lifecycle.root,lifecycle.state,'init','--dry-run','--json'));
-  assert.equal(life.proposed_config.checks[0].qualification,'node-script-v1');
+  assert.equal(life.proposed_config.checks[0].qualification,general?'node-script-v1':undefined);
 });
 
 test('npm workspace scripts are discovered as recording-only named checks',t=>{

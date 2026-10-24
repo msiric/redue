@@ -41,7 +41,7 @@ test('command lines: words, quotes and separators; expansions and input redirect
     assert.match(parseCommandLine(text).issue||'',/shell syntax/,text);
 });
 
-test('pnpm launchers are trusted only as a release writes them',t=>{
+test('pnpm launchers are trusted only as a release writes them',{skip:unsupported},t=>{
   assert.ok(templates.length>=8,'templates for pnpm 8 to 12');
   for(const row of templates){
     const shim=shimTemplate(launcher(row,'../typescript/bin/tsc'));
@@ -55,7 +55,7 @@ test('pnpm launchers are trusted only as a release writes them',t=>{
   assert.equal(pnpmShimTarget('/x/.bin/t',launcher(templates.at(-1),'../t/bin/t.js','$HOME/x')),null);
 });
 
-test('a script may start only Node programs, the pnpm executable and shell builtins',t=>{
+test('a script may start only Node programs, the pnpm executable and shell builtins',{skip:unsupported},t=>{
   const {root,searchPath}=programs(t);
   const issue=text=>commandLineIssue(text,{cwd:root,searchPath});
   assert.equal(programKind(path.join(root,'node_modules/tool/bin/tool.js')),'node');
@@ -91,7 +91,7 @@ test('a script may start only Node programs, the pnpm executable and shell built
   assert.ok(scriptPath(path.join(root,'a/b'),'/usr/bin').startsWith(path.join(root,'a/b/node_modules/.bin')+path.delimiter));
 });
 
-test('programs a recorded process starts: shells by their command, Node programs with the recorder',t=>{
+test('programs a recorded process starts: shells by their command, Node programs with the recorder',{skip:unsupported},t=>{
   const {root,searchPath}=programs(t);
   const passed={preload:true,bashEnv:false};
   const judge=(file,args,options,env=passed)=>childProgram({file,args,cwd:root,env,
@@ -156,7 +156,7 @@ const row=(root,state,name)=>{const result=invoke(root,state,'status','--sync','
   assert.equal(result.status,0,result.stderr);return JSON.parse(result.stdout).checks.find(c=>c.name===name);};
 const write=(root,file,text)=>fs.writeFileSync(path.join(root,file),text);
 
-test('init writes general checks for scripts the strict recipes do not take, and refuses ones that start other programs',t=>{
+test('init writes general checks for scripts the strict recipes do not take, and refuses ones that start other programs',{skip:unsupported},t=>{
   const {root,state}=project(t,{lint:'checker --max-warnings 0',test:'checker && node -e 1',typecheck:'checker && git diff'});
   const init=JSON.parse(good(root,state,'init','--dry-run','--json'));
   const by=Object.fromEntries(init.checks.map(check=>[check.name,check]));
