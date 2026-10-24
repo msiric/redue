@@ -128,7 +128,12 @@ test('an observation gap forces a full probe before reuse resumes',async t=>{
   assert(after.gaps>before.gaps,JSON.stringify({before,after}));
   assert(after.full>before.full,'the certificate from before the gap is not reused');
   if(process.platform==='linux'){
+    // Reuse resumes from the new full probe: no other full probe, at least one
+    // reuse. A decision already queued when `after` was read (a late gap
+    // reconciliation) can add a second reuse, so the count is a floor.
     assert.equal(state(sync(f)),'CURRENT/PASS/eligible');
-    assert.equal((await metrics(f)).reused,after.reused+1,'reuse resumes from the new full probe');
+    const resumed=await metrics(f);
+    assert.equal(resumed.full,after.full,'no full probe after the one that followed the gap');
+    assert(resumed.reused>after.reused,'reuse resumes from the new full probe');
   }
 });
