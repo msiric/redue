@@ -4,7 +4,6 @@ import {commandLineIssue,scriptCheckInputs,scriptPath,scriptProject,scriptQualif
 // Init proposes the general recipe for typecheck and lint scripts; test
 // scripts use the direct test recipe (Vitest, Jest).
 const generalKinds=['typecheck','lint'];
-const perPackageLimit=50;
 import fs from 'node:fs';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
@@ -18,7 +17,7 @@ import {partName,tscRuns} from './typescript-invocation.mjs';
 const exists=file=>{try{fs.accessSync(file);return true;}catch{return false;}};
 const readJson=file=>JSON.parse(fs.readFileSync(file,'utf8'));
 const scriptNames={
-  typecheck:['typecheck','type-check','check:types','types:check','check-types','tsc','types','lint:types'],
+  typecheck:['typecheck','type-check','check:types','types:check','check-types'],
   test:['test','test:unit','test:check'],
   lint:['lint','lint:check'],
   build:['build'],
@@ -161,16 +160,10 @@ function classify(kind,scriptName,script,pkg,managerInfo,root) {
     'Vite detected; build environment and generated inputs need review':
     'build script detected; generated and runtime inputs need review'};
 }
-// Typecheck scripts named under a typecheck name (`typecheck:test`,
-// `tsc:build`), watch scripts aside.
-const typecheckFamily=/^(?:typecheck|type-check|check-types|check:types|types:check|tsc):(?!.*watch)/;
 function selectScript(kind,names,scripts) {
   const preferred=names.find(name=>typeof scripts[name]==='string'&&
     scripts[name].trim()&&!/^echo\s+["']?Error: no test specified/.test(scripts[name]));
   if(preferred)return {script:preferred};
-  const family=kind==='typecheck'?Object.keys(scripts).filter(name=>typecheckFamily.test(name)&&
-    typeof scripts[name]==='string'&&scripts[name].trim()&&!/(?:^|\s)(?:--watch|-w)(?:\s|$)/.test(scripts[name])):[];
-  if(family.length===1)return {script:family[0]};
   const candidates=Object.keys(scripts).filter(name=>{
     const value=scripts[name]?.trim();
     if(typeof value!=='string')return false;
@@ -184,7 +177,7 @@ function selectScript(kind,names,scripts) {
   const exact=kind==='typecheck'?candidates.filter(name=>exactTypeScript(scripts[name])):[];
   if(exact.length===1)return {script:exact[0]};
   return candidates.length===1?{script:candidates[0]}:
-    candidates.length>1?{ambiguous:candidates}:family.length>1?{ambiguous:family}:{};
+    candidates.length>1?{ambiguous:candidates}:{};
 }
 // A pnpm workspace package's TypeScript run, as its check's command, cwd and inputs.
 function pnpmCheck(root,name,dir,manifest,run){
@@ -240,7 +233,7 @@ export function discoverNodeProject(root,{recipe=null}={}) {
     workspacePatterns.some(value=>typeof value!=='string'||path.isAbsolute(value)||
       value.split('/').includes('..'))))
     throw Error('workspace patterns need a supported project-relative package list');
-  const checks=[],ambiguous=[],skipped=[];
+  const checks=[],ambiguous=[];
   for(const [kind,names] of Object.entries(scriptNames)) {
     const selected=selectScript(kind,names,scripts),script=selected.script;
     if(selected.ambiguous)ambiguous.push({kind,scripts:selected.ambiguous});
@@ -311,11 +304,8 @@ export function discoverNodeProject(root,{recipe=null}={}) {
     checks.push({config:check,...classification});
   }
   if(workspaces&&!observationIssue){
-    const seen=new Set(),members=workspaceManifests(root,workspacePatterns);
-    // Past 50 packages, init proposes the root's checks only and says so.
-    if(members.length>perPackageLimit)skipped.push({kind:'workspace',packages:members.length,
-      reason:`${members.length} workspace packages, more than ${perPackageLimit}: per-package checks were not proposed; add the ones you need to the config`});
-    for(const {file,pkg:member} of members.length>perPackageLimit?[]:members){
+    const seen=new Set();
+    for(const {file,pkg:member} of workspaceManifests(root,workspacePatterns)){
       const dir=path.posix.dirname(file),name=member.name;
       if(typeof name!=='string'||!name||seen.has(name)){
         ambiguous.push({kind:'workspace',scripts:[dir],reason:'missing or duplicate package name'});
@@ -377,6 +367,6 @@ export function discoverNodeProject(root,{recipe=null}={}) {
     }
   }
   return {schema:1,root,manager:pm,observationIssue,workspaces,node:process.version,
-    checks,ambiguous,skipped,
+    checks,ambiguous,
     config:{schema:1,packageManager:pm.name||'unknown',checks:checks.map(row=>row.config)}};
 }

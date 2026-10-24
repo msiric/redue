@@ -12,10 +12,7 @@ is known. When npm is not pinned in `package.json`,
 leaves the version unknown rather than guessing if that inspection fails.
 
 At the repository root, `init` looks for existing typecheck, test, lint, and
-build scripts. It prefers familiar script names (for typecheck: `typecheck`,
-`type-check`, `check-types`, `check:types`, `types:check`, `tsc`, `types`,
-`lint:types`), then for typecheck one script named under such a name
-(`typecheck:test`, `tsc:build`; not a watch script), then unique recognizable
+build scripts. It prefers familiar script names, then unique recognizable
 `tsc`, Vitest/Jest, ESLint, or Vite commands under other names. Multiple
 matches are reported as ambiguous rather than guessed. It never creates a new
 project script. Without `--recipe`, `init` tries the strict recipes below first,
@@ -33,9 +30,7 @@ not npm. Full installed compiler identity, config/membership, installed inputs
 and relevant Node environment are checked before reuse. See the
 [exact direct boundary](direct-typescript.md). Unsupported plugins, preloads,
 configuration or outside-root inputs remain UNVERIFIED. Root and package-level npm/Yarn workspace scripts are discovered from
-`package.json` workspace declarations. In a workspace of more than 50
-packages, `init` proposes the root's checks only and names what it skipped;
-add package checks to the config yourself. Up to 1000 packages are read. Pinned Yarn 4 `node-modules`/classic
+`package.json` workspace declarations. Pinned Yarn 4 `node-modules`/classic
 workspaces with a standalone `tsc -p .` script, local TypeScript, a conventional
 `src` include, and Node module resolution can qualify automatically. For one
 workspace, use `redue init --workspace NAME --check typecheck`; it writes only
