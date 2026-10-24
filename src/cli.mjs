@@ -5,7 +5,7 @@ import {directQualification,directInterpretation,observedNpmContext} from './dir
 import {directRunCertificateAllowed,directRunCertificate,directRunRecordable,directRunRecording,probeQuestions,validateRunRecord} from './direct-run-certificate.mjs';
 import {queryAnswer,runFactChange} from './typescript-list.mjs';
 import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testRunFacts,sharedInstalledFile,testsInterpretation,testsQualification} from './test-direct.mjs';
-import {childProgram,pnpmConfigFiles,scriptCaches,scriptInstalledPaths,scriptInterpretation,scriptQualification,scriptRunFacts,toolOutput,toolchainDirs} from './node-script.mjs';
+import {childProgram,lookup,pnpmConfigFiles,scriptCaches,scriptInstalledPaths,scriptInterpretation,scriptQualification,scriptRunFacts,toolOutput,toolchainDirs} from './node-script.mjs';
 import path from 'node:path';
 import net from 'node:net';
 import os from 'node:os';
@@ -288,7 +288,9 @@ async function execute() {
       fs.mkdirSync(testRecord,{mode:0o700});
       const guardFile=path.join(testRecord,'guard.json'),guardConfig=testGuardConfig(testRecord,root,process.env,testFacts);
       if(general){toolchain=toolchainDirs();
-        Object.assign(guardConfig,{installed:scriptInstalledPaths(root,testFacts.dirs||[]),toolchain});}
+        // The Node on PATH, which the environment identifies by its file.
+        Object.assign(guardConfig,{installed:scriptInstalledPaths(root,testFacts.dirs||[]),toolchain,
+          node:lookup('node',process.env.PATH,process.cwd())});}
       fs.writeFileSync(guardFile,JSON.stringify(guardConfig),{mode:0o600});
       launchEnv=recordedEnvironment(guardFile);
       // npm's and pnpm's update checks read state outside the checkout and the network.

@@ -145,6 +145,8 @@ if(value.includes('output')){fs.mkdirSync('out',{recursive:true});fs.writeFileSy
 // vue-tsc's global types, written then read at every run; or another installed file.
 if(value.includes('vue')){fs.mkdirSync('node_modules/.vue-global-types',{recursive:true});
   fs.writeFileSync('node_modules/.vue-global-types/vue_3.5_0_0_0.d.ts','// '+Date.now());fs.readFileSync('node_modules/.vue-global-types/vue_3.5_0_0_0.d.ts');}
+// detect-libc reads the ELF header of the process's own executable.
+if(value.includes('exe')){const fd=fs.openSync(value.includes('parent')?'/proc/'+process.ppid+'/exe':'/proc/self/exe','r');fs.readSync(fd,Buffer.alloc(64),0,64,0);fs.closeSync(fd);}
 if(value.includes('installed'))fs.writeFileSync('node_modules/checker/state.txt',String(Date.now()));
 if(value.includes('cache')){fs.mkdirSync('.cache',{recursive:true});try{fs.readFileSync('.cache/state');}catch{}fs.writeFileSync('.cache/state',String(Date.now()));}
 process.exit(value.includes('fail')?1:0);
@@ -241,6 +243,21 @@ test('installed files a tool rewrites during a run stay inputs; the run keeps th
   good(root,state,'run','lint');
   status=row(root,state,'lint');
   assert.equal(status.freshness,'UNVERIFIED');
+});
+
+test("a read of the process's own executable through /proc is Node's, not an outside file",{skip:process.platform!=='linux'},t=>{
+  const {root,state}=project(t,{lint:'checker'});
+  write(root,'src/value.js','exe\n');
+  good(root,state,'init');good(root,state,'start');
+  good(root,state,'run','lint');
+  let status=row(root,state,'lint');
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  // Another process's executable (the shell npm ran the script with) is not Node's.
+  write(root,'src/value.js','exe parent\n');
+  good(root,state,'run','lint');
+  status=row(root,state,'lint');
+  assert.equal(status.freshness,'UNVERIFIED');
+  assert.match(status.reason,/\/proc\/\d+\/exe/);
 });
 
 test("npm's node-options setting replaces NODE_OPTIONS: the run is UNVERIFIED, not CURRENT without a recorder",{skip:unsupported},t=>{

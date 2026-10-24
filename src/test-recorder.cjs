@@ -88,6 +88,16 @@ function install(){
   const tmpCache=/^(?:jest_|v8-compile-cache|tsx-\d+$|jiti$|node-jiti$|ts-node|babel)/;
   const runnerCache=full=>tmp.some(dir=>within(full,dir)&&tmpCache.test(full.slice(dir.length+1).split(sep)[0]))||
     runnerData.some(dir=>within(full,dir));
+  // A read of the process's own executable through /proc (detect-libc reads
+  // its ELF header there), when the process runs the Node on PATH, which the
+  // environment identifies by its file.
+  const ownExePath=process.platform==='linux'?`/proc/${process.pid}/exe`:null;
+  let ownExe;
+  const ownExecutable=(role,full)=>{
+    if(role!=='read'||full!==ownExePath)return false;
+    if(ownExe===undefined)try{ownExe=typeof config.node==='string'&&original.real(full)===config.node;}catch{ownExe=false;}
+    return ownExe;
+  };
   // One filesystem access by its role: read (content), produce, touch (a write
   // that keeps earlier content), mkdir, mkdtemp, list, stat or realpath.
   function access(role,file,error=null,result=undefined,recursive=false){
@@ -127,7 +137,7 @@ function install(){
         else if(role==='list')emit(['D',rel(full),error?missing(error):entries(full)]);
         return;
       }
-      if(runnerCache(full))return;
+      if(runnerCache(full)||ownExecutable(role,full))return;
       // A small file read outside the checkout is kept by its content, as
       // queryAnswer's readFile hashes it, so status can ask again.
       if(role==='read'&&!error){
