@@ -400,7 +400,7 @@ async function execute() {
     // what was there (test/tmp). When they are the only observed change, the
     // run is kept with the end checkpoint, which includes them.
     let outputs=null;
-    let eventsExplained=false;
+    let eventsExplained=false,unexplained=end?.inputEventPaths||null;
     if(guard&&snap&&end&&snap.planId===end.planId&&snap.probeHash===end.probeHash&&snap.observationHealthy&&end.observationHealthy&&
       (snap.inputEventSerial===end.inputEventSerial||end.inputEventPathsComplete===true)){
       // A directory event is not an input change; a change to its files shows
@@ -410,7 +410,8 @@ async function execute() {
       const touched=[...new Set([...changed,...events])].sort();
       const output=rel=>guard.isOutput(rel)||general&&toolOutput(rel,guard);
       const ignored=touched.length&&touched.every(output)?gitIgnored(root,touched):new Set();
-      if(touched.every(file=>ignored.has(file))){eventsExplained=true;if(changed.length)outputs=changed;}
+      unexplained=touched.filter(file=>!ignored.has(file));
+      if(!unexplained.length){eventsExplained=true;if(changed.length)outputs=changed;}
     }
     // The end certificate, recorded or probed, must cover what this compile received.
     // With no input event, gap or content change in between, it also holds at the start.
@@ -442,8 +443,13 @@ async function execute() {
       captureIssues.push('observer generation changed during execution');
     if(snap?.planGeneration!==end?.planGeneration)
       captureIssues.push('input plan rebuilt during execution');
-    if(snap?.inputEventSerial!==end?.inputEventSerial&&!eventsExplained)
-      captureIssues.push('declared input event occurred during execution');
+    // The reason names up to five files the run did not explain, and a count of the rest.
+    if(snap?.inputEventSerial!==end?.inputEventSerial&&!eventsExplained){
+      const named=[...new Set(unexplained||[])],more=named.length-5,
+        unrecorded=end?.inputEventPathsComplete===false?' (not every event path was kept)':'';
+      captureIssues.push('declared input event occurred during execution'+(named.length?
+        `: ${named.slice(0,5).join(', ')}${more>0?` and ${more} more`:''}`:'')+unrecorded);
+    }
     // A recorded certificate changes only the probe part of the fingerprint.
     if(!outputs&&(!snap||!end||snap.planId!==end.planId||(recording?snap.inputKey!==end.inputKey:snap.fingerprint!==end.fingerprint)||
       snap.revision!==end.revision))captureIssues.push('declared inputs changed or were not observed');

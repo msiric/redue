@@ -148,6 +148,7 @@ if(value.includes('vue')){fs.mkdirSync('node_modules/.vue-global-types',{recursi
 // detect-libc reads the ELF header of the process's own executable.
 if(value.includes('exe')){const fd=fs.openSync(value.includes('parent')?'/proc/'+process.ppid+'/exe':'/proc/self/exe','r');fs.readSync(fd,Buffer.alloc(64),0,64,0);fs.closeSync(fd);}
 if(value.includes('installed'))fs.writeFileSync('node_modules/checker/state.txt',String(Date.now()));
+if(value.includes('many'))for(let i=0;i<7;i++)fs.writeFileSync('node_modules/checker/state'+i+'.txt',String(Date.now()));
 if(value.includes('cache')){fs.mkdirSync('.cache',{recursive:true});try{fs.readFileSync('.cache/state');}catch{}fs.writeFileSync('.cache/state',String(Date.now()));}
 process.exit(value.includes('fail')?1:0);
 `,0o755);
@@ -258,6 +259,13 @@ test('installed files a tool rewrites during a run stay inputs; the run keeps th
   good(root,state,'run','lint');
   status=row(root,state,'lint');
   assert.equal(status.freshness,'UNVERIFIED');
+  // The reason names the file the run did not explain.
+  assert.match(status.reason,/declared input event occurred during execution: node_modules\/checker\/state\.txt/);
+  // At most five, then a count.
+  write(root,'src/value.js','many\n');
+  good(root,state,'run','lint');
+  status=row(root,state,'lint');
+  assert.match(status.reason,/during execution: node_modules\/checker\/state0\.txt, (node_modules\/checker\/state\d\.txt, ){3}node_modules\/checker\/state4\.txt and 2 more/);
 });
 
 test("a read of the process's own executable through /proc is Node's, not an outside file",{skip:process.platform!=='linux'},t=>{
