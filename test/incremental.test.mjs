@@ -91,7 +91,8 @@ test('a program that uses a referenced project\'s files is not qualified',{skip:
       // As `tsc -b` would leave it; plain tsc then uses this output.
       'shared/dist/index.d.ts':'export declare const shared = 1;\n'}});
   call(f,'run','typecheck');
-  const row=sync(f);
+  let row=sync(f);
+  for(let n=0;n<50&&/reconciliation pending|plan rebuilding/.test(row.reason);n++){await wait(100);row=sync(f);}
   assert.notEqual(row.freshness,'CURRENT');assert.match(row.reason,/referenced project/);
 });
 
