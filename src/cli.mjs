@@ -5,7 +5,7 @@ import {directQualification,directInterpretation,observedNpmContext} from './dir
 import {directRunCertificateAllowed,directRunCertificate,directRunRecordable,directRunRecording,probeQuestions,validateRunRecord} from './direct-run-certificate.mjs';
 import {queryAnswer,runFactChange} from './typescript-list.mjs';
 import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testRunFacts,sharedInstalledFile,testsInterpretation,testsQualification} from './test-direct.mjs';
-import {childProgram,lookup,pnpmConfigFiles,scriptCaches,scriptInstalledPaths,scriptInterpretation,scriptQualification,scriptRunFacts,toolOutput,toolchainDirs} from './node-script.mjs';
+import {childProgram,lookup,pnpmConfigFiles,scriptCaches,scriptInstalledPaths,scriptInterpretation,scriptQualification,scriptRunFacts,pnpmNameless,toolOutput,toolchainDirs} from './node-script.mjs';
 import path from 'node:path';
 import net from 'node:net';
 import os from 'node:os';
@@ -408,7 +408,7 @@ async function execute() {
       const directory=rel=>{try{return fs.lstatSync(path.join(root,rel)).isDirectory();}catch{return false;}};
       const changed=changedFiles(snap.files,end.files),events=(end.inputEventPaths||[]).filter(rel=>!directory(rel));
       const touched=[...new Set([...changed,...events])].sort();
-      const output=rel=>guard.isOutput(rel)||general&&toolOutput(rel,guard);
+      const output=rel=>guard.isOutput(rel)||general&&(toolOutput(rel,guard)||pnpmNameless(rel,guard,root,[snap.files,end.files]));
       const ignored=touched.length&&touched.every(output)?gitIgnored(root,touched):new Set();
       unexplained=touched.filter(file=>!ignored.has(file));
       if(!unexplained.length){eventsExplained=true;if(changed.length)outputs=changed;}

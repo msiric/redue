@@ -69,12 +69,16 @@ anywhere in it.
 
 Two installed files are rewritten by tools during a run. pnpm rewrites
 `node_modules/.pnpm-workspace-state-v1.json` at the first run after an
-install, through a temporary `node_modules/.tmpXXXXXX` file. vue-tsc writes
+install, through a temporary `node_modules/.tmpXXXXXX` file, and on Linux
+writes a file with no name there (`O_TMPFILE`), whose writes the file
+watcher reports as `node_modules/#NUMBER`. vue-tsc writes
 `node_modules/.vue-global-types/*.d.ts` before it reads them. These files stay
 inputs. When they are the only files a run changed, and the run wrote them,
 the result is kept with the files as the run left them. A recorded process
 counts as writing a file it wrote; for pnpm's files, the pnpm executable must
-have run. A later change to them makes the result STALE.
+have run. A `#NUMBER` event counts only directly in the root `node_modules`,
+on Linux, when no file has that name. A later change to them makes the
+result STALE.
 
 It does not mean a rerun would give the same result: a test that depends on
 the time or on randomness can pass now and fail later on the same inputs.
@@ -142,6 +146,13 @@ inputs.
   run (pnpm 12 does this) can be reported by the file watcher as an event on
   the root itself, an observation gap that makes the run UNVERIFIED. Linux
   reports the file, which is not an input.
+- On Linux, any program's file with no name in the root `node_modules`,
+  written during a run that started the pnpm executable, is taken as pnpm's.
+  If that program gives the file a real name (any name, `node_modules`
+  included) and then writes through the open file, REDUE misses those
+  writes. A real file named `node_modules/#NUMBER` that is created and
+  removed within such a run is treated the same way. Outside a pnpm run,
+  these writes leave the run UNVERIFIED.
 - The pnpm executable and the pnpm launchers' helpers are trusted as
   toolchain: what they read is not checked.
 - Code that copies the environment and reads the copy, and native code that

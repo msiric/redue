@@ -57,6 +57,15 @@ export const toolOutputPath=rel=>pnpmState(rel)||pnpmTemp(rel)||vueTypes(rel);
 // The run wrote it: a recorded process did, or, for pnpm's files, the pnpm
 // executable ran, which writes them natively.
 export const toolOutput=(rel,guard)=>toolOutputPath(rel)&&(guard.wroteInstalled(rel)||(pnpmState(rel)||pnpmTemp(rel))&&guard.opaque);
+// On Linux, pnpm 12 also writes a file with no name (O_TMPFILE) in the root
+// node_modules, whose writes inotify reports as '#<inode>'. Such an event is
+// the run's output when the pnpm executable ran and no file has that name, at
+// either checkpoint or now. Limit: another program's file with no name there,
+// during a run that started the pnpm executable, is taken as pnpm's too; once
+// linked in under any name, its writes through the open file are missed.
+export const pnpmNameless=(rel,guard,root,checkpoints,platform=process.platform)=>platform==='linux'&&/^node_modules\/#\d+$/.test(rel)&&
+  guard.opaque&&checkpoints.every(files=>files&&!Object.hasOwn(files,rel))&&
+  (()=>{try{fs.lstatSync(path.join(root,rel));return false;}catch(error){return error.code==='ENOENT';}})();
 // The installed paths the recorder treats as observed by identity.
 export const scriptInstalledPaths=(root,dirs=[])=>[...modulesDirs(dirs),...installState].map(at=>path.join(root,at));
 // Variables a recorded run cannot be seen reading: Node's and libc's (as in

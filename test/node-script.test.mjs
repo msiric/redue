@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import {spawnSync,execFileSync} from 'node:child_process';
-import {childProgram,commandLineIssue,parseCommandLine,pnpmRunIssue,programKind,scriptCheckInputs,scriptPath,toolOutput} from '../src/node-script.mjs';
+import {childProgram,commandLineIssue,parseCommandLine,pnpmNameless,pnpmRunIssue,programKind,scriptCheckInputs,scriptPath,toolOutput} from '../src/node-script.mjs';
 import {pnpmShimTarget,shimTemplate} from '../src/pnpm-shims.mjs';
 
 const bin=path.resolve('bin/redue.mjs');
@@ -148,6 +148,8 @@ if(value.includes('vue')){fs.mkdirSync('node_modules/.vue-global-types',{recursi
 // detect-libc reads the ELF header of the process's own executable.
 if(value.includes('exe')){const fd=fs.openSync(value.includes('parent')?'/proc/'+process.ppid+'/exe':'/proc/self/exe','r');fs.readSync(fd,Buffer.alloc(64),0,64,0);fs.closeSync(fd);}
 if(value.includes('installed'))fs.writeFileSync('node_modules/checker/state.txt',String(Date.now()));
+// A file with no name (O_TMPFILE), as pnpm 12 writes one in node_modules.
+if(value.includes('nameless')){const fd=fs.openSync('node_modules',0o20000000|fs.constants.O_DIRECTORY|fs.constants.O_RDWR,0o600);fs.writeSync(fd,'x');fs.closeSync(fd);}
 if(value.includes('many'))for(let i=0;i<7;i++)fs.writeFileSync('node_modules/checker/state'+i+'.txt',String(Date.now()));
 if(value.includes('cache')){fs.mkdirSync('.cache',{recursive:true});try{fs.readFileSync('.cache/state');}catch{}fs.writeFileSync('.cache/state',String(Date.now()));}
 process.exit(value.includes('fail')?1:0);
@@ -240,6 +242,35 @@ test('tool outputs: pnpm state and its temporary files when the pnpm executable 
   assert.equal(toolOutput(types,guard(false,[types])),true);
   assert.equal(toolOutput(types,guard(true)),false);
   assert.equal(toolOutput('node_modules/x/node_modules/.vue-global-types/a.d.ts',guard(false,['node_modules/x/node_modules/.vue-global-types/a.d.ts'])),false);
+});
+
+test("pnpm's file with no name: on Linux, when the pnpm executable ran and no file has that name",t=>{
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'rs-nameless-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+  const ran={opaque:true},other={opaque:false},none=[{},{}];
+  const nameless=(rel,guard=ran,checkpoints=none,platform='linux')=>pnpmNameless(rel,guard,root,checkpoints,platform);
+  assert.equal(nameless('node_modules/#9234896'),true);
+  assert.equal(nameless('node_modules/#9234896',ran,none,'darwin'),false);
+  assert.equal(nameless('node_modules/#9234896',other),false);
+  assert.equal(nameless('node_modules/#tmp'),false);
+  assert.equal(nameless('packages/a/node_modules/#9234896'),false);
+  assert.equal(nameless('node_modules/a/#9234896'),false);
+  // A file with that name, now or at either checkpoint, is a file; a
+  // checkpoint without its file map cannot tell.
+  assert.equal(nameless('node_modules/#9234896',ran,[{'node_modules/#9234896':'h'},{}]),false);
+  assert.equal(nameless('node_modules/#9234896',ran,[{},{'node_modules/#9234896':'h'}]),false);
+  assert.equal(nameless('node_modules/#9234896',ran,[{},undefined]),false);
+  put(path.join(root,'node_modules/#9234896'),'x');
+  assert.equal(nameless('node_modules/#9234896'),false);
+});
+
+test('a file with no name written by a recorded process, not pnpm, leaves the run UNVERIFIED and is named',{skip:process.platform!=='linux'},t=>{
+  const {root,state}=project(t,{lint:'checker'});
+  good(root,state,'init');good(root,state,'start');
+  write(root,'src/value.js','nameless\n');
+  good(root,state,'run','lint');
+  const status=row(root,state,'lint');
+  assert.equal(status.freshness,'UNVERIFIED');
+  assert.match(status.reason,/during execution: node_modules\/#\d+/);
 });
 
 test('installed files a tool rewrites during a run stay inputs; the run keeps them as it left them',{skip:unsupported},t=>{
