@@ -111,6 +111,10 @@ one REDUE can account for:
   content;
 - `ps -A -o ppid,pid`, which pnpm loaded into Corepack runs.
 
+A process that replaces itself with another program through
+`process.execve` (TypeScript 7's `tsc` does this to start its native
+compiler) is judged the same way as a program it starts.
+
 Anything else makes the result UNVERIFIED and names the program: `git`,
 `sleep`, `find`, and native programs from installed packages such as esbuild,
 turbo, tsgo, tsgolint and biome, whose reads, writes and network use REDUE
@@ -156,8 +160,9 @@ inputs.
 - The pnpm executable and the pnpm launchers' helpers are trusted as
   toolchain: what they read is not checked.
 - Code that copies the environment and reads the copy, and native code that
-  reads files or variables (native addons such as Rust-based resolvers), is
-  not seen.
+  reads files or variables or starts programs (native addons such as
+  Rust-based resolvers), is not seen. Neither are files opened by
+  `node:sqlite` or preopened for `node:wasi`.
 - A project whose `.npmrc` sets `node-options` stays UNVERIFIED: npm replaces
   `NODE_OPTIONS` with it, which drops REDUE's recorder.
 - A script that runs a build first (`npm run build && tsc --noEmit`) usually

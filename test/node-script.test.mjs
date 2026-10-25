@@ -148,6 +148,8 @@ if(value.includes('vue')){fs.mkdirSync('node_modules/.vue-global-types',{recursi
 // detect-libc reads the ELF header of the process's own executable.
 if(value.includes('exe')){const fd=fs.openSync(value.includes('parent')?'/proc/'+process.ppid+'/exe':'/proc/self/exe','r');fs.readSync(fd,Buffer.alloc(64),0,64,0);fs.closeSync(fd);}
 if(value.includes('installed'))fs.writeFileSync('node_modules/checker/state.txt',String(Date.now()));
+// TypeScript 7's tsc replaces its Node launcher with the native compiler.
+if(value.includes('replace'))process.execve('/bin/sh',['sh','-c','cat /etc/hosts > /dev/null']);
 // A file with no name (O_TMPFILE), as pnpm 12 writes one in node_modules.
 if(value.includes('nameless')){const fd=fs.openSync('node_modules',0o20000000|fs.constants.O_DIRECTORY|fs.constants.O_RDWR,0o600);fs.writeSync(fd,'x');fs.closeSync(fd);}
 if(value.includes('many'))for(let i=0;i<7;i++)fs.writeFileSync('node_modules/checker/state'+i+'.txt',String(Date.now()));
@@ -312,6 +314,18 @@ test("a read of the process's own executable through /proc is Node's, not an out
   status=row(root,state,'lint');
   assert.equal(status.freshness,'UNVERIFIED');
   assert.match(status.reason,/\/proc\/\d+\/exe/);
+});
+
+// The fixture's checker runs under the node on PATH.
+const pathExecve=()=>spawnSync('node',['-p','typeof process.execve'],{encoding:'utf8'}).stdout?.trim()==='function';
+test('a script that replaces itself with another program is UNVERIFIED and names it',{skip:unsupported||(pathExecve()?false:'process.execve needs Node 22.15 or later')},t=>{
+  const {root,state}=project(t,{lint:'checker'});
+  good(root,state,'init');good(root,state,'start');
+  write(root,'src/value.js','replace\n');
+  good(root,state,'run','lint');
+  const status=row(root,state,'lint');
+  assert.equal(status.freshness,'UNVERIFIED');
+  assert.match(status.reason,/\bcat\b/);
 });
 
 test("npm's node-options setting replaces NODE_OPTIONS: the run is UNVERIFIED, not CURRENT without a recorder",{skip:unsupported},t=>{

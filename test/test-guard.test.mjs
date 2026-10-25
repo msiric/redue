@@ -146,6 +146,67 @@ test('child processes and threads must load the recorder',{skip:unsupported},asy
     'started bash, which REDUE does not record','started sh, which REDUE does not record'].sort());
 });
 
+const noExecve=typeof process.execve==='function'?false:'process.execve needs Node 22.15 or later';
+test('a process that replaces itself must become a recorded Node process',{skip:unsupported||noExecve},async()=>{
+  const clean=await recorded(`if(process.argv[2]!=='again')process.execve(process.execPath,[process.execPath,__filename,'again']);`);
+  assert.equal(clean.code,0,clean.output);
+  assert.deepEqual(clean.issues,[]);
+  const escaped=await recorded(`process.execve('/bin/sh',['sh','-c','exit 0']);`);
+  assert.equal(escaped.code,0,escaped.output);
+  assert.deepEqual(escaped.issues,['replaced itself with sh, which REDUE does not record']);
+  // A shell that runs another program, then becomes Node.
+  const shell=await recorded(`if(process.argv[2]!=='again')process.execve('/bin/sh',['sh','-c','cat /etc/hosts > /dev/null; exec ${process.execPath} run.cjs again']);`);
+  assert.equal(shell.code,0,shell.output);
+  assert.equal(shell.issues.length,1,shell.issues.join('\n'));
+  assert.match(shell.issues[0],/\bcat\b/);
+  // The new program's worker that did not load the recorder, after the old program's worker that did.
+  const worker=await recorded(`const {Worker}=require('worker_threads');
+    if(process.argv[2]!=='again')new Worker('void 0',{eval:true}).on('exit',()=>process.execve(process.execPath,[process.execPath,__filename,'again']));
+    else new Worker('void 0',{eval:true,env:{}});`);
+  assert.equal(worker.code,0,worker.output);
+  assert.deepEqual(worker.issues,['a worker thread did not load the REDUE recorder']);
+  // Refused in a worker: nothing was replaced.
+  const refused=await recorded(`const {Worker}=require('worker_threads');
+    new Worker("try{process.execve('/bin/sh',['sh'])}catch{}",{eval:true});`);
+  assert.equal(refused.code,0,refused.output);
+  assert.deepEqual(refused.issues,[]);
+});
+
+test("Node's bindings with file, network or program access, and its internal modules, are refused",{skip:unsupported},async()=>{
+  for(const name of ['spawn_sync','process_wrap','fs','tcp_wrap']){
+    const run=await recorded(`process.binding('${name}');`);
+    assert.deepEqual(run.issues,[`recorder: process.binding('${name}') reads files, uses the network or starts programs out of REDUE's sight`]);
+  }
+  assert.deepEqual((await recorded(`process.binding('util');`)).issues,[]);
+  for(const flag of ['--expose-internals','--expose_internals=true']){
+    const internals=await recorded(`require('child_process').execFileSync(process.execPath,['${flag}','-e','']);`);
+    assert.deepEqual(internals.issues,['recorder: a Node process exposed its internal modules (--expose-internals)']);
+  }
+});
+
+test('a shell child that runs another program before it becomes Node is read as a command',{skip:unsupported},async()=>{
+  const run=await recorded(`require('child_process').spawnSync('/bin/sh',['-c','cat /etc/hosts > /dev/null; exec ${process.execPath} -e ""']);`);
+  assert.equal(run.issues.length,1,run.issues.join('\n'));
+  assert.match(run.issues[0],/\bcat\b/);
+});
+
+// A record written by hand: rows per file, named PID-THREAD.jsonl.
+function guardOf(files){
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'redue-guard-record-'));
+  try{for(const [name,rows] of Object.entries(files))fs.writeFileSync(path.join(dir,name),rows.map(row=>JSON.stringify(row)).join('\n')+'\n');
+    return testRunGuard(dir,{root:dir,sourcePatterns:patterns,files:{},runner:100}).issues;}
+  finally{fs.rmSync(dir,{recursive:true,force:true});}
+}
+test('a replacement must be followed by its header from the same parent; Node threads are not started threads',()=>{
+  const main={pid:100,ppid:1,threadId:0,main:'/p/a.js'},x=['X',process.execPath,['/p/b.js'],'/p','/usr/bin',{preload:true,bashEnv:false},null];
+  assert.deepEqual(guardOf({'100-0.jsonl':[['H',main],x,['H',{...main,main:'/p/b.js'}]]}),[]);
+  assert.deepEqual(guardOf({'100-0.jsonl':[['H',main],x,['H',{...main,ppid:2,main:'/p/b.js'}]]}),['replaced itself with node, which REDUE does not record']);
+  assert.deepEqual(guardOf({'100-0.jsonl':[['H',main],x]}),['replaced itself with node, which REDUE does not record']);
+  // The ESM hooks thread's header does not stand for a worker the run started.
+  assert.deepEqual(guardOf({'100-0.jsonl':[['H',main],['T',1]],'100-1.jsonl':[['H',{pid:100,ppid:1,threadId:1,main:null,internal:true}]]}),
+    ['a worker thread did not load the REDUE recorder']);
+});
+
 test('a runner that never loaded the recorder is an issue',{skip:unsupported},()=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'redue-guard-record-'));
   try{assert.deepEqual(testRunGuard(dir,{root:dir,sourcePatterns:patterns,files:{},runner:12345}).issues,

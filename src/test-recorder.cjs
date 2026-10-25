@@ -15,7 +15,7 @@ if(configFile)install();
 function install(){
   const original={openSync:fs.openSync,writeSync:fs.writeSync,readFileSync:fs.readFileSync,
     statSync:fs.statSync,readdirSync:fs.readdirSync,real:fs.realpathSync.native};
-  const {threadId}=require('node:worker_threads');
+  const {threadId,isInternalThread}=require('node:worker_threads');
   let config,fd;
   try{config=JSON.parse(original.readFileSync(configFile,'utf8'));
     fd=original.openSync(path.join(config.dir,`${process.pid}-${threadId}.jsonl`),'a',0o600);}
@@ -25,7 +25,10 @@ function install(){
   const failed=reason=>emit(['U',reason]);
   // The main script tells the guard which program a process runs (a package
   // manager may start helpers of its own).
-  emit(['H',{pid:process.pid,ppid:process.ppid,threadId,main:typeof process.argv[1]==='string'?process.argv[1]:null}]);
+  // Node's own threads (the ESM hooks thread) load it too; the guard does not
+  // count them as threads the run started.
+  emit(['H',{pid:process.pid,ppid:process.ppid,threadId,main:typeof process.argv[1]==='string'?process.argv[1]:null,
+    ...(isInternalThread===true?{internal:true}:{})}]);
   // Every node_modules observed as installed: the root's and each workspace package's.
   const sep=path.sep,root=config.root,installed=Array.isArray(config.installed)?config.installed:[path.join(root,'node_modules')],
     tmp=config.tmp;
@@ -395,6 +398,32 @@ function install(){
         catch{failed('recorder failure');}}
     };
   }
+  // process.execve replaces this process with another program, under the
+  // same PID: the row comes first, since a successful call does not return
+  // (a failed one aborts the process). Node refuses it in a worker and for
+  // bad arguments by throwing; the row is then withdrawn. The kernel does not
+  // search PATH, so the file is taken from the working directory. A Node
+  // program that replaces this one loads the recorder again and appends a
+  // header to the same record.
+  if(typeof process.execve==='function'){const execve=process.execve;
+    process.execve=function(file,args,env,...rest){
+      let row=false;
+      if(threadId===0)try{const options={env:env??process.env},full=path.resolve(String(file)),where_=where(options);
+        emit(['X',full,argsOf(Array.isArray(args)?args.slice(1):[]),...where_,scriptOf(full,where_[0],null)]);row=true;}
+      catch{failed('recorder failure');}
+      try{return execve.call(this,file,args,env,...rest);}
+      catch(error){if(row)emit(['Y']);throw error;}};}
+  // Bindings that read files, use the network or start programs out of the
+  // recorder's sight. Only bindings without such access are allowed.
+  const harmlessBindings=new Set(['async_wrap','buffer','config','constants','contextify','crypto','http_parser','icu',
+    'js_stream','natives','os','signal_wrap','stream_wrap','tty_wrap','url','util','uv','v8','zlib']);
+  if(typeof process.binding==='function'){const binding=process.binding;
+    process.binding=function(name,...rest){
+      const result=binding.call(this,name,...rest);
+      if(!harmlessBindings.has(name))failed(`process.binding('${String(name)}') reads files, uses the network or starts programs out of REDUE's sight`);
+      return result;};}
+  // Node's internal modules include child_process's unhooked internals.
+  if(process.execArgv.some(arg=>/^--expose[-_]internals(=|$)/.test(arg)))failed('a Node process exposed its internal modules (--expose-internals)');
   const workers=require('node:worker_threads'),Worker=workers.Worker;
   workers.Worker=class extends Worker{
     constructor(...args){super(...args);try{emit(['T',this.threadId]);}catch{failed('recorder failure');}}

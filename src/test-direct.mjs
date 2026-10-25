@@ -16,6 +16,8 @@ import {queryAnswer} from './typescript-list.mjs';
 import {pnpmInstallInfo,pnpmProjectInfo,yaml} from './pnpm-inputs.mjs';
 import {workspaceManifests} from './workspace-manifests.mjs';
 import {atomicJson} from './state-store.mjs';
+// node-script.mjs imports this module too; childProgram is only called at run time.
+import {childProgram} from './node-script.mjs';
 import {racyUntil} from './path-identity.mjs';
 
 const digest=value=>createHash('sha256').update(value).digest('hex');
@@ -73,7 +75,7 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
   const issues=[],add=issue=>{if(!issues.includes(issue))issues.push(issue);};
   const included=patternMatcher(sourcePatterns);
   const observed=rel=>Object.hasOwn(files||{},rel);
-  const headers=new Map(),records=[];
+  const headers=new Map(),records=[],headerCount=new Map(),threadsStarted=new Map();
   let names=[];
   try{names=fs.readdirSync(dir).filter(name=>name.endsWith('.jsonl'));}
   catch{return {issues:['the run record is unavailable'],runFacts:[],environmentReads:{},isOutput:()=>false};}
@@ -84,6 +86,9 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
     const header=rows[0]?.[0]==='H'?rows[0][1]:null;
     if(!header||!Number.isSafeInteger(header.pid)||!Number.isSafeInteger(header.threadId)){add('a run record is unreadable');continue;}
     headers.set(`${header.pid}-${header.threadId}`,header);
+    // After process.execve, the new program's threads append to the same
+    // records: each thread started needs its own header.
+    headerCount.set(`${header.pid}-${header.threadId}`,rows.filter(row=>row?.[0]==='H'&&!row[1]?.internal).length);
     records.push({header,rows:rows.slice(1)});
   }
   let opaque=false;
@@ -101,7 +106,24 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
   // PIDs is that child, not an execSync child (which reports no PID).
   const installedWrites=new Set();
   const reads=new Map(),produced=new Set(),created=new Set(),environmentReads={},spawned=new Map(),childPids=new Map();
+  // Whether a started program is accounted for: {issue} or {needsHeader}.
+  // The tests recipe wants every program to become a recorded process; a
+  // shell, which can run other programs first, is read by its command as
+  // the general recipe reads it.
+  const judge=(child,main)=>{
+    if(!programs){
+      const judged=/^(sh|bash|dash|zsh|ksh|fish|csh|tcsh)$/.test(path.basename(String(child.file)))?childProgram(child,{parentMain:main}):{};
+      return judged.issue?judged:{needsHeader:true};}
+    const judged=programs.judge(child,main);
+    if(!judged.issue)opaque||=Boolean(judged.opaque);
+    return judged;
+  };
   for(const {header,rows} of records){
+    // A program this process replaced itself with (process.execve) that must
+    // load the recorder: its header follows in this record, from the same
+    // parent. Later rows come from the program now running. (A reused PID
+    // also appends a header to an old record.)
+    let replaced=null,main=header.main??null;
     for(const row of rows){
       const [kind,...value]=Array.isArray(row)?row:[];
       if(kind==='U')add(`recorder: ${value[0]}`);
@@ -121,16 +143,26 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
         if(kind==='C')childPids.set(header.pid,[...childPids.get(header.pid)||[],value[0]]);
         // The general recipe accounts for each program; one that needs no
         // recorder (a shell, the pnpm executable) is not matched to a header.
-        if(programs){const judged=programs.judge({file,args,cwd,searchPath,env,script},header.main??null);
-          if(judged.issue){add(judged.issue);continue;}
-          opaque||=Boolean(judged.opaque);
-          if(!judged.needsHeader)continue;}
+        const judged=judge({file,args,cwd,searchPath,env,script},main);
+        if(judged.issue){add(judged.issue);continue;}
+        if(!judged.needsHeader)continue;
         const list=spawned.get(header.pid)||[];list.push({pid:kind==='C'?value[0]:null,file});
         spawned.set(header.pid,list);}
-      else if(kind==='T'){if(!headers.has(`${header.pid}-${value[0]}`))add('a worker thread did not load the REDUE recorder');}
-      else if(kind!=='H')add('a run record is unreadable');
+      else if(kind==='X'){
+        const [file,args,cwd,searchPath,env,script]=value;
+        const judged=judge({file,args,cwd,searchPath,env,script},main);
+        if(judged.issue){add(judged.issue);replaced=null;continue;}
+        replaced=judged.needsHeader?file:null;}
+      else if(kind==='Y')replaced=null;
+      else if(kind==='T'){const key=`${header.pid}-${value[0]}`;threadsStarted.set(key,(threadsStarted.get(key)||0)+1);}
+      else if(kind==='H'){
+        if(replaced!==null&&value[0]?.ppid!==header.ppid)add(`replaced itself with ${path.basename(String(replaced))}, which REDUE does not record`);
+        replaced=null;main=value[0]?.main??null;}
+      else add('a run record is unreadable');
     }
+    if(replaced!==null)add(`replaced itself with ${path.basename(String(replaced))}, which REDUE does not record`);
   }
+  for(const [key,count] of threadsStarted)if((headerCount.get(key)||0)<count)add('a worker thread did not load the REDUE recorder');
   // Every child must be a recorded Node process: by PID when known, otherwise
   // by the number of recorded processes whose parent started it.
   for(const [parent,children] of spawned){

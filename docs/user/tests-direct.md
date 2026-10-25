@@ -80,7 +80,14 @@ kept but marked UNVERIFIED, with the reason, when the run:
 - connected to anything other than loopback or a local socket, or asked DNS
   about a name other than localhost;
 - started a process that did not load the recorder: a shell, a binary, or a
-  Node process with its own environment;
+  Node process with its own environment. A process that replaces itself with
+  another program (`process.execve`) counts as starting it, and it must
+  become a recorded Node process. A shell is read by its command, as the
+  [general recipe](node-script.md#programs) reads it: one that runs another
+  program before it becomes Node counts too;
+- used one of Node's bindings with file, network or program access
+  (`process.binding('fs')`, `'spawn_sync'` and others), or ran Node with
+  `--expose-internals`: the recorder cannot follow those;
 - had an installed file with another hard link, other than a link into the
   pnpm store the install recorded in `node_modules/.modules.yaml` (pnpm's
   default on Linux). A change through a link elsewhere, such as Yarn's
