@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.1.0-alpha.21 — 2026-10-25
+
+`init` finds more typecheck scripts and no longer stops in large monorepos.
+In the census of 108 public TypeScript repos, the general recipe qualifies 26
+typecheck scripts (was 23) and 20 lint scripts.
+
+- `init` prefers typecheck scripts named `tsc`, `types` or `lint:types`, then
+  takes one script named under a typecheck name (`typecheck:test`,
+  `tsc:build`, ...), watch scripts aside. Two such scripts are reported as
+  ambiguous unless a command alone decides. Scripts named `build` or `dev`
+  that run tsc are not taken: they write output.
+- A workspace of more than 50 packages no longer stops `init`. It reads up to
+  1000 packages, proposes the root's checks, and past 50 packages skips
+  per-package checks and says so (`skipped` in `--json`, a "Skipped:" line
+  otherwise). Five census repos got no check at all before.
+- General recipe: pnpm 12 writes its workspace state through a temporary
+  `node_modules/.tmpXXXXXX` file. Like the state file, it counts as the run's
+  output when the pnpm executable ran. Known limit: the agent eval's seed lint
+  run on one pnpm 12 project is still UNVERIFIED for an input event REDUE does
+  not yet name.
+
+- Contributors: the agent eval records each run's seed and final receipt,
+  and the files a session changed when its seed run is not stable.
+
 ## 0.1.0-alpha.20 — 2026-10-24
 
 A fix for agents on macOS.
