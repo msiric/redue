@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.1.0-alpha.22 — 2026-10-25
+
+A correctness fix for recorded runs. Earlier alphas could report CURRENT for
+a script that replaced itself with another program.
+
+- **Fixed: a script that replaced itself with another program could be
+  CURRENT.** Node's `process.execve` (Node 22.15 and later) swaps a process
+  for another program under the same PID. The recorder did not see it, so
+  that program ran unseen. TypeScript 7's `tsc` does this to start its
+  native compiler, so alphas 19 to 21 could report a TypeScript 7 typecheck
+  as CURRENT while REDUE saw none of what the compiler did. The general
+  recipe and the direct test recipe now judge the new program like any
+  program a run starts: TypeScript 7's `tsc` makes the run UNVERIFIED and
+  names it. Support for TypeScript 7 is planned.
+- Runs that use Node's bindings with file, network or program access
+  (`process.binding('fs')`, `'spawn_sync'` and others), or run Node with
+  `--expose-internals`, are UNVERIFIED: the recorder cannot follow them.
+- Direct test recipe: a shell a test starts is read by its command, as in the
+  general recipe. One that runs another program before it becomes Node makes
+  the run UNVERIFIED.
+- General recipe, on Linux: pnpm 12 writes a file with no name in
+  `node_modules` when it rewrites its workspace state, which left the first
+  run after an install UNVERIFIED. That file now counts as the run's output
+  when the pnpm executable ran and no file has its name. Known limit: another
+  program's file with no name there, during such a run, is taken as pnpm's.
+- UNVERIFIED reasons for an input that changed during a run name up to five
+  files and a count of the rest.
+
+- Contributors: the census traces each run on Linux and flags programs the
+  recorder missed.
+
 ## 0.1.0-alpha.21 — 2026-10-25
 
 `init` finds more typecheck scripts and no longer stops in large monorepos.
