@@ -200,8 +200,9 @@ function guardOf(files){
 test('a replacement must be followed by its header from the same parent; Node threads are not started threads',()=>{
   const main={pid:100,ppid:1,threadId:0,main:'/p/a.js'},x=['X',process.execPath,['/p/b.js'],'/p','/usr/bin',{preload:true,bashEnv:false},null];
   assert.deepEqual(guardOf({'100-0.jsonl':[['H',main],x,['H',{...main,main:'/p/b.js'}]]}),[]);
-  assert.deepEqual(guardOf({'100-0.jsonl':[['H',main],x,['H',{...main,ppid:2,main:'/p/b.js'}]]}),['replaced itself with node, which REDUE does not record']);
-  assert.deepEqual(guardOf({'100-0.jsonl':[['H',main],x]}),['replaced itself with node, which REDUE does not record']);
+  const unrecorded=`replaced itself with ${path.basename(process.execPath)}, which REDUE does not record`;
+  assert.deepEqual(guardOf({'100-0.jsonl':[['H',main],x,['H',{...main,ppid:2,main:'/p/b.js'}]]}),[unrecorded]);
+  assert.deepEqual(guardOf({'100-0.jsonl':[['H',main],x]}),[unrecorded]);
   // The ESM hooks thread's header does not stand for a worker the run started.
   assert.deepEqual(guardOf({'100-0.jsonl':[['H',main],['T',1]],'100-1.jsonl':[['H',{pid:100,ppid:1,threadId:1,main:null,internal:true}]]}),
     ['a worker thread did not load the REDUE recorder']);
