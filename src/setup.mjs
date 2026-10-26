@@ -112,6 +112,22 @@ async function setup({root,redue,yes,record:previous,recordFile,exclude,save}){
     if(!/already running/.test(started.stderr))throw Error(`the observer did not start: ${started.stderr.trim().replace(/^redue: /,'')}`);
     console.log('Observer already running.');
   }
+  // The observer indexes the project first; a run before that cannot be
+  // recorded as reusable. Wait while it plans and indexes; once its plan is
+  // ready, an observer that is still unhealthy says why in the status below.
+  // Nothing to wait for when no check can qualify.
+  const observation=()=>{const out=redue(['status','--json'],{capture:true});try{return JSON.parse(out.stdout).observation??null;}catch{return null;}};
+  // An answer without a phase (a stopped observer) for 10 s in a row ends the
+  // wait too.
+  const begun=Date.now();let told=-1,unread=0,phaseless=0;
+  for(let state=observation();ready.length&&!(state?.phase==='ready'||state?.phase==='unavailable')&&phaseless<10;state=observation()){
+    const seconds=Math.round((Date.now()-begun)/1000);
+    unread=state===null?unread+1:0;phaseless=state&&!state.phase?phaseless+1:0;
+    if(unread>=30)throw Error('the observer\'s status cannot be read; run redue status to see why');
+    if(seconds>15*60)throw Error(`the observer is not ready after 15 minutes (${state?.reason||state?.phase||'unknown'}); run redue status, then redue setup claude again`);
+    if(Math.floor(seconds/15)>told){told=Math.floor(seconds/15);console.log(seconds?`Still indexing (${seconds} s)...`:'Waiting for the observer to index the project...');}
+    await new Promise(resolve=>setTimeout(resolve,1000));
+  }
   // One recorded run of each check that can qualify and is not CURRENT.
   const statusOf=()=>{const out=redue(['status','--sync','--json'],{capture:true,timeout:600_000});try{return JSON.parse(out.stdout).checks;}catch{return [];}};
   const rows=statusOf(),due=ready.filter(name=>rows.find(row=>row.name===name)?.freshness!=='CURRENT');

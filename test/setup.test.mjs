@@ -26,7 +26,8 @@ function project(t){
   const env={...Object.fromEntries(Object.entries(process.env).filter(([key])=>!/^npm_/i.test(key))),
     HOME:base,XDG_STATE_HOME:path.join(base,'state')};
   const redue=(...args)=>spawnSync(process.execPath,[bin,...args],{cwd:root,env,encoding:'utf8',timeout:120000});
-  t.after(()=>{redue('remove','--yes');fs.rmSync(base,{recursive:true,force:true});});
+  // An observer setup did not start is left running by remove: stop it too.
+  t.after(()=>{redue('remove','--yes');redue('stop');fs.rmSync(base,{recursive:true,force:true,maxRetries:5,retryDelay:200});});
   return {root,redue};
 }
 // The setup record: one per checkout in the shared Git directory.

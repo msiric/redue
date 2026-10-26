@@ -77,7 +77,12 @@ for (const name of names) {
     }
     const result = messages.findLast(message => message.type === 'result');
     row.turns = result?.num_turns ?? null; row.report = result?.result ?? null; row.cost_usd = result?.total_cost_usd ?? null;
-    // What was set up, asked of the REDUE the session installed.
+    // What the session itself last saw from redue status, in its own environment.
+    const statusCall = [...calls.values()].filter(call => call.name === 'Bash' && /\bredue status\b/.test(call.input?.command ?? '')).at(-1);
+    const seen = statusCall && messages.flatMap(message => message.message?.content ?? []).find(part => part.type === 'tool_result' && part.tool_use_id === statusCall.id);
+    row.session_status = seen ? String(Array.isArray(seen.content) ? seen.content.map(item => item.text ?? '').join('') : seen.content).slice(-1500) : null;
+    // What was set up, asked of the REDUE the session installed. The harness
+    // environment differs from the session's, so freshness here can differ.
     const redue = (...args) => sh('redue', args, {cwd: dir, env});
     row.installed = sh('sh', ['-c', 'command -v redue'], {env}).stdout.trim() || null;
     row.files = Object.fromEntries(['redue.config.json', '.claude/settings.local.json', 'CLAUDE.md']

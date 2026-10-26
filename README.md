@@ -20,13 +20,16 @@ cd your-project
 redue setup claude
 ```
 
-`setup` shows what it will do and asks once (`--yes` skips the question). It:
+`setup` shows what it will do and asks once (`--yes` skips the question). It
+stops before writing anything if the dependencies are not installed. It:
 
 - finds your typecheck, lint and test scripts and writes `redue.config.json`
-  (it never changes your scripts, source or dependencies);
+  (it never changes your scripts, source or dependencies). Checks REDUE can
+  only record, not reuse, are listed as recording-only;
 - connects Claude Code: a short section in `CLAUDE.md`, a skill, and two hooks
   in `.claude/settings.local.json`;
-- starts REDUE's file observer and runs each check that can qualify once, so
+- starts REDUE's file observer, waits while it indexes the project (a minute
+  or more in a large one), then runs each check that can qualify once, so
   there is a first result to reuse;
 - prints every file it writes. Running it again changes nothing.
 
@@ -38,7 +41,7 @@ through REDUE so the new result is recorded.
 To look yourself:
 
 ```text
-$ redue status
+$ redue status --sync
 ✓ typecheck  CURRENT / PASS
 ✓ lint  CURRENT / PASS
 
@@ -48,6 +51,11 @@ typecheck: STALE / PASS
 src/main.ts changed
 Due again when verification is needed: redue run "typecheck"
 ```
+
+`--sync` checks the files and your environment before it answers; this is
+what the agent asks. Plain `redue status` is a fast cached answer and can say
+UNVERIFIED ("cannot confirm your execution context") where `--sync` would say
+CURRENT.
 
 To undo everything setup did: `redue remove`.
 
@@ -67,7 +75,12 @@ same inputs. 31 repositories had at least one such check:
 Everything else stays UNVERIFIED, with a reason you can read in
 `redue explain`. The usual ones: a script starts a program REDUE cannot see
 into (esbuild, turbo, nx, oxlint's tsgolint, TypeScript 7's native compiler),
-the project uses Bun, or a test suite writes into its own inputs.
+the project uses Bun, or a test suite writes into its own inputs. Two you may
+meet right after setup: a Vitest run writes its results under
+`node_modules/.vite`, which the direct TypeScript recipe counts as an
+installed input, so the typecheck turns STALE until it runs again; and an
+installed file with a second hard link (esbuild's install makes one) keeps
+the test check UNVERIFIED.
 [Supported projects](docs/user/supported-projects.md) has the details.
 
 ## Measured with Claude Code
@@ -110,7 +123,7 @@ harness, tasks and raw results are in [`eval/`](eval/README.md).
 | CURRENT | The recorded result applies to the code as it is now. | Reuse a pass; no need to rerun. |
 | STALE | An input changed since the recorded result. | Rerun when you need the answer. |
 | UNVERIFIED | REDUE cannot tell: no result yet, an input it cannot see, or observation not ready. | Read the reason; rerun if it matters. |
-| FAILED | The command itself failed to run. | Fix and rerun. |
+| FAILED | The last run failed: the check ran and reported a failure, or could not run. | Fix and rerun. |
 
 ## Without Claude Code, or step by step
 
@@ -118,7 +131,7 @@ harness, tasks and raw results are in [`eval/`](eval/README.md).
 redue init          # write redue.config.json from your scripts
 redue start         # start the file observer
 redue run typecheck # run a check through REDUE and record the result
-redue status        # what still holds
+redue status --sync # what still holds
 ```
 
 Codex is supported too (`redue agent setup codex --apply`); see
