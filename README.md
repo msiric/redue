@@ -1,229 +1,133 @@
 # REDUE
 
-Maintainer notice: alpha.4 withdraws automatic npm-launcher applicability.
-Npm commands still execute and record historical outcomes, but remain UNVERIFIED.
-[Why this changed and how to upgrade without deleting receipts](docs/user/npm-launcher-notice.md).
-Alpha.2 users should also review the [receipt correction](docs/user/receipt-selection-notice.md).
+**Know which checks still hold. Redo what's due.**
 
-**Know what still holds. Redo what's due.**
+You or your coding agent ran the typecheck, the linter or the tests. Then the
+code changed, or a new agent session started with no memory of it. REDUE
+records each check's result with the exact inputs it ran on, and tells you and
+your agent whether that result still applies to the code you have now, so a
+check that still holds is not run again and one that is stale is.
 
-You ran the checks. Then the code changed—or a new coding agent started with no
-conversation history. Which results can you still use?
+## Quickstart (about 5 minutes)
 
-REDUE keeps persistent verification state for your codebase so developers and
-coding agents can see which previous checks still apply to the code they have now.
-It records evidence, not proofs of correctness.
-
-For a qualified direct-compiler or supported Yarn/pnpm check (ordinary npm scripts are recording-only):
-
-```text
-$ redue status --sync
-✓ typecheck  CURRENT / PASS
-? test  UNVERIFIED / PASS
-  Recording-only: test runtime, transforms and cache inputs need review
-
-# Later, after a relevant edit:
-$ redue explain typecheck
-typecheck: STALE / PASS
-src/main.ts changed
-Relevant inputs changed:
-  src/main.ts
-Due again when verification is needed: redue run "typecheck"
-```
-
-Agent A verifies and exits. Agent B starts fresh. The receipt is still there;
-REDUE checks whether it still applies. Unrelated documentation edits can preserve
-it; relevant source edits make it stale. [Run the reproducible demo](docs/contributor/demo.md).
-
-## Install the alpha
-
-The opt-in pilot uses **0.1.0-alpha.18**. Follow the
-[fixed-version pilot guide](docs/user/pilot.md) for supported projects, setup,
-updates and voluntary feedback. No external usage results are claimed yet.
-
-
-REDUE is published on npm as `@redue/cli`. The installed command is `redue`.
+You need macOS or Linux, Node 22 or 24, Git, Claude Code, and a JavaScript or
+TypeScript project with its dependencies installed (`npm install`,
+`pnpm install` or `yarn`). On Linux, also Python 3.
 
 ```sh
 npm install --global @redue/cli@alpha
+cd your-project
+redue setup claude
 ```
 
-To test a source candidate, run `npm ci` and `npm pack --json`, then install the
-reported tarball filename with `npm install --global ./<filename>`.
+`setup` shows what it will do and asks once (`--yes` skips the question). It:
 
-Use a Node installation you own; REDUE does not need administrator privileges.
-If a global prefix is not writable, use a user-owned `--prefix` or run the
-installed CLI with Node. [Installation and removal](docs/user/getting-started.md)
-includes PowerShell and isolated-prefix instructions.
+- finds your typecheck, lint and test scripts and writes `redue.config.json`
+  (it never changes your scripts, source or dependencies);
+- connects Claude Code: a short section in `CLAUDE.md`, a skill, and two hooks
+  in `.claude/settings.local.json`;
+- starts REDUE's file observer and runs each check that can qualify once, so
+  there is a first result to reuse;
+- prints every file it writes. Running it again changes nothing.
 
-Inside an existing, trusted Git project with dependencies already installed:
+Then start a new Claude Code session in the project and work as usual. When
+the agent is about to rerun a check whose last pass still applies, the hook
+skips it and tells the agent why. After an edit, the hook runs the check
+through REDUE so the new result is recorded.
 
-```sh
-cd my-project
-redue init
-redue start
-redue run typecheck  # use a check name printed by init
-redue status
+To look yourself:
+
+```text
+$ redue status
+✓ typecheck  CURRENT / PASS
+✓ lint  CURRENT / PASS
+
+# after editing src/main.ts
+$ redue explain typecheck
+typecheck: STALE / PASS
+src/main.ts changed
+Due again when verification is needed: redue run "typecheck"
 ```
 
-`init` discovers existing scripts, explains which can qualify and which are
-recording-only, and writes a small `redue.config.json`. It never runs your checks
-or changes your package manager, source, scripts, or dependencies. Commit the
-reviewed project config; local evidence stays outside the checkout.
+To undo everything setup did: `redue remove`.
 
-Start with ordinary `status`. When it cannot establish caller context, use
-`redue status --sync` if that is worthwhile—or just rerun an inexpensive check.
-**Synchronization can cost more than rerunning a cheap check, particularly on
-Windows.** REDUE does not choose or execute that tradeoff for you.
+## What it covers today
 
-`init` tries the strict recipes first: the [direct compiler recipe](docs/user/direct-typescript.md)
-for npm typechecks, the pnpm and Yarn TypeScript recipes, and the
-[direct test recipe](docs/user/tests-direct.md). A root typecheck or lint
-script none of them takes can use the [general recipe](docs/user/node-script.md),
-which runs the script through the package manager and records every Node
-process; a script that starts another program (git, esbuild, turbo) stays
-UNVERIFIED and the reason names it. Test scripts use the direct test recipe
-(Vitest, Jest); other test scripts stay recording-only.
+In a census of 120 active public TypeScript repositories (October 2026, REDUE
+at commit c9034e5, just after 0.1.0-alpha.22), 89 installed cleanly. A check
+counts when two recorded runs on the same code both came out CURRENT on the
+same inputs. 31 repositories had at least one such check:
 
-## Connect your agent (experimental)
+| Check | Repositories | How |
+|---|---|---|
+| Typecheck | 22 | 16 by running the project's script with every Node process recorded ([general recipe](docs/user/node-script.md)); 6 by running the local `tsc` directly ([direct recipe](docs/user/direct-typescript.md)) |
+| Lint | 18 | general recipe |
+| Tests | 2 | Vitest run directly ([direct test recipe](docs/user/tests-direct.md)) |
 
-```sh
-redue agent setup codex --dry-run
-redue agent setup codex --apply  # or claude
-redue agent doctor
-```
+Everything else stays UNVERIFIED, with a reason you can read in
+`redue explain`. The usual ones: a script starts a program REDUE cannot see
+into (esbuild, turbo, nx, oxlint's tsgolint, TypeScript 7's native compiler),
+the project uses Bun, or a test suite writes into its own inputs.
+[Supported projects](docs/user/supported-projects.md) has the details.
 
-Start a fresh agent session and give it an ordinary task. Project-local guidance
-teaches it to inspect evidence before deciding whether verification needs repeating.
-Setup is explicit, reversible, and does not change tool permissions or run checks.
-[Activation, removal, and generic-agent guidance](docs/user/agents.md).
+## Measured with Claude Code
 
-The experimental claim is **opt-in project-local agent activation and direct TypeScript
-evidence, with fresh-session reuse demonstrated in the tested Codex/macOS
-configuration and measured for Claude Code below**. Cross-host reuse is not
-tested. This is experimental guidance, not guaranteed agent compliance, general
-sandbox compatibility, or a promise of time savings.
+Headless Claude Code sessions (Sonnet 5.5, CI Linux runner) on the same tasks
+with and without REDUE, three sessions per task. Session time, medians per
+task summed over the projects:
 
-### Measured with Claude Code
+- **Typecheck** (twilio-node, semiotic, Ultra-Card, SwitchHosts; four tasks;
+  96 sessions; 0.1.0-alpha.12 code): 464 s without, 330 s with. REDUE skipped
+  33 typechecks. Each was checked afterwards with plain `tsc` on the exact tree
+  it was skipped on, and all 33 agreed.
+- **Unit tests** (cheerio with Vitest 4, SwitchHosts with Vitest 5, twilio-node
+  with Jest 29; four tasks; 72 sessions; 0.1.0-alpha.14 code): 515 s without,
+  295 s with. REDUE skipped 21 test runs. Each was rerun plainly three times on
+  the exact tree, and all passed every time.
 
-Four public TypeScript projects, four tasks each, three sessions per task with
-and without REDUE: 96 headless Claude Code sessions (Sonnet 5.5, CI Linux
-runner, alpha.12 code, October 2026). Plain `tsc --noEmit` takes 10–19 s on
-these projects. Medians per task, summed over the four projects:
+API cost was the same in both arms. The savings come only when an earlier
+pass still applies: a task that changes source code saves nothing. A handful
+of projects and three runs per task show direction, not a general rate. The
+harness, tasks and raw results are in [`eval/`](eval/README.md).
 
-| Task | Session time, without → with REDUE | Input tokens | Typechecks skipped |
-|---|---|---|---|
-| Docs edit, then "make sure it still typechecks" | 97 → 45 s | 169k → 162k | 12 of 12 |
-| "Does it still typecheck?" after a pull | 74 → 22 s | 117k → 89k | 12 of 12 |
-| Source change, typecheck, then a docs edit | 141 → 112 s | 210k → 200k | 9 of 12 |
-| Source change with tests | 152 → 151 s | 269k → 234k | 0 of 12 |
-| **All tasks** | **464 → 330 s** | **765k → 685k** | 33 |
+## What REDUE won't do
 
-- **Correctness:** every typecheck REDUE skipped was checked afterwards with
-  plain tsc on the exact tree it was skipped on. All 33 agreed, and all 96
-  final trees passed plain tsc and the task checks in both arms.
-- **Cost:** API cost was the same ($0.65 without, $0.66 with). One-time setup
-  per checkout was 3–5 s, plus one recorded typecheck; the CLAUDE.md section
-  REDUE adds is about 60 tokens.
-- **How:** each session gets a fresh clone at a pinned commit; the REDUE arm
-  first runs `redue init`, `agent setup claude`, `start` and one
-  `redue run typecheck`, standing for an earlier session's passing check.
-  The harness, tasks and raw results are in [`eval/`](eval/README.md).
-- **Limits:** four projects and three runs per cell show direction, not a
-  general rate. Savings come only when an earlier pass still applies: tasks
-  that change source code save nothing, and on one project the docs edit came
-  after source edits that made the result STALE, so nothing was skipped. The
-  projects were chosen because they qualify for the direct TypeScript recipe;
-  of 38 screened projects, 19 qualified at alpha.12 and 22 at alpha.13. Times are agent session
-  time only, on one runner type.
-
-### Unit tests, measured with Claude Code
-
-Three public projects (cheerio with Vitest 4, SwitchHosts with Vitest 5, twilio
-with Jest 29), four tasks each, three sessions per task with and without REDUE:
-72 headless Claude Code sessions (Sonnet 5.5, CI Linux runner, alpha.14 code,
-October 2026), using the opt-in [direct test recipe](docs/user/tests-direct.md).
-Medians per task, summed over the three projects:
-
-| Task | Session time, without → with REDUE | Input tokens | Test runs skipped |
-|---|---|---|---|
-| Docs edit, then "make sure the unit tests still pass" | 95 → 41 s | 131k → 121k | 9 of 9 |
-| "Do the unit tests still pass?" after a pull | 80 → 22 s | 62k → 63k | 9 of 9 |
-| Source change, tests, then a docs edit | 171 → 111 s | 224k → 213k | 3 of 9 |
-| Source change with tests | 169 → 120 s | 172k → 164k | 0 of 9 |
-| **All tasks** | **515 → 295 s** | **589k → 559k** | 21 |
-
-- **Correctness:** every skipped test run was rerun plainly three times on the
-  exact tree it was skipped on; all 21 passed every time. All 72 final trees
-  passed the tests and the task checks in both arms.
-- **Limits:** one run of three projects shows direction, not a rate. The
-  source-change task skipped nothing; its time difference is session variance.
-  In two mixed-task sessions the agent left out its final test run on its own
-  after a README-only edit, without asking REDUE, and said so; the eval report
-  lists such sessions. Since alpha.15 the agent instructions ask agents to run
-  the check and leave skipping to REDUE; in a 12-session rerun of that task,
-  no agent left it out. Cost was the same ($0.54 without, $0.56 with).
+- **Prove your code is correct.** CURRENT means the inputs of the recorded
+  run are unchanged, not that the code works. A failure stays a failure.
+- **Run checks for you.** Nothing runs in the background; checks run when you
+  or the agent run them.
+- **Trust what it cannot see.** A program it cannot account for, a file it
+  does not observe, or a gap in observation makes the result UNVERIFIED and
+  says why. It never turns that into CURRENT by guessing.
+- **Support yet:** TypeScript 7's native compiler, Bun, per-package checks in
+  large monorepos, results shared across machines, and the general recipe on
+  Windows (Windows has the strict recipes only).
 
 ## What the states mean
 
-| State | Meaning | Normal next step |
+| State | Meaning | Next step |
 | --- | --- | --- |
-| CURRENT | The recorded result applies to the declared inputs. | Reuse a passing result; do not rerun merely for freshness. |
-| STALE | Relevant inputs changed since the recorded result. | Rerun when verification is needed. |
-| UNVERIFIED | Applicability is unknown: no receipt, incomplete coverage, pending observation, or missing context. | Read the reason; synchronize if worthwhile, or run the check. |
-| FAILED | The invocation failed. Its applicability is tracked separately. | Keep the failure visible; it is not green evidence. |
+| CURRENT | The recorded result applies to the code as it is now. | Reuse a pass; no need to rerun. |
+| STALE | An input changed since the recorded result. | Rerun when you need the answer. |
+| UNVERIFIED | REDUE cannot tell: no result yet, an input it cannot see, or observation not ready. | Read the reason; rerun if it matters. |
+| FAILED | The command itself failed to run. | Fix and rerun. |
 
-A historical PASS remains PASS when stale or unverified. A historical failure
-never becomes a successful check. CURRENT does not mean every product behavior
-has been verified.
-
-## Supported alpha path
-
-- macOS, Linux, and Windows on supported local filesystems; Node 22+.
-- Linux also requires Python 3 for observation. No WSL or Git Bash needed on Windows.
-- npm, pinned Yarn `node-modules`, and pinned pnpm 12 isolated/hoisted layouts.
-- Automatic qualification for supported Yarn/pnpm TypeScript invocations; ordinary npm
-  launcher checks remain recording-only. Explicitly select the
-  [direct local compiler recipe](docs/user/direct-typescript.md) for the reviewed
-  npm/TypeScript boundary. Workspace
-  boundaries follow the files actually consumed, including built declarations.
-- Opt-in [direct test recipe](docs/user/tests-direct.md) for Vitest 4/5 and
-  Jest 29 in single-package npm projects on macOS and Linux.
-- Other test/lint/build and arbitrary commands can record results while
-  their applicability remains unqualified.
-
-The [supported-project boundary](docs/user/supported-projects.md) is deliberately
-narrow. A script named `test` is not automatically a complete test contract.
-
-## Alpha limitations
-
-- REDUE records evidence; it does not prove correctness.
-- Direct commands outside `redue run` do not create receipts.
-- Some tests, lints, and builds remain UNVERIFIED/PASS because their input contract is incomplete.
-- Synchronized applicability has nontrivial cost and can lose to an inexpensive rerun.
-- Unsupported/exotic install layouts and filesystems remain conservative; they do not become green through guesses.
-- No cloud/team synchronization, IDE extension, or automatic background check execution.
-- Alpha configuration and APIs may evolve. Neither cached nor synchronized status is an atomic snapshot against concurrent edits.
-
-## Humans, shells, and agents
+## Without Claude Code, or step by step
 
 ```sh
-redue explain typecheck          # synchronized explanation; may run read-only probes
-redue status --json              # conservative cached data
-redue status --sync --json       # caller-aware decision
-redue status --short             # small cached indicator; never synchronizes
-redue stop                      # retains historical receipts
-redue remove-state              # removes only this config's owned local state
+redue init          # write redue.config.json from your scripts
+redue start         # start the file observer
+redue run typecheck # run a check through REDUE and record the result
+redue status        # what still holds
 ```
 
-Agents should use [the documented JSON interface](docs/user/json.md), not parse
-terminal prose. [The canonical agent loop](docs/user/agents.md) keeps the
-sync-versus-rerun choice explicit. [Shell usage](docs/user/shell.md) does not put
-synchronized work in a prompt.
+Codex is supported too (`redue agent setup codex --apply`); see
+[agents](docs/user/agents.md). Agents should read
+[the JSON interface](docs/user/json.md), not the terminal text.
 
-[User docs](docs/README.md) · [Contributing](CONTRIBUTING.md) ·
-[Architecture](docs/contributor/architecture.md) · [Acceptance evidence](docs/acceptance/README.md)
+[Getting started](docs/user/getting-started.md) · [User docs](docs/README.md) ·
+[Contributing](CONTRIBUTING.md) · [Architecture](docs/contributor/architecture.md)
 
 ## License
 
-REDUE is licensed under [Apache-2.0](LICENSE). Dependencies retain their own licenses.
+REDUE is licensed under [Apache-2.0](LICENSE). Dependencies keep their own licenses.
