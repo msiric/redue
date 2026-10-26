@@ -7,32 +7,41 @@
 // session's own report, and what was set up at the end, then uninstalls
 // REDUE before the next repo.
 //
-//   node eval/stranger.mjs owner/name [owner/name ...] [--out DIR] [--model M]
+// With --follow-up, a second fresh session in the same clone then makes a
+// small docs edit and checks that the project still typechecks and its tests
+// pass, without being told about REDUE: each of its commands is classed as
+// skipped by REDUE's hook, run through REDUE, asked of REDUE, or run plainly.
 //
-// REDUE is installed from a tarball of this checkout (npm pack), not from
-// npm: the README copy names that tarball in its install command, the one
-// line that differs from what a stranger reads.
+//   node eval/stranger.mjs owner/name [owner/name ...] [--npm] [--follow-up] [--out DIR] [--model M]
+//
+// REDUE is installed from a tarball of this checkout (npm pack): the README
+// copy names that tarball in its install command, the one line that differs
+// from what a stranger reads. With --npm, the README is unchanged and REDUE
+// comes from npm as it says.
 import fs from 'node:fs';
 import path from 'node:path';
 import {parseArgs} from 'node:util';
 import {claudeSession, harnessEnv, localDir, must, redactDir, repoRoot, sessionAuth, sh, slug, stamp, tmpRoot} from './lib.mjs';
 
 const {values: opt, positionals: names} = parseArgs({allowPositionals: true, options: {
-  out: {type: 'string'}, model: {type: 'string', default: 'claude-sonnet-5-5'}, 'max-turns': {type: 'string', default: '80'}}});
+  out: {type: 'string'}, model: {type: 'string', default: 'claude-sonnet-5-5'}, 'max-turns': {type: 'string', default: '80'},
+  npm: {type: 'boolean'}, 'follow-up': {type: 'boolean'}}});
 if (!names.length) { console.error('name at least one owner/name repo'); process.exit(2); }
 const out = path.resolve(opt.out ?? path.join(localDir, `stranger-${stamp()}`));
 fs.mkdirSync(out, {recursive: true});
 const work = path.join(tmpRoot, 'stranger');
 fs.rmSync(work, {recursive: true, force: true}); fs.mkdirSync(work, {recursive: true});
 
-// The tarball and the README that names it.
-const packed = JSON.parse(must(sh('npm', ['pack', '--json', '--pack-destination', work], {cwd: repoRoot}), 'npm pack').stdout)[0];
-const tarball = path.join(work, packed.filename);
+// The README, naming the tarball unless REDUE comes from npm.
 const readme = fs.readFileSync(path.join(repoRoot, 'README.md'), 'utf8');
 const install = 'npm install --global @redue/cli@alpha';
 if (!readme.includes(install)) { console.error(`README.md does not contain "${install}"`); process.exit(2); }
 const readmeCopy = path.join(work, 'README.md');
-fs.writeFileSync(readmeCopy, readme.replaceAll(install, `npm install --global ${tarball}`));
+if (opt.npm) fs.writeFileSync(readmeCopy, readme);
+else {
+  const packed = JSON.parse(must(sh('npm', ['pack', '--json', '--pack-destination', work], {cwd: repoRoot}), 'npm pack').stdout)[0];
+  fs.writeFileSync(readmeCopy, readme.replaceAll(install, `npm install --global ${path.join(work, packed.filename)}`));
+}
 
 // No REDUE anywhere on PATH before the session installs it.
 const env = harnessEnv();
@@ -45,6 +54,35 @@ Follow the README to set REDUE up for this project, as far as the README takes y
 When you are done, or stuck, end with a short report: the steps you took, what worked, where the README was unclear,
 wrong or missing something, and the output of \`redue status\` if you got that far.`;
 
+const followUp = `In this project, add one harmless line at the end of README.md (for example a short note).
+Then make sure the project still typechecks and that its tests still pass, using the project's usual scripts.
+End with a short report: each command you ran, and what it did.`;
+const text = content => String(Array.isArray(content) ? content.map(item => item.text ?? '').join('') : content ?? '');
+
+// One headless session: its time, commands, failed calls and report.
+async function session(prompt, dir, runDir, name) {
+  const run = await claudeSession(['-p', prompt, '--model', opt.model, '--max-turns', opt['max-turns'],
+    '--output-format', 'stream-json', '--verbose', '--no-session-persistence',
+    '--setting-sources', 'project,local', '--settings', JSON.stringify({autoMemoryEnabled: false}),
+    '--strict-mcp-config', '--mcp-config', JSON.stringify({mcpServers: {}}),
+    '--tools', tools, '--allowedTools', tools, '--permission-mode', 'dontAsk'],
+  {cwd: dir, env: {...env, ...sessionAuth()}, timeout: 40 * 60_000});
+  fs.writeFileSync(path.join(runDir, `${name}.jsonl`), run.stdout);
+  const messages = run.stdout.split('\n').flatMap(line => { try { return [JSON.parse(line)]; } catch { return []; } });
+  const calls = new Map(), results = new Map(), out = {ms: run.ms, exit: run.status, signal: run.signal, commands: [], failed: []};
+  for (const message of messages) for (const part of message.message?.content ?? []) {
+    if (part.type === 'tool_use') { calls.set(part.id, part); if (part.name === 'Bash') out.commands.push(part.input?.command); }
+    if (part.type === 'tool_result') {
+      results.set(part.tool_use_id, part);
+      if (part.is_error) { const call = calls.get(part.tool_use_id);
+        out.failed.push({tool: call?.name, input: call?.name === 'Bash' ? call.input?.command : call?.input?.file_path ?? null, output: text(part.content).slice(0, 600)}); }
+    }
+  }
+  const result = messages.findLast(message => message.type === 'result');
+  Object.assign(out, {turns: result?.num_turns ?? null, report: result?.result ?? null, cost_usd: result?.total_cost_usd ?? null, calls, results});
+  return out;
+}
+
 const results = [];
 for (const name of names) {
   const id = slug(name), dir = path.join(work, id), runDir = path.join(out, id);
@@ -53,34 +91,13 @@ for (const name of names) {
   try {
     must(sh('git', ['clone', '-q', '--depth', '1', `https://github.com/${name}.git`, dir]), `clone ${name}`);
     row.commit = sh('git', ['rev-parse', 'HEAD'], {cwd: dir}).stdout.trim();
-    const session = await claudeSession(['-p', prompt, '--model', opt.model, '--max-turns', opt['max-turns'],
-      '--output-format', 'stream-json', '--verbose', '--no-session-persistence',
-      '--setting-sources', 'project,local', '--settings', JSON.stringify({autoMemoryEnabled: false}),
-      '--strict-mcp-config', '--mcp-config', JSON.stringify({mcpServers: {}}),
-      '--tools', tools, '--allowedTools', tools, '--permission-mode', 'dontAsk'],
-    {cwd: dir, env: {...env, ...sessionAuth()}, timeout: 40 * 60_000});
-    fs.writeFileSync(path.join(runDir, 'transcript.jsonl'), session.stdout);
-    row.ms = session.ms; row.exit = session.status; row.signal = session.signal;
-    // Commands, failed tool calls and the final report, from the transcript.
-    const messages = session.stdout.split('\n').flatMap(line => { try { return [JSON.parse(line)]; } catch { return []; } });
-    const calls = new Map();
-    row.commands = []; row.failed = [];
-    for (const message of messages) {
-      for (const part of message.message?.content ?? []) {
-        if (part.type === 'tool_use') { calls.set(part.id, part); if (part.name === 'Bash') row.commands.push(part.input?.command); }
-        if (part.type === 'tool_result' && part.is_error) {
-          const call = calls.get(part.tool_use_id);
-          row.failed.push({tool: call?.name, input: call?.name === 'Bash' ? call.input?.command : call?.input?.file_path ?? null,
-            output: String(Array.isArray(part.content) ? part.content.map(item => item.text ?? '').join('') : part.content).slice(0, 600)});
-        }
-      }
-    }
-    const result = messages.findLast(message => message.type === 'result');
-    row.turns = result?.num_turns ?? null; row.report = result?.result ?? null; row.cost_usd = result?.total_cost_usd ?? null;
+    const setup = await session(prompt, dir, runDir, 'setup');
+    const {calls, results: outputs} = setup;
+    Object.assign(row, {ms: setup.ms, exit: setup.exit, signal: setup.signal, commands: setup.commands, failed: setup.failed,
+      turns: setup.turns, report: setup.report, cost_usd: setup.cost_usd});
     // What the session itself last saw from redue status, in its own environment.
     const statusCall = [...calls.values()].filter(call => call.name === 'Bash' && /\bredue status\b/.test(call.input?.command ?? '')).at(-1);
-    const seen = statusCall && messages.flatMap(message => message.message?.content ?? []).find(part => part.type === 'tool_result' && part.tool_use_id === statusCall.id);
-    row.session_status = seen ? String(Array.isArray(seen.content) ? seen.content.map(item => item.text ?? '').join('') : seen.content).slice(-1500) : null;
+    row.session_status = statusCall && outputs.has(statusCall.id) ? text(outputs.get(statusCall.id).content).slice(-1500) : null;
     // What was set up, asked of the REDUE the session installed. The harness
     // environment differs from the session's, so freshness here can differ.
     const redue = (...args) => sh('redue', args, {cwd: dir, env});
@@ -92,8 +109,23 @@ for (const name of names) {
     if (row.installed) {
       try { row.status = JSON.parse(redue('status', '--sync', '--json').stdout).checks.map(c => ({name: c.name, freshness: c.freshness, result: c.result, reason: c.reason})); } catch {}
       try { const doctor = JSON.parse(redue('agent', 'doctor', 'claude', '--json').stdout); row.hook = doctor.hosts?.[0]?.hook ?? null; } catch {}
-      redue('stop');
     }
+    // A second session, which knows nothing about REDUE beyond what setup
+    // put in the project, edits docs and runs the checks.
+    if (opt['follow-up'] && row.installed) {
+      const next = await session(followUp, dir, runDir, 'follow-up');
+      row.follow_up = {ms: next.ms, turns: next.turns, cost_usd: next.cost_usd, report: next.report, failed: next.failed,
+        commands: next.commands.map((command, i) => {
+          const call = [...next.calls.values()].filter(part => part.name === 'Bash')[i], result = call && next.results.get(call.id);
+          const output = text(result?.content);
+          const outcome = result?.is_error && /REDUE/.test(output) ? 'skipped by REDUE' :
+            /\brecorded\./.test(output) ? 'run through REDUE' : /^\s*redue\s+(status|explain|detail)\b/.test(command ?? '') ? 'asked REDUE' :
+            result?.is_error ? 'failed' : 'plain';
+          return {command, outcome, output: output.slice(-400)};
+        })};
+      try { row.follow_up.status = JSON.parse(redue('status', '--sync', '--json').stdout).checks.map(c => ({name: c.name, freshness: c.freshness, result: c.result})); } catch {}
+    }
+    if (row.installed) redue('stop');
   } catch (error) { row.error = String(error.message).slice(0, 1500); }
   // The next session starts without REDUE again.
   sh('npm', ['uninstall', '--global', '@redue/cli'], {env});
@@ -103,4 +135,5 @@ for (const name of names) {
 }
 redactDir(out);
 console.log(JSON.stringify(results.map(r => ({repo: r.repo, s: Math.round((r.ms ?? 0) / 1000), commands: r.commands?.length, failed: r.failed?.length,
-  status: r.status?.map(c => `${c.name}:${c.freshness}`).join(' '), hook: r.hook, error: r.error})), null, 1));
+  status: r.status?.map(c => `${c.name}:${c.freshness}`).join(' '), hook: r.hook,
+  follow_up: r.follow_up?.commands.map(c => c.outcome).join(', '), error: r.error})), null, 1));
