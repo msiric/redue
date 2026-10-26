@@ -10,25 +10,32 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-// Node itself, or a script whose #! line names Node, which the kernel runs
-// in the same image (strace names the script). Through `#!/usr/bin/env node`
-// the image is env until env execs Node.
+// Node itself (a native executable named node: Yarn's temporary `node`
+// wrapper is a shell script), or a script whose #! line names Node, which the
+// kernel runs in the same image (strace names the script). Through
+// `#!/usr/bin/env node` the image is env until env execs Node. A file that is
+// gone counts as Node by its name.
 function node(file) {
-  if (/^node(js)?$/.test(path.basename(file))) return true;
-  let head = ''; try { const fd = fs.openSync(file, 'r'), buffer = Buffer.alloc(256); head = buffer.toString('latin1', 0, fs.readSync(fd, buffer, 0, 256, 0)); fs.closeSync(fd); } catch { return false; }
-  return head.startsWith('#!') && /^node(js)?$/.test(path.basename(head.slice(2).split('\n')[0].trim().split(/\s+/)[0] || ''));
+  let head; try { const fd = fs.openSync(file, 'r'), buffer = Buffer.alloc(256); head = buffer.subarray(0, fs.readSync(fd, buffer, 0, 256, 0)); fs.closeSync(fd); }
+  catch { return /^node(js)?$/.test(path.basename(file)); }
+  const text = head.toString('latin1');
+  if (text.startsWith('#!')) return /^node(js)?$/.test(path.basename(text.slice(2).split('\n')[0].trim().split(/\s+/)[0] || ''));
+  const native = text.startsWith('\x7fELF') || [0xfeedfacf, 0xcffaedfe, 0xcafebabe, 0xbebafeca].includes(head.length >= 4 ? head.readUInt32BE(0) : 0);
+  return native && /^node(js)?$/.test(path.basename(file));
 }
 
 function readRecord(dir) {
-  const headers = new Set(), started = new Map(), replaced = new Map();
+  // Headers per process: one per program in it that loaded the recorder.
+  const headers = new Map(), started = new Map(), replaced = new Map();
   let names = [];
   try { names = fs.readdirSync(dir).filter(name => name.endsWith('.jsonl')); } catch { return null; }
   for (const name of names) {
     let rows; try { rows = fs.readFileSync(path.join(dir, name), 'utf8').split('\n').filter(Boolean).map(line => JSON.parse(line)); } catch { continue; }
     const header = rows[0]?.[0] === 'H' ? rows[0][1] : null;
     if (!header) continue;
-    if (header.threadId === 0) headers.add(String(header.pid));
-    const pid = String(header.pid), entry = started.get(pid) ?? {pids: new Set(), names: []};
+    const pid = String(header.pid);
+    if (header.threadId === 0) headers.set(pid, rows.filter(row => row[0] === 'H').length);
+    const entry = started.get(pid) ?? {pids: new Set(), names: []};
     started.set(pid, entry);
     for (const [kind, ...value] of rows) {
       if (kind === 'C') entry.pids.add(String(value[0]));
@@ -78,26 +85,44 @@ function execs(file) {
 
 export function unrecordedPrograms(traceFile, recordDir) {
   const trace = execs(traceFile), record = readRecord(recordDir);
-  if (!trace || !record) return null;
-  if (!record.headers.size) return null;
-  const image = new Map(), parent = new Map(), forked = new Set(), missed = [], names = new Map();
-  const unclaimed = pid => { if (!names.has(pid)) names.set(pid, [...record.started.get(pid)?.names ?? []]); return names.get(pid); };
+  if (!trace || !record || !record.headers.size) return null;
+  // Each process's programs in order; a second fork under a PID starts a new
+  // process (a child's exec can come before its first fork line). Each exec
+  // names who did it: the parent's current program for the first, else the
+  // process's previous one.
+  const images = new Map(), current = new Map(), parent = new Map(), forked = new Set(), execsDone = [];
+  let instances = 0;
+  const key = pid => { if (!current.has(pid)) current.set(pid, `${pid}#${instances++}`); return current.get(pid); };
   for (const event of trace.events) {
-    // A second fork under a PID is a new process; a child's exec can come
-    // before its first fork line.
-    if (event.fork) { if (forked.has(event.fork)) image.delete(event.fork); forked.add(event.fork); parent.set(event.fork, event.parent); continue; }
-    const {pid, file, argv} = event;
-    const first = !image.has(pid), actor = first ? parent.get(pid) ?? trace.lastParent(pid) : pid, actorImage = actor && image.get(actor);
-    image.set(pid, file);
-    // Only a Node process that loaded the recorder reports what it starts.
-    if (!actor || !actorImage || !node(actorImage) || !record.headers.has(actor)) continue;
+    if (event.fork) {
+      if (forked.has(event.fork)) current.set(event.fork, `${event.fork}#${instances++}`);
+      forked.add(event.fork); parent.set(event.fork, event.parent); continue;
+    }
+    const {pid, file, argv} = event, self = key(pid), list = images.get(self) ?? [];
+    const first = !list.length, by = first ? parent.get(pid) ?? trace.lastParent(pid) : pid;
+    const actor = first ? by && current.get(by) : self, at = first ? (actor ? (images.get(actor)?.length ?? 0) - 1 : -1) : list.length - 1;
+    list.push(file); images.set(self, list);
+    execsDone.push({pid, file, argv, first, by, actor, at});
+  }
+  // A process with n headers loaded the recorder in its last n Node programs
+  // (Yarn's temporary `node` wrapper, a script, comes before the real one).
+  const recordedAt = new Map();
+  for (const [instance, list] of images) {
+    const count = record.headers.get(instance.split('#')[0]) ?? 0, nodes = list.map((file, i) => node(file) ? i : -1).filter(i => i >= 0);
+    recordedAt.set(instance, new Set(nodes.slice(Math.max(0, nodes.length - count))));
+  }
+  const missed = [], names = new Map();
+  const unclaimed = pid => { if (!names.has(pid)) names.set(pid, [...record.started.get(pid)?.names ?? []]); return names.get(pid); };
+  for (const {pid, file, argv, first, by, actor, at} of execsDone) {
+    // Only a Node program that loaded the recorder reports what it starts.
+    if (!actor || at < 0 || !recordedAt.get(actor)?.has(at)) continue;
     if (first) {
-      if (record.started.get(actor)?.pids.has(pid)) continue;
-      const list = unclaimed(actor), at = list.indexOf(path.basename(file));
-      if (at >= 0) { list.splice(at, 1); continue; }
+      if (record.started.get(by)?.pids.has(pid)) continue;
+      const list = unclaimed(by), found = list.indexOf(path.basename(file));
+      if (found >= 0) { list.splice(found, 1); continue; }
     } else {
-      const list = record.replaced.get(pid) ?? [], at = list.indexOf(path.basename(file));
-      if (at >= 0) { list.splice(at, 1); continue; }
+      const list = record.replaced.get(pid) ?? [], found = list.indexOf(path.basename(file));
+      if (found >= 0) { list.splice(found, 1); continue; }
     }
     missed.push({how: first ? 'started' : 'replaced', program: path.basename(file), file, argv: argv.slice(0, 4)});
   }
