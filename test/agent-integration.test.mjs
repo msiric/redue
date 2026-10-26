@@ -6,6 +6,7 @@ import {createHash} from 'node:crypto';
 import path from 'node:path';
 import {spawnSync,execFileSync} from 'node:child_process';
 import {discoverConfig,projectState} from '../src/project-location.mjs';
+import {hookInvocation,isHookCommand} from '../src/agent-integration.mjs';
 const bin=path.resolve('bin/redue.mjs');
 const put=(f,s)=>{fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,s);};
 function fixture(t){
@@ -208,10 +209,12 @@ test('claude setup adds one typecheck hook and a SessionStart hook to settings.l
   const installed=JSON.parse(f.read(local));
   const {SessionStart,...hooks}=installed.hooks;
   assert.deepEqual({...installed,hooks:{...hooks,PreToolUse:installed.hooks.PreToolUse.slice(0,1)}},existing);
+  // Plain redue when this install is on PATH; else this install by absolute path.
+  const command=hookInvocation(bin).command;
   assert.deepEqual(installed.hooks.PreToolUse[1],{matcher:'Bash',hooks:[{type:'command',
-    if:'Bash(redue run typecheck*)',command:'redue agent hook claude',timeout:15}]});
+    if:'Bash(redue run typecheck*)',command,timeout:15}]});
   // The same command starts the observer when a session starts.
-  assert.deepEqual(SessionStart,[{hooks:[{type:'command',command:'redue agent hook claude',timeout:10}]}]);
+  assert.deepEqual(SessionStart,[{hooks:[{type:'command',command,timeout:10}]}]);
   // The skill gives the agent the same command the hook matches.
   assert.match(f.read('.claude/skills/redue-verification/SKILL.md'),/^- Typecheck: `redue run typecheck`\.$/m);
   assert.match(f.read('CLAUDE.md'),/^Typecheck with `redue run typecheck`\. /m);
@@ -220,12 +223,34 @@ test('claude setup adds one typecheck hook and a SessionStart hook to settings.l
   assert.match(f.read('.claude/skills/redue-verification/SKILL.md'),/To ask without running: `redue status --sync --json`/);
   const once=f.read(local);f.ok('agent','setup','claude','--apply');assert.equal(f.read(local),once);
   const doctor=JSON.parse(f.ok('agent','doctor','claude','--json').stdout);
-  assert.equal(doctor.hosts[0].hook,doctor.command.path?'installed':'installed, but redue is not on PATH, so it never runs');
+  assert.equal(doctor.hosts[0].hook,command==='redue agent hook claude'?'installed':'installed (absolute path)');
   assert.equal(doctor.hosts[0].session_start,doctor.hosts[0].hook);
   f.ok('agent','setup','codex','--apply');f.ok('agent','remove','codex','--apply');assert.equal(f.read(local),once);
   f.ok('agent','remove','claude','--apply');
   assert.deepEqual(JSON.parse(f.read(local)),existing);assert.equal(f.read('.claude/settings.json'),shared);
 });
+test("the hook names redue plainly only when this install is on PATH in this shell and a login shell",{skip:process.platform==='win32'},t=>{
+  const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-hookpath-')));t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
+  // An installed entry is executable (npm sets the bit); a stand-in for it.
+  const entry=path.join(base,'install','redue.mjs');put(entry,'#!/usr/bin/env node\n');fs.chmodSync(entry,0o755);
+  const dir=path.join(base,'bin');fs.mkdirSync(dir);fs.symlinkSync(entry,path.join(dir,'redue'));
+  const other=path.join(base,'other');put(path.join(other,'redue'),'#!/bin/sh\n');fs.chmodSync(path.join(other,'redue'),0o755);
+  // A stand-in login shell that prints what `command -v redue` finds there.
+  const shell=found=>{const file=path.join(base,`shell-${path.basename(found)}`);put(file,`#!/bin/sh\necho ${found}\n`);fs.chmodSync(file,0o755);return file;};
+  const env=(pathDir,loginFinds)=>({...process.env,PATH:`${pathDir}:/usr/bin:/bin`,SHELL:shell(loginFinds)});
+  assert.equal(hookInvocation(entry,{env:env(dir,path.join(dir,'redue'))}).command,'redue agent hook claude');
+  // Found here but not in a login shell (an IDE or a desktop app may start Claude Code with that PATH).
+  const missing=hookInvocation(entry,{env:env(dir,'/nonexistent/redue')});
+  assert.match(missing.command,/^'[^']+' '[^']+redue\.mjs' agent hook claude$/);assert.match(missing.reason,/login shell/);
+  // A path with an apostrophe is quoted for the shell and still recognized as REDUE's.
+  const odd=path.join(base,"o'brien",'redue.mjs');put(odd,'#!/usr/bin/env node\n');
+  const quoted=hookInvocation(odd,{env:env(other,path.join(other,'redue'))}).command;
+  assert(quoted.includes("o'\\''brien"),quoted);assert(isHookCommand(quoted));
+  assert(!isHookCommand("'/usr/bin/node' '/home/me/wrapper.mjs' agent hook claude"));
+  // An older install on PATH does not answer for this one.
+  assert.match(hookInvocation(entry,{env:env(other,path.join(other,'redue'))}).reason,/not this install/);
+});
+
 test('claude setup names the test command beside the typecheck and recognizes its own block again',t=>{
   const f=fixture(t);
   f.put('redue.config.json',JSON.stringify({schema:1,packageManager:'npm',checks:[

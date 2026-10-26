@@ -11,7 +11,7 @@ import {readProject,projectState,canonicalConfig} from './project-location.mjs';
 import {readCachedStatus} from './cached-state.mjs';
 import {samePath,withinPath} from './path-identity.mjs';
 import {processAlive} from './process-liveness.mjs';
-import {fanoutRules,hookCommand,hookForms,redueFor} from './claude-hook.mjs';
+import {fanoutRules,hookCommand,hookForms,redueFor,runsEntry,shellQuote as quote} from './claude-hook.mjs';
 
 const policy=fs.readFileSync(new URL('./agent-policy.md',import.meta.url),'utf8');
 const hosts={codex:{instruction:'AGENTS.md',skill:'.agents/skills/redue-verification/SKILL.md'},
@@ -25,17 +25,53 @@ const sameJson=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 // The hook waits for status up to 10 s; 15 s leaves room for starting Node.
 // Fan-out commands (turbo, nx, `pnpm -r`) and root scripts that run one get
 // prefix rules; the hook decides from the full command.
-function hookFor(config,relative,scripts){
+function hookFor(config,relative,scripts,command=hookCommand){
   const rules=[...new Set([...hookForms(config,relative,scripts).flatMap(row=>[...row.forms,...row.local]),
     ...fanoutRules(config,scripts)])].map(form=>`Bash(${form}*)`);
-  return rules.length?{matcher:'Bash',hooks:rules.map(rule=>({type:'command',if:rule,command:hookCommand,timeout:15}))}:null;
+  return rules.length?{matcher:'Bash',hooks:rules.map(rule=>({type:'command',if:rule,command,timeout:15}))}:null;
 }
 // The same command on SessionStart starts the observer; it needs no check to match.
-const sessionHook={hooks:[{type:'command',command:hookCommand,timeout:10}]};
+const sessionHookFor=(command=hookCommand)=>({hooks:[{type:'command',command,timeout:10}]});
 const events=['PreToolUse','SessionStart'];
+// The absolute form: Node and REDUE's entry (redue.mjs), each quoted as quote()
+// writes it. [node, entry] or null.
+function absoluteHook(command){
+  const word="'((?:[^']|'\\\\'')*)'";
+  const match=new RegExp(`^${word} ${word} agent hook claude$`).exec(command??'');
+  if(!match)return null;
+  const [node,entry]=[match[1],match[2]].map(value=>value.replaceAll("'\\''","'"));
+  // REDUE's entry file, or the bin link npm installs for it.
+  return /^redue(\.mjs)?$/.test(path.basename(entry))?[node,entry]:null;
+}
+export const isHookCommand=command=>command===hookCommand||Boolean(absoluteHook(command));
+// The command Claude Code runs for the hook. Plain `redue` when this install
+// is the one both this shell and a login shell find on PATH. Otherwise this
+// install's Node and entry by absolute path, so a Claude Code started from
+// another shell, an IDE or with a shorter PATH still runs it, and an older
+// install on PATH does not answer for this one. The settings file is
+// per-developer, so a machine path is fine there.
+export function hookInvocation(entry,{env=process.env,platform=process.platform}={}){
+  if(platform==='win32')return {command:hookCommand,reason:'Windows: plain redue on PATH'};
+  let target;try{target=fs.realpathSync(entry);}catch{target=entry;}
+  // Paths that survive upgrades where they can: the entry as invoked (a
+  // global bin link, not the versioned file behind it) and the node on PATH
+  // (Homebrew's link, not its versioned cellar).
+  const real=file=>{try{return fs.realpathSync(file);}catch{return null;}};
+  const invoked=typeof process.argv[1]==='string'&&path.isAbsolute(process.argv[1])&&real(process.argv[1])===target?process.argv[1]:target;
+  const execReal=real(process.execPath);
+  const node=(env.PATH||'').split(path.delimiter).map(dir=>path.join(dir||'.','node')).find(file=>real(file)===execReal)??process.execPath;
+  const same=file=>runsEntry(file,target,env);
+  const here=findExecutable('redue',{env});
+  const login=spawnSync(env.SHELL||'/bin/sh',['-lc','command -v redue'],{env,encoding:'utf8',timeout:5000,stdio:['ignore','pipe','ignore']});
+  const loginPath=login.status===0?login.stdout.trim().split('\n').pop():null;
+  if(same(here)&&same(loginPath))return {command:hookCommand,reason:`redue on PATH is this install (${here})`};
+  return {command:`${quote(node)} ${quote(invoked)} agent hook claude`,
+    reason:!here&&!loginPath?'redue is not on PATH; the hook names this install by its absolute path':
+      `redue on PATH is ${here||loginPath||'missing'} in ${same(here)?'a login shell':'this shell'}, not this install; the hook names this install by its absolute path`};
+}
 // REDUE's entry is recognized by its command, not by a committed record: the
 // local file differs between checkouts, and users may edit the entry.
-const ownedHook=entry=>Array.isArray(entry?.hooks)&&entry.hooks.length>0&&entry.hooks.every(h=>h?.command===hookCommand);
+const ownedHook=entry=>Array.isArray(entry?.hooks)&&entry.hooks.length>0&&entry.hooks.every(h=>isHookCommand(h?.command));
 function parseSettings(text){
   if(text===null)return {};
   let value;try{value=JSON.parse(text);}catch{throw Error(`${settingsPath} is not valid JSON; fix it before agent setup or removal`);}
@@ -64,6 +100,45 @@ function settingsWith(text,next){
 function hookInstalled(root,event='PreToolUse'){
   try{return (parseSettings(read(root,settingsPath)).hooks?.[event]||[]).some(ownedHook);}
   catch{return false;}
+}
+// What removing a host's integration changes, from its setup record: the
+// managed block, the skill, the hooks and the record.
+function removalChanges(root,host,record){
+  const h=hosts[host],before=read(root,h.instruction),after=before===null?null:before.replace(record.block,'');
+  const changes=[{path:h.instruction,before,after:record.instructionCreated&&after===''?null:after},
+    {path:h.skill,before:read(root,h.skill),after:null}];
+  if(host==='claude'){const settings=read(root,settingsPath);
+    changes.push({path:settingsPath,before:settings,after:settingsWith(settings,null)});}
+  changes.push({path:marker(host),before:read(root,marker(host)),after:null});
+  return changes;
+}
+// Removes a host's integration without needing the project config (redue
+// remove after the config is gone): the changed paths, each with its operation.
+export function removeIntegration(root,host='claude'){
+  const record=saved(root,host);if(!record)return [];
+  const health=inspect(root,host,record);if(health.integrity==='conflict')throw Error(health.reason);
+  const changes=removalChanges(root,host,record).filter(c=>c.before!==c.after);
+  apply(root,changes);
+  return changes.map(c=>`${c.after===null?'remove':'update'} ${c.path}`);
+}
+// Whether REDUE's Claude Code hooks are in the local settings.
+export const claudeHooksInstalled=root=>hookInstalled(root,'SessionStart')||hookInstalled(root);
+// Removes REDUE's Claude Code hooks from the local settings and keeps the
+// rest; the file's path when it changed, else null.
+export function removeClaudeHooks(root){
+  const before=read(root,settingsPath);if(before===null)return null;
+  const after=settingsWith(before,null);if(after===before)return null;
+  apply(root,[{path:settingsPath,before,after}]);return settingsPath;
+}
+// Whether the installed hook's command can start: an absolute one by its
+// files, plain redue by PATH.
+function hookRunnable(root){
+  let command=null;
+  try{command=(parseSettings(read(root,settingsPath)).hooks?.SessionStart||[]).find(ownedHook)?.hooks[0]?.command??null;}catch{}
+  const absolute=absoluteHook(command);
+  if(absolute)return fs.existsSync(absolute[0])&&fs.existsSync(absolute[1])?'installed (absolute path)':
+    'installed, but its Node or REDUE path no longer exists; run redue agent setup claude again';
+  return findExecutable('redue')?'installed':'installed, but redue is not on PATH, so it never runs';
 }
 function safeFile(root,relative){
   if(path.isAbsolute(relative)||relative.split(/[\\/]/).some(p=>p==='..'||p===''))throw Error('unsafe integration path');
@@ -273,7 +348,7 @@ export async function agentCommand(args,{configFile,stateOverride,entry,cwd=proc
   const {root,relative,config}=project(configFile),h=hosts[host],record=saved(root,host),health=inspect(root,host,record);
   if(health.integrity==='conflict')throw Error(health.reason);
   const changes=[],notes=action==='setup'?warnings(root,host,cwd):[];
-  let hook=null,block=null;
+  let hook=null,sessionHook=null,block=null;
   if(action==='setup'){
     const before=read(root,h.instruction),skill=skillFor(relative,host,config);
     block=blockFor(host,blockForms(host,config,relative));
@@ -281,7 +356,12 @@ export async function agentCommand(args,{configFile,stateOverride,entry,cwd=proc
       throw Error('unowned REDUE instruction or skill already exists; inspect it before setup');
     const after=record?before.replace(record.block,block):(before||'')+block;
     let scripts={};try{scripts=JSON.parse(read(root,'package.json')??'{}').scripts||{};}catch{}
-    hook=host==='claude'?hookFor(config,relative,scripts):null;
+    const invocation=host==='claude'?hookInvocation(entry):null;
+    if(invocation)notes.push(`Hook command: ${invocation.command} (${invocation.reason})`);
+    if(invocation&&invocation.command!==hookCommand)
+      notes.push('The agent instructions say `redue ...`: put this install on PATH (npm install --global @redue/cli@alpha) so the agent\'s shell can run them. The hook runs the checks it rewrites through this install either way.');
+    hook=host==='claude'?hookFor(config,relative,scripts,invocation.command):null;
+    sessionHook=host==='claude'?sessionHookFor(invocation.command):null;
     const next={schema:1,host,config:relative,instruction:h.instruction,skill:h.skill,
       block,skillHash:hash(skill),instructionCreated:record?.instructionCreated??before===null};
     changes.push({path:h.skill,before:read(root,h.skill),after:skill},
@@ -291,14 +371,7 @@ export async function agentCommand(args,{configFile,stateOverride,entry,cwd=proc
         content:JSON.stringify(hook?next:{SessionStart:sessionHook},null,2)+
           (hook?'':'\nno PreToolUse hook: no typecheck or test check to match')});}
     changes.push({path:marker(host),before:read(root,marker(host)),after:JSON.stringify(next,null,2)+'\n'});
-  }else if(record){
-    const before=read(root,h.instruction),after=before.replace(record.block,'');
-    changes.push({path:h.instruction,before,after:record.instructionCreated&&after===''?null:after},
-      {path:h.skill,before:read(root,h.skill),after:null});
-    if(host==='claude'){const settings=read(root,settingsPath);
-      changes.push({path:settingsPath,before:settings,after:settingsWith(settings,null)});}
-    changes.push({path:marker(host),before:read(root,marker(host)),after:null});
-  }
+  }else if(record)changes.push(...removalChanges(root,host,record));
   const actual=changes.filter(c=>c.before!==c.after);
   const summary={schema:1,action,host,config:configFile,applied:false,
     changes:actual.map(c=>({path:c.path,operation:c.after===null?'remove':c.before===null?'create':'update',
@@ -355,7 +428,7 @@ export async function doctor({configFile,stateOverride,entry,cwd,host}){
       const out=spawnSync(launch.file,launch.args,{...launch.options,encoding:'utf8',timeout:2000,maxBuffer:4096,stdio:['ignore','pipe','pipe']});
       if(out.status===0)version=out.stdout.trim();}
     let integration={installed:false,integrity:'unknown'},hook=name==='claude'?'absent':'none',sessionHook=hook;
-    const installed=()=>value.command.path?'installed':'installed, but redue is not on PATH, so it never runs';
+    const installed=()=>hookRunnable(p.root);
     if(p)try{const record=saved(p.root,name);integration=inspect(p.root,name,record);
       if(name==='claude'&&hookInstalled(p.root))hook=installed();
       if(name==='claude'&&hookInstalled(p.root,'SessionStart'))sessionHook=installed();

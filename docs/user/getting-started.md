@@ -67,7 +67,26 @@ the package alone does not update project instructions.
 
 ## First project
 
-From the project root:
+With Claude Code, one command does the steps below and connects the agent:
+
+```sh
+redue setup claude          # asks once; --yes for no prompts
+```
+
+It runs `init` when the project has no `redue.config.json`, `agent setup
+claude`, and `start`, then records each check that can qualify once, unless
+it is already CURRENT. It prints every file it writes, and running it again
+changes nothing that is already set up. When `.claude/settings.local.json`
+is not ignored by Git, it adds it to `.git/info/exclude`; it refuses when
+that file is committed. What setup created is noted in the clone's Git
+directory (`.git/redue-setup-<id>.json`, never committed). `redue remove`
+undoes exactly that: the integration (or only this machine's hooks, when the
+integration was already in the project), the observer and its state
+(receipts included), the local ignore line, and the config if setup wrote it
+and it has not been edited since. A config or observer state that existed
+before setup stays. `remove` asks before it deletes; Enter means no.
+
+Step by step, from the project root:
 
 ```sh
 redue init --dry-run

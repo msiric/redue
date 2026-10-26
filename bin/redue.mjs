@@ -28,6 +28,9 @@ const help=`REDUE ${version}
 Usage: redue [--config FILE] [--state-dir DIR] COMMAND [OPTIONS]
 
 Commands:
+  setup claude [--yes] Set up REDUE and Claude Code in this project in one step:
+                       init, agent setup claude, start, one recorded run per check
+  remove [--yes]       Undo setup: integration, observer state, and the config setup created
   init [--dry-run] [--workspace NAME] [--check KIND] [--recipe typescript-direct|tests-direct|node-script]
                        Discover existing scripts; optionally select one workspace/check
   agent setup codex|claude [--dry-run|--apply] [--json]
@@ -58,7 +61,18 @@ if(args.length===3&&args[0]==='agent'&&args[1]==='hook'&&args[2]==='claude'){
   await runClaudeHook(fileURLToPath(import.meta.url));process.exit(0);
 }
 if(args.length===1&&args[0]==='--version'){console.log(version);process.exit(0);}
+// Internal: the entry this command runs, so setup and the hook can tell
+// whether the `redue` on PATH (a link, a package manager's shim, a wrapper)
+// is this install.
+if(args.length===1&&args[0]==='--entry'){console.log(fs.realpathSync(fileURLToPath(import.meta.url)));process.exit(0);}
 if(args.includes('--help')||args.includes('-h')||!args.length){console.log(help);await exit(0);}
+if(args[0]==='setup'||args[0]==='remove'){
+  // Loaded on demand; setup works before a config exists.
+  const {setupCommand}=await import('../src/setup.mjs');
+  try{await setupCommand(args,{entry:fileURLToPath(import.meta.url)});}
+  catch(e){error(e.message);}
+  await exit(0);
+}
 let configFile=null,stateOverride=null;
 for(let i=0;i<args.length;){
   if(args[i]==='--config'||args[i]==='--state-dir'){
@@ -124,7 +138,7 @@ if(command==='init'){
     checks:discovery.checks.map(({config:check,level,reason})=>({name:check.name,
       script:check.script||null,command:check.command||null,
       workspace:check.workspace||null,level,reason})),config:configFile,
-    written:willWrite,existing:configured};
+    written:willWrite,existing:configured,writable:!configured&&!unsupported&&discovery.checks.length>0};
   if(!json) {
     console.log(`Node ${summary.node}; ${summary.package_manager||'unknown package manager'}`+
       `${summary.version?' '+summary.version:''}; ${summary.installation_layout} installation.`);

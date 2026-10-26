@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawn,spawnSync,execFileSync} from 'node:child_process';
-import {claudeHook,hookForms,lastRunTimeout,matchCheck,recordedCommand,enteredDir,fanout,fanoutChecks,fanoutVerdict,sessionStart,statusTimeout,verdict} from '../src/claude-hook.mjs';
+import {claudeHook,shellQuote,hookForms,lastRunTimeout,matchCheck,recordedCommand,enteredDir,fanout,fanoutChecks,fanoutVerdict,sessionStart,statusTimeout,verdict} from '../src/claude-hook.mjs';
 import {findExecutable} from '../src/executable-lookup.mjs';
 import {realObservedPath} from '../src/path-identity.mjs';
 const bin=path.resolve('bin/redue.mjs');
@@ -124,7 +124,7 @@ const bash=(command,cwd)=>({hook_event_name:'PreToolUse',tool_name:'Bash',tool_i
 
 test('blocks only CURRENT/PASS with reuse_eligible and a run id',async t=>{
   const p=project(t);
-  const blocked=await claudeHook(bash('npm run typecheck 2>&1 | tail -n 30',p.root),{entry:p.fake('current',replying(status({})))});
+  const blocked=await claudeHook(bash('npm run typecheck 2>&1 | tail -n 30',p.root),{invoke:'redue',entry:p.fake('current',replying(status({})))});
   assert.equal(blocked.hookSpecificOutput.permissionDecision,'deny');
   assert.equal(blocked.hookSpecificOutput.hookEventName,'PreToolUse');
   assert.match(blocked.hookSpecificOutput.permissionDecisionReason,/"typecheck" passed on these exact inputs/);
@@ -133,11 +133,11 @@ test('blocks only CURRENT/PASS with reuse_eligible and a run id',async t=>{
   assert.deepEqual(p.calls(),[`--config ${path.join(p.root,'redue.config.json')} status --sync --json`]);
   assert.doesNotMatch(blocked.hookSpecificOutput.permissionDecisionReason,/Nothing else/);
   // A chain is denied whole; the reason names the rest so the agent can run it.
-  const chain=await claudeHook(bash('npm run typecheck && npm test -- --runInBand',p.root),{entry:p.fake('current',replying(status({})))});
+  const chain=await claudeHook(bash('npm run typecheck && npm test -- --runInBand',p.root),{invoke:'redue',entry:p.fake('current',replying(status({})))});
   assert.equal(chain.hookSpecificOutput.permissionDecision,'deny');
   assert.match(chain.hookSpecificOutput.permissionDecisionReason,/rerun skipped.*run the rest on its own: npm test -- --runInBand$/);
   // The rest is quoted as the agent wrote it, spacing included.
-  const spaced=await claudeHook(bash('npm  run typecheck  2>&1 |  tail -5 ;  git commit -m "two  spaces\there"',p.root),{entry:p.fake('current',replying(status({})))});
+  const spaced=await claudeHook(bash('npm  run typecheck  2>&1 |  tail -5 ;  git commit -m "two  spaces\there"',p.root),{invoke:'redue',entry:p.fake('current',replying(status({})))});
   assert(spaced.hookSpecificOutput.permissionDecisionReason.endsWith('run the rest on its own: git commit -m "two  spaces\there"'));
   // A healthy answer that is not CURRENT/PASS/eligible: run it through REDUE so it is recorded.
   const recorded={
@@ -152,20 +152,20 @@ test('blocks only CURRENT/PASS with reuse_eligible and a run id',async t=>{
   const input={...bash('npm run typecheck 2>&1 | tail -n 30',p.root),
     tool_input:{command:'npm run typecheck 2>&1 | tail -n 30',description:'Typecheck',timeout:120000}};
   for(const [name,value] of Object.entries(recorded)){
-    const out=(await claudeHook(input,{entry:p.fake(name,replying(value))}))?.hookSpecificOutput;
+    const out=(await claudeHook(input,{invoke:'redue',entry:p.fake(name,replying(value))}))?.hookSpecificOutput;
     assert.equal(out?.permissionDecision,'allow',name);assert.equal(out.hookEventName,'PreToolUse');
     assert.deepEqual(out.updatedInput,{command:'redue run typecheck 2>&1 | tail -n 30',description:'Typecheck',timeout:120000},name);
     assert.match(out.permissionDecisionReason,/not CURRENT/);
   }
   // A leading cd into the project root stays in front of the recorded command.
   const entered=(await claudeHook(bash(`cd ${slashes(p.root)} && npm run typecheck 2>&1 | tail -n 30`,p.root),
-    {entry:p.fake('enteredStale',replying(recorded.stale))}))?.hookSpecificOutput;
+    {invoke:'redue',entry:p.fake('enteredStale',replying(recorded.stale))}))?.hookSpecificOutput;
   assert.equal(entered.updatedInput.command,`cd ${slashes(p.root)} && redue run typecheck 2>&1 | tail -n 30`);
-  const enteredSkip=await claudeHook(bash(`cd "${p.root}"; npm run typecheck`,p.root),{entry:p.fake('enteredCurrent',replying(status({})))});
+  const enteredSkip=await claudeHook(bash(`cd "${p.root}"; npm run typecheck`,p.root),{invoke:'redue',entry:p.fake('enteredCurrent',replying(status({})))});
   assert.equal(enteredSkip.hookSpecificOutput.permissionDecision,'deny');
   // Another directory: the command is not this project's check, and status is not asked.
   assert.equal(await claudeHook(bash(`cd ${slashes(path.dirname(p.root))} && npm run typecheck`,p.root),
-    {entry:p.fake('elsewhere',replying(status({})))}),null);
+    {invoke:'redue',entry:p.fake('elsewhere',replying(status({})))}),null);
   // No healthy answer for this check, or already `redue run`: unchanged.
   const unchanged={
     unhealthy:{...status({}),observation:{healthy:false}},
@@ -173,20 +173,20 @@ test('blocks only CURRENT/PASS with reuse_eligible and a run id',async t=>{
     otherCheck:status({name:'other'}),
   };
   for(const [name,value] of Object.entries(unchanged))
-    assert.equal(await claudeHook(bash('npm run typecheck',p.root),{entry:p.fake(name,replying(value))}),null,name);
-  assert.equal(await claudeHook(bash('redue run typecheck',p.root),{entry:p.fake('staleRun',replying(recorded.stale))}),null);
-  assert.equal(await claudeHook(bash('npm run typecheck; npm test',p.root),{entry:p.fake('staleChain',replying(recorded.stale))}),null);
+    assert.equal(await claudeHook(bash('npm run typecheck',p.root),{invoke:'redue',entry:p.fake(name,replying(value))}),null,name);
+  assert.equal(await claudeHook(bash('redue run typecheck',p.root),{invoke:'redue',entry:p.fake('staleRun',replying(recorded.stale))}),null);
+  assert.equal(await claudeHook(bash('npm run typecheck; npm test',p.root),{invoke:'redue',entry:p.fake('staleChain',replying(recorded.stale))}),null);
 });
 
 test('timeout, error exit, unreadable output and missing REDUE all allow',async t=>{
   const p=project(t),started=Date.now();
   assert.equal(await claudeHook(bash('npx tsc --noEmit',p.root),
-    {entry:p.fake('slow',`setTimeout(()=>{${replying(status({}))}},10000);`),timeout:300}),null);
+    {invoke:'redue',entry:p.fake('slow',`setTimeout(()=>{${replying(status({}))}},10000);`),timeout:300}),null);
   assert(Date.now()-started<5000,'timeout did not cut the status call short');
   assert.equal(await claudeHook(bash('npx tsc --noEmit',p.root),
-    {entry:p.fake('error',`${replying(status({}))}process.exitCode=2;`)}),null);
-  assert.equal(await claudeHook(bash('npx tsc --noEmit',p.root),{entry:p.fake('garbage','process.stdout.write("CURRENT PASS");')}),null);
-  assert.equal(await claudeHook(bash('npx tsc --noEmit',p.root),{entry:path.join(p.root,'missing','redue.mjs')}),null);
+    {invoke:'redue',entry:p.fake('error',`${replying(status({}))}process.exitCode=2;`)}),null);
+  assert.equal(await claudeHook(bash('npx tsc --noEmit',p.root),{invoke:'redue',entry:p.fake('garbage','process.stdout.write("CURRENT PASS");')}),null);
+  assert.equal(await claudeHook(bash('npx tsc --noEmit',p.root),{invoke:'redue',entry:path.join(p.root,'missing','redue.mjs')}),null);
   // When `redue` is not on PATH, the shell exits 127; Claude Code treats any exit but 2 as non-blocking.
   const shell=findExecutable('bash');
   if(shell)assert.equal(spawnSync(shell,['-c','redue agent hook claude'],{env:{...process.env,PATH:path.join(p.root,'empty')},input:'{}'}).status,127);
@@ -209,8 +209,15 @@ test('REDUE_FORCE=1, other tools and non-matching commands allow without queryin
   for(const input of [bash('REDUE_FORCE=1 npm run typecheck',p.root),bash('  REDUE_FORCE=1 redue run typecheck | tail -5',p.root),
     bash('npm test',p.root),bash('cd src && npm run typecheck',p.root),bash('npm run typecheck || git push',p.root),
     {...bash('npm run typecheck',p.root),tool_name:'PowerShell'},bash('npm run typecheck','relative')])
-    assert.equal(await claudeHook(input,{entry}),null,JSON.stringify(input));
+    assert.equal(await claudeHook(input,{invoke:'redue',entry}),null,JSON.stringify(input));
   assert.deepEqual(p.calls(),[]);
+});
+
+test('without this install of redue on PATH, a rewrite runs it by absolute path',async t=>{
+  const p=project(t),entry=p.fake('staleAbsolute',replying(status({freshness:'STALE',reuse_eligible:false,reason:'src/a.ts changed'})));
+  const out=(await claudeHook(bash('npm run typecheck',p.root),{entry}))?.hookSpecificOutput;
+  assert.equal(out?.permissionDecision,'allow');
+  assert.equal(out.updatedInput.command,`${shellQuote(process.execPath)} ${shellQuote(entry)} run typecheck`);
 });
 
 function hook(input,cwd,env=process.env){
@@ -297,7 +304,7 @@ test('SessionStart starts the observer when none runs, prints nothing, and leave
     let log='';try{log=fs.readFileSync(path.join(doctor.project.state,'observer.log'),'utf8').slice(-1500);}catch(e){log=e.message;}
     assert.fail(`observer did not become healthy after SessionStart: ${JSON.stringify(doctor.observer_process)} ${redue('status','--json').stdout.slice(0,300)}\n${log}`);}
   // Resume, clear or compact in the same project: the running observer stays.
-  assert.equal(sessionStart({...start,source:'resume'},{entry:bin}),'running');
+  assert.equal(sessionStart({...start,source:'resume'},{invoke:'redue',entry:bin}),'running');
   assert.equal(hook({...start,source:'compact'},root,env),null);
   assert.equal(redue('stop').status,0);
 });
@@ -409,24 +416,24 @@ test('a fan-out is skipped only when every check it runs is CURRENT, and is neve
   const reply=checks=>fake(String(checks.length)+checks.map(c=>c.freshness).join(''),replying({schema:1,observation:{healthy:true},checks}));
   const current=reply([row('a:typecheck'),row('b:typecheck')]);
   for(const command of ['turbo run typecheck','npx turbo typecheck 2>&1 | tail -n 20','npm run typecheck']){
-    const out=await claudeHook(bash(command,p.root),{entry:current});
+    const out=await claudeHook(bash(command,p.root),{invoke:'redue',entry:current});
     assert.equal(out?.hookSpecificOutput.permissionDecision,'deny',command);
     assert.match(out.hookSpecificOutput.permissionDecisionReason,/all 2 checks this command runs \(a:typecheck, b:typecheck\) passed/);
   }
-  const chain=await claudeHook(bash('turbo run typecheck && git status',p.root),{entry:current});
+  const chain=await claudeHook(bash('turbo run typecheck && git status',p.root),{invoke:'redue',entry:current});
   assert.match(chain.hookSpecificOutput.permissionDecisionReason,/passed.*run the rest on its own: git status$/);
   // A root script with a pre- or post-script runs more than the fan-out: no match.
   const pkg=JSON.parse(fs.readFileSync(path.join(p.root,'package.json'),'utf8'));
   put(path.join(p.root,'package.json'),JSON.stringify({...pkg,scripts:{...pkg.scripts,pretypecheck:'node gen.mjs'}}));
-  assert.equal(await claudeHook(bash('npm run typecheck',p.root),{entry:current}),null);
+  assert.equal(await claudeHook(bash('npm run typecheck',p.root),{invoke:'redue',entry:current}),null);
   put(path.join(p.root,'package.json'),JSON.stringify(pkg));
   // One check STALE: the command runs as typed, with no rewrite.
   const stale=reply([row('a:typecheck'),row('b:typecheck',{freshness:'STALE',reuse_eligible:false})]);
   for(const command of ['turbo run typecheck','npm run typecheck'])
-    assert.equal(await claudeHook(bash(command,p.root),{entry:stale}),null,command);
+    assert.equal(await claudeHook(bash(command,p.root),{invoke:'redue',entry:stale}),null,command);
   // A workspace check run inside its package is rewritten with the config's relative path.
   const out=(await claudeHook(bash('cd packages/a && npm run typecheck',p.root),
-    {entry:reply([row('a:typecheck',{freshness:'STALE',reuse_eligible:false}),row('b:typecheck')])}))?.hookSpecificOutput;
+    {invoke:'redue',entry:reply([row('a:typecheck',{freshness:'STALE',reuse_eligible:false}),row('b:typecheck')])}))?.hookSpecificOutput;
   assert.equal(out?.permissionDecision,'allow');
   assert.equal(out.updatedInput.command,'cd packages/a && redue --config ../../redue.config.json run a:typecheck');
 });
@@ -442,7 +449,7 @@ test('after a cd into a package, the rewrite names the config by its path from t
   const entry=path.join(session,'fake.mjs');
   put(entry,replying({schema:1,observation:{healthy:true},checks:[{name:'a:typecheck',freshness:'STALE',result:'PASS',
     reuse_eligible:false,invocation:{runId},reason:'changed'}]}));
-  const out=(await claudeHook(bash('cd app/packages/a && npm run typecheck',session),{entry}))?.hookSpecificOutput;
+  const out=(await claudeHook(bash('cd app/packages/a && npm run typecheck',session),{invoke:'redue',entry}))?.hookSpecificOutput;
   assert.equal(out?.updatedInput.command,'cd app/packages/a && redue --config ../../../redue.config.json run a:typecheck');
 });
 
@@ -483,7 +490,7 @@ test('a script chain: each run keeps its own forms; the script skips only when e
   scripts('tsc --noEmit -p tsconfig.app.json && tsc --noEmit');
   const row=(name,extra={})=>({name,freshness:'CURRENT',result:'PASS',reuse_eligible:true,invocation:{runId},reason:'declared inputs match',...extra});
   const answer=rows=>({schema:1,observation:{healthy:true},checks:rows});
-  const hook=async(name,rows)=>(await claudeHook(bash('npm run typecheck',p.root),{entry:p.fake(name,replying(answer(rows)))}))?.hookSpecificOutput??null;
+  const hook=async(name,rows)=>(await claudeHook(bash('npm run typecheck',p.root),{invoke:'redue',entry:p.fake(name,replying(answer(rows)))}))?.hookSpecificOutput??null;
   let out=await hook('both',[row('typecheck.1'),row('typecheck.2')]);
   assert.equal(out.permissionDecision,'deny');assert.match(out.permissionDecisionReason,/all 2 checks/);
   out=await hook('one',[row('typecheck.1'),row('typecheck.2',{freshness:'STALE'})]);

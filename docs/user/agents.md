@@ -74,10 +74,18 @@ observer when a session starts (below); otherwise use `redue start`.
 
 ## Claude Code typecheck hook
 
-`redue agent setup claude --apply` also adds a PreToolUse hook and a
-SessionStart hook to `.claude/settings.local.json`. Both run
-`redue agent hook claude`, which needs a local REDUE install, so they are
-per-developer; keep that file out of commits. Other settings in the file are kept,
+`redue agent setup claude --apply` (and `redue setup claude`) also adds a
+PreToolUse hook and a SessionStart hook to `.claude/settings.local.json`.
+Both run `redue agent hook claude`, which needs a local REDUE install, so
+they are per-developer; keep that file out of commits. Setup names REDUE
+plainly only when the `redue` that both your shell and a login shell find on
+PATH is the install running setup. Otherwise the hooks name this install's
+Node and entry by absolute path, so a Claude Code started from an IDE, a
+desktop app or another shell still runs the right REDUE; run setup again
+after moving or upgrading Node. `redue agent doctor` reports a hook whose
+paths no longer exist. When the hook runs a check through REDUE for the
+agent, it likewise writes plain `redue run` only if its own PATH finds this
+install, else the absolute form. Other settings in the file are kept,
 but the file is rewritten as 2-space JSON. `.claude/settings.json` is not touched.
 `redue agent remove claude --apply` removes only the entries REDUE added.
 

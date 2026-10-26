@@ -6,12 +6,13 @@
 // Never exit 2: Claude Code treats exit 2 as a block.
 import fs from 'node:fs';
 import path from 'node:path';
-import {spawn} from 'node:child_process';
+import {spawn,spawnSync} from 'node:child_process';
 import {projectState} from './project-location.mjs';
 import {realObservedPath} from './path-identity.mjs';
 import {processAlive} from './process-liveness.mjs';
 import {scriptRunChecks} from './typescript-invocation.mjs';
 import {recipeLabel} from './presentation.mjs';
+import {findExecutable} from './executable-lookup.mjs';
 
 export const hookCommand='redue agent hook claude';
 // No shell metacharacters; `@` starts scoped package names.
@@ -31,6 +32,22 @@ export const defaultConfig='redue.config.json';
 // would need shell quoting.
 export const redueFor=(configFile=defaultConfig)=>configFile===defaultConfig?'redue':
   safe.test(configFile)?`redue --config ${configFile}`:null;
+export const shellQuote=value=>`'${String(value).replaceAll("'","'\\''")}'`;
+// How a rewritten command starts REDUE: plain `redue` when the hook's PATH
+// finds this install, else this install by absolute path. An agent shell
+// without redue on PATH cannot run the plain form.
+export function redueInvocation(entry,{env=process.env,platform=process.platform}={}){
+  if(platform==='win32'||runsEntry(findExecutable('redue',{env}),entry,env))return 'redue';
+  return `${shellQuote(process.execPath)} ${shellQuote(entry)}`;
+}
+// Whether the command at `file` runs this install's entry: the same file, or
+// a shim or wrapper that reports it (redue --entry).
+export function runsEntry(file,entry,env=process.env){
+  if(!file)return false;
+  try{const target=fs.realpathSync(entry);if(fs.realpathSync(file)===target)return true;
+    const out=spawnSync(file,['--entry'],{env,encoding:'utf8',timeout:5000,stdio:['ignore','pipe','ignore']});
+    return out.status===0&&fs.realpathSync(out.stdout.trim())===target;}catch{return false;}
+}
 
 // Package-manager commands that a script of the same name would not reach.
 const builtins={pnpm:new Set(['add','audit','bin','config','create','dedupe','deploy','dlx','doctor','env','exec','fetch',
@@ -265,9 +282,9 @@ export function matchCheck(command,config,configFile,dir,scripts){
 }
 // The same check (or checks, in order) through REDUE, keeping the output
 // suffix; null if it already is, or if more commands follow it.
-export function recordedCommand(command,name,configFile=defaultConfig){
+export function recordedCommand(command,name,configFile=defaultConfig,invoke='redue'){
   const names=Array.isArray(name)?name:[name];
-  const parts=split(command),redue=redueFor(configFile);
+  const parts=split(command),redue=redueFor(configFile)?.replace(/^redue/,()=>invoke);
   if(!parts||parts.rest!==null||!names.length||!names.every(value=>safe.test(value))||!redue)return null;
   const run=names.map(value=>`${redue} run ${value}`).join(' && ');
   return parts.base===run?null:names.length>1&&parts.suffix?`(${run})${parts.suffix}`:run+parts.suffix;
@@ -374,7 +391,7 @@ export function sessionStart(input,{entry}){
 }
 
 // Returns the hook's stdout object, or null to allow the command.
-export async function claudeHook(input,{entry,timeout}){
+export async function claudeHook(input,{entry,timeout,invoke=null}){
   if(input?.tool_name!=='Bash')return null;
   const command=input.tool_input?.command,root=input.cwd;
   if(typeof command!=='string'||/^\s*REDUE_FORCE=1(?:\s|$)/.test(command))return null;
@@ -414,7 +431,7 @@ export async function claudeHook(input,{entry,timeout}){
       if(reason)return {hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:reason}};
       const pending=names.filter(name=>!verdict(status,name));
       const rewritten=status?.schema===1&&status.observation?.healthy===true&&Array.isArray(status.checks)&&
-        names.every(name=>status.checks.some(item=>item?.name===name))?recordedCommand(entered.command,pending,configPath):null;
+        names.every(name=>status.checks.some(item=>item?.name===name))?recordedCommand(entered.command,pending,configPath,invoke??redueInvocation(entry)):null;
       return rewritten?{hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'allow',
         permissionDecisionReason:`REDUE: ${pending.map(name=>JSON.stringify(name)).join(', ')} of this script's checks ${pending.length===1?'is':'are'} not CURRENT; running ${pending.length===1?'it':'them'} through redue run so the result is recorded.`,
         updatedInput:{...input.tool_input,command:entered.prefix+rewritten}}}:null;
@@ -429,7 +446,7 @@ export async function claudeHook(input,{entry,timeout}){
   // stays too: the rewrite returns "allow", which would also skip the prompt
   // for the rest of the chain.
   const rewritten=status?.schema===1&&status.observation?.healthy===true&&Array.isArray(status.checks)&&
-    status.checks.some(item=>item?.name===name)?recordedCommand(entered.command,name,configPath):null;
+    status.checks.some(item=>item?.name===name)?recordedCommand(entered.command,name,configPath,invoke??redueInvocation(entry)):null;
   // updatedInput replaces the whole tool input. Deny and ask rules still apply
   // to the rewritten command; "allow" skips only the prompt.
   return rewritten?{hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'allow',
