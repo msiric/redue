@@ -85,7 +85,26 @@ desktop app or another shell still runs the right REDUE; run setup again
 after moving or upgrading Node. `redue agent doctor` reports a hook whose
 paths no longer exist. When the hook runs a check through REDUE for the
 agent, it likewise writes plain `redue run` only if its own PATH finds this
-install, else the absolute form. Other settings in the file are kept,
+install, else the absolute form.
+
+Agents often chain an edit and a check (`printf … >> README.md && npm run
+lint`). In a simple chain (commands joined by `&&`, `||` or `;`, with no
+subshell, here-document, command substitution, background job or shell
+keyword) where every part before a check is a program on PATH (not a
+builtin such as `cd` or `export`, a shell function such as `nvm`, or a bare
+assignment), the hook rewrites each check to `redue run CHECK --if-due`. That
+command decides when its turn comes, after the earlier parts may have
+changed files: it skips the check (exit 0, and says so) when its last pass
+still applies, and otherwise runs it through REDUE with the exit code a plain
+run gives. A script that runs several checks becomes `{ redue run a --if-due
+&& redue run b --if-due; }`. The rest of the chain is unchanged. The hook
+rewrites only while the observer is healthy and knows each check. It changes
+such a command without approving it, so your permission rules apply to the
+rewritten command; a rule that allows only `npm run lint` will ask about
+`redue run lint --if-due`. Anything more complex runs untouched. Known
+limit: if REDUE cannot start the check when its turn comes (another
+`redue run` holds the project's run lock), that part exits with REDUE's
+error instead of running the check. Other settings in the file are kept,
 but the file is rewritten as 2-space JSON. `.claude/settings.json` is not touched.
 `redue agent remove claude --apply` removes only the entries REDUE added.
 

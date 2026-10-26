@@ -342,6 +342,39 @@ test('a script that replaces itself with another program is UNVERIFIED and names
   assert.match(status.reason,/\bcat\b/);
 });
 
+test("an installed file whose hard links all stay in node_modules is seen; a link added later is noticed",{skip:unsupported},t=>{
+  const {root,state}=project(t,{lint:'checker'});
+  // As esbuild's install links its binary into its platform package.
+  put(path.join(root,'node_modules/@esbuild/x/bin/esbuild'),'binary');
+  fs.mkdirSync(path.join(root,'node_modules/esbuild/bin'),{recursive:true});
+  fs.linkSync(path.join(root,'node_modules/@esbuild/x/bin/esbuild'),path.join(root,'node_modules/esbuild/bin/esbuild'));
+  good(root,state,'init');good(root,state,'start');good(root,state,'run','lint');
+  let status=row(root,state,'lint');
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  fs.linkSync(path.join(root,'node_modules/esbuild/bin/esbuild'),path.join(root,'..','elsewhere'));
+  status=row(root,state,'lint');
+  assert.notEqual(status.freshness,'CURRENT',JSON.stringify(status));
+});
+
+test('run --if-due runs a check only when its last pass does not apply, with the exit code a plain run gives',{skip:unsupported},t=>{
+  const {root,state}=project(t,{lint:'checker'});
+  good(root,state,'init');good(root,state,'start');good(root,state,'run','lint');
+  assert.equal(row(root,state,'lint').freshness,'CURRENT');
+  // Still applies: not run, exit 0, and it says so.
+  let out=invoke(root,state,'run','lint','--if-due');
+  assert.equal(out.status,0,out.stderr);assert.match(out.stderr,/lint passed on these exact inputs .*not run again/);
+  assert.doesNotMatch(out.stdout,/recorded/);
+  // A change: it runs through REDUE, and a failure keeps its exit code.
+  write(root,'src/value.js','fail\n');
+  out=invoke(root,state,'run','lint','--if-due');
+  assert.equal(out.status,1,out.stderr+out.stdout);
+  write(root,'src/value.js','pass\n');good(root,state,'run','lint');
+  // REDUE_FORCE=1 runs it anyway.
+  const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!/^npm_/i.test(key)));
+  out=spawnSync(process.execPath,[bin,'--state-dir',state,'run','lint','--if-due'],{cwd:root,env:{...env,REDUE_FORCE:'1'},encoding:'utf8'});
+  assert.equal(out.status,0);assert.match(out.stdout,/recorded/);
+});
+
 test("npm's node-options setting replaces NODE_OPTIONS: the run is UNVERIFIED, not CURRENT without a recorder",{skip:unsupported},t=>{
   const {root,state}=project(t,{lint:'checker && checker'});
   put(path.join(root,'.npmrc'),'node-options=--max-old-space-size=4096\n');

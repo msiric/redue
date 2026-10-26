@@ -43,7 +43,8 @@ Commands:
   status --sync        Reconcile inputs and caller context before answering
   explain [CHECK] [--json] Explain applicability (synchronized; may cost more than a rerun)
   detail [CHECK] [--json]  Alias for explain
-  run CHECK            Execute one configured check and record its outcome
+  run CHECK [--if-due] Execute one configured check and record its outcome; with --if-due,
+                       only when its last pass does not apply to the files as they are now
   remove-state         Stop and remove only this configuration's owned local state
 
 No checks run in the background. Direct commands outside redue create no receipts.`;
@@ -96,6 +97,9 @@ if(command==='agent'){
 if(!['init','start','stop','status','detail','explain','run','remove-state'].includes(command))
   error(`unknown command ${command||'<none>'}; use --help`);
 const json=args.includes('--json');
+// run --if-due: run the check only when its last pass does not apply now.
+const ifDue=command==='run'&&args.includes('--if-due');
+if(ifDue)args.splice(args.indexOf('--if-due'),1);
 const sync=args.includes('--sync');
 const dryRun=args.includes('--dry-run');
 const short=args.includes('--short');
@@ -388,6 +392,20 @@ const internal=command==='remove-state'?'uninstall':
 // On macOS and Linux the engine runs in this process, which saves a Node startup
 // on every run; its own handlers receive SIGINT and SIGTERM. Windows keeps a
 // child engine because cancellation reaches it over IPC.
+// Asked when this part of a command runs, after earlier parts may have
+// changed files. REDUE_FORCE=1 runs it anyway.
+if(ifDue&&process.env.REDUE_FORCE!=='1'){
+  const {verdict}=await import('../src/claude-hook.mjs');
+  const asked=spawnSync(process.execPath,[fileURLToPath(import.meta.url),'--config',configFile,...(stateOverride?['--state-dir',stateOverride]:[]),
+    'status','--sync','--json'],{encoding:'utf8',stdio:['ignore','pipe','ignore'],env:process.env,timeout:600_000});
+  let status=null;try{status=JSON.parse(asked.stdout);}catch{}
+  if(verdict(status,check)){
+    const row=status.checks.find(item=>item.name===check);
+    if(json)console.log(JSON.stringify({check,skipped:true,result:'PASS',run_id:row.invocation.runId}));
+    else console.error(`REDUE: ${check} passed on these exact inputs (run ${row.invocation.runId}); not run again. REDUE_FORCE=1 runs it anyway.`);
+    await exit(0);
+  }
+}
 if(command==='run'&&process.platform!=='win32'){
   process.argv=[process.argv[0],engine,runtimeFile,internal,check,...(!json?['--human']:[])];
   await import(pathToFileURL(engine).href);

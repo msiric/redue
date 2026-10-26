@@ -132,13 +132,20 @@ test('blocks only CURRENT/PASS with reuse_eligible and a run id',async t=>{
   assert.match(blocked.hookSpecificOutput.permissionDecisionReason,/REDUE_FORCE=1/);
   assert.deepEqual(p.calls(),[`--config ${path.join(p.root,'redue.config.json')} status --sync --json`]);
   assert.doesNotMatch(blocked.hookSpecificOutput.permissionDecisionReason,/Nothing else/);
-  // A chain is denied whole; the reason names the rest so the agent can run it.
+  // In a chain, the check runs through REDUE when its turn comes, which
+  // decides then; the rest is unchanged. The command is changed, not approved.
   const chain=await claudeHook(bash('npm run typecheck && npm test -- --runInBand',p.root),{invoke:'redue',entry:p.fake('current',replying(status({})))});
-  assert.equal(chain.hookSpecificOutput.permissionDecision,'deny');
-  assert.match(chain.hookSpecificOutput.permissionDecisionReason,/rerun skipped.*run the rest on its own: npm test -- --runInBand$/);
-  // The rest is quoted as the agent wrote it, spacing included.
-  const spaced=await claudeHook(bash('npm  run typecheck  2>&1 |  tail -5 ;  git commit -m "two  spaces\there"',p.root),{invoke:'redue',entry:p.fake('current',replying(status({})))});
-  assert(spaced.hookSpecificOutput.permissionDecisionReason.endsWith('run the rest on its own: git commit -m "two  spaces\there"'));
+  assert.equal(chain.hookSpecificOutput.permissionDecision,undefined);
+  assert.equal(chain.hookSpecificOutput.updatedInput.command,'redue run typecheck --if-due && npm test -- --runInBand');
+  // Spacing, output suffixes and the rest stay as the agent wrote them.
+  const spaced=await claudeHook(bash('printf x >> README.md &&  npm  run typecheck  2>&1 |  tail -5 ;  git commit -m "two  spaces\there"',p.root),{invoke:'redue',entry:p.fake('current',replying(status({})))});
+  assert.equal(spaced.hookSpecificOutput.updatedInput.command,'printf x >> README.md &&  redue run typecheck --if-due 2>&1 | tail -5 ;  git commit -m "two  spaces\there"');
+  // Anything more than a simple chain runs untouched.
+  for(const command of ['printf x && (npm run typecheck)','npm run typecheck && echo $(date)','npm run typecheck & wait','cat <<EOF && npm run typecheck',
+    'pushd src && npm run typecheck','if true; then npm run typecheck; fi',
+    // A builtin, a shell function and a bare assignment can change the parts after them.
+    'export PATH=./bin:$PATH; npm run typecheck','nvm use 18 && npm run typecheck','X=1; npm run typecheck'])
+    assert.equal(await claudeHook(bash(command,p.root),{invoke:'redue',entry:p.fake('current',replying(status({})))}),null,command);
   // A healthy answer that is not CURRENT/PASS/eligible: run it through REDUE so it is recorded.
   const recorded={
     stale:status({freshness:'STALE',reuse_eligible:false,reason:'src/a.ts changed'}),
@@ -175,7 +182,11 @@ test('blocks only CURRENT/PASS with reuse_eligible and a run id',async t=>{
   for(const [name,value] of Object.entries(unchanged))
     assert.equal(await claudeHook(bash('npm run typecheck',p.root),{invoke:'redue',entry:p.fake(name,replying(value))}),null,name);
   assert.equal(await claudeHook(bash('redue run typecheck',p.root),{invoke:'redue',entry:p.fake('staleRun',replying(recorded.stale))}),null);
-  assert.equal(await claudeHook(bash('npm run typecheck; npm test',p.root),{invoke:'redue',entry:p.fake('staleChain',replying(recorded.stale))}),null);
+  // Without a healthy observer, the chain runs as written.
+  assert.equal(await claudeHook(bash('printf x; npm run typecheck',p.root),{invoke:'redue',entry:p.fake('unhealthyChain',replying({...status({}),observation:{healthy:false}}))}),null);
+  // In a simple chain the check decides when it runs.
+  const staleChain=await claudeHook(bash('npm run typecheck; npm test',p.root),{invoke:'redue',entry:p.fake('staleChain',replying(recorded.stale))});
+  assert.equal(staleChain.hookSpecificOutput.updatedInput.command,'redue run typecheck --if-due; npm test');
 });
 
 test('timeout, error exit, unreadable output and missing REDUE all allow',async t=>{
@@ -207,7 +218,7 @@ test('the status wait is half the last completed run, at most 10 s, or 2 s with 
 test('REDUE_FORCE=1, other tools and non-matching commands allow without querying status',async t=>{
   const p=project(t),entry=p.fake('current',replying(status({})));
   for(const input of [bash('REDUE_FORCE=1 npm run typecheck',p.root),bash('  REDUE_FORCE=1 redue run typecheck | tail -5',p.root),
-    bash('npm test',p.root),bash('cd src && npm run typecheck',p.root),bash('npm run typecheck || git push',p.root),
+    bash('npm test',p.root),bash('cd src && npm run typecheck',p.root),bash('npm run typecheck && echo $(date)',p.root),
     {...bash('npm run typecheck',p.root),tool_name:'PowerShell'},bash('npm run typecheck','relative')])
     assert.equal(await claudeHook(input,{invoke:'redue',entry}),null,JSON.stringify(input));
   assert.deepEqual(p.calls(),[]);

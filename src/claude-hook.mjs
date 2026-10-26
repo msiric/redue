@@ -276,6 +276,74 @@ function matched(command,config,configFile,dir='.',scripts={}){
   // A script form of compiler checks is checked against the script first.
   return row?.scriptForms?.includes(parts.base)?{row,rest:parts.rest}:row?{check:row.check,rest:parts.rest}:null;
 }
+// A simple chain: commands joined by &&, || or ;, outside quotes, with no
+// line break, subshell, command or process substitution, backtick,
+// here-document or background job. [{separator, text}] with the separator
+// before each part ('' for the first), or null.
+export function chainParts(command){
+  if(typeof command!=='string'||/[\r\n`]|\$\(|[<>]\(|<<|[()]/.test(command))return null;
+  const parts=[];let quote=null,start=0,separator='';
+  for(let i=0;i<command.length;i++){
+    const c=command[i];
+    if(quote){if(c===quote)quote=null;else if(c==='\\'&&quote==='"')i++;continue;}
+    if(c==='\\'){i++;continue;}
+    if(c==="'"||c==='"'){quote=c;continue;}
+    const two=command.slice(i,i+2);
+    if(two==='&&'||two==='||'||c===';'){
+      parts.push({separator,text:command.slice(start,i)});separator=c===';'?';':two;
+      start=i+(c===';'?1:2);if(c!==';')i++;continue;}
+    // A lone & runs a job in the background; >&, &> and |& redirect.
+    if(c==='&'&&command[i-1]!=='>'&&command[i+1]!=='>')return null;
+    if(two==='|&')return null;
+  }
+  if(quote)return null;
+  parts.push({separator,text:command.slice(start)});
+  return parts.every(part=>part.text.trim())?parts:null;
+}
+// A simple chain with each check in it run through REDUE when its turn comes:
+// `redue run CHECK --if-due` decides then, after earlier parts may have
+// changed files. Null when the command is not such a chain or runs no check.
+// The rest of the chain is unchanged, and so is its output and exit status
+// when a check runs.
+// Shell builtins that change the shell for the parts after them.
+const shellBuiltins=new Set(['cd','pushd','popd','export','unset','set','source','.','eval','exec','alias','unalias','shopt',
+  'ulimit','umask','trap','builtin','command','declare','typeset','local','readonly','hash','enable','let','read','wait']);
+// A part that cannot change the directory or environment of the parts after
+// it: a program found on PATH (or by path), not a builtin, function or bare
+// assignment.
+function plainProgram(body){
+  const words=body.split(/\s+/).filter(Boolean);
+  while(words.length&&/^[A-Za-z_][A-Za-z0-9_]*=/.test(words[0]))words.shift();
+  const word=words[0];
+  return Boolean(word)&&!shellBuiltins.has(word)&&/^[A-Za-z0-9_./+@-]+$/.test(word)&&(word.includes('/')||Boolean(findExecutable(word)));
+}
+// A simple chain with each check in it run through REDUE when its turn comes:
+// `redue run CHECK --if-due` decides then, after earlier parts may have
+// changed files. {command, names}, or null when the command is not such a
+// chain or runs no check. The rest of the chain is unchanged, and so are its
+// output and exit status when a check runs. Every part before a check must be
+// a plain program, so the check runs where and as it would have.
+export function chainCommand(command,config,configFile,dir='.',scripts={},invoke='redue',runConfig=configFile,projectRoot=null){
+  const parts=chainParts(command);
+  if(!parts||parts.length<2)return null;
+  const redue=redueFor(runConfig)?.replace(/^redue/,()=>invoke);
+  if(!redue)return null;
+  const names=[];let plain=true;
+  const text=parts.map(({separator,text})=>{
+    const lead=text.match(/^\s*/)[0],trail=text.match(/\s*$/)[0],body=text.trim();
+    const match=matched(body,config,configFile,dir,scripts),split_=split(body);
+    // A compiler script is its checks in the order of its runs.
+    const checks=match?.check?[match.check]:match?.row&&projectRoot?scriptChecks(match.row,config,projectRoot):null;
+    if(!checks?.length||match.rest!==null||!split_||!checks.every(name=>safe.test(name))){
+      plain&&=plainProgram(body);return separator+text;}
+    if(!plain)return null;
+    names.push(...checks);
+    // Grouped, so a separator before it applies to all its runs.
+    const runs=checks.map(name=>`${redue} run ${name} --if-due`).join(' && ');
+    return `${separator}${lead}${checks.length>1?`{ ${runs}; }`:runs}${split_.suffix}${trail}`;
+  });
+  return names.length&&!text.includes(null)?{command:text.join(''),names}:null;
+}
 export function matchCheck(command,config,configFile,dir,scripts){
   const match=matched(command,config,configFile,dir,scripts);
   return match?.row?match.row.checks.join(' && '):match?.check||null;
@@ -327,7 +395,8 @@ export function verdict(status,name,rest=null){
     (rest===null?'':` Nothing else in the command ran either; run the rest on its own: ${rest}`);
 }
 
-function synchronizedStatus(entry,config,root,timeout){
+// The status answer, synchronized unless `sync` is false (the cached one).
+function synchronizedStatus(entry,config,root,timeout,sync=true){
   return new Promise(resolve=>{
     let child,out='',done=false;
     const finish=value=>{if(done)return;done=true;clearTimeout(timer);process.off('SIGTERM',stop);
@@ -337,7 +406,7 @@ function synchronizedStatus(entry,config,root,timeout){
     // Claude Code ends a hook that outlives its own timeout; end the status call with it.
     const stop=()=>finish(null);process.once('SIGTERM',stop);
     // Its own process group on POSIX, so a timeout also ends the engine it starts.
-    try{child=spawn(process.execPath,[entry,'--config',config,'status','--sync','--json'],
+    try{child=spawn(process.execPath,[entry,'--config',config,'status',...(sync?['--sync']:[]),'--json'],
       {cwd:root,stdio:['ignore','pipe','ignore'],env:process.env,windowsHide:true,detached:process.platform!=='win32'});}
     catch{return finish(null);}
     child.on('error',()=>finish(null));
@@ -402,8 +471,27 @@ export async function claudeHook(input,{entry,timeout,invoke=null}){
   if(!entered)return null;
   let scripts={};
   if(entered.dir==='.')try{scripts=JSON.parse(fs.readFileSync(path.join(project.projectRoot,'package.json'),'utf8')).scripts||{};}catch{}
+  // The configured config path as the command's directory sees it.
+  // Both sides resolved alike: Windows can spell the same directory RUNNER~1 or by its long name.
+  const configPath=!entered.prefix?record.config:
+    path.relative(path.join(project.projectRoot,entered.dir),realObservedPath(config)).split(path.sep).join('/');
+  // A simple chain: each check in it runs through REDUE when its turn comes,
+  // after the parts before it (an edit) have run. The command is changed,
+  // not approved: Claude Code's permission rules apply to it as rewritten.
+  // A chain with no check of its own (a leading fan-out) goes on below.
+  // Rewritten only on a healthy answer: without an observer, redue run
+  // cannot run the check, and the chain would not run as written.
+  // The observer's cached health is enough here: each check asks again when it runs.
+  const chained=chainCommand(entered.command,parsed,record.config,entered.dir,scripts,invoke??redueInvocation(entry),configPath,project.projectRoot);
+  if(chained){
+    const cached=await synchronizedStatus(entry,config,root,timeout??5000,false);
+    return cached?.observation?.healthy===true&&chained.names.every(name=>cached.checks?.some(row=>row?.name===name))?
+      {hookSpecificOutput:{hookEventName:'PreToolUse',updatedInput:{...input.tool_input,command:entered.prefix+chained.command}}}:null;
+  }
   const match=matched(entered.command,parsed,record.config,entered.dir,scripts);
   if(!match)return null;
+  // A check followed by more than a simple chain runs untouched.
+  if(match.rest!==null&&!match.fanout)return null;
   // turbo, nx and `pnpm -r` cache their own results: skip only when every
   // check the command runs is CURRENT, and otherwise leave it alone.
   if(match.fanout){
@@ -413,10 +501,6 @@ export async function claudeHook(input,{entry,timeout,invoke=null}){
       reason=fanoutVerdict(status,names,match.rest);
     return reason?{hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:reason}}:null;
   }
-  // The configured config path as the command's directory sees it.
-  // Both sides resolved alike: Windows can spell the same directory RUNNER~1 or by its long name.
-  const configPath=!entered.prefix?record.config:
-    path.relative(path.join(project.projectRoot,entered.dir),realObservedPath(config)).split(path.sep).join('/');
   // A compiler script: its checks in the order of its runs, or nothing when
   // they no longer correspond. One run is an ordinary check. A chain is
   // skipped when every run is CURRENT, else the runs that are not run through
