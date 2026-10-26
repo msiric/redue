@@ -62,25 +62,24 @@ To undo everything setup did: `redue remove`.
 ## What it covers today
 
 In a census of 120 active public TypeScript repositories (October 2026, REDUE
-at commit c9034e5, just after 0.1.0-alpha.22), 89 installed cleanly. A check
-counts when two recorded runs on the same code both came out CURRENT on the
-same inputs. 31 repositories had at least one such check:
+at commit 0fcd19b, after 0.1.0-alpha.23), each installed as its users would,
+with dependencies' install scripts on, 86 installed cleanly. A check counts
+when two recorded runs on the same code both came out CURRENT on the same
+inputs. 30 repositories had at least one such check:
 
 | Check | Repositories | How |
 |---|---|---|
-| Typecheck | 22 | 16 by running the project's script with every Node process recorded ([general recipe](docs/user/node-script.md)); 6 by running the local `tsc` directly ([direct recipe](docs/user/direct-typescript.md)) |
+| Typecheck | 21 | 15 by running the project's script with every Node process recorded ([general recipe](docs/user/node-script.md)); 6 by running the local `tsc` directly ([direct recipe](docs/user/direct-typescript.md)) |
 | Lint | 18 | general recipe |
 | Tests | 2 | Vitest run directly ([direct test recipe](docs/user/tests-direct.md)) |
 
 Everything else stays UNVERIFIED, with a reason you can read in
 `redue explain`. The usual ones: a script starts a program REDUE cannot see
 into (esbuild, turbo, nx, oxlint's tsgolint, TypeScript 7's native compiler),
-the project uses Bun, or a test suite writes into its own inputs. Two you may
+the project uses Bun, or a test suite writes into its own inputs. One you may
 meet right after setup: a Vitest run writes its results under
 `node_modules/.vite`, which the direct TypeScript recipe counts as an
-installed input, so the typecheck turns STALE until it runs again; and an
-installed file with a second hard link (esbuild's install makes one) keeps
-the test check UNVERIFIED.
+installed input, so the typecheck turns STALE until it runs again.
 [Supported projects](docs/user/supported-projects.md) has the details.
 
 ## Measured with Claude Code
