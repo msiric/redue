@@ -17,6 +17,8 @@
 //   strace, each run is traced, and programs the recorder did not see are
 //   listed per run (eval/program-check.mjs) and flagged. --keep-traces keeps
 //   each run's strace output and run record under .local/eval/census-traces/.
+//   --install-scripts installs as users do, with dependencies' install
+//   scripts (esbuild's links its binary), on a disposable CI runner only.
 //
 // Clones the default branch, installs with the repo's package manager
 // (through Corepack, install scripts skipped), runs `init --dry-run --json`
@@ -33,7 +35,8 @@ import {projectState} from '../src/project-location.mjs';
 const argv = process.argv.slice(2);
 const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : null;
 const initOnly = argv.includes('--init-only'), recorded = argv.includes('--recorded'), product = argv.includes('--product'),
-  keepTraces = argv.includes('--keep-traces'), allRecipes = argv.includes('--all-recipes');
+  keepTraces = argv.includes('--keep-traces'), allRecipes = argv.includes('--all-recipes'),
+  installScripts = argv.includes('--install-scripts');
 let names = argv.filter((arg, i) => !arg.startsWith('-') && argv[i - 1] !== '--shard');
 if (!names.length) names = readJson(path.join(evalDir, 'census-repos.json')).repos;
 // Named repos are sharded too, so CI can rerun a list across its shards.
@@ -52,13 +55,13 @@ function packageManager(dir, pkg) {
 }
 
 function install(dir, pm) {
-  const frozen = pm.locks.includes(pm.name);
+  const frozen = pm.locks.includes(pm.name), skip = flag => installScripts ? [] : [flag];
   switch (pm.name) {
-    case 'npm': return run('npm', [frozen ? 'ci' : 'install', '--ignore-scripts', '--no-audit', '--no-fund'], dir, 900_000);
-    case 'pnpm': return run('corepack', ['pnpm', 'install', ...(frozen ? ['--frozen-lockfile'] : []), '--ignore-scripts'], dir, 900_000);
+    case 'npm': return run('npm', [frozen ? 'ci' : 'install', ...skip('--ignore-scripts'), '--no-audit', '--no-fund'], dir, 900_000);
+    case 'pnpm': return run('corepack', ['pnpm', 'install', ...(frozen ? ['--frozen-lockfile'] : []), ...skip('--ignore-scripts')], dir, 900_000);
     case 'yarn': return pm.version && !pm.version.startsWith('1.') ?
-      run('corepack', ['yarn', 'install', ...(frozen ? ['--immutable'] : []), '--mode=skip-build'], dir, 900_000) :
-      run('corepack', ['yarn', 'install', ...(frozen ? ['--frozen-lockfile'] : []), '--ignore-scripts'], dir, 900_000);
+      run('corepack', ['yarn', 'install', ...(frozen ? ['--immutable'] : []), ...skip('--mode=skip-build')], dir, 900_000) :
+      run('corepack', ['yarn', 'install', ...(frozen ? ['--frozen-lockfile'] : []), ...skip('--ignore-scripts')], dir, 900_000);
     default: return {status: null, ms: 0, stdout: '', stderr: `no installer for ${pm.name}`};
   }
 }
