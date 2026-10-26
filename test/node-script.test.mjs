@@ -188,6 +188,20 @@ test('init writes general typecheck and lint checks for scripts the strict recip
   assert.deepEqual(lint.inputs,scriptCheckInputs().inputs);
 });
 
+test("init keeps a typecheck through TypeScript 7's native compiler recording-only and says why",{skip:unsupported},t=>{
+  const {root,state}=project(t,{typecheck:'tsc --noEmit',lint:'tsgo --noEmit'});
+  for(const [pkg,bin,version] of [['typescript','tsc','7.0.2'],['@typescript/native-preview','tsgo','7.0.0-dev.20260707.2']]){
+    put(path.join(root,'node_modules',pkg,'package.json'),JSON.stringify({name:pkg,version,bin:{[bin]:`./bin/${bin}`}}));
+    put(path.join(root,'node_modules',pkg,'bin',bin),'#!/usr/bin/env node\n',0o755);
+    fs.symlinkSync(`../${pkg}/bin/${bin}`,path.join(root,'node_modules/.bin',bin));
+  }
+  const by=Object.fromEntries(JSON.parse(good(root,state,'init','--dry-run','--json')).checks.map(c=>[c.name,c]));
+  assert.equal(by.typecheck.level,'recording');
+  assert.match(by.typecheck.reason,/runs tsc from typescript 7\.0\.2, a native compiler REDUE does not record/);
+  assert.equal(by.lint.level,'recording');
+  assert.match(by.lint.reason,/runs tsgo from @typescript\/native-preview 7\.0\.0-dev/);
+});
+
 test('a general check: CURRENT after a recorded pass, STALE on any checkout edit, and its recipe is named',{skip:unsupported},t=>{
   const {root,state}=project(t,{lint:'checker'});
   good(root,state,'init');good(root,state,'start');

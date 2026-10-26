@@ -113,7 +113,10 @@ one REDUE can account for:
 
 A process that replaces itself with another program through
 `process.execve` (TypeScript 7's `tsc` does this to start its native
-compiler) is judged the same way as a program it starts.
+compiler) is judged the same way as a program it starts. `init` reads
+TypeScript 7's launchers (`tsc` from `typescript@7`, `tsgo` from
+`@typescript/native-preview`) as that native compiler and keeps such a script
+recording-only.
 
 Anything else makes the result UNVERIFIED and names the program: `git`,
 `sleep`, `find`, and native programs from installed packages such as esbuild,

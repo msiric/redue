@@ -236,6 +236,19 @@ export const scriptPath=(dir,callerPath)=>{
 // Why a shell command line could start a program REDUE does not record, or
 // null. Names are looked up along `searchPath` from `cwd`. A script the pnpm
 // executable runs is read the same way, since the recorder cannot see it.
+// TypeScript 7's Node launchers (tsc in typescript@7, tsgo in
+// @typescript/native-preview) replace themselves with a native compiler REDUE
+// does not record: the package and version, or null.
+export function nativeTypeScriptLauncher(file){
+  let dir;try{dir=path.dirname(fs.realpathSync(file));}catch{return null;}
+  for(let n=0;n<3;n++,dir=path.dirname(dir)){
+    let pkg;try{pkg=JSON.parse(fs.readFileSync(path.join(dir,'package.json'),'utf8'));}catch{continue;}
+    if(pkg.name==='typescript'&&Number(String(pkg.version).split('.')[0])>=7||pkg.name==='@typescript/native-preview')
+      return `${pkg.name} ${pkg.version}`;
+    return null;
+  }
+  return null;
+}
 export function commandLineIssue(text,{cwd,searchPath,depth=0}={}){
   if(depth>8)return 'the scripts run each other too deeply for REDUE to read';
   const parsed=parseCommandLine(text);
@@ -270,6 +283,8 @@ export function commandLineIssue(text,{cwd,searchPath,depth=0}={}){
       if(kind==='node'){
         const flag=['node','nodejs'].includes(path.basename(file))&&args.find(arg=>nativeReads.test(arg.text));
         if(flag)return `runs node ${flag.text.split('=')[0]}, which reads a file REDUE cannot see`;
+        const native=nativeTypeScriptLauncher(file);
+        if(native)return `runs ${path.basename(name)} from ${native}, a native compiler REDUE does not record`;
         break;
       }
       if(kind==='pnpm'){const issue=pnpmRunIssue(args.map(arg=>arg.text),{cwd:dir,searchPath,depth});if(issue)return issue;break;}
