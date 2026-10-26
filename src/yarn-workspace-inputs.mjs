@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {createRequire} from 'node:module';
+import {compilerApiIssue} from './typescript-list.mjs';
 import micromatch from './glob.mjs';
 import {withinPath as within,realObservedPath} from './path-identity.mjs';
 
@@ -58,6 +59,8 @@ export function yarnWorkspacePackages(root){
 }
 
 function parsedTypeScript(root,dir){
+  const apiIssue=compilerApiIssue(path.join(root,'node_modules','typescript'));
+  if(apiIssue)throw Error(apiIssue);
   const require=createRequire(path.join(root,'package.json'));
   const ts=require(path.join(root,'node_modules','typescript'));
   const config=path.join(root,dir,'tsconfig.json'),reads=new Set();

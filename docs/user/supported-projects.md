@@ -83,7 +83,11 @@ entries stay inputs: an import can still reach an excluded file); a file the
 program reads outside them keeps the check recording-only. This avoids pnpm's task-run bookkeeping
 writes during `pnpm run`; it does not alter the project's script. Test, lint,
 build, and ambiguous TypeScript scripts still execute through `pnpm run`; root
-typecheck and lint ones can use the [general recipe](node-script.md). The generated `@typescript-bin:WORKSPACE` token resolves
+typecheck and lint ones can use the [general recipe](node-script.md). The pnpm
+and Yarn TypeScript recipes read TypeScript's compiler API, which TypeScript 7
+does not ship: with TypeScript 7 installed they refuse and say so. The
+general recipe runs such a script, but TypeScript 7's native compiler is a
+program REDUE does not record, so the result is UNVERIFIED. The generated `@typescript-bin:WORKSPACE` token resolves
 the local compiler when the check runs; it is not an absolute machine path.
 
 The pnpm contract indexes consumed installed package contents inside the

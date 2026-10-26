@@ -182,6 +182,15 @@ test('pnpm init selects a project-relative workspace TypeScript check and reject
   assert.match(injected.reason,/injected workspace/);
 });
 
+test('pnpm init refuses TypeScript 7, which has no compiler API, and says so',t=>{
+  const {root}=fixture(t);
+  const manifest=path.join(root,'node_modules','.pnpm','typescript@5.6.3','node_modules','typescript','package.json');
+  json(manifest,{...JSON.parse(fs.readFileSync(manifest,'utf8')),version:'7.0.2'});
+  const row=discoverNodeProject(root).checks.find(item=>item.config.name==='@fixture/app:typecheck');
+  assert.equal(row.level,'recording');
+  assert.match(row.reason,/TypeScript 7\.0\.2 is a native compiler without the compiler API this recipe reads; REDUE does not support TypeScript 7 yet/);
+});
+
 test('pnpm workspace, generated and project-installed content match independent recomputation',t=>{
   const {root,external}=fixture(t),config=runtime(root),bundle=discoverDeclared(config);
   assert.deepEqual(bundle.plans.app.unresolved,[]);

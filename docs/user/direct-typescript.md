@@ -7,7 +7,9 @@ not mean npm or npm lifecycle scripts completed.
 For a supported single-package npm project with a typecheck script of `tsc`
 runs (see [script forms](#script-forms)) or no typecheck script and a root
 `tsconfig.json`, installed dependencies, Node 22/24 and TypeScript 5.x or 6.0
-(see [compiler identity](#compiler-identity)):
+(see [compiler identity](#compiler-identity)). TypeScript 7 is a native
+compiler this recipe cannot run: `init` refuses it
+(`direct-typescript-version-unsupported`):
 
 ```sh
 redue init --recipe typescript-direct --check typecheck --dry-run

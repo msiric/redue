@@ -2,7 +2,7 @@
 // repository-relative input sets and resolution relationships, never pnpm
 // virtual-store names as semantic identities.
 import {probeTimeLeft} from './probe-deadline.mjs';
-import {compilerFiles} from './typescript-list.mjs';
+import {compilerApiIssue,compilerFiles} from './typescript-list.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {createRequire} from 'node:module';
@@ -298,7 +298,9 @@ export function pnpmTypecheckInputs(root,workspace,run,{captureQueries=false}={}
   let tsPackage;try{tsPackage=realObservedPath(lookup.resolve('typescript/package.json'));}
   catch{throw Error('installed TypeScript compiler cannot be resolved');}
   if(!within(tsPackage,root))throw Error('TypeScript compiler is outside the observed checkout');
-  const tsRoot=path.dirname(tsPackage),ts=lookup('typescript');
+  const tsRoot=path.dirname(tsPackage),apiIssue=compilerApiIssue(tsRoot);
+  if(apiIssue)throw Error(apiIssue);
+  const ts=lookup('typescript');
   const tsc=path.join(tsRoot,'bin','tsc');
   if(!exists(tsc))throw Error('installed TypeScript executable is missing');
   const configStarted=performance.now();

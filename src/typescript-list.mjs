@@ -63,6 +63,14 @@ export function queriesMatch(queries) {
   return queries.every(([kind,file,answer,options])=>
     JSON.stringify(queryAnswer(kind,file,options))===JSON.stringify(answer));
 }
+// Why a recipe built on TypeScript's compiler API cannot use the TypeScript
+// installed at `tsRoot`, or null: TypeScript 7 is a native compiler and
+// ships no such API.
+export function compilerApiIssue(tsRoot) {
+  let version=null;try{version=JSON.parse(fs.readFileSync(path.join(tsRoot,'package.json'),'utf8')).version;}catch{}
+  return Number(String(version).split('.')[0])>=7?
+    `TypeScript ${version} is a native compiler without the compiler API this recipe reads; REDUE does not support TypeScript 7 yet`:null;
+}
 export function compilerFiles(tsRoot,cwd,config='tsconfig.json') {
   const require=createRequire(import.meta.url),ts=require(tsRoot);
   if(typeof ts.createProgram!=='function'||typeof ts.createCompilerHost!=='function')return null;
