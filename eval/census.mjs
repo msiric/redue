@@ -201,8 +201,9 @@ function productRuns(dir, row) {
       }
     }
     const [first, second] = runs;
-    // A trusted run that started a program the recorder missed does not qualify.
-    const qualifies = !runs.some(x => x.timedOut || x.unrecordedCritical) && second.stable === true && Array.isArray(second.guardIssues) && !second.guardIssues.length &&
+    // A trusted run that started a program the recorder missed does not
+    // qualify. Recipes that do not record (direct TypeScript) have no guard issues.
+    const qualifies = !runs.some(x => x.timedOut || x.unrecordedCritical) && second.stable === true && !(second.guardIssues ?? []).length &&
       second.freshness === 'CURRENT' && first.fingerprint !== null && first.fingerprint === second.fingerprint;
     Object.assign(out[c.name], {runs, qualifies, pass: runs.map(x => x.result === 'PASS')});
     console.error(`  ${c.name} ${c.script}: ${qualifies ? 'QUALIFIES' : second.reason || 'not qualified'}`);

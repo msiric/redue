@@ -10,7 +10,7 @@ on:
         description: What to run
         required: true
         type: choice
-        options: [screen, run, census]
+        options: [screen, run, census, stranger]
         default: run
       args:
         description: 'Arguments, e.g. "--pilot" for run, or "owner/name owner/name@commit" for screen'
@@ -43,10 +43,10 @@ jobs:
           sudo sysctl -w fs.inotify.max_user_watches=1048576
           sudo sysctl -w fs.inotify.max_user_instances=1024
       - name: pnpm and Yarn through Corepack, as projects pin them
-        if: inputs.command == 'run'
+        if: inputs.command == 'run' || inputs.command == 'stranger'
         run: corepack enable
       - name: Claude Code
-        if: inputs.command == 'run'
+        if: inputs.command == 'run' || inputs.command == 'stranger'
         run: npm install -g "@anthropic-ai/claude-code@${{ inputs.claude_version }}" && claude --version
       - name: Screen repos
         if: inputs.command == 'screen'
@@ -60,6 +60,13 @@ jobs:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           CLAUDE_CODE_RETRY_WATCHDOG: '1'
         run: node eval/run.mjs $ARGS --out .local/eval/run-ci
+      - name: Stranger sessions (README only)
+        if: inputs.command == 'stranger'
+        env:
+          ARGS: ${{ inputs.args }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          CLAUDE_CODE_RETRY_WATCHDOG: '1'
+        run: node eval/stranger.mjs $ARGS --out .local/eval/stranger-ci
       - uses: actions/upload-artifact@v4
         if: always()
         with:
