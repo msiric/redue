@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.1.0-alpha.23 — 2026-10-26
+
+One command to set up REDUE with Claude Code, and one to undo it.
+
+- **`redue setup claude`** runs `init` (when there is no
+  `redue.config.json`), connects Claude Code, starts the observer, waits for
+  it to index the project, and records each check that can qualify once. It
+  asks once (`--yes` for no prompts), prints every file it writes, and a
+  second run changes nothing. It stops before writing when dependencies are
+  not installed or nothing can be set up.
+- **`redue remove`** undoes exactly what setup created: the integration (or
+  only this machine's hooks), the observer state, the local ignore line, and
+  the config if it is unchanged since setup wrote it. Anything that existed
+  before setup stays. Setup notes what it created in the clone's Git
+  directory, never in a committed file.
+- **Hooks find REDUE.** The Claude Code hooks name plain `redue` only when
+  the `redue` that your shell and a login shell find is this install;
+  otherwise they name this install's Node and entry by absolute path, so a
+  Claude Code started from an IDE or with a shorter PATH still runs it.
+  Checks the hook runs for the agent follow the same rule.
+- `init` keeps a typecheck that runs TypeScript 7's `tsc` (or `tsgo` from
+  `@typescript/native-preview`) recording-only and says why. The pnpm and
+  Yarn TypeScript recipes refuse TypeScript 7 with a clear reason instead
+  of an error from inside the compiler API.
+- The README is rewritten around a 5-minute quickstart, what REDUE covers
+  today (census qualifiers) and what it won't do.
+- Known limits, found by the stranger test: a Vitest run writes under
+  `node_modules/.vite`, which makes a direct TypeScript typecheck STALE until
+  it runs again; an installed file with a second hard link (esbuild's install
+  makes one) keeps the test check UNVERIFIED.
+
+- Contributors: the census can run every recipe (`--all-recipes`) and
+  counts direct TypeScript checks; its unrecorded-program check no longer
+  flags Yarn's temporary `node` wrapper; `eval/stranger.mjs` runs fresh
+  Claude Code sessions that set REDUE up from the README alone.
+
 ## 0.1.0-alpha.22 — 2026-10-25
 
 A correctness fix for recorded runs. Earlier alphas could report CURRENT for
