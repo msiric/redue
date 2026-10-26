@@ -252,6 +252,20 @@ test("the hook names redue plainly only when this install is on PATH in this she
   assert.match(hookInvocation(entry,{env:env(other,path.join(other,'redue'))}).reason,/not this install/);
 });
 
+test('an alpha.23 setup, without the own-command line, is recognized and updated',t=>{
+  const f=fixture(t);f.ok('agent','setup','claude','--apply');
+  // The block as alpha.15-alpha.23 wrote it.
+  const record=JSON.parse(f.read('.redue/agents/claude.json'));
+  const old=record.block.replace(/ Run it as a command of its own, not chained after an\nedit or another command\.\n/,'\n')
+    .replace(/Run each check as a command of its own, not chained after an edit or another\ncommand\.\n/,'');
+  assert.notEqual(old,record.block);
+  f.put('CLAUDE.md',f.read('CLAUDE.md').replace(record.block,old));
+  f.put('.redue/agents/claude.json',JSON.stringify({...record,block:old},null,2)+'\n');
+  f.ok('agent','doctor','claude');
+  f.ok('agent','setup','claude','--apply');
+  assert.match(f.read('CLAUDE.md'),/as a command of its own/);
+});
+
 test('claude setup names the test command beside the typecheck and recognizes its own block again',t=>{
   const f=fixture(t);
   f.put('redue.config.json',JSON.stringify({schema:1,packageManager:'npm',checks:[

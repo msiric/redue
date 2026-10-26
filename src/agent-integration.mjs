@@ -183,23 +183,28 @@ const commandsOf=rows=>[rows.filter(row=>row.kind!=='test'&&row.kind!=='lint').m
   rows.filter(row=>row.kind==='test').map(row=>row.form),rows.filter(row=>row.kind==='lint').map(row=>row.form)];
 const fence=(host,body)=>`\n\n<!-- REDUE:${host}:begin -->\n${body}<!-- REDUE:${host}:end -->\n`;
 const skillPointer=host=>`Before you run, skip or report a typecheck or other configured check, read\n${hosts[host].skill}.\n`;
-function blockFor(host,rows=[]){
+// `own`: the line asking for each check as a command of its own, added in
+// alpha.24; the alpha.15-alpha.23 wording without it is still recognized.
+function blockFor(host,rows=[],own=true){
   const [typechecks,tests,lints]=commandsOf(rows);
   if(!rows.length)return fence(host,skillPointer(host));
+  const ownLine=own?`Run each check as a command of its own, not chained after an edit or another\n`+
+    `command.\n`:'';
   if(lints.length)return fence(host,(typechecks.length?`Typecheck with ${quoted(typechecks)}.\n`:'')+
     (tests.length?`Run the unit tests with ${quoted(tests)}.\n`:'')+`Lint with ${quoted(lints)}.\n`+
     `Run a check before you say it passes, even after an edit you think cannot\n`+
     `matter; don't skip it yourself. If its last pass still applies to these exact\n`+
-    `files, a REDUE hook skips the run and says so. That skip counts as a pass.\n`);
+    `files, a REDUE hook skips the run and says so. That skip counts as a pass.\n`+ownLine);
   if(!tests.length)return fence(host,`Typecheck with ${quoted(typechecks)}. Run it before you say it passes, even after an\n`+
     `edit you think cannot matter; don't skip it yourself. If its last pass still\n`+
     `applies to these exact files, a REDUE hook skips the run and says so. That\n`+
-    `skip counts as a pass.\n`);
+    (own?`skip counts as a pass. Run it as a command of its own, not chained after an\n`+
+      `edit or another command.\n`:`skip counts as a pass.\n`));
   return fence(host,(typechecks.length?`Typecheck with ${quoted(typechecks)}.\n`:'')+
     `Run the unit tests with ${quoted(tests)}.\n`+
     `Run a check before you say it passes, even after an edit you think cannot\n`+
     `matter; don't skip it yourself. If its last pass still applies to these exact\n`+
-    `files, a REDUE hook skips the run and says so. That skip counts as a pass.\n`);
+    `files, a REDUE hook skips the run and says so. That skip counts as a pass.\n`+ownLine);
 }
 // The alpha.12-alpha.14 wording, recognized so setup can replace it.
 function earlierBlock(host,rows=[]){
@@ -240,7 +245,8 @@ function knownBlock(host,relative,block){
   const rows=[...forms(`^\\n\\n<!-- REDUE:[a-z]+:begin -->\\nTypecheck with ${list}\\.`).map(form=>({kind:'typecheck',form})),
     ...forms(`Run the unit tests with ${list}\\.\\n`).map(form=>({kind:'test',form})),
     ...forms(`Lint with ${list}\\.\\n`).map(form=>({kind:'lint',form}))];
-  return block===blockFor(host,rows)||block===earlierBlock(host,rows)||priorBlocks(host,relative).includes(block);
+  return block===blockFor(host,rows)||block===blockFor(host,rows,false)||block===earlierBlock(host,rows)||
+    priorBlocks(host,relative).includes(block);
 }
 // The policy with the exact commands for this config, so an agent never builds
 // a --config form the hook would not recognize. Claude Code gets the typecheck
