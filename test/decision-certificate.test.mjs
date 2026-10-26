@@ -82,7 +82,9 @@ test('idle observer launches no probe and a relevant edit is STALE immediately',
   const before=await metrics(f);
   for(let n=0;n<3;n++)assert.equal(state(sync(f)),'CURRENT/PASS/eligible');
   const warm=await metrics(f);
-  if(inProcess){assert.equal(warm.full,before.full);assert.equal(warm.reused,before.reused+3);}
+  // Each read reuses the probe; the daemon's own periodic check may reuse it
+  // once more in between. None launches a full probe.
+  if(inProcess){assert.equal(warm.full,before.full);assert(warm.reused>=before.reused+3,JSON.stringify({before,warm}));}
   const idle=launches(f);await wait(6500);
   assert.equal(launches(f),idle,'no probe process while idle');
   // Windows cached status is UNVERIFIED by design until a synchronized read.
