@@ -15,6 +15,8 @@ export function queryAnswer(kind,file,options) {
     if(kind==='readFile')return hash(fs.readFileSync(file,'utf8'));
     if(kind==='fileExists')return fs.statSync(file).isFile();
     if(kind==='directoryExists')return fs.statSync(file).isDirectory();
+    // How many hard links a file has: a link added elsewhere changes it.
+    if(kind==='linkCount')return fs.lstatSync(file).nlink;
     // The compiler resolves through realpathSync.native outside Windows.
     if(kind==='realpath')return process.platform==='win32'?fs.realpathSync(file):fs.realpathSync.native(file);
     if(kind==='directories')return fs.readdirSync(file,{withFileTypes:true})
@@ -44,7 +46,7 @@ export function queryAnswer(kind,file,options) {
 export function runFactChange(facts) {
   if(!Array.isArray(facts))return 'an unreadable run fact';
   for(const fact of facts){
-    if(!Array.isArray(fact)||!['fileExists','directoryExists','realpath','readFile','entries'].includes(fact[0])||
+    if(!Array.isArray(fact)||!['fileExists','directoryExists','realpath','readFile','entries','linkCount'].includes(fact[0])||
       typeof fact[1]!=='string')return 'an unreadable run fact';
     const [kind,file,answer]=fact;
     let now;try{now=queryAnswer(kind,file);}catch{return file;}

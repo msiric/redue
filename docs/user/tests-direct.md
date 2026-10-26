@@ -90,8 +90,12 @@ kept but marked UNVERIFIED, with the reason, when the run:
   `--expose-internals`: the recorder cannot follow those;
 - had an installed file with another hard link, other than a link into the
   pnpm store the install recorded in `node_modules/.modules.yaml` (pnpm's
-  default on Linux). A change through a link elsewhere, such as Yarn's
-  hardlinks modes, is not seen.
+  default on Linux) or, without a pnpm store, links that are all installed
+  files the check observes (esbuild's install links its binary into its
+  platform package). The link count of each such file is checked again
+  before every answer, so a link added later is noticed. A change through a
+  link elsewhere, such as Yarn's hardlinks modes, is not seen. This applies
+  to the [general recipe](node-script.md) too.
 
 Lookups that can be asked again become run facts, checked before every CURRENT
 answer: whether a path outside the checkout exists, where a link resolves, the

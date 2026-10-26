@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import {directQualification,directInterpretation,observedNpmContext} from './direct-typescript.mjs';
 import {directRunCertificateAllowed,directRunCertificate,directRunRecordable,directRunRecording,probeQuestions,validateRunRecord} from './direct-run-certificate.mjs';
 import {queryAnswer,runFactChange} from './typescript-list.mjs';
+import {patternMatcher} from './glob.mjs';
+import {observedBy} from './installed-observation.mjs';
 import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testRunFacts,sharedInstalledFile,testsInterpretation,testsQualification} from './test-direct.mjs';
 import {childProgram,lookup,pnpmConfigFiles,scriptCaches,scriptInstalledPaths,scriptInterpretation,scriptQualification,scriptRunFacts,pnpmNameless,toolOutput,toolchainDirs} from './node-script.mjs';
 import path from 'node:path';
@@ -377,8 +379,13 @@ async function execute() {
       // The pnpm executable reads its configuration natively: kept by content.
       if(guard.opaque)for(const file of pnpmConfigFiles())try{runFacts.push(['readFile',file,queryAnswer('readFile',file)]);}
         catch{guard.issues.push(`pnpm configuration ${file} cannot be read`);}
-      const shared=sharedInstalledFile(root,testFacts,path.join(state,'pnpm-store-links-v1.json'));
+      // Hard links count only where the check observes them.
+      // As the index matches: source patterns, or additive (installed) ones.
+      const source=patternMatcher(plan.sourcePatterns||plan.patterns||[]),additive=patternMatcher(plan.additivePatterns||[]);
+      const linkFacts=[],observed=observedBy(root,rel=>source(rel)||additive(rel));
+      const shared=sharedInstalledFile(root,testFacts,path.join(state,'pnpm-store-links-v1.json'),{observed,facts:linkFacts});
       if(shared)guard.issues.push(`installed file ${shared.file} ${shared.reason}; a change through it is not observed`);
+      else runFacts.push(...linkFacts);
       fs.rmSync(testRecord,{recursive:true,force:true});
     }
     // The daemon reads the recording from owned state; control requests are small.

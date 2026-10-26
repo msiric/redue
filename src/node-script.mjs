@@ -35,12 +35,15 @@ const modulesDirs=dirs=>['node_modules',...dirs.map(dir=>`${dir}/node_modules`)]
 // Inputs: the whole checkout but node_modules, .git and runner caches. Every
 // node_modules of the workspace is observed as installed files, without the
 // caches tools keep there.
+// Runner caches at the top of a node_modules, which Vite, Vitest and build
+// loaders rewrite as they run: not installed inputs.
+export const installedRunnerCaches=['.cache','.vite','.vite-temp','.vitest','.vitest-cache'];
 export function scriptCheckInputs(dirs=[]){
   const modules=modulesDirs(dirs);
   return {inputs:['**',...modules.map(at=>`!${at}/**`),'!.git/**',...installState.map(file=>`!${file}`),
     ...scriptCaches.map(pattern=>`!${pattern}`)],
-  installedInputs:[...modules.flatMap(at=>[`${at}/**`,`!${at}/.cache/**`,`!${at}/.vite/**`,`!${at}/.vite-temp/**`,
-    `!${at}/.vitest/**`,`!${at}/.vitest-cache/**`,`!${at}/**/*.tsbuildinfo`]),...installState]};
+  installedInputs:[...modules.flatMap(at=>[`${at}/**`,...installedRunnerCaches.map(dir=>`!${at}/${dir}/**`),
+    `!${at}/**/*.tsbuildinfo`]),...installState]};
 }
 // Installed files a tool rewrites during a run. pnpm writes its workspace
 // state in the root node_modules at the first run after an install, through

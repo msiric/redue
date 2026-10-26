@@ -5,7 +5,9 @@ import path from 'node:path';
 import os from 'node:os';
 import {spawnSync,execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {testPackageManager,testRunnerAt,testScript,testRecipeScript,testWorkspaceDirs} from '../src/test-direct.mjs';
+import {sharedInstalledFile,testPackageManager,testRunnerAt,testScript,testRecipeScript,testWorkspaceDirs} from '../src/test-direct.mjs';
+import {observedBy} from '../src/installed-observation.mjs';
+import {patternMatcher} from '../src/glob.mjs';
 import {resolveDeclaredInstalled} from '../src/installed-inputs.mjs';
 import {realObservedPath} from '../src/path-identity.mjs';
 
@@ -472,3 +474,25 @@ test('a workspace package\'s runner: Node\'s lookup, skipping broken candidates,
   assert.throws(()=>testRunnerAt(root,'packages/a','vitest',['packages/a']),{code:'test-runner-layout-unsupported'});
 });
 
+
+test('without a pnpm store, a hard link counts only where the check observes it; each accepted file becomes a run fact',{skip:process.platform==='win32'?'hard links are checked on macOS and Linux':false},t=>{
+  const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-links-'))),root=path.join(base,'p');
+  t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
+  const binary=path.join(root,'node_modules/@esbuild/linux-x64/bin/esbuild');
+  fs.mkdirSync(path.dirname(binary),{recursive:true});fs.writeFileSync(binary,'binary');
+  // As esbuild's install links its binary into the esbuild package.
+  fs.mkdirSync(path.join(root,'node_modules/esbuild/bin'),{recursive:true});
+  fs.linkSync(binary,path.join(root,'node_modules/esbuild/bin/esbuild'));
+  const observed=observedBy(root,patternMatcher(['node_modules/**','!node_modules/.vite/**']));
+  const facts=[];
+  assert.equal(sharedInstalledFile(root,{},null,{observed,facts}),null);
+  assert.equal(facts.length,1);assert.equal(facts[0][0],'linkCount');assert.equal(facts[0][2],2);
+  // A link in a folder the check leaves out does not count.
+  fs.mkdirSync(path.join(root,'node_modules/.vite/deps'),{recursive:true});
+  fs.linkSync(binary,path.join(root,'node_modules/.vite/deps/esbuild'));
+  assert.match(sharedInstalledFile(root,{},null,{observed})?.reason??'',/not an installed file this check observes/);
+  fs.unlinkSync(path.join(root,'node_modules/.vite/deps/esbuild'));
+  // Nor does one outside the checkout.
+  fs.linkSync(binary,path.join(base,'outside'));
+  assert.match(sharedInstalledFile(root,{},null,{observed})?.reason??'',/not an installed file this check observes/);
+});

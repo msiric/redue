@@ -430,13 +430,18 @@ function storePath(files,file,st){
 // files, which is a change REDUE sees. `cache` (in owned state) keeps each
 // file found in the store with its identity and store path, so an unchanged
 // file is not hashed again; its store link is still checked.
-export function sharedInstalledFile(root,project={},cache=null){
+// Without a pnpm store, a hard-linked installed file is accepted only when
+// every one of its links is an installed file the check observes (`observed`,
+// installed-observation.mjs): esbuild links its binary into its platform
+// package. Each accepted file's link count becomes a run fact in `facts`, so
+// a link added later is noticed before the next answer.
+export function sharedInstalledFile(root,project={},cache=null,{observed=()=>false,facts=[]}={}){
   const stack=modulesDirs(project).map(dir=>path.join(root,dir));
   const files=pnpmStoreFiles(root),now=Date.now();
   let known={},changed=false;
   if(files&&cache)try{const value=JSON.parse(fs.readFileSync(cache,'utf8'));
     if(value?.files===files&&value.entries&&typeof value.entries==='object')known=value.entries;}catch{}
-  const found={};
+  const found={},links=new Map();
   const shared=(file,reason)=>({file:path.relative(root,file).split(path.sep).join('/'),reason});
   while(stack.length){
     const dir=stack.pop();let entries;
@@ -447,7 +452,14 @@ export function sharedInstalledFile(root,project={},cache=null){
       if(!entry.isFile())continue;
       let st;try{st=fs.lstatSync(file,{bigint:true});}catch{continue;}
       if(st.nlink<=1n)continue;
-      if(!files)return shared(file,'has another hard link, and the install records no pnpm store');
+      if(!files){
+        // Distinct observed links by real path: a directory walked twice
+        // through a link counts once.
+        const key=`${st.dev}:${st.ino}`,group=links.get(key)??{file,nlink:st.nlink,seen:new Set()};
+        if(group.nlink!==st.nlink)return shared(file,'had its hard links change while REDUE checked them');
+        if(observed(file))try{group.seen.add(fs.realpathSync(file));}catch{}
+        links.set(key,group);continue;
+      }
       const key=`${st.dev}:${st.ino}`,cached=known[key];
       let at=Array.isArray(cached)&&cached[0]===identity(st)&&typeof cached[1]==='string'&&
         sameFile(path.join(files,cached[1]),st)?cached[1]:null;
@@ -462,6 +474,10 @@ export function sharedInstalledFile(root,project={},cache=null){
       if(racyUntil(st)<=now)found[key]=[identity(st),at];
       else changed=true;
     }
+  }
+  for(const group of links.values()){
+    if(BigInt(group.seen.size)<group.nlink)return shared(group.file,'has another hard link that is not an installed file this check observes, and the install records no pnpm store');
+    facts.push(['linkCount',group.file,Number(group.nlink)]);
   }
   if(files&&cache&&(changed||Object.keys(found).length!==Object.keys(known).length))
     try{atomicJson(cache,{files,entries:found});}catch{}
