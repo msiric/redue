@@ -12,7 +12,8 @@
 //   (eval/recorded-run.mjs), for a general Node-script recipe.
 //   --product: instead of timing, let the product decide: `init --recipe
 //   node-script`, then `redue run` twice for each typecheck, lint and test
-//   check it writes, and the receipts and status after each. On Linux with
+//   check it writes, and the receipts and status after each. With
+//   --all-recipes, plain `init` instead: every recipe, as `redue setup` uses. On Linux with
 //   strace, each run is traced, and programs the recorder did not see are
 //   listed per run (eval/program-check.mjs) and flagged. --keep-traces keeps
 //   each run's strace output and run record under .local/eval/census-traces/.
@@ -32,7 +33,7 @@ import {projectState} from '../src/project-location.mjs';
 const argv = process.argv.slice(2);
 const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : null;
 const initOnly = argv.includes('--init-only'), recorded = argv.includes('--recorded'), product = argv.includes('--product'),
-  keepTraces = argv.includes('--keep-traces');
+  keepTraces = argv.includes('--keep-traces'), allRecipes = argv.includes('--all-recipes');
 let names = argv.filter((arg, i) => !arg.startsWith('-') && argv[i - 1] !== '--shard');
 if (!names.length) names = readJson(path.join(evalDir, 'census-repos.json')).repos;
 // Named repos are sharded too, so CI can rerun a list across its shards.
@@ -125,11 +126,12 @@ function productRuns(dir, row) {
   const json = r => { try { return JSON.parse(r.stdout); } catch { return null; } };
   const out = {};
   if (!row.install.pass) return {notRun: 'install failed'};
-  const init = json(redue(['init', '--recipe', 'node-script', '--json']));
+  const init = json(redue(['init', ...(allRecipes ? [] : ['--recipe', 'node-script']), '--json']));
   if (!init) return {error: 'init failed'};
   out.init = {issue: init.issue, pm: init.package_manager, pmVersion: init.version};
   const checks = (init.checks ?? []).filter(c => ['typecheck', 'lint', 'test'].includes(c.name));
   for (const c of checks) out[c.name] = {script: c.script, level: c.level, reason: c.level === 'ready' ? undefined : c.reason,
+    recipe: c.level === 'ready' ? (c.reason || '').split(/[:;(]/)[0].trim() : undefined,
     text: readJson(path.join(dir, 'package.json')).scripts?.[c.script]};
   const ready = checks.filter(c => c.level === 'ready');
   if (!ready.length || !init.written) return out;
