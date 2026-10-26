@@ -223,7 +223,8 @@ test('claude setup adds one typecheck hook and a SessionStart hook to settings.l
   assert.match(f.read('.claude/skills/redue-verification/SKILL.md'),/To ask without running: `redue status --sync --json`/);
   const once=f.read(local);f.ok('agent','setup','claude','--apply');assert.equal(f.read(local),once);
   const doctor=JSON.parse(f.ok('agent','doctor','claude','--json').stdout);
-  assert.equal(doctor.hosts[0].hook,command==='redue agent hook claude'?'installed':'installed (absolute path)');
+  assert.equal(doctor.hosts[0].hook,command!=='redue agent hook claude'?'installed (absolute path)':
+    doctor.command.path?'installed':'installed, but redue is not on PATH, so it never runs');
   assert.equal(doctor.hosts[0].session_start,doctor.hosts[0].hook);
   f.ok('agent','setup','codex','--apply');f.ok('agent','remove','codex','--apply');assert.equal(f.read(local),once);
   f.ok('agent','remove','claude','--apply');

@@ -213,7 +213,7 @@ test('REDUE_FORCE=1, other tools and non-matching commands allow without queryin
   assert.deepEqual(p.calls(),[]);
 });
 
-test('without this install of redue on PATH, a rewrite runs it by absolute path',async t=>{
+test('without this install of redue on PATH, a rewrite runs it by absolute path',{skip:process.platform==='win32'?'Windows rewrites to plain redue on PATH':false},async t=>{
   const p=project(t),entry=p.fake('staleAbsolute',replying(status({freshness:'STALE',reuse_eligible:false,reason:'src/a.ts changed'})));
   const out=(await claudeHook(bash('npm run typecheck',p.root),{entry}))?.hookSpecificOutput;
   assert.equal(out?.permissionDecision,'allow');
