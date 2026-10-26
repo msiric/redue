@@ -14,7 +14,8 @@
 //   node-script`, then `redue run` twice for each typecheck, lint and test
 //   check it writes, and the receipts and status after each. On Linux with
 //   strace, each run is traced, and programs the recorder did not see are
-//   listed per run (eval/program-check.mjs) and flagged.
+//   listed per run (eval/program-check.mjs) and flagged. --keep-traces keeps
+//   each run's strace output and run record under .local/eval/census-traces/.
 //
 // Clones the default branch, installs with the repo's package manager
 // (through Corepack, install scripts skipped), runs `init --dry-run --json`
@@ -30,7 +31,8 @@ import {projectState} from '../src/project-location.mjs';
 
 const argv = process.argv.slice(2);
 const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : null;
-const initOnly = argv.includes('--init-only'), recorded = argv.includes('--recorded'), product = argv.includes('--product');
+const initOnly = argv.includes('--init-only'), recorded = argv.includes('--recorded'), product = argv.includes('--product'),
+  keepTraces = argv.includes('--keep-traces');
 let names = argv.filter((arg, i) => !arg.startsWith('-') && argv[i - 1] !== '--shard');
 if (!names.length) names = readJson(path.join(evalDir, 'census-repos.json')).repos;
 // Named repos are sharded too, so CI can rerun a list across its shards.
@@ -173,6 +175,11 @@ function productRuns(dir, row) {
         Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 500);
         keeper.kill();
         unrecorded = unrecordedPrograms(trace, copy) ?? 'trace or record unavailable';
+        if (keepTraces) {
+          const kept = path.join(localDir, 'census-traces', slug(row.name), `${c.name}-${n}`);
+          fs.mkdirSync(kept, {recursive: true});
+          try { fs.copyFileSync(trace, path.join(kept, 'strace')); fs.cpSync(copy, path.join(kept, 'record'), {recursive: true}); } catch {}
+        }
         fs.rmSync(work, {recursive: true, force: true}); fs.rmSync(copy, {recursive: true, force: true});
       } else r = redue(['run', c.name, '--json'], 600_000);
       const touched = () => run('find', ['.', '-newer', mark, '-not', '-path', './.git/*', '-not', '-name', '.census.redue.json'], dir)
