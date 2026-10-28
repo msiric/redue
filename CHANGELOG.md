@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.1.0-alpha.24 — 2026-10-28
+
+Checks keep working after a normal `npm install`, and agents that chain an
+edit and a check get the same skip-or-record as a check run on its own.
+
+- **Hard-linked installed files.** Without a pnpm store, any installed file
+  with a second hard link made a recorded run UNVERIFIED. esbuild's install
+  makes one (npm, not Yarn or Windows), so after an ordinary `npm install`
+  general-recipe and test checks in projects with esbuild stayed
+  UNVERIFIED. Such a file is now accepted when every one of its links is an
+  installed file the check observes; its link count is checked again before
+  every answer, so a link added later is noticed.
+- **Checks inside a chain.** In a simple chain (`printf ... >> README.md &&
+  npm run lint`), the Claude Code hook rewrites each check to the new
+  `redue run CHECK --if-due`, which skips the check when its last pass still
+  applies at that moment and otherwise runs it through REDUE with the same
+  exit code. The hook changes the command without approving it, so your
+  permission rules still apply. Chains with subshells, substitutions,
+  here-documents, background jobs, shell keywords or builtins before a check
+  run untouched.
+- The CLAUDE.md section asks agents to run each check as a command of its
+  own. Setups from earlier alphas are recognized and updated.
+- The README's coverage numbers now come from a census that installs with
+  dependencies' install scripts on, as users do: of 120 public TypeScript
+  repositories, 86 installed and 30 have a qualifying check (typecheck 21,
+  lint 18, tests 2).
+- Known limit, unchanged: a Vitest run writes under `node_modules/.vite`,
+  which makes a direct TypeScript typecheck STALE until it runs again.
+
+- Contributors: census `--install-scripts`; the stranger test can install
+  from npm (`--npm`) and run a follow-up session that uses the hooks.
+
 ## 0.1.0-alpha.23 — 2026-10-26
 
 One command to set up REDUE with Claude Code, and one to undo it.
