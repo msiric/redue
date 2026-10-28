@@ -76,10 +76,7 @@ inputs. 30 repositories had at least one such check:
 Everything else stays UNVERIFIED, with a reason you can read in
 `redue explain`. The usual ones: a script starts a program REDUE cannot see
 into (esbuild, turbo, nx, oxlint's tsgolint, TypeScript 7's native compiler),
-the project uses Bun, or a test suite writes into its own inputs. One you may
-meet right after setup: a Vitest run writes its results under
-`node_modules/.vite`, which the direct TypeScript recipe counts as an
-installed input, so the typecheck turns STALE until it runs again.
+the project uses Bun, or a test suite writes into its own inputs.
 [Supported projects](docs/user/supported-projects.md) has the details.
 
 ## Measured with Claude Code

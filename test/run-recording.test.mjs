@@ -12,7 +12,7 @@ import {readReceipts} from '../src/state-store.mjs';
 
 const digest=text=>createHash('sha256').update(JSON.stringify(text)).digest('hex');
 const tsRoot=path.resolve('/project/node_modules/typescript'),entry=path.join(tsRoot,'lib/tsc.js');
-const node=['/usr/bin/node','v22.0.0'],compiler={tsRoot,entry,digest:'d'.repeat(64)};
+const node=['/usr/bin/node','v22.0.0'],compiler={root:path.resolve('/project'),tsRoot,entry,digest:'d'.repeat(64)};
 const file=name=>path.resolve('/project',name);
 const certificate={compiler,context:directContextHash(compiler,node),queries:[
   ['readFile',file('tsconfig.json'),digest('{}')],
@@ -51,6 +51,16 @@ test('changed, missing, uncovered or unsupported answers are rejected',()=>{
   reject({...record(),main:file('other.js')},/execution context changed/);
   reject(null,/record unavailable/);
   reject({...record(),facts:[['open',file('x'),null]]},/unknown answer/);
+  // Vitest's cache is not observed: any question about it, even one a run fact
+  // could ask again, and any listing of node_modules, is refused.
+  reject(record(['stat',file('node_modules/.vite/vitest/types.d.ts'),null]),/asked about .*\.vite.*Vitest rewrites/);
+  reject(record(['read',file('node_modules/.vite/package.json'),null]),/asked about/);
+  reject(record(['readdir',file('node_modules'),[['.vite','d'],['typescript','d']]]),/asked about/);
+  reject(record(['realpath',file('src/gen'),file('node_modules/.vite/vitest')]),/asked about/);
+  reject(record(['stat',file('node_modules/.Vite/vitest/types.d.ts'),null]),/asked about/);
+  // The root is the checkout's, even when the compiler is linked from elsewhere in it.
+  const linked={...certificate,compiler:{...compiler,tsRoot:path.resolve('/project/tools/typescript')}};
+  assert.match(runRecordIssue(record(['stat',file('node_modules/.vite/x.d.ts'),null]),linked)||'',/asked about/);
 });
 
 test('a stat is checked against every fact about its path, including its parent listing',()=>{

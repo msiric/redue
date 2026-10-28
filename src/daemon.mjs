@@ -269,6 +269,7 @@ function probe(row,allowReuse=false,{launch=true}={}) {
         'typescript-plugin-unsupported':'TypeScript compiler plugin needs explicit review',
         'typescript-input-list-unavailable':'TypeScript input listing did not complete',
         'typescript-input-outside-repository':'TypeScript consumes files outside the observed repository',
+        'typescript-vite-cache-consumed':'TypeScript asks about node_modules/.vite or lists node_modules; Vitest rewrites files there and this recipe does not observe them',
         'npm-installation-layout-unsupported':'npm executable or installation layout is unsupported',
         'npm-installation-unobservable':'npm installation contains unobservable entries',
         'npm-configuration-unsupported':'npm script configuration needs review',

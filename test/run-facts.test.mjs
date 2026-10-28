@@ -136,7 +136,7 @@ test('cached status is never CURRENT for a receipt whose run facts were not aske
 });
 
 test('an uncovered stat, realpath or package.json read becomes a run fact; other reads are still refused',()=>{
-  const compiler={entry:'/c/lib/tsc.js',tsRoot:'/c',digest:'d'},node=['/node','v22'];
+  const compiler={root:'/p',entry:'/c/lib/tsc.js',tsRoot:'/c',digest:'d'},node=['/node','v22'];
   const certificate={compiler,context:directContextHash(compiler,node),
     queries:[['readFile','/p/src/a.ts','h'],['fileExists','/p/src/a.ts',true]]};
   const record=facts=>({schema:1,main:compiler.entry,node,facts});

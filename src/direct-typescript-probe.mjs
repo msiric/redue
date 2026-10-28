@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import {directProject,directInterpretation,directContextHash,directProbeOutput} from './direct-typescript.mjs';
+import {directProject,directInterpretation,directContextHash,directProbeOutput,viteCacheQuestion} from './direct-typescript.mjs';
 import {typeScriptInputFacts} from './typescript-input-facts.mjs';
 import {contextOnly,probeResult} from './probe-result.mjs';
 import {realObservedPath} from './path-identity.mjs';
@@ -18,6 +18,9 @@ try{
   const contextHash=directContextHash(compiler,context.node);
   if(!contextOnly(contextHash)){
     const {queries,configs,files,buildInfo}=typeScriptInputFacts(root,compiler.tsRoot,compiler.entry,compiler.config);
+    // Captured questions include every config and program file read.
+    if(viteCacheQuestion(root,queries||[...configs,...files].map(([file])=>['readFile',file])))
+      throw Object.assign(Error('typescript-vite-cache-consumed'),{code:'typescript-vite-cache-consumed'});
     const layout={root,script,configs,files,context,...(buildInfo?{buildInfo}:{})};
     probeResult(directProbeOutput(layout),contextHash,queries,layout);
   }

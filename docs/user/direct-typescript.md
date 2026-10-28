@@ -141,6 +141,14 @@ changes invalidate or withdraw applicability normally. Installed files are obser
 by identity, so reinstalling identical packages or restoring an installed file's
 bytes also needs one rerun (see [configuration](configuration.md)).
 
+Vitest writes its results under `node_modules/.vite/vitest` at every run.
+They are not inputs, so a test run leaves the typecheck CURRENT. Everything
+else under `node_modules/.vite` is still an input. A program that asks about
+anything under `node_modules/.vite` (by any spelling or through a link that
+resolves there), or lists `node_modules`, is UNVERIFIED: REDUE does not
+observe what Vitest writes there. A check configured before 0.1.0-alpha.25 gets the new inputs on
+its own and reports STALE once after the upgrade.
+
 A root tsconfig with `incremental: true` is supported. tsc reads and writes
 its build-info file (`tsBuildInfoFile`, or the default next to the config) on
 each run, so REDUE leaves that file out of the inputs and lets the run write

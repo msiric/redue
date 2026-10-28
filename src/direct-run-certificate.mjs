@@ -7,7 +7,7 @@ import {createHash} from 'node:crypto';
 import {inflateSync} from 'node:zlib';
 import {fileURLToPath} from 'node:url';
 import {timing} from './decision-profile.mjs';
-import {directCompiler,directContextHash,directEnvironmentIssue,directProbeOutput,directProbeValue} from './direct-typescript.mjs';
+import {directCompiler,directContextHash,directEnvironmentIssue,directProbeOutput,directProbeValue,viteCacheQuestion} from './direct-typescript.mjs';
 import {withinPath} from './path-identity.mjs';
 const hash=value=>createHash('sha256').update(value).digest('hex');
 // Whether a direct run is recorded at all: on macOS and Linux, always, so its
@@ -158,6 +158,8 @@ export function runRecordIssue(record,certificate,runFacts=null) {
   if(kept.issue)return kept.issue;
   if(record.main!==compiler.entry||!Array.isArray(record.node)||
     directContextHash(compiler,record.node)!==certificate.context)return 'execution context changed';
+  const vite=viteCacheQuestion(compiler.root,kept.facts);
+  if(vite)return `the compiler asked about ${vite}, which Vitest rewrites and REDUE does not observe`;
   const inCompiler=withinCompiler(compiler);
   const facts=new Map();
   for(const query of queries){if(!facts.has(query[1]))facts.set(query[1],[]);facts.get(query[1]).push(query);}

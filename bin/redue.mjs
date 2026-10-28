@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import {mark,traceBase,traceContext,traceEnvironment,traceId} from '../src/decision-profile.mjs';
 traceBase({...traceContext(),request:traceId(),work:'client'});
 mark('client.loaded');
-import {directCompiler,directQualification,directEnvironment,directInterpretation} from '../src/direct-typescript.mjs';
+import {directCompiler,directQualification,directEnvironment,directInstalledInputs,directInterpretation} from '../src/direct-typescript.mjs';
 import {runArgv,tscRun} from '../src/typescript-invocation.mjs';
 import {testEnvironment,testRunnerAt,testsInterpretation,testsQualification} from '../src/test-direct.mjs';
 import {scriptEnvironment,scriptInterpretation,scriptKinds,scriptQualification} from '../src/node-script.mjs';
@@ -337,7 +337,7 @@ const checks=publicConfig.checks.map(check=>{
     typeof check.cwd==='string'&&check.cwd&&!path.isAbsolute(check.cwd)&&!check.cwd.split('/').includes('..')?check.cwd:'.'),
     cwd:check.cwd,inputs:check.inputs||[],generatedInputs:check.generatedInputs||[],
     installedInputs:check.installedInputs||(
-      npmAutomatic||npmDirect||testsDirect?['node_modules/**']:[]),
+      npmDirect?[...directInstalledInputs]:npmAutomatic||testsDirect?['node_modules/**']:[]),
     allowedExternalRoots:check.allowedExternalRoots||[],
     probes:[...(check.probes||[]),...autoProbes]
       .map((p,i)=>argv(p,`${check.name}.probes[${i}]`)),

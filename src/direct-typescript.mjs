@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
-import {racyUntil,realObservedPath,withinPath} from './path-identity.mjs';
+import {normalizedPath,racyUntil,realObservedPath,withinPath} from './path-identity.mjs';
 import {cachedTarball,lockedPackage,matchTarball,npmCacheDir,registryPackage,tarballFiles} from './npm-integrity.mjs';
 import {runConfig,tscRun} from './typescript-invocation.mjs';
 export const directInterpretation='npm-direct-typescript@1';
@@ -79,7 +79,7 @@ export function directCompiler(root,{verify=true}={}){
     for(const [name,file] of files.sort(([a],[b])=>a<b?-1:a>b?1:0))digest.update(name+'\0'+hash(fs.readFileSync(file))+'\0');
     if(digest.digest('hex')!==spec.digest)fail('direct-typescript-implementation-unreviewed');
   }
-  return {tsRoot,version,entry:path.join(tsRoot,spec.entry),digest:spec.digest};
+  return {root,tsRoot,version,entry:path.join(tsRoot,spec.entry),digest:spec.digest};
 }
 // A TypeScript 5.x or 6.0 the lockfile records: the installed package must be
 // the registry's `typescript` at that version, holding exactly the files of
@@ -115,7 +115,7 @@ function lockedCompiler(root,tsRoot,version,verify){
     }
   }
   const entry=fs.existsSync(path.join(tsRoot,'lib','_tsc.js'))?'lib/_tsc.js':'lib/tsc.js';
-  return {tsRoot,version,entry:path.join(tsRoot,entry),digest:hash('npm-integrity\0'+locked.integrity)};
+  return {root,tsRoot,version,entry:path.join(tsRoot,entry),digest:hash('npm-integrity\0'+locked.integrity)};
 }
 // The direct probe's output: root, script, configuration and program files with
 // their byte digests, and the execution context. A recorded run rebuilds it from
@@ -161,6 +161,26 @@ export function directProbeValue(argv,output,stderrHash){
 export function directContextHash(compiler,node){
   return hash(JSON.stringify({interpretation:directInterpretation,compiler:compiler.digest,
     entry:compiler.entry,node}));
+}
+// Vitest writes its results under node_modules/.vite/vitest at every run. The
+// recipe does not observe them. A compiler that asks about anything under
+// node_modules/.vite, is told a path there (realpath), or lists node_modules,
+// could see them, so its result is UNVERIFIED.
+export const directInstalledInputs=Object.freeze(['node_modules/**','!node_modules/.vite/vitest/**']);
+const listings=new Set(['readdir','listing','directories','entries','readDirectory']);
+// The first path of [kind, file, answer] questions that does, or null. Kinds
+// are a recorded run's (readdir) or a probe's. Compared without case: a
+// case-insensitive mount reaches .vite under any spelling.
+export function viteCacheQuestion(root,questions){
+  const fold=value=>normalizedPath(value).toLowerCase();
+  const modules=fold(path.join(root,'node_modules')),cache=path.join(modules,'.vite');
+  for(const [kind,file,answer] of questions){
+    if(typeof file!=='string')continue;
+    const at=fold(file);
+    if(withinPath(at,cache)||at===modules&&listings.has(kind))return file;
+    if(kind==='realpath'&&typeof answer==='string'&&withinPath(fold(answer),cache))return answer;
+  }
+  return null;
 }
 // The compiler for one check run {script, part, args}: script null for a
 // check init proposed without one. The run must pass --noEmit and name a
