@@ -19,6 +19,8 @@
 //   each run's strace output and run record under .local/eval/census-traces/.
 //   --install-scripts installs as users do, with dependencies' install
 //   scripts (esbuild's links its binary), on a disposable CI runner only.
+//   --sandbox: instead of timing, run the typecheck, lint, test and build
+//   scripts plainly and inside OS sandboxes, alternated (eval/sandbox.mjs).
 //
 // Clones the default branch, installs with the repo's package manager
 // (through Corepack, install scripts skipped), runs `init --dry-run --json`
@@ -30,6 +32,7 @@ import {spawn} from 'node:child_process';
 import {checkoutRedue, evalDir, harnessEnv, localDir, readJson, sh, slug, stamp, tmpRoot} from './lib.mjs';
 import {analyzeRun, compareRuns, hasStrace, recordedRun, snapshot} from './recorded-run.mjs';
 import {unrecordedPrograms} from './program-check.mjs';
+import {sandboxModes, sandboxSuite} from './sandbox.mjs';
 import {projectState} from '../src/project-location.mjs';
 
 // --python: the Python census (eval/python-census.mjs), from the same workflow.
@@ -39,7 +42,7 @@ const argv = process.argv.slice(2);
 const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : null;
 const initOnly = argv.includes('--init-only'), recorded = argv.includes('--recorded'), product = argv.includes('--product'),
   keepTraces = argv.includes('--keep-traces'), allRecipes = argv.includes('--all-recipes'),
-  installScripts = argv.includes('--install-scripts');
+  installScripts = argv.includes('--install-scripts'), sandbox = argv.includes('--sandbox');
 let names = argv.filter((arg, i) => !arg.startsWith('-') && argv[i - 1] !== '--shard');
 if (!names.length) names = readJson(path.join(evalDir, 'census-repos.json')).repos;
 // Named repos are sharded too, so CI can rerun a list across its shards.
@@ -218,7 +221,22 @@ function productRuns(dir, row) {
   return out;
 }
 
-function census(name) {
+// Each picked script through the project's package manager, plainly and
+// sandboxed: same result, cost, and what it read outside the allowed places.
+async function sandboxScripts(dir, pm, row, modes) {
+  const out = {};
+  for (const kind of ['typecheck', 'lint', 'test', 'build']) {
+    const script = row.scripts[kind];
+    if (!script || !row.install.pass || !['npm', 'pnpm', 'yarn'].includes(pm.name)) continue;
+    const argv = pm.name === 'npm' ? ['npm', 'run', script.name] : ['corepack', pm.name, 'run', script.name];
+    out[kind] = {script: script.name, text: script.text,
+      ...await sandboxSuite({argv, cwd: dir, env: {...env, npm_config_update_notifier: 'false'}, timeout: kind === 'build' ? 900_000 : 600_000, modes})};
+    console.error(`  ${kind} ${script.name}: plain ${out[kind].runs.plain.map(r => r.status).join('/')} ${Object.entries(out[kind].same).map(([m, same]) => `${m} ${same ? 'same' : 'DIFFERENT'}`).join(' ')}`);
+  }
+  return out;
+}
+
+async function census(name, modes) {
   const row = {name, started: new Date().toISOString()};
   const dir = path.join(tmpRoot, 'census', slug(name));
   fs.rmSync(dir, {recursive: true, force: true});
@@ -243,12 +261,13 @@ function census(name) {
     const picked = initPick(kind) ? [initPick(kind), pkg.scripts[initPick(kind)]] : scriptPick[kind](scripts);
     if (!picked) continue;
     row.scripts[kind] = {name: picked[0], text: picked[1]};
-    if (!row.install.pass || initOnly || recorded || product) continue;
+    if (!row.install.pass || initOnly || recorded || product || sandbox) continue;
     row.timings[kind] = timeScript(dir, pm, picked[0], timeout);
   }
   if (row.timings.typecheck) row.timings.typecheckAgain = timeScript(dir, pm, row.scripts.typecheck.name, 600_000);
   if (recorded) row.recorded = recordScripts(dir, pm, row);
   if (product) row.product = productRuns(dir, row);
+  if (sandbox) row.sandbox = await sandboxScripts(dir, pm, row, modes);
   fs.rmSync(dir, {recursive: true, force: true});
   return row;
 }
@@ -257,12 +276,15 @@ fs.mkdirSync(path.join(tmpRoot, 'census'), {recursive: true});
 fs.mkdirSync(localDir, {recursive: true});
 const file = path.join(localDir, `census-${shardArg ? shardArg.replace('/', 'of') + '-' : ''}${stamp()}.json`);
 const rows = [];
+const modes = sandbox ? sandboxModes() : null;
+if (modes) console.error(`sandbox modes ${JSON.stringify(modes)}`);
 for (const name of names) {
   process.stderr.write(`census ${name} ...\n`);
-  try { rows.push(census(name)); } catch (error) { rows.push({name, error: String(error.message).split('\n')[0]}); }
+  try { rows.push(await census(name, modes)); } catch (error) { rows.push({name, error: String(error.message).split('\n')[0]}); }
   const r = rows.at(-1);
   console.log([r.name, r.error ?? '', r.pm?.name ?? '', r.install ? `install ${r.install.pass ? 'ok' : 'FAIL'} ${r.install.ms} ms` : '',
     ...Object.entries(r.timings ?? {}).map(([k, t]) => `${k} ${t.pass ? 'ok' : t.timedOut ? 'timeout' : 'fail'} ${t.ms} ms`)].filter(Boolean).join('  '));
+  if (modes) r.sandboxModes = modes;
   fs.writeFileSync(file, JSON.stringify(rows, null, 1) + '\n');
 }
 console.log(`\nwrote ${file}`);

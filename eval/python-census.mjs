@@ -10,15 +10,17 @@
 //   node eval/python-census.mjs owner/name ...              # Linux, with sudo
 //
 // --recorded only makes eval.yml install strace. --hook-cost also times warm
-// runs with and without the hook, alternated. Writes
+// runs with and without the hook, alternated. --sandbox instead runs each
+// check plainly and inside OS sandboxes, alternated (eval/sandbox.mjs). Writes
 // .local/eval/python-census-*.json.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline';
 import {evalDir, harnessEnv, localDir, readJson, sh, slug, stamp, tmpRoot} from './lib.mjs';
+import {sandboxModes, sandboxSuite} from './sandbox.mjs';
 
-const argv = process.argv.slice(2);
+const argv = process.argv.slice(2), sandbox = argv.includes('--sandbox');
 const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : null;
 let names = argv.filter((arg, i) => !arg.startsWith('-') && argv[i - 1] !== '--shard');
 if (!names.length) names = readJson(path.join(evalDir, 'python-census-repos.json')).repos;
@@ -35,6 +37,7 @@ const which = name => run('sh', ['-c', `command -v ${name}`], os.homedir(), 10_0
 // On a CI runner, the package managers users pick, through pipx.
 function tools() {
   if (!process.env.GITHUB_ACTIONS) return;
+  if (!which('pipx') && process.platform === 'darwin') console.error(`brew install pipx: exit ${run('brew', ['install', 'pipx'], os.homedir(), 600_000).status}`);
   for (const name of ['uv', 'poetry', 'pdm', 'pipenv'])
     if (!which(name)) console.error(`pipx install ${name}: exit ${run('pipx', ['install', name], os.homedir(), 300_000).status}`);
 }
@@ -272,7 +275,7 @@ async function tracedRun(dir, cmd, env, timeout, venv) {
   return out;
 }
 
-async function census(name) {
+async function census(name, modes) {
   const row = {name, started: new Date().toISOString()};
   const dir = path.join(tmpRoot, 'py-census', slug(name));
   fs.rmSync(dir, {recursive: true, force: true});
@@ -300,6 +303,15 @@ async function census(name) {
         const withJunit = (c, file) => check.tool === 'pytest' ? {...c, argv: [...c.argv, `--junitxml=${file}`]} : c;
         const out = row.checks[key] = {source: check.source, line: check.line, form: check.form, argv: cmd.argv.map(a => a.startsWith(dir) ? path.relative(dir, a) || '.' : a), via: cmd.via, fromProject: cmd.fromProject};
         console.error(`  ${key}: ${out.argv.join(' ')}`);
+        if (modes) {
+          // pytest's per-test results, in the checkout: bubblewrap's /tmp is private.
+          const perRun = check.tool === 'pytest' ? {args: label => [`--junitxml=${path.join(dir, `.sbx-junit-${label}.xml`)}`],
+            read: label => { const f = path.join(dir, `.sbx-junit-${label}.xml`), r = junit(f); fs.rmSync(f, {force: true}); return r; }} : null;
+          Object.assign(out, await sandboxSuite({argv: cmd.argv, cwd: dir, env: venvEnvironment, timeout, modes, python: path.join(venv, 'bin', 'python'), perRun}));
+          for (const v of Object.values(out.runs)) for (const r of v) if (r.tests) { r.testCount = Object.keys(r.tests).length; delete r.tests; }
+          console.error(`  ${key}: plain ${out.runs.plain.map(r => r.status).join('/')} ${Object.entries(out.same).map(([m, same]) => `${m} ${same ? 'same' : 'DIFFERENT'}`).join(' ')}`);
+          continue;
+        }
         out.runs = [];
         for (const n of [1, 2]) {
           out.runs.push(timedRun(dir, withJunit(cmd, `${junitFile}.${n}`), venvEnvironment, timeout, `${kind}${n}`));
@@ -349,12 +361,15 @@ tools();
 const file = path.join(localDir, `python-census-${shardArg ? shardArg.replace('/', 'of') + '-' : ''}${stamp()}.json`);
 const rows = [];
 console.error(`strace ${strace}, network-off runs ${offline}`);
+const modes = sandbox ? sandboxModes() : null;
+if (modes) console.error(`sandbox modes ${JSON.stringify(modes)}`);
 for (const name of names) {
   process.stderr.write(`python census ${name} ...\n`);
-  try { rows.push(await census(name)); } catch (error) { rows.push({name, error: String(error.stack ?? error).slice(0, 600)}); }
+  try { rows.push(await census(name, modes)); } catch (error) { rows.push({name, error: String(error.stack ?? error).slice(0, 600)}); }
   const r = rows.at(-1);
   console.log([r.name, r.error ?? '', r.info?.pm ?? '', r.install ? `install ${r.install.pass ? 'ok' : 'FAIL'} ${r.install.ms} ms` : '',
-    ...Object.entries(r.checks ?? {}).map(([k, c]) => `${k} ${c.runs.map(x => x.timedOut ? 'timeout' : `${x.status === 0 ? 'ok' : 'fail'} ${x.ms}`).join('/')}`)].filter(Boolean).join('  '));
+    ...Object.entries(r.checks ?? {}).map(([k, c]) => `${k} ${(c.runs?.plain ?? c.runs ?? []).map(x => x.timedOut ? 'timeout' : `${x.status === 0 ? 'ok' : 'fail'} ${x.ms}`).join('/')}`)].filter(Boolean).join('  '));
+  if (modes) r.sandboxModes = modes;
   fs.writeFileSync(file, JSON.stringify(rows, null, 1) + '\n');
 }
 console.log(`\nwrote ${file}`);

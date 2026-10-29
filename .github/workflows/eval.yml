@@ -17,6 +17,12 @@ on:
         required: false
         type: string
         default: --pilot
+      os:
+        description: Runners for census
+        required: false
+        type: choice
+        options: [linux, macos, both]
+        default: linux
       claude_version:
         description: Claude Code version for the sessions
         required: false
@@ -25,7 +31,8 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: agent-eval
+  # Census passes with different arguments or runners may overlap.
+  group: agent-eval-${{ inputs.command == 'census' && format('{0}-{1}', inputs.args, inputs.os) || 'sessions' }}
   cancel-in-progress: false
 jobs:
   eval:
@@ -76,11 +83,12 @@ jobs:
           if-no-files-found: warn
   census:
     if: inputs.command == 'census'
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 300
     strategy:
       fail-fast: false
       matrix:
+        os: ${{ fromJSON(inputs.os == 'both' && '["ubuntu-latest","macos-latest"]' || inputs.os == 'macos' && '["macos-latest"]' || '["ubuntu-latest"]') }}
         shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
                 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40]
     steps:
@@ -90,8 +98,19 @@ jobs:
           node-version: '22'
       - run: npm ci --no-audit --no-fund
       - name: strace, for the programs a recorded run executes, and the programs --product's runs execute
-        if: contains(inputs.args, '--recorded') || contains(inputs.args, '--product')
+        if: runner.os == 'Linux' && (contains(inputs.args, '--recorded') || contains(inputs.args, '--product'))
         run: sudo apt-get install -y -qq strace
+      - name: Sandboxes for --sandbox (bubblewrap needs unprivileged user namespaces, which Ubuntu's AppArmor may refuse)
+        if: runner.os == 'Linux' && contains(inputs.args, '--sandbox')
+        run: |
+          sudo apt-get install -y -qq strace bubblewrap socat ripgrep
+          sysctl kernel.apparmor_restrict_unprivileged_userns || true
+          if bwrap --ro-bind / / --unshare-net --dev /dev /bin/true; then echo "bwrap works as is"; else
+            echo "bwrap refused; allowing unprivileged user namespaces"; sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0; fi
+      - name: Sandboxes inside Claude Code's sandbox runtime
+        if: contains(inputs.args, '--sandbox') && matrix.shard == 1
+        continue-on-error: true
+        run: node eval/sandbox-nesting.mjs
       - name: pnpm and Yarn through Corepack, which --product's checks run as projects pin them
         if: contains(inputs.args, '--product')
         run: corepack enable
@@ -106,7 +125,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: eval-census-${{ github.run_id }}-${{ matrix.shard }}
+          name: eval-census-${{ github.run_id }}-${{ matrix.os == 'ubuntu-latest' && '' || format('{0}-', matrix.os) }}${{ matrix.shard }}
           path: .local/eval/
           retention-days: 14
           if-no-files-found: warn
