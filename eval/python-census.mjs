@@ -9,7 +9,8 @@
 //   node eval/census.mjs --python --recorded --shard 3/40   # on CI (eval.yml)
 //   node eval/python-census.mjs owner/name ...              # Linux, with sudo
 //
-// --recorded only makes eval.yml install strace. Writes
+// --recorded only makes eval.yml install strace. --hook-cost also times warm
+// runs with and without the hook, alternated. Writes
 // .local/eval/python-census-*.json.
 import fs from 'node:fs';
 import os from 'node:os';
@@ -310,6 +311,17 @@ async function census(name) {
           if (results[0] && results[1]) out.flaky = Object.keys(results[1]).filter(t => results[0][t] && results[0][t] !== results[1][t]).slice(0, 20);
         }
         if (out.runs.some(r => r.timedOut)) continue;
+        // The hook's own cost: warm runs with and without it, alternated.
+        if (process.argv.includes('--hook-cost')) {
+          const audit = fs.mkdtempSync(path.join(tmpRoot, 'py-census-cost-'));
+          const hooked = {...venvEnvironment, PYTHONPATH: hookDir, REDUE_PY_AUDIT_DIR: audit};
+          out.hookCost = [];
+          for (const n of [1, 2]) {
+            const plain = run(cmd.argv[0], cmd.argv.slice(1), dir, timeout, venvEnvironment), withHook = run(cmd.argv[0], cmd.argv.slice(1), dir, timeout, hooked);
+            out.hookCost.push({plain: plain.ms, hooked: withHook.ms, status: [plain.status, withHook.status]});
+          }
+          fs.rmSync(audit, {recursive: true, force: true});
+        }
         out.traced = await tracedRun(dir, cmd, venvEnvironment, timeout * 2, venv);
         if (kind === 'test' && offline) {
           const c = withJunit(cmd, `${junitFile}.off`);

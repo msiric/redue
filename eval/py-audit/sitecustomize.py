@@ -33,9 +33,16 @@ def _install():
             return None
         return os.fsdecode(value) if isinstance(value, bytes) else value
 
+    seen_paths = set()
     def log(*record):
         if state['busy']:
             return
+        # A path is recorded once per kind.
+        if record[0] in ('open', 'stat', 'list'):
+            key = (record[0], record[1])
+            if key in seen_paths:
+                return
+            seen_paths.add(key)
         try:
             target().write(json.dumps(record, default=str) + '\n')
         except Exception:
@@ -129,7 +136,7 @@ def _install():
         exit_now(code)
     os._exit = _exit
     target()
-    os.register_at_fork(after_in_child=lambda: state.update(pid=None, file=None))
+    os.register_at_fork(after_in_child=lambda: (state.update(pid=None, file=None), seen_paths.clear()))
     sys.addaudithook(hook)
     # A marker for strace (eval/python-census.mjs): the hook sees what follows.
     try:
