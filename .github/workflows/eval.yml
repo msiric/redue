@@ -31,8 +31,8 @@ on:
 permissions:
   contents: read
 concurrency:
-  # Census passes with different arguments or runners may overlap.
-  group: agent-eval-${{ inputs.command == 'census' && format('{0}-{1}', inputs.args, inputs.os) || 'sessions' }}
+  # Census passes of the other ecosystem or on other runners may overlap.
+  group: agent-eval-${{ inputs.command == 'census' && format('census-{0}-{1}', contains(inputs.args, '--python') && 'python' || 'ts', inputs.os) || 'sessions' }}
   cancel-in-progress: false
 jobs:
   eval:
