@@ -149,7 +149,7 @@ del _install
 
 # Load the sitecustomize this one shadows, if any.
 def _chain():
-    import importlib.util
+    import importlib.machinery, importlib.util
     here = os.path.dirname(os.path.abspath(__file__))
     rest = [p for p in sys.path if os.path.abspath(p or '.') != here]
     spec = importlib.machinery.PathFinder.find_spec('sitecustomize', rest)

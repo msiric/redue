@@ -237,7 +237,7 @@ function compare(trace, hook, {dir, venv, basePrefix, ignore}) {
     const listed = new Set([...h.lists].map(real)), statted = new Set([...h.stats].map(real));
     for (const file of t.opens) if (!opened.has(file) && !modules.has(file)) add('opens', `${place(file)} ${kindOf(file)}`, file);
     for (const [file, result] of t.stats) {
-      if (t.opens.has(file) || statted.has(file) || listed.has(path.dirname(file)) || modules.has(file)) continue;
+      if (t.opens.has(file) || opened.has(file) || statted.has(file) || listed.has(path.dirname(file)) || modules.has(file)) continue;
       add('statOnly', `${place(file)} ${result === 'ok' ? 'found' : 'absent'}${probe(file) ? ' import-probe' : ''}`, file);
     }
     for (const d of t.lists) if (!listed.has(d)) add('lists', place(d), d);
