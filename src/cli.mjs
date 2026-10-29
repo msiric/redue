@@ -59,8 +59,11 @@ function publishedProbeDeadline() {
 // published deadline when status.json has been read. That file is rewritten
 // at every decision, and a first read of a fresh file is slow where a scanner
 // checks files as they are opened, so it is read off the main thread while
-// the call runs. An override is exact.
-const decisionWait=override=>override?{timeout:Number(override),deadline:null}:{timeout:decisionBaseMs,
+// the call runs. On Windows it is read before the call, as before: the
+// observer replaces it during the call, and a replacement fails there while a
+// reader holds the file open. An override is exact.
+const decisionWait=override=>override?{timeout:Number(override),deadline:null}:
+  process.platform==='win32'?{timeout:Math.max(decisionBaseMs,publishedProbeDeadline()+10000),deadline:null}:{timeout:decisionBaseMs,
   deadline:fs.promises.readFile(path.join(state,'status.json'),'utf8')
     .then(text=>Math.max(decisionBaseMs,publishedDeadline(JSON.parse(text).probe_deadline_ms)+10000),()=>decisionBaseMs)};
 const digest=value=>createHash('sha256').update(value).digest('hex');
