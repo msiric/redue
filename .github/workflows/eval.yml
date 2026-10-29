@@ -17,6 +17,12 @@ on:
         required: false
         type: string
         default: --pilot
+      shards:
+        description: Census shards (macOS runs about 5 jobs at a time)
+        required: false
+        type: choice
+        options: ['40', '10', '2']
+        default: '40'
       os:
         description: Runners for census
         required: false
@@ -89,8 +95,8 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{ fromJSON(inputs.os == 'both' && '["ubuntu-latest","macos-latest"]' || inputs.os == 'macos' && '["macos-latest"]' || '["ubuntu-latest"]') }}
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-                21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40]
+        shard: ${{ fromJSON(inputs.shards == '2' && '[1,2]' || inputs.shards == '10' && '[1,2,3,4,5,6,7,8,9,10]' ||
+          '[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -121,7 +127,7 @@ jobs:
           sudo sysctl -w fs.inotify.max_user_instances=1024
       - env:
           ARGS: ${{ inputs.args }}
-        run: node eval/census.mjs --shard ${{ matrix.shard }}/40 $ARGS
+        run: node eval/census.mjs --shard ${{ matrix.shard }}/${{ inputs.shards || '40' }} $ARGS
       - uses: actions/upload-artifact@v4
         if: always()
         with:
