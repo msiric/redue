@@ -32,6 +32,9 @@ import {analyzeRun, compareRuns, hasStrace, recordedRun, snapshot} from './recor
 import {unrecordedPrograms} from './program-check.mjs';
 import {projectState} from '../src/project-location.mjs';
 
+// --python: the Python census (eval/python-census.mjs), from the same workflow.
+if (process.argv.includes('--python')) { await import('./python-census.mjs'); process.exit(); }
+
 const argv = process.argv.slice(2);
 const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : null;
 const initOnly = argv.includes('--init-only'), recorded = argv.includes('--recorded'), product = argv.includes('--product'),

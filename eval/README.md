@@ -29,6 +29,12 @@ clones to `$TMPDIR/redue-eval/`.
   `redue run`, and `census-report.mjs` counts the checks that qualify. Every
   command runs in its own process group (`group-run.mjs`), so a timeout stops
   everything it started.
+- `python-census.mjs` (`census.mjs --python`): for each repo in
+  `python-census-repos.json`, installs it with its package manager, and runs
+  the test, typecheck and lint commands `py-audit/inspect_project.py` finds in
+  its CI, scripts, Makefile or tox.ini: twice timed, once under the audit-hook
+  prototype `py-audit/sitecustomize.py` and strace (what the hook misses), and
+  tests once more with the network off. Research data for Python support.
 - `pnpm-shim-templates.mjs`: rebuilds `src/pnpm-shim-templates.json`, the
   launcher templates pnpm releases write, by installing a small workspace with
   each release offline.
@@ -57,6 +63,7 @@ gh workflow run eval.yml -f command=screen -f args="owner/name owner/name@commit
 gh workflow run eval.yml -f command=run -f args="--pilot"
 gh workflow run eval.yml -f command=census -f args=--init-only   # 20 parallel shards
 node eval/census-report.mjs DIR    # the progress metric from downloaded shard artifacts
+gh workflow run eval.yml -f command=census -f args="--python --recorded"   # Python census; --recorded installs strace
 ```
 
 Sessions there authenticate with the `CLAUDE_CODE_OAUTH_TOKEN` repository secret
