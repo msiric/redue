@@ -424,6 +424,15 @@ if(command==='run'&&process.platform!=='win32'){
   process.off('SIGINT',interrupt);process.off('SIGTERM',terminate);
   if(outcome.error)error(outcome.error.message);
   process.exit(outcome.status??(outcome.signal?128+os.constants.signals[outcome.signal]:1));
+}else if(internal==='sync'&&process.platform!=='win32'){
+  // As for run, the synchronized status engine runs in this process.
+  process.argv=[process.argv[0],engine,runtimeFile,internal,'','--value'];
+  mark('client.engine_submit',{inProcess:true});
+  const synchronized=await import(pathToFileURL(engine).href);
+  await synchronized.finished;
+  mark('client.engine_complete',{exit:process.exitCode??0});
+  if(synchronized.syncValue)showSynchronized(synchronized.syncValue);
+  await exit(process.exitCode??0);
 }else{
   mark('client.engine_submit');
   const result=spawnSync(process.execPath,[engine,runtimeFile,internal,...(check?[check]:[])],
@@ -434,10 +443,13 @@ if(command==='run'&&process.platform!=='win32'){
   if(result.stdout){
     if(['status','detail','explain'].includes(command)){
       let value;try{value=JSON.parse(result.stdout);}catch{error('status response could not be read; applicability is unknown');}
-      if(details&&check)value={...value,checks:value.checks.filter(row=>row.name===check)};
-      if(json)console.log(JSON.stringify(value));
-      else console.log(details?renderExplain(value,check):renderStatus(value,{short}));
+      showSynchronized(value);
     }else printLifecycle(result.stdout,command,json);
   }
   await exit(result.status??1);
+}
+function showSynchronized(value){
+  if(details&&check)value={...value,checks:value.checks.filter(row=>row.name===check)};
+  if(json)console.log(JSON.stringify(value));
+  else console.log(details?renderExplain(value,check):renderStatus(value,{short}));
 }

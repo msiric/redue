@@ -8,7 +8,6 @@ import path from 'node:path';
 import {createRequire} from 'node:module';
 import {execFileSync,spawnSync} from 'node:child_process';
 import micromatch,{patternMatcher} from './glob.mjs';
-import YAML from 'yaml';
 import {resolveLinks} from './installed-inputs.mjs';
 import {withinPath as within,realObservedPath,samePath} from './path-identity.mjs';
 import {timing} from './decision-profile.mjs';
@@ -18,7 +17,11 @@ import {runConfig,tscRun,tscRuns} from './typescript-invocation.mjs';
 const rel=(root,file)=>path.relative(root,file).split(path.sep).join('/');
 const read=file=>JSON.parse(fs.readFileSync(file,'utf8'));
 const exists=file=>{try{fs.lstatSync(file);return true;}catch{return false;}};
+// Loaded on first use: the parser takes about 40 ms to load, and every
+// command imports this module.
+let YAML=null;
 export function yaml(file){
+  YAML??=createRequire(import.meta.url)('yaml');
   const doc=YAML.parseDocument(fs.readFileSync(file,'utf8'),{uniqueKeys:true});
   if(doc.errors.length)throw Error(`${path.basename(file)} cannot be interpreted safely`);
   return doc.toJS()||{};

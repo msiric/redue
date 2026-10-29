@@ -334,7 +334,9 @@ for(const fault of ['hang','fail'])test(`history ${fault} falls back to determin
   const recovered=await until(f,s=>s.checks[0].freshness==='STALE');
   assert.equal(recovered.checks[0].invocation.runId,original);
   assert.match(recovered.checks[0].reason,/src\/input.txt changed/);
-  assert(events(f).some(e=>e.kind==='reconciliation_completed'));
+  // The observer answers once its fresh scan is done, and logs the
+  // reconciliation as complete just after.
+  await until(f,()=>events(f).some(e=>e.kind==='reconciliation_completed'),2000);
   const count=events(f).filter(e=>e.kind==='history_timeout').length;
   for(let n=0;n<3;n++)status(f);
   assert.equal(events(f).filter(e=>e.kind==='history_timeout').length,count);

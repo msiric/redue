@@ -55,7 +55,14 @@ function publishedProbeDeadline() {
   try{return publishedDeadline(JSON.parse(fs.readFileSync(path.join(state,'status.json'),'utf8')).probe_deadline_ms);}
   catch{return 0;}
 }
-const decisionDeadline=()=>Math.max(decisionBaseMs,publishedProbeDeadline()+10000);
+// The wait for a decision, read when it starts: the base at once, and the
+// published deadline when status.json has been read. That file is rewritten
+// at every decision, and a first read of a fresh file is slow where a scanner
+// checks files as they are opened, so it is read off the main thread while
+// the call runs. An override is exact.
+const decisionWait=override=>override?{timeout:Number(override),deadline:null}:{timeout:decisionBaseMs,
+  deadline:fs.promises.readFile(path.join(state,'status.json'),'utf8')
+    .then(text=>Math.max(decisionBaseMs,publishedDeadline(JSON.parse(text).probe_deadline_ms)+10000),()=>decisionBaseMs)};
 const digest=value=>createHash('sha256').update(value).digest('hex');
 function nodeIdentity() {const real=fs.realpathSync(process.execPath),st=fs.statSync(real,{bigint:true});
   return digest(JSON.stringify([real,process.version,...['dev','ino','mode','size','mtimeNs','ctimeNs']
@@ -120,20 +127,26 @@ function owner(){
     atomicJson(ownerFile,expected);
   }
 }
-function call(message,timeout=5000) {
+// deadline, when given, resolves to the whole wait in ms, which replaces
+// timeout when it is longer.
+function call(message,timeout=5000,deadline=null) {
   return new Promise((resolve,reject)=>{
     let data='',done=false;mark('client.control_connect',{deadlineMs:timeout});const client=net.createConnection(socket);
-    const timer=setTimeout(()=>{mark('client.control_timeout');client.destroy();reject(Error('observer synchronization timeout'));},timeout);
+    const started=Date.now(),expire=()=>{mark('client.control_timeout');client.destroy();reject(Error('observer synchronization timeout'));};
+    let timer=setTimeout(expire,timeout);
+    deadline?.then(total=>{if(done||total<=timeout)return;mark('client.control_deadline',{deadlineMs:total});
+      clearTimeout(timer);timer=setTimeout(expire,Math.max(0,total-(Date.now()-started)));});
     client.on('connect',()=>{mark('client.control_submit');client.write(JSON.stringify({...message,...(profiling?{diagnostic:traceContext()}: {})})+'\n');});
     client.on('data',chunk=>data+=chunk);
     client.on('end',()=>{mark('client.control_complete',{bytes:data.length});clearTimeout(timer);if(done)return;done=true;
       try{resolve(JSON.parse(data));}catch(e){reject(e);}});
-    client.on('error',e=>{mark('client.control_error',{code:e.code});clearTimeout(timer);reject(e);});
+    client.on('error',e=>{mark('client.control_error',{code:e.code});clearTimeout(timer);done=true;reject(e);});
   });
 }
-async function decisionCall(message,timeout) {
-  const started=Date.now(),remaining=()=>Math.max(1,timeout-(Date.now()-started));
-  try{return await call(message,remaining());}
+async function decisionCall(message,{timeout,deadline}) {
+  let total=timeout;deadline?.then(value=>{total=Math.max(total,value);});
+  const started=Date.now(),remaining=()=>Math.max(1,total-(Date.now()-started));
+  try{return await call(message,timeout,deadline);}
   catch(error){
     if(process.platform!=='win32'||!['ENOENT','ECONNREFUSED','ECONNRESET'].includes(error.code))throw error;
     const pidFile=path.join(state,'observer.lock','pid');
@@ -233,8 +246,7 @@ async function execute() {
     const environmentBefore=contextHashes()[name];
     const observedContext=selected.qualification===directQualification?{interpretation:directInterpretation,npmProxyDigest:observedNpmContext()}:null;
     timing('cli.context_before',contextStarted);
-    const
-      captureTimeout=Number(process.env.VSTATE_CAPTURE_TIMEOUT_MS||decisionDeadline());
+    const captureWait=decisionWait(process.env.VSTATE_CAPTURE_TIMEOUT_MS);
     let before=null,after=null;
     // Expensive state probes can take seconds. Keep the filesystem checkpoint
     // adjacent to process launch so a late notification from earlier work
@@ -244,7 +256,7 @@ async function execute() {
     let probeBefore=callerCertificate?null:probeHash(probePlan);
     const startSnapshotStarted=performance.now();
     try{before=await call({action:'snapshot',name,contextHashes:contextHashes(),
-      ...(callerCertificate?{runCertificate:1}:{})},captureTimeout);}
+      ...(callerCertificate?{runCertificate:1}:{})},captureWait.timeout,captureWait.deadline);}
     catch(error){captureIssues.push('start observation unavailable'+
       (typeof error.code==='string'&&/^[A-Z0-9_]+$/.test(error.code)?` (${error.code})`:''));}
     timing('cli.start_checkpoint',startSnapshotStarted,{available:before?.snapshots?.[name]?1:0});
@@ -307,7 +319,7 @@ async function execute() {
       await new Promise(resolve=>setTimeout(resolve,100));
       const prelaunchStarted=performance.now();
       try{before=await call({action:'prelaunch',name,
-        contextHashes:contextHashes()},Math.min(captureTimeout,5000));}
+        contextHashes:contextHashes()},Math.min(captureWait.timeout,5000));}
       catch{before=null;captureIssues.push('prelaunch observation unavailable');}
       timing('cli.prelaunch_checkpoint',prelaunchStarted,
         {available:before?.snapshots?.[name]?1:0});
@@ -393,11 +405,12 @@ async function execute() {
     if(recordFile)try{fs.writeFileSync(recordFile,recordText,{mode:0o600});}catch{}
     const endSnapshotStarted=performance.now();
     if(!unobservedDirectRun){
+      // The start checkpoint's probe may have raised the deadline.
+      const endWait=decisionWait(process.env.VSTATE_CAPTURE_TIMEOUT_MS);
       try{after=await call({action:'snapshot',name,contextHashes:contextHashes(),
         ...(testRun&&Number.isSafeInteger(snap?.inputEventSerial)?{sinceSerial:snap.inputEventSerial}:{}),
         ...(recording?{runCertificate:1,adopt:recording}:recorded&&!certificate?{runCertificate:1,runFacts:1}:{})},
-        // The start checkpoint's probe may have raised the deadline.
-        Number(process.env.VSTATE_CAPTURE_TIMEOUT_MS||decisionDeadline()));}
+        endWait.timeout,endWait.deadline);}
       catch{captureIssues.push('end observation unavailable');}
       finally{if(recordFile)fs.rmSync(recordFile,{force:true});}
       timing('cli.end_checkpoint',endSnapshotStarted,{available:after?.snapshots?.[name]?1:0});
@@ -601,7 +614,7 @@ async function main(){
         observedNpmDigest:observedNpmContext(),proxyShapes});
     }
     let value;try{value=await decisionCall({action:'sync',contextHashes:contextHashes()},
-      Number(process.env.VSTATE_SYNC_TIMEOUT_MS||decisionDeadline()));
+      decisionWait(process.env.VSTATE_SYNC_TIMEOUT_MS));
       // A client upgrade can encounter an older running observer. Its successful
       // control response does not establish that it evaluated the latest receipt.
       if(value.receipt_revision===null){
@@ -615,7 +628,9 @@ async function main(){
       }}
     catch(e){value=unavailableCached(state,e.message,config.checks);process.exitCode=2;}
     timing('cli.synchronized_status',started,{available:value.observation?.healthy?1:0});
-    if(action==='sync')console.log(JSON.stringify(value));
+    // In the front's process (bin/redue.mjs), the value is handed back.
+    if(action==='sync'&&process.argv.includes('--value'))syncValue=value;
+    else if(action==='sync')console.log(JSON.stringify(value));
     else for(const row of value.checks)console.log(`${row.name}: ${row.freshness}/${row.result||'NO RESULT'} — ${row.reason}`);
     return;
   }
@@ -623,4 +638,5 @@ async function main(){
   if(action==='run'){await execute();return;}
   throw Error(`unknown action ${action}`);
 }
-main().catch(e=>{console.error(`redue: ${e.message}`);process.exitCode=2;});
+export let syncValue=null;
+export const finished=main().catch(e=>{console.error(`redue: ${e.message}`);process.exitCode=2;});
