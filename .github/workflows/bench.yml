@@ -1,0 +1,55 @@
+name: Bench against the last release
+# The performance acceptance loop (bench/compare.mjs) on CI: the candidate and
+# the release npm's `latest` tag names run interleaved on one runner. A wrong
+# state, a probe while idle, or a slowdown beyond the tolerances fails the run.
+# It is part of the release smoke (release-package.yml), so a regression
+# blocks publication. Dispatched alone, it packs the checked-out commit.
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      candidate_artifact:
+        description: Bench the exact-release-candidate artifact of the calling run
+        required: false
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  bench:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Exact release candidate
+        if: ${{ inputs.candidate_artifact }}
+        uses: actions/download-artifact@v4
+        with:
+          name: exact-release-candidate
+          path: release-candidate
+      - name: Pack the checked-out commit
+        if: ${{ !inputs.candidate_artifact }}
+        run: |
+          mkdir release-candidate
+          npm pack --json --pack-destination release-candidate > release-candidate/manifest.json
+      - name: Install candidate and baseline
+        run: |
+          file=$(node -p "require('./release-candidate/manifest.json')[0].filename")
+          npm install --prefix "$RUNNER_TEMP/candidate" --no-audit --no-fund "./release-candidate/$file"
+          npm install --prefix "$RUNNER_TEMP/baseline" --no-audit --no-fund @redue/cli@latest
+          node "$RUNNER_TEMP/baseline/node_modules/@redue/cli/bin/redue.mjs" --version
+      - run: node bench/setup.mjs "$RUNNER_TEMP/bench-800" 800
+      - name: Compare
+        run: >-
+          node bench/compare.mjs "$RUNNER_TEMP/bench-800" --rounds 3
+          --build "baseline=$RUNNER_TEMP/baseline/node_modules/@redue/cli/bin/redue.mjs"
+          --build "candidate=$RUNNER_TEMP/candidate/node_modules/@redue/cli/bin/redue.mjs"
+          --gate baseline=candidate

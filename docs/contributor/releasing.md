@@ -25,7 +25,13 @@ A registry 404 does not establish scope ownership or guarantee publication.
    artifact selected from `npm pack --json`, verifying its checksum and exercising
    the real `redue` binary, freshness workflow, restart and scoped cleanup.
    It also runs the direct-recipe suite against TypeScript 5.0–5.8
-   (typescript-versions.yml, which otherwise runs weekly).
+   (typescript-versions.yml, which otherwise runs weekly), and the bench
+   (bench.yml): on macOS and Linux runners, the candidate and npm's `latest`
+   release run interleaved on an 800-file project (`bench/compare.mjs
+   --gate`). A wrong state, a probe while idle, or a candidate slower than
+   that release beyond the tolerances in `bench/compare.mjs` fails the run,
+   and `publish.yml` refuses a failed run. To bench a commit without a
+   release, dispatch **Bench against the last release** on it.
 5. Download `exact-release-candidate` into a separately owned local candidate
    directory. Retain its `manifest.json`, `SHA256SUMS` and reported tarball. The
    optional **Prepare alpha package** workflow does not replace the three-OS gate.

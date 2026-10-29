@@ -45,6 +45,12 @@ jobs:
           name: exact-release-candidate
           path: release-candidate/
           retention-days: 14
+  bench:
+    # A performance regression against the last release fails this run too.
+    needs: package
+    uses: ./.github/workflows/bench.yml
+    with:
+      candidate_artifact: true
   smoke:
     needs: package
     strategy:
