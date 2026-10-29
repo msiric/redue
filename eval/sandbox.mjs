@@ -90,6 +90,18 @@ export function placeOf(file, p) {
 }
 
 const sandboxEnv = (env, p) => ({...env, TMPDIR: p.temp, TMP: p.temp, TEMP: p.temp});
+// HOME in an empty folder, so user configuration reads as absent instead of
+// denied; the stores the toolchain keeps under the real HOME stay where they are.
+function homeEnv(env, p) {
+  const fresh = path.join(p.temp, 'home'), cache = process.platform === 'darwin' ? path.join(home, 'Library', 'Caches') : path.join(home, '.cache');
+  fs.mkdirSync(fresh, {recursive: true});
+  const keep = {COREPACK_HOME: [path.join(home, '.cache', 'node', 'corepack'), path.join(cache, 'node', 'corepack')], UV_CACHE_DIR: [path.join(home, '.cache', 'uv'), path.join(cache, 'uv')],
+    UV_PYTHON_INSTALL_DIR: [path.join(home, '.local', 'share', 'uv', 'python')], YARN_GLOBAL_FOLDER: [path.join(home, '.yarn', 'berry')],
+    npm_config_store_dir: [path.join(home, '.local', 'share', 'pnpm', 'store'), path.join(home, 'Library', 'pnpm', 'store')],
+    CARGO_HOME: [path.join(home, '.cargo')], RUSTUP_HOME: [path.join(home, '.rustup')]};
+  const pinned = Object.fromEntries(Object.entries(keep).map(([k, list]) => [k, env[k] ?? list.find(exists)]).filter(([, v]) => v));
+  return {...sandboxEnv(env, p), ...pinned, HOME: fresh, XDG_CONFIG_HOME: path.join(fresh, '.config'), XDG_CACHE_HOME: path.join(fresh, '.cache'), XDG_DATA_HOME: path.join(fresh, '.local', 'share')};
+}
 const readPlaces = p => [p.checkout, p.temp, ...p.toolchain, ...p.system];
 const ancestors = list => [...new Set(list.flatMap(d => { const out = []; for (let x = path.dirname(d); x !== '/' && x !== '.'; x = path.dirname(x)) out.push(x); return out; }))];
 
@@ -134,10 +146,10 @@ function denialWatcher() {
   };
 }
 
-// One run in a mode: 'plain', 'seatbelt', 'landlock', 'bwrap' or 'observe'.
+// One run in a mode: 'plain', 'seatbelt', 'seatbelt-home', 'landlock', 'bwrap' or 'observe'.
 export async function sandboxRun(mode, {argv, cwd, env, timeout, p, trace, watch}) {
   let cmd = argv, runEnv = env, stop;
-  if (mode === 'seatbelt') { cmd = ['sandbox-exec', '-p', seatbeltProfile(p), ...argv]; runEnv = sandboxEnv(env, p); if (watch) { stop = denialWatcher(); await new Promise(r => setTimeout(r, 2000)); } }
+  if (mode === 'seatbelt' || mode === 'seatbelt-home') { cmd = ['sandbox-exec', '-p', seatbeltProfile(p), ...argv]; runEnv = mode === 'seatbelt' ? sandboxEnv(env, p) : homeEnv(env, p); if (watch) { stop = denialWatcher(); await new Promise(r => setTimeout(r, 2000)); } }
   else if (mode === 'landlock') { cmd = ['python3', landlockPy, ...readPlaces(p).flatMap(d => ['--read', d]), '--no-tcp', '--', ...argv]; runEnv = sandboxEnv(env, p); }
   else if (mode === 'bwrap') { cmd = ['bwrap', ...bwrapArgs(p, cwd), ...argv]; runEnv = sandboxEnv(env, p); }
   else if (mode === 'observe') cmd = ['strace', '--seccomp-bpf', '-f', '-qq', '-y', '-s', '4096', '-o', trace, '-e',
@@ -202,7 +214,7 @@ export async function readObserved(file, p, cwd) {
 // per-test results back (pytest's junit XML), when the caller has them.
 export async function sandboxSuite({argv, cwd, env, timeout, modes, python, perRun}) {
   const p = places({dir: cwd, env, argv0: argv[0], python});
-  const order = process.platform === 'darwin' ? (modes.seatbelt ? ['seatbelt'] : []) :
+  const order = process.platform === 'darwin' ? (modes.seatbelt ? ['seatbelt', 'seatbelt-home'] : []) :
     [...(modes.landlock?.abi ? ['landlock'] : []), ...(modes.bwrap === true ? ['bwrap'] : [])];
   const out = {places: {toolchain: p.toolchain}, runs: {plain: []}};
   for (const mode of order) out.runs[mode] = [];
