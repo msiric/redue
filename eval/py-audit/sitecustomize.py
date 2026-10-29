@@ -24,9 +24,14 @@ def _install():
         return state['file']
 
     def text(value):
-        if isinstance(value, bytes):
-            return os.fsdecode(value)
-        return value if isinstance(value, str) else None
+        # pathlib passes Path objects; file descriptors have no path.
+        if value is None or isinstance(value, int):
+            return None
+        try:
+            value = os.fspath(value)
+        except TypeError:
+            return None
+        return os.fsdecode(value) if isinstance(value, bytes) else value
 
     def log(*record):
         if state['busy']:
@@ -75,7 +80,7 @@ def _install():
     def wrap(module, name, kind):
         original = getattr(module, name)
         def wrapper(path, *a, **k):
-            p = text(path) if not isinstance(path, int) else None
+            p = text(path)
             if p is not None:
                 log(kind, os.path.join(os.getcwd(), p) if not os.path.isabs(p) else p)
             return original(path, *a, **k)

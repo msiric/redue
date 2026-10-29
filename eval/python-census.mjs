@@ -152,8 +152,8 @@ function offlineRun(dir, cmd, env, timeout) {
 // strace: per process, the files opened, stat'ed and listed, and programs run.
 // Calls before the hook marks itself installed (a stat of /.redue-py-audit-ready)
 // are interpreter startup and the hook's own imports, counted apart.
-async function readTrace(file) {
-  const procs = new Map(), proc = pid => procs.get(pid) ?? procs.set(pid, {opens: new Set(), stats: new Map(), lists: new Set(), exec: null, cwd: null, hooked: false, startup: 0}).get(pid);
+async function readTrace(file, cwd) {
+  const procs = new Map(), proc = pid => procs.get(pid) ?? procs.set(pid, {opens: new Set(), stats: new Map(), lists: new Set(), exec: null, cwd, hooked: false, startup: 0}).get(pid);
   const pending = new Map();
   const rl = readline.createInterface({input: fs.createReadStream(file), crlfDelay: Infinity});
   for await (let line of rl) {
@@ -265,7 +265,7 @@ async function tracedRun(dir, cmd, env, timeout, venv) {
         const rel = path.relative(dir, f).split('/'); return rel.includes('__pycache__') ? '**/__pycache__' : rel[0].startsWith('.') ? rel[0] : rel.length > 1 ? `${rel[0]}/` : rel[0];
       }))].slice(0, 40)};
     const basePrefix = procs.find(p => p.start?.basePrefix)?.start.basePrefix;
-    if (strace && fs.existsSync(trace)) out.compare = compare(await readTrace(trace), hook, {dir: real(dir), venv: real(venv), basePrefix: basePrefix && real(basePrefix), ignore: [real(hookDir), real(work)]});
+    if (strace && fs.existsSync(trace)) out.compare = compare(await readTrace(trace, real(dir)), hook, {dir: real(dir), venv: real(venv), basePrefix: basePrefix && real(basePrefix), ignore: [real(hookDir), real(work)]});
   } catch (error) { out.analysisError = String(error.stack ?? error).slice(0, 600); }
   fs.rmSync(work, {recursive: true, force: true});
   return out;
