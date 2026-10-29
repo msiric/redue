@@ -50,7 +50,10 @@ export function toolchain(env, argv0) {
   const addRoot = file => { const root = path.dirname(path.dirname(file)); add([home, path.join(home, '.local'), '/usr/local', '/usr', '/opt/homebrew', '/'].includes(root) ? file : root); };
   for (const name of ['node', 'npm', 'npx', 'corepack', 'pnpm', 'yarn', 'bun', 'uv', 'uvx', 'poetry', 'pdm', 'pipenv', 'python3']) {
     const found = which(name, env);
-    if (found && real(found)) addRoot(real(found));
+    if (!found || !real(found)) continue;
+    addRoot(real(found));
+    // A launcher folder of links, such as pipx's /opt/pipx_bin.
+    if (!['/usr/bin', '/bin', '/usr/local/bin', '/opt/homebrew/bin', path.join(home, '.local', 'bin')].includes(path.dirname(found))) add(path.dirname(found));
   }
   if (argv0 && path.isAbsolute(argv0) && real(argv0)) addRoot(real(argv0));
   const cache = process.platform === 'darwin' ? path.join(home, 'Library', 'Caches') : env.XDG_CACHE_HOME || path.join(home, '.cache');
@@ -213,10 +216,11 @@ export async function readObserved(file, p, cwd) {
 // and on Linux one observed run. `perRun` adds arguments to a run and reads
 // per-test results back (pytest's junit XML), when the caller has them.
 export async function sandboxSuite({argv, cwd, env, timeout, modes, python, perRun}) {
-  const p = places({dir: cwd, env, argv0: argv[0], python});
+  // The places come after the first plain run, which creates the stores it uses (uv's tool folder).
+  let p = null;
   const order = process.platform === 'darwin' ? (modes.seatbelt ? ['seatbelt', 'seatbelt-home'] : []) :
     [...(modes.landlock?.abi ? ['landlock'] : []), ...(modes.bwrap === true ? ['bwrap'] : [])];
-  const out = {places: {toolchain: p.toolchain}, runs: {plain: []}};
+  const out = {runs: {plain: []}};
   for (const mode of order) out.runs[mode] = [];
   const one = async (mode, n) => {
     const extra = perRun ? perRun.args(`${mode}-${n}`) : [];
@@ -227,6 +231,7 @@ export async function sandboxSuite({argv, cwd, env, timeout, modes, python, perR
   for (const n of [1, 2]) {
     out.runs.plain.push(await one('plain', n));
     if (out.runs.plain.at(-1).timedOut) break;
+    if (!p) { p = places({dir: cwd, env, argv0: argv[0], python}); out.places = {toolchain: p.toolchain}; }
     for (const mode of order) out.runs[mode].push(await one(mode, n));
     if (n === 1 && modes.observe) {
       const trace = path.join(tmpRoot, `${path.basename(p.temp)}.strace`);
@@ -236,7 +241,7 @@ export async function sandboxSuite({argv, cwd, env, timeout, modes, python, perR
       out.observe = r;
     }
   }
-  fs.rmSync(p.temp, {recursive: true, force: true});
+  if (p) fs.rmSync(p.temp, {recursive: true, force: true});
   // Same result: every sandboxed run exits as the plain runs did, and they agree.
   const plain = out.runs.plain.map(r => r.status);
   out.plainStable = plain.length === 2 && plain[0] === plain[1];
