@@ -28,9 +28,11 @@ A registry 404 does not establish scope ownership or guarantee publication.
    (typescript-versions.yml, which otherwise runs weekly), and the bench
    (bench.yml): on macOS and Linux runners, the candidate and npm's `latest`
    release run interleaved on an 800-file project (`bench/compare.mjs
-   --gate`). A wrong state, a probe while idle, or a candidate slower than
-   that release beyond the tolerances in `bench/compare.mjs` fails the run,
-   and `publish.yml` refuses a failed run. To bench a commit without a
+   --gate`). A wrong state, a probe while idle, a candidate slower than that
+   release beyond the tolerances in `bench/compare.mjs`, or a missed budget
+   (warm sync < 100 ms over cached status; run overhead < 10%, on Linux only,
+   since it swings too much on macOS runners) fails the run, and
+   `publish.yml` refuses a failed run. To bench a commit without a
    release, dispatch **Bench against the last release** on it.
 5. Download `exact-release-candidate` into a separately owned local candidate
    directory. Retain its `manifest.json`, `SHA256SUMS` and reported tarball. The

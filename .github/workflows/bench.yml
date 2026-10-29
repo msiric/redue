@@ -20,7 +20,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        include:
+          # Run overhead swings too much on macOS runners to check there.
+          - os: macos-latest
+            checks: --metrics warmSyncOverCachedMs --budget warmSyncOverCachedMs=100
+          - os: ubuntu-latest
+            checks: --metrics warmSyncOverCachedMs,runOverheadPct --budget warmSyncOverCachedMs=100 --budget runOverheadPct=10
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     steps:
@@ -52,4 +57,4 @@ jobs:
           node bench/compare.mjs "$RUNNER_TEMP/bench-800" --rounds 3
           --build "baseline=$RUNNER_TEMP/baseline/node_modules/@redue/cli/bin/redue.mjs"
           --build "candidate=$RUNNER_TEMP/candidate/node_modules/@redue/cli/bin/redue.mjs"
-          --gate baseline=candidate
+          --gate baseline=candidate ${{ matrix.checks }}
