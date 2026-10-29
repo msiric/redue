@@ -186,17 +186,17 @@ async function readTrace(file) {
 function readHook(dir) {
   const procs = new Map();
   for (const file of fs.readdirSync(dir)) {
-    const pid = Number(file.split('.')[0]), p = {opens: new Set(), stats: new Set(), lists: new Set(), env: new Set(), net: [], exec: [], modules: [], start: null};
+    const pid = Number(file.split('.')[0]), p = {opens: new Set(), stats: new Set(), lists: new Set(), env: new Set(), net: [], exec: [], modules: [], start: null, complete: false, envCopiers: []};
     for (const line of fs.readFileSync(path.join(dir, file), 'utf8').split('\n')) {
       let r; try { r = JSON.parse(line); } catch { continue; }
       if (r[0] === 'start') p.start = {executable: r[1], argv: r[2], prefix: r[4], basePrefix: r[5], version: r[6]};
       else if (r[0] === 'open') p.opens.add(path.normalize(r[1]));
       else if (r[0] === 'stat') p.stats.add(path.normalize(r[1]));
       else if (r[0] === 'list') p.lists.add(path.normalize(r[1]));
-      else if (r[0] === 'env') p.env.add(r[1]);
+      else if (r[0] === 'env') { p.env.add(r[1]); if (r[2]) p.envCopiers.push(r[2].slice(0, 2).join(' < ')); }
       else if (r[0] === 'net') p.net.push([r[1], r[2]]);
       else if (r[0] === 'exec') p.exec.push(r[2]?.[0] ?? r[3]);
-      else if (r[0] === 'modules') p.modules = r[1];
+      else if (r[0] === 'modules') { p.modules = r[1]; p.complete = true; }
     }
     procs.set(pid, p);
   }
@@ -210,13 +210,21 @@ function compare(trace, hook, {dir, venv, basePrefix, ignore}) {
   const place = file => file.startsWith(venv + '/') ? 'venv' : file.startsWith(dir + '/') ? 'checkout' : basePrefix && file.startsWith(basePrefix + '/') ? 'interpreter' :
     /^\/(proc|sys|dev)\//.test(file) ? 'proc-sys-dev' : /^\/(usr|lib|lib64|etc|bin|sbin)\//.test(file) ? 'system' : file.startsWith(os.homedir() + '/') ? 'home' : /^\/tmp\//.test(file) ? 'tmp' : 'other';
   const kindOf = file => /\.(so(\.\d+)*|pyd)$/.test(file) ? 'shared-library' : /\.pyc$/.test(file) ? 'pyc' : /\.py$/.test(file) ? 'py' : 'data';
-  const missed = {opens: {}, statOnly: {}, lists: {}}, examples = {opens: [], statOnly: [], lists: []};
+  const missed = {opens: {}, statOnly: {}, lists: {}}, examples = {opens: {}, statOnly: {}, lists: {}};
   const add = (bucket, key, file) => {
-    if (ignore.some(prefix => file.startsWith(prefix + '/') || file === prefix)) return; missed[bucket][key] = (missed[bucket][key] ?? 0) + 1; if (examples[bucket].length < 25 && !/^(system|proc-sys-dev)/.test(key)) examples[bucket].push(file); };
-  let pythonProcs = 0, hookedOpens = 0, startupCalls = 0;
+    if (ignore.some(prefix => file.startsWith(prefix + '/') || file === prefix)) return;
+    missed[bucket][key] = (missed[bucket][key] ?? 0) + 1;
+    const list = examples[bucket][key] ??= [];
+    if (list.length < 8 && !/^(system|proc-sys-dev)/.test(key)) list.push(file.startsWith(dir + '/') ? path.relative(dir, file) : file);
+  };
+  // The import system looks for a module as a package, an extension, source
+  // and bytecode in each sys.path directory.
+  const probe = file => /\.(cpython-\d+[^/]*\.so|abi3\.so|so|py|pyc|pyw|pth)$/.test(file) || /\/__init__[^/]*$/.test(file) || /\/__pycache__(\/|$)/.test(file);
+  let pythonProcs = 0, hookedOpens = 0, startupCalls = 0, incomplete = 0;
   const native = {};
   for (const [pid, t] of trace) {
     const h = hook.get(pid);
+    if (h && !h.complete) { incomplete++; continue; }
     if (!h) {
       if (t.exec && !/python/.test(path.basename(t.exec)) && !trace.get(t.parent)?.exec?.endsWith(path.basename(t.exec)))
         native[path.basename(t.exec)] = (native[path.basename(t.exec)] ?? 0) + 1;
@@ -229,12 +237,12 @@ function compare(trace, hook, {dir, venv, basePrefix, ignore}) {
     for (const file of t.opens) if (!opened.has(file) && !modules.has(file)) add('opens', `${place(file)} ${kindOf(file)}`, file);
     for (const [file, result] of t.stats) {
       if (t.opens.has(file) || statted.has(file) || listed.has(path.dirname(file)) || modules.has(file)) continue;
-      add('statOnly', `${place(file)} ${result === 'ok' ? 'found' : 'absent'}`, file);
+      add('statOnly', `${place(file)} ${result === 'ok' ? 'found' : 'absent'}${probe(file) ? ' import-probe' : ''}`, file);
     }
     for (const d of t.lists) if (!listed.has(d)) add('lists', place(d), d);
   }
   const sort = o => Object.fromEntries(Object.entries(o).sort((a, b) => b[1] - a[1]));
-  return {pythonProcs, hookedOpens, startupCalls, missedOpens: sort(missed.opens), missedStatOnly: sort(missed.statOnly), missedLists: sort(missed.lists), examples, native: sort(native)};
+  return {pythonProcs, incomplete, hookedOpens, startupCalls, missedOpens: sort(missed.opens), missedStatOnly: sort(missed.statOnly), missedLists: sort(missed.lists), examples, native: sort(native)};
 }
 
 async function tracedRun(dir, cmd, env, timeout, venv) {
@@ -251,7 +259,7 @@ async function tracedRun(dir, cmd, env, timeout, venv) {
     const env = new Set(procs.flatMap(p => [...p.env]));
     const net = procs.flatMap(p => p.net).map(([event, target]) => `${event} ${target}`);
     out.hook = {processes: procs.length, versions: [...new Set(procs.map(p => p.start?.version))], env: [...env].sort(),
-      net: [...new Set(net)].slice(0, 40), remoteNet: net.some(n => !/localhost|127\.0\.0\.1|::1|0\.0\.0\.0|\/|None|^socket\.bind/.test(n)),
+      net: [...new Set(net)].slice(0, 40), envCopiers: [...new Set(procs.flatMap(p => p.envCopiers))].slice(0, 10), remoteNet: net.some(n => !/localhost|127\.0\.0\.1|::1|0\.0\.0\.0|\/|None|^socket\.bind/.test(n)),
       programs: [...new Set(procs.flatMap(p => p.exec).filter(Boolean).map(p => path.basename(p)))].slice(0, 40),
       checkoutOpens: [...new Set(procs.flatMap(p => [...p.opens]).filter(f => f.startsWith(dir + '/') && !f.startsWith(venv + '/')).map(f => {
         const rel = path.relative(dir, f).split('/'); return rel.includes('__pycache__') ? '**/__pycache__' : rel[0].startsWith('.') ? rel[0] : rel.length > 1 ? `${rel[0]}/` : rel[0];

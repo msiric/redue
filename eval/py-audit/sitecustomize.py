@@ -96,7 +96,14 @@ def _install():
     def every(self):
         if '*' not in seen_env:
             seen_env.add('*')
-            log('env', '*')
+            # Who copies the whole environment: the first frames outside os.
+            frames, f = [], sys._getframe(1)
+            while f and len(frames) < 4:
+                name = f.f_code.co_filename
+                if not name.endswith(('/os.py', '/_collections_abc.py')) and not name.startswith('<frozen'):
+                    frames.append(f'{name}:{f.f_code.co_name}')
+                f = f.f_back
+            log('env', '*', frames)
         return iterate(self)
     Env.__iter__ = every
 
@@ -109,6 +116,13 @@ def _install():
         log('modules', files)
         flush()
     atexit.register(at_exit)
+    # Multiprocessing and xdist workers leave through os._exit, which skips
+    # atexit and would drop what is still buffered.
+    exit_now = os._exit
+    def _exit(code):
+        at_exit()
+        exit_now(code)
+    os._exit = _exit
     target()
     os.register_at_fork(after_in_child=lambda: state.update(pid=None, file=None))
     sys.addaudithook(hook)
