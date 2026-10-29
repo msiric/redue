@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.1.0-alpha.25 — 2026-10-29
+
+Running your tests no longer makes a typecheck STALE, and `status --sync`
+answers about twice as fast.
+
+- **Vitest and the direct TypeScript recipe.** A Vitest run writes its
+  results under `node_modules/.vite/vitest`, which the recipe counted as an
+  installed input, so the typecheck turned STALE after every test run. Those
+  files are no longer inputs. Everything else under `node_modules/.vite`
+  still is. A program that asks the compiler about anything under
+  `node_modules/.vite`, or lists `node_modules`, is UNVERIFIED instead. A
+  check set up by an earlier alpha reports STALE ("input plan changed") once
+  after the upgrade.
+- **Faster status.** `status --sync`, `detail` and `explain` no longer start
+  a second Node process on macOS and Linux, the YAML parser loads only for
+  pnpm projects, and each call to the observer no longer waits on a fresh
+  read of its status file. On the 800-file bench, warm `status --sync` adds
+  27 ms over cached status on a GitHub Linux runner (alpha.24: 120 ms) and
+  36 ms on a macOS runner (alpha.24: 137 ms).
+- **Releases are benched.** The release smoke now benches the candidate
+  against the last release on macOS and Linux runners; a slower candidate,
+  or one over the warm-sync or run-overhead budget, blocks the release.
+- Known limit: on the maintainer's Mac, which runs Microsoft Defender,
+  `redue run` still adds about 15-20% to a 2.7 s typecheck (3% on a GitHub
+  Linux runner).
+
 ## 0.1.0-alpha.24 — 2026-10-28
 
 Checks keep working after a normal `npm install`, and agents that chain an
