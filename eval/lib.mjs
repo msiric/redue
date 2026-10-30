@@ -134,8 +134,9 @@ export function redue(entry, dir, ...argv) {
   return sh(process.execPath, [entry, ...argv], {cwd: dir});
 }
 
-export function checkStatus(entry, dir, name = 'typecheck') {
-  const r = redue(entry, dir, 'status', '--sync', '--json');
+// `env`: the session's, for a check that compares PATH (a sandboxed one).
+export function checkStatus(entry, dir, name = 'typecheck', env = undefined) {
+  const r = sh(process.execPath, [entry, 'status', '--sync', '--json'], {cwd: dir, ...env ? {env} : {}});
   try {
     const status = JSON.parse(r.stdout), row = status.checks?.find(c => c.name === name);
     return {freshness: row?.freshness, result: row?.result, reuse_eligible: row?.reuse_eligible,

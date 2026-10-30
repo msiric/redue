@@ -198,6 +198,7 @@ export function sandboxChange(before={},now={}){
     name==='executables'?'Node, a package manager or the interpreter changed':
     name==='git'?'.git/info/exclude or .git/config changed':
     name.startsWith('variable:')?`environment variable ${name.slice(9)} differs from the last run`:
+    !(key in now)?`PATH no longer has directory ${name.slice(10)}`:!(key in before)?`PATH has a new directory ${name.slice(10)}`:
     `PATH directory ${name.slice(10)} changed (a program in it was installed, removed or upgraded)`;
 }
 // A run's private directories, in REDUE's state: the home it keeps between

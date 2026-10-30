@@ -160,7 +160,7 @@ async function runSession(task, repo, arm, id) {
       if (row.setup.seed_receipt?.stable === false) row.setup.seed_touched = touchedSince(dir, mark);
     } else {
       step('seed_run_ms', 'run', check);
-      row.setup.seed_status = checkStatus(entry, dir, check);
+      row.setup.seed_status = checkStatus(entry, dir, check, env);
       row.setup.seed_receipt = receiptOf(dir, check);
     }
     // What the agent always has in context (the managed block) and reads on demand (the skill).
@@ -181,7 +181,7 @@ async function runSession(task, repo, arm, id) {
 
   // Independent checks on the final state.
   if (arm === 'redue') {
-    row.final_status = checkStatus(entry, dir, check);
+    row.final_status = checkStatus(entry, dir, check, env);
     row.final_receipt = receiptOf(dir, check);
     redue(entry, dir, 'stop');
   }
