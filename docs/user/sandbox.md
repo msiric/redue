@@ -64,8 +64,16 @@ It may read and execute only beneath:
   `/System`, `/Library`, `/opt/homebrew` and the like on macOS);
 - a private home directory and a fresh temporary directory, in REDUE's state.
 
-It has no network: no TCP connection, loopback included. On macOS a Unix
-socket works only beneath the checkout and its private directories.
+It has no network: no TCP connection, loopback included. On macOS its only
+Unix sockets are in its own temporary directory, which is new for each run.
+On Linux 6.12 and later it cannot reach an abstract Unix socket outside the
+run.
+
+What the check leaves running is stopped when it exits, as at the end of a
+CI job: its process group gets SIGTERM, and SIGKILL a second later. On Linux
+the launcher also stops daemons that started their own session. On macOS
+such a daemon outlives the run, but no later run can reach it: its socket
+was in a temporary directory that is gone. The run gets no terminal input.
 
 The checkout's `.git` is not an input. Tools still see it, as they do in a CI
 checkout (a linter that applies `.gitignore` only inside a repository does),
@@ -141,9 +149,9 @@ it with `redue remove-state`.
   a version string), reads something REDUE does not observe: a commit does
   not make the result STALE.
 - Runner caches in the checkout are trusted as the general recipe trusts them.
-- A program that hands work to a daemon started outside the sandbox, through
-  a socket, is not seen. On macOS, Unix sockets outside the checkout and the
-  private directories are refused; on Linux they are not.
+- On Linux, a run can still reach a daemon started outside it through a Unix
+  socket file (Landlock does not cover them), and what that daemon reads is
+  not seen. On macOS it cannot.
 - On Linux, uv hard-links `.venv` files to its cache. The cache is
   toolchain: a file rewritten through the cache, not through the `.venv`, is
   noticed only when the observer next reads the `.venv` (when it starts).

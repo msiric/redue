@@ -157,7 +157,7 @@ if(command==='init'){
   for(const [at,row] of [...discovery.checks.entries()]){
     if(row.qualification!==sandboxQualification||row.level!=='ready')continue;
     if(!json)console.error(`Running ${row.config.name} inside and outside the sandbox to confirm it...`);
-    const trial=sandboxTrial(discovery.root,row.config);
+    const trial=await sandboxTrial(discovery.root,row.config);
     if(!trial.issue)trials++;
     const issue=trial.issue?`the sandbox cannot run here (${trial.issue})`:
       // A failure both ways that shows a refusal cannot be told from a real one.

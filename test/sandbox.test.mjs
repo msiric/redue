@@ -38,7 +38,18 @@ if 'environment' in text: print('PYTHONPATH', os.environ.get('PYTHONPATH'))
 if 'home' in text: pathlib.Path(os.environ['HOME'], 'cache.txt').write_text('x')
 if 'secret' in text: print('secret', os.environ.get('REDUE_TEST_SECRET'))
 if 'daemon' in text:
-    import subprocess; subprocess.Popen(['sleep', '8'])
+    import subprocess
+    group = subprocess.Popen(['sleep', '30'])
+    session = subprocess.Popen(['sleep', '30'], start_new_session=True)
+    print('background', group.pid, session.pid)
+if 'selfkill' in text: os.kill(os.getpid(), 9)
+if 'unixsocket' in text:
+    import tempfile
+    for where, at in (('checkout', 's.sock'), ('temporary', os.path.join(tempfile.gettempdir(), 's.sock'))):
+        try:
+            server = socket.socket(socket.AF_UNIX); server.bind(at); server.listen(1)
+            print('unix socket', where, 'ok'); os.unlink(at)
+        except OSError as e: print('unix socket', where, 'refused', e)
 if 'gitdir' in text: print('git directory', os.path.isdir('.git'), os.path.isfile('.git/HEAD'))
 print('${tool}', sys.argv[1:])
 sys.exit(1 if 'fail' in text else 0)
@@ -71,7 +82,9 @@ test('a Python tool\'s arguments: as the project runs it, through uv, Poetry, py
   assert.equal(toolArgs('pip install mypy',mypy),null);
 });
 
-test('denial lines, the normalized PATH and the controlled environment',()=>{
+// POSIX paths: the sandboxed recipe runs on macOS and Linux only.
+const posix=process.platform==='win32'?'the sandboxed recipe runs on macOS and Linux':false;
+test('denial lines, the normalized PATH and the controlled environment',{skip:posix},()=>{
   assert.equal(denialLine('src/a.ts(1,1): error TS2322\nfatal: unable to access \'/home/u/.gitconfig\': Permission denied\n'),
     'fatal: unable to access \'/home/u/.gitconfig\': Permission denied');
   assert.equal(denialLine('  Cause: Operation not permitted (os error 1)'),'Cause: Operation not permitted (os error 1)');
@@ -95,7 +108,7 @@ test('output compared at init: without colors, timings, temporary and home direc
   assert.equal(comparableOutput('Success: no issues found in 3 source files'),'Success: no issues found in 3 source files');
 });
 
-test('hook forms of a Python check: uv, Poetry, python -m, .venv/bin and the bare tool; PATH decides the last ones',t=>{
+test('hook forms of a Python check: uv, Poetry, python -m, .venv/bin and the bare tool; PATH decides the last ones',{skip:posix},t=>{
   const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'rsb-forms-')));t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
   put(path.join(base,'.venv/bin/mypy'),'',0o755);put(path.join(base,'.venv/bin/python'),'',0o755);put(path.join(base,'other/mypy'),'',0o755);
   const config={checks:[{name:'typecheck',kind:'typecheck',qualification:'sandbox-v1',command:['.venv/bin/mypy','src'],...sandboxCheckInputs()}]};
@@ -302,16 +315,32 @@ test('what a sandboxed result depends on outside the checkout: PATH directories 
   assert.equal(status.freshness,'STALE');assert.equal(status.reason,'declared execution environment changed');
 });
 
-test('a git-ignored link to a file in the checkout is an input; a daemon the check leaves running does not hold the run',{skip:unsupported},t=>{
+test('a git-ignored link to a file in the checkout is an input',{skip:unsupported},t=>{
   const {root,state}=project(t);
   put(path.join(root,'build/settings.py'),'mode = 1\n');fs.symlinkSync('settings.py',path.join(root,'build/active.py'));
   good(root,state,'init');good(root,state,'start');good(root,state,'run','typecheck');
   write(root,'build/settings.py','mode = 2\n');
   assert.equal(row(root,state,'typecheck').freshness,'STALE');
-  write(root,'src/fx/__init__.py','# daemon\n');
+});
+
+test('what a check leaves running is stopped when the run ends; on macOS a run gets Unix sockets only in its own temporary directory',{skip:unsupported},t=>{
+  const {root,state}=project(t,{tools:['mypy']});
+  good(root,state,'init');good(root,state,'start');
+  write(root,'src/fx/__init__.py','# daemon unixsocket\n');
   const started=Date.now(),run=invoke(root,state,['run','typecheck']);
   assert.equal(run.status,0,run.stderr);
-  assert.ok(Date.now()-started<20000,`the run waited for the daemon: ${Date.now()-started} ms`);
+  assert.ok(Date.now()-started<20000,`the run waited for what it left running: ${Date.now()-started} ms`);
+  const [group,session]=/background (\d+) (\d+)/.exec(run.stdout).slice(1).map(Number);
+  const alive=pid=>{try{process.kill(pid,0);return true;}catch{return false;}};
+  t.after(()=>{for(const pid of [group,session])try{process.kill(pid,'SIGKILL');}catch{}});
+  const until=Date.now()+5000;while(Date.now()<until&&(alive(group)||process.platform==='linux'&&alive(session)));
+  assert.equal(alive(group),false,'a background process in the run\'s group');
+  // On Linux the launcher also stops a daemon that started its own session.
+  // On macOS it can outlive the run, but no later run can reach it: no sockets.
+  if(process.platform==='linux'){assert.equal(alive(session),false,'a daemon in its own session');assert.match(run.stdout,/unix socket checkout ok/);}
+  else assert.match(run.stdout,/unix socket checkout refused .*Operation not permitted/);
+  // Its own temporary directory, new for each run, takes sockets on both.
+  assert.match(run.stdout,/unix socket temporary ok/);
 });
 
 test('a .venv with the system site-packages keeps the check recording-only',{skip:unsupported},t=>{
@@ -321,4 +350,15 @@ test('a .venv with the system site-packages keeps the check recording-only',{ski
   good(root,state,'init');good(root,state,'start');good(root,state,'run','typecheck');
   const status=row(root,state,'typecheck');
   assert.equal(status.freshness,'UNVERIFIED');assert.match(status.reason,/\.venv uses the system site-packages/);
+});
+
+test('a sandboxed command killed by a signal is reported as killed, on both platforms',{skip:unsupported},t=>{
+  const {root,state}=project(t,{tools:['mypy']});
+  good(root,state,'init');good(root,state,'start');
+  write(root,'src/fx/__init__.py','# selfkill\n');
+  const run=invoke(root,state,['run','typecheck','--json']);
+  assert.equal(run.status,137,run.stderr);
+  assert.equal(JSON.parse(run.stdout.trim().split('\n').at(-1)).invocation,'interrupted');
+  const status=row(root,state,'typecheck');
+  assert.equal(status.freshness,'UNVERIFIED');assert.match(status.reason,/invocation interrupted/);
 });

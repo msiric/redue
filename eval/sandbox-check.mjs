@@ -18,7 +18,7 @@ export const sandboxTraceCalls = 'execve,open,openat,openat2,stat,lstat,newfstat
 const cache = picomatch(sandboxCaches, {dot: true});
 // Installed runner caches and build info the recipe leaves out of node_modules.
 const installedCache = picomatch(['**/node_modules/{.cache,.vite,.vite-temp,.vitest,.vitest-cache}/**', '**/node_modules/**/*.tsbuildinfo',
-  '.venv/**/__pycache__/**', '.venv/bin/python*', '.venv/bin/pypy*'], {dot: true});
+  '.venv/**/__pycache__/**', '.venv/bin/python*', '.venv/bin/pypy*', '.venv/bin/𝜋thon*'], {dot: true});
 
 // {checkout: {observed, cache, output, unobserved: [...], git: [...]}, outside: {allowed, other: [...]}, remote: [...]}
 export function crossCheck(trace, {root, files, allowed}) {

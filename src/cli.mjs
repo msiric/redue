@@ -8,7 +8,8 @@ import {patternMatcher} from './glob.mjs';
 import {observedBy} from './installed-observation.mjs';
 import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testRunFacts,sharedInstalledFile,testsInterpretation,testsQualification} from './test-direct.mjs';
 import {childProgram,lookup,pnpmConfigFiles,scriptCaches,scriptInstalledPaths,scriptInterpretation,scriptQualification,scriptRunFacts,pnpmNameless,toolOutput,toolchainDirs} from './node-script.mjs';
-import {denialLine,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,sandboxInterpretation,sandboxPlaces,sandboxQualification,sandboxSupport,systemPlaces} from './sandbox.mjs';
+import {denialLine,endWithChild,runToEnd,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,sandboxInterpretation,sandboxPlaces,
+  sandboxQualification,sandboxSupport,systemPlaces} from './sandbox.mjs';
 import path from 'node:path';
 import net from 'node:net';
 import os from 'node:os';
@@ -214,10 +215,11 @@ async function execute() {
   const lockStarted=performance.now(),runLock=acquireRunLock(state);
   timing('cli.run_lock',lockStarted);
   const captureIssues=[];
-  let activeChild=null,requestedSignal=null,treeStop=null,preserveRunLock=false;
+  let activeChild=null,requestedSignal=null,treeStop=null,preserveRunLock=false,ownGroup=false;
   const forward=signal=>{requestedSignal=signal;
     if(activeChild&&activeChild.exitCode===null){
-      if(process.platform==='linux'&&activeChild.pid){
+      // A Linux run, and a sandboxed one on macOS, has its own process group.
+      if((process.platform==='linux'||ownGroup)&&activeChild.pid){
         try{process.kill(-activeChild.pid,signal);}
         catch(e){if(e.code!=='ESRCH')throw e;}
       }else if(process.platform==='win32'&&activeChild.pid){
@@ -325,13 +327,14 @@ async function execute() {
       const support=sandboxSupport();
       if(support.issue)captureIssues.push(`the run was not sandboxed: ${support.issue}`);
       else{
-        const dirs=sandboxDirs(state,name,runId);
+        const dirs=sandboxDirs(state,name);
         const reads=[root,dirs.home,dirs.tmp,...sandboxPlaces(selected,process.env,root),...systemPlaces];
-        sandbox={mode:support.mode,dirs,argv:sandboxArgv(support.mode,command,{reads,writes:[root,dirs.home,dirs.tmp],python:support.python}),
+        sandbox={mode:support.mode,dirs,argv:sandboxArgv(support.mode,command,{reads,tmp:dirs.tmp,python:support.python}),
           env:sandboxEnv(selected,process.env,{root,...dirs})};
       }
     }
     const plainEnv={...process.env,...selected.script?{npm_config_update_notifier:'false'}:{}};
+    ownGroup=sandboxed&&process.platform!=='win32';
     // A sandboxed run's output is passed through and its start and end kept,
     // to tell a refusal by the sandbox from a real failure.
     const output={head:'',tail:''};
@@ -362,15 +365,17 @@ async function execute() {
       try{runLock.phase('launching');
         const launch=windowsLaunch(sandbox?.argv??launched);
         child=spawn(launch.file,launch.args,{cwd:plan.cwd,
-        stdio:recorded?['inherit','inherit','inherit','pipe']:sandboxed?['inherit','pipe','pipe']:'inherit',
+        // A sandboxed run's own group gets no terminal input, which would stop it.
+        stdio:recorded?['inherit','inherit','inherit','pipe']:sandboxed?['ignore','pipe','pipe']:'inherit',
         env:sandbox?.env??(sandboxed?plainEnv:launchEnv),
-        detached:process.platform==='linux',...launch.options});
+        detached:process.platform==='linux'||ownGroup,...launch.options});
         child.stdio[3]?.on('data',chunk=>record.push(chunk));
         if(sandboxed){child.stdout.on('data',chunk=>{process.stdout.write(chunk);keep(chunk);});
           child.stderr.on('data',chunk=>{process.stderr.write(chunk);keep(chunk);});
-          // A background helper the check started (a daemon) can hold the
-          // pipes open after it exits: the run ends a second after its exit.
-          child.on('exit',()=>setTimeout(()=>{child.stdout.destroy();child.stderr.destroy();},1000).unref());}}
+          // What the check left running is stopped when it exits, as a CI
+          // job's end does (on Linux the launcher also stops daemons that
+          // left the group), and the run ends a second after its exit.
+          endWithChild(child);}}
       catch(e){resolve({status:'start_failed',exitCode:null,signal:null,errorCode:e.code||e.name});return;}
       activeChild=child;runnerPid=child.pid??null;runLock.phase('running',child.pid??null);
       mark('cli.child_started',{childPid:child.pid});
@@ -378,7 +383,7 @@ async function execute() {
       child.on('error',e=>{spawnError=e.code||e.name;});
       child.on('close',async(exit,signal)=>{
         if(treeStop)await treeStop;
-        if(process.platform==='linux'&&requestedSignal&&child.pid){
+        if((process.platform==='linux'||ownGroup)&&requestedSignal&&child.pid){
           // A verification command may have forked children in its process
           // group. Normal cancellation must reach them even if the leader has
           // already exited. Commands that daemonize into a new session remain
@@ -510,15 +515,22 @@ async function execute() {
     // A sandboxed run that failed with what looks like a refusal by the
     // sandbox runs again outside it. When that run exits differently, the
     // sandbox changed the result: the plain run's result is kept, not reused.
+    // An interrupt before or during it stops there: the run is interrupted.
     let sandboxRerun=null;
-    if(sandbox&&result==='FAIL'){
+    if(sandbox&&result==='FAIL'&&!requestedSignal){
       const line=denialLine(output.head+'\n'+output.tail);
       if(line){
         console.error(`redue: the sandboxed run failed with what looks like a refusal by the sandbox (${line}); running it again outside the sandbox`);
-        const plain=spawnSync(command[0],command.slice(1),{cwd:plan.cwd,stdio:'inherit',env:plainEnv});
+        // Interrupting REDUE interrupts the rerun's group too (forward).
+        const plain=await runToEnd(command,{cwd:plan.cwd,env:plainEnv,echo:true,started:child=>{activeChild=child;}});
+        activeChild=null;
         sandboxRerun={line,exitCode:plain.status,signal:plain.signal||null,...plain.error?{errorCode:plain.error.code||plain.error.name}:{}};
+        if(requestedSignal){
+          captureIssues.push('interrupted during the run outside the sandbox');
+          Object.assign(invocation,{status:'interrupted',exitCode:null,signal:requestedSignal});
+        }
         // A rerun that did not start or finish tells nothing: the sandboxed result stands, not reused.
-        if(plain.error||plain.status===null)
+        else if(plain.error||plain.status===null)
           captureIssues.push(`the run outside the sandbox did not finish (${plain.error?.code||plain.signal}), so a refusal by the sandbox is not ruled out (${line})`);
         else if(plain.status!==invocation.exitCode){
           captureIssues.push(`the sandbox changed the result: exit ${invocation.exitCode} inside it, ${plain.status??plain.signal} outside it (${line})`);
@@ -532,7 +544,7 @@ async function execute() {
     // check nondeterministic until its inputs change.
     let nondeterministic=false;
     const declared=hashes=>Object.entries(hashes||{}).filter(([key])=>!key.startsWith('__redue_env_'));
-    if(sandboxRerun&&invocation.sandboxedExitCode!==undefined)result=invocation.status==='exited'?(invocation.exitCode===0?'PASS':'FAIL'):null;
+    if(sandboxRerun)result=invocation.status==='exited'?(invocation.exitCode===0?'PASS':'FAIL'):null;
     if((testRun||sandboxed)&&stable&&result){
       const prior=readReceipts(state).checks[name];
       // A difference explained by inputs REDUE did not observe proves nothing.
