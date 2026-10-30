@@ -122,7 +122,14 @@ export function productChecks({dir, config, names, env, label, keepTraces = fals
       const r = sh(argv[0], argv.slice(1), {cwd: dir, env, timeout});
       return {label: what, exit: r.status, timedOut: r.timedOut, ms: r.ms};
     });
-    const now = json(redue(['status', '--sync', '--json'], 300_000));
+    // The observer catches up with what they wrote first: a pending
+    // reconciliation or inspection, or a timed-out call, is not an answer yet.
+    const transient = /reconciliation pending|pending content inspection|synchronization timeout|observation is initializing/;
+    let now = null;
+    for (const until = Date.now() + 120_000; Date.now() < until; wait(2000)) {
+      now = json(redue(['status', '--sync', '--json'], 300_000));
+      if (now?.observation?.healthy && !now.checks?.some(x => transient.test(x.reason ?? ''))) break;
+    }
     for (const [name, value] of Object.entries(out.checks)) {
       const row = now?.checks?.find(x => x.name === name);
       value.afterOthers = {freshness: row?.freshness ?? null, reason: row?.reason ?? null, changed: row?.changed_inputs?.slice(0, 5) ?? []};

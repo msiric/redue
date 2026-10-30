@@ -137,6 +137,8 @@ function productRuns(dir, row, recipeArgs = allRecipes ? [] : ['--recipe', 'node
   const json = r => { try { return JSON.parse(r.stdout); } catch { return null; } };
   const out = {};
   if (!row.install.pass) return {notRun: 'install failed'};
+  // A second pass (--compare-general) writes its own config.
+  fs.rmSync(config, {force: true});
   const init = json(redue(['init', ...recipeArgs, '--json']));
   if (!init) return {error: 'init failed'};
   out.init = {issue: init.issue, pm: init.package_manager, pmVersion: init.version};
