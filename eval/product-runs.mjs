@@ -5,6 +5,12 @@
 // the recorder did not see (program-check.mjs); a sandboxed check for reads
 // the receipt does not hold (sandbox-check.mjs). Either makes a trusted run
 // critical.
+//
+// Then `others`, the project's other checks (its build, tests, typecheck and
+// lint, run plainly as a developer would), and status once more: whether each
+// check stayed CURRENT through them (`afterOthers`). The sandboxed recipe
+// counts git-ignored files as inputs, so build and test outputs can make it
+// STALE; this measures how often.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -20,7 +26,7 @@ const wait = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 
 const tail = (r, n = 600) => (r.stderr + '\n' + r.stdout).trim().slice(-n);
 
 // {observer} when the observer never became ready, else {checks: {name: {...}}}.
-export function productChecks({dir, config, names, env, label, keepTraces = false}) {
+export function productChecks({dir, config, names, env, label, keepTraces = false, others = []}) {
   const run = (cmd, args, timeout) => sh(cmd, args, {cwd: dir, env, timeout});
   const redue = (args, timeout = 120_000) => run(process.execPath, [checkoutRedue, '--config', config, ...args], timeout);
   const json = r => { try { return JSON.parse(r.stdout); } catch { return null; } };
@@ -110,6 +116,18 @@ export function productChecks({dir, config, names, env, label, keepTraces = fals
       second.freshness === 'CURRENT' && first.fingerprint !== null && first.fingerprint === second.fingerprint;
     out.checks[name] = {qualification: runtime?.qualification ?? null, runs, qualifies, pass: runs.map(x => x.result === 'PASS')};
     console.error(`  ${name}: ${qualifies ? 'QUALIFIES' : second.reason || 'not qualified'}`);
+  }
+  if (others.length && Object.keys(out.checks).length) {
+    out.others = others.map(({label: what, argv, timeout}) => {
+      const r = sh(argv[0], argv.slice(1), {cwd: dir, env, timeout});
+      return {label: what, exit: r.status, timedOut: r.timedOut, ms: r.ms};
+    });
+    const now = json(redue(['status', '--sync', '--json'], 300_000));
+    for (const [name, value] of Object.entries(out.checks)) {
+      const row = now?.checks?.find(x => x.name === name);
+      value.afterOthers = {freshness: row?.freshness ?? null, reason: row?.reason ?? null, changed: row?.changed_inputs?.slice(0, 5) ?? []};
+    }
+    console.error(`  after ${others.map(o => o.label).join(', ')}: ${Object.entries(out.checks).map(([name, v]) => `${name} ${v.afterOthers.freshness}`).join(', ')}`);
   }
   redue(['stop']); redue(['remove-state']);
   return out;

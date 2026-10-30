@@ -13,7 +13,10 @@
 //   --product: instead of timing, let the product decide: `init --recipe
 //   node-script`, then `redue run` twice for each typecheck, lint and test
 //   check it writes, and the receipts and status after each. With
-//   --all-recipes, plain `init` instead: every recipe, as `redue setup` uses. On Linux with
+//   --all-recipes, plain `init` instead: every recipe, as `redue setup` uses;
+//   with --compare-general also a second pass with the general recipe only.
+//   After the runs, the project's build, test, typecheck and lint scripts run
+//   plainly, and status is asked again (afterOthers). On Linux with
 //   strace, each run is traced: for a recorded check, programs the recorder
 //   did not see are listed (eval/program-check.mjs); for a sandboxed check,
 //   reads the receipt does not hold (eval/sandbox-check.mjs). Either is flagged. --keep-traces keeps
@@ -127,14 +130,14 @@ function recordScripts(dir, pm, row) {
 
 // The product's recipes as it applies them: init's checks, two recorded runs
 // each, and what the receipts and status say after each run (product-runs.mjs).
-function productRuns(dir, row) {
+function productRuns(dir, row, recipeArgs = allRecipes ? [] : ['--recipe', 'node-script']) {
   // REDUE's own state location: a long --state-dir would not fit a Unix socket path.
   const config = path.join(dir, '.census.redue.json');
   const redue = (args, timeout = 120_000) => run(process.execPath, [checkoutRedue, '--config', config, ...args], dir, timeout);
   const json = r => { try { return JSON.parse(r.stdout); } catch { return null; } };
   const out = {};
   if (!row.install.pass) return {notRun: 'install failed'};
-  const init = json(redue(['init', ...(allRecipes ? [] : ['--recipe', 'node-script']), '--json']));
+  const init = json(redue(['init', ...recipeArgs, '--json']));
   if (!init) return {error: 'init failed'};
   out.init = {issue: init.issue, pm: init.package_manager, pmVersion: init.version};
   const checks = (init.checks ?? []).filter(c => ['typecheck', 'lint', 'test'].includes(c.name.split(':')[0]));
@@ -143,7 +146,12 @@ function productRuns(dir, row) {
     text: readJson(path.join(dir, 'package.json')).scripts?.[c.script]};
   const ready = checks.filter(c => c.level === 'ready');
   if (!ready.length || !init.written) return out;
-  const result = productChecks({dir, config, names: ready.map(c => c.name), env, label: row.name, keepTraces});
+  // The project's other checks, run plainly in between: builds and tests write
+  // git-ignored outputs.
+  const pm = row.pm.name, others = ['build', 'test', 'typecheck', 'lint'].filter(kind => row.scripts[kind]).map(kind => ({label: kind,
+    argv: pm === 'npm' ? ['npm', 'run', row.scripts[kind].name] : ['corepack', pm, 'run', row.scripts[kind].name], timeout: kind === 'build' ? 900_000 : 600_000}));
+  const result = productChecks({dir, config, names: ready.map(c => c.name), env: {...env, npm_config_update_notifier: 'false'}, label: row.name, keepTraces, others});
+  if (result.others) out.others = result.others;
   if (result.observer) return {...out, observer: result.observer, observerLink: result.observerLink};
   for (const [name, value] of Object.entries(result.checks)) Object.assign(out[name], value);
   return out;
@@ -195,6 +203,9 @@ async function census(name, modes) {
   if (row.timings.typecheck) row.timings.typecheckAgain = timeScript(dir, pm, row.scripts.typecheck.name, 600_000);
   if (recorded) row.recorded = recordScripts(dir, pm, row);
   if (product) row.product = productRuns(dir, row);
+  // --compare-general: the same repo again with the general recipe only, so
+  // checks both recipes qualify can be compared.
+  if (product && allRecipes && argv.includes('--compare-general')) row.productGeneral = productRuns(dir, row, ['--recipe', 'node-script']);
   if (sandbox) row.sandbox = await sandboxScripts(dir, pm, row, modes);
   fs.rmSync(dir, {recursive: true, force: true});
   return row;

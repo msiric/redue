@@ -280,7 +280,7 @@ async function tracedRun(dir, cmd, env, timeout, venv) {
 }
 
 // The product's checks: what init writes and two recorded runs of each.
-function productRuns(dir, venv) {
+function productRuns(dir, venv, info) {
   const config = path.join(dir, '.census.redue.json');
   const init = run(process.execPath, [checkoutRedue, '--config', config, 'init', '--json'], dir, 1_200_000);
   let value; try { value = JSON.parse(init.stdout); } catch { return {error: `init: ${tail(init, 300)}`}; }
@@ -288,7 +288,12 @@ function productRuns(dir, venv) {
     checks: value.checks.map(c => ({name: c.name, command: c.command, level: c.level, reason: c.reason}))}};
   const ready = value.checks.filter(c => c.level === 'ready').map(c => c.name);
   if (!ready.length || !value.written) return out;
-  const result = productChecks({dir, config, names: ready, env: base, label: path.basename(dir)});
+  // The project's other checks, run plainly in between: tests write caches and
+  // outputs (.pytest_cache, coverage, __pycache__).
+  const others = [['test', 600_000], ['typecheck', 300_000], ['lint', 180_000]].flatMap(([kind, timeout]) =>
+    (info.checks[kind] ?? []).map(check => command({...check, mypyFiles: info.mypyFiles}, venv, dir)).filter(Boolean)
+      .map(cmd => ({label: `${kind} ${path.basename(cmd.argv[0])}`, argv: cmd.argv, timeout})));
+  const result = productChecks({dir, config, names: ready, env: base, label: path.basename(dir), others});
   return {...out, ...result};
 }
 
@@ -312,7 +317,7 @@ async function census(name, modes) {
     try { row.packages = Object.fromEntries(JSON.parse(listed.stdout).filter(p => /^(pytest.*|mypy|pyright|basedpyright|ty|pyrefly|ruff|flake8|pylint|hypothesis|coverage|django|numpy|torch)$/i.test(p.name)).map(p => [p.name, p.version])); } catch {}
     row.python = run(path.join(venv, 'bin', 'python'), ['-c', 'import sys,platform;print(platform.python_version(), sys.base_prefix)'], dir, 30_000).stdout.trim();
     row.checks = {};
-    if (product) row.product = productRuns(dir, venv);
+    if (product) row.product = productRuns(dir, venv, info);
     for (const [kind, timeout] of product ? [] : [['test', 600_000], ['typecheck', 300_000], ['lint', 180_000]]) {
       for (const check of info.checks[kind] ?? []) {
         const cmd = command({...check, mypyFiles: info.mypyFiles}, venv, dir);
