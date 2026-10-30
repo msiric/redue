@@ -98,7 +98,7 @@ function contextHashes() {const reads=config.checks.some(check=>recordedRecipes.
       `__vstate_path_executable_${name}__`,pathExecutableIdentity(name)]),
     ...(check.environment?.executableIdentity?[['__vstate_node_identity__',nodeIdentity()]]:[]),
     // A sandboxed run's environment, toolchain and places (sandbox.mjs).
-    ...(check.qualification===sandboxQualification?[['__redue_sandbox__',sandboxContext(check,process.env,root)]]:[]),
+    ...(check.qualification===sandboxQualification?Object.entries(sandboxContext(check,process.env,root)):[]),
     // The variables the last test run read directly, compared here: which
     // list was compared, and the first variable whose value now differs.
     // Control requests are small, so the values stay out of them.

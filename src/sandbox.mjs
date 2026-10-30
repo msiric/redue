@@ -168,20 +168,37 @@ function gitIgnoreSources(root){
     dir=common;}}catch{return [];}
   return ['info/exclude','config'].map(rel=>{try{return [rel,digest(fs.readFileSync(path.join(dir,rel)))];}catch{return [rel,null];}});
 }
-// What a sandboxed result depends on outside the observed files, as one
-// digest compared before reuse: the environment the run gets (but its private
-// directories and display variables), the places it may read, the identity of
-// the toolchain's executables and of every directory on PATH (an installed or
-// upgraded program changes its directory), and the ignore rules in .git.
+// What a sandboxed result depends on outside the observed files, compared
+// before reuse, one entry each so a change can be named (sandboxChange): every
+// variable the run gets (but its private directories and display variables),
+// the places it may read, the identity of the toolchain's executables and of
+// every directory on PATH (an installed or upgraded program changes its
+// directory), and the ignore rules in .git.
+export const sandboxPrefix='__redue_sandbox_';
 export function sandboxContext(check,env,root){
   const identity=(file,keys=['dev','ino','mode','size','mtimeNs','ctimeNs'])=>{try{const st=fs.statSync(file,{bigint:true});
     return [file,...keys.map(key=>String(st[key]))];}catch{return [file,'<unavailable>'];}};
   const environment=sandboxEnv(check,env,{root,home:'<home>',tmp:'<tmp>'});
   for(const key of displayVariables)delete environment[key];
-  return digest(JSON.stringify({environment,places:sandboxPlaces(check,env,root),
-    executables:toolchainExecutables(check,env,root).map(file=>file?identity(file):null),
-    path:environment.PATH.split(path.delimiter).filter(dir=>path.isAbsolute(dir)).map(dir=>identity(dir,['dev','ino','mtimeNs','ctimeNs'])),
-    git:gitIgnoreSources(root)}));
+  const out={[`${sandboxPrefix}places__`]:digest(JSON.stringify(sandboxPlaces(check,env,root))),
+    [`${sandboxPrefix}executables__`]:digest(JSON.stringify(toolchainExecutables(check,env,root).map(file=>file?identity(file):null))),
+    [`${sandboxPrefix}git__`]:digest(JSON.stringify(gitIgnoreSources(root)))};
+  for(const [key,value] of Object.entries(environment))out[`${sandboxPrefix}variable:${key}__`]=digest(value);
+  for(const dir of environment.PATH.split(path.delimiter).filter(dir=>path.isAbsolute(dir)))
+    out[`${sandboxPrefix}directory:${dir}__`]=digest(JSON.stringify(identity(dir,['dev','ino','mtimeNs','ctimeNs'])));
+  return out;
+}
+// What changed between two sandboxed contexts, in words, or null.
+export function sandboxChange(before={},now={}){
+  const keys=[...new Set([...Object.keys(before),...Object.keys(now)])].filter(key=>key.startsWith(sandboxPrefix)).sort();
+  const key=keys.find(key=>before[key]!==now[key]);
+  if(!key)return null;
+  const name=key.slice(sandboxPrefix.length,-2);
+  return name==='places'?'the places a sandboxed run may read changed':
+    name==='executables'?'Node, a package manager or the interpreter changed':
+    name==='git'?'.git/info/exclude or .git/config changed':
+    name.startsWith('variable:')?`environment variable ${name.slice(9)} differs from the last run`:
+    `PATH directory ${name.slice(10)} changed (a program in it was installed, removed or upgraded)`;
 }
 // A run's private directories, in REDUE's state: the home it keeps between
 // runs, and a fresh temporary directory.

@@ -25,6 +25,7 @@ import {npmCacheDir} from './npm-integrity.mjs';
 import {runFromArgv} from './typescript-invocation.mjs';
 import {buildInfoPath,recordedCertificate} from './direct-run-certificate.mjs';
 import {timing,mark,traceBase,traceContext,traceScope,traceEnvironment,traceId} from './decision-profile.mjs';
+import {sandboxChange} from './sandbox.mjs';
 
 const configFile=path.resolve(process.argv[2]);
 const config=JSON.parse(fs.readFileSync(configFile));
@@ -406,9 +407,11 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
         `__vstate_env_prefix_${prefix.toLowerCase()}__`),
       ...(row.plan.environment.pathExecutables||[]).map(name=>
         `__vstate_path_executable_${name}__`),
-      ...(row.plan.environment.executableIdentity?['__vstate_node_identity__']:[]),
-      // A sandboxed run's environment, toolchain and places (sandbox.mjs).
-      ...(row.plan.qualification==='sandbox-v1'?['__redue_sandbox__']:[])];
+      ...(row.plan.environment.executableIdentity?['__vstate_node_identity__']:[])];
+    // A sandboxed run's variables, toolchain, PATH directories and places
+    // (sandbox.mjs): every entry either side has, and the first change named.
+    const sandboxChanged=row.plan.qualification==='sandbox-v1'&&contextHashes?.[name]?
+      sandboxChange(r?.environmentHashes,contextHashes[name]):null;
     if(names.length&&!contextHashes?.[name])unconfirmed??='execution environment context not supplied';
     item.freshness='STALE';
     if(r.planId!==row.plan.id){
@@ -417,6 +420,7 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       item.reason=changed?`installed input link changed: ${changed.path}`:'input plan changed';
       if(changed)item.changed_inputs=[changed.path];
     }
+    else if(sandboxChanged)item.reason=sandboxChanged;
     else if(contextHashes?.[name]&&names.some(key=>contextHashes[name][key]!==r.environmentHashes?.[key]))
       item.reason='declared execution environment changed';
     // Every variable a test run read directly must have the same value. The

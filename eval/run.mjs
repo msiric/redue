@@ -9,6 +9,7 @@
 //          --redue PATH (REDUE entry for the REDUE arm; default: this checkout)
 //          --keep (keep each run's clone)  --out DIR
 //          --profile (REDUE arm: write REDUE's timing trace to each run's profile.jsonl)
+//          --diag (REDUE arm: the wrapper logs what status said when the hook did not skip)
 //
 // Every run gets a fresh clone at the repo's pinned commit, `npm ci
 // --ignore-scripts`, and its own `claude -p` session. A task measures its
@@ -31,7 +32,7 @@ const {values: opt} = parseArgs({options: {
   pilot: {type: 'boolean'}, repo: {type: 'string'}, task: {type: 'string'}, arms: {type: 'string', default: 'control,redue'},
   runs: {type: 'string', default: '3'},
   model: {type: 'string', default: 'claude-sonnet-5-5'}, 'max-turns': {type: 'string', default: '30'},
-  redue: {type: 'string', default: checkoutRedue}, keep: {type: 'boolean'}, out: {type: 'string'}, profile: {type: 'boolean'},
+  redue: {type: 'string', default: checkoutRedue}, keep: {type: 'boolean'}, out: {type: 'string'}, profile: {type: 'boolean'}, diag: {type: 'boolean'},
 }});
 const entry = path.resolve(opt.redue);
 const repos = readJson(path.join(evalDir, 'repos.json')).repos;
@@ -125,7 +126,8 @@ async function runSession(task, repo, arm, id) {
 
   const log = path.join(runDir, 'redue-calls.jsonl'), bin = path.join(work, 'bin');
   const env = harnessEnv({PATH: pathWithout(arm === 'redue' ? bin : null),
-    ...(opt.profile && arm === 'redue' ? {REDUE_DECISION_PROFILE: '1', REDUE_DECISION_PROFILE_FILE: path.join(runDir, 'profile.jsonl')} : {})});
+    ...(opt.profile && arm === 'redue' ? {REDUE_DECISION_PROFILE: '1', REDUE_DECISION_PROFILE_FILE: path.join(runDir, 'profile.jsonl')} : {}),
+    ...(opt.diag && arm === 'redue' ? {REDUE_EVAL_DIAG: '1'} : {})});
   if (arm === 'redue') {
     writeWrapper(bin, entry, log);
     const step = (label, ...argv) => {

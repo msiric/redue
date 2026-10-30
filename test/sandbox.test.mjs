@@ -181,7 +181,7 @@ test('a sandboxed Python check: CURRENT after a pass, STALE on a checkout edit, 
   assert.equal(row(root,state,'typecheck').freshness,'CURRENT');
   // A variable the run gets from the caller.
   status=row(root,state,'typecheck',{PYTHONPATH:'lib'});
-  assert.equal(status.freshness,'STALE');assert.equal(status.reason,'declared execution environment changed');
+  assert.equal(status.freshness,'STALE');assert.equal(status.reason,'environment variable PYTHONPATH differs from the last run');
   // Variables the run does not get are not compared.
   assert.equal(row(root,state,'typecheck',{SOME_TOKEN:'x'}).freshness,'CURRENT');
   write(root,'src/fx/__init__.py','value = "fail"\n');
@@ -307,12 +307,13 @@ test('what a sandboxed result depends on outside the checkout: PATH directories 
   // A program installed or upgraded on PATH changes its directory.
   put(path.join(tools,'shellcheck'),'#!/bin/sh\n',0o755);
   let status=row(root,state,'typecheck',env);
-  assert.equal(status.freshness,'STALE');assert.equal(status.reason,'declared execution environment changed');
+  assert.equal(status.freshness,'STALE');
+  assert.equal(status.reason,`PATH directory ${tools} changed (a program in it was installed, removed or upgraded)`);
   assert.equal(invoke(root,state,['run','typecheck'],env).status,0);
   // The repository's exclude file decides which files ruff and biome check.
   fs.appendFileSync(path.join(root,'.git/info/exclude'),'legacy/\n');
   status=row(root,state,'typecheck',env);
-  assert.equal(status.freshness,'STALE');assert.equal(status.reason,'declared execution environment changed');
+  assert.equal(status.freshness,'STALE');assert.equal(status.reason,'.git/info/exclude or .git/config changed');
 });
 
 test('a git-ignored link to a file in the checkout is an input',{skip:unsupported},t=>{
