@@ -17,7 +17,8 @@ export function planGuard(bundle) {
     ...bundle.workspaceManifests||[],...bundle.configurationInputs||[],
     ...Object.values(bundle.plans).flatMap(plan=>plan.resolutionTriggers||[])]);
   const patterns=bundle.workspacePatterns?.length?bundle.workspacePatterns:
-    (()=>{const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json')));
+    (()=>{let pkg;try{pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json')));}
+      catch(e){if(e.code==='ENOENT')return [];throw e;}
       return Array.isArray(pkg.workspaces)?pkg.workspaces:pkg.workspaces?.packages||[];})();
   if(patterns.length){
     const files=execFileSync('git',['ls-files','--cached','--others','--exclude-standard',

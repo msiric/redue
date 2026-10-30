@@ -8,6 +8,7 @@ import {qualifyTypeScript} from './typescript-qualification.mjs';
 import {directBuildInfo} from './direct-typescript.mjs';
 import {qualifyTests,testWorkspacePatterns,testsQualification} from './test-direct.mjs';
 import {qualifyNodeScript,scriptQualification} from './node-script.mjs';
+import {qualifySandbox,sandboxInstalledExclusions,sandboxQualification} from './sandbox.mjs';
 import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
 import {pnpmTypecheckInputs} from './pnpm-inputs.mjs';
 import {checkRun} from './typescript-invocation.mjs';
@@ -78,12 +79,17 @@ export function discoverDeclared(config) {
     if(selected.qualification==='npm-typescript-direct-v1')
       try{buildInfo=directBuildInfo(root,checkRun(selected));}catch{}
     const excluded=buildInfo?['!'+buildInfo]:[];
+    // A sandboxed check leaves out the .venv's links that lead out of the
+    // checkout; its qualification names them.
+    const sandboxed=selected.qualification===sandboxQualification;
+    if(sandboxed)excluded.push(...sandboxInstalledExclusions(root));
     const installedStarted=performance.now();
     const installed=resolveDeclaredInstalled(root,
       [...(selected.installedInputs||[]),...(workspace?.installed||[]),...excluded],allowedRoots);
     timing('plan.installed_resolution',installedStarted,{mappings:installed.mappings.length});
     const automatic=selected.qualification===testsQualification?qualifyTests(root,selected):
       selected.qualification===scriptQualification?qualifyNodeScript(root,selected):
+      sandboxed?qualifySandbox(root,selected):
       qualifyTypeScript(root,selected,{workspace,issue:workspaceIssue});
     const sourcePatterns=[...new Set([...selected.inputs,...(workspace?.source||[]),
       ...(workspace?.generated||[]),...excluded])].sort();
@@ -97,7 +103,8 @@ export function discoverDeclared(config) {
     // A workspace test check, and a general check in a workspace, is qualified
     // against the current package list: a package manifest appearing or pnpm's
     // package list changing re-plans.
-    if(selected.qualification===testsQualification&&selected.workspace||selected.qualification===scriptQualification)try{
+    if(selected.qualification===testsQualification&&selected.workspace||selected.qualification===scriptQualification||
+      sandboxed&&typeof selected.script==='string')try{
       for(const item of testWorkspacePatterns(root,JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'))))
         workspacePatterns.add(item);
       if(fs.existsSync(path.join(root,'pnpm-workspace.yaml')))configurationInputs.add('pnpm-workspace.yaml');
@@ -136,6 +143,8 @@ export function discoverDeclared(config) {
       probes:selected.probes||[],environment:selected.environment||{},
       qualification:selected.qualification||null,
       ...(buildInfo?{buildInfo}:{}),
+      // A sandboxed run's reads are not recorded: git-ignored files are inputs too.
+      ...(sandboxed?{ignoredInputs:true}:{}),
       executionProvenance:'declared-command',
       unresolved:[...new Set(unresolved)].sort()};
     plan.resolutionCandidates=workspace?.resolutionCandidates||[];

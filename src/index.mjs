@@ -11,6 +11,11 @@ const tracked = root => [...new Set(execFileSync('git',
   ['ls-files','--cached','--others','--exclude-standard','-z'],
   {cwd:root,env:{...process.env,GIT_OPTIONAL_LOCKS:'0'},maxBuffer:64*1024*1024})
   .toString().split('\0').filter(Boolean))];
+// Git-ignored paths at the top of each ignored tree: a directory ends in '/'.
+const ignored = root => [...new Set(execFileSync('git',
+  ['ls-files','--others','--ignored','--exclude-standard','--directory','-z'],
+  {cwd:root,env:{...process.env,GIT_OPTIONAL_LOCKS:'0'},maxBuffer:64*1024*1024})
+  .toString().split('\0').filter(Boolean))];
 const xor = (left,right) => { for(let i=0;i<32;i++) left[i]^=right[i]; };
 const token = (file,hash) => createHash('sha256').update(file+'\0'+hash).digest();
 const stablePrefix = glob => {
@@ -178,12 +183,13 @@ export class InputIndex {
   }
   summary(name) { const row=this.checks.get(name); return {fingerprint:this.fingerprint(name),
     revision:row.revision,planId:row.plan.id,files:row.files.size,probeAt:row.probeAt}; }
-  record(rel, changeReason=rel+' changed', observedStat=null) {
+  // `only`, when given, limits which checks may take the file.
+  record(rel, changeReason=rel+' changed', observedStat=null, only=null) {
     if(!validInputRelative(rel)) {
       this.unavailable='invalid event path'; return false;
     }
     const names=this.candidates(rel), old=this.files.get(rel), matched=[];
-    for(const name of names) if(this.matches(this.checks.get(name),rel)) matched.push(name);
+    for(const name of names) if((!only||only(name))&&this.matches(this.checks.get(name),rel)) matched.push(name);
     if(!matched.length && old===undefined) return false;
     let fresh,stat,inspection;
     try{stat=observedStat||fs.lstatSync(path.join(this.root,rel),{bigint:true});}
@@ -267,6 +273,10 @@ export class InputIndex {
     this.unavailable=null;
     const trackedStarted=performance.now();
     const names=new Set(this.trackGit?tracked(this.root):[]);
+    // A sandboxed check's reads are not recorded, so git-ignored files are its
+    // inputs too: every ignored file its patterns take, outside the scan roots
+    // (installed trees) and the directories no pattern can take a file from.
+    const ignoredTrees=this.trackGit&&[...this.checks.values()].some(row=>row.plan.ignoredInputs)?ignored(this.root):[];
     this.profile.trackedMs+=performance.now()-trackedStarted;
     const enumerationStarted=performance.now();
     // Traverse declared input roots to include ignored/generated inputs. Avoid unrelated
@@ -310,6 +320,29 @@ export class InputIndex {
       }
       visit(base,prefix);
     }
+    // Only the checks that take ignored files get them here, as before for the others.
+    const ignoring=name=>this.checks.get(name).plan.ignoredInputs===true;
+    const takes=rel=>[...this.checks.values()].some(row=>row.plan.ignoredInputs&&this.matches(row,rel));
+    // A node_modules that is not installed input is skipped, as above. An
+    // ignored link is taken when it leads to a file in the checkout; a link
+    // to a directory or out of the checkout is not a file input.
+    const linkToFile=rel=>{try{const target=fs.realpathSync(path.join(this.root,rel));
+      return fs.statSync(target).isFile()&&target.startsWith(fs.realpathSync(this.root)+path.sep);}catch{return false;}};
+    const visitIgnored=rel=>{
+      const base=path.posix.basename(rel);
+      if(this.prefixes.has(rel)||this.installedPath(rel)&&!this.installedAncestors.has(rel)||base==='.git'||
+        base==='node_modules'&&!this.installedPath(rel))return;
+      let st;try{st=fs.lstatSync(path.join(this.root,rel),{bigint:true});}
+      catch(e){if(e.code==='ENOENT')return;throw e;}
+      this.profile.enumeratedEntries++;
+      if(st.isSymbolicLink()&&!linkToFile(rel))return;
+      if(st.isDirectory()){
+        if(!takes(rel+'/.redue-probe'))return;
+        for(const ent of fs.readdirSync(path.join(this.root,rel),{withFileTypes:true}))visitIgnored(rel+'/'+ent.name);
+      }else if(this.candidates(rel).size){
+        const started=performance.now();this.record(rel,'cold reconciliation',st,ignoring);processingMs+=performance.now()-started;scanned++;}
+    };
+    for(const entry of ignoredTrees)visitIgnored(entry.replace(/\/$/,''));
     this.profile.enumerationMs+=performance.now()-enumerationStarted-processingMs;
     const recordStarted=performance.now();
     for(const rel of names) {

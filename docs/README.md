@@ -5,6 +5,7 @@ For users:
 - [Install, initialize, run, and remove](user/getting-started.md)
 - [Fixed-build opt-in development pilot](user/pilot.md)
 - [Supported projects and conservative boundaries](user/supported-projects.md)
+- [Sandboxed recipe: typecheck and lint in any language, Python included](user/sandbox.md)
 - [Configuration](user/configuration.md)
 - [Connect coding agents and apply the decision policy](user/agents.md)
 - [JSON contract](user/json.md)

@@ -38,7 +38,8 @@ export async function setupCommand(args,{entry,cwd=process.cwd()}){
   const top=git(cwd,'rev-parse','--show-toplevel');
   if(top.status!==0)throw Error('run this inside a Git checkout');
   const root=fs.realpathSync(top.stdout.trim());
-  if(!fs.existsSync(path.join(root,'package.json')))throw Error(`no package.json at the repository root (${root})`);
+  if(!['package.json','pyproject.toml','setup.cfg','setup.py','requirements.txt'].some(file=>fs.existsSync(path.join(root,file))))
+    throw Error(`no package.json or Python project at the repository root (${root})`);
   // The entry as invoked, so a hook written by a child names the install's
   // stable bin link rather than the versioned file behind it.
   const invoked=typeof process.argv[1]==='string'&&path.isAbsolute(process.argv[1])&&
@@ -59,8 +60,12 @@ export async function setupCommand(args,{entry,cwd=process.cwd()}){
 }
 
 async function setup({root,redue,yes,record:previous,recordFile,exclude,save}){
-  if(!fs.existsSync(path.join(root,'node_modules')))
+  // A Node project needs node_modules; a Python one its .venv.
+  const node=fs.existsSync(path.join(root,'package.json'));
+  if(node&&!fs.existsSync(path.join(root,'node_modules')))
     throw Error('dependencies are not installed: run your package manager\'s install (npm install, pnpm install, yarn) first');
+  if(!node&&!fs.existsSync(path.join(root,'.venv','pyvenv.cfg')))
+    throw Error('no .venv in the project root: create it first (uv sync, or Poetry with virtualenvs.in-project)');
   if(fs.existsSync(path.join(root,'vstate.config.json'))&&!fs.existsSync(path.join(root,configName)))
     throw Error('a legacy vstate.config.json exists; rename it to redue.config.json or remove it first');
   if(git(root,'ls-files','--error-unmatch',localSettings).status===0)

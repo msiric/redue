@@ -2,7 +2,7 @@
 // The recipe that made a receipt, by the qualification it names.
 const recipes={'npm-typescript-direct-v1':'direct TypeScript recipe','npm-tests-direct-v1':'direct test recipe',
   'node-script-v1':'general recipe','pnpm-tsc-v1':'pnpm TypeScript recipe','yarn-workspace-tsc-v1':'Yarn workspace TypeScript recipe',
-  'typescript-noemit-v1':'npm TypeScript recipe'};
+  'typescript-noemit-v1':'npm TypeScript recipe','sandbox-v1':'sandboxed recipe'};
 export const recipeLabel=recipe=>recipes[recipe]??null;
 export function checkLabel(row) {
   return row.result==='FAIL'?'FAILED':row.freshness;

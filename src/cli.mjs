@@ -8,6 +8,7 @@ import {patternMatcher} from './glob.mjs';
 import {observedBy} from './installed-observation.mjs';
 import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testRunFacts,sharedInstalledFile,testsInterpretation,testsQualification} from './test-direct.mjs';
 import {childProgram,lookup,pnpmConfigFiles,scriptCaches,scriptInstalledPaths,scriptInterpretation,scriptQualification,scriptRunFacts,pnpmNameless,toolOutput,toolchainDirs} from './node-script.mjs';
+import {denialLine,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,sandboxInterpretation,sandboxPlaces,sandboxQualification,sandboxSupport,systemPlaces} from './sandbox.mjs';
 import path from 'node:path';
 import net from 'node:net';
 import os from 'node:os';
@@ -95,6 +96,8 @@ function contextHashes() {const reads=config.checks.some(check=>recordedRecipes.
     ...(check.environment?.pathExecutables||[]).map(name=>[
       `__vstate_path_executable_${name}__`,pathExecutableIdentity(name)]),
     ...(check.environment?.executableIdentity?[['__vstate_node_identity__',nodeIdentity()]]:[]),
+    // A sandboxed run's environment, toolchain and places (sandbox.mjs).
+    ...(check.qualification===sandboxQualification?[['__redue_sandbox__',sandboxContext(check,process.env,root)]]:[]),
     // The variables the last test run read directly, compared here: which
     // list was compared, and the first variable whose value now differs.
     // Control requests are small, so the values stay out of them.
@@ -313,6 +316,28 @@ async function execute() {
       // npm's and pnpm's update checks read state outside the checkout and the network.
       if(general)launchEnv.npm_config_update_notifier='false';
     }
+    // A sandboxed check runs inside the OS sandbox, with the environment REDUE
+    // gives it. Where the sandbox cannot start, it runs as it is and the
+    // result is not reused.
+    const sandboxed=selected.qualification===sandboxQualification;
+    let sandbox=null;
+    if(sandboxed){
+      const support=sandboxSupport();
+      if(support.issue)captureIssues.push(`the run was not sandboxed: ${support.issue}`);
+      else{
+        const dirs=sandboxDirs(state,name,runId);
+        const reads=[root,dirs.home,dirs.tmp,...sandboxPlaces(selected,process.env,root),...systemPlaces];
+        sandbox={mode:support.mode,dirs,argv:sandboxArgv(support.mode,command,{reads,writes:[root,dirs.home,dirs.tmp],python:support.python}),
+          env:sandboxEnv(selected,process.env,{root,...dirs})};
+      }
+    }
+    const plainEnv={...process.env,...selected.script?{npm_config_update_notifier:'false'}:{}};
+    // A sandboxed run's output is passed through and its start and end kept,
+    // to tell a refusal by the sandbox from a real failure.
+    const output={head:'',tail:''};
+    const keep=chunk=>{const text=chunk.toString('utf8');
+      if(output.head.length<65536)output.head+=text.slice(0,65536-output.head.length);
+      output.tail=(output.tail+text).slice(-65536);};
     let runnerPid=null;
     const record=[];
     // A Windows full reconciliation may finish while queued watcher callbacks
@@ -335,11 +360,17 @@ async function execute() {
       if(requestedSignal){resolve({status:'interrupted',exitCode:null,signal:requestedSignal});return;}
       let child,spawnError=null;
       try{runLock.phase('launching');
-        const launch=windowsLaunch(launched);
+        const launch=windowsLaunch(sandbox?.argv??launched);
         child=spawn(launch.file,launch.args,{cwd:plan.cwd,
-        stdio:recorded?['inherit','inherit','inherit','pipe']:'inherit',env:launchEnv,
+        stdio:recorded?['inherit','inherit','inherit','pipe']:sandboxed?['inherit','pipe','pipe']:'inherit',
+        env:sandbox?.env??(sandboxed?plainEnv:launchEnv),
         detached:process.platform==='linux',...launch.options});
-        child.stdio[3]?.on('data',chunk=>record.push(chunk));}
+        child.stdio[3]?.on('data',chunk=>record.push(chunk));
+        if(sandboxed){child.stdout.on('data',chunk=>{process.stdout.write(chunk);keep(chunk);});
+          child.stderr.on('data',chunk=>{process.stderr.write(chunk);keep(chunk);});
+          // A background helper the check started (a daemon) can hold the
+          // pipes open after it exits: the run ends a second after its exit.
+          child.on('exit',()=>setTimeout(()=>{child.stdout.destroy();child.stderr.destroy();},1000).unref());}}
       catch(e){resolve({status:'start_failed',exitCode:null,signal:null,errorCode:e.code||e.name});return;}
       activeChild=child;runnerPid=child.pid??null;runLock.phase('running',child.pid??null);
       mark('cli.child_started',{childPid:child.pid});
@@ -369,7 +400,7 @@ async function execute() {
     invocation.argc=command.length;
     invocation.runId=runId;
     invocation.reporting='normal';
-    const result=invocation.status==='exited'?(invocation.exitCode===0?'PASS':'FAIL'):null;
+    let result=invocation.status==='exited'?(invocation.exitCode===0?'PASS':'FAIL'):null;
     const target={source:'direct-command',status:invocation.status==='exited'?'direct_executed':'unknown'};
     const afterContextStarted=performance.now(),environmentAfter=contextHashes()[name];
     timing('cli.context_after',afterContextStarted);
@@ -411,7 +442,7 @@ async function execute() {
       // The start checkpoint's probe may have raised the deadline.
       const endWait=decisionWait(process.env.VSTATE_CAPTURE_TIMEOUT_MS);
       try{after=await call({action:'snapshot',name,contextHashes:contextHashes(),
-        ...(testRun&&Number.isSafeInteger(snap?.inputEventSerial)?{sinceSerial:snap.inputEventSerial}:{}),
+        ...((testRun||sandboxed)&&Number.isSafeInteger(snap?.inputEventSerial)?{sinceSerial:snap.inputEventSerial}:{}),
         ...(recording?{runCertificate:1,adopt:recording}:recorded&&!certificate?{runCertificate:1,runFacts:1}:{})},
         endWait.timeout,endWait.deadline);}
       catch{captureIssues.push('end observation unavailable');}
@@ -476,12 +507,33 @@ async function execute() {
     // A recorded certificate changes only the probe part of the fingerprint.
     if(!outputs&&(!snap||!end||snap.planId!==end.planId||(recording?snap.inputKey!==end.inputKey:snap.fingerprint!==end.fingerprint)||
       snap.revision!==end.revision))captureIssues.push('declared inputs changed or were not observed');
+    // A sandboxed run that failed with what looks like a refusal by the
+    // sandbox runs again outside it. When that run exits differently, the
+    // sandbox changed the result: the plain run's result is kept, not reused.
+    let sandboxRerun=null;
+    if(sandbox&&result==='FAIL'){
+      const line=denialLine(output.head+'\n'+output.tail);
+      if(line){
+        console.error(`redue: the sandboxed run failed with what looks like a refusal by the sandbox (${line}); running it again outside the sandbox`);
+        const plain=spawnSync(command[0],command.slice(1),{cwd:plan.cwd,stdio:'inherit',env:plainEnv});
+        sandboxRerun={line,exitCode:plain.status,signal:plain.signal||null,...plain.error?{errorCode:plain.error.code||plain.error.name}:{}};
+        // A rerun that did not start or finish tells nothing: the sandboxed result stands, not reused.
+        if(plain.error||plain.status===null)
+          captureIssues.push(`the run outside the sandbox did not finish (${plain.error?.code||plain.signal}), so a refusal by the sandbox is not ruled out (${line})`);
+        else if(plain.status!==invocation.exitCode){
+          captureIssues.push(`the sandbox changed the result: exit ${invocation.exitCode} inside it, ${plain.status??plain.signal} outside it (${line})`);
+          invocation.sandboxedExitCode=invocation.exitCode;invocation.exitCode=plain.status;
+        }
+      }
+    }
+    if(sandbox)fs.rmSync(sandbox.dirs.tmp,{recursive:true,force:true});
     const stable=captureIssues.length===0;
     // Two runs on the same inputs, environment and plan that disagree make the
     // check nondeterministic until its inputs change.
     let nondeterministic=false;
     const declared=hashes=>Object.entries(hashes||{}).filter(([key])=>!key.startsWith('__redue_env_'));
-    if(testRun&&stable&&result){
+    if(sandboxRerun&&invocation.sandboxedExitCode!==undefined)result=invocation.status==='exited'?(invocation.exitCode===0?'PASS':'FAIL'):null;
+    if((testRun||sandboxed)&&stable&&result){
       const prior=readReceipts(state).checks[name];
       // A difference explained by inputs REDUE did not observe proves nothing.
       nondeterministic=Boolean(!guard?.issues.length&&prior?.stable&&!prior.guardIssues?.length&&prior.result&&prior.planId===(snap?.planId??plan.id)&&
@@ -508,6 +560,7 @@ async function execute() {
       planId:snap?.planId??plan.id,fingerprint:(recording||outputs?end:snap)?.fingerprint??null,
       provider:plan.provider,environmentHashes:environmentBefore,
       ...(observedContext?{observedContext,verificationRecipe:directInterpretation}:{}),
+      ...(sandboxed?{verificationRecipe:sandboxInterpretation,sandbox:{mode:sandbox?.mode??null,...sandboxRerun?{rerun:sandboxRerun}:{}}}:{}),
       files:(outputs?end:snap)?.files??null,observerGeneration:before?.observation?.generation??null,
       startRevision:snap?.revision??null,endRevision:end?.revision??null};
     const persistenceStarted=performance.now();

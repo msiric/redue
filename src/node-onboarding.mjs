@@ -1,6 +1,7 @@
 import {directProject,directQualification} from './direct-typescript.mjs';
 import {testProject,testRecipeScript,testCheckInputs,testEnvironmentIssue,testsQualification} from './test-direct.mjs';
 import {commandLineIssue,scriptCheckInputs,scriptPath,scriptProject,scriptQualification} from './node-script.mjs';
+import {sandboxCheckInputs,sandboxKinds,sandboxQualification} from './sandbox.mjs';
 // Init proposes the general recipe for typecheck and lint scripts; test
 // scripts use the direct test recipe (Vitest, Jest).
 const generalKinds=['typecheck','lint'];
@@ -110,7 +111,7 @@ const proposable=(dir,scripts)=>exists(path.join(dir,'tsconfig.json'))&&!typeche
 // The inputs a TypeScript contract adds to its check's config: no exclusions,
 // which would outlive the tsconfig they came from; the plan adds the current ones.
 const contractInputs=contract=>[...contract.configs,...contract.sourcePatterns.filter(p=>!p.startsWith('!'))];
-function sourceLinkIssue(root) {
+export function sourceLinkIssue(root) {
   const stack=likelyDirs.filter(name=>exists(path.join(root,name)));
   let inspected=0;
   while(stack.length){
@@ -220,9 +221,10 @@ function generalCheck(root,kind,script){
   return {config:{name:kind,script,kind,qualification:scriptQualification,...scriptCheckInputs(project.dirs)},manager:project.manager};
 }
 export function discoverNodeProject(root,{recipe=null}={}) {
-  if(recipe&&!['typescript-direct','tests-direct','node-script'].includes(recipe))
-    throw Error('unknown recipe; use typescript-direct, tests-direct or node-script');
-  // Without --recipe, init tries the strict recipes first, then the general one.
+  if(recipe&&!['typescript-direct','tests-direct','node-script','sandbox'].includes(recipe))
+    throw Error('unknown recipe; use typescript-direct, tests-direct, node-script or sandbox');
+  // Without --recipe, init tries the strict recipes first, then the general
+  // one, then the sandboxed one.
   const auto=recipe===null;
   root=realObservedPath(root);
   const packageFile=path.join(root,'package.json');
@@ -281,7 +283,7 @@ export function discoverNodeProject(root,{recipe=null}={}) {
           reason:`explicit local ${project.runner} ${project.version} run of script ${JSON.stringify(chosen.script)}; the whole checkout is its input; npm and lifecycle scripts are not executed`};
       }catch(e){classification={level:'recording',reason:`Test recipe unavailable (${e.code||e.message}); original npm script retained`};}
     }
-    if(recipe!=='node-script'&&pm.name==='pnpm'&&kind==='typecheck'&&!workspaces&&!pm.issue&&(script===undefined||tscRuns(scripts[script]))){
+    if(recipe!=='node-script'&&recipe!=='sandbox'&&pm.name==='pnpm'&&kind==='typecheck'&&!workspaces&&!pm.issue&&(script===undefined||tscRuns(scripts[script]))){
       try{
         parts=tscChecks('typecheck',script??null,scripts,run=>{
           const contract=pnpmTypecheckInputs(root,'.',run);
@@ -294,13 +296,33 @@ export function discoverNodeProject(root,{recipe=null}={}) {
           qualification:'pnpm-tsc-v1'};}
       catch(e){classification={level:'recording',reason:`pnpm TypeScript contract needs review: ${e.message}`};}
     }
+    let generalIssue=null;
     if((auto||recipe==='node-script')&&script&&generalKinds.includes(kind)&&classification.level!=='ready'&&!observationIssue){
       try{
         const general=generalCheck(root,kind,script);
         checks.push({config:general.config,level:'ready',qualification:scriptQualification,
           reason:`general recipe: ${general.manager} runs script ${JSON.stringify(script)} with REDUE's recorder in every Node process; the whole checkout is its input`});
         continue;
-      }catch(e){classification={...classification,reason:`General recipe unavailable (${e.message}); ${classification.reason}`};}
+      }catch(e){generalIssue=e.message;classification={...classification,reason:`General recipe unavailable (${e.message}); ${classification.reason}`};}
+    }
+    // The sandboxed recipe for a root typecheck or lint script no other recipe
+    // takes. It is ready only once init has run it both ways (bin/redue.mjs);
+    // `fallback` is the row init writes when that shows a difference.
+    // A script whose program is not installed gets none, and neither does one
+    // that changes files (`--fix`, `--write`): init would run it twice.
+    const writes=script&&['pre'+script,script,'post'+script].map(name=>scripts[name]).find(text=>typeof text==='string'&&
+      /(?:^|\s)--(?:fix|write|unsafe-fixes)(?=[\s=]|$)/.test(text));
+    if(writes)classification={...classification,reason:`Sandboxed recipe unavailable (the script changes files: ${writes.match(/--(?:fix|write|unsafe-fixes)/)[0]}); ${classification.reason}`};
+    if((auto||recipe==='sandbox')&&script&&sandboxKinds.includes(kind)&&classification.level!=='ready'&&!observationIssue&&
+      !/REDUE cannot find/.test(generalIssue||'')&&!writes){
+      try{
+        const project=scriptProject(root,script);
+        const fallback={config:{...check,...classification.qualification?{qualification:classification.qualification}:{}},...classification};
+        checks.push({config:{name:kind,script,kind,qualification:sandboxQualification,...sandboxCheckInputs(project.dirs)},level:'ready',
+          qualification:sandboxQualification,fallback,
+          reason:`sandboxed recipe: ${project.manager} runs script ${JSON.stringify(script)} inside the OS sandbox${generalIssue?` (the general recipe cannot record it: ${generalIssue})`:''}; the whole checkout is its input`});
+        continue;
+      }catch(e){classification={...classification,reason:`Sandboxed recipe unavailable (${e.code?.replace(/^test-/,'')||e.message}); ${classification.reason}`};}
     }
     if(!script&&classification.level!=='ready')continue;
     if(parts&&classification.level==='ready'){

@@ -121,8 +121,9 @@ recording-only.
 Anything else makes the result UNVERIFIED and names the program: `git`,
 `sleep`, `find`, and native programs from installed packages such as esbuild,
 turbo, tsgo, tsgolint and biome, whose reads, writes and network use REDUE
-cannot see. `init` reads the script the same way and keeps a script that
-starts such a program recording-only, with the program in the reason.
+cannot see. `init` reads the script the same way. A typecheck or lint script
+that starts such a program gets the [sandboxed recipe](sandbox.md) where it
+can run; otherwise it stays recording-only, with the program in the reason.
 
 A command line may use `&&`, `||`, `;`, `|`, quotes without expansions,
 globs in arguments and redirection to `/dev/null`. Variables, command

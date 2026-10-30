@@ -22,10 +22,41 @@ const typecheck=check=>check?.kind==='typecheck'||check?.name==='typecheck';
 const tests=check=>check?.qualification==='npm-tests-direct-v1'&&Array.isArray(check.command)&&
   /^@test-runner:(?:vitest|jest)$/.test(check.command[1]||'');
 // A general recipe check: a root typecheck, test or lint script run through the package manager.
-const general=check=>check?.qualification==='node-script-v1'&&['typecheck','test','lint'].includes(check.kind)&&
-  typeof check.script==='string';
-const eligibleCheck=check=>typecheck(check)||tests(check)||general(check);
-export const checkKind=check=>tests(check)?'test':general(check)?check.kind:'typecheck';
+const general=check=>(check?.qualification==='node-script-v1'&&['typecheck','test','lint'].includes(check.kind)||
+  sandboxed(check))&&typeof check.script==='string';
+// A sandboxed check: a root package script, or a tool from the project's .venv.
+const sandboxed=check=>check?.qualification==='sandbox-v1'&&['typecheck','lint'].includes(check.kind);
+const python=check=>sandboxed(check)&&Array.isArray(check.command)&&/^\.venv\/bin\/[A-Za-z0-9_.-]+$/.test(check.command[0]||'')&&
+  check.command.every(word=>typeof word==='string'&&safe.test(word));
+const eligibleCheck=check=>typecheck(check)||tests(check)||general(check)||python(check);
+export const checkKind=check=>tests(check)?'test':general(check)||python(check)?check.kind:'typecheck';
+// The ways an agent runs a Python check's tool: through uv or Poetry, with
+// `python -m`, from .venv/bin, or by name. A form that starts with `python`
+// or the tool's name depends on PATH, so the hook takes it only when PATH
+// finds that program in the project's .venv/bin first (pathForm).
+const wrappers=['uv run ','poetry run '];
+function pythonForms(check){
+  const [file,...args]=check.command,tool=file.split('/').at(-1),rest=args.length?' '+args.join(' '):'';
+  return [`.venv/bin/${tool}${rest}`,`./.venv/bin/${tool}${rest}`,`.venv/bin/python -m ${tool}${rest}`,
+    ...wrappers.flatMap(wrapper=>[`${wrapper}${tool}${rest}`,`${wrapper}python -m ${tool}${rest}`]),
+    `python -m ${tool}${rest}`,`python3 -m ${tool}${rest}`,`${tool}${rest}`];
+}
+// For a form that names a program PATH finds (`mypy .`, `python -m mypy .`),
+// whether PATH finds it first in the project's .venv/bin.
+export function pathForm(form,projectRoot,env=process.env){
+  const word=form.split(' ')[0];
+  if(word.includes('/')||wrappers.some(wrapper=>form.startsWith(wrapper)))return true;
+  if(!projectRoot)return false;
+  for(const dir of String(env.PATH??'').split(path.delimiter)){
+    if(!dir||!path.isAbsolute(dir))continue;
+    try{fs.accessSync(path.join(dir,word),fs.constants.X_OK);}catch{continue;}
+    try{return fs.realpathSync(dir)===fs.realpathSync(path.join(projectRoot,'.venv','bin'));}catch{return false;}
+  }
+  return false;
+}
+// The wrapper a matched form starts with, kept when the hook runs the check
+// through REDUE: `uv run` and `poetry run` sync the environment first.
+const wrapperOf=form=>wrappers.find(wrapper=>form.startsWith(wrapper))||'';
 
 export const defaultConfig='redue.config.json';
 // The `redue` prefix for a config beside the project root; null when the name
@@ -141,7 +172,8 @@ export function hookForms(config,configFile=defaultConfig,packageScripts=null){
     const forms=redue?[`${redue} run ${check.name}`]:[],local=[],dir=checkDir(check),key=groupOf(check),
       group=key?scripts.get(key):null,part=group?.length>1;
     const own=group?null:checkScript(check);
-    if(dir==='.'){
+    if(dir==='.'&&python(check))forms.push(...pythonForms(check));
+    else if(dir==='.'){
       forms.push(...scriptForms(pm,own),...toolForms(pm,toolText(check,packageScripts)));
       if(!tests(check)&&Array.isArray(check.command)&&check.command.length&&
         check.command.every(v=>typeof v==='string'&&safe.test(v)&&!v.startsWith('@')))
@@ -258,11 +290,16 @@ function split(command){
 // {check, rest}, or {fanout, rest} for a turbo/nx/`pnpm -r` command or a root
 // script that runs one; null when nothing matches. `dir` is where the command
 // runs, relative to the project root.
-function matched(command,config,configFile,dir='.',scripts={}){
+function matched(command,config,configFile,dir='.',scripts={},projectRoot=null){
   const parts=split(command);
   if(!parts)return null;
   const row=hookForms(config,configFile,dir==='.'?scripts:null).find(row=>dir==='.'?row.forms.includes(parts.base):
     row.dir===dir&&row.local.includes(parts.base));
+  // A Python check's form that depends on PATH matches only where PATH finds
+  // the project's .venv/bin.
+  const check=row&&config.checks.find(item=>item.name===row.check);
+  if(python(check)&&!parts.base.startsWith('redue'))
+    return pathForm(parts.base,projectRoot)?{check:row.check,rest:parts.rest,wrapper:wrapperOf(parts.base)}:null;
   // A root script that a general check runs is that check, even when the script fans out.
   if(dir==='.'&&row&&general(config.checks.find(check=>check.name===row.check)))return {check:row.check,rest:parts.rest};
   if(dir==='.'){
@@ -331,7 +368,7 @@ export function chainCommand(command,config,configFile,dir='.',scripts={},invoke
   const names=[];let plain=true;
   const text=parts.map(({separator,text})=>{
     const lead=text.match(/^\s*/)[0],trail=text.match(/\s*$/)[0],body=text.trim();
-    const match=matched(body,config,configFile,dir,scripts),split_=split(body);
+    const match=matched(body,config,configFile,dir,scripts,projectRoot),split_=split(body);
     // A compiler script is its checks in the order of its runs.
     const checks=match?.check?[match.check]:match?.row&&projectRoot?scriptChecks(match.row,config,projectRoot):null;
     if(!checks?.length||match.rest!==null||!split_||!checks.every(name=>safe.test(name))){
@@ -339,22 +376,23 @@ export function chainCommand(command,config,configFile,dir='.',scripts={},invoke
     if(!plain)return null;
     names.push(...checks);
     // Grouped, so a separator before it applies to all its runs.
-    const runs=checks.map(name=>`${redue} run ${name} --if-due`).join(' && ');
+    const runs=checks.map(name=>`${match.wrapper||''}${redue} run ${name} --if-due`).join(' && ');
     return `${separator}${lead}${checks.length>1?`{ ${runs}; }`:runs}${split_.suffix}${trail}`;
   });
   return names.length&&!text.includes(null)?{command:text.join(''),names}:null;
 }
-export function matchCheck(command,config,configFile,dir,scripts){
-  const match=matched(command,config,configFile,dir,scripts);
+export function matchCheck(command,config,configFile,dir,scripts,projectRoot=null){
+  const match=matched(command,config,configFile,dir,scripts,projectRoot);
   return match?.row?match.row.checks.join(' && '):match?.check||null;
 }
 // The same check (or checks, in order) through REDUE, keeping the output
 // suffix; null if it already is, or if more commands follow it.
-export function recordedCommand(command,name,configFile=defaultConfig,invoke='redue'){
+// A `uv run` or `poetry run` wrapper stays in front, so the environment syncs first.
+export function recordedCommand(command,name,configFile=defaultConfig,invoke='redue',wrapper=''){
   const names=Array.isArray(name)?name:[name];
   const parts=split(command),redue=redueFor(configFile)?.replace(/^redue/,()=>invoke);
   if(!parts||parts.rest!==null||!names.length||!names.every(value=>safe.test(value))||!redue)return null;
-  const run=names.map(value=>`${redue} run ${value}`).join(' && ');
+  const run=names.map(value=>`${wrapper}${redue} run ${value}`).join(' && ');
   return parts.base===run?null:names.length>1&&parts.suffix?`(${run})${parts.suffix}`:run+parts.suffix;
 }
 
@@ -488,7 +526,7 @@ export async function claudeHook(input,{entry,timeout,invoke=null}){
     return cached?.observation?.healthy===true&&chained.names.every(name=>cached.checks?.some(row=>row?.name===name))?
       {hookSpecificOutput:{hookEventName:'PreToolUse',updatedInput:{...input.tool_input,command:entered.prefix+chained.command}}}:null;
   }
-  const match=matched(entered.command,parsed,record.config,entered.dir,scripts);
+  const match=matched(entered.command,parsed,record.config,entered.dir,scripts,project.projectRoot);
   if(!match)return null;
   // A check followed by more than a simple chain runs untouched.
   if(match.rest!==null&&!match.fanout)return null;
@@ -530,7 +568,7 @@ export async function claudeHook(input,{entry,timeout,invoke=null}){
   // stays too: the rewrite returns "allow", which would also skip the prompt
   // for the rest of the chain.
   const rewritten=status?.schema===1&&status.observation?.healthy===true&&Array.isArray(status.checks)&&
-    status.checks.some(item=>item?.name===name)?recordedCommand(entered.command,name,configPath,invoke??redueInvocation(entry)):null;
+    status.checks.some(item=>item?.name===name)?recordedCommand(entered.command,name,configPath,invoke??redueInvocation(entry),match.wrapper):null;
   // updatedInput replaces the whole tool input. Deny and ask rules still apply
   // to the rewritten command; "allow" skips only the prompt.
   return rewritten?{hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'allow',

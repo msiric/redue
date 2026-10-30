@@ -174,7 +174,8 @@ const write=(root,file,text)=>fs.writeFileSync(path.join(root,file),text);
 
 test('init writes general typecheck and lint checks for scripts the strict recipes do not take, and refuses ones that start other programs',{skip:unsupported},t=>{
   const {root,state}=project(t,{lint:'checker --max-warnings 0',test:'checker && node -e 1',typecheck:'checker && git diff'});
-  const init=JSON.parse(good(root,state,'init','--dry-run','--json'));
+  // Without --recipe, the sandboxed recipe takes the typecheck (sandbox.test.mjs).
+  const init=JSON.parse(good(root,state,'init','--dry-run','--json','--recipe','node-script'));
   const by=Object.fromEntries(init.checks.map(check=>[check.name,check]));
   assert.equal(by.lint.level,'ready',by.lint.reason);
   // Test scripts use the direct test recipe; init does not propose the general one for them.
@@ -195,7 +196,7 @@ test("init keeps a typecheck through TypeScript 7's native compiler recording-on
     put(path.join(root,'node_modules',pkg,'bin',bin),'#!/usr/bin/env node\n',0o755);
     fs.symlinkSync(`../${pkg}/bin/${bin}`,path.join(root,'node_modules/.bin',bin));
   }
-  const by=Object.fromEntries(JSON.parse(good(root,state,'init','--dry-run','--json')).checks.map(c=>[c.name,c]));
+  const by=Object.fromEntries(JSON.parse(good(root,state,'init','--dry-run','--json','--recipe','node-script')).checks.map(c=>[c.name,c]));
   assert.equal(by.typecheck.level,'recording');
   assert.match(by.typecheck.reason,/runs tsc from typescript 7\.0\.2, a native compiler REDUE does not record/);
   assert.equal(by.lint.level,'recording');

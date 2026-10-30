@@ -21,8 +21,11 @@ matches are reported as ambiguous rather than guessed. It never creates a new
 project script. Without `--recipe`, `init` tries the strict recipes below first,
 then the [general recipe](node-script.md) for a root typecheck or lint
 script: the script run through the package manager with every Node process
-recorded and the whole checkout as its input. `--recipe typescript-direct`,
-`tests-direct` or `node-script` selects one recipe alone. The direct TypeScript recipe supports
+recorded and the whole checkout as its input. A root typecheck or lint
+script neither takes, usually one that starts a native program, gets the
+[sandboxed recipe](sandbox.md) on macOS and Linux. Python projects get it
+for mypy, pyright, ty and ruff in their `.venv`. `--recipe typescript-direct`,
+`tests-direct`, `node-script` or `sandbox` selects one recipe alone. The direct TypeScript recipe supports
 a typecheck script of `tsc --noEmit` runs in any argument order, chained runs,
 or no typecheck script at all (a proposed `tsc --noEmit`; see
 [script forms](direct-typescript.md#script-forms)), in a single-package npm installation using

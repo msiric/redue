@@ -63,7 +63,9 @@ let identityChanged=false;
 let identityGapKey=null;
 let triggerHashes=new Map();
 let candidateDescendants=new Map();
-let workspacePatterns=(()=>{const w=JSON.parse(fs.readFileSync(path.join(root,'package.json'))).workspaces;
+// A Python project may have no package.json.
+let workspacePatterns=(()=>{let w;try{w=JSON.parse(fs.readFileSync(path.join(root,'package.json'))).workspaces;}
+  catch(e){if(e.code==='ENOENT')return [];throw e;}
   return Array.isArray(w)?w:w?.packages||[];})();
 let planningWorker=null;
 let validatedPlan=null;
@@ -396,13 +398,17 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
     if(r.target.status==='failed'&&result!=='FAIL'){
       item.reason='target failure conflicts with outer invocation outcome';return item;}
     if(!r.stable){const issues=r.checkpoint?.issues?.length?` (${r.checkpoint.issues.join('; ')})`:'';
-      item.reason=`inputs changed during execution or observation gap${issues}`;return item;}
+      // A sandboxed run that could not start, whose result the sandbox changed, or whose rerun outside it did not finish, says so alone.
+      const sandbox=r.checkpoint?.issues?.length&&r.checkpoint.issues.every(issue=>/^the (?:sandbox changed|run was not sandboxed|run outside the sandbox)/.test(issue));
+      item.reason=sandbox?r.checkpoint.issues.join('; '):`inputs changed during execution or observation gap${issues}`;return item;}
     const names=[...(row.plan.environment.variables||[]),
       ...(row.plan.environment.prefixes||[]).map(prefix=>
         `__vstate_env_prefix_${prefix.toLowerCase()}__`),
       ...(row.plan.environment.pathExecutables||[]).map(name=>
         `__vstate_path_executable_${name}__`),
-      ...(row.plan.environment.executableIdentity?['__vstate_node_identity__']:[])];
+      ...(row.plan.environment.executableIdentity?['__vstate_node_identity__']:[]),
+      // A sandboxed run's environment, toolchain and places (sandbox.mjs).
+      ...(row.plan.qualification==='sandbox-v1'?['__redue_sandbox__']:[])];
     if(names.length&&!contextHashes?.[name])unconfirmed??='execution environment context not supplied';
     item.freshness='STALE';
     if(r.planId!==row.plan.id){
@@ -796,8 +802,8 @@ function markInputEvent(name,rel,type,replay) {
   if(!hasHistory||historyDisabled||replay){
     const serial=(inputEventSerial.get(name)||0)+1;
     inputEventSerial.set(name,serial);
-    // Kept only for recorded test and script checks; trimmed in batches.
-    if(['npm-tests-direct-v1','node-script-v1'].includes(index?.checks.get(name)?.plan.qualification)){
+    // Kept only for recorded test and script checks and sandboxed ones; trimmed in batches.
+    if(['npm-tests-direct-v1','node-script-v1','sandbox-v1'].includes(index?.checks.get(name)?.plan.qualification)){
       const list=inputEventPaths.get(name)||[];list.push([serial,rel]);
       if(list.length>2*eventPathLimit)list.splice(0,list.length-eventPathLimit);inputEventPaths.set(name,list);
     }

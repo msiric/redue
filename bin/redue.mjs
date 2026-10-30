@@ -7,6 +7,7 @@ import {directCompiler,directQualification,directEnvironment,directInstalledInpu
 import {runArgv,tscRun} from '../src/typescript-invocation.mjs';
 import {testEnvironment,testRunnerAt,testsInterpretation,testsQualification} from '../src/test-direct.mjs';
 import {scriptEnvironment,scriptInterpretation,scriptKinds,scriptQualification} from '../src/node-script.mjs';
+import {pythonTool,sandboxEnvironment,sandboxInterpretation,sandboxKinds,sandboxQualification} from '../src/sandbox.mjs';
 import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
@@ -31,7 +32,7 @@ Commands:
   setup claude [--yes] Set up REDUE and Claude Code in this project in one step:
                        init, agent setup claude, start, one recorded run per check
   remove [--yes]       Undo setup: integration, observer state, and the config setup created
-  init [--dry-run] [--workspace NAME] [--check KIND] [--recipe typescript-direct|tests-direct|node-script]
+  init [--dry-run] [--workspace NAME] [--check KIND] [--recipe typescript-direct|tests-direct|node-script|sandbox]
                        Discover existing scripts; optionally select one workspace/check
   agent setup codex|claude [--dry-run|--apply] [--json]
   agent doctor [codex|claude] [--json]
@@ -119,9 +120,28 @@ if(short&&(command!=='status'||json||sync))error('--short is a cached status opt
 if(dryRun&&command!=='init')error('--dry-run is for init');
 
 if(command==='init'){
-  const {discoverNodeProject}=await import('../src/node-onboarding.mjs');
-  let discovery;try{discovery=discoverNodeProject(process.cwd(),{recipe:recipeSelection});}
-  catch(e){error(e.message);}
+  const {discoverNodeProject,sourceLinkIssue}=await import('../src/node-onboarding.mjs');
+  const {discoverPythonProject}=await import('../src/python-onboarding.mjs');
+  const {sandboxTrial}=await import('../src/sandbox.mjs');
+  // A Node project, a Python project, or both in one checkout.
+  const python=!recipeSelection||recipeSelection==='sandbox'?discoverPythonProject(process.cwd()):null;
+  let discovery;
+  if(fs.existsSync('package.json')||!python)try{discovery=discoverNodeProject(process.cwd(),{recipe:recipeSelection});}
+    catch(e){error(e.message);}
+  else{const root=realObservedPath(process.cwd());
+    const git=spawnSync('git',['rev-parse','--show-toplevel'],{cwd:root,encoding:'utf8',timeout:3000,stdio:['ignore','pipe','ignore']});
+    discovery={schema:1,root,manager:{name:null,version:null,layout:null},observationIssue:git.status===0?sourceLinkIssue(root):
+      'Git checkout is unavailable; filesystem observation needs a checkout',workspaces:false,node:process.version,
+      checks:[],ambiguous:[],skipped:[],config:{schema:1,checks:[]}};}
+  if(python){
+    // A Python check takes its tool's name where the name is taken.
+    const taken=new Set(discovery.checks.map(row=>row.config.name));
+    for(const row of python.checks){if(taken.has(row.config.name))row.config.name=`${row.config.kind}:${row.config.command[0].split('/').at(-1)}`;
+      taken.add(row.config.name);}
+    if(!discovery.observationIssue)discovery.checks.push(...python.checks);
+    discovery.skipped.push(...python.skipped);
+    discovery.python=true;
+  }
   if(workspaceSelection||checkSelection){
     const chosen=discovery.checks.filter(row=>
       (!workspaceSelection||row.config.workspace===workspaceSelection||
@@ -130,6 +150,26 @@ if(command==='init'){
     if(!chosen.length)error('no discovered check matches the selected workspace and kind');
     discovery.checks=chosen;discovery.config.checks=chosen.map(row=>row.config);
   }
+  // A sandboxed check is proposed only when it gives the same exit status
+  // inside the sandbox as outside it. Otherwise init writes what it would
+  // have without the sandboxed recipe, with the reason.
+  let trials=0;
+  for(const [at,row] of [...discovery.checks.entries()]){
+    if(row.qualification!==sandboxQualification||row.level!=='ready')continue;
+    if(!json)console.error(`Running ${row.config.name} inside and outside the sandbox to confirm it...`);
+    const trial=sandboxTrial(discovery.root,row.config);
+    if(!trial.issue)trials++;
+    const issue=trial.issue?`the sandbox cannot run here (${trial.issue})`:
+      // A failure both ways that shows a refusal cannot be told from a real one.
+      trial.same?null:trial.plain!==trial.sandboxed?`exit ${trial.sandboxed} inside the sandbox, ${trial.plain} outside it${trial.line?` (${trial.line})`:''}`:
+      trial.line?`it fails both ways (exit ${trial.plain}), with a sign of a refusal inside the sandbox (${trial.line})`:
+      `the output differs inside the sandbox: ${JSON.stringify(trial.output.sandboxed)} instead of ${JSON.stringify(trial.output.plain)}`;
+    if(!issue){row.reason+=`; ran both ways at init, exit ${trial.plain}`;continue;}
+    if(row.fallback)discovery.checks[at]={...row.fallback,reason:`Sandboxed recipe unavailable: ${issue}; ${row.fallback.reason}`};
+    else{discovery.checks[at]=null;discovery.skipped.push({kind:row.config.name,reason:`${row.config.name}: sandboxed recipe unavailable: ${issue}`});}
+  }
+  discovery.checks=discovery.checks.filter(Boolean).map(({fallback,...row})=>row);
+  discovery.config.checks=discovery.checks.map(row=>row.config);
   const configured=fs.existsSync(configFile),unsupported=Boolean(discovery.observationIssue||
     discovery.manager.issue&&!['npm','yarn','pnpm'].includes(discovery.manager.name)||
     discovery.manager.name==='yarn'&&!discovery.manager.version);
@@ -144,8 +184,9 @@ if(command==='init'){
       workspace:check.workspace||null,level,reason})),config:configFile,
     written:willWrite,existing:configured,writable:!configured&&!unsupported&&discovery.checks.length>0};
   if(!json) {
-    console.log(`Node ${summary.node}; ${summary.package_manager||'unknown package manager'}`+
+    if(summary.package_manager||!discovery.python)console.log(`Node ${summary.node}; ${summary.package_manager||'unknown package manager'}`+
       `${summary.version?' '+summary.version:''}; ${summary.installation_layout} installation.`);
+    if(discovery.python)console.log('Python project; tools run from .venv.');
     if(summary.issue)console.log(`Boundary: ${summary.issue}`);
     for(const row of summary.checks){
       console.log(`  ${row.name} (${row.script||row.command?.join(' ')}) — `+
@@ -167,7 +208,7 @@ if(command==='init'){
     if(!samePath(realObservedPath(path.dirname(configFile)),discovery.root))
       error('init writes only at the repository root; use --config there or --dry-run');
     fs.writeFileSync(configFile,JSON.stringify(discovery.config,null,2)+'\n',{flag:'wx'});
-    if(!json){console.log(`Created ${configFile}. No checks were executed.`);
+    if(!json){console.log(`Created ${configFile}. ${trials?'Sandboxed checks ran both ways to confirm them; no results were recorded.':'No checks were executed.'}`);
       console.log('Ready to qualify means the supported contract will be validated; it is not verification evidence.');
       console.log(`Next: review the config, then redue start and redue run ${JSON.stringify(discovery.checks[0].config.name)}.`);
       console.log('Connect your agent: redue agent setup codex (or claude). Preview with --dry-run.');
@@ -269,6 +310,7 @@ const checks=publicConfig.checks.map(check=>{
   const pnpmTypecheck=check.qualification==='pnpm-tsc-v1';
   const testsDirect=check.qualification===testsQualification;
   const generalScript=check.qualification===scriptQualification;
+  const sandboxed=check.qualification===sandboxQualification;
   if(check.script&&check.command&&!pnpmTypecheck&&!npmDirect&&!testsDirect)
     error(`${check.name}: choose script or command, not both`);
   const manager=publicConfig.packageManager;
@@ -278,12 +320,16 @@ const checks=publicConfig.checks.map(check=>{
     [`@which:${manager}`,'run',check.script]:null;
   const npmAutomatic=check.qualification==='typescript-noemit-v1';
   const yarnWorkspace=check.qualification==='yarn-workspace-tsc-v1';
-  if(check.qualification&&!npmAutomatic&&!npmDirect&&!yarnWorkspace&&!pnpmTypecheck&&!testsDirect&&!generalScript)
+  if(check.qualification&&!npmAutomatic&&!npmDirect&&!yarnWorkspace&&!pnpmTypecheck&&!testsDirect&&!generalScript&&!sandboxed)
     error(`${check.name}: unknown qualification contract`);
   // The general recipe runs the root package script through the package manager.
   if(generalScript&&(!['npm','pnpm','yarn'].includes(manager)||!check.script||check.command||check.cwd&&check.cwd!=='.'||
     check.workspace||!scriptKinds.includes(check.kind)))
     error(`${check.name}: the general recipe needs a root typecheck, test or lint script, without command or cwd`);
+  // The sandboxed recipe runs a root package script, or a tool from the project's .venv.
+  if(sandboxed&&(check.cwd&&check.cwd!=='.'||check.workspace||!sandboxKinds.includes(check.kind)||
+    (check.script?!['npm','pnpm','yarn'].includes(manager):!pythonTool(check))))
+    error(`${check.name}: the sandboxed recipe needs a root ${sandboxKinds.join(' or ')} script, or a command that runs a tool from .venv/bin, without cwd`);
   if(npmDirect&&(manager!=='npm'||check.cwd&&check.cwd!=='.'||!Array.isArray(check.command)||
     check.command[0]!=='@node'||check.command[1]!=='@typescript-compiler:.'||
     !tscRun({},{script:null,args:check.command.slice(2)}).run?.noEmit))
@@ -324,7 +370,8 @@ const checks=publicConfig.checks.map(check=>{
       check.workspace||'.',...run]]:[];
   const windowsContext=process.platform==='win32'?
     ['ComSpec','COMSPEC','PATHEXT','USERPROFILE']:[];
-  const autoEnvironment=npmDirect?directEnvironment:testsDirect?testEnvironment:generalScript?scriptEnvironment(manager):npmAutomatic?{variables:['NODE_OPTIONS','NODE_PATH','CI','HOME',
+  const autoEnvironment=npmDirect?directEnvironment:testsDirect?testEnvironment:generalScript?scriptEnvironment(manager):
+    sandboxed?sandboxEnvironment(Boolean(pythonTool(check)),check.script?manager:null):npmAutomatic?{variables:['NODE_OPTIONS','NODE_PATH','CI','HOME',
     'NODE_ENV','BASH_ENV','ENV',...windowsContext],prefixes:['npm_config_','DYLD_','TSGO_'],
     pathExecutables:['node','npm'],executableIdentity:true}:yarnWorkspace?
     {variables:['NODE_OPTIONS','NODE_PATH','CI','HOME','NODE_ENV','BASH_ENV','ENV',...windowsContext],
@@ -351,6 +398,7 @@ const checks=publicConfig.checks.map(check=>{
     ...(npmDirect?{qualificationInterpretation:directInterpretation}:{}),
     ...(testsDirect?{qualificationInterpretation:testsInterpretation}:{}),
     ...(generalScript?{qualificationInterpretation:scriptInterpretation}:{}),
+    ...(sandboxed?{qualificationInterpretation:sandboxInterpretation}:{}),
     workspace:check.workspace||null,kind:check.kind||null};
 });
 const runtime={schema:1,provider:'declared-project@1',root,state,checks};
