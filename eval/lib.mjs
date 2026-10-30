@@ -105,8 +105,10 @@ export function freshClone(repo, commit, dir) {
   must(sh('git', ['-c', 'advice.detachedHead=false', 'checkout', '-q', commit], {cwd: dir}), `checkout ${commit}`);
   const dirty = sh('git', ['status', '--porcelain'], {cwd: dir}).stdout.trim();
   if (dirty) throw new Error(`checkout ${commit} incomplete: ${dirty.split('\n')[0]}`);
-  // pnpm projects install with their pinned pnpm through Corepack.
-  if (fs.existsSync(path.join(dir, 'pnpm-lock.yaml')))
+  // A Python repo installs with its own command (uv sync); pnpm projects with
+  // their pinned pnpm through Corepack.
+  if (repo.install) must(sh(repo.install[0], repo.install.slice(1), {cwd: dir, timeout: 900_000}), repo.install.join(' '));
+  else if (fs.existsSync(path.join(dir, 'pnpm-lock.yaml')))
     must(sh('corepack', ['pnpm', 'install', '--frozen-lockfile', '--ignore-scripts'],
       {cwd: dir, timeout: 900_000, env: harnessEnv({COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'})}), 'pnpm install');
   else must(sh('npm', ['ci', '--prefer-offline', '--ignore-scripts', '--no-audit', '--no-fund'], {cwd: dir, timeout: 900_000}), 'npm ci');

@@ -13,6 +13,10 @@ clones to `$TMPDIR/redue-eval/`.
 - `repos.json`: public repos, each pinned to a commit, with the npm script that
   typechecks, whether its tests are quick enough to run as a check, and for
   lint tasks the plain lint command (`lint`) and the lint script (`lintScript`).
+  A Python repo gives its install command as argv (`install`, such as
+  `uv sync --frozen`) and its plain typecheck command (`typecheck`); its REDUE
+  arm uses the sandboxed recipe, and a skipped or CURRENT tree is checked with
+  the check's own command, in the run's checkout after the session.
 - `tasks.json`: agent prompts per repo. `kind` says whether REDUE should help
   (`docs`, `reverify`, `mixed`) or not (`source`). `expect` lists text the
   final files must contain. `pilot: true` marks the pilot set.
@@ -35,6 +39,14 @@ clones to `$TMPDIR/redue-eval/`.
   its CI, scripts, Makefile or tox.ini: twice timed, once under the audit-hook
   prototype `py-audit/sitecustomize.py` and strace (what the hook misses), and
   tests once more with the network off. Research data for Python support.
+  `--product` instead runs `redue init` and two `redue run`s of each check it
+  writes (`product-runs.mjs`, shared with `census.mjs --product`).
+- `sandbox-check.mjs`: on Linux, the product census traces each sandboxed run
+  with strace and checks that every file it read in the checkout is an input
+  the receipt holds, a runner cache, or the run's own output, and that nothing
+  outside the allowed places was read. A trusted run that read anything else
+  is critical. Reads in `.git`, which tools see but REDUE does not observe,
+  are listed apart.
 - `pnpm-shim-templates.mjs`: rebuilds `src/pnpm-shim-templates.json`, the
   launcher templates pnpm releases write, by installing a small workspace with
   each release offline.

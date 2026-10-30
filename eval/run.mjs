@@ -59,6 +59,15 @@ function treeOf(dir) {
   return tree;
 }
 
+// A Python repo's check on a tree, in the run's own checkout once the session
+// is over: its .venv links into the checkout (an editable install), so a copy
+// elsewhere would check the wrong files.
+function verifyInPlace(dir, tree, command) {
+  must(sh('git', ['clean', '-fdq'], {cwd: dir}), 'git clean');
+  must(sh('git', ['read-tree', '--reset', '-u', tree], {cwd: dir}), 'git read-tree');
+  return plainTests(dir, command);
+}
+
 // Plain tsc, the repo's lint once, or its tests three times, on a tree an
 // answer was about, with the run's node_modules. Tests that disagree across
 // the three runs are flaky, not a REDUE error.
@@ -123,7 +132,8 @@ async function runSession(task, repo, arm, id) {
       const r = must(sh(path.join(bin, 'redue'), argv, {cwd: dir, env}), `redue ${argv.join(' ')}`);
       row.setup[label] = r.ms;
     };
-    step('init_ms', 'init', '--recipe', {test: 'tests-direct', lint: 'node-script'}[check] ?? 'typescript-direct', '--check', check);
+    // A Python repo's checks come from the sandboxed recipe.
+    step('init_ms', 'init', '--recipe', repo.install ? 'sandbox' : {test: 'tests-direct', lint: 'node-script'}[check] ?? 'typescript-direct', '--check', check);
     step('agent_setup_ms', 'agent', 'setup', 'claude', '--apply');
     step('start_ms', 'start');
     row.setup.index_ms = waitReady(entry, dir, {env});
@@ -177,7 +187,11 @@ async function runSession(task, repo, arm, id) {
   fs.writeFileSync(path.join(runDir, 'diff.patch'), sh('git', ['diff', baseTree, finalTree], {cwd: dir}).stdout);
   row.changed_files = sh('git', ['diff', '--name-only', baseTree, finalTree], {cwd: dir}).stdout.split('\n').filter(Boolean);
   row.diff_stat = diff.trim().split('\n').at(-1) || '';
-  const tsc = plainTsc(dir);
+  // A Python repo's typecheck is its own command; REDUE's claim is about the
+  // command its check runs, which skipped trees are checked with.
+  const tsc = repo.typecheck ? plainTests(dir, repo.typecheck) : plainTsc(dir);
+  let claimed = repo.typecheck;
+  try { claimed = readJson(path.join(dir, 'redue.config.json')).checks.find(c => c.name === check).command.join(' '); } catch {}
   row.final_tsc = {pass: tsc.pass, ms: tsc.ms};
   if (!tsc.pass) fs.writeFileSync(path.join(runDir, 'final-tsc.txt'), tsc.output);
   if (repo.test) {
@@ -197,8 +211,8 @@ async function runSession(task, repo, arm, id) {
   const verified = new Map();
   // pass: true, false, or null for tests that disagreed with each other.
   const tscOn = tree => {
-    if (!verified.has(tree)) verified.set(tree, verifyTree(dir, tree, path.join(work, 'tree-check'), check === 'test' ? repo.test : null,
-      check === 'lint' ? repo.lint : null));
+    if (!verified.has(tree)) verified.set(tree, repo.install ? verifyInPlace(dir, tree, check === 'lint' ? repo.lint : claimed) :
+      verifyTree(dir, tree, path.join(work, 'tree-check'), check === 'test' ? repo.test : null, check === 'lint' ? repo.lint : null));
     return verified.get(tree).pass;
   };
   const plain = {test: 'plain tests', lint: 'plain lint'}[check] ?? 'plain tsc';

@@ -11,16 +11,20 @@
 //
 // --recorded only makes eval.yml install strace. --hook-cost also times warm
 // runs with and without the hook, alternated. --sandbox instead runs each
-// check plainly and inside OS sandboxes, alternated (eval/sandbox.mjs). Writes
-// .local/eval/python-census-*.json.
+// check plainly and inside OS sandboxes, alternated (eval/sandbox.mjs).
+// --product instead lets the product decide: `redue init`, then two `redue
+// run`s of each check it writes, cross-checked with strace on Linux
+// (eval/product-runs.mjs). Writes .local/eval/python-census-*.json.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline';
 import {evalDir, harnessEnv, localDir, readJson, sh, slug, stamp, tmpRoot} from './lib.mjs';
 import {sandboxModes, sandboxSuite} from './sandbox.mjs';
+import {productChecks} from './product-runs.mjs';
+import {checkoutRedue} from './lib.mjs';
 
-const argv = process.argv.slice(2), sandbox = argv.includes('--sandbox');
+const argv = process.argv.slice(2), sandbox = argv.includes('--sandbox'), product = argv.includes('--product');
 const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : null;
 let names = argv.filter((arg, i) => !arg.startsWith('-') && argv[i - 1] !== '--shard');
 if (!names.length) names = readJson(path.join(evalDir, 'python-census-repos.json')).repos;
@@ -275,6 +279,19 @@ async function tracedRun(dir, cmd, env, timeout, venv) {
   return out;
 }
 
+// The product's checks: what init writes and two recorded runs of each.
+function productRuns(dir, venv) {
+  const config = path.join(dir, '.census.redue.json');
+  const init = run(process.execPath, [checkoutRedue, '--config', config, 'init', '--json'], dir, 1_200_000);
+  let value; try { value = JSON.parse(init.stdout); } catch { return {error: `init: ${tail(init, 300)}`}; }
+  const out = {venv: path.relative(dir, venv) || '.', init: {issue: value.issue, skipped: value.skipped,
+    checks: value.checks.map(c => ({name: c.name, command: c.command, level: c.level, reason: c.reason}))}};
+  const ready = value.checks.filter(c => c.level === 'ready').map(c => c.name);
+  if (!ready.length || !value.written) return out;
+  const result = productChecks({dir, config, names: ready, env: base, label: path.basename(dir)});
+  return {...out, ...result};
+}
+
 async function census(name, modes) {
   const row = {name, started: new Date().toISOString()};
   const dir = path.join(tmpRoot, 'py-census', slug(name));
@@ -295,7 +312,8 @@ async function census(name, modes) {
     try { row.packages = Object.fromEntries(JSON.parse(listed.stdout).filter(p => /^(pytest.*|mypy|pyright|basedpyright|ty|pyrefly|ruff|flake8|pylint|hypothesis|coverage|django|numpy|torch)$/i.test(p.name)).map(p => [p.name, p.version])); } catch {}
     row.python = run(path.join(venv, 'bin', 'python'), ['-c', 'import sys,platform;print(platform.python_version(), sys.base_prefix)'], dir, 30_000).stdout.trim();
     row.checks = {};
-    for (const [kind, timeout] of [['test', 600_000], ['typecheck', 300_000], ['lint', 180_000]]) {
+    if (product) row.product = productRuns(dir, venv);
+    for (const [kind, timeout] of product ? [] : [['test', 600_000], ['typecheck', 300_000], ['lint', 180_000]]) {
       for (const check of info.checks[kind] ?? []) {
         const cmd = command({...check, mypyFiles: info.mypyFiles}, venv, dir);
         if (!cmd) continue;

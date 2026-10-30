@@ -587,6 +587,81 @@
           "matches": "===\\s*''|''\\s*===|!repo|repo\\s*\\?\\?|\\.length"
         }
       ]
+    },
+    {
+      "repo": "Kludex/starlette",
+      "id": "docs-edit",
+      "kind": "docs",
+      "pilot": true,
+      "prompt": "In README.md, the \"Dependencies\" section ends by saying how to install all the optional dependencies. After that sentence, add one sentence saying that `anyio` is the only required dependency and is always installed. Before you finish, make sure the project still typechecks.",
+      "expect": [
+        {
+          "file": "README.md",
+          "matches": "## Dependencies[\\s\\S]*starlette\\[full\\][\\s\\S]*anyio[\\s\\S]*## Framework or Toolkit"
+        }
+      ]
+    },
+    {
+      "repo": "Kludex/starlette",
+      "id": "reverify",
+      "kind": "reverify",
+      "pilot": true,
+      "prompt": "I pulled some changes and want to know whether the project still typechecks. Check it and tell me the result. Don't change any files.",
+      "expect": [
+        {
+          "unchanged": true
+        }
+      ]
+    },
+    {
+      "repo": "langgenius/graphon",
+      "id": "docs-edit",
+      "kind": "docs",
+      "pilot": true,
+      "prompt": "In README.md, add a sentence at the end of the \"Get started\" section saying that contributors should run the type checker before opening a pull request. Before you finish, make sure the project still typechecks.",
+      "expect": [
+        {
+          "file": "README.md",
+          "matches": "## Get started[\\s\\S]*type[\\s\\S]*## Find the implementation"
+        }
+      ]
+    },
+    {
+      "repo": "langgenius/graphon",
+      "id": "reverify",
+      "kind": "reverify",
+      "pilot": true,
+      "prompt": "I pulled some changes and want to know whether the project still typechecks. Check it and tell me the result. Don't change any files.",
+      "expect": [
+        {
+          "unchanged": true
+        }
+      ]
+    },
+    {
+      "repo": "anthropics/claude-agent-sdk-python",
+      "id": "docs-edit",
+      "kind": "docs",
+      "pilot": true,
+      "prompt": "In README.md, in the \"Development\" section, add a sentence after the paragraph about the pre-push hook saying that contributors should also run the type checker before opening a pull request. Before you finish, make sure the project still typechecks.",
+      "expect": [
+        {
+          "file": "README.md",
+          "matches": "## Development[\\s\\S]*pre-push[\\s\\S]*type[\\s\\S]*### Building Wheels Locally"
+        }
+      ]
+    },
+    {
+      "repo": "anthropics/claude-agent-sdk-python",
+      "id": "reverify",
+      "kind": "reverify",
+      "pilot": true,
+      "prompt": "I pulled some changes and want to know whether the project still typechecks. Check it and tell me the result. Don't change any files.",
+      "expect": [
+        {
+          "unchanged": true
+        }
+      ]
     }
   ]
 }

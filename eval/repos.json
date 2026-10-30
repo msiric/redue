@@ -72,6 +72,49 @@
       "lint": "npx eslint .",
       "lintScript": "lint",
       "why": "Small npm MCP server in TypeScript whose lint script is `eslint .` (about 4 s) and qualifies for the general recipe in the census. Its test script builds with esbuild first, so only typecheck and lint are measured."
+    },
+    {
+      "name": "Kludex/starlette",
+      "url": "https://github.com/Kludex/starlette.git",
+      "commit": "2745bbc5afa2f8ce900d290bedca2bc5d3f3cfe8",
+      "install": [
+        "uv",
+        "sync",
+        "--frozen",
+        "--all-extras",
+        "--all-groups"
+      ],
+      "typecheck": ".venv/bin/mypy starlette",
+      "lint": ".venv/bin/ruff check",
+      "why": "Python, uv. mypy on the package (scripts/check), about 0.2 s warm and 5 s cold; the same result inside the sandbox in the October 2026 sandbox census on Linux and macOS."
+    },
+    {
+      "name": "langgenius/graphon",
+      "url": "https://github.com/langgenius/graphon.git",
+      "commit": "7b5ce13216a47720727a5402aa2f3801372aedf0",
+      "install": [
+        "uv",
+        "sync",
+        "--frozen",
+        "--all-extras",
+        "--all-groups"
+      ],
+      "typecheck": ".venv/bin/ty check",
+      "lint": ".venv/bin/ruff check",
+      "why": "Python, uv, typechecked with ty (a native program). About 1.1 s; the same result inside the sandbox on Linux and macOS."
+    },
+    {
+      "name": "anthropics/claude-agent-sdk-python",
+      "url": "https://github.com/anthropics/claude-agent-sdk-python.git",
+      "commit": "27858cbba9ecee26a06a90b8d39d3b5596121d11",
+      "install": [
+        "sh",
+        "-c",
+        "uv venv .venv && uv pip install --python .venv/bin/python -e '.[dev]'"
+      ],
+      "typecheck": ".venv/bin/mypy src/ scripts/",
+      "lint": ".venv/bin/ruff check src/ tests/ scripts/",
+      "why": "Python, pip-style install into .venv, mypy on src/ and scripts/; the same result inside the sandbox on Linux and macOS."
     }
   ]
 }

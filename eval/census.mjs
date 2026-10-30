@@ -14,8 +14,9 @@
 //   node-script`, then `redue run` twice for each typecheck, lint and test
 //   check it writes, and the receipts and status after each. With
 //   --all-recipes, plain `init` instead: every recipe, as `redue setup` uses. On Linux with
-//   strace, each run is traced, and programs the recorder did not see are
-//   listed per run (eval/program-check.mjs) and flagged. --keep-traces keeps
+//   strace, each run is traced: for a recorded check, programs the recorder
+//   did not see are listed (eval/program-check.mjs); for a sandboxed check,
+//   reads the receipt does not hold (eval/sandbox-check.mjs). Either is flagged. --keep-traces keeps
 //   each run's strace output and run record under .local/eval/census-traces/.
 //   --install-scripts installs as users do, with dependencies' install
 //   scripts (esbuild's links its binary), on a disposable CI runner only.
@@ -28,12 +29,10 @@
 // twice, to see a task cache). Writes .local/eval/census-*.json.
 import fs from 'node:fs';
 import path from 'node:path';
-import {spawn} from 'node:child_process';
 import {checkoutRedue, evalDir, harnessEnv, localDir, readJson, sh, slug, stamp, tmpRoot} from './lib.mjs';
 import {analyzeRun, compareRuns, hasStrace, recordedRun, snapshot} from './recorded-run.mjs';
-import {unrecordedPrograms} from './program-check.mjs';
+import {productChecks} from './product-runs.mjs';
 import {sandboxModes, sandboxSuite} from './sandbox.mjs';
-import {projectState} from '../src/project-location.mjs';
 
 // --python: the Python census (eval/python-census.mjs), from the same workflow.
 if (process.argv.includes('--python')) { await import('./python-census.mjs'); process.exit(); }
@@ -126,8 +125,8 @@ function recordScripts(dir, pm, row) {
   return out;
 }
 
-// The general recipe as the product applies it: init's checks, two recorded
-// runs each, and what the receipts and status say after each run.
+// The product's recipes as it applies them: init's checks, two recorded runs
+// each, and what the receipts and status say after each run (product-runs.mjs).
 function productRuns(dir, row) {
   // REDUE's own state location: a long --state-dir would not fit a Unix socket path.
   const config = path.join(dir, '.census.redue.json');
@@ -138,86 +137,15 @@ function productRuns(dir, row) {
   const init = json(redue(['init', ...(allRecipes ? [] : ['--recipe', 'node-script']), '--json']));
   if (!init) return {error: 'init failed'};
   out.init = {issue: init.issue, pm: init.package_manager, pmVersion: init.version};
-  const checks = (init.checks ?? []).filter(c => ['typecheck', 'lint', 'test'].includes(c.name));
+  const checks = (init.checks ?? []).filter(c => ['typecheck', 'lint', 'test'].includes(c.name.split(':')[0]));
   for (const c of checks) out[c.name] = {script: c.script, level: c.level, reason: c.level === 'ready' ? undefined : c.reason,
     recipe: c.level === 'ready' ? (c.reason || '').split(/[:;(]/)[0].trim() : undefined,
     text: readJson(path.join(dir, 'package.json')).scripts?.[c.script]};
   const ready = checks.filter(c => c.level === 'ready');
   if (!ready.length || !init.written) return out;
-  redue(['start']);
-  // The observer indexes the whole checkout first.
-  const deadline = Date.now() + 600_000;
-  let status = null;
-  while (Date.now() < deadline) {
-    status = json(redue(['status', '--sync', '--json'], 300_000));
-    if (status?.observation?.healthy) break;
-    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2000);
-  }
-  if (!status?.observation?.healthy) {
-    out.observer = status?.observation?.reason ?? 'unavailable';
-    // A link the plan refused: where it leads, and the checks that matched it.
-    const link = /symlink unsupported: (\S+)/.exec(out.observer)?.[1];
-    if (link) {
-      const at = path.join(dir, link), info = {};
-      try { info.readlink = fs.readlinkSync(at); info.real = path.relative(dir, fs.realpathSync(at)); info.directory = fs.statSync(at).isDirectory(); } catch (e) { info.error = e.code; }
-      try { info.checks = readJson(config).checks.map(c => ({name: c.name, qualification: c.qualification, workspace: c.workspace,
-        installedInputs: (c.installedInputs ?? []).filter(p => !p.startsWith('!'))})); } catch {}
-      out.observerLink = info;
-    }
-    redue(['stop']); redue(['remove-state']); return out;
-  }
-  for (const c of ready) {
-    const runs = [];
-    for (const n of [1, 2]) {
-      // Files the run touched, for a run that is not stable.
-      const mark = path.join(tmpRoot, 'census-run-mark');
-      fs.writeFileSync(mark, '');
-      // Traced on Linux: programs the recorder did not see.
-      let r, unrecorded;
-      if (hasStrace) {
-        // Hard links stay on the state's file system.
-        const state = projectState(fs.realpathSync(dir), config), work = fs.mkdtempSync(path.join(tmpRoot, 'census-trace-')),
-          trace = path.join(work, 'strace'), copy = fs.mkdtempSync(path.join(path.dirname(state), 'census-record-'));
-        const keeper = spawn(process.execPath, [path.join(evalDir, 'record-keeper.mjs'), state, copy], {stdio: 'ignore'});
-        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 300);
-        // -D: strace is not the run's parent, so a detached descendant does not hold the run open.
-        r = sh('strace', ['-D', '-f', '-qq', '-s', '4096', '-e', 'trace=execve,execveat,clone,clone3,fork,vfork', '-o', trace,
-          process.execPath, checkoutRedue, '--config', config, 'run', c.name, '--json'], {cwd: dir, env, timeout: 600_000});
-        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 500);
-        keeper.kill();
-        unrecorded = unrecordedPrograms(trace, copy) ?? 'trace or record unavailable';
-        if (keepTraces) {
-          const kept = path.join(localDir, 'census-traces', slug(row.name), `${c.name}-${n}`);
-          fs.mkdirSync(kept, {recursive: true});
-          try { fs.copyFileSync(trace, path.join(kept, 'strace')); fs.cpSync(copy, path.join(kept, 'record'), {recursive: true}); } catch {}
-        }
-        fs.rmSync(work, {recursive: true, force: true}); fs.rmSync(copy, {recursive: true, force: true});
-      } else r = redue(['run', c.name, '--json'], 600_000);
-      const touched = () => run('find', ['.', '-newer', mark, '-not', '-path', './.git/*', '-not', '-name', '.census.redue.json'], dir)
-        .stdout.split('\n').filter(Boolean).slice(0, 40);
-      const now = json(redue(['status', '--sync', '--json'], 300_000))?.checks?.find(x => x.name === c.name);
-      let receipt = null; try { receipt = readJson(path.join(projectState(fs.realpathSync(dir), config), 'receipts-v1.json')).checks?.[c.name]; } catch {}
-      runs.push({exit: r.status, timedOut: r.timedOut, ms: r.ms, result: receipt?.result ?? null, stable: receipt?.stable ?? null,
-        guardIssues: receipt?.guardIssues ?? null, checkpointIssues: receipt?.checkpoint?.issues ?? null, fingerprint: receipt?.fingerprint ?? null,
-        freshness: now?.freshness ?? null, reason: now?.reason ?? null, tail: r.status === 0 ? undefined : tail(r, 300),
-        touched: receipt?.stable === false ? touched() : undefined, unrecorded});
-      // Critical when the run was trusted anyway: stable, with no guard issue.
-      const trusted = receipt?.stable === true && Array.isArray(receipt.guardIssues) && !receipt.guardIssues.length;
-      if (unrecorded?.length) {
-        // A trusted run the check could not cover does not count as checked.
-        runs.at(-1).unrecordedCritical = trusted;
-        console.error(`  ${runs.at(-1).unrecordedCritical ? 'CRITICAL ' : ''}UNRECORDED PROGRAMS in ${c.name} run ${n}: ${typeof unrecorded === 'string' ? unrecorded : unrecorded.map(u => `${u.how} ${u.program}`).join(', ')}`);
-      }
-    }
-    const [first, second] = runs;
-    // A trusted run that started a program the recorder missed does not
-    // qualify. Recipes that do not record (direct TypeScript) have no guard issues.
-    const qualifies = !runs.some(x => x.timedOut || x.unrecordedCritical) && second.stable === true && !(second.guardIssues ?? []).length &&
-      second.freshness === 'CURRENT' && first.fingerprint !== null && first.fingerprint === second.fingerprint;
-    Object.assign(out[c.name], {runs, qualifies, pass: runs.map(x => x.result === 'PASS')});
-    console.error(`  ${c.name} ${c.script}: ${qualifies ? 'QUALIFIES' : second.reason || 'not qualified'}`);
-  }
-  redue(['stop']);redue(['remove-state']);
+  const result = productChecks({dir, config, names: ready.map(c => c.name), env, label: row.name, keepTraces});
+  if (result.observer) return {...out, observer: result.observer, observerLink: result.observerLink};
+  for (const [name, value] of Object.entries(result.checks)) Object.assign(out[name], value);
   return out;
 }
 

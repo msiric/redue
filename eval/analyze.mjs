@@ -13,6 +13,8 @@ export function typecheckLike(command, script) {
   if (/(^|[\s;&|(])(npx\s+)?(\.\/node_modules\/\.bin\/)?tsc(\s|$)/.test(base)) return true;
   if (/(^|[\s;&|])redue\s+(--config\s+\S+\s+)?run\s/.test(base)) return true;
   if (/(npm\s+run|pnpm(\s+run)?|yarn(\s+run)?)\s+(type-?check|check-?types|types|tsc|lint:ts)\b/.test(base)) return true;
+  // Python type checkers, through uv, Poetry, python -m or .venv/bin.
+  if (/(^|[\s;&|(\/])(mypy|pyright|basedpyright|pyrefly|ty\s+check)(\s|$)/.test(base)) return true;
   return Boolean(script) && new RegExp(`(npm\\s+run|pnpm(\\s+run)?|yarn(\\s+run)?)\\s+${script.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`).test(base);
 }
 
@@ -30,6 +32,7 @@ export function testLike(command, script) {
 export function lintLike(command, script) {
   const base = command.replace(/^\s*REDUE_FORCE=1\s+/, '');
   if (/(^|[\s;&|(])(npx\s+|pnpm\s+exec\s+)?(\.\/node_modules\/\.bin\/)?eslint(\s|$)/.test(base)) return true;
+  if (/(^|[\s;&|(\/])ruff\s+check(\s|$)/.test(base)) return true;
   if (/(^|[\s;&|])redue\s+(--config\s+\S+\s+)?run\s+lint(\s|$)/.test(base)) return true;
   if (/(^|[\s;&|])(npm|pnpm|yarn)\s+(run\s+)?lint(\s|$)/.test(base)) return true;
   return Boolean(script) && new RegExp(`(npm\\s+run|pnpm(\\s+run)?|yarn(\\s+run)?)\\s+${script.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`).test(base);
