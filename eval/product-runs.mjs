@@ -6,6 +6,7 @@
 // the receipt does not hold (sandbox-check.mjs). Either makes a trusted run
 // critical.
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
 import {evalDir, localDir, readJson, sh, slug, tmpRoot, checkoutRedue} from './lib.mjs';
@@ -82,7 +83,7 @@ export function productChecks({dir, config, names, env, label, keepTraces = fals
       if (hasStrace && sandboxed) {
         try {
           const allowed = [state, ...sandboxPlaces(runtime, env, root), ...systemPlaces];
-          reads = crossCheck(trace, {root, files: receipt?.files ?? {}, allowed});
+          reads = crossCheck(trace, {root, files: receipt?.files ?? {}, allowed, allowedPrefixes: [path.join(fs.realpathSync(os.tmpdir()), 'redue-run-')]});
         } catch (error) { reads = {error: String(error.message).slice(0, 200), findings: ['trace unavailable']}; }
       }
       if (keepTraces && trace) { const kept = path.join(localDir, 'census-traces', slug(label), `${name}-${n}`); fs.mkdirSync(kept, {recursive: true});

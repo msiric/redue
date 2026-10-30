@@ -204,7 +204,7 @@ export class InputIndex {
         // (its package.json stands for them).
         // The second form is for recorded checks only: their recorder
         // classifies a read through the link where it leads.
-        const recorded=name=>['node-script-v1','npm-tests-direct-v1'].includes(this.checks.get(name).plan.qualification);
+        const recorded=name=>['node-script-v1','npm-tests-direct-v1','sandbox-v1'].includes(this.checks.get(name).plan.qualification);
         const observedDir=installed?physical=>!this.includeInstalled&&
           ([...this.installedRootSet].some(root=>physical.startsWith(root+'/'))||
             !physical.split('/').includes('node_modules')&&!this.installedPath(physical+'/package.json')&&matched.every(recorded))&&

@@ -7,7 +7,7 @@ import {queryAnswer,runFactChange} from './typescript-list.mjs';
 import {patternMatcher} from './glob.mjs';
 import {observedBy} from './installed-observation.mjs';
 import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testRunFacts,sharedInstalledFile,testsInterpretation,testsQualification} from './test-direct.mjs';
-import {childProgram,lookup,pnpmConfigFiles,scriptCaches,scriptInstalledPaths,scriptInterpretation,scriptQualification,scriptRunFacts,pnpmNameless,toolOutput,toolchainDirs} from './node-script.mjs';
+import {childProgram,generalIssue,lookup,pnpmConfigFiles,scriptCaches,scriptInstalledPaths,scriptInterpretation,scriptQualification,scriptRunFacts,pnpmNameless,toolOutput,toolchainDirs} from './node-script.mjs';
 import {denialLine,endWithChild,runToEnd,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,sandboxInterpretation,sandboxPlaces,
   sandboxQualification,sandboxSupport,systemPlaces} from './sandbox.mjs';
 import path from 'node:path';
@@ -85,7 +85,8 @@ function environmentReads() {
   try{const value=JSON.parse(fs.readFileSync(readsFile,'utf8'));return value?.schema===1&&value.checks||{};}catch{return {};}
 }
 const recordedRecipes=[testsQualification,scriptQualification];
-function contextHashes() {const reads=config.checks.some(check=>recordedRecipes.includes(check.qualification))?environmentReads():{};
+// A sandboxed check's run is recorded where its sandbox cannot start (execute).
+function contextHashes() {const reads=config.checks.some(check=>[...recordedRecipes,sandboxQualification].includes(check.qualification))?environmentReads():{};
   return Object.fromEntries(config.checks.map(check=>[
   check.name,Object.fromEntries([...(check.environment?.variables||[])
     .map(key=>[key,digest(process.env[key]??'<unset>')]),
@@ -295,10 +296,15 @@ async function execute() {
     const recorded=directRunRecordable(selected)&&!unobservedDirectRun;
     const launched=recorded?[command[0],'--require',path.join(here,'run-recorder.cjs'),
       ...command.slice(1)]:command;
+    // A sandboxed check runs inside the OS sandbox. Where the sandbox cannot
+    // start, a script the general recipe takes is recorded as that recipe
+    // records it (`fallback`); any other runs as it is, and is not reused.
+    const sandboxed=selected.qualification===sandboxQualification,support=sandboxed?sandboxSupport():null;
+    const fallback=Boolean(support?.issue&&typeof selected.script==='string'&&!generalIssue(root,selected.script));
     // A test run's processes record what the guard checks (test-recorder.cjs),
     // and so do a general recipe run's, through the package manager.
-    const general=selected.qualification===scriptQualification;
-    const testRun=recordedRecipes.includes(selected.qualification)&&['darwin','linux'].includes(process.platform);
+    const general=selected.qualification===scriptQualification||fallback;
+    const testRun=(recordedRecipes.includes(selected.qualification)||fallback)&&['darwin','linux'].includes(process.platform);
     let testRecord=null,launchEnv=process.env,testFacts={},toolchain=[];
     if(testRun){
       // The package directory and installed node_modules, as the plan has them.
@@ -318,13 +324,9 @@ async function execute() {
       // npm's and pnpm's update checks read state outside the checkout and the network.
       if(general)launchEnv.npm_config_update_notifier='false';
     }
-    // A sandboxed check runs inside the OS sandbox, with the environment REDUE
-    // gives it. Where the sandbox cannot start, it runs as it is and the
-    // result is not reused.
-    const sandboxed=selected.qualification===sandboxQualification;
+    // The sandboxed run, with the environment REDUE gives it.
     let sandbox=null;
-    if(sandboxed){
-      const support=sandboxSupport();
+    if(sandboxed&&!fallback){
       if(support.issue)captureIssues.push(`the run was not sandboxed: ${support.issue}`);
       else{
         const dirs=sandboxDirs(state,name);
@@ -334,7 +336,9 @@ async function execute() {
       }
     }
     const plainEnv={...process.env,...selected.script?{npm_config_update_notifier:'false'}:{}};
-    ownGroup=sandboxed&&process.platform!=='win32';
+    // Output kept, and its own process group, for a run as this recipe makes it.
+    const own=sandboxed&&!fallback;
+    ownGroup=own&&process.platform!=='win32';
     // A sandboxed run's output is passed through and its start and end kept,
     // to tell a refusal by the sandbox from a real failure.
     const output={head:'',tail:''};
@@ -366,11 +370,11 @@ async function execute() {
         const launch=windowsLaunch(sandbox?.argv??launched);
         child=spawn(launch.file,launch.args,{cwd:plan.cwd,
         // A sandboxed run's own group gets no terminal input, which would stop it.
-        stdio:recorded?['inherit','inherit','inherit','pipe']:sandboxed?['ignore','pipe','pipe']:'inherit',
-        env:sandbox?.env??(sandboxed?plainEnv:launchEnv),
+        stdio:recorded?['inherit','inherit','inherit','pipe']:own?['ignore','pipe','pipe']:'inherit',
+        env:sandbox?.env??(own?plainEnv:launchEnv),
         detached:process.platform==='linux'||ownGroup,...launch.options});
         child.stdio[3]?.on('data',chunk=>record.push(chunk));
-        if(sandboxed){child.stdout.on('data',chunk=>{process.stdout.write(chunk);keep(chunk);});
+        if(own){child.stdout.on('data',chunk=>{process.stdout.write(chunk);keep(chunk);});
           child.stderr.on('data',chunk=>{process.stderr.write(chunk);keep(chunk);});
           // What the check left running is stopped when it exits, as a CI
           // job's end does (on Linux the launcher also stops daemons that
@@ -558,7 +562,7 @@ async function execute() {
     // A recorded run's receipt carries its run facts, even none; observers that
     // predate run facts do not reuse version 2.
     // The recipe that made the receipt, which status and the hook name.
-    const receipt={result,invocation,target,stable,fingerprintVersion:recorded||testRun?2:1,recipe:selected.qualification||null,
+    const receipt={result,invocation,target,stable,fingerprintVersion:recorded||testRun?2:1,recipe:(fallback?scriptQualification:selected.qualification)||null,
       ...(recorded||testRun?{runFacts}:{}),
       ...(testRun?{verificationRecipe:general?scriptInterpretation:testsInterpretation,guardIssues:guard?.issues||['the run record is unavailable'],
         environmentReads:guard?.environmentReads||{},...(nondeterministic?{nondeterministic}:{})}:{}),
@@ -572,7 +576,8 @@ async function execute() {
       planId:snap?.planId??plan.id,fingerprint:(recording||outputs?end:snap)?.fingerprint??null,
       provider:plan.provider,environmentHashes:environmentBefore,
       ...(observedContext?{observedContext,verificationRecipe:directInterpretation}:{}),
-      ...(sandboxed?{verificationRecipe:sandboxInterpretation,sandbox:{mode:sandbox?.mode??null,...sandboxRerun?{rerun:sandboxRerun}:{}}}:{}),
+      ...(own?{verificationRecipe:sandboxInterpretation,sandbox:{mode:sandbox?.mode??null,...sandboxRerun?{rerun:sandboxRerun}:{}}}:{}),
+      ...(fallback?{sandbox:{mode:null,fallback:'node-script',issue:support.issue}}:{}),
       files:(outputs?end:snap)?.files??null,observerGeneration:before?.observation?.generation??null,
       startRevision:snap?.revision??null,endRevision:end?.revision??null};
     const persistenceStarted=performance.now();

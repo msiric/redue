@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {pnpmShimTarget} from './pnpm-shims.mjs';
-import {testPackageManager,testWorkspaceDirs,testEnvironment} from './test-direct.mjs';
+import {testPackageManager,testWorkspaceDirs,testEnvironment,testEnvironmentIssue} from './test-direct.mjs';
 
 export const scriptQualification='node-script-v1';
 export const scriptInterpretation='node-script@1';
@@ -357,6 +357,21 @@ export function childProgram({file,args,cwd,searchPath,env=null,script=null},{to
   if(name==='ps'&&JSON.stringify(args)===JSON.stringify(['-A','-o','ppid,pid'])&&main&&toolchain.some(dir=>within(main,dir)))
     return {needsHeader:false};
   return {issue:`ran ${name}, a program REDUE does not record`};
+}
+// Why the general recipe could not record a root script now, or null: what
+// init checks before it proposes it. A sandboxed check whose sandbox cannot
+// start is recorded this way instead (cli.mjs).
+export function generalIssue(root,script){
+  if(!['darwin','linux'].includes(process.platform))return 'the general recipe records runs on macOS and Linux only';
+  const environment=testEnvironmentIssue();
+  if(environment)return environment;
+  let project;try{project=scriptProject(root,script);}catch(e){return e.code?.replace(/^test-/,'')||e.message;}
+  for(const name of ['pre'+script,script,'post'+script]){
+    if(typeof project.scripts[name]!=='string')continue;
+    const issue=commandLineIssue(project.scripts[name],{cwd:root,searchPath:scriptPath(root,process.env.PATH)});
+    if(issue)return name===script?issue:`${name}: ${issue}`;
+  }
+  return null;
 }
 // What a recorded run needs from the check: the workspace package directories
 // whose node_modules its installed inputs list. The script must still exist.

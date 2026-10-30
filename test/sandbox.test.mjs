@@ -363,3 +363,22 @@ test('a sandboxed command killed by a signal is reported as killed, on both plat
   const status=row(root,state,'typecheck');
   assert.equal(status.freshness,'UNVERIFIED');assert.match(status.reason,/invocation interrupted/);
 });
+
+test('a Node script the general recipe also takes is sandboxed; where the sandbox cannot start, the general recipe records it',{skip:unsupported},t=>{
+  const {root,state}=nodeProject(t,{lint:'checker'});
+  const lint=JSON.parse(good(root,state,'init','--dry-run','--json')).checks.find(check=>check.name==='lint');
+  assert.equal(lint.level,'ready',lint.reason);
+  assert.match(lint.reason,/sandboxed recipe: npm runs script "lint" inside the OS sandbox; where the sandbox cannot run, the general recipe records it/);
+  // With no sandbox at init, init writes the general recipe, as before.
+  const off={VSTATE_TEST_FAULTS:'1',VSTATE_TEST_SANDBOX:'unavailable'};
+  assert.equal(JSON.parse(invoke(root,state,['init','--dry-run','--json'],off).stdout).proposed_config.checks.find(c=>c.name==='lint').qualification,'node-script-v1');
+  good(root,state,'init');good(root,state,'start');
+  assert.equal(invoke(root,state,['run','lint'],off).status,0);
+  let status=row(root,state,'lint',off);
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  assert.equal(status.recipe,'node-script-v1');
+  good(root,state,'run','lint');
+  status=row(root,state,'lint');
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  assert.equal(status.recipe,'sandbox-v1');
+});

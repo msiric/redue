@@ -162,8 +162,11 @@ process.exit(value.includes('fail')?1:0);
   t.after(()=>{try{invoke(root,state,'stop');}catch{}fs.rmSync(base,{recursive:true,force:true});});
   return {root,state};
 }
+// These tests are about the general recipe: init would give the sandboxed
+// recipe first where the sandbox can run (sandbox.test.mjs), so it is off.
 function invoke(root,state,...args){
-  const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!/^npm_/i.test(key)));
+  const env={...Object.fromEntries(Object.entries(process.env).filter(([key])=>!/^npm_/i.test(key))),
+    VSTATE_TEST_FAULTS:'1',VSTATE_TEST_SANDBOX:'unavailable'};
   return spawnSync(process.execPath,[bin,'--state-dir',state,...args],{cwd:root,env,encoding:'utf8',timeout:60000});
 }
 function good(root,state,...args){const result=invoke(root,state,...args);

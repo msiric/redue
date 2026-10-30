@@ -1,6 +1,6 @@
 import {directProject,directQualification} from './direct-typescript.mjs';
-import {testProject,testRecipeScript,testCheckInputs,testEnvironmentIssue,testsQualification} from './test-direct.mjs';
-import {commandLineIssue,scriptCheckInputs,scriptPath,scriptProject,scriptQualification} from './node-script.mjs';
+import {testProject,testRecipeScript,testCheckInputs,testsQualification} from './test-direct.mjs';
+import {generalIssue,scriptCheckInputs,scriptProject,scriptQualification} from './node-script.mjs';
 import {sandboxCheckInputs,sandboxKinds,sandboxQualification} from './sandbox.mjs';
 // Init proposes the general recipe for typecheck and lint scripts; test
 // scripts use the direct test recipe (Vitest, Jest).
@@ -208,16 +208,9 @@ export function workspacePackages(root){
 // supported package manager and platform, and a script (with its pre and post
 // scripts) that, read as text, starts only Node programs.
 function generalCheck(root,kind,script){
-  if(!['darwin','linux'].includes(process.platform))throw Error('the general recipe records runs on macOS and Linux only');
-  const environmentIssue=testEnvironmentIssue();
-  if(environmentIssue)throw Error(environmentIssue);
-  let project;
-  try{project=scriptProject(root,script);}catch(e){throw Error(e.code?.replace(/^test-/,'')||e.message);}
-  for(const name of ['pre'+script,script,'post'+script]){
-    if(typeof project.scripts[name]!=='string')continue;
-    const issue=commandLineIssue(project.scripts[name],{cwd:root,searchPath:scriptPath(root,process.env.PATH)});
-    if(issue)throw Error(name===script?issue:`${name}: ${issue}`);
-  }
+  const issue=generalIssue(root,script);
+  if(issue)throw Error(issue);
+  const project=scriptProject(root,script);
   return {config:{name:kind,script,kind,qualification:scriptQualification,...scriptCheckInputs(project.dirs)},manager:project.manager};
 }
 export function discoverNodeProject(root,{recipe=null}={}) {
@@ -296,18 +289,22 @@ export function discoverNodeProject(root,{recipe=null}={}) {
           qualification:'pnpm-tsc-v1'};}
       catch(e){classification={level:'recording',reason:`pnpm TypeScript contract needs review: ${e.message}`};}
     }
-    let generalIssue=null;
+    // The general recipe's row, when it takes the script.
+    let generalIssue=null,generalRow=null;
     if((auto||recipe==='node-script')&&script&&generalKinds.includes(kind)&&classification.level!=='ready'&&!observationIssue){
       try{
         const general=generalCheck(root,kind,script);
-        checks.push({config:general.config,level:'ready',qualification:scriptQualification,
-          reason:`general recipe: ${general.manager} runs script ${JSON.stringify(script)} with REDUE's recorder in every Node process; the whole checkout is its input`});
-        continue;
+        generalRow={config:general.config,level:'ready',qualification:scriptQualification,
+          reason:`general recipe: ${general.manager} runs script ${JSON.stringify(script)} with REDUE's recorder in every Node process; the whole checkout is its input`};
       }catch(e){generalIssue=e.message;classification={...classification,reason:`General recipe unavailable (${e.message}); ${classification.reason}`};}
     }
-    // The sandboxed recipe for a root typecheck or lint script no other recipe
-    // takes. It is ready only once init has run it both ways (bin/redue.mjs);
-    // `fallback` is the row init writes when that shows a difference.
+    // After the strict recipes, a root typecheck or lint script gets the
+    // sandboxed recipe, which also covers programs the general recipe cannot
+    // record. It is ready only once init has run it both ways (bin/redue.mjs);
+    // `fallback` is the row init writes when that shows a difference or the
+    // sandbox cannot run here: the general recipe's, when it takes the script.
+    // Where the sandbox cannot start at run time, a script the general recipe
+    // takes is recorded as it would record it (cli.mjs).
     // A script whose program is not installed gets none, and neither does one
     // that changes files (`--fix`, `--write`): init would run it twice.
     const writes=script&&['pre'+script,script,'post'+script].map(name=>scripts[name]).find(text=>typeof text==='string'&&
@@ -317,13 +314,15 @@ export function discoverNodeProject(root,{recipe=null}={}) {
       !/REDUE cannot find/.test(generalIssue||'')&&!writes){
       try{
         const project=scriptProject(root,script);
-        const fallback={config:{...check,...classification.qualification?{qualification:classification.qualification}:{}},...classification};
+        const fallback=generalRow??{config:{...check,...classification.qualification?{qualification:classification.qualification}:{}},...classification};
         checks.push({config:{name:kind,script,kind,qualification:sandboxQualification,...sandboxCheckInputs(project.dirs)},level:'ready',
           qualification:sandboxQualification,fallback,
-          reason:`sandboxed recipe: ${project.manager} runs script ${JSON.stringify(script)} inside the OS sandbox${generalIssue?` (the general recipe cannot record it: ${generalIssue})`:''}; the whole checkout is its input`});
+          reason:`sandboxed recipe: ${project.manager} runs script ${JSON.stringify(script)} inside the OS sandbox${generalIssue?` (the general recipe cannot record it: ${generalIssue})`:
+            generalRow?'; where the sandbox cannot run, the general recipe records it':''}; the whole checkout is its input`});
         continue;
       }catch(e){classification={...classification,reason:`Sandboxed recipe unavailable (${e.code?.replace(/^test-/,'')||e.message}); ${classification.reason}`};}
     }
+    if(generalRow){checks.push(generalRow);continue;}
     if(!script&&classification.level!=='ready')continue;
     if(parts&&classification.level==='ready'){
       for(const part of parts)checks.push({config:{...check,...part,qualification:classification.qualification},...classification});

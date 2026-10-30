@@ -21,9 +21,11 @@ const installedCache = picomatch(['**/node_modules/{.cache,.vite,.vite-temp,.vit
   '.venv/**/__pycache__/**', '.venv/bin/python*', '.venv/bin/pypy*', '.venv/bin/𝜋thon*'], {dot: true});
 
 // {checkout: {observed, cache, output, unobserved: [...], git: [...]}, outside: {allowed, other: [...]}, remote: [...]}
-export function crossCheck(trace, {root, files, allowed}) {
+// `allowedPrefixes`: path prefixes allowed beside the places (the run's own
+// temporary directory, /tmp/redue-run-*).
+export function crossCheck(trace, {root, files, allowed, allowedPrefixes = []}) {
   const lines = fs.readFileSync(trace, 'utf8').split('\n');
-  const procs = new Map(), pending = new Map(), inside = new Set();
+  const procs = new Map(), pending = new Map(), inside = new Set(), launchers = new Set();
   const cwdOf = pid => procs.get(pid) ?? root;
   const out = {checkout: {observed: 0, cache: 0, output: 0, directories: 0, unobserved: new Set(), git: new Set()},
     outside: {allowed: 0, other: new Set()}, remote: new Set(), processes: 0};
@@ -34,12 +36,13 @@ export function crossCheck(trace, {root, files, allowed}) {
       const rel = path.relative(root, file);
       if (!rel) return;
       if (rel === '.git' || rel.startsWith('.git/')) { out.checkout.git.add(rel); return; }
-      if (kind === 'list') { out.checkout.directories++; return; }
+      // A directory opened without O_DIRECTORY (Node's module lookup) is a listing.
+      if (kind === 'list' || (() => { try { return fs.statSync(file).isDirectory(); } catch { return false; } })()) { out.checkout.directories++; return; }
       if (Object.hasOwn(files, rel)) out.checkout.observed++;
       else if (cache(rel) || installedCache(rel)) out.checkout.cache++;
       else if (written.has(rel)) out.checkout.output++;
       else out.checkout.unobserved.add(rel);
-    } else if (allowed.some(dir => under(file, dir))) out.outside.allowed++;
+    } else if (allowed.some(dir => under(file, dir)) || allowedPrefixes.some(prefix => file.startsWith(prefix))) out.outside.allowed++;
     else out.outside.other.add(file);
   };
   for (const line of lines) {
@@ -53,11 +56,13 @@ export function crossCheck(trace, {root, files, allowed}) {
     if (!call) continue;
     const [, name, args, ret, retPath] = call, ok = ret !== '-1' && ret !== '?';
     const strs = [...args.matchAll(/"((?:[^"\\]|\\.)*)"/g)].map(x => x[1].replace(/\\(.)/g, '$1'));
-    // The sandboxed processes: the Landlock launcher and everything it starts.
-    if (name === 'execve' && ok && strs.some(s => s.endsWith('/landlock.py'))) inside.add(pid);
+    // The sandboxed processes: what the Landlock launcher starts, once it has
+    // restricted itself, and their descendants. The launcher's own reads come
+    // before that.
+    if (name === 'execve' && ok && strs.some(s => s.endsWith('/landlock.py'))) launchers.add(pid);
     if (/^(clone3?|fork|vfork)$/.test(name) && Number(ret) > 0) {
       procs.set(Number(ret), cwdOf(pid));
-      if (inside.has(pid)) inside.add(Number(ret));
+      if (inside.has(pid) || launchers.has(pid)) inside.add(Number(ret));
       continue;
     }
     if (!inside.has(pid)) continue;

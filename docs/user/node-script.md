@@ -4,10 +4,12 @@ The general recipe records a project's own typecheck or lint script, run
 through its package manager, and reports later whether that result still
 applies to the files you have. It is a lower tier than the strict recipes:
 `redue init` tries the [direct TypeScript recipe](direct-typescript.md), the
-pnpm and Yarn TypeScript recipes and the [direct test recipe](tests-direct.md)
-first, and uses the general recipe for a root typecheck or lint script none of
-them takes. Test scripts use the direct test recipe; `init` does not propose
-the general recipe for them.
+pnpm and Yarn TypeScript recipes, the [direct test recipe](tests-direct.md)
+and, on macOS and Linux, the [sandboxed recipe](sandbox.md) first. It uses
+the general recipe for a root typecheck or lint script none of them takes,
+and where the sandbox cannot run (at init, or at run time inside Claude
+Code's macOS sandbox). Test scripts use the direct test recipe; `init` does
+not propose the general recipe for them.
 
 It supports a project installed by npm, pnpm 9-12 (isolated or hoisted
 `node_modules`) or Yarn with the `node-modules` linker, with one lockfile kind
@@ -122,8 +124,9 @@ Anything else makes the result UNVERIFIED and names the program: `git`,
 `sleep`, `find`, and native programs from installed packages such as esbuild,
 turbo, tsgo, tsgolint and biome, whose reads, writes and network use REDUE
 cannot see. `init` reads the script the same way. A typecheck or lint script
-that starts such a program gets the [sandboxed recipe](sandbox.md) where it
-can run; otherwise it stays recording-only, with the program in the reason.
+gets the [sandboxed recipe](sandbox.md) first where it can run, which covers
+such programs; otherwise a script that starts one stays recording-only, with
+the program in the reason.
 
 A command line may use `&&`, `||`, `;`, `|`, quotes without expansions,
 globs in arguments and redirection to `/dev/null`. Variables, command

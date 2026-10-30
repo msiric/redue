@@ -42,8 +42,10 @@ function project(t,{manager='npm',declaredManager=null,
 function invoke(root,state,...args){
   // npm test injects npm_config_* into this test process. The fixture models a
   // developer invoking the CLI directly, not a nested npm lifecycle command.
-  const env=Object.fromEntries(Object.entries(process.env)
-    .filter(([key])=>!/^npm_config_/i.test(key)&&!['NODE_TEST_CONTEXT','NODE_TEST_WORKER_ID'].includes(key)));
+  // Without the sandbox: init's discovery as the other recipes see it (sandbox.test.mjs has the sandboxed recipe).
+  const env={...Object.fromEntries(Object.entries(process.env)
+    .filter(([key])=>!/^npm_config_/i.test(key)&&!['NODE_TEST_CONTEXT','NODE_TEST_WORKER_ID'].includes(key))),
+    VSTATE_TEST_FAULTS:'1',VSTATE_TEST_SANDBOX:'unavailable'};
   return spawnSync(process.execPath,[bin,'--state-dir',state,...args],
     {cwd:root,env,encoding:'utf8',timeout:30000});
 }

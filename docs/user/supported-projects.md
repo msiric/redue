@@ -18,13 +18,13 @@ build scripts. It prefers familiar script names (for typecheck: `typecheck`,
 (`typecheck:test`, `tsc:build`; not a watch script), then unique recognizable
 `tsc`, Vitest/Jest, ESLint, or Vite commands under other names. Multiple
 matches are reported as ambiguous rather than guessed. It never creates a new
-project script. Without `--recipe`, `init` tries the strict recipes below first,
-then the [general recipe](node-script.md) for a root typecheck or lint
-script: the script run through the package manager with every Node process
-recorded and the whole checkout as its input. A root typecheck or lint
-script neither takes, usually one that starts a native program, gets the
-[sandboxed recipe](sandbox.md) on macOS and Linux. Python projects get it
-for mypy, pyright, ty and ruff in their `.venv`. `--recipe typescript-direct`,
+project script. Without `--recipe`, `init` tries the strict recipes below first, then,
+for a root typecheck or lint script, the [sandboxed recipe](sandbox.md) on
+macOS and Linux (the script run inside an OS sandbox, the whole checkout as
+its input), then the [general recipe](node-script.md): the script run
+through the package manager with every Node process recorded and the whole
+checkout as its input. Python projects get the sandboxed recipe for mypy,
+pyright, ty and ruff in their `.venv`. `--recipe typescript-direct`,
 `tests-direct`, `node-script` or `sandbox` selects one recipe alone. The direct TypeScript recipe supports
 a typecheck script of `tsc --noEmit` runs in any argument order, chained runs,
 or no typecheck script at all (a proposed `tsc --noEmit`; see

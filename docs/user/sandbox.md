@@ -15,11 +15,15 @@ network would give the same result.
 ## Where it applies
 
 - **Node projects:** a root `typecheck` or `lint` script (npm, pnpm, or Yarn
-  with the `node-modules` linker) that the other recipes cannot take, usually
-  because it starts a program that is not Node. `init` tries the
-  [direct TypeScript recipe](direct-typescript.md), the pnpm and Yarn
-  TypeScript recipes and the [general recipe](node-script.md) first; they stay
-  first where they apply.
+  with the `node-modules` linker). `init` tries the
+  [direct TypeScript recipe](direct-typescript.md) and the pnpm and Yarn
+  TypeScript recipes first; they stay first where they apply. Then the
+  sandboxed recipe, before the [general recipe](node-script.md), since it
+  also covers the native programs a script starts. Where init's trial shows a
+  difference, or the sandbox cannot run, `init` writes the general recipe as
+  before. Where the sandbox cannot start at run time (inside Claude Code's
+  macOS sandbox), a script the general recipe takes is recorded as it records
+  it.
 - **Python projects:** mypy, pyright, ty and ruff installed in the project's
   `.venv` (`uv sync` makes one; Poetry does with `virtualenvs.in-project`).
   `init` uses the arguments your CI workflow, Makefile, tox, nox, justfile or
