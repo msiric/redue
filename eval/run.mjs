@@ -137,10 +137,11 @@ async function runSession(task, repo, arm, id) {
     step('agent_setup_ms', 'agent', 'setup', 'claude', '--apply');
     step('start_ms', 'start');
     row.setup.index_ms = waitReady(entry, dir, {env});
-    if (check !== 'typecheck') {
+    if (check !== 'typecheck' || repo.install) {
       // The seed is an earlier session's passing run: a short session runs
       // `redue run CHECK` in its Bash tool, so the run's environment (PATH
-      // included) is the agent's. Nothing may be chained to it.
+      // included) is the agent's. A sandboxed check (a Python repo's)
+      // compares PATH too. Nothing may be chained to it.
       const mark = path.join(runDir, 'seed-mark');
       fs.writeFileSync(mark, '');
       const seed = await claudeSession(sessionArgs(`Run exactly this command from the project root, once, as a command of its own with nothing added before or after it, then report its exit status: redue run ${check}`, 5),
