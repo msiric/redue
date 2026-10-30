@@ -367,7 +367,10 @@ test('disabled macOS history requires a fresh checkpoint even after successful r
     // Model an event not delivered before the decision, deterministically.
     put(path.join(f.state,'drop-events'),'1');
     put(path.join(f.root,'notes.md'),'unrelated');
-    assert.equal(row(f).freshness,'CURRENT');
+    // A reconciliation after the recovery can still be pending: UNVERIFIED
+    // until it ends, by design. The dropped event must not make it STALE.
+    const settled=await until(f,s=>s.checks[0].reason!=='input observation reconciliation pending');
+    assert.equal(settled.checks[0].freshness,'CURRENT',JSON.stringify(settled.checks[0]));
     const file=path.join(f.root,'node_modules/pkg/index.js'),before=oracle(file);
     put(file,'module.exports=11;\n');assert.notEqual(oracle(file),before);
     const result=row(f);assert.equal(result.freshness,'STALE');
