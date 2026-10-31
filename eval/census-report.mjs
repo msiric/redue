@@ -6,6 +6,8 @@
 //   node eval/census-report.mjs DIR...
 import fs from 'node:fs';
 import path from 'node:path';
+import {entryPoint} from './lib.mjs';
+entryPoint(import.meta);
 
 const rows = new Map();
 for (const dir of process.argv.slice(2))

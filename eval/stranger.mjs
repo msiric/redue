@@ -21,7 +21,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {parseArgs} from 'node:util';
-import {claudeSession, harnessEnv, localDir, must, redactDir, repoRoot, sessionAuth, sh, slug, stamp, tmpRoot} from './lib.mjs';
+import {claudeSession, harnessEnv, localDir, must, redactDir, repoRoot, sessionAuth, sh, slug, stamp, tmpRoot, entryPoint} from './lib.mjs';
+entryPoint(import.meta, {ci: true});
 
 const {values: opt, positionals: names} = parseArgs({allowPositionals: true, options: {
   out: {type: 'string'}, model: {type: 'string', default: 'claude-sonnet-5-5'}, 'max-turns': {type: 'string', default: '80'},

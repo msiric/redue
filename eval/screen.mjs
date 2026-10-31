@@ -11,7 +11,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {checkoutRedue, evalDir, freshClone, installedTypeScript, localDir, mirror, plainTsc, readJson,
-  redue, reviewedTypeScript, sh, slug, stamp, tmpRoot, checkStatus, waitReady} from './lib.mjs';
+  redue, reviewedTypeScript, sh, slug, stamp, tmpRoot, checkStatus, waitReady, entryPoint} from './lib.mjs';
+entryPoint(import.meta, {ci: true});
 
 const args = process.argv.slice(2).filter(arg => !arg.startsWith('-'));
 const repos = args.length ? args.map(arg => {

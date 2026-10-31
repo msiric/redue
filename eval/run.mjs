@@ -23,10 +23,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {parseArgs} from 'node:util';
 import {checkoutRedue, claudeSession, evalDir, freshClone, harnessEnv, localDir, plainTests, plainTsc, RateLimited, readJson, redue, sh, slug, stamp,
-  tmpRoot, checkStatus, must, waitReady, sessionAuth, redactDir, receiptOf, touchedSince} from './lib.mjs';
+  tmpRoot, checkStatus, must, waitReady, sessionAuth, redactDir, receiptOf, touchedSince, entryPoint} from './lib.mjs';
 import {writeWrapper} from './wrapper.mjs';
 import {analyze} from './analyze.mjs';
 import {report} from './report.mjs';
+entryPoint(import.meta, {ci: true});
 
 const {values: opt} = parseArgs({options: {
   pilot: {type: 'boolean'}, repo: {type: 'string'}, task: {type: 'string'}, arms: {type: 'string', default: 'control,redue'},

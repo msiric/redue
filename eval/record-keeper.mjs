@@ -5,6 +5,8 @@
 //   node eval/record-keeper.mjs <state dir> <out dir>
 import fs from 'node:fs';
 import path from 'node:path';
+import {entryPoint} from './lib.mjs';
+entryPoint(import.meta);
 
 const [state, out] = process.argv.slice(2);
 fs.mkdirSync(out, {recursive: true});

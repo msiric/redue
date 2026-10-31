@@ -4,6 +4,7 @@
 //   node eval/report.mjs .local/eval/run-*/      # re-render from results.json
 import fs from 'node:fs';
 import path from 'node:path';
+import {executedDirectly} from './lib.mjs';
 
 const sec = ms => ms == null ? '-' : (ms / 1000).toFixed(0);
 const usd = n => n == null ? '-' : `$${n.toFixed(2)}`;
@@ -123,7 +124,7 @@ export function report(rows, {model, max_turns, maxTurns = max_turns, runs, out}
   return lines.join('\n');
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (executedDirectly(import.meta)) {
   const dir = path.resolve(process.argv[2] || '.');
   const {rows, ...meta} = JSON.parse(fs.readFileSync(path.join(dir, 'results.json'), 'utf8'));
   // Results from an older harness: recompute what the transcripts can tell.

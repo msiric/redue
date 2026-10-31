@@ -32,13 +32,18 @@
 // twice, to see a task cache). Writes .local/eval/census-*.json.
 import fs from 'node:fs';
 import path from 'node:path';
-import {checkoutRedue, evalDir, harnessEnv, localDir, readJson, sh, slug, stamp, tmpRoot} from './lib.mjs';
+import {spawnSync} from 'node:child_process';
+import {checkoutRedue, evalDir, harnessEnv, localDir, readJson, sh, slug, stamp, tmpRoot, entryPoint} from './lib.mjs';
 import {analyzeRun, compareRuns, hasStrace, recordedRun, snapshot} from './recorded-run.mjs';
 import {productChecks} from './product-runs.mjs';
 import {sandboxModes, sandboxSuite} from './sandbox.mjs';
+entryPoint(import.meta, {ci: true});
 
 // --python: the Python census (eval/python-census.mjs), from the same workflow.
-if (process.argv.includes('--python')) { await import('./python-census.mjs'); process.exit(); }
+if (process.argv.includes('--python')) {
+  const r = spawnSync(process.execPath, [path.join(evalDir, 'python-census.mjs'), ...process.argv.slice(2)], {stdio: 'inherit'});
+  process.exit(r.status ?? 1);
+}
 
 const argv = process.argv.slice(2);
 const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : null;

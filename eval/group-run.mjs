@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// node eval/group-run.mjs TIMEOUT_MS CMD [ARGS...]
+// node eval/group-run.mjs [--ci] TIMEOUT_MS CMD [ARGS...]
 //
 // Runs CMD in its own process group and copies its output. On timeout it sends
 // SIGTERM to the whole group, SIGKILL 10 s later, and exits 124. It exits when
@@ -7,8 +7,12 @@
 // open cannot hold up the harness (what kept census shards running to the
 // 5-hour job limit).
 import {spawn} from 'node:child_process';
+import {entryPoint} from './lib.mjs';
+// --ci: started by lib.mjs sh() on a CI runner.
+const started = process.argv[2] === '--ci';
+entryPoint(import.meta, {ci: true, started});
 
-const [timeoutArg, cmd, ...args] = process.argv.slice(2);
+const [timeoutArg, cmd, ...args] = process.argv.slice(started ? 3 : 2);
 const timeout = Number(timeoutArg);
 const child = spawn(cmd, args, {stdio: ['inherit', 'pipe', 'pipe'], detached: true});
 child.stdout.pipe(process.stdout);

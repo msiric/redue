@@ -19,10 +19,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline';
-import {evalDir, harnessEnv, localDir, readJson, sh, slug, stamp, tmpRoot} from './lib.mjs';
+import {evalDir, harnessEnv, localDir, readJson, sh, slug, stamp, tmpRoot, entryPoint} from './lib.mjs';
 import {sandboxModes, sandboxSuite} from './sandbox.mjs';
 import {productChecks} from './product-runs.mjs';
 import {checkoutRedue} from './lib.mjs';
+entryPoint(import.meta, {ci: true});
 
 const argv = process.argv.slice(2), sandbox = argv.includes('--sandbox'), product = argv.includes('--product');
 const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : null;

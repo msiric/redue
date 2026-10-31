@@ -8,6 +8,12 @@ model without REDUE (control) and with it, three times per arm by default
 Results, transcripts and clones stay out of git: results go to `.local/eval/`,
 clones to `$TMPDIR/redue-eval/`.
 
+Everything that runs third-party code (public repositories, their packages,
+package managers) runs only on CI runners: those entry points refuse to start
+unless `GITHUB_ACTIONS=true`. Dispatch `.github/workflows/eval.yml` instead.
+Importing any entry point throws before it does anything (`entryPoint` in
+`lib.mjs`); `test/eval-entry-points.test.mjs` checks both.
+
 ## Files
 
 - `repos.json`: public repos, each pinned to a commit, with the npm script that

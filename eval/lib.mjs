@@ -16,6 +16,24 @@ export const tmpRoot = path.join(fs.realpathSync(os.tmpdir()), 'redue-eval');
 export const reviewedTypeScript = reviewedTypeScriptVersions;
 export const checkoutRedue = path.join(repoRoot, 'bin', 'redue.mjs');
 
+// Whether Node was started with the module `meta` belongs to.
+export function executedDirectly(meta) {
+  try { return Boolean(process.argv[1]) && fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(meta.url)); } catch { return false; }
+}
+// Eval entry points are commands: each starts only when Node runs its file,
+// and importing one throws before it does anything. `ci`: it runs
+// third-party code (public repositories, their packages, package managers),
+// which runs only on CI runners, never on a developer's machine. `started`:
+// a guarded entry point that runs on CI started this one.
+export function entryPoint(meta, {ci = false, started = false} = {}) {
+  const name = path.relative(repoRoot, fileURLToPath(meta.url));
+  if (!executedDirectly(meta)) throw Error(`${name} is a command: run it with node, do not import it`);
+  if (ci && !started && process.env.GITHUB_ACTIONS !== 'true') {
+    console.error(`${name} runs third-party code (public repositories, their packages and package managers), so it runs only on a CI runner (GITHUB_ACTIONS=true). Dispatch .github/workflows/eval.yml instead.`);
+    process.exit(2);
+  }
+}
+
 // The bench's NODE_* cleanup, minus the variables that tie a child process to
 // the Claude Code session that started this script and the owner's telemetry
 // and credentials. ZDOTDIR points zsh (the agent's Bash tool) at an empty
@@ -30,12 +48,14 @@ export function harnessEnv(extra = {}) {
 }
 
 // On macOS and Linux a command runs in its own process group (group-run.mjs),
-// so a timeout stops everything it started; `timedOut` says it ran out.
+// so a timeout stops everything it started; `timedOut` says it ran out. It
+// gets --ci on a CI runner: the command's environment may leave
+// GITHUB_ACTIONS out.
 const groupRun = fileURLToPath(new URL('group-run.mjs', import.meta.url));
 export function sh(cmd, args, {cwd, env = harnessEnv(), timeout = 600_000, input} = {}) {
   const started = performance.now(), grouped = process.platform !== 'win32' && input === undefined;
   const out = grouped ?
-    spawnSync(process.execPath, [groupRun, String(timeout), cmd, ...args], {cwd, env, timeout: timeout + 60_000, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024}) :
+    spawnSync(process.execPath, [groupRun, ...process.env.GITHUB_ACTIONS === 'true' ? ['--ci'] : [], String(timeout), cmd, ...args], {cwd, env, timeout: timeout + 60_000, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024}) :
     spawnSync(cmd, args, {cwd, env, timeout, input, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024});
   const timedOut = grouped ? out.status === 124 && /group-run: timed out after/.test(out.stderr || '') || out.error?.code === 'ETIMEDOUT' :
     out.signal === 'SIGTERM' || out.error?.code === 'ETIMEDOUT';

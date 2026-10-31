@@ -4,6 +4,8 @@
 // entries, as JSON. A process of its own, so the census can run it with the
 // check's environment and, on Linux, under strace. Research only.
 import {sandboxTrial} from '../src/sandbox.mjs';
+import {entryPoint} from './lib.mjs';
+entryPoint(import.meta, {ci: true});
 
 const [root, check] = process.argv.slice(2);
 const trial = await sandboxTrial(root, JSON.parse(check), {hide: true, timeout: 600_000});

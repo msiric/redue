@@ -8,7 +8,8 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {evalDir, localDir, sh} from './lib.mjs';
+import {evalDir, localDir, sh, entryPoint} from './lib.mjs';
+entryPoint(import.meta, {ci: true});
 
 const landlock = path.join(evalDir, 'sandbox', 'landlock.py');
 const srtVersion = '0.0.81';

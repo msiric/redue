@@ -16,6 +16,8 @@ import path from 'node:path';
 import {execFileSync,spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {shimTemplate} from '../src/pnpm-shims.mjs';
+import {entryPoint} from './lib.mjs';
+entryPoint(import.meta, {ci: true});
 
 const [work,...requested]=process.argv.slice(2);
 if(!work){console.error('usage: node eval/pnpm-shim-templates.mjs WORK_DIR [VERSION...]');process.exit(2);}
