@@ -42,6 +42,8 @@ const tail = (r, n = 600) => (r.stderr + '\n' + r.stdout).trim().slice(-n);
 const installedTree = /(?:^|\/)(?:node_modules|\.venv)(?:\/|$)/;
 const cache = picomatch(sandboxCaches, {dot: true});
 const examples = list => ({count: list.length, examples: list.slice(0, 6)});
+// Enough of what the other checks changed to classify it again later.
+const paths = list => ({count: list.length, examples: list.slice(0, 200)});
 
 // {observer} when the observer never became ready, else {checks: {name: {...}}}.
 export function productChecks({dir, config, names, env, label, keepTraces = false, others = []}) {
@@ -181,12 +183,14 @@ export function productChecks({dir, config, names, env, label, keepTraces = fals
     const changedFiles = run('find', ['.', '-newer', mark, '-type', 'f', '-not', '-path', './.git/*'], 300_000).stdout.split('\n')
       .filter(Boolean).map(rel => rel.replace(/^\.\//, '')).filter(rel => rel !== path.basename(config));
     const ignoredAfter = ignoredOf(), c = {tracked: [], untracked: [], installed: [], cache: [], ignored: []};
-    for (const rel of changedFiles) c[tracked.has(rel) ? 'tracked' : installedTree.test(rel) ? 'installed' : cache(rel) ? 'cache' :
+    // Runner caches first: bytecode and tool caches inside node_modules and
+    // .venv are not inputs either.
+    for (const rel of changedFiles) c[tracked.has(rel) ? 'tracked' : cache(rel) ? 'cache' : installedTree.test(rel) ? 'installed' :
       ignoredAfter.has(rel) ? 'ignored' : 'untracked'].push(rel);
     const trackedDeleted = git('ls-files', '-z', '--deleted'), ignoredRemoved = [...ignoredBefore].filter(rel => !ignoredAfter.has(rel) && !cache(rel));
     const ignoredCreated = c.ignored.filter(rel => !ignoredBefore.has(rel));
-    out.changes = {files: changedFiles.length, ...Object.fromEntries(Object.entries(c).map(([k, v]) => [k, examples(v)])),
-      trackedDeleted: examples(trackedDeleted), ignoredCreated: examples(ignoredCreated), ignoredRemoved: examples(ignoredRemoved)};
+    out.changes = {files: changedFiles.length, ...Object.fromEntries(Object.entries(c).map(([k, v]) => [k, paths(v)])),
+      trackedDeleted: paths(trackedDeleted), ignoredCreated: paths(ignoredCreated), ignoredRemoved: paths(ignoredRemoved)};
     // Inputs under both options: tracked, untracked but not ignored, installed.
     const kept = c.tracked.length + c.untracked.length + c.installed.length + trackedDeleted.length;
     for (const [name, value] of Object.entries(out.checks)) {
