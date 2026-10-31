@@ -348,7 +348,11 @@ test('reconciliation preserves unchanged and unrelated inputs, then detects inst
   const uncertain=await faultObserved(f);
   if(process.platform==='darwin')assert.equal(uncertain.checks[0].freshness,'UNVERIFIED');
   assert.equal((await until(f,s=>s.checks[0].freshness==='CURRENT')).checks[0].invocation.runId,runId);
-  put(path.join(f.root,'notes.md'),'outside contract');assert.equal(row(f).freshness,'CURRENT');
+  put(path.join(f.root,'notes.md'),'outside contract');
+  // A reconciliation after the recovery can still be pending: UNVERIFIED
+  // until it ends, by design. The unrelated file must not make it STALE.
+  const settled=await until(f,s=>s.checks[0].reason!=='input observation reconciliation pending');
+  assert.equal(settled.checks[0].freshness,'CURRENT',JSON.stringify(settled.checks[0]));
   const installed=path.join(f.root,'node_modules/pkg/index.js');
   const old=oracle(installed);put(installed,'module.exports=9;\n');
   assert.notEqual(oracle(installed),old);
