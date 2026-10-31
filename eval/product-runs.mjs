@@ -203,6 +203,8 @@ export function productChecks({dir, config, names, env, label, keepTraces = fals
       if (h) {
         const work = hasStrace ? fs.mkdtempSync(path.join(tmpRoot, 'census-hidden-')) : null;
         h.after = hiddenTrial(name, work && path.join(work, 'strace'));
+        if (work && keepTraces) { const kept = path.join(localDir, 'census-traces', slug(label), `${name}-hidden`); fs.mkdirSync(kept, {recursive: true});
+          try { fs.copyFileSync(path.join(work, 'strace'), path.join(kept, 'strace')); } catch {} }
         if (work) fs.rmSync(work, {recursive: true, force: true});
         value.optionB = {...h, stays: Boolean(h.before.same && h.after.same && (current || onlyIgnored))};
       }
