@@ -80,7 +80,7 @@ function install(dir, pm) {
 }
 
 function init(dir, ...args) {
-  const r = run(process.execPath, [checkoutRedue, '--config', path.join(dir, '.census.redue.json'), 'init', '--dry-run', '--json', ...args], dir, 120_000);
+  const r = run(process.execPath, [checkoutRedue, '--config', path.join(dir, '.census.redue.json'), 'init', '--dry-run', '--json', ...args], dir, 600_000);
   try {
     const out = JSON.parse(r.stdout);
     return {issue: out.issue, layout: out.installation_layout, pm: out.package_manager, pmVersion: out.version, workspaces: out.workspaces,
@@ -144,7 +144,8 @@ function productRuns(dir, row, recipeArgs = allRecipes ? [] : ['--recipe', 'node
   if (!row.install.pass) return {notRun: 'install failed'};
   // A second pass (--compare-general) writes its own config.
   fs.rmSync(config, {force: true});
-  const init = json(redue(['init', ...recipeArgs, '--json']));
+  // init runs each sandboxed check twice to confirm it: a large workspace's lint takes minutes.
+  const init = json(redue(['init', ...recipeArgs, '--json'], 600_000));
   if (!init) return {error: 'init failed'};
   out.init = {issue: init.issue, pm: init.package_manager, pmVersion: init.version};
   const checks = (init.checks ?? []).filter(c => ['typecheck', 'lint', 'test'].includes(c.name.split(':')[0]));

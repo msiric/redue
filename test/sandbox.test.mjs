@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import {spawnSync,execFileSync} from 'node:child_process';
-import {comparableOutput,denialLine,hiddenEntries,sandboxTrial,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
+import {comparableOutput,denialLine,hiddenEntries,sandboxArgv,sandboxTrial,systemPlaces,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
 import {projectArgs,toolArgs} from '../src/python-onboarding.mjs';
 import {chainCommand,hookForms,pathForm,recordedCommand} from '../src/claude-hook.mjs';
 
@@ -251,6 +251,41 @@ test('hidden git-ignored entries: what git lists, but installed trees and caches
   // Without hiding, it fails the same way both ways.
   const plain=await sandboxTrial(root,check);
   assert.deepEqual([plain.plain,plain.sandboxed],[1,1]);
+});
+
+test('a hidden entry stays unreadable when the run recreates it, renames a file into it or reaches it through a link',{skip:unsupported},t=>{
+  const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'rsb-hide-'))),root=path.join(base,'project');
+  t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
+  write(root,'dist/a.txt','a\n');write(root,'gen/g.txt','g\n');write(root,'src/s.txt','s\n');fs.symlinkSync('dist',path.join(root,'link'));
+  const code=`
+import json, os
+r = {}
+def read(name, rel):
+    try:
+        open(rel).read(); r[name] = 'read'
+    except OSError as e:
+        r[name] = e.errno
+read('hidden', 'dist/a.txt')
+read('link', 'link/a.txt')
+read('visible', 'src/s.txt')
+if hasattr(os, 'O_PATH'):
+    os.close(os.open('dist/a.txt', os.O_PATH)); r['opath'] = 'opened'
+open('src/moved.txt', 'w').write('m')
+os.rename('src/moved.txt', 'gen/moved.txt')
+read('renamed', 'gen/moved.txt')
+os.rename('dist', 'dist-old'); os.makedirs('dist'); open('dist/b.txt', 'w').write('b')
+read('recreated', 'dist/b.txt')
+print(json.dumps(r))
+`;
+  const argv=sandboxArgv(support.mode,[python3,'-I','-c',code],{reads:[root,...systemPlaces],python:support.python,
+    hidden:[path.join(root,'dist'),path.join(root,'gen')]});
+  const r=spawnSync(argv[0],argv.slice(1),{cwd:root,encoding:'utf8',timeout:60000});
+  assert.equal(r.status,0,r.stderr);
+  const seen=JSON.parse(r.stdout.trim().split('\n').at(-1));
+  const refused=process.platform==='darwin'?1:13;   // EPERM from Seatbelt, EACCES from Landlock
+  assert.deepEqual({...seen,opath:undefined},{hidden:refused,link:refused,visible:'read',renamed:refused,recreated:refused,opath:undefined},r.stdout);
+  // Landlock does not check an O_PATH open, which gives no access to the contents.
+  if(process.platform==='linux')assert.equal(seen.opath,'opened');
 });
 
 test('a missing file is a refusal only when the line names a hidden path',()=>{
