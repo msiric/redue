@@ -100,9 +100,12 @@ export function productChecks({dir, config, names, env, label, keepTraces = fals
         sandbox: receipt?.sandbox ?? null, freshness: now?.freshness ?? null, reason: now?.reason ?? null, tail: r.status === 0 ? undefined : tail(r, 300),
         touched: receipt?.stable === false ? touched() : undefined, unrecorded, reads});
       // Critical when the run was trusted anyway: stable, with no guard issue.
+      // The program check reads the test recorder's record, so it applies to
+      // the recipes that have a guard (general and test recipes), as before
+      // this module: a direct TypeScript run has none.
       const trusted = receipt?.stable === true && !(receipt.guardIssues ?? []).length;
       if (unrecorded?.length) {
-        runs.at(-1).unrecordedCritical = trusted;
+        runs.at(-1).unrecordedCritical = trusted && Array.isArray(receipt.guardIssues);
         console.error(`  ${trusted ? 'CRITICAL ' : ''}UNRECORDED PROGRAMS in ${name} run ${n}: ${typeof unrecorded === 'string' ? unrecorded : unrecorded.map(u => `${u.how} ${u.program}`).join(', ')}`);
       }
       if (reads?.findings?.length) {
