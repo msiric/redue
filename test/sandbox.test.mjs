@@ -258,7 +258,7 @@ test('a hidden entry stays unreadable when the run recreates it, renames a file 
   t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
   write(root,'dist/a.txt','a\n');write(root,'gen/g.txt','g\n');write(root,'src/s.txt','s\n');fs.symlinkSync('dist',path.join(root,'link'));
   const code=`
-import json, os
+import json, os, shutil
 r = {}
 def read(name, rel):
     try:
@@ -271,9 +271,16 @@ read('visible', 'src/s.txt')
 if hasattr(os, 'O_PATH'):
     os.close(os.open('dist/a.txt', os.O_PATH)); r['opath'] = 'opened'
 open('src/moved.txt', 'w').write('m')
-os.rename('src/moved.txt', 'gen/moved.txt')
-read('renamed', 'gen/moved.txt')
-os.rename('dist', 'dist-old'); os.makedirs('dist'); open('dist/b.txt', 'w').write('b')
+try:
+    os.rename('src/moved.txt', 'gen/moved.txt'); read('renamed', 'gen/moved.txt')
+except OSError as e:
+    r['renamed'] = 'move refused %d' % e.errno
+# Linux can list a hidden directory, so delete it; macOS cannot, so move it away.
+try:
+    shutil.rmtree('dist')
+except OSError:
+    os.rename('dist', 'dist-old')
+os.makedirs('dist'); open('dist/b.txt', 'w').write('b')
 read('recreated', 'dist/b.txt')
 print(json.dumps(r))
 `;
@@ -283,7 +290,9 @@ print(json.dumps(r))
   assert.equal(r.status,0,r.stderr);
   const seen=JSON.parse(r.stdout.trim().split('\n').at(-1));
   const refused=process.platform==='darwin'?1:13;   // EPERM from Seatbelt, EACCES from Landlock
-  assert.deepEqual({...seen,opath:undefined},{hidden:refused,link:refused,visible:'read',renamed:refused,recreated:refused,opath:undefined},r.stdout);
+  // Landlock refuses a rename into a place with other rights (EXDEV).
+  const renamed=process.platform==='darwin'?refused:'move refused 18';
+  assert.deepEqual({...seen,opath:undefined},{hidden:refused,link:refused,visible:'read',renamed,recreated:refused,opath:undefined},r.stdout);
   // Landlock does not check an O_PATH open, which gives no access to the contents.
   if(process.platform==='linux')assert.equal(seen.opath,'opened');
 });
