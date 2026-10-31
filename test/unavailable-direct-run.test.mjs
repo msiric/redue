@@ -13,7 +13,8 @@ function invoke(f,args,env={}){return spawnSync(process.execPath,[bin,'--state-d
 function call(f,args,env={}){const r=invoke(f,args,env);assert.equal(r.status,0,r.stderr+r.stdout);return r.stdout;}
 const receipt=f=>readReceipts(f.state).checks.typecheck;
 const row=f=>JSON.parse(call(f,['status','--sync','--json'])).checks[0];
-const marks=f=>fs.readFileSync(f.profile,'utf8').split('\n').filter(l=>l.startsWith('REDUE_TIMING ')).map(l=>JSON.parse(l.slice(13)));
+// Complete lines only: the run may still be writing the last one.
+const marks=f=>{const text=fs.readFileSync(f.profile,'utf8');return text.slice(0,text.lastIndexOf('\n')+1).split('\n').filter(l=>l.startsWith('REDUE_TIMING ')).map(l=>JSON.parse(l.slice(13)));};
 function evidence(f,r,result){assert.equal(r.result,result);assert.equal(r.stable,false);assert.equal(r.checkpoint.endRevision,null);assert.match(r.checkpoint.issues.join(';'),/not performed: no healthy start checkpoint/);assert.equal(r.coverage.qualified,true);const selected=row(f);assert.equal(selected.invocation.runId,r.invocation.runId);assert(!selected.reuse_eligible);assert.notEqual(selected.freshness,'CURRENT');}
 function launched(f,extra={}){const child=spawn(process.execPath,[bin,'--state-dir',f.state,'run','typecheck'],{cwd:f.root,env:{...f.env,...extra}});let output='';child.stdout.on('data',b=>output+=b);child.stderr.on('data',b=>output+=b);const done=new Promise(resolve=>child.once('exit',code=>resolve({code,output})));return {child,done};}
 async function paused(f,phase){for(const file of ['test-run-paused','test-run-release'])fs.rmSync(path.join(f.state,file),{force:true});const run=launched(f,{VSTATE_TEST_RUN_BOUNDARY:phase});for(let i=0;i<400&&!fs.existsSync(path.join(f.state,'test-run-paused'));i++)await new Promise(r=>setTimeout(r,10));assert(fs.existsSync(path.join(f.state,'test-run-paused')));return run;}

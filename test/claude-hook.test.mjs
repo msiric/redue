@@ -282,8 +282,9 @@ test('real observer: blocks after a non-input edit, allows after a source edit o
     coverage:Object.fromEntries(categories.map(k=>[k,true])),
     coverageReview:Object.fromEntries(categories.map(k=>[k,'reviewed fixture contract']))}]}));
   put(path.join(root,'package.json'),'{"name":"redue-hook-fixture","version":"1"}\n');
-  // Long enough that half of it covers a status call.
-  put(path.join(root,'check.cjs'),"const end=Date.now()+3000;while(Date.now()<end);\n"+
+  // Long enough that half of it covers a status call; a Windows runner's
+  // status call can take longer than 1.5 s.
+  put(path.join(root,'check.cjs'),`const end=Date.now()+${process.platform==='win32'?6000:3000};while(Date.now()<end);\n`+
     "process.exitCode=require('node:fs').readFileSync('src/a.ts','utf8').includes('FAIL')?1:0;\n");
   put(path.join(root,'src/a.ts'),'export const a=1;\n');put(path.join(root,'docs/notes.md'),'# Notes\n');
   const env={...process.env,VSTATE_START_READY_WAIT_MS:'10000'};
