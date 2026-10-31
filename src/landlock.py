@@ -6,6 +6,14 @@
 # connection to an abstract Unix socket outside the run. Writes are not
 # handled, so they are not restricted.
 #
+# --hide PATH keeps the run from reading or executing beneath PATH, inside a
+# --read place. Landlock only grants, beneath a whole directory, so such a
+# place gets listing rights (beneath it all, hidden entries included) and
+# read and execute rights on each of its entries that is not hidden and
+# holds nothing hidden, descending into the ones that do. A hidden path can
+# still be listed and stat'ed. --stats FILE writes the rule count and the
+# time the rules took, as JSON.
+#
 # The launcher stays as the command's parent and a child subreaper: when the
 # command exits, it stops every process the command left running, daemons
 # that started their own session included (they are reparented to it), as a
@@ -13,7 +21,7 @@
 # launcher gets is passed to that group once. The launcher then ends as the
 # command did: with its exit status, or by its signal.
 #
-#   landlock.py --read /usr --read /tmp ... [--no-tcp] -- cmd args...
+#   landlock.py --read /usr --read /tmp ... [--hide P ...] [--stats F] [--no-tcp] -- cmd args...
 #   landlock.py --probe     # prints {"abi": N} or {"abi": null, "errno": E}
 import ctypes
 import json
@@ -53,10 +61,14 @@ def main(argv):
         v, err = abi()
         print(json.dumps({'abi': v, 'errno': err}))
         return 0
-    reads, no_tcp = [], False
+    reads, hidden, stats, no_tcp = [], set(), None, False
     while argv and argv[0] != '--':
         if argv[0] == '--read':
             reads.append(argv[1]); argv = argv[2:]
+        elif argv[0] == '--hide':
+            hidden.add(os.path.normpath(argv[1])); argv = argv[2:]
+        elif argv[0] == '--stats':
+            stats = argv[1]; argv = argv[2:]
         elif argv[0] == '--no-tcp':
             no_tcp = True; argv = argv[1:]
         else:
@@ -72,17 +84,50 @@ def main(argv):
     ruleset = libc.syscall(SYS_CREATE, ctypes.byref(attr), ctypes.c_size_t(size), ctypes.c_uint32(0))
     if ruleset < 0:
         sys.exit(f'landlock.py: create_ruleset errno {ctypes.get_errno()}')
-    for place in reads:
+    started, count = time.monotonic(), 0
+    def add(place, rights=None):
+        nonlocal count
         try:
             fd = os.open(place, os.O_PATH | os.O_CLOEXEC)
         except OSError:
-            continue
+            return
         # A file takes file rights only.
-        rights = handled if os.path.isdir(place) else EXECUTE | READ_FILE
+        if rights is None:
+            rights = handled if os.path.isdir(place) else EXECUTE | READ_FILE
         rule = PathBeneath(rights, fd)
         if libc.syscall(SYS_ADD, ctypes.c_int(ruleset), ctypes.c_int(1), ctypes.byref(rule), ctypes.c_uint32(0)) < 0:
             sys.exit(f'landlock.py: add_rule {place} errno {ctypes.get_errno()}')
         os.close(fd)
+        count += 1
+    # The directories that hold a hidden path, up to the root.
+    holders = set()
+    for path in hidden:
+        at = os.path.dirname(path)
+        while at not in holders and at != os.path.dirname(at):
+            holders.add(at); at = os.path.dirname(at)
+    def grant(directory):
+        # Links are not followed: what they lead to is granted on its own or not at all.
+        try:
+            entries = list(os.scandir(directory))
+        except OSError:
+            return
+        for entry in entries:
+            if entry.path in hidden or entry.is_symlink():
+                continue
+            if entry.path in holders:
+                grant(entry.path)
+            else:
+                add(entry.path)
+    for place in reads:
+        place = os.path.normpath(place)
+        if place in holders and os.path.isdir(place):
+            add(place, READ_DIR)
+            grant(place)
+        else:
+            add(place)
+    if stats:
+        with open(stats, 'w') as f:
+            json.dump({'rules': count, 'ms': round((time.monotonic() - started) * 1000, 1)}, f)
     if libc.prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0:
         sys.exit(f'landlock.py: no_new_privs errno {ctypes.get_errno()}')
     if libc.syscall(SYS_RESTRICT, ctypes.c_int(ruleset), ctypes.c_uint32(0)) < 0:

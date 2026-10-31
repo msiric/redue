@@ -154,6 +154,7 @@ function productRuns(dir, row, recipeArgs = allRecipes ? [] : ['--recipe', 'node
     argv: pm === 'npm' ? ['npm', 'run', row.scripts[kind].name] : ['corepack', pm, 'run', row.scripts[kind].name], timeout: kind === 'build' ? 900_000 : 600_000}));
   const result = productChecks({dir, config, names: ready.map(c => c.name), env: {...env, npm_config_update_notifier: 'false'}, label: row.name, keepTraces, others});
   if (result.others) out.others = result.others;
+  if (result.changes) out.changes = result.changes;
   if (result.observer) return {...out, observer: result.observer, observerLink: result.observerLink};
   for (const [name, value] of Object.entries(result.checks)) Object.assign(out[name], value);
   return out;

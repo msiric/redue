@@ -11,6 +11,20 @@
 // check stayed CURRENT through them (`afterOthers`). The sandboxed recipe
 // counts git-ignored files as inputs, so build and test outputs can make it
 // STALE; this measures how often.
+//
+// For the fix, two options are measured on each sandboxed check:
+// (b) hide git-ignored files (but installed trees and caches) from the run:
+//   init's trial with them hidden (hidden-trial.mjs), after the two runs and
+//   again after the other checks; it would stay CURRENT when both trials
+//   agree and everything the other checks changed is git-ignored. On Linux
+//   the second trial is traced, for what the run still saw of hidden entries
+//   (hiddenExposure).
+// (a) count only the ignored files the run read (Linux, from the second
+//   run's strace): it would stay CURRENT when no changed ignored file was
+//   read or looked up, no listed directory gained an ignored entry, and no
+//   native addon loaded. That it also needs every program recorded is for
+//   the analysis to join from the general-recipe pass.
+// `changes` classifies every file the other checks changed.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -18,12 +32,16 @@ import {spawn} from 'node:child_process';
 import {evalDir, localDir, readJson, sh, slug, tmpRoot, checkoutRedue} from './lib.mjs';
 import {hasStrace} from './recorded-run.mjs';
 import {unrecordedPrograms} from './program-check.mjs';
-import {crossCheck, sandboxTraceCalls} from './sandbox-check.mjs';
+import {crossCheck, hiddenExposure, sandboxTraceCalls} from './sandbox-check.mjs';
 import {projectState} from '../src/project-location.mjs';
-import {sandboxPlaces, systemPlaces} from '../src/sandbox.mjs';
+import {sandboxCaches, sandboxPlaces, systemPlaces} from '../src/sandbox.mjs';
+import picomatch from 'picomatch';
 
 const wait = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 const tail = (r, n = 600) => (r.stderr + '\n' + r.stdout).trim().slice(-n);
+const installedTree = /(?:^|\/)(?:node_modules|\.venv)(?:\/|$)/;
+const cache = picomatch(sandboxCaches, {dot: true});
+const examples = list => ({count: list.length, examples: list.slice(0, 6)});
 
 // {observer} when the observer never became ready, else {checks: {name: {...}}}.
 export function productChecks({dir, config, names, env, label, keepTraces = false, others = []}) {
@@ -54,6 +72,20 @@ export function productChecks({dir, config, names, env, label, keepTraces = fals
     redue(['stop']); redue(['remove-state']); return out;
   }
   const root = fs.realpathSync(dir), state = projectState(root, config);
+  const git = (...args) => run('git', args, 300_000).stdout.split('\0').filter(Boolean);
+  // hidden-trial.mjs for the check `name`, traced into `trace` when given.
+  const hiddenTrial = (name, trace = null) => {
+    const check = readJson(config).checks.find(c => c.name === name);
+    const args = [path.join(evalDir, 'hidden-trial.mjs'), root, JSON.stringify(check)];
+    const r = trace ? sh('strace', ['-f', '-qq', '-y', '-s', '4096', '-e', `trace=${sandboxTraceCalls}`, '-o', trace, process.execPath, ...args],
+      {cwd: dir, env, timeout: 1_300_000}) : sh(process.execPath, args, {cwd: dir, env, timeout: 1_300_000});
+    let value; try { value = JSON.parse(r.stdout.trim().split('\n').at(-1)); } catch { return {error: tail(r, 300)}; }
+    const {entries = [], ...rest} = value;
+    const out = {...rest, entries: examples(entries)};
+    if (trace) try { out.exposure = hiddenExposure(trace, {root, hidden: entries}); } catch (e) { out.exposure = {error: String(e.message).slice(0, 200)}; }
+    return out;
+  };
+  const readSets = new Map(), hidden = new Map();
   for (const name of names) {
     const runtime = readJson(path.join(state, 'project-runtime-v1.json')).checks.find(c => c.name === name);
     const sandboxed = runtime?.qualification === 'sandbox-v1';
@@ -89,7 +121,10 @@ export function productChecks({dir, config, names, env, label, keepTraces = fals
       if (hasStrace && sandboxed) {
         try {
           const allowed = [state, ...sandboxPlaces(runtime, env, root), ...systemPlaces];
-          reads = crossCheck(trace, {root, files: receipt?.files ?? {}, allowed, allowedPrefixes: [path.join(fs.realpathSync(os.tmpdir()), 'redue-run-')]});
+          const {paths, addon, ...checked} = crossCheck(trace, {root, files: receipt?.files ?? {}, allowed,
+            allowedPrefixes: [path.join(fs.realpathSync(os.tmpdir()), 'redue-run-')], collect: true});
+          reads = {...checked, addon};
+          if (n === 2) readSets.set(name, {paths, addon});
         } catch (error) { reads = {error: String(error.message).slice(0, 200), findings: ['trace unavailable']}; }
       }
       if (keepTraces && trace) { const kept = path.join(localDir, 'census-traces', slug(label), `${name}-${n}`); fs.mkdirSync(kept, {recursive: true});
@@ -118,9 +153,18 @@ export function productChecks({dir, config, names, env, label, keepTraces = fals
     const qualifies = !runs.some(x => x.timedOut || x.unrecordedCritical || x.readsCritical) && second.stable === true && !(second.guardIssues ?? []).length &&
       second.freshness === 'CURRENT' && first.fingerprint !== null && first.fingerprint === second.fingerprint;
     out.checks[name] = {qualification: runtime?.qualification ?? null, runs, qualifies, pass: runs.map(x => x.result === 'PASS')};
+    if (sandboxed && others.length) hidden.set(name, {before: hiddenTrial(name)});
     console.error(`  ${name}: ${qualifies ? 'QUALIFIES' : second.reason || 'not qualified'}`);
   }
   if (others.length && Object.keys(out.checks).length) {
+    // What is there before the other checks run: tracked files, ignored ones
+    // outside the installed trees, and every directory that holds either.
+    const mark = path.join(tmpRoot, 'census-others-mark');
+    fs.writeFileSync(mark, '');
+    const ignoredOf = () => new Set(git('ls-files', '-z', '--others', '--ignored', '--exclude-standard').filter(rel => !installedTree.test(rel)));
+    const tracked = new Set(git('ls-files', '-z')), ignoredBefore = ignoredOf(), untrackedBefore = new Set(git('ls-files', '-z', '--others', '--exclude-standard'));
+    const before = new Set();
+    for (const rel of [...tracked, ...ignoredBefore, ...untrackedBefore]) for (let at = rel; at !== '.'; at = path.dirname(at)) before.add(at);
     out.others = others.map(({label: what, argv, timeout}) => {
       const r = sh(argv[0], argv.slice(1), {cwd: dir, env, timeout});
       return {label: what, exit: r.status, timedOut: r.timedOut, ms: r.ms};
@@ -133,9 +177,46 @@ export function productChecks({dir, config, names, env, label, keepTraces = fals
       now = json(redue(['status', '--sync', '--json'], 300_000));
       if (now?.observation?.healthy && !now.checks?.some(x => transient.test(x.reason ?? ''))) break;
     }
+    // Every file they changed or made, by class, and what they removed.
+    const changedFiles = run('find', ['.', '-newer', mark, '-type', 'f', '-not', '-path', './.git/*'], 300_000).stdout.split('\n')
+      .filter(Boolean).map(rel => rel.replace(/^\.\//, '')).filter(rel => rel !== path.basename(config));
+    const ignoredAfter = ignoredOf(), c = {tracked: [], untracked: [], installed: [], cache: [], ignored: []};
+    for (const rel of changedFiles) c[tracked.has(rel) ? 'tracked' : installedTree.test(rel) ? 'installed' : cache(rel) ? 'cache' :
+      ignoredAfter.has(rel) ? 'ignored' : 'untracked'].push(rel);
+    const trackedDeleted = git('ls-files', '-z', '--deleted'), ignoredRemoved = [...ignoredBefore].filter(rel => !ignoredAfter.has(rel) && !cache(rel));
+    const ignoredCreated = c.ignored.filter(rel => !ignoredBefore.has(rel));
+    out.changes = {files: changedFiles.length, ...Object.fromEntries(Object.entries(c).map(([k, v]) => [k, examples(v)])),
+      trackedDeleted: examples(trackedDeleted), ignoredCreated: examples(ignoredCreated), ignoredRemoved: examples(ignoredRemoved)};
+    // Inputs under both options: tracked, untracked but not ignored, installed.
+    const kept = c.tracked.length + c.untracked.length + c.installed.length + trackedDeleted.length;
     for (const [name, value] of Object.entries(out.checks)) {
       const row = now?.checks?.find(x => x.name === name);
       value.afterOthers = {freshness: row?.freshness ?? null, reason: row?.reason ?? null, changed: row?.changed_inputs?.slice(0, 5) ?? []};
+      const current = value.afterOthers.freshness === 'CURRENT';
+      // STALE only on files, all of them ignored ones.
+      const onlyIgnored = value.afterOthers.freshness === 'STALE' && value.afterOthers.changed.length > 0 && kept === 0;
+      const h = hidden.get(name);
+      if (h) {
+        const work = hasStrace ? fs.mkdtempSync(path.join(tmpRoot, 'census-hidden-')) : null;
+        h.after = hiddenTrial(name, work && path.join(work, 'strace'));
+        if (work) fs.rmSync(work, {recursive: true, force: true});
+        value.optionB = {...h, stays: Boolean(h.before.same && h.after.same && (current || onlyIgnored))};
+      }
+      const read = readSets.get(name);
+      if (read) {
+        const changedIgnored = [...c.ignored, ...ignoredRemoved];
+        const touched = changedIgnored.filter(rel => read.paths.read.has(rel) || read.paths.probed.has(rel));
+        // A new ignored entry in a directory the run listed.
+        const listed = ignoredCreated.filter(rel => {
+          for (let child = rel, at = path.dirname(rel); ; child = at, at = path.dirname(at)) {
+            const dirRel = at === '.' ? '' : at;
+            if (read.paths.listed.has(dirRel) && !before.has(child)) return true;
+            if (at === '.') return false;
+          }
+        });
+        value.optionA = {touched: examples(touched), listed: examples(listed), addon: read.addon,
+          stays: Boolean(current || onlyIgnored && !touched.length && !listed.length && !read.addon)};
+      }
     }
     console.error(`  after ${others.map(o => o.label).join(', ')}: ${Object.entries(out.checks).map(([name, v]) => `${name} ${v.afterOthers.freshness}`).join(', ')}`);
   }

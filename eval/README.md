@@ -41,6 +41,13 @@ clones to `$TMPDIR/redue-eval/`.
   tests once more with the network off. Research data for Python support.
   `--product` instead runs `redue init` and two `redue run`s of each check it
   writes (`product-runs.mjs`, shared with `census.mjs --product`).
+  After a project's checks have run twice, both run its other checks (build,
+  tests) and ask status again (`afterOthers`). For each sandboxed check they
+  also measure two ways to keep build and test outputs from making it STALE:
+  hiding git-ignored files from the run (`optionB`, through `hidden-trial.mjs`,
+  before and after the other checks) and counting only the ignored files the
+  run read (`optionA`, Linux, from strace). `changes` classifies every file the
+  other checks changed.
 - `sandbox-check.mjs`: on Linux, the product census traces each sandboxed run
   with strace and checks that every file it read in the checkout is an input
   the receipt holds, a runner cache, or the run's own output, and that nothing

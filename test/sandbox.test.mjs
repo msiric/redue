@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import {spawnSync,execFileSync} from 'node:child_process';
-import {comparableOutput,denialLine,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
+import {comparableOutput,denialLine,hiddenEntries,sandboxTrial,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
 import {projectArgs,toolArgs} from '../src/python-onboarding.mjs';
 import {chainCommand,hookForms,pathForm,recordedCommand} from '../src/claude-hook.mjs';
 
@@ -227,6 +227,37 @@ test('a sandboxed run keeps its private home between runs; where the sandbox can
   const status=row(root,state,'typecheck');
   assert.equal(`${status.freshness}/${status.result}`,'UNVERIFIED/PASS');
   assert.equal(status.reason,'the run was not sandboxed: the sandbox is turned off for this test');
+});
+
+test('hidden git-ignored entries: what git lists, but installed trees and caches; a check that reads one gives another result',{skip:unsupported},async t=>{
+  const {root,state}=project(t);
+  write(root,'.gitignore','.venv/\nbuild/\n__pycache__/\n.env\nnode_modules/\n*.tsbuildinfo\n');
+  write(root,'.env','X=1\n');write(root,'build/gen.py','# fine\n');write(root,'node_modules/pkg/index.js','');
+  write(root,'src/fx/__pycache__/x.pyc','');write(root,'app.tsbuildinfo','{}');
+  assert.deepEqual(hiddenEntries(root).sort(),['.env','build/']);
+  good(root,state,'init');
+  const check=JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'),'utf8')).checks.find(c=>c.name==='typecheck');
+  // The tool reads every .py file it finds. On macOS the hidden directory
+  // cannot be listed, so the tool finds nothing there; on Linux it can be
+  // listed but not read, a refusal.
+  let trial=await sandboxTrial(root,check,{hide:true});
+  assert.equal(trial.hidden,2);
+  if(process.platform==='darwin')assert.equal(trial.same,true,JSON.stringify(trial));
+  else{assert.equal(trial.same,false);assert.match(trial.line,/Permission denied/);assert.ok(trial.rules>0,JSON.stringify(trial));}
+  // A result that depends on the hidden file differs.
+  write(root,'build/gen.py','# fail\n');
+  trial=await sandboxTrial(root,check,{hide:true});
+  assert.equal(trial.same,false,JSON.stringify(trial));assert.equal(trial.plain,1);
+  // Without hiding, it fails the same way both ways.
+  const plain=await sandboxTrial(root,check);
+  assert.deepEqual([plain.plain,plain.sandboxed],[1,1]);
+});
+
+test('a missing file is a refusal only when the line names a hidden path',()=>{
+  assert.match(denialLine("error TS6053: File '/r/dist/x.d.ts' not found.",['dist/']),/TS6053/);
+  assert.match(denialLine('FileNotFoundError: [Errno 2] No such file or directory: \'.env\'',['.env']),/Errno 2/);
+  assert.equal(denialLine('error: distance not found',['dist/']),null);
+  assert.equal(denialLine("error TS6053: File 'src/x.ts' not found.",['dist/']),null);
 });
 
 test('a .venv link that leads out of the checkout keeps the check recording-only and names the link',{skip:unsupported},t=>{
