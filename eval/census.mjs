@@ -210,7 +210,8 @@ async function census(name, modes) {
   // checks both recipes qualify can be compared.
   if (product && allRecipes && argv.includes('--compare-general')) row.productGeneral = productRuns(dir, row, ['--recipe', 'node-script']);
   if (sandbox) row.sandbox = await sandboxScripts(dir, pm, row, modes);
-  fs.rmSync(dir, {recursive: true, force: true});
+  // A process the project left running can still be writing into it: keep the row.
+  try { fs.rmSync(dir, {recursive: true, force: true, maxRetries: 5, retryDelay: 1000}); } catch (error) { row.cleanup = String(error.message).split('\n')[0]; }
   return row;
 }
 

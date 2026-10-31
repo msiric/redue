@@ -24,7 +24,8 @@ const installedCache = picomatch(['**/node_modules/{.cache,.vite,.vite-temp,.vit
 // starts, once it has restricted itself, and their descendants (the
 // launcher's own reads come before that). Each: {name, ok, error, file,
 // kind, args, address}, `kind` one of exec, read, write, list, probe, connect;
-// `file` absolute. A probe is a stat or access call, or a failed open.
+// `file` absolute. A probe is a stat or access call, an O_PATH open, or a
+// failed open.
 export function* sandboxedCalls(trace, root) {
   const lines = fs.readFileSync(trace, 'utf8').split('\n');
   const procs = new Map(), pending = new Map(), inside = new Set(), launchers = new Set();
@@ -53,7 +54,9 @@ export function* sandboxedCalls(trace, root) {
     else if (name === 'execve' && ok) yield {name, ok, error, file: resolve(strs[0]), kind: 'exec', args};
     else if (/^open(at2?)?$/.test(name) && strs.length) {
       const file = retPath ? retPath.slice(1, -1) : resolve(strs[0]);
-      if (!ok) yield {name, ok, error, file, kind: 'probe', args};
+      // An O_PATH open gives no access to the contents, and Landlock does
+      // not check it: a lookup, as a stat is.
+      if (!ok || /O_PATH/.test(args)) yield {name, ok, error, file, kind: 'probe', args};
       else if (/O_WRONLY|O_RDWR|O_CREAT/.test(args) && !/O_RDONLY/.test(args)) {
         yield {name, ok, error, file, kind: 'write', args};
         if (/O_RDWR/.test(args)) yield {name, ok, error, file, kind: 'read', args};
