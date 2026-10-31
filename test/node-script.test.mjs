@@ -377,6 +377,10 @@ test('run --if-due runs a check only when its last pass does not apply, with the
   const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!/^npm_/i.test(key)));
   out=spawnSync(process.execPath,[bin,'--state-dir',state,'run','lint','--if-due'],{cwd:root,env:{...env,REDUE_FORCE:'1'},encoding:'utf8'});
   assert.equal(out.status,0);assert.match(out.stdout,/recorded/);
+  // redue stats: four recorded runs, one skip, and the STALE check --if-due ran.
+  const stats=JSON.parse(good(root,state,'stats','--json')).checks.find(c=>c.name==='lint');
+  assert.deepEqual([stats.runs,stats.passed,stats.failed,stats.skips,stats.stale],[4,3,1,1,1],JSON.stringify(stats));
+  assert.ok(stats.savedMs>0&&stats.runMs>0,JSON.stringify(stats));
 });
 
 test("npm's node-options setting replaces NODE_OPTIONS: the run is UNVERIFIED, not CURRENT without a recorder",{skip:unsupported},t=>{

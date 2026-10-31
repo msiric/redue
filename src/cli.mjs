@@ -29,6 +29,7 @@ import {atomicJson,commitReceipt,readReceipts,receiptRevision} from './state-sto
 import {timing,profiling,mark,traceContext} from './decision-profile.mjs';
 import {readCachedStatus,unavailableCached} from './cached-state.mjs';
 import {renderRun} from './presentation.mjs';
+import {note} from './stats.mjs';
 
 mark('cli.loaded');
 const here=path.dirname(fileURLToPath(import.meta.url));
@@ -582,6 +583,7 @@ async function execute() {
       startRevision:snap?.revision??null,endRevision:end?.revision??null};
     const persistenceStarted=performance.now();
     commitReceipt(state,name,receipt);
+    note(state,{kind:'run',check:name,ms:invocation.durationMs??null,result,stable});
     if(testRun){const reads=environmentReads();reads[name]=receipt.environmentReads;atomicJson(readsFile,{schema:1,checks:reads});}
     timing('cli.receipt_persistence',persistenceStarted);
     const reloadStarted=performance.now();

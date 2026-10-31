@@ -46,6 +46,7 @@ Commands:
   detail [CHECK] [--json]  Alias for explain
   run CHECK [--if-due] Execute one configured check and record its outcome; with --if-due,
                        only when its last pass does not apply to the files as they are now
+  stats [--json]       Per check: skips, time saved, recorded runs, why checks were UNVERIFIED
   remove-state         Stop and remove only this configuration's owned local state
 
 No checks run in the background. Direct commands outside redue create no receipts.`;
@@ -95,7 +96,7 @@ if(command==='agent'){
   catch(e){error(e.message);}
   await exit(0);
 }
-if(!['init','start','stop','status','detail','explain','run','remove-state'].includes(command))
+if(!['init','start','stop','status','detail','explain','run','stats','remove-state'].includes(command))
   error(`unknown command ${command||'<none>'}; use --help`);
 const json=args.includes('--json');
 // run --if-due: run the check only when its last pass does not apply now.
@@ -404,6 +405,12 @@ const checks=publicConfig.checks.map(check=>{
 const runtime={schema:1,provider:'declared-project@1',root,state,checks};
 try{assertOwnedStatePlacement(runtime);}catch(e){error(e.message);}
 const serialized=JSON.stringify(runtime,null,2)+'\n';
+if(command==='stats'){
+  const {readStats,renderStats}=await import('../src/stats.mjs');
+  const value=readStats(state,publicConfig.checks.map(item=>item.name));
+  console.log(json?JSON.stringify(value):renderStats(value));
+  await exit(0);
+}
 const maintenance=command==='stop'||command==='remove-state';
 if(maintenance&&!fs.existsSync(runtimeFile)){
   console.log(`No REDUE state exists for ${configFile}.`);
@@ -443,11 +450,14 @@ const internal=command==='remove-state'?'uninstall':
 // Asked when this part of a command runs, after earlier parts may have
 // changed files. REDUE_FORCE=1 runs it anyway.
 if(ifDue&&process.env.REDUE_FORCE!=='1'){
-  const {verdict}=await import('../src/claude-hook.mjs');
+  const [{verdict},{note,skipNote,dueNote}]=await Promise.all([import('../src/claude-hook.mjs'),import('../src/stats.mjs')]);
   const asked=spawnSync(process.execPath,[fileURLToPath(import.meta.url),'--config',configFile,...(stateOverride?['--state-dir',stateOverride]:[]),
     'status','--sync','--json'],{encoding:'utf8',stdio:['ignore','pipe','ignore'],env:process.env,timeout:600_000});
   let status=null;try{status=JSON.parse(asked.stdout);}catch{}
+  const due=dueNote(status,check);
+  if(due)note(state,due);
   if(verdict(status,check)){
+    note(state,skipNote(status,check,'if-due'));
     const row=status.checks.find(item=>item.name===check);
     if(json)console.log(JSON.stringify({check,skipped:true,result:'PASS',run_id:row.invocation.runId}));
     else console.error(`REDUE: ${check} passed on these exact inputs (run ${row.invocation.runId}); not run again. REDUE_FORCE=1 runs it anyway.`);

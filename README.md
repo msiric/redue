@@ -59,6 +59,10 @@ what the agent asks. Plain `redue status` is a fast cached answer and can say
 UNVERIFIED ("cannot confirm your execution context") where `--sync` would say
 CURRENT.
 
+`redue stats` shows, per check, the reruns the hook skipped, the time saved,
+the recorded runs and the top reasons a check was UNVERIFIED, from a log kept
+on your machine.
+
 To undo everything setup did: `redue remove`.
 
 ## What it covers today

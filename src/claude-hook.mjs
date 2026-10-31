@@ -13,6 +13,7 @@ import {processAlive} from './process-liveness.mjs';
 import {scriptRunChecks} from './typescript-invocation.mjs';
 import {recipeLabel} from './presentation.mjs';
 import {findExecutable} from './executable-lookup.mjs';
+import {note,skipNote,dueNote} from './stats.mjs';
 
 export const hookCommand='redue agent hook claude';
 // No shell metacharacters; `@` starts scoped package names.
@@ -505,6 +506,9 @@ export async function claudeHook(input,{entry,timeout,invoke=null}){
   const project=hookProject(root);
   if(!project)return null;
   const {record,config,parsed}=project;
+  // For `redue stats`: the checks a decision skipped, or the ones that were due.
+  const tally=(status,names,skipped)=>{let state;try{state=projectState(project.projectRoot,config);}catch{return;}
+    for(const name of names){const entry=skipped?skipNote(status,name,'hook'):dueNote(status,name);if(entry)note(state,entry);}};
   const entered=enteredDir(command,root,project.projectRoot);
   if(!entered)return null;
   let scripts={};
@@ -537,6 +541,7 @@ export async function claudeHook(input,{entry,timeout,invoke=null}){
     if(!names)return null;
     const status=await synchronizedStatus(entry,config,root,timeout??lastRunTimeout(config,parsed,...names)),
       reason=fanoutVerdict(status,names,match.rest);
+    tally(status,names,Boolean(reason));
     return reason?{hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:reason}}:null;
   }
   // A compiler script: its checks in the order of its runs, or nothing when
@@ -550,6 +555,7 @@ export async function claudeHook(input,{entry,timeout,invoke=null}){
     else{
       const status=await synchronizedStatus(entry,config,root,timeout??lastRunTimeout(config,parsed,...names)),
         reason=fanoutVerdict(status,names,match.rest);
+      tally(status,names,Boolean(reason));
       if(reason)return {hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:reason}};
       const pending=names.filter(name=>!verdict(status,name));
       const rewritten=status?.schema===1&&status.observation?.healthy===true&&Array.isArray(status.checks)&&
@@ -561,6 +567,7 @@ export async function claudeHook(input,{entry,timeout,invoke=null}){
   }
   const name=match.check,status=await synchronizedStatus(entry,config,root,timeout??lastRunTimeout(config,parsed,name)),
     reason=verdict(status,name,match.rest);
+  tally(status,[name],Boolean(reason));
   if(reason)return {hookSpecificOutput:{hookEventName:'PreToolUse',
     permissionDecision:'deny',permissionDecisionReason:reason}};
   // Rewrite only on a healthy answer for this check: without an observer,

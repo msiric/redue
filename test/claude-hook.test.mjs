@@ -7,6 +7,8 @@ import {spawn,spawnSync,execFileSync} from 'node:child_process';
 import {claudeHook,shellQuote,hookForms,lastRunTimeout,matchCheck,recordedCommand,enteredDir,fanout,fanoutChecks,fanoutVerdict,sessionStart,statusTimeout,verdict} from '../src/claude-hook.mjs';
 import {findExecutable} from '../src/executable-lookup.mjs';
 import {realObservedPath} from '../src/path-identity.mjs';
+import {projectState} from '../src/project-location.mjs';
+import {readStats,renderStats} from '../src/stats.mjs';
 const bin=path.resolve('bin/redue.mjs');
 const put=(f,s)=>{fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,s);};
 const slashes=value=>value.split(path.sep).join('/');
@@ -121,6 +123,25 @@ const status=row=>({schema:1,observation:{healthy:true},checks:[{name:'typecheck
   reuse_eligible:true,invocation:{runId},reason:'declared inputs match',...row}]});
 const replying=value=>`process.stdout.write(${JSON.stringify(JSON.stringify(value))});`;
 const bash=(command,cwd)=>({hook_event_name:'PreToolUse',tool_name:'Bash',tool_input:{command},cwd});
+
+test('the hook counts what it skipped, with the time the skipped run took, and why a due check was UNVERIFIED',async t=>{
+  const p=project(t),state=projectState(p.root,path.join(p.root,'redue.config.json'));
+  // Without state (no observer ever ran) nothing is written.
+  await claudeHook(bash('npm run typecheck',p.root),{invoke:'redue',entry:p.fake('current',replying(status({})))});
+  assert.equal(fs.existsSync(state),false);
+  fs.mkdirSync(state,{recursive:true});t.after(()=>fs.rmSync(state,{recursive:true,force:true}));
+  const ran={runId,status:'exited',durationMs:4200};
+  for(let i=0;i<2;i++)await claudeHook(bash('npm run typecheck',p.root),{invoke:'redue',entry:p.fake('current',replying(status({invocation:ran})))});
+  for(const id of ['1f2e3d4c-0000-4000-8000-000000000001','1f2e3d4c-0000-4000-8000-000000000002'])
+    await claudeHook(bash('npm run typecheck',p.root),{invoke:'redue',entry:p.fake('unverified',replying(status({freshness:'UNVERIFIED',
+      reuse_eligible:false,reason:`run ${id} was interrupted`})))});
+  await claudeHook(bash('npm run typecheck',p.root),{invoke:'redue',entry:p.fake('stale',replying(status({freshness:'STALE',reuse_eligible:false})))});
+  const value=readStats(state,['typecheck','lint']);
+  assert.deepEqual(value.checks.map(({name,skips,savedMs,stale,unverified,topUnverified})=>({name,skips,savedMs,stale,unverified,topUnverified})),[
+    {name:'typecheck',skips:2,savedMs:8400,stale:1,unverified:2,topUnverified:[{reason:'run … was interrupted',count:2}]},
+    {name:'lint',skips:0,savedMs:0,stale:0,unverified:0,topUnverified:[]}]);
+  assert.match(renderStats(value),/2 skips saved 8\.4s[\s\S]*typecheck  2×  run … was interrupted/);
+});
 
 test('blocks only CURRENT/PASS with reuse_eligible and a run id',async t=>{
   const p=project(t);
