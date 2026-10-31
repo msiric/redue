@@ -125,7 +125,8 @@ const replying=value=>`process.stdout.write(${JSON.stringify(JSON.stringify(valu
 const bash=(command,cwd)=>({hook_event_name:'PreToolUse',tool_name:'Bash',tool_input:{command},cwd});
 
 test('the hook counts what it skipped, with the time the skipped run took, and why a due check was UNVERIFIED',async t=>{
-  const p=project(t),state=projectState(p.root,path.join(p.root,'redue.config.json'));
+  // The root as the hook resolves it: Windows can spell a temporary directory RUNNER~1 or by its long name.
+  const p=project(t),state=projectState(realObservedPath(p.root),path.join(p.root,'redue.config.json'));
   // Without state (no observer ever ran) nothing is written.
   await claudeHook(bash('npm run typecheck',p.root),{invoke:'redue',entry:p.fake('current',replying(status({})))});
   assert.equal(fs.existsSync(state),false);
