@@ -1,5 +1,49 @@
 # Changelog
 
+## 0.1.0-alpha.26 — 2026-10-31
+
+Typecheck and lint checks run inside an OS sandbox, so REDUE can reuse them
+for native tools and for Python. Python projects are supported for the first
+time.
+
+- **Sandboxed recipe.** On macOS (Seatbelt) and Linux 6.7+ (Landlock), a
+  root typecheck or lint script runs in a sandbox that sees only the
+  project, its installed packages and the toolchain, the way CI does. Its
+  inputs are the whole checkout, git-ignored files included, plus the
+  installed packages and a fingerprint of the environment it was given. A
+  result holds for a run that sees only those. `init` tries the precise
+  TypeScript recipes first, then the sandbox, then the general recipe. See
+  [sandboxed recipe](docs/user/sandbox.md).
+- **Python.** `redue setup claude` and `init` find mypy, pyright, ty and
+  ruff in the project's `.venv`, from its CI workflows, Makefile, justfile,
+  tox, nox and scripts. The Claude Code hook recognizes `uv run`,
+  `poetry run`, `python -m` and `.venv/bin` forms.
+- **What the sandbox changes.** Network is off. HOME and the temp folder
+  are private to the check; HOME is kept between runs so caches persist.
+  Tools can read `.git`, but git commands find no repository. A background
+  process the check leaves running is stopped when the run ends.
+- **Checked at init.** `init` runs each check plainly and sandboxed, and
+  proposes the sandbox only when exit status and output (timings and paths
+  aside) match. Otherwise the general recipe applies. A failing run whose
+  output looks like a sandbox refusal is rerun plainly; if the plain run
+  exits differently, the result is UNVERIFIED. Other failures run once.
+- **Coverage.** In a census of 120 public TypeScript repositories (86
+  installed on macOS), 35 have a qualifying check (alpha.24 census: 30):
+  typecheck 22, lint 25, tests 2. Of 120 Python repositories, 23 of the 75
+  that installed on Linux have one (typecheck 15, lint 22); 20 of 64 on
+  macOS. On Linux, every sandboxed run was traced with strace: each file
+  it read in the checkout was a recorded input, a cache or its own output.
+- **Measured with Claude Code.** On starlette, graphon and
+  claude-agent-sdk-python, sessions took 58 s with REDUE and 125 s without.
+  REDUE skipped 10 typechecks and every one matched a plain rerun.
+- Known limits: inside Claude Code's own macOS sandbox and on Windows, the
+  sandbox can't start and the general recipe applies. On Linux before 6.7,
+  sandboxed runs are UNVERIFIED.
+  A build or test run that writes into the checkout (`dist/`, `.next/`,
+  coverage files) makes a sandboxed check STALE, as it does a
+  general-recipe check: about 1 in 4 TypeScript and 2 in 3 Python checks
+  stayed CURRENT through the project's build and tests.
+
 ## 0.1.0-alpha.25 — 2026-10-29
 
 Running your tests no longer makes a typecheck STALE, and `status --sync`

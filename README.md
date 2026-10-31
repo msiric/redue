@@ -10,9 +10,11 @@ check that still holds is not run again and one that is stale is.
 
 ## Quickstart (about 5 minutes)
 
-You need macOS or Linux, Node 22 or 24, Git, Claude Code, and a JavaScript or
-TypeScript project with its dependencies installed (`npm install`,
-`pnpm install` or `yarn`). On Linux, also Python 3.
+You need macOS or Linux, Node 22 or 24, Git, Claude Code, and either a
+JavaScript or TypeScript project with its dependencies installed
+(`npm install`, `pnpm install` or `yarn`), or a Python project with a `.venv`
+in its root (`uv sync`, or Poetry with in-project virtualenvs). On Linux, also
+Python 3.
 
 ```sh
 npm install --global @redue/cli@alpha
@@ -62,21 +64,27 @@ To undo everything setup did: `redue remove`.
 ## What it covers today
 
 In a census of 120 active public TypeScript repositories (October 2026, REDUE
-at commit 0fcd19b, after 0.1.0-alpha.23), each installed as its users would,
-with dependencies' install scripts on, 86 installed cleanly. A check counts
-when two recorded runs on the same code both came out CURRENT on the same
-inputs. 30 repositories had at least one such check:
+at commit 046cd0e, before 0.1.0-alpha.26), each installed as its users would,
+with dependencies' install scripts on, 86 installed cleanly on a macOS runner.
+A check counts when two recorded runs on the same code both came out CURRENT
+on the same inputs. 35 repositories had at least one such check:
 
 | Check | Repositories | How |
 |---|---|---|
-| Typecheck | 21 | 15 by running the project's script with every Node process recorded ([general recipe](docs/user/node-script.md)); 6 by running the local `tsc` directly ([direct recipe](docs/user/direct-typescript.md)) |
-| Lint | 18 | general recipe |
+| Typecheck | 22 | 15 by running the project's script in an OS sandbox ([sandboxed recipe](docs/user/sandbox.md)); 5 by running the local `tsc` directly ([direct recipe](docs/user/direct-typescript.md)); 2 by running the script with every Node process recorded ([general recipe](docs/user/node-script.md)) |
+| Lint | 25 | 21 sandboxed recipe, 4 general recipe |
 | Tests | 2 | Vitest run directly ([direct test recipe](docs/user/tests-direct.md)) |
+
+In a census of 120 Python repositories, 75 installed on a Linux runner
+and 23 had a qualifying check: typecheck (mypy, pyright, ty) 15, lint (ruff)
+22, all through the sandboxed recipe. On Linux, every sandboxed run was traced
+with strace: each file it read in the checkout was a recorded input, a cache
+or its own output.
 
 Everything else stays UNVERIFIED, with a reason you can read in
 `redue explain`. The usual ones: a script starts a program REDUE cannot see
-into (esbuild, turbo, nx, oxlint's tsgolint, TypeScript 7's native compiler),
-the project uses Bun, or a test suite writes into its own inputs.
+into and the sandbox can't run (inside Claude Code's macOS sandbox, on
+Windows), the project uses Bun, or a check writes into its own inputs.
 [Supported projects](docs/user/supported-projects.md) has the details.
 
 ## Measured with Claude Code
