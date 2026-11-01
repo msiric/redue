@@ -37,6 +37,7 @@ import {checkoutRedue, evalDir, harnessEnv, localDir, readJson, sh, slug, stamp,
 import {analyzeRun, compareRuns, hasStrace, recordedRun, snapshot} from './recorded-run.mjs';
 import {productChecks} from './product-runs.mjs';
 import {sandboxModes, sandboxSuite} from './sandbox.mjs';
+import {hiddenEntries} from '../src/sandbox.mjs';
 entryPoint(import.meta, {ci: true});
 
 // --python: the Python census (eval/python-census.mjs), from the same workflow.
@@ -195,6 +196,19 @@ async function census(name, modes) {
   row.install = {ms: inst.ms, pass: inst.status === 0, tail: inst.status === 0 ? undefined : tail(inst, 500)};
   const version = file => { try { return readJson(path.join(dir, 'node_modules', file, 'package.json')).version; } catch { return null; } };
   row.installed = {typescript: version('typescript'), vitest: version('vitest'), jest: version('jest'), eslint: version('eslint')};
+  // --hidden-stats: what sandbox-v2 would hide here, and the Landlock rules
+  // that takes (landlock.py --hide's walk), printed before init runs.
+  if (argv.includes('--hidden-stats')) {
+    const entries = hiddenEntries(dir) ?? [], hidden = new Set(entries.map(rel => path.join(dir, rel.replace(/\/$/, ''))));
+    const holders = new Set();
+    for (const file of hidden) for (let at = path.dirname(file); !holders.has(at) && at !== path.dirname(at); at = path.dirname(at)) holders.add(at);
+    let rules = 1;
+    const grant = d => { let list; try { list = fs.readdirSync(d, {withFileTypes: true}); } catch { return; }
+      for (const e of list) { const p = path.join(d, e.name); if (hidden.has(p) || e.isSymbolicLink()) continue; if (holders.has(p)) grant(p); else rules++; } };
+    if (holders.has(dir)) grant(dir);
+    row.hiddenStats = {entries: entries.length, rules, examples: entries.slice(0, 10)};
+    console.log(`${name} hidden entries ${entries.length}, Landlock rules ${rules}`);
+  }
   row.init = {plain: init(dir), typescript: init(dir, '--recipe', 'typescript-direct', '--check', 'typecheck'),
     tests: init(dir, '--recipe', 'tests-direct', '--check', 'test')};
   const scripts = Object.entries(pkg.scripts ?? {});
