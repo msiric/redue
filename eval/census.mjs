@@ -37,7 +37,8 @@ import {checkoutRedue, evalDir, harnessEnv, localDir, readJson, sh, slug, stamp,
 import {analyzeRun, compareRuns, hasStrace, recordedRun, snapshot} from './recorded-run.mjs';
 import {productChecks} from './product-runs.mjs';
 import {sandboxModes, sandboxSuite} from './sandbox.mjs';
-import {hiddenEntries} from '../src/sandbox.mjs';
+import {hiddenEntries, sandboxEnvironment} from '../src/sandbox.mjs';
+import {testHiding} from './test-hiding.mjs';
 entryPoint(import.meta, {ci: true});
 
 // --python: the Python census (eval/python-census.mjs), from the same workflow.
@@ -49,7 +50,7 @@ if (process.argv.includes('--python')) {
 const argv = process.argv.slice(2);
 const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : null;
 const initOnly = argv.includes('--init-only'), recorded = argv.includes('--recorded'), product = argv.includes('--product'),
-  keepTraces = argv.includes('--keep-traces'), allRecipes = argv.includes('--all-recipes'),
+  keepTraces = argv.includes('--keep-traces'), allRecipes = argv.includes('--all-recipes'), testHidingMode = argv.includes('--test-hiding'),
   installScripts = argv.includes('--install-scripts'), sandbox = argv.includes('--sandbox');
 let names = argv.filter((arg, i) => !arg.startsWith('-') && argv[i - 1] !== '--shard');
 if (!names.length) names = readJson(path.join(evalDir, 'census-repos.json')).repos;
@@ -224,12 +225,23 @@ async function census(name, modes) {
     const picked = initPick(kind) ? [initPick(kind), pkg.scripts[initPick(kind)]] : scriptPick[kind](scripts);
     if (!picked) continue;
     row.scripts[kind] = {name: picked[0], text: picked[1]};
-    if (!row.install.pass || initOnly || recorded || product || sandbox) continue;
+    if (!row.install.pass || initOnly || recorded || product || sandbox || testHidingMode) continue;
     row.timings[kind] = timeScript(dir, pm, picked[0], timeout);
   }
   if (row.timings.typecheck) row.timings.typecheckAgain = timeScript(dir, pm, row.scripts.typecheck.name, 600_000);
   if (recorded) row.recorded = recordScripts(dir, pm, row);
   if (product) row.product = productRuns(dir, row);
+  // --test-hiding: the project's build, then its tests three ways (eval/test-hiding.mjs).
+  if (testHidingMode && row.install.pass && row.scripts.test && ['npm', 'pnpm', 'yarn'].includes(pm.name)) {
+    const script = name => pm.name === 'npm' ? ['npm', 'run', name] : ['corepack', pm.name, 'run', name];
+    const testEnv = {...env, npm_config_update_notifier: 'false'};
+    const build = row.scripts.build ? sh(script(row.scripts.build.name)[0], script(row.scripts.build.name).slice(1), {cwd: dir, env: testEnv, timeout: 900_000}) : null;
+    row.testHiding = {script: row.scripts.test.name, text: row.scripts.test.text, build: build && {status: build.timedOut ? 'timeout' : build.status, ms: build.ms},
+      ...testHiding({dir, argv: script(row.scripts.test.name), env: testEnv, timeout: 600_000,
+        check: {script: row.scripts.test.name, kind: 'test', environment: sandboxEnvironment(false, pm.name)}})};
+    const t = row.testHiding;
+    console.error(`  tests: present ${t.present.status}${t.flaky ? ' (flaky)' : ''}, hidden ${t.hidden?.status ?? t.hiddenIssue ?? '-'}, clean ${t.clean?.status ?? '-'}; entries ${t.entries?.count ?? '-'}${t.existenceOnly ? '; EXISTENCE ONLY' : ''}`);
+  }
   // --compare-general: the same repo again with the general recipe only, so
   // checks both recipes qualify can be compared.
   if (product && allRecipes && argv.includes('--compare-general')) row.productGeneral = productRuns(dir, row, ['--recipe', 'node-script']);

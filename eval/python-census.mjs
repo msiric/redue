@@ -23,9 +23,11 @@ import {evalDir, harnessEnv, localDir, readJson, sh, slug, stamp, tmpRoot, entry
 import {sandboxModes, sandboxSuite} from './sandbox.mjs';
 import {productChecks} from './product-runs.mjs';
 import {checkoutRedue} from './lib.mjs';
+import {testHiding} from './test-hiding.mjs';
+import {sandboxEnvironment} from '../src/sandbox.mjs';
 entryPoint(import.meta, {ci: true});
 
-const argv = process.argv.slice(2), sandbox = argv.includes('--sandbox'), product = argv.includes('--product');
+const argv = process.argv.slice(2), sandbox = argv.includes('--sandbox'), product = argv.includes('--product'), testHidingMode = argv.includes('--test-hiding');
 const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : null;
 let names = argv.filter((arg, i) => !arg.startsWith('-') && argv[i - 1] !== '--shard');
 if (!names.length) names = readJson(path.join(evalDir, 'python-census-repos.json')).repos;
@@ -319,7 +321,22 @@ async function census(name, modes) {
     row.python = run(path.join(venv, 'bin', 'python'), ['-c', 'import sys,platform;print(platform.python_version(), sys.base_prefix)'], dir, 30_000).stdout.trim();
     row.checks = {};
     if (product) row.product = productRuns(dir, venv, info);
-    for (const [kind, timeout] of product ? [] : [['test', 600_000], ['typecheck', 300_000], ['lint', 180_000]]) {
+    // --test-hiding: each test command three ways (eval/test-hiding.mjs), for a
+    // project whose environment is .venv, where the sandboxed recipe runs.
+    if (testHidingMode) {
+      row.testHiding = {};
+      for (const check of info.checks.test ?? []) {
+        const cmd = command(check, venv, dir);
+        if (!cmd) continue;
+        const key = `test:${check.tool}`;
+        if (venv !== path.join(dir, '.venv')) { row.testHiding[key] = {issue: `environment at ${path.relative(dir, venv) || '.'}, not .venv`}; continue; }
+        const relative = cmd.argv.map(arg => arg.startsWith(dir + path.sep) ? path.relative(dir, arg) : arg);
+        const t = row.testHiding[key] = {argv: relative, ...testHiding({dir, argv: relative, env: venvEnvironment, timeout: 600_000,
+          junit: check.tool === 'pytest', check: {command: relative, kind: 'test', environment: sandboxEnvironment(true)}})};
+        console.error(`  ${key}: present ${t.present.status}${t.flaky ? ' (flaky)' : ''}, hidden ${t.hidden?.status ?? t.hiddenIssue ?? '-'}, clean ${t.clean?.status ?? '-'}; entries ${t.entries?.count ?? '-'}${t.existenceOnly ? '; EXISTENCE ONLY' : ''}`);
+      }
+    }
+    for (const [kind, timeout] of product || testHidingMode ? [] : [['test', 600_000], ['typecheck', 300_000], ['lint', 180_000]]) {
       for (const check of info.checks[kind] ?? []) {
         const cmd = command({...check, mypyFiles: info.mypyFiles}, venv, dir);
         if (!cmd) continue;
