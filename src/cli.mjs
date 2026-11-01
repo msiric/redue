@@ -720,7 +720,8 @@ async function main(){
           await new Promise(r=>setTimeout(r,100));
         if(fs.existsSync(path.join(state,'observer.lock')))throw Error('observer did not stop');}
     }
-    fs.rmSync(state,{recursive:true,force:true});
+    // A stopping observer can still be closing its files (Windows: ENOTEMPTY, EBUSY).
+    fs.rmSync(state,{recursive:true,force:true,maxRetries:10,retryDelay:200});
     console.log(JSON.stringify({removed:state}));return;
   }
   if(action==='status'){console.log(JSON.stringify(cached()));return;}

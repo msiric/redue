@@ -249,11 +249,12 @@ export function hiddenEntries(root){
 
 // What git lists now as ignored at or beneath `paths` (relative files, or
 // directories ending in /), as hiddenEntries would: nested repositories are
-// not entered, and installed trees are not ignored. {has(rel)} for a file,
-// or null when git cannot tell. A directory git ignores holds no file it
-// does not, so asking a new directory once covers its files.
+// not entered, and an entry that is an installed tree is not ignored (one
+// inside an ignored build directory is). {has(rel)} for a file, or null when
+// git cannot tell. A directory git ignores holds no file it does not, so
+// asking a new directory once covers its files.
 export function ignoredNow(root,paths){
-  const asked=paths.filter(rel=>!installedTree.test(rel));
+  const asked=paths;
   if(!asked.length)return {has:()=>false};
   const listed=new Set();
   for(let at=0;at<asked.length;at+=500){
@@ -262,8 +263,8 @@ export function ignoredNow(root,paths){
     if(r.status!==0)return null;
     for(const entry of r.stdout.split('\0'))if(entry)listed.add(entry);
   }
-  const entries=[...listed];
-  return {has:rel=>!installedTree.test(rel)&&entries.some(entry=>rel===entry||entry.endsWith('/')&&rel.startsWith(entry))};
+  const entries=[...listed].filter(entry=>!installedTree.test(entry));
+  return {has:rel=>entries.some(entry=>rel===entry||entry.endsWith('/')&&rel.startsWith(entry))};
 }
 // The files git tracks now beneath `entries` (relative). null when git cannot tell.
 export function trackedBeneath(root,entries){

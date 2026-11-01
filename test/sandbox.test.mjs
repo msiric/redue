@@ -162,6 +162,7 @@ test('init leaves out a Python check that gives a different result inside the sa
 
 test('a sandboxed Python check: CURRENT after a pass and through changes to git-ignored files; STALE on a checkout edit, the .venv or the environment',{skip:unsupported},t=>{
   const {root,state}=project(t);
+  write(root,'.gitignore','.venv/\nbuild/\n__pycache__/\nout/\n');execFileSync('git',['add','.gitignore'],{cwd:root});
   put(path.join(root,'build/generated.py'),'g = 1\n');
   good(root,state,'init');good(root,state,'start');
   assert.match(good(root,state,'run','typecheck'),/mypy \[\]/);
@@ -172,6 +173,8 @@ test('a sandboxed Python check: CURRENT after a pass and through changes to git-
   // The run did not see git-ignored files: a change to one, a new one, or a
   // new ignored directory is not a change to its inputs.
   write(root,'build/generated.py','g = 2\n');write(root,'build/more.py','m = 1\n');write(root,'build/new/out.js','x');
+  // An ignored build directory made after the run, with an installed tree inside it.
+  write(root,'out/standalone/node_modules/pkg/index.js','x');
   status=row(root,state,'typecheck');
   assert.equal(status.freshness,'CURRENT',status.reason);
   // A new file git does not ignore is.
