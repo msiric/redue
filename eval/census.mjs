@@ -32,7 +32,7 @@
 // twice, to see a task cache). Writes .local/eval/census-*.json.
 import fs from 'node:fs';
 import path from 'node:path';
-import {spawnSync} from 'node:child_process';
+import {spawn, spawnSync} from 'node:child_process';
 import {checkoutRedue, evalDir, harnessEnv, localDir, readJson, sh, slug, stamp, tmpRoot, entryPoint} from './lib.mjs';
 import {analyzeRun, compareRuns, hasStrace, recordedRun, snapshot} from './recorded-run.mjs';
 import {productChecks} from './product-runs.mjs';
@@ -209,8 +209,12 @@ async function census(name, modes) {
     row.hiddenStats = {entries: entries.length, rules, examples: entries.slice(0, 10)};
     console.log(`${name} hidden entries ${entries.length}, Landlock rules ${rules}`);
   }
+  // With it, also memory, disk and the largest processes every 15 s while init runs.
+  const monitor = argv.includes('--hidden-stats') ? spawn('sh', ['-c', 'while sleep 15; do date +%T; free -m | sed -n 2p; df -m / | tail -1; ps -eo rss,etime,args --sort=-rss | head -5 | cut -c1-160; done'],
+    {stdio: ['ignore', 'inherit', 'inherit']}) : null;
   row.init = {plain: init(dir), typescript: init(dir, '--recipe', 'typescript-direct', '--check', 'typecheck'),
     tests: init(dir, '--recipe', 'tests-direct', '--check', 'test')};
+  monitor?.kill();
   const scripts = Object.entries(pkg.scripts ?? {});
   // The root script init picked (a direct recipe's pick first), else a name match.
   const initPick = kind => [row.init.tests, row.init.typescript, row.init.plain].flatMap(r => r.checks ?? [])
