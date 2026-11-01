@@ -67,21 +67,24 @@ To undo everything setup did: `redue remove`.
 
 ## What it covers today
 
-In a census of 120 active public TypeScript repositories (October 2026, REDUE
-at commit 046cd0e, before 0.1.0-alpha.26), each installed as its users would,
-with dependencies' install scripts on, 86 installed cleanly on a macOS runner.
+In a census of 120 active public TypeScript repositories (November 2026, REDUE
+at commit e264a67, before 0.1.0-alpha.27), each installed as its users would,
+with dependencies' install scripts on, 90 installed cleanly on a macOS runner.
 A check counts when two recorded runs on the same code both came out CURRENT
 on the same inputs. 35 repositories had at least one such check:
 
 | Check | Repositories | How |
 |---|---|---|
-| Typecheck | 22 | 15 by running the project's script in an OS sandbox ([sandboxed recipe](docs/user/sandbox.md)); 5 by running the local `tsc` directly ([direct recipe](docs/user/direct-typescript.md)); 2 by running the script with every Node process recorded ([general recipe](docs/user/node-script.md)) |
-| Lint | 25 | 21 sandboxed recipe, 4 general recipe |
+| Typecheck | 22 | 16 by running the project's script in an OS sandbox ([sandboxed recipe](docs/user/sandbox.md)), 15 of them with the files git ignores hidden; 5 by running the local `tsc` directly ([direct recipe](docs/user/direct-typescript.md)); 1 by running the script with every Node process recorded ([general recipe](docs/user/node-script.md)) |
+| Lint | 24 | 21 sandboxed recipe (19 with ignored files hidden), 3 general recipe |
 | Tests | 2 | Vitest run directly ([direct test recipe](docs/user/tests-direct.md)) |
 
-In a census of 120 Python repositories, 75 installed on a Linux runner
+In a census of 120 Python repositories, 74 installed on a Linux runner
 and 23 had a qualifying check: typecheck (mypy, pyright, ty) 15, lint (ruff)
-22, all through the sandboxed recipe. On Linux, every sandboxed run was traced
+22, all through the sandboxed recipe with ignored files hidden. A check whose
+git-ignored files are hidden stays CURRENT when a build or test run rewrites
+them: after each project's build and tests ran, 31 of 37 such TypeScript
+checks and 31 of 38 Python checks were still CURRENT on Linux. On Linux, every sandboxed run was traced
 with strace: each file it read in the checkout was a recorded input, a cache
 or its own output.
 

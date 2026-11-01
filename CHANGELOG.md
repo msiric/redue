@@ -1,5 +1,45 @@
 # Changelog
 
+## 0.1.0-alpha.27 — 2026-11-01
+
+A build or test run no longer makes a sandboxed typecheck or lint STALE,
+and `redue stats` shows what REDUE saved you.
+
+- **Files git ignores are hidden from sandboxed runs.** A sandboxed
+  typecheck or lint now runs without the files git ignores (`dist/`,
+  `.next/`, coverage files, `.env`), except `node_modules`, `.venv` and
+  runner caches. Those files are not its inputs, so a build or test run that
+  writes them leaves the result CURRENT. The claim: the result holds for a
+  run that sees only the project's files that git doesn't ignore, its
+  installed packages and the toolchain. Only the project's `.gitignore`
+  files and `.git/info/exclude` count, not your global excludes file.
+- **Checks that need ignored files keep working.** `init` tries the
+  sandbox with ignored files hidden first (`sandbox-v2`), then with the
+  whole checkout (`sandbox-v1`), then the general recipe. A hidden run that
+  fails on a hidden file runs again in the sandbox without hiding, and that
+  result is kept. Checks set up by alpha.26 stay `sandbox-v1` until you run
+  `redue init` again.
+- **Measured.** In the product census, after each project's own build and
+  tests ran, checks that stayed CURRENT (alpha.26 in brackets, from the
+  measurement census): TypeScript on Linux 31 of 37 (5 of 43), on macOS 24
+  of 34 (5 of 38); Python on Linux 31 of 38 (24 of 37), on macOS 28 of 34
+  (20 of 33). Where a check qualifies with both, the sandbox stayed CURRENT
+  16 times and the general recipe 9 of 23 (Linux). The strace cross-check
+  found no read outside the recorded inputs.
+- **`redue stats`.** Per check: reruns the hook skipped, the time that
+  saved, recorded runs, and the top reasons a check was UNVERIFIED, from a
+  log in REDUE's local state.
+- `redue remove-state` no longer fails on Windows while the observer is
+  still closing its files.
+- Known limits: a sandboxed run can still see that a hidden file exists
+  (its name on macOS; listings, sizes and times on Linux), so a tool that
+  acts on existence alone is not covered; tests do not use hidden files for
+  that reason. On Linux, a file a run creates in a folder that holds hidden
+  files cannot be read back in the same run.
+- Contributors: eval entry points that run third-party code refuse to start
+  unless `GITHUB_ACTIONS=true`, and importing any eval entry point throws
+  before it does anything.
+
 ## 0.1.0-alpha.26 — 2026-10-31
 
 Typecheck and lint checks run inside an OS sandbox, so REDUE can reuse them
