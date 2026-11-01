@@ -65,6 +65,25 @@ on your machine.
 
 To undo everything setup did: `redue remove`.
 
+## Still CURRENT after your build and tests
+
+Running the project's build or tests writes files (`dist/`, `.next/`,
+coverage). REDUE leaves those out when the files are git-ignored, so a
+typecheck or lint that passed stays CURRENT. In the census, after each
+project's own build, tests, typecheck and lint ran, the share of sandboxed
+checks still CURRENT:
+
+| | alpha.26 | alpha.27 |
+|---|---|---|
+| TypeScript, Linux | 5 of 43 | 31 of 37 |
+| TypeScript, macOS | 5 of 38 | 24 of 34 |
+| Python, Linux | 24 of 37 | 31 of 38 |
+| Python, macOS | 20 of 33 | 28 of 34 |
+
+The rest changed for real: the build rewrote a tracked file (a sitemap, a
+feed, a generated source), added a file git doesn't ignore, or installed
+packages.
+
 ## What it covers today
 
 In a census of 120 active public TypeScript repositories (November 2026, REDUE
@@ -81,10 +100,7 @@ on the same inputs. 35 repositories had at least one such check:
 
 In a census of 120 Python repositories, 74 installed on a Linux runner
 and 23 had a qualifying check: typecheck (mypy, pyright, ty) 15, lint (ruff)
-22, all through the sandboxed recipe with ignored files hidden. A check whose
-git-ignored files are hidden stays CURRENT when a build or test run rewrites
-them: after each project's build and tests ran, 31 of 37 such TypeScript
-checks and 31 of 38 Python checks were still CURRENT on Linux. On Linux, every sandboxed run was traced
+22, all through the sandboxed recipe with ignored files hidden. On Linux, every sandboxed run was traced
 with strace: each file it read in the checkout was a recorded input, a cache
 or its own output.
 
