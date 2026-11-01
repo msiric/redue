@@ -251,6 +251,14 @@ async function census(name, modes) {
   return row;
 }
 
+// --probe-network: what this runner allows a test sandbox (eval/sandbox/netprobe.py), and nothing else.
+if (argv.includes('--probe-network')) {
+  const probe = sh('python3', [path.join(evalDir, 'sandbox', 'netprobe.py')], {timeout: 300_000});
+  console.log(probe.stdout || probe.stderr);
+  fs.mkdirSync(localDir, {recursive: true});
+  fs.writeFileSync(path.join(localDir, `netprobe-${process.platform}-${stamp()}.json`), probe.stdout || JSON.stringify({error: probe.stderr}));
+  process.exit(0);
+}
 fs.mkdirSync(path.join(tmpRoot, 'census'), {recursive: true});
 fs.mkdirSync(localDir, {recursive: true});
 const file = path.join(localDir, `census-${shardArg ? shardArg.replace('/', 'of') + '-' : ''}${stamp()}.json`);
