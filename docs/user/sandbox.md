@@ -7,10 +7,15 @@ covers programs REDUE cannot record: TypeScript 7's native compiler, esbuild,
 oxlint and tsgolint, biome, turbo, and Python tools such as mypy, pyright, ty
 and ruff.
 
-**The claim.** A sandboxed result holds for a run that sees only the project,
-its installed packages and the toolchain, the way CI does. It does not say
-that a run with your own configuration files, a service on your machine or the
-network would give the same result.
+**The claim.** A sandboxed result holds for a run that sees only the project's
+files that git doesn't ignore, its installed packages and the toolchain, the
+way CI does. It does not say that a run with your own configuration files, a
+service on your machine or the network would give the same result.
+
+A check that needs files git ignores (generated code, another package's
+built declarations) gets the whole checkout instead: its result holds for a
+run that sees the project, git-ignored files included, its installed packages
+and the toolchain. See [files git ignores](#files-git-ignores).
 
 ## Where it applies
 
@@ -19,9 +24,9 @@ network would give the same result.
   [direct TypeScript recipe](direct-typescript.md) and the pnpm and Yarn
   TypeScript recipes first; they stay first where they apply. Then the
   sandboxed recipe, before the [general recipe](node-script.md), since it
-  also covers the native programs a script starts. Where init's trial shows a
-  difference, or the sandbox cannot run, `init` writes the general recipe as
-  before. Where the sandbox cannot start at run time (inside Claude Code's
+  also covers the native programs a script starts. Where init's trials show
+  a difference, or the sandbox cannot run, `init` writes the general recipe
+  as before. Where the sandbox cannot start at run time (inside Claude Code's
   macOS sandbox), a script the general recipe takes is recorded as it records
   it.
 - **Python projects:** mypy, pyright, ty and ruff installed in the project's
@@ -44,12 +49,14 @@ redue status --sync
 A Python check in the config:
 
 ```json
-{"name": "typecheck", "kind": "typecheck", "qualification": "sandbox-v1",
+{"name": "typecheck", "kind": "typecheck", "qualification": "sandbox-v2",
  "command": [".venv/bin/mypy", "src"], "inputs": ["**", "..."], "installedInputs": [".venv/**", "..."]}
 ```
 
 A Node check names its script, as the general recipe's do:
-`{"name": "lint", "script": "lint", "kind": "lint", "qualification": "sandbox-v1", ...}`.
+`{"name": "lint", "script": "lint", "kind": "lint", "qualification": "sandbox-v2", ...}`.
+`sandbox-v2` hides the files git ignores from the run; `sandbox-v1` runs it on
+the whole checkout.
 
 With the Claude Code hook, `uv run mypy src`, `poetry run mypy src`,
 `python -m mypy src`, `.venv/bin/mypy src` and `mypy src` are recognized as
@@ -57,11 +64,32 @@ that check. The last two count only when PATH finds the tool or Python in the
 project's `.venv/bin` first. When the hook runs the check through REDUE, it
 keeps `uv run` or `poetry run` in front, so the environment still syncs first.
 
+## Files git ignores
+
+`init` runs each check three ways at most: plainly, sandboxed with the files
+git ignores hidden, and, when those two differ, sandboxed with the whole
+checkout (reusing the plain run). The first sandboxed way that gives the same
+result is written: `sandbox-v2` or `sandbox-v1`.
+
+With `sandbox-v2`, each run hides what `git ls-files --others --ignored
+--exclude-standard --directory` lists, except `node_modules`, `.venv` and
+runner caches: build output (`dist/`, `.next/`), coverage files, `.env` files.
+Only the project's rules count: its `.gitignore` files and
+`.git/info/exclude`, not your global excludes file. Those files are not
+inputs, so a build or test run that writes them leaves the result CURRENT.
+
+When a `sandbox-v2` run fails with a refusal that names a hidden file (a
+missing file counts only when it names one, since Linux tools report an
+unreadable file as missing), REDUE runs the check again in the sandbox
+without hiding anything. That result is kept and compared on every file,
+git-ignored ones included. Run `redue init` again to write `sandbox-v1` for a
+check that keeps needing them.
+
 ## What the run sees
 
 It may read and execute only beneath:
 
-- the checkout;
+- the checkout, without the files git ignores for `sandbox-v2`;
 - the toolchain: Node's installation and the package managers' (with
   Corepack's downloads), or the Python installation the `.venv` was made from;
 - system directories (`/usr`, `/bin`, `/etc` and the like on Linux; `/usr`,
@@ -100,10 +128,11 @@ It gets a controlled environment, not yours:
 
 CURRENT means the last sandboxed run's inputs are unchanged:
 
-- every file in the checkout, git-ignored files and git-ignored links to
-  files in it included, except `.git`, `node_modules` and `.venv` (observed
-  as installed files, by identity) and runner caches: the general recipe's,
-  plus `__pycache__`, `.mypy_cache`, `.ruff_cache` and `.pytest_cache`;
+- every file in the checkout git doesn't ignore (`sandbox-v2`), or every file
+  in it, git-ignored files and git-ignored links to files in it included
+  (`sandbox-v1`), except `.git` and runner caches (the general recipe's, plus
+  `__pycache__`, `.mypy_cache`, `.ruff_cache` and `.pytest_cache`);
+- `node_modules` and `.venv`, observed as installed files, by identity;
 - the environment the run gets (without display variables such as `TERM`
   and `COLUMNS`), and the places it may read;
 - Node's and the package managers' executables, or the interpreter the
@@ -111,7 +140,8 @@ CURRENT means the last sandboxed run's inputs are unchanged:
 - every directory on PATH, by identity: installing, removing or upgrading a
   program in one makes the result STALE;
 - `.git/info/exclude` and `.git/config`, by content: ruff and biome read the
-  ignore rules there.
+  ignore rules there, and they decide what `sandbox-v2` hides. For a project
+  in a subdirectory of its repository, also the `.gitignore` files above it.
 
 ## Telling a refusal from a real failure
 
@@ -124,6 +154,9 @@ every failure twice to find out:
   timings, the temporary and home directories, and lines about caches.
   Otherwise `init` writes what it would have without this recipe and says why.
   These are the only runs `init` makes.
+- When a `sandbox-v2` run fails with a refusal that names a hidden file, it
+  runs again in the sandbox without hiding (see
+  [files git ignores](#files-git-ignores)).
 - When a sandboxed run fails and its output has a line that looks like a
   refusal ("Operation not permitted", "Permission denied", "Read-only file
   system", a name lookup or a connection that failed), REDUE runs the check
@@ -167,3 +200,22 @@ it with `redue remove-state`.
   nested example project's).
 - A script that changes files (`--fix`, `--write`) does not get this recipe:
   `init` would run it twice.
+- With `sandbox-v2`, a run cannot read a hidden file, but it can still see
+  that one exists. On macOS it sees the names of hidden files and folders at
+  the level where they start (`dist` in the checkout's root). On Linux it can
+  also list a hidden folder and see its files' sizes and times: Landlock
+  restricts neither beneath a folder the run may list. A tool that acts on
+  whether a git-ignored file exists, without reading it, is not covered: a
+  new or removed one does not make the result STALE. Typecheckers and
+  linters read what they act on; a test that skips itself when a built file
+  is missing does not, which is why hidden files are not used for tests yet.
+- On Linux, a file a `sandbox-v2` run creates in a folder that holds hidden
+  files (the checkout's root, when anything in it is hidden) cannot be read
+  back in the same run. `init`'s trial and the rerun without hiding catch a
+  check that needs to.
+- A file whose git status changes without a change to its content (`git add
+  -f` of an ignored file, `git rm --cached` of a tracked one) is noticed only
+  when its content next changes. A change to `.gitignore` or
+  `.git/info/exclude` makes the result STALE.
+- A run that moves a hidden folder into a visible place can read it there.
+  That changes the checkout during the run, so the run is not reused.

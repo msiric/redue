@@ -7,7 +7,7 @@ import {directCompiler,directQualification,directEnvironment,directInstalledInpu
 import {runArgv,tscRun} from '../src/typescript-invocation.mjs';
 import {testEnvironment,testRunnerAt,testsInterpretation,testsQualification} from '../src/test-direct.mjs';
 import {scriptEnvironment,scriptInterpretation,scriptKinds,scriptQualification} from '../src/node-script.mjs';
-import {pythonTool,sandboxEnvironment,sandboxInterpretation,sandboxKinds,sandboxQualification} from '../src/sandbox.mjs';
+import {hiddenListIssue,hiddenQualification,isSandboxed,pythonTool,sandboxEnvironment,sandboxInterpretationOf,sandboxKinds,sandboxQualification} from '../src/sandbox.mjs';
 import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
@@ -151,21 +151,30 @@ if(command==='init'){
     if(!chosen.length)error('no discovered check matches the selected workspace and kind');
     discovery.checks=chosen;discovery.config.checks=chosen.map(row=>row.config);
   }
-  // A sandboxed check is proposed only when it gives the same exit status
-  // inside the sandbox as outside it. Otherwise init writes what it would
+  // A sandboxed check is proposed only when it gives the same exit status and
+  // output inside the sandbox as outside it: first with the checkout's
+  // git-ignored files hidden (sandbox-v2), else with the whole checkout
+  // (sandbox-v1), reusing the plain run. Otherwise init writes what it would
   // have without the sandboxed recipe, with the reason.
+  const trialIssue=trial=>trial.issue?`the sandbox cannot run here (${trial.issue})`:
+    // A failure both ways that shows a refusal cannot be told from a real one.
+    trial.same?null:trial.plain!==trial.sandboxed?`exit ${trial.sandboxed} inside the sandbox, ${trial.plain} outside it${trial.line?` (${trial.line})`:''}`:
+    trial.line?`it fails both ways (exit ${trial.plain}), with a sign of a refusal inside the sandbox (${trial.line})`:
+    `the output differs inside the sandbox: ${JSON.stringify(trial.output.sandboxed)} instead of ${JSON.stringify(trial.output.plain)}`;
   let trials=0;
   for(const [at,row] of [...discovery.checks.entries()]){
     if(row.qualification!==sandboxQualification||row.level!=='ready')continue;
     if(!json)console.error(`Running ${row.config.name} inside and outside the sandbox to confirm it...`);
-    const trial=await sandboxTrial(discovery.root,row.config);
-    if(!trial.issue)trials++;
-    const issue=trial.issue?`the sandbox cannot run here (${trial.issue})`:
-      // A failure both ways that shows a refusal cannot be told from a real one.
-      trial.same?null:trial.plain!==trial.sandboxed?`exit ${trial.sandboxed} inside the sandbox, ${trial.plain} outside it${trial.line?` (${trial.line})`:''}`:
-      trial.line?`it fails both ways (exit ${trial.plain}), with a sign of a refusal inside the sandbox (${trial.line})`:
-      `the output differs inside the sandbox: ${JSON.stringify(trial.output.sandboxed)} instead of ${JSON.stringify(trial.output.plain)}`;
-    if(!issue){row.reason+=`; ran both ways at init, exit ${trial.plain}`;continue;}
+    const hidden=await sandboxTrial(discovery.root,row.config,{hide:true});
+    if(!hidden.issue)trials++;
+    if(!hidden.issue&&hidden.same){
+      row.config={...row.config,qualification:hiddenQualification};row.qualification=hiddenQualification;
+      row.reason=row.reason.replace('the whole checkout is its input',"the checkout's files git doesn't ignore are its input")+`; ran both ways at init, exit ${hidden.plain}`;continue;}
+    // Without git, nothing is hidden: the whole checkout is tried on its own.
+    const trial=hidden.plainRun?await sandboxTrial(discovery.root,row.config,{plain:hidden.plainRun}):
+      hidden.issue===hiddenListIssue?await sandboxTrial(discovery.root,row.config):hidden;
+    const issue=trialIssue(trial);
+    if(!issue){row.reason+=`; ran both ways at init, exit ${trial.plain}; it needs files git ignores (${hidden.issue??trialIssue(hidden)})`;continue;}
     if(row.fallback)discovery.checks[at]={...row.fallback,reason:`Sandboxed recipe unavailable: ${issue}; ${row.fallback.reason}`};
     else{discovery.checks[at]=null;discovery.skipped.push({kind:row.config.name,reason:`${row.config.name}: sandboxed recipe unavailable: ${issue}`});}
   }
@@ -311,7 +320,7 @@ const checks=publicConfig.checks.map(check=>{
   const pnpmTypecheck=check.qualification==='pnpm-tsc-v1';
   const testsDirect=check.qualification===testsQualification;
   const generalScript=check.qualification===scriptQualification;
-  const sandboxed=check.qualification===sandboxQualification;
+  const sandboxed=isSandboxed(check.qualification);
   if(check.script&&check.command&&!pnpmTypecheck&&!npmDirect&&!testsDirect)
     error(`${check.name}: choose script or command, not both`);
   const manager=publicConfig.packageManager;
@@ -399,7 +408,7 @@ const checks=publicConfig.checks.map(check=>{
     ...(npmDirect?{qualificationInterpretation:directInterpretation}:{}),
     ...(testsDirect?{qualificationInterpretation:testsInterpretation}:{}),
     ...(generalScript?{qualificationInterpretation:scriptInterpretation}:{}),
-    ...(sandboxed?{qualificationInterpretation:sandboxInterpretation}:{}),
+    ...(sandboxed?{qualificationInterpretation:sandboxInterpretationOf(check.qualification)}:{}),
     workspace:check.workspace||null,kind:check.kind||null};
 });
 const runtime={schema:1,provider:'declared-project@1',root,state,checks};

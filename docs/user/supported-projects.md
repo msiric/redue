@@ -20,8 +20,9 @@ build scripts. It prefers familiar script names (for typecheck: `typecheck`,
 matches are reported as ambiguous rather than guessed. It never creates a new
 project script. Without `--recipe`, `init` tries the strict recipes below first, then,
 for a root typecheck or lint script, the [sandboxed recipe](sandbox.md) on
-macOS and Linux (the script run inside an OS sandbox, the whole checkout as
-its input), then the [general recipe](node-script.md): the script run
+macOS and Linux (the script run inside an OS sandbox, with the files git
+ignores hidden when it gives the same result that way, else on the whole
+checkout), then the [general recipe](node-script.md): the script run
 through the package manager with every Node process recorded and the whole
 checkout as its input. Python projects get the sandboxed recipe for mypy,
 pyright, ty and ruff in their `.venv`. `--recipe typescript-direct`,

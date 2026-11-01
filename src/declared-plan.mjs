@@ -8,7 +8,7 @@ import {qualifyTypeScript} from './typescript-qualification.mjs';
 import {directBuildInfo} from './direct-typescript.mjs';
 import {qualifyTests,testWorkspacePatterns,testsQualification} from './test-direct.mjs';
 import {qualifyNodeScript,scriptQualification} from './node-script.mjs';
-import {qualifySandbox,sandboxInstalledExclusions,sandboxQualification} from './sandbox.mjs';
+import {isSandboxed,qualifySandbox,sandboxInstalledExclusions} from './sandbox.mjs';
 import {yarnWorkspaceTypecheckInputs} from './yarn-workspace-inputs.mjs';
 import {pnpmTypecheckInputs} from './pnpm-inputs.mjs';
 import {checkRun} from './typescript-invocation.mjs';
@@ -81,7 +81,7 @@ export function discoverDeclared(config) {
     const excluded=buildInfo?['!'+buildInfo]:[];
     // A sandboxed check leaves out the .venv's links that lead out of the
     // checkout; its qualification names them.
-    const sandboxed=selected.qualification===sandboxQualification;
+    const sandboxed=isSandboxed(selected.qualification);
     if(sandboxed)excluded.push(...sandboxInstalledExclusions(root));
     const installedStarted=performance.now();
     const installed=resolveDeclaredInstalled(root,

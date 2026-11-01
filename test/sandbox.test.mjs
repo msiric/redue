@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import {spawnSync,execFileSync} from 'node:child_process';
-import {comparableOutput,denialLine,hiddenEntries,sandboxArgv,sandboxTrial,systemPlaces,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
+import {comparableOutput,denialLine,hiddenEntries,hiddenRefusal,sandboxArgv,sandboxTrial,systemPlaces,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
 import {projectArgs,toolArgs} from '../src/python-onboarding.mjs';
 import {chainCommand,hookForms,pathForm,recordedCommand} from '../src/claude-hook.mjs';
 
@@ -16,8 +16,9 @@ const unsupported=!['darwin','linux'].includes(process.platform)?'the sandboxed 
 const put=(file,value,mode)=>{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,value,mode?{mode}:undefined);};
 
 // A Python project with a .venv whose `mypy` and `ruff` are small Python
-// programs: they read every .py file under the project, and fail, read a
-// file outside, or reach the network when a file says so.
+// programs: they read every .py file under src, as mypy does with the
+// project's `files`, and fail, read a file outside or a git-ignored one, or
+// reach the network when a file says so.
 function project(t,{makefile=null,tools=['mypy','ruff']}={}){
   const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'rsb-'))),root=path.join(base,'project'),state=path.join(base,'redue-state');
   const outside=path.join(base,'outside.txt');put(outside,'outside\n');
@@ -29,8 +30,9 @@ function project(t,{makefile=null,tools=['mypy','ruff']}={}){
   execFileSync(python3,['-m','venv','--without-pip',path.join(root,'.venv')]);
   for(const tool of tools)put(path.join(root,'.venv/bin',tool),`#!${path.join(root,'.venv/bin/python')}
 import os, sys, pathlib, socket
-text = ''.join(p.read_text() for p in sorted(pathlib.Path('.').rglob('*.py')) if '.venv' not in p.parts)
+text = ''.join(p.read_text() for p in sorted(pathlib.Path('src').rglob('*.py')))
 if 'outside' in text: open(${JSON.stringify(outside)}).read()
+if 'readbuild' in text: text += open('build/generated.py').read()
 if 'network' in text:
     try: socket.create_connection(('127.0.0.1', 9), timeout=2)
     except ConnectionRefusedError: pass
@@ -132,7 +134,7 @@ test('init proposes mypy and ruff from .venv with the project\'s arguments, afte
   const by=Object.fromEntries(init.proposed_config.checks.map(check=>[check.name,check]));
   assert.deepEqual(by.typecheck.command,['.venv/bin/mypy']);
   assert.deepEqual(by.lint.command,['.venv/bin/ruff','check','src']);
-  assert.equal(by.lint.qualification,'sandbox-v1');
+  assert.equal(by.lint.qualification,'sandbox-v2');
   assert.deepEqual({inputs:by.lint.inputs,installedInputs:by.lint.installedInputs},sandboxCheckInputs());
   for(const check of init.checks){assert.equal(check.level,'ready',check.reason);assert.match(check.reason,/ran both ways at init, exit 0/);}
   assert.equal(init.package_manager,null);
@@ -158,19 +160,24 @@ test('init leaves out a Python check that gives a different result inside the sa
   assert.match(off.skipped.map(row=>row.reason).join('\n'),/the sandbox cannot run here \(the sandbox is turned off for this test\)/);
 });
 
-test('a sandboxed Python check: CURRENT after a pass, STALE on a checkout edit, an ignored file, the .venv or the environment',{skip:unsupported},t=>{
+test('a sandboxed Python check: CURRENT after a pass and through changes to git-ignored files; STALE on a checkout edit, the .venv or the environment',{skip:unsupported},t=>{
   const {root,state}=project(t);
   put(path.join(root,'build/generated.py'),'g = 1\n');
   good(root,state,'init');good(root,state,'start');
   assert.match(good(root,state,'run','typecheck'),/mypy \[\]/);
   let status=row(root,state,'typecheck');
   assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
-  assert.equal(status.recipe,'sandbox-v1');
-  assert.match(good(root,state,'status','--sync'),/✓ typecheck {2}CURRENT \/ PASS {2}\(sandboxed recipe\)/);
-  // A git-ignored file that existed before the observer started is an input.
-  write(root,'build/generated.py','g = 2\n');
+  assert.equal(status.recipe,'sandbox-v2');
+  assert.match(good(root,state,'status','--sync'),/✓ typecheck {2}CURRENT \/ PASS {2}\(sandboxed recipe, git-ignored files hidden\)/);
+  // The run did not see git-ignored files: a change to one, a new one, or a
+  // new ignored directory is not a change to its inputs.
+  write(root,'build/generated.py','g = 2\n');write(root,'build/more.py','m = 1\n');write(root,'build/new/out.js','x');
   status=row(root,state,'typecheck');
-  assert.equal(status.freshness,'STALE');assert.match(status.reason,/build\/generated\.py changed/);
+  assert.equal(status.freshness,'CURRENT',status.reason);
+  // A new file git does not ignore is.
+  write(root,'notes.txt','n\n');
+  status=row(root,state,'typecheck');
+  assert.equal(status.freshness,'STALE');assert.match(status.reason,/notes\.txt changed/);
   good(root,state,'run','typecheck');
   // The .venv is observed as installed files.
   write(root,'.venv/lib/extra.txt','x');
@@ -188,6 +195,53 @@ test('a sandboxed Python check: CURRENT after a pass, STALE on a checkout edit, 
   assert.equal(invoke(root,state,['run','typecheck']).status,1);
   status=row(root,state,'typecheck');
   assert.equal(`${status.freshness}/${status.result}`,'CURRENT/FAIL',status.reason);
+});
+
+test('with hidden files, a file the run saw counts even when git ignores it later, and a hidden one counts once git tracks it',{skip:unsupported},t=>{
+  const {root,state}=project(t);
+  write(root,'.gitignore','.venv/\nbuild/\n__pycache__/\n*.gen.txt\n');
+  write(root,'src/fx/a.gen.txt','a = 1\n');write(root,'build/x.py','x = 1\n');
+  execFileSync('git',['add','-f','.gitignore','src/fx/a.gen.txt'],{cwd:root});
+  good(root,state,'init');good(root,state,'start');good(root,state,'run','typecheck');
+  assert.equal(row(root,state,'typecheck').freshness,'CURRENT');
+  // Tracked, though a pattern matches it: the run could read it.
+  execFileSync('git',['rm','-q','--cached','src/fx/a.gen.txt'],{cwd:root});
+  write(root,'src/fx/a.gen.txt','a = 2\n');
+  let status=row(root,state,'typecheck');
+  assert.equal(status.freshness,'STALE');assert.match(status.reason,/src\/fx\/a\.gen\.txt changed/);
+  good(root,state,'run','typecheck');
+  // Hidden from that run, then tracked: a change to it counts.
+  write(root,'build/x.py','x = 2\n');
+  assert.equal(row(root,state,'typecheck').freshness,'CURRENT');
+  execFileSync('git',['add','-f','build/x.py'],{cwd:root});
+  write(root,'build/x.py','x = 3\n');
+  status=row(root,state,'typecheck');
+  assert.equal(status.freshness,'STALE');assert.match(status.reason,/build\/x\.py changed/);
+});
+
+test('a check that reads a git-ignored file gets the whole checkout at init; one that starts reading one runs again without hiding',{skip:unsupported},t=>{
+  const {root,state}=project(t);
+  put(path.join(root,'build/generated.py'),'g = 1\n');
+  write(root,'src/fx/reads.py','# readbuild\n');
+  let init=JSON.parse(good(root,state,'init','--dry-run','--json'));
+  let check=init.proposed_config.checks.find(c=>c.name==='typecheck');
+  assert.equal(check.qualification,'sandbox-v1',JSON.stringify(init.checks));
+  assert.match(init.checks.find(c=>c.name==='typecheck').reason,/ran both ways at init, exit 0; it needs files git ignores \(exit 1 inside the sandbox, 0 outside it/);
+  // Set up without it, then the check starts reading build/.
+  fs.rmSync(path.join(root,'src/fx/reads.py'));
+  good(root,state,'init');good(root,state,'start');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'),'utf8')).checks.find(c=>c.name==='typecheck').qualification,'sandbox-v2');
+  write(root,'src/fx/reads.py','# readbuild\n');
+  const run=invoke(root,state,['run','typecheck']);
+  assert.equal(run.status,0,run.stderr);
+  assert.match(run.stderr,/refusal of a file git ignores .*running it again in the sandbox without hiding them/);
+  let status=row(root,state,'typecheck');
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  assert.equal(status.recipe,'sandbox-v1');
+  // That result compares every file: the ignored one it read too.
+  write(root,'build/generated.py','g = 2\n');
+  status=row(root,state,'typecheck');
+  assert.equal(status.freshness,'STALE');assert.match(status.reason,/build\/generated\.py changed/);
 });
 
 test('a sandboxed run that reads outside or reaches the network is run again outside the sandbox and is not reused',{skip:unsupported},t=>{
@@ -232,31 +286,29 @@ test('a sandboxed run keeps its private home between runs; where the sandbox can
 test('hidden git-ignored entries: what git lists, but installed trees and caches; a check that reads one gives another result',{skip:unsupported},async t=>{
   const {root,state}=project(t);
   write(root,'.gitignore','.venv/\nbuild/\n__pycache__/\n.env\nnode_modules/\n*.tsbuildinfo\n');
-  write(root,'.env','X=1\n');write(root,'build/gen.py','# fine\n');write(root,'node_modules/pkg/index.js','');
+  write(root,'.env','X=1\n');write(root,'build/generated.py','# fine\n');write(root,'node_modules/pkg/index.js','');
   write(root,'src/fx/__pycache__/x.pyc','');write(root,'app.tsbuildinfo','{}');
   assert.deepEqual(hiddenEntries(root).sort(),['.env','build/']);
   good(root,state,'init');
   const check=JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'),'utf8')).checks.find(c=>c.name==='typecheck');
-  // The tool reads every .py file it finds. On macOS the hidden directory
-  // cannot be listed, so the tool finds nothing there; on Linux it can be
-  // listed but not read, a refusal.
   let trial=await sandboxTrial(root,check,{hide:true});
-  assert.equal(trial.hidden,2);
-  if(process.platform==='darwin')assert.equal(trial.same,true,JSON.stringify(trial));
-  else{assert.equal(trial.same,false);assert.match(trial.line,/Permission denied/);assert.ok(trial.rules>0,JSON.stringify(trial));}
-  // A result that depends on the hidden file differs.
-  write(root,'build/gen.py','# fail\n');
+  assert.equal(trial.hidden,2);assert.equal(trial.same,true,JSON.stringify(trial));
+  if(process.platform==='linux')assert.ok(trial.rules>0,JSON.stringify(trial));
+  // A result that depends on the hidden file differs, with the refusal named.
+  write(root,'src/fx/reads.py','# readbuild\n');write(root,'build/generated.py','# fail\n');
   trial=await sandboxTrial(root,check,{hide:true});
   assert.equal(trial.same,false,JSON.stringify(trial));assert.equal(trial.plain,1);
-  // Without hiding, it fails the same way both ways.
-  const plain=await sandboxTrial(root,check);
-  assert.deepEqual([plain.plain,plain.sandboxed],[1,1]);
+  assert.match(trial.line,/build\/generated\.py/);
+  // Without hiding, it fails the same way both ways, reusing the plain run.
+  const whole=await sandboxTrial(root,check,{plain:trial.plainRun});
+  assert.deepEqual([whole.plain,whole.sandboxed],[1,1]);
 });
 
 test('a hidden entry stays unreadable when the run recreates it, renames a file into it or reaches it through a link',{skip:unsupported},t=>{
   const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'rsb-hide-'))),root=path.join(base,'project');
   t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
   write(root,'dist/a.txt','a\n');write(root,'gen/g.txt','g\n');write(root,'src/s.txt','s\n');fs.symlinkSync('dist',path.join(root,'link'));
+  fs.symlinkSync('src',path.join(root,'latest'));
   const code=`
 import json, os, shutil
 r = {}
@@ -268,6 +320,7 @@ def read(name, rel):
 read('hidden', 'dist/a.txt')
 read('link', 'link/a.txt')
 read('visible', 'src/s.txt')
+read('target', 'src/s.txt')
 if hasattr(os, 'O_PATH'):
     os.close(os.open('dist/a.txt', os.O_PATH)); r['opath'] = 'opened'
 open('src/moved.txt', 'w').write('m')
@@ -285,19 +338,24 @@ read('recreated', 'dist/b.txt')
 print(json.dumps(r))
 `;
   const argv=sandboxArgv(support.mode,[python3,'-I','-c',code],{reads:[root,...systemPlaces],python:support.python,
-    hidden:[path.join(root,'dist'),path.join(root,'gen')]});
+    hidden:[path.join(root,'dist'),path.join(root,'gen'),path.join(root,'latest')]});
   const r=spawnSync(argv[0],argv.slice(1),{cwd:root,encoding:'utf8',timeout:60000});
   assert.equal(r.status,0,r.stderr);
   const seen=JSON.parse(r.stdout.trim().split('\n').at(-1));
   const refused=process.platform==='darwin'?1:13;   // EPERM from Seatbelt, EACCES from Landlock
   // Landlock refuses a rename into a place with other rights (EXDEV).
   const renamed=process.platform==='darwin'?refused:'move refused 18';
-  assert.deepEqual({...seen,opath:undefined},{hidden:refused,link:refused,visible:'read',renamed,recreated:refused,opath:undefined},r.stdout);
+  assert.deepEqual({...seen,opath:undefined},{hidden:refused,link:refused,visible:'read',target:'read',renamed,recreated:refused,opath:undefined},r.stdout);
+  // A hidden link to a visible directory does not hide the directory (checked by 'target' above).
   // Landlock does not check an O_PATH open, which gives no access to the contents.
   if(process.platform==='linux')assert.equal(seen.opath,'opened');
 });
 
 test('a missing file is a refusal only when the line names a hidden path',()=>{
+  // The rerun without hiding needs a hidden name; any other refusal is handled as before.
+  assert.match(hiddenRefusal("PermissionError: [Errno 13] Permission denied: 'build/x.py'",['build/']),/Permission denied/);
+  assert.equal(hiddenRefusal('getaddrinfo ENOTFOUND registry.npmjs.org',['build/']),null);
+  assert.equal(hiddenRefusal("Permission denied: '/etc/shadow'",['build/']),null);
   assert.match(denialLine("error TS6053: File '/r/dist/x.d.ts' not found.",['dist/']),/TS6053/);
   assert.match(denialLine('FileNotFoundError: [Errno 2] No such file or directory: \'.env\'',['.env']),/Errno 2/);
   assert.equal(denialLine('error: distance not found',['dist/']),null);
@@ -391,10 +449,13 @@ test('what a sandboxed result depends on outside the checkout: PATH directories 
   assert.equal(status.freshness,'STALE');assert.equal(status.reason,'.git/info/exclude or .git/config changed');
 });
 
-test('a git-ignored link to a file in the checkout is an input',{skip:unsupported},t=>{
+test('with the whole checkout (sandbox-v1), a git-ignored link to a file in the checkout is an input',{skip:unsupported},t=>{
   const {root,state}=project(t);
   put(path.join(root,'build/settings.py'),'mode = 1\n');fs.symlinkSync('settings.py',path.join(root,'build/active.py'));
-  good(root,state,'init');good(root,state,'start');good(root,state,'run','typecheck');
+  good(root,state,'init');
+  const file=path.join(root,'redue.config.json');
+  fs.writeFileSync(file,fs.readFileSync(file,'utf8').replaceAll('"sandbox-v2"','"sandbox-v1"'));
+  good(root,state,'start');good(root,state,'run','typecheck');
   write(root,'build/settings.py','mode = 2\n');
   assert.equal(row(root,state,'typecheck').freshness,'STALE');
 });
@@ -455,5 +516,5 @@ test('a Node script the general recipe also takes is sandboxed; where the sandbo
   good(root,state,'run','lint');
   status=row(root,state,'lint');
   assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
-  assert.equal(status.recipe,'sandbox-v1');
+  assert.equal(status.recipe,'sandbox-v2');
 });

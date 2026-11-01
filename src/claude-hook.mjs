@@ -26,7 +26,8 @@ const tests=check=>check?.qualification==='npm-tests-direct-v1'&&Array.isArray(c
 const general=check=>(check?.qualification==='node-script-v1'&&['typecheck','test','lint'].includes(check.kind)||
   sandboxed(check))&&typeof check.script==='string';
 // A sandboxed check: a root package script, or a tool from the project's .venv.
-const sandboxed=check=>check?.qualification==='sandbox-v1'&&['typecheck','lint'].includes(check.kind);
+// sandbox.mjs's isSandboxed, written out: the hook does not load the sandbox module.
+const sandboxed=check=>['sandbox-v1','sandbox-v2'].includes(check?.qualification)&&['typecheck','lint'].includes(check.kind);
 const python=check=>sandboxed(check)&&Array.isArray(check.command)&&/^\.venv\/bin\/[A-Za-z0-9_.-]+$/.test(check.command[0]||'')&&
   check.command.every(word=>typeof word==='string'&&safe.test(word));
 const eligibleCheck=check=>typecheck(check)||tests(check)||general(check)||python(check);

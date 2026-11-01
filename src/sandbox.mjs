@@ -23,6 +23,14 @@ import picomatch from 'picomatch';
 
 export const sandboxQualification='sandbox-v1';
 export const sandboxInterpretation='sandbox@1';
+// The same recipe with the checkout's git-ignored files hidden from the run
+// (hiddenEntries): they are not its inputs, so build and test outputs do not
+// make it STALE. init gives it when the run gives the same result that way.
+export const hiddenQualification='sandbox-v2';
+export const hiddenInterpretation='sandbox@2';
+export const hiddenListIssue='git cannot list the ignored files';
+export const isSandboxed=qualification=>qualification===sandboxQualification||qualification===hiddenQualification;
+export const sandboxInterpretationOf=qualification=>qualification===hiddenQualification?hiddenInterpretation:sandboxInterpretation;
 export const sandboxKinds=['typecheck','lint'];
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const digest=value=>createHash('sha256').update(value).digest('hex');
@@ -158,16 +166,26 @@ export function sandboxEnv(check,env,{root,home,tmp}){
   }
   return out;
 }
-// The files in the checkout's .git that tools read to choose files (ruff's
-// and biome's ignore rules): the repository's exclude file and config. The
-// observer does not watch .git, so they are compared as context.
+// The files in the repository's .git that tools read to choose files (ruff's
+// and biome's ignore rules), and that decide what sandbox-v2 hides: its
+// exclude file and config. For a project in a subdirectory of the
+// repository, also the .gitignore files above it. The observer watches
+// neither, so they are compared as context.
 function gitIgnoreSources(root){
-  let dir=path.join(root,'.git');
+  let top=root;
+  while(!fs.existsSync(path.join(top,'.git'))){const up=path.dirname(top);if(up===top)return [];top=up;}
+  let dir=path.join(top,'.git');
   try{if(fs.statSync(dir).isFile()){
-    const gitdir=path.resolve(root,/^gitdir:\s*(.+)$/m.exec(fs.readFileSync(dir,'utf8'))?.[1].trim()??'');
+    const gitdir=path.resolve(top,/^gitdir:\s*(.+)$/m.exec(fs.readFileSync(dir,'utf8'))?.[1].trim()??'');
     let common=gitdir;try{common=path.resolve(gitdir,fs.readFileSync(path.join(gitdir,'commondir'),'utf8').trim());}catch{}
     dir=common;}}catch{return [];}
-  return ['info/exclude','config'].map(rel=>{try{return [rel,digest(fs.readFileSync(path.join(dir,rel)))];}catch{return [rel,null];}});
+  const read=file=>{try{return digest(fs.readFileSync(file));}catch{return null;}};
+  const above=[];
+  for(let at=path.dirname(root);top!==root&&(at===top||at.startsWith(top+path.sep));at=path.dirname(at)){
+    above.push([path.relative(top,path.join(at,'.gitignore')),read(path.join(at,'.gitignore'))]);
+    if(at===top)break;
+  }
+  return [...['info/exclude','config'].map(rel=>[rel,read(path.join(dir,rel))]),...above];
 }
 // What a sandboxed result depends on outside the observed files, compared
 // before reuse, one entry each so a change can be named (sandboxChange): every
@@ -216,15 +234,52 @@ export function sandboxDirs(state,name){
 // `git ls-files --others --ignored --exclude-standard --directory` lists (a
 // wholly ignored directory as one entry, ending in /), but the installed
 // trees (node_modules, .venv) and runner caches. Relative to root. null when
-// git cannot list them.
+// git cannot list them. Only the project's rules count (.gitignore files and
+// .git/info/exclude), not a user's global excludes file, as on CI.
 const installedTree=/(?:^|\/)(?:node_modules|\.venv)(?:\/|$)/;
 const runnerCache=picomatch(sandboxCaches,{dot:true});
+const projectGit=['-c','core.excludesFile=/dev/null'],gitEnv=()=>({...process.env,GIT_OPTIONAL_LOCKS:'0'});
 export function hiddenEntries(root){
-  const r=spawnSync('git',['ls-files','-z','--others','--ignored','--exclude-standard','--directory'],
-    {cwd:root,encoding:'utf8',maxBuffer:256*1024*1024,timeout:60000,stdio:['ignore','pipe','ignore']});
+  const r=spawnSync('git',[...projectGit,'ls-files','-z','--others','--ignored','--exclude-standard','--directory'],
+    {cwd:root,encoding:'utf8',maxBuffer:256*1024*1024,timeout:60000,stdio:['ignore','pipe','ignore'],env:gitEnv()});
   if(r.status!==0)return null;
   return r.stdout.split('\0').filter(Boolean).filter(rel=>!installedTree.test(rel)&&
     !runnerCache(rel)&&!runnerCache(rel.replace(/\/$/,'')+'/x'));
+}
+
+// What git lists now as ignored at or beneath `paths` (relative files, or
+// directories ending in /), as hiddenEntries would: nested repositories are
+// not entered, and installed trees are not ignored. {has(rel)} for a file,
+// or null when git cannot tell. A directory git ignores holds no file it
+// does not, so asking a new directory once covers its files.
+export function ignoredNow(root,paths){
+  const asked=paths.filter(rel=>!installedTree.test(rel));
+  if(!asked.length)return {has:()=>false};
+  const listed=new Set();
+  for(let at=0;at<asked.length;at+=500){
+    const r=spawnSync('git',[...projectGit,'ls-files','-z','--others','--ignored','--exclude-standard','--directory','--',...asked.slice(at,at+500)],
+      {cwd:root,encoding:'utf8',maxBuffer:256*1024*1024,timeout:10000,stdio:['ignore','pipe','ignore'],env:gitEnv()});
+    if(r.status!==0)return null;
+    for(const entry of r.stdout.split('\0'))if(entry)listed.add(entry);
+  }
+  const entries=[...listed];
+  return {has:rel=>!installedTree.test(rel)&&entries.some(entry=>rel===entry||entry.endsWith('/')&&rel.startsWith(entry))};
+}
+// The files git tracks now beneath `entries` (relative). null when git cannot tell.
+export function trackedBeneath(root,entries){
+  if(!entries.length)return new Set();
+  const r=spawnSync('git',['ls-files','-z','--cached','--',...entries],
+    {cwd:root,encoding:'utf8',maxBuffer:256*1024*1024,timeout:10000,stdio:['ignore','pipe','ignore'],env:gitEnv()});
+  return r.status===0?new Set(r.stdout.split('\0').filter(Boolean)):null;
+}
+// A refusal line that names a hidden entry (relative): a refusal by the
+// sandbox, or a missing file, which Linux tools report for an unreadable one.
+export function hiddenRefusal(text,hidden){
+  const names=hidden.map(file=>file.replace(/\/$/,'')).filter(Boolean)
+    .map(name=>new RegExp(`(?:^|[\\s'"\`(=/])${escape(name)}(?:[/\\s'"\`):,]|$)`));
+  for(const line of String(text).split(/\r?\n/))
+    if((denial.test(line)||missing.test(line))&&names.some(name=>name.test(line)))return line.trim().slice(0,200);
+  return null;
 }
 
 const ancestors=list=>[...new Set(list.flatMap(dir=>{const out=[];for(let at=path.dirname(dir);at!=='/'&&at!=='.';at=path.dirname(at))out.push(at);return out;}))];
@@ -239,7 +294,8 @@ export function seatbeltProfile(reads,own=null,hidden=[]){
   return ['(version 1)','(allow default)','(deny file-read* process-exec*)',
     `(allow file-read* process-exec* ${all.map(dir=>`(subpath ${quote(dir)})`).join(' ')} (literal "/") (literal "/etc") (literal "/var") (literal "/tmp"))`,
     `(allow file-read-metadata ${ancestors(all).map(dir=>`(literal ${quote(dir)})`).join(' ')})`,
-    ...hidden.length?[`(deny file-read* process-exec* ${[...new Set(hidden.flatMap(file=>[file,real(file)]).filter(Boolean))]
+    // The entry's own path, by its directory's real path: a hidden link's target is not hidden.
+    ...hidden.length?[`(deny file-read* process-exec* ${[...new Set(hidden.flatMap(file=>[file,path.join(real(path.dirname(file))??path.dirname(file),path.basename(file))]))]
       .map(file=>`(subpath ${quote(file)})`).join(' ')})`]:[],
     '(deny network*)',...own?[`(allow network* ${[own,real(own)].filter(Boolean).map(dir=>`(subpath ${quote(dir)})`).join(' ')})`]:[]].join('\n');
 }
@@ -400,7 +456,8 @@ export function runToEnd(argv,{cwd,env,timeout=0,echo=false,started=null}){
 // With `hide`, the git-ignored entries hiddenEntries lists are kept from the
 // sandboxed run, and it also returns them, their count, the run times and, on
 // Linux, the launcher's rule count and setup time.
-export async function sandboxTrial(root,check,{timeout=300000,hide=false}={}){
+// `plain`: the plain run of an earlier trial of the same check, reused.
+export async function sandboxTrial(root,check,{timeout=300000,hide=false,plain:earlier=null}={}){
   const supported=sandboxSupport();
   if(supported.issue)return {issue:supported.issue};
   const python=Boolean(pythonTool(check));
@@ -410,11 +467,11 @@ export async function sandboxTrial(root,check,{timeout=300000,hide=false}={}){
   fs.mkdirSync(home);fs.mkdirSync(tmp);
   try{
     const entries=hide?hiddenEntries(root):[];
-    if(!entries)return {issue:'git cannot list the ignored files'};
+    if(!entries)return {issue:hiddenListIssue};
     const hidden=entries.map(rel=>path.join(root,rel.replace(/\/$/,""))),stats=hide&&supported.mode==='landlock'?path.join(scratch,'stats.json'):null;
     const run=async(argv,env)=>{const started=Date.now(),r=await runToEnd(argv,{cwd:root,env,timeout});
       return {status:r.timedOut?'timeout':r.status??r.signal??r.error?.code,output:`${r.stdout}\n${r.stderr}`,ms:Date.now()-started};};
-    const plain=await run(command,{...process.env,...python?{}:{npm_config_update_notifier:'false'}});
+    const plain=earlier??await run(command,{...process.env,...python?{}:{npm_config_update_notifier:'false'}});
     const reads=[root,home,tmp,...sandboxPlaces(selected,process.env,root),...systemPlaces];
     const sandboxed=await run(sandboxArgv(supported.mode,command,{reads,tmp,python:supported.python,hidden,stats}),sandboxEnv(selected,process.env,{root,home,tmp}));
     // A failure both ways counts as the same only without a sign of a refusal.
@@ -428,7 +485,7 @@ export async function sandboxTrial(root,check,{timeout=300000,hide=false}={}){
     if(at<0&&b.length>a.length)at=a.length;
     const output=at<0?null:{plain:(a[at]??'(no more output)').slice(0,160),sandboxed:(b[at]??'(no more output)').slice(0,160)};
     let launcher=null;if(stats)try{launcher=JSON.parse(fs.readFileSync(stats,'utf8'));}catch{}
-    return {same:plain.status===sandboxed.status&&!denied&&!output,plain:plain.status,sandboxed:sandboxed.status,output,
+    return {same:plain.status===sandboxed.status&&!denied&&!output,plain:plain.status,sandboxed:sandboxed.status,output,plainRun:plain,
       line:denied||(plain.status===sandboxed.status?null:sandboxed.output.trim().split('\n').at(-1)?.slice(0,200)||null),
       ...hide?{hidden:entries.length,entries,plainMs:plain.ms,sandboxedMs:sandboxed.ms,...launcher?{rules:launcher.rules,setupMs:launcher.ms}:{}}:{}};
   }finally{fs.rmSync(scratch,{recursive:true,force:true});}

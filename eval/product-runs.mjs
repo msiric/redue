@@ -34,7 +34,7 @@ import {hasStrace} from './recorded-run.mjs';
 import {unrecordedPrograms} from './program-check.mjs';
 import {crossCheck, hiddenExposure, sandboxTraceCalls} from './sandbox-check.mjs';
 import {projectState} from '../src/project-location.mjs';
-import {sandboxCaches, sandboxPlaces, systemPlaces} from '../src/sandbox.mjs';
+import {isSandboxed, sandboxCaches, sandboxPlaces, systemPlaces} from '../src/sandbox.mjs';
 import picomatch from 'picomatch';
 
 const wait = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
@@ -90,7 +90,7 @@ export function productChecks({dir, config, names, env, label, keepTraces = fals
   const readSets = new Map(), hidden = new Map();
   for (const name of names) {
     const runtime = readJson(path.join(state, 'project-runtime-v1.json')).checks.find(c => c.name === name);
-    const sandboxed = runtime?.qualification === 'sandbox-v1';
+    const sandboxed = isSandboxed(runtime?.qualification);
     const runs = [];
     for (const n of [1, 2]) {
       // Files the run touched, for a run that is not stable.

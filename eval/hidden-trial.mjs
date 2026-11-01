@@ -9,4 +9,5 @@ entryPoint(import.meta, {ci: true});
 
 const [root, check] = process.argv.slice(2);
 const trial = await sandboxTrial(root, JSON.parse(check), {hide: true, timeout: 600_000});
-console.log(JSON.stringify(trial));
+const {plainRun, ...result} = trial;
+console.log(JSON.stringify(result));

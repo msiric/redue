@@ -25,7 +25,7 @@ import {npmCacheDir} from './npm-integrity.mjs';
 import {runFromArgv} from './typescript-invocation.mjs';
 import {buildInfoPath,recordedCertificate} from './direct-run-certificate.mjs';
 import {timing,mark,traceBase,traceContext,traceScope,traceEnvironment,traceId} from './decision-profile.mjs';
-import {sandboxChange} from './sandbox.mjs';
+import {ignoredNow,isSandboxed,sandboxChange,trackedBeneath} from './sandbox.mjs';
 
 const configFile=path.resolve(process.argv[2]);
 const config=JSON.parse(fs.readFileSync(configFile));
@@ -348,6 +348,39 @@ function describeChangedInput(plan,file) {
     .map(mapping=>mapping.logical).slice(0,2);
   return file+' changed'+(matches.length?` (installed via ${matches.join(', ')})`:'');
 }
+// A run that hid the checkout's git-ignored entries (sandbox@2) did not see
+// them. A changed file the run saw always counts. A file beneath a hidden
+// entry counts only once git tracks it, and a new file only when git does
+// not list it as ignored now, as the next run's hidden entries would not.
+// Installed trees count whatever git says. The first changed input that
+// counts, or null; once per receipt and pair of fingerprints. When git
+// cannot tell, every change counts.
+const hiddenRun=r=>Array.isArray(r?.sandbox?.hidden)&&Boolean(r.files);
+function visibleChange(row,r,name) {
+  const key=(r.invocation?.runId||'')+'\0'+r.fingerprint+'\0'+combinedSummary(name).fingerprint;
+  if(row.visibleKey===key)return row.visibleChange;
+  const hidden=r.sandbox.hidden.map(entry=>entry.replace(/\/$/,''));
+  const beneath=file=>hidden.some(entry=>file===entry||file.startsWith(entry+'/'));
+  const current=combinedFiles(name);
+  const changed=[...new Set([...Object.keys(r.files),...Object.keys(current)])].filter(file=>r.files[file]!==current[file]).sort();
+  const seen=changed.filter(file=>file in r.files&&!beneath(file));
+  const covered=changed.filter(file=>beneath(file)),fresh=changed.filter(file=>!(file in r.files)&&!beneath(file));
+  let found=seen[0]??null;
+  if(!found&&covered.length){
+    const tracked=trackedBeneath(root,hidden.filter(entry=>covered.some(file=>file===entry||file.startsWith(entry+'/'))));
+    found=covered.find(file=>!tracked||tracked.has(file))??null;
+  }
+  if(!found&&fresh.length){
+    // Ask once per directory the run had no file in, then the files outside one.
+    const before=new Set(Object.keys(r.files).flatMap(file=>file.split('/').slice(0,-1).map((_,i,parts)=>parts.slice(0,i+1).join('/'))));
+    const newDir=file=>{const parts=file.split('/');for(let i=1;i<parts.length;i++){const dir=parts.slice(0,i).join('/');if(!before.has(dir))return dir+'/';}return null;};
+    const asked=[...new Set(fresh.filter(file=>!file.startsWith('external:')).map(file=>newDir(file)??file))];
+    const ignored=ignoredNow(root,asked);
+    found=fresh.find(file=>file.startsWith('external:')||!ignored||!ignored.has(file))??null;
+  }
+  row.visibleKey=key;row.visibleChange=found;
+  return found;
+}
 function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=false) {
   if(!index)return [];
   return [...index.checks].map(([name,row])=>{
@@ -368,7 +401,7 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       return item;}
     if(pendingChecks.has(name)){item.reason='filesystem change pending content inspection';return item;}
     if(r&&r.planId) item.declared_inputs_match=r.planId===row.plan.id&&
-      r.fingerprint===combinedSummary(name).fingerprint;
+      (r.fingerprint===combinedSummary(name).fingerprint||hiddenRun(r)&&visibleChange(row,r,name)===null);
     if(r&&!(r.fingerprintVersion===1||r.fingerprintVersion===2&&Array.isArray(r.runFacts))){
       item.reason='receipt uses earlier input-resolution format';return item;}
     if(row.plan.unresolved.length){
@@ -410,7 +443,7 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       ...(row.plan.environment.executableIdentity?['__vstate_node_identity__']:[])];
     // A sandboxed run's variables, toolchain, PATH directories and places
     // (sandbox.mjs): every entry either side has, and the first change named.
-    const sandboxChanged=row.plan.qualification==='sandbox-v1'&&contextHashes?.[name]?
+    const sandboxChanged=isSandboxed(row.plan.qualification)&&contextHashes?.[name]?
       sandboxChange(r?.environmentHashes,contextHashes[name]):null;
     if(names.length&&!contextHashes?.[name])unconfirmed??='execution environment context not supplied';
     item.freshness='STALE';
@@ -431,8 +464,10 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
         item.freshness='UNVERIFIED';item.reason='environment variables the last run read were not compared';}
       else item.reason=`environment variable ${contextHashes[name].__redue_env_changed__} differs from the last run`;
     }
-    else if(r.fingerprint!==combinedSummary(name).fingerprint) {
+    else if(r.fingerprint!==combinedSummary(name).fingerprint&&!(hiddenRun(r)&&visibleChange(row,r,name)===null)) {
       const key=r.fingerprint+'\0'+combinedSummary(name).fingerprint;
+      if(row.staleReasonKey!==key&&hiddenRun(r)){
+        row.staleInputs=[visibleChange(row,r,name)];row.staleReason=describeChangedInput(row.plan,row.staleInputs[0]);row.staleReasonKey=key;}
       if(row.staleReasonKey!==key){
         let changed=row.lastReason;row.staleInputs=[];
         const candidate=changed?.endsWith(' changed')?changed.slice(0,-8):null;
@@ -807,7 +842,7 @@ function markInputEvent(name,rel,type,replay) {
     const serial=(inputEventSerial.get(name)||0)+1;
     inputEventSerial.set(name,serial);
     // Kept only for recorded test and script checks and sandboxed ones; trimmed in batches.
-    if(['npm-tests-direct-v1','node-script-v1','sandbox-v1'].includes(index?.checks.get(name)?.plan.qualification)){
+    if(['npm-tests-direct-v1','node-script-v1'].includes(index?.checks.get(name)?.plan.qualification)||isSandboxed(index?.checks.get(name)?.plan.qualification)){
       const list=inputEventPaths.get(name)||[];list.push([serial,rel]);
       if(list.length>2*eventPathLimit)list.splice(0,list.length-eventPathLimit);inputEventPaths.set(name,list);
     }

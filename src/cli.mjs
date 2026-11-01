@@ -8,8 +8,8 @@ import {patternMatcher} from './glob.mjs';
 import {observedBy} from './installed-observation.mjs';
 import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testRunFacts,sharedInstalledFile,testsInterpretation,testsQualification} from './test-direct.mjs';
 import {childProgram,generalIssue,lookup,pnpmConfigFiles,scriptCaches,scriptInstalledPaths,scriptInterpretation,scriptQualification,scriptRunFacts,pnpmNameless,toolOutput,toolchainDirs} from './node-script.mjs';
-import {denialLine,endWithChild,runToEnd,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,sandboxInterpretation,sandboxPlaces,
-  sandboxQualification,sandboxSupport,systemPlaces} from './sandbox.mjs';
+import {denialLine,endWithChild,hiddenEntries,hiddenQualification,hiddenRefusal,isSandboxed,runToEnd,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,
+  sandboxInterpretation,sandboxInterpretationOf,sandboxPlaces,sandboxQualification,sandboxSupport,systemPlaces} from './sandbox.mjs';
 import path from 'node:path';
 import net from 'node:net';
 import os from 'node:os';
@@ -87,7 +87,7 @@ function environmentReads() {
 }
 const recordedRecipes=[testsQualification,scriptQualification];
 // A sandboxed check's run is recorded where its sandbox cannot start (execute).
-function contextHashes() {const reads=config.checks.some(check=>[...recordedRecipes,sandboxQualification].includes(check.qualification))?environmentReads():{};
+function contextHashes() {const reads=config.checks.some(check=>recordedRecipes.includes(check.qualification)||isSandboxed(check.qualification))?environmentReads():{};
   return Object.fromEntries(config.checks.map(check=>[
   check.name,Object.fromEntries([...(check.environment?.variables||[])
     .map(key=>[key,digest(process.env[key]??'<unset>')]),
@@ -100,7 +100,7 @@ function contextHashes() {const reads=config.checks.some(check=>[...recordedReci
       `__vstate_path_executable_${name}__`,pathExecutableIdentity(name)]),
     ...(check.environment?.executableIdentity?[['__vstate_node_identity__',nodeIdentity()]]:[]),
     // A sandboxed run's environment, toolchain and places (sandbox.mjs).
-    ...(check.qualification===sandboxQualification?Object.entries(sandboxContext(check,process.env,root)):[]),
+    ...(isSandboxed(check.qualification)?Object.entries(sandboxContext(check,process.env,root)):[]),
     // The variables the last test run read directly, compared here: which
     // list was compared, and the first variable whose value now differs.
     // Control requests are small, so the values stay out of them.
@@ -300,7 +300,7 @@ async function execute() {
     // A sandboxed check runs inside the OS sandbox. Where the sandbox cannot
     // start, a script the general recipe takes is recorded as that recipe
     // records it (`fallback`); any other runs as it is, and is not reused.
-    const sandboxed=selected.qualification===sandboxQualification,support=sandboxed?sandboxSupport():null;
+    const sandboxed=isSandboxed(selected.qualification),support=sandboxed?sandboxSupport():null;
     const fallback=Boolean(support?.issue&&typeof selected.script==='string'&&!generalIssue(root,selected.script));
     // A test run's processes record what the guard checks (test-recorder.cjs),
     // and so do a general recipe run's, through the package manager.
@@ -332,7 +332,11 @@ async function execute() {
       else{
         const dirs=sandboxDirs(state,name);
         const reads=[root,dirs.home,dirs.tmp,...sandboxPlaces(selected,process.env,root),...systemPlaces];
-        sandbox={mode:support.mode,dirs,argv:sandboxArgv(support.mode,command,{reads,tmp:dirs.tmp,python:support.python}),
+        // sandbox-v2 hides the checkout's git-ignored entries. Where git
+        // cannot list them, nothing is hidden, and the receipt compares every file.
+        const hidden=selected.qualification===hiddenQualification?hiddenEntries(root):null;
+        sandbox={mode:support.mode,dirs,reads,hidden,argv:sandboxArgv(support.mode,command,{reads,tmp:dirs.tmp,python:support.python,
+          hidden:(hidden||[]).map(rel=>path.join(root,rel.replace(/\/$/,'')))}),
           env:sandboxEnv(selected,process.env,{root,...dirs})};
       }
     }
@@ -517,6 +521,45 @@ async function execute() {
     // A recorded certificate changes only the probe part of the fingerprint.
     if(!outputs&&(!snap||!end||snap.planId!==end.planId||(recording?snap.inputKey!==end.inputKey:snap.fingerprint!==end.fingerprint)||
       snap.revision!==end.revision))captureIssues.push('declared inputs changed or were not observed');
+    // A run that hid git-ignored files and failed with a refusal that names
+    // one runs again in the sandbox without hiding them: the check needs
+    // them. That run's result is kept, compared on every file, when the
+    // inputs held through it too. Its own refusal is handled as below.
+    let hiddenRerun=null;
+    if(sandbox?.hidden?.length&&result==='FAIL'&&!requestedSignal){
+      const line=hiddenRefusal(output.head+'\n'+output.tail,sandbox.hidden);
+      if(line){
+        console.error(`redue: the sandboxed run failed with what looks like a refusal of a file git ignores (${line}); running it again in the sandbox without hiding them`);
+        const again=await runToEnd(sandboxArgv(sandbox.mode,command,{reads:sandbox.reads,tmp:sandbox.dirs.tmp,python:support.python}),
+          {cwd:plan.cwd,env:sandbox.env,echo:true,started:child=>{activeChild=child;}});
+        activeChild=null;
+        hiddenRerun={line,exitCode:again.status,signal:again.signal||null,...again.error?{errorCode:again.error.code||again.error.name}:{}};
+        if(requestedSignal){
+          captureIssues.push('interrupted during the run without hidden files');
+          Object.assign(invocation,{status:'interrupted',exitCode:null,signal:requestedSignal});
+        }
+        else if(again.error||again.status===null)
+          captureIssues.push(`the run without hidden files did not finish (${again.error?.code||again.signal}), so a refusal of a file git ignores is not ruled out (${line})`);
+        else{
+          const wait=decisionWait(process.env.VSTATE_CAPTURE_TIMEOUT_MS);
+          // Inputs, plan, observer and environment held through it as through the first run.
+          let confirmed=null;const environmentNow=contextHashes()[name];
+          try{confirmed=await call({action:'snapshot',name,contextHashes:contextHashes(),
+            ...Number.isSafeInteger(snap?.inputEventSerial)?{sinceSerial:snap.inputEventSerial}:{}},wait.timeout,wait.deadline);}catch{}
+          const last=confirmed?.snapshots?.[name];
+          if(!last?.observationHealthy||!snap||last.planId!==snap.planId||last.fingerprint!==snap.fingerprint||last.revision!==snap.revision||
+            last.inputEventSerial!==end?.inputEventSerial||last.planGeneration!==snap.planGeneration||
+            confirmed.observation?.generation!==before?.observation?.generation)
+            captureIssues.push('declared inputs changed or were not observed during the run without hidden files');
+          if(JSON.stringify(environmentNow)!==JSON.stringify(environmentBefore))
+            captureIssues.push('declared environment changed during the run without hidden files');
+          invocation.hiddenExitCode=invocation.exitCode;invocation.exitCode=again.status;
+          result=again.status===0?'PASS':'FAIL';
+          output.head=`${again.stdout}\n${again.stderr}`.slice(0,65536);output.tail='';
+          sandbox.hidden=null;
+        }
+      }
+    }
     // A sandboxed run that failed with what looks like a refusal by the
     // sandbox runs again outside it. When that run exits differently, the
     // sandbox changed the result: the plain run's result is kept, not reused.
@@ -563,7 +606,9 @@ async function execute() {
     // A recorded run's receipt carries its run facts, even none; observers that
     // predate run facts do not reuse version 2.
     // The recipe that made the receipt, which status and the hook name.
-    const receipt={result,invocation,target,stable,fingerprintVersion:recorded||testRun?2:1,recipe:(fallback?scriptQualification:selected.qualification)||null,
+    // A sandboxed receipt names what the run did: hid the git-ignored files or not.
+    const receipt={result,invocation,target,stable,fingerprintVersion:recorded||testRun?2:1,
+      recipe:(fallback?scriptQualification:own?(sandbox?.hidden?hiddenQualification:sandboxQualification):selected.qualification)||null,
       ...(recorded||testRun?{runFacts}:{}),
       ...(testRun?{verificationRecipe:general?scriptInterpretation:testsInterpretation,guardIssues:guard?.issues||['the run record is unavailable'],
         environmentReads:guard?.environmentReads||{},...(nondeterministic?{nondeterministic}:{})}:{}),
@@ -577,7 +622,9 @@ async function execute() {
       planId:snap?.planId??plan.id,fingerprint:(recording||outputs?end:snap)?.fingerprint??null,
       provider:plan.provider,environmentHashes:environmentBefore,
       ...(observedContext?{observedContext,verificationRecipe:directInterpretation}:{}),
-      ...(own?{verificationRecipe:sandboxInterpretation,sandbox:{mode:sandbox?.mode??null,...sandboxRerun?{rerun:sandboxRerun}:{}}}:{}),
+      // `hidden`: the git-ignored entries the run did not see, which the observer does not compare.
+      ...(own?{verificationRecipe:sandbox?.hidden?sandboxInterpretationOf(hiddenQualification):sandboxInterpretation,
+        sandbox:{mode:sandbox?.mode??null,hidden:sandbox?.hidden??null,...hiddenRerun?{hiddenRerun}:{},...sandboxRerun?{rerun:sandboxRerun}:{}}}:{}),
       ...(fallback?{sandbox:{mode:null,fallback:'node-script',issue:support.issue}}:{}),
       files:(outputs?end:snap)?.files??null,observerGeneration:before?.observation?.generation??null,
       startRevision:snap?.revision??null,endRevision:end?.revision??null};
