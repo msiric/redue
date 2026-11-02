@@ -19,13 +19,14 @@ build scripts. It prefers familiar script names (for typecheck: `typecheck`,
 `tsc`, Vitest/Jest, ESLint, or Vite commands under other names. Multiple
 matches are reported as ambiguous rather than guessed. It never creates a new
 project script. Without `--recipe`, `init` tries the strict recipes below first, then,
-for a root typecheck or lint script, the [sandboxed recipe](sandbox.md) on
+for a root typecheck, lint or test script, the [sandboxed recipe](sandbox.md) on
 macOS and Linux (the script run inside an OS sandbox, with the files git
 ignores hidden when it gives the same result that way, else on the whole
-checkout), then the [general recipe](node-script.md): the script run
+checkout; a test run also gets loopback-only network and a private `/tmp`),
+then, for typecheck and lint, the [general recipe](node-script.md): the script run
 through the package manager with every Node process recorded and the whole
 checkout as its input. Python projects get the sandboxed recipe for mypy,
-pyright, ty and ruff in their `.venv`. `--recipe typescript-direct`,
+pyright, ty, ruff and pytest in their `.venv`. `--recipe typescript-direct`,
 `tests-direct`, `node-script` or `sandbox` selects one recipe alone. The direct TypeScript recipe supports
 a typecheck script of `tsc --noEmit` runs in any argument order, chained runs,
 or no typecheck script at all (a proposed `tsc --noEmit`; see
@@ -56,7 +57,9 @@ typechecks, Vitest/Jest, ESLint, and builds in workspace packages start
 recording-only unless a separately justified explicit contract is provided.
 For a single-package project whose test script runs Vitest 4/5 or Jest 29
 directly, `init` uses the direct test recipe, which records the run and guards
-its inputs; see [direct tests](tests-direct.md).
+its inputs; see [direct tests](tests-direct.md). Other root test scripts get
+the sandboxed recipe when its trial gives the same exit status and test counts
+as a plain run.
 In particular, test caches and build-generated inputs are not excluded to
 make evidence green.
 

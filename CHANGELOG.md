@@ -1,5 +1,45 @@
 # Changelog
 
+## 0.1.0-alpha.28 — 2026-11-02
+
+Test suites can run in the sandbox, so REDUE can reuse a passing test run
+for more projects, Python included.
+
+- **Sandboxed tests.** A root test script that the direct test recipe does
+  not take, and pytest in a Python project's `.venv`, can now use the
+  sandboxed recipe. `init` keeps it only when the run in the sandbox gives the
+  same exit status and test counts as a plain run. On top of what a
+  typecheck or lint gets, a test run gets:
+  - **Loopback only.** It may listen on any address and connect to the local
+    host and Unix sockets, never to a remote host. On macOS, Seatbelt
+    enforces that. On Linux, a seccomp filter refuses UDP and other non-TCP
+    sockets, TCP Fast Open and `io_uring`, and hands each `connect` to
+    REDUE's launcher. The launcher allows a local port nothing listens on or
+    one the run's own processes listen on, and refuses everything else,
+    including a service you started outside the run (a local database). If
+    the launcher cannot start or stops early, the result is UNVERIFIED.
+  - **A private `/tmp`.** Its `TMPDIR` is new for each run, and it may not
+    write elsewhere in `/tmp` or `/var/tmp`.
+  - **A fresh home** for each run, as on CI.
+  - **Ignored files hidden** when the trial agrees, else the whole checkout.
+- **Measured.** In the product census, test suites with a qualifying check
+  (alpha.27 in brackets): TypeScript on Linux 11 (2), on macOS 12 (2);
+  Python on Linux 17 (0), on macOS 14 (0). The strace cross-check found no
+  read outside the recorded inputs. The Linux connect supervisor added at
+  most 1.5% over the sandbox without it on suites with worker processes
+  (pytest-xdist, Jest, Vitest): apprise 233 s to 237 s, run-to-run spread
+  218-243 s. In a pilot with Claude Code on two pytest projects, the hook
+  skipped both "do the tests still pass?" reruns (19 s to 6 s and 28 s to
+  7 s), and plain reruns agreed with both skips.
+- **macOS hides contents only.** On macOS, a hidden file's contents and
+  execution are refused, but its metadata is not, as on Linux. A test that
+  writes into an ignored folder works.
+- Known limits: a suite that reads back ignored files it writes in the same
+  run (a coverage database, a build it starts) gets the whole checkout, and
+  one that writes tracked files or coverage data during the run ends
+  UNVERIFIED. On Linux, a test that needs a service started outside the run
+  fails in the sandbox, so `init` leaves it to a plain run.
+
 ## 0.1.0-alpha.27 — 2026-11-01
 
 A build or test run no longer makes a sandboxed typecheck or lint STALE,

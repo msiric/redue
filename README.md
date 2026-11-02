@@ -87,20 +87,25 @@ packages.
 ## What it covers today
 
 In a census of 120 active public TypeScript repositories (November 2026, REDUE
-at commit e264a67, before 0.1.0-alpha.27), each installed as its users would,
-with dependencies' install scripts on, 90 installed cleanly on a macOS runner.
+at commit a2401cc, before 0.1.0-alpha.28), each installed as its users would,
+with dependencies' install scripts on, 89 installed cleanly on a macOS runner.
 A check counts when two recorded runs on the same code both came out CURRENT
-on the same inputs. 35 repositories had at least one such check:
+on the same inputs. 38 repositories had at least one such check:
 
 | Check | Repositories | How |
 |---|---|---|
-| Typecheck | 22 | 16 by running the project's script in an OS sandbox ([sandboxed recipe](docs/user/sandbox.md)), 15 of them with the files git ignores hidden; 5 by running the local `tsc` directly ([direct recipe](docs/user/direct-typescript.md)); 1 by running the script with every Node process recorded ([general recipe](docs/user/node-script.md)) |
-| Lint | 24 | 21 sandboxed recipe (19 with ignored files hidden), 3 general recipe |
-| Tests | 2 | Vitest run directly ([direct test recipe](docs/user/tests-direct.md)) |
+| Typecheck | 20 | 14 by running the project's script in an OS sandbox ([sandboxed recipe](docs/user/sandbox.md)), 13 of them with the files git ignores hidden; 5 by running the local `tsc` directly ([direct recipe](docs/user/direct-typescript.md)); 1 by running the script with every Node process recorded ([general recipe](docs/user/node-script.md)) |
+| Lint | 22 | 19 sandboxed recipe (18 with ignored files hidden), 3 general recipe |
+| Tests | 12 | 10 sandboxed recipe, with ignored files hidden and loopback-only network; 2 Vitest run directly ([direct test recipe](docs/user/tests-direct.md)) |
+
+In alpha.27 the same census found 2 repositories with a qualifying test check
+on macOS and on Linux; now 12 on macOS and 11 on Linux.
 
 In a census of 120 Python repositories, 74 installed on a Linux runner
-and 23 had a qualifying check: typecheck (mypy, pyright, ty) 15, lint (ruff)
-22, all through the sandboxed recipe with ignored files hidden. On Linux, every sandboxed run was traced
+and 31 had a qualifying check: typecheck (mypy, pyright, ty) 15, lint (ruff)
+22, tests (pytest) 17, all through the sandboxed recipe (14 of the test
+suites with ignored files hidden, 3 with the whole checkout). In alpha.27, no
+Python test suite qualified. On Linux, every sandboxed run was traced
 with strace: each file it read in the checkout was a recorded input, a cache
 or its own output.
 

@@ -8,8 +8,8 @@ pnpm and Yarn TypeScript recipes, the [direct test recipe](tests-direct.md)
 and, on macOS and Linux, the [sandboxed recipe](sandbox.md) first. It uses
 the general recipe for a root typecheck or lint script none of them takes,
 and where the sandbox cannot run (at init, or at run time inside Claude
-Code's macOS sandbox). Test scripts use the direct test recipe; `init` does
-not propose the general recipe for them.
+Code's macOS sandbox). Test scripts use the direct test recipe or the
+sandboxed recipe; `init` does not propose the general recipe for them.
 
 It supports a project installed by npm, pnpm 9-12 (isolated or hoisted
 `node_modules`) or Yarn with the `node-modules` linker, with one lockfile kind
