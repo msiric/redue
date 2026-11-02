@@ -69,12 +69,12 @@ if 'tmpwrite' in text:
     except PermissionError: print('shared tmp refused')
     with tempfile.NamedTemporaryFile() as own: print('own tmp written')
 import re
-service = re.search(r'service (\d+)', text)
+service = re.search(r'service (\\d+)', text)
 if service:
     try: socket.create_connection(('127.0.0.1', int(service.group(1))), timeout=3).close(); print('service connected')
     except PermissionError: print('service refused')
     except OSError as e: print('service errno', e.errno)
-closed = re.search(r'closedport (\d+)', text)
+closed = re.search(r'closedport (\\d+)', text)
 if closed:
     try: socket.create_connection(('127.0.0.1', int(closed.group(1))), timeout=3).close(); print('closed connected')
     except OSError as e: print('closed errno', e.errno)
