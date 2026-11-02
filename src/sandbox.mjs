@@ -283,8 +283,10 @@ export function trackedBeneath(root,entries){
 // or null. A file the run saw always counts. A file beneath a hidden entry
 // counts only once git tracks it, and a new file only when git does not list
 // it as ignored now, as the next run's hidden entries would not. When git
-// cannot tell, every change counts. `external:` paths always count.
-export function visibleChange(root,hidden,before,current,paths){
+// cannot tell, every change counts. `external:` paths always count. With
+// `during` (changes while the run ran), a new file outside the hidden
+// entries counts too: the run could read it.
+export function visibleChange(root,hidden,before,current,paths,{during=false}={}){
   const entries=hidden.map(entry=>entry.replace(/\/$/,''));
   const beneath=file=>entries.some(entry=>file===entry||file.startsWith(entry+'/'));
   const changed=[...new Set(paths)].filter(file=>before[file]!==current[file]).sort();
@@ -297,6 +299,7 @@ export function visibleChange(root,hidden,before,current,paths){
     if(found)return found;
   }
   if(!fresh.length)return null;
+  if(during)return fresh[0];
   // Asked once per directory the run had no file in, then the files outside one.
   const dirs=new Set(Object.keys(before).flatMap(file=>file.split('/').slice(0,-1).map((_,i,parts)=>parts.slice(0,i+1).join('/'))));
   const newDir=file=>{const parts=file.split('/');for(let i=1;i<parts.length;i++){const dir=parts.slice(0,i).join('/');if(!dirs.has(dir))return dir+'/';}return null;};
@@ -368,8 +371,8 @@ const ansi=/\u001b\[[0-9;]*m/g;
 export function testCounts(text){
   const plain=String(text).replace(ansi,'');
   const last=(...patterns)=>{for(const re of patterns){let m,v=null;const g=new RegExp(re,'gim');while((m=g.exec(plain)))v=Number(m[1]);if(v!==null)return v;}return null;};
-  return {passed:last('(\\d+) (?:passed|passing)\\b','^# pass (\\d+)'),failed:last('(\\d+) (?:failed|failing)\\b','^# fail (\\d+)'),
-    skipped:last('(\\d+) (?:skipped|pending|todo)\\b','^# skip (\\d+)')};
+  return {passed:last('(\\d+) (?:tests? )?(?:passed|passing)\\b','^(?:#|ℹ) pass (\\d+)'),failed:last('(\\d+) (?:tests? )?(?:failed|failing)\\b','^(?:#|ℹ) fail (\\d+)'),
+    skipped:last('(\\d+) (?:tests? )?(?:skipped|pending|todo)\\b','^(?:#|ℹ) (?:skip|skipped) (\\d+)')};
 }
 // A line of a failed run's output that looks like the sandbox refused
 // something: a refused read or write, or the network unreachable. Such a
@@ -552,8 +555,10 @@ export async function sandboxTrial(root,check,{timeout=300000,hide=false,plain:e
     let launcher=null;if(stats)try{launcher=JSON.parse(fs.readFileSync(stats,'utf8'));}catch{}
     // Tests print in an order their workers decide: the counts their summary
     // gives are compared, not every line.
+    // When neither summary can be read, every line is compared, as for a typecheck.
     const counts=tests?[plain,sandboxed].map(r=>testCounts(r.output)):null;
-    const differs=tests?(JSON.stringify(counts[0])===JSON.stringify(counts[1])?null:{plain:JSON.stringify(counts[0]),sandboxed:JSON.stringify(counts[1])}):output;
+    const read=counts?.some(c=>Object.values(c).some(value=>value!==null));
+    const differs=tests&&read?(JSON.stringify(counts[0])===JSON.stringify(counts[1])?null:{plain:JSON.stringify(counts[0]),sandboxed:JSON.stringify(counts[1])}):output;
     return {same:plain.status===sandboxed.status&&!denied&&!differs&&!supervisor,plain:plain.status,sandboxed:sandboxed.status,output:differs,plainRun:plain,
       line:supervisor||denied||(plain.status===sandboxed.status?null:sandboxed.output.trim().split('\n').at(-1)?.slice(0,200)||null),
       ...hide?{hidden:entries.length,entries,plainMs:plain.ms,sandboxedMs:sandboxed.ms,...launcher?{rules:launcher.rules,setupMs:launcher.ms}:{}}:{}};

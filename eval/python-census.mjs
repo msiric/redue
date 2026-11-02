@@ -24,10 +24,11 @@ import {sandboxModes, sandboxSuite} from './sandbox.mjs';
 import {productChecks} from './product-runs.mjs';
 import {checkoutRedue} from './lib.mjs';
 import {testHiding} from './test-hiding.mjs';
+import {supervisorCost} from './supervisor-cost.mjs';
 import {sandboxEnvironment} from '../src/sandbox.mjs';
 entryPoint(import.meta, {ci: true});
 
-const argv = process.argv.slice(2), sandbox = argv.includes('--sandbox'), product = argv.includes('--product'), testHidingMode = argv.includes('--test-hiding');
+const argv = process.argv.slice(2), sandbox = argv.includes('--sandbox'), product = argv.includes('--product'), testHidingMode = argv.includes('--test-hiding'), supervisorCostMode = argv.includes('--supervisor-cost');
 const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : null;
 let names = argv.filter((arg, i) => !arg.startsWith('-') && argv[i - 1] !== '--shard');
 if (!names.length) names = readJson(path.join(evalDir, 'python-census-repos.json')).repos;
@@ -336,7 +337,19 @@ async function census(name, modes) {
         console.error(`  ${key}: present ${t.present.status}${t.flaky ? ' (flaky)' : ''}, hidden ${t.hidden?.status ?? t.hiddenIssue ?? '-'}, clean ${t.clean?.status ?? '-'}; entries ${t.entries?.count ?? '-'}${t.existenceOnly ? '; EXISTENCE ONLY' : ''}`);
       }
     }
-    for (const [kind, timeout] of product || testHidingMode ? [] : [['test', 600_000], ['typecheck', 300_000], ['lint', 180_000]]) {
+    // --supervisor-cost: each pytest command plain, sandboxed and supervised (eval/supervisor-cost.mjs).
+    if (supervisorCostMode && venv === path.join(dir, '.venv')) {
+      row.supervisorCost = {};
+      for (const check of (info.checks.test ?? []).filter(c => c.tool === 'pytest')) {
+        const cmd = command(check, venv, dir);
+        if (!cmd) continue;
+        const relative = cmd.argv.map(arg => arg.startsWith(dir + path.sep) ? path.relative(dir, arg) : arg);
+        const c = row.supervisorCost[`test:${check.tool}`] = {argv: relative, ...supervisorCost({dir, argv: relative, env: venvEnvironment,
+          check: {command: relative, kind: 'test', environment: sandboxEnvironment(true, null, 'test')}})};
+        console.error(`  supervisor cost: plain ${c.median?.plain} ms, open ${c.median?.open} ms, supervised ${c.median?.supervised} ms; connects ${c.connects?.join('/')}; status ${JSON.stringify(c.status)}${c.issue ? ' ' + c.issue : ''}`);
+      }
+    }
+    for (const [kind, timeout] of product || testHidingMode || supervisorCostMode ? [] : [['test', 600_000], ['typecheck', 300_000], ['lint', 180_000]]) {
       for (const check of info.checks[kind] ?? []) {
         const cmd = command({...check, mypyFiles: info.mypyFiles}, venv, dir);
         if (!cmd) continue;

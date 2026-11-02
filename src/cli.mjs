@@ -331,13 +331,16 @@ async function execute() {
       if(support.issue)captureIssues.push(`the run was not sandboxed: ${support.issue}`);
       else{
         const dirs=sandboxDirs(state,name);
+        // A test run: loopback networking, supervised on Linux (the launcher
+        // reports in REDUE's state, outside what the test may touch), a
+        // private /tmp, and a fresh home each run: what a test leaves in its
+        // home is not observed, so it must not reach a later run.
+        const tests=sandboxTestRun(selected),stats=tests&&support.mode==='landlock'?path.join(state,`launcher-${runId}.json`):null;
+        if(tests){dirs.home=path.join(dirs.tmp,'home');fs.mkdirSync(dirs.home,{mode:0o700});}
         const reads=[root,dirs.home,dirs.tmp,...sandboxPlaces(selected,process.env,root),...systemPlaces];
         // sandbox-v2 hides the checkout's git-ignored entries. Where git
         // cannot list them, nothing is hidden, and the receipt compares every file.
         const hidden=selected.qualification===hiddenQualification?hiddenEntries(root):null;
-        // A test run: loopback networking, supervised on Linux (the launcher's
-        // report goes in its temporary directory), and a private /tmp.
-        const tests=sandboxTestRun(selected),stats=tests&&support.mode==='landlock'?path.join(dirs.tmp,'.redue-launcher.json'):null;
         const options={reads,tmp:dirs.tmp,python:support.python,stats,
           ...tests?{network:'loopback',writes:[root,dirs.home,dirs.tmp],
             fault:process.env.VSTATE_TEST_FAULTS==='1'?process.env.VSTATE_TEST_SUPERVISOR||null:null}:{}};
@@ -487,14 +490,15 @@ async function execute() {
       unexplained=touched.filter(file=>!ignored.has(file));
       if(!unexplained.length){eventsExplained=true;if(changed.length)outputs=changed;}
     }
-    // A run that hid git-ignored files: what it wrote beneath them, or new
-    // files git ignores (test output, coverage data), is not a change to its
-    // inputs (visibleChange); anything else is named.
+    // A run that hid git-ignored files: what it wrote beneath them (test
+    // output, coverage data) is not a change to its inputs (visibleChange);
+    // anything else is named.
     let hiddenOnly=false;
     if(sandbox?.hidden&&snap&&end&&snap.planId===end.planId&&snap.observationHealthy&&end.observationHealthy&&
       (snap.inputEventSerial===end.inputEventSerial||end.inputEventPathsComplete===true)){
       const before=snap.files||{},after=end.files||{},events=end.inputEventPaths||[];
-      const found=visibleChange(root,sandbox.hidden,before,after,[...Object.keys(before),...Object.keys(after),...events]);
+      // During the run a new file outside the hidden entries was readable: it counts.
+      const found=visibleChange(root,sandbox.hidden,before,after,[...Object.keys(before),...Object.keys(after),...events],{during:true});
       if(found===null){eventsExplained=true;hiddenOnly=true;}else unexplained=[found];
     }
     // The end certificate, recorded or probed, must cover what this compile received.
@@ -603,7 +607,7 @@ async function execute() {
       }
     }
     // A test run whose network was not supervised throughout is not reused.
-    if(sandbox?.stats){const issue=supervisorIssue(sandbox.stats);if(issue)captureIssues.push(issue);}
+    if(sandbox?.stats){const issue=supervisorIssue(sandbox.stats);if(issue)captureIssues.push(issue);fs.rmSync(sandbox.stats,{force:true});}
     if(sandbox)fs.rmSync(sandbox.dirs.tmp,{recursive:true,force:true});
     const stable=captureIssues.length===0;
     // Two runs on the same inputs, environment and plan that disagree make the

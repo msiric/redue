@@ -7,13 +7,16 @@
 # handled, so they are not restricted.
 #
 # --loopback (a test run) leaves TCP to a seccomp filter in the command's
-# process instead: inet datagram and raw sockets are refused when they are
-# created, and so are sendto, sendmsg and sendmmsg with MSG_FASTOPEN (a
-# connect without connect), io_uring_setup, and any foreign architecture's or
-# x32 system call. Every connect goes to the launcher (seccomp user
-# notification), which lets loopback, IPv6 loopback, Unix sockets and
-# AF_UNSPEC through and refuses the rest. Nothing else goes through it, so
-# worker processes' IPC is untouched; bind is allowed anywhere.
+# process instead. Sockets other than Unix, netlink and inet TCP streams are
+# refused when they are created, and so are sendto, sendmsg and sendmmsg with
+# MSG_FASTOPEN (a connect without connect), io_uring_setup, and any foreign
+# architecture's or x32 system call. Every connect goes to the launcher
+# (seccomp user notification). It lets through AF_UNSPEC, an unnamed or
+# abstract Unix socket, a Unix socket file beneath a --write place, and the
+# local host (loopback, 0.0.0.0, ::) on a port no process listens on or one
+# of the run's own processes listens on: not a service started outside the
+# run. It refuses the rest. Nothing else goes through the launcher, so worker
+# processes' IPC is untouched; bind is allowed anywhere.
 #
 # --deny-write PATH (a test run's /tmp and /var/tmp) handles writes too: they
 # are allowed everywhere but beneath those paths, and beneath each --write
@@ -68,8 +71,8 @@ ARCH = {'x86_64': (0xC000003E, {'socket': 41, 'connect': 42, 'sendto': 44, 'send
                                 'io_uring_setup': 425, 'seccomp': 317}),
         'aarch64': (0xC00000B7, {'socket': 198, 'connect': 203, 'sendto': 206, 'sendmsg': 211, 'sendmmsg': 269,
                                  'io_uring_setup': 425, 'seccomp': 277})}
-AF_UNSPEC, AF_UNIX, AF_INET, AF_INET6, AF_PACKET = 0, 1, 2, 10, 17
-SOCK_STREAM, MSG_FASTOPEN = 1, 0x20000000
+AF_UNSPEC, AF_UNIX, AF_INET, AF_INET6, AF_NETLINK = 0, 1, 2, 10, 16
+SOCK_STREAM, IPPROTO_TCP, IPPROTO_MPTCP, MSG_FASTOPEN = 1, 6, 262, 0x20000000
 RET_ALLOW, RET_NOTIFY, RET_ERRNO = 0x7fff0000, 0x7fc00000, 0x00050000
 LD, JEQ, JGE, JSET, AND, RET = 0x20, 0x15, 0x35, 0x45, 0x54, 0x06
 SECCOMP_SET_MODE_FILTER, SECCOMP_FILTER_FLAG_NEW_LISTENER, SECCOMP_USER_NOTIF_FLAG_CONTINUE = 1, 1 << 3, 1
@@ -111,9 +114,11 @@ def filter_program(machine):
     op(JEQ, nr['connect'], 'notify'); op(JEQ, nr['io_uring_setup'], 'deny'); op(JEQ, nr['socket'], 'socket')
     op(JEQ, nr['sendto'], 'flags3'); op(JEQ, nr['sendmmsg'], 'flags3'); op(JEQ, nr['sendmsg'], 'flags2')
     op(RET, RET_ALLOW)
+    # Unix and netlink sockets; inet only as TCP (or MPTCP) streams, which reach a host through connect alone.
     label('socket'); op(LD, 16)
-    op(JEQ, AF_INET, 'inet'); op(JEQ, AF_INET6, 'inet'); op(JEQ, AF_PACKET, 'deny'); op(RET, RET_ALLOW)
-    label('inet'); op(LD, 24); op(AND, 0xf); op(JEQ, SOCK_STREAM, 'allow', 'deny')
+    op(JEQ, AF_UNIX, 'allow'); op(JEQ, AF_NETLINK, 'allow'); op(JEQ, AF_INET, 'inet'); op(JEQ, AF_INET6, 'inet'); op(RET, RET_ERRNO | errno.EPERM)
+    label('inet'); op(LD, 24); op(AND, 0xf); op(JEQ, SOCK_STREAM, 'protocol', 'deny')
+    label('protocol'); op(LD, 32); op(JEQ, 0, 'allow'); op(JEQ, IPPROTO_TCP, 'allow'); op(JEQ, IPPROTO_MPTCP, 'allow', 'deny')
     label('flags3'); op(LD, 16 + 8 * 3); op(JSET, MSG_FASTOPEN, 'deny', 'allow')
     label('flags2'); op(LD, 16 + 8 * 2); op(JSET, MSG_FASTOPEN, 'deny', 'allow')
     label('allow'); op(RET, RET_ALLOW)
@@ -137,8 +142,58 @@ def install_filter():
     return fd
 
 
-# Whether the address a process connects to is loopback, Unix or AF_UNSPEC.
-def loopback_address(pid, address, length):
+# The run's processes: the launcher's descendants (it is their subreaper).
+def run_processes(launcher):
+    parents = {}
+    for entry in os.listdir('/proc'):
+        if entry.isdigit():
+            try:
+                with open(f'/proc/{entry}/stat') as f:
+                    stat = f.read()
+                parents[int(entry)] = int(stat[stat.rindex(')') + 2:].split()[1])
+            except (OSError, ValueError, IndexError):
+                pass
+    def descends(pid, seen=0):
+        while pid in parents and seen < 64:
+            pid, seen = parents[pid], seen + 1
+            if pid == launcher:
+                return True
+        return False
+    return [pid for pid in parents if descends(pid)]
+
+
+# Who listens on a local TCP port: None when nobody does, else whether one of
+# the run's processes does.
+def listener_in_run(port, launcher):
+    inodes = set()
+    for table in ('/proc/net/tcp', '/proc/net/tcp6'):
+        try:
+            with open(table) as f:
+                rows = f.read().splitlines()[1:]
+        except OSError:
+            continue
+        for row in rows:
+            fields = row.split()
+            if len(fields) > 9 and fields[3] == '0A' and int(fields[1].rsplit(':', 1)[1], 16) == port:
+                inodes.add(fields[9])
+    if not inodes:
+        return None
+    links = {f'socket:[{inode}]' for inode in inodes}
+    for pid in run_processes(launcher):
+        try:
+            for fd in os.listdir(f'/proc/{pid}/fd'):
+                try:
+                    if os.readlink(f'/proc/{pid}/fd/{fd}') in links:
+                        return True
+                except OSError:
+                    pass
+        except OSError:
+            pass
+    return False
+
+
+# Whether a process may connect to the address it names (see --loopback).
+def connect_allowed(pid, address, length, places, launcher, ports):
     if not address or length < 2:
         return False
     try:
@@ -150,23 +205,45 @@ def loopback_address(pid, address, length):
     except OSError:
         return False
     family = int.from_bytes(raw[:2], sys.byteorder)
-    if family in (AF_UNSPEC, AF_UNIX):
+    if family == AF_UNSPEC:
         return True
+    if family == AF_UNIX:
+        name = raw[2:].split(b'\0', 1)[0] if len(raw) > 2 and raw[2] != 0 else b''
+        if not name:
+            return True
+        try:
+            target = os.path.realpath(os.path.join(os.readlink(f'/proc/{pid}/cwd'), os.fsdecode(name)))
+        except OSError:
+            return False
+        return any(target == place or target.startswith(place.rstrip('/') + '/') for place in places)
     if family == AF_INET and len(raw) >= 8:
-        return raw[4] == 127
-    if family == AF_INET6 and len(raw) >= 24:
+        local = raw[4] == 127 or raw[4:8] == bytes(4)
+    elif family == AF_INET6 and len(raw) >= 24:
         host = raw[8:24]
-        return host == bytes(15) + b'\x01' or host[:12] == bytes(10) + b'\xff\xff' and host[12] == 127
-    return False
+        mapped = host[:12] == bytes(10) + b'\xff\xff'
+        local = host in (bytes(15) + b'\x01', bytes(16)) or mapped and (host[12] == 127 or host[12:] == bytes(4))
+    else:
+        return False
+    if not local:
+        return False
+    port = int.from_bytes(raw[2:4], 'big')
+    if port in ports:
+        return True
+    owner = listener_in_run(port, launcher)
+    if owner:
+        ports.add(port)
+    return owner is not False
 
 
 # The launcher's side: every connect the command's processes make, until none is left.
-def supervise(fd, state, die=False):
+def supervise(fd, state, places, die=False):
     def valid(id):
         value = ctypes.c_uint64(id)
         if libc.ioctl(fd, NOTIF_ID_VALID, ctypes.byref(value)) == 0:
             return True
         return ctypes.get_errno() in (errno.EINVAL, errno.ENOTTY) and libc.ioctl(fd, NOTIF_ID_VALID_OLD, ctypes.byref(value)) == 0
+    launcher, ports = os.getpid(), set()
+    places = [os.path.realpath(place) for place in places]
     try:
         poller = select.poll()
         poller.register(fd, select.POLLIN)
@@ -181,7 +258,8 @@ def supervise(fd, state, die=False):
                 raise OSError(ctypes.get_errno(), 'receive')
             if die:
                 raise RuntimeError('test fault')
-            allowed = loopback_address(notif.pid, notif.data.args[1], notif.data.args[2])
+            allowed = connect_allowed(notif.pid, notif.data.args[1], notif.data.args[2], places, launcher, ports)
+            state['connects'] = state.get('connects', 0) + 1
             if not valid(notif.id):
                 continue
             response = NotifResp(notif.id, 0, 0 if allowed else -errno.EPERM, SECCOMP_USER_NOTIF_FLAG_CONTINUE if allowed else 0)
@@ -303,10 +381,13 @@ def main(argv):
         for place in writes:
             add(place, WRITE)
     state = {'rules': count, 'ms': round((time.monotonic() - started) * 1000, 1)}
+    # Opened before the ruleset applies, so a write rule cannot refuse it later; not inherited.
+    stats_fd = os.open(stats, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_CLOEXEC, 0o600) if stats else None
     def report():
-        if stats:
-            with open(stats, 'w') as f:
-                json.dump(state, f)
+        if stats_fd is not None:
+            data = json.dumps(state).encode()
+            os.ftruncate(stats_fd, 0)
+            os.pwrite(stats_fd, data, 0)
     report()
     if libc.prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0:
         sys.exit(f'landlock.py: no_new_privs errno {ctypes.get_errno()}')
@@ -362,7 +443,7 @@ def main(argv):
         parent_end.close()
         if fds:
             state['supervisor'] = 'running'
-            supervisor = threading.Thread(target=supervise, args=(fds[0], state, fault == 'die'), daemon=True)
+            supervisor = threading.Thread(target=supervise, args=(fds[0], state, writes, fault == 'die'), daemon=True)
             supervisor.start()
         else:
             state['supervisor'] = 'unavailable'

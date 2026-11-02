@@ -28,8 +28,8 @@ const wrappers=[/^uv run(?: --(?:frozen|locked|no-sync|offline|quiet|all-extras|
 // A tool's arguments in one line of a script or workflow, or null. The line
 // must run the tool and its subcommand plainly; arguments with shell syntax,
 // ones that change files or install packages, and pytest's that run a set
-// chosen from its cache (--lf, --ff, --sw, --nf), rewrite snapshots or add to
-// earlier coverage data, are not taken.
+// chosen from its cache (--lf, --ff, --sw, --nf), show the cache, loop
+// (-f), rewrite snapshots or add to earlier coverage data, are not taken.
 export function toolArgs(line,{tool,sub}){
   let text=line.trim().replace(/^-\s+/,'').replace(/^run:\s*/,'').replace(/^[@-]+/,'');
   text=text.split(/\s(?:&&|\|\||;|\|)\s/)[0].replace(/\s+/g,' ').trim();
@@ -37,7 +37,7 @@ export function toolArgs(line,{tool,sub}){
   const words=text.split(' ');
   if(words[0]!==tool||JSON.stringify(words.slice(1,1+sub.length))!==JSON.stringify(sub))return null;
   const args=words.slice(1+sub.length);
-  if(args.some(arg=>!/^[A-Za-z0-9_./:=,@+%-]+$/.test(arg)||/^--(?:fix|unsafe-fixes|write|install-types|watch|lf|last-failed|ff|failed-first|sw|stepwise|stepwise-skip|nf|new-first|snapshot-update|update-snapshots|inline-snapshot|cov-append)(?:=|$)/.test(arg)||arg.startsWith('..')||arg.startsWith('/')))return null;
+  if(args.some(arg=>!/^[A-Za-z0-9_./:=,@+%-]+$/.test(arg)||/^--(?:fix|unsafe-fixes|write|install-types|watch|lf|last-failed|ff|failed-first|sw|sw-skip|sw-reset|stepwise|stepwise-skip|stepwise-reset|nf|new-first|cache-show|looponfail|snapshot-update|update-snapshots|inline-snapshot|cov-append)(?:=|$)/.test(arg)||arg==='-f'||arg.startsWith('..')||arg.startsWith('/')))return null;
   return args;
 }
 // The places a project writes how it runs its tools, in order of preference.

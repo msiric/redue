@@ -132,17 +132,24 @@ It gets a controlled environment, not yours:
 A test run gets what a typecheck or lint gets, and also:
 
 - **Loopback, and no remote host.** It may listen on any address and accept
-  connections, and connect only to loopback (`127.0.0.0/8`, `::1`) and Unix
-  sockets.
+  connections, and connect only to the local host (`127.0.0.0/8`, `::1`,
+  `0.0.0.0`, `::`) and Unix sockets.
   - On macOS, Seatbelt enforces that.
   - On Linux, Landlock cannot tell a loopback address from a remote one, so a
-    seccomp filter in the test's processes does instead. It refuses inet
-    datagram and raw sockets when they are created, TCP Fast Open
-    (`MSG_FASTOPEN`) and `io_uring`. It hands each `connect` to REDUE's
-    launcher, which allows loopback and Unix sockets and refuses the rest.
-    Nothing else goes through the launcher, so worker processes talk to each
-    other as usual. If the launcher's supervisor cannot start, or stops before
-    the run ends, the result is UNVERIFIED, never CURRENT.
+    seccomp filter in the test's processes does instead. It refuses sockets
+    other than Unix, netlink and TCP when they are created (UDP included),
+    TCP Fast Open (`MSG_FASTOPEN`) and `io_uring`. It hands each `connect` to
+    REDUE's launcher. The launcher allows a local port no process listens on
+    (the test gets "connection refused") or one the run's own processes
+    listen on, and a Unix socket file in the checkout, the run's home or its
+    temporary directory. It refuses a service started outside the run (your
+    local database) and every remote host. Nothing else goes through the
+    launcher, so worker processes talk to each other as usual. If the
+    launcher's supervisor cannot start, or stops before the run ends, the
+    result is UNVERIFIED, never CURRENT.
+- **A fresh home.** Its home directory is new and empty for each run, as on
+  CI: what a test leaves there is not observed, so it must not reach a later
+  run.
 - **A private `/tmp`.** Its `TMPDIR` is its own, new for each run, and it may
   not write in `/tmp` or `/var/tmp` outside it. A test that writes to a fixed
   path there is refused.
@@ -197,7 +204,7 @@ every failure twice to find out:
 
 ## The private home
 
-The run's home directory is kept between runs, per check, so caches tools
+A typecheck or lint's home directory is kept between runs, per check, so caches tools
 build there (font caches, a type checker's cache) are not rebuilt every run.
 It starts empty: your configuration files are not in it. What a run leaves
 there can change a later run, and REDUE trusts it like a runner cache. Remove
@@ -241,8 +248,16 @@ it with `redue remove-state`.
   decides when the socket is made, before its address is known. On macOS UDP
   to loopback works. A test that needs it fails its trial and keeps another
   recipe.
-- On Linux, a test run can still connect to a Unix socket file outside it
-  (a local database's), as a typecheck can.
+- On macOS, a test run can connect to a service on loopback that it did not
+  start (a local database on `127.0.0.1:5432`), and that service's state is
+  not observed: a change to it does not make the result STALE. On Linux the
+  launcher refuses it.
+- On Linux, the launcher decides a `connect` from the address it reads in
+  the process's memory, and the kernel reads it again after. A process that
+  changes the address in between, from another thread, could reach another
+  host. Honest test code does not.
+- On Linux, a typecheck or lint can still connect to a Unix socket file
+  outside it (a local database's).
 - On Linux, a file a `sandbox-v2` run creates in a folder that holds hidden
   files (the checkout's root, when anything in it is hidden) cannot be read
   back in the same run. `init`'s trial and the rerun without hiding catch a

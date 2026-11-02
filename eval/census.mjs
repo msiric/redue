@@ -39,6 +39,7 @@ import {productChecks} from './product-runs.mjs';
 import {sandboxModes, sandboxSuite} from './sandbox.mjs';
 import {hiddenEntries, sandboxEnvironment} from '../src/sandbox.mjs';
 import {testHiding} from './test-hiding.mjs';
+import {supervisorCost} from './supervisor-cost.mjs';
 entryPoint(import.meta, {ci: true});
 
 // --python: the Python census (eval/python-census.mjs), from the same workflow.
@@ -50,7 +51,7 @@ if (process.argv.includes('--python')) {
 const argv = process.argv.slice(2);
 const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : null;
 const initOnly = argv.includes('--init-only'), recorded = argv.includes('--recorded'), product = argv.includes('--product'),
-  keepTraces = argv.includes('--keep-traces'), allRecipes = argv.includes('--all-recipes'), testHidingMode = argv.includes('--test-hiding'),
+  keepTraces = argv.includes('--keep-traces'), allRecipes = argv.includes('--all-recipes'), testHidingMode = argv.includes('--test-hiding'), supervisorCostMode = argv.includes('--supervisor-cost'),
   installScripts = argv.includes('--install-scripts'), sandbox = argv.includes('--sandbox');
 let names = argv.filter((arg, i) => !arg.startsWith('-') && argv[i - 1] !== '--shard');
 if (!names.length) names = readJson(path.join(evalDir, 'census-repos.json')).repos;
@@ -225,12 +226,20 @@ async function census(name, modes) {
     const picked = initPick(kind) ? [initPick(kind), pkg.scripts[initPick(kind)]] : scriptPick[kind](scripts);
     if (!picked) continue;
     row.scripts[kind] = {name: picked[0], text: picked[1]};
-    if (!row.install.pass || initOnly || recorded || product || sandbox || testHidingMode) continue;
+    if (!row.install.pass || initOnly || recorded || product || sandbox || testHidingMode || supervisorCostMode) continue;
     row.timings[kind] = timeScript(dir, pm, picked[0], timeout);
   }
   if (row.timings.typecheck) row.timings.typecheckAgain = timeScript(dir, pm, row.scripts.typecheck.name, 600_000);
   if (recorded) row.recorded = recordScripts(dir, pm, row);
   if (product) row.product = productRuns(dir, row);
+  // --supervisor-cost: the test script plain, sandboxed and supervised (eval/supervisor-cost.mjs).
+  if (supervisorCostMode && row.install.pass && row.scripts.test && ['npm', 'pnpm', 'yarn'].includes(pm.name)) {
+    const testArgv = pm.name === 'npm' ? ['npm', 'run', row.scripts.test.name] : ['corepack', pm.name, 'run', row.scripts.test.name];
+    row.supervisorCost = {script: row.scripts.test.name, text: row.scripts.test.text, ...supervisorCost({dir, argv: testArgv,
+      env: {...env, npm_config_update_notifier: 'false'}, check: {script: row.scripts.test.name, kind: 'test', environment: sandboxEnvironment(false, pm.name, 'test')}})};
+    const c = row.supervisorCost;
+    console.error(`  supervisor cost: plain ${c.median?.plain} ms, open ${c.median?.open} ms, supervised ${c.median?.supervised} ms; connects ${c.connects?.join('/')}; status ${JSON.stringify(c.status)}${c.issue ? ' ' + c.issue : ''}`);
+  }
   // --test-hiding: the project's build, then its tests three ways (eval/test-hiding.mjs).
   if (testHidingMode && row.install.pass && row.scripts.test && ['npm', 'pnpm', 'yarn'].includes(pm.name)) {
     const script = name => pm.name === 'npm' ? ['npm', 'run', name] : ['corepack', pm.name, 'run', name];

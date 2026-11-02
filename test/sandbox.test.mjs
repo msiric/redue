@@ -68,6 +68,16 @@ if 'tmpwrite' in text:
     try: open('/tmp/redue-fixture-%d' % os.getpid(), 'w').close(); print('shared tmp written')
     except PermissionError: print('shared tmp refused')
     with tempfile.NamedTemporaryFile() as own: print('own tmp written')
+import re
+service = re.search(r'service (\d+)', text)
+if service:
+    try: socket.create_connection(('127.0.0.1', int(service.group(1))), timeout=3).close(); print('service connected')
+    except PermissionError: print('service refused')
+    except OSError as e: print('service errno', e.errno)
+closed = re.search(r'closedport (\d+)', text)
+if closed:
+    try: socket.create_connection(('127.0.0.1', int(closed.group(1))), timeout=3).close(); print('closed connected')
+    except OSError as e: print('closed errno', e.errno)
 if 'writeoutput' in text: pathlib.Path('build').mkdir(exist_ok=True); pathlib.Path('build/report.txt').write_text(str(os.getpid()))
 if 'netprobe' in text:
     import ctypes
@@ -78,6 +88,8 @@ if 'netprobe' in text:
     libc = ctypes.CDLL(None, use_errno=True)
     print('io_uring', 'allowed' if libc.syscall(425, 4, ctypes.create_string_buffer(120)) >= 0 else 'errno %d' % ctypes.get_errno())
 print('${tool}', sys.argv[1:])
+# A test runner's summary, which init's trial compares.
+if '${tool}' == 'pytest': print('1 failed in 0.01s' if 'fail' in text else '1 passed in 0.01s')
 sys.exit(1 if 'fail' in text else 0)
 `,0o755);
   execFileSync('git',['init','-q'],{cwd:root});execFileSync('git',['add','.'],{cwd:root});
@@ -433,14 +445,19 @@ test('a pytest check in .venv: loopback works, remote hosts and the shared /tmp 
   assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
 });
 
-test('on Linux, a test run gets no UDP, TCP Fast Open or io_uring, and a supervisor that cannot start or stops makes it UNVERIFIED',
-  {skip:unsupported||(process.platform!=='linux'&&'the network supervisor runs on Linux')},t=>{
+test('on Linux, a test run gets no UDP, TCP Fast Open, io_uring or outside service, and a supervisor that cannot start or stops makes it UNVERIFIED',
+  {skip:unsupported||(process.platform!=='linux'&&'the network supervisor runs on Linux')},async t=>{
   const {root,state}=project(t,{tools:['pytest']});
-  write(root,'src/fx/net.py','# netprobe loopback\n');
+  // A service this test starts, outside the run, and a port nobody listens on.
+  const {createServer}=await import('node:net');
+  const server=createServer(socket=>socket.end());await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(()=>server.close());
+  const probe=createServer();await new Promise(resolve=>probe.listen(0,'127.0.0.1',resolve));const closed=probe.address().port;probe.close();
+  write(root,'src/fx/net.py',`# netprobe loopback service ${server.address().port} closedport ${closed}\n`);
   good(root,state,'init');good(root,state,'start');
   let run=invoke(root,state,['run','test']);
   assert.equal(run.status,0,run.stderr);
   assert.match(run.stdout,/udp errno 1/);assert.match(run.stdout,/fastopen errno 1/);assert.match(run.stdout,/io_uring errno 1/);
+  assert.match(run.stdout,/loopback ok/);assert.match(run.stdout,/service refused/);assert.match(run.stdout,/closed errno 111/);
   assert.equal(row(root,state,'test').freshness,'CURRENT');
   for(const [fault,reason] of [['unavailable',/network supervisor|sandbox changed the result/],['die',/the network supervisor reported: failed: test fault/]]){
     run=invoke(root,state,['run','test'],{VSTATE_TEST_FAULTS:'1',VSTATE_TEST_SUPERVISOR:fault});
