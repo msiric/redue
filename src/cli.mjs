@@ -740,7 +740,11 @@ async function main(){
       if(processAlive(pid)){await call({action:'stop'});
         for(let i=0;i<100&&fs.existsSync(path.join(state,'observer.lock'));i++)
           await new Promise(r=>setTimeout(r,100));
-        if(fs.existsSync(path.join(state,'observer.lock')))throw Error('observer did not stop');}
+        if(fs.existsSync(path.join(state,'observer.lock')))throw Error('observer did not stop');
+        // It releases the lock before it exits. On Windows a file it still
+        // holds open stays listed after deletion, and removing the
+        // directory fails with ENOTEMPTY until the process is gone.
+        for(let i=0;i<100&&processAlive(pid);i++)await new Promise(r=>setTimeout(r,100));}
     }
     // A stopping observer can still be closing its files (Windows: ENOTEMPTY, EBUSY).
     fs.rmSync(state,{recursive:true,force:true,maxRetries:10,retryDelay:200});
