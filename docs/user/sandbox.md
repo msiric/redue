@@ -99,7 +99,7 @@ It may read and execute only beneath:
 - a private home directory and a fresh temporary directory, in REDUE's state.
 
 A typecheck or lint has no network: no TCP connection, loopback included
-(a test run gets loopback; see [tests](#tests)). On macOS its only
+(a test run on Linux gets loopback; see [tests](#tests)). On macOS its only
 Unix sockets are in its own temporary directory, which is new for each run.
 On Linux 6.12 and later it cannot reach an abstract Unix socket outside the
 run.
@@ -131,11 +131,10 @@ It gets a controlled environment, not yours:
 
 A test run gets what a typecheck or lint gets, and also:
 
-- **Loopback, and no remote host.** It may listen on any address and accept
-  connections, and connect only to the local host (`127.0.0.0/8`, `::1`,
-  `0.0.0.0`, `::`) and Unix sockets.
-  - On macOS, Seatbelt enforces that.
-  - On Linux, Landlock cannot tell a loopback address from a remote one, so a
+- **On Linux, loopback, and no remote host.** It may listen on any address
+  and accept connections, and connect only to the local host (`127.0.0.0/8`,
+  `::1`, `0.0.0.0`, `::`) and Unix sockets.
+  - Landlock cannot tell a loopback address from a remote one, so a
     seccomp filter in the test's processes does instead. It refuses sockets
     other than Unix, netlink and TCP when they are created (UDP included),
     TCP Fast Open (`MSG_FASTOPEN`) and `io_uring`. It hands each `connect` to
@@ -147,6 +146,16 @@ A test run gets what a typecheck or lint gets, and also:
     launcher, so worker processes talk to each other as usual. If the
     launcher's supervisor cannot start, or stops before the run ends, the
     result is UNVERIFIED, never CURRENT.
+- **On macOS, no network.** No TCP or UDP, loopback included: only Unix
+  sockets in its own temporary directory (its home is beneath it), as a
+  typecheck or lint gets. Seatbelt cannot refuse a service started outside
+  the run while allowing the run's own servers: a rule that refuses one
+  loopback port under a loopback allow is not applied, and an allow list of
+  every other port does not compile. A suite that starts a server on
+  loopback, or reads a local database, fails init's trial: init leaves the
+  test check out, and the tests run without REDUE, as before. A test check
+  set up by alpha.28 on macOS is not CURRENT after the upgrade; if its runs
+  now fail inside the sandbox, run `redue init` again.
 - **A fresh home.** Its home directory is new and empty for each run, as on
   CI: what a test leaves there is not observed, so it must not reach a later
   run.
@@ -245,13 +254,8 @@ it with `redue remove-state`.
   new or removed one does not make the result STALE. In a census of 136
   test suites with ignored files after their build, none did.
 - On Linux, a test run's UDP is refused, loopback included: the filter
-  decides when the socket is made, before its address is known. On macOS UDP
-  to loopback works. A test that needs it fails its trial and keeps another
-  recipe.
-- On macOS, a test run can connect to a service on loopback that it did not
-  start (a local database on `127.0.0.1:5432`), and that service's state is
-  not observed: a change to it does not make the result STALE. On Linux the
-  launcher refuses it.
+  decides when the socket is made, before its address is known. A test that
+  needs it fails its trial and keeps another recipe.
 - On Linux, the launcher decides a `connect` from the address it reads in
   the process's memory, and the kernel reads it again after. A process that
   changes the address in between, from another thread, could reach another

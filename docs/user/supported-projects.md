@@ -22,7 +22,8 @@ project script. Without `--recipe`, `init` tries the strict recipes below first,
 for a root typecheck, lint or test script, the [sandboxed recipe](sandbox.md) on
 macOS and Linux (the script run inside an OS sandbox, with the files git
 ignores hidden when it gives the same result that way, else on the whole
-checkout; a test run also gets loopback-only network and a private `/tmp`),
+checkout; a test run also gets a private `/tmp`, and loopback-only network on
+Linux or no TCP on macOS),
 then, for typecheck and lint, the [general recipe](node-script.md): the script run
 through the package manager with every Node process recorded and the whole
 checkout as its input. Python projects get the sandboxed recipe for mypy,

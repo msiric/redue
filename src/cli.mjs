@@ -331,7 +331,7 @@ async function execute() {
       if(support.issue)captureIssues.push(`the run was not sandboxed: ${support.issue}`);
       else{
         const dirs=sandboxDirs(state,name);
-        // A test run: loopback networking, supervised on Linux (the launcher
+        // A test run: loopback networking on Linux, supervised (the launcher
         // reports in REDUE's state, outside what the test may touch), a
         // private /tmp, and a fresh home each run: what a test leaves in its
         // home is not observed, so it must not reach a later run.
@@ -342,7 +342,7 @@ async function execute() {
         // cannot list them, nothing is hidden, and the receipt compares every file.
         const hidden=selected.qualification===hiddenQualification?hiddenEntries(root):null;
         const options={reads,tmp:dirs.tmp,python:support.python,stats,
-          ...tests?{network:'loopback',writes:[root,dirs.home,dirs.tmp],
+          ...tests?{...support.mode==='landlock'?{network:'loopback'}:{},writes:[root,dirs.home,dirs.tmp],
             fault:process.env.VSTATE_TEST_FAULTS==='1'?process.env.VSTATE_TEST_SUPERVISOR||null:null}:{}};
         sandbox={mode:support.mode,dirs,reads,hidden,options,stats,
           argv:sandboxArgv(support.mode,command,{...options,hidden:(hidden||[]).map(rel=>path.join(root,rel.replace(/\/$/,'')))}),
@@ -601,7 +601,8 @@ async function execute() {
         else if(plain.error||plain.status===null)
           captureIssues.push(`the run outside the sandbox did not finish (${plain.error?.code||plain.signal}), so a refusal by the sandbox is not ruled out (${line})`);
         else if(plain.status!==invocation.exitCode){
-          captureIssues.push(`the sandbox changed the result: exit ${invocation.exitCode} inside it, ${plain.status??plain.signal} outside it (${line})`);
+          captureIssues.push(`the sandbox changed the result: exit ${invocation.exitCode} inside it, ${plain.status??plain.signal} outside it (${line}); `+
+            'if this repeats, run redue init again to choose a recipe for this check');
           invocation.sandboxedExitCode=invocation.exitCode;invocation.exitCode=plain.status;
         }
       }
@@ -645,7 +646,7 @@ async function execute() {
       provider:plan.provider,environmentHashes:environmentBefore,
       ...(observedContext?{observedContext,verificationRecipe:directInterpretation}:{}),
       // `hidden`: the git-ignored entries the run did not see, which the observer does not compare.
-      ...(own?{verificationRecipe:sandbox?.hidden?sandboxInterpretationOf(hiddenQualification):sandboxInterpretation,
+      ...(own?{verificationRecipe:sandboxInterpretationOf(sandbox?.hidden?hiddenQualification:sandboxQualification,selected.kind),
         sandbox:{mode:sandbox?.mode??null,hidden:sandbox?.hidden??null,...hiddenRerun?{hiddenRerun}:{},...sandboxRerun?{rerun:sandboxRerun}:{}}}:{}),
       ...(fallback?{sandbox:{mode:null,fallback:'node-script',issue:support.issue}}:{}),
       files:(outputs?end:snap)?.files??null,observerGeneration:before?.observation?.generation??null,

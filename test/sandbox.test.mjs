@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import net from 'node:net';
 import {spawnSync,execFileSync} from 'node:child_process';
-import {comparableOutput,denialLine,hiddenEntries,hiddenRefusal,sandboxArgv,sandboxTrial,systemPlaces,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
+import {comparableOutput,denialLine,sandboxInterpretationOf,hiddenEntries,hiddenRefusal,sandboxArgv,sandboxTrial,systemPlaces,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
 import {projectArgs,toolArgs} from '../src/python-onboarding.mjs';
 import {chainCommand,claudeHook,hookForms,pathForm,recordedCommand} from '../src/claude-hook.mjs';
 
@@ -55,10 +56,14 @@ if 'unixsocket' in text:
 if 'gitdir' in text: print('git directory', os.path.isdir('.git'), os.path.isfile('.git/HEAD'))
 if 'loopback' in text:
     import threading
-    server = socket.socket(socket.AF_INET6); server.bind(('::', 0)); server.listen(1)
-    threading.Thread(target=lambda: server.accept(), daemon=True).start()
-    try: socket.create_connection(('127.0.0.1', server.getsockname()[1]), timeout=3).close(); print('loopback ok')
-    except OSError as e: print('loopback errno', e.errno)
+    try:
+        server = socket.socket(socket.AF_INET6); server.bind(('::', 0)); server.listen(1)
+        threading.Thread(target=lambda: server.accept(), daemon=True).start()
+        socket.create_connection(('127.0.0.1', server.getsockname()[1]), timeout=3).close(); print('loopback ok')
+    except OSError as e:
+        print('loopback errno', e.errno)
+        # A suite whose test needs loopback fails without it.
+        if 'strict' in text: text += ' fail'
 if 'remote' in text:
     try: socket.create_connection(('192.0.2.1', 9), timeout=1).close(); print('remote connected')
     except PermissionError as e: print('remote refused')
@@ -72,7 +77,9 @@ import re
 service = re.search(r'service (\\d+)', text)
 if service:
     try: socket.create_connection(('127.0.0.1', int(service.group(1))), timeout=3).close(); print('service connected')
-    except PermissionError: print('service refused')
+    except PermissionError:
+        print('service refused')
+        if 'strict' in text: text += ' fail'
     except OSError as e: print('service errno', e.errno)
 closed = re.search(r'closedport (\\d+)', text)
 if closed:
@@ -478,9 +485,10 @@ function nodeProject(t,scripts){
   return {root,state};
 }
 
-test('a pytest check in .venv: loopback works, remote hosts and the shared /tmp do not, and test output it writes is not an input',{skip:unsupported},t=>{
+test('a pytest check in .venv: loopback works on Linux, remote hosts and the shared /tmp do not, and test output it writes is not an input',{skip:unsupported},t=>{
   const {root,state}=project(t,{tools:['mypy','ruff','pytest']});
-  write(root,'src/fx/net.py','# loopback remote tmpwrite writeoutput\n');
+  // On macOS a test run gets no TCP: a suite using loopback runs plainly (the next test).
+  write(root,'src/fx/net.py',`# ${process.platform==='linux'?'loopback ':''}remote tmpwrite writeoutput\n`);
   const init=JSON.parse(good(root,state,'init','--json'));
   const check=init.proposed_config?.checks?.find(c=>c.name==='test')??JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'),'utf8')).checks.find(c=>c.name==='test');
   assert.equal(check.kind,'test');assert.equal(check.qualification,'sandbox-v2',JSON.stringify(init.checks));
@@ -488,12 +496,34 @@ test('a pytest check in .venv: loopback works, remote hosts and the shared /tmp 
   good(root,state,'start');
   const run=invoke(root,state,['run','test']);
   assert.equal(run.status,0,run.stderr);
-  assert.match(run.stdout,/loopback ok/);assert.match(run.stdout,/remote refused/);
+  if(process.platform==='linux')assert.match(run.stdout,/loopback ok/);
+  assert.match(run.stdout,/remote refused/);
   assert.match(run.stdout,/shared tmp refused/);assert.match(run.stdout,/own tmp written/);
   // build/report.txt, git-ignored, was written during the run.
   assert.ok(fs.existsSync(path.join(root,'build/report.txt')));
   const status=row(root,state,'test');
   assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+});
+
+test('a macOS test check has its own interpretation, so a result recorded with loopback (alpha.28) is another plan',()=>{
+  assert.equal(sandboxInterpretationOf('sandbox-v2','test','darwin'),'sandbox@2+no-tcp');
+  assert.equal(sandboxInterpretationOf('sandbox-v1','test','darwin'),'sandbox@1+no-tcp');
+  assert.equal(sandboxInterpretationOf('sandbox-v2','test','linux'),'sandbox@2');
+  assert.equal(sandboxInterpretationOf('sandbox-v2','typecheck','darwin'),'sandbox@2');
+});
+
+test('on macOS, a test run gets no TCP: a suite using loopback or a service outside the run fails its trial and runs plainly',
+  {skip:unsupported||(process.platform!=='darwin'&&'Seatbelt runs on macOS')},async t=>{
+  const {root,state}=project(t,{tools:['pytest']});
+  // A local database stands in: a server this test starts, outside any run.
+  const server=net.createServer(socket=>socket.end()).listen(0,'127.0.0.1');
+  await new Promise(resolve=>server.once('listening',resolve));t.after(()=>server.close());
+  for(const marker of ['loopback strict',`service ${server.address().port} strict`]){
+    write(root,'src/fx/net.py',`# ${marker}\n`);
+    const init=JSON.parse(good(root,state,'init','--dry-run','--json'));
+    assert.equal(init.checks.find(check=>check.name==='test'),undefined,marker);
+    assert.match(init.skipped.map(row=>row.reason).join('\n'),/test: sandboxed recipe unavailable: exit 1 inside the sandbox, 0 outside it/,marker);
+  }
 });
 
 test('on Linux, a test run gets no UDP, TCP Fast Open, io_uring or outside service, and a supervisor that cannot start or stops makes it UNVERIFIED',

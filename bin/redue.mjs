@@ -408,7 +408,7 @@ const checks=publicConfig.checks.map(check=>{
     ...(npmDirect?{qualificationInterpretation:directInterpretation}:{}),
     ...(testsDirect?{qualificationInterpretation:testsInterpretation}:{}),
     ...(generalScript?{qualificationInterpretation:scriptInterpretation}:{}),
-    ...(sandboxed?{qualificationInterpretation:sandboxInterpretationOf(check.qualification)}:{}),
+    ...(sandboxed?{qualificationInterpretation:sandboxInterpretationOf(check.qualification,check.kind)}:{}),
     workspace:check.workspace||null,kind:check.kind||null};
 });
 const runtime={schema:1,provider:'declared-project@1',root,state,checks};

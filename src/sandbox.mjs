@@ -30,10 +30,14 @@ export const hiddenQualification='sandbox-v2';
 export const hiddenInterpretation='sandbox@2';
 export const hiddenListIssue='git cannot list the ignored files';
 export const isSandboxed=qualification=>qualification===sandboxQualification||qualification===hiddenQualification;
-export const sandboxInterpretationOf=qualification=>qualification===hiddenQualification?hiddenInterpretation:sandboxInterpretation;
+// A macOS test run has had no TCP since alpha.29: its own interpretation, so a
+// result recorded with loopback is not the same plan.
+export const sandboxInterpretationOf=(qualification,kind=null,platform=process.platform)=>
+  (qualification===hiddenQualification?hiddenInterpretation:sandboxInterpretation)+(kind==='test'&&platform==='darwin'?'+no-tcp':'');
 export const sandboxKinds=['typecheck','lint','test'];
-// A test run gets loopback networking and a private /tmp (sandboxArgv's
-// `network` and `writes`); a typecheck or lint gets no network.
+// A test run gets a private /tmp (sandboxArgv's `writes`) and, on Linux,
+// supervised loopback networking (`network`); a typecheck or lint, and a
+// test run on macOS, get no network but Unix sockets.
 export const testRun=check=>check?.kind==='test';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const digest=value=>createHash('sha256').update(value).digest('hex');
@@ -322,11 +326,14 @@ const ancestors=list=>[...new Set(list.flatMap(dir=>{const out=[];for(let at=pat
 // the run's own temporary directory (`own`), which is new for each run: a
 // daemon an earlier run left behind cannot answer a later one. `hidden`:
 // absolute paths whose contents it may not read or execute.
-// A test run (`network` "loopback") may bind and accept anywhere and
-// connect to loopback only; with `writes`, it writes nothing beneath /tmp
-// and /var/tmp but beneath those places (its checkout, home and own
-// temporary directory).
-export function seatbeltProfile(reads,own=null,hidden=[],{network='none',writes=null}={}){
+// A test run gets no TCP either: Seatbelt cannot refuse one loopback port
+// while allowing the others (a per-port deny under a loopback allow is not
+// applied; an allow list of 65,000 ports does not compile), so a suite could
+// reach a database started outside the run. A suite that needs loopback
+// fails init's trial and runs plainly. With `writes`, a test run writes
+// nothing beneath /tmp and /var/tmp but beneath those places (its checkout,
+// home and own temporary directory).
+export function seatbeltProfile(reads,own=null,hidden=[],{writes=null}={}){
   const quote=value=>JSON.stringify(value);
   const both=list=>[...new Set(list.flatMap(dir=>[dir,real(dir)]).filter(Boolean))];
   const all=[...new Set(reads.flatMap(dir=>[dir,real(dir)]).filter(Boolean))];
@@ -338,7 +345,6 @@ export function seatbeltProfile(reads,own=null,hidden=[],{network='none',writes=
     ...hidden.length?[`(deny file-read-data process-exec* ${[...new Set(hidden.flatMap(file=>[file,path.join(real(path.dirname(file))??path.dirname(file),path.basename(file))]))]
       .map(file=>`(subpath ${quote(file)})`).join(' ')})`]:[],
     '(deny network*)',...own?[`(allow network* ${[own,real(own)].filter(Boolean).map(dir=>`(subpath ${quote(dir)})`).join(' ')})`]:[],
-    ...network==='loopback'?['(allow network-bind)','(allow network-inbound)','(allow network-outbound (remote ip "localhost:*"))']:[],
     ...writes?['(deny file-write* (subpath "/tmp") (subpath "/private/tmp") (subpath "/var/tmp") (subpath "/private/var/tmp"))',
       `(allow file-write* ${both(writes).map(dir=>`(subpath ${quote(dir)})`).join(' ')})`]:[]].join('\n');
 }
@@ -346,11 +352,11 @@ export function seatbeltProfile(reads,own=null,hidden=[],{network='none',writes=
 // Unix sockets beneath `tmp` on macOS, nothing beneath `hidden` (absolute).
 // On Linux a hidden directory can still be listed and its entries stat'ed:
 // Landlock restricts neither beneath a listable parent.
-// `network` "loopback" and `writes`: a test run's (seatbeltProfile). On Linux
-// its network is supervised: `stats` then says whether the supervisor served
-// the whole run (supervisorIssue).
+// `network` "loopback" and `writes`: a test run's. Only Linux gives it a
+// network (seatbeltProfile says why macOS does not), supervised: `stats`
+// then says whether the supervisor served the whole run (supervisorIssue).
 export function sandboxArgv(mode,argv,{reads,tmp=null,python,hidden=[],stats=null,network='none',writes=null,fault=null}){
-  if(mode==='seatbelt')return ['/usr/bin/sandbox-exec','-p',seatbeltProfile(reads,tmp,hidden,{network,writes}),...argv];
+  if(mode==='seatbelt')return ['/usr/bin/sandbox-exec','-p',seatbeltProfile(reads,tmp,hidden,{writes}),...argv];
   // The launcher's own warnings would become the check's output.
   if(mode==='landlock')return [python,'-I','-W','ignore',landlockScript,...reads.flatMap(dir=>['--read',dir]),
     ...hidden.flatMap(file=>['--hide',file]),...stats?['--stats',stats]:[],
@@ -528,8 +534,10 @@ export async function sandboxTrial(root,check,{timeout=300000,hide=false,plain:e
   const command=python?check.command:[lookup(scriptProject(root,check.script).manager,process.env.PATH,root)||'npm','run',check.script];
   const selected={...check,command,environment:sandboxEnvironment(python,python?null:scriptProject(root,check.script).manager,check.kind)};
   const tests=testRun(check);
-  const scratch=fs.mkdtempSync(path.join(os.tmpdir(),'redue-trial-')),home=path.join(scratch,'home'),tmp=path.join(scratch,'tmp');
-  fs.mkdirSync(home);fs.mkdirSync(tmp);
+  // A test run's home is beneath its temporary directory, as in cli.mjs: on
+  // macOS that is where its Unix sockets may be.
+  const scratch=fs.mkdtempSync(path.join(os.tmpdir(),'redue-trial-')),tmp=path.join(scratch,'tmp'),home=tests?path.join(tmp,'home'):path.join(scratch,'home');
+  fs.mkdirSync(tmp);fs.mkdirSync(home);
   try{
     const entries=hide?hiddenEntries(root):[];
     if(!entries)return {issue:hiddenListIssue};
@@ -539,7 +547,7 @@ export async function sandboxTrial(root,check,{timeout=300000,hide=false,plain:e
     const plain=earlier??await run(command,{...process.env,...python?{}:{npm_config_update_notifier:'false'}});
     const reads=[root,home,tmp,...sandboxPlaces(selected,process.env,root),...systemPlaces];
     const sandboxed=await run(sandboxArgv(supported.mode,command,{reads,tmp,python:supported.python,hidden,stats,
-      ...tests?{network:'loopback',writes:[root,home,tmp]}:{}}),sandboxEnv(selected,process.env,{root,home,tmp}));
+      ...tests?{...supported.mode==='landlock'?{network:'loopback'}:{},writes:[root,home,tmp]}:{}}),sandboxEnv(selected,process.env,{root,home,tmp}));
     // A test run's network was supervised throughout, on Linux.
     const supervisor=tests&&stats?supervisorIssue(stats):null;
     // A failure both ways counts as the same only without a sign of a refusal.
