@@ -66,7 +66,7 @@ jobs:
         if: inputs.command == 'run' || inputs.command == 'stranger'
         run: corepack enable
       - name: uv, which the Python repos in eval/repos.json install with
-        if: inputs.command == 'run'
+        if: inputs.command == 'run' || inputs.command == 'stranger'
         run: pipx install uv && uv --version
       - name: Claude Code
         if: inputs.command == 'run' || inputs.command == 'stranger'
