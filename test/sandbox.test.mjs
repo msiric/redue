@@ -6,7 +6,7 @@ import os from 'node:os';
 import {spawnSync,execFileSync} from 'node:child_process';
 import {comparableOutput,denialLine,hiddenEntries,hiddenRefusal,sandboxArgv,sandboxTrial,systemPlaces,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
 import {projectArgs,toolArgs} from '../src/python-onboarding.mjs';
-import {chainCommand,hookForms,pathForm,recordedCommand} from '../src/claude-hook.mjs';
+import {chainCommand,claudeHook,hookForms,pathForm,recordedCommand} from '../src/claude-hook.mjs';
 
 const bin=path.resolve('bin/redue.mjs');
 const support=sandboxSupport();
@@ -167,6 +167,52 @@ test('hook forms of a Python check: uv, Poetry, python -m, .venv/bin and the bar
   assert.equal(recordedCommand('uv run mypy src 2>&1 | tail -5','typecheck','redue.config.json','redue','uv run '),'uv run redue run typecheck 2>&1 | tail -5');
   assert.equal(chainCommand('git add -A && uv run mypy src',config,'redue.config.json','.',{},'redue','redue.config.json',base)?.command,
     'git add -A && uv run redue run typecheck --if-due');
+});
+
+// The stranger test's miss (alpha.28): a fast `.venv/bin/mypy .` ran plainly,
+// because the hook waited half of a 0.2 s run for status and gave up.
+test('the hook skips a fast Python check when CURRENT and records it through redue run when not',{skip:unsupported},async t=>{
+  const {root}=project(t);
+  write(root,'pyproject.toml','[project]\nname = "fx"\nversion = "0.1"\n');
+  // agent setup takes the default state directory, as a user's does.
+  const env={...Object.fromEntries(Object.entries(process.env).filter(([key])=>!/^npm_/i.test(key))),VSTATE_START_READY_WAIT_MS:'10000'};
+  const redue=(...args)=>{const r=spawnSync(process.execPath,[bin,...args],{cwd:root,env,encoding:'utf8',timeout:120000});
+    assert.equal(r.status,0,`${args.join(' ')}: ${r.stderr}${r.stdout}`);return r;};
+  t.after(()=>spawnSync(process.execPath,[bin,'remove-state'],{cwd:root,env,timeout:30000}));
+  redue('init');redue('agent','setup','claude','--apply');redue('start');redue('run','typecheck');
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'),'utf8')).checks[0].command,['.venv/bin/mypy','.']);
+  // In process, the hook's status call gets process.env: without npm's
+  // variables, as the recorded run, and with a long wait on a loaded runner
+  // (statusTimeout's 2 s floor is pinned in claude-hook.test.mjs).
+  const npm=Object.entries(process.env).filter(([key])=>/^npm_/i.test(key));
+  for(const [key] of npm)delete process.env[key];
+  t.after(()=>Object.assign(process.env,Object.fromEntries(npm)));
+  let why=null;
+  const input={hook_event_name:'PreToolUse',tool_name:'Bash',tool_input:{command:'.venv/bin/mypy .'},cwd:root};
+  const decide=async()=>(await claudeHook(input,{entry:bin,invoke:'redue',timeout:20000,explain:text=>{why=text;}}))?.hookSpecificOutput??null;
+  assert.equal((await decide())?.permissionDecision,'deny');
+  assert.equal(why,'typecheck CURRENT/PASS');
+  fs.appendFileSync(path.join(root,'README.md'),'A note.\n');
+  const stale=await decide();
+  assert.equal(stale?.permissionDecision,'allow');
+  assert.equal(stale.updatedInput.command,'redue run typecheck');
+  assert.match(why,/^through redue run: typecheck STALE\/PASS \(.*README\.md/);
+  // REDUE_HOOK_LOG: every decision, with why, also when the command is left as written.
+  const log=path.join(path.dirname(root),'hook.jsonl');
+  for(const command of ['ls','.venv/bin/mypy .'])
+    spawnSync(process.execPath,[bin,'agent','hook','claude'],{cwd:root,env:{...env,REDUE_HOOK_LOG:log},
+      input:JSON.stringify({...input,tool_input:{command}}),encoding:'utf8',timeout:30000});
+  const rows=fs.readFileSync(log,'utf8').trim().split('\n').map(line=>JSON.parse(line));
+  assert.deepEqual(rows.map(row=>row.command),['ls','.venv/bin/mypy .']);
+  assert.equal(rows[0].decision,'allow');assert.equal(rows[0].why,'no check matches the command');
+  // Through the CLI the wait is the default one; a loaded runner may leave it unanswered, which the log says.
+  assert.match(rows[1].why,/^(through redue run: typecheck STALE|left as written: status did not answer within \d+ ms)/);
+  assert.equal(rows[1].decision,rows[1].why.startsWith('through')?'rewrite':'allow');
+  // A directory with no setup record is logged too.
+  const elsewhere=path.join(path.dirname(root),'elsewhere');fs.mkdirSync(elsewhere);
+  spawnSync(process.execPath,[bin,'agent','hook','claude'],{cwd:elsewhere,env:{...env,REDUE_HOOK_LOG:log},
+    input:JSON.stringify({...input,cwd:elsewhere}),encoding:'utf8',timeout:30000});
+  assert.match(JSON.parse(fs.readFileSync(log,'utf8').trim().split('\n').at(-1)).why,/^no readable setup record in this directory \(ENOENT\)/);
 });
 
 test('init proposes mypy and ruff from .venv with the project\'s arguments, after running each both ways',{skip:unsupported},t=>{

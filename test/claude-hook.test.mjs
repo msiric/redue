@@ -225,10 +225,12 @@ test('timeout, error exit, unreadable output and missing REDUE all allow',async 
   if(shell)assert.equal(spawnSync(shell,['-c','redue agent hook claude'],{env:{...process.env,PATH:path.join(p.root,'empty')},input:'{}'}).status,127);
 });
 
-test('the status wait is half the last completed run, at most 10 s, or 2 s with none',()=>{
+test('the status wait is half the last completed run, at least 2 s and at most 10 s, or 2 s with none',()=>{
   const published=(durationMs,status='exited')=>({checks:[{name:'typecheck',invocation:{status,durationMs}}]});
-  assert.equal(statusTimeout(published(3000),'typecheck'),1500);
-  assert.equal(statusTimeout(published(400),'typecheck'),200);
+  assert.equal(statusTimeout(published(6000),'typecheck'),3000);
+  // A fast check (mypy warm, 0.2 s) still gets an answer in time.
+  assert.equal(statusTimeout(published(3000),'typecheck'),2000);
+  assert.equal(statusTimeout(published(72),'typecheck'),2000);
   assert.equal(statusTimeout(published(60000),'typecheck'),10000);
   // An interrupted or failed start says nothing about how long the check takes.
   for(const value of [published(0,'interrupted'),published(5,'start_failed'),published(undefined),published(-1),

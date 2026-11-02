@@ -167,11 +167,18 @@ commands never start the hook. The installed skill lists these exact commands,
 so the agent uses forms the hook recognizes.
 
 On a match, the hook runs `redue status --sync --json`. It waits up to half the
-duration of the check's last completed run, at most 10 seconds, so waiting never
-costs more than half a run. With no completed run it waits 2 seconds. A check
-that takes a few hundred milliseconds is therefore rarely skipped; skipping it
-would save almost nothing, and the hook does not rewrite it to `redue run`
-either. Claude Code's own limit for the hook is 15 seconds.
+duration of the check's last completed run, at least 2 seconds and at most 10
+seconds. A status call usually takes 70-250 ms, so a fast check (mypy in 0.2 s)
+is still skipped when CURRENT, or run through `redue run` and recorded when not.
+When the observer is slow or stuck, a matching command can wait the full 2
+seconds before it runs as written. Claude Code's own limit for the hook is 15
+seconds.
+
+To see why the hook decided what it did, set `REDUE_HOOK_LOG` to an absolute
+file path in the environment Claude Code starts with. The hook appends one JSON
+line per Bash command: the command, the decision (`deny`, `rewrite` or
+`allow`) and why, such as `no check matches the command` or `status did not
+answer within 2000 ms`.
 It blocks the command only when the check is CURRENT, PASS and
 `reuse_eligible: true`. The message names the check and the receipt's run ID. Every
 other result allows the command: STALE, UNVERIFIED, FAILED, a timeout, an error, or

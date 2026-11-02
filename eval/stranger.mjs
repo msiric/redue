@@ -62,12 +62,15 @@ const text = content => String(Array.isArray(content) ? content.map(item => item
 
 // One headless session: its time, commands, failed calls and report.
 async function session(prompt, dir, runDir, name) {
+  // Every hook decision, with the hook's reason (REDUE_HOOK_LOG).
+  const hookLog = path.join(runDir, `${name}-hooks.jsonl`);
+  fs.rmSync(hookLog, {force: true});
   const run = await claudeSession(['-p', prompt, '--model', opt.model, '--max-turns', opt['max-turns'],
     '--output-format', 'stream-json', '--verbose', '--no-session-persistence',
     '--setting-sources', 'project,local', '--settings', JSON.stringify({autoMemoryEnabled: false}),
     '--strict-mcp-config', '--mcp-config', JSON.stringify({mcpServers: {}}),
     '--tools', tools, '--allowedTools', tools, '--permission-mode', 'dontAsk'],
-  {cwd: dir, env: {...env, ...sessionAuth()}, timeout: 40 * 60_000});
+  {cwd: dir, env: {...env, ...sessionAuth(), REDUE_HOOK_LOG: hookLog}, timeout: 40 * 60_000});
   fs.writeFileSync(path.join(runDir, `${name}.jsonl`), run.stdout);
   const messages = run.stdout.split('\n').flatMap(line => { try { return [JSON.parse(line)]; } catch { return []; } });
   const calls = new Map(), results = new Map(), out = {ms: run.ms, exit: run.status, signal: run.signal, commands: [], failed: []};
@@ -80,7 +83,10 @@ async function session(prompt, dir, runDir, name) {
     }
   }
   const result = messages.findLast(message => message.type === 'result');
-  Object.assign(out, {turns: result?.num_turns ?? null, report: result?.result ?? null, cost_usd: result?.total_cost_usd ?? null, calls, results});
+  let hooks = [];
+  try { hooks = fs.readFileSync(hookLog, 'utf8').trim().split('\n').filter(Boolean).map(line => JSON.parse(line)); } catch {}
+  Object.assign(out, {turns: result?.num_turns ?? null, report: result?.result ?? null, cost_usd: result?.total_cost_usd ?? null, calls, results,
+    hooks: hooks.map(({command, decision, why, ms}) => ({command, decision, why, ms}))});
   return out;
 }
 
@@ -94,7 +100,7 @@ for (const name of names) {
     row.commit = sh('git', ['rev-parse', 'HEAD'], {cwd: dir}).stdout.trim();
     const setup = await session(prompt, dir, runDir, 'setup');
     const {calls, results: outputs} = setup;
-    Object.assign(row, {ms: setup.ms, exit: setup.exit, signal: setup.signal, commands: setup.commands, failed: setup.failed,
+    Object.assign(row, {ms: setup.ms, exit: setup.exit, signal: setup.signal, commands: setup.commands, failed: setup.failed, hooks: setup.hooks,
       turns: setup.turns, report: setup.report, cost_usd: setup.cost_usd});
     // What the session itself last saw from redue status, in its own environment.
     const statusCall = [...calls.values()].filter(call => call.name === 'Bash' && /\bredue status\b/.test(call.input?.command ?? '')).at(-1);
@@ -115,7 +121,7 @@ for (const name of names) {
     // put in the project, edits docs and runs the checks.
     if (opt['follow-up'] && row.installed) {
       const next = await session(followUp, dir, runDir, 'follow-up');
-      row.follow_up = {ms: next.ms, turns: next.turns, cost_usd: next.cost_usd, report: next.report, failed: next.failed,
+      row.follow_up = {ms: next.ms, turns: next.turns, cost_usd: next.cost_usd, report: next.report, failed: next.failed, hooks: next.hooks,
         commands: next.commands.map((command, i) => {
           const call = [...next.calls.values()].filter(part => part.name === 'Bash')[i], result = call && next.results.get(call.id);
           const output = text(result?.content);

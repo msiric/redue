@@ -26,7 +26,13 @@ function snapshot(root) {
 }
 if (argv.join(' ') === 'agent hook claude') {
   const input = fs.readFileSync(0, 'utf8');
-  const out = spawnSync(process.execPath, [entry, ...argv], {input, encoding: 'utf8'});
+  // The hook's own account of its decision (REDUE_HOOK_LOG), read back below.
+  const why = path.join(os.tmpdir(), 'redue-eval-why-' + process.pid);
+  fs.rmSync(why, {force: true});
+  const out = spawnSync(process.execPath, [entry, ...argv], {input, encoding: 'utf8', env: {...process.env, REDUE_HOOK_LOG: why}});
+  let explained = null;
+  try { explained = JSON.parse(fs.readFileSync(why, 'utf8').trim().split('\\n').at(-1)).why ?? null; } catch {}
+  fs.rmSync(why, {force: true});
   process.stdout.write(out.stdout || '');
   const hookMs = Date.now() - started;
   let command = null, root = cwd, hook = null;
@@ -40,7 +46,7 @@ if (argv.join(' ') === 'agent hook claude') {
     try { status = JSON.parse(spawnSync(process.execPath, [entry, 'status', '--sync', '--json'], {cwd: root, encoding: 'utf8'}).stdout)
       .checks.map(c => ({name: c.name, freshness: c.freshness, reason: c.reason})); } catch {}
   }
-  write({kind: 'hook', hook_ms: hookMs, command, decision, rewritten: hook?.updatedInput?.command ?? null, reason: hook?.permissionDecisionReason ?? null, tree, exit: out.status, ...(status ? {status} : {})});
+  write({kind: 'hook', hook_ms: hookMs, command, decision, rewritten: hook?.updatedInput?.command ?? null, reason: hook?.permissionDecisionReason ?? null, why: explained, tree, exit: out.status, ...(status ? {status} : {})});
   process.exit(out.status ?? 1);
 }
 if (argv.includes('status') && argv.includes('--sync')) {

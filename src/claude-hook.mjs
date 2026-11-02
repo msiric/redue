@@ -456,12 +456,14 @@ function synchronizedStatus(entry,config,root,timeout,sync=true){
   });
 }
 
-// Waiting for status never costs more than half the check: half the last
-// completed run's duration, at most 10 s. With no completed run, 2 s.
+// Half the last completed run's duration, at least 2 s and at most 10 s; with
+// no completed run, 2 s. A shorter wait misses a status call (70-250 ms here,
+// over 1.5 s on a loaded CI or Windows runner) for a fast check, and the
+// agent's run would go unrecorded.
 export function statusTimeout(status,name){
   const run=Array.isArray(status?.checks)?status.checks.find(row=>row?.name===name)?.invocation:null;
   return run?.status==='exited'&&Number.isFinite(run.durationMs)&&run.durationMs>=0?
-    Math.min(run.durationMs/2,10000):2000;
+    Math.min(Math.max(run.durationMs/2,2000),10000):2000;
 }
 // From the observer's last published status, which is small, not the receipts.
 // The longest wait among `names`, read once.
@@ -500,18 +502,29 @@ export function sessionStart(input,{entry}){
 }
 
 // Returns the hook's stdout object, or null to allow the command.
-export async function claudeHook(input,{entry,timeout,invoke=null}){
-  if(input?.tool_name!=='Bash')return null;
+// `explain(text)` hears why, also when the command is left as it is.
+export async function claudeHook(input,{entry,timeout,invoke=null,explain=null}){
+  // A failing explain never changes the decision.
+  const why=(text,value=null)=>{try{explain?.(text);}catch{}return value;};
+  if(input?.tool_name!=='Bash')return why('not a Bash command');
   const command=input.tool_input?.command,root=input.cwd;
-  if(typeof command!=='string'||/^\s*REDUE_FORCE=1(?:\s|$)/.test(command))return null;
-  const project=hookProject(root);
-  if(!project)return null;
+  if(typeof command!=='string')return why('no command');
+  if(/^\s*REDUE_FORCE=1(?:\s|$)/.test(command))return why('REDUE_FORCE=1');
+  let project;
+  try{project=hookProject(root);}catch(error){return why(`no readable setup record in this directory (${error.code??error.message})`);}
+  if(!project)return why('REDUE is not set up for Claude Code in this directory');
+  // What a status answer said about `names`, when the hook does not skip.
+  const said=(status,names,waited)=>!status?`status did not answer within ${waited} ms`:
+    status.observation?.healthy!==true?'the observer is not healthy':
+    names.map(name=>{const row=Array.isArray(status.checks)?status.checks.find(item=>item?.name===name):null;
+      return !row?`${name} not in status`:`${name} ${row.freshness}/${row.result??'-'}${row.freshness==='CURRENT'&&row.result==='PASS'?
+        ` but not reusable (reuse_eligible ${row.reuse_eligible}, run ${row.invocation?.runId??'none'})`:row.reason?` (${row.reason})`:''}`;}).join('; ');
   const {record,config,parsed}=project;
   // For `redue stats`: the checks a decision skipped, or the ones that were due.
   const tally=(status,names,skipped)=>{let state;try{state=projectState(project.projectRoot,config);}catch{return;}
     for(const name of names){const entry=skipped?skipNote(status,name,'hook'):dueNote(status,name);if(entry)note(state,entry);}};
   const entered=enteredDir(command,root,project.projectRoot);
-  if(!entered)return null;
+  if(!entered)return why('the command enters a directory outside the project');
   let scripts={};
   if(entered.dir==='.')try{scripts=JSON.parse(fs.readFileSync(path.join(project.projectRoot,'package.json'),'utf8')).scripts||{};}catch{}
   // The configured config path as the command's directory sees it.
@@ -527,23 +540,25 @@ export async function claudeHook(input,{entry,timeout,invoke=null}){
   // The observer's cached health is enough here: each check asks again when it runs.
   const chained=chainCommand(entered.command,parsed,record.config,entered.dir,scripts,invoke??redueInvocation(entry),configPath,project.projectRoot);
   if(chained){
-    const cached=await synchronizedStatus(entry,config,root,timeout??5000,false);
+    const wait=timeout??5000,cached=await synchronizedStatus(entry,config,root,wait,false);
     return cached?.observation?.healthy===true&&chained.names.every(name=>cached.checks?.some(row=>row?.name===name))?
-      {hookSpecificOutput:{hookEventName:'PreToolUse',updatedInput:{...input.tool_input,command:entered.prefix+chained.command}}}:null;
+      why(`a chain: ${chained.names.join(', ')} through redue run`,{hookSpecificOutput:{hookEventName:'PreToolUse',updatedInput:{...input.tool_input,command:entered.prefix+chained.command}}}):
+      why(`a chain left as written: ${said(cached,chained.names,wait)}`);
   }
   const match=matched(entered.command,parsed,record.config,entered.dir,scripts,project.projectRoot);
-  if(!match)return null;
+  if(!match)return why('no check matches the command');
   // A check followed by more than a simple chain runs untouched.
-  if(match.rest!==null&&!match.fanout)return null;
+  if(match.rest!==null&&!match.fanout)return why('more commands follow the check');
   // turbo, nx and `pnpm -r` cache their own results: skip only when every
   // check the command runs is CURRENT, and otherwise leave it alone.
   if(match.fanout){
     const names=await fanoutChecks(match.fanout,parsed,project.projectRoot);
-    if(!names)return null;
-    const status=await synchronizedStatus(entry,config,root,timeout??lastRunTimeout(config,parsed,...names)),
+    if(!names)return why('a fan-out whose checks are not all configured');
+    const wait=timeout??lastRunTimeout(config,parsed,...names),status=await synchronizedStatus(entry,config,root,wait),
       reason=fanoutVerdict(status,names,match.rest);
     tally(status,names,Boolean(reason));
-    return reason?{hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:reason}}:null;
+    return reason?why('every check CURRENT/PASS',{hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:reason}}):
+      why(`a fan-out left to run: ${said(status,names,wait)}`);
   }
   // A compiler script: its checks in the order of its runs, or nothing when
   // they no longer correspond. One run is an ordinary check. A chain is
@@ -551,26 +566,26 @@ export async function claudeHook(input,{entry,timeout,invoke=null}){
   // redue run, in order.
   if(match.row){
     const names=scriptChecks(match.row,parsed,project.projectRoot);
-    if(!names)return null;
+    if(!names)return why('the script no longer runs its configured checks');
     if(names.length===1)match.check=names[0];
     else{
-      const status=await synchronizedStatus(entry,config,root,timeout??lastRunTimeout(config,parsed,...names)),
+      const wait=timeout??lastRunTimeout(config,parsed,...names),status=await synchronizedStatus(entry,config,root,wait),
         reason=fanoutVerdict(status,names,match.rest);
       tally(status,names,Boolean(reason));
-      if(reason)return {hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:reason}};
+      if(reason)return why('every check CURRENT/PASS',{hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:reason}});
       const pending=names.filter(name=>!verdict(status,name));
       const rewritten=status?.schema===1&&status.observation?.healthy===true&&Array.isArray(status.checks)&&
         names.every(name=>status.checks.some(item=>item?.name===name))?recordedCommand(entered.command,pending,configPath,invoke??redueInvocation(entry)):null;
-      return rewritten?{hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'allow',
+      return why(`${rewritten?'through redue run':'left as written'}: ${said(status,names,wait)}`,rewritten?{hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'allow',
         permissionDecisionReason:`REDUE: ${pending.map(name=>JSON.stringify(name)).join(', ')} of this script's checks ${pending.length===1?'is':'are'} not CURRENT; running ${pending.length===1?'it':'them'} through redue run so the result is recorded.`,
-        updatedInput:{...input.tool_input,command:entered.prefix+rewritten}}}:null;
+        updatedInput:{...input.tool_input,command:entered.prefix+rewritten}}}:null);
     }
   }
-  const name=match.check,status=await synchronizedStatus(entry,config,root,timeout??lastRunTimeout(config,parsed,name)),
+  const name=match.check,wait=timeout??lastRunTimeout(config,parsed,name),status=await synchronizedStatus(entry,config,root,wait),
     reason=verdict(status,name,match.rest);
   tally(status,[name],Boolean(reason));
-  if(reason)return {hookSpecificOutput:{hookEventName:'PreToolUse',
-    permissionDecision:'deny',permissionDecisionReason:reason}};
+  if(reason)return why(`${name} CURRENT/PASS`,{hookSpecificOutput:{hookEventName:'PreToolUse',
+    permissionDecision:'deny',permissionDecisionReason:reason}});
   // Rewrite only on a healthy answer for this check: without an observer,
   // `redue run` cannot record, so the command stays as Claude sent it. A chain
   // stays too: the rewrite returns "allow", which would also skip the prompt
@@ -579,9 +594,9 @@ export async function claudeHook(input,{entry,timeout,invoke=null}){
     status.checks.some(item=>item?.name===name)?recordedCommand(entered.command,name,configPath,invoke??redueInvocation(entry),match.wrapper):null;
   // updatedInput replaces the whole tool input. Deny and ask rules still apply
   // to the rewritten command; "allow" skips only the prompt.
-  return rewritten?{hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'allow',
+  return why(`${rewritten?'through redue run':'left as written'}: ${said(status,[name],wait)}`,rewritten?{hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'allow',
     permissionDecisionReason:`REDUE: check ${JSON.stringify(name)} is not CURRENT; running it through redue run so the result is recorded.`,
-    updatedInput:{...input.tool_input,command:entered.prefix+rewritten}}}:null;
+    updatedInput:{...input.tool_input,command:entered.prefix+rewritten}}}:null);
 }
 
 export async function runClaudeHook(entry){
@@ -590,7 +605,12 @@ export async function runClaudeHook(entry){
     for await(const chunk of process.stdin){text+=chunk;if(text.length>1024*1024)return;}
     const input=JSON.parse(text);
     if(input?.hook_event_name==='SessionStart'){sessionStart(input,{entry});return;}
-    const output=await claudeHook(input,{entry});
+    // REDUE_HOOK_LOG (an absolute file): one JSON line per decision, with why.
+    const log=process.env.REDUE_HOOK_LOG,started=Date.now();let why=null;
+    const output=await claudeHook(input,{entry,explain:text=>{why=text;}});
     if(output)await new Promise(resolve=>process.stdout.write(JSON.stringify(output)+'\n',resolve));
+    if(log&&path.isAbsolute(log))try{fs.appendFileSync(log,JSON.stringify({at:started,ms:Date.now()-started,cwd:input?.cwd??null,
+      command:input?.tool_input?.command??null,decision:!output?'allow':output.hookSpecificOutput?.updatedInput?'rewrite':output.hookSpecificOutput?.permissionDecision??'allow',
+      why})+'\n');}catch{}
   }catch{}
 }
