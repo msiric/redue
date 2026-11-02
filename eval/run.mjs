@@ -258,7 +258,7 @@ async function runSession(task, repo, arm, id) {
 }
 
 const rows = [];
-let index = 0, pair = 0;
+let index = 0, pair = 0, stopped = null;
 for (const task of selected) {
   const repo = repos.find(r => r.name === task.repo);
   if (!repo) throw new Error(`task ${task.id}: unknown repo ${task.repo}`);
@@ -269,10 +269,17 @@ for (const task of selected) {
     for (const arm of arms) {
       ++index;
       // A rate-limited session runs again after the limit resets (at most an
-      // hour's wait, three attempts); it never counts as a slow session.
+      // hour's wait, three attempts); it never counts as a slow session. A
+      // limit that resets later than that (a weekly one) ends the run.
+      if (stopped) break;
       for (let attempt = 1; ; attempt++) {
         try { rows.push(await runOne(task, repo, arm, index, rep)); break; }
         catch (error) {
+          if (error instanceof RateLimited && error.delayMs > 60 * 60_000) {
+            stopped = `${error.message}; the run stops here`;
+            console.error(`   ${stopped}`);
+            break;
+          }
           if (error instanceof RateLimited && attempt < 3) {
             const wait = Math.min(error.delayMs + 60_000, 60 * 60_000);
             console.error(`   ${error.message}; waiting ${Math.round(wait / 60_000)} min, attempt ${attempt + 1}`);
@@ -287,7 +294,7 @@ for (const task of selected) {
     }
   }
 }
-const meta = {model: opt.model, max_turns: +opt['max-turns'], runs: +opt.runs, redue: entry};
+const meta = {model: opt.model, max_turns: +opt['max-turns'], runs: +opt.runs, redue: entry, ...(stopped ? {stopped} : {})};
 fs.writeFileSync(path.join(out, 'results.json'), JSON.stringify({...meta, rows}, null, 2) + '\n');
 fs.writeFileSync(path.join(out, 'results.md'), report(rows, {...meta, out}));
 redactDir(out);
