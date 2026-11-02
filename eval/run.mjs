@@ -63,11 +63,14 @@ function treeOf(dir) {
 
 // A Python repo's check on a tree, in the run's own checkout once the session
 // is over: its .venv links into the checkout (an editable install), so a copy
-// elsewhere would check the wrong files.
-function verifyInPlace(dir, tree, command) {
+// elsewhere would check the wrong files. Tests run three times, as in
+// verifyTree.
+function verifyInPlace(dir, tree, command, tests = false) {
   must(sh('git', ['clean', '-fdq'], {cwd: dir}), 'git clean');
   must(sh('git', ['read-tree', '--reset', '-u', tree], {cwd: dir}), 'git read-tree');
-  return plainTests(dir, command);
+  if (!tests) return plainTests(dir, command);
+  const runs = [0, 1, 2].map(() => plainTests(dir, command).pass);
+  return {pass: runs.every(Boolean) ? true : runs.some(Boolean) ? null : false, runs};
 }
 
 // Plain tsc, the repo's lint once, or its tests three times, on a tree an
@@ -215,7 +218,7 @@ async function runSession(task, repo, arm, id) {
   const verified = new Map();
   // pass: true, false, or null for tests that disagreed with each other.
   const tscOn = tree => {
-    if (!verified.has(tree)) verified.set(tree, repo.install ? verifyInPlace(dir, tree, check === 'lint' ? repo.lint : claimed) :
+    if (!verified.has(tree)) verified.set(tree, repo.install ? verifyInPlace(dir, tree, check === 'lint' ? repo.lint : claimed, check === 'test') :
       verifyTree(dir, tree, path.join(work, 'tree-check'), check === 'test' ? repo.test : null, check === 'lint' ? repo.lint : null));
     return verified.get(tree).pass;
   };

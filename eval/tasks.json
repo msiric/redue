@@ -614,6 +614,44 @@
       ]
     },
     {
+      "repo": "Kludex/starlette",
+      "id": "test-docs-edit",
+      "kind": "docs",
+      "prompt": "In README.md, the \"Dependencies\" section ends by saying how to install all the optional dependencies. After that sentence, add one sentence saying that `anyio` is the only required dependency and is always installed. Before you finish, make sure the unit tests still pass (`.venv/bin/pytest`).",
+      "expect": [
+        {
+          "file": "README.md",
+          "matches": "## Dependencies[\\s\\S]*starlette\\[full\\][\\s\\S]*anyio[\\s\\S]*## Framework or Toolkit"
+        }
+      ],
+      "check": "test"
+    },
+    {
+      "repo": "Kludex/starlette",
+      "id": "test-reverify",
+      "kind": "reverify",
+      "prompt": "I pulled some changes and want to know whether the unit tests still pass. Run them (`.venv/bin/pytest`) and tell me the result. Don't change any files.",
+      "expect": [
+        {
+          "unchanged": true
+        }
+      ],
+      "check": "test"
+    },
+    {
+      "repo": "Kludex/starlette",
+      "id": "test-source",
+      "kind": "source",
+      "prompt": "In starlette/datastructures.py, make `CommaSeparatedStrings` drop empty items when it parses a string, so \"a,,b\" and \"a, ,b\" both give [\"a\", \"b\"]. Add a unit test for it in tests/test_datastructures.py. Make sure the unit tests pass (`.venv/bin/pytest`).",
+      "expect": [
+        {
+          "file": "tests/test_datastructures.py",
+          "matches": "a, ?,b|a,,b"
+        }
+      ],
+      "check": "test"
+    },
+    {
       "repo": "langgenius/graphon",
       "id": "docs-edit",
       "kind": "docs",
@@ -662,6 +700,48 @@
           "unchanged": true
         }
       ]
+    },
+    {
+      "repo": "anthropics/claude-agent-sdk-python",
+      "id": "test-docs-edit",
+      "kind": "docs",
+      "prompt": "In README.md, in the \"Development\" section, add a sentence after the paragraph about the pre-push hook saying that contributors should also run the unit tests before opening a pull request. Before you finish, make sure the unit tests still pass (`.venv/bin/pytest tests/ -v`).",
+      "expect": [
+        {
+          "file": "README.md",
+          "matches": "## Development[\\s\\S]*pre-push[\\s\\S]*tests[\\s\\S]*### Building Wheels Locally"
+        }
+      ],
+      "check": "test"
+    },
+    {
+      "repo": "anthropics/claude-agent-sdk-python",
+      "id": "test-reverify",
+      "kind": "reverify",
+      "prompt": "I pulled some changes and want to know whether the unit tests still pass. Run them (`.venv/bin/pytest tests/ -v`) and tell me the result. Don't change any files.",
+      "expect": [
+        {
+          "unchanged": true
+        }
+      ],
+      "check": "test"
+    },
+    {
+      "repo": "anthropics/claude-agent-sdk-python",
+      "id": "test-source",
+      "kind": "source",
+      "prompt": "In src/claude_agent_sdk/_errors.py, make `CLINotFoundError` keep the path it was given as a `cli_path` attribute (None when no path is given), as `ProcessError` keeps `exit_code`. Add a unit test for it in tests/test_errors.py. Make sure the unit tests pass (`.venv/bin/pytest tests/ -v`).",
+      "expect": [
+        {
+          "file": "src/claude_agent_sdk/_errors.py",
+          "matches": "self\\.cli_path\\s*="
+        },
+        {
+          "file": "tests/test_errors.py",
+          "includes": "cli_path"
+        }
+      ],
+      "check": "test"
     }
   ]
 }

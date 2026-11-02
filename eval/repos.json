@@ -86,7 +86,8 @@
       ],
       "typecheck": ".venv/bin/mypy starlette",
       "lint": ".venv/bin/ruff check",
-      "why": "Python, uv. mypy on the package (scripts/check), about 0.2 s warm and 5 s cold; the same result inside the sandbox in the October 2026 sandbox census on Linux and macOS."
+      "why": "Python, uv. mypy on the package (scripts/check), about 0.2 s warm and 5 s cold; the same result inside the sandbox in the October 2026 sandbox census on Linux and macOS. Its pytest suite (about 12 s on a GitHub Linux runner) qualifies for the sandboxed recipe in the November 2026 census.",
+      "test": ".venv/bin/pytest"
     },
     {
       "name": "langgenius/graphon",
@@ -114,7 +115,8 @@
       ],
       "typecheck": ".venv/bin/mypy src/ scripts/",
       "lint": ".venv/bin/ruff check src/ tests/ scripts/",
-      "why": "Python, pip-style install into .venv, mypy on src/ and scripts/; the same result inside the sandbox on Linux and macOS."
+      "why": "Python, pip-style install into .venv, mypy on src/ and scripts/; the same result inside the sandbox on Linux and macOS. Its pytest suite (about 20 s on a GitHub Linux runner) qualifies for the sandboxed recipe in the November 2026 census.",
+      "test": ".venv/bin/pytest tests/ -v"
     }
   ]
 }
