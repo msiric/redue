@@ -79,10 +79,15 @@ if closed:
     try: socket.create_connection(('127.0.0.1', int(closed.group(1))), timeout=3).close(); print('closed connected')
     except OSError as e: print('closed errno', e.errno)
 if 'writeoutput' in text: pathlib.Path('build').mkdir(exist_ok=True); pathlib.Path('build/report.txt').write_text(str(os.getpid()))
+def fastopen_probe():
+    # Outside the sandbox this sends a SYN to an unroutable address: not long.
+    s = socket.socket(); s.settimeout(1)
+    try: s.sendto(b'x', 0x20000000, ('192.0.2.1', 9))
+    except socket.timeout: pass
 if 'netprobe' in text:
     import ctypes
     for name, fn in (('udp', lambda: socket.socket(socket.AF_INET, socket.SOCK_DGRAM)),
-                     ('fastopen', lambda: socket.socket().sendto(b'x', 0x20000000, ('192.0.2.1', 9)))):
+                     ('fastopen', lambda: fastopen_probe())):
         try: fn(); print(name, 'allowed')
         except OSError as e: print(name, 'errno', e.errno)
     libc = ctypes.CDLL(None, use_errno=True)
