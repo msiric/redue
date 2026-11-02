@@ -8,14 +8,15 @@ oxlint and tsgolint, biome, turbo, and Python tools such as mypy, pyright, ty
 and ruff, and test runners such as pytest.
 
 **The claim.** A sandboxed result holds for a run that sees only the project's
-files that git doesn't ignore, its installed packages and the toolchain, the
-way CI does. It does not say that a run with your own configuration files, a
-service on your machine or the network would give the same result.
+files that git doesn't ignore, except its documentation, its installed
+packages and the toolchain, the way CI does. It does not say that a run with
+your own configuration files, a service on your machine or the network would
+give the same result.
 
-A check that needs files git ignores (generated code, another package's
-built declarations) gets the whole checkout instead: its result holds for a
-run that sees the project, git-ignored files included, its installed packages
-and the toolchain. See [files git ignores](#files-git-ignores).
+A check that reads the documentation (a doctest over `README.md`) sees it
+too. A check that needs files git ignores (generated code, another package's
+built declarations) gets the whole checkout. See
+[hidden files](#files-git-ignores-and-documentation).
 
 ## Where it applies
 
@@ -51,14 +52,15 @@ redue status --sync
 A Python check in the config:
 
 ```json
-{"name": "typecheck", "kind": "typecheck", "qualification": "sandbox-v2",
+{"name": "typecheck", "kind": "typecheck", "qualification": "sandbox-v3",
  "command": [".venv/bin/mypy", "src"], "inputs": ["**", "..."], "installedInputs": [".venv/**", "..."]}
 ```
 
 A Node check names its script, as the general recipe's do:
-`{"name": "lint", "script": "lint", "kind": "lint", "qualification": "sandbox-v2", ...}`.
-`sandbox-v2` hides the files git ignores from the run; `sandbox-v1` runs it on
-the whole checkout.
+`{"name": "lint", "script": "lint", "kind": "lint", "qualification": "sandbox-v3", ...}`.
+`sandbox-v3` hides the files git ignores and the documentation from the run,
+`sandbox-v2` only the files git ignores; `sandbox-v1` runs it on the whole
+checkout.
 
 With the Claude Code hook, `uv run mypy src`, `poetry run mypy src`,
 `python -m mypy src`, `.venv/bin/mypy src` and `mypy src` are recognized as
@@ -66,12 +68,25 @@ that check. The last two count only when PATH finds the tool or Python in the
 project's `.venv/bin` first. When the hook runs the check through REDUE, it
 keeps `uv run` or `poetry run` in front, so the environment still syncs first.
 
-## Files git ignores
+## Files git ignores and documentation
 
-`init` runs each check three ways at most: plainly, sandboxed with the files
-git ignores hidden, and, when those two differ, sandboxed with the whole
-checkout (reusing the plain run). The first sandboxed way that gives the same
-result is written: `sandbox-v2` or `sandbox-v1`.
+`init` runs each check four ways at most: plainly, then sandboxed with the
+files git ignores and the documentation hidden, with only the files git
+ignores hidden, and with the whole checkout (reusing the plain run). The first
+sandboxed way that gives the same result is written: `sandbox-v3`,
+`sandbox-v2` or `sandbox-v1`.
+
+With `sandbox-v3`, each run also hides the documentation: the files git
+lists (and does not ignore) named `*.md`, `*.mdx`, `*.rst`, `LICENSE*` or
+`CHANGELOG*` anywhere, and text, image and PDF files (`.txt`, `.adoc`,
+`.png`, `.jpg`, `.jpeg`, `.gif`, `.svg`, `.webp`, `.pdf`) in the root `docs/`
+folder. Code in `docs/` (examples a typecheck includes) is not hidden, and
+folders stay listable. The receipt names the files the run hid. A later edit
+to one of them, or its deletion, leaves the result CURRENT: editing the
+README does not make the tests STALE. A new documentation file, a link named
+like one, or a change made while the run ran still counts. On macOS the
+files are refused by name patterns (which also cover such files in
+`node_modules`); on Linux each listed file is hidden like a git-ignored one.
 
 With `sandbox-v2`, each run hides what `git ls-files --others --ignored
 --exclude-standard --directory` lists, except `node_modules`, `.venv` and
@@ -80,18 +95,19 @@ Only the project's rules count: its `.gitignore` files and
 `.git/info/exclude`, not your global excludes file. Those files are not
 inputs, so a build or test run that writes them leaves the result CURRENT.
 
-When a `sandbox-v2` run fails with a refusal that names a hidden file (a
-missing file counts only when it names one, since Linux tools report an
-unreadable file as missing), REDUE runs the check again in the sandbox
-without hiding anything. That result is kept and compared on every file,
-git-ignored ones included. Run `redue init` again to write `sandbox-v1` for a
-check that keeps needing them.
+When a `sandbox-v2` or `sandbox-v3` run fails with a refusal that names a
+hidden file (a missing file counts only when it names one, since Linux tools
+report an unreadable file as missing), REDUE runs the check again in the
+sandbox without hiding anything. That result is kept and compared on every
+file, git-ignored ones and documentation included. Run `redue init` again to
+write another recipe for a check that keeps needing them.
 
 ## What the run sees
 
 It may read and execute only beneath:
 
-- the checkout, without the files git ignores for `sandbox-v2`;
+- the checkout, without the files git ignores for `sandbox-v2`, and without
+  its documentation too for `sandbox-v3`;
 - the toolchain: Node's installation and the package managers' (with
   Corepack's downloads), or the Python installation the `.venv` was made from;
 - system directories (`/usr`, `/bin`, `/etc` and the like on Linux; `/usr`,
@@ -175,7 +191,8 @@ folders, or new files git ignores, are not changes to its inputs.
 
 CURRENT means the last sandboxed run's inputs are unchanged:
 
-- every file in the checkout git doesn't ignore (`sandbox-v2`), or every file
+- every file in the checkout git doesn't ignore but its documentation
+  (`sandbox-v3`), every file git doesn't ignore (`sandbox-v2`), or every file
   in it, git-ignored files and git-ignored links to files in it included
   (`sandbox-v1`), except `.git` and runner caches (the general recipe's, plus
   `__pycache__`, `.mypy_cache`, `.ruff_cache` and `.pytest_cache`);
@@ -201,9 +218,9 @@ every failure twice to find out:
   timings, the temporary and home directories, and lines about caches.
   Otherwise `init` writes what it would have without this recipe and says why.
   These are the only runs `init` makes.
-- When a `sandbox-v2` run fails with a refusal that names a hidden file, it
+- When a `sandbox-v2` or `sandbox-v3` run fails with a refusal that names a hidden file, it
   runs again in the sandbox without hiding (see
-  [files git ignores](#files-git-ignores)).
+  [files git ignores](#files-git-ignores-and-documentation)).
 - When a sandboxed run fails and its output has a line that looks like a
   refusal ("Operation not permitted", "Permission denied", "Read-only file
   system", a name lookup or a connection that failed), REDUE runs the check
@@ -247,7 +264,7 @@ it with `redue remove-state`.
   nested example project's).
 - A script that changes files (`--fix`, `--write`) does not get this recipe:
   `init` would run it twice.
-- With `sandbox-v2`, a run cannot read a hidden file, but it can still see
+- With `sandbox-v2` or `sandbox-v3`, a run cannot read a hidden file, but it can still see
   that one exists, its size and its times, and write beneath it. On Linux it
   can also list a hidden folder; on macOS it cannot. A tool that acts on
   whether a git-ignored file exists, without reading it, is not covered: a
@@ -262,8 +279,9 @@ it with `redue remove-state`.
   host. Honest test code does not.
 - On Linux, a typecheck or lint can still connect to a Unix socket file
   outside it (a local database's).
-- On Linux, a file a `sandbox-v2` run creates in a folder that holds hidden
-  files (the checkout's root, when anything in it is hidden) cannot be read
+- On Linux, a file a `sandbox-v2` or `sandbox-v3` run creates in a folder that holds hidden
+  files (the checkout's root, when anything in it is hidden; with `sandbox-v3`,
+  any folder with a README) cannot be read
   back in the same run. `init`'s trial and the rerun without hiding catch a
   check that needs to.
 - A file whose git status changes without a change to its content (`git add

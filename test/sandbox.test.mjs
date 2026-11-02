@@ -34,6 +34,8 @@ import os, sys, pathlib, socket
 text = ''.join(p.read_text() for p in sorted(pathlib.Path('src').rglob('*.py')))
 if 'outside' in text: open(${JSON.stringify(outside)}).read()
 if 'readbuild' in text: text += open('build/generated.py').read()
+if 'readdocs' in text: text += open('README.md').read()
+if 'readsnippet' in text: text += open('docs/snippet.py').read()
 if 'network' in text:
     try: socket.create_connection(('127.0.0.1', 9), timeout=2)
     except ConnectionRefusedError: pass
@@ -199,11 +201,11 @@ test('the hook skips a fast Python check when CURRENT and records it through red
   const decide=async()=>(await claudeHook(input,{entry:bin,invoke:'redue',timeout:20000,explain:text=>{why=text;}}))?.hookSpecificOutput??null;
   assert.equal((await decide())?.permissionDecision,'deny');
   assert.equal(why,'typecheck CURRENT/PASS');
-  fs.appendFileSync(path.join(root,'README.md'),'A note.\n');
+  fs.appendFileSync(path.join(root,'src/fx/__init__.py'),'# a note\n');
   const stale=await decide();
   assert.equal(stale?.permissionDecision,'allow');
   assert.equal(stale.updatedInput.command,'redue run typecheck');
-  assert.match(why,/^through redue run: typecheck STALE\/PASS \(.*README\.md/);
+  assert.match(why,/^through redue run: typecheck STALE\/PASS \(.*__init__\.py/);
   // REDUE_HOOK_LOG: every decision, with why, also when the command is left as written.
   const log=path.join(path.dirname(root),'hook.jsonl');
   for(const command of ['ls','.venv/bin/mypy .'])
@@ -228,7 +230,7 @@ test('init proposes mypy and ruff from .venv with the project\'s arguments, afte
   const by=Object.fromEntries(init.proposed_config.checks.map(check=>[check.name,check]));
   assert.deepEqual(by.typecheck.command,['.venv/bin/mypy']);
   assert.deepEqual(by.lint.command,['.venv/bin/ruff','check','src']);
-  assert.equal(by.lint.qualification,'sandbox-v2');
+  assert.equal(by.lint.qualification,'sandbox-v3');
   assert.deepEqual({inputs:by.lint.inputs,installedInputs:by.lint.installedInputs},sandboxCheckInputs());
   for(const check of init.checks){assert.equal(check.level,'ready',check.reason);assert.match(check.reason,/ran both ways at init, exit 0/);}
   assert.equal(init.package_manager,null);
@@ -262,8 +264,8 @@ test('a sandboxed Python check: CURRENT after a pass and through changes to git-
   assert.match(good(root,state,'run','typecheck'),/mypy \[\]/);
   let status=row(root,state,'typecheck');
   assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
-  assert.equal(status.recipe,'sandbox-v2');
-  assert.match(good(root,state,'status','--sync'),/✓ typecheck {2}CURRENT \/ PASS {2}\(sandboxed recipe, git-ignored files hidden\)/);
+  assert.equal(status.recipe,'sandbox-v3');
+  assert.match(good(root,state,'status','--sync'),/✓ typecheck {2}CURRENT \/ PASS {2}\(sandboxed recipe, git-ignored files and docs hidden\)/);
   // The run did not see git-ignored files: a change to one, a new one, or a
   // new ignored directory is not a change to its inputs.
   write(root,'build/generated.py','g = 2\n');write(root,'build/more.py','m = 1\n');write(root,'build/new/out.js','x');
@@ -327,11 +329,11 @@ test('a check that reads a git-ignored file gets the whole checkout at init; one
   // Set up without it, then the check starts reading build/.
   fs.rmSync(path.join(root,'src/fx/reads.py'));
   good(root,state,'init');good(root,state,'start');
-  assert.equal(JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'),'utf8')).checks.find(c=>c.name==='typecheck').qualification,'sandbox-v2');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'),'utf8')).checks.find(c=>c.name==='typecheck').qualification,'sandbox-v3');
   write(root,'src/fx/reads.py','# readbuild\n');
   const run=invoke(root,state,['run','typecheck']);
   assert.equal(run.status,0,run.stderr);
-  assert.match(run.stderr,/refusal of a file git ignores .*running it again in the sandbox without hiding them/);
+  assert.match(run.stderr,/refusal of a hidden file .*running it again in the sandbox without hiding files/);
   let status=row(root,state,'typecheck');
   assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
   assert.equal(status.recipe,'sandbox-v1');
@@ -339,6 +341,45 @@ test('a check that reads a git-ignored file gets the whole checkout at init; one
   write(root,'build/generated.py','g = 2\n');
   status=row(root,state,'typecheck');
   assert.equal(status.freshness,'STALE');assert.match(status.reason,/build\/generated\.py changed/);
+});
+
+test('documentation is hidden too (sandbox-v3): an edit to it keeps the result CURRENT; a check that reads it gets sandbox-v2',{skip:unsupported},t=>{
+  const {root,state}=project(t);
+  write(root,'docs/guide/intro.md','# intro\n');write(root,'docs/guide/shot.png','png');write(root,'LICENSE','MIT\n');
+  write(root,'src/fx/notes.rst','notes\n');write(root,'.md','dot\n');
+  // Code under docs/ is not documentation: the run reads it.
+  write(root,'docs/snippet.py','snippet = 1\n');write(root,'src/fx/snippet.py','# readsnippet\n');
+  execFileSync('git',['add','.'],{cwd:root});
+  good(root,state,'init');good(root,state,'start');good(root,state,'run','typecheck');
+  let status=row(root,state,'typecheck');
+  assert.equal(`${status.freshness}/${status.result}/${status.recipe}`,'CURRENT/PASS/sandbox-v3',status.reason);
+  // Edits to and deletions of the documentation it hid are not changes to its inputs.
+  write(root,'README.md','# fixture\n\nA note.\n');write(root,'docs/guide/intro.md','# intro 2\n');write(root,'docs/guide/shot.png','png2');
+  fs.rmSync(path.join(root,'LICENSE'));write(root,'src/fx/notes.rst','more\n');write(root,'.md','dot 2\n');
+  status=row(root,state,'typecheck');
+  assert.equal(status.freshness,'CURRENT',status.reason);
+  // Code under docs/ is.
+  write(root,'docs/snippet.py','snippet = 2\n');
+  status=row(root,state,'typecheck');
+  assert.equal(status.freshness,'STALE');assert.match(status.reason,/docs\/snippet\.py changed/);
+  good(root,state,'run','typecheck');
+  // A new documentation file is too: the run did not hide it.
+  write(root,'src/fx/CHANGELOG.md','## 1\n');
+  assert.equal(row(root,state,'typecheck').freshness,'STALE');
+  good(root,state,'run','typecheck');
+  // A check that starts reading the documentation runs again without hiding it.
+  write(root,'src/fx/reads.py','# readdocs\n');
+  const run=invoke(root,state,['run','typecheck']);
+  assert.equal(run.status,0,run.stderr);
+  assert.match(run.stderr,/refusal of a hidden file .*README\.md.*running it again in the sandbox without hiding files/);
+  status=row(root,state,'typecheck');
+  assert.equal(`${status.freshness}/${status.recipe}`,'CURRENT/sandbox-v1',status.reason);
+  write(root,'README.md','# fixture\n\nAnother note.\n');
+  assert.equal(row(root,state,'typecheck').freshness,'STALE');
+  // init then gives it the git-ignored files hidden, documentation visible.
+  const init=JSON.parse(good(root,state,'init','--dry-run','--json'));
+  assert.equal(init.proposed_config.checks.find(c=>c.name==='typecheck').qualification,'sandbox-v2',JSON.stringify(init.checks));
+  assert.match(init.checks.find(c=>c.name==='typecheck').reason,/it needs the documentation \(exit 1 inside the sandbox, 0 outside it/);
 });
 
 test('a sandboxed run that reads outside or reaches the network is run again outside the sandbox and is not reused',{skip:unsupported},t=>{
@@ -491,7 +532,7 @@ test('a pytest check in .venv: loopback works on Linux, remote hosts and the sha
   write(root,'src/fx/net.py',`# ${process.platform==='linux'?'loopback ':''}remote tmpwrite writeoutput\n`);
   const init=JSON.parse(good(root,state,'init','--json'));
   const check=init.proposed_config?.checks?.find(c=>c.name==='test')??JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'),'utf8')).checks.find(c=>c.name==='test');
-  assert.equal(check.kind,'test');assert.equal(check.qualification,'sandbox-v2',JSON.stringify(init.checks));
+  assert.equal(check.kind,'test');assert.equal(check.qualification,'sandbox-v3',JSON.stringify(init.checks));
   assert.deepEqual(check.command,['.venv/bin/pytest']);
   good(root,state,'start');
   const run=invoke(root,state,['run','test']);
@@ -554,7 +595,7 @@ test('init gives a Node test script the direct test recipe does not take the san
   good(root,state,'init');good(root,state,'start');good(root,state,'run','test');
   const status=row(root,state,'test');
   assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
-  assert.equal(status.recipe,'sandbox-v2');
+  assert.equal(status.recipe,'sandbox-v3');
 });
 
 test('init gives a Node lint script that starts another program the sandboxed recipe; it is CURRENT after a pass',{skip:unsupported},t=>{
@@ -623,7 +664,7 @@ test('with the whole checkout (sandbox-v1), a git-ignored link to a file in the 
   put(path.join(root,'build/settings.py'),'mode = 1\n');fs.symlinkSync('settings.py',path.join(root,'build/active.py'));
   good(root,state,'init');
   const file=path.join(root,'redue.config.json');
-  fs.writeFileSync(file,fs.readFileSync(file,'utf8').replaceAll('"sandbox-v2"','"sandbox-v1"'));
+  fs.writeFileSync(file,fs.readFileSync(file,'utf8').replace(/"sandbox-v[23]"/g,'"sandbox-v1"'));
   good(root,state,'start');good(root,state,'run','typecheck');
   write(root,'build/settings.py','mode = 2\n');
   assert.equal(row(root,state,'typecheck').freshness,'STALE');
@@ -685,5 +726,5 @@ test('a Node script the general recipe also takes is sandboxed; where the sandbo
   good(root,state,'run','lint');
   status=row(root,state,'lint');
   assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
-  assert.equal(status.recipe,'sandbox-v2');
+  assert.equal(status.recipe,'sandbox-v3');
 });

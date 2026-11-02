@@ -7,7 +7,7 @@ import {directCompiler,directQualification,directEnvironment,directInstalledInpu
 import {runArgv,tscRun} from '../src/typescript-invocation.mjs';
 import {testEnvironment,testRunnerAt,testsInterpretation,testsQualification} from '../src/test-direct.mjs';
 import {scriptEnvironment,scriptInterpretation,scriptKinds,scriptQualification} from '../src/node-script.mjs';
-import {hiddenListIssue,hiddenQualification,isSandboxed,pythonTool,sandboxEnvironment,sandboxInterpretationOf,sandboxKinds,sandboxQualification} from '../src/sandbox.mjs';
+import {docsQualification,hiddenDocsIssue,hiddenListIssue,hiddenQualification,isSandboxed,pythonTool,sandboxEnvironment,sandboxInterpretationOf,sandboxKinds,sandboxQualification} from '../src/sandbox.mjs';
 import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
@@ -153,6 +153,7 @@ if(command==='init'){
   }
   // A sandboxed check is proposed only when it gives the same exit status and
   // output inside the sandbox as outside it: first with the checkout's
+  // git-ignored files and documentation hidden (sandbox-v3), then with the
   // git-ignored files hidden (sandbox-v2), else with the whole checkout
   // (sandbox-v1), reusing the plain run. Otherwise init writes what it would
   // have without the sandboxed recipe, with the reason.
@@ -165,11 +166,18 @@ if(command==='init'){
   for(const [at,row] of [...discovery.checks.entries()]){
     if(row.qualification!==sandboxQualification||row.level!=='ready')continue;
     if(!json)console.error(`Running ${row.config.name} inside and outside the sandbox to confirm it...`);
-    const hidden=await sandboxTrial(discovery.root,row.config,{hide:true});
-    if(!hidden.issue)trials++;
+    const docs=await sandboxTrial(discovery.root,row.config,{hide:'docs'});
+    if(!docs.issue)trials++;
+    if(!docs.issue&&docs.same){
+      row.config={...row.config,qualification:docsQualification};row.qualification=docsQualification;
+      row.reason=row.reason.replace('the whole checkout is its input',"the checkout's files git doesn't ignore, except its documentation, are its input")+`; ran both ways at init, exit ${docs.plain}`;continue;}
+    // Without a list of the documentation, the git-ignored files are still tried.
+    const hidden=docs.plainRun?await sandboxTrial(discovery.root,row.config,{hide:true,plain:docs.plainRun}):
+      docs.issue===hiddenDocsIssue?await sandboxTrial(discovery.root,row.config,{hide:true}):docs;
     if(!hidden.issue&&hidden.same){
       row.config={...row.config,qualification:hiddenQualification};row.qualification=hiddenQualification;
-      row.reason=row.reason.replace('the whole checkout is its input',"the checkout's files git doesn't ignore are its input")+`; ran both ways at init, exit ${hidden.plain}`;continue;}
+      row.reason=row.reason.replace('the whole checkout is its input',"the checkout's files git doesn't ignore are its input")+
+        `; ran both ways at init, exit ${hidden.plain}; it needs the documentation (${trialIssue(docs)})`;continue;}
     // Without git, nothing is hidden: the whole checkout is tried on its own.
     const trial=hidden.plainRun?await sandboxTrial(discovery.root,row.config,{plain:hidden.plainRun}):
       hidden.issue===hiddenListIssue?await sandboxTrial(discovery.root,row.config):hidden;

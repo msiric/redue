@@ -8,7 +8,7 @@ import {patternMatcher} from './glob.mjs';
 import {observedBy} from './installed-observation.mjs';
 import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testRunFacts,sharedInstalledFile,testsInterpretation,testsQualification} from './test-direct.mjs';
 import {childProgram,generalIssue,lookup,pnpmConfigFiles,scriptCaches,scriptInstalledPaths,scriptInterpretation,scriptQualification,scriptRunFacts,pnpmNameless,toolOutput,toolchainDirs} from './node-script.mjs';
-import {denialLine,endWithChild,hiddenEntries,hiddenQualification,hiddenRefusal,isSandboxed,runToEnd,supervisorIssue,visibleChange,testRun as sandboxTestRun,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,
+import {denialLine,docsQualification,endWithChild,hiddenDocs,hiddenEntries,hiddenQualification,hiddenRefusal,hidesIgnored,isSandboxed,runToEnd,supervisorIssue,visibleChange,testRun as sandboxTestRun,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,
   sandboxInterpretation,sandboxInterpretationOf,sandboxPlaces,sandboxQualification,sandboxSupport,systemPlaces} from './sandbox.mjs';
 import path from 'node:path';
 import net from 'node:net';
@@ -338,14 +338,17 @@ async function execute() {
         const tests=sandboxTestRun(selected),stats=tests&&support.mode==='landlock'?path.join(state,`launcher-${runId}.json`):null;
         if(tests){dirs.home=path.join(dirs.tmp,'home');fs.mkdirSync(dirs.home,{mode:0o700});}
         const reads=[root,dirs.home,dirs.tmp,...sandboxPlaces(selected,process.env,root),...systemPlaces];
-        // sandbox-v2 hides the checkout's git-ignored entries. Where git
-        // cannot list them, nothing is hidden, and the receipt compares every file.
-        const hidden=selected.qualification===hiddenQualification?hiddenEntries(root):null;
+        // sandbox-v2 hides the checkout's git-ignored entries, and sandbox-v3
+        // its documentation too. Where git cannot list them, nothing is
+        // hidden, and the receipt compares every file.
+        const hidden=hidesIgnored(selected.qualification)?hiddenEntries(root):null;
+        const docs=hidden&&selected.qualification===docsQualification?hiddenDocs(root):null;
         const options={reads,tmp:dirs.tmp,python:support.python,stats,
           ...tests?{...support.mode==='landlock'?{network:'loopback'}:{},writes:[root,dirs.home,dirs.tmp],
             fault:process.env.VSTATE_TEST_FAULTS==='1'?process.env.VSTATE_TEST_SUPERVISOR||null:null}:{}};
-        sandbox={mode:support.mode,dirs,reads,hidden,options,stats,
-          argv:sandboxArgv(support.mode,command,{...options,hidden:(hidden||[]).map(rel=>path.join(root,rel.replace(/\/$/,'')))}),
+        sandbox={mode:support.mode,dirs,reads,hidden,docs,options,stats,
+          argv:sandboxArgv(support.mode,command,{...options,hidden:(hidden||[]).map(rel=>path.join(root,rel.replace(/\/$/,''))),
+            ...docs?{docs:{root,entries:docs}}:{}}),
           env:sandboxEnv(selected,process.env,{root,...dirs})};
       }
     }
@@ -498,7 +501,8 @@ async function execute() {
       (snap.inputEventSerial===end.inputEventSerial||end.inputEventPathsComplete===true)){
       const before=snap.files||{},after=end.files||{},events=end.inputEventPaths||[];
       // During the run a new file outside the hidden entries was readable: it counts.
-      const found=visibleChange(root,sandbox.hidden,before,after,[...Object.keys(before),...Object.keys(after),...events],{during:true});
+      const found=visibleChange(root,sandbox.hidden,before,after,[...Object.keys(before),...Object.keys(after),...events],
+        {during:true,docs:sandbox.docs});
       if(found===null){eventsExplained=true;hiddenOnly=true;}else unexplained=[found];
     }
     // The end certificate, recorded or probed, must cover what this compile received.
@@ -546,10 +550,10 @@ async function execute() {
     // them. That run's result is kept, compared on every file, when the
     // inputs held through it too. Its own refusal is handled as below.
     let hiddenRerun=null;
-    if(sandbox?.hidden?.length&&result==='FAIL'&&!requestedSignal){
-      const line=hiddenRefusal(output.head+'\n'+output.tail,sandbox.hidden);
+    if((sandbox?.hidden?.length||sandbox?.docs?.length)&&result==='FAIL'&&!requestedSignal){
+      const line=hiddenRefusal(output.head+'\n'+output.tail,[...sandbox.hidden||[],...sandbox.docs||[]]);
       if(line){
-        console.error(`redue: the sandboxed run failed with what looks like a refusal of a file git ignores (${line}); running it again in the sandbox without hiding them`);
+        console.error(`redue: the sandboxed run failed with what looks like a refusal of a hidden file (${line}); running it again in the sandbox without hiding files`);
         const again=await runToEnd(sandboxArgv(sandbox.mode,command,sandbox.options),
           {cwd:plan.cwd,env:sandbox.env,echo:true,started:child=>{activeChild=child;}});
         activeChild=null;
@@ -576,7 +580,7 @@ async function execute() {
           invocation.hiddenExitCode=invocation.exitCode;invocation.exitCode=again.status;
           result=again.status===0?'PASS':'FAIL';
           output.head=`${again.stdout}\n${again.stderr}`.slice(0,65536);output.tail='';
-          sandbox.hidden=null;
+          sandbox.hidden=null;sandbox.docs=null;
         }
       }
     }
@@ -631,7 +635,7 @@ async function execute() {
     // The recipe that made the receipt, which status and the hook name.
     // A sandboxed receipt names what the run did: hid the git-ignored files or not.
     const receipt={result,invocation,target,stable,fingerprintVersion:recorded||testRun?2:1,
-      recipe:(fallback?scriptQualification:own?(sandbox?.hidden?hiddenQualification:sandboxQualification):selected.qualification)||null,
+      recipe:(fallback?scriptQualification:own?(sandbox?.docs?docsQualification:sandbox?.hidden?hiddenQualification:sandboxQualification):selected.qualification)||null,
       ...(recorded||testRun?{runFacts}:{}),
       ...(testRun?{verificationRecipe:general?scriptInterpretation:testsInterpretation,guardIssues:guard?.issues||['the run record is unavailable'],
         environmentReads:guard?.environmentReads||{},...(nondeterministic?{nondeterministic}:{})}:{}),
@@ -646,8 +650,8 @@ async function execute() {
       provider:plan.provider,environmentHashes:environmentBefore,
       ...(observedContext?{observedContext,verificationRecipe:directInterpretation}:{}),
       // `hidden`: the git-ignored entries the run did not see, which the observer does not compare.
-      ...(own?{verificationRecipe:sandboxInterpretationOf(sandbox?.hidden?hiddenQualification:sandboxQualification,selected.kind),
-        sandbox:{mode:sandbox?.mode??null,hidden:sandbox?.hidden??null,...hiddenRerun?{hiddenRerun}:{},...sandboxRerun?{rerun:sandboxRerun}:{}}}:{}),
+      ...(own?{verificationRecipe:sandboxInterpretationOf(sandbox?.docs?docsQualification:sandbox?.hidden?hiddenQualification:sandboxQualification,selected.kind),
+        sandbox:{mode:sandbox?.mode??null,hidden:sandbox?.hidden??null,...sandbox?.docs?{docs:sandbox.docs}:{},...hiddenRerun?{hiddenRerun}:{},...sandboxRerun?{rerun:sandboxRerun}:{}}}:{}),
       ...(fallback?{sandbox:{mode:null,fallback:'node-script',issue:support.issue}}:{}),
       files:(outputs?end:snap)?.files??null,observerGeneration:before?.observation?.generation??null,
       startRevision:snap?.revision??null,endRevision:end?.revision??null};

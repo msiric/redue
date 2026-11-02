@@ -21,9 +21,10 @@ matches are reported as ambiguous rather than guessed. It never creates a new
 project script. Without `--recipe`, `init` tries the strict recipes below first, then,
 for a root typecheck, lint or test script, the [sandboxed recipe](sandbox.md) on
 macOS and Linux (the script run inside an OS sandbox, with the files git
-ignores hidden when it gives the same result that way, else on the whole
-checkout; a test run also gets a private `/tmp`, and loopback-only network on
-Linux or no TCP on macOS),
+ignores and the documentation hidden when it gives the same result that way,
+else with only the files git ignores hidden, else on the whole checkout; a
+test run also gets a private `/tmp`, and loopback-only network on Linux or no
+network on macOS),
 then, for typecheck and lint, the [general recipe](node-script.md): the script run
 through the package manager with every Node process recorded and the whole
 checkout as its input. Python projects get the sandboxed recipe for mypy,

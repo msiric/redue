@@ -348,14 +348,16 @@ function describeChangedInput(plan,file) {
     .map(mapping=>mapping.logical).slice(0,2);
   return file+' changed'+(matches.length?` (installed via ${matches.join(', ')})`:'');
 }
-// A run that hid the checkout's git-ignored entries (sandbox@2): the first
+// A run that hid the checkout's git-ignored entries (sandbox@2), and maybe
+// documentation files (sandbox@3, the receipt's sandbox.docs): the first
 // changed input it could see (sandbox.mjs's visibleChange), or null; once
 // per receipt and pair of fingerprints.
 const hiddenRun=r=>Array.isArray(r?.sandbox?.hidden)&&Boolean(r.files);
 function visibleChange(row,r,name) {
   const key=(r.invocation?.runId||'')+'\0'+r.fingerprint+'\0'+combinedSummary(name).fingerprint;
   if(row.visibleKey!==key){const current=combinedFiles(name);
-    row.visibleKey=key;row.visibleChange=sandboxVisibleChange(root,r.sandbox.hidden,r.files,current,[...Object.keys(r.files),...Object.keys(current)]);}
+    row.visibleKey=key;row.visibleChange=sandboxVisibleChange(root,r.sandbox.hidden,r.files,current,[...Object.keys(r.files),...Object.keys(current)],
+      {docs:Array.isArray(r.sandbox.docs)?r.sandbox.docs:null});}
   return row.visibleChange;
 }
 function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=false) {

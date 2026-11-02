@@ -29,11 +29,23 @@ export const sandboxInterpretation='sandbox@1';
 export const hiddenQualification='sandbox-v2';
 export const hiddenInterpretation='sandbox@2';
 export const hiddenListIssue='git cannot list the ignored files';
-export const isSandboxed=qualification=>qualification===sandboxQualification||qualification===hiddenQualification;
+// And the project's documentation hidden too (docPatterns): an agent edits it
+// often, and a typecheck, lint or test suite seldom reads it.
+export const docsQualification='sandbox-v3';
+export const docsInterpretation='sandbox@3';
+// Under docs/, only documentation files: code there (examples a typecheck
+// includes) stays visible.
+const docsFolderTypes=['txt','adoc','png','jpg','jpeg','gif','svg','webp','pdf'];
+export const docPatterns=['**/*.md','**/*.mdx','**/*.rst','**/LICENSE*','**/CHANGELOG*',...docsFolderTypes.map(type=>`docs/**/*.${type}`)];
+export const hiddenDocsIssue='git cannot list the documentation';
+export const isSandboxed=qualification=>[sandboxQualification,hiddenQualification,docsQualification].includes(qualification);
+// Whether the recipe hides the checkout's git-ignored entries (v2 and v3).
+export const hidesIgnored=qualification=>qualification===hiddenQualification||qualification===docsQualification;
 // A macOS test run has had no TCP since alpha.29: its own interpretation, so a
 // result recorded with loopback is not the same plan.
 export const sandboxInterpretationOf=(qualification,kind=null,platform=process.platform)=>
-  (qualification===hiddenQualification?hiddenInterpretation:sandboxInterpretation)+(kind==='test'&&platform==='darwin'?'+no-tcp':'');
+  (qualification===docsQualification?docsInterpretation:qualification===hiddenQualification?hiddenInterpretation:sandboxInterpretation)+
+  (kind==='test'&&platform==='darwin'?'+no-tcp':'');
 export const sandboxKinds=['typecheck','lint','test'];
 // A test run gets a private /tmp (sandboxArgv's `writes`) and, on Linux,
 // supervised loopback networking (`network`); a typecheck or lint, and a
@@ -256,6 +268,22 @@ export function hiddenEntries(root){
     !runnerCache(rel)&&!runnerCache(rel.replace(/\/$/,'')+'/x'));
 }
 
+// The documentation files docPatterns names among the files git lists and
+// does not ignore (git-ignored ones are hidden as such), as regular files:
+// a link is not hidden. Files, never folders, so a folder stays listable.
+// Relative; null when git cannot tell. git filters by pathspec, so a large
+// checkout is not listed whole.
+const docMatch=picomatch(docPatterns,{dot:true});
+export function hiddenDocs(root){
+  const r=spawnSync('git',[...projectGit,'ls-files','-z','--cached','--others','--exclude-standard','--',...docPatterns.map(pattern=>`:(glob)${pattern}`)],
+    {cwd:root,encoding:'utf8',maxBuffer:256*1024*1024,timeout:60000,stdio:['ignore','pipe','ignore'],env:gitEnv()});
+  if(r.status!==0)return null;
+  const out=new Set();
+  for(const rel of r.stdout.split('\0'))if(rel&&!out.has(rel)&&docMatch(rel))
+    try{if(fs.lstatSync(path.join(root,rel)).isFile())out.add(rel);}catch{}
+  return [...out].sort();
+}
+
 // What git lists now as ignored at or beneath `paths` (relative files, or
 // directories ending in /), as hiddenEntries would: nested repositories are
 // not entered, and an entry that is an installed tree is not ignored (one
@@ -290,10 +318,15 @@ export function trackedBeneath(root,entries){
 // cannot tell, every change counts. `external:` paths always count. With
 // `during` (changes while the run ran), a new file outside the hidden
 // entries counts too: the run could read it.
-export function visibleChange(root,hidden,before,current,paths,{during=false}={}){
+// With `docs` (sandbox@3: the documentation files the run hid, relative), a
+// later change to one of those files does not count. A new documentation
+// file does, and so does any change while the run ran: the run is not shown
+// to have been kept from it.
+export function visibleChange(root,hidden,before,current,paths,{during=false,docs=null}={}){
   const entries=hidden.map(entry=>entry.replace(/\/$/,''));
   const beneath=file=>entries.some(entry=>file===entry||file.startsWith(entry+'/'));
-  const changed=[...new Set(paths)].filter(file=>before[file]!==current[file]).sort();
+  const hiddenDoc=new Set(during?[]:docs||[]);
+  const changed=[...new Set(paths)].filter(file=>before[file]!==current[file]&&!hiddenDoc.has(file)).sort();
   const seen=changed.filter(file=>file in before&&!beneath(file));
   if(seen.length)return seen[0];
   const covered=changed.filter(beneath),fresh=changed.filter(file=>!(file in before)&&!beneath(file));
@@ -333,7 +366,11 @@ const ancestors=list=>[...new Set(list.flatMap(dir=>{const out=[];for(let at=pat
 // fails init's trial and runs plainly. With `writes`, a test run writes
 // nothing beneath /tmp and /var/tmp but beneath those places (its checkout,
 // home and own temporary directory).
-export function seatbeltProfile(reads,own=null,hidden=[],{writes=null}={}){
+// `docs`: the checkout whose documentation it may not read, by path
+// patterns for regular files, so the profile stays small however many files
+// match: every file hiddenDocs lists (docPatterns), and more (one in
+// node_modules); folders stay listable.
+export function seatbeltProfile(reads,own=null,hidden=[],{writes=null,docs=null}={}){
   const quote=value=>JSON.stringify(value);
   const both=list=>[...new Set(list.flatMap(dir=>[dir,real(dir)]).filter(Boolean))];
   const all=[...new Set(reads.flatMap(dir=>[dir,real(dir)]).filter(Boolean))];
@@ -344,6 +381,9 @@ export function seatbeltProfile(reads,own=null,hidden=[],{writes=null}={}){
     // Its contents only, as on Linux: a run may still see that it exists, and write beneath it.
     ...hidden.length?[`(deny file-read-data process-exec* ${[...new Set(hidden.flatMap(file=>[file,path.join(real(path.dirname(file))??path.dirname(file),path.basename(file))]))]
       .map(file=>`(subpath ${quote(file)})`).join(' ')})`]:[],
+    ...docs?[`(deny file-read-data process-exec* (require-all (vnode-type REGULAR-FILE) (require-any ${both([docs]).map(dir=>escape(dir)).flatMap(dir=>[
+      `^${dir}/(.+/)?[^/]*\\.(md|mdx|rst)$`,`^${dir}/(.+/)?(LICENSE|CHANGELOG)[^/]*$`,`^${dir}/docs/(.+/)?[^/]*\\.(${docsFolderTypes.join('|')})$`])
+      .map(pattern=>`(regex #"${pattern.replace(/"/g,'\\"')}")`).join(' ')})))`]:[],
     '(deny network*)',...own?[`(allow network* ${[own,real(own)].filter(Boolean).map(dir=>`(subpath ${quote(dir)})`).join(' ')})`]:[],
     ...writes?['(deny file-write* (subpath "/tmp") (subpath "/private/tmp") (subpath "/var/tmp") (subpath "/private/var/tmp"))',
       `(allow file-write* ${both(writes).map(dir=>`(subpath ${quote(dir)})`).join(' ')})`]:[]].join('\n');
@@ -355,8 +395,10 @@ export function seatbeltProfile(reads,own=null,hidden=[],{writes=null}={}){
 // `network` "loopback" and `writes`: a test run's. Only Linux gives it a
 // network (seatbeltProfile says why macOS does not), supervised: `stats`
 // then says whether the supervisor served the whole run (supervisorIssue).
-export function sandboxArgv(mode,argv,{reads,tmp=null,python,hidden=[],stats=null,network='none',writes=null,fault=null}){
-  if(mode==='seatbelt')return ['/usr/bin/sandbox-exec','-p',seatbeltProfile(reads,tmp,hidden,{writes}),...argv];
+// `docs` ({root, entries}): the checkout's documentation, hidden too.
+export function sandboxArgv(mode,argv,{reads,tmp=null,python,hidden=[],stats=null,network='none',writes=null,fault=null,docs=null}){
+  if(mode==='seatbelt')return ['/usr/bin/sandbox-exec','-p',seatbeltProfile(reads,tmp,hidden,{writes,docs:docs?.root??null}),...argv];
+  if(docs)hidden=[...hidden,...docs.entries.map(rel=>path.join(docs.root,rel.replace(/\/$/,'')))];
   // The launcher's own warnings would become the check's output.
   if(mode==='landlock')return [python,'-I','-W','ignore',landlockScript,...reads.flatMap(dir=>['--read',dir]),
     ...hidden.flatMap(file=>['--hide',file]),...stats?['--stats',stats]:[],
@@ -523,6 +565,7 @@ export function runToEnd(argv,{cwd,env,timeout=0,echo=false,started=null}){
   });
 }
 // {same, plain, sandboxed, line} or {issue} when the sandbox cannot run here.
+// With `hide` 'docs', the documentation (hiddenDocs) is hidden too.
 // With `hide`, the git-ignored entries hiddenEntries lists are kept from the
 // sandboxed run, and it also returns them, their count, the run times and, on
 // Linux, the launcher's rule count and setup time.
@@ -539,14 +582,17 @@ export async function sandboxTrial(root,check,{timeout=300000,hide=false,plain:e
   const scratch=fs.mkdtempSync(path.join(os.tmpdir(),'redue-trial-')),tmp=path.join(scratch,'tmp'),home=tests?path.join(tmp,'home'):path.join(scratch,'home');
   fs.mkdirSync(tmp);fs.mkdirSync(home);
   try{
-    const entries=hide?hiddenEntries(root):[];
-    if(!entries)return {issue:hiddenListIssue};
-    const hidden=entries.map(rel=>path.join(root,rel.replace(/\/$/,""))),stats=(hide||tests)&&supported.mode==='landlock'?path.join(scratch,'stats.json'):null;
+    const ignored=hide?hiddenEntries(root):[],docEntries=hide==='docs'?hiddenDocs(root):[];
+    if(!ignored)return {issue:hiddenListIssue};
+    if(!docEntries)return {issue:hiddenDocsIssue};
+    const entries=[...ignored,...docEntries];
+    const hidden=ignored.map(rel=>path.join(root,rel.replace(/\/$/,""))),stats=(hide||tests)&&supported.mode==='landlock'?path.join(scratch,'stats.json'):null;
     const run=async(argv,env)=>{const started=Date.now(),r=await runToEnd(argv,{cwd:root,env,timeout});
       return {status:r.timedOut?'timeout':r.status??r.signal??r.error?.code,output:`${r.stdout}\n${r.stderr}`,ms:Date.now()-started};};
     const plain=earlier??await run(command,{...process.env,...python?{}:{npm_config_update_notifier:'false'}});
     const reads=[root,home,tmp,...sandboxPlaces(selected,process.env,root),...systemPlaces];
     const sandboxed=await run(sandboxArgv(supported.mode,command,{reads,tmp,python:supported.python,hidden,stats,
+      ...hide==='docs'?{docs:{root,entries:docEntries}}:{},
       ...tests?{...supported.mode==='landlock'?{network:'loopback'}:{},writes:[root,home,tmp]}:{}}),sandboxEnv(selected,process.env,{root,home,tmp}));
     // A test run's network was supervised throughout, on Linux.
     const supervisor=tests&&stats?supervisorIssue(stats):null;
@@ -569,6 +615,6 @@ export async function sandboxTrial(root,check,{timeout=300000,hide=false,plain:e
     const differs=tests&&read?(JSON.stringify(counts[0])===JSON.stringify(counts[1])?null:{plain:JSON.stringify(counts[0]),sandboxed:JSON.stringify(counts[1])}):output;
     return {same:plain.status===sandboxed.status&&!denied&&!differs&&!supervisor,plain:plain.status,sandboxed:sandboxed.status,output:differs,plainRun:plain,
       line:supervisor||denied||(plain.status===sandboxed.status?null:sandboxed.output.trim().split('\n').at(-1)?.slice(0,200)||null),
-      ...hide?{hidden:entries.length,entries,plainMs:plain.ms,sandboxedMs:sandboxed.ms,...launcher?{rules:launcher.rules,setupMs:launcher.ms}:{}}:{}};
+      ...hide?{hidden:entries.length,entries,docs:docEntries.length,plainMs:plain.ms,sandboxedMs:sandboxed.ms,...launcher?{rules:launcher.rules,setupMs:launcher.ms}:{}}:{}};
   }finally{fs.rmSync(scratch,{recursive:true,force:true});}
 }
