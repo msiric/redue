@@ -11,9 +11,9 @@ REDUE UNVERIFIED
 ```
 
 It reads the cached snapshot, checks its expiry and observer liveness, and never
-synchronizes, traverses installed packages, or runs probes/checks. Like ordinary
-status, it can remain conservative when caller context or installed hardlinks
-need a synchronized read. Do not turn that uncertainty into a green badge.
+synchronizes, traverses installed packages, or runs probes/checks. Like
+`status --cached`, it can remain conservative when caller context or installed
+hardlinks need a synchronized read. Do not turn that uncertainty into a green badge.
 
 For an existing async/bounded prompt framework, use `redue status --short` from
 the project root as the segment command and display unavailable on errors or

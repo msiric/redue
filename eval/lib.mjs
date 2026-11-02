@@ -183,7 +183,7 @@ export function touchedSince(dir, mark) {
 export function waitReady(entry, dir, {timeout = 15 * 60_000, env} = {}) {
   const started = performance.now();
   while (performance.now() - started < timeout) {
-    const r = sh(process.execPath, [entry, 'status', '--json'], {cwd: dir, env});
+    const r = sh(process.execPath, [entry, 'status', '--cached', '--json'], {cwd: dir, env});
     let observation = null;
     try { observation = JSON.parse(r.stdout).observation; } catch {}
     if (observation?.healthy === true) return Math.round(performance.now() - started);

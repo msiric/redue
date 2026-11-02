@@ -173,7 +173,7 @@ test('failed outcome, caller identity, observer loss and restart remain conserva
     env:{...process.env,PATH:shadow+path.delimiter+process.env.PATH}});
   assert.equal(changed.status,0);
   assert.equal(JSON.parse(changed.stdout).checks[0].freshness,'STALE');
-  ok(f,'stop');const unavailable=JSON.parse(ok(f,'status','--json').stdout);
+  ok(f,'stop');const unavailable=JSON.parse(ok(f,'status','--cached','--json').stdout);
   assert.equal(unavailable.checks[0].freshness,'UNVERIFIED');
   ok(f,'start');assert.equal(row(f).freshness,'CURRENT');
   assert.equal(row(f).invocation.runId,runId);
@@ -232,7 +232,7 @@ test('linked installed target content is observed through its logical declaratio
   put(f.config,JSON.stringify(config));
   const started=ok(f,'start','--json');
   assert.equal(JSON.parse(started.stdout).ready,true,
-    started.stdout+'\n'+call(f,'status','--json').stdout+'\n'+
+    started.stdout+'\n'+call(f,'status','--cached','--json').stdout+'\n'+
     fs.readFileSync(path.join(f.state,'events.jsonl'),'utf8'));
   ok(f,'run','check');assert.equal(row(f).freshness,'CURRENT');
   put(path.join(f.root,'workspace/pkg/index.js'),'module.exports=2;\n');
@@ -260,7 +260,7 @@ test('persisted receipt supersedes daemon and cached evidence even without reloa
     runId:randomUUID(),exitCode:result==='FAIL'?1:0,startedAt:Date.now()},
     checkpoint:{status:stable?'stable':'unavailable_or_changed',issues:stable?[]:['start observation unavailable']}});
   const failed=later('FAIL',false);commitReceipt(f.state,'check',failed);
-  const cached=JSON.parse(ok(f,'status','--json').stdout);
+  const cached=JSON.parse(ok(f,'status','--cached','--json').stdout);
   assert.equal(cached.checks[0].result,'FAIL');assert.equal(cached.checks[0].invocation.runId,failed.invocation.runId);
   assert.equal(cached.checks[0].reuse_eligible,false);
   let observed=row(f);assert.equal(observed.result,'FAIL');assert.equal(observed.freshness,'UNVERIFIED');
@@ -443,7 +443,7 @@ test('failed reconciliation stays UNVERIFIED, preserves PASS, and restart repair
     /(?:deterministic reconciliation failed|plan unavailable: injected reconciliation failure)/:
     /deterministic reconciliation failed/;
   for(let n=0;n<100;n++){
-    item=JSON.parse(ok(f,'status','--json').stdout).checks[0];
+    item=JSON.parse(ok(f,'status','--cached','--json').stdout).checks[0];
     assert.equal(item.freshness,'UNVERIFIED');
     assert.equal(item.result,'PASS');assert.equal(item.invocation.runId,runId);
     if(failureReason.test(item.reason||''))break;
@@ -467,11 +467,11 @@ test('hung history does not block cached status or stop',
     'status','--sync','--json'],{cwd:f.root,env:f.env,stdio:'ignore'});
   await new Promise(resolve=>setTimeout(resolve,60));
   const began=performance.now();
-  assert.equal(JSON.parse(ok(f,'status','--json').stdout).checks[0].result,'PASS');
+  assert.equal(JSON.parse(ok(f,'status','--cached','--json').stdout).checks[0].result,'PASS');
   ok(f,'stop');
   assert(performance.now()-began<2500,'stop/status blocked by native history');
   await new Promise(resolve=>child.once('exit',resolve));
-  assert.equal(JSON.parse(ok(f,'status','--json').stdout).checks[0].freshness,'UNVERIFIED');
+  assert.equal(JSON.parse(ok(f,'status','--cached','--json').stdout).checks[0].freshness,'UNVERIFIED');
 });
 
 test('Linux overflow, watch loss, and watch exhaustion withhold CURRENT then reconcile',
@@ -520,11 +520,11 @@ test('Linux hung synchronization leaves cached status and stop responsive',
     'status','--sync','--json'],{cwd:f.root,env:f.env,stdio:'ignore'});
   await new Promise(resolve=>setTimeout(resolve,100));
   const began=performance.now();
-  assert.equal(JSON.parse(ok(f,'status','--json').stdout).checks[0].result,'PASS');
+  assert.equal(JSON.parse(ok(f,'status','--cached','--json').stdout).checks[0].result,'PASS');
   ok(f,'stop');
   assert(performance.now()-began<2500,'stop/status blocked by Linux observer barrier');
   await new Promise(resolve=>sync.once('exit',resolve));
-  assert.equal(JSON.parse(ok(f,'status','--json').stdout).checks[0].freshness,'UNVERIFIED');
+  assert.equal(JSON.parse(ok(f,'status','--cached','--json').stdout).checks[0].freshness,'UNVERIFIED');
 });
 
 test('Linux cancellation reaches verification descendants and leaves no run lock',
@@ -661,7 +661,7 @@ test('Linux/Windows daemon crash with a missed edit reconciles the historical re
   const pid=Number(fs.readFileSync(path.join(f.state,'observer.lock','pid'),'utf8'));
   process.kill(pid,'SIGKILL');
   await new Promise(resolve=>setTimeout(resolve,100));
-  const down=JSON.parse(ok(f,'status','--json').stdout).checks[0];
+  const down=JSON.parse(ok(f,'status','--cached','--json').stdout).checks[0];
   assert.equal(down.freshness,'UNVERIFIED');assert.equal(down.result,'PASS');
   put(path.join(f.root,'src/input.txt'),'PASS after daemon crash\n');
   ok(f,'start');
@@ -698,7 +698,7 @@ test('checkout root replacement reattaches and reconciles before retaining CURRE
   let exited=null;daemon.on('exit',(code,signal)=>{exited={code,signal,at:Date.now()};});
   t.after(()=>{try{call(f,'stop');}catch{};if(daemon.exitCode===null)daemon.kill();});
   for(let n=0;n<100;n++){
-    const cached=JSON.parse(ok(f,'status','--json').stdout);
+    const cached=JSON.parse(ok(f,'status','--cached','--json').stdout);
     if(cached.observation.healthy)break;
     await new Promise(resolve=>setTimeout(resolve,50));
   }
@@ -815,7 +815,7 @@ test('a completed scan cannot publish CURRENT while recovery is still finalizing
     await new Promise(resolve=>setTimeout(resolve,25));
   }
   assert(finishing,'did not reach the deterministic finalization boundary');
-  const cached=JSON.parse(ok(f,'status','--json').stdout);
+  const cached=JSON.parse(ok(f,'status','--cached','--json').stdout);
   assert.equal(cached.observation.healthy,false);
   assert.equal(cached.checks[0].freshness,'UNVERIFIED');
   const synchronized=status(f);assert.equal(synchronized.checks[0].freshness,'UNVERIFIED');

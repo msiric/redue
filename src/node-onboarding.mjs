@@ -323,7 +323,9 @@ export function discoverNodeProject(root,{recipe=null}={}) {
       }catch(e){classification={...classification,reason:`Sandboxed recipe unavailable (${e.code?.replace(/^test-/,'')||e.message}); ${classification.reason}`};}
     }
     if(generalRow){checks.push(generalRow);continue;}
-    if(!script&&classification.level!=='ready')continue;
+    // A proposed `tsc --noEmit` that no recipe takes is left out, with why.
+    if(!script&&classification.level!=='ready'){
+      skipped.push({kind,reason:`${kind}: no typecheck script, and a proposed tsc --noEmit was not taken (${classification.reason})`});continue;}
     if(parts&&classification.level==='ready'){
       for(const part of parts)checks.push({config:{...check,...part,qualification:classification.qualification},...classification});
       continue;

@@ -12,6 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
+import {testCounts} from './sandbox.mjs';
 import {createInterface} from 'node:readline/promises';
 import {projectState} from './project-location.mjs';
 import {claudeHooksInstalled,removeClaudeHooks,removeIntegration} from './agent-integration.mjs';
@@ -80,7 +81,19 @@ async function setup({root,redue,yes,record:previous,recordFile,exclude,save}){
   const names=configExisted?JSON.parse(readText(configPath)).checks.map(check=>check.name):found.checks.map(check=>check.name);
   const ready=names.filter(name=>levels.get(name)==='ready');
   console.log(`Setting up REDUE for Claude Code in ${root}`);
-  console.log(configExisted?`  keep ${configName} (exists)`:`  create ${configName}: ${names.map(name=>`${name} (${levels.get(name)==='ready'?'can qualify':'recording-only'})`).join(', ')}`);
+  console.log(configExisted?`  keep ${configName} (exists)`:`  create ${configName}: ${names.map(name=>`${name} (${levels.get(name)==='ready'?'can qualify':'recording only'})`).join(', ')}`);
+  // What the checks setup does not make reusable are, and why.
+  if(!configExisted){
+    const recording=found.checks.filter(check=>check.level!=='ready');
+    if(recording.length)console.log('  recording only: REDUE records these runs but never reports one CURRENT, because it cannot tell what the result depends on:');
+    for(const check of recording)console.log(`    ${check.name}: ${check.reason}`);
+    const out=[...found.skipped||[]].filter(row=>row.reason);
+    const kinds=new Set([...found.checks.map(check=>check.kind??check.name.split(':')[0]),...out.map(row=>String(row.kind).split(':')[0])]);
+    for(const kind of ['typecheck','lint','test'])if(!kinds.has(kind)&&!found.checks.some(check=>check.name===kind))
+      out.push({kind,reason:`${kind}: none found (no script or tool REDUE recognizes)`});
+    if(out.length)console.log('  left out:');
+    for(const row of out)console.log(`    ${row.reason.startsWith(String(row.kind))?row.reason:`${row.kind}: ${row.reason}`}`);
+  }
   console.log(`  write the Claude Code integration: CLAUDE.md section, .claude/skills/redue-verification/SKILL.md, ${localSettings} hooks, ${agentRecord}`);
   console.log(`  start the observer and record ${ready.length?ready.join(', '):'no check'} once, unless already CURRENT`);
   if(!await confirm('Proceed?',yes,{defaultYes:true})){console.log('Nothing written.');return {applied:false};}
@@ -121,7 +134,7 @@ async function setup({root,redue,yes,record:previous,recordFile,exclude,save}){
   // recorded as reusable. Wait while it plans and indexes; once its plan is
   // ready, an observer that is still unhealthy says why in the status below.
   // Nothing to wait for when no check can qualify.
-  const observation=()=>{const out=redue(['status','--json'],{capture:true});try{return JSON.parse(out.stdout).observation??null;}catch{return null;}};
+  const observation=()=>{const out=redue(['status','--cached','--json'],{capture:true});try{return JSON.parse(out.stdout).observation??null;}catch{return null;}};
   // An answer without a phase (a stopped observer) for 10 s in a row ends the
   // wait too.
   const begun=Date.now();let told=-1,unread=0,phaseless=0;
@@ -136,9 +149,18 @@ async function setup({root,redue,yes,record:previous,recordFile,exclude,save}){
   // One recorded run of each check that can qualify and is not CURRENT.
   const statusOf=()=>{const out=redue(['status','--sync','--json'],{capture:true,timeout:600_000});try{return JSON.parse(out.stdout).checks;}catch{return [];}};
   const rows=statusOf(),due=ready.filter(name=>rows.find(row=>row.name===name)?.freshness!=='CURRENT');
-  for(const name of due){console.log(`Recording ${name} once:`);redue(['run',name]);}
+  // One line per check; the run's own output only when it fails.
+  for(const name of due){
+    console.log(`Recording ${name} once (running it)...`);
+    const started=Date.now(),run=redue(['run',name],{capture:true});
+    const output=`${run.stdout??''}\n${run.stderr??''}`,counts=testCounts(output),seconds=((Date.now()-started)/1000).toFixed(1);
+    const tally=Object.entries(counts).filter(([,value])=>value!==null).map(([key,value])=>`${value} ${key}`).join(', ');
+    console.log(`  ${name}: ${run.status===0?'PASS':`FAIL (exit ${run.status??run.signal})`} in ${seconds} s${tally?`, ${tally}`:''}`);
+    if(run.status!==0)console.log(output.trim().split('\n').slice(-15).map(line=>`    ${line}`).join('\n'));
+  }
   if(ready.length&&!due.length)console.log(`Already CURRENT: ${ready.join(', ')}.`);
-  for(const row of statusOf())console.log(`  ${row.name}: ${row.freshness}${row.result?' / '+row.result:''}${row.freshness==='CURRENT'?'':' — '+row.reason}`);
+  for(const row of statusOf())console.log(`  ${row.name}: ${row.freshness}${row.result?' / '+row.result:''}${row.freshness==='CURRENT'?'':
+    levels.get(row.name)!=='ready'?' — recording only':' — '+row.reason}`);
   console.log('Done. Start a new Claude Code session in this project. Undo with redue remove.');
   return {applied:true};
 }

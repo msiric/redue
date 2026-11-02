@@ -19,7 +19,7 @@ function project(t){
   put(path.join(root,'.gitignore'),'node_modules/\n');
   put(path.join(root,'src/value.js'),'pass\n');
   put(path.join(root,'node_modules/checker/package.json'),JSON.stringify({name:'checker',version:'1.0.0',bin:{checker:'cli.js'}}));
-  put(path.join(root,'node_modules/checker/cli.js'),"#!/usr/bin/env node\nrequire('node:fs').readFileSync('src/value.js');\n",0o755);
+  put(path.join(root,'node_modules/checker/cli.js'),"#!/usr/bin/env node\nrequire('node:fs').readFileSync('src/value.js');\nconsole.log('checker: a long log line of its own');\n",0o755);
   fs.mkdirSync(path.join(root,'node_modules/.bin'),{recursive:true});
   fs.symlinkSync('../checker/cli.js',path.join(root,'node_modules/.bin/checker'));
   execFileSync('git',['init','-q'],{cwd:root});execFileSync('git',['add','.'],{cwd:root});
@@ -60,6 +60,10 @@ test('setup claude: one command writes and prints every file, records the check,
     assert(first.stdout.includes(file),`setup did not print ${file}:\n${first.stdout}`);
   assert.equal(JSON.parse(fs.readFileSync(recordOf(root),'utf8')).configCreated,true);
   assert.match(first.stdout,/Recording lint once/);
+  // One line per run, not the check's own output; what was left out, and why.
+  assert.match(first.stdout,/\n {2}lint: PASS in \d+\.\d s\n/);
+  assert.doesNotMatch(first.stdout,/a long log line of its own/);
+  assert.match(first.stdout,/left out:\n {4}typecheck: none found \(no script or tool REDUE recognizes\)\n {4}test: none found/);
   assert.match(first.stdout,/lint: CURRENT \/ PASS/);
   // The hooks' settings are ignored locally.
   assert.equal(spawnSync('git',['check-ignore','-q','.claude/settings.local.json'],{cwd:root}).status,0);

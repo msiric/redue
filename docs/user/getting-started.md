@@ -117,9 +117,10 @@ compiler invocation it selects, and for npm the
 run through the package manager. No existing configuration is silently migrated.
 Only use configs and probes from trusted repositories: these execute local code.
 
-`status` is cached and conservative. `status --sync` and `explain` revalidate caller
-context and may execute read-only probes. Synchronization can be slower than a cheap
-check, especially on Windows. Choose deliberately. A timeout is UNVERIFIED, not green.
+`status` and `explain` revalidate caller context and may execute read-only probes
+(`status --sync` is the same as `status`). `status --cached` is the cached,
+conservative answer, without revalidating. Synchronization can be slower than a
+cheap check, especially on Windows. A timeout is UNVERIFIED, not green.
 
 ## Lifecycle and removal
 

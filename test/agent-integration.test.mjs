@@ -82,7 +82,7 @@ test('nested working directory selects the same config/state and rejects ambiguo
   assert.equal(r.status,0,r.stderr);assert(fs.existsSync(path.join(f.root,'AGENTS.md')));
   f.put('src/redue.config.json',f.read('redue.config.json'));
   assert.throws(()=>discoverConfig(nested),/multiple/);
-  const ambiguous=spawnSync(process.execPath,[bin,'status','--json'],{cwd:nested,encoding:'utf8'});
+  const ambiguous=spawnSync(process.execPath,[bin,'status','--cached','--json'],{cwd:nested,encoding:'utf8'});
   assert.equal(ambiguous.status,2);
   const selected=spawnSync(process.execPath,[bin,'--config','../../redue.config.json','agent','doctor','--json'],{cwd:nested,encoding:'utf8'});
   assert.equal(selected.status,0,selected.stderr);assert.equal(JSON.parse(selected.stdout).project.config,fs.realpathSync.native(config));

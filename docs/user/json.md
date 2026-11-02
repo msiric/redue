@@ -1,7 +1,7 @@
 # Alpha JSON interface (schema 1)
 
-Use `status --json` for cached state, `status --sync --json` for caller-aware
-applicability, and `explain CHECK --json` for selected synchronized detail.
+Use `status --json` (or `status --sync --json`) for caller-aware applicability,
+`status --cached --json` for cached state, and `explain CHECK --json` for selected synchronized detail.
 `detail` remains an alias. Successful reads emit one JSON object, no human prose.
 
 ```json

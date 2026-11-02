@@ -40,8 +40,8 @@ Commands:
                        Connect project instructions; explicit setup only
   start                Start the local observer
   stop                 Stop this observer
-  status [--json|--short] Read conservative cached status
-  status --sync        Reconcile inputs and caller context before answering
+  status [--json]      Reconcile inputs and caller context, then answer (--sync is the same)
+  status --cached [--json] | --short  The last answer the observer published, without reconciling
   explain [CHECK] [--json] Explain applicability (synchronized; may cost more than a rerun)
   detail [CHECK] [--json]  Alias for explain
   run CHECK [--if-due] Execute one configured check and record its outcome; with --if-due,
@@ -102,9 +102,12 @@ const json=args.includes('--json');
 // run --if-due: run the check only when its last pass does not apply now.
 const ifDue=command==='run'&&args.includes('--if-due');
 if(ifDue)args.splice(args.indexOf('--if-due'),1);
-const sync=args.includes('--sync');
+// status syncs by default (warm, it costs well under 100 ms more than the
+// cached answer); --cached and --short read the cached answer.
+const cachedOnly=args.includes('--cached');
 const dryRun=args.includes('--dry-run');
 const short=args.includes('--short');
+const sync=args.includes('--sync')||command==='status'&&!cachedOnly&&!short;
 let workspaceSelection=null,checkSelection=null,recipeSelection=null;
 if(command==='init')for(let i=0;i<args.length;){
   if(args[i]==='--workspace'||args[i]==='--check'||args[i]==='--recipe'){
@@ -115,9 +118,10 @@ if(command==='init')for(let i=0;i<args.length;){
 }
 const check=['run','detail','explain'].includes(command)&&args[0]&&!args[0].startsWith('--')?args.shift():null;
 if(command==='run'&&!check)error('run requires a check name');
-if(args.some(value=>!['--json','--sync','--dry-run','--short'].includes(value)))error('unknown option; use --help');
+if(args.some(value=>!['--json','--sync','--cached','--dry-run','--short'].includes(value)))error('unknown option; use --help');
 if(sync&&!['status','detail','explain'].includes(command))error('--sync is for status or detail');
-if(short&&(command!=='status'||json||sync))error('--short is a cached status option; do not combine it with --sync or --json');
+if(cachedOnly&&(command!=='status'||args.includes('--sync')))error('--cached is a status option; do not combine it with --sync');
+if(short&&(command!=='status'||json||args.includes('--sync')))error('--short is a cached status option; do not combine it with --sync or --json');
 if(dryRun&&command!=='init')error('--dry-run is for init');
 
 if(command==='init'){
@@ -230,7 +234,7 @@ if(command==='init'){
       console.log('Ready to qualify means the supported contract will be validated; it is not verification evidence.');
       console.log(`Next: review the config, then redue start and redue run ${JSON.stringify(discovery.checks[0].config.name)}.`);
       console.log('Connect your agent: redue agent setup codex (or claude). Preview with --dry-run.');
-      console.log('Use redue status first. --sync can establish applicability, but may cost more than rerunning a cheap check.');}
+      console.log('Then redue status says whether each result applies to the files as they are now.');}
   } else if(unsupported&&!json)console.log(`No config written: ${summary.issue||'unsupported discovery boundary'}.`);
   if(json)console.log(JSON.stringify({...summary,proposed_config:discovery.config}));
   await exit(0);

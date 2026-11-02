@@ -26,13 +26,17 @@ redue setup claude
 stops before writing anything if the dependencies are not installed. It:
 
 - finds your typecheck, lint and test scripts and writes `redue.config.json`
-  (it never changes your scripts, source or dependencies). Checks REDUE can
-  only record, not reuse, are listed as recording-only;
+  (it never changes your scripts, source or dependencies). In a Python
+  project it finds these tools in `.venv/bin`, with the arguments your CI
+  workflows, Makefile, justfile, tox, nox or scripts give them: mypy,
+  pyright and ty (typecheck), ruff (lint) and pytest (test). It says which
+  checks it left out and why, and which it can only record, not reuse;
 - connects Claude Code: a short section in `CLAUDE.md`, a skill, and two hooks
   in `.claude/settings.local.json`;
 - starts REDUE's file observer, waits while it indexes the project (a minute
   or more in a large one), then runs each check that can qualify once, so
-  there is a first result to reuse;
+  there is a first result to reuse, and prints one line per run (the run's
+  own output only when it fails);
 - prints every file it writes. Running it again changes nothing.
 
 Then start a new Claude Code session in the project and work as usual. When
@@ -43,7 +47,7 @@ through REDUE so the new result is recorded.
 To look yourself:
 
 ```text
-$ redue status --sync
+$ redue status
 ✓ typecheck  CURRENT / PASS
 ✓ lint  CURRENT / PASS
 
@@ -54,10 +58,10 @@ src/main.ts changed
 Due again when verification is needed: redue run "typecheck"
 ```
 
-`--sync` checks the files and your environment before it answers; this is
-what the agent asks. Plain `redue status` is a fast cached answer and can say
-UNVERIFIED ("cannot confirm your execution context") where `--sync` would say
-CURRENT.
+`redue status` checks the files and your environment before it answers, as
+the agent's hook does. `redue status --cached` gives the last answer the
+observer published without checking; it can say UNVERIFIED ("cannot confirm
+your execution context") where `redue status` would say CURRENT.
 
 `redue stats` shows, per check, the reruns the hook skipped, the time saved,
 the recorded runs and the top reasons a check was UNVERIFIED, from a log kept
@@ -163,7 +167,7 @@ harness, tasks and raw results are in [`eval/`](eval/README.md).
 redue init          # write redue.config.json from your scripts
 redue start         # start the file observer
 redue run typecheck # run a check through REDUE and record the result
-redue status --sync # what still holds
+redue status        # what still holds
 ```
 
 Codex is supported too (`redue agent setup codex --apply`); see

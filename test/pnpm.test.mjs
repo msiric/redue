@@ -77,7 +77,7 @@ function runtime(root){
 }
 async function waitReady(call){
   for(let n=0;n<120;n++){
-    const cached=JSON.parse(call('status','--json'));
+    const cached=JSON.parse(call('status','--cached','--json'));
     if(cached.observation?.phase==='ready'&&cached.observation.healthy&&
       cached.observation.pending===0)return;
     await new Promise(resolve=>setTimeout(resolve,250));
@@ -355,7 +355,7 @@ test('pnpm installed hardlink alias stales synchronized evidence without a lockf
   // input-plan build on a slower Windows filesystem.
   let ready=false;
   for(let i=0;i<120;i++){
-    const cached=JSON.parse(call('status','--json'));
+    const cached=JSON.parse(call('status','--cached','--json'));
     if(cached.observation?.phase==='ready'&&cached.observation.healthy&&
       cached.observation.pending===0){ready=true;break;}
     await new Promise(resolve=>setTimeout(resolve,500));
@@ -384,7 +384,7 @@ test('pnpm installed hardlink alias stales synchronized evidence without a lockf
     assert.equal(metrics.lastInstalledRecheck,undefined,
       'Windows decision must use the completed cold reconciliation, not hash installed files twice');
   }
-  assert.equal(JSON.parse(call('status','--json')).checks[0].freshness,'UNVERIFIED');
+  assert.equal(JSON.parse(call('status','--cached','--json')).checks[0].freshness,'UNVERIFIED');
   put(alias,'export declare const ext: number;\n// modified through store alias\n');
   assert.equal(fs.readFileSync(installed,'utf8'),fs.readFileSync(alias,'utf8'));
   assert.equal(digest(path.join(root,'pnpm-lock.yaml')),lock);

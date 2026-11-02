@@ -446,7 +446,7 @@ function synchronizedStatus(entry,config,root,timeout,sync=true){
     // Claude Code ends a hook that outlives its own timeout; end the status call with it.
     const stop=()=>finish(null);process.once('SIGTERM',stop);
     // Its own process group on POSIX, so a timeout also ends the engine it starts.
-    try{child=spawn(process.execPath,[entry,'--config',config,'status',...(sync?['--sync']:[]),'--json'],
+    try{child=spawn(process.execPath,[entry,'--config',config,'status',sync?'--sync':'--cached','--json'],
       {cwd:root,stdio:['ignore','pipe','ignore'],env:process.env,windowsHide:true,detached:process.platform!=='win32'});}
     catch{return finish(null);}
     child.on('error',()=>finish(null));

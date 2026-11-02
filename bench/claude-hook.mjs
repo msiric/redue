@@ -61,9 +61,12 @@ try {
   const hooks = JSON.parse(fs.readFileSync(path.join(dir, '.claude/settings.local.json'), 'utf8')).hooks.PreToolUse;
   console.log(`Installed if rules: ${hooks.flatMap(group => group.hooks.map(h => h.if)).join(', ')}`);
   cli('start');
+  // Plain status syncs since alpha.29; --cached is the cached answer.
+  const cachedArgs = spawnSync(process.execPath, [redue, 'status', '--cached', '--json'], {cwd: dir, env}).status === 0 ?
+    ['status', '--cached', '--json'] : ['status', '--json'];
   const readyBy = Date.now() + 120000;
   while (Date.now() < readyBy) {
-    try { const j = JSON.parse(cli('status', '--json').stdout); if (j.observation?.healthy && j.observation?.phase === 'ready') break; } catch {}
+    try { const j = JSON.parse(cli(...cachedArgs).stdout); if (j.observation?.healthy && j.observation?.phase === 'ready') break; } catch {}
     await new Promise(r => setTimeout(r, 250));
   }
   cli('run', 'typecheck');

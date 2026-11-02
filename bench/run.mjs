@@ -81,9 +81,12 @@ console.log(`Bench: ${dir}\nREDUE: ${redue}\nNode ${process.version} on ${proces
 cli('stop'); cli('remove-state');
 try {
   timed('start observer', [redue, 'start']);
+  // Plain status syncs since alpha.29, where --cached gives the cached answer;
+  // an older build refuses --cached and gives it plainly.
+  const cachedArgs = cli('status', '--cached', '--json').status === 0 ? ['status', '--cached', '--json'] : ['status', '--json'];
   const readyBy = Date.now() + 120000;
   while (Date.now() < readyBy) {
-    const out = cli('status', '--json');
+    const out = cli(...cachedArgs);
     try { const j = JSON.parse(out.stdout); if (j.observation?.healthy && j.observation?.phase === 'ready') break; } catch {}
     await new Promise(r => setTimeout(r, 250));
   }
@@ -91,7 +94,7 @@ try {
   const plain = timed('plain tsc --noEmit', [tsc, '--noEmit'], repeat);
   timed('redue run (records baseline)', [redue, 'run', 'typecheck']);
   const run = timed('redue run (repeat)', [redue, 'run', 'typecheck'], repeat);
-  const cached = timed('status (cached)', [redue, 'status', '--json'], 5);
+  const cached = timed('status (cached)', [redue, ...cachedArgs], 5);
   const sync = timed('status --sync (warm)', [redue, 'status', '--sync', '--json'], 5);
   console.log('States:');
   expect('after run', 'CURRENT/PASS/eligible');

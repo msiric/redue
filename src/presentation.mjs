@@ -12,8 +12,8 @@ export function explanation(row) {
   const reason=row.reason||'No verification evidence is available.';
   if(reason==='no receipt')return 'No execution has been recorded. Run this check when verification is needed.';
   if(reason==='declared inputs match')return 'Recorded evidence still applies to the declared inputs.';
-  if(reason==='execution environment context not supplied')return 'Cached status cannot confirm your execution context. Use --sync if worthwhile, or rerun the check.';
-  if(/requires? a synchronized content read/.test(reason))return 'Cached status cannot establish applicability here. Use --sync if worthwhile, or rerun the check.';
+  if(reason==='execution environment context not supplied')return 'Cached status cannot confirm your execution context. Run redue status without --cached, or rerun the check.';
+  if(/requires? a synchronized content read/.test(reason))return 'Cached status cannot establish applicability here. Run redue status without --cached, or rerun the check.';
   if(reason.startsWith('input coverage unresolved: '))return 'Recording-only: '+reason.slice(27);
   if(/input plan (rebuilding|indexing)|observer initialization|input observation reconciliation pending/.test(reason))
     return 'Checking inputs after startup or changes. Wait for observation to finish, then query again.';

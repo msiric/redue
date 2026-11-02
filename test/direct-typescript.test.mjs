@@ -130,7 +130,7 @@ test('real direct compiler evidence crosses proxy contexts, but not relevant inp
   assert.equal(status(contextB).invocation.runId,id);assert.equal(status(contextB).reuse_eligible,true);
   for(const override of [{TS_ETW_MODULE_PATH:'./unreviewed.cjs'},{TS_ETW_MODULE_PATH:''},{ts_etw_module_path:'./unreviewed.cjs'}])
     assert.equal(status({...contextB,...override}).reuse_eligible,false);
-  assert.equal(JSON.parse(call(['status','--json'],contextB).stdout).checks[0].reuse_eligible,false);
+  assert.equal(JSON.parse(call(['status','--cached','--json'],contextB).stdout).checks[0].reuse_eligible,false);
   assert.match(good(root,state,'explain','typecheck'),/npm and lifecycle scripts were not executed/);
   put(path.join(root,'notes.md'),'unrelated\n');assert.equal(status(contextB).reuse_eligible,true);
   for(const [name,content] of [['src/main.ts','export const value: number = 2;\n'],
@@ -160,7 +160,7 @@ test('real direct compiler evidence crosses proxy contexts, but not relevant inp
   put(path.join(root,'src/main.ts'),'export const value: number = "bad";\n');
   assert.notEqual(call(['run','typecheck']).status,0);assert.equal(status().result,'FAIL');assert.equal(status().reuse_eligible,false);
   assert.deepEqual(fs.readFileSync(receiptFile),bytes);
-  good(root,state,'stop');assert.equal(JSON.parse(call(['status','--json']).stdout).checks[0].reuse_eligible,false);
+  good(root,state,'stop');assert.equal(JSON.parse(call(['status','--cached','--json']).stdout).checks[0].reuse_eligible,false);
 });
 test('a relevant edit is STALE without a full probe; reverting it is CURRENT again',async t=>{
   const {root,state}=project(t);init(root,state);good(root,state,'start');good(root,state,'run','typecheck');

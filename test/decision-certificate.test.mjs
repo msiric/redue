@@ -44,7 +44,7 @@ function call(f,...args){return spawnSync(process.execPath,[bin,'--state-dir',f.
 function ok(f,...args){const out=call(f,...args);
   assert.equal(out.status,0,`${args.join(' ')}: ${out.stderr}\n${out.stdout}`);return out.stdout;}
 const sync=f=>JSON.parse(ok(f,'status','--sync','--json')).checks[0];
-const cached=f=>JSON.parse(ok(f,'status','--json')).checks[0];
+const cached=f=>JSON.parse(ok(f,'status','--cached','--json')).checks[0];
 const state=r=>`${r.freshness}/${r.result}/${r.reuse_eligible?'eligible':'not-eligible'}`;
 function metrics(f){return new Promise((resolve,reject)=>{
   const client=net.createConnection(controlEndpoint(f.state).address);let data='';

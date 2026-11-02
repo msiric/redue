@@ -49,7 +49,7 @@ function call(f,...args){return spawnSync(process.execPath,[bin,'--state-dir',f.
 function ok(f,...args){const out=call(f,...args);
   assert.equal(out.status,0,`${args.join(' ')}: ${out.stderr}\n${out.stdout}`);return out.stdout;}
 const sync=f=>JSON.parse(ok(f,'status','--sync','--json')).checks[0];
-const cached=f=>JSON.parse(ok(f,'status','--json'));
+const cached=f=>JSON.parse(ok(f,'status','--cached','--json'));
 const receipt=f=>JSON.parse(fs.readFileSync(path.join(f.state,'receipts-v1.json'),'utf8')).checks.typecheck;
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 // Runs until a run starts from a certificate (the first may have none yet).

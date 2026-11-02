@@ -25,7 +25,7 @@ function assertSkipped(f,offset){const p=marks(f).slice(offset);assert.equal(p.f
 test('unavailable direct recording omits qualification work, selects real PASS/FAIL and never recovers old green',unix,t=>{
  const f=fixture(t);call(f,['start']);call(f,['run','typecheck']);const first=receipt(f);assert(row(f).reuse_eligible);call(f,['stop']);
  for(const result of ['PASS','FAIL']){put(path.join(f.root,'src/main.ts'),result==='PASS'?'export const value: number = 1;':'export const value: number = "bad";');const offset=marks(f).length,r=invoke(f,['run','typecheck']);assert.equal(r.status,result==='PASS'?0:2,r.stderr+r.stdout);const selected=receipt(f);assert.notEqual(selected.invocation.runId,first.invocation.runId);assert.equal(selected.invocation.status,'exited');assert.equal(selected.invocation.exitCode,result==='PASS'?0:2);assertSkipped(f,offset);
-  const cached=JSON.parse(call(f,['status','--json'])).checks[0];assert.equal(cached.invocation.runId,selected.invocation.runId);assert(!cached.reuse_eligible);
+  const cached=JSON.parse(call(f,['status','--cached','--json'])).checks[0];assert.equal(cached.invocation.runId,selected.invocation.runId);assert(!cached.reuse_eligible);
   call(f,['start']);evidence(f,selected,result);call(f,['stop']);call(f,['start']);evidence(f,selected,result);call(f,['stop']);}
  put(path.join(f.root,'src/main.ts'),'export const value: number = 1;');call(f,['start']);call(f,['run','typecheck']);assert(row(f).reuse_eligible);
  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(f.state,'runs-v1',first.invocation.runId+'.json'))).receipt,first);

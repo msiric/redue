@@ -304,7 +304,7 @@ test('an installed link to a checkout directory is observed through the files it
   fs.mkdirSync(path.join(root,'other/node_modules'),{recursive:true});
   fs.symlinkSync('../other/node_modules',path.join(root,'node_modules','elsewhere'),'dir');
   good(root,state,'start');
-  const cached=JSON.parse(invoke(root,state,{},'status','--json').stdout).observation;
+  const cached=JSON.parse(invoke(root,state,{},'status','--cached','--json').stdout).observation;
   assert.equal(cached.healthy,false);assert.match(cached.reason,/directory input symlink unsupported: node_modules\/elsewhere/);
   good(root,state,'stop');
 });

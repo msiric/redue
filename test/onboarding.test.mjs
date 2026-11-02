@@ -64,7 +64,7 @@ test('REDUE CLI identifies itself and keeps pre-release config compatibility',t=
   fs.renameSync(config,legacy);
   assert.match(good(root,state,'init'),/left unchanged/);
   assert(!fs.existsSync(config));
-  assert.equal(JSON.parse(good(root,state,'status','--json')).checks.length,4);
+  assert.equal(JSON.parse(good(root,state,'status','--cached','--json')).checks.length,4);
 });
 
 test('init previews and writes a small script config without running project commands',t=>{
@@ -99,7 +99,7 @@ test('npm launcher records immutable outcomes but cannot grant applicability',as
   assert.equal(first.result,'PASS');assert.equal(first.freshness,'UNVERIFIED');
   assert.equal(first.reuse_eligible,false);assert.match(first.reason,/npm launcher/);
   const runFile=path.join(state,'runs-v1',first.invocation.runId+'.json'),bytes=fs.readFileSync(runFile);
-  for(const args of [['status','--json'],['status','--sync','--json'],['explain','typecheck','--json']]){
+  for(const args of [['status','--cached','--json'],['status','--sync','--json'],['explain','typecheck','--json']]){
     const row=JSON.parse(good(root,state,...args)).checks[0];
     assert.equal(row.reuse_eligible,false);assert.equal(row.invocation.runId,first.invocation.runId);
   }
@@ -209,7 +209,7 @@ test('status and explain output over 8 KB reaches a reading program whole',t=>{
     ({name:`check-${String(i).padStart(3,'0')}-with-a-longer-descriptive-name`,kind:'lint',command:[process.execPath,'-e','0'],inputs:['src/**']}))}));
   good(root,state,'start');
   // On macOS a Node program's pipe took 8 KB of it before the CLI exited.
-  for(const args of [['status','--json'],['status','--sync','--json'],['explain','--json']]){
+  for(const args of [['status','--cached','--json'],['status','--sync','--json'],['explain','--json']]){
     const out=good(root,state,...args);
     assert(out.length>8192,args.join(' '));
     assert.equal(JSON.parse(out).checks.length,60,args.join(' '));

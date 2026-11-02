@@ -12,8 +12,8 @@ generic agent's instructions with the project owner's permission.
    `redue --config CONFIG status --sync --json`. Do not infer a recipe from its name.
    Cached status cannot establish its caller context. In mixed configurations,
    assess each check's contract separately; this is not a global sync-first policy.
-3. For other/unknown recipes, query ordinary `status --json` first and decide whether
-   synchronization is worthwhile. Ordinary status and `--short` remain cheap inspection.
+3. For other/unknown recipes, `status --json` synchronizes too (`--sync` is the
+   same); `status --cached --json` and `--short` remain cheap inspection.
 4. Reuse only schema 1, healthy observation and the selected check's CURRENT/PASS
    with `reuse_eligible: true`. Missing eligibility means false. A historical FAIL
    is never green evidence. Do not rerun eligible evidence merely for freshness.

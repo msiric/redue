@@ -333,12 +333,12 @@ test('SessionStart starts the observer when none runs, prints nothing, and leave
   // The hook returned at once; the observer it launched becomes healthy.
   let healthy=false;
   for(const until=Date.now()+20000;!healthy&&Date.now()<until;){
-    try{healthy=JSON.parse(redue('status','--json').stdout).observation?.healthy===true;}catch{}
+    try{healthy=JSON.parse(redue('status','--cached','--json').stdout).observation?.healthy===true;}catch{}
     if(!healthy)Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,200);
   }
   if(!healthy){const doctor=JSON.parse(redue('agent','doctor','claude','--json').stdout);
     let log='';try{log=fs.readFileSync(path.join(doctor.project.state,'observer.log'),'utf8').slice(-1500);}catch(e){log=e.message;}
-    assert.fail(`observer did not become healthy after SessionStart: ${JSON.stringify(doctor.observer_process)} ${redue('status','--json').stdout.slice(0,300)}\n${log}`);}
+    assert.fail(`observer did not become healthy after SessionStart: ${JSON.stringify(doctor.observer_process)} ${redue('status','--cached','--json').stdout.slice(0,300)}\n${log}`);}
   // Resume, clear or compact in the same project: the running observer stays.
   assert.equal(sessionStart({...start,source:'resume'},{invoke:'redue',entry:bin}),'running');
   assert.equal(hook({...start,source:'compact'},root,env),null);
@@ -504,7 +504,7 @@ test('start and status meeting on fresh state: start still starts the observer',
   const run=(root,...args)=>new Promise(resolve=>{const child=spawn(process.execPath,[bin,...args],{cwd:root,env,stdio:['ignore','pipe','pipe']});
     let err='';child.stderr.on('data',d=>{err+=d;});child.on('close',code=>resolve({code,err}));});
   t.after(()=>{for(const p of projects){spawnSync(process.execPath,[bin,'remove-state'],{cwd:p.root,env,timeout:30000});fs.rmSync(p.base,{recursive:true,force:true});}});
-  const results=await Promise.all(projects.map(async p=>{const [start]=await Promise.all([run(p.root,'start'),run(p.root,'status','--json'),run(p.root,'status','--json')]);return start;}));
+  const results=await Promise.all(projects.map(async p=>{const [start]=await Promise.all([run(p.root,'start'),run(p.root,'status','--cached','--json'),run(p.root,'status','--cached','--json')]);return start;}));
   for(const result of results)assert.equal(result.code,0,result.err);
 });
 
