@@ -381,7 +381,7 @@ const checks=publicConfig.checks.map(check=>{
   const windowsContext=process.platform==='win32'?
     ['ComSpec','COMSPEC','PATHEXT','USERPROFILE']:[];
   const autoEnvironment=npmDirect?directEnvironment:testsDirect?testEnvironment:generalScript?scriptEnvironment(manager):
-    sandboxed?sandboxEnvironment(Boolean(pythonTool(check)),check.script?manager:null):npmAutomatic?{variables:['NODE_OPTIONS','NODE_PATH','CI','HOME',
+    sandboxed?sandboxEnvironment(Boolean(pythonTool(check)),check.script?manager:null,check.kind):npmAutomatic?{variables:['NODE_OPTIONS','NODE_PATH','CI','HOME',
     'NODE_ENV','BASH_ENV','ENV',...windowsContext],prefixes:['npm_config_','DYLD_','TSGO_'],
     pathExecutables:['node','npm'],executableIdentity:true}:yarnWorkspace?
     {variables:['NODE_OPTIONS','NODE_PATH','CI','HOME','NODE_ENV','BASH_ENV','ENV',...windowsContext],

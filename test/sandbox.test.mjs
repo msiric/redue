@@ -53,6 +53,30 @@ if 'unixsocket' in text:
             print('unix socket', where, 'ok'); os.unlink(at)
         except OSError as e: print('unix socket', where, 'refused', e)
 if 'gitdir' in text: print('git directory', os.path.isdir('.git'), os.path.isfile('.git/HEAD'))
+if 'loopback' in text:
+    import threading
+    server = socket.socket(socket.AF_INET6); server.bind(('::', 0)); server.listen(1)
+    threading.Thread(target=lambda: server.accept(), daemon=True).start()
+    try: socket.create_connection(('127.0.0.1', server.getsockname()[1]), timeout=3).close(); print('loopback ok')
+    except OSError as e: print('loopback errno', e.errno)
+if 'remote' in text:
+    try: socket.create_connection(('192.0.2.1', 9), timeout=1).close(); print('remote connected')
+    except PermissionError as e: print('remote refused')
+    except OSError as e: print('remote unreachable')
+if 'tmpwrite' in text:
+    import tempfile
+    try: open('/tmp/redue-fixture-%d' % os.getpid(), 'w').close(); print('shared tmp written')
+    except PermissionError: print('shared tmp refused')
+    with tempfile.NamedTemporaryFile() as own: print('own tmp written')
+if 'writeoutput' in text: pathlib.Path('build').mkdir(exist_ok=True); pathlib.Path('build/report.txt').write_text(str(os.getpid()))
+if 'netprobe' in text:
+    import ctypes
+    for name, fn in (('udp', lambda: socket.socket(socket.AF_INET, socket.SOCK_DGRAM)),
+                     ('fastopen', lambda: socket.socket().sendto(b'x', 0x20000000, ('192.0.2.1', 9)))):
+        try: fn(); print(name, 'allowed')
+        except OSError as e: print(name, 'errno', e.errno)
+    libc = ctypes.CDLL(None, use_errno=True)
+    print('io_uring', 'allowed' if libc.syscall(425, 4, ctypes.create_string_buffer(120)) >= 0 else 'errno %d' % ctypes.get_errno())
 print('${tool}', sys.argv[1:])
 sys.exit(1 if 'fail' in text else 0)
 `,0o755);
@@ -390,6 +414,50 @@ function nodeProject(t,scripts){
   execFileSync('git',['init','-q'],{cwd:root});execFileSync('git',['add','.'],{cwd:root});
   return {root,state};
 }
+
+test('a pytest check in .venv: loopback works, remote hosts and the shared /tmp do not, and test output it writes is not an input',{skip:unsupported},t=>{
+  const {root,state}=project(t,{tools:['mypy','ruff','pytest']});
+  write(root,'src/fx/net.py','# loopback remote tmpwrite writeoutput\n');
+  const init=JSON.parse(good(root,state,'init','--json'));
+  const check=init.proposed_config?.checks?.find(c=>c.name==='test')??JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'),'utf8')).checks.find(c=>c.name==='test');
+  assert.equal(check.kind,'test');assert.equal(check.qualification,'sandbox-v2',JSON.stringify(init.checks));
+  assert.deepEqual(check.command,['.venv/bin/pytest']);
+  good(root,state,'start');
+  const run=invoke(root,state,['run','test']);
+  assert.equal(run.status,0,run.stderr);
+  assert.match(run.stdout,/loopback ok/);assert.match(run.stdout,/remote refused/);
+  assert.match(run.stdout,/shared tmp refused/);assert.match(run.stdout,/own tmp written/);
+  // build/report.txt, git-ignored, was written during the run.
+  assert.ok(fs.existsSync(path.join(root,'build/report.txt')));
+  const status=row(root,state,'test');
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+});
+
+test('on Linux, a test run gets no UDP, TCP Fast Open or io_uring, and a supervisor that cannot start or stops makes it UNVERIFIED',
+  {skip:unsupported||(process.platform!=='linux'&&'the network supervisor runs on Linux')},t=>{
+  const {root,state}=project(t,{tools:['pytest']});
+  write(root,'src/fx/net.py','# netprobe loopback\n');
+  good(root,state,'init');good(root,state,'start');
+  let run=invoke(root,state,['run','test']);
+  assert.equal(run.status,0,run.stderr);
+  assert.match(run.stdout,/udp errno 1/);assert.match(run.stdout,/fastopen errno 1/);assert.match(run.stdout,/io_uring errno 1/);
+  assert.equal(row(root,state,'test').freshness,'CURRENT');
+  for(const [fault,reason] of [['unavailable',/network supervisor|sandbox changed the result/],['die',/the network supervisor reported: failed: test fault/]]){
+    run=invoke(root,state,['run','test'],{VSTATE_TEST_FAULTS:'1',VSTATE_TEST_SUPERVISOR:fault});
+    const status=row(root,state,'test');
+    assert.equal(status.freshness,'UNVERIFIED',`${fault}: ${JSON.stringify(status)} ${run.stderr}`);assert.match(status.reason,reason);
+  }
+});
+
+test('init gives a Node test script the direct test recipe does not take the sandboxed recipe',{skip:unsupported},t=>{
+  const {root,state}=nodeProject(t,{test:'checker'});
+  const test=JSON.parse(good(root,state,'init','--dry-run','--json')).checks.find(check=>check.name==='test');
+  assert.equal(test.level,'ready',test.reason);assert.match(test.reason,/sandboxed recipe: npm runs script "test"/);
+  good(root,state,'init');good(root,state,'start');good(root,state,'run','test');
+  const status=row(root,state,'test');
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  assert.equal(status.recipe,'sandbox-v2');
+});
 
 test('init gives a Node lint script that starts another program the sandboxed recipe; it is CURRENT after a pass',{skip:unsupported},t=>{
   const {root,state}=nodeProject(t,{lint:'checker && ls src > /dev/null',typecheck:'missing-tool --noEmit'});

@@ -8,7 +8,7 @@ import {patternMatcher} from './glob.mjs';
 import {observedBy} from './installed-observation.mjs';
 import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testRunFacts,sharedInstalledFile,testsInterpretation,testsQualification} from './test-direct.mjs';
 import {childProgram,generalIssue,lookup,pnpmConfigFiles,scriptCaches,scriptInstalledPaths,scriptInterpretation,scriptQualification,scriptRunFacts,pnpmNameless,toolOutput,toolchainDirs} from './node-script.mjs';
-import {denialLine,endWithChild,hiddenEntries,hiddenQualification,hiddenRefusal,isSandboxed,runToEnd,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,
+import {denialLine,endWithChild,hiddenEntries,hiddenQualification,hiddenRefusal,isSandboxed,runToEnd,supervisorIssue,visibleChange,testRun as sandboxTestRun,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,
   sandboxInterpretation,sandboxInterpretationOf,sandboxPlaces,sandboxQualification,sandboxSupport,systemPlaces} from './sandbox.mjs';
 import path from 'node:path';
 import net from 'node:net';
@@ -335,8 +335,14 @@ async function execute() {
         // sandbox-v2 hides the checkout's git-ignored entries. Where git
         // cannot list them, nothing is hidden, and the receipt compares every file.
         const hidden=selected.qualification===hiddenQualification?hiddenEntries(root):null;
-        sandbox={mode:support.mode,dirs,reads,hidden,argv:sandboxArgv(support.mode,command,{reads,tmp:dirs.tmp,python:support.python,
-          hidden:(hidden||[]).map(rel=>path.join(root,rel.replace(/\/$/,'')))}),
+        // A test run: loopback networking, supervised on Linux (the launcher's
+        // report goes in its temporary directory), and a private /tmp.
+        const tests=sandboxTestRun(selected),stats=tests&&support.mode==='landlock'?path.join(dirs.tmp,'.redue-launcher.json'):null;
+        const options={reads,tmp:dirs.tmp,python:support.python,stats,
+          ...tests?{network:'loopback',writes:[root,dirs.home,dirs.tmp],
+            fault:process.env.VSTATE_TEST_FAULTS==='1'?process.env.VSTATE_TEST_SUPERVISOR||null:null}:{}};
+        sandbox={mode:support.mode,dirs,reads,hidden,options,stats,
+          argv:sandboxArgv(support.mode,command,{...options,hidden:(hidden||[]).map(rel=>path.join(root,rel.replace(/\/$/,'')))}),
           env:sandboxEnv(selected,process.env,{root,...dirs})};
       }
     }
@@ -481,6 +487,16 @@ async function execute() {
       unexplained=touched.filter(file=>!ignored.has(file));
       if(!unexplained.length){eventsExplained=true;if(changed.length)outputs=changed;}
     }
+    // A run that hid git-ignored files: what it wrote beneath them, or new
+    // files git ignores (test output, coverage data), is not a change to its
+    // inputs (visibleChange); anything else is named.
+    let hiddenOnly=false;
+    if(sandbox?.hidden&&snap&&end&&snap.planId===end.planId&&snap.observationHealthy&&end.observationHealthy&&
+      (snap.inputEventSerial===end.inputEventSerial||end.inputEventPathsComplete===true)){
+      const before=snap.files||{},after=end.files||{},events=end.inputEventPaths||[];
+      const found=visibleChange(root,sandbox.hidden,before,after,[...Object.keys(before),...Object.keys(after),...events]);
+      if(found===null){eventsExplained=true;hiddenOnly=true;}else unexplained=[found];
+    }
     // The end certificate, recorded or probed, must cover what this compile received.
     // With no input event, gap or content change in between, it also holds at the start.
     // A run checked by full probes is compared with it too, for its run facts.
@@ -519,7 +535,7 @@ async function execute() {
         `: ${named.slice(0,5).join(', ')}${more>0?` and ${more} more`:''}`:'')+unrecorded);
     }
     // A recorded certificate changes only the probe part of the fingerprint.
-    if(!outputs&&(!snap||!end||snap.planId!==end.planId||(recording?snap.inputKey!==end.inputKey:snap.fingerprint!==end.fingerprint)||
+    if(!outputs&&!hiddenOnly&&(!snap||!end||snap.planId!==end.planId||(recording?snap.inputKey!==end.inputKey:snap.fingerprint!==end.fingerprint)||
       snap.revision!==end.revision))captureIssues.push('declared inputs changed or were not observed');
     // A run that hid git-ignored files and failed with a refusal that names
     // one runs again in the sandbox without hiding them: the check needs
@@ -530,7 +546,7 @@ async function execute() {
       const line=hiddenRefusal(output.head+'\n'+output.tail,sandbox.hidden);
       if(line){
         console.error(`redue: the sandboxed run failed with what looks like a refusal of a file git ignores (${line}); running it again in the sandbox without hiding them`);
-        const again=await runToEnd(sandboxArgv(sandbox.mode,command,{reads:sandbox.reads,tmp:sandbox.dirs.tmp,python:support.python}),
+        const again=await runToEnd(sandboxArgv(sandbox.mode,command,sandbox.options),
           {cwd:plan.cwd,env:sandbox.env,echo:true,started:child=>{activeChild=child;}});
         activeChild=null;
         hiddenRerun={line,exitCode:again.status,signal:again.signal||null,...again.error?{errorCode:again.error.code||again.error.name}:{}};
@@ -586,6 +602,8 @@ async function execute() {
         }
       }
     }
+    // A test run whose network was not supervised throughout is not reused.
+    if(sandbox?.stats){const issue=supervisorIssue(sandbox.stats);if(issue)captureIssues.push(issue);}
     if(sandbox)fs.rmSync(sandbox.dirs.tmp,{recursive:true,force:true});
     const stable=captureIssues.length===0;
     // Two runs on the same inputs, environment and plan that disagree make the

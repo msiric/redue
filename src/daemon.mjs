@@ -25,7 +25,7 @@ import {npmCacheDir} from './npm-integrity.mjs';
 import {runFromArgv} from './typescript-invocation.mjs';
 import {buildInfoPath,recordedCertificate} from './direct-run-certificate.mjs';
 import {timing,mark,traceBase,traceContext,traceScope,traceEnvironment,traceId} from './decision-profile.mjs';
-import {ignoredNow,isSandboxed,sandboxChange,trackedBeneath} from './sandbox.mjs';
+import {isSandboxed,sandboxChange,visibleChange as sandboxVisibleChange} from './sandbox.mjs';
 
 const configFile=path.resolve(process.argv[2]);
 const config=JSON.parse(fs.readFileSync(configFile));
@@ -348,38 +348,15 @@ function describeChangedInput(plan,file) {
     .map(mapping=>mapping.logical).slice(0,2);
   return file+' changed'+(matches.length?` (installed via ${matches.join(', ')})`:'');
 }
-// A run that hid the checkout's git-ignored entries (sandbox@2) did not see
-// them. A changed file the run saw always counts. A file beneath a hidden
-// entry counts only once git tracks it, and a new file only when git does
-// not list it as ignored now, as the next run's hidden entries would not.
-// Installed trees count whatever git says. The first changed input that
-// counts, or null; once per receipt and pair of fingerprints. When git
-// cannot tell, every change counts.
+// A run that hid the checkout's git-ignored entries (sandbox@2): the first
+// changed input it could see (sandbox.mjs's visibleChange), or null; once
+// per receipt and pair of fingerprints.
 const hiddenRun=r=>Array.isArray(r?.sandbox?.hidden)&&Boolean(r.files);
 function visibleChange(row,r,name) {
   const key=(r.invocation?.runId||'')+'\0'+r.fingerprint+'\0'+combinedSummary(name).fingerprint;
-  if(row.visibleKey===key)return row.visibleChange;
-  const hidden=r.sandbox.hidden.map(entry=>entry.replace(/\/$/,''));
-  const beneath=file=>hidden.some(entry=>file===entry||file.startsWith(entry+'/'));
-  const current=combinedFiles(name);
-  const changed=[...new Set([...Object.keys(r.files),...Object.keys(current)])].filter(file=>r.files[file]!==current[file]).sort();
-  const seen=changed.filter(file=>file in r.files&&!beneath(file));
-  const covered=changed.filter(file=>beneath(file)),fresh=changed.filter(file=>!(file in r.files)&&!beneath(file));
-  let found=seen[0]??null;
-  if(!found&&covered.length){
-    const tracked=trackedBeneath(root,hidden.filter(entry=>covered.some(file=>file===entry||file.startsWith(entry+'/'))));
-    found=covered.find(file=>!tracked||tracked.has(file))??null;
-  }
-  if(!found&&fresh.length){
-    // Ask once per directory the run had no file in, then the files outside one.
-    const before=new Set(Object.keys(r.files).flatMap(file=>file.split('/').slice(0,-1).map((_,i,parts)=>parts.slice(0,i+1).join('/'))));
-    const newDir=file=>{const parts=file.split('/');for(let i=1;i<parts.length;i++){const dir=parts.slice(0,i).join('/');if(!before.has(dir))return dir+'/';}return null;};
-    const asked=[...new Set(fresh.filter(file=>!file.startsWith('external:')).map(file=>newDir(file)??file))];
-    const ignored=ignoredNow(root,asked);
-    found=fresh.find(file=>file.startsWith('external:')||!ignored||!ignored.has(file))??null;
-  }
-  row.visibleKey=key;row.visibleChange=found;
-  return found;
+  if(row.visibleKey!==key){const current=combinedFiles(name);
+    row.visibleKey=key;row.visibleChange=sandboxVisibleChange(root,r.sandbox.hidden,r.files,current,[...Object.keys(r.files),...Object.keys(current)]);}
+  return row.visibleChange;
 }
 function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=false) {
   if(!index)return [];
@@ -433,7 +410,7 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       item.reason='target failure conflicts with outer invocation outcome';return item;}
     if(!r.stable){const issues=r.checkpoint?.issues?.length?` (${r.checkpoint.issues.join('; ')})`:'';
       // A sandboxed run that could not start, whose result the sandbox changed, or whose rerun outside it did not finish, says so alone.
-      const sandbox=r.checkpoint?.issues?.length&&r.checkpoint.issues.every(issue=>/^the (?:sandbox changed|run was not sandboxed|run outside the sandbox)/.test(issue));
+      const sandbox=r.checkpoint?.issues?.length&&r.checkpoint.issues.every(issue=>/^the (?:sandbox changed|run was not sandboxed|run outside the sandbox|network supervisor)/.test(issue));
       item.reason=sandbox?r.checkpoint.issues.join('; '):`inputs changed during execution or observation gap${issues}`;return item;}
     const names=[...(row.plan.environment.variables||[]),
       ...(row.plan.environment.prefixes||[]).map(prefix=>

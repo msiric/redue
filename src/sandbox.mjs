@@ -31,7 +31,10 @@ export const hiddenInterpretation='sandbox@2';
 export const hiddenListIssue='git cannot list the ignored files';
 export const isSandboxed=qualification=>qualification===sandboxQualification||qualification===hiddenQualification;
 export const sandboxInterpretationOf=qualification=>qualification===hiddenQualification?hiddenInterpretation:sandboxInterpretation;
-export const sandboxKinds=['typecheck','lint'];
+export const sandboxKinds=['typecheck','lint','test'];
+// A test run gets loopback networking and a private /tmp (sandboxArgv's
+// `network` and `writes`); a typecheck or lint gets no network.
+export const testRun=check=>check?.kind==='test';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const digest=value=>createHash('sha256').update(value).digest('hex');
 const real=file=>{try{return fs.realpathSync(file);}catch{return null;}};
@@ -62,10 +65,12 @@ export const pythonTool=check=>Array.isArray(check?.command)&&/^\.venv\/bin\/[A-
 // script check names its package manager first among the executables, as the
 // general recipe does.
 const managers=['npm','pnpm','yarn','corepack'];
-export function sandboxEnvironment(python=false,manager=null){
+export function sandboxEnvironment(python=false,manager=null,kind=null){
   return {variables:['TZ','LANG','LANGUAGE','CI','USER','LOGNAME'],
     prefixes:['LC_','DYLD_','LD_',...python?['PYTHON','MYPY','RUFF_','PYRIGHT','TY_']:
-      ['NODE_','npm_config_','PNPM_','YARN_','COREPACK_','TSGO_']],
+      ['NODE_','npm_config_','PNPM_','YARN_','COREPACK_','TSGO_'],
+      // A test runner's own variables.
+      ...kind==='test'?python?['PYTEST_']:['VITEST_','JEST_']:[]],
     ...manager?{pathExecutables:['node',manager,...managers.filter(name=>name!==manager)]}:{}};
 }
 
@@ -273,6 +278,31 @@ export function trackedBeneath(root,entries){
     {cwd:root,encoding:'utf8',maxBuffer:256*1024*1024,timeout:10000,stdio:['ignore','pipe','ignore'],env:gitEnv()});
   return r.status===0?new Set(r.stdout.split('\0').filter(Boolean)):null;
 }
+// For a run that hid `hidden` (relative entries), the first path of `paths`
+// that changes its inputs, between `before` and `current` ({rel: identity}),
+// or null. A file the run saw always counts. A file beneath a hidden entry
+// counts only once git tracks it, and a new file only when git does not list
+// it as ignored now, as the next run's hidden entries would not. When git
+// cannot tell, every change counts. `external:` paths always count.
+export function visibleChange(root,hidden,before,current,paths){
+  const entries=hidden.map(entry=>entry.replace(/\/$/,''));
+  const beneath=file=>entries.some(entry=>file===entry||file.startsWith(entry+'/'));
+  const changed=[...new Set(paths)].filter(file=>before[file]!==current[file]).sort();
+  const seen=changed.filter(file=>file in before&&!beneath(file));
+  if(seen.length)return seen[0];
+  const covered=changed.filter(beneath),fresh=changed.filter(file=>!(file in before)&&!beneath(file));
+  if(covered.length){
+    const tracked=trackedBeneath(root,entries.filter(entry=>covered.some(file=>file===entry||file.startsWith(entry+'/'))));
+    const found=covered.find(file=>!tracked||tracked.has(file));
+    if(found)return found;
+  }
+  if(!fresh.length)return null;
+  // Asked once per directory the run had no file in, then the files outside one.
+  const dirs=new Set(Object.keys(before).flatMap(file=>file.split('/').slice(0,-1).map((_,i,parts)=>parts.slice(0,i+1).join('/'))));
+  const newDir=file=>{const parts=file.split('/');for(let i=1;i<parts.length;i++){const dir=parts.slice(0,i).join('/');if(!dirs.has(dir))return dir+'/';}return null;};
+  const ignored=ignoredNow(root,[...new Set(fresh.filter(file=>!file.startsWith('external:')).map(file=>newDir(file)??file))]);
+  return fresh.find(file=>file.startsWith('external:')||!ignored||!ignored.has(file))??null;
+}
 // A refusal line that names a hidden entry (relative): a refusal by the
 // sandbox, or a missing file, which Linux tools report for an unreadable one.
 export function hiddenRefusal(text,hidden){
@@ -288,28 +318,58 @@ const ancestors=list=>[...new Set(list.flatMap(dir=>{const out=[];for(let at=pat
 // metadata of their parent directories, and no network but Unix sockets in
 // the run's own temporary directory (`own`), which is new for each run: a
 // daemon an earlier run left behind cannot answer a later one. `hidden`:
-// absolute paths it may not read at all, not even their metadata.
-export function seatbeltProfile(reads,own=null,hidden=[]){
+// absolute paths whose contents it may not read or execute.
+// A test run (`network` "loopback") may bind and accept anywhere and
+// connect to loopback only; with `writes`, it writes nothing beneath /tmp
+// and /var/tmp but beneath those places (its checkout, home and own
+// temporary directory).
+export function seatbeltProfile(reads,own=null,hidden=[],{network='none',writes=null}={}){
   const quote=value=>JSON.stringify(value);
+  const both=list=>[...new Set(list.flatMap(dir=>[dir,real(dir)]).filter(Boolean))];
   const all=[...new Set(reads.flatMap(dir=>[dir,real(dir)]).filter(Boolean))];
   return ['(version 1)','(allow default)','(deny file-read* process-exec*)',
     `(allow file-read* process-exec* ${all.map(dir=>`(subpath ${quote(dir)})`).join(' ')} (literal "/") (literal "/etc") (literal "/var") (literal "/tmp"))`,
     `(allow file-read-metadata ${ancestors(all).map(dir=>`(literal ${quote(dir)})`).join(' ')})`,
     // The entry's own path, by its directory's real path: a hidden link's target is not hidden.
-    ...hidden.length?[`(deny file-read* process-exec* ${[...new Set(hidden.flatMap(file=>[file,path.join(real(path.dirname(file))??path.dirname(file),path.basename(file))]))]
+    // Its contents only, as on Linux: a run may still see that it exists, and write beneath it.
+    ...hidden.length?[`(deny file-read-data process-exec* ${[...new Set(hidden.flatMap(file=>[file,path.join(real(path.dirname(file))??path.dirname(file),path.basename(file))]))]
       .map(file=>`(subpath ${quote(file)})`).join(' ')})`]:[],
-    '(deny network*)',...own?[`(allow network* ${[own,real(own)].filter(Boolean).map(dir=>`(subpath ${quote(dir)})`).join(' ')})`]:[]].join('\n');
+    '(deny network*)',...own?[`(allow network* ${[own,real(own)].filter(Boolean).map(dir=>`(subpath ${quote(dir)})`).join(' ')})`]:[],
+    ...network==='loopback'?['(allow network-bind)','(allow network-inbound)','(allow network-outbound (remote ip "localhost:*"))']:[],
+    ...writes?['(deny file-write* (subpath "/tmp") (subpath "/private/tmp") (subpath "/var/tmp") (subpath "/private/var/tmp"))',
+      `(allow file-write* ${both(writes).map(dir=>`(subpath ${quote(dir)})`).join(' ')})`]:[]].join('\n');
 }
 // The argv that runs `argv` sandboxed: reads beneath `reads`, no network but
 // Unix sockets beneath `tmp` on macOS, nothing beneath `hidden` (absolute).
 // On Linux a hidden directory can still be listed and its entries stat'ed:
 // Landlock restricts neither beneath a listable parent.
-export function sandboxArgv(mode,argv,{reads,tmp=null,python,hidden=[],stats=null}){
-  if(mode==='seatbelt')return ['/usr/bin/sandbox-exec','-p',seatbeltProfile(reads,tmp,hidden),...argv];
+// `network` "loopback" and `writes`: a test run's (seatbeltProfile). On Linux
+// its network is supervised: `stats` then says whether the supervisor served
+// the whole run (supervisorIssue).
+export function sandboxArgv(mode,argv,{reads,tmp=null,python,hidden=[],stats=null,network='none',writes=null,fault=null}){
+  if(mode==='seatbelt')return ['/usr/bin/sandbox-exec','-p',seatbeltProfile(reads,tmp,hidden,{network,writes}),...argv];
   // The launcher's own warnings would become the check's output.
   if(mode==='landlock')return [python,'-I','-W','ignore',landlockScript,...reads.flatMap(dir=>['--read',dir]),
-    ...hidden.flatMap(file=>['--hide',file]),...stats?['--stats',stats]:[],'--no-tcp','--',...argv];
+    ...hidden.flatMap(file=>['--hide',file]),...stats?['--stats',stats]:[],
+    ...network==='loopback'?['--loopback']:['--no-tcp'],
+    ...writes?['--deny-write','/tmp','--deny-write','/var/tmp',...writes.flatMap(dir=>['--write',dir])]:[],
+    ...fault?['--test-fault',fault]:[],'--',...argv];
   throw Error(`unknown sandbox ${mode}`);
+}
+// Why a supervised run's network was not supervised throughout, from the
+// launcher's stats file, or null when it was.
+export function supervisorIssue(stats){
+  let value=null;try{value=JSON.parse(fs.readFileSync(stats,'utf8'));}catch{}
+  return value?.supervisor==='ok'?null:`the network supervisor ${value?.supervisor?`reported: ${value.supervisor}`:'left no report'}`;
+}
+// The counts a test runner's summary gives, the last of each: pytest, Vitest,
+// Jest, Mocha, node --test.
+const ansi=/\u001b\[[0-9;]*m/g;
+export function testCounts(text){
+  const plain=String(text).replace(ansi,'');
+  const last=(...patterns)=>{for(const re of patterns){let m,v=null;const g=new RegExp(re,'gim');while((m=g.exec(plain)))v=Number(m[1]);if(v!==null)return v;}return null;};
+  return {passed:last('(\\d+) (?:passed|passing)\\b','^# pass (\\d+)'),failed:last('(\\d+) (?:failed|failing)\\b','^# fail (\\d+)'),
+    skipped:last('(\\d+) (?:skipped|pending|todo)\\b','^# skip (\\d+)')};
 }
 // A line of a failed run's output that looks like the sandbox refused
 // something: a refused read or write, or the network unreachable. Such a
@@ -463,18 +523,22 @@ export async function sandboxTrial(root,check,{timeout=300000,hide=false,plain:e
   if(supported.issue)return {issue:supported.issue};
   const python=Boolean(pythonTool(check));
   const command=python?check.command:[lookup(scriptProject(root,check.script).manager,process.env.PATH,root)||'npm','run',check.script];
-  const selected={...check,command,environment:sandboxEnvironment(python,python?null:scriptProject(root,check.script).manager)};
+  const selected={...check,command,environment:sandboxEnvironment(python,python?null:scriptProject(root,check.script).manager,check.kind)};
+  const tests=testRun(check);
   const scratch=fs.mkdtempSync(path.join(os.tmpdir(),'redue-trial-')),home=path.join(scratch,'home'),tmp=path.join(scratch,'tmp');
   fs.mkdirSync(home);fs.mkdirSync(tmp);
   try{
     const entries=hide?hiddenEntries(root):[];
     if(!entries)return {issue:hiddenListIssue};
-    const hidden=entries.map(rel=>path.join(root,rel.replace(/\/$/,""))),stats=hide&&supported.mode==='landlock'?path.join(scratch,'stats.json'):null;
+    const hidden=entries.map(rel=>path.join(root,rel.replace(/\/$/,""))),stats=(hide||tests)&&supported.mode==='landlock'?path.join(scratch,'stats.json'):null;
     const run=async(argv,env)=>{const started=Date.now(),r=await runToEnd(argv,{cwd:root,env,timeout});
       return {status:r.timedOut?'timeout':r.status??r.signal??r.error?.code,output:`${r.stdout}\n${r.stderr}`,ms:Date.now()-started};};
     const plain=earlier??await run(command,{...process.env,...python?{}:{npm_config_update_notifier:'false'}});
     const reads=[root,home,tmp,...sandboxPlaces(selected,process.env,root),...systemPlaces];
-    const sandboxed=await run(sandboxArgv(supported.mode,command,{reads,tmp,python:supported.python,hidden,stats}),sandboxEnv(selected,process.env,{root,home,tmp}));
+    const sandboxed=await run(sandboxArgv(supported.mode,command,{reads,tmp,python:supported.python,hidden,stats,
+      ...tests?{network:'loopback',writes:[root,home,tmp]}:{}}),sandboxEnv(selected,process.env,{root,home,tmp}));
+    // A test run's network was supervised throughout, on Linux.
+    const supervisor=tests&&stats?supervisorIssue(stats):null;
     // A failure both ways counts as the same only without a sign of a refusal.
     const denied=sandboxed.status===0?null:denialLine(sandboxed.output,entries);
     const realOf=dir=>{try{return fs.realpathSync(dir);}catch{return null;}},plainTmp=process.env.TMPDIR||os.tmpdir();
@@ -486,8 +550,12 @@ export async function sandboxTrial(root,check,{timeout=300000,hide=false,plain:e
     if(at<0&&b.length>a.length)at=a.length;
     const output=at<0?null:{plain:(a[at]??'(no more output)').slice(0,160),sandboxed:(b[at]??'(no more output)').slice(0,160)};
     let launcher=null;if(stats)try{launcher=JSON.parse(fs.readFileSync(stats,'utf8'));}catch{}
-    return {same:plain.status===sandboxed.status&&!denied&&!output,plain:plain.status,sandboxed:sandboxed.status,output,plainRun:plain,
-      line:denied||(plain.status===sandboxed.status?null:sandboxed.output.trim().split('\n').at(-1)?.slice(0,200)||null),
+    // Tests print in an order their workers decide: the counts their summary
+    // gives are compared, not every line.
+    const counts=tests?[plain,sandboxed].map(r=>testCounts(r.output)):null;
+    const differs=tests?(JSON.stringify(counts[0])===JSON.stringify(counts[1])?null:{plain:JSON.stringify(counts[0]),sandboxed:JSON.stringify(counts[1])}):output;
+    return {same:plain.status===sandboxed.status&&!denied&&!differs&&!supervisor,plain:plain.status,sandboxed:sandboxed.status,output:differs,plainRun:plain,
+      line:supervisor||denied||(plain.status===sandboxed.status?null:sandboxed.output.trim().split('\n').at(-1)?.slice(0,200)||null),
       ...hide?{hidden:entries.length,entries,plainMs:plain.ms,sandboxedMs:sandboxed.ms,...launcher?{rules:launcher.rules,setupMs:launcher.ms}:{}}:{}};
   }finally{fs.rmSync(scratch,{recursive:true,force:true});}
 }

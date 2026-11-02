@@ -1,10 +1,10 @@
-// Python projects for `redue init`: typecheck and lint checks that run mypy,
-// pyright, ty or ruff from the project's .venv under the sandboxed recipe
+// Python projects for `redue init`: typecheck, lint and test checks that run
+// mypy, pyright, ty, ruff or pytest from the project's .venv under the sandboxed recipe
 // (sandbox.mjs). A tool is proposed when it is installed in .venv/bin. Its
 // arguments are the ones the project runs it with, read from CI workflows,
 // the Makefile, tox, nox, a justfile and shell scripts; without one, the
-// tool's own default (`ruff check`, `ty check`, `pyright`, and `mypy` with
-// its configured files or `.`).
+// tool's own default (`ruff check`, `ty check`, `pyright`, `pytest`, and
+// `mypy` with its configured files or `.`).
 import fs from 'node:fs';
 import path from 'node:path';
 import {realObservedPath} from './path-identity.mjs';
@@ -15,7 +15,7 @@ const exists=file=>{try{fs.lstatSync(file);return true;}catch{return false;}};
 const executable=file=>{try{fs.accessSync(file,fs.constants.X_OK);return fs.statSync(file).isFile();}catch{return false;}};
 // Each tool, its kind, and the subcommand it runs as a check.
 export const pythonTools=[{tool:'mypy',kind:'typecheck',sub:[]},{tool:'pyright',kind:'typecheck',sub:[]},
-  {tool:'ty',kind:'typecheck',sub:['check']},{tool:'ruff',kind:'lint',sub:['check']}];
+  {tool:'ty',kind:'typecheck',sub:['check']},{tool:'ruff',kind:'lint',sub:['check']},{tool:'pytest',kind:'test',sub:[]}];
 // The text of a TOML or INI section, up to the next section header.
 const section=(text,header)=>{const at=text.split(/\r?\n/).findIndex(line=>line.trim()===header);
   if(at<0)return null;const rest=text.split(/\r?\n/).slice(at+1);const end=rest.findIndex(line=>/^\s*\[/.test(line));
@@ -27,7 +27,9 @@ const wrappers=[/^uv run(?: --(?:frozen|locked|no-sync|offline|quiet|all-extras|
   /^\$\{?[A-Za-z_]+\}?(?=[A-Za-z])/];
 // A tool's arguments in one line of a script or workflow, or null. The line
 // must run the tool and its subcommand plainly; arguments with shell syntax,
-// or ones that change files or install packages, are not taken.
+// ones that change files or install packages, and pytest's that run a set
+// chosen from its cache (--lf, --ff, --sw, --nf), rewrite snapshots or add to
+// earlier coverage data, are not taken.
 export function toolArgs(line,{tool,sub}){
   let text=line.trim().replace(/^-\s+/,'').replace(/^run:\s*/,'').replace(/^[@-]+/,'');
   text=text.split(/\s(?:&&|\|\||;|\|)\s/)[0].replace(/\s+/g,' ').trim();
@@ -35,7 +37,7 @@ export function toolArgs(line,{tool,sub}){
   const words=text.split(' ');
   if(words[0]!==tool||JSON.stringify(words.slice(1,1+sub.length))!==JSON.stringify(sub))return null;
   const args=words.slice(1+sub.length);
-  if(args.some(arg=>!/^[A-Za-z0-9_./:=,@+%-]+$/.test(arg)||/^--(?:fix|unsafe-fixes|write|install-types|watch)(?:=|$)/.test(arg)||arg.startsWith('..')||arg.startsWith('/')))return null;
+  if(args.some(arg=>!/^[A-Za-z0-9_./:=,@+%-]+$/.test(arg)||/^--(?:fix|unsafe-fixes|write|install-types|watch|lf|last-failed|ff|failed-first|sw|stepwise|stepwise-skip|nf|new-first|snapshot-update|update-snapshots|inline-snapshot|cov-append)(?:=|$)/.test(arg)||arg.startsWith('..')||arg.startsWith('/')))return null;
   return args;
 }
 // The places a project writes how it runs its tools, in order of preference.

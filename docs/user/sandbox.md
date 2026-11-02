@@ -1,11 +1,11 @@
-# Sandboxed recipe (typecheck and lint, any language)
+# Sandboxed recipe (typecheck, lint and tests, any language)
 
-The sandboxed recipe runs a typecheck or lint command inside an operating
+The sandboxed recipe runs a typecheck, lint or test command inside an operating
 system sandbox and reports later whether that result still applies to the
 files you have. The sandbox holds for every process the command starts, so it
 covers programs REDUE cannot record: TypeScript 7's native compiler, esbuild,
 oxlint and tsgolint, biome, turbo, and Python tools such as mypy, pyright, ty
-and ruff.
+and ruff, and test runners such as pytest.
 
 **The claim.** A sandboxed result holds for a run that sees only the project's
 files that git doesn't ignore, its installed packages and the toolchain, the
@@ -19,6 +19,8 @@ and the toolchain. See [files git ignores](#files-git-ignores).
 
 ## Where it applies
 
+- **Tests:** a root `test` script the [direct test recipe](tests-direct.md)
+  does not take, and pytest in the project's `.venv`. See [tests](#tests).
 - **Node projects:** a root `typecheck` or `lint` script (npm, pnpm, or Yarn
   with the `node-modules` linker). `init` tries the
   [direct TypeScript recipe](direct-typescript.md) and the pnpm and Yarn
@@ -96,7 +98,8 @@ It may read and execute only beneath:
   `/System`, `/Library`, `/opt/homebrew` and the like on macOS);
 - a private home directory and a fresh temporary directory, in REDUE's state.
 
-It has no network: no TCP connection, loopback included. On macOS its only
+A typecheck or lint has no network: no TCP connection, loopback included
+(a test run gets loopback; see [tests](#tests)). On macOS its only
 Unix sockets are in its own temporary directory, which is new for each run.
 On Linux 6.12 and later it cannot reach an abstract Unix socket outside the
 run.
@@ -123,6 +126,34 @@ It gets a controlled environment, not yours:
   first instead, so `uv run` and an activated environment give the same PATH;
 - `HOME`, `TMPDIR` and the XDG directories in its private directories;
   `VIRTUAL_ENV` for a Python check; Corepack's home where Corepack keeps it.
+
+## Tests
+
+A test run gets what a typecheck or lint gets, and also:
+
+- **Loopback, and no remote host.** It may listen on any address and accept
+  connections, and connect only to loopback (`127.0.0.0/8`, `::1`) and Unix
+  sockets.
+  - On macOS, Seatbelt enforces that.
+  - On Linux, Landlock cannot tell a loopback address from a remote one, so a
+    seccomp filter in the test's processes does instead. It refuses inet
+    datagram and raw sockets when they are created, TCP Fast Open
+    (`MSG_FASTOPEN`) and `io_uring`. It hands each `connect` to REDUE's
+    launcher, which allows loopback and Unix sockets and refuses the rest.
+    Nothing else goes through the launcher, so worker processes talk to each
+    other as usual. If the launcher's supervisor cannot start, or stops before
+    the run ends, the result is UNVERIFIED, never CURRENT.
+- **A private `/tmp`.** Its `TMPDIR` is its own, new for each run, and it may
+  not write in `/tmp` or `/var/tmp` outside it. A test that writes to a fixed
+  path there is refused.
+
+`init` compares a test run's exit status and the counts its summary prints
+(passed, failed, skipped), not every line: test runners print in the order
+their workers finish. Git-ignored files are hidden from a test run when the
+trial agrees, as for typecheck and lint. A suite that reads back git-ignored
+files it writes in the same run (a coverage database, a build it starts
+itself) gets the whole checkout. Files a hidden run writes beneath hidden
+folders, or new files git ignores, are not changes to its inputs.
 
 ## What REDUE claims
 
@@ -201,14 +232,17 @@ it with `redue remove-state`.
 - A script that changes files (`--fix`, `--write`) does not get this recipe:
   `init` would run it twice.
 - With `sandbox-v2`, a run cannot read a hidden file, but it can still see
-  that one exists. On macOS it sees the names of hidden files and folders at
-  the level where they start (`dist` in the checkout's root). On Linux it can
-  also list a hidden folder and see its files' sizes and times: Landlock
-  restricts neither beneath a folder the run may list. A tool that acts on
+  that one exists, its size and its times, and write beneath it. On Linux it
+  can also list a hidden folder; on macOS it cannot. A tool that acts on
   whether a git-ignored file exists, without reading it, is not covered: a
-  new or removed one does not make the result STALE. Typecheckers and
-  linters read what they act on; a test that skips itself when a built file
-  is missing does not, which is why hidden files are not used for tests yet.
+  new or removed one does not make the result STALE. In a census of 136
+  test suites with ignored files after their build, none did.
+- On Linux, a test run's UDP is refused, loopback included: the filter
+  decides when the socket is made, before its address is known. On macOS UDP
+  to loopback works. A test that needs it fails its trial and keeps another
+  recipe.
+- On Linux, a test run can still connect to a Unix socket file outside it
+  (a local database's), as a typecheck can.
 - On Linux, a file a `sandbox-v2` run creates in a folder that holds hidden
   files (the checkout's root, when anything in it is hidden) cannot be read
   back in the same run. `init`'s trial and the rerun without hiding catch a

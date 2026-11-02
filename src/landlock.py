@@ -6,13 +6,28 @@
 # connection to an abstract Unix socket outside the run. Writes are not
 # handled, so they are not restricted.
 #
+# --loopback (a test run) leaves TCP to a seccomp filter in the command's
+# process instead: inet datagram and raw sockets are refused when they are
+# created, and so are sendto, sendmsg and sendmmsg with MSG_FASTOPEN (a
+# connect without connect), io_uring_setup, and any foreign architecture's or
+# x32 system call. Every connect goes to the launcher (seccomp user
+# notification), which lets loopback, IPv6 loopback, Unix sockets and
+# AF_UNSPEC through and refuses the rest. Nothing else goes through it, so
+# worker processes' IPC is untouched; bind is allowed anywhere.
+#
+# --deny-write PATH (a test run's /tmp and /var/tmp) handles writes too: they
+# are allowed everywhere but beneath those paths, and beneath each --write
+# PATH (the run's own temporary directory).
+#
 # --hide PATH keeps the run from reading or executing beneath PATH, inside a
 # --read place. Landlock only grants, beneath a whole directory, so such a
 # place gets listing rights (beneath it all, hidden entries included) and
 # read and execute rights on each of its entries that is not hidden and
 # holds nothing hidden, descending into the ones that do. A hidden path can
 # still be listed and stat'ed. --stats FILE writes the rule count and the
-# time the rules took, as JSON.
+# time the rules took, as JSON; with --loopback, rewritten when the command
+# ends with `supervisor`: "ok" when it served the whole run, else what went
+# wrong. A missing or other value means the network was not supervised.
 #
 # The launcher stays as the command's parent and a child subreaper: when the
 # command exits, it stops every process the command left running, daemons
@@ -21,23 +36,165 @@
 # launcher gets is passed to that group once. The launcher then ends as the
 # command did: with its exit status, or by its signal.
 #
-#   landlock.py --read /usr --read /tmp ... [--hide P ...] [--stats F] [--no-tcp] -- cmd args...
+#   landlock.py --read /usr --read /tmp ... [--hide P ...] [--stats F] [--no-tcp | --loopback]
+#               [--deny-write P ... --write P ...] -- cmd args...
 #   landlock.py --probe     # prints {"abi": N} or {"abi": null, "errno": E}
 import ctypes
+import errno
 import json
 import os
+import select
 import signal
+import socket
 import sys
+import threading
 import time
 
 SYS_CREATE, SYS_ADD, SYS_RESTRICT = 444, 445, 446  # the same on x86_64 and aarch64
 EXECUTE, READ_FILE, READ_DIR = 1 << 0, 1 << 2, 1 << 3
+# Writing, making and removing files, renaming across directories (ABI 2), truncating (ABI 3).
+WRITE = sum(1 << bit for bit in (1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14))
 BIND_TCP, CONNECT_TCP = 1 << 0, 1 << 1
 SCOPE_ABSTRACT_UNIX_SOCKET = 1 << 0
 PR_SET_NO_NEW_PRIVS, PR_SET_CHILD_SUBREAPER = 38, 36
 
 libc = ctypes.CDLL(None, use_errno=True)
 libc.syscall.restype = ctypes.c_long
+libc.ioctl.argtypes = [ctypes.c_int, ctypes.c_ulong, ctypes.c_void_p]
+
+# The seccomp filter --loopback installs, per architecture: its audit value
+# and the system calls it looks at.
+ARCH = {'x86_64': (0xC000003E, {'socket': 41, 'connect': 42, 'sendto': 44, 'sendmsg': 46, 'sendmmsg': 307,
+                                'io_uring_setup': 425, 'seccomp': 317}),
+        'aarch64': (0xC00000B7, {'socket': 198, 'connect': 203, 'sendto': 206, 'sendmsg': 211, 'sendmmsg': 269,
+                                 'io_uring_setup': 425, 'seccomp': 277})}
+AF_UNSPEC, AF_UNIX, AF_INET, AF_INET6, AF_PACKET = 0, 1, 2, 10, 17
+SOCK_STREAM, MSG_FASTOPEN = 1, 0x20000000
+RET_ALLOW, RET_NOTIFY, RET_ERRNO = 0x7fff0000, 0x7fc00000, 0x00050000
+LD, JEQ, JGE, JSET, AND, RET = 0x20, 0x15, 0x35, 0x45, 0x54, 0x06
+SECCOMP_SET_MODE_FILTER, SECCOMP_FILTER_FLAG_NEW_LISTENER, SECCOMP_USER_NOTIF_FLAG_CONTINUE = 1, 1 << 3, 1
+NOTIF_RECV, NOTIF_SEND, NOTIF_ID_VALID, NOTIF_ID_VALID_OLD = 0xc0502100, 0xc0182101, 0x40082102, 0x80082102
+
+
+class SockFilter(ctypes.Structure):
+    _fields_ = [('code', ctypes.c_uint16), ('jt', ctypes.c_uint8), ('jf', ctypes.c_uint8), ('k', ctypes.c_uint32)]
+
+
+class SockFprog(ctypes.Structure):
+    _fields_ = [('len', ctypes.c_ushort), ('filter', ctypes.POINTER(SockFilter))]
+
+
+class SeccompData(ctypes.Structure):
+    _fields_ = [('nr', ctypes.c_int), ('arch', ctypes.c_uint32), ('ip', ctypes.c_uint64), ('args', ctypes.c_uint64 * 6)]
+
+
+class Notif(ctypes.Structure):
+    _fields_ = [('id', ctypes.c_uint64), ('pid', ctypes.c_uint32), ('flags', ctypes.c_uint32), ('data', SeccompData)]
+
+
+class NotifResp(ctypes.Structure):
+    _fields_ = [('id', ctypes.c_uint64), ('val', ctypes.c_int64), ('error', ctypes.c_int32), ('flags', ctypes.c_uint32)]
+
+
+def filter_program(machine):
+    # Little-endian: an argument's low 32 bits are at 16 + 8 * index.
+    audit, nr = ARCH[machine]
+    program, labels = [], {}
+    def op(code, k, jt=None, jf=None):
+        program.append([code, jt, jf, k])
+    def label(name):
+        labels[name] = len(program)
+    op(LD, 4); op(JEQ, audit, None, 'deny')
+    op(LD, 0)
+    if machine == 'x86_64':
+        op(JGE, 0x40000000, 'deny')
+    op(JEQ, nr['connect'], 'notify'); op(JEQ, nr['io_uring_setup'], 'deny'); op(JEQ, nr['socket'], 'socket')
+    op(JEQ, nr['sendto'], 'flags3'); op(JEQ, nr['sendmmsg'], 'flags3'); op(JEQ, nr['sendmsg'], 'flags2')
+    op(RET, RET_ALLOW)
+    label('socket'); op(LD, 16)
+    op(JEQ, AF_INET, 'inet'); op(JEQ, AF_INET6, 'inet'); op(JEQ, AF_PACKET, 'deny'); op(RET, RET_ALLOW)
+    label('inet'); op(LD, 24); op(AND, 0xf); op(JEQ, SOCK_STREAM, 'allow', 'deny')
+    label('flags3'); op(LD, 16 + 8 * 3); op(JSET, MSG_FASTOPEN, 'deny', 'allow')
+    label('flags2'); op(LD, 16 + 8 * 2); op(JSET, MSG_FASTOPEN, 'deny', 'allow')
+    label('allow'); op(RET, RET_ALLOW)
+    label('notify'); op(RET, RET_NOTIFY)
+    label('deny'); op(RET, RET_ERRNO | errno.EPERM)
+    jump = lambda at, name: labels[name] - at - 1 if name else 0
+    return [SockFilter(code, jump(at, jt), jump(at, jf), k) for at, (code, jt, jf, k) in enumerate(program)]
+
+
+# In the command's process, before exec: the filter, and its listener for the launcher.
+def install_filter():
+    machine = os.uname().machine
+    if machine not in ARCH:
+        raise OSError(f'no seccomp filter for {machine}')
+    program = filter_program(machine)
+    buffer = (SockFilter * len(program))(*program)
+    fprog = SockFprog(len(program), ctypes.cast(buffer, ctypes.POINTER(SockFilter)))
+    fd = libc.syscall(ARCH[machine][1]['seccomp'], SECCOMP_SET_MODE_FILTER, SECCOMP_FILTER_FLAG_NEW_LISTENER, ctypes.byref(fprog))
+    if fd < 0:
+        raise OSError(ctypes.get_errno(), f'seccomp: {os.strerror(ctypes.get_errno())}')
+    return fd
+
+
+# Whether the address a process connects to is loopback, Unix or AF_UNSPEC.
+def loopback_address(pid, address, length):
+    if not address or length < 2:
+        return False
+    try:
+        fd = os.open(f'/proc/{pid}/mem', os.O_RDONLY | os.O_CLOEXEC)
+        try:
+            raw = os.pread(fd, min(length, 128), address)
+        finally:
+            os.close(fd)
+    except OSError:
+        return False
+    family = int.from_bytes(raw[:2], sys.byteorder)
+    if family in (AF_UNSPEC, AF_UNIX):
+        return True
+    if family == AF_INET and len(raw) >= 8:
+        return raw[4] == 127
+    if family == AF_INET6 and len(raw) >= 24:
+        host = raw[8:24]
+        return host == bytes(15) + b'\x01' or host[:12] == bytes(10) + b'\xff\xff' and host[12] == 127
+    return False
+
+
+# The launcher's side: every connect the command's processes make, until none is left.
+def supervise(fd, state, die=False):
+    def valid(id):
+        value = ctypes.c_uint64(id)
+        if libc.ioctl(fd, NOTIF_ID_VALID, ctypes.byref(value)) == 0:
+            return True
+        return ctypes.get_errno() in (errno.EINVAL, errno.ENOTTY) and libc.ioctl(fd, NOTIF_ID_VALID_OLD, ctypes.byref(value)) == 0
+    try:
+        poller = select.poll()
+        poller.register(fd, select.POLLIN)
+        while True:
+            events = dict(poller.poll())
+            if events.get(fd, 0) & select.POLLIN == 0:
+                break
+            notif = Notif()
+            if libc.ioctl(fd, NOTIF_RECV, ctypes.byref(notif)) < 0:
+                if ctypes.get_errno() in (errno.EINTR, errno.ENOENT):
+                    continue
+                raise OSError(ctypes.get_errno(), 'receive')
+            if die:
+                raise RuntimeError('test fault')
+            allowed = loopback_address(notif.pid, notif.data.args[1], notif.data.args[2])
+            if not valid(notif.id):
+                continue
+            response = NotifResp(notif.id, 0, 0 if allowed else -errno.EPERM, SECCOMP_USER_NOTIF_FLAG_CONTINUE if allowed else 0)
+            if libc.ioctl(fd, NOTIF_SEND, ctypes.byref(response)) < 0 and ctypes.get_errno() != errno.ENOENT:
+                raise OSError(ctypes.get_errno(), 'respond')
+        state['supervisor'] = 'ok'
+    except Exception as e:
+        state['supervisor'] = f'failed: {e}'
+        # A closed listener makes every later connect fail (ENOSYS).
+        try:
+            os.close(fd)
+        except OSError:
+            pass
 
 
 class RulesetAttr(ctypes.Structure):
@@ -61,10 +218,19 @@ def main(argv):
         v, err = abi()
         print(json.dumps({'abi': v, 'errno': err}))
         return 0
-    reads, hidden, stats, no_tcp = [], set(), None, False
+    reads, hidden, stats, no_tcp, loopback, deny_write, writes, fault = [], set(), None, False, False, set(), [], None
     while argv and argv[0] != '--':
         if argv[0] == '--read':
             reads.append(argv[1]); argv = argv[2:]
+        elif argv[0] == '--loopback':
+            loopback = True; argv = argv[1:]
+        elif argv[0] == '--deny-write':
+            deny_write.add(os.path.normpath(argv[1])); argv = argv[2:]
+        elif argv[0] == '--write':
+            writes.append(argv[1]); argv = argv[2:]
+        elif argv[0] == '--test-fault':
+            # Tests only: the supervisor cannot start (unavailable) or stops at the first connect (die).
+            fault = argv[1]; argv = argv[2:]
         elif argv[0] == '--hide':
             hidden.add(os.path.normpath(argv[1])); argv = argv[2:]
         elif argv[0] == '--stats':
@@ -77,9 +243,10 @@ def main(argv):
     version, err = abi()
     if version is None:
         sys.exit(f'landlock.py: Landlock unavailable (errno {err})')
-    handled = EXECUTE | READ_FILE | READ_DIR
+    reading = EXECUTE | READ_FILE | READ_DIR
+    handled = reading | (WRITE if deny_write else 0)
     attr = RulesetAttr(handled, (BIND_TCP | CONNECT_TCP) if no_tcp and version >= 4 else 0,
-                       SCOPE_ABSTRACT_UNIX_SOCKET if no_tcp and version >= 6 else 0)
+                       SCOPE_ABSTRACT_UNIX_SOCKET if (no_tcp or loopback) and version >= 6 else 0)
     size = 24 if attr.scoped else 16 if attr.net else 8
     ruleset = libc.syscall(SYS_CREATE, ctypes.byref(attr), ctypes.c_size_t(size), ctypes.c_uint32(0))
     if ruleset < 0:
@@ -93,50 +260,81 @@ def main(argv):
             return
         # A file takes file rights only.
         if rights is None:
-            rights = handled if os.path.isdir(place) else EXECUTE | READ_FILE
+            rights = reading if os.path.isdir(place) else EXECUTE | READ_FILE
+        if not os.path.isdir(place):
+            rights &= EXECUTE | READ_FILE | (1 << 1) | (1 << 14)
         rule = PathBeneath(rights, fd)
         if libc.syscall(SYS_ADD, ctypes.c_int(ruleset), ctypes.c_int(1), ctypes.byref(rule), ctypes.c_uint32(0)) < 0:
             sys.exit(f'landlock.py: add_rule {place} errno {ctypes.get_errno()}')
         os.close(fd)
         count += 1
-    # The directories that hold a hidden path, up to the root.
-    holders = set()
-    for path in hidden:
-        at = os.path.dirname(path)
-        while at not in holders and at != os.path.dirname(at):
-            holders.add(at); at = os.path.dirname(at)
-    def grant(directory):
+    # The directories that hold an excluded path, up to the root.
+    def holders_of(excluded):
+        holders = set()
+        for path in excluded:
+            at = os.path.dirname(path)
+            while at not in holders and at != os.path.dirname(at):
+                holders.add(at); at = os.path.dirname(at)
+        return holders
+    # `rights` on every entry beneath `directory` but the excluded ones.
+    def grant(directory, excluded, holders, rights):
         # Links are not followed: what they lead to is granted on its own or not at all.
         try:
             entries = list(os.scandir(directory))
         except OSError:
             return
         for entry in entries:
-            if entry.path in hidden or entry.is_symlink():
+            if entry.path in excluded or entry.is_symlink():
                 continue
             if entry.path in holders:
-                grant(entry.path)
+                grant(entry.path, excluded, holders, rights)
             else:
-                add(entry.path)
+                add(entry.path, rights)
+    holders = holders_of(hidden)
     for place in reads:
         place = os.path.normpath(place)
         if place in holders and os.path.isdir(place):
             add(place, READ_DIR)
-            grant(place)
+            grant(place, hidden, holders, reading)
         else:
             add(place)
-    if stats:
-        with open(stats, 'w') as f:
-            json.dump({'rules': count, 'ms': round((time.monotonic() - started) * 1000, 1)}, f)
+    if deny_write:
+        grant('/', deny_write, holders_of(deny_write), WRITE)
+        for place in writes:
+            add(place, WRITE)
+    state = {'rules': count, 'ms': round((time.monotonic() - started) * 1000, 1)}
+    def report():
+        if stats:
+            with open(stats, 'w') as f:
+                json.dump(state, f)
+    report()
     if libc.prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0:
         sys.exit(f'landlock.py: no_new_privs errno {ctypes.get_errno()}')
     if libc.syscall(SYS_RESTRICT, ctypes.c_int(ruleset), ctypes.c_uint32(0)) < 0:
         sys.exit(f'landlock.py: restrict_self errno {ctypes.get_errno()}')
     os.close(ruleset)
     libc.prctl(PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0)
+    # The command's process sends its filter's listener back over this pair.
+    if loopback:
+        state['supervisor'] = 'not started'
+        report()
+        parent_end, child_end = socket.socketpair()
     pid = os.fork()
     if pid == 0:
         os.setpgid(0, 0)
+        if loopback:
+            parent_end.close()
+            try:
+                if fault == 'unavailable':
+                    raise OSError('test fault')
+                listener = install_filter()
+                socket.send_fds(child_end, [b'x'], [listener])
+                os.close(listener)
+                child_end.close()
+            except OSError as e:
+                # Never run the command unsupervised.
+                sys.stderr.write(f'landlock.py: network supervisor unavailable: {e}\n')
+                os._exit(125)
         try:
             os.execvp(cmd[0], cmd)
         except OSError as e:
@@ -154,8 +352,28 @@ def main(argv):
             pass
     for number in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
         signal.signal(number, forward)
+    supervisor = None
+    if loopback:
+        child_end.close()
+        try:
+            _, fds, _, _ = socket.recv_fds(parent_end, 1, 1)
+        except OSError:
+            fds = []
+        parent_end.close()
+        if fds:
+            state['supervisor'] = 'running'
+            supervisor = threading.Thread(target=supervise, args=(fds[0], state, fault == 'die'), daemon=True)
+            supervisor.start()
+        else:
+            state['supervisor'] = 'unavailable'
     _, status = os.waitpid(pid, 0)
     stop_left()
+    # Every filtered process is gone: the supervisor sees its listener hang up.
+    if supervisor:
+        supervisor.join(5)
+        if supervisor.is_alive():
+            state['supervisor'] = 'did not end with the command'
+    report()
     code = os.waitstatus_to_exitcode(status)
     if code >= 0:
         return code
