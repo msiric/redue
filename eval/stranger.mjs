@@ -11,6 +11,8 @@
 // small docs edit and checks that the project still typechecks and its tests
 // pass, without being told about REDUE: each of its commands is classed as
 // skipped by REDUE's hook, run through REDUE, asked of REDUE, or run plainly.
+// Each command the hook skipped is then run plainly on the files the session
+// left; a skip whose plain run fails is critical.
 //
 //   node eval/stranger.mjs owner/name [owner/name ...] [--npm] [--follow-up] [--out DIR] [--model M]
 //
@@ -131,6 +133,13 @@ for (const name of names) {
           return {command, outcome, output: output.slice(-400)};
         })};
       try { row.follow_up.status = JSON.parse(redue('status', '--sync', '--json').stdout).checks.map(c => ({name: c.name, freshness: c.freshness, result: c.result})); } catch {}
+      // Each command the hook skipped, run plainly on the files the session
+      // left (it edits before it checks): a skip whose plain run fails is critical.
+      row.follow_up.skip_checks = row.follow_up.commands.filter(c => c.outcome === 'skipped by REDUE').map(({command}) => {
+        const plain = sh('bash', ['-o', 'pipefail', '-c', command], {cwd: dir, env, timeout: 900_000});
+        return {command, plain_exit: plain.status, ms: plain.ms, ...plain.status === 0 ? {} : {tail: (plain.stdout + plain.stderr).slice(-1500)}};
+      });
+      row.follow_up.critical = row.follow_up.skip_checks.filter(c => c.plain_exit !== 0).map(c => `skipped "${c.command}" but it fails when run plainly`);
     }
     if (row.installed) redue('stop');
   } catch (error) { row.error = String(error.message).slice(0, 1500); }
@@ -143,4 +152,4 @@ for (const name of names) {
 redactDir(out);
 console.log(JSON.stringify(results.map(r => ({repo: r.repo, s: Math.round((r.ms ?? 0) / 1000), commands: r.commands?.length, failed: r.failed?.length,
   status: r.status?.map(c => `${c.name}:${c.freshness}`).join(' '), hook: r.hook,
-  follow_up: r.follow_up?.commands.map(c => c.outcome).join(', '), error: r.error})), null, 1));
+  follow_up: r.follow_up?.commands.map(c => c.outcome).join(', '), critical: r.follow_up?.critical, error: r.error})), null, 1));
