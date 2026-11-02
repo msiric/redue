@@ -25,6 +25,8 @@ export function testLike(command, script) {
   if (/(^|[\s;&|])redue\s+(--config\s+\S+\s+)?run\s+test(\s|$)/.test(base)) return true;
   if (/(^|[\s;&|])(npm|pnpm|yarn)\s+(run\s+)?test(\s|$)/.test(base)) return true;
   if (/(^|[\s;&|(])pnpm\s+exec\s+(vitest|jest)(\s|$)/.test(base)) return true;
+  // pytest, through uv, Poetry, python -m or .venv/bin.
+  if (/(^|[\s;&|(\/])(pytest|py\.test)(\s|$)/.test(base)) return true;
   return Boolean(script) && new RegExp(`(npm\\s+run|pnpm(\\s+run)?|yarn(\\s+run)?)\\s+${script.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`).test(base);
 }
 

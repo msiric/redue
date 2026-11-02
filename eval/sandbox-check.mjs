@@ -20,6 +20,22 @@ const cache = picomatch(sandboxCaches, {dot: true});
 const installedCache = picomatch(['**/node_modules/{.cache,.vite,.vite-temp,.vitest,.vitest-cache}/**', '**/node_modules/**/*.tsbuildinfo',
   '.venv/**/__pycache__/**', '.venv/bin/python*', '.venv/bin/pypy*', '.venv/bin/𝜋thon*'], {dot: true});
 
+// A trace's lines, read in chunks: a test suite's trace can be larger than
+// the longest string Node can hold (512 MB).
+function* traceLines(trace) {
+  const fd = fs.openSync(trace, 'r'), chunk = Buffer.alloc(1 << 24);
+  try {
+    let rest = Buffer.alloc(0);
+    for (let n; (n = fs.readSync(fd, chunk, 0, chunk.length, null)) > 0;) {
+      const data = Buffer.concat([rest, chunk.subarray(0, n)]), end = data.lastIndexOf(10);
+      if (end < 0) { rest = data; continue; }
+      yield* data.subarray(0, end).toString('utf8').split('\n');
+      rest = Buffer.from(data.subarray(end + 1));
+    }
+    if (rest.length) yield rest.toString('utf8');
+  } finally { fs.closeSync(fd); }
+}
+
 // The sandboxed processes' calls in a trace: what the Landlock launcher
 // starts, once it has restricted itself, and their descendants (the
 // launcher's own reads come before that). Each: {name, ok, error, file,
@@ -27,7 +43,7 @@ const installedCache = picomatch(['**/node_modules/{.cache,.vite,.vite-temp,.vit
 // `file` absolute. A probe is a stat or access call, an O_PATH open, or a
 // failed open.
 export function* sandboxedCalls(trace, root) {
-  const lines = fs.readFileSync(trace, 'utf8').split('\n');
+  const lines = traceLines(trace);
   const procs = new Map(), pending = new Map(), inside = new Set(), launchers = new Set();
   const cwdOf = pid => procs.get(pid) ?? root;
   for (const line of lines) {
