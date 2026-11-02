@@ -120,7 +120,7 @@ try {
   console.log(cli('run','typecheck'));
   const first=await expect('Agent A recorded','CURRENT');
   console.log('Agent B starts without conversation history. Cached status first:');
-  console.log(cli('status'));
+  console.log(cli('status','--cached'));
   const inherited=await expect('Agent B synchronized inherited evidence','CURRENT');
   assert.equal(first.invocation.runId,inherited.invocation.runId);
   put(path.join(root,'notes.md'),'Unrelated documentation.\n');
@@ -135,7 +135,11 @@ try {
   const details=JSON.parse(cli('explain','test','--json'));
   assert.equal(details.checks[0].result,'PASS');assert.equal(details.checks[0].reuse_eligible,false);
   console.log(cli('stop'));
-  assert.equal(JSON.parse(cli('status','--json')).checks[0].freshness,'UNVERIFIED');
+  // Plain status reconciles; with the observer stopped it cannot, and exits 2.
+  const stopped=exec([binary,'--state-dir',state,'status','--json'],{cwd:root,allowFailure:true});
+  assert.equal(stopped.status,2,stopped.stderr);
+  assert.equal(JSON.parse(stopped.stdout).checks[0].freshness,'UNVERIFIED');
+  assert.equal(JSON.parse(cli('status','--cached','--json')).checks[0].freshness,'UNVERIFIED');
   console.log(cli('start'));const restart=await expect('Restart and reconciliation','CURRENT');
   assert.equal(restart.invocation.runId,restored.invocation.runId);
   assert.match(cli('status','--short'),/^REDUE UNVERIFIED/);

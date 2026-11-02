@@ -56,6 +56,6 @@ export function renderRun(value) {
   if(value.invocation!=='exited')lines.push(`Invocation ${value.invocation}; no reusable passing evidence.`);
   else if(!value.coverage_qualified)lines.push('Applicability remains UNVERIFIED: input coverage is incomplete.');
   else if(!value.stable)lines.push('Applicability remains UNVERIFIED: inputs changed or observation was unavailable during execution.');
-  else lines.push('Inspect redue status before reusing this evidence. Cached status may require --sync to establish applicability.');
+  else lines.push('Check redue status before reusing this evidence.');
   return lines.join('\n');
 }
