@@ -41,7 +41,13 @@ fs.mkdirSync(out, {recursive: true});
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function api(pathname) {
   for (let attempt = 0; ; attempt++) {
-    const r = await fetch(`https://api.github.com/${pathname}`, {headers: {Authorization: `Bearer ${process.env.GH_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'}});
+    let r;
+    try {
+      r = await fetch(`https://api.github.com/${pathname}`, {headers: {Authorization: `Bearer ${process.env.GH_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'}});
+    } catch (error) {
+      if (attempt < 5) { console.log(`${pathname}: ${error.message} (${error.cause?.code ?? error.cause?.message}); retrying`); await sleep(5000 * (attempt + 1)); continue; }
+      throw error;
+    }
     if (r.ok) return r.json();
     if ((r.status === 403 || r.status === 429) && r.headers.get('x-ratelimit-remaining') === '0') {
       const wait = Number(r.headers.get('x-ratelimit-reset')) * 1000 - Date.now() + 5000;
@@ -54,7 +60,7 @@ async function api(pathname) {
 }
 
 function git(dir, args, {input, allow = false, encoding = 'utf8'} = {}) {
-  const r = spawnSync('git', args, {cwd: dir, input, encoding, maxBuffer: 2 * 1024 * 1024 * 1024, timeout: 30 * 60_000,
+  const r = spawnSync('git', args, {cwd: dir, input: encoding === 'buffer' && input != null ? Buffer.from(input) : input, encoding: encoding === 'buffer' ? undefined : encoding, maxBuffer: 2 * 1024 * 1024 * 1024, timeout: 30 * 60_000,
     env: {...process.env, GIT_TERMINAL_PROMPT: '0'}});
   if (r.status !== 0 && !allow) throw Error(`git ${args.slice(0, 3).join(' ')}: ${String(r.stderr).slice(0, 300)}`);
   return r;
@@ -93,7 +99,7 @@ async function study(repo) {
   };
   const blob = oid => { if (!blobCache.has(oid)) loadBlobs([oid]); return blobCache.get(oid); };
 
-  // Trees: entries and keys, cached by tree id.
+  // Trees: entries and keys, by tree id.
   const treeCache = new Map();
   const treeInfo = tree => {
     if (treeCache.has(tree)) return treeCache.get(tree);
@@ -124,6 +130,8 @@ async function study(repo) {
     const pkgKeys = Object.fromEntries(packages.map(p => [p.name, sha(rootKey + '\n' + closure(p.name).map(n => `${n} ${ownKey.get(n)}`).join('\n'))]));
     const info = {entries, byPath, read, kept, keyB: entriesKey(kept), docs: docs.size, ws: {kind: packages.length ? ws.kind : null, n: packages.length}, packages, byName, pkgByDir, pkgKeys, closure};
     treeCache.set(tree, info);
+    // A large monorepo's listings do not all fit in memory: keep the last few.
+    if (treeCache.size > 4) treeCache.delete(treeCache.keys().next().value);
     return info;
   };
 
