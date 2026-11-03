@@ -27,7 +27,8 @@
 //   scripts (esbuild's links its binary), on a disposable CI runner only.
 //   --init-timing: only the plain `init --dry-run`, with up to an hour, and
 //   how long it took (row.init.plain.ms): init runs each sandboxed check
-//   inside and outside the sandbox first.
+//   inside and outside the sandbox first. --redue-version V runs that
+//   published REDUE for it instead of this checkout's, to compare.
 //   --sandbox: instead of timing, run the typecheck, lint, test and build
 //   scripts plainly and inside OS sandboxes, alternated (eval/sandbox.mjs).
 //
@@ -58,7 +59,7 @@ const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : 
 const initOnly = argv.includes('--init-only'), recorded = argv.includes('--recorded'), product = argv.includes('--product'),
   initTiming = argv.includes('--init-timing'), keepTraces = argv.includes('--keep-traces'), allRecipes = argv.includes('--all-recipes'), testHidingMode = argv.includes('--test-hiding'), supervisorCostMode = argv.includes('--supervisor-cost'),
   installScripts = argv.includes('--install-scripts'), sandbox = argv.includes('--sandbox');
-let names = argv.filter((arg, i) => !arg.startsWith('-') && argv[i - 1] !== '--shard');
+let names = argv.filter((arg, i) => !arg.startsWith('-') && !['--shard', '--redue-version'].includes(argv[i - 1]));
 if (!names.length) names = readJson(path.join(evalDir, 'census-repos.json')).repos;
 // Named repos are sharded too, so CI can rerun a list across its shards.
 if (shardArg) { const [k, n] = shardArg.split('/').map(Number); names = names.filter((_, i) => i % n === k - 1); }
@@ -87,8 +88,16 @@ function install(dir, pm) {
   }
 }
 
+// --redue-version: that published REDUE, installed once (on CI runners only).
+let initRedue = checkoutRedue;
+if (argv.includes('--redue-version')) {
+  const version = argv[argv.indexOf('--redue-version') + 1], prefix = path.join(tmpRoot, `redue-${version}`);
+  const r = sh('npm', ['install', '--prefix', prefix, '--no-audit', '--no-fund', `@redue/cli@${version}`], {timeout: 300_000});
+  if (r.status !== 0) throw Error(`cannot install @redue/cli@${version}: ${tail(r, 300)}`);
+  initRedue = path.join(prefix, 'node_modules', '@redue', 'cli', 'bin', 'redue.mjs');
+}
 function init(dir, ...args) {
-  const r = run(process.execPath, [checkoutRedue, '--config', path.join(dir, '.census.redue.json'), 'init', '--dry-run', '--json', ...args], dir, initTiming ? 3_600_000 : 600_000);
+  const r = run(process.execPath, [initRedue, '--config', path.join(dir, '.census.redue.json'), 'init', '--dry-run', '--json', ...args], dir, initTiming ? 3_600_000 : 600_000);
   try {
     const out = JSON.parse(r.stdout), proposed = out.proposed_config?.checks ?? [];
     return {ms: r.ms, issue: out.issue, layout: out.installation_layout, pm: out.package_manager, pmVersion: out.version, workspaces: out.workspaces,
@@ -226,7 +235,7 @@ async function census(name, modes) {
   monitor?.kill();
   const scripts = Object.entries(pkg.scripts ?? {});
   // The root script init picked (a direct recipe's pick first), else a name match.
-  const initPick = kind => [row.init.tests, row.init.typescript, row.init.plain].flatMap(r => r.checks ?? [])
+  const initPick = kind => [row.init.tests, row.init.typescript, row.init.plain].flatMap(r => r?.checks ?? [])
     .find(c => c.name === kind && !c.workspace && pkg.scripts?.[c.script])?.script;
   row.scripts = {}; row.timings = {};
   for (const [kind, timeout] of [['build', 900_000], ['typecheck', 600_000], ['lint', 600_000], ['test', 600_000]]) {
