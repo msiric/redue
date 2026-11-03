@@ -3,7 +3,7 @@
 // from the GitHub API, and with --images the runner image each listed job ran
 // on (from the first lines of its log). Reads only API data, so it runs
 // anywhere with GH_TOKEN. Writes jobs-REPO.json.gz (images-REPO.json) next to
-// each replay-REPO.json.gz, and skips repos it already has.
+// each replay-REPO.json.gz, and fetches only the runs it does not have yet.
 //
 //   node eval/ci-replay-jobs.mjs DIR...
 //   node eval/ci-replay-jobs.mjs --images NEEDED.json DIR...   (NEEDED: {repo: [job ids]})
@@ -66,9 +66,10 @@ for (const file of files) {
     continue;
   }
   const target = path.join(dir, `jobs-${slug(data.repo)}.json.gz`);
-  if (fs.existsSync(target)) { console.log(`${data.repo}: have it`); continue; }
-  const jobs = {};
-  await pool(data.runs, 8, async run => {
+  const jobs = fs.existsSync(target) ? JSON.parse(zlib.gunzipSync(fs.readFileSync(target))) : {};
+  const todo = data.runs.filter(run => !jobs[run.id]);
+  if (!todo.length) { console.log(`${data.repo}: have it`); continue; }
+  await pool(todo, 8, async run => {
     const list = [];
     for (let page = 1; page <= 5; page++) {
       const r = await get(`repos/${data.repo}/actions/runs/${run.id}/jobs?filter=latest&per_page=100&page=${page}`);
@@ -81,5 +82,5 @@ for (const file of files) {
       steps: (j.steps || []).map(s => ({n: s.number, name: s.name, conclusion: s.conclusion, started: s.started_at, completed: s.completed_at}))}));
   });
   fs.writeFileSync(target, zlib.gzipSync(JSON.stringify(jobs)));
-  console.log(`${data.repo}: jobs for ${Object.keys(jobs).length} runs, ${remaining} API calls left`);
+  console.log(`${data.repo}: jobs for ${todo.length} more runs, ${remaining} API calls left`);
 }

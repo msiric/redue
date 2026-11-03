@@ -15,6 +15,8 @@
 // otherwise the answered check steps save their own time (key c: a step over
 // several packages saves its share of answered packages, assuming equal cost).
 //
+// Monorepos are the repos with 5 or more workspace packages.
+//
 //   node eval/ci-replay-report.mjs [--need NEEDED.json] [--json OUT.json] DIR...
 import fs from 'node:fs';
 import path from 'node:path';
@@ -197,8 +199,10 @@ function summarize(list) {
 }
 
 const situations = ['pr', 'main', 'queue', 'branch'];
+// A monorepo: 5 or more workspace packages at the default branch's head, as
+// measured (the repo list's group is a guess made before).
 const groups = {typical: [], monorepo: []};
-for (const [repo, {data}] of byRepo) (groups[data.group] ?? (groups[data.group] = [])).push(repo);
+for (const [repo, {data}] of byRepo) groups[(data.monorepo?.n ?? 0) >= 5 ? 'monorepo' : 'typical'].push(repo);
 const report = {stats, groups: {}, repos: {}};
 const lines = [];
 const row = (label, s) => `| ${label} | ${s.checkRuns} | ${minutes(s.minutes)} | ${variants.map(v => `${pct(s[v].runs, s.checkRuns)} / ${pct(s[v].minutesSaved, s.minutes)}`).join(' | ')} |`;
