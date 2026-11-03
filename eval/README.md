@@ -63,6 +63,20 @@ Importing any entry point throws before it does anything (`entryPoint` in
 - `pnpm-shim-templates.mjs`: rebuilds `src/pnpm-shim-templates.json`, the
   launcher templates pnpm releases write, by installing a small workspace with
   each release offline.
+- `ci-replay.mjs` (eval.yml `ci-replay`): the CI replay study. For each repo
+  in `ci-replay-repos.json`, lists the last 300 runs of the workflows that run
+  a typecheck, lint or test, maps their steps to checks (`ci-replay-lib.mjs`),
+  and computes three keys at each run's commit: the git tree, the tree
+  without the documentation sandbox-v3 hides, and per workspace package its
+  closure (its files, its workspace dependencies, root files). It clones the
+  repos but runs none of their code.
+  `ci-replay-jobs.mjs` then fetches the runs' job and step timings and runner
+  images from the API (data only, so it runs anywhere with `GH_TOKEN`), and
+  `ci-replay-report.mjs` counts the check runs and job-minutes an earlier
+  passing run with the same key could have answered.
+- `install-spike.mjs` (eval.yml `install-spike`, two fresh runners per shard):
+  installs each `spike` repo from its lockfile and writes a manifest of the
+  installed tree; `install-spike-report.mjs` compares the two copies.
 
 ## Run
 

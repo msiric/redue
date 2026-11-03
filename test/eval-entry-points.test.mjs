@@ -11,7 +11,7 @@ import {pathToFileURL} from 'node:url';
 const evalDir = path.resolve('eval');
 const files = fs.readdirSync(evalDir).filter(file => file.endsWith('.mjs')).map(file => path.join(evalDir, file));
 const text = file => fs.readFileSync(file, 'utf8');
-const ci = ['census', 'python-census', 'run', 'screen', 'stranger', 'hidden-trial', 'group-run', 'pnpm-shim-templates', 'sandbox-nesting']
+const ci = ['census', 'python-census', 'run', 'screen', 'stranger', 'hidden-trial', 'group-run', 'pnpm-shim-templates', 'sandbox-nesting', 'ci-replay', 'install-spike']
   .map(name => path.join(evalDir, `${name}.mjs`));
 const env = {PATH: '', ...process.platform === 'win32' ? {SystemRoot: process.env.SystemRoot} : {}};
 
