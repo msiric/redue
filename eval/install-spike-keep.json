@@ -1,0 +1,114 @@
+{
+ "DIYgod/RSSHub": [
+  "node_modules/.modules.yaml",
+  "node_modules/.pnpm-workspace-state-v1.json"
+ ],
+ "PrefectHQ/prefect": [
+  ".venv/lib/python3.14/site-packages/prefect-3.9.2.dev3+2.g60d9ea545.dist-info/RECORD",
+  ".venv/lib/python3.14/site-packages/prefect-3.9.2.dev3+2.g60d9ea545.dist-info/uv_cache.json",
+  "__pycache__/hatch_build.cpython-314.pyc",
+  "src/prefect/_build_info.py",
+  "tools/__pycache__/write_build_info.cpython-314.pyc"
+ ],
+ "better-auth/better-auth": [
+  "docs/.source/browser.ts",
+  "node_modules/.modules.yaml",
+  "node_modules/.pnpm-workspace-state-v1.json"
+ ],
+ "fastapi/fastapi": [
+  ".venv/lib/python3.11/site-packages/fastapi-0.162.0.dist-info/RECORD",
+  ".venv/lib/python3.11/site-packages/fastapi-0.162.0.dist-info/uv_cache.json"
+ ],
+ "modelcontextprotocol/python-sdk": [
+  ".venv/lib/python3.14/site-packages/markupsafe-3.0.2.dist-info/RECORD",
+  ".venv/lib/python3.14/site-packages/markupsafe/_speedups.cpython-314-x86_64-linux-gnu.so",
+  ".venv/lib/python3.14/site-packages/mcp-2.3.1.dev18+af4c6f4.dist-info/RECORD",
+  ".venv/lib/python3.14/site-packages/mcp-2.3.1.dev18+af4c6f4.dist-info/uv_cache.json",
+  ".venv/lib/python3.14/site-packages/mcp_example_stories-0.0.0.dist-info/RECORD",
+  ".venv/lib/python3.14/site-packages/mcp_example_stories-0.0.0.dist-info/uv_cache.json",
+  ".venv/lib/python3.14/site-packages/mcp_types-2.3.1.dev18+af4c6f4.dist-info/RECORD",
+  ".venv/lib/python3.14/site-packages/mcp_types-2.3.1.dev18+af4c6f4.dist-info/uv_cache.json",
+  ".venv/lib/python3.14/site-packages/pyyaml-6.0.2.dist-info/RECORD",
+  ".venv/lib/python3.14/site-packages/yaml/_yaml.cpython-314-x86_64-linux-gnu.so"
+ ],
+ "modelcontextprotocol/typescript-sdk": [
+  "node_modules/.modules.yaml",
+  "node_modules/.pnpm-workspace-state-v1.json"
+ ],
+ "n8n-io/n8n": [
+  "node_modules/.modules.yaml",
+  "node_modules/.pnpm-workspace-state-v1.json"
+ ],
+ "openai/openai-agents-python": [
+  ".venv/lib/python3.14/site-packages/evdev-1.9.2.dist-info/RECORD",
+  ".venv/lib/python3.14/site-packages/evdev/_ecodes.cpython-314-x86_64-linux-gnu.so",
+  ".venv/lib/python3.14/site-packages/markupsafe-3.0.2.dist-info/RECORD",
+  ".venv/lib/python3.14/site-packages/markupsafe/_speedups.cpython-314-x86_64-linux-gnu.so",
+  ".venv/lib/python3.14/site-packages/openai_agents-0.24.0.dist-info/RECORD",
+  ".venv/lib/python3.14/site-packages/openai_agents-0.24.0.dist-info/uv_cache.json",
+  ".venv/lib/python3.14/site-packages/pyyaml-6.0.2.dist-info/RECORD",
+  ".venv/lib/python3.14/site-packages/yaml/_yaml.cpython-314-x86_64-linux-gnu.so"
+ ],
+ "pydantic/pydantic": [
+  ".venv/lib/python3.14/site-packages/pydantic-2.15.0a0+dev.dist-info/RECORD",
+  ".venv/lib/python3.14/site-packages/pydantic-2.15.0a0+dev.dist-info/uv_cache.json",
+  ".venv/lib/python3.14/site-packages/pydantic_core-2.50.0.dist-info/RECORD",
+  ".venv/lib/python3.14/site-packages/pydantic_core-2.50.0.dist-info/sboms/pydantic-core.cyclonedx.json",
+  ".venv/lib/python3.14/site-packages/pydantic_core-2.50.0.dist-info/uv_cache.json",
+  "pydantic-core/target/.rustc_info.json",
+  "pydantic-core/target/debug/.fingerprint/jiter-02afcd9424af33e2/run-build-script-build-script-build",
+  "pydantic-core/target/debug/.fingerprint/jiter-02afcd9424af33e2/run-build-script-build-script-build.json",
+  "pydantic-core/target/debug/.fingerprint/jiter-5debe309b0d1fdb7/lib-jiter.json",
+  "pydantic-core/target/debug/.fingerprint/pydantic-core-13c05390684f223f/lib-_pydantic_core",
+  "pydantic-core/target/debug/.fingerprint/pydantic-core-13c05390684f223f/lib-_pydantic_core.json",
+  "pydantic-core/target/debug/.fingerprint/pydantic-core-275688aed62e11e4/run-build-script-build-script-build.json",
+  "pydantic-core/target/debug/.fingerprint/pyo3-1746aef09324ea0d/lib-pyo3",
+  "pydantic-core/target/debug/.fingerprint/pyo3-1746aef09324ea0d/lib-pyo3.json",
+  "pydantic-core/target/debug/.fingerprint/pyo3-a943ae2b7d3a2b9f/run-build-script-build-script-build.json",
+  "pydantic-core/target/debug/.fingerprint/pyo3-ffi-a3baf916c0117e1f/lib-pyo3_ffi",
+  "pydantic-core/target/debug/.fingerprint/pyo3-ffi-a3baf916c0117e1f/lib-pyo3_ffi.json",
+  "pydantic-core/target/debug/.fingerprint/pyo3-ffi-dbef16fb80edb0c5/run-build-script-build-script-build.json",
+  "pydantic-core/target/debug/build/pyo3-a943ae2b7d3a2b9f/output",
+  "pydantic-core/target/debug/build/pyo3-ffi-dbef16fb80edb0c5/output",
+  "pydantic-core/target/wheels/pydantic_core-2.50.0-cp314-cp314-linux_x86_64.whl"
+ ],
+ "pydantic/pydantic-ai": [
+  ".venv/lib/python3.14/site-packages/pydantic_ai-2.65.1.dev29+78372f8a7.dist-info/RECORD",
+  ".venv/lib/python3.14/site-packages/pydantic_ai-2.65.1.dev29+78372f8a7.dist-info/uv_cache.json",
+  ".venv/lib/python3.14/site-packages/pydantic_ai_slim-2.65.1.dev29+78372f8a7.dist-info/RECORD",
+  ".venv/lib/python3.14/site-packages/pydantic_ai_slim-2.65.1.dev29+78372f8a7.dist-info/uv_cache.json",
+  ".venv/lib/python3.14/site-packages/pydantic_evals-2.65.1.dev29+78372f8a7.dist-info/RECORD",
+  ".venv/lib/python3.14/site-packages/pydantic_evals-2.65.1.dev29+78372f8a7.dist-info/uv_cache.json",
+  ".venv/lib/python3.14/site-packages/pydantic_graph-2.65.1.dev29+78372f8a7.dist-info/RECORD",
+  ".venv/lib/python3.14/site-packages/pydantic_graph-2.65.1.dev29+78372f8a7.dist-info/uv_cache.json"
+ ],
+ "smogon/pokemon-showdown": [
+  "node_modules/better-sqlite3/build/Makefile",
+  "node_modules/better-sqlite3/build/Release/.deps/Release/obj.target/better_sqlite3/src/better_sqlite3.o.d",
+  "node_modules/better-sqlite3/build/Release/.deps/Release/obj.target/sqlite3/gen/sqlite3/sqlite3.o.d",
+  "node_modules/better-sqlite3/build/Release/.deps/Release/obj.target/test_extension/deps/test_extension.o.d",
+  "node_modules/better-sqlite3/build/deps/sqlite3.target.mk",
+  "node_modules/node-gyp/gyp/pylib/gyp/__pycache__/__init__.cpython-314.pyc",
+  "node_modules/node-gyp/gyp/pylib/gyp/generator/__pycache__/__init__.cpython-314.pyc",
+  "node_modules/sqlite3/build/Makefile",
+  "node_modules/sqlite3/build/Release/.deps/Release/obj.target/node-addon-api/nothing.o.d",
+  "node_modules/sqlite3/build/Release/.deps/Release/obj.target/node_sqlite3/src/backup.o.d",
+  "node_modules/sqlite3/build/Release/.deps/Release/obj.target/sqlite3/gen/sqlite-autoconf-3440200/sqlite3.o.d",
+  "node_modules/sqlite3/build/deps/sqlite3.target.mk",
+  "node_modules/sqlite3/node-addon-api/nothing.target.mk"
+ ],
+ "trpc/trpc": [
+  "examples/nuxt/.nuxt/tsconfig.json",
+  "examples/nuxt/node_modules/.cache/nuxt/chrome-workspace.json",
+  "node_modules/.modules.yaml",
+  "node_modules/.pnpm-workspace-state-v1.json"
+ ],
+ "vercel/ai": [
+  "examples/nuxt-openai/.nuxt/nuxt.d.ts",
+  "examples/nuxt-openai/.nuxt/tsconfig.json",
+  "examples/nuxt-openai/node_modules/.cache/nuxt/chrome-workspace.json",
+  "examples/sveltekit-openai/.svelte-kit/generated/server/internal.js",
+  "node_modules/.modules.yaml",
+  "node_modules/.pnpm-workspace-state-v1.json"
+ ]
+}
