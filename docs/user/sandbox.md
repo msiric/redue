@@ -87,6 +87,20 @@ reusing the plain run, and writes `sandbox-v1` only if that agrees. So a
 check runs two or three times at init, not four. `init` no longer writes
 `sandbox-v2`; a check already set up with it keeps it.
 
+Each trial run stops after 5 minutes. A run that stops there never counts as
+agreeing: when the plain run reaches the limit, `init` runs nothing in the
+sandbox and writes the fallback; when a sandboxed run reaches it, no further
+trial follows. `init` marks such a check (`time_limit` in `--json` gives
+its kind), and `redue setup` names them and prints one command:
+`redue init --check typecheck --no-time-limit` (or `redue init
+--no-time-limit` for several kinds). With an existing config, that command
+runs with no limit the checks the config has and does not run in the
+sandbox, and a check it lacks when `--check` names its kind. It replaces
+the row of each that qualifies, if the row runs the same script, or adds
+it, and leaves the rest of the config as it was. It restarts a running
+observer with the new config, and `redue remove` still deletes a config
+`setup` created.
+
 With `sandbox-v3`, each run also hides the documentation: the files git
 lists (and does not ignore) named `*.md`, `*.mdx`, `*.rst`, `LICENSE*` or
 `CHANGELOG*` anywhere, and text, image and PDF files (`.txt`, `.adoc`,

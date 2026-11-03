@@ -33,7 +33,10 @@ Commands:
                        init, agent setup claude, start, one recorded run per check
   remove [--yes]       Undo setup: integration, observer state, and the config setup created
   init [--dry-run] [--workspace NAME] [--check KIND] [--recipe typescript-direct|tests-direct|node-script|sandbox]
-                       Discover existing scripts; optionally select one workspace/check
+       [--no-time-limit]
+                       Discover existing scripts; optionally select one workspace/check.
+                       --no-time-limit: trial runs have no 5-minute limit; with a config, the checks
+                       it does not run in the sandbox are tried, and those that qualify are updated
   agent setup codex|claude [--dry-run|--apply] [--json]
   agent doctor [codex|claude] [--json]
   agent remove codex|claude [--dry-run|--apply] [--json]
@@ -118,11 +121,13 @@ if(command==='init')for(let i=0;i<args.length;){
 }
 const check=['run','detail','explain'].includes(command)&&args[0]&&!args[0].startsWith('--')?args.shift():null;
 if(command==='run'&&!check)error('run requires a check name');
-if(args.some(value=>!['--json','--sync','--cached','--dry-run','--short'].includes(value)))error('unknown option; use --help');
+if(args.some(value=>!['--json','--sync','--cached','--dry-run','--short','--no-time-limit'].includes(value)))error('unknown option; use --help');
 if(sync&&!['status','detail','explain'].includes(command))error('--sync is for status or detail');
 if(cachedOnly&&(command!=='status'||args.includes('--sync')))error('--cached is a status option; do not combine it with --sync');
 if(short&&(command!=='status'||json||args.includes('--sync')))error('--short is a cached status option; do not combine it with --sync or --json');
 if(dryRun&&command!=='init')error('--dry-run is for init');
+const noTimeLimit=args.includes('--no-time-limit');
+if(noTimeLimit&&command!=='init')error('--no-time-limit is for init');
 
 if(command==='init'){
   const {discoverNodeProject,sourceLinkIssue}=await import('../src/node-onboarding.mjs');
@@ -164,36 +169,63 @@ if(command==='init'){
   // where the plain run passes. Any other difference is tried once with the
   // whole checkout, reusing the plain run. Otherwise init writes what it
   // would have without the sandboxed recipe, with the reason. Each check
-  // costs one plain run and one or two sandboxed runs.
+  // costs one plain run and one or two sandboxed runs. A run past the trial
+  // limit ends the check's trials (time_limit); --no-time-limit sets none.
   const trialIssue=trial=>trial.issue?`the sandbox cannot run here (${trial.issue})`:
+    trial.timedOut?`it ran past init's 5-minute trial limit${trial.timedOut==='sandboxed'?' inside the sandbox':''}`+
+      ` (redue init --check ${trial.kind} --no-time-limit tries it without the limit)`:
     // A failure both ways that shows a refusal cannot be told from a real one.
     trial.same?null:trial.plain!==trial.sandboxed?`exit ${trial.sandboxed} inside the sandbox, ${trial.plain} outside it${trial.line?` (${trial.line})`:''}`:
     trial.line?`it fails both ways (exit ${trial.plain}), with a sign of a refusal inside the sandbox (${trial.line})`:
     `the output differs inside the sandbox: ${JSON.stringify(trial.output.sandboxed)} instead of ${JSON.stringify(trial.output.plain)}`;
+  // With --no-time-limit and a config, the checks the config has and does
+  // not run in the sandbox are tried, and one it lacks when --check names
+  // it. Those that qualify replace their rows (a row that runs the same
+  // script) or are added.
+  const configured=fs.existsSync(configFile);
+  let existing=null,existingText=null;
+  if(configured&&noTimeLimit){
+    try{existingText=fs.readFileSync(configFile,'utf8');existing=JSON.parse(existingText);}catch(e){error(`cannot read ${configFile}: ${e.message}`);}
+    if(!Array.isArray(existing?.checks))error(`cannot read ${configFile}: it has no checks`);
+    if((existing.root??'.')!=='.'||!samePath(realObservedPath(path.dirname(configFile)),discovery.root))
+      error('init updates only a config at the repository root, without root; run it there');
+  }
+  const timeout=noTimeLimit?0:undefined,improved=new Map();
   let trials=0;
   for(const [at,row] of [...discovery.checks.entries()]){
     if(row.qualification!==sandboxQualification||row.level!=='ready')continue;
+    const old=existing?.checks.find(check=>check.name===row.config.name);
+    const sameRun=old&&old.kind===row.config.kind&&(row.config.script?old.script===row.config.script:
+      JSON.stringify(old.command)===JSON.stringify(row.config.command));
+    const notTried=!existing?null:!old?(checkSelection?null:'the config does not have it; name its kind with --check to add it'):
+      isSandboxed(old.qualification)?'the config already runs it in the sandbox':sameRun?null:'the config runs something else under that name';
+    if(notTried){discovery.checks[at]=null;discovery.skipped.push({kind:row.config.name,reason:`${row.config.name}: not tried; ${notTried}`});continue;}
     if(!json)console.error(`Running ${row.config.name} inside and outside the sandbox to confirm it...`);
-    const docs=await sandboxTrial(discovery.root,row.config,{hide:'docs'});
+    const docs={...await sandboxTrial(discovery.root,row.config,{hide:'docs',timeout}),kind:row.config.kind};
     if(!docs.issue)trials++;
     if(!docs.issue&&docs.same){
       row.config={...row.config,qualification:docsQualification};row.qualification=docsQualification;
-      row.reason=row.reason.replace('the whole checkout is its input',"the checkout's files git doesn't ignore, except its documentation, are its input")+`; ran both ways at init, exit ${docs.plain}`;continue;}
-    if(!docs.issue&&docs.refusedHidden){
-      row.reason+=`; at init it passed, then failed reading a file that was hidden (${docs.refusedHidden}), so the whole checkout is its input, not run that way at init`;continue;}
+      row.reason=row.reason.replace('the whole checkout is its input',"the checkout's files git doesn't ignore, except its documentation, are its input")+`; ran both ways at init, exit ${docs.plain}`;
+      improved.set(row.config.name,row.config);continue;}
+    if(!docs.issue&&!docs.timedOut&&docs.refusedHidden){
+      row.reason+=`; at init it passed, then failed reading a file that was hidden (${docs.refusedHidden}), so the whole checkout is its input, not run that way at init`;
+      improved.set(row.config.name,row.config);continue;}
     // Without a list of the ignored files or the documentation, the whole checkout is tried on its own.
-    const trial=docs.plainRun?await sandboxTrial(discovery.root,row.config,{plain:docs.plainRun}):
-      [hiddenListIssue,hiddenDocsIssue].includes(docs.issue)?await sandboxTrial(discovery.root,row.config):docs;
+    const trial=docs.timedOut?docs:docs.plainRun?{...await sandboxTrial(discovery.root,row.config,{plain:docs.plainRun,timeout}),kind:row.config.kind}:
+      [hiddenListIssue,hiddenDocsIssue].includes(docs.issue)?{...await sandboxTrial(discovery.root,row.config,{timeout}),kind:row.config.kind}:docs;
     if(trial!==docs&&!trial.issue)trials++;
     const issue=trialIssue(trial);
     if(!issue){row.reason+=`; ran both ways at init, exit ${trial.plain}; the whole checkout is its input: `+
-      (docs.issue?docs.issue:`with the files git ignores and the documentation hidden, ${trialIssue(docs)}`);continue;}
-    if(row.fallback)discovery.checks[at]={...row.fallback,reason:`Sandboxed recipe unavailable: ${issue}; ${row.fallback.reason}`};
-    else{discovery.checks[at]=null;discovery.skipped.push({kind:row.config.name,reason:`${row.config.name}: sandboxed recipe unavailable: ${issue}`});}
+      (docs.issue?docs.issue:`with the files git ignores and the documentation hidden, ${trialIssue(docs)}`);
+      improved.set(row.config.name,row.config);continue;}
+    // time_limit: the kind that --check takes to try it without the limit.
+    const limited=trial.timedOut?{timeLimit:row.config.kind}:{};
+    if(row.fallback)discovery.checks[at]={...row.fallback,...limited,reason:`Sandboxed recipe unavailable: ${issue}; ${row.fallback.reason}`};
+    else{discovery.checks[at]=null;discovery.skipped.push({kind:row.config.name,...trial.timedOut?{time_limit:row.config.kind}:{},reason:`${row.config.name}: sandboxed recipe unavailable: ${issue}`});}
   }
   discovery.checks=discovery.checks.filter(Boolean).map(({fallback,...row})=>row);
   discovery.config.checks=discovery.checks.map(row=>row.config);
-  const configured=fs.existsSync(configFile),unsupported=Boolean(discovery.observationIssue||
+  const unsupported=Boolean(discovery.observationIssue||
     discovery.manager.issue&&!['npm','yarn','pnpm'].includes(discovery.manager.name)||
     discovery.manager.name==='yarn'&&!discovery.manager.version);
   const willWrite=!dryRun&&!configured&&!unsupported&&discovery.checks.length>0;
@@ -202,9 +234,9 @@ if(command==='init'){
     installation_layout:discovery.manager.layout,
     issue:discovery.observationIssue||discovery.manager.issue,workspaces:discovery.workspaces,
     ambiguous:discovery.ambiguous,skipped:discovery.skipped||[],
-    checks:discovery.checks.map(({config:check,level,reason})=>({name:check.name,
+    checks:discovery.checks.map(({config:check,level,reason,timeLimit})=>({name:check.name,
       script:check.script||null,command:check.command||null,
-      workspace:check.workspace||null,level,reason})),config:configFile,
+      workspace:check.workspace||null,level,reason,...timeLimit?{time_limit:timeLimit}:{}})),config:configFile,
     written:willWrite,existing:configured,writable:!configured&&!unsupported&&discovery.checks.length>0};
   if(!json) {
     if(summary.package_manager||!discovery.python)console.log(`Node ${summary.node}; ${summary.package_manager||'unknown package manager'}`+
@@ -223,7 +255,8 @@ if(command==='init'){
       console.log(`  ${row.kind}: ambiguous scripts (${row.scripts.join(', ')}); choose one explicitly`);
     for(const row of summary.skipped)console.log(`  Skipped: ${row.reason}`);
     if(!summary.checks.length)console.log('No useful existing verification scripts found.');
-    console.log(configured?`Existing ${configFile} left unchanged.`:
+    console.log(existing&&improved.size?(dryRun?`Preview only; ${configFile} was not updated.`:`Updating ${[...improved.keys()].join(', ')} in ${configFile}.`):
+      configured?`Existing ${configFile} left unchanged.`:
       dryRun?`Preview only; ${configFile} was not written.`:
         willWrite?`Writing ${configFile}; inspect it before running checks.`:'No configuration will be written.');
   }
@@ -236,6 +269,23 @@ if(command==='init'){
       console.log(`Next: review the config, then redue start and redue run ${JSON.stringify(discovery.checks[0].config.name)}.`);
       console.log('Connect your agent: redue agent setup codex (or claude). Preview with --dry-run.');
       console.log('Then redue status says whether each result applies to the files as they are now.');}
+  } else if(existing&&improved.size&&!dryRun){
+    if(fs.readFileSync(configFile,'utf8')!==existingText)error(`${configFile} changed while the checks ran; nothing was written. Run init again`);
+    // The observer keeps the config it started with: it is restarted around the update.
+    const state=stateOverride||projectState(discovery.root,configFile);
+    let running=false;try{running=processAlive(Number(fs.readFileSync(path.join(state,'observer.lock','pid'),'utf8')));}catch{}
+    const self=action=>spawnSync(process.execPath,[process.argv[1],'--config',configFile,...stateOverride?['--state-dir',stateOverride]:[],action],
+      {stdio:['ignore','pipe','pipe'],encoding:'utf8'});
+    if(running&&self('stop').status!==0)error('the observer did not stop; nothing was written');
+    const names=new Set(existing.checks.map(check=>check.name));
+    existing.checks=[...existing.checks.map(check=>improved.get(check.name)??check),...[...improved.values()].filter(check=>!names.has(check.name))];
+    const text=JSON.stringify(existing,null,2)+'\n';
+    fs.writeFileSync(configFile,text);
+    // A config setup created is still one redue remove deletes.
+    (await import('../src/setup.mjs')).configRewritten(discovery.root,existingText,text);
+    Object.assign(summary,{written:true,updated:[...improved.keys()],observer:!running?'not running':self('start').status===0?'restarted':'not started'});
+    if(!json)console.log(`Updated ${[...improved.keys()].join(', ')} in ${configFile}.`+
+      {restarted:' Restarted the observer with it.','not started':' The observer did not start again: run redue start.','not running':''}[summary.observer]);
   } else if(unsupported&&!json)console.log(`No config written: ${summary.issue||'unsupported discovery boundary'}.`);
   if(json)console.log(JSON.stringify({...summary,proposed_config:discovery.config}));
   await exit(0);

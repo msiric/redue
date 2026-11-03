@@ -5,6 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import {spawnSync,execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
+import {sandboxSupport} from '../src/sandbox.mjs';
 
 const bin=path.resolve('bin/redue.mjs');
 const unsupported=process.platform==='win32'?'the general recipe records runs on macOS and Linux':false;
@@ -28,7 +29,7 @@ function project(t){
   const redue=(...args)=>spawnSync(process.execPath,[bin,...args],{cwd:root,env,encoding:'utf8',timeout:120000});
   // An observer setup did not start is left running by remove: stop it too.
   t.after(()=>{redue('remove','--yes');redue('stop');fs.rmSync(base,{recursive:true,force:true,maxRetries:5,retryDelay:200});});
-  return {root,redue};
+  return {root,redue,env};
 }
 // The setup record: one per checkout in the shared Git directory.
 const recordOf=root=>{const name=fs.readdirSync(path.join(root,'.git')).find(file=>/^redue-setup-[0-9a-f]{16}\.json$/.test(file));
@@ -73,6 +74,26 @@ test('setup claude: one command writes and prints every file, records the check,
   assert.match(second.stdout,/keep redue\.config\.json/);
   assert.match(second.stdout,/Already CURRENT: lint/);
   assert.deepEqual(files(root),after);
+});
+
+test('setup names a check that ran past init\'s trial limit, and the one command that tries it without the limit',{skip:unsupported||sandboxSupport().issue},t=>{
+  const {root,redue,env}=project(t);
+  put(path.join(root,'package.json'),JSON.stringify({name:'setup-fixture',version:'1.0.0',scripts:{lint:'sleep 6 && checker'}}));
+  const run=spawnSync(process.execPath,[bin,'setup','claude','--yes'],{cwd:root,encoding:'utf8',timeout:120000,
+    env:{...env,VSTATE_TEST_FAULTS:'1',VSTATE_TEST_TRIAL_LIMIT:'4000'}});
+  assert.equal(run.status,0,run.stderr+run.stdout);
+  assert.match(run.stdout,/\nlint ran past init's 5-minute trial limit, so it is not sandboxed\. To try it without the limit: redue init --check lint --no-time-limit\nDone\./);
+  const updated=redue('init','--check','lint','--no-time-limit');
+  assert.equal(updated.status,0,updated.stderr+updated.stdout);
+  // The observer setup started runs with the new config at once.
+  assert.match(updated.stdout,/Updated lint in .*\. Restarted the observer with it\./);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'),'utf8')).checks.find(check=>check.name==='lint').qualification,'sandbox-v3');
+  const status=redue('status','--json');
+  assert.equal(status.status,0,status.stderr);
+  // remove still deletes the config setup created.
+  const removed=redue('remove','--yes');
+  assert.equal(removed.status,0,removed.stderr+removed.stdout);assert.match(removed.stdout,/delete redue\.config\.json/);
+  assert.equal(fs.existsSync(path.join(root,'redue.config.json')),false);
 });
 
 test('remove undoes setup: files, local ignore and state; a config edited since setup is kept',{skip:unsupported},t=>{

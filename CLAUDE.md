@@ -46,7 +46,9 @@ user-visible improvements to that, quickly and correctly.
 
 - Commit straight to main; no PRs unless I ask.
 - Before each commit, run the affected tests, plus the bench for performance
-  work. For daemon, observation or trust changes, also run /code-review and fix
+  work. A change to init or setup needs its init-time measurement (census
+  `--init-timing` on the slowest repos, Linux and macOS) before release, not
+  after. For daemon, observation or trust changes, also run /code-review and fix
   the findings that affect correctness.
 - Commit with a clear message, push, and continue. Don't wait for CI. Don't
   commit status or tracking documents on their own.

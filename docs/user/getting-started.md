@@ -100,7 +100,8 @@ redue explain typecheck
 Use a check actually printed by `init`. For a workspace:
 `redue init --workspace @example/package --check typecheck`.
 Initialization previews detected commands and qualification confidence before writing
-`redue.config.json`. An existing config is never overwritten. No dependencies are
+`redue.config.json`. An existing config is not overwritten (`init --no-time-limit`
+updates the rows of checks it [qualifies](sandbox.md#files-git-ignores-and-documentation)). No dependencies are
 installed; a check proposed for the sandboxed recipe runs once plainly and once or
 twice in the sandbox, and no results are recorded. A missing/unsupported boundary is explained. `init` tries
 the strict recipes first and uses the [general recipe](node-script.md) for a root

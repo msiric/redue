@@ -674,6 +674,55 @@ test('init tries a Vitest script in the sandbox first; the direct test recipe is
   assert.equal(`${other.qualification} ${other.script}`,'npm-tests-direct-v1 test:unit');
 });
 
+test('a run past the trial limit is never the same: when the plain run reaches it, no sandboxed run follows',{skip:unsupported},async t=>{
+  const {root}=nodeProject(t,{lint:'sleep 3 && checker'});
+  const check={name:'lint',kind:'lint',script:'lint'};
+  const trial=await sandboxTrial(root,check,{hide:'docs',timeout:1000});
+  assert.equal(trial.same,false);assert.equal(trial.timedOut,'plain');assert.equal(trial.sandboxed,null,JSON.stringify(trial));
+  // Reusing a plain run that finished, a sandboxed run past the limit is not the same either.
+  const plain={status:0,output:'\n',ms:1};
+  const inside=await sandboxTrial(root,check,{plain,timeout:1000});
+  assert.equal(inside.same,false);assert.equal(inside.timedOut,'sandboxed');
+});
+
+test('init: a check past the trial limit gets its fallback; --no-time-limit tries it again and updates only that row',{skip:unsupported},t=>{
+  // A margin for slow runners: the typecheck stays well inside the limit.
+  const {root,state}=nodeProject(t,{lint:'sleep 6 && checker',typecheck:'checker'});
+  const limit={VSTATE_TEST_FAULTS:'1',VSTATE_TEST_TRIAL_LIMIT:'4000'};
+  const preview=JSON.parse(invoke(root,state,['init','--dry-run','--json'],limit).stdout);
+  const lint=preview.checks.find(check=>check.name==='lint');
+  assert.equal(lint.time_limit,'lint',JSON.stringify(lint));
+  assert.match(lint.reason,/^Sandboxed recipe unavailable: it ran past init's 5-minute trial limit \(redue init --check lint --no-time-limit tries it without the limit\)/);
+  assert.equal(preview.checks.find(check=>check.name==='typecheck').time_limit,undefined);
+  assert.equal(invoke(root,state,['init'],limit).status,0);
+  const config=()=>JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'),'utf8'));
+  const before=config();
+  assert.notEqual(before.checks.find(check=>check.name==='lint').qualification,'sandbox-v3');
+  assert.equal(before.checks.find(check=>check.name==='typecheck').qualification,'sandbox-v3');
+  // A preview changes nothing; the typecheck the config already sandboxes is not run again.
+  const dry=JSON.parse(good(root,state,'init','--no-time-limit','--dry-run','--json'));
+  assert.equal(dry.written,false);assert.equal(dry.updated,undefined);assert.deepEqual(config(),before);
+  assert.match(dry.checks.find(check=>check.name==='lint').reason,/ran both ways at init, exit 0/);
+  assert.match(dry.skipped.map(row=>row.reason).join('\n'),/typecheck: not tried; the config already runs it in the sandbox/);
+  // A row that runs another script under the name is left alone.
+  const other=structuredClone(before);other.checks.find(check=>check.name==='lint').script='lint:other';
+  fs.writeFileSync(path.join(root,'redue.config.json'),JSON.stringify(other));
+  assert.match(good(root,state,'init','--no-time-limit','--dry-run'),/lint: not tried; the config runs something else under that name/);
+  fs.writeFileSync(path.join(root,'redue.config.json'),JSON.stringify(before));
+  const out=JSON.parse(good(root,state,'init','--check','lint','--no-time-limit','--json'));
+  assert.deepEqual([out.written,out.updated,out.observer],[true,['lint'],'not running']);
+  const after=config();
+  assert.equal(after.checks.find(check=>check.name==='lint').qualification,'sandbox-v3');
+  assert.deepEqual(after.checks.find(check=>check.name==='typecheck'),before.checks.find(check=>check.name==='typecheck'));
+  // Once it is sandboxed, there is nothing left to try.
+  assert.match(good(root,state,'init','--no-time-limit'),/Existing .* left unchanged/);
+  // A check the config lacks is tried and added only when --check names its kind.
+  fs.writeFileSync(path.join(root,'redue.config.json'),JSON.stringify({...after,checks:after.checks.filter(check=>check.name!=='lint')}));
+  assert.match(good(root,state,'init','--no-time-limit','--dry-run'),/lint: not tried; the config does not have it; name its kind with --check to add it/);
+  assert.match(good(root,state,'init','--check','lint','--no-time-limit'),/Updated lint in /);
+  assert.deepEqual(config().checks.map(check=>`${check.name} ${check.qualification}`).sort(),['lint sandbox-v3','typecheck sandbox-v3']);
+});
+
 test('init gives a Node lint script that starts another program the sandboxed recipe; it is CURRENT after a pass',{skip:unsupported},t=>{
   const {root,state}=nodeProject(t,{lint:'checker && ls src > /dev/null',typecheck:'missing-tool --noEmit'});
   let init=JSON.parse(good(root,state,'init','--dry-run','--json'));

@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
-import {testCounts} from './sandbox.mjs';
+import {isSandboxed,testCounts} from './sandbox.mjs';
 import {createInterface} from 'node:readline/promises';
 import {projectState} from './project-location.mjs';
 import {claudeHooksInstalled,removeClaudeHooks,removeIntegration} from './agent-integration.mjs';
@@ -29,6 +29,18 @@ async function confirm(question,yes,{defaultYes}){
   const prompt=createInterface({input:process.stdin,output:process.stdout});
   try{const answer=(await prompt.question(`${question} ${defaultYes?'[Y/n]':'[y/N]'} `)).trim();
     return defaultYes?!/^n/i.test(answer):/^y/i.test(answer);}finally{prompt.close();}
+}
+
+// The setup record of the checkout at `root`, in its shared Git directory.
+function recordOf(root){
+  const common=git(root,'rev-parse','--git-common-dir');
+  return common.status===0?path.join(path.resolve(root,common.stdout.trim()),`redue-setup-${hash(root).slice(0,16)}.json`):null;
+}
+// When init updates the config setup created, the record follows, so that
+// redue remove still deletes it.
+export function configRewritten(root,before,after){
+  const file=recordOf(root),record=file&&JSON.parse(readText(file)??'null');
+  if(record?.configCreated&&record.configHash===hash(before))fs.writeFileSync(file,JSON.stringify({...record,configHash:hash(after)},null,2)+'\n');
 }
 
 export async function setupCommand(args,{entry,cwd=process.cwd()}){
@@ -50,8 +62,7 @@ export async function setupCommand(args,{entry,cwd=process.cwd()}){
     stdio:options.capture?['ignore','pipe','pipe']:'inherit',timeout:options.timeout});
   // One record per checkout, beside the others in the shared Git directory:
   // linked worktrees share .git/info/exclude.
-  const common=path.resolve(root,git(root,'rev-parse','--git-common-dir').stdout.trim());
-  const recordFile=path.join(common,`redue-setup-${hash(root).slice(0,16)}.json`);
+  const recordFile=recordOf(root),common=path.dirname(recordFile);
   // Other checkouts' records, for checkouts that still exist.
   const others=()=>{try{return fs.readdirSync(common).filter(name=>/^redue-setup-[0-9a-f]{16}\.json$/.test(name)&&path.join(common,name)!==recordFile)
     .map(name=>JSON.parse(readText(path.join(common,name))??'null')).filter(other=>other&&fs.existsSync(other.root));}catch{return [];}};
@@ -78,6 +89,12 @@ async function setup({root,redue,yes,record:previous,recordFile,exclude,save}){
   const found=JSON.parse(preview.stdout);
   if(!configExisted&&!found.writable)throw Error(`nothing to set up: ${found.issue||(found.checks.length?found.checks.map(check=>`${check.name}: ${check.reason}`).join('; '):'no typecheck, lint or test script REDUE can use')}`);
   const levels=new Map(found.checks.map(check=>[check.name,check.level]));
+  // The checks whose trial ran past init's time limit, unless the config
+  // already runs them in the sandbox, and the kinds init's --check takes.
+  const sandboxed=new Set(configExisted?JSON.parse(readText(configPath)).checks.filter(check=>isSandboxed(check.qualification)).map(check=>check.name):[]);
+  const limited=[...found.checks.map(check=>[check.name,check.time_limit]),...(found.skipped||[]).map(row=>[row.kind,row.time_limit])]
+    .filter(([name,kind])=>kind&&!sandboxed.has(name));
+  const limitedKinds=[...new Set(limited.map(([,kind])=>kind))];
   const names=configExisted?JSON.parse(readText(configPath)).checks.map(check=>check.name):found.checks.map(check=>check.name);
   const ready=names.filter(name=>levels.get(name)==='ready');
   console.log(`Setting up REDUE for Claude Code in ${root}`);
@@ -161,6 +178,8 @@ async function setup({root,redue,yes,record:previous,recordFile,exclude,save}){
   if(ready.length&&!due.length)console.log(`Already CURRENT: ${ready.join(', ')}.`);
   for(const row of statusOf())console.log(`  ${row.name}: ${row.freshness}${row.result?' / '+row.result:''}${row.freshness==='CURRENT'?'':
     levels.get(row.name)!=='ready'?' — recording only':' — '+row.reason}`);
+  if(limited.length)console.log(`${limited.map(([name])=>name).join(', ')} ran past init's 5-minute trial limit, so ${limited.length>1?'they are':'it is'} not sandboxed. `+
+    `To try ${limited.length>1?'them':'it'} without the limit: redue init${limitedKinds.length>1?'':` --check ${limitedKinds[0]}`} --no-time-limit`);
   console.log('Done. Start a new Claude Code session in this project. Undo with redue remove.');
   return {applied:true};
 }
