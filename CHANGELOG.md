@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.1.0-alpha.30 — 2026-11-03
+
+`init` runs a check fewer times, and tests try the sandbox first.
+
+- **Fewer trial runs at init.** A check proposed for the sandboxed recipe
+  now runs once plainly and once in the sandbox with ignored files and
+  documentation hidden (`sandbox-v3`). If they differ, it runs once more
+  with the whole checkout (`sandbox-v1`), compared with the same plain run.
+  When the plain run passed and the sandboxed one failed only on reading a
+  hidden file, the check gets `sandbox-v1` without that run. `init` no
+  longer tries `sandbox-v2`; existing `sandbox-v2` checks keep working.
+  On the 13 census repos with the slowest checks, `init --dry-run` took
+  4740 s in all before and 3870 s after on Linux, 6929 s and 5784 s on
+  macOS. OneUptime went from 1204 s to 903 s (Linux) and 1206 s to 605 s
+  (macOS). Nomi did not get faster (485 s to 383 s on Linux, 836 s to
+  893 s on macOS): its typecheck agrees on the first trial, and each of its
+  two runs stops at init's 5-minute limit.
+- **Tests try the sandbox first.** For a Node test script, `init` tries the
+  sandboxed recipe before the direct test recipe, which becomes its
+  fallback, when both would run the same script. In the census, on the repos where both qualified (2 on each OS),
+  the direct recipe's results went STALE when the project's build rewrote
+  its output, and the sandboxed results stayed CURRENT. A test script now
+  costs `init` one plain run and one or two sandboxed runs.
+- Known limit: artsy/eigen's typecheck, which fails in the census, no
+  longer agrees with the whole checkout at init and falls back to the
+  general recipe (Linux) or recording (macOS).
+
 ## 0.1.0-alpha.29 — 2026-11-03
 
 Editing documentation no longer makes sandboxed checks STALE, a fast check
