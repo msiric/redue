@@ -14,7 +14,9 @@
 //   node-script`, then `redue run` twice for each typecheck, lint and test
 //   check it writes, and the receipts and status after each. With
 //   --all-recipes, plain `init` instead: every recipe, as `redue setup` uses;
-//   with --compare-general also a second pass with the general recipe only.
+//   with --compare-general also a second pass with the general recipe only,
+//   and with --compare-sandbox one with the sandboxed recipe only (tests
+//   that the direct test recipe would take run in the sandbox).
 //   After the runs, the project's build, test, typecheck and lint scripts run
 //   plainly, and status is asked again (afterOthers). On Linux with
 //   strace, each run is traced: for a recorded check, programs the recorder
@@ -23,6 +25,9 @@
 //   each run's strace output and run record under .local/eval/census-traces/.
 //   --install-scripts installs as users do, with dependencies' install
 //   scripts (esbuild's links its binary), on a disposable CI runner only.
+//   --init-timing: only the plain `init --dry-run`, with up to an hour, and
+//   how long it took (row.init.plain.ms): init runs each sandboxed check
+//   inside and outside the sandbox first.
 //   --sandbox: instead of timing, run the typecheck, lint, test and build
 //   scripts plainly and inside OS sandboxes, alternated (eval/sandbox.mjs).
 //
@@ -51,7 +56,7 @@ if (process.argv.includes('--python')) {
 const argv = process.argv.slice(2);
 const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : null;
 const initOnly = argv.includes('--init-only'), recorded = argv.includes('--recorded'), product = argv.includes('--product'),
-  keepTraces = argv.includes('--keep-traces'), allRecipes = argv.includes('--all-recipes'), testHidingMode = argv.includes('--test-hiding'), supervisorCostMode = argv.includes('--supervisor-cost'),
+  initTiming = argv.includes('--init-timing'), keepTraces = argv.includes('--keep-traces'), allRecipes = argv.includes('--all-recipes'), testHidingMode = argv.includes('--test-hiding'), supervisorCostMode = argv.includes('--supervisor-cost'),
   installScripts = argv.includes('--install-scripts'), sandbox = argv.includes('--sandbox');
 let names = argv.filter((arg, i) => !arg.startsWith('-') && argv[i - 1] !== '--shard');
 if (!names.length) names = readJson(path.join(evalDir, 'census-repos.json')).repos;
@@ -83,12 +88,13 @@ function install(dir, pm) {
 }
 
 function init(dir, ...args) {
-  const r = run(process.execPath, [checkoutRedue, '--config', path.join(dir, '.census.redue.json'), 'init', '--dry-run', '--json', ...args], dir, 600_000);
+  const r = run(process.execPath, [checkoutRedue, '--config', path.join(dir, '.census.redue.json'), 'init', '--dry-run', '--json', ...args], dir, initTiming ? 3_600_000 : 600_000);
   try {
-    const out = JSON.parse(r.stdout);
-    return {issue: out.issue, layout: out.installation_layout, pm: out.package_manager, pmVersion: out.version, workspaces: out.workspaces,
-      ambiguous: out.ambiguous, checks: (out.checks ?? []).map(c => ({name: c.name, script: c.script, workspace: c.workspace, level: c.level, reason: c.reason}))};
-  } catch { return {error: `exit ${r.status}: ${tail(r, 400)}`}; }
+    const out = JSON.parse(r.stdout), proposed = out.proposed_config?.checks ?? [];
+    return {ms: r.ms, issue: out.issue, layout: out.installation_layout, pm: out.package_manager, pmVersion: out.version, workspaces: out.workspaces,
+      ambiguous: out.ambiguous, checks: (out.checks ?? []).map(c => ({name: c.name, script: c.script, workspace: c.workspace, level: c.level, reason: c.reason,
+        qualification: proposed.find(p => p.name === c.name)?.qualification ?? null}))};
+  } catch { return {ms: r.ms, timedOut: r.timedOut, error: `exit ${r.status}: ${tail(r, 400)}`}; }
 }
 
 const scriptPick = {
@@ -147,10 +153,10 @@ function productRuns(dir, row, recipeArgs = allRecipes ? [] : ['--recipe', 'node
   if (!row.install.pass) return {notRun: 'install failed'};
   // A second pass (--compare-general) writes its own config.
   fs.rmSync(config, {force: true});
-  // init runs each sandboxed check twice to confirm it: a large workspace's lint takes minutes.
-  const init = json(redue(['init', ...recipeArgs, '--json'], 600_000));
-  if (!init) return {error: 'init failed'};
-  out.init = {issue: init.issue, pm: init.package_manager, pmVersion: init.version};
+  // init runs each sandboxed check inside and outside the sandbox: a large workspace's lint takes minutes.
+  const initRun = redue(['init', ...recipeArgs, '--json'], 1_800_000), init = json(initRun);
+  if (!init) return {error: 'init failed', initMs: initRun.ms, timedOut: initRun.timedOut};
+  out.init = {ms: initRun.ms, issue: init.issue, pm: init.package_manager, pmVersion: init.version};
   const checks = (init.checks ?? []).filter(c => ['typecheck', 'lint', 'test'].includes(c.name.split(':')[0]));
   for (const c of checks) out[c.name] = {script: c.script, level: c.level, reason: c.level === 'ready' ? undefined : c.reason,
     recipe: c.level === 'ready' ? (c.reason || '').split(/[:;(]/)[0].trim() : undefined,
@@ -214,8 +220,9 @@ async function census(name, modes) {
   // With it, also memory, disk and the largest processes every 15 s while init runs.
   const monitor = argv.includes('--hidden-stats') ? spawn('sh', ['-c', 'while sleep 15; do date +%T; free -m | sed -n 2p; df -m / | tail -1; ps -eo rss,etime,args --sort=-rss | head -5 | cut -c1-160; done'],
     {stdio: ['ignore', 'inherit', 'inherit']}) : null;
-  row.init = {plain: init(dir), typescript: init(dir, '--recipe', 'typescript-direct', '--check', 'typecheck'),
+  row.init = initTiming ? {plain: init(dir)} : {plain: init(dir), typescript: init(dir, '--recipe', 'typescript-direct', '--check', 'typecheck'),
     tests: init(dir, '--recipe', 'tests-direct', '--check', 'test')};
+  if (initTiming) console.error(`  init ${row.init.plain.ms} ms${row.init.plain.timedOut ? ' (timed out)' : ''}: ${(row.init.plain.checks ?? []).map(c => `${c.name} ${c.qualification ?? c.level}`).join(', ')}`);
   monitor?.kill();
   const scripts = Object.entries(pkg.scripts ?? {});
   // The root script init picked (a direct recipe's pick first), else a name match.
@@ -226,7 +233,7 @@ async function census(name, modes) {
     const picked = initPick(kind) ? [initPick(kind), pkg.scripts[initPick(kind)]] : scriptPick[kind](scripts);
     if (!picked) continue;
     row.scripts[kind] = {name: picked[0], text: picked[1]};
-    if (!row.install.pass || initOnly || recorded || product || sandbox || testHidingMode || supervisorCostMode) continue;
+    if (!row.install.pass || initOnly || initTiming || recorded || product || sandbox || testHidingMode || supervisorCostMode) continue;
     row.timings[kind] = timeScript(dir, pm, picked[0], timeout);
   }
   if (row.timings.typecheck) row.timings.typecheckAgain = timeScript(dir, pm, row.scripts.typecheck.name, 600_000);
@@ -254,6 +261,7 @@ async function census(name, modes) {
   // --compare-general: the same repo again with the general recipe only, so
   // checks both recipes qualify can be compared.
   if (product && allRecipes && argv.includes('--compare-general')) row.productGeneral = productRuns(dir, row, ['--recipe', 'node-script']);
+  if (product && allRecipes && argv.includes('--compare-sandbox')) row.productSandbox = productRuns(dir, row, ['--recipe', 'sandbox']);
   if (sandbox) row.sandbox = await sandboxScripts(dir, pm, row, modes);
   // A process the project left running can still be writing into it: keep the row.
   try { fs.rmSync(dir, {recursive: true, force: true, maxRetries: 5, retryDelay: 1000}); } catch (error) { row.cleanup = String(error.message).split('\n')[0]; }
