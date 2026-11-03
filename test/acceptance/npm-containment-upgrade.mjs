@@ -40,7 +40,7 @@ try{
   const before=JSON.parse(call(old,['status','--sync','--json']).stdout).checks[0];
   assert.equal(before.result,'PASS');assert.equal(before.freshness,'CURRENT');assert.equal(before.reuse_eligible,true);
   const history=rows();notes.push({step:'public alpha.3',id:before.invocation.runId,result:before.result,freshness:before.freshness});
-  for(const args of [['status','--json'],['status','--sync','--json'],['explain','typecheck','--json']]){
+  for(const args of [['status','--cached','--json'],['status','--json'],['status','--sync','--json'],['explain','typecheck','--json']]){
     const r=call(next,args,true);assert.equal(r.status,2);assert.match(r.stderr,/config changed while observer is running/);
     notes.push({step:args.join(' '),obsoleteObserverRejected:true});
   }

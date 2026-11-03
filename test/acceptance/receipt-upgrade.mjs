@@ -86,7 +86,7 @@ try{
   const latestImmutable=path.join(state,'runs-v1',latest.invocation.runId+'.json'),latestBytes=fs.readFileSync(latestImmutable);
   const legacy=note('Known alpha.2 stale-selection reproduction (fault injection)',status(oldPrefix));
   assert.equal(legacy.invocation.runId,first.invocation.runId);assert.equal(legacy.reuse_eligible,true);
-  for(const [args,code] of [[['status','--json'],0],[['status','--sync','--json'],2],
+  for(const [args,code] of [[['status','--cached','--json'],0],[['status','--json'],2],[['status','--sync','--json'],2],
     [['explain','check','--json'],2],[['detail','check','--json'],2]]){
     const row=note('Candidate '+args.join(' '),status(nextPrefix,args,code));
     assert.equal(row.result,'FAIL');assert.equal(row.freshness,'UNVERIFIED');
@@ -113,7 +113,7 @@ try{
   finally{fs.renameSync=rename;}
   const failedCommitFile=path.join(state,'runs-v1',failedCommit.invocation.runId+'.json'),
     failedCommitBytes=fs.readFileSync(failedCommitFile);
-  for(const args of [['status','--json'],['status','--sync','--json'],['explain','check','--json']]){
+  for(const args of [['status','--cached','--json'],['status','--json'],['status','--sync','--json'],['explain','check','--json']]){
     const row=note('Incomplete selector commit: '+args.join(' '),status(nextPrefix,args));
     assert.equal(row.freshness,'UNVERIFIED');assert.equal(row.reuse_eligible,false);
     assert.match(row.reason,/update incomplete/);

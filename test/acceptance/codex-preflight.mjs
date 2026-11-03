@@ -11,7 +11,7 @@ if(!config||!check)throw Error('usage: node codex-preflight.mjs --config FILE --
 const result={schema:1,check,cli,cwd:process.cwd(),node:process.execPath,
   sandboxMarker:process.env.CODEX_SANDBOX||null,commands:[],eligible:false};
 for(const args of [['--version'],['--config',config,'agent','doctor','codex','--json'],
-  ['--config',config,'status','--json'],['--config',config,'status','--sync','--json']]){
+  ['--config',config,'status','--cached','--json'],['--config',config,'status','--sync','--json']]){
   if(!cli)break;
   const launch=windowsLaunch([cli,...args]),started=performance.now();
   const r=spawnSync(launch.file,launch.args,{...launch.options,encoding:'utf8',timeout:35000,maxBuffer:4*1024*1024});
