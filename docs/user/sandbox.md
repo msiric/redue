@@ -85,8 +85,14 @@ folders stay listable. The receipt names the files the run hid. A later edit
 to one of them, or its deletion, leaves the result CURRENT: editing the
 README does not make the tests STALE. A new documentation file, a link named
 like one, or a change made while the run ran still counts. On macOS the
-files are refused by name patterns (which also cover such files in
-`node_modules`); on Linux each listed file is hidden like a git-ignored one.
+files with those extensions are refused by name pattern, in any case and in
+`node_modules` too: `README.MD` or `Docs/logo.svg` is refused but not
+listed, so an edit to it counts, and a check that reads one gets
+`sandbox-v2` on macOS. `LICENSE*` and `CHANGELOG*` files are refused by the
+exact paths git lists, so `license-check.ts` stays readable. On Linux each
+listed file is hidden like a git-ignored one. In a checkout with more than
+100 `LICENSE*` and `CHANGELOG*` files (vendored packages), those files are
+not hidden on either platform and count as inputs.
 
 With `sandbox-v2`, each run hides what `git ls-files --others --ignored
 --exclude-standard --directory` lists, except `node_modules`, `.venv` and

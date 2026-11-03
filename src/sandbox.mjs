@@ -38,6 +38,15 @@ export const docsInterpretation='sandbox@3';
 const docsFolderTypes=['txt','adoc','png','jpg','jpeg','gif','svg','webp','pdf'];
 export const docPatterns=['**/*.md','**/*.mdx','**/*.rst','**/LICENSE*','**/CHANGELOG*',...docsFolderTypes.map(type=>`docs/**/*.${type}`)];
 export const hiddenDocsIssue='git cannot list the documentation';
+// What macOS refuses by path pattern: the extensions, in any case (Seatbelt
+// matches regexes without regard to case). Every other listed file
+// (LICENSE*, CHANGELOG*) it refuses by its path; a pattern would refuse
+// license-check.ts too.
+const docsByPattern=rel=>/^(.+\/)?[^/]*\.(md|mdx|rst)$/i.test(rel)||new RegExp(`^docs/(.+/)?[^/]*\\.(${docsFolderTypes.join('|')})$`,'i').test(rel);
+// One path each makes the profile larger and slower to compile (1,000 add
+// about 190 ms to a run; a few thousand do not compile). Past this many,
+// those files stay visible and count as inputs, on every platform.
+export const namedDocsLimit=100;
 export const isSandboxed=qualification=>[sandboxQualification,hiddenQualification,docsQualification].includes(qualification);
 // Whether the recipe hides the checkout's git-ignored entries (v2 and v3).
 export const hidesIgnored=qualification=>qualification===hiddenQualification||qualification===docsQualification;
@@ -281,6 +290,8 @@ export function hiddenDocs(root){
   const out=new Set();
   for(const rel of r.stdout.split('\0'))if(rel&&!out.has(rel)&&docMatch(rel))
     try{if(fs.lstatSync(path.join(root,rel)).isFile())out.add(rel);}catch{}
+  const named=[...out].filter(rel=>!docsByPattern(rel));
+  if(named.length>namedDocsLimit)for(const rel of named)out.delete(rel);
   return [...out].sort();
 }
 
@@ -366,10 +377,12 @@ const ancestors=list=>[...new Set(list.flatMap(dir=>{const out=[];for(let at=pat
 // fails init's trial and runs plainly. With `writes`, a test run writes
 // nothing beneath /tmp and /var/tmp but beneath those places (its checkout,
 // home and own temporary directory).
-// `docs`: the checkout whose documentation it may not read, by path
-// patterns for regular files, so the profile stays small however many files
-// match: every file hiddenDocs lists (docPatterns), and more (one in
-// node_modules); folders stay listable.
+// `docs` ({root, entries}): the checkout's documentation it may not read,
+// regular files only, so folders stay listable. Extensions go by path
+// pattern, so the profile stays small however many files match: every file
+// hiddenDocs lists, and more (one in node_modules, README.MD). Seatbelt
+// matches a regex without regard to case, so LICENSE* and CHANGELOG* go by
+// the files hiddenDocs listed: a pattern would hide license-check.ts too.
 export function seatbeltProfile(reads,own=null,hidden=[],{writes=null,docs=null}={}){
   const quote=value=>JSON.stringify(value);
   const both=list=>[...new Set(list.flatMap(dir=>[dir,real(dir)]).filter(Boolean))];
@@ -381,12 +394,18 @@ export function seatbeltProfile(reads,own=null,hidden=[],{writes=null,docs=null}
     // Its contents only, as on Linux: a run may still see that it exists, and write beneath it.
     ...hidden.length?[`(deny file-read-data process-exec* ${[...new Set(hidden.flatMap(file=>[file,path.join(real(path.dirname(file))??path.dirname(file),path.basename(file))]))]
       .map(file=>`(subpath ${quote(file)})`).join(' ')})`]:[],
-    ...docs?[`(deny file-read-data process-exec* (require-all (vnode-type REGULAR-FILE) (require-any ${both([docs]).map(dir=>escape(dir)).flatMap(dir=>[
-      `^${dir}/(.+/)?[^/]*\\.(md|mdx|rst)$`,`^${dir}/(.+/)?(LICENSE|CHANGELOG)[^/]*$`,`^${dir}/docs/(.+/)?[^/]*\\.(${docsFolderTypes.join('|')})$`])
-      .map(pattern=>`(regex #"${pattern.replace(/"/g,'\\"')}")`).join(' ')})))`]:[],
+    ...docs?[docsRule(docs,both([docs.root]))]:[],
     '(deny network*)',...own?[`(allow network* ${[own,real(own)].filter(Boolean).map(dir=>`(subpath ${quote(dir)})`).join(' ')})`]:[],
     ...writes?['(deny file-write* (subpath "/tmp") (subpath "/private/tmp") (subpath "/var/tmp") (subpath "/private/var/tmp"))',
       `(allow file-write* ${both(writes).map(dir=>`(subpath ${quote(dir)})`).join(' ')})`]:[]].join('\n');
+}
+// docsByPattern's patterns for each root, and each listed file they do not cover by its path.
+function docsRule(docs,roots){
+  const named=docs.entries.filter(rel=>!docsByPattern(rel));
+  const patterns=roots.map(dir=>escape(dir)).flatMap(dir=>[`^${dir}/(.+/)?[^/]*\\.(md|mdx|rst)$`,`^${dir}/docs/(.+/)?[^/]*\\.(${docsFolderTypes.join('|')})$`])
+    .map(pattern=>`(regex #"${pattern.replace(/"/g,'\\"')}")`);
+  const files=roots.flatMap(dir=>named.map(rel=>`(literal ${JSON.stringify(path.join(dir,rel))})`));
+  return `(deny file-read-data process-exec* (require-all (vnode-type REGULAR-FILE) (require-any ${[...patterns,...files].join(' ')})))`;
 }
 // The argv that runs `argv` sandboxed: reads beneath `reads`, no network but
 // Unix sockets beneath `tmp` on macOS, nothing beneath `hidden` (absolute).
@@ -397,7 +416,7 @@ export function seatbeltProfile(reads,own=null,hidden=[],{writes=null,docs=null}
 // then says whether the supervisor served the whole run (supervisorIssue).
 // `docs` ({root, entries}): the checkout's documentation, hidden too.
 export function sandboxArgv(mode,argv,{reads,tmp=null,python,hidden=[],stats=null,network='none',writes=null,fault=null,docs=null}){
-  if(mode==='seatbelt')return ['/usr/bin/sandbox-exec','-p',seatbeltProfile(reads,tmp,hidden,{writes,docs:docs?.root??null}),...argv];
+  if(mode==='seatbelt')return ['/usr/bin/sandbox-exec','-p',seatbeltProfile(reads,tmp,hidden,{writes,docs}),...argv];
   if(docs)hidden=[...hidden,...docs.entries.map(rel=>path.join(docs.root,rel.replace(/\/$/,'')))];
   // The launcher's own warnings would become the check's output.
   if(mode==='landlock')return [python,'-I','-W','ignore',landlockScript,...reads.flatMap(dir=>['--read',dir]),

@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import net from 'node:net';
 import {spawnSync,execFileSync} from 'node:child_process';
-import {comparableOutput,denialLine,sandboxInterpretationOf,hiddenEntries,hiddenRefusal,sandboxArgv,sandboxTrial,systemPlaces,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
+import {comparableOutput,denialLine,namedDocsLimit,seatbeltProfile,sandboxInterpretationOf,hiddenEntries,hiddenRefusal,sandboxArgv,sandboxTrial,systemPlaces,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
 import {projectArgs,toolArgs} from '../src/python-onboarding.mjs';
 import {chainCommand,claudeHook,hookForms,pathForm,recordedCommand} from '../src/claude-hook.mjs';
 
@@ -36,6 +36,7 @@ if 'outside' in text: open(${JSON.stringify(outside)}).read()
 if 'readbuild' in text: text += open('build/generated.py').read()
 if 'readdocs' in text: text += open('README.md').read()
 if 'readsnippet' in text: text += open('docs/snippet.py').read()
+if 'readchangelog' in text: text += open('src/fx/CHANGELOG').read()
 if 'network' in text:
     try: socket.create_connection(('127.0.0.1', 9), timeout=2)
     except ConnectionRefusedError: pass
@@ -349,6 +350,9 @@ test('documentation is hidden too (sandbox-v3): an edit to it keeps the result C
   write(root,'src/fx/notes.rst','notes\n');write(root,'.md','dot\n');
   // Code under docs/ is not documentation: the run reads it.
   write(root,'docs/snippet.py','snippet = 1\n');write(root,'src/fx/snippet.py','# readsnippet\n');
+  // Nor is code whose name starts like LICENSE in another case (Seatbelt
+  // matches regexes without regard to case): the run reads every .py in src.
+  write(root,'src/fx/license_check.py','checked = 1\n');
   execFileSync('git',['add','.'],{cwd:root});
   good(root,state,'init');good(root,state,'start');good(root,state,'run','typecheck');
   let status=row(root,state,'typecheck');
@@ -544,6 +548,33 @@ test('a pytest check in .venv: loopback works on Linux, remote hosts and the sha
   assert.ok(fs.existsSync(path.join(root,'build/report.txt')));
   const status=row(root,state,'test');
   assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+});
+
+test('a listed LICENSE or CHANGELOG file is refused, nested too; past the limit those files stay visible and count as inputs',{skip:unsupported},t=>{
+  const {root,state}=project(t);
+  write(root,'src/fx/CHANGELOG','## 1\n');write(root,'src/fx/reads.py','# readchangelog\n');
+  execFileSync('git',['add','.'],{cwd:root});
+  let init=JSON.parse(good(root,state,'init','--dry-run','--json'));
+  assert.equal(init.proposed_config.checks.find(c=>c.name==='typecheck').qualification,'sandbox-v2',JSON.stringify(init.checks));
+  assert.match(init.checks.find(c=>c.name==='typecheck').reason,/it needs the documentation/);
+  for(let i=0;i<=namedDocsLimit;i++)write(root,`packages/p${i}/CHANGELOG`,'## 1\n');
+  execFileSync('git',['add','.'],{cwd:root});
+  good(root,state,'init');good(root,state,'start');good(root,state,'run','typecheck');
+  let status=row(root,state,'typecheck');
+  assert.equal(`${status.freshness}/${status.result}/${status.recipe}`,'CURRENT/PASS/sandbox-v3',status.reason);
+  write(root,'src/fx/CHANGELOG','## 2\n');
+  status=row(root,state,'typecheck');
+  assert.equal(status.freshness,'STALE');assert.match(status.reason,/src\/fx\/CHANGELOG changed/);
+});
+
+test('the macOS profile refuses each listed file the patterns miss, beneath the checkout and its real path',t=>{
+  const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-docs-rule-')));t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
+  fs.mkdirSync(path.join(base,'real'));fs.symlinkSync(path.join(base,'real'),path.join(base,'link'));
+  const profile=seatbeltProfile([path.join(base,'link')],null,[],{docs:{root:path.join(base,'link'),entries:['LICENSE','packages/a/CHANGELOG','README.md','docs/shot.png']}});
+  for(const dir of ['link','real'])for(const rel of ['LICENSE','packages/a/CHANGELOG'])
+    assert(profile.includes(`(literal ${JSON.stringify(path.join(base,dir,rel))})`),`${dir}/${rel}`);
+  assert(!profile.includes('README.md"')&&!profile.includes('shot.png"'),'the patterns cover those');
+  assert(!/LICENSE\|CHANGELOG/.test(profile),'no name pattern');
 });
 
 test('a macOS test check has its own interpretation, so a result recorded with loopback (alpha.28) is another plan',()=>{
