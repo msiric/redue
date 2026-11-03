@@ -1,5 +1,56 @@
 # Changelog
 
+## 0.1.0-alpha.29 — 2026-11-03
+
+Editing documentation no longer makes sandboxed checks STALE, a fast check
+is skipped or recorded as it should be, and macOS test runs can no longer
+reach a service started outside them.
+
+- **Documentation is hidden too (`sandbox-v3`).** A sandboxed run now also
+  hides the project's documentation: files named `*.md`, `*.mdx`, `*.rst`,
+  `LICENSE*` or `CHANGELOG*` anywhere, and text, image and PDF files in the
+  root `docs/` folder (code there stays visible). The receipt names the
+  files the run hid, and a later edit to one of them leaves the result
+  CURRENT: editing the README no longer makes the tests STALE. A new
+  documentation file still counts. `init` tries this first, then the
+  git-ignored files only (`sandbox-v2`), then the whole checkout. A check
+  that reads documentation (a doctest over the README) keeps `sandbox-v2`.
+  Run `redue init` again to move an existing check to `sandbox-v3`.
+- **A fast check is no longer missed by the hook.** The hook waited half of
+  the check's last run for `redue status`, so a 0.2 s mypy got 0.1 s, the
+  status answer came too late, and the agent's run went unrecorded. The
+  wait is now at least 2 s. `REDUE_HOOK_LOG` (an absolute file path) makes
+  the hook write one line per Bash command with its decision and why.
+- **macOS test runs get no network.** Seatbelt cannot refuse only the ports
+  that were already listening (a per-port rule under a loopback allow is not
+  applied; an allow list of every other port does not compile), so a macOS
+  test run now gets Unix sockets in its own temporary directory only, as a
+  typecheck or lint does. A suite that needs loopback fails `init`'s trial
+  and runs without REDUE. Test checks set up by alpha.28 on macOS are not
+  CURRENT after the upgrade.
+- **`redue status` reconciles by default.** `redue status --cached` gives the
+  observer's last published answer; `--sync` is still accepted. Like
+  `--sync`, plain `status` exits 2 when it cannot reach the observer (after
+  `redue stop`, for example); `--cached` exits 0.
+- **`redue setup` says more and prints less.** It lists the checks it left
+  out and why (a kind it found nothing for, a proposed `tsc --noEmit` no
+  recipe takes), says what recording only means, and prints one line per
+  recorded run instead of the check's whole output.
+- `redue remove-state` waits for the observer to exit before removing its
+  state (a Windows ENOTEMPTY).
+- **Measured.** In the product census, repositories whose qualifying
+  sandboxed check keeps the documentation hidden, out of those with one:
+  TypeScript on Linux, typecheck 17 of 19, lint 20 of 20, tests 7 of 8; on
+  macOS 12 of 13, 14 of 16, 6 of 9. Python on Linux 15 of 15, 22 of 22, 12
+  of 17; on macOS 11 of 13, 17 of 17, 8 of 11. No network for macOS test
+  runs cost 1 TypeScript suite (it starts a server on 127.0.0.1) and 2
+  Python suites: test suites qualifying on macOS went from 12 to 11
+  (TypeScript) and 14 to 11 (Python; one checkout no longer installs). The
+  strace cross-check found no read outside the recorded inputs. In a Claude
+  Code follow-up on starlette and nestjs-api-gateway, a README edit made no
+  check STALE; the hook skipped mypy, pytest and the lint, and each skipped
+  command passed when run plainly.
+
 ## 0.1.0-alpha.28 — 2026-11-02
 
 Test suites can run in the sandbox, so REDUE can reuse a passing test run

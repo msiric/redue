@@ -91,27 +91,30 @@ packages.
 ## What it covers today
 
 In a census of 120 active public TypeScript repositories (November 2026, REDUE
-at commit a2401cc, before 0.1.0-alpha.28), each installed as its users would,
+at commit 8cb32d6, before 0.1.0-alpha.29), each installed as its users would,
 with dependencies' install scripts on, 89 installed cleanly on a macOS runner.
 A check counts when two recorded runs on the same code both came out CURRENT
-on the same inputs. 38 repositories had at least one such check:
+on the same inputs. 34 repositories had at least one such check:
 
 | Check | Repositories | How |
 |---|---|---|
-| Typecheck | 20 | 14 by running the project's script in an OS sandbox ([sandboxed recipe](docs/user/sandbox.md)), 13 of them with the files git ignores hidden; 5 by running the local `tsc` directly ([direct recipe](docs/user/direct-typescript.md)); 1 by running the script with every Node process recorded ([general recipe](docs/user/node-script.md)) |
-| Lint | 22 | 19 sandboxed recipe (18 with ignored files hidden), 3 general recipe |
-| Tests | 12 | 10 sandboxed recipe, with ignored files hidden and loopback-only network; 2 Vitest run directly ([direct test recipe](docs/user/tests-direct.md)) |
+| Typecheck | 20 | 13 by running the project's script in an OS sandbox ([sandboxed recipe](docs/user/sandbox.md)), 12 of them with the files git ignores and the documentation hidden; 5 by running the local `tsc` directly ([direct recipe](docs/user/direct-typescript.md)); 2 by running the script with every Node process recorded ([general recipe](docs/user/node-script.md)) |
+| Lint | 20 | 16 sandboxed recipe (14 with ignored files and documentation hidden, 1 with ignored files hidden), 4 general recipe |
+| Tests | 11 | 9 sandboxed recipe with no network (6 with ignored files and documentation hidden, 3 with ignored files hidden); 2 Vitest run directly ([direct test recipe](docs/user/tests-direct.md)) |
 
-In alpha.27 the same census found 2 repositories with a qualifying test check
-on macOS and on Linux; now 12 on macOS and 11 on Linux.
+alpha.28 found 38 repositories on macOS. Test runs there no longer get
+loopback, which cost 1 test suite (it starts a server on 127.0.0.1). Of the
+other 3, one lint check was lost to a documentation-hiding bug fixed before
+this release, one checkout now installs with pnpm in a way REDUE does not
+take, and one `init` did not answer within the census's 10 minutes. On
+Linux, where tests keep loopback, 10 test suites qualified.
 
 In a census of 120 Python repositories, 74 installed on a Linux runner
 and 31 had a qualifying check: typecheck (mypy, pyright, ty) 15, lint (ruff)
-22, tests (pytest) 17, all through the sandboxed recipe (14 of the test
-suites with ignored files hidden, 3 with the whole checkout). In alpha.27, no
-Python test suite qualified. On Linux, every sandboxed run was traced
-with strace: each file it read in the checkout was a recorded input, a cache
-or its own output.
+22, tests (pytest) 17, all through the sandboxed recipe (15, 22 and 12 of
+them with ignored files and documentation hidden). On Linux, every sandboxed
+run was traced with strace: each file it read in the checkout was a recorded
+input, a cache or its own output.
 
 Everything else stays UNVERIFIED, with a reason you can read in
 `redue explain`. The usual ones: a script starts a program REDUE cannot see
