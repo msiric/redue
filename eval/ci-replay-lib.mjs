@@ -29,11 +29,6 @@ export function parseTree(text) {
 export const entriesKey = entries => sha(entries.map(e => `${e.mode} ${e.oid} ${e.path}`).join('\n'));
 
 // ---- Commands -------------------------------------------------------------
-const kindWords = {
-  typecheck: /^(typecheck|type-check|check-types|types|typings?|tsc|mypy|pyright|ty|check:types?|types:check|ts:check|tsc:check|lint:types?|type|typecheck:.*|.*:typecheck|.*:types)$/,
-  lint: /^(lint|lint:.*|.*:lint|eslint|format:check|fmt:check|check-format|check:format|prettier|prettier:check|style|ruff|flake8|biome|format-check|lint-.*|pre-commit|precommit|check-lint|static)$/,
-  test: /^(test|tests|test:.*|.*:test|unit|unittest|unit-tests?|e2e|integration|pytest|spec|coverage|cov|test-.*|tests-.*|ci-test|cover|py|py\d+.*|pypy\d*.*)$/,
-};
 const tools = {
   typecheck: ['tsc', 'tsgo', 'vue-tsc', 'svelte-check', 'mypy', 'dmypy', 'pyright', 'basedpyright', 'pytype', 'ty'],
   lint: ['eslint', 'oxlint', 'prettier', 'ruff', 'flake8', 'pylint', 'black', 'isort', 'stylelint', 'dprint', 'pre-commit', 'prek',
@@ -48,6 +43,7 @@ function toolCheck(argv) {
   if (['bun', 'deno'].includes(base) && rest[0] === 'test') return 'test';
   if (base === 'deno' && (rest[0] === 'check' || rest[0] === 'lint')) return rest[0] === 'check' ? 'typecheck' : 'lint';
   if (base === 'astro' && rest[0] === 'check') return 'typecheck';
+  if (base === 'coverage' && rest[0] === 'run') return 'test';
   if (base === 'python' || base === 'python3') {
     const m = rest.indexOf('-m');
     if (m >= 0) return toolCheck([rest[m + 1] || '', ...rest.slice(m + 2)]);
@@ -198,9 +194,17 @@ function runner(argv) {
   if (base === 'hatch' && positional[0] === 'fmt') return {targets: ['lint'], scope: null, task: true};
   return null;
 }
+// A script, make target or session name's kinds, by its words.
 const nameKind = name => {
   const word = String(name).toLowerCase().replace(/^\.?\/?/, '');
-  return Object.keys(kindWords).filter(kind => kindWords[kind].test(word));
+  const tokens = word.split(/[-:_./ ]+/).filter(Boolean);
+  const any = list => tokens.some(t => list.includes(t));
+  const kinds = [];
+  if (/type-?check|check-?types/.test(word) || any(['types', 'type', 'typing', 'typings', 'tsc', 'mypy', 'pyright', 'basedpyright', 'ty', 'typecheck'])) kinds.push('typecheck');
+  if (any(['lint', 'linter', 'eslint', 'ruff', 'flake8', 'prettier', 'biome', 'style', 'oxlint', 'stylelint', 'pylint', 'precommit']) || /pre-?commit/.test(word) ||
+    any(['format', 'fmt']) && any(['check', 'ci', 'verify'])) kinds.push('lint');
+  if (any(['test', 'tests', 'unit', 'e2e', 'integration', 'pytest', 'spec', 'coverage', 'cov', 'jest', 'vitest', 'unittest', 'playwright']) || /^(py|pypy)\d*$/.test(tokens[0] || '')) kinds.push('test');
+  return kinds;
 };
 const notCheck = /^(build|install|deploy|release|publish|clean|dev|start|serve|prepare|postinstall|generate|codegen|docs|bootstrap|setup|changeset|version|format|fmt|fix|lint:fix|lint-fix|format:fix|bench|benchmark)(:|$)/;
 // The kinds of check a step's commands run (a Set of 'typecheck', 'lint',
@@ -235,6 +239,14 @@ export function classifyRun(text, {scripts = () => null, dir = ''} = {}) {
     if (kind) found.push({kind, scope: scopeIn ?? (at ? {dir: at} : null), target: base, paths: argv.slice(1).filter(a => !a.startsWith('-') && /[/.]/.test(a))});
   };
   for (const argv of commands(text)) visit(argv, cwd, 0, null);
+  // Shell this reader cannot follow (arrays, functions): a check tool named
+  // anywhere outside an install command still counts.
+  if (!found.length)
+    for (const line of String(text).split(/\r?\n/)) {
+      if (/^\s*#/.test(line) || /\b(pip3?|uv pip|uv add|uv tool|npm|pnpm|yarn|pipx) +(install|i|add)\b/.test(line)) continue;
+      for (const m of line.matchAll(/(?:^|[\s"'(=])(pytest|mypy|pyright|basedpyright|vitest|jest|mocha|eslint|tsc|vue-tsc|svelte-check|ruff|flake8|pylint|playwright test)(?=[\s"')]|$)/g))
+        found.push({kind: toolKind.get(m[1].split(' ')[0]) || 'test', scope: dir ? {dir} : null, target: m[1]});
+    }
   return found;
 }
 const joinDir = (at, rel) => {
@@ -260,6 +272,7 @@ export function installIssues(text, {has = () => false, pinned = () => false, di
     if (base === 'npm' && ['install', 'i', 'add'].includes(rest[0])) {
       const named = rest.slice(1).filter(a => !a.startsWith('-'));
       if (rest.includes('-g') || rest.includes('--global')) { if (named.some(a => !/@\d/.test(a.replace(/^@/, '')))) issues.push('global npm tool without a version'); continue; }
+      if (named.length && named.every(a => /^(@[^/]+\/)?[^@]+@\d+\.\d+\.\d+[\w.-]*$/.test(a))) { installs.push('npm install of exact versions'); continue; }
       issues.push(named.length ? 'npm install of named packages' : 'npm install, not npm ci'); continue;
     }
     if (base === 'pnpm' && ['install', 'i'].includes(rest[0])) { if (rest.includes('--no-frozen-lockfile') || !lock('pnpm-lock.yaml')) issues.push('pnpm install without a frozen lockfile'); else installs.push('pnpm'); continue; }

@@ -279,8 +279,10 @@ async function study(repo) {
     return Number(text.match(/\(#(\d+)\)\s*$/m)?.[1] || text.match(/Merge pull request #(\d+)/)?.[1]) || null;
   };
 
+  console.log(`${repo.name}: ${runs.length} runs listed, ${wanted.length - missing.size} commits fetched, ${missing.size} not fetchable, ${Math.round((Date.now() - started) / 1000)} s`);
   const rows = [], trees = {};
-  for (const r of runs) {
+  for (const [n, r] of runs.entries()) {
+    if (n % 50 === 49) console.log(`${repo.name}: ${n + 1} runs keyed, ${Math.round((Date.now() - started) / 1000)} s`);
     const row = {id: r.id, workflow: r.path, event: r.event, branch: r.head_branch, headRepo: r.head_repository?.full_name ?? null,
       prs: (r.pull_requests || []).map(p => ({n: p.number, base: p.base?.ref})), created: r.created_at, started: r.run_started_at, attempt: r.run_attempt,
       conclusion: r.conclusion, sha: r.head_sha};
