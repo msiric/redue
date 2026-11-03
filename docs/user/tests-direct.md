@@ -1,7 +1,7 @@
 # Direct test recipe (Vitest and Jest)
 
-`redue init` (or `redue init --recipe tests-direct --check test` for this recipe
-alone) records a project's unit test run and reports later whether that result
+`redue init --recipe tests-direct --check test` (or `redue init`, where the
+[sandboxed recipe](sandbox.md) cannot take the test script) records a project's unit test run and reports later whether that result
 still applies to the files you have.
 It supports a single-package project installed by npm, pnpm 9-12 (isolated or
 hoisted `node_modules`) or Yarn with the `node-modules` linker, whose test

@@ -20,8 +20,13 @@ built declarations) gets the whole checkout. See
 
 ## Where it applies
 
-- **Tests:** a root `test` script the [direct test recipe](tests-direct.md)
-  does not take, and pytest in the project's `.venv`. See [tests](#tests).
+- **Tests:** a root `test` script, and pytest in the project's `.venv`. See
+  [tests](#tests). For a Node test script, `init` tries the sandbox before the
+  [direct test recipe](tests-direct.md), which becomes the fallback, when
+  both would run the same script. In the
+  census, on the repos where both qualified, the direct recipe's results went
+  STALE when the project's build rewrote its output, and the sandboxed ones,
+  with ignored files hidden, stayed CURRENT.
 - **Node projects:** a root `typecheck` or `lint` script (npm, pnpm, or Yarn
   with the `node-modules` linker). `init` tries the
   [direct TypeScript recipe](direct-typescript.md) and the pnpm and Yarn

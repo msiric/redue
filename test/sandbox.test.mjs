@@ -656,6 +656,24 @@ test('init gives a Node test script the direct test recipe does not take the san
   assert.equal(status.recipe,'sandbox-v3');
 });
 
+test('init tries a Vitest script in the sandbox first; the direct test recipe is what it writes where the sandbox cannot run',{skip:process.platform==='win32'},t=>{
+  const {root,state}=nodeProject(t,{test:'vitest run'});
+  put(path.join(root,'node_modules/vitest/package.json'),JSON.stringify({name:'vitest',version:'4.1.4',bin:{vitest:'vitest.mjs'},type:'module'}));
+  put(path.join(root,'node_modules/vitest/vitest.mjs'),"#!/usr/bin/env node\nimport fs from 'node:fs';console.log(' Tests  1 passed (1)');process.exit(fs.readFileSync('src/value.js','utf8').includes('fail')?1:0);\n",0o755);
+  fs.symlinkSync('../vitest/vitest.mjs',path.join(root,'node_modules/.bin/vitest'));
+  if(!unsupported){
+    const test=JSON.parse(good(root,state,'init','--dry-run','--json')).proposed_config.checks.find(check=>check.name==='test');
+    assert.equal(test.qualification,'sandbox-v3',JSON.stringify(test));}
+  const off=JSON.parse(invoke(root,state,['init','--dry-run','--json'],{VSTATE_TEST_FAULTS:'1',VSTATE_TEST_SANDBOX:'unavailable'}).stdout);
+  const test=off.proposed_config.checks.find(check=>check.name==='test'),row=off.checks.find(check=>check.name==='test');
+  assert.equal(test.qualification,'npm-tests-direct-v1',JSON.stringify(test));
+  assert.match(row.reason,/^Sandboxed recipe unavailable: the sandbox cannot run here .*explicit local vitest 4\.1\.4 run/);
+  // Where the direct recipe runs another script (here `test` watches), it stays first.
+  write(root,'package.json',JSON.stringify({name:'fx',version:'1.0.0',scripts:{test:'vitest','test:unit':'vitest run'}}));
+  const other=JSON.parse(good(root,state,'init','--dry-run','--json')).proposed_config.checks.find(check=>check.name==='test');
+  assert.equal(`${other.qualification} ${other.script}`,'npm-tests-direct-v1 test:unit');
+});
+
 test('init gives a Node lint script that starts another program the sandboxed recipe; it is CURRENT after a pass',{skip:unsupported},t=>{
   const {root,state}=nodeProject(t,{lint:'checker && ls src > /dev/null',typecheck:'missing-tool --noEmit'});
   let init=JSON.parse(good(root,state,'init','--dry-run','--json'));

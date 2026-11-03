@@ -3,7 +3,8 @@ import {testProject,testRecipeScript,testCheckInputs,testsQualification} from '.
 import {generalIssue,scriptCheckInputs,scriptProject,scriptQualification} from './node-script.mjs';
 import {sandboxCheckInputs,sandboxKinds,sandboxQualification} from './sandbox.mjs';
 // Init proposes the general recipe for typecheck and lint scripts; test
-// scripts use the direct test recipe (Vitest, Jest).
+// scripts use the sandboxed recipe first, then the direct test recipe
+// (Vitest, Jest).
 const generalKinds=['typecheck','lint'];
 const perPackageLimit=50;
 import fs from 'node:fs';
@@ -302,7 +303,8 @@ export function discoverNodeProject(root,{recipe=null}={}) {
     // sandboxed recipe, which also covers programs the general recipe cannot
     // record. It is ready only once init has run it both ways (bin/redue.mjs);
     // `fallback` is the row init writes when that shows a difference or the
-    // sandbox cannot run here: the general recipe's, when it takes the script.
+    // sandbox cannot run here: the general recipe's, when it takes the script,
+    // or the direct test recipe's.
     // Where the sandbox cannot start at run time, a script the general recipe
     // takes is recorded as it would record it (cli.mjs).
     // A script whose program is not installed gets none, and neither does one
@@ -310,7 +312,12 @@ export function discoverNodeProject(root,{recipe=null}={}) {
     const writes=script&&['pre'+script,script,'post'+script].map(name=>scripts[name]).find(text=>typeof text==='string'&&
       /(?:^|\s)--(?:fix|write|unsafe-fixes)(?=[\s=]|$)/.test(text));
     if(writes)classification={...classification,reason:`Sandboxed recipe unavailable (the script changes files: ${writes.match(/--(?:fix|write|unsafe-fixes)/)[0]}); ${classification.reason}`};
-    if((auto||recipe==='sandbox')&&script&&sandboxKinds.includes(kind)&&classification.level!=='ready'&&!observationIssue&&
+    // A test script gets it before the direct test recipe, which is then its
+    // fallback, when both run the same script: in the census the direct
+    // recipe's results went STALE when the build changed its output, and the
+    // sandboxed ones stayed CURRENT.
+    if((auto||recipe==='sandbox')&&script&&sandboxKinds.includes(kind)&&!observationIssue&&
+      (classification.level!=='ready'||auto&&kind==='test'&&check.script===script)&&
       !/REDUE cannot find/.test(generalIssue||'')&&!writes){
       try{
         const project=scriptProject(root,script);

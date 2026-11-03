@@ -100,11 +100,12 @@ redue explain typecheck
 Use a check actually printed by `init`. For a workspace:
 `redue init --workspace @example/package --check typecheck`.
 Initialization previews detected commands and qualification confidence before writing
-`redue.config.json`. An existing config is never overwritten. No checks are run and
-no dependencies installed. A missing/unsupported boundary is explained. `init` tries
+`redue.config.json`. An existing config is never overwritten. No dependencies are
+installed; a check proposed for the sandboxed recipe runs once plainly and once or
+twice in the sandbox, and no results are recorded. A missing/unsupported boundary is explained. `init` tries
 the strict recipes first and uses the [general recipe](node-script.md) for a root
 typecheck or lint script none of them takes. Test scripts use the
-[direct test recipe](tests-direct.md).
+[sandboxed recipe](sandbox.md) first, then the [direct test recipe](tests-direct.md).
 
 “Ready to qualify” means REDUE has a supported recipe whose prerequisites will be
 validated. It is not a receipt. “Recording-only” can record PASS/FAIL without claiming

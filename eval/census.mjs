@@ -15,8 +15,8 @@
 //   check it writes, and the receipts and status after each. With
 //   --all-recipes, plain `init` instead: every recipe, as `redue setup` uses;
 //   with --compare-general also a second pass with the general recipe only,
-//   and with --compare-sandbox one with the sandboxed recipe only (tests
-//   that the direct test recipe would take run in the sandbox).
+//   and with --compare-direct one with the direct test recipe only (plain
+//   `init` tries the sandbox first for tests).
 //   After the runs, the project's build, test, typecheck and lint scripts run
 //   plainly, and status is asked again (afterOthers). On Linux with
 //   strace, each run is traced: for a recorded check, programs the recorder
@@ -270,7 +270,7 @@ async function census(name, modes) {
   // --compare-general: the same repo again with the general recipe only, so
   // checks both recipes qualify can be compared.
   if (product && allRecipes && argv.includes('--compare-general')) row.productGeneral = productRuns(dir, row, ['--recipe', 'node-script']);
-  if (product && allRecipes && argv.includes('--compare-sandbox')) row.productSandbox = productRuns(dir, row, ['--recipe', 'sandbox']);
+  if (product && allRecipes && argv.includes('--compare-direct')) row.productDirect = productRuns(dir, row, ['--recipe', 'tests-direct']);
   if (sandbox) row.sandbox = await sandboxScripts(dir, pm, row, modes);
   // A process the project left running can still be writing into it: keep the row.
   try { fs.rmSync(dir, {recursive: true, force: true, maxRetries: 5, retryDelay: 1000}); } catch (error) { row.cleanup = String(error.message).split('\n')[0]; }
