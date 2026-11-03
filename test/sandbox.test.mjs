@@ -567,7 +567,7 @@ test('a listed LICENSE or CHANGELOG file is refused, nested too; past the limit 
   assert.equal(status.freshness,'STALE');assert.match(status.reason,/src\/fx\/CHANGELOG changed/);
 });
 
-test('the macOS profile refuses each listed file the patterns miss, beneath the checkout and its real path',t=>{
+test('the macOS profile refuses each listed file the patterns miss, beneath the checkout and its real path',{skip:unsupported},t=>{
   const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-docs-rule-')));t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
   fs.mkdirSync(path.join(base,'real'));fs.symlinkSync(path.join(base,'real'),path.join(base,'link'));
   const profile=seatbeltProfile([path.join(base,'link')],null,[],{docs:{root:path.join(base,'link'),entries:['LICENSE','packages/a/CHANGELOG','README.md','docs/shot.png']}});
