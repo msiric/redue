@@ -583,7 +583,19 @@ export function runToEnd(argv,{cwd,env,timeout=0,echo=false,started=null}){
     child.on('close',(status,signal)=>finish({status,signal}));
   });
 }
-// {same, plain, sandboxed, line} or {issue} when the sandbox cannot run here.
+// The line that shows a run that failed in the sandbox, and passed outside
+// it, was refused a file it hid, when nothing else differs that a refusal
+// could explain: no other refusal line, no supervisor issue, and not a line
+// the plain run printed too. A run without the hiding then could only fail
+// where the plain one passes, never pass where it fails.
+function refusedHidden(plain,sandboxed,entries,supervisor){
+  if(plain.status!==0||supervisor||!entries.length)return null;
+  const line=hiddenRefusal(sandboxed.output,entries);
+  if(!line||plain.output.includes(line))return null;
+  const others=sandboxed.output.split(/\r?\n/).filter(text=>!hiddenRefusal(text,entries)).join('\n');
+  return denialLine(others)?null:line;
+}
+// {same, plain, sandboxed, line, refusedHidden} or {issue} when the sandbox cannot run here.
 // With `hide` 'docs', the documentation (hiddenDocs) is hidden too.
 // With `hide`, the git-ignored entries hiddenEntries lists are kept from the
 // sandboxed run, and it also returns them, their count, the run times and, on
@@ -632,8 +644,10 @@ export async function sandboxTrial(root,check,{timeout=300000,hide=false,plain:e
     const counts=tests?[plain,sandboxed].map(r=>testCounts(r.output)):null;
     const read=counts?.some(c=>Object.values(c).some(value=>value!==null));
     const differs=tests&&read?(JSON.stringify(counts[0])===JSON.stringify(counts[1])?null:{plain:JSON.stringify(counts[0]),sandboxed:JSON.stringify(counts[1])}):output;
-    return {same:plain.status===sandboxed.status&&!denied&&!differs&&!supervisor,plain:plain.status,sandboxed:sandboxed.status,output:differs,plainRun:plain,
+    const same=plain.status===sandboxed.status&&!denied&&!differs&&!supervisor;
+    return {same,plain:plain.status,sandboxed:sandboxed.status,output:differs,plainRun:plain,
       line:supervisor||denied||(plain.status===sandboxed.status?null:sandboxed.output.trim().split('\n').at(-1)?.slice(0,200)||null),
+      refusedHidden:same?null:refusedHidden(plain,sandboxed,entries,supervisor),
       ...hide?{hidden:entries.length,entries,docs:docEntries.length,plainMs:plain.ms,sandboxedMs:sandboxed.ms,...launcher?{rules:launcher.rules,setupMs:launcher.ms}:{}}:{}};
   }finally{fs.rmSync(scratch,{recursive:true,force:true});}
 }

@@ -70,11 +70,17 @@ keeps `uv run` or `poetry run` in front, so the environment still syncs first.
 
 ## Files git ignores and documentation
 
-`init` runs each check four ways at most: plainly, then sandboxed with the
-files git ignores and the documentation hidden, with only the files git
-ignores hidden, and with the whole checkout (reusing the plain run). The first
-sandboxed way that gives the same result is written: `sandbox-v3`,
-`sandbox-v2` or `sandbox-v1`.
+`init` runs each check plainly, then sandboxed with the files git ignores and
+the documentation hidden. When both give the same result, it writes
+`sandbox-v3`. When the plain run passed and the sandboxed one failed only
+because it was refused a file it hid (no other refusal line, and not a line
+the plain run printed too), it writes `sandbox-v1` (the whole checkout)
+without running it again: without the hiding, a run can then only fail
+where a plain one passes, never pass where it fails. When the runs differ
+in another way, `init` runs the check once more with the whole checkout,
+reusing the plain run, and writes `sandbox-v1` only if that agrees. So a
+check runs two or three times at init, not four. `init` no longer writes
+`sandbox-v2`; a check already set up with it keeps it.
 
 With `sandbox-v3`, each run also hides the documentation: the files git
 lists (and does not ignore) named `*.md`, `*.mdx`, `*.rst`, `LICENSE*` or
@@ -88,7 +94,7 @@ like one, or a change made while the run ran still counts. On macOS the
 files with those extensions are refused by name pattern, in any case and in
 `node_modules` too: `README.MD` or `Docs/logo.svg` is refused but not
 listed, so an edit to it counts, and a check that reads one gets
-`sandbox-v2` on macOS. `LICENSE*` and `CHANGELOG*` files are refused by the
+`sandbox-v1` on macOS. `LICENSE*` and `CHANGELOG*` files are refused by the
 exact paths git lists, so `license-check.ts` stays readable. On Linux each
 listed file is hidden like a git-ignored one. In a checkout with more than
 100 `LICENSE*` and `CHANGELOG*` files (vendored packages), those files are
@@ -218,10 +224,13 @@ CURRENT means the last sandboxed run's inputs are unchanged:
 A run the sandbox refused something fails like any other. REDUE does not run
 every failure twice to find out:
 
-- `init` runs each proposed check twice, plainly and sandboxed, and proposes
-  it only when both give the same exit status and the same output, and a
-  failure shows no sign of a refusal. The output is compared without colors,
-  timings, the temporary and home directories, and lines about caches.
+- `init` runs each proposed check plainly and sandboxed, and proposes it
+  when both give the same exit status and the same output, and a failure
+  shows no sign of a refusal. The output is compared without colors,
+  timings, the temporary and home directories, and lines about caches. The
+  one exception is a check that passed plainly and failed only because it
+  was refused a hidden file: it gets the whole checkout without another run
+  (see [files git ignores](#files-git-ignores-and-documentation)).
   Otherwise `init` writes what it would have without this recipe and says why.
   These are the only runs `init` makes.
 - When a `sandbox-v2` or `sandbox-v3` run fails with a refusal that names a hidden file, it

@@ -32,8 +32,12 @@ function project(t,{makefile=null,tools=['mypy','ruff']}={}){
   for(const tool of tools)put(path.join(root,'.venv/bin',tool),`#!${path.join(root,'.venv/bin/python')}
 import os, sys, pathlib, socket
 text = ''.join(p.read_text() for p in sorted(pathlib.Path('src').rglob('*.py')))
+if 'printdenied' in text: print("EACCES: permission denied, open '/elsewhere/config'")
 if 'outside' in text: open(${JSON.stringify(outside)}).read()
 if 'readbuild' in text: text += open('build/generated.py').read()
+if 'quietbuild' in text:
+    try: open('build/generated.py').read(); print('build present')
+    except OSError: print('build absent')
 if 'readdocs' in text: text += open('README.md').read()
 if 'readsnippet' in text: text += open('docs/snippet.py').read()
 if 'readchangelog' in text: text += open('src/fx/CHANGELOG').read()
@@ -326,7 +330,8 @@ test('a check that reads a git-ignored file gets the whole checkout at init; one
   let init=JSON.parse(good(root,state,'init','--dry-run','--json'));
   let check=init.proposed_config.checks.find(c=>c.name==='typecheck');
   assert.equal(check.qualification,'sandbox-v1',JSON.stringify(init.checks));
-  assert.match(init.checks.find(c=>c.name==='typecheck').reason,/ran both ways at init, exit 0; it needs files git ignores \(exit 1 inside the sandbox, 0 outside it/);
+  // Refused a file it hid, it gets the whole checkout without another run.
+  assert.match(init.checks.find(c=>c.name==='typecheck').reason,/at init it passed, then failed reading a file that was hidden \(.*build\/generated\.py.*\), so the whole checkout is its input, not run that way at init/);
   // Set up without it, then the check starts reading build/.
   fs.rmSync(path.join(root,'src/fx/reads.py'));
   good(root,state,'init');good(root,state,'start');
@@ -344,7 +349,7 @@ test('a check that reads a git-ignored file gets the whole checkout at init; one
   assert.equal(status.freshness,'STALE');assert.match(status.reason,/build\/generated\.py changed/);
 });
 
-test('documentation is hidden too (sandbox-v3): an edit to it keeps the result CURRENT; a check that reads it gets sandbox-v2',{skip:unsupported},t=>{
+test('documentation is hidden too (sandbox-v3): an edit to it keeps the result CURRENT; a check that reads it gets the whole checkout',{skip:unsupported},t=>{
   const {root,state}=project(t);
   write(root,'docs/guide/intro.md','# intro\n');write(root,'docs/guide/shot.png','png');write(root,'LICENSE','MIT\n');
   write(root,'src/fx/notes.rst','notes\n');write(root,'.md','dot\n');
@@ -380,10 +385,10 @@ test('documentation is hidden too (sandbox-v3): an edit to it keeps the result C
   assert.equal(`${status.freshness}/${status.recipe}`,'CURRENT/sandbox-v1',status.reason);
   write(root,'README.md','# fixture\n\nAnother note.\n');
   assert.equal(row(root,state,'typecheck').freshness,'STALE');
-  // init then gives it the git-ignored files hidden, documentation visible.
+  // init then gives it the whole checkout.
   const init=JSON.parse(good(root,state,'init','--dry-run','--json'));
-  assert.equal(init.proposed_config.checks.find(c=>c.name==='typecheck').qualification,'sandbox-v2',JSON.stringify(init.checks));
-  assert.match(init.checks.find(c=>c.name==='typecheck').reason,/it needs the documentation \(exit 1 inside the sandbox, 0 outside it/);
+  assert.equal(init.proposed_config.checks.find(c=>c.name==='typecheck').qualification,'sandbox-v1',JSON.stringify(init.checks));
+  assert.match(init.checks.find(c=>c.name==='typecheck').reason,/at init it passed, then failed reading a file that was hidden \(.*README\.md/);
 });
 
 test('a sandboxed run that reads outside or reaches the network is run again outside the sandbox and is not reused',{skip:unsupported},t=>{
@@ -555,8 +560,8 @@ test('a listed LICENSE or CHANGELOG file is refused, nested too; past the limit 
   write(root,'src/fx/CHANGELOG','## 1\n');write(root,'src/fx/reads.py','# readchangelog\n');
   execFileSync('git',['add','.'],{cwd:root});
   let init=JSON.parse(good(root,state,'init','--dry-run','--json'));
-  assert.equal(init.proposed_config.checks.find(c=>c.name==='typecheck').qualification,'sandbox-v2',JSON.stringify(init.checks));
-  assert.match(init.checks.find(c=>c.name==='typecheck').reason,/it needs the documentation/);
+  assert.equal(init.proposed_config.checks.find(c=>c.name==='typecheck').qualification,'sandbox-v1',JSON.stringify(init.checks));
+  assert.match(init.checks.find(c=>c.name==='typecheck').reason,/at init it passed, then failed reading a file that was hidden \(.*src\/fx\/CHANGELOG/);
   for(let i=0;i<=namedDocsLimit;i++)write(root,`packages/p${i}/CHANGELOG`,'## 1\n');
   execFileSync('git',['add','.'],{cwd:root});
   good(root,state,'init');good(root,state,'start');good(root,state,'run','typecheck');
@@ -565,6 +570,28 @@ test('a listed LICENSE or CHANGELOG file is refused, nested too; past the limit 
   write(root,'src/fx/CHANGELOG','## 2\n');
   status=row(root,state,'typecheck');
   assert.equal(status.freshness,'STALE');assert.match(status.reason,/src\/fx\/CHANGELOG changed/);
+});
+
+test('init runs a check once more with the whole checkout when nothing shows the hidden files caused the difference',{skip:unsupported},t=>{
+  const {root,state}=project(t);
+  put(path.join(root,'build/generated.py'),'g = 1\n');
+  const pick=()=>{const init=JSON.parse(good(root,state,'init','--dry-run','--json'));
+    return {qualification:init.proposed_config?.checks.find(c=>c.name==='typecheck')?.qualification,
+      reason:init.checks.find(c=>c.name==='typecheck')?.reason??JSON.stringify(init.skipped)};};
+  // The output differs without a refusal: the whole checkout agrees.
+  write(root,'src/fx/reads.py','# quietbuild\n');
+  let check=pick();
+  assert.equal(check.qualification,'sandbox-v1',check.reason);
+  assert.match(check.reason,/ran both ways at init, exit 0; the whole checkout is its input: with the files git ignores and the documentation hidden, the output differs inside the sandbox: "build absent" instead of "build present"/);
+  // A plain run that fails is never followed by the shortcut: without the
+  // hiding, the sandboxed run could pass.
+  write(root,'src/fx/reads.py','# readbuild fail\n');
+  check=pick();
+  assert.equal(check.qualification,'sandbox-v1',check.reason);assert.match(check.reason,/ran both ways at init, exit 1/);
+  // Nor is a refusal of a hidden file next to another refusal.
+  write(root,'src/fx/reads.py','# readbuild printdenied\n');
+  check=pick();
+  assert.equal(check.qualification,'sandbox-v1',check.reason);assert.match(check.reason,/ran both ways at init, exit 0/);
 });
 
 test('the macOS profile refuses each listed file the patterns miss, beneath the checkout and its real path',{skip:unsupported},t=>{
