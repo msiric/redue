@@ -72,8 +72,11 @@ export function commands(text) {
   for (const line of joined.split(/\r?\n/)) {
     const bare = line.replace(/(^|\s)#.*$/, '').trim();
     if (!bare) continue;
-    for (const part of bare.split(/\s*(?:&&|\|\||;|\||\$\(|`|\))\s*/)) {
-      const argv = (part.match(/"[^"]*"|'[^']*'|\S+/g) || []).map(a => a.replace(/^["']|["']$/g, ''));
+    const exprs = [];
+    const masked = bare.replace(/\$\{\{[\s\S]*?\}\}/g, m => `\u0000${exprs.push(m) - 1}\u0000`);
+    for (const piece of masked.split(/\s*(?:&&|\|\||;|\||\$\(|`|\))\s*/)) {
+      const part = piece.replace(/\u0000(\d+)\u0000/g, (_, i) => exprs[i]);
+      const argv = (part.match(/"[^"]*"|'[^']*'|(?:\$\{\{[^}]*\}\}|\S)+/g) || []).map(a => a.replace(/^["']|["']$/g, ''));
       while (argv.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(argv[0])) argv.shift();
       if (argv.length) out.push(argv);
     }
@@ -183,8 +186,11 @@ function runner(argv) {
     const targets = (base === 'mise' ? positional.slice(1) : positional).filter(a => !a.includes('='));
     return {targets, scope: dir ? {dir: dir.replace(/\/(justfile|Makefile)$/i, '')} : null, task: true};
   }
-  if (base === 'nox') return {targets: flagValues(rest, ['-s', '--session', '--sessions', '-e']).flatMap(s => s.split(',')).concat(rest.includes('-t') ? [] : []), scope: null, task: true, runsTests: !rest.includes('-s') && !rest.includes('--session')};
-  if (base === 'tox') { const envs = flagValues(rest, ['-e', '--env']).flatMap(s => s.split(',')); return {targets: envs.length ? envs : ['test'], scope: null, task: true}; }
+  // A session or env given by an expression (a matrix value) runs tests,
+  // as tox and nox sessions mostly do.
+  const named = list => list.flatMap(s => s.split(',')).map(s => /\$\{\{/.test(s) ? 'test' : s);
+  if (base === 'nox') { const sessions = named(flagValues(rest, ['-s', '--session', '--sessions', '-e'])); return {targets: sessions.length ? sessions : ['test'], scope: null, task: true}; }
+  if (base === 'tox') { const envs = named(flagValues(rest, ['-e', '--env'])); return {targets: envs.length ? envs : ['test'], scope: null, task: true}; }
   if (base === 'hatch' && positional[0] === 'test') return {targets: ['test'], scope: null, task: true};
   if (base === 'hatch' && positional[0] === 'run' && positional[1]) {
     const [env, script] = positional[1].includes(':') ? positional[1].split(':') : [null, positional[1]];
@@ -313,7 +319,7 @@ export function actionIssues(uses, w = {}, {has = () => false} = {}) {
   if (/^(astral-sh\/setup-uv|oven-sh\/setup-bun|denoland\/setup-deno|actions-rust-lang\/.*|dtolnay\/rust-toolchain|docker\/setup-.*|pre-commit\/action)$/.test(name)) return {issues: [], installs: []};
   if (name === 'bahmutov/npm-install' || name === 'cypress-io/github-action') return {issues: [], installs: ['npm ci']};
   if (/^(snok\/install-poetry|abatilo\/actions-poetry)$/.test(name)) return {issues: [], installs: []};
-  return {issues: [], installs: [], opaque: name.startsWith('./') ? null : name};
+  return {issues: [], installs: [], opaque: /^[.$]\//.test(name) ? null : name};
 }
 const deployLike = /\b(deploy|publish|release|docker push|gh pr comment|gh release|npm publish|twine upload|vercel|netlify|wrangler|firebase deploy|aws s3|gsutil|surge)\b/i;
 const deployAction = /(deploy|release|publish|pages|docker\/build-push|comment|upload-pages|semantic-release|changesets\/action|codecov|coveralls)/i;
@@ -323,6 +329,8 @@ export const sideEffect = (step) => step.run ? deployLike.test(step.run) : step.
 export function parseYaml(text) {
   try { return YAML.parse(text, {maxAliasCount: -1, uniqueKeys: false, strict: false}) ?? null; } catch { return null; }
 }
+// A workflow or action in the same repository: ./path, or $/path.
+const localRef = /^[.$]\//;
 const escapeRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // A display-name pattern for a name with ${{ }} expressions.
 export function namePattern(name) {
@@ -354,8 +362,8 @@ export function workflowJobs(doc, {read = () => null, caller = null, depth = 0} 
     const pattern = namePattern(display) + (hasMatrix && !/\$\{\{[^}]*matrix\./.test(display) ? '( \\(.*\\))?' : '');
     const full = caller ? `${caller} / ${pattern}` : pattern;
     if (typeof job.uses === 'string') {
-      if (job.uses.startsWith('./') && depth < 3) {
-        const called = parseYaml(read(job.uses.replace(/^\.\//, '').split('@')[0]) || '');
+      if (localRef.test(job.uses) && depth < 3) {
+        const called = parseYaml(read(job.uses.replace(localRef, '').split('@')[0]) || '');
         jobs.push(...workflowJobs(called, {read, caller: full, depth: depth + 1}).map(j => ({...j, callerId: id})));
       }
       continue;
@@ -370,8 +378,9 @@ export function workflowJobs(doc, {read = () => null, caller = null, depth = 0} 
       if (typeof step.uses === 'string') {
         entry.uses = step.uses;
         entry.with = step.with && typeof step.with === 'object' ? Object.fromEntries(Object.entries(step.with).map(([k, v]) => [k, String(v)])) : {};
-        if (step.uses.startsWith('./') && depth < 3) {
-          const action = parseYaml(read(`${step.uses.replace(/^\.\//, '').replace(/\/$/, '')}/action.yml`) || read(`${step.uses.replace(/^\.\//, '').replace(/\/$/, '')}/action.yaml`) || '');
+        if (localRef.test(step.uses) && depth < 3) {
+          const dir = step.uses.replace(localRef, '').replace(/\/$/, '');
+          const action = parseYaml(read(`${dir}/action.yml`) || read(`${dir}/action.yaml`) || '');
           const inner = Array.isArray(action?.runs?.steps) ? action.runs.steps : [];
           entry.composite = inner.map(s => ({run: typeof s?.run === 'string' ? s.run : null, uses: typeof s?.uses === 'string' ? s.uses : null,
             with: s?.with && typeof s.with === 'object' ? Object.fromEntries(Object.entries(s.with).map(([k, v]) => [k, String(v)])) : {}, dir: s?.['working-directory'] ?? ''}));

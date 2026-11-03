@@ -249,10 +249,20 @@ async function study(repo) {
   // Workflows that run a check at the default branch's head, and their runs.
   const headTree = git(dir, ['rev-parse', `${main}^{tree}`]).stdout.trim();
   const workflows = (await api(`repos/${repo.name}/actions/workflows?per_page=100`)).workflows.filter(w => w.state === 'active' && w.path.startsWith('.github/workflows/'));
-  const kept = workflows.filter(w => {
-    const id = parse(headTree, w.path), p = id && parses[id];
-    return p && p.jobs.some(j => j.checks > 0) && p.triggers.some(t => events.has(t));
-  });
+  // A workflow file gone from the head (renamed, removed) is read at its
+  // latest run's commit.
+  const kept = [];
+  for (const w of workflows) {
+    let id = parse(headTree, w.path);
+    if (!id) {
+      const last = (await api(`repos/${repo.name}/actions/workflows/${w.id}/runs?per_page=1&created=${encodeURIComponent('<=' + before)}`)).workflow_runs[0];
+      if (last && (git(dir, ['cat-file', '-e', `${last.head_sha}^{commit}`], {allow: true}).status === 0 ||
+        git(dir, ['fetch', '-q', '--filter=blob:limit=512k', 'origin', last.head_sha], {allow: true}).status === 0))
+        id = parse(git(dir, ['rev-parse', `${last.head_sha}^{tree}`]).stdout.trim(), w.path);
+    }
+    const p = id && parses[id];
+    if (p && p.jobs.some(j => j.checks > 0) && p.triggers.some(t => events.has(t))) kept.push(w);
+  }
   console.log(`${repo.name}: ${kept.length} of ${workflows.length} workflows run checks: ${kept.map(w => w.path.split('/').pop()).join(', ')}`);
   let runs = [];
   for (const w of kept) {

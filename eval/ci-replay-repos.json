@@ -1,11 +1,11 @@
 {
- "note": "CI replay study (2026-11-03): about 30 active public repos that run GitHub Actions. typical: census repos with a check REDUE qualifies, and active single-project Python repos. agents: many copilot/, claude/ or codex/ PR branches (of the last 300 PRs, 2026-11-03). monorepo: S, M or L by package count. spike: the install-determinism spike installs it too.",
+ "note": "CI replay study (2026-11-03): artsy/eigen was dropped (its checks run outside GitHub Actions) for codemie-ai/codemie-code. about 30 active public repos that run GitHub Actions. typical: census repos with a check REDUE qualifies, and active single-project Python repos. agents: many copilot/, claude/ or codex/ PR branches (of the last 300 PRs, 2026-11-03). monorepo: S, M or L by package count. spike: the install-determinism spike installs it too.",
  "before": "2026-11-03T20:00:00Z",
  "repos": [
   {"name": "DIYgod/RSSHub", "group": "typical", "lang": "ts", "spike": true},
   {"name": "pixijs/pixijs", "group": "typical", "lang": "ts", "spike": true},
   {"name": "smogon/pokemon-showdown", "group": "typical", "lang": "ts", "spike": true},
-  {"name": "artsy/eigen", "group": "typical", "lang": "ts"},
+  {"name": "codemie-ai/codemie-code", "group": "typical", "lang": "ts"},
   {"name": "BlueWallet/BlueWallet", "group": "typical", "lang": "ts"},
   {"name": "smeijer/leaflet-geosearch", "group": "typical", "lang": "ts"},
   {"name": "zereight/gitlab-mcp", "group": "typical", "lang": "ts", "spike": true},
