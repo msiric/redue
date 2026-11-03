@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.1.0-alpha.31 — 2026-11-03
+
+A check that runs longer than init's trial limit no longer holds up
+`init` for three runs, and can be set up in the sandbox later.
+
+- **A run past the trial limit never agrees.** Each trial run at `init`
+  stops after 5 minutes. alpha.30 counted a timeout on both sides as
+  agreement and ran every trial of a check that timed out. Now, when the
+  plain run reaches the limit, `init` runs nothing in the sandbox and
+  writes the fallback; when a sandboxed run reaches it, no further trial
+  follows. On the 13 census repos with the slowest checks, `init --dry-run`
+  took 6224 s in all with alpha.30 and 3670 s now on Linux, 8331 s and
+  4776 s on macOS. ADOSMissionControl went from 1138 s to 581 s (Linux),
+  agent-afk from 936 s to 323 s, Nomi from 860 s to 528 s (macOS). Checks
+  that moved from the sandbox to their fallback: 2 of 210 on Linux
+  (ts-liveview typecheck, open-science lint), 3 of 210 on macOS (Nomi and
+  ts-liveview typecheck, OneUptime lint).
+- **`redue init --no-time-limit`.** `redue setup` names the checks that
+  ran past the limit and prints one command, such as
+  `redue init --check typecheck --no-time-limit`. It runs their trials with
+  no limit and updates only their rows in the existing config (a row that
+  runs the same script), restarts a running observer, and leaves the
+  config one `redue remove` still deletes. `init --json` gives such a
+  check's kind as `time_limit`.
+
 ## 0.1.0-alpha.30 — 2026-11-03
 
 `init` runs a check fewer times, and tests try the sandbox first.
