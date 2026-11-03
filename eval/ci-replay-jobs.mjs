@@ -70,13 +70,21 @@ for (const file of files) {
   const todo = data.runs.filter(run => !jobs[run.id]);
   if (!todo.length) { console.log(`${data.repo}: have it`); continue; }
   await pool(todo, 8, async run => {
-    const list = [];
-    for (let page = 1; page <= 5; page++) {
-      const r = await get(`repos/${data.repo}/actions/runs/${run.id}/jobs?filter=latest&per_page=100&page=${page}`);
-      if (!r) break;
-      list.push(...r.jobs);
-      if (r.jobs.length < 100) break;
+    // A run with many jobs can time out (502) at 100 per page: try 30.
+    let list = null;
+    for (const size of [100, 30]) {
+      try {
+        list = [];
+        for (let page = 1; page <= Math.ceil(500 / size); page++) {
+          const r = await get(`repos/${data.repo}/actions/runs/${run.id}/jobs?filter=latest&per_page=${size}&page=${page}`);
+          if (!r) break;
+          list.push(...r.jobs);
+          if (r.jobs.length < size) break;
+        }
+        break;
+      } catch (error) { console.log(`${data.repo} run ${run.id}: ${error.message}`); list = null; }
     }
+    if (!list) return;
     jobs[run.id] = list.map(j => ({id: j.id, name: j.name, conclusion: j.conclusion, started: j.started_at, completed: j.completed_at, labels: j.labels,
       runner: j.runner_name, group: j.runner_group_name, attempt: j.run_attempt,
       steps: (j.steps || []).map(s => ({n: s.number, name: s.name, conclusion: s.conclusion, started: s.started_at, completed: s.completed_at}))}));
