@@ -32,7 +32,9 @@ const option = name => { const i = argv.indexOf(name); return i >= 0 ? argv.spli
 const shard = option('--shard'), runLimit = Number(option('--runs') || 300);
 const config = readJson(path.join(evalDir, 'ci-replay-repos.json'));
 let repos = config.repos;
-if (argv.length) repos = repos.filter(r => argv.includes(r.name));
+// Repo names; eval.yml's default args (--pilot) are not one.
+const names = argv.filter(a => a.includes('/'));
+if (names.length) repos = repos.filter(r => names.includes(r.name));
 if (shard) { const [i, n] = shard.split('/').map(Number); repos = repos.filter((_, at) => at % n === i - 1); }
 const before = config.before, events = new Set(['push', 'pull_request', 'pull_request_target', 'merge_group']);
 const out = path.join(localDir, 'ci-replay');

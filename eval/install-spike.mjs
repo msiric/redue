@@ -25,7 +25,9 @@ const copy = option('--copy') || '1', shard = option('--shard'), keepFile = opti
 const keep = keepFile ? readJson(keepFile) : {};
 const config = readJson(path.join(evalDir, 'ci-replay-repos.json'));
 let repos = config.repos.filter(r => r.spike);
-if (argv.length) repos = config.repos.filter(r => argv.includes(r.name));
+// Repo names; eval.yml's default args (--pilot) are not one.
+const names = argv.filter(a => a.includes('/'));
+if (names.length) repos = config.repos.filter(r => names.includes(r.name));
 if (shard) { const [i, n] = shard.split('/').map(Number); repos = repos.filter((_, at) => at % n === i - 1); }
 const out = path.join(localDir, 'install-spike');
 fs.mkdirSync(out, {recursive: true});
