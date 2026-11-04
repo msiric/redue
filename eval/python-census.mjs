@@ -25,10 +25,11 @@ import {productChecks} from './product-runs.mjs';
 import {checkoutRedue} from './lib.mjs';
 import {testHiding} from './test-hiding.mjs';
 import {supervisorCost} from './supervisor-cost.mjs';
+import {runOverhead} from './run-overhead.mjs';
 import {sandboxEnvironment} from '../src/sandbox.mjs';
 entryPoint(import.meta, {ci: true});
 
-const argv = process.argv.slice(2), sandbox = argv.includes('--sandbox'), product = argv.includes('--product'), testHidingMode = argv.includes('--test-hiding'), supervisorCostMode = argv.includes('--supervisor-cost');
+const argv = process.argv.slice(2), sandbox = argv.includes('--sandbox'), product = argv.includes('--product'), testHidingMode = argv.includes('--test-hiding'), supervisorCostMode = argv.includes('--supervisor-cost'), overheadMode = argv.includes('--overhead');
 const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : null;
 let names = argv.filter((arg, i) => !arg.startsWith('-') && argv[i - 1] !== '--shard');
 if (!names.length) names = readJson(path.join(evalDir, 'python-census-repos.json')).repos;
@@ -38,6 +39,8 @@ const hookDir = path.join(evalDir, 'py-audit');
 const base = harnessEnv({PIP_DISABLE_PIP_VERSION_CHECK: '1', POETRY_VIRTUALENVS_IN_PROJECT: 'true', PIPENV_VENV_IN_PROJECT: '1',
   PIPENV_YES: '1', UV_NO_PROGRESS: '1', PYTHONUNBUFFERED: '1', FORCE_COLOR: '0', NO_COLOR: '1'});
 for (const key of ['PYTHONPATH', 'PYTHONHOME', 'VIRTUAL_ENV', 'CONDA_PREFIX']) delete base[key];
+// uv may pick a Python with no wheels for a project's pins (torch 2.5 has none for 3.14).
+if (overheadMode) base.UV_PYTHON ??= '3.12';
 const run = (cmd, args, cwd, timeout, env = base) => sh(cmd, args, {cwd, env, timeout});
 const tail = (r, n = 600) => (r.stderr + '\n' + r.stdout).trim().slice(-n);
 const which = name => run('sh', ['-c', `command -v ${name}`], os.homedir(), 10_000).stdout.trim() || null;
@@ -322,6 +325,12 @@ async function census(name, modes) {
     row.python = run(path.join(venv, 'bin', 'python'), ['-c', 'import sys,platform;print(platform.python_version(), sys.base_prefix)'], dir, 30_000).stdout.trim();
     row.checks = {};
     if (product) row.product = productRuns(dir, venv, info);
+    // --overhead: each sandboxed check plain and through redue run (eval/run-overhead.mjs).
+    if (overheadMode && venv === path.join(dir, '.venv')) {
+      row.overhead = runOverhead({dir, config: path.join(dir, '.census.redue.json'), env: base, plain: c => c.command});
+      for (const [check, c] of Object.entries(row.overhead.checks ?? {})) console.error(`  overhead ${check}: plain ${c.median.plain} ms, redue run ${c.median.redue} ms, hook ${c.hook?.ms ?? '-'} ms (${c.hook?.decision ?? '-'})`);
+      if (row.overhead.error) console.error(`  overhead: ${row.overhead.error}`);
+    }
     // --test-hiding: each test command three ways (eval/test-hiding.mjs), for a
     // project whose environment is .venv, where the sandboxed recipe runs.
     if (testHidingMode) {
@@ -349,7 +358,7 @@ async function census(name, modes) {
         console.error(`  supervisor cost: plain ${c.median?.plain} ms, open ${c.median?.open} ms, supervised ${c.median?.supervised} ms; connects ${c.connects?.join('/')}; status ${JSON.stringify(c.status)}${c.issue ? ' ' + c.issue : ''}`);
       }
     }
-    for (const [kind, timeout] of product || testHidingMode || supervisorCostMode ? [] : [['test', 600_000], ['typecheck', 300_000], ['lint', 180_000]]) {
+    for (const [kind, timeout] of product || testHidingMode || supervisorCostMode || overheadMode ? [] : [['test', 600_000], ['typecheck', 300_000], ['lint', 180_000]]) {
       for (const check of info.checks[kind] ?? []) {
         const cmd = command({...check, mypyFiles: info.mypyFiles}, venv, dir);
         if (!cmd) continue;

@@ -130,11 +130,11 @@ jobs:
         if: contains(inputs.args, '--sandbox') && matrix.shard == 1
         continue-on-error: true
         run: node eval/sandbox-nesting.mjs
-      - name: pnpm and Yarn through Corepack, which --product's checks run as projects pin them
-        if: contains(inputs.args, '--product')
+      - name: pnpm and Yarn through Corepack, which --product's and --overhead's checks run as projects pin them
+        if: contains(inputs.args, '--product') || contains(inputs.args, '--overhead')
         run: corepack enable
-      - name: Room for inotify watches, for the observer --product starts
-        if: runner.os == 'Linux' && contains(inputs.args, '--product')
+      - name: Room for inotify watches, for the observer --product and --overhead start
+        if: runner.os == 'Linux' && (contains(inputs.args, '--product') || contains(inputs.args, '--overhead'))
         run: |
           sudo sysctl -w fs.inotify.max_user_watches=1048576
           sudo sysctl -w fs.inotify.max_user_instances=1024

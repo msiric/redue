@@ -46,6 +46,7 @@ import {sandboxModes, sandboxSuite} from './sandbox.mjs';
 import {hiddenEntries, sandboxEnvironment} from '../src/sandbox.mjs';
 import {testHiding} from './test-hiding.mjs';
 import {supervisorCost} from './supervisor-cost.mjs';
+import {runOverhead} from './run-overhead.mjs';
 entryPoint(import.meta, {ci: true});
 
 // --python: the Python census (eval/python-census.mjs), from the same workflow.
@@ -57,7 +58,7 @@ if (process.argv.includes('--python')) {
 const argv = process.argv.slice(2);
 const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : null;
 const initOnly = argv.includes('--init-only'), recorded = argv.includes('--recorded'), product = argv.includes('--product'),
-  initTiming = argv.includes('--init-timing'), keepTraces = argv.includes('--keep-traces'), allRecipes = argv.includes('--all-recipes'), testHidingMode = argv.includes('--test-hiding'), supervisorCostMode = argv.includes('--supervisor-cost'),
+  initTiming = argv.includes('--init-timing'), keepTraces = argv.includes('--keep-traces'), allRecipes = argv.includes('--all-recipes'), testHidingMode = argv.includes('--test-hiding'), supervisorCostMode = argv.includes('--supervisor-cost'), overheadMode = argv.includes('--overhead'),
   installScripts = argv.includes('--install-scripts'), sandbox = argv.includes('--sandbox');
 let names = argv.filter((arg, i) => !arg.startsWith('-') && !['--shard', '--redue-version'].includes(argv[i - 1]));
 if (!names.length) names = readJson(path.join(evalDir, 'census-repos.json')).repos;
@@ -242,12 +243,19 @@ async function census(name, modes) {
     const picked = initPick(kind) ? [initPick(kind), pkg.scripts[initPick(kind)]] : scriptPick[kind](scripts);
     if (!picked) continue;
     row.scripts[kind] = {name: picked[0], text: picked[1]};
-    if (!row.install.pass || initOnly || initTiming || recorded || product || sandbox || testHidingMode || supervisorCostMode) continue;
+    if (!row.install.pass || initOnly || initTiming || recorded || product || sandbox || testHidingMode || supervisorCostMode || overheadMode) continue;
     row.timings[kind] = timeScript(dir, pm, picked[0], timeout);
   }
   if (row.timings.typecheck) row.timings.typecheckAgain = timeScript(dir, pm, row.scripts.typecheck.name, 600_000);
   if (recorded) row.recorded = recordScripts(dir, pm, row);
   if (product) row.product = productRuns(dir, row);
+  // --overhead: each sandboxed check plain and through redue run (eval/run-overhead.mjs).
+  if (overheadMode && row.install.pass && ['npm', 'pnpm', 'yarn'].includes(pm.name)) {
+    row.overhead = runOverhead({dir, config: path.join(dir, '.census.redue.json'), env: {...env, npm_config_update_notifier: 'false'},
+      plain: c => c.script ? [pm.name, 'run', c.script] : null});
+    for (const [check, c] of Object.entries(row.overhead.checks ?? {})) console.error(`  overhead ${check}: plain ${c.median.plain} ms, redue run ${c.median.redue} ms, hook ${c.hook?.ms ?? '-'} ms (${c.hook?.decision ?? '-'})`);
+    if (row.overhead.error) console.error(`  overhead: ${row.overhead.error}`);
+  }
   // --supervisor-cost: the test script plain, sandboxed and supervised (eval/supervisor-cost.mjs).
   if (supervisorCostMode && row.install.pass && row.scripts.test && ['npm', 'pnpm', 'yarn'].includes(pm.name)) {
     const testArgv = pm.name === 'npm' ? ['npm', 'run', row.scripts.test.name] : ['corepack', pm.name, 'run', row.scripts.test.name];
