@@ -72,6 +72,8 @@ user-visible improvements to that, quickly and correctly.
 - Deferred: the asynchronous daemon probe. `wip/async-probe-v1` and
   `wip/async-probe-v2` are reference only; reviews found event-ordering
   problems in both. Don't resume it unless I ask.
+- Deferred: CI-to-CI reuse: Phase 0 found 8.0% (typical) and 5.6% (monorepos)
+  of check minutes reusable; parked.
 
 ## Writing
 
