@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import net from 'node:net';
 import {spawnSync,execFileSync} from 'node:child_process';
-import {comparableOutput,denialLine,namedDocsLimit,seatbeltProfile,sandboxInterpretationOf,hiddenEntries,hiddenRefusal,sandboxArgv,sandboxTrial,systemPlaces,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
+import {comparableOutput,denialLine,launcherFailure,namedDocsLimit,visibleChange,seatbeltProfile,sandboxInterpretationOf,hiddenEntries,hiddenRefusal,sandboxArgv,sandboxTrial,systemPlaces,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
 import {projectArgs,toolArgs} from '../src/python-onboarding.mjs';
 import {chainCommand,claudeHook,hookForms,pathForm,recordedCommand} from '../src/claude-hook.mjs';
 
@@ -283,9 +283,15 @@ test('a sandboxed Python check: CURRENT after a pass and through changes to git-
   status=row(root,state,'typecheck');
   assert.equal(status.freshness,'STALE');assert.match(status.reason,/notes\.txt changed/);
   good(root,state,'run','typecheck');
+  // The receipt holds the .venv as one entry: a digest of its files.
+  const receipt=JSON.parse(fs.readFileSync(path.join(state,'receipts-v1.json'),'utf8')).checks.typecheck;
+  assert.equal(receipt.filesCompact,true);
+  assert.match(receipt.files['.venv/:installed:'],/^[0-9a-f]{64}$/);
+  assert.deepEqual(Object.keys(receipt.files).filter(file=>file.startsWith('.venv/')),['.venv/:installed:']);
   // The .venv is observed as installed files.
   write(root,'.venv/lib/extra.txt','x');
-  assert.equal(row(root,state,'typecheck').freshness,'STALE');
+  status=row(root,state,'typecheck');
+  assert.equal(status.freshness,'STALE');assert.equal(status.reason,'.venv (installed files) changed');
   good(root,state,'run','typecheck');
   // Python's bytecode caches are not inputs.
   write(root,'src/fx/__pycache__/x.cpython-312.pyc','x');
@@ -882,4 +888,38 @@ test('redue verify starts the observer, runs each due check, then shows the stat
   write(root,'src/fx/__init__.py','value = 2\n');
   r=invoke(root,state,['verify']);
   assert.equal(r.status,0,r.stderr+r.stdout);
+});
+
+test('the Landlock launcher\'s own refusal is read as a run that was not sandboxed',()=>{
+  assert.equal(launcherFailure('landlock.py: Landlock unavailable (errno 38)\n'),'landlock.py: Landlock unavailable (errno 38)');
+  assert.equal(launcherFailure('landlock.py: add_rule /x errno 2\n'),'landlock.py: add_rule /x errno 2');
+  assert.equal(launcherFailure('landlock.py: Landlock ABI 3 cannot keep a run off the network'),'landlock.py: Landlock ABI 3 cannot keep a run off the network');
+  // The check's own output, or what the launcher says after the command ran, is not a refusal.
+  assert.equal(launcherFailure('some output\nlandlock.py: add_rule /x errno 2\n'),null);
+  assert.equal(launcherFailure('landlock.py: processes [12] did not stop\n'),null);
+  assert.equal(launcherFailure('error: tests failed\n'),null);
+});
+
+test('an installed tree kept as one entry beneath a hidden directory counts once git tracks a file in it',t=>{
+  const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'rsb-compact-')));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+  put(path.join(root,'.gitignore'),'vendor/\n');put(path.join(root,'vendor/node_modules/x/index.js'),'x');put(path.join(root,'a.txt'),'a');
+  execFileSync('git',['init','-q'],{cwd:root});execFileSync('git',['add','.gitignore','a.txt'],{cwd:root});
+  const key='vendor/node_modules/:installed:',before={[key]:'1'},after={[key]:'2'};
+  assert.equal(visibleChange(root,['vendor/'],before,after,[key]),null);
+  execFileSync('git',['add','-f','vendor/node_modules/x/index.js'],{cwd:root});
+  assert.equal(visibleChange(root,['vendor/'],before,after,[key]),key);
+});
+
+test('on Linux, a run keeps the Landlock answer for the same kernel, launcher Python and launcher',{skip:process.platform!=='linux'||unsupported},t=>{
+  const base=fs.mkdtempSync(path.join(os.tmpdir(),'rsb-support-'));t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
+  const cache=path.join(base,'sandbox-support-v1.json'),module=path.resolve('src/sandbox.mjs');
+  const ask=()=>JSON.parse(execFileSync(process.execPath,['--input-type=module','-e',
+    `import {sandboxSupport} from ${JSON.stringify(module)};console.log(JSON.stringify(sandboxSupport({cache:${JSON.stringify(cache)}})));`],{encoding:'utf8'}));
+  const first=ask();assert.equal(first.mode,'landlock');
+  const kept=JSON.parse(fs.readFileSync(cache,'utf8'));assert.equal(kept.abi,first.abi);assert.match(kept.key,/^[0-9a-f]{64}$/);
+  // Kept: the answer comes from the file (an ABI the probe would not give shows it).
+  fs.writeFileSync(cache,JSON.stringify({key:kept.key,abi:99}));assert.equal(ask().abi,99);
+  // Another key, or an ABI that cannot keep a run off the network, asks again.
+  fs.writeFileSync(cache,JSON.stringify({key:'0'.repeat(64),abi:99}));assert.equal(ask().abi,first.abi);
+  fs.writeFileSync(cache,JSON.stringify({key:kept.key,abi:3}));assert.equal(ask().abi,first.abi);
 });

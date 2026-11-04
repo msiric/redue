@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import {mark,traceBase,traceContext,traceEnvironment,traceId} from '../src/decision-profile.mjs';
 traceBase({...traceContext(),request:traceId(),work:'client'});
-mark('client.loaded');
+mark('client.loaded',{sinceStartMs:Math.round(performance.now())});
 import {directCompiler,directQualification,directEnvironment,directInstalledInputs,directInterpretation} from '../src/direct-typescript.mjs';
 import {runArgv,tscRun} from '../src/typescript-invocation.mjs';
 import {testEnvironment,testRunnerAt,testsInterpretation,testsQualification} from '../src/test-direct.mjs';

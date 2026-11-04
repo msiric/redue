@@ -8,7 +8,7 @@ import {patternMatcher} from './glob.mjs';
 import {observedBy} from './installed-observation.mjs';
 import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testRunFacts,sharedInstalledFile,testsInterpretation,testsQualification} from './test-direct.mjs';
 import {childProgram,generalIssue,lookup,pnpmConfigFiles,scriptCaches,scriptInstalledPaths,scriptInterpretation,scriptQualification,scriptRunFacts,pnpmNameless,toolOutput,toolchainDirs} from './node-script.mjs';
-import {denialLine,docsQualification,endWithChild,hiddenDocs,hiddenEntries,hiddenQualification,hiddenRefusal,hidesIgnored,isSandboxed,runToEnd,supervisorIssue,visibleChange,testRun as sandboxTestRun,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,
+import {denialLine,docsQualification,endWithChild,launcherFailure,hiddenDocs,hiddenEntries,hiddenQualification,hiddenRefusal,hidesIgnored,isSandboxed,runToEnd,supervisorIssue,visibleChange,testRun as sandboxTestRun,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,
   sandboxInterpretation,sandboxInterpretationOf,sandboxPlaces,sandboxQualification,sandboxSupport,systemPlaces} from './sandbox.mjs';
 import path from 'node:path';
 import net from 'node:net';
@@ -31,7 +31,8 @@ import {readCachedStatus,unavailableCached} from './cached-state.mjs';
 import {renderRun} from './presentation.mjs';
 import {note} from './stats.mjs';
 
-mark('cli.loaded');
+// When the engine finished loading, from the process's start.
+mark('cli.loaded',{sinceStartMs:Math.round(performance.now())});
 const here=path.dirname(fileURLToPath(import.meta.url));
 const [configArg,action,name]=process.argv.slice(2);
 if(!configArg||!action)throw Error('internal usage: cli.mjs CONFIG ACTION [check]');
@@ -87,8 +88,10 @@ function environmentReads() {
 }
 const recordedRecipes=[testsQualification,scriptQualification];
 // A sandboxed check's run is recorded where its sandbox cannot start (execute).
-function contextHashes() {const reads=config.checks.some(check=>recordedRecipes.includes(check.qualification)||isSandboxed(check.qualification))?environmentReads():{};
-  return Object.fromEntries(config.checks.map(check=>[
+// `only`: just that check's (a run's checkpoints answer for its own check).
+function contextHashes(only=null) {const checks=only?config.checks.filter(check=>check.name===only):config.checks;
+  const reads=checks.some(check=>recordedRecipes.includes(check.qualification)||isSandboxed(check.qualification))?environmentReads():{};
+  return Object.fromEntries(checks.map(check=>[
   check.name,Object.fromEntries([...(check.environment?.variables||[])
     .map(key=>[key,digest(process.env[key]??'<unset>')]),
     ...(check.environment?.prefixes||[]).map(prefix=>[
@@ -254,7 +257,7 @@ async function execute() {
     timing('cli.command_resolution',resolutionStarted);
     const runId=randomUUID();
     const contextStarted=performance.now();
-    const environmentBefore=contextHashes()[name];
+    const environmentBefore=contextHashes(name)[name];
     const observedContext=selected.qualification===directQualification?{interpretation:directInterpretation,npmProxyDigest:observedNpmContext()}:null;
     timing('cli.context_before',contextStarted);
     const captureWait=decisionWait(process.env.VSTATE_CAPTURE_TIMEOUT_MS);
@@ -265,9 +268,13 @@ async function execute() {
     const callerCertificate=directRunCertificateAllowed(selected);
     const probePlan={cwd:plan.cwd,probes:selected.probes||[],qualification:selected.qualification};
     let probeBefore=callerCertificate?null:probeHash(probePlan);
+    // A run the sandbox will run asks for the smaller file map: each
+    // installed tree as one entry (the observer's compactFiles).
+    const supportCache=path.join(state,'sandbox-support-v1.json');
+    const compact=isSandboxed(selected.qualification)&&!sandboxSupport({cache:supportCache}).issue;
     const startSnapshotStarted=performance.now();
-    try{before=await call({action:'snapshot',name,contextHashes:contextHashes(),
-      ...(callerCertificate?{runCertificate:1}:{})},captureWait.timeout,captureWait.deadline);}
+    try{before=await call({action:'snapshot',name,contextHashes:{[name]:environmentBefore},
+      ...(compact?{compact:1}:{}),...(callerCertificate?{runCertificate:1}:{})},captureWait.timeout,captureWait.deadline);}
     catch(error){captureIssues.push('start observation unavailable'+
       (typeof error.code==='string'&&/^[A-Z0-9_]+$/.test(error.code)?` (${error.code})`:''));}
     timing('cli.start_checkpoint',startSnapshotStarted,{available:before?.snapshots?.[name]?1:0});
@@ -327,7 +334,7 @@ async function execute() {
       if(general)launchEnv.npm_config_update_notifier='false';
     }
     // The sandboxed run, with the environment REDUE gives it.
-    let sandbox=null;
+    let sandbox=null;const sandboxSetupStarted=performance.now();
     if(sandboxed&&!fallback){
       if(support.issue)captureIssues.push(`the run was not sandboxed: ${support.issue}`);
       else{
@@ -353,6 +360,7 @@ async function execute() {
           env:sandboxEnv(selected,process.env,{root,...dirs})};
       }
     }
+    if(sandbox)timing('cli.sandbox_setup',sandboxSetupStarted,{hidden:sandbox.hidden?.length??0,docs:sandbox.docs?.length??0});
     const plainEnv={...process.env,...selected.script?{npm_config_update_notifier:'false'}:{}};
     // Output kept, and its own process group, for a run as this recipe makes it.
     const own=sandboxed&&!fallback;
@@ -429,7 +437,7 @@ async function execute() {
     invocation.reporting='normal';
     let result=invocation.status==='exited'?(invocation.exitCode===0?'PASS':'FAIL'):null;
     const target={source:'direct-command',status:invocation.status==='exited'?'direct_executed':'unknown'};
-    const afterContextStarted=performance.now(),environmentAfter=contextHashes()[name];
+    const afterContextStarted=performance.now(),environmentAfter=contextHashes(name)[name];
     timing('cli.context_after',afterContextStarted);
     let probeAfter=null;
     const recordText=Buffer.concat(record).toString('utf8');
@@ -468,7 +476,7 @@ async function execute() {
     if(!unobservedDirectRun){
       // The start checkpoint's probe may have raised the deadline.
       const endWait=decisionWait(process.env.VSTATE_CAPTURE_TIMEOUT_MS);
-      try{after=await call({action:'snapshot',name,contextHashes:contextHashes(),
+      try{after=await call({action:'snapshot',name,contextHashes:{[name]:environmentAfter},...(compact?{compact:1}:{}),
         ...((testRun||sandboxed)&&Number.isSafeInteger(snap?.inputEventSerial)?{sinceSerial:snap.inputEventSerial}:{}),
         ...(recording?{runCertificate:1,adopt:recording}:recorded&&!certificate?{runCertificate:1,runFacts:1}:{})},
         endWait.timeout,endWait.deadline);}
@@ -550,6 +558,10 @@ async function execute() {
     // one runs again in the sandbox without hiding them: the check needs
     // them. That run's result is kept, compared on every file, when the
     // inputs held through it too. Its own refusal is handled as below.
+    // The Landlock launcher could not sandbox the run: nothing it says is a
+    // result, and its kept answer is asked again next time.
+    const unsandboxed=sandbox?.mode==='landlock'&&invocation.exitCode!==0?launcherFailure(output.head):null;
+    if(unsandboxed){captureIssues.push(`the run was not sandboxed: ${unsandboxed}`);result=null;fs.rmSync(supportCache,{force:true});}
     let hiddenRerun=null;
     if((sandbox?.hidden?.length||sandbox?.docs?.length)&&result==='FAIL'&&!requestedSignal){
       const line=hiddenRefusal(output.head+'\n'+output.tail,[...sandbox.hidden||[],...sandbox.docs||[]]);
@@ -568,8 +580,8 @@ async function execute() {
         else{
           const wait=decisionWait(process.env.VSTATE_CAPTURE_TIMEOUT_MS);
           // Inputs, plan, observer and environment held through it as through the first run.
-          let confirmed=null;const environmentNow=contextHashes()[name];
-          try{confirmed=await call({action:'snapshot',name,contextHashes:contextHashes(),
+          let confirmed=null;const environmentNow=contextHashes(name)[name];
+          try{confirmed=await call({action:'snapshot',name,contextHashes:contextHashes(name),
             ...Number.isSafeInteger(snap?.inputEventSerial)?{sinceSerial:snap.inputEventSerial}:{}},wait.timeout,wait.deadline);}catch{}
           const last=confirmed?.snapshots?.[name];
           if(!last?.observationHealthy||!snap||last.planId!==snap.planId||last.fingerprint!==snap.fingerprint||last.revision!==snap.revision||
@@ -613,8 +625,9 @@ async function execute() {
       }
     }
     // A test run whose network was not supervised throughout is not reused.
+    const cleanupStarted=performance.now();
     if(sandbox?.stats){const issue=supervisorIssue(sandbox.stats);if(issue)captureIssues.push(issue);fs.rmSync(sandbox.stats,{force:true});}
-    if(sandbox)fs.rmSync(sandbox.dirs.tmp,{recursive:true,force:true});
+    if(sandbox){fs.rmSync(sandbox.dirs.tmp,{recursive:true,force:true});timing('cli.sandbox_cleanup',cleanupStarted);}
     const stable=captureIssues.length===0;
     // Two runs on the same inputs, environment and plan that disagree make the
     // check nondeterministic until its inputs change.
@@ -654,7 +667,8 @@ async function execute() {
       ...(own?{verificationRecipe:sandboxInterpretationOf(sandbox?.docs?docsQualification:sandbox?.hidden?hiddenQualification:sandboxQualification,selected.kind),
         sandbox:{mode:sandbox?.mode??null,hidden:sandbox?.hidden??null,...sandbox?.docs?{docs:sandbox.docs}:{},...hiddenRerun?{hiddenRerun}:{},...sandboxRerun?{rerun:sandboxRerun}:{}}}:{}),
       ...(fallback?{sandbox:{mode:null,fallback:'node-script',issue:support.issue}}:{}),
-      files:(outputs?end:snap)?.files??null,observerGeneration:before?.observation?.generation??null,
+      // The form the observer says it returned: an older one ignores the request.
+      files:(outputs?end:snap)?.files??null,...(outputs?end:snap)?.filesCompact===true?{filesCompact:true}:{},observerGeneration:before?.observation?.generation??null,
       startRevision:snap?.revision??null,endRevision:end?.revision??null};
     const persistenceStarted=performance.now();
     commitReceipt(state,name,receipt);

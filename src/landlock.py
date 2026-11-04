@@ -321,6 +321,9 @@ def main(argv):
     version, err = abi()
     if version is None:
         sys.exit(f'landlock.py: Landlock unavailable (errno {err})')
+    # Below ABI 4 Landlock cannot refuse TCP: a run that must be off the network does not start.
+    if no_tcp and version < 4:
+        sys.exit(f'landlock.py: Landlock ABI {version} cannot keep a run off the network')
     reading = EXECUTE | READ_FILE | READ_DIR
     handled = reading | (WRITE if deny_write else 0)
     attr = RulesetAttr(handled, (BIND_TCP | CONNECT_TCP) if no_tcp and version >= 4 else 0,
