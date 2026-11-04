@@ -283,9 +283,15 @@ test('a sandboxed Python check: CURRENT after a pass and through changes to git-
   status=row(root,state,'typecheck');
   assert.equal(status.freshness,'STALE');assert.match(status.reason,/notes\.txt changed/);
   good(root,state,'run','typecheck');
+  // The receipt holds the .venv as one entry: a digest of its files.
+  const receipt=JSON.parse(fs.readFileSync(path.join(state,'receipts-v1.json'),'utf8')).checks.typecheck;
+  assert.equal(receipt.filesCompact,true);
+  assert.match(receipt.files['.venv/:installed:'],/^[0-9a-f]{64}$/);
+  assert.deepEqual(Object.keys(receipt.files).filter(file=>file.startsWith('.venv/')),['.venv/:installed:']);
   // The .venv is observed as installed files.
   write(root,'.venv/lib/extra.txt','x');
-  assert.equal(row(root,state,'typecheck').freshness,'STALE');
+  status=row(root,state,'typecheck');
+  assert.equal(status.freshness,'STALE');assert.equal(status.reason,'.venv (installed files) changed');
   good(root,state,'run','typecheck');
   // Python's bytecode caches are not inputs.
   write(root,'src/fx/__pycache__/x.cpython-312.pyc','x');
