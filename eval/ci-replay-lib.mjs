@@ -216,7 +216,14 @@ const nameKind = name => {
 // A step's name, when its commands say nothing: a check by its words, unless
 // it names setup, reporting or packaging work.
 const notCheckStep = /upload|send|report|codecov|coveralls|download|cache|install|setup|set up|build|publish|comment|summar|artifact|stats|merge|combine|notify|record|prepare|post|clean|login|docker|checkout|deploy|release|start|stop|wait|label|bump|generate|fetch|sync|config|annotate|status|matrix|changes|filter/i;
-export const nameKinds = name => { const clean = name.replace(/\$\{\{[\s\S]*?\}\}/g, ' ').replace(/[(),]/g, ' '); return notCheckStep.test(clean) ? [] : nameKind(clean); };
+// The check word must lead the name ("Unit tests", "Run lint"), and the
+// name must not ask a question ("Check if the test file exists").
+export const nameKinds = name => {
+  const clean = name.replace(/\$\{\{[\s\S]*?\}\}/g, ' ').replace(/[(),]/g, ' ');
+  if (notCheckStep.test(clean) || /\b(if|that|whether|exists?|found|find|for)\b/i.test(clean)) return [];
+  const words = clean.toLowerCase().split(/\s+/).filter(Boolean).filter((w, i) => i > 0 || !/^(run|execute|do)$/.test(w));
+  return nameKind(words.slice(0, 2).join(' '));
+};
 const notCheck = /^(build|install|deploy|release|publish|clean|dev|start|serve|prepare|postinstall|generate|codegen|docs|bootstrap|setup|changeset|version|format|fmt|fix|lint:fix|lint-fix|format:fix|bench|benchmark)(:|$)/;
 // The kinds of check a step's commands run (a Set of 'typecheck', 'lint',
 // 'test'), with the scope each runs in. `scripts(dir)` gives the npm scripts

@@ -226,12 +226,14 @@ async function study(repo) {
           if (step.run) findings.push(...classifyRun(step.run, {scripts, file: info.read, dir: step.dir}));
           for (const inner of step.composite || []) if (inner.run) findings.push(...classifyRun(inner.run, {scripts, file: info.read, dir: inner.dir || step.dir}));
           if (step.uses && actionKind(step.uses)) findings.push({kind: actionKind(step.uses), scope: null, target: step.uses});
+          // An action that runs a command it is given (a retry wrapper, say).
+          for (const input of ['command', 'run', 'script', 'cmd']) if (step.uses && typeof step.with?.[input] === 'string') findings.push(...classifyRun(step.with[input], {scripts, file: info.read, dir: step.dir}));
           // A command the matrix gives: the matrix's strings, as commands.
           if (!findings.length && step.run && /\$\{\{\s*matrix\./.test(step.run))
             for (const text of matrixStrings(job.matrix)) findings.push(...classifyRun(text, {scripts, file: info.read, dir: step.dir}).map(f => ({...f, scope: null})));
           // Last: the step's name (counted apart in the report).
           let byName;
-          if (!findings.length && step.run && step.name) { for (const kind of nameKinds(step.name)) findings.push({kind, scope: null, target: step.name}); byName = findings.length > 0 || undefined; }
+          if (!findings.length && (step.run || step.with?.command) && step.name) { for (const kind of nameKinds(step.name)) findings.push({kind, scope: null, target: step.name}); byName = findings.length > 0 || undefined; }
           const base = {index: step.index, name: step.name, pattern: step.displayPattern, defaultName: step.defaultName?.slice(0, 200), side: sideEffect(step) || undefined};
           if (!findings.length) return base;
           checks++;

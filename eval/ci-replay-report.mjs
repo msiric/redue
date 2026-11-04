@@ -14,6 +14,8 @@
 // dependencies and has no deploy-like step, saves its whole duration;
 // otherwise the answered check steps save their own time (key c: a step over
 // several packages saves its share of answered packages, assuming equal cost).
+// With the runner image in the key, only the two latest matching sources are
+// asked for their image (--need), so those shares are lower bounds.
 //
 // Monorepos are the repos with 5 or more workspace packages.
 //
@@ -152,11 +154,11 @@ for (const u of units) {
         const field = key === 'a' ? 'keyA' : 'keyB';
         const sources = earlier.filter(s => s[field] === u[field] && sameImage(s));
         if (sources.length) { answered = 1; from = new Set(sources.map(s => allowed(u, s))); }
-        if (!withImage && sources.length && key !== 'a') { need(u); for (const s of sources.slice(-5)) need(s); }
+        if (!withImage && sources.length && key !== 'a') { need(u); for (const s of sources.slice(-2)) need(s); }
       }
       if (!withImage && key === 'c' && answered > 0) {
         need(u);
-        for (const part of u.keyC) for (const s of earlier.filter(s => s.keyC.includes(part)).slice(-3)) need(s);
+        for (const part of u.keyC) for (const s of earlier.filter(s => s.keyC.includes(part)).slice(-2)) need(s);
       }
       u.reuse[`${key}${withImage ? '+img' : ''}`] = {share: answered, from: [...from]};
     }
