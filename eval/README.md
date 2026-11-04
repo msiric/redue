@@ -78,6 +78,17 @@ Importing any entry point throws before it does anything (`entryPoint` in
   installs each `spike` repo from its lockfile and writes a manifest of the
   installed tree; `install-spike-report.mjs` compares the two copies.
 
+- `run.mjs --gap` (the verification-gap study): for the `gap-*` source tasks,
+  how often a session finishes on code it did not verify. `tree-hook.mjs`, a
+  PreToolUse hook for Bash, records the tree each command ran on. After the
+  session the repo's typecheck, lint and tests run on the final tree (a
+  failing one runs again), and once per repo on its pinned commit. `gap.mjs`
+  finds the checks the agent ran (`gapAliases` in `repos.json` maps a repo's
+  own scripts to checks) and the final message's pass claims;
+  `gap-report.mjs` counts them per model and adds up how long a gate that ran
+  the missing checks would take (`--review` prints every session's runs and
+  claim sentences to read).
+
 ## Run
 
 ```sh

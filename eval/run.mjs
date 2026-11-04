@@ -10,6 +10,9 @@
 //          --keep (keep each run's clone)  --out DIR
 //          --profile (REDUE arm: write REDUE's timing trace to each run's profile.jsonl)
 //          --diag (REDUE arm: the wrapper logs what status said when the hook did not skip)
+//          --gap (the verification-gap study: records the tree each Bash command ran on,
+//                 runs the repo's checks on its pinned commit once, reruns a failing
+//                 final check once, and writes what the session verified; gap.mjs)
 //
 // Every run gets a fresh clone at the repo's pinned commit, `npm ci
 // --ignore-scripts`, and its own `claude -p` session. A task measures its
@@ -27,6 +30,7 @@ import {checkoutRedue, claudeSession, evalDir, freshClone, harnessEnv, localDir,
 import {writeWrapper} from './wrapper.mjs';
 import {analyze} from './analyze.mjs';
 import {report} from './report.mjs';
+import {docLike, gapOf} from './gap.mjs';
 entryPoint(import.meta, {ci: true});
 
 const {values: opt} = parseArgs({options: {
@@ -34,6 +38,7 @@ const {values: opt} = parseArgs({options: {
   runs: {type: 'string', default: '3'},
   model: {type: 'string', default: 'claude-sonnet-5-5'}, 'max-turns': {type: 'string', default: '30'},
   redue: {type: 'string', default: checkoutRedue}, keep: {type: 'boolean'}, out: {type: 'string'}, profile: {type: 'boolean'}, diag: {type: 'boolean'},
+  gap: {type: 'boolean'},
 }});
 const entry = path.resolve(opt.redue);
 const repos = readJson(path.join(evalDir, 'repos.json')).repos;
@@ -111,12 +116,33 @@ async function runOne(task, repo, arm, index, rep) {
   finally { if (arm === 'redue' && fs.existsSync(dir)) redue(entry, dir, 'stop'); }
 }
 
-// The flags every session gets; only the prompt and turn limit differ.
-const sessionArgs = (prompt, maxTurns) => ['-p', prompt, '--model', opt.model, '--max-turns', String(maxTurns),
+// The flags every session gets; only the prompt and turn limit differ. `hook`:
+// a PreToolUse command for Bash calls (--gap's tree-hook.mjs).
+const sessionArgs = (prompt, maxTurns, hook = null) => ['-p', prompt, '--model', opt.model, '--max-turns', String(maxTurns),
   '--output-format', 'stream-json', '--verbose', '--no-session-persistence',
-  '--setting-sources', 'project,local', '--settings', JSON.stringify({autoMemoryEnabled: false}),
+  '--setting-sources', 'project,local', '--settings', JSON.stringify({autoMemoryEnabled: false,
+    ...hook ? {hooks: {PreToolUse: [{matcher: 'Bash', hooks: [{type: 'command', command: hook}]}]}} : {}}),
   '--strict-mcp-config', '--mcp-config', JSON.stringify({mcpServers: {}}),
   '--tools', tools, '--allowedTools', tools, '--permission-mode', 'dontAsk'];
+
+// --gap: the repo's checks on a fresh clone of its pinned commit, once per
+// repo, in the order the final checks run. A check that fails here fails
+// before any session.
+const baseRuns = new Map();
+function baseChecks(repo) {
+  if (baseRuns.has(repo.name)) return baseRuns.get(repo.name);
+  const dir = path.join(tmpRoot, 'base', slug(repo.name));
+  const one = r => ({pass: r.pass, ms: r.ms, ...r.pass ? {} : {tail: r.output.slice(-1500)}});
+  let result;
+  try {
+    freshClone(repo, repo.commit, dir);
+    result = {typecheck: one(repo.typecheck ? plainTests(dir, repo.typecheck) : plainTsc(dir)),
+      ...repo.test ? {test: one(plainTests(dir, repo.test))} : {}, ...repo.lint ? {lint: one(plainTests(dir, repo.lint))} : {}};
+  } catch (error) { result = {error: error.message}; }
+  fs.rmSync(dir, {recursive: true, force: true});
+  baseRuns.set(repo.name, result);
+  return result;
+}
 
 async function runSession(task, repo, arm, id) {
   const runDir = path.join(out, id), work = path.join(tmpRoot, 'runs', id), dir = path.join(work, 'repo');
@@ -174,7 +200,9 @@ async function runSession(task, repo, arm, id) {
   }
   const baseTree = treeOf(dir);
 
-  const args = sessionArgs(task.prompt, opt['max-turns']);
+  const treeLog = path.join(runDir, 'trees.jsonl');
+  const hook = opt.gap ? [process.execPath, path.join(evalDir, 'tree-hook.mjs'), treeLog, dir].map(a => JSON.stringify(a)).join(' ') : null;
+  const args = sessionArgs(task.prompt, opt['max-turns'], hook);
   fs.writeFileSync(path.join(runDir, 'session.json'), JSON.stringify({cwd: dir, args}, null, 2) + '\n');
   const session = await claudeSession(args, {cwd: dir, env: {...env, ...sessionAuth()}, timeout: 45 * 60_000});
   if (session.rateLimited) throw new RateLimited(session.rateLimited);
@@ -212,6 +240,20 @@ async function runSession(task, repo, arm, id) {
     if (lint.status !== 0) fs.writeFileSync(path.join(runDir, 'lint.txt'), (lint.stdout + lint.stderr).slice(-8000));
   }
   row.expect = expectations(dir, task, row.changed_files);
+  if (opt.gap) {
+    // A failing final check runs once more: one that passes then is flaky.
+    const again = command => plainTests(dir, command).pass;
+    row.final_checks = {
+      typecheck: {pass: tsc.pass, ms: tsc.ms, ...tsc.pass ? {} : {again: repo.typecheck ? again(repo.typecheck) : plainTsc(dir).pass}},
+      ...row.tests ? {test: {...row.tests, ...row.tests.pass ? {} : {again: again(repo.test)}}} : {},
+      ...row.lint ? {lint: {...row.lint, ...row.lint.pass ? {} : {again: again(repo.lint)}}} : {},
+    };
+    row.base_checks = baseChecks(repo);
+    const same = tree => tree === finalTree ||
+      sh('git', ['diff', '--name-only', tree, finalTree], {cwd: dir}).stdout.split('\n').filter(Boolean).every(docLike);
+    row.gap = gapOf({transcript: path.join(runDir, 'transcript.jsonl'), treeLog, repo, same});
+    row.gap.source_changed = row.changed_files.some(file => !docLike(file));
+  }
 
   row.metrics = analyze({transcript: path.join(runDir, 'transcript.jsonl'), wrapperLog: log, script: repo.script,
     testScript: repo.testScript, lintScript: repo.lintScript, check});

@@ -742,6 +742,362 @@
         }
       ],
       "check": "test"
+    },
+    {
+      "repo": "jodit/jodit-react",
+      "id": "gap-bugfix",
+      "kind": "source",
+      "prompt": "In src/JoditEditor.tsx, the editor gets destroyed and recreated by the first useEffect whenever `config`, `JoditConstructor` or `editorRef` changes identity. The later effects never run again for the new instance, because their deps don't change. So after a recreation: the `change`/`blur` handlers are only attached to the old, destroyed instance, and `onChange`/`onBlur` stop firing for good. The `className` classes are missing from the new container, and the `tabIndex` is not set on the new workplace. You can reproduce it with the example in examples/components/Form.tsx: click \"Toggle Read-Only\" (it replaces `config`), type, and `handleWYSIWYGChange` is never called again. Fix this so the onChange/onBlur handlers, the className classes and the tabIndex always apply to the current editor instance. Keep the existing behaviour: changing `onChange`/`onBlur` alone must not recreate the editor, and the stale-echo protection for `value` (#217) must keep working. Add tests in a new tests/recreate.test.tsx. Render `<JoditEditor config={{ height }} onChange={onChange} className=\"my-editor\" />`, rerender with a different height, then change the new instance's value and check that onChange is called with the new value and that the new container has the `my-editor` class.",
+      "expect": [
+        {
+          "file": "tests/recreate.test.tsx",
+          "includes": "rerender"
+        },
+        {
+          "file": "tests/recreate.test.tsx",
+          "includes": "my-editor"
+        }
+      ]
+    },
+    {
+      "repo": "jodit/jodit-react",
+      "id": "gap-feature",
+      "kind": "source",
+      "prompt": "Add a `readOnly?: boolean` prop to `JoditEditorProps` in src/JoditEditor.tsx. Today the only way to toggle read-only is to pass a new `config` with `readonly`, and that destroys and recreates the whole editor (see the \"Toggle Read-Only\" button in examples/components/Form.tsx). With the new prop, the component should call `setReadOnly(readOnly)` on the existing Jodit instance when the prop changes, without recreating the editor. It should also apply the prop to a freshly created instance. When `readOnly` is undefined, don't touch the instance, so `config.readonly` still works as before. Switch examples/components/Form.tsx to use the prop: keep a `readOnly` boolean in state, drop `readonly` from its config state, and keep the toggle button working. Add tests/readonly.test.tsx covering: initial `readOnly` makes `getReadOnly()` true; toggling the prop via rerender flips `getReadOnly()` and keeps the same instance (check that `editorRef` was called only once); and no prop leaves `config.readonly: true` in effect.",
+      "expect": [
+        {
+          "file": "src/JoditEditor.tsx",
+          "matches": "readOnly\\?\\s*:\\s*boolean"
+        },
+        {
+          "file": "src/JoditEditor.tsx",
+          "matches": "setReadOnly\\("
+        },
+        {
+          "file": "examples/components/Form.tsx",
+          "matches": "readOnly=\\{"
+        },
+        {
+          "file": "tests/readonly.test.tsx",
+          "matches": "getReadOnly\\(\\)"
+        }
+      ]
+    },
+    {
+      "repo": "jodit/jodit-react",
+      "id": "gap-refactor",
+      "kind": "source",
+      "prompt": "Pull the controlled-value echo tracking (#217) out of src/JoditEditor.tsx into its own module, src/emitted-values.ts. Today it is inlined: `MAX_TRACKED_EMITTED_VALUES`, the `emittedValuesRef` array, the push/splice trimming in `onChangeHandler`, and the `indexOf`/splice/`length = 0` logic in the value effect. Export a small class `EmittedValues` with a constructor taking the limit (default 20) and three methods: `remember(value: string): void` (records a value the editor emitted and keeps at most `limit` entries, dropping the oldest), `consumeEcho(value: string): boolean` (if the value was emitted, drops it and every older entry and returns true; otherwise returns false), and `clear(): void`. Then rewrite JoditEditor to use one `EmittedValues` instance per component, held in a ref, instead of the raw array. Behaviour must stay exactly the same. tests/value-echo.test.tsx covers it and should pass unchanged. Add unit tests for the class in tests/emitted-values.test.ts, covering the limit trimming, consuming a stale (older) echo, and clear().",
+      "expect": [
+        {
+          "file": "src/emitted-values.ts",
+          "matches": "export\\s+(default\\s+)?class\\s+EmittedValues"
+        },
+        {
+          "file": "src/JoditEditor.tsx",
+          "matches": "from\\s+['\"]\\./emitted-values['\"]"
+        },
+        {
+          "file": "tests/emitted-values.test.ts",
+          "includes": "EmittedValues"
+        }
+      ]
+    },
+    {
+      "repo": "smeijer/leaflet-geosearch",
+      "id": "gap-bugfix",
+      "kind": "source",
+      "prompt": "`AbstractProvider.getUrl` in src/providers/provider.ts always builds `${url}?${this.getParamString(params)}`. That breaks in two cases. (1) If the base url already has a query string, you get a second `?`. For example, `new OpenStreetMapProvider({ searchUrl: 'https://proxy.example.com/search?key=abc' })` searches `https://proxy.example.com/search?key=abc?q=Den%20Haag&format=json`, so the server reads `key` as `abc?q=Den Haag` and never sees `q`. (2) If there are no params, the url ends in a bare `?`. MapBoxProvider without params gives `.../mapbox.places/Den%20Haag.json?`, and PeliasProvider's reverse branch with a string query gives `.../v1/reverse?`. Please fix getUrl: if the param string is empty, return the url unchanged. If the url already contains a `?`, append the params with `&` (and don't double up a separator if the url already ends in `?` or `&`). Every other case should build the same urls as today. Update the MapBox expectation in src/providers/__tests__/endpoints.spec.js, which currently locks in the trailing `?`, and add tests for a custom searchUrl that already has a query string and for a request with no params.",
+      "expect": [
+        {
+          "file": "src/providers/provider.ts",
+          "excludes": "return `${url}?${this.getParamString(params)}`;"
+        },
+        {
+          "file": "src/providers/__tests__/endpoints.spec.js",
+          "includes": "mapbox.places/Den%20Haag.json'"
+        }
+      ]
+    },
+    {
+      "repo": "smeijer/leaflet-geosearch",
+      "id": "gap-feature",
+      "kind": "source",
+      "prompt": "Add reverse geocoding to HereProvider (src/providers/hereProvider.ts). Right now it only searches, and `reverse()` throws 'This provider does not support reverse geocoding'. Follow the pattern in GeoApiFrProvider: add an exported `HereProviderOptions` type with optional `searchUrl` and `reverseUrl` (plus ProviderOptions), and a constructor that defaults `searchUrl` to the current `https://geocode.search.hereapi.com/v1/geocode` and `reverseUrl` to `https://revgeocode.search.hereapi.com/v1/revgeocode`. `endpoint` should switch on `RequestType.REVERSE` to use reverseUrl. Implement `reverseParams({ lat, lng })` so it returns `{ at: `${lat},${lng}` }`, which is the format HERE's revgeocode API takes. The revgeocode response has the same `items` shape, so `parse` should work for both. `new HereProvider()` without arguments must still work, and the search url must stay the same. Add tests to src/providers/__tests__/hereProvider.spec.js using `answerRequests` from test/ (see geoApiFrProvider.spec.js): one that checks the reverse request goes to revgeocode.search.hereapi.com/v1/revgeocode with the right `at` param and keeps constructor params such as apiKey, and one that reads a reverse answer (hereResponse.json works as the fixture).",
+      "expect": [
+        {
+          "file": "src/providers/hereProvider.ts",
+          "includes": "revgeocode.search.hereapi.com/v1/revgeocode"
+        },
+        {
+          "file": "src/providers/hereProvider.ts",
+          "matches": "reverseParams\\s*\\("
+        },
+        {
+          "file": "src/providers/__tests__/hereProvider.spec.js",
+          "matches": "\\.reverse\\("
+        }
+      ]
+    },
+    {
+      "repo": "smeijer/leaflet-geosearch",
+      "id": "gap-refactor",
+      "kind": "source",
+      "prompt": "Almost every provider builds its request params with the same inline ternary: `typeof query === 'string' ? { q: query } : { ...query }`. Only the key changes (`q`, `text` or `address`). Some providers copy the object query and some pass it through as is. Pull this into one protected method on AbstractProvider in src/providers/provider.ts: `toParams(query: EndpointArgument['query'], key: string): ProviderParams`. It returns `{ [key]: query }` for a string and a shallow copy for an object, so a caller's query object is never changed. Use it in amapProvider, bingProvider, civilDefenseMapProvider, esriProvider, geoApiFrProvider, geoapifyProvider, hereProvider, legacyGoogleProvider, openCageProvider, openStreetMapProvider, pdokNlProvider, photonProvider, and the autocomplete (default) branch of peliasProvider. Leave Pelias's reverse branch, which maps a string to `{}`, as it is. Keep each provider's existing key, and leave the generated urls exactly the same. Drop any imports that become unused.",
+      "expect": [
+        {
+          "file": "src/providers/provider.ts",
+          "matches": "protected\\s+toParams\\s*\\("
+        },
+        {
+          "file": "src/providers/openStreetMapProvider.ts",
+          "matches": "this\\.toParams\\("
+        },
+        {
+          "file": "src/providers/peliasProvider.ts",
+          "matches": "this\\.toParams\\("
+        }
+      ]
+    },
+    {
+      "repo": "aflsolutions/shadowgit-mcp",
+      "id": "gap-bugfix",
+      "kind": "source",
+      "prompt": "git_command refuses some harmless commands. In src/git.ts, isDenied checks a short option by looking for a denied letter anywhere in the argument (option.slice(1).includes(letter)). But some short options take their value attached, so the rest of the argument is a value, not more flags. Right now `log -SOpen` is refused because 'Open' contains O (the denied -O), `log -GOAuth` too, and `blame -L1,5:Server.ts a.txt` is refused because 'Server.ts' contains S (blame's denied -S). Fix it so that a short option bundle is read left to right: a denied letter before the value starts still refuses, but once a letter that takes an attached value is reached (at least -S, -G, -L, -n and -U), stop. The rest of the argument is its value. Keep everything that is refused today and is really an option: `log -pO/etc/hosts`, `diff -O/etc/hosts`, `blame -wS /etc/hosts a.txt`, `blame -S x a.txt`, `ls-files -X /etc/hosts` must all still be refused. Add `log -SOpen`, `log -GOAuth` and `blame -L1,5:Server.ts a.txt` to the 'allows' list in tests/git-policy.test.ts.",
+      "expect": [
+        {
+          "file": "tests/git-policy.test.ts",
+          "includes": "log -SOpen"
+        },
+        {
+          "file": "tests/git-policy.test.ts",
+          "includes": "blame -L1,5:Server.ts a.txt"
+        }
+      ]
+    },
+    {
+      "repo": "aflsolutions/shadowgit-mcp",
+      "id": "gap-feature",
+      "kind": "source",
+      "prompt": "git_command always cuts output at 25,000 characters (OUTPUT_LIMIT in src/git.ts, used by capOutput). Make that configurable with a SHADOWGIT_OUTPUT_LIMIT environment variable, read on each call the same way timeoutMs() reads SHADOWGIT_TIMEOUT: a positive integer is the limit in characters; anything else (unset, 0, negative, a fraction, text) falls back to 25,000. The truncation note must state the limit actually used (e.g. 'showing the first 5,000 characters of 30,000 characters'). Default behavior and wording stay exactly as they are now. Add tests to the capOutput block in tests/git-run.test.ts for a custom limit and for an invalid value falling back to the default (use vi.stubEnv), and add the variable to the environment variable table in README.md.",
+      "expect": [
+        {
+          "file": "src/git.ts",
+          "includes": "SHADOWGIT_OUTPUT_LIMIT"
+        },
+        {
+          "file": "tests/git-run.test.ts",
+          "includes": "SHADOWGIT_OUTPUT_LIMIT"
+        }
+      ]
+    },
+    {
+      "repo": "aflsolutions/shadowgit-mcp",
+      "id": "gap-refactor",
+      "kind": "source",
+      "prompt": "repoArgument in src/repos.ts calls readRepos() itself, so end_session reads repos.json several times per call (projectName, the `listed` lookup, then repoArgument). Change the signature to repoArgument(repos: Repo[], project: Repo), taking the project list it should check for shared names, and update the callers. In src/tools/end-session.ts, read the list once with a single readRepos() call in endSession and pass it to repoArgument and to the project-name lookup (turn projectName into a function that takes the list). In src/tools/map.ts, getCodeContext passes the list explicitly. Behavior and output text must stay the same. Add a small unit test for repoArgument in tests/repos.test.ts: a unique name gives the name, a shared name gives the path.",
+      "expect": [
+        {
+          "file": "src/repos.ts",
+          "matches": "export function repoArgument\\(\\s*repos\\s*:"
+        },
+        {
+          "file": "src/tools/end-session.ts",
+          "matches": "repoArgument\\(\\s*\\w+\\s*,"
+        },
+        {
+          "file": "tests/repos.test.ts",
+          "includes": "repoArgument"
+        }
+      ]
+    },
+    {
+      "repo": "hodfords-solutions/nestjs-api-gateway",
+      "id": "gap-bugfix",
+      "kind": "source",
+      "prompt": "There's a bug in OpenApiService.getDocument (libs/api-gateway/restful/services/open-api.service.ts) with `restful.hideDocumentIds`. When an operation's operationId is in that list, the loop runs `delete document.paths[path]` and then `continue`. That deletes every operation on the path, not just the hidden one. For example, hiding the GET on /users also removes POST /users from the docs. Worse, if the path has another method after the hidden one, the next iteration reads `document.paths[path][method]` on the entry that was just deleted and throws a TypeError, so /document-json fails for that service. Change it so only the hidden operation is removed. The other operations on the same path should stay and still get their security keys rewritten to `bearer`. Remove the path entry only when no operations are left on it. Add tests for getDocument in open-api.service.spec.ts that cover: a path with one hidden and one visible operation (with the hidden one first, and with it last), and a path whose only operation is hidden. getDocument fetches the document through httpService.get(this.apiDocs[server].docUrl), so the test needs apiDocs set and a document that has `components` and `parameters` arrays.",
+      "expect": [
+        {
+          "file": "libs/api-gateway/restful/services/open-api.service.ts",
+          "matches": "delete\\s+[^;\\n]*\\[\\s*\\w*[mM]ethod\\w*\\s*\\]"
+        },
+        {
+          "file": "libs/api-gateway/restful/services/open-api.service.spec.ts",
+          "includes": "hideDocumentIds"
+        }
+      ]
+    },
+    {
+      "repo": "hodfords-solutions/nestjs-api-gateway",
+      "id": "gap-feature",
+      "kind": "source",
+      "prompt": "When a client hits the global IP limit or the global custom limit in ThrottlerService (libs/api-gateway/throttlers/services/throttler.service.ts), checkGlobalIpRequest and checkGlobalCustomRequest throw a bare `new TooManyRequestException()`. The client gets the generic `error.too_many_requests` with no hint of when to retry. The per-router limit already throws `TooManyRequestException('error.too_many_requests_with_custom_ttl', { ttl: ttlToHumanReadable(...) })`. For the global limits, the Lua script already returns the key's remaining PTTL in milliseconds (the `expire` value from getExpireAndIncreaseLimit). Make both global checks throw the same `error.too_many_requests_with_custom_ttl` exception, with `ttl` set to ttlToHumanReadable of the remaining time converted to whole seconds (round up). A small shared private helper is fine. Add tests in throttler.service.spec.ts for both the IP and the custom limit. Each test should check the exception's response (`getResponse()`) message and args. The redis mock's evalsha returns 1 when the limit is exceeded; in these tests, have it return something like 90_000 so the ttl text shows a real value.",
+      "expect": [
+        {
+          "file": "libs/api-gateway/throttlers/services/throttler.service.spec.ts",
+          "includes": "too_many_requests_with_custom_ttl"
+        }
+      ]
+    },
+    {
+      "repo": "hodfords-solutions/nestjs-api-gateway",
+      "id": "gap-refactor",
+      "kind": "source",
+      "prompt": "libs/api-gateway/restful/helpers/provider.helper.ts exports `getProviderByMetadata`. The MCP module uses it too (mcp/services/mcp-server.service.ts imports it from '../../restful/helpers/provider.helper.js'), so it should not live under restful/. Move it to a shared libs/api-gateway/helpers/provider.helper.ts and rename it to `getProvidersByMetadata`. Also make it generic: `getProvidersByMetadata<T>(key: string, modulesContainer: ModulesContainer): T[]`, so callers get typed handler arrays instead of `any[]`. Update every caller: RequestService (two calls, in restful/services/request.service.ts), WsRequestService (restful/services/ws-request.service.ts) and McpServerService (mcp/services/mcp-server.service.ts). Pass the handler interface types they already use (ProxyMiddlewareHandler, ProxyValidationHandler, WsProxyMiddlewareHandler, McpAuthenticationMiddlewareHandler). Move restful/helpers/provider.helper.spec.ts next to the new file and update it for the new name. Delete the old files. Behavior must not change.",
+      "expect": [
+        {
+          "file": "libs/api-gateway/helpers/provider.helper.ts",
+          "matches": "export\\s+(function|const)\\s+getProvidersByMetadata"
+        },
+        {
+          "file": "libs/api-gateway/helpers/provider.helper.spec.ts",
+          "includes": "getProvidersByMetadata"
+        },
+        {
+          "file": "libs/api-gateway/mcp/services/mcp-server.service.ts",
+          "includes": "getProvidersByMetadata"
+        }
+      ]
+    },
+    {
+      "repo": "Kludex/starlette",
+      "id": "gap-bugfix",
+      "kind": "source",
+      "prompt": "`MutableHeaders.add_vary_header` in starlette/datastructures.py adds the new name to the existing Vary values without checking whether it is already there, so we send duplicates. If an endpoint returns `Vary: Accept-Encoding` and GZipMiddleware compresses the response, the client gets `Vary: Accept-Encoding, Accept-Encoding`. SessionMiddleware does the same with `Cookie`. CORSMiddleware (starlette/middleware/cors.py, in `send` and `allow_explicit_origin`) builds the header by hand with the same `\", \".join([...getlist(\"Vary\"), \"Origin\"])`, so an app that already sets `Vary: Origin` ends up with `Origin, Origin`. Also, `Vary: *` currently becomes `*, Accept-Encoding`. Fix `add_vary_header`. It should keep merging the existing Vary lines into one comma-separated value, in their current order, with the new name added at the end. It must not add a name that is already listed. Field names compare case-insensitively, and existing values can be comma-separated lists with any amount of whitespace. If any existing member is `*`, leave the Vary header unchanged. Then change CORSMiddleware to call `headers.add_vary_header(\"Origin\")` instead of building the header itself. Add tests for the duplicate case (including a different-case duplicate) and the `*` case.",
+      "expect": [
+        {
+          "file": "starlette/middleware/cors.py",
+          "matches": "add_vary_header\\(\\s*[\"']Origin[\"']\\s*\\)"
+        }
+      ]
+    },
+    {
+      "repo": "Kludex/starlette",
+      "id": "gap-feature",
+      "kind": "source",
+      "prompt": "`URL.include_query_params` and `URL.replace_query_params` in starlette/datastructures.py only handle single values. `url.include_query_params(tag=[\"a\", \"b\"])` produces `tag=%5B%27a%27%2C+%27b%27%5D`, because the list goes through str(). Make both methods accept a list or tuple as a value. It means one `key=item` pair per item, in order (`tag=a&tag=b`), with each item converted by str() like scalar values are now. In `include_query_params`, a list value replaces all existing values for that key, the same way a scalar does today, and other keys keep their position. An empty list removes the key. In `replace_query_params`, an empty list leaves the key out. Strings and other scalars work as before. Update the docstrings or type hints as needed, and add tests to tests/test_datastructures.py next to `test_url_query_params`.",
+      "expect": [
+        {
+          "file": "tests/test_datastructures.py",
+          "matches": "(include|replace)_query_params\\([^\\n]*=\\s*[\\[(]"
+        }
+      ]
+    },
+    {
+      "repo": "Kludex/starlette",
+      "id": "gap-refactor",
+      "kind": "source",
+      "prompt": "The code that strips `functools.partial` layers from a callable is copied in three places: `is_async_callable` in starlette/_utils.py, and the `endpoint_handler` while-loops in `Route.__init__` and `WebSocketRoute.__init__` in starlette/routing.py. Both routing copies then run the same `inspect.isfunction(...) or inspect.ismethod(...)` check. Pull this into starlette/_utils.py. Add `unwrap_partial(obj)`, which returns the callable under any number of nested partials. Add `is_function_endpoint(endpoint) -> bool`, which unwraps partials and returns whether the result is a plain function or a method. Use `unwrap_partial` in `is_async_callable`, and use `is_function_endpoint` in `Route.__init__` and `WebSocketRoute.__init__` in place of the inline loops. Behavior must not change, and schemas.py stays as it is. Fix the imports, and add tests for both helpers in tests/test__utils.py (plain function, nested partial, bound method, class, callable instance).",
+      "expect": [
+        {
+          "file": "starlette/_utils.py",
+          "matches": "def unwrap_partial\\("
+        },
+        {
+          "file": "starlette/_utils.py",
+          "matches": "def is_function_endpoint\\("
+        },
+        {
+          "file": "tests/test__utils.py",
+          "includes": "is_function_endpoint"
+        }
+      ]
+    },
+    {
+      "repo": "langgenius/graphon",
+      "id": "gap-bugfix",
+      "kind": "source",
+      "prompt": "The number comparison in src/graphon/utils/condition/processor.py breaks for \"=\" and \"≠\" when the variable is an integer and the expected value has a decimal part. `_assert_equal` and `_assert_not_equal` call `_normalize_numeric_equality_expected`, whose int branch does `int(expected)`. With an integer variable 3 and a condition `=` \"3.5\", `int(\"3.5\")` raises `ValueError: invalid literal for int() with base 10: '3.5'`, so the if-else node fails instead of taking the false branch. `=` \"3.0\" fails the same way, and a float expected value like 3.7 gets truncated to 3, so it wrongly counts as equal. The ordering operators (>, <, ≥, ≤) already get this right through `_normalize_numeric_values`. Fix \"=\" and \"≠\" so that int and float variables compare numerically the same way: 3 = \"3.5\" is False, 3 ≠ \"3.5\" is True, 3 = \"3.0\" and 3 = \"3\" are True, and 2.5 = \"2.5\" is still True. A non-numeric expected string like \"abc\" should still raise a ValueError with a clear message. Leave boolean variables as they are. Add tests for these cases to tests/utils/test_condition_processor.py, going through ConditionProcessor.process_conditions with a VariablePool, like the existing tests do.",
+      "expect": [
+        {
+          "file": "tests/utils/test_condition_processor.py",
+          "matches": "comparison_operator=\"(=|≠)\""
+        }
+      ]
+    },
+    {
+      "repo": "langgenius/graphon",
+      "id": "gap-feature",
+      "kind": "source",
+      "prompt": "Add a `prepend` operation to the v2 variable assigner in src/graphon/nodes/variable_assigner/v2. Add `Operation.PREPEND = \"prepend\"` in enums.py. It works like append, but the input value goes at the front of the array: [\"b\", \"c\"] prepend \"a\" gives [\"a\", \"b\", \"c\"]. Same rules as append. It is supported only on array variable types (update `is_operation_supported` in helpers.py, so a string variable gets OperationNotSupportedError). The input item is checked like append's in `is_input_value_valid`, so an ArrayString variable only accepts a str. Variable input is allowed and constant input is not, same as append. Handle it in `_handle_item` in node.py. Add tests: one in tests/nodes/variable_assigner/test_v2_node.py that prepends a variable's value to an ArrayStringVariable and checks the NodeRunVariableUpdatedEvent value, and helper tests in tests/nodes/variable_assigner/test_v2_helpers.py for an unsupported variable type and a wrong item type.",
+      "expect": [
+        {
+          "file": "src/graphon/nodes/variable_assigner/v2/enums.py",
+          "matches": "PREPEND\\s*=\\s*\"prepend\""
+        },
+        {
+          "file": "src/graphon/nodes/variable_assigner/v2/node.py",
+          "matches": "Operation\\.PREPEND"
+        }
+      ]
+    },
+    {
+      "repo": "langgenius/graphon",
+      "id": "gap-refactor",
+      "kind": "source",
+      "prompt": "Several nodes build variable-mapping keys inline with the same f-string, `f\"{node_id}.#{'.'.join(selector)}#\"` (the `node_id.#a.b#` format described in Node.extract_variable_selector_to_variable_mapping). Pull it into one helper. Add `variable_mapping_key(node_id: str, selector: Sequence[str]) -> str` to src/graphon/variables/utils.py, next to `to_selector`. Use it in these places: `_extract_variable_selector_to_variable_mapping` in src/graphon/nodes/if_else/if_else_node.py, the same method in src/graphon/nodes/variable_assigner/v1/node.py (both keys), and `_target_mapping_from_item` and `_source_mapping_from_item` in src/graphon/nodes/variable_assigner/v2/node.py. The keys and mappings must stay exactly the same. Add a small unit test for the helper to tests/utils/test_variable_utils.py.",
+      "expect": [
+        {
+          "file": "src/graphon/variables/utils.py",
+          "matches": "def variable_mapping_key\\("
+        },
+        {
+          "file": "src/graphon/nodes/if_else/if_else_node.py",
+          "includes": "variable_mapping_key("
+        },
+        {
+          "file": "tests/utils/test_variable_utils.py",
+          "includes": "variable_mapping_key"
+        }
+      ]
+    },
+    {
+      "repo": "anthropics/claude-agent-sdk-python",
+      "id": "gap-bugfix",
+      "kind": "source",
+      "prompt": "CLIJSONDecodeError in src/claude_agent_sdk/_errors.py can't be pickled or copied. Its __init__ takes (line, original_error) but passes only the formatted \"Failed to decode JSON: ...\" message to Exception.__init__. So self.args is a 1-tuple, and the default exception reconstruction (type(e)(*e.args)) calls CLIJSONDecodeError(message) and raises TypeError for the missing original_error. That means pickle.loads(pickle.dumps(err)) and copy.copy(err) both blow up. It bites anyone who runs query() inside multiprocessing or a ProcessPoolExecutor and lets the error cross the process boundary. ResultError in the same file already handles this, and tests/test_errors.py has test_result_error_survives_pickle_and_copy for it. Please fix CLIJSONDecodeError so that a pickle round-trip and copy.copy both give back a CLIJSONDecodeError with the same str(), the same .line, and an equivalent .original_error. Keep the existing constructor call sites in subprocess_cli.py working unchanged. Add tests to tests/test_errors.py for the CLIJSONDecodeError round-trip. Ideally add one that round-trips each public error class (ClaudeSDKError, CLIConnectionError, CLINotFoundError with a cli_path, ProcessError with exit_code/stderr, CLIJSONDecodeError, MessageParseError with data) and checks the type, str() and attributes are preserved.",
+      "expect": [
+        {
+          "file": "tests/test_errors.py",
+          "matches": "CLIJSONDecodeError\\([^\\n]*\\)[\\s\\S]*(?:pickle\\.(?:loads|dumps)|copy\\.(?:copy|deepcopy))"
+        }
+      ]
+    },
+    {
+      "repo": "anthropics/claude-agent-sdk-python",
+      "id": "gap-feature",
+      "kind": "source",
+      "prompt": "Add a tag filter to list_sessions() in src/claude_agent_sdk/_internal/sessions.py. Add a keyword parameter `tag: str | None = None`. When it is set, return only sessions whose SDKSessionInfo.tag equals it exactly (case-sensitive). When it is None, behave exactly as today. The filter must run before pagination, so limit and offset count only matching sessions. That has to hold on every path: the single-project path and the worktree-aware path in _list_sessions_for_project (including its OSError fallback), and _list_all_sessions when no directory is given. Thread the value through those helpers or through _apply_sort_limit_offset, whichever is cleaner. Keep list_sessions_from_store working as it is. Document the new argument in the list_sessions docstring and add a short example. Add tests in tests/test_sessions.py using the existing claude_config_dir fixture and the compact {\"type\":\"tag\",...} entries the tag tests already write. Cover: a tag that matches some sessions, a tag that matches none, tag combined with limit/offset (pagination counts only matches), and a session whose tag was cleared with an empty-string tag entry not matching its old tag.",
+      "expect": [
+        {
+          "file": "src/claude_agent_sdk/_internal/sessions.py",
+          "matches": "def list_sessions\\([^)]*\\btag\\b[^)]*\\)"
+        },
+        {
+          "file": "tests/test_sessions.py",
+          "matches": "\\btag=\""
+        }
+      ]
+    },
+    {
+      "repo": "anthropics/claude-agent-sdk-python",
+      "id": "gap-refactor",
+      "kind": "source",
+      "prompt": "The session-listing code has two pieces of logic copied in several places. Please consolidate them into src/claude_agent_sdk/_internal/sessions.py. (1) ISO-8601 timestamp to epoch milliseconds, with the Python 3.10 trailing-'Z' workaround. It exists as _iso_to_epoch_ms in session_summary.py, inline in _parse_session_info_from_lite (the created_at block), and inline in _mtime_from_jsonl_tail. Move _iso_to_epoch_ms into sessions.py and use it in all three places. _mtime_from_jsonl_tail must still fall back to the current time when the helper returns None. (2) Pulling the text strings out of a user entry's message.content: a plain string, or the text of every {\"type\":\"text\"} block. It exists as _entry_text_blocks in session_summary.py and inline in _extract_first_prompt_from_head. Move it into sessions.py as _user_text_blocks(entry) and use it in both _extract_first_prompt_from_head and session_summary._fold_first_prompt. session_summary.py should import both helpers from .sessions (it already imports _COMMAND_NAME_RE from there) and should no longer define its own copies. This is a pure refactor: the results of list_sessions, get_session_info, fold_session_summary and summary_entry_to_sdk_info must not change.",
+      "expect": [
+        {
+          "file": "src/claude_agent_sdk/_internal/sessions.py",
+          "matches": "def _iso_to_epoch_ms\\("
+        },
+        {
+          "file": "src/claude_agent_sdk/_internal/sessions.py",
+          "matches": "def _user_text_blocks\\("
+        },
+        {
+          "file": "src/claude_agent_sdk/_internal/session_summary.py",
+          "excludes": "def _entry_text_blocks("
+        }
+      ]
     }
   ]
 }

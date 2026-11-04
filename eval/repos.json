@@ -61,17 +61,88 @@
       "why": "Single-package pnpm 12 NestJS library whose test script is `vitest run` (18 spec files, about 4.5 s in the census, no subprocesses or file writes). Added to show pnpm test checks reused on Linux, where pnpm hard-links installed files to its store. Its lint script is `eslint` (about 7 s), recorded by the general recipe through Corepack's pnpm 12 executable and pnpm's launchers.",
       "testScript": "test",
       "lint": "npx eslint",
-      "lintScript": "lint"
+      "lintScript": "lint",
+      "gapAliases": [
+        {
+          "match": "^pnpm (run )?test:cov(\\s|$)",
+          "checks": [
+            "test"
+          ]
+        }
+      ]
     },
     {
       "name": "aflsolutions/shadowgit-mcp",
       "url": "https://github.com/aflsolutions/shadowgit-mcp.git",
       "commit": "ddd35ffdc72193f2377758dedc1db7a5d25259a2",
       "script": "typecheck",
-      "test": null,
+      "test": "npm test",
       "lint": "npx eslint .",
       "lintScript": "lint",
-      "why": "Small npm MCP server in TypeScript whose lint script is `eslint .` (about 4 s) and qualifies for the general recipe in the census. Its test script builds with esbuild first, so only typecheck and lint are measured."
+      "why": "Small npm MCP server in TypeScript whose lint script is `eslint .` (about 4 s) and qualifies for the general recipe in the census. Its test script builds with esbuild first, so only typecheck and lint are measured.",
+      "testScript": "test",
+      "gapAliases": [
+        {
+          "match": "^npm run prepublishOnly(\\s|$)",
+          "checks": [
+            "typecheck",
+            "lint",
+            "test"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "jodit/jodit-react",
+      "url": "https://github.com/jodit/jodit-react.git",
+      "commit": "911ddb45cab0b4264261c188468f1051fddc5b31",
+      "script": "lint:ts",
+      "test": "npx vitest run",
+      "testScript": "test",
+      "lint": "npx eslint ./",
+      "lintScript": "lint:eslint",
+      "gapAliases": [
+        {
+          "match": "^npm run lint(\\s|$)",
+          "checks": [
+            "typecheck",
+            "lint"
+          ]
+        }
+      ],
+      "why": "React wrapper for the Jodit editor, npm. tsc about 1.3 s, eslint about 3 s and vitest about 10 s in the October 2026 census. For the verification-gap study (run.mjs --gap); `npm run lint` runs tsc and eslint."
+    },
+    {
+      "name": "smeijer/leaflet-geosearch",
+      "url": "https://github.com/smeijer/leaflet-geosearch.git",
+      "commit": "6e6443096db4c4829b949315e5478193d8a5da2b",
+      "script": "ci:tsc",
+      "test": "npx vitest run",
+      "testScript": "test",
+      "lint": "npx eslint \"{src,test,e2e}/**/*.{js,ts,tsx}\" --quiet",
+      "lintScript": "ci:lint",
+      "gapAliases": [
+        {
+          "match": "^npm run lint(\\s|$)",
+          "checks": [
+            "typecheck",
+            "lint"
+          ]
+        },
+        {
+          "match": "^npm run build:lib(\\s|$)",
+          "checks": [
+            "typecheck"
+          ]
+        },
+        {
+          "match": "^npm run test:coverage(\\s|$)",
+          "checks": [
+            "test"
+          ]
+        }
+      ],
+      "why": "Geocoding control for Leaflet, npm. tsc about 2.6 s, lint about 7 s and vitest about 16 s in the October 2026 census. For the verification-gap study (run.mjs --gap); its `npm run lint` also fixes files, so the final check runs eslint without --fix."
     },
     {
       "name": "Kludex/starlette",
@@ -87,7 +158,28 @@
       "typecheck": ".venv/bin/mypy starlette",
       "lint": ".venv/bin/ruff check",
       "why": "Python, uv. mypy on the package (scripts/check), about 0.2 s warm and 5 s cold; the same result inside the sandbox in the October 2026 sandbox census on Linux and macOS. Its pytest suite (about 12 s on a GitHub Linux runner) qualifies for the sandboxed recipe in the November 2026 census.",
-      "test": ".venv/bin/pytest"
+      "test": ".venv/bin/pytest",
+      "gapAliases": [
+        {
+          "match": "(^|/)scripts/check(\\s|$)",
+          "checks": [
+            "typecheck",
+            "lint"
+          ]
+        },
+        {
+          "match": "(^|/)scripts/test(\\s|$)",
+          "checks": [
+            "test"
+          ]
+        },
+        {
+          "match": "(^|/)scripts/lint(\\s|$)",
+          "checks": [
+            "lint"
+          ]
+        }
+      ]
     },
     {
       "name": "langgenius/graphon",
@@ -102,7 +194,31 @@
       ],
       "typecheck": ".venv/bin/ty check",
       "lint": ".venv/bin/ruff check",
-      "why": "Python, uv, typechecked with ty (a native program). About 1.1 s; the same result inside the sandbox on Linux and macOS."
+      "why": "Python, uv, typechecked with ty (a native program). About 1.1 s; the same result inside the sandbox on Linux and macOS.",
+      "test": ".venv/bin/pytest",
+      "gapAliases": [
+        {
+          "match": "^just (check|tc)(\\s|$)",
+          "checks": [
+            "typecheck",
+            "lint"
+          ]
+        },
+        {
+          "match": "^just test(\\s|$)",
+          "checks": [
+            "typecheck",
+            "lint",
+            "test"
+          ]
+        },
+        {
+          "match": "^just lint(\\s|$)",
+          "checks": [
+            "lint"
+          ]
+        }
+      ]
     },
     {
       "name": "anthropics/claude-agent-sdk-python",
