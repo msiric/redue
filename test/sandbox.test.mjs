@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import net from 'node:net';
 import {spawnSync,execFileSync} from 'node:child_process';
-import {comparableOutput,denialLine,namedDocsLimit,seatbeltProfile,sandboxInterpretationOf,hiddenEntries,hiddenRefusal,sandboxArgv,sandboxTrial,systemPlaces,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
+import {comparableOutput,denialLine,launcherFailure,namedDocsLimit,seatbeltProfile,sandboxInterpretationOf,hiddenEntries,hiddenRefusal,sandboxArgv,sandboxTrial,systemPlaces,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
 import {projectArgs,toolArgs} from '../src/python-onboarding.mjs';
 import {chainCommand,claudeHook,hookForms,pathForm,recordedCommand} from '../src/claude-hook.mjs';
 
@@ -888,4 +888,24 @@ test('redue verify starts the observer, runs each due check, then shows the stat
   write(root,'src/fx/__init__.py','value = 2\n');
   r=invoke(root,state,['verify']);
   assert.equal(r.status,0,r.stderr+r.stdout);
+});
+
+test('the Landlock launcher\'s own refusal is read as a run that was not sandboxed',()=>{
+  assert.equal(launcherFailure('landlock.py: Landlock unavailable (errno 38)\n'),'landlock.py: Landlock unavailable (errno 38)');
+  assert.equal(launcherFailure('some output\nlandlock.py: add_rule /x errno 2\n'),'landlock.py: add_rule /x errno 2');
+  assert.equal(launcherFailure('error: tests failed\n'),null);
+});
+
+test('on Linux, a run keeps the Landlock answer for the same kernel, launcher Python and launcher',{skip:process.platform!=='linux'||unsupported},t=>{
+  const base=fs.mkdtempSync(path.join(os.tmpdir(),'rsb-support-'));t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
+  const cache=path.join(base,'sandbox-support-v1.json'),module=path.resolve('src/sandbox.mjs');
+  const ask=()=>JSON.parse(execFileSync(process.execPath,['--input-type=module','-e',
+    `import {sandboxSupport} from ${JSON.stringify(module)};console.log(JSON.stringify(sandboxSupport({cache:${JSON.stringify(cache)}})));`],{encoding:'utf8'}));
+  const first=ask();assert.equal(first.mode,'landlock');
+  const kept=JSON.parse(fs.readFileSync(cache,'utf8'));assert.equal(kept.abi,first.abi);assert.match(kept.key,/^[0-9a-f]{64}$/);
+  // Kept: the answer comes from the file (an ABI the probe would not give shows it).
+  fs.writeFileSync(cache,JSON.stringify({key:kept.key,abi:99}));assert.equal(ask().abi,99);
+  // Another key, or an ABI that cannot keep a run off the network, asks again.
+  fs.writeFileSync(cache,JSON.stringify({key:'0'.repeat(64),abi:99}));assert.equal(ask().abi,first.abi);
+  fs.writeFileSync(cache,JSON.stringify({key:kept.key,abi:3}));assert.equal(ask().abi,first.abi);
 });

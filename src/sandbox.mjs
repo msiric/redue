@@ -100,8 +100,15 @@ export function sandboxEnvironment(python=false,manager=null,kind=null){
 }
 
 // Whether this machine can sandbox a run: {mode} or {issue}. Asked once per process.
+// On Linux, `cache` (a file in REDUE's state) keeps a Landlock answer for the
+// same kernel, launcher Python and launcher, so a run does not start Python to
+// ask again. The launcher checks again when it starts a run, and a run it
+// cannot sandbox is not reused (launcherFailure).
 let support=null;
-export function sandboxSupport(){
+const launcherKey=python=>{try{const st=fs.statSync(fs.realpathSync(python),{bigint:true});
+  return digest(JSON.stringify([os.release(),python,...['dev','ino','size','mtimeNs'].map(key=>String(st[key])),digest(fs.readFileSync(landlockScript))]));}
+  catch{return null;}};
+export function sandboxSupport({cache=null}={}){
   if(support)return support;
   if(process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_SANDBOX==='unavailable')
     return support={mode:null,issue:'the sandbox is turned off for this test'};
@@ -114,11 +121,15 @@ export function sandboxSupport(){
   if(process.platform==='linux'){
     const python=launcherPython();
     if(!python)return support={mode:null,issue:'the Landlock launcher needs Python 3'};
+    const key=cache?launcherKey(python):null;
+    if(key)try{const kept=JSON.parse(fs.readFileSync(cache,'utf8'));
+      if(kept?.key===key&&Number.isInteger(kept.abi)&&kept.abi>=4)return support={mode:'landlock',abi:kept.abi,python};}catch{}
     let abi=null;
     try{abi=JSON.parse(spawnSync(python,['-I','-W','ignore',landlockScript,'--probe'],{encoding:'utf8',timeout:10000}).stdout).abi;}catch{}
     if(!Number.isInteger(abi))return support={mode:null,issue:'Landlock is unavailable in this kernel'};
     // ABI 4 (Linux 6.7) is the first that can refuse TCP connections.
     if(abi<4)return support={mode:null,issue:`Landlock ABI ${abi} cannot keep a run off the network; it needs ABI 4 (Linux 6.7)`};
+    if(key)try{const temp=`${cache}.${process.pid}.tmp`;fs.writeFileSync(temp,JSON.stringify({key,abi}),{mode:0o600});fs.renameSync(temp,cache);}catch{}
     return support={mode:'landlock',abi,python};
   }
   return support={mode:null,issue:'the sandboxed recipe runs on macOS and Linux only'};
@@ -269,13 +280,24 @@ export function sandboxDirs(state,name){
 const installedTree=/(?:^|\/)(?:node_modules|\.venv)(?:\/|$)/;
 const runnerCache=picomatch(sandboxCaches,{dot:true});
 const projectGit=['-c','core.excludesFile=/dev/null'],gitEnv=()=>({...process.env,GIT_OPTIONAL_LOCKS:'0'});
+const hiddenArgs=[...projectGit,'ls-files','-z','--others','--ignored','--exclude-standard','--directory'];
+const hiddenOf=r=>r.status!==0?null:r.stdout.split('\0').filter(Boolean).filter(rel=>!installedTree.test(rel)&&
+  !runnerCache(rel)&&!runnerCache(rel.replace(/\/$/,'')+'/x'));
 export function hiddenEntries(root){
-  const r=spawnSync('git',[...projectGit,'ls-files','-z','--others','--ignored','--exclude-standard','--directory'],
-    {cwd:root,encoding:'utf8',maxBuffer:256*1024*1024,timeout:60000,stdio:['ignore','pipe','ignore'],env:gitEnv()});
-  if(r.status!==0)return null;
-  return r.stdout.split('\0').filter(Boolean).filter(rel=>!installedTree.test(rel)&&
-    !runnerCache(rel)&&!runnerCache(rel.replace(/\/$/,'')+'/x'));
+  return hiddenOf(spawnSync('git',hiddenArgs,{cwd:root,encoding:'utf8',maxBuffer:256*1024*1024,timeout:60000,stdio:['ignore','pipe','ignore'],env:gitEnv()}));
 }
+// git's answer without blocking, so a run lists these while its start checkpoint is asked.
+function gitAsync(root,args){
+  return new Promise(resolve=>{
+    let child;try{child=spawn('git',args,{cwd:root,stdio:['ignore','pipe','ignore'],env:gitEnv()});}catch{resolve({status:null,stdout:''});return;}
+    const chunks=[];let size=0;
+    const timer=setTimeout(()=>child.kill(),60000);
+    child.stdout.on('data',chunk=>{size+=chunk.length;if(size>256*1024*1024)child.kill();else chunks.push(chunk);});
+    child.on('error',()=>{clearTimeout(timer);resolve({status:null,stdout:''});});
+    child.on('close',status=>{clearTimeout(timer);resolve({status,stdout:Buffer.concat(chunks).toString('utf8')});});
+  });
+}
+export const hiddenEntriesAsync=async root=>hiddenOf(await gitAsync(root,hiddenArgs));
 
 // The documentation files docPatterns names among the files git lists and
 // does not ignore (git-ignored ones are hidden as such), as regular files:
@@ -283,9 +305,12 @@ export function hiddenEntries(root){
 // Relative; null when git cannot tell. git filters by pathspec, so a large
 // checkout is not listed whole.
 const docMatch=picomatch(docPatterns,{dot:true});
+const docsArgs=()=>[...projectGit,'ls-files','-z','--cached','--others','--exclude-standard','--',...docPatterns.map(pattern=>`:(glob)${pattern}`)];
 export function hiddenDocs(root){
-  const r=spawnSync('git',[...projectGit,'ls-files','-z','--cached','--others','--exclude-standard','--',...docPatterns.map(pattern=>`:(glob)${pattern}`)],
-    {cwd:root,encoding:'utf8',maxBuffer:256*1024*1024,timeout:60000,stdio:['ignore','pipe','ignore'],env:gitEnv()});
+  return docsOf(root,spawnSync('git',docsArgs(),{cwd:root,encoding:'utf8',maxBuffer:256*1024*1024,timeout:60000,stdio:['ignore','pipe','ignore'],env:gitEnv()}));
+}
+export const hiddenDocsAsync=async root=>docsOf(root,await gitAsync(root,docsArgs()));
+function docsOf(root,r){
   if(r.status!==0)return null;
   const out=new Set();
   for(const rel of r.stdout.split('\0'))if(rel&&!out.has(rel)&&docMatch(rel))
@@ -556,6 +581,9 @@ export function stopGroup(pid){
 export function endWithChild(child){
   child.on('exit',()=>{stopGroup(child.pid);setTimeout(()=>{child.stdout?.destroy();child.stderr?.destroy();},1000).unref();});
 }
+// The launcher's own line when it could not sandbox a run (Landlock
+// unavailable, or a rule it could not add), or null.
+export const launcherFailure=text=>/^landlock\.py: .*$/m.exec(String(text))?.[0].slice(0,200)??null;
 // Runs argv in its own process group to the end, with no terminal input:
 // {status, signal, error, timedOut, stdout, stderr}, each output kept up to
 // 64 MB and decoded at the end. `echo` also passes the output through.

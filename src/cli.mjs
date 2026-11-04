@@ -8,7 +8,7 @@ import {patternMatcher} from './glob.mjs';
 import {observedBy} from './installed-observation.mjs';
 import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testRunFacts,sharedInstalledFile,testsInterpretation,testsQualification} from './test-direct.mjs';
 import {childProgram,generalIssue,lookup,pnpmConfigFiles,scriptCaches,scriptInstalledPaths,scriptInterpretation,scriptQualification,scriptRunFacts,pnpmNameless,toolOutput,toolchainDirs} from './node-script.mjs';
-import {denialLine,docsQualification,endWithChild,hiddenDocs,hiddenEntries,hiddenQualification,hiddenRefusal,hidesIgnored,isSandboxed,runToEnd,supervisorIssue,visibleChange,testRun as sandboxTestRun,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,
+import {denialLine,docsQualification,endWithChild,launcherFailure,hiddenDocs,hiddenDocsAsync,hiddenEntries,hiddenEntriesAsync,hiddenQualification,hiddenRefusal,hidesIgnored,isSandboxed,runToEnd,supervisorIssue,visibleChange,testRun as sandboxTestRun,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,
   sandboxInterpretation,sandboxInterpretationOf,sandboxPlaces,sandboxQualification,sandboxSupport,systemPlaces} from './sandbox.mjs';
 import path from 'node:path';
 import net from 'node:net';
@@ -88,8 +88,10 @@ function environmentReads() {
 }
 const recordedRecipes=[testsQualification,scriptQualification];
 // A sandboxed check's run is recorded where its sandbox cannot start (execute).
-function contextHashes() {const reads=config.checks.some(check=>recordedRecipes.includes(check.qualification)||isSandboxed(check.qualification))?environmentReads():{};
-  return Object.fromEntries(config.checks.map(check=>[
+// `only`: just that check's (a run's checkpoints answer for its own check).
+function contextHashes(only=null) {const checks=only?config.checks.filter(check=>check.name===only):config.checks;
+  const reads=checks.some(check=>recordedRecipes.includes(check.qualification)||isSandboxed(check.qualification))?environmentReads():{};
+  return Object.fromEntries(checks.map(check=>[
   check.name,Object.fromEntries([...(check.environment?.variables||[])
     .map(key=>[key,digest(process.env[key]??'<unset>')]),
     ...(check.environment?.prefixes||[]).map(prefix=>[
@@ -254,7 +256,7 @@ async function execute() {
     timing('cli.command_resolution',resolutionStarted);
     const runId=randomUUID();
     const contextStarted=performance.now();
-    const environmentBefore=contextHashes()[name];
+    const environmentBefore=contextHashes(name)[name];
     const observedContext=selected.qualification===directQualification?{interpretation:directInterpretation,npmProxyDigest:observedNpmContext()}:null;
     timing('cli.context_before',contextStarted);
     const captureWait=decisionWait(process.env.VSTATE_CAPTURE_TIMEOUT_MS);
@@ -267,9 +269,14 @@ async function execute() {
     let probeBefore=callerCertificate?null:probeHash(probePlan);
     // A run the sandbox will run asks for the smaller file map: each
     // installed tree as one entry (the observer's compactFiles).
-    const compact=isSandboxed(selected.qualification)&&!sandboxSupport().issue;
+    const supportCache=path.join(state,'sandbox-support-v1.json');
+    const compact=isSandboxed(selected.qualification)&&!sandboxSupport({cache:supportCache}).issue;
+    // What sandbox-v2 and v3 hide, listed by git while the checkpoint is asked:
+    // an ignored file made in between is an event after it, as before.
+    const lists=compact&&hidesIgnored(selected.qualification)?Promise.all([hiddenEntriesAsync(root),
+      selected.qualification===docsQualification?hiddenDocsAsync(root):null]):null;
     const startSnapshotStarted=performance.now();
-    try{before=await call({action:'snapshot',name,contextHashes:contextHashes(),
+    try{before=await call({action:'snapshot',name,contextHashes:contextHashes(name),
       ...(compact?{compact:1}:{}),...(callerCertificate?{runCertificate:1}:{})},captureWait.timeout,captureWait.deadline);}
     catch(error){captureIssues.push('start observation unavailable'+
       (typeof error.code==='string'&&/^[A-Z0-9_]+$/.test(error.code)?` (${error.code})`:''));}
@@ -345,8 +352,9 @@ async function execute() {
         // sandbox-v2 hides the checkout's git-ignored entries, and sandbox-v3
         // its documentation too. Where git cannot list them, nothing is
         // hidden, and the receipt compares every file.
-        const hidden=hidesIgnored(selected.qualification)?hiddenEntries(root):null;
-        const docs=hidden&&selected.qualification===docsQualification?hiddenDocs(root):null;
+        const [listed,listedDocs]=lists?await lists:[null,null];
+        const hidden=lists?listed:hidesIgnored(selected.qualification)?hiddenEntries(root):null;
+        const docs=hidden&&selected.qualification===docsQualification?(lists?listedDocs:hiddenDocs(root)):null;
         const options={reads,tmp:dirs.tmp,python:support.python,stats,
           ...tests?{...support.mode==='landlock'?{network:'loopback'}:{},writes:[root,dirs.home,dirs.tmp],
             fault:process.env.VSTATE_TEST_FAULTS==='1'?process.env.VSTATE_TEST_SUPERVISOR||null:null}:{}};
@@ -433,7 +441,7 @@ async function execute() {
     invocation.reporting='normal';
     let result=invocation.status==='exited'?(invocation.exitCode===0?'PASS':'FAIL'):null;
     const target={source:'direct-command',status:invocation.status==='exited'?'direct_executed':'unknown'};
-    const afterContextStarted=performance.now(),environmentAfter=contextHashes()[name];
+    const afterContextStarted=performance.now(),environmentAfter=contextHashes(name)[name];
     timing('cli.context_after',afterContextStarted);
     let probeAfter=null;
     const recordText=Buffer.concat(record).toString('utf8');
@@ -472,7 +480,7 @@ async function execute() {
     if(!unobservedDirectRun){
       // The start checkpoint's probe may have raised the deadline.
       const endWait=decisionWait(process.env.VSTATE_CAPTURE_TIMEOUT_MS);
-      try{after=await call({action:'snapshot',name,contextHashes:contextHashes(),...(compact?{compact:1}:{}),
+      try{after=await call({action:'snapshot',name,contextHashes:contextHashes(name),...(compact?{compact:1}:{}),
         ...((testRun||sandboxed)&&Number.isSafeInteger(snap?.inputEventSerial)?{sinceSerial:snap.inputEventSerial}:{}),
         ...(recording?{runCertificate:1,adopt:recording}:recorded&&!certificate?{runCertificate:1,runFacts:1}:{})},
         endWait.timeout,endWait.deadline);}
@@ -554,6 +562,10 @@ async function execute() {
     // one runs again in the sandbox without hiding them: the check needs
     // them. That run's result is kept, compared on every file, when the
     // inputs held through it too. Its own refusal is handled as below.
+    // The Landlock launcher could not sandbox the run: nothing it says is a
+    // result, and its kept answer is asked again next time.
+    const unsandboxed=sandbox?.mode==='landlock'&&invocation.exitCode!==0?launcherFailure(output.head):null;
+    if(unsandboxed){captureIssues.push(`the run was not sandboxed: ${unsandboxed}`);result=null;fs.rmSync(supportCache,{force:true});}
     let hiddenRerun=null;
     if((sandbox?.hidden?.length||sandbox?.docs?.length)&&result==='FAIL'&&!requestedSignal){
       const line=hiddenRefusal(output.head+'\n'+output.tail,[...sandbox.hidden||[],...sandbox.docs||[]]);
@@ -572,8 +584,8 @@ async function execute() {
         else{
           const wait=decisionWait(process.env.VSTATE_CAPTURE_TIMEOUT_MS);
           // Inputs, plan, observer and environment held through it as through the first run.
-          let confirmed=null;const environmentNow=contextHashes()[name];
-          try{confirmed=await call({action:'snapshot',name,contextHashes:contextHashes(),
+          let confirmed=null;const environmentNow=contextHashes(name)[name];
+          try{confirmed=await call({action:'snapshot',name,contextHashes:contextHashes(name),
             ...Number.isSafeInteger(snap?.inputEventSerial)?{sinceSerial:snap.inputEventSerial}:{}},wait.timeout,wait.deadline);}catch{}
           const last=confirmed?.snapshots?.[name];
           if(!last?.observationHealthy||!snap||last.planId!==snap.planId||last.fingerprint!==snap.fingerprint||last.revision!==snap.revision||
