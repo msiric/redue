@@ -62,7 +62,7 @@ function alignSteps(yamlSteps, apiSteps) {
 }
 
 const keys = ['a', 'b', 'c'];
-const units = [];
+const units = [], allMs = {};
 const stats = {apiJobs: 0, matchedJobs: 0, checkJobs: 0, checkSteps: 0, alignedSteps: 0, runsWithError: 0, runsNoJobs: 0, treeKinds: {}};
 for (const [repo, {data, jobs, images}] of byRepo) {
   const parses = data.parses, trees = data.trees;
@@ -83,6 +83,7 @@ for (const [repo, {data, jobs, images}] of byRepo) {
     for (const job of apiJobs) {
       stats.apiJobs++;
       if (!['success', 'failure'].includes(job.conclusion)) continue;
+      allMs[repo] = (allMs[repo] || 0) + ms(job.started, job.completed);
       const candidates = parse.jobs.filter(j => regex(j.pattern).test(job.name));
       if (!candidates.length) continue;
       stats.matchedJobs++;
@@ -107,7 +108,7 @@ for (const [repo, {data, jobs, images}] of byRepo) {
         const keyC = parts ? parts.map(name => `${name}:${tree.pkgKeys?.[name] ?? tree.keyB}`) : [`*:${tree.keyB}`];
         const label = step.name ?? step.defaultName ?? `#${step.index}`;
         jobUnits.push({repo, run: run.id, job: job.id, situation, lineage, pr: run.pr ?? pr, event: run.event,
-          identity: `${run.workflow}|${job.name}|${label}`, kinds: step.kinds, result: api.conclusion,
+          identity: `${run.workflow}|${job.name}|${label}`, kinds: step.kinds, byName: Boolean(step.byName), result: api.conclusion,
           stepMs: ms(api.started, api.completed), jobStarted: job.started, stepCompleted: api.completed, jobCompleted: job.completed,
           keyA: run.tree, keyB: tree.keyB, keyC, pre: step.pre, image: images ? images[job.id] ?? null : null, os: (job.labels || []).join(','),
           partsCount: keyC.length, scoped: parts ? 'packages' : u === 'affected' ? 'affected' : 'root'});
@@ -195,6 +196,7 @@ function summarize(list) {
       fromSamePr: full.filter(u => u.reuse[v].from.includes('same-pr')).length, fromMainOnly: full.filter(u => !u.reuse[v].from.includes('same-pr') && u.reuse[v].from.includes('main')).length};
   }
   out.preInstallShare = list.length ? list.filter(u => u.pre?.ok).length / list.length : 0;
+  out.byNameShare = list.length ? list.filter(u => u.byName).length / list.length : 0;
   return out;
 }
 
@@ -218,12 +220,12 @@ for (const [group, repos] of Object.entries(groups)) {
     report.groups[group][sit] = summarize(part);
     lines.push(row(sit, report.groups[group][sit]));
   }
-  lines.push('', `Per repo (job-minute share, keys a / b / c, without image; with image for c):`, '', '| repo | packages | check runs | job-min | a | b | c | c+img | pre-install | before install (c) | failed but answered (b) |', '|---|---|---|---|---|---|---|---|---|---|---|');
+  lines.push('', `Per repo (job-minute share, keys a / b / c, without image; with image for c):`, '', '| repo | packages | check runs | check job-min (share of all) | a | b | c | c+img | pre-install | before install (c) | failed but answered (b) | by step name |', '|---|---|---|---|---|---|---|---|---|---|---|---|');
   for (const repo of repos) {
     const list2 = units.filter(u => u.repo === repo);
     const s = summarize(list2);
     report.repos[repo] = s;
-    lines.push(`| ${repo} | ${byRepo.get(repo).data.monorepo?.n || 0} | ${s.checkRuns} | ${minutes(s.minutes)} | ${pct(s.a.minutesSaved, s.minutes)} | ${pct(s.b.minutesSaved, s.minutes)} | ${pct(s.c.minutesSaved, s.minutes)} | ${pct(s['c+img'].minutesSaved, s.minutes)} | ${pct(s.preInstallShare, 1)} | ${s.c.beforeInstall}/${s.c.runs} | ${s.b.failedButAnswered} |`);
+    lines.push(`| ${repo} | ${byRepo.get(repo).data.monorepo?.n || 0} | ${s.checkRuns} | ${minutes(s.minutes)} (${pct(s.minutes, allMs[repo])}) | ${pct(s.a.minutesSaved, s.minutes)} | ${pct(s.b.minutesSaved, s.minutes)} | ${pct(s.c.minutesSaved, s.minutes)} | ${pct(s['c+img'].minutesSaved, s.minutes)} | ${pct(s.preInstallShare, 1)} | ${s.c.beforeInstall}/${s.c.runs} | ${s.b.failedButAnswered} | ${pct(s.byNameShare, 1)} |`);
   }
   const shares = repos.map(r => report.repos[r]).filter(s => s.checkRuns);
   const median = v => { const xs = shares.map(s => s[v].minuteShare).sort((x, y) => x - y); return xs.length ? xs[Math.floor((xs.length - 1) / 2)] : 0; };

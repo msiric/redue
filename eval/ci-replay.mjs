@@ -24,7 +24,7 @@ import {spawnSync} from 'node:child_process';
 import picomatch from 'picomatch';
 import {entryPoint, evalDir, localDir, tmpRoot, readJson, slug} from './lib.mjs';
 import {parseTree, docsOf, entriesKey, sha, parseYaml, workflowJobs, workflowTriggers, classifyRun, installIssues, actionIssues, sideEffect,
-  workspacePackages, matrixValues} from './ci-replay-lib.mjs';
+  workspacePackages, matrixValues, nameKinds} from './ci-replay-lib.mjs';
 entryPoint(import.meta, {ci: true});
 
 const argv = process.argv.slice(2);
@@ -196,6 +196,12 @@ async function study(repo) {
     }
     return one(scope);
   };
+  const matrixStrings = matrix => {
+    const out = [];
+    const walk = v => { if (typeof v === 'string') { if (/\s/.test(v)) out.push(v); } else if (v && typeof v === 'object') for (const x of Object.values(v)) walk(x); };
+    walk(matrix);
+    return [...new Set(out)].slice(0, 40);
+  };
   const actionKind = uses => {
     const name = String(uses).toLowerCase();
     if (/ruff-action|pre-commit\/action|super-linter|eslint|reviewdog|biome|oxlint|golangci|prettier-action|markdownlint|actionlint/.test(name)) return 'lint';
@@ -217,9 +223,15 @@ async function study(repo) {
         let checks = 0;
         const steps = job.steps.map((step, at) => {
           const findings = [];
-          if (step.run) findings.push(...classifyRun(step.run, {scripts, dir: step.dir}));
-          for (const inner of step.composite || []) if (inner.run) findings.push(...classifyRun(inner.run, {scripts, dir: inner.dir || step.dir}));
+          if (step.run) findings.push(...classifyRun(step.run, {scripts, file: info.read, dir: step.dir}));
+          for (const inner of step.composite || []) if (inner.run) findings.push(...classifyRun(inner.run, {scripts, file: info.read, dir: inner.dir || step.dir}));
           if (step.uses && actionKind(step.uses)) findings.push({kind: actionKind(step.uses), scope: null, target: step.uses});
+          // A command the matrix gives: the matrix's strings, as commands.
+          if (!findings.length && step.run && /\$\{\{\s*matrix\./.test(step.run))
+            for (const text of matrixStrings(job.matrix)) findings.push(...classifyRun(text, {scripts, file: info.read, dir: step.dir}).map(f => ({...f, scope: null})));
+          // Last: the step's name (counted apart in the report).
+          let byName;
+          if (!findings.length && step.run && step.name) { for (const kind of nameKinds(step.name)) findings.push({kind, scope: null, target: step.name}); byName = findings.length > 0 || undefined; }
           const base = {index: step.index, name: step.name, pattern: step.displayPattern, defaultName: step.defaultName?.slice(0, 200), side: sideEffect(step) || undefined};
           if (!findings.length) return base;
           checks++;
@@ -234,7 +246,7 @@ async function study(repo) {
           };
           for (const prior of job.steps.slice(0, at)) consider(prior, false);
           consider(step, true);
-          return {...base, kinds, units, targets: [...new Set(findings.map(f => f.target))].slice(0, 6), pre: {ok: issues.length === 0, issues: [...new Set(issues)], opaque: [...new Set(opaque)], installs: [...new Set(installs)]}};
+          return {...base, kinds, units, byName, targets: [...new Set(findings.map(f => f.target))].slice(0, 6), pre: {ok: issues.length === 0, issues: [...new Set(issues)], opaque: [...new Set(opaque)], installs: [...new Set(installs)]}};
         });
         return {id: job.id, pattern: job.pattern, literal: job.literal, runsOn: job.runsOn, services: job.services || undefined, container: job.container || undefined,
           matrixKeys: job.matrixKeys, checks, steps: checks ? steps : undefined, side: checks ? steps.some(s => s.side) || undefined : undefined};

@@ -155,7 +155,8 @@ function runner(argv) {
     else if (pmBuiltins.has(args[0])) return null;
     if (!args[0]) return null;
     const scope = filters.length ? {filters} : recursive ? {all: true} : dir ? {dir} : null;
-    return {targets: [args[0]], scope, script: true};
+    // `pnpm turbo ...` runs the binary when no script has that name.
+    return {targets: [args[0]], scope, script: true, exec: rest.slice(rest.indexOf(args[0]))};
   }
   if (base === 'turbo') {
     const args = positional[0] === 'run' ? positional.slice(1) : positional;
@@ -212,11 +213,15 @@ const nameKind = name => {
   if (any(['test', 'tests', 'unit', 'e2e', 'integration', 'pytest', 'spec', 'coverage', 'cov', 'jest', 'vitest', 'unittest', 'playwright']) || /^(py|pypy)\d*$/.test(tokens[0] || '')) kinds.push('test');
   return kinds;
 };
+// A step's name, when its commands say nothing: a check by its words, unless
+// it names setup, reporting or packaging work.
+const notCheckStep = /upload|send|report|codecov|coveralls|download|cache|install|setup|set up|build|publish|comment|summar|artifact|stats|merge|combine|notify|record|prepare|post|clean|login|docker|checkout|deploy|release|start|stop|wait|label|bump|generate|fetch|sync|config|annotate|status|matrix|changes|filter/i;
+export const nameKinds = name => { const clean = name.replace(/\$\{\{[\s\S]*?\}\}/g, ' ').replace(/[(),]/g, ' '); return notCheckStep.test(clean) ? [] : nameKind(clean); };
 const notCheck = /^(build|install|deploy|release|publish|clean|dev|start|serve|prepare|postinstall|generate|codegen|docs|bootstrap|setup|changeset|version|format|fmt|fix|lint:fix|lint-fix|format:fix|bench|benchmark)(:|$)/;
 // The kinds of check a step's commands run (a Set of 'typecheck', 'lint',
 // 'test'), with the scope each runs in. `scripts(dir)` gives the npm scripts
 // of the package.json in `dir` ('' is the root), or null.
-export function classifyRun(text, {scripts = () => null, dir = ''} = {}) {
+export function classifyRun(text, {scripts = () => null, file = () => null, dir = ''} = {}) {
   const found = [];
   let cwd = dir;
   const visit = (argv0, at, depth, scopeIn) => {
@@ -224,7 +229,24 @@ export function classifyRun(text, {scripts = () => null, dir = ''} = {}) {
     if (!argv.length) return;
     const base = argv[0].split('/').pop();
     if (base === 'cd' && argv[1]) { cwd = joinDir(at, argv[1]); return; }
+    // A script file: its commands, or else its name's words.
+    const scriptPath = ['bash', 'sh', 'zsh'].includes(base) ? argv.slice(1).find(a => !a.startsWith('-')) :
+      /^(\.{1,2}\/|scripts\/|\.github\/)|\.(sh|bash)$/.test(argv[0]) ? argv[0] : null;
+    if (scriptPath && !/\$\{\{/.test(scriptPath)) {
+      const text = depth < 4 ? file(joinDir(at, scriptPath)) : null;
+      const before = found.length;
+      if (text) for (const inner of commands(text)) visit(inner, at, depth + 1, scopeIn);
+      if (found.length === before) for (const kind of nameKind(scriptPath.split('/').pop().replace(/\.\w+$/, ''))) found.push({kind, scope: scopeIn ?? (at ? {dir: at} : null), target: scriptPath});
+      return;
+    }
+    if (['python', 'python3', 'node', 'tsx', 'ts-node', 'bun'].includes(base) && /\.(py|m?js|ts)$/.test(argv[1] || '')) {
+      for (const kind of nameKind(argv[1].split('/').pop().replace(/\.\w+$/, ''))) found.push({kind, scope: scopeIn ?? (at ? {dir: at} : null), target: argv[1]});
+      return;
+    }
     const run = runner(argv);
+    if (run?.exec && !scripts(run.scope?.dir ?? at)?.[run.exec[0]] && (toolKind.has(run.exec[0]) || ['turbo', 'nx', 'lerna'].includes(run.exec[0]))) {
+      visit(run.exec, at, depth + 1, run.scope ?? scopeIn); return;
+    }
     if (run) {
       const scope = run.scope ? run.scope.dir ? {dir: joinDir(at, run.scope.dir)} : run.scope : scopeIn;
       for (const target of run.targets) {
