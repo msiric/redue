@@ -63,6 +63,11 @@ the agent's hook does. `redue status --cached` gives the last answer the
 observer published without checking; it can say UNVERIFIED ("cannot confirm
 your execution context") where `redue status` would say CURRENT.
 
+`redue verify` runs every check that is due (STALE, or UNVERIFIED with a
+command it can run), then prints the status. It exits 0 only when every check
+ends CURRENT / PASS, so it answers "is everything verified on the code as it
+is now?" in one command.
+
 `redue stats` shows, per check, the reruns the hook skipped, the time saved,
 the recorded runs and the top reasons a check was UNVERIFIED, from a log kept
 on your machine.
@@ -171,6 +176,7 @@ redue init          # write redue.config.json from your scripts
 redue start         # start the file observer
 redue run typecheck # run a check through REDUE and record the result
 redue status        # what still holds
+redue verify        # run what is due; exit 0 when everything is CURRENT / PASS
 ```
 
 Codex is supported too (`redue agent setup codex --apply`); see

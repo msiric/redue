@@ -49,6 +49,8 @@ Commands:
   detail [CHECK] [--json]  Alias for explain
   run CHECK [--if-due] Execute one configured check and record its outcome; with --if-due,
                        only when its last pass does not apply to the files as they are now
+  verify [--json]      Run every check that is due (STALE, or UNVERIFIED with a runnable command),
+                       then show the status; exit 0 only when every check is CURRENT / PASS
   stats [--json]       Per check: skips, time saved, recorded runs, why checks were UNVERIFIED
   remove-state         Stop and remove only this configuration's owned local state
 
@@ -99,7 +101,7 @@ if(command==='agent'){
   catch(e){error(e.message);}
   await exit(0);
 }
-if(!['init','start','stop','status','detail','explain','run','stats','remove-state'].includes(command))
+if(!['init','start','stop','status','detail','explain','run','verify','stats','remove-state'].includes(command))
   error(`unknown command ${command||'<none>'}; use --help`);
 const json=args.includes('--json');
 // run --if-due: run the check only when its last pass does not apply now.
@@ -507,6 +509,53 @@ if(!maintenance&&!created){
   }
 }
 
+if(command==='verify'){
+  const self=(more,options)=>spawnSync(process.execPath,[fileURLToPath(import.meta.url),'--config',configFile,
+    ...(stateOverride?['--state-dir',stateOverride]:[]),...more],{env:process.env,...options});
+  const ask=()=>{const r=self(['status','--sync','--json'],{encoding:'utf8',stdio:['ignore','pipe','ignore'],timeout:600_000});
+    try{return JSON.parse(r.stdout);}catch{return null;}};
+  const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  let status=ask();
+  // Nothing is confirmed without the observer: start it as the session hook
+  // does, and wait while it indexes.
+  if(!status?.observation?.healthy){
+    let pid=null;try{pid=Number(fs.readFileSync(path.join(state,'observer.lock','pid'),'utf8'));}catch{}
+    if(!(Number.isSafeInteger(pid)&&pid>0&&processAlive(pid))){
+      if(!json)console.error('redue verify: starting the observer');
+      self(['start'],{stdio:['ignore','ignore','inherit']});status=ask();
+    }
+    for(const until=Date.now()+120_000;!status?.observation?.healthy&&
+      ['discovery','indexing','reconciling','validating','initializing'].includes(status?.observation?.phase)&&Date.now()<until;){
+      await sleep(1000);status=ask();}
+  }
+  // A check is due when its last result does not apply to the files as they
+  // are now, and it can run: its program is there.
+  const runnable=row=>{const command=checks.find(item=>item.name===row.name)?.command?.[0];
+    if(typeof command!=='string'||command.endsWith('<unavailable>'))return false;
+    if(command.includes('/'))return fs.existsSync(path.resolve(root,checks.find(item=>item.name===row.name).cwd||'.',command));
+    return Boolean(findExecutable(command));};
+  const due=(status?.checks||[]).filter(row=>row.freshness==='STALE'||row.freshness==='UNVERIFIED'&&runnable(row));
+  const {note,dueNote}=await import('../src/stats.mjs');
+  const ran=[];
+  for(const row of due){
+    const entry=dueNote(status,row.name);if(entry)note(state,entry);
+    if(!json)console.error(`redue verify: running ${row.name} (${row.freshness}: ${row.reason})`);
+    // With --json, the check's output goes to stderr; stdout carries the answer.
+    const r=self(['run',row.name],{stdio:json?['ignore',2,2]:'inherit'});
+    ran.push({check:row.name,was:row.freshness,exit:r.status});
+  }
+  const final=due.length?ask():status;
+  const verified=Boolean(final?.observation?.healthy)&&Array.isArray(final.checks)&&final.checks.length>0&&
+    final.checks.every(row=>row.freshness==='CURRENT'&&row.result==='PASS');
+  if(json)console.log(JSON.stringify({schema:1,verified,ran,status:final}));
+  else{
+    if(ran.length)console.log('');
+    console.log(final?renderStatus(final):'UNVERIFIED — status did not answer.');
+    console.log(verified?`Verified: every check (${final.checks.length}) passed on the files as they are now.`:
+      'Not verified: some checks did not end CURRENT / PASS.');
+  }
+  await exit(verified?0:1);
+}
 if(command==='status'&&!sync){
   const value=readCachedStatus(state,publicConfig.checks);
   console.log(json?JSON.stringify(value):renderStatus(value,{short}));

@@ -853,3 +853,33 @@ test('a Node script the general recipe also takes is sandboxed; where the sandbo
   assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
   assert.equal(status.recipe,'sandbox-v3');
 });
+
+test('redue verify starts the observer, runs each due check, then shows the status; exit 0 only when every check is CURRENT/PASS',{skip:unsupported},t=>{
+  const {root,state}=project(t);
+  good(root,state,'init');
+  let r=invoke(root,state,['verify']);
+  assert.equal(r.status,0,r.stderr+r.stdout);
+  assert.match(r.stderr,/starting the observer/);
+  assert.match(r.stderr,/running typecheck \(UNVERIFIED: no receipt\)/);assert.match(r.stderr,/running lint \(UNVERIFIED: no receipt\)/);
+  assert.match(r.stdout,/✓ typecheck {2}CURRENT \/ PASS/);assert.match(r.stdout,/✓ lint {2}CURRENT \/ PASS/);
+  assert.match(r.stdout,/Verified: every check \(2\) passed/);
+  // Nothing is due: nothing runs.
+  r=invoke(root,state,['verify']);
+  assert.equal(r.status,0,r.stderr);assert.doesNotMatch(r.stderr,/running/);
+  // An edit makes both due; they run, and a failure ends the command with 1.
+  write(root,'src/fx/__init__.py','value = "fail"\n');
+  r=invoke(root,state,['verify','--json']);
+  assert.equal(r.status,1,r.stderr);
+  let value=JSON.parse(r.stdout);
+  assert.deepEqual(value.ran.map(x=>`${x.check} ${x.was} ${x.exit}`),['typecheck STALE 1','lint STALE 1']);
+  assert.equal(value.verified,false);
+  assert.deepEqual(value.status.checks.map(c=>`${c.name} ${c.freshness}/${c.result}`),['typecheck CURRENT/FAIL','lint CURRENT/FAIL']);
+  // A failure that still applies is not due: it does not run again.
+  r=invoke(root,state,['verify','--json']);
+  value=JSON.parse(r.stdout);
+  assert.equal(r.status,1);assert.deepEqual(value.ran,[]);
+  // Fixed: both run again and pass.
+  write(root,'src/fx/__init__.py','value = 2\n');
+  r=invoke(root,state,['verify']);
+  assert.equal(r.status,0,r.stderr+r.stdout);
+});

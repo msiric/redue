@@ -59,3 +59,9 @@ JSON summary. **Its stdout is not a JSON-only stream.** Query status/details aft
 completion for machine-readable evidence. Normal check exit codes are preserved;
 interruption/process-start failures are nonzero. REDUE retains metadata and receipts,
 not arbitrary terminal output. The CLI does not infer tests executed from prose.
+
+`verify --json` writes one JSON object to stdout: `verified` (true only when the
+observer is healthy and every check is CURRENT / PASS), `ran` (each due check it
+ran, in config order: `check`, `was` (STALE or UNVERIFIED) and the run's `exit`),
+and `status`, the synchronized status after those runs. The checks' own output
+goes to stderr. It exits 0 when `verified` is true, else 1.
