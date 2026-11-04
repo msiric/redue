@@ -117,11 +117,11 @@ async function runOne(task, repo, arm, index, rep) {
 }
 
 // The flags every session gets; only the prompt and turn limit differ. `hook`:
-// a PreToolUse command for Bash calls (--gap's tree-hook.mjs).
+// a PreToolUse command for every tool call (--gap's tree-hook.mjs).
 const sessionArgs = (prompt, maxTurns, hook = null) => ['-p', prompt, '--model', opt.model, '--max-turns', String(maxTurns),
   '--output-format', 'stream-json', '--verbose', '--no-session-persistence',
   '--setting-sources', 'project,local', '--settings', JSON.stringify({autoMemoryEnabled: false,
-    ...hook ? {hooks: {PreToolUse: [{matcher: 'Bash', hooks: [{type: 'command', command: hook}]}]}} : {}}),
+    ...hook ? {hooks: {PreToolUse: [{matcher: '*', hooks: [{type: 'command', command: hook}]}]}} : {}}),
   '--strict-mcp-config', '--mcp-config', JSON.stringify({mcpServers: {}}),
   '--tools', tools, '--allowedTools', tools, '--permission-mode', 'dontAsk'];
 
@@ -251,8 +251,9 @@ async function runSession(task, repo, arm, id) {
     row.base_checks = baseChecks(repo);
     const same = tree => tree === finalTree ||
       sh('git', ['diff', '--name-only', tree, finalTree], {cwd: dir}).stdout.split('\n').filter(Boolean).every(docLike);
-    row.gap = gapOf({transcript: path.join(runDir, 'transcript.jsonl'), treeLog, repo, same});
+    row.gap = gapOf({transcript: path.join(runDir, 'transcript.jsonl'), treeLog, repo, same, finalTree});
     row.gap.source_changed = row.changed_files.some(file => !docLike(file));
+    row.gap.model = opt.model;
   }
 
   row.metrics = analyze({transcript: path.join(runDir, 'transcript.jsonl'), wrapperLog: log, script: repo.script,

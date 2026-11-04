@@ -24,13 +24,16 @@ const argv = process.argv.slice(2);
 const flag = name => { const i = argv.indexOf(name); if (i < 0) return null; return argv.splice(i, name === '--review' ? 1 : 2).at(-1); };
 const claimsFile = flag('--claims'), review = flag('--review') !== null;
 const overrides = claimsFile ? readJson(claimsFile) : {};
+// A job stopped before it wrote results.json leaves each session's result.json.
 const files = argv.flatMap(dir => fs.statSync(dir).isFile() ? [dir] :
-  fs.readdirSync(dir, {recursive: true}).map(String).filter(f => path.basename(f) === 'results.json').map(f => path.join(dir, f)));
+  fs.readdirSync(dir, {recursive: true}).map(String).filter(f => /^results?\.json$/.test(path.basename(f))).map(f => path.join(dir, f)));
+const complete = new Set(files.filter(f => path.basename(f) === 'results.json').map(f => path.dirname(f)));
 
 const rows = [];
 for (const file of files) {
   const data = readJson(file);
-  for (const row of data.rows) if (row.gap && !row.error) rows.push({...row, model: data.model});
+  if (path.basename(file) === 'result.json' && complete.has(path.dirname(path.dirname(file)))) continue;
+  for (const row of data.rows ?? [data]) if (row.gap && !row.error) rows.push({...row, model: data.model ?? row.gap.model});
 }
 
 function judge(row) {
@@ -110,12 +113,15 @@ const skipped = [...new Set(rows.flatMap(row => kinds.filter(k => row.base_check
 if (skipped.length) out.push('', `Left out (fail on the pinned commit): ${skipped.join(', ')}.`);
 const unhooked = rows.filter(row => row.gap.hooked < row.gap.bash_calls);
 if (unhooked.length) out.push('', `Bash calls without a recorded tree: ${unhooked.map(r => `${r.id} ${r.gap.bash_calls - r.gap.hooked}/${r.gap.bash_calls}`).join(', ')}.`);
+const unknown = rows.flatMap(row => kinds.filter(k => row.gap.checks[k].unknown && !row.gap.checks[k].final_full).map(k => `${row.id} ${k}`));
+if (unknown.length) out.push('', `Checks counted as not run on the final tree whose only candidate ran between writes in one command (tree unknown; read them with --review): ${unknown.join(', ')}.`);
 console.log(out.join('\n'));
 
 if (review) for (const {row} of judged) {
   console.log(`\n=== ${row.id} (${row.model})`);
-  for (const run of row.gap.runs) console.log(`  run ${run.final ? 'FINAL' : '     '} ${Object.entries(run.checks).map(([k, s]) => s ? `${k}*` : k).join('+')}` +
-    `${run.error ? ' error' : ''}${run.missing ? ' MISSING' : ''}: ${run.command.replace(/\s+/g, ' ').slice(0, 160)}`);
+  for (const run of row.gap.runs) console.log(`  run ${Object.entries(run.checks).map(([k, c]) =>
+    `${k}${c.scoped ? '(narrowed)' : ''}${c.missing ? '(missing)' : ''} ${c.final ? 'FINAL' : c.final === null ? '?' : 'old'}/${c.side}`).join(', ')}` +
+    `${run.error ? ' error' : ''}: ${run.command.replace(/<<-?\s*(['"]?)([\w-]+)\1[\s\S]*?\n\2(\n|$)/g, '<<$2 … ').replace(/\s+/g, ' ').slice(0, 200)}`);
   for (const kind of kinds) if (row.gap.claims[kind].length) console.log(`  claim ${kind}: ${row.gap.claims[kind].join(' | ')}`);
   console.log(`  final: ${row.gap.final_text.replace(/\s+/g, ' ').slice(0, 1500)}`);
 }

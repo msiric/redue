@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// The verification-gap study's PreToolUse hook for Bash (run.mjs --gap):
-// records the working tree each command runs on, as a git tree object, and
-// appends {id, tree, ms} to LOG. The checkout's index does not change. It
+// The verification-gap study's PreToolUse hook (run.mjs --gap): records the
+// working tree before each tool call, as a git tree object, and appends
+// {id, tree, ms} to LOG. gap.mjs takes a Bash command's tree from its own call,
+// and the tree after it from the next one. The checkout's index does not change. It
 // prints nothing, so Claude Code goes on as if there were no hook.
 //
 //   node eval/tree-hook.mjs LOG CHECKOUT    (Claude Code passes the call on stdin)

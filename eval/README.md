@@ -80,7 +80,10 @@ Importing any entry point throws before it does anything (`entryPoint` in
 
 - `run.mjs --gap` (the verification-gap study): for the `gap-*` source tasks,
   how often a session finishes on code it did not verify. `tree-hook.mjs`, a
-  PreToolUse hook for Bash, records the tree each command ran on. After the
+  PreToolUse hook, records the tree before each tool call, so a Bash
+  command's tree after it ran is the next call's. A check in a command that
+  also writes files ran before the call's writes, after them, or between them
+  (unknown, listed apart). After the
   session the repo's typecheck, lint and tests run on the final tree (a
   failing one runs again), and once per repo on its pinned commit. `gap.mjs`
   finds the checks the agent ran (`gapAliases` in `repos.json` maps a repo's
