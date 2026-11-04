@@ -8,7 +8,7 @@ import {patternMatcher} from './glob.mjs';
 import {observedBy} from './installed-observation.mjs';
 import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testRunFacts,sharedInstalledFile,testsInterpretation,testsQualification} from './test-direct.mjs';
 import {childProgram,generalIssue,lookup,pnpmConfigFiles,scriptCaches,scriptInstalledPaths,scriptInterpretation,scriptQualification,scriptRunFacts,pnpmNameless,toolOutput,toolchainDirs} from './node-script.mjs';
-import {denialLine,docsQualification,endWithChild,launcherFailure,hiddenDocs,hiddenDocsAsync,hiddenEntries,hiddenEntriesAsync,hiddenQualification,hiddenRefusal,hidesIgnored,isSandboxed,runToEnd,supervisorIssue,visibleChange,testRun as sandboxTestRun,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,
+import {denialLine,docsQualification,endWithChild,launcherFailure,hiddenDocs,hiddenEntries,hiddenQualification,hiddenRefusal,hidesIgnored,isSandboxed,runToEnd,supervisorIssue,visibleChange,testRun as sandboxTestRun,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,
   sandboxInterpretation,sandboxInterpretationOf,sandboxPlaces,sandboxQualification,sandboxSupport,systemPlaces} from './sandbox.mjs';
 import path from 'node:path';
 import net from 'node:net';
@@ -271,12 +271,8 @@ async function execute() {
     // installed tree as one entry (the observer's compactFiles).
     const supportCache=path.join(state,'sandbox-support-v1.json');
     const compact=isSandboxed(selected.qualification)&&!sandboxSupport({cache:supportCache}).issue;
-    // What sandbox-v2 and v3 hide, listed by git while the checkpoint is asked:
-    // an ignored file made in between is an event after it, as before.
-    const lists=compact&&hidesIgnored(selected.qualification)?Promise.all([hiddenEntriesAsync(root),
-      selected.qualification===docsQualification?hiddenDocsAsync(root):null]):null;
     const startSnapshotStarted=performance.now();
-    try{before=await call({action:'snapshot',name,contextHashes:contextHashes(name),
+    try{before=await call({action:'snapshot',name,contextHashes:{[name]:environmentBefore},
       ...(compact?{compact:1}:{}),...(callerCertificate?{runCertificate:1}:{})},captureWait.timeout,captureWait.deadline);}
     catch(error){captureIssues.push('start observation unavailable'+
       (typeof error.code==='string'&&/^[A-Z0-9_]+$/.test(error.code)?` (${error.code})`:''));}
@@ -352,9 +348,8 @@ async function execute() {
         // sandbox-v2 hides the checkout's git-ignored entries, and sandbox-v3
         // its documentation too. Where git cannot list them, nothing is
         // hidden, and the receipt compares every file.
-        const [listed,listedDocs]=lists?await lists:[null,null];
-        const hidden=lists?listed:hidesIgnored(selected.qualification)?hiddenEntries(root):null;
-        const docs=hidden&&selected.qualification===docsQualification?(lists?listedDocs:hiddenDocs(root)):null;
+        const hidden=hidesIgnored(selected.qualification)?hiddenEntries(root):null;
+        const docs=hidden&&selected.qualification===docsQualification?hiddenDocs(root):null;
         const options={reads,tmp:dirs.tmp,python:support.python,stats,
           ...tests?{...support.mode==='landlock'?{network:'loopback'}:{},writes:[root,dirs.home,dirs.tmp],
             fault:process.env.VSTATE_TEST_FAULTS==='1'?process.env.VSTATE_TEST_SUPERVISOR||null:null}:{}};
@@ -480,7 +475,7 @@ async function execute() {
     if(!unobservedDirectRun){
       // The start checkpoint's probe may have raised the deadline.
       const endWait=decisionWait(process.env.VSTATE_CAPTURE_TIMEOUT_MS);
-      try{after=await call({action:'snapshot',name,contextHashes:contextHashes(name),...(compact?{compact:1}:{}),
+      try{after=await call({action:'snapshot',name,contextHashes:{[name]:environmentAfter},...(compact?{compact:1}:{}),
         ...((testRun||sandboxed)&&Number.isSafeInteger(snap?.inputEventSerial)?{sinceSerial:snap.inputEventSerial}:{}),
         ...(recording?{runCertificate:1,adopt:recording}:recorded&&!certificate?{runCertificate:1,runFacts:1}:{})},
         endWait.timeout,endWait.deadline);}
@@ -671,7 +666,8 @@ async function execute() {
       ...(own?{verificationRecipe:sandboxInterpretationOf(sandbox?.docs?docsQualification:sandbox?.hidden?hiddenQualification:sandboxQualification,selected.kind),
         sandbox:{mode:sandbox?.mode??null,hidden:sandbox?.hidden??null,...sandbox?.docs?{docs:sandbox.docs}:{},...hiddenRerun?{hiddenRerun}:{},...sandboxRerun?{rerun:sandboxRerun}:{}}}:{}),
       ...(fallback?{sandbox:{mode:null,fallback:'node-script',issue:support.issue}}:{}),
-      files:(outputs?end:snap)?.files??null,...compact?{filesCompact:true}:{},observerGeneration:before?.observation?.generation??null,
+      // The form the observer says it returned: an older one ignores the request.
+      files:(outputs?end:snap)?.files??null,...(outputs?end:snap)?.filesCompact===true?{filesCompact:true}:{},observerGeneration:before?.observation?.generation??null,
       startRevision:snap?.revision??null,endRevision:end?.revision??null};
     const persistenceStarted=performance.now();
     commitReceipt(state,name,receipt);

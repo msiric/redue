@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import net from 'node:net';
 import {spawnSync,execFileSync} from 'node:child_process';
-import {comparableOutput,denialLine,launcherFailure,namedDocsLimit,seatbeltProfile,sandboxInterpretationOf,hiddenEntries,hiddenRefusal,sandboxArgv,sandboxTrial,systemPlaces,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
+import {comparableOutput,denialLine,launcherFailure,namedDocsLimit,visibleChange,seatbeltProfile,sandboxInterpretationOf,hiddenEntries,hiddenRefusal,sandboxArgv,sandboxTrial,systemPlaces,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
 import {projectArgs,toolArgs} from '../src/python-onboarding.mjs';
 import {chainCommand,claudeHook,hookForms,pathForm,recordedCommand} from '../src/claude-hook.mjs';
 
@@ -892,8 +892,22 @@ test('redue verify starts the observer, runs each due check, then shows the stat
 
 test('the Landlock launcher\'s own refusal is read as a run that was not sandboxed',()=>{
   assert.equal(launcherFailure('landlock.py: Landlock unavailable (errno 38)\n'),'landlock.py: Landlock unavailable (errno 38)');
-  assert.equal(launcherFailure('some output\nlandlock.py: add_rule /x errno 2\n'),'landlock.py: add_rule /x errno 2');
+  assert.equal(launcherFailure('landlock.py: add_rule /x errno 2\n'),'landlock.py: add_rule /x errno 2');
+  assert.equal(launcherFailure('landlock.py: Landlock ABI 3 cannot keep a run off the network'),'landlock.py: Landlock ABI 3 cannot keep a run off the network');
+  // The check's own output, or what the launcher says after the command ran, is not a refusal.
+  assert.equal(launcherFailure('some output\nlandlock.py: add_rule /x errno 2\n'),null);
+  assert.equal(launcherFailure('landlock.py: processes [12] did not stop\n'),null);
   assert.equal(launcherFailure('error: tests failed\n'),null);
+});
+
+test('an installed tree kept as one entry beneath a hidden directory counts once git tracks a file in it',t=>{
+  const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'rsb-compact-')));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+  put(path.join(root,'.gitignore'),'vendor/\n');put(path.join(root,'vendor/node_modules/x/index.js'),'x');put(path.join(root,'a.txt'),'a');
+  execFileSync('git',['init','-q'],{cwd:root});execFileSync('git',['add','.gitignore','a.txt'],{cwd:root});
+  const key='vendor/node_modules/:installed:',before={[key]:'1'},after={[key]:'2'};
+  assert.equal(visibleChange(root,['vendor/'],before,after,[key]),null);
+  execFileSync('git',['add','-f','vendor/node_modules/x/index.js'],{cwd:root});
+  assert.equal(visibleChange(root,['vendor/'],before,after,[key]),key);
 });
 
 test('on Linux, a run keeps the Landlock answer for the same kernel, launcher Python and launcher',{skip:process.platform!=='linux'||unsupported},t=>{

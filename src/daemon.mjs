@@ -25,7 +25,7 @@ import {npmCacheDir} from './npm-integrity.mjs';
 import {runFromArgv} from './typescript-invocation.mjs';
 import {buildInfoPath,recordedCertificate} from './direct-run-certificate.mjs';
 import {timing,mark,traceBase,traceContext,traceScope,traceEnvironment,traceId} from './decision-profile.mjs';
-import {isSandboxed,sandboxChange,visibleChange as sandboxVisibleChange} from './sandbox.mjs';
+import {compactKey,installedTreeOf,isSandboxed,sandboxChange,visibleChange as sandboxVisibleChange} from './sandbox.mjs';
 
 const configFile=path.resolve(process.argv[2]);
 const config=JSON.parse(fs.readFileSync(configFile));
@@ -347,7 +347,6 @@ function combinedFiles(name) {
 // The entry's name is a path inside its tree, so whether a hidden run could
 // see a change to it is decided as for the files it stands for: beneath a
 // hidden entry, or new where git ignores it now.
-const installedTree=rel=>rel.startsWith('external:')?null:/^(.*?(?:^|\/)(?:node_modules|\.venv))(?:\/|$)/.exec(rel)?.[1]??null;
 const compactCache=new Map();
 function compactFiles(name) {
   const summary=combinedSummary(name),key=`${summary.revision}\0${summary.fingerprint}`;
@@ -355,17 +354,19 @@ function compactFiles(name) {
   if(cached?.key===key)return {...cached.files};
   const out={},trees=new Map();
   for(const [rel,hash] of Object.entries(combinedFiles(name))){
-    const tree=installedTree(rel);
+    const tree=installedTreeOf(rel);
     if(tree===null){out[rel]=hash;continue;}
     let list=trees.get(tree);if(!list)trees.set(tree,list=[]);
     list.push([rel,hash]);
   }
-  for(const [tree,list] of trees){list.sort(([a],[b])=>a<b?-1:a>b?1:0);out[`${tree}/:installed:`]=sha(JSON.stringify(list));}
+  for(const [tree,list] of trees){list.sort(([a],[b])=>a<b?-1:a>b?1:0);out[compactKey(tree)]=sha(JSON.stringify(list));}
   compactCache.set(name,{key,files:out});
   return {...out};
 }
 // The current files in the form receipt `r` holds them.
 const filesFor=(name,r)=>r?.filesCompact===true?compactFiles(name):combinedFiles(name);
+// A changed input as status names it: an installed tree by its path.
+const inputName=file=>file?.endsWith('/:installed:')?file.slice(0,-'/:installed:'.length):file;
 function describeChangedInput(plan,file) {
   if(file.endsWith('/:installed:'))return `${file.slice(0,-'/:installed:'.length)} (installed files) changed`;
   const boundary=[...external.keys()].find(value=>file.startsWith(`external:${value}:`));
@@ -475,16 +476,16 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
     else if(r.fingerprint!==combinedSummary(name).fingerprint&&!(hiddenRun(r)&&visibleChange(row,r,name)===null)) {
       const key=r.fingerprint+'\0'+combinedSummary(name).fingerprint;
       if(row.staleReasonKey!==key&&hiddenRun(r)){
-        row.staleInputs=[visibleChange(row,r,name)];row.staleReason=describeChangedInput(row.plan,row.staleInputs[0]);row.staleReasonKey=key;}
+        const seen=visibleChange(row,r,name);row.staleInputs=[inputName(seen)];row.staleReason=describeChangedInput(row.plan,seen);row.staleReasonKey=key;}
       if(row.staleReasonKey!==key){
         let changed=row.lastReason;row.staleInputs=[];
         const candidate=changed?.endsWith(' changed')?changed.slice(0,-8):null;
-        if(candidate&&!(r.filesCompact===true&&installedTree(candidate)!==null)&&r.files?.[candidate]!==index.files.get(candidate)){
+        if(candidate&&!(r.filesCompact===true&&installedTreeOf(candidate)!==null)&&r.files?.[candidate]!==index.files.get(candidate)){
           changed=describeChangedInput(row.plan,candidate);row.staleInputs=[candidate];}
         else {
           const current=filesFor(name,r);
           if(r.files)for(const f of new Set([...Object.keys(r.files),...Object.keys(current)]))
-            if(r.files[f]!==current[f]){changed=describeChangedInput(row.plan,f);row.staleInputs=[f];break;}
+            if(r.files[f]!==current[f]){changed=describeChangedInput(row.plan,f);row.staleInputs=[inputName(f)];break;}
         }
         row.staleReason=changed||
           (['typescript-noemit-v1','npm-typescript-direct-v1','yarn-workspace-tsc-v1','pnpm-tsc-v1']
@@ -1204,6 +1205,7 @@ async function request(message) {
       data.snapshots={};for(const [name,row] of index?.checks||[])
         if(!message.name||message.name===name)
           data.snapshots[name]={...combinedSummary(name),files:message.compact===1?compactFiles(name):combinedFiles(name),
+          ...message.compact===1?{filesCompact:true}:{},
           planGeneration:row.plan.id,
             inputEventSerial:inputEventSerial.get(name)||0,
             // Complete only when the oldest kept event follows the given serial.

@@ -278,6 +278,12 @@ export function sandboxDirs(state,name){
 // git cannot list them. Only the project's rules count (.gitignore files and
 // .git/info/exclude), not a user's global excludes file, as on CI.
 const installedTree=/(?:^|\/)(?:node_modules|\.venv)(?:\/|$)/;
+// The outermost installed tree a checkout path is in (`a/node_modules`), or
+// null. Never hidden itself; the observer keeps such a tree as one entry in a
+// sandboxed run's files, `<tree>/:installed:` (compactKey).
+export const installedTreeOf=rel=>rel.startsWith('external:')?null:/^(.*?(?:^|\/)(?:node_modules|\.venv))(?:\/|$)/.exec(rel)?.[1]??null;
+export const compactKey=tree=>`${tree}/:installed:`;
+const compactTree=key=>key.endsWith('/:installed:')?key.slice(0,-':installed:'.length):null;
 const runnerCache=picomatch(sandboxCaches,{dot:true});
 const projectGit=['-c','core.excludesFile=/dev/null'],gitEnv=()=>({...process.env,GIT_OPTIONAL_LOCKS:'0'});
 const hiddenArgs=[...projectGit,'ls-files','-z','--others','--ignored','--exclude-standard','--directory'];
@@ -286,18 +292,6 @@ const hiddenOf=r=>r.status!==0?null:r.stdout.split('\0').filter(Boolean).filter(
 export function hiddenEntries(root){
   return hiddenOf(spawnSync('git',hiddenArgs,{cwd:root,encoding:'utf8',maxBuffer:256*1024*1024,timeout:60000,stdio:['ignore','pipe','ignore'],env:gitEnv()}));
 }
-// git's answer without blocking, so a run lists these while its start checkpoint is asked.
-function gitAsync(root,args){
-  return new Promise(resolve=>{
-    let child;try{child=spawn('git',args,{cwd:root,stdio:['ignore','pipe','ignore'],env:gitEnv()});}catch{resolve({status:null,stdout:''});return;}
-    const chunks=[];let size=0;
-    const timer=setTimeout(()=>child.kill(),60000);
-    child.stdout.on('data',chunk=>{size+=chunk.length;if(size>256*1024*1024)child.kill();else chunks.push(chunk);});
-    child.on('error',()=>{clearTimeout(timer);resolve({status:null,stdout:''});});
-    child.on('close',status=>{clearTimeout(timer);resolve({status,stdout:Buffer.concat(chunks).toString('utf8')});});
-  });
-}
-export const hiddenEntriesAsync=async root=>hiddenOf(await gitAsync(root,hiddenArgs));
 
 // The documentation files docPatterns names among the files git lists and
 // does not ignore (git-ignored ones are hidden as such), as regular files:
@@ -309,7 +303,6 @@ const docsArgs=()=>[...projectGit,'ls-files','-z','--cached','--others','--exclu
 export function hiddenDocs(root){
   return docsOf(root,spawnSync('git',docsArgs(),{cwd:root,encoding:'utf8',maxBuffer:256*1024*1024,timeout:60000,stdio:['ignore','pipe','ignore'],env:gitEnv()}));
 }
-export const hiddenDocsAsync=async root=>docsOf(root,await gitAsync(root,docsArgs()));
 function docsOf(root,r){
   if(r.status!==0)return null;
   const out=new Set();
@@ -368,7 +361,8 @@ export function visibleChange(root,hidden,before,current,paths,{during=false,doc
   const covered=changed.filter(beneath),fresh=changed.filter(file=>!(file in before)&&!beneath(file));
   if(covered.length){
     const tracked=trackedBeneath(root,entries.filter(entry=>covered.some(file=>file===entry||file.startsWith(entry+'/'))));
-    const found=covered.find(file=>!tracked||tracked.has(file));
+    // An installed tree kept as one entry counts when git tracks any file in it.
+    const found=covered.find(file=>!tracked||tracked.has(file)||compactTree(file)!==null&&[...tracked].some(rel=>rel.startsWith(compactTree(file))));
     if(found)return found;
   }
   if(!fresh.length)return null;
@@ -583,7 +577,9 @@ export function endWithChild(child){
 }
 // The launcher's own line when it could not sandbox a run (Landlock
 // unavailable, or a rule it could not add), or null.
-export const launcherFailure=text=>/^landlock\.py: .*$/m.exec(String(text))?.[0].slice(0,200)??null;
+// Only its refusals before the command starts, and only as the run's whole output.
+export const launcherFailure=text=>/^landlock\.py: (?:Landlock unavailable|Landlock ABI \d+ cannot|create_ruleset|add_rule|no_new_privs|restrict_self)[^\n]*$/
+  .exec(String(text).trim())?.[0].slice(0,200)??null;
 // Runs argv in its own process group to the end, with no terminal input:
 // {status, signal, error, timedOut, stdout, stderr}, each output kept up to
 // 64 MB and decoded at the end. `echo` also passes the output through.
