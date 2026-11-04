@@ -88,10 +88,12 @@ agent, it likewise writes plain `redue run` only if its own PATH finds this
 install, else the absolute form.
 
 The same command also runs on UserPromptSubmit and Stop, for the end-of-turn
-check. At the start of a turn it notes the observer's count of file events.
-When the agent stops, it asks status: if a check is due (STALE or
-UNVERIFIED) and files changed during the turn (the count moved, or the
-turn's transcript has an Edit, Write, MultiEdit or NotebookEdit call), it
+check. At the start of a turn it notes the observer's count of file events
+and which checks are CURRENT (on Windows, from a synchronized status). When
+the agent stops, it asks status: if a check is due (STALE or UNVERIFIED) and
+files changed during the turn (the count moved, a check CURRENT at the start
+is due now, or the turn's transcript has an Edit, Write, MultiEdit or
+NotebookEdit call), it
 blocks the stop once with "Before you finish, run `redue verify` and report
 what it says". It never asks twice in a turn, and never on the stop that
 follows its reminder (`stop_hook_active`), so it cannot loop. A turn that

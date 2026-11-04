@@ -163,7 +163,8 @@ async function decisionCall(message,{timeout,deadline}) {
     const alive=Number.isSafeInteger(pid)&&pid>0?processAlive(pid):null;
     const diagnostic={at:Date.now(),kind:'control_connection_unavailable',code:error.code,
       pid,alive,remainingMs:remaining(),cached:cached().observation};
-    try{fs.appendFileSync(path.join(state,'events.jsonl'),JSON.stringify(diagnostic)+'\n');}catch{}
+    // Only into state this observer owns: start refuses a directory with other files.
+    if(fs.existsSync(ownerFile))try{fs.appendFileSync(path.join(state,'events.jsonl'),JSON.stringify(diagnostic)+'\n');}catch{}
     if(alive){
       // Exactly one reconnect. The sync operation still validates contents;
       // connection recovery by itself is never evidence of applicability.

@@ -603,9 +603,11 @@ export async function claudeHook(input,{entry,timeout,invoke=null,explain=null})
 }
 
 // The end-of-turn check. UserPromptSubmit notes the observer's event count
-// and generation for the session (turnStart); Stop (turnEnd) asks status, and
-// when a check is due and files changed this turn (the count moved, or the
-// turn's transcript has an Edit, Write, MultiEdit or NotebookEdit call), it
+// and generation for the session, and the checks that were CURRENT
+// (turnStart); Stop (turnEnd) asks status, and when a check is due and files
+// changed this turn (the count moved, a check CURRENT at the start is due now,
+// or the turn's transcript has an Edit, Write, MultiEdit or NotebookEdit
+// call), it
 // asks the agent once to run `redue verify` before it finishes. Claude Code
 // marks the Stop that follows with stop_hook_active, which never asks again;
 // the note that it asked does the same. `"endOfTurnCheck": false` in the
@@ -624,15 +626,22 @@ function writeTurns(state,value){
   catch{try{fs.rmSync(temp,{force:true});}catch{}}
 }
 const sessionId=input=>typeof input?.session_id==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(input.session_id)?input.session_id:null;
-export function turnStart(input){
+// The observer's published status is enough on macOS and Linux. Windows
+// answers from a content reconciliation, not counted events, and its cached
+// status confirms nothing: there the turn starts with a synchronized status.
+export async function turnStart(input,{entry,timeout=5000}={}){
   let project=null;try{project=hookProject(input?.cwd);}catch{}
   const id=sessionId(input);
   if(!project||!id)return null;
   let state;try{state=projectState(project.projectRoot,project.config);}catch{return null;}
-  let observation=null;try{observation=JSON.parse(fs.readFileSync(path.join(state,'status.json'),'utf8')).observation;}catch{}
+  let status=null;
+  if(process.platform==='win32'&&entry)status=await synchronizedStatus(entry,project.config,project.projectRoot,timeout);
+  else try{status=JSON.parse(fs.readFileSync(path.join(state,'status.json'),'utf8'));}catch{}
+  const observation=status?.observation;
   const turns=readTurns(state);
   turns.sessions[id]={at:Date.now(),generation:typeof observation?.generation==='string'?observation.generation:null,
-    events:Number.isSafeInteger(observation?.events)?observation.events:null};
+    events:Number.isSafeInteger(observation?.events)?observation.events:null,
+    current:observation?.healthy===true&&Array.isArray(status.checks)?status.checks.filter(row=>row?.freshness==='CURRENT').map(row=>row.name):[]};
   writeTurns(state,turns);
   return 'noted';
 }
@@ -669,6 +678,7 @@ export async function turnEnd(input,{entry,timeout=10000,invoke=null}){
   if(!due.length)return null;
   const counted=Number.isSafeInteger(turn?.events)&&Number.isSafeInteger(status.observation.events);
   const changed=counted&&(status.observation.events!==turn.events||status.observation.generation!==turn.generation)||
+    Array.isArray(turn?.current)&&due.some(row=>turn.current.includes(row.name))||
     typeof input.transcript_path==='string'&&editedThisTurn(input.transcript_path);
   if(!changed)return null;
   const turns=readTurns(state);turns.sessions[id]={...turns.sessions[id],at:Date.now(),asked:true};writeTurns(state,turns);
@@ -721,7 +731,7 @@ export async function runClaudeHook(entry){
     for await(const chunk of process.stdin){text+=chunk;if(text.length>1024*1024)return;}
     const input=JSON.parse(text);
     if(input?.hook_event_name==='SessionStart'){sessionStart(input,{entry});return;}
-    if(input?.hook_event_name==='UserPromptSubmit'){turnStart(input);return;}
+    if(input?.hook_event_name==='UserPromptSubmit'){await turnStart(input,{entry});return;}
     if(input?.hook_event_name==='Stop'){
       const output=await turnEnd(input,{entry});
       if(output)await new Promise(resolve=>process.stdout.write(JSON.stringify(output)+'\n',resolve));
