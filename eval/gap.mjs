@@ -108,9 +108,9 @@ const missing = /command not found|No such file or directory|not found: |ERR_PNP
 // Sentences of the final message that say a check passes. Read by a person
 // before they count: the patterns find candidates, they do not decide.
 const subject = {
-  typecheck: /\b(type-?check(s|ing|er)?|tsc|mypy|ty check|pyright|types?)\b/i,
+  typecheck: /\b(type-?check(s|ing|er)?|tsc|mypy|ty( check)?|pyright|types?)\b/i,
   lint: /\b(lint(s|ing|er)?|eslint|ruff)\b/i,
-  test: /\b(tests?|test suite|specs?|pytest|vitest)\b/i,
+  test: /\b(tests?|suite|specs?|pytest|vitest)\b/i,
 };
 const passing = /\b(pass(es|ed|ing)?|green|clean|succeed(s|ed)?|no (type |lint )?(errors|issues|warnings|problems)|all good|✅|✓)/i;
 export function claimsOf(text) {
@@ -189,6 +189,7 @@ export function gapOf({transcript, treeLog, repo, same, finalTree}) {
       final_any: all.some(([k, c]) => k === kind && c.final),
       final_full: all.some(([k, c]) => k === kind && c.final && !c.scoped),
       unknown: all.some(([k, c]) => k === kind && c.final === null),
+      unknown_full: all.some(([k, c]) => k === kind && c.final === null && !c.scoped),
     }])),
     final_text: text,
     claims: claimsOf(text),
