@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawn,spawnSync,execFileSync} from 'node:child_process';
-import {claudeHook,shellQuote,hookForms,lastRunTimeout,matchCheck,recordedCommand,enteredDir,fanout,fanoutChecks,fanoutVerdict,sessionStart,statusTimeout,verdict} from '../src/claude-hook.mjs';
+import {claudeHook,shellQuote,hookForms,lastRunTimeout,matchCheck,recordedCommand,enteredDir,fanout,fanoutChecks,fanoutVerdict,sessionStart,statusLineText,statusTimeout,verdict} from '../src/claude-hook.mjs';
 import {findExecutable} from '../src/executable-lookup.mjs';
 import {realObservedPath} from '../src/path-identity.mjs';
 import {projectState} from '../src/project-location.mjs';
@@ -566,4 +566,42 @@ test('general checks: typecheck, test and lint scripts and their plain tool comm
     reuse_eligible:true,invocation:{runId},recipe}]});
   assert.match(verdict(status('node-script-v1'),'lint'),/\(run [0-9a-f-]+, general recipe\)/);
   assert.match(verdict(status(undefined),'lint'),new RegExp(`\\(run ${runId}\\)`));
+});
+
+test('the status line: verified, due, failing and observer states in one short line',()=>{
+  const status=rows=>({schema:1,observation:{healthy:true},checks:rows.map(([name,freshness,result])=>({name,freshness,result}))});
+  assert.equal(statusLineText(status([['typecheck','CURRENT','PASS'],['lint','CURRENT','PASS'],['test','CURRENT','PASS']])),'REDUE ✓ 3 verified');
+  assert.equal(statusLineText(status([['typecheck','STALE','PASS'],['lint','CURRENT','PASS'],['test','UNVERIFIED',null]])),
+    'REDUE ✓ 1 verified · 2 due: typecheck, test');
+  assert.equal(statusLineText(status([['typecheck','CURRENT','FAIL'],['lint','STALE','FAIL']])),'REDUE ✗ 1 failing: typecheck · 1 due: lint');
+  assert.equal(statusLineText({schema:1,observation:{healthy:false,phase:'indexing'},checks:[]}),'REDUE … checking files');
+  assert.equal(statusLineText({schema:1,observation:{healthy:false,phase:'ready'},checks:[]},{observerRunning:false}),'REDUE ? observer not running');
+  assert.equal(statusLineText(null),'REDUE ? status unavailable');
+});
+
+test('the status line command answers for the project set up in the session\'s directory, and prints nothing elsewhere',t=>{
+  const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-statusline-')),root=path.join(fs.realpathSync(base),'project');
+  fs.mkdirSync(root);execFileSync('git',['init','-q'],{cwd:root});
+  const categories=['source','generated','installedDependencies','environment','toolchain','runtime'];
+  put(path.join(root,'redue.config.json'),JSON.stringify({schema:1,checks:[{name:'typecheck',kind:'typecheck',
+    command:['@node','check.cjs'],inputs:['src/**','check.cjs'],
+    coverage:Object.fromEntries(categories.map(k=>[k,true])),
+    coverageReview:Object.fromEntries(categories.map(k=>[k,'reviewed fixture contract']))}]}));
+  put(path.join(root,'package.json'),'{"name":"redue-statusline","version":"1"}\n');
+  put(path.join(root,'check.cjs'),'\n');put(path.join(root,'src/a.ts'),'export const a=1;\n');
+  const env={...process.env,VSTATE_START_READY_WAIT_MS:'10000',CLAUDE_CONFIG_DIR:path.join(base,'claude')};
+  const redue=(...args)=>spawnSync(process.execPath,[bin,...args],{cwd:root,env,encoding:'utf8',timeout:30000});
+  const line=(dir=root)=>spawnSync(process.execPath,[bin,'agent','statusline','claude'],{cwd:dir,env,encoding:'utf8',timeout:30000,
+    input:JSON.stringify({session_id:'s',cwd:dir,workspace:{current_dir:dir,project_dir:dir}})}).stdout;
+  t.after(()=>{redue('stop');redue('remove-state');fs.rmSync(base,{recursive:true,force:true});});
+  assert.equal(line(),'');
+  assert.equal(redue('agent','setup','claude','--apply').status,0);
+  assert.equal(line(),'REDUE ? observer not running\n');
+  assert.equal(redue('start').status,0);
+  assert.equal(line(),'REDUE 1 due: typecheck\n');
+  assert.equal(redue('run','typecheck').status,0);
+  assert.equal(line(),'REDUE ✓ 1 verified\n');
+  put(path.join(root,'src/a.ts'),'export const a=2;\n');
+  assert.equal(line(),'REDUE 1 due: typecheck\n');
+  assert.equal(line(base),'');
 });

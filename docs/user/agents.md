@@ -87,6 +87,16 @@ paths no longer exist. When the hook runs a check through REDUE for the
 agent, it likewise writes plain `redue run` only if its own PATH finds this
 install, else the absolute form.
 
+Setup also adds Claude Code's status line, `redue agent statusline claude`,
+in the same file and the same form. It prints one line from a synchronized
+status (the observer's cached one when that takes over 3 s): `REDUE ✓ 3
+verified`, `REDUE ✓ 1 verified · 2 due: typecheck, test`, `REDUE ✗ 1 failing:
+lint`, `REDUE … checking files` while the observer indexes, or `REDUE ?
+observer not running`. Where Claude Code already has a status line (in the
+local or shared project settings, or your user settings), setup leaves it and
+prints the command, so you can add REDUE's line to yours. `redue agent remove
+claude --apply` and `redue remove` take out only REDUE's status line.
+
 Agents often chain an edit and a check (`printf … >> README.md && npm run
 lint`). In a simple chain (commands joined by `&&`, `||` or `;`, with no
 subshell, here-document, command substitution, background job or shell

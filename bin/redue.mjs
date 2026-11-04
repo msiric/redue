@@ -68,6 +68,12 @@ if(args.length===3&&args[0]==='agent'&&args[1]==='hook'&&args[2]==='claude'){
   const {runClaudeHook}=await import('../src/claude-hook.mjs');
   await runClaudeHook(fileURLToPath(import.meta.url));process.exit(0);
 }
+// Claude Code's status line, also before config discovery: it prints one
+// line, or nothing where REDUE is not set up.
+if(args.length===3&&args[0]==='agent'&&args[1]==='statusline'&&args[2]==='claude'){
+  const {runStatusLine}=await import('../src/claude-hook.mjs');
+  await runStatusLine(fileURLToPath(import.meta.url));await exit(0);
+}
 if(args.length===1&&args[0]==='--version'){console.log(version);process.exit(0);}
 // Internal: the entry this command runs, so setup and the hook can tell
 // whether the `redue` on PATH (a link, a package manager's shim, a wrapper)

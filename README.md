@@ -31,8 +31,10 @@ stops before writing anything if the dependencies are not installed. It:
   workflows, Makefile, justfile, tox, nox or scripts give them: mypy,
   pyright and ty (typecheck), ruff (lint) and pytest (test). It says which
   checks it left out and why, and which it can only record, not reuse;
-- connects Claude Code: a short section in `CLAUDE.md`, a skill, and two hooks
-  in `.claude/settings.local.json`;
+- connects Claude Code: a short section in `CLAUDE.md`, a skill, hooks in
+  `.claude/settings.local.json`, and a status line there that shows what is
+  verified on the code as it is now ("REDUE ✓ 3 verified", "REDUE 2 due:
+  typecheck, test"). A status line you already have stays;
 - starts REDUE's file observer, waits while it indexes the project (a minute
   or more in a large one), then runs each check that can qualify once, so
   there is a first result to reuse, and prints one line per run (the run's

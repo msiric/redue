@@ -16,7 +16,9 @@ function fixture(t){
   put(path.join(root,'redue.config.json'),JSON.stringify(config));
   put(path.join(root,'src/deep/file.ts'),'export const x=1;');
   t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
-  const run=(...args)=>spawnSync(process.execPath,[bin,...args],{cwd:root,encoding:'utf8',timeout:15000});
+  // Claude Code's user settings: none, unless a test writes them.
+  const run=(...args)=>spawnSync(process.execPath,[bin,...args],{cwd:root,encoding:'utf8',timeout:15000,
+    env:{...process.env,CLAUDE_CONFIG_DIR:path.join(base,'claude')}});
   const ok=(...args)=>{const r=run(...args);assert.equal(r.status,0,r.stderr+r.stdout);return r;};
   return {base,root,run,ok,read:p=>fs.readFileSync(path.join(root,p),'utf8'),put:(p,s)=>put(path.join(root,p),s)};
 }
@@ -202,19 +204,21 @@ test('claude setup adds one typecheck hook and a SessionStart hook to settings.l
       PostToolUse:[{matcher:'Bash',hooks:[{type:'command',command:'echo after'}]}]}};
   f.put(local,JSON.stringify(existing,null,4));const shared='{ "model": "x" }\n';f.put('.claude/settings.json',shared);
   const preview=JSON.parse(f.ok('agent','setup','claude','--dry-run','--json').stdout);
-  assert.equal(preview.hooks,`${local} PreToolUse, SessionStart`);
+  assert.equal(preview.hooks,`${local} PreToolUse, SessionStart, statusLine`);
   const shown=preview.changes.find(c=>c.path===local);
   assert.equal(shown.operation,'update');assert(!shown.content.includes('EXAMPLE'),'preview must not echo local settings');
   f.ok('agent','setup','claude','--apply');
   const installed=JSON.parse(f.read(local));
-  const {SessionStart,...hooks}=installed.hooks;
-  assert.deepEqual({...installed,hooks:{...hooks,PreToolUse:installed.hooks.PreToolUse.slice(0,1)}},existing);
+  const {SessionStart,...hooks}=installed.hooks,{statusLine,...rest}=installed;
+  assert.deepEqual({...rest,hooks:{...hooks,PreToolUse:installed.hooks.PreToolUse.slice(0,1)}},existing);
   // Plain redue when this install is on PATH; else this install by absolute path.
   const command=hookInvocation(bin).command;
   assert.deepEqual(installed.hooks.PreToolUse[1],{matcher:'Bash',hooks:[{type:'command',
     if:'Bash(redue run typecheck*)',command,timeout:15}]});
   // The same command starts the observer when a session starts.
   assert.deepEqual(SessionStart,[{hooks:[{type:'command',command,timeout:10}]}]);
+  // And the status line.
+  assert.deepEqual(statusLine,{type:'command',command:command.replace(/ agent hook claude$/,' agent statusline claude'),padding:0});
   // The skill gives the agent the same command the hook matches.
   assert.match(f.read('.claude/skills/redue-verification/SKILL.md'),/^- Typecheck: `redue run typecheck`\.$/m);
   assert.match(f.read('CLAUDE.md'),/^Typecheck with `redue run typecheck`\. /m);
@@ -226,6 +230,7 @@ test('claude setup adds one typecheck hook and a SessionStart hook to settings.l
   assert.equal(doctor.hosts[0].hook,command!=='redue agent hook claude'?'installed (absolute path)':
     doctor.command.path?'installed':'installed, but redue is not on PATH, so it never runs');
   assert.equal(doctor.hosts[0].session_start,doctor.hosts[0].hook);
+  assert.equal(doctor.hosts[0].status_line,'installed');
   f.ok('agent','setup','codex','--apply');f.ok('agent','remove','codex','--apply');assert.equal(f.read(local),once);
   f.ok('agent','remove','claude','--apply');
   assert.deepEqual(JSON.parse(f.read(local)),existing);assert.equal(f.read('.claude/settings.json'),shared);
@@ -343,4 +348,20 @@ test('claude setup for workspace checks: pnpm forms, a cd into the package, and 
   // The block with a scoped name is recognized again.
   const once=f.read('CLAUDE.md');f.ok('agent','setup','claude','--apply');assert.equal(f.read('CLAUDE.md'),once);
   f.ok('agent','remove','claude','--apply');
+});
+
+test('claude setup leaves a status line that is not REDUE\'s: in the project\'s settings, local or shared, or the user\'s',t=>{
+  const local='.claude/settings.local.json',mine={type:'command',command:'my-statusline.sh'};
+  for(const where of ['local','shared','user']){
+    const f=fixture(t);
+    if(where==='user')f.put('../claude/settings.json',JSON.stringify({statusLine:mine}));
+    else f.put(where==='local'?local:'.claude/settings.json',JSON.stringify({statusLine:mine}));
+    const r=f.ok('agent','setup','claude','--apply');
+    assert.match(r.stdout,/Claude Code already has a status line .*REDUE did not replace it/);
+    const settings=JSON.parse(f.read(local));
+    if(where==='local')assert.deepEqual(settings.statusLine,mine);else assert.equal(settings.statusLine,undefined);
+    assert.equal(JSON.parse(f.ok('agent','doctor','claude','--json').stdout).hosts[0].status_line,'another status line');
+    f.ok('agent','remove','claude','--apply');
+    if(where==='local')assert.deepEqual(JSON.parse(f.read(local)),{statusLine:mine});
+  }
 });

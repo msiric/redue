@@ -3,6 +3,7 @@
 // CURRENT, the command becomes `redue run <check>` so the run is recorded. Every
 // other outcome, including errors and timeouts, allows the command unchanged.
 // The same command handles SessionStart: it starts the project's observer.
+// `redue agent statusline claude` prints the status line (statusLine below).
 // Never exit 2: Claude Code treats exit 2 as a block.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -16,6 +17,7 @@ import {findExecutable} from './executable-lookup.mjs';
 import {note,skipNote,dueNote} from './stats.mjs';
 
 export const hookCommand='redue agent hook claude';
+export const statusLineCommand='redue agent statusline claude';
 // No shell metacharacters; `@` starts scoped package names.
 const safe=/^[A-Za-z0-9_./:=,+@-]+$/;
 const typecheck=check=>check?.kind==='typecheck'||check?.name==='typecheck';
@@ -597,6 +599,43 @@ export async function claudeHook(input,{entry,timeout,invoke=null,explain=null})
   return why(`${rewritten?'through redue run':'left as written'}: ${said(status,[name],wait)}`,rewritten?{hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'allow',
     permissionDecisionReason:`REDUE: check ${JSON.stringify(name)} is not CURRENT; running it through redue run so the result is recorded.`,
     updatedInput:{...input.tool_input,command:entered.prefix+rewritten}}}:null);
+}
+
+// Claude Code's status line: one short line from a synchronized status,
+// such as "REDUE ✓ 3 verified" or "REDUE ✓ 1 verified · 2 due: typecheck, test".
+export function statusLineText(status,{observerRunning=true}={}){
+  if(status?.schema!==1||!Array.isArray(status.checks))return 'REDUE ? status unavailable';
+  const observation=status.observation||{};
+  if(observation.healthy!==true)return !observerRunning?'REDUE ? observer not running':
+    ['discovery','indexing','reconciling','validating','initializing'].includes(observation.phase)?'REDUE … checking files':'REDUE ? unverified';
+  const names=rows=>rows.map(row=>row.name).join(', ');
+  const verified=status.checks.filter(row=>row.freshness==='CURRENT'&&row.result==='PASS'),
+    failing=status.checks.filter(row=>row.freshness==='CURRENT'&&row.result!=='PASS'),
+    due=status.checks.filter(row=>row.freshness!=='CURRENT');
+  const parts=[...verified.length?[`✓ ${verified.length} verified`]:[],...failing.length?[`✗ ${failing.length} failing: ${names(failing)}`]:[],
+    ...due.length?[`${due.length} due: ${names(due)}`]:[]];
+  return `REDUE ${parts.join(' · ')||'no checks'}`;
+}
+// The line for the project in the session's directory, or null when REDUE is
+// not set up there. A synchronized status, else the observer's cached one.
+export async function statusLine(input,{entry,timeout=3000}){
+  let project=null;
+  try{project=hookProject(input?.workspace?.project_dir??input?.cwd);}catch{}
+  if(!project)return null;
+  const {config,projectRoot}=project;
+  const status=await synchronizedStatus(entry,config,projectRoot,timeout)??await synchronizedStatus(entry,config,projectRoot,1000,false);
+  let observerRunning=false;
+  try{const pid=Number(fs.readFileSync(path.join(projectState(projectRoot,config),'observer.lock','pid'),'utf8'));
+    observerRunning=Number.isSafeInteger(pid)&&pid>0&&processAlive(pid);}catch{}
+  return statusLineText(status,{observerRunning});
+}
+export async function runStatusLine(entry){
+  try{
+    let text='';process.stdin.setEncoding('utf8');
+    for await(const chunk of process.stdin){text+=chunk;if(text.length>1024*1024)return;}
+    const line=await statusLine(JSON.parse(text),{entry});
+    if(line)await new Promise(resolve=>process.stdout.write(line+'\n',resolve));
+  }catch{}
 }
 
 export async function runClaudeHook(entry){
