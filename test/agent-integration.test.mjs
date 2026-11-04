@@ -204,12 +204,12 @@ test('claude setup adds one typecheck hook and a SessionStart hook to settings.l
       PostToolUse:[{matcher:'Bash',hooks:[{type:'command',command:'echo after'}]}]}};
   f.put(local,JSON.stringify(existing,null,4));const shared='{ "model": "x" }\n';f.put('.claude/settings.json',shared);
   const preview=JSON.parse(f.ok('agent','setup','claude','--dry-run','--json').stdout);
-  assert.equal(preview.hooks,`${local} PreToolUse, SessionStart, statusLine`);
+  assert.equal(preview.hooks,`${local} PreToolUse, SessionStart, UserPromptSubmit, Stop, statusLine`);
   const shown=preview.changes.find(c=>c.path===local);
   assert.equal(shown.operation,'update');assert(!shown.content.includes('EXAMPLE'),'preview must not echo local settings');
   f.ok('agent','setup','claude','--apply');
   const installed=JSON.parse(f.read(local));
-  const {SessionStart,...hooks}=installed.hooks,{statusLine,...rest}=installed;
+  const {SessionStart,UserPromptSubmit,Stop,...hooks}=installed.hooks,{statusLine,...rest}=installed;
   assert.deepEqual({...rest,hooks:{...hooks,PreToolUse:installed.hooks.PreToolUse.slice(0,1)}},existing);
   // Plain redue when this install is on PATH; else this install by absolute path.
   const command=hookInvocation(bin).command;
@@ -217,6 +217,9 @@ test('claude setup adds one typecheck hook and a SessionStart hook to settings.l
     if:'Bash(redue run typecheck*)',command,timeout:15}]});
   // The same command starts the observer when a session starts.
   assert.deepEqual(SessionStart,[{hooks:[{type:'command',command,timeout:10}]}]);
+  // The end-of-turn check.
+  assert.deepEqual(UserPromptSubmit,[{hooks:[{type:'command',command,timeout:10}]}]);
+  assert.deepEqual(Stop,[{hooks:[{type:'command',command,timeout:20}]}]);
   // And the status line.
   assert.deepEqual(statusLine,{type:'command',command:command.replace(/ agent hook claude$/,' agent statusline claude'),padding:0});
   // The skill gives the agent the same command the hook matches.

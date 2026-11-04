@@ -3,6 +3,7 @@
 // CURRENT, the command becomes `redue run <check>` so the run is recorded. Every
 // other outcome, including errors and timeouts, allows the command unchanged.
 // The same command handles SessionStart: it starts the project's observer.
+// UserPromptSubmit and Stop make the end-of-turn check (turnStart, turnEnd).
 // `redue agent statusline claude` prints the status line (statusLine below).
 // Never exit 2: Claude Code treats exit 2 as a block.
 import fs from 'node:fs';
@@ -601,6 +602,82 @@ export async function claudeHook(input,{entry,timeout,invoke=null,explain=null})
     updatedInput:{...input.tool_input,command:entered.prefix+rewritten}}}:null);
 }
 
+// The end-of-turn check. UserPromptSubmit notes the observer's event count
+// and generation for the session (turnStart); Stop (turnEnd) asks status, and
+// when a check is due and files changed this turn (the count moved, or the
+// turn's transcript has an Edit, Write, MultiEdit or NotebookEdit call), it
+// asks the agent once to run `redue verify` before it finishes. Claude Code
+// marks the Stop that follows with stop_hook_active, which never asks again;
+// the note that it asked does the same. `"endOfTurnCheck": false` in the
+// config turns it off.
+const turnsFile=state=>path.join(state,'turns-v1.json');
+function readTurns(state){
+  try{const value=JSON.parse(fs.readFileSync(turnsFile(state),'utf8'));
+    if(value?.schema===1&&value.sessions&&typeof value.sessions==='object'&&!Array.isArray(value.sessions))return value;}catch{}
+  return {schema:1,sessions:{}};
+}
+// The 20 sessions noted last.
+function writeTurns(state,value){
+  const sessions=Object.fromEntries(Object.entries(value.sessions).sort(([,a],[,b])=>(b?.at??0)-(a?.at??0)).slice(0,20));
+  const temp=`${turnsFile(state)}.${process.pid}.tmp`;
+  try{fs.writeFileSync(temp,JSON.stringify({schema:1,sessions}),{mode:0o600});fs.renameSync(temp,turnsFile(state));}
+  catch{try{fs.rmSync(temp,{force:true});}catch{}}
+}
+const sessionId=input=>typeof input?.session_id==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(input.session_id)?input.session_id:null;
+export function turnStart(input){
+  let project=null;try{project=hookProject(input?.cwd);}catch{}
+  const id=sessionId(input);
+  if(!project||!id)return null;
+  let state;try{state=projectState(project.projectRoot,project.config);}catch{return null;}
+  let observation=null;try{observation=JSON.parse(fs.readFileSync(path.join(state,'status.json'),'utf8')).observation;}catch{}
+  const turns=readTurns(state);
+  turns.sessions[id]={at:Date.now(),generation:typeof observation?.generation==='string'?observation.generation:null,
+    events:Number.isSafeInteger(observation?.events)?observation.events:null};
+  writeTurns(state,turns);
+  return 'noted';
+}
+const editTools=['Edit','Write','MultiEdit','NotebookEdit'];
+// Whether the transcript's last turn, after the user's last prompt, has a
+// call that edits a file. Its last 4 MB are read.
+export function editedThisTurn(transcript){
+  let text='';
+  try{const fd=fs.openSync(transcript,'r');
+    try{const size=fs.fstatSync(fd).size,length=Math.min(size,4*1024*1024),buffer=Buffer.alloc(length);
+      fs.readSync(fd,buffer,0,length,size-length);text=buffer.toString('utf8');}finally{fs.closeSync(fd);}}
+  catch{return false;}
+  const lines=text.split('\n');
+  for(let i=lines.length-1;i>=0;i--){
+    let entry;try{entry=JSON.parse(lines[i]);}catch{continue;}
+    const content=entry?.message?.content;
+    if(entry?.type==='assistant'&&Array.isArray(content)&&content.some(part=>part?.type==='tool_use'&&editTools.includes(part.name)))return true;
+    // The user's prompt: text, not a tool's result.
+    if(entry?.type==='user'&&!entry.isMeta&&(typeof content==='string'||Array.isArray(content)&&content.length&&content.every(part=>part?.type==='text')))return false;
+  }
+  return false;
+}
+export async function turnEnd(input,{entry,timeout=10000,invoke=null}){
+  if(input?.stop_hook_active===true)return null;
+  let project=null;try{project=hookProject(input?.cwd);}catch{}
+  const id=sessionId(input);
+  if(!project||!id||project.parsed.endOfTurnCheck===false)return null;
+  let state;try{state=projectState(project.projectRoot,project.config);}catch{return null;}
+  const turn=readTurns(state).sessions[id];
+  if(turn?.asked)return null;
+  const status=await synchronizedStatus(entry,project.config,project.projectRoot,timeout);
+  if(status?.observation?.healthy!==true||!Array.isArray(status.checks))return null;
+  const due=status.checks.filter(row=>row?.freshness==='STALE'||row?.freshness==='UNVERIFIED');
+  if(!due.length)return null;
+  const counted=Number.isSafeInteger(turn?.events)&&Number.isSafeInteger(status.observation.events);
+  const changed=counted&&(status.observation.events!==turn.events||status.observation.generation!==turn.generation)||
+    typeof input.transcript_path==='string'&&editedThisTurn(input.transcript_path);
+  if(!changed)return null;
+  const turns=readTurns(state);turns.sessions[id]={...turns.sessions[id],at:Date.now(),asked:true};writeTurns(state,turns);
+  const redue=(invoke??redueInvocation(entry))+(project.record.config===defaultConfig?'':` --config ${shellQuote(project.record.config)}`);
+  return {decision:'block',reason:`REDUE: files changed this turn, and ${due.length===1?'a check is':`${due.length} checks are`} due: `+
+    `${due.map(row=>`${row.name} (${row.freshness})`).join(', ')}. Before you finish, run \`${redue} verify\` and report what it says. `+
+    'REDUE asks this once per turn.'};
+}
+
 // Claude Code's status line: one short line from a synchronized status,
 // such as "REDUE ✓ 3 verified" or "REDUE ✓ 1 verified · 2 due: typecheck, test".
 export function statusLineText(status,{observerRunning=true}={}){
@@ -644,6 +721,12 @@ export async function runClaudeHook(entry){
     for await(const chunk of process.stdin){text+=chunk;if(text.length>1024*1024)return;}
     const input=JSON.parse(text);
     if(input?.hook_event_name==='SessionStart'){sessionStart(input,{entry});return;}
+    if(input?.hook_event_name==='UserPromptSubmit'){turnStart(input);return;}
+    if(input?.hook_event_name==='Stop'){
+      const output=await turnEnd(input,{entry});
+      if(output)await new Promise(resolve=>process.stdout.write(JSON.stringify(output)+'\n',resolve));
+      return;
+    }
     // REDUE_HOOK_LOG (an absolute file): one JSON line per decision, with why.
     const log=process.env.REDUE_HOOK_LOG,started=Date.now();let why=null;
     const output=await claudeHook(input,{entry,explain:text=>{why=text;}});

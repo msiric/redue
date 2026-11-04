@@ -44,7 +44,10 @@ stops before writing anything if the dependencies are not installed. It:
 Then start a new Claude Code session in the project and work as usual. When
 the agent is about to rerun a check whose last pass still applies, the hook
 skips it and tells the agent why. After an edit, the hook runs the check
-through REDUE so the new result is recorded.
+through REDUE so the new result is recorded. When the agent is about to finish a
+turn in which files changed while a check is due, the hook asks it once to
+run `redue verify` first (`"endOfTurnCheck": false` in the config turns
+this off).
 
 To look yourself:
 

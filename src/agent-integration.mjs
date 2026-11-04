@@ -33,7 +33,11 @@ function hookFor(config,relative,scripts,command=hookCommand){
 }
 // The same command on SessionStart starts the observer; it needs no check to match.
 const sessionHookFor=(command=hookCommand)=>({hooks:[{type:'command',command,timeout:10}]});
-const events=['PreToolUse','SessionStart'];
+// And makes the end-of-turn check: UserPromptSubmit notes where the turn
+// starts, Stop asks status (up to 10 s).
+const turnHooksFor=(command=hookCommand)=>({UserPromptSubmit:{hooks:[{type:'command',command,timeout:10}]},
+  Stop:{hooks:[{type:'command',command,timeout:20}]}});
+const events=['PreToolUse','SessionStart','UserPromptSubmit','Stop'];
 // The absolute form: Node and REDUE's entry (redue.mjs), each quoted as quote()
 // writes it. [node, entry] or null. `use`: hook, or statusline.
 function absoluteHook(command,use='hook'){
@@ -396,9 +400,10 @@ export async function agentCommand(args,{configFile,stateOverride,entry,cwd=proc
       block,skillHash:hash(skill),instructionCreated:record?.instructionCreated??before===null};
     changes.push({path:h.skill,before:read(root,h.skill),after:skill},
       {path:h.instruction,before,after});
-    if(host==='claude'){const settings=read(root,settingsPath),next={PreToolUse:hook,SessionStart:sessionHook,statusLine};
+    if(host==='claude'){const settings=read(root,settingsPath),turn=turnHooksFor(invocation.command),
+        next={PreToolUse:hook,SessionStart:sessionHook,...turn,statusLine};
       changes.push({path:settingsPath,before:settings,after:settingsWith(settings,next),
-        content:JSON.stringify({...hook?{PreToolUse:hook}:{},SessionStart:sessionHook,...statusLine?{statusLine}:{}},null,2)+
+        content:JSON.stringify({...hook?{PreToolUse:hook}:{},SessionStart:sessionHook,...turn,...statusLine?{statusLine}:{}},null,2)+
           (hook?'':'\nno PreToolUse hook: no typecheck or test check to match')});}
     changes.push({path:marker(host),before:read(root,marker(host)),after:JSON.stringify(next,null,2)+'\n'});
   }else if(record)changes.push(...removalChanges(root,host,record));
@@ -406,7 +411,7 @@ export async function agentCommand(args,{configFile,stateOverride,entry,cwd=proc
   const summary={schema:1,action,host,config:configFile,applied:false,
     changes:actual.map(c=>({path:c.path,operation:c.after===null?'remove':c.before===null?'create':'update',
       ...(action==='setup'?{content:c.path===h.instruction?block:c.content??c.after}: {})})),
-    warnings:notes,hooks:host!=='claude'||action!=='setup'?'none':`${settingsPath} ${hook?'PreToolUse, ':''}SessionStart${statusLine?', statusLine':''}`,behavior_verified:false};
+    warnings:notes,hooks:host!=='claude'||action!=='setup'?'none':`${settingsPath} ${hook?'PreToolUse, ':''}SessionStart, UserPromptSubmit, Stop${statusLine?', statusLine':''}`,behavior_verified:false};
   if(!json){console.log(`${action} ${host}: ${configFile}`);
     for(const c of summary.changes)console.log(`  ${c.operation} ${c.path}${c.content?'\n'+c.content:''}`);
     if(!actual.length)console.log('Already in the requested state.');

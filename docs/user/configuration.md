@@ -33,6 +33,14 @@ For the explicit direct compiler choice and generated exact argv, see
 A general check (`"qualification": "node-script-v1"`) has a `script` and no
 `command`; see the [general recipe](node-script.md).
 
+## End-of-turn check
+
+With Claude Code, REDUE's hook checks at the end of each agent turn: when the
+turn changed files and a check is due, it asks the agent once to run
+`redue verify` before it finishes ([agents](agents.md)). To turn this off,
+add `"endOfTurnCheck": false` at the top level of the config. Only the hook
+reads it; the observer does not need a restart.
+
 ## Arbitrary commands
 
 An unrecognized ecosystem can still record ordinary execution:

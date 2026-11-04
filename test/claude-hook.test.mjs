@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawn,spawnSync,execFileSync} from 'node:child_process';
-import {claudeHook,shellQuote,hookForms,lastRunTimeout,matchCheck,recordedCommand,enteredDir,fanout,fanoutChecks,fanoutVerdict,sessionStart,statusLineText,statusTimeout,verdict} from '../src/claude-hook.mjs';
+import {claudeHook,shellQuote,hookForms,lastRunTimeout,matchCheck,recordedCommand,enteredDir,fanout,fanoutChecks,editedThisTurn,fanoutVerdict,sessionStart,statusLineText,statusTimeout,verdict} from '../src/claude-hook.mjs';
 import {findExecutable} from '../src/executable-lookup.mjs';
 import {realObservedPath} from '../src/path-identity.mjs';
 import {projectState} from '../src/project-location.mjs';
@@ -604,4 +604,63 @@ test('the status line command answers for the project set up in the session\'s d
   put(path.join(root,'src/a.ts'),'export const a=2;\n');
   assert.equal(line(),'REDUE 1 due: typecheck\n');
   assert.equal(line(base),'');
+});
+
+test('a turn edited a file when the transcript has an edit call after the user\'s last prompt',t=>{
+  const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-transcript-'));t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
+  const file=path.join(base,'t.jsonl'),write=entries=>fs.writeFileSync(file,entries.map(e=>JSON.stringify(e)).join('\n')+'\n');
+  const prompt=text=>({type:'user',message:{role:'user',content:text}}),use=name=>({type:'assistant',message:{role:'assistant',content:[{type:'tool_use',id:'x',name,input:{}}]}});
+  const result={type:'user',message:{role:'user',content:[{type:'tool_result',tool_use_id:'x',content:'ok'}]}};
+  write([prompt('fix it'),use('Read'),result,use('Edit'),result]);assert.equal(editedThisTurn(file),true);
+  write([prompt('fix it'),use('Write'),result,prompt([{type:'text',text:'and now?'}]),use('Bash'),result]);assert.equal(editedThisTurn(file),false);
+  write([prompt('fix it'),use('NotebookEdit'),result,{type:'user',isMeta:true,message:{role:'user',content:'note'}}]);assert.equal(editedThisTurn(file),true);
+  assert.equal(editedThisTurn(path.join(base,'missing.jsonl')),false);
+});
+
+test('the end-of-turn check asks once to run redue verify when files changed this turn and a check is due',t=>{
+  const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-turn-')),root=path.join(fs.realpathSync(base),'project');
+  fs.mkdirSync(root);execFileSync('git',['init','-q'],{cwd:root});
+  const categories=['source','generated','installedDependencies','environment','toolchain','runtime'];
+  const config={schema:1,checks:[{name:'typecheck',kind:'typecheck',command:['@node','check.cjs'],inputs:['src/**','check.cjs'],
+    coverage:Object.fromEntries(categories.map(k=>[k,true])),coverageReview:Object.fromEntries(categories.map(k=>[k,'reviewed fixture contract']))}]};
+  put(path.join(root,'redue.config.json'),JSON.stringify(config));
+  put(path.join(root,'package.json'),'{"name":"redue-turn","version":"1"}\n');
+  put(path.join(root,'check.cjs'),'\n');put(path.join(root,'src/a.ts'),'export const a=1;\n');
+  const env={...process.env,VSTATE_START_READY_WAIT_MS:'10000',CLAUDE_CONFIG_DIR:path.join(base,'claude')};
+  const redue=(...args)=>spawnSync(process.execPath,[bin,...args],{cwd:root,env,encoding:'utf8',timeout:30000});
+  t.after(()=>{redue('stop');redue('remove-state');fs.rmSync(base,{recursive:true,force:true});});
+  assert.equal(redue('agent','setup','claude','--apply').status,0);
+  const settings=JSON.parse(fs.readFileSync(path.join(root,'.claude/settings.local.json'),'utf8'));
+  assert.deepEqual(Object.keys(settings.hooks).sort(),['PreToolUse','SessionStart','Stop','UserPromptSubmit']);
+  assert.equal(redue('start').status,0);assert.equal(redue('run','typecheck').status,0);
+  const transcript=path.join(base,'t.jsonl');fs.writeFileSync(transcript,'');
+  const event=(name,more={})=>hook({hook_event_name:name,session_id:'s1',cwd:root,transcript_path:transcript,...more},root,env);
+  const settle=()=>Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,1500);
+  // A turn with no change ends quietly.
+  assert.equal(event('UserPromptSubmit',{prompt:'hi'}),null);
+  assert.equal(event('Stop',{stop_hook_active:false}),null);
+  // A turn that changes a file asks once.
+  settle();assert.equal(event('UserPromptSubmit',{prompt:'edit'}),null);
+  put(path.join(root,'src/a.ts'),'export const a=2;\n');
+  const asked=event('Stop',{stop_hook_active:false});
+  assert.equal(asked.decision,'block');
+  assert.match(asked.reason,/^REDUE: files changed this turn, and a check is due: typecheck \(STALE\)\. Before you finish, run `.*verify` and report/);
+  // Never twice in a turn, and never on the Stop that follows the reminder.
+  assert.equal(event('Stop',{stop_hook_active:true}),null);
+  assert.equal(event('Stop',{stop_hook_active:false}),null);
+  // The next turn changes nothing: the check is still due, but nothing asks.
+  settle();assert.equal(event('UserPromptSubmit',{prompt:'question'}),null);
+  assert.equal(event('Stop',{stop_hook_active:false}),null);
+  // Without a note of the turn's start, an edit call in the transcript counts.
+  fs.writeFileSync(transcript,[{type:'user',message:{role:'user',content:'edit'}},{type:'assistant',message:{role:'assistant',content:[{type:'tool_use',id:'e',name:'Edit',input:{}}]}}]
+    .map(e=>JSON.stringify(e)).join('\n')+'\n');
+  assert.equal(event('Stop',{session_id:'s2',stop_hook_active:false}).decision,'block');
+  // Turned off in the config.
+  assert.equal(redue('stop').status,0);
+  fs.writeFileSync(path.join(root,'redue.config.json'),JSON.stringify({...config,endOfTurnCheck:false}));
+  assert.equal(redue('start').status,0);
+  assert.equal(event('Stop',{session_id:'s3',stop_hook_active:false}),null);
+  // Checked by the CLI: a boolean only.
+  fs.writeFileSync(path.join(root,'redue.config.json'),JSON.stringify({...config,endOfTurnCheck:'no'}));
+  assert.match(redue('status').stderr,/endOfTurnCheck must be true or false/);
 });

@@ -327,7 +327,9 @@ if(publicConfig.schema!==1)error('config schema must be 1');
 if(!Array.isArray(publicConfig.checks)||!publicConfig.checks.length)
   error('config needs at least one explicitly defined check');
 for(const key of Object.keys(publicConfig))
-  if(!['schema','root','checks','packageManager'].includes(key))error(`unsupported config field ${key}`);
+  if(!['schema','root','checks','packageManager','endOfTurnCheck'].includes(key))error(`unsupported config field ${key}`);
+// The Claude Code hook's end-of-turn check; only the hook reads it.
+if(publicConfig.endOfTurnCheck!==undefined&&typeof publicConfig.endOfTurnCheck!=='boolean')error('endOfTurnCheck must be true or false');
 if(check&&!publicConfig.checks.some(row=>row.name===check))error(`unknown check ${check}; use redue status to list configured checks`);
 const root=realObservedPath(path.resolve(path.dirname(configFile),publicConfig.root||'.'));
 const state=stateOverride||projectState(root,configFile);
