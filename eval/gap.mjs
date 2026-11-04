@@ -73,6 +73,13 @@ export function writes(segment, repo) {
 const narrowing = /^(-k|-t|--testNamePattern|--testPathPattern|--grep|--filter|--lf|--last-failed)(=|$)/;
 const pathArg = token => /::/.test(token) || /\.(py|pyi|ts|tsx|mts|cts|js|jsx|mjs|cjs)$/.test(token) || /^[\w.@-]*\/[\w./@*-]*$/.test(token);
 
+// Vitest and Jest take any bare argument as a test file filter (pytest's
+// bare arguments are directories, such as the whole `tests`).
+const jsTest = /(^|[\s/])(vitest|jest)(\s|$)|^(npm|pnpm|yarn)\s+(run\s+)?test/;
+const valueFlag = /^(--reporter|--config|-c|--project|--pool|--environment|--root|--dir|--outputFile|--maxWorkers|--shard|--testTimeout)$/;
+const filtersFiles = (tokens, repo) => tokens.some((t, i) => !t.startsWith('-') && !valueFlag.test(tokens[i - 1] ?? '') &&
+  !['run', 'exec', 'npx', 'vitest', 'jest', repo.testScript].includes(t) && !/^test(:[\w:-]+)?$|^\d?>|^&/.test(t));
+
 // The checks one simple command runs, as {kind: scoped}. `scoped` is true when
 // it names files, directories with a slash, or a test filter that the repo's
 // own command for that check does not.
@@ -88,7 +95,8 @@ export function checksOf(segment, repo) {
   for (const kind of Object.keys(found)) {
     const own = new Set(String(kind === 'typecheck' ? repo.typecheck ?? '' : repo[kind] ?? '').split(/\s+/));
     const tokens = segment.split(/\s+/).slice(1).map(t => t.replace(/^['"]|['"]$/g, '')).filter(t => !own.has(t) && !/^\d?>/.test(t));
-    result[kind] = tokens.some(t => narrowing.test(t) || pathArg(t) && !t.startsWith('-'));
+    result[kind] = tokens.some(t => narrowing.test(t) || pathArg(t) && !t.startsWith('-')) ||
+      kind === 'test' && jsTest.test(segment) && filtersFiles(tokens, repo);
   }
   return result;
 }
