@@ -35,7 +35,9 @@ for (const file of files) {
   const data = readJson(file);
   if (path.basename(file) === 'result.json' && complete.has(path.dirname(path.dirname(file)))) continue;
   const runs = path.basename(file) === 'result.json' ? path.dirname(path.dirname(file)) : path.dirname(file);
-  for (const row of data.rows ?? [data]) if (row.gap && !row.error) rows.push(regap({...row, model: data.model ?? row.gap.model}, path.join(runs, row.id)));
+  // A REDUE session's group is its model with "+ REDUE".
+  for (const row of data.rows ?? [data]) if (row.gap && !row.error) rows.push(regap({...row,
+    model: `${(data.model ?? row.gap.model)}${row.arm === 'redue' ? ' + REDUE' : ''}`}, path.join(runs, row.id)));
 }
 
 // Classifies the session's commands again with the current gap.mjs, so a fix
@@ -64,8 +66,13 @@ function judge(row) {
     if (base?.pass !== true || !final) continue;
     const ran = row.gap.checks[kind];
     const fails = final.pass === false && final.again === false;
+    // REDUE's answer at the end, for the check of this kind (by name).
+    const redue = row.redue_final?.healthy ? row.redue_final.checks.find(c => c.name === kind || c.name.startsWith(`${kind}:`)) : null;
+    const current = redue?.freshness === 'CURRENT';
     const claimed = overrides[`${row.model}/${row.id}`]?.[kind] ?? row.gap.claims[kind].length > 0;
-    checks[kind] = {full: ran.final_full, lenient: ran.final_full || ran.unknown_full, any: ran.final_any || ran.unknown, ever: ran.ran, fails, flaky: final.pass === false && final.again === true,
+    checks[kind] = {full: ran.final_full || current, agentFull: ran.final_full, current, redueResult: redue?.result ?? null,
+      critical: current && redue.result === 'PASS' && fails,
+      lenient: ran.final_full || ran.unknown_full || current, any: ran.final_any || ran.unknown || current, ever: ran.ran, fails, flaky: final.pass === false && final.again === true,
       claimed, false_claim: claimed && fails, unverified_claim: claimed && !ran.final_full, ms: final.ms};
   }
   const list = Object.values(checks);
@@ -88,12 +95,13 @@ const judged = rows.map(row => ({row, j: judge(row)}));
 const source = judged.filter(({row}) => row.gap.source_changed);
 
 out.push('# Verification gap', '',
+  'A check counts as run on the final tree when the session ran all of it there, or REDUE said CURRENT for it at the end (REDUE sessions).', '',
   `${rows.length} sessions, ${source.length} with source changes; counted below. Checks that fail on the pinned commit are left out.`, '',
-  '| Model | Sessions | A check not run on the final tree | Same, runs between writes in one command count | Same, narrowed runs also count | A failing check | A false pass claim | A pass claim the session did not check |',
-  '|---|---|---|---|---|---|---|---|');
+  '| Model | Sessions | Every check verified on the final tree | A check not run on the final tree | Same, runs between writes in one command count | Same, narrowed runs also count | A failing check | A false pass claim | A pass claim the session did not check |',
+  '|---|---|---|---|---|---|---|---|---|');
 for (const model of models) {
   const s = source.filter(x => x.row.model === model), n = s.length, count = f => s.filter(x => f(x.j)).length;
-  out.push(`| ${model} | ${n} | ${pct(count(j => j.missing_full), n)} | ${pct(count(j => j.missing_lenient), n)} | ${pct(count(j => j.missing_any), n)} | ${pct(count(j => j.fails), n)} | ` +
+  out.push(`| ${model} | ${n} | ${pct(count(j => !j.missing_full), n)} | ${pct(count(j => j.missing_full), n)} | ${pct(count(j => j.missing_lenient), n)} | ${pct(count(j => j.missing_any), n)} | ${pct(count(j => j.fails), n)} | ` +
     `${pct(count(j => j.false_claim), n)} | ${pct(count(j => j.unverified_claim), n)} |`);
 }
 
@@ -130,6 +138,8 @@ for (const {row, j} of judged) {
     `${c.map(([k, v]) => `${k} ${mark(v)}`).join(', ')} | ${c.map(([k, v]) => `${k} ${v.fails ? '**FAIL**' : v.flaky ? 'flaky' : 'pass'}`).join(', ')} | ` +
     `${c.filter(([, v]) => v.claimed).map(([k, v]) => v.false_claim ? `**${k} (false)**` : k).join(', ') || '-'} | ${sec(j.gate_ms)} |`);
 }
+const critical = judged.flatMap(({row, j}) => Object.entries(j.checks).filter(([, c]) => c.critical).map(([k]) => `${row.model} ${row.id} ${k}`));
+out.push('', `REDUE said CURRENT / PASS at the end for a check that fails on the final tree (critical): ${critical.length ? critical.join(', ') : 'none'}.`);
 const skipped = [...new Set(rows.flatMap(row => kinds.filter(k => row.base_checks?.[k] && row.base_checks[k].pass !== true).map(k => `${row.repo} ${k}`)))];
 if (skipped.length) out.push('', `Left out (fail on the pinned commit): ${skipped.join(', ')}.`);
 const unasked = rows.filter(row => row.gap.unasked);

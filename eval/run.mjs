@@ -144,6 +144,22 @@ function baseChecks(repo) {
   return result;
 }
 
+// The checks of the `redue status --sync --json` answer in a session's
+// transcript, or null.
+function finalRedueStatus(transcript) {
+  for (const line of transcript.split('\n')) {
+    let message; try { message = JSON.parse(line); } catch { continue; }
+    for (const part of Array.isArray(message.message?.content) ? message.message.content : []) {
+      if (part.type !== 'tool_result') continue;
+      const text = typeof part.content === 'string' ? part.content : (part.content || []).map(item => item.text ?? '').join('\n');
+      const json = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
+      try { const value = JSON.parse(json); if (Array.isArray(value.checks)) return {healthy: value.observation?.healthy === true,
+        checks: value.checks.map(c => ({name: c.name, freshness: c.freshness, result: c.result, reason: c.reason}))}; } catch {}
+    }
+  }
+  return null;
+}
+
 async function runSession(task, repo, arm, id) {
   const runDir = path.join(out, id), work = path.join(tmpRoot, 'runs', id), dir = path.join(work, 'repo');
   fs.mkdirSync(runDir, {recursive: true});
@@ -164,6 +180,18 @@ async function runSession(task, repo, arm, id) {
       const r = must(sh(path.join(bin, 'redue'), argv, {cwd: dir, env}), `redue ${argv.join(' ')}`);
       row.setup[label] = r.ms;
     };
+    if (opt.gap) {
+      // --gap: set up as a user would (every check init finds, the hooks, the
+      // status line and the end-of-turn check), then `redue verify` in the
+      // agent's own shell, so each check's receipt holds the environment the
+      // agent's commands run in.
+      step('setup_ms', 'setup', 'claude', '--yes');
+      const seed = await claudeSession(sessionArgs('Run exactly this command from the project root, once, as a command of its own with nothing added before or after it, then report its exit status: redue verify', 5),
+        {cwd: dir, env: {...env, ...sessionAuth()}, timeout: 30 * 60_000});
+      fs.writeFileSync(path.join(runDir, 'seed-transcript.jsonl'), seed.stdout);
+      if (seed.rateLimited) throw new RateLimited(seed.rateLimited);
+      row.setup.seed_run_ms = seed.ms;
+    } else {
     // A Python repo's checks come from the sandboxed recipe.
     step('init_ms', 'init', '--recipe', repo.install ? 'sandbox' : {test: 'tests-direct', lint: 'node-script'}[check] ?? 'typescript-direct', '--check', check);
     step('agent_setup_ms', 'agent', 'setup', 'claude', '--apply');
@@ -193,6 +221,7 @@ async function runSession(task, repo, arm, id) {
       row.setup.seed_status = checkStatus(entry, dir, check, env);
       row.setup.seed_receipt = receiptOf(dir, check);
     }
+    }
     // What the agent always has in context (the managed block) and reads on demand (the skill).
     const record = readJson(path.join(dir, '.redue', 'agents', 'claude.json'));
     row.setup.instruction_bytes = {block: Buffer.byteLength(record.block), skill: fs.statSync(path.join(dir, record.skill)).size};
@@ -211,6 +240,15 @@ async function runSession(task, repo, arm, id) {
   fs.writeFileSync(path.join(runDir, 'transcript.jsonl'), session.stdout);
   if (session.stderr) fs.writeFileSync(path.join(runDir, 'stderr.txt'), session.stderr);
 
+  // --gap: REDUE's answer for every check at the end, asked from the agent's
+  // shell (a sandboxed check compares the environment it runs in).
+  if (opt.gap && arm === 'redue') {
+    const asked = await claudeSession(sessionArgs('Run exactly this command from the project root, once, as a command of its own with nothing added before or after it, then reply with one word, done: redue status --sync --json', 5),
+      {cwd: dir, env: {...env, ...sessionAuth()}, timeout: 15 * 60_000});
+    fs.writeFileSync(path.join(runDir, 'final-status-transcript.jsonl'), asked.stdout);
+    if (asked.rateLimited) throw new RateLimited(asked.rateLimited);
+    row.redue_final = finalRedueStatus(asked.stdout);
+  }
   // Independent checks on the final state.
   if (arm === 'redue') {
     row.final_status = checkStatus(entry, dir, check, env);
