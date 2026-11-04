@@ -44,6 +44,12 @@ async function settled(f){let value;for(let i=0;i<30;i++){
   value=row(f);if(!/pending|rebuilding|unavailable.*restart/.test(value.reason))return value;
   await new Promise(r=>setTimeout(r,80));}return value;}
 const semantic=r=>({freshness:r.freshness,result:r.result,reuse:r.reuse_eligible,recipe:r.verification_recipe});
+// Until `ready()` holds or `child` exits (a slow runner may take a while to
+// reach a test boundary; a child that exits first never will), at most 2 min.
+async function reached(ready,child){
+  const deadline=Date.now()+120000;
+  while(!ready()&&child.exitCode===null&&child.signalCode===null&&Date.now()<deadline)await new Promise(r=>setTimeout(r,10));
+  return ready();}
 function control(f,action){return new Promise((resolve,reject)=>{
   const c=net.createConnection(controlEndpoint(f.state).address);let data='';
   c.on('connect',()=>c.write(JSON.stringify(typeof action==='string'?{action}:action)+'\n'));c.on('data',b=>data+=b);
@@ -241,8 +247,7 @@ test('wrapped start, launch and post-exit edits or observer loss cannot record e
    const child=spawn(process.execPath,[cli,'--state-dir',f.state,'run','typecheck'],{cwd:root,env:{...f.env,VSTATE_TEST_RUN_BOUNDARY:phase}});
    let output='';child.stdout.on('data',b=>output+=b);child.stderr.on('data',b=>output+=b);
    const done=new Promise(resolve=>child.once('exit',resolve));
-   for(let i=0;i<400&&!fs.existsSync(paused);i++)await new Promise(resolve=>setTimeout(resolve,10));
-   assert(fs.existsSync(paused),output);
+   assert(await reached(()=>fs.existsSync(paused),child),output);
    if(kind==='restore'){fs.appendFileSync(source,'\n// changed and restored\n');await control(f,'sync');fs.writeFileSync(source,original);}
    if(kind==='membership')put(path.join(root,'src/boundary-new.ts'),'export const n=1;');
    if(kind==='source')fs.appendFileSync(source,'\n// after compiler exit\n');
@@ -264,10 +269,7 @@ test('actual compiler interval changes and cancellation retain execution and obs
    env:{...f.env,REDUE_DECISION_PROFILE:'1',REDUE_DECISION_PROFILE_FILE:trace}});
  let output='';child.stdout.on('data',b=>output+=b);child.stderr.on('data',b=>output+=b);
  const done=new Promise(resolve=>child.once('exit',resolve));let started;
- for(let i=0;i<500&&!started;i++){
-   if(fs.existsSync(trace))started=fs.readFileSync(trace,'utf8').split('\n').filter(l=>l.startsWith('REDUE_TIMING ')).map(l=>JSON.parse(l.slice(13))).find(p=>p.phase==='cli.child_started');
-   if(!started)await new Promise(resolve=>setTimeout(resolve,10));
- }
+ await reached(()=>started??=fs.existsSync(trace)?fs.readFileSync(trace,'utf8').split('\n').filter(l=>l.startsWith('REDUE_TIMING ')).map(l=>JSON.parse(l.slice(13))).find(p=>p.phase==='cli.child_started'):undefined,child);
  assert(started,output);process.kill(started.childPid,0);
  fs.appendFileSync(source,'\n// changed during real compiler execution\n');await control(f,'sync');fs.writeFileSync(source,original);
  assert.equal(await done,0,output);const receipt=readReceipts(f.state).checks.typecheck;
@@ -276,8 +278,7 @@ test('actual compiler interval changes and cancellation retain execution and obs
  const cancelled=spawn(process.execPath,[cli,'--state-dir',f.state,'run','typecheck'],{cwd:root,
    env:{...f.env,VSTATE_TEST_RUN_BOUNDARY:'before-launch'}});
  cancelled.stdout.resume();cancelled.stderr.resume();const stopped=new Promise(resolve=>cancelled.once('exit',resolve));
- for(let i=0;i<500&&!fs.existsSync(paused);i++)await new Promise(resolve=>setTimeout(resolve,10));
- assert(fs.existsSync(paused));cancelled.kill('SIGINT');await new Promise(resolve=>setTimeout(resolve,30));put(release,'continue');
+ assert(await reached(()=>fs.existsSync(paused),cancelled));cancelled.kill('SIGINT');await new Promise(resolve=>setTimeout(resolve,30));put(release,'continue');
  assert.equal(await stopped,130);const interrupted=readReceipts(f.state).checks.typecheck;
  assert.equal(interrupted.invocation.status,'interrupted');assert.equal(interrupted.result,null);assert(!row(f).reuse_eligible);
  assert(!fs.existsSync(path.join(f.state,'run.lock')));
