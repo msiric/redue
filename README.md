@@ -1,12 +1,34 @@
 # REDUE
 
-**Know which checks still hold. Redo what's due.**
+**Know what is verified on the code you have now.**
 
-You or your coding agent ran the typecheck, the linter or the tests. Then the
-code changed, or a new agent session started with no memory of it. REDUE
-records each check's result with the exact inputs it ran on, and tells you and
-your agent whether that result still applies to the code you have now, so a
-check that still holds is not run again and one that is stale is.
+Your typecheck, linter and tests passed at some point. Then the code
+changed, or a new agent session started with no memory of what ran. REDUE
+records each check's result with the exact inputs it ran on, and gives you
+and your coding agent one dependable answer: which checks are verified on
+the code as it is now, which are stale, and which are due. When it cannot
+tell, it says so and why; it never guesses a result into place.
+
+## What it changes
+
+Coding agents often finish without running every check on their final code.
+In headless Claude Code sessions on realistic tasks whose prompts never
+mention checks (bug fixes, small features and refactors; 21 tasks on 7
+TypeScript and Python projects, two runs each), the share of sessions that
+ended with every check verified on the final code:
+
+| Model | Without REDUE | With REDUE |
+|---|---|---|
+| Sonnet 5.5 | 12% (5 of 42) | 98% (41 of 42) |
+| Opus 5.5 | 48% (20 of 42) | 100% (42 of 42) |
+
+A check counts as verified when the session ran all of it on the final code,
+or REDUE said CURRENT for it at the end; counting only the agents' own check
+commands, it was 90% and 98% with REDUE. REDUE never called a failing check
+verified: in no session did it say CURRENT / PASS for a check that failed
+when run plainly on the final code. Without REDUE, 4 Sonnet sessions ended
+with a failing check they had not run; with it, none did. The harness and
+tasks are in [`eval/`](eval/README.md).
 
 ## Quickstart (about 5 minutes)
 
@@ -32,56 +54,100 @@ stops before writing anything if the dependencies are not installed. It:
   pyright and ty (typecheck), ruff (lint) and pytest (test). It says which
   checks it left out and why, and which it can only record, not reuse;
 - connects Claude Code: a short section in `CLAUDE.md`, a skill, hooks in
-  `.claude/settings.local.json`, and a status line there that shows what is
-  verified on the code as it is now ("REDUE ✓ 3 verified", "REDUE 2 due:
-  typecheck, test"). A status line you already have stays;
+  `.claude/settings.local.json`, and a status line there. A status line you
+  already have stays;
 - starts REDUE's file observer, waits while it indexes the project (a minute
   or more in a large one), then runs each check that can qualify once, so
-  there is a first result to reuse, and prints one line per run (the run's
-  own output only when it fails);
+  there is a first result, and prints one line per run (the run's own output
+  only when it fails);
 - prints every file it writes. Running it again changes nothing.
 
-Then start a new Claude Code session in the project and work as usual. When
-the agent is about to rerun a check whose last pass still applies, the hook
-skips it and tells the agent why. After an edit, the hook runs the check
-through REDUE so the new result is recorded. When the agent is about to finish a
+Then start a new Claude Code session in the project and work as usual. The
+status line shows where things stand, updated as the agent works:
+
+```text
+REDUE ✓ 3 verified
+REDUE ✓ 2 verified · 1 due: typecheck
+REDUE ✓ 2 verified · 1 not verifiable
+```
+
+When the agent runs a check whose last pass still applies, the hook skips
+the rerun and tells it why; after an edit, the hook runs the check through
+REDUE so the new result is recorded. When the agent is about to finish a
 turn in which files changed while a check is due, the hook asks it once to
 run `redue verify` first (`"endOfTurnCheck": false` in the config turns
 this off).
 
-To look yourself:
+To ask yourself:
 
 ```text
 $ redue status
 ✓ typecheck  CURRENT / PASS
 ✓ lint  CURRENT / PASS
+✓ test  CURRENT / PASS
 
 # after editing src/main.ts
-$ redue explain typecheck
-typecheck: STALE / PASS
-src/main.ts changed
-Due again when verification is needed: redue run "typecheck"
+$ redue status
+⚠ typecheck  STALE / PASS
+  src/main.ts changed
+⚠ lint  STALE / PASS
+  src/main.ts changed
+✓ test  CURRENT / PASS
+
+$ redue verify
+redue verify: running typecheck (STALE: src/main.ts changed)
+typecheck: PASS recorded.
+Check redue status before reusing this evidence.
+redue verify: running lint (STALE: src/main.ts changed)
+lint: PASS recorded.
+Check redue status before reusing this evidence.
+
+✓ typecheck  CURRENT / PASS
+✓ lint  CURRENT / PASS
+✓ test  CURRENT / PASS
+Verified: every check that can be verified (3) passed on the files as they are now.
 ```
 
 `redue status` checks the files and your environment before it answers, as
 the agent's hook does. `redue status --cached` gives the last answer the
 observer published without checking; it can say UNVERIFIED ("cannot confirm
 your execution context") where `redue status` would say CURRENT.
+`redue explain CHECK` says why a check is in its state.
 
 `redue verify` runs every check that is due (STALE, or UNVERIFIED with a
-command it can run), then prints the status. It exits 0 only when every check
-ends CURRENT / PASS, so it answers "is everything verified on the code as it
-is now?" in one command. A check no run can confirm is shown as NOT
-VERIFIABLE with the reason, and left out: a recording-only check, or one
-whose runs change its own inputs (two passing runs in a row changed the same
-files, such as a test script that rebuilds a tracked bundle). Any other
-change, or a failing run, makes it due again.
+command it can run), then prints the status. It exits 0 only when every
+check that can be verified ends CURRENT / PASS, so it answers "is everything
+verified on the code as it is now?" in one command. A check no run can
+confirm is shown as NOT VERIFIABLE with the reason, and left out: a
+recording-only check, or one whose runs change its own inputs (two passing
+runs in a row changed the same files, such as a test script that rebuilds a
+tracked bundle). Any other change, or a failing run, makes it due again.
 
 `redue stats` shows, per check, the reruns the hook skipped, the time saved,
 the recorded runs and the top reasons a check was UNVERIFIED, from a log kept
 on your machine.
 
 To undo everything setup did: `redue remove`.
+
+## Time saved, as a bonus
+
+A check whose last pass still applies does not run again. Headless Claude
+Code sessions (Sonnet 5.5, CI Linux runner) on the same tasks with and
+without REDUE, three sessions per task. Session time, medians per task
+summed over the projects:
+
+- **Typecheck** (twilio-node, semiotic, Ultra-Card, SwitchHosts; four tasks;
+  96 sessions; 0.1.0-alpha.12 code): 464 s without, 330 s with. REDUE skipped
+  33 typechecks. Each was checked afterwards with plain `tsc` on the exact tree
+  it was skipped on, and all 33 agreed.
+- **Unit tests** (cheerio with Vitest 4, SwitchHosts with Vitest 5, twilio-node
+  with Jest 29; four tasks; 72 sessions; 0.1.0-alpha.14 code): 515 s without,
+  295 s with. REDUE skipped 21 test runs. Each was rerun plainly three times on
+  the exact tree, and all passed every time.
+
+API cost was the same in both arms. The savings come only when an earlier
+pass still applies: a task that changes source code saves nothing. A handful
+of projects and three runs per task show direction, not a general rate.
 
 ## Still CURRENT after your build and tests
 
@@ -136,26 +202,6 @@ into and the sandbox can't run (inside Claude Code's macOS sandbox, on
 Windows), the project uses Bun, or a check writes into its own inputs.
 [Supported projects](docs/user/supported-projects.md) has the details.
 
-## Measured with Claude Code
-
-Headless Claude Code sessions (Sonnet 5.5, CI Linux runner) on the same tasks
-with and without REDUE, three sessions per task. Session time, medians per
-task summed over the projects:
-
-- **Typecheck** (twilio-node, semiotic, Ultra-Card, SwitchHosts; four tasks;
-  96 sessions; 0.1.0-alpha.12 code): 464 s without, 330 s with. REDUE skipped
-  33 typechecks. Each was checked afterwards with plain `tsc` on the exact tree
-  it was skipped on, and all 33 agreed.
-- **Unit tests** (cheerio with Vitest 4, SwitchHosts with Vitest 5, twilio-node
-  with Jest 29; four tasks; 72 sessions; 0.1.0-alpha.14 code): 515 s without,
-  295 s with. REDUE skipped 21 test runs. Each was rerun plainly three times on
-  the exact tree, and all passed every time.
-
-API cost was the same in both arms. The savings come only when an earlier
-pass still applies: a task that changes source code saves nothing. A handful
-of projects and three runs per task show direction, not a general rate. The
-harness, tasks and raw results are in [`eval/`](eval/README.md).
-
 ## What REDUE won't do
 
 - **Prove your code is correct.** CURRENT means the inputs of the recorded
@@ -177,6 +223,7 @@ harness, tasks and raw results are in [`eval/`](eval/README.md).
 | STALE | An input changed since the recorded result. | Rerun when you need the answer. |
 | UNVERIFIED | REDUE cannot tell: no result yet, an input it cannot see, or observation not ready. | Read the reason; rerun if it matters. |
 | FAILED | The last run failed: the check ran and reported a failure, or could not run. | Fix and rerun. |
+| NOT VERIFIABLE | No run can confirm a result: a recording-only check, or one whose runs change its own inputs. | Read the reason; `redue verify` leaves it out. |
 
 ## Without Claude Code, or step by step
 
