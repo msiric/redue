@@ -30,7 +30,7 @@ when run plainly on the final code. Without REDUE, 4 Sonnet sessions ended
 with a failing check they had not run; with it, none did. The harness and
 tasks are in [`eval/`](eval/README.md).
 
-## Quickstart (about 5 minutes)
+## Quickstart
 
 You need macOS or Linux, Node 22 or 24, Git, Claude Code, and either a
 JavaScript or TypeScript project with its dependencies installed
@@ -61,6 +61,17 @@ stops before writing anything if the dependencies are not installed. It:
   there is a first result, and prints one line per run (the run's own output
   only when it fails);
 - prints every file it writes. Running it again changes nothing.
+
+Setup takes a minute or two in most projects. It can take longer in a large
+environment, such as a `.venv` with PyTorch or a workspace with many
+packages, because the observer indexes every installed file first, and with
+a slow test suite, because `init` runs each check once plainly and once in
+the sandbox before it chooses how to run it. Each of those trial runs stops
+after 5 minutes; a check that runs longer is left out of the sandbox, and
+setup names it and prints the command that tries it without the limit, such
+as `redue init --check test --no-time-limit`. For pytest, `init` takes the
+arguments the project's own workflows run it with, and prefers a
+pull-request workflow that leaves slow tests out (`-m "not slow"`).
 
 Then start a new Claude Code session in the project and work as usual. The
 status line shows where things stand, updated as the agent works:

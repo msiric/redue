@@ -263,7 +263,7 @@ const priorBlocks=(host,relative)=>[false,true].map(legacy=>`\n\n<!-- REDUE:${ho
 // varies, and only in the safe character set. Earlier owned versions are
 // recognized so setup can replace them; other stored text never is.
 function knownBlock(host,relative,block){
-  const list='((?:`[A-Za-z0-9_./:=,+@ -]+`(?: and )?)+)';
+  const list='((?:`[A-Za-z0-9_./:=,+@ "\'()-]+`(?: and )?)+)';
   const forms=pattern=>{const named=new RegExp(pattern).exec(block);return named?[...named[1].matchAll(/`([^`]+)`/g)].map(m=>m[1]):[];};
   const rows=[...forms(`^\\n\\n<!-- REDUE:[a-z]+:begin -->\\nTypecheck with ${list}\\.`).map(form=>({kind:'typecheck',form})),
     ...forms(`Run the unit tests with ${list}\\.\\n`).map(form=>({kind:'test',form})),

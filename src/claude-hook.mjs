@@ -31,8 +31,9 @@ const general=check=>(check?.qualification==='node-script-v1'&&['typecheck','tes
 // A sandboxed check: a root package script, or a tool from the project's .venv.
 // sandbox.mjs's isSandboxed, written out: the hook does not load the sandbox module.
 const sandboxed=check=>['sandbox-v1','sandbox-v2','sandbox-v3'].includes(check?.qualification)&&['typecheck','lint','test'].includes(check.kind);
+// An argument may hold spaces and parentheses (`-m "not slow"`): the forms quote it.
 const python=check=>sandboxed(check)&&Array.isArray(check.command)&&/^\.venv\/bin\/[A-Za-z0-9_.-]+$/.test(check.command[0]||'')&&
-  check.command.every(word=>typeof word==='string'&&safe.test(word));
+  check.command.every((word,i)=>typeof word==='string'&&(safe.test(word)||i>0&&/^[A-Za-z0-9_./:=,@+% ()-]+$/.test(word)&&/\S/.test(word)));
 const eligibleCheck=check=>typecheck(check)||tests(check)||general(check)||python(check);
 export const checkKind=check=>tests(check)?'test':general(check)||python(check)?check.kind:'typecheck';
 // The ways an agent runs a Python check's tool: through uv or Poetry, with
@@ -40,11 +41,13 @@ export const checkKind=check=>tests(check)?'test':general(check)||python(check)?
 // or the tool's name depends on PATH, so the hook takes it only when PATH
 // finds that program in the project's .venv/bin first (pathForm).
 const wrappers=['uv run ','poetry run '];
+// An argument with a space (`-m "not slow"`) is written quoted, in double and in single quotes.
 function pythonForms(check){
-  const [file,...args]=check.command,tool=file.split('/').at(-1),rest=args.length?' '+args.join(' '):'';
-  return [`.venv/bin/${tool}${rest}`,`./.venv/bin/${tool}${rest}`,`.venv/bin/python -m ${tool}${rest}`,
+  const [file,...args]=check.command,tool=file.split('/').at(-1);
+  const rests=[...new Set(['"',"'"].map(q=>args.length?' '+args.map(arg=>/\s/.test(arg)?`${q}${arg}${q}`:arg).join(' '):''))];
+  return rests.flatMap(rest=>[`.venv/bin/${tool}${rest}`,`./.venv/bin/${tool}${rest}`,`.venv/bin/python -m ${tool}${rest}`,
     ...wrappers.flatMap(wrapper=>[`${wrapper}${tool}${rest}`,`${wrapper}python -m ${tool}${rest}`]),
-    `python -m ${tool}${rest}`,`python3 -m ${tool}${rest}`,`${tool}${rest}`];
+    `python -m ${tool}${rest}`,`python3 -m ${tool}${rest}`,`${tool}${rest}`]);
 }
 // For a form that names a program PATH finds (`mypy .`, `python -m mypy .`),
 // whether PATH finds it first in the project's .venv/bin.

@@ -140,6 +140,27 @@ test('a Python tool\'s arguments: as the project runs it, through uv, Poetry, py
   assert.equal(toolArgs('mypy $FILES',mypy),null);
   assert.equal(toolArgs('mypy ../other',mypy),null);
   assert.equal(toolArgs('pip install mypy',mypy),null);
+  // pytest through coverage; quoted arguments are one argument; report options are left out.
+  const pytest={tool:'pytest',sub:[]};
+  assert.deepEqual(toolArgs('uv run coverage run -m pytest tests --durations=10 -m "not slow" --junit-xml=test-results.xml --html=test-report.html --self-contained-html',pytest),
+    ['tests','-m','not slow']);
+  assert.deepEqual(toolArgs("python -m coverage run --source=src -m pytest -k 'fast or (quick)' tests",pytest),['-k','fast or (quick)','tests']);
+  assert.deepEqual(toolArgs('pytest --junitxml out.xml tests',pytest),['tests']);
+  assert.equal(toolArgs('pytest -m "$MARK"',pytest),null);
+  assert.equal(toolArgs('pytest -m "not slow',pytest),null);
+  // A pull-request workflow's line wins when it narrows the suite; lines continue past a backslash.
+  const full={text:'on:\n  push:\njobs:\n  t:\n    steps:\n      - run: |\n          uv run coverage run -m pytest tests --durations=10 \\\n            --junit-xml=r.xml\n',pr:false};
+  const quick={text:'on:\n  pull_request:\njobs:\n  t:\n    steps:\n      - run: |\n          uv run coverage run -m pytest tests -m "not slow" \\\n            --junit-xml=r.xml --html=r.html --self-contained-html\n',pr:true};
+  assert.deepEqual(projectArgs('/nowhere',pytest,[full,quick]),{args:['tests','-m','not slow'],source:'project'});
+  assert.deepEqual(projectArgs('/nowhere',pytest,[full,{...quick,pr:false}]),{args:['tests'],source:'project'});
+  assert.deepEqual(projectArgs('/nowhere',pytest,[{...full,pr:true},{text:'just: pytest tests',pr:false}]),{args:['tests'],source:'project'});
+});
+
+test('hook forms of a pytest check with a quoted argument: double and single quotes',{skip:process.platform==='win32'},()=>{
+  const config={checks:[{name:'test',kind:'test',qualification:'sandbox-v3',command:['.venv/bin/pytest','tests','-m','not slow'],...sandboxCheckInputs()}]};
+  const [form]=hookForms(config);
+  assert.ok(form.forms.includes('.venv/bin/pytest tests -m "not slow"'),form.forms.join(' | '));
+  assert.ok(form.forms.includes("uv run pytest tests -m 'not slow'"),form.forms.join(' | '));
 });
 
 // POSIX paths: the sandboxed recipe runs on macOS and Linux only.

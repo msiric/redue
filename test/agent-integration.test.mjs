@@ -368,3 +368,15 @@ test('claude setup leaves a status line that is not REDUE\'s: in the project\'s 
     if(where==='local')assert.deepEqual(JSON.parse(f.read(local)),{statusLine:mine});
   }
 });
+
+test('a pytest check with a quoted argument gets quoted forms, and setup recognizes its block again',t=>{
+  const f=fixture(t);
+  f.put('redue.config.json',JSON.stringify({schema:1,checks:[{name:'test',kind:'test',qualification:'sandbox-v3',
+    command:['.venv/bin/pytest','tests','-m','not slow'],inputs:['**']}]}));
+  f.ok('agent','setup','claude','--apply');
+  assert.match(f.read('CLAUDE.md'),/^Run the unit tests with `\.venv\/bin\/pytest tests -m "not slow"`\./m);
+  const rules=JSON.parse(f.read('.claude/settings.local.json')).hooks.PreToolUse[0].hooks.map(h=>h.if);
+  assert.ok(rules.includes(`Bash(.venv/bin/pytest tests -m 'not slow'*)`),rules.join(' | '));
+  const once=f.read('CLAUDE.md');f.ok('agent','setup','claude','--apply');assert.equal(f.read('CLAUDE.md'),once);
+  f.ok('agent','remove','claude','--apply');
+});

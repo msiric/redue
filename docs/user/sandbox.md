@@ -41,9 +41,13 @@ built declarations) gets the whole checkout. See
   `.venv` (`uv sync` makes one; Poetry does with `virtualenvs.in-project`).
   `init` uses the arguments your CI workflow, Makefile, tox, nox, justfile or
   shell scripts in `scripts/` run the tool with, through `uv run`, `poetry run`,
-  `python -m` or `.venv/bin`. Without them it uses the tool's default:
-  `ruff check`, `ty check`, `pyright`, and `mypy` (with `.` when mypy's
-  configuration names no `files`).
+  `python -m`, `coverage run -m` or `.venv/bin`, including quoted arguments
+  (`-m "not slow"`) and lines continued with a backslash. It takes the first
+  such line, but a pull-request workflow's when it narrows the test suite
+  (`-m`, `-k`, `--ignore`, `--deselect`), and leaves out options that only
+  write a report (`--junit-xml`, `--html`, `--durations`). Without them it
+  uses the tool's default: `ruff check`, `ty check`, `pyright`, `pytest`, and
+  `mypy` (with `.` when mypy's configuration names no `files`).
 - **Platforms:** macOS (Seatbelt, `sandbox-exec`) and Linux 6.7 or later
   (Landlock; the launcher needs Python 3).
 
