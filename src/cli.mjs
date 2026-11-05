@@ -634,8 +634,9 @@ async function execute() {
     let nondeterministic=false;
     const declared=hashes=>Object.entries(hashes||{}).filter(([key])=>!key.startsWith('__redue_env_'));
     if(sandboxRerun)result=invocation.status==='exited'?(invocation.exitCode===0?'PASS':'FAIL'):null;
+    const priorReceipt=readReceipts(state).checks[name];
     if((testRun||sandboxed)&&stable&&result){
-      const prior=readReceipts(state).checks[name];
+      const prior=priorReceipt;
       // A difference explained by inputs REDUE did not observe proves nothing.
       nondeterministic=Boolean(!guard?.issues.length&&prior?.stable&&!prior.guardIssues?.length&&prior.result&&prior.planId===(snap?.planId??plan.id)&&
         prior.fingerprint===((recording||outputs?end:snap)?.fingerprint??null)&&
@@ -648,7 +649,19 @@ async function execute() {
     // predate run facts do not reuse version 2.
     // The recipe that made the receipt, which status and the hook name.
     // A sandboxed receipt names what the run did: hid the git-ignored files or not.
-    const receipt={result,invocation,target,stable,fingerprintVersion:recorded||testRun?2:1,
+    // A run whose only issue is that inputs changed while it ran keeps the
+    // files that did, and how many runs in a row changed the same ones: a
+    // suite that rewrites its own inputs does so on every run (selfChange).
+    let selfChange=null;
+    const eventIssue=captureIssues.find(issue=>issue.startsWith('declared input event occurred during execution'));
+    if(eventIssue&&captureIssues.every(issue=>issue===eventIssue||issue==='declared inputs changed or were not observed')){
+      const files=[...new Set(unexplained||[])].sort().slice(0,20);
+      // Counted only after a passing run of the same plan that changed the same files.
+      if(files.length){const prior=priorReceipt?.selfChange;
+        selfChange={files,streak:prior&&priorReceipt.result==='PASS'&&priorReceipt.planId===(snap?.planId??plan.id)&&
+          JSON.stringify(prior.files)===JSON.stringify(files)?prior.streak+1:1};}
+    }
+    const receipt={result,invocation,target,stable,fingerprintVersion:recorded||testRun?2:1,...selfChange?{selfChange}:{},
       recipe:(fallback?scriptQualification:own?(sandbox?.docs?docsQualification:sandbox?.hidden?hiddenQualification:sandboxQualification):selected.qualification)||null,
       ...(recorded||testRun?{runFacts}:{}),
       ...(testRun?{verificationRecipe:general?scriptInterpretation:testsInterpretation,guardIssues:guard?.issues||['the run record is unavailable'],

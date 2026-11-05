@@ -6,7 +6,7 @@ const recipes={'npm-typescript-direct-v1':'direct TypeScript recipe','npm-tests-
   'sandbox-v2':'sandboxed recipe, git-ignored files hidden','sandbox-v3':'sandboxed recipe, git-ignored files and docs hidden'};
 export const recipeLabel=recipe=>recipes[recipe]??null;
 export function checkLabel(row) {
-  return row.result==='FAIL'?'FAILED':row.freshness;
+  return row.verifiable===false?'NOT VERIFIABLE':row.result==='FAIL'?'FAILED':row.freshness;
 }
 export function explanation(row) {
   const reason=row.reason||'No verification evidence is available.';
@@ -25,11 +25,12 @@ export function renderStatus(value,{short=false}={}) {
   const lines=[];
   for(const row of value.checks||[]) {
     const label=checkLabel(row),symbol=label==='CURRENT'&&row.result==='PASS'?'✓':label==='FAILED'?'✗':'?';
-    const mark=label==='STALE'?'⚠':symbol;
+    const mark=label==='STALE'?'⚠':label==='NOT VERIFIABLE'?'–':symbol;
     const historical=row.result?` / ${row.result}`:'';
     const recipe=label==='CURRENT'?recipeLabel(row.recipe):null;
     lines.push(`${mark} ${row.name}  ${label}${historical}${recipe?`  (${recipe})`:''}`);
-    if(label!=='CURRENT')lines.push(`  ${row.result==='FAIL'?`Historical failure; applicability ${row.freshness}. `:''}${explanation(row)}`);
+    if(label==='NOT VERIFIABLE')lines.push(`  Not verifiable: ${explanation(row)}`);
+    else if(label!=='CURRENT')lines.push(`  ${row.result==='FAIL'?`Historical failure; applicability ${row.freshness}. `:''}${explanation(row)}`);
   }
   if(!lines.length)lines.push('UNVERIFIED — observation is initializing; no check state is available yet.');
   if(!value.observation?.healthy)lines.push('Observation unavailable or pending. Previous results are not reusable.');

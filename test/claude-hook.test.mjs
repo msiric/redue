@@ -577,6 +577,10 @@ test('the status line: verified, due, failing and observer states in one short l
   assert.equal(statusLineText({schema:1,observation:{healthy:false,phase:'indexing'},checks:[]}),'REDUE … checking files');
   assert.equal(statusLineText({schema:1,observation:{healthy:false,phase:'ready'},checks:[]},{observerRunning:false}),'REDUE ? observer not running');
   assert.equal(statusLineText(null),'REDUE ? status unavailable');
+  // A check no run can confirm is shown apart and is not due.
+  assert.equal(statusLineText({...status([['typecheck','CURRENT','PASS'],['lint','CURRENT','PASS'],['test','CURRENT','PASS'],['build','UNVERIFIED','PASS']]),
+    checks:[...status([['typecheck','CURRENT','PASS'],['lint','CURRENT','PASS'],['test','CURRENT','PASS']]).checks,{name:'build',freshness:'UNVERIFIED',result:'PASS',verifiable:false}]}),
+    'REDUE ✓ 3 verified · 1 not verifiable');
 });
 
 test('the status line command answers for the project set up in the session\'s directory, and prints nothing elsewhere',t=>{

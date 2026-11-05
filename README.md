@@ -71,7 +71,11 @@ your execution context") where `redue status` would say CURRENT.
 `redue verify` runs every check that is due (STALE, or UNVERIFIED with a
 command it can run), then prints the status. It exits 0 only when every check
 ends CURRENT / PASS, so it answers "is everything verified on the code as it
-is now?" in one command.
+is now?" in one command. A check no run can confirm is shown as NOT
+VERIFIABLE with the reason, and left out: a recording-only check, or one
+whose runs change its own inputs (two passing runs in a row changed the same
+files, such as a test script that rebuilds a tracked bundle). Any other
+change, or a failing run, makes it due again.
 
 `redue stats` shows, per check, the reruns the hook skipped, the time saved,
 the recorded runs and the top reasons a check was UNVERIFIED, from a log kept

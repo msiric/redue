@@ -365,6 +365,18 @@ function compactFiles(name) {
 }
 // The current files in the form receipt `r` holds them.
 const filesFor=(name,r)=>r?.filesCompact===true?compactFiles(name):combinedFiles(name);
+// Whether a receipt's run, which passed, is the second in a row during which
+// the same inputs changed (selfChange), and its plan, environment and every
+// other input are as they were at its start.
+function onlySelfChanged(name,row,r,contextHashes) {
+  const self=r.selfChange,context=contextHashes?.[name];
+  if(r.result!=='PASS'||!(self?.streak>=2)||!Array.isArray(self.files)||r.planId!==row.plan.id||!r.files||!context)return false;
+  for(const [key,value] of Object.entries(context))if(!key.startsWith('__redue_env_')&&r.environmentHashes?.[key]!==value)return false;
+  const skip=new Set(self.files),strip=files=>Object.fromEntries(Object.entries(files).filter(([file])=>!skip.has(file)));
+  const before=strip(r.files),now=strip(filesFor(name,r)),paths=[...new Set([...Object.keys(before),...Object.keys(now)])];
+  if(hiddenRun(r))return sandboxVisibleChange(root,r.sandbox.hidden,before,now,paths,{docs:Array.isArray(r.sandbox.docs)?r.sandbox.docs:null})===null;
+  return paths.every(file=>before[file]===now[file]);
+}
 // A changed input as status names it: an installed tree by its path.
 const inputName=file=>file?.endsWith('/:installed:')?file.slice(0,-'/:installed:'.length):file;
 function describeChangedInput(plan,file) {
@@ -419,6 +431,10 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
           `; declared input checkpoint changed (${row.lastReason||'content or membership'})`:'';
       const probeIssue=row.probeError?`; state probe unavailable: ${row.probeError}`:'';
       item.reason='input coverage unresolved: '+row.plan.unresolved.join('; ')+checkpoint+probeIssue;
+      // Recording-only (no qualification contract, inputs it cannot resolve):
+      // no run can make it CURRENT. A qualified check's unresolved inputs can
+      // be fixed, so it stays due.
+      if(!row.plan.qualification)item.verifiable=false;
       return item;
     }
     if(row.probeError){item.reason=row.probeError;return item;}
@@ -440,6 +456,13 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       item.reason=`target execution ${r.target?.status||'unavailable'}`;return item;}
     if(r.target.status==='failed'&&result!=='FAIL'){
       item.reason='target failure conflicts with outer invocation outcome';return item;}
+    // The same inputs changed during its last two passing runs, and nothing
+    // else changed since: no run of it can be confirmed. Anything else
+    // changing makes it due again.
+    if(!r.stable&&onlySelfChanged(name,row,r,contextHashes)){
+      item.verifiable=false;
+      item.reason=`the same inputs changed during its last two runs (${r.selfChange.files.slice(0,5).join(', ')}${r.selfChange.files.length>5?' and more':''}), so no result of it can be confirmed; it is due again when anything else changes`;
+      return item;}
     if(!r.stable){const issues=r.checkpoint?.issues?.length?` (${r.checkpoint.issues.join('; ')})`:'';
       // A sandboxed run that could not start, whose result the sandbox changed, or whose rerun outside it did not finish, says so alone.
       const sandbox=r.checkpoint?.issues?.length&&r.checkpoint.issues.every(issue=>/^the (?:sandbox changed|run was not sandboxed|run outside the sandbox|network supervisor)/.test(issue));

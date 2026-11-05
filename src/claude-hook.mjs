@@ -674,7 +674,8 @@ export async function turnEnd(input,{entry,timeout=10000,invoke=null}){
   if(turn?.asked)return null;
   const status=await synchronizedStatus(entry,project.config,project.projectRoot,timeout);
   if(status?.observation?.healthy!==true||!Array.isArray(status.checks))return null;
-  const due=status.checks.filter(row=>row?.freshness==='STALE'||row?.freshness==='UNVERIFIED');
+  // A check no run can confirm (verifiable false) is never due.
+  const due=status.checks.filter(row=>row?.verifiable!==false&&(row?.freshness==='STALE'||row?.freshness==='UNVERIFIED'));
   if(!due.length)return null;
   const counted=Number.isSafeInteger(turn?.events)&&Number.isSafeInteger(status.observation.events);
   const changed=counted&&(status.observation.events!==turn.events||status.observation.generation!==turn.generation)||
@@ -696,11 +697,12 @@ export function statusLineText(status,{observerRunning=true}={}){
   if(observation.healthy!==true)return !observerRunning?'REDUE ? observer not running':
     ['discovery','indexing','reconciling','validating','initializing'].includes(observation.phase)?'REDUE … checking files':'REDUE ? unverified';
   const names=rows=>rows.map(row=>row.name).join(', ');
-  const verified=status.checks.filter(row=>row.freshness==='CURRENT'&&row.result==='PASS'),
-    failing=status.checks.filter(row=>row.freshness==='CURRENT'&&row.result!=='PASS'),
-    due=status.checks.filter(row=>row.freshness!=='CURRENT');
+  const checks=status.checks.filter(row=>row.verifiable!==false),unverifiable=status.checks.length-checks.length;
+  const verified=checks.filter(row=>row.freshness==='CURRENT'&&row.result==='PASS'),
+    failing=checks.filter(row=>row.freshness==='CURRENT'&&row.result!=='PASS'),
+    due=checks.filter(row=>row.freshness!=='CURRENT');
   const parts=[...verified.length?[`✓ ${verified.length} verified`]:[],...failing.length?[`✗ ${failing.length} failing: ${names(failing)}`]:[],
-    ...due.length?[`${due.length} due: ${names(due)}`]:[]];
+    ...due.length?[`${due.length} due: ${names(due)}`]:[],...unverifiable?[`${unverifiable} not verifiable`]:[]];
   return `REDUE ${parts.join(' · ')||'no checks'}`;
 }
 // The line for the project in the session's directory, or null when REDUE is

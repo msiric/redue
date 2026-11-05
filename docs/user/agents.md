@@ -105,8 +105,10 @@ Setup also adds Claude Code's status line, `redue agent statusline claude`,
 in the same file and the same form. It prints one line from a synchronized
 status (the observer's cached one when that takes over 3 s): `REDUE ✓ 3
 verified`, `REDUE ✓ 1 verified · 2 due: typecheck, test`, `REDUE ✗ 1 failing:
-lint`, `REDUE … checking files` while the observer indexes, or `REDUE ?
-observer not running`. Where Claude Code already has a status line (in the
+lint`, `REDUE ✓ 3 verified · 1 not verifiable`, `REDUE … checking files` while
+the observer indexes, or `REDUE ? observer not running`. A check that is not
+verifiable (see [the JSON interface](json.md)) is never due, here or for the
+end-of-turn check. Where Claude Code already has a status line (in the
 local or shared project settings, or your user settings), setup leaves it and
 prints the command, so you can add REDUE's line to yours. `redue agent remove
 claude --apply` and `redue remove` take out only REDUE's status line.

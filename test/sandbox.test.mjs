@@ -93,6 +93,9 @@ if closed:
     try: socket.create_connection(('127.0.0.1', int(closed.group(1))), timeout=3).close(); print('closed connected')
     except OSError as e: print('closed errno', e.errno)
 if 'writeoutput' in text: pathlib.Path('build').mkdir(exist_ok=True); pathlib.Path('build/report.txt').write_text(str(os.getpid()))
+if 'selfwrite' in text and '${tool}' == 'pytest':
+    # As a suite that builds before it tests: the write comes well before the end.
+    import time; pathlib.Path('src/fx/gen.py').write_text('pid = %d\\n' % os.getpid()); time.sleep(0.5)
 def fastopen_probe():
     # Outside the sandbox this sends a SYN to an unroutable address: not long.
     s = socket.socket(); s.settimeout(1)
@@ -525,6 +528,8 @@ test('a .venv link that leads out of the checkout keeps the check recording-only
   const status=row(root,state,'typecheck');
   assert.equal(status.freshness,'UNVERIFIED');
   assert.match(status.reason,/links outside the checkout, where REDUE does not observe it/);
+  // A qualified check whose inputs cannot be resolved now can be fixed: it stays due.
+  assert.notEqual(status.verifiable,false);
 });
 
 // A Node project whose `checker` bin reads src/value.js and fails when it says so.
@@ -868,7 +873,7 @@ test('redue verify starts the observer, runs each due check, then shows the stat
   assert.match(r.stderr,/starting the observer/);
   assert.match(r.stderr,/running typecheck \(UNVERIFIED: no receipt\)/);assert.match(r.stderr,/running lint \(UNVERIFIED: no receipt\)/);
   assert.match(r.stdout,/✓ typecheck {2}CURRENT \/ PASS/);assert.match(r.stdout,/✓ lint {2}CURRENT \/ PASS/);
-  assert.match(r.stdout,/Verified: every check \(2\) passed/);
+  assert.match(r.stdout,/Verified: every check that can be verified \(2\) passed/);
   // Nothing is due: nothing runs.
   r=invoke(root,state,['verify']);
   assert.equal(r.status,0,r.stderr);assert.doesNotMatch(r.stderr,/running/);
@@ -922,4 +927,57 @@ test('on Linux, a run keeps the Landlock answer for the same kernel, launcher Py
   // Another key, or an ABI that cannot keep a run off the network, asks again.
   fs.writeFileSync(cache,JSON.stringify({key:'0'.repeat(64),abi:99}));assert.equal(ask().abi,first.abi);
   fs.writeFileSync(cache,JSON.stringify({key:kept.key,abi:3}));assert.equal(ask().abi,first.abi);
+});
+
+test('a check whose runs rewrite its own inputs is not verifiable: verify leaves it out and runs the checks it made due again',{skip:unsupported},t=>{
+  const {root,state}=project(t,{tools:['ruff','pytest']});
+  write(root,'src/fx/__init__.py','value = 1  # selfwrite\n');execFileSync('git',['add','.'],{cwd:root});
+  good(root,state,'init');
+  const r=invoke(root,state,['verify','--json']);
+  assert.equal(r.status,0,r.stderr+r.stdout);
+  const value=JSON.parse(r.stdout);
+  // The test runs until two runs in a row changed the same file (a first run
+  // can be disturbed); a round runs it first, so lint, which its run makes
+  // due again, runs after it.
+  const order=value.ran.map(x=>x.check);
+  assert.ok(order.filter(name=>name==='test').length>=2,order.join(' '));
+  assert.equal(order.at(-1),'lint',order.join(' '));
+  const test=value.status.checks.find(c=>c.name==='test'),lint=value.status.checks.find(c=>c.name==='lint');
+  assert.equal(`${lint.freshness}/${lint.result}`,'CURRENT/PASS');
+  assert.equal(test.verifiable,false);
+  assert.equal(test.reason,'the same inputs changed during its last two runs (src/fx/gen.py), so no result of it can be confirmed; it is due again when anything else changes');
+  assert.equal(value.status.not_verifiable,1);assert.equal(value.status.state,'current');
+  assert.match(good(root,state,'status'),/– test {2}NOT VERIFIABLE \/ PASS\n {2}Not verifiable: the same inputs changed during its last two runs/);
+  // Nothing is due now: verify runs nothing and still passes.
+  const again=invoke(root,state,['verify','--json']);
+  assert.equal(again.status,0,again.stderr);assert.deepEqual(JSON.parse(again.stdout).ran,[]);
+  assert.match(invoke(root,state,['verify']).stdout,/Verified: every check that can be verified \(1\) passed on the files as they are now\. 1 not verifiable, left out\./);
+  // Another input changes: the check is due again, and verify runs it.
+  write(root,'src/fx/__init__.py','value = 2  # selfwrite\n');
+  assert.notEqual(row(root,state,'test').verifiable,false);
+  const after=invoke(root,state,['verify','--json']);
+  assert.equal(after.status,0,after.stderr+after.stdout);
+  assert.ok(JSON.parse(after.stdout).ran.some(x=>x.check==='test'));
+  assert.equal(row(root,state,'test').verifiable,false);
+  // A failing run is never left out: the check stays due, and verify fails.
+  write(root,'src/fx/__init__.py','value = "fail"  # selfwrite\n');
+  const failing=invoke(root,state,['verify','--json']);
+  assert.equal(failing.status,1);
+  assert.notEqual(JSON.parse(failing.stdout).status.checks.find(c=>c.name==='test').verifiable,false);
+});
+
+test('a recording-only check (no qualification, inputs not reviewed) is not verifiable and never due',t=>{
+  const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'rsb-'))),root=path.join(base,'project'),state=path.join(base,'redue-state');
+  t.after(()=>{try{invoke(root,state,['stop']);}catch{}fs.rmSync(base,{recursive:true,force:true});});
+  put(path.join(root,'redue.config.json'),JSON.stringify({schema:1,checks:[{name:'build',command:['@node','b.cjs'],inputs:['src/**','b.cjs']}]}));
+  put(path.join(root,'b.cjs'),'\n');put(path.join(root,'src/a.js'),'1\n');
+  execFileSync('git',['init','-q'],{cwd:root});execFileSync('git',['add','.'],{cwd:root});
+  good(root,state,'start');good(root,state,'run','build');
+  const status=row(root,state,'build');
+  assert.equal(status.verifiable,false);assert.match(status.reason,/^input coverage unresolved/);
+  const r=invoke(root,state,['verify','--json']);
+  assert.equal(r.status,1);
+  const value=JSON.parse(r.stdout);
+  assert.deepEqual(value.ran,[]);assert.equal(value.status.not_verifiable,1);
+  assert.match(invoke(root,state,['verify']).stdout,/Not verified: no check can be verified here\. 1 not verifiable, left out\./);
 });

@@ -60,8 +60,20 @@ completion for machine-readable evidence. Normal check exit codes are preserved;
 interruption/process-start failures are nonzero. REDUE retains metadata and receipts,
 not arbitrary terminal output. The CLI does not infer tests executed from prose.
 
+A check no run can confirm has `"verifiable": false` (its `freshness` stays
+UNVERIFIED and `reason` says why): a recording-only check (no qualification
+contract, inputs it cannot resolve), or one whose last two runs passed while
+the same inputs changed during them, with its plan, environment and every
+other input unchanged since. Anything else changing, a failing run or a
+clean run makes it verifiable (and due) again. Such checks are counted in
+`not_verifiable`, not in the other counts, and do not set `state`. A cached
+answer (`--cached`) never marks a check this way.
+
 `verify --json` writes one JSON object to stdout: `verified` (true only when the
-observer is healthy and every check is CURRENT / PASS), `ran` (each due check it
-ran, in config order: `check`, `was` (STALE or UNVERIFIED) and the run's `exit`),
-and `status`, the synchronized status after those runs. The checks' own output
-goes to stderr. It exits 0 when `verified` is true, else 1.
+observer is healthy, at least one check is verifiable, and every verifiable
+check is CURRENT / PASS), `ran` (each check it ran, in order: `check`, `was`
+(STALE or UNVERIFIED) and the run's `exit`), and `status`, the synchronized
+status after those runs. It runs what is due up to three rounds, since a run
+can make another check due; a check whose last run changed its inputs runs
+first in a round. It never runs a check that is not verifiable. The checks'
+own output goes to stderr. It exits 0 when `verified` is true, else 1.

@@ -542,25 +542,47 @@ if(command==='verify'){
     if(typeof command!=='string'||command.endsWith('<unavailable>'))return false;
     if(command.includes('/'))return fs.existsSync(path.resolve(root,checks.find(item=>item.name===row.name).cwd||'.',command));
     return Boolean(findExecutable(command));};
-  const due=(status?.checks||[]).filter(row=>row.freshness==='STALE'||row.freshness==='UNVERIFIED'&&runnable(row));
+  // A check no run can confirm (recording-only, or one that rewrites its own
+  // inputs: verifiable false) is never due. A run can make another check due
+  // (a suite that writes an input), and a check that rewrites its own inputs
+  // shows that on its second run: verify runs what is due again, three rounds
+  // at most.
+  // In a round, a check whose last run changed its inputs runs first, so the
+  // checks its run makes due run after it.
+  // A check that already ran here is due again only when it is STALE or its
+  // inputs changed during its run: another UNVERIFIED reason would not clear.
+  const changedOwn=row=>/declared input event occurred during execution/.test(row.reason||'');
+  const ranNames=new Set();
+  const dueOf=value=>(value?.checks||[]).filter(row=>row.verifiable!==false&&
+    (row.freshness==='STALE'||row.freshness==='UNVERIFIED'&&runnable(row)&&(!ranNames.has(row.name)||changedOwn(row))))
+    .sort((a,b)=>changedOwn(b)-changedOwn(a));
+  // While the observer indexes or reconciles (a run may have changed a manifest).
+  const settle=async()=>{for(const until=Date.now()+120_000;!status?.observation?.healthy&&
+    ['discovery','indexing','reconciling','validating','initializing'].includes(status?.observation?.phase)&&Date.now()<until;){
+    await sleep(1000);status=ask();}};
   const {note,dueNote}=await import('../src/stats.mjs');
   const ran=[];
-  for(const row of due){
-    const entry=dueNote(status,row.name);if(entry)note(state,entry);
-    if(!json)console.error(`redue verify: running ${row.name} (${row.freshness}: ${row.reason})`);
-    // With --json, the check's output goes to stderr; stdout carries the answer.
-    const r=self(['run',row.name],{stdio:json?['ignore',2,2]:'inherit'});
-    ran.push({check:row.name,was:row.freshness,exit:r.status});
+  for(let round=0,due=dueOf(status);round<3&&due.length&&status?.observation?.healthy;round++,due=dueOf(status)){
+    for(const row of due){
+      const entry=dueNote(status,row.name);if(entry)note(state,entry);
+      if(!json)console.error(`redue verify: running ${row.name} (${row.freshness}: ${row.reason})`);
+      // With --json, the check's output goes to stderr; stdout carries the answer.
+      const r=self(['run',row.name],{stdio:json?['ignore',2,2]:'inherit'});
+      ran.push({check:row.name,was:row.freshness,exit:r.status});ranNames.add(row.name);
+    }
+    status=ask();await settle();
   }
-  const final=due.length?ask():status;
-  const verified=Boolean(final?.observation?.healthy)&&Array.isArray(final.checks)&&final.checks.length>0&&
-    final.checks.every(row=>row.freshness==='CURRENT'&&row.result==='PASS');
+  const final=status;
+  const counted=(final?.checks||[]).filter(row=>row.verifiable!==false);
+  const verified=Boolean(final?.observation?.healthy)&&counted.length>0&&counted.every(row=>row.freshness==='CURRENT'&&row.result==='PASS');
   if(json)console.log(JSON.stringify({schema:1,verified,ran,status:final}));
   else{
     if(ran.length)console.log('');
     console.log(final?renderStatus(final):'UNVERIFIED — status did not answer.');
-    console.log(verified?`Verified: every check (${final.checks.length}) passed on the files as they are now.`:
-      'Not verified: some checks did not end CURRENT / PASS.');
+    const other=final?.checks?.length-counted.length;
+    console.log((verified?`Verified: every check that can be verified (${counted.length}) passed on the files as they are now.`:
+      counted.length?'Not verified: some checks did not end CURRENT / PASS.':'Not verified: no check can be verified here.')+
+      (other?` ${other} not verifiable, left out.`:''));
   }
   await exit(verified?0:1);
 }

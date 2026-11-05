@@ -17,7 +17,8 @@ export function unavailableCached(state,reason,checks=[]) {
   try{const snapshot=readReceiptSnapshot(state);receipts=snapshot.value.checks;revision=snapshot.revision;}
   catch(error){reason+=`; latest receipt unavailable; prior outcome only: ${error.message}`;
     try{receipts=readReceipts(state).checks;}catch{/* retain cached historical rows */}}
-  const rows=(value.checks||[]).map(row=>{
+  // Whether a check can be verified is part of a live answer, not of this one.
+  const rows=(value.checks||[]).map(({verifiable,...row})=>{
     const latest=receipts?.[row.name];
     return {...row,...(receipts?{result:latest?.result||null,invocation:latest?.invocation||null,
       target_provenance:latest?.target||null,coverage_at_run:latest?.coverage||null}:{}),
@@ -25,16 +26,18 @@ export function unavailableCached(state,reason,checks=[]) {
   });
   return {...value,receipt_revision:revision,state:'unverified',current:0,stale:0,failed:0,
     observed_failed:rows.filter(row=>row.result==='FAIL').length,
-    unverified:Math.max(1,rows.length),checks:rows,
+    unverified:Math.max(1,rows.length),not_verifiable:0,checks:rows,
     observation:{...value.observation,healthy:false,reason}};
 }
-// The summary counts of a status answer, from its rows.
+// The summary counts of a status answer, from its rows. A check no run can
+// confirm (verifiable false) is counted apart and does not set the state.
 export function statusSummary(checks) {
-  const count=test=>checks.filter(test).length,failed=count(r=>r.freshness==='CURRENT'&&r.result==='FAIL'),
-    stale=count(r=>r.freshness==='STALE'),unverified=count(r=>r.freshness==='UNVERIFIED')||(!checks.length?1:0);
+  const counted=checks.filter(r=>r.verifiable!==false);
+  const count=test=>counted.filter(test).length,failed=count(r=>r.freshness==='CURRENT'&&r.result==='FAIL'),
+    stale=count(r=>r.freshness==='STALE'),unverified=count(r=>r.freshness==='UNVERIFIED')||(!counted.length?1:0);
   return {state:failed?'failed':unverified?'unverified':stale?'stale':'current',
     current:count(r=>r.freshness==='CURRENT'&&r.result==='PASS'),failed,
-    observed_failed:count(r=>r.result==='FAIL'),stale,unverified};
+    observed_failed:checks.filter(r=>r.result==='FAIL').length,stale,unverified,not_verifiable:checks.length-counted.length};
 }
 // A stored CURRENT answer is only as old as its publish. Run facts are asked
 // again here, from the receipts the answer was about, so no cached answer says
