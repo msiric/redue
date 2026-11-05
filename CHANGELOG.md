@@ -1,5 +1,53 @@
 # Changelog
 
+## 0.1.0-alpha.32 — 2026-11-05
+
+REDUE's status is now the point: what is verified on the code as it is
+now, what is stale, what is due.
+
+- **`redue verify`.** Runs every check that is due (STALE, or UNVERIFIED
+  with a program that exists), starting the observer if needed, then shows
+  the full status. It exits 0 only when every check that can be verified
+  ends CURRENT / PASS. `--json` gives `verified`, the checks it ran and the
+  status. It runs what is due up to three rounds, since a run can make
+  another check due.
+- **Not verifiable.** A check no run can confirm shows as NOT VERIFIABLE
+  with the reason: a recording-only check, or one whose last two passing
+  runs changed the same inputs while they ran (a test script that rebuilds
+  a tracked bundle). `verify`, its exit code, the end-of-turn check and the
+  status line's due count leave it out; the status line shows it ("✓ 3
+  verified · 1 not verifiable"). Any other change, or a failing run, makes
+  it due again. JSON: `"verifiable": false` and a `not_verifiable` count.
+- **A status line in Claude Code.** `redue setup claude` adds one:
+  "REDUE ✓ 3 verified", "REDUE ✓ 1 verified · 2 due: typecheck, test",
+  "REDUE ✗ 1 failing: lint". A status line you already have stays; setup
+  prints the command instead.
+- **End-of-turn check.** When the agent changed files during a turn and a
+  check is due, the hook asks it once to run `redue verify` before it
+  finishes. It never asks twice in a turn. `"endOfTurnCheck": false` in
+  the config turns it off.
+- **Faster sandboxed runs.** Receipts and checkpoints keep each installed
+  tree (`.venv`, `node_modules`) as one digest, a run computes only its own
+  check's context, and Linux keeps the Landlock probe's answer. What `redue
+  run` adds to a sub-second check on GitHub's Linux runners fell from
+  270-514 ms to 125-205 ms (lighter's ruff 514 to 155 ms); on macOS from
+  390-710 ms to 310-435 ms, where an FSEvents history stall (150-190 ms in
+  about a third of checkpoints) remains. The Landlock launcher now refuses
+  a network-less run on a kernel below ABI 4.
+- **Windows.** A status call before the first `redue start` no longer
+  leaves a file that makes `start` refuse the state directory.
+
+Measured with the verification-gap study (21 tasks on 7 repositories, 2
+runs, Claude Code headless): sessions that ended with every check verified
+on the final code went from 5 of 42 to 41 of 42 with Sonnet 5.5, and from
+20 of 42 to 42 of 42 with Opus 5.5, with no check REDUE called CURRENT /
+PASS failing on the final code. In the product census, 73% of 330 checks
+had a definite answer (CURRENT or STALE) after their second run (alpha.29:
+71%); 97% of those on the sandboxed recipe with ignored files and
+documentation hidden. `init` on the 13 slowest census repos took 3874 s on
+Linux and 4797 s on macOS (alpha.31: 4139 s and 5517 s), with the same
+checks chosen.
+
 ## 0.1.0-alpha.31 — 2026-11-03
 
 A check that runs longer than init's trial limit no longer holds up
