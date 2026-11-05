@@ -12,7 +12,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import picomatch from 'picomatch';
-import {sandboxCaches} from '../src/sandbox.mjs';
+import {compactKey,installedTreeOf,sandboxCaches} from '../src/sandbox.mjs';
 
 export const sandboxTraceCalls = 'execve,open,openat,openat2,stat,lstat,newfstatat,statx,access,faccessat,faccessat2,chdir,getdents64,connect,clone,clone3,fork,vfork';
 const cache = picomatch(sandboxCaches, {dot: true});
@@ -112,6 +112,8 @@ export function crossCheck(trace, {root, files, allowed, allowedPrefixes = [], c
       if (Object.hasOwn(files, rel)) out.checkout.observed++;
       else if (cache(rel) || installedCache(rel)) out.checkout.cache++;
       else if (written.has(rel)) out.checkout.output++;
+      // A receipt in compact form keeps each installed tree as one digest of its files.
+      else if (installedTreeOf(rel) !== null && Object.hasOwn(files, compactKey(installedTreeOf(rel)))) out.checkout.observed++;
       else out.checkout.unobserved.add(rel);
     } else if (allowed.some(dir => under(file, dir)) || allowedPrefixes.some(prefix => file.startsWith(prefix))) out.outside.allowed++;
     else out.outside.other.add(file);

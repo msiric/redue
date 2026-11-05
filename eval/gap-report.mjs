@@ -77,7 +77,7 @@ function judge(row) {
   }
   const list = Object.values(checks);
   return {checks,
-    missing_full: list.some(c => !c.full), missing_lenient: list.some(c => !c.lenient), missing_any: list.some(c => !c.any), fails: list.some(c => c.fails),
+    missing_full: list.some(c => !c.full), missing_own: list.some(c => !c.agentFull), missing_lenient: list.some(c => !c.lenient), missing_any: list.some(c => !c.any), fails: list.some(c => c.fails),
     false_claim: list.some(c => c.false_claim), unverified_claim: list.some(c => c.unverified_claim),
     gate_ms: list.filter(c => !c.full).reduce((sum, c) => sum + c.ms, 0),
     gate_finds: list.some(c => !c.full && c.fails)};
@@ -97,11 +97,11 @@ const source = judged.filter(({row}) => row.gap.source_changed);
 out.push('# Verification gap', '',
   'A check counts as run on the final tree when the session ran all of it there, or REDUE said CURRENT for it at the end (REDUE sessions).', '',
   `${rows.length} sessions, ${source.length} with source changes; counted below. Checks that fail on the pinned commit are left out.`, '',
-  '| Model | Sessions | Every check verified on the final tree | A check not run on the final tree | Same, runs between writes in one command count | Same, narrowed runs also count | A failing check | A false pass claim | A pass claim the session did not check |',
-  '|---|---|---|---|---|---|---|---|---|');
+  '| Model | Sessions | Every check verified on the final tree | Same, by the session\'s own check commands only | A check not run on the final tree | Same, runs between writes in one command count | Same, narrowed runs also count | A failing check | A false pass claim | A pass claim the session did not check |',
+  '|---|---|---|---|---|---|---|---|---|---|');
 for (const model of models) {
   const s = source.filter(x => x.row.model === model), n = s.length, count = f => s.filter(x => f(x.j)).length;
-  out.push(`| ${model} | ${n} | ${pct(count(j => !j.missing_full), n)} | ${pct(count(j => j.missing_full), n)} | ${pct(count(j => j.missing_lenient), n)} | ${pct(count(j => j.missing_any), n)} | ${pct(count(j => j.fails), n)} | ` +
+  out.push(`| ${model} | ${n} | ${pct(count(j => !j.missing_full), n)} | ${pct(count(j => !j.missing_own), n)} | ${pct(count(j => j.missing_full), n)} | ${pct(count(j => j.missing_lenient), n)} | ${pct(count(j => j.missing_any), n)} | ${pct(count(j => j.fails), n)} | ` +
     `${pct(count(j => j.false_claim), n)} | ${pct(count(j => j.unverified_claim), n)} |`);
 }
 
