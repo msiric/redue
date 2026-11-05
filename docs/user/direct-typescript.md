@@ -64,8 +64,9 @@ byte for byte, in one of two ways:
 
 CI runs the same contract suite against the last release of each minor from
 5.0 to 5.8 that the reviewed releases do not cover. Later minors (6.1 and up)
-wait until CI covers them. TypeScript 7 (the native compiler) is not
-supported.
+wait until CI covers them. This recipe does not take TypeScript 7 (the
+native compiler); a typecheck that runs it gets the
+[sandboxed recipe](sandbox.md).
 
 ## Script forms
 

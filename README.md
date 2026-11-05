@@ -222,9 +222,10 @@ Windows), the project uses Bun, or a check writes into its own inputs.
 - **Trust what it cannot see.** A program it cannot account for, a file it
   does not observe, or a gap in observation makes the result UNVERIFIED and
   says why. It never turns that into CURRENT by guessing.
-- **Support yet:** TypeScript 7's native compiler, Bun, per-package checks in
-  large monorepos, results shared across machines, and the general recipe on
-  Windows (Windows has the strict recipes only).
+- **Support yet:** Bun, per-package checks in large monorepos, results shared
+  across machines, and the general recipe on Windows (Windows has the strict
+  recipes only). TypeScript 7's native compiler is covered: a typecheck that
+  runs it gets the [sandboxed recipe](docs/user/sandbox.md).
 
 ## What the states mean
 

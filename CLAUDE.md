@@ -4,6 +4,23 @@ REDUE tells developers and coding agents whether an earlier verification result
 (e.g. `tsc --noEmit` PASS) still applies to the code they have now. Ship
 user-visible improvements to that, quickly and correctly.
 
+## Direction
+
+Goal: a dependable status of what's verified on the current code, for any
+project and any agent. Track three numbers: sessions ending fully verified
+(gap study), checks with a definite answer (CURRENT or STALE; census), and
+wrong CURRENT answers, which must stay 0. Time saved is a bonus.
+
+For every feature:
+- Start from a real user need, and measure what it unlocks first.
+- Show the owner a plan before building.
+- Build on the sandbox rather than a new special case; retire special cases
+  the sandbox already covers.
+- Test and /code-review anything that decides verification.
+- Measure after with the same numbers.
+- Release only with 0 critical findings.
+- Update the README's support list.
+
 ## Commands
 
 - `npm ci`, then `npm run pretest` once (installs the TS 5.5.2, 6.0.2 and 6.0.3
