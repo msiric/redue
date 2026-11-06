@@ -307,7 +307,18 @@ config resolution, cached observer health, a bounded read-only control-access pr
 managed-file integrity, detected host
 version, and loading guidance. `behavior_verified: false` is deliberate: intact
 files do not prove the agent followed them. For Claude, doctor reports whether the
-typecheck hook is installed. Doctor neither
+typecheck hook is installed, the status line, and `trigger_rules`: whether the
+`if` rules in the settings start the hook for every command form of every
+configured check (`covered`, or the forms they miss, which would run plainly,
+neither skipped nor recorded), including the fan-out commands and the forms
+after a `cd` into a check's directory. It applies the rules as REDUE models
+Claude Code's matching, not by asking Claude Code: `Bash(PREFIX*)` (or the
+legacy `Bash(PREFIX:*)`) matches a simple command that starts with PREFIX in
+the characters known to match (letters, digits, spaces and `_./:=,+@-`), and a
+hook with no `if` matches every command. Setup ends a rule before any other
+character, such as the quote in `-m "not slow"`, and the hook then matches
+the whole command itself, spaces inside quotes included; a rule that would
+end before the program's first argument is not written. Doctor neither
 executes checks nor starts observers, reconciles inputs, or installs a host.
 
 Doctor separates missing/unreadable state, a missing or refused endpoint, an

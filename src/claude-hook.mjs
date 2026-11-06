@@ -21,6 +21,8 @@ export const hookCommand='redue agent hook claude';
 export const statusLineCommand='redue agent statusline claude';
 // No shell metacharacters; `@` starts scoped package names.
 const safe=/^[A-Za-z0-9_./:=,+@-]+$/;
+// Those characters and a space: what a trigger rule may hold (triggerRule).
+const ruleText=/^[A-Za-z0-9_./:=,+@ -]*$/,ruleStop=/[^A-Za-z0-9_./:=,+@ -]/;
 const typecheck=check=>check?.kind==='typecheck'||check?.name==='typecheck';
 // A direct test check: its command is the runner and the script's arguments.
 const tests=check=>check?.qualification==='npm-tests-direct-v1'&&Array.isArray(check.command)&&
@@ -41,6 +43,38 @@ export const checkKind=check=>tests(check)?'test':general(check)||python(check)?
 // or the tool's name depends on PATH, so the hook takes it only when PATH
 // finds that program in the project's .venv/bin first (pathForm).
 const wrappers=['uv run ','poetry run '];
+// The `if` rules setup writes start the hook for a check's command forms.
+// As REDUE models Claude Code's matching (doctor's check; a stranger session
+// confirms it for real): `Bash(PREFIX*)` (or the legacy `Bash(PREFIX:*)`)
+// matches a simple command that starts with PREFIX, `Bash(TEXT)` exactly
+// TEXT, and plain `Bash` every command; compound commands are matched part by
+// part. Only the characters in ruleText are known to match in real sessions:
+// a rule with a quote in it never started the hook (alpha.32, `-m "not
+// slow"`). So a rule ends before the first other character; it may start the
+// hook for more commands, and the hook then matches each exactly. A rule
+// that would end before the program's first argument is not written: it
+// would start the hook for every run of the program.
+export function triggerRule(form){
+  const cut=form.search(ruleStop),prefix=cut<0?form:form.slice(0,cut);
+  return cut<0||/^\S+ \S/.test(prefix)?`Bash(${prefix}*)`:null;
+}
+// Whether a rule matches a simple command, as modeled above.
+export function triggerMatches(rule,command){
+  if(typeof rule!=='string'||typeof command!=='string')return false;
+  if(rule==='Bash')return true;
+  const body=/^Bash\((.*)\)$/s.exec(rule)?.[1];
+  if(body===undefined)return false;
+  const prefix=body.endsWith(':*')?body.slice(0,-2):body.endsWith('*')?body.slice(0,-1):null;
+  if(prefix!==null)return ruleText.test(prefix)&&command.startsWith(prefix);
+  return ruleText.test(body)&&command===body;
+}
+// The command forms of configured checks (as typed at the root, after a cd
+// into a check's directory, and the fan-out commands that run them) that no
+// rule in `rules` matches.
+export function uncoveredForms(rules,config,configFile=defaultConfig,packageScripts=null){
+  return [...new Set([...hookForms(config,configFile,packageScripts).flatMap(row=>[...row.forms,...row.local]),
+    ...fanoutRules(config,packageScripts||{})])].filter(form=>!rules.some(rule=>triggerMatches(rule,form)));
+}
 // An argument with a space (`-m "not slow"`) is written quoted, in double and in single quotes.
 function pythonForms(check){
   const [file,...args]=check.command,tool=file.split('/').at(-1);
@@ -292,7 +326,16 @@ function split(command){
   if(typeof command!=='string'||/[\r\n]/.test(command))return null;
   const [,base,suffix,rest=null]=command.trim()
     .match(/^(.*?)((?:[ \t]+2>&1)?(?:[ \t]+\|[ \t]+(?:tail|head)[ \t]+(?:-n[ \t]+\d+|-\d+))?)(?:[ \t]*(?:;|&&)[ \t]*([^\s;&|].*))?$/);
-  const one=text=>text.replace(/[ \t]+/g,' ');
+  // Runs of spaces are one, but not inside quotes: `-m "not  slow"` is not `-m "not slow"`.
+  const one=text=>{let out='',quote=null,space=false;
+    for(const c of text){
+      if(quote){out+=c;if(c===quote)quote=null;continue;}
+      if(c===' '||c==='\t'){space=true;continue;}
+      if(space){out+=' ';space=false;}
+      if(c==='"'||c==="'")quote=c;
+      out+=c;
+    }
+    return out+(space?' ':'');};
   return {base:one(base),suffix:one(suffix),rest};
 }
 // {check, rest}, or {fanout, rest} for a turbo/nx/`pnpm -r` command or a root

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
+import {matchCheck,triggerMatches,triggerRule,uncoveredForms} from '../src/claude-hook.mjs';
 import {createHash} from 'node:crypto';
 import path from 'node:path';
 import {spawnSync,execFileSync} from 'node:child_process';
@@ -376,7 +377,66 @@ test('a pytest check with a quoted argument gets quoted forms, and setup recogni
   f.ok('agent','setup','claude','--apply');
   assert.match(f.read('CLAUDE.md'),/^Run the unit tests with `\.venv\/bin\/pytest tests -m "not slow"`\./m);
   const rules=JSON.parse(f.read('.claude/settings.local.json')).hooks.PreToolUse[0].hooks.map(h=>h.if);
-  assert.ok(rules.includes(`Bash(.venv/bin/pytest tests -m 'not slow'*)`),rules.join(' | '));
+  // The rule ends before the quote: Claude Code never started the hook for a rule with one.
+  assert.ok(rules.includes('Bash(.venv/bin/pytest tests -m *)'),rules.join(' | '));
+  assert.ok(!rules.some(rule=>/["']/.test(rule)),rules.join(' | '));
   const once=f.read('CLAUDE.md');f.ok('agent','setup','claude','--apply');assert.equal(f.read('CLAUDE.md'),once);
+  // alpha.32's rule had the quote: doctor names the forms it misses.
+  const local='.claude/settings.local.json',settings=JSON.parse(f.read(local));
+  settings.hooks.PreToolUse[0].hooks=settings.hooks.PreToolUse[0].hooks.map(h=>({...h,if:h.if.replace('Bash(.venv/bin/pytest tests -m *)','Bash(.venv/bin/pytest tests -m "not slow"*)')}));
+  f.put(local,JSON.stringify(settings));
+  const doctor=JSON.parse(f.ok('agent','doctor','claude','--json').stdout);
+  assert.equal(doctor.hosts[0].trigger_rules.covered,false);
+  assert.ok(doctor.hosts[0].trigger_rules.missing.includes('.venv/bin/pytest tests -m "not slow"'));
+  assert.ok(doctor.warnings.some(w=>/trigger rules do not match/.test(w)));
+  f.ok('agent','setup','claude','--apply');
+  assert.equal(JSON.parse(f.ok('agent','doctor','claude','--json').stdout).hosts[0].trigger_rules.covered,true);
   f.ok('agent','remove','claude','--apply');
+});
+
+test('every command form of every configured check is matched by a trigger rule setup writes',t=>{
+  const configs=[
+    {packageManager:'npm',scripts:{typecheck:'tsc --noEmit',test:'vitest run',lint:'eslint .'},checks:[
+      {name:'typecheck',kind:'typecheck',qualification:'sandbox-v3',script:'typecheck',inputs:['**']},
+      {name:'test',kind:'test',qualification:'sandbox-v3',script:'test',inputs:['**']},
+      {name:'lint',kind:'lint',qualification:'node-script-v1',script:'lint',inputs:['**']}]},
+    {packageManager:'pnpm',scripts:{typecheck:'turbo run typecheck'},checks:[{name:'@acme/web:typecheck',kind:'typecheck',workspace:'@acme/web',
+      qualification:'pnpm-tsc-v1',script:'typecheck',cwd:'packages/web',command:['@node','@typescript-bin:packages/web','--noEmit'],inputs:['packages/web/src/**']}]},
+    {checks:[{name:'typecheck',kind:'typecheck',qualification:'sandbox-v3',command:['.venv/bin/mypy','src'],inputs:['**']},
+      {name:'test',kind:'test',qualification:'sandbox-v3',command:['.venv/bin/pytest','tests','-m','not (slow or gpu)','-k',"fast and not network"],inputs:['**']}]},
+  ];
+  for(const {scripts,...rest} of configs){
+    const f=fixture(t);
+    if(scripts)f.put('package.json',JSON.stringify({name:'p',scripts}));
+    f.put('redue.config.json',JSON.stringify({schema:1,...rest}));
+    f.ok('agent','setup','claude','--apply');
+    const rules=JSON.parse(f.read('.claude/settings.local.json')).hooks.PreToolUse[0].hooks.map(h=>h.if);
+    assert.deepEqual(uncoveredForms(rules,rest,'redue.config.json',scripts??null),[],JSON.stringify(rest.checks.map(c=>c.name)));
+    assert.equal(JSON.parse(f.ok('agent','doctor','claude','--json').stdout).hosts[0].trigger_rules.covered,true);
+  }
+});
+
+test('trigger rules as Claude Code matches them: a prefix before *, else the whole command, in characters known to match',()=>{
+  assert.equal(triggerRule('.venv/bin/pytest tests -m "not slow"'),'Bash(.venv/bin/pytest tests -m *)');
+  assert.equal(triggerRule('npm run typecheck'),'Bash(npm run typecheck*)');
+  assert.equal(triggerMatches('Bash(npm run typecheck*)','npm run typecheck -- --pretty'),true);
+  assert.equal(triggerMatches('Bash(npm run typecheck*)','npm run lint'),false);
+  assert.equal(triggerMatches('Bash(npm run typecheck)','npm run typecheck'),true);
+  assert.equal(triggerMatches('Bash(.venv/bin/pytest tests -m "not slow"*)','.venv/bin/pytest tests -m "not slow"'),false);
+  assert.equal(triggerMatches('Bash(.venv/bin/pytest tests -m *)',".venv/bin/pytest tests -m 'not slow'"),true);
+  assert.equal(triggerMatches('Read(*)','npm test'),false);
+  // The legacy prefix form and a matcher with no `if`.
+  assert.equal(triggerMatches('Bash(npm run typecheck:*)','npm run typecheck'),true);
+  assert.equal(triggerMatches('Bash','anything at all'),true);
+  // A rule that would end before the program's first argument is not written.
+  assert.equal(triggerRule(".venv/bin/pytest 'tests/unit dir'"),null);
+  assert.equal(triggerRule('"quoted program" x'),null);
+});
+
+test('the hook matches a quoted argument exactly: spaces inside quotes count',()=>{
+  const config={checks:[{name:'test',kind:'test',qualification:'sandbox-v3',command:['.venv/bin/pytest','tests','-m','not slow'],inputs:['**']}]};
+  assert.equal(matchCheck('.venv/bin/pytest tests -m "not slow"',config,'redue.config.json','.',{},'/p'),'test');
+  assert.equal(matchCheck(".venv/bin/pytest  tests -m 'not slow'",config,'redue.config.json','.',{},'/p'),'test');
+  assert.equal(matchCheck('.venv/bin/pytest tests -m "not  slow"',config,'redue.config.json','.',{},'/p'),null);
+  assert.equal(matchCheck('.venv/bin/pytest tests -m "not\tslow"',config,'redue.config.json','.',{},'/p'),null);
 });

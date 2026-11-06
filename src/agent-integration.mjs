@@ -12,7 +12,7 @@ import {readCachedStatus} from './cached-state.mjs';
 import {samePath,withinPath} from './path-identity.mjs';
 import {processAlive} from './process-liveness.mjs';
 import os from 'node:os';
-import {fanoutRules,hookCommand,hookForms,redueFor,runsEntry,shellQuote as quote,statusLineCommand} from './claude-hook.mjs';
+import {fanoutRules,hookCommand,hookForms,redueFor,runsEntry,shellQuote as quote,statusLineCommand,triggerRule,uncoveredForms} from './claude-hook.mjs';
 
 const policy=fs.readFileSync(new URL('./agent-policy.md',import.meta.url),'utf8');
 const hosts={codex:{instruction:'AGENTS.md',skill:'.agents/skills/redue-verification/SKILL.md'},
@@ -22,13 +22,14 @@ const marker=host=>`.redue/agents/${host}.json`;
 // The hook needs a local REDUE install, so it lives in per-developer settings.
 const settingsPath='.claude/settings.local.json';
 const sameJson=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
-// One handler per exact command form; `if` keeps other Bash calls from starting Node.
+// One handler per command form (triggerRule: up to its first quote or other
+// character a rule cannot hold); `if` keeps other Bash calls from starting Node.
 // The hook waits for status up to 10 s; 15 s leaves room for starting Node.
 // Fan-out commands (turbo, nx, `pnpm -r`) and root scripts that run one get
 // prefix rules; the hook decides from the full command.
 function hookFor(config,relative,scripts,command=hookCommand){
   const rules=[...new Set([...hookForms(config,relative,scripts).flatMap(row=>[...row.forms,...row.local]),
-    ...fanoutRules(config,scripts)])].map(form=>`Bash(${form}*)`);
+    ...fanoutRules(config,scripts)].map(triggerRule).filter(Boolean))];
   return rules.length?{matcher:'Bash',hooks:rules.map(rule=>({type:'command',if:rule,command,timeout:15}))}:null;
 }
 // The same command on SessionStart starts the observer; it needs no check to match.
@@ -368,7 +369,7 @@ export async function agentCommand(args,{configFile,stateOverride,entry,cwd=proc
       if(value.state_access)console.log(`State access: ${value.state_access.status}${value.state_access.reason?' — '+value.state_access.reason:''}`);
       if(value.compatibility?.reason)console.log(`Observer compatibility: ${value.compatibility.reason}`);
       if(value.applicability?.requires_reassessment)console.log('Applicability: cached evidence needs reassessment; choose synchronization or execution deliberately.');
-      for(const row of value.hosts)console.log(`${row.host}: ${row.version||'host unavailable'}; integration ${row.integrity}; hook ${row.hook}${row.host==='claude'?`; session start ${row.session_start}; status line ${row.status_line}`:''}; behavioral validation NOT VERIFIED by doctor${row.reason?' — '+row.reason:''}`);
+      for(const row of value.hosts)console.log(`${row.host}: ${row.version||'host unavailable'}; integration ${row.integrity}; hook ${row.hook}${row.host==='claude'?`; session start ${row.session_start}; status line ${row.status_line}; trigger rules ${!row.trigger_rules?(row.hook==='absent'?'not installed':'not checked'):row.trigger_rules.covered?'match every check form (as REDUE models Claude Code)':`miss ${row.trigger_rules.count} check form${row.trigger_rules.count>1?'s':''}`}`:''}; behavioral validation NOT VERIFIED by doctor${row.reason?' — '+row.reason:''}`);
       console.log('Doctor does not start observers, execute checks, or prove agent behavior.');
       for(const warning of value.warnings)console.log(`Review: ${warning}`);
     }return value;
@@ -462,16 +463,28 @@ export async function doctor({configFile,stateOverride,entry,cwd,host}){
     if(executable){const launch=windowsLaunch([executable,'--version']);
       const out=spawnSync(launch.file,launch.args,{...launch.options,encoding:'utf8',timeout:2000,maxBuffer:4096,stdio:['ignore','pipe','pipe']});
       if(out.status===0)version=out.stdout.trim();}
-    let integration={installed:false,integrity:'unknown'},hook=name==='claude'?'absent':'none',sessionHook=hook,statusLineState=hook;
+    let integration={installed:false,integrity:'unknown'},hook=name==='claude'?'absent':'none',sessionHook=hook,statusLineState=hook,triggers=null;
     const installed=()=>hookRunnable(p.root);
     if(p)try{const record=saved(p.root,name);integration=inspect(p.root,name,record);
       if(name==='claude'&&hookInstalled(p.root))hook=installed();
       if(name==='claude'&&hookInstalled(p.root,'SessionStart'))sessionHook=installed();
+      // Every check's command forms must start the hook: a form no trigger
+      // rule matches runs plainly, neither skipped nor recorded.
+      if(name==='claude'&&hookInstalled(p.root)){
+        let scripts={};try{scripts=JSON.parse(read(p.root,'package.json')??'{}').scripts||{};}catch{}
+        // REDUE's entries for Bash: a hook without `if` starts for every command.
+        const rules=(parseSettings(read(p.root,settingsPath)).hooks?.PreToolUse||[]).filter(entry=>ownedHook(entry)&&['Bash','*','',undefined].includes(entry.matcher))
+          .flatMap(entry=>entry.hooks.map(h=>typeof h.if==='string'?h.if:'Bash'));
+        const missing=uncoveredForms(rules,p.config,p.relative,scripts);
+        triggers=missing.length?{covered:false,missing:missing.slice(0,10),count:missing.length}:{covered:true};
+        if(missing.length)value.warnings.push(`The hook's trigger rules do not match ${missing.length} command form${missing.length>1?'s':''} of configured checks `+
+          `(such as ${missing[0]}): those runs are neither skipped nor recorded. Run redue agent setup claude --apply again.`);
+      }
       if(name==='claude'){let local=null;try{local=parseSettings(read(p.root,settingsPath)).statusLine;}catch{}
         statusLineState=ownedStatusLine(local)?'installed':otherStatusLine(p.root)?'another status line':'absent';}
       value.warnings.push(...warnings(p.root,name,cwd));
     }catch(e){integration={installed:false,integrity:'conflict',reason:e.message};}
-    value.hosts.push({host:name,executable,version,...integration,hook,session_start:sessionHook,...name==='claude'?{status_line:statusLineState}:{},behavior_verified:false,
+    value.hosts.push({host:name,executable,version,...integration,hook,session_start:sessionHook,...name==='claude'?{status_line:statusLineState,trigger_rules:triggers}:{},behavior_verified:false,
       loading:name==='codex'?'AGENTS.md at session start; .agents/skills; overrides and size limits apply':
         'CLAUDE.md at session start; .claude/skills; managed/user policies and exclusions apply'});
   }
