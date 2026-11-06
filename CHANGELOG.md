@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.1.0-alpha.33 — 2026-11-06
+
+pytest checks follow the project's quick suite, and the hook starts for
+every check form.
+
+- **The pull-request workflow's narrowed suite.** For pytest, `init` now
+  reads `coverage run -m pytest`, quoted arguments (`-m "not slow"`) and
+  lines continued with a backslash, and leaves out options that only write
+  a report (`--junit-xml`, `--html`, `--durations`). When a workflow that
+  runs on pull requests narrows the suite (`-m`, `-k`, `--ignore`,
+  `--deselect`), its line wins. On project-lighter/lighter the test check is
+  now `pytest tests -m "not slow"` (4.7 s), not the full suite with its
+  CIFAR download: setup took 68 s instead of 10.5 minutes, and all three
+  checks qualify.
+- **Trigger rules that Claude Code matches.** A hook trigger rule with a
+  quote in it never started the hook in a real session, so such a check's
+  runs were neither skipped nor recorded. A rule now ends before the first
+  character outside letters, digits, spaces and `_./:=,+@-`, and the hook
+  matches the whole command itself, spaces inside quotes included.
+- **`redue agent doctor` checks the trigger rules.** `trigger_rules` says
+  whether the installed rules start the hook for every command form of
+  every configured check, as REDUE models Claude Code's matching, and names
+  the forms they miss.
+- **README.** Setup can take longer with a large environment or a slow
+  suite; trial runs stop at 5 minutes and `redue init --check test
+  --no-time-limit` tries a check without the limit.
+
+Measured: stranger sessions on lighter (alpha.32 code with these changes)
+skipped mypy and pytest after a docs edit and ran both through REDUE after
+a source change, 0 critical. Python product census: 0 critical; 17 test,
+15 typecheck and 22 lint checks qualify, as in alpha.32. `init` on the 13
+slowest census repos chose the same checks as alpha.32.
+
 ## 0.1.0-alpha.32 — 2026-11-05
 
 REDUE's status is now the point: what is verified on the code as it is
