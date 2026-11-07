@@ -37,7 +37,7 @@ for (const file of files) {
   const runs = path.basename(file) === 'result.json' ? path.dirname(path.dirname(file)) : path.dirname(file);
   // A REDUE session's group is its model with "+ REDUE".
   for (const row of data.rows ?? [data]) if (row.gap && !row.error) rows.push(regap({...row,
-    model: `${(data.model ?? row.gap.model)}${row.arm === 'redue' ? ' + REDUE' : row.arm === 'instructed' ? ' + instructions' : ''}`}, path.join(runs, row.id)));
+    model: `${(data.model ?? row.gap.model)}${row.arm === 'redue' ? ' + REDUE' : row.arm === 'instructed' ? ' + instructions' : row.arm === 'generic' ? ' + generic instruction' : ''}`}, path.join(runs, row.id)));
 }
 
 // Classifies the session's commands again with the current gap.mjs, so a fix
