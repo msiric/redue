@@ -10,6 +10,8 @@
 //          --keep (keep each run's clone)  --out DIR
 //          --profile (REDUE arm: write REDUE's timing trace to each run's profile.jsonl)
 //          --diag (REDUE arm: the wrapper logs what status said when the hook did not skip)
+//          --arms ...,instructed (no REDUE; CLAUDE.md asks the agent to run the repo's
+//                 typecheck, lint and tests on its final code before it finishes)
 //          --gap (the verification-gap study: records the tree each Bash command ran on,
 //                 runs the repo's checks on its pinned commit once, reruns a failing
 //                 final check once, and writes what the session verified; gap.mjs)
@@ -226,6 +228,19 @@ async function runSession(task, repo, arm, id) {
     const record = readJson(path.join(dir, '.redue', 'agents', 'claude.json'));
     row.setup.instruction_bytes = {block: Buffer.byteLength(record.block), skill: fs.statSync(path.join(dir, record.skill)).size};
     fs.renameSync(log, path.join(runDir, 'setup-calls.jsonl'));
+  }
+  // The instructed arm: what a project would write in CLAUDE.md instead of
+  // installing REDUE, with the commands the final checks run.
+  if (arm === 'instructed') {
+    // A check that already fails on the pinned commit is left out, as a project would.
+    const base = opt.gap ? baseChecks(repo) : {};
+    const commands = [['typecheck', 'the typecheck', repo.typecheck ?? 'npx tsc --noEmit'], ['lint', 'the linter', repo.lint], ['test', 'the tests', repo.test]]
+      .filter(([kind, , command]) => command && base[kind]?.pass !== false).map(([, what, command]) => [what, command]);
+    const file = path.join(dir, 'CLAUDE.md'), before = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+    fs.writeFileSync(file, `${before}${before && !before.endsWith('\n') ? '\n' : ''}${before ? '\n' : ''}## Before you finish\n\n` +
+      `Before you say you are done, run ${commands.map(([what, command]) => `${what} (\`${command}\`)`).join(', ').replace(/, ([^,]*)$/, ' and $1')} ` +
+      'on your final code, and fix anything that fails.\n');
+    row.setup.instruction = fs.readFileSync(file, 'utf8').slice(before.length);
   }
   const baseTree = treeOf(dir);
 

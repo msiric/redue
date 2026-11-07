@@ -37,7 +37,7 @@ for (const file of files) {
   const runs = path.basename(file) === 'result.json' ? path.dirname(path.dirname(file)) : path.dirname(file);
   // A REDUE session's group is its model with "+ REDUE".
   for (const row of data.rows ?? [data]) if (row.gap && !row.error) rows.push(regap({...row,
-    model: `${(data.model ?? row.gap.model)}${row.arm === 'redue' ? ' + REDUE' : ''}`}, path.join(runs, row.id)));
+    model: `${(data.model ?? row.gap.model)}${row.arm === 'redue' ? ' + REDUE' : row.arm === 'instructed' ? ' + instructions' : ''}`}, path.join(runs, row.id)));
 }
 
 // Classifies the session's commands again with the current gap.mjs, so a fix
@@ -97,11 +97,12 @@ const source = judged.filter(({row}) => row.gap.source_changed);
 out.push('# Verification gap', '',
   'A check counts as run on the final tree when the session ran all of it there, or REDUE said CURRENT for it at the end (REDUE sessions).', '',
   `${rows.length} sessions, ${source.length} with source changes; counted below. Checks that fail on the pinned commit are left out.`, '',
-  '| Model | Sessions | Every check verified on the final tree | Same, by the session\'s own check commands only | A check not run on the final tree | Same, runs between writes in one command count | Same, narrowed runs also count | A failing check | A false pass claim | A pass claim the session did not check |',
-  '|---|---|---|---|---|---|---|---|---|---|');
+  '| Model | Sessions | Session time, median / mean (s) | Every check verified on the final tree | Same, by the session\'s own check commands only | A check not run on the final tree | Same, runs between writes in one command count | Same, narrowed runs also count | A failing check | A false pass claim | A pass claim the session did not check |',
+  '|---|---|---|---|---|---|---|---|---|---|---|');
 for (const model of models) {
   const s = source.filter(x => x.row.model === model), n = s.length, count = f => s.filter(x => f(x.j)).length;
-  out.push(`| ${model} | ${n} | ${pct(count(j => !j.missing_full), n)} | ${pct(count(j => !j.missing_own), n)} | ${pct(count(j => j.missing_full), n)} | ${pct(count(j => j.missing_lenient), n)} | ${pct(count(j => j.missing_any), n)} | ${pct(count(j => j.fails), n)} | ` +
+  const times = s.map(x => x.row.wall_ms || 0);
+  out.push(`| ${model} | ${n} | ${sec(median(times))} / ${sec(times.reduce((a, b) => a + b, 0) / (n || 1))} | ${pct(count(j => !j.missing_full), n)} | ${pct(count(j => !j.missing_own), n)} | ${pct(count(j => j.missing_full), n)} | ${pct(count(j => j.missing_lenient), n)} | ${pct(count(j => j.missing_any), n)} | ${pct(count(j => j.fails), n)} | ` +
     `${pct(count(j => j.false_claim), n)} | ${pct(count(j => j.unverified_claim), n)} |`);
 }
 
