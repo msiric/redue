@@ -12,6 +12,7 @@
 //          --diag (REDUE arm: the wrapper logs what status said when the hook did not skip)
 //          --arms ...,instructed (no REDUE; CLAUDE.md asks the agent to run the repo's
 //                 typecheck, lint and tests on its final code before it finishes)
+//          --arms ...,generic (no REDUE; CLAUDE.md asks the same without naming commands)
 //          --gap (the verification-gap study: records the tree each Bash command ran on,
 //                 runs the repo's checks on its pinned commit once, reruns a failing
 //                 final check once, and writes what the session verified; gap.mjs)
@@ -240,6 +241,13 @@ async function runSession(task, repo, arm, id) {
     fs.writeFileSync(file, `${before}${before && !before.endsWith('\n') ? '\n' : ''}${before ? '\n' : ''}## Before you finish\n\n` +
       `Before you say you are done, run ${commands.map(([what, command]) => `${what} (\`${command}\`)`).join(', ').replace(/, ([^,]*)$/, ' and $1')} ` +
       'on your final code, and fix anything that fails.\n');
+    row.setup.instruction = fs.readFileSync(file, 'utf8').slice(before.length);
+  }
+  // The generic arm: the instruction a user would write without looking up the commands.
+  if (arm === 'generic') {
+    const file = path.join(dir, 'CLAUDE.md'), before = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+    fs.writeFileSync(file, `${before}${before && !before.endsWith('\n') ? '\n' : ''}${before ? '\n' : ''}` +
+      "Before you finish, run the project's typecheck, lint and tests.\n");
     row.setup.instruction = fs.readFileSync(file, 'utf8').slice(before.length);
   }
   const baseTree = treeOf(dir);
