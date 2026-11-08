@@ -33,7 +33,7 @@ import {checkoutRedue, claudeSession, evalDir, freshClone, harnessEnv, localDir,
 import {writeWrapper} from './wrapper.mjs';
 import {analyze} from './analyze.mjs';
 import {report} from './report.mjs';
-import {docLike, gapOf} from './gap.mjs';
+import {checksOf, docLike, gapOf, segments} from './gap.mjs';
 entryPoint(import.meta, {ci: true});
 
 const {values: opt} = parseArgs({options: {
@@ -84,19 +84,21 @@ function verifyInPlace(dir, tree, command, tests = false) {
 // Plain tsc, the repo's lint once, or its tests three times, on a tree an
 // answer was about, with the run's node_modules. Tests that disagree across
 // the three runs are flaky, not a REDUE error.
-function verifyTree(dir, tree, scratch, testCommand = null, lintCommand = null) {
+function verifyTree(dir, tree, scratch, repo, testCommand = null, lintCommand = null) {
   fs.rmSync(scratch, {recursive: true, force: true});
   fs.mkdirSync(scratch, {recursive: true});
   must(sh('sh', ['-c', `git archive ${tree} | tar -x -C "${scratch}"`], {cwd: dir}), 'git archive');
   // Copy-on-write clone where the filesystem supports it.
   must(sh('cp', [process.platform === 'darwin' ? '-cR' : '-a', ...(process.platform === 'linux' ? ['--reflink=auto'] : []),
     path.join(dir, 'node_modules'), path.join(scratch, 'node_modules')]), 'copy node_modules');
+  // The files the clone got from install scripts (freshClone).
+  if (repo.afterInstall) must(sh('sh', ['-c', repo.afterInstall], {cwd: scratch, timeout: 900_000}), repo.afterInstall);
   let result;
   if (lintCommand) result = plainTests(scratch, lintCommand);
   else if (testCommand) {
     const runs = [0, 1, 2].map(() => plainTests(scratch, testCommand).pass);
     result = {pass: runs.every(Boolean) ? true : runs.some(Boolean) ? null : false, runs};
-  } else result = plainTsc(scratch);
+  } else result = repo.typecheck ? plainTests(scratch, repo.typecheck) : plainTsc(scratch);
   fs.rmSync(scratch, {recursive: true, force: true});
   return result;
 }
@@ -193,6 +195,11 @@ async function runSession(task, repo, arm, id) {
     const step = (label, ...argv) => {
       const r = must(sh(path.join(bin, 'redue'), argv, {cwd: dir, env, timeout: argv[0] === 'setup' ? 45 * 60_000 : undefined}), `redue ${argv.join(' ')}`);
       row.setup[label] = r.ms;
+      // What setup said (which checks qualify and why) and the config it wrote.
+      if (argv[0] === 'setup') {
+        fs.writeFileSync(path.join(runDir, 'setup-output.txt'), r.stdout + r.stderr);
+        if (fs.existsSync(path.join(dir, 'redue.config.json'))) fs.copyFileSync(path.join(dir, 'redue.config.json'), path.join(runDir, 'redue.config.json'));
+      }
     };
     if (opt.gap) {
       // --gap: set up as a user would (every check init finds, the hooks, the
@@ -360,16 +367,22 @@ async function runSession(task, repo, arm, id) {
     testScript: repo.testScript, lintScript: repo.lintScript, check});
   const verified = new Map();
   // pass: true, false, or null for tests that disagreed with each other.
-  const tscOn = tree => {
-    if (!verified.has(tree)) verified.set(tree, repo.install ? verifyInPlace(dir, tree, check === 'lint' ? repo.lint : claimed, check === 'test') :
-      verifyTree(dir, tree, path.join(work, 'tree-check'), check === 'test' ? repo.test : null, check === 'lint' ? repo.lint : null));
-    return verified.get(tree).pass;
+  // `kind`: the check to run; the task's own check unless a --gap skip names another.
+  const tscOn = (tree, kind = check) => {
+    const key = `${kind} ${tree}`;
+    if (!verified.has(key)) verified.set(key, repo.install ? verifyInPlace(dir, tree, kind === 'lint' ? repo.lint : kind === 'test' ? repo.test : claimed, kind === 'test') :
+      verifyTree(dir, tree, path.join(work, 'tree-check'), repo, kind === 'test' ? repo.test : null, kind === 'lint' ? repo.lint : null));
+    return verified.get(key).pass;
   };
-  const plain = {test: 'plain tests', lint: 'plain lint'}[check] ?? 'plain tsc';
-  const flaky = tree => check === 'test' && verified.get(tree)?.runs && verified.get(tree).pass === null;
+  const plainOf = kind => ({test: 'plain tests', lint: 'plain lint'}[kind] ?? 'plain tsc'), plain = plainOf(check);
+  const flaky = (tree, kind = check) => kind === 'test' && verified.get(`${kind} ${tree}`)?.runs && verified.get(`${kind} ${tree}`).pass === null;
   // A skipped check must pass when it runs plainly on the tree it was skipped on.
-  row.skip_checks = row.metrics.hook.decisions.filter(d => d.decision === 'deny').map(d =>
-    ({command: d.command, tree: d.tree, tsc_pass: d.tree ? tscOn(d.tree) : null, flaky: d.tree ? flaky(d.tree) : false}));
+  // Under --gap the skipped command says which check it was.
+  const kindOf = command => (opt.gap ? segments(command).flatMap(s => Object.keys(checksOf(s, repo)))[0] : null) ?? check;
+  row.skip_checks = row.metrics.hook.decisions.filter(d => d.decision === 'deny').map(d => {
+    const kind = kindOf(d.command);
+    return {command: d.command, kind, tree: d.tree, tsc_pass: d.tree ? tscOn(d.tree, kind) : null, flaky: d.tree ? flaky(d.tree, kind) : false};
+  });
   // A CURRENT answer must match a plain run on the tree it was given for.
   row.sync_checks = row.metrics.redue_cli.filter(c => c.status).map(c => {
     const answer = c.status.find(s => s.name === check);
@@ -383,7 +396,7 @@ async function runSession(task, repo, arm, id) {
     ...(row.final_status?.freshness === 'CURRENT' && row.final_status.result === 'PASS' && finalPass === false ?
       [`final status CURRENT/PASS but ${plain} fail`] : []),
     ...row.skip_checks.filter(s => s.tsc_pass !== true && !s.flaky).map(s => s.tsc_pass === false ?
-      `skipped "${s.command}" but ${plain} fail on that tree` : `skipped "${s.command}" but its tree could not be checked`),
+      `skipped "${s.command}" but ${plainOf(s.kind)} fail on that tree` : `skipped "${s.command}" but its tree could not be checked`),
     ...row.sync_checks.filter(s => s.freshness === 'CURRENT' && !s.flaky && (s.tsc_pass === null || s.tsc_pass !== (s.result === 'PASS'))).map(s =>
       s.tsc_pass === null ? `"${s.argv}" said CURRENT but its tree could not be checked` :
         `"${s.argv}" said CURRENT/${s.result} but ${plain} ${s.tsc_pass ? 'pass' : 'fail'} on that tree`),

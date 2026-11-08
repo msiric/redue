@@ -7,7 +7,16 @@
       "script": "test:typescript",
       "test": "npm run test:javascript --silent",
       "why": "Largest qualifying npm repo with TypeScript 5.9: 777 TS files, mostly generated API types. Plain tsc 13 s on a GitHub Linux runner (4.4 s on an M4 Mac). Jest suite passes in about 40 s in CI.",
-      "testScript": "test:javascript"
+      "testScript": "test:javascript",
+      "gapAliases": [
+        {
+          "match": "^npm (run )?test(\\s|$)",
+          "checks": [
+            "typecheck",
+            "test"
+          ]
+        }
+      ]
     },
     {
       "name": "cheeriojs/cheerio",

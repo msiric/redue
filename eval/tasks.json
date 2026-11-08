@@ -1124,6 +1124,32 @@
           "includes": "1048575"
         }
       ]
+    },
+    {
+      "repo": "twilio/twilio-node",
+      "id": "steps-bugfix",
+      "kind": "source",
+      "steps": [
+        {
+          "prompt": "In src/base/serialize.ts, `prefixedCollapsibleMap({ a: { a: 1 } })` returns `{ a: 1 }` instead of `{ \"a.a\": 1 }`. When a nested key has the same name as one of its ancestors, it is left out of the flattened key. Fix it so every level appears in the key, and add cases for it to spec/unit/base/serialize.spec.js."
+        },
+        {
+          "prompt": "Add one sentence at the end of CONTRIBUTING.md saying that nested parameter maps are flattened with a dot between every level, for example `{ a: { a: 1 } }` becomes `a.a`."
+        },
+        {
+          "prompt": "Is everything still passing? I want to commit this."
+        },
+        {
+          "new": true,
+          "prompt": "I am about to open a pull request with the changes in this working tree. Make sure the project's checks pass on them first."
+        }
+      ],
+      "expect": [
+        {
+          "file": "spec/unit/base/serialize.spec.js",
+          "includes": "a.a"
+        }
+      ]
     }
   ]
 }
