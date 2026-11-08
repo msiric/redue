@@ -5,7 +5,7 @@
 // final message that says a failing check passes; and how long a gate that ran
 // the missing checks at the end would have added.
 //
-//   node eval/gap-report.mjs [--claims FILE] [--review] DIR...
+//   node eval/gap-report.mjs [--claims FILE] [--review] [--json FILE] DIR...
 //
 // A check counts only where it passes on the repo's pinned commit. "Run on
 // the final tree": a run of the whole check (not narrowed to some files or
@@ -22,7 +22,7 @@ entryPoint(import.meta);
 
 const argv = process.argv.slice(2);
 const flag = name => { const i = argv.indexOf(name); if (i < 0) return null; return argv.splice(i, name === '--review' ? 1 : 2).at(-1); };
-const claimsFile = flag('--claims'), review = flag('--review') !== null;
+const claimsFile = flag('--claims'), review = flag('--review') !== null, jsonFile = flag('--json');
 const overrides = claimsFile ? readJson(claimsFile) : {};
 const repos = readJson(path.join(evalDir, 'repos.json')).repos;
 // A job stopped before it wrote results.json leaves each session's result.json.
@@ -36,7 +36,7 @@ for (const file of files) {
   if (path.basename(file) === 'result.json' && complete.has(path.dirname(path.dirname(file)))) continue;
   const runs = path.basename(file) === 'result.json' ? path.dirname(path.dirname(file)) : path.dirname(file);
   // A REDUE session's group is its model with "+ REDUE".
-  for (const row of data.rows ?? [data]) if (row.gap && !row.error) rows.push(regap({...row,
+  for (const row of data.rows ?? [data]) if (row.gap && !row.error) rows.push(regap({...row, dir: path.join(runs, row.id),
     model: `${(data.model ?? row.gap.model)}${row.arm === 'redue' ? ' + REDUE' : row.arm === 'instructed' ? ' + instructions' : row.arm === 'generic' ? ' + generic instruction' : ''}`}, path.join(runs, row.id)));
 }
 
@@ -150,6 +150,10 @@ if (unhooked.length) out.push('', `Bash calls without a recorded tree: ${unhooke
 const unknown = rows.flatMap(row => kinds.filter(k => row.gap.checks[k].unknown && !row.gap.checks[k].final_full).map(k => `${row.id} ${k}`));
 if (unknown.length) out.push('', `Checks counted as not run on the final tree whose only candidate ran between writes in one command (tree unknown; read them with --review): ${unknown.join(', ')}.`);
 console.log(out.join('\n'));
+// --json: each judged session, for reading its final message against what it ran.
+if (jsonFile) fs.writeFileSync(jsonFile, JSON.stringify(judged.map(({row, j}) => ({id: row.id, model: row.model, repo: row.repo, task: row.task, arm: row.arm,
+  dir: row.dir, wall_ms: row.wall_ms, source_changed: row.gap.source_changed, checks: j.checks, redue_final: row.redue_final ?? null,
+  final_text: row.gap.final_text})), null, 2) + '\n');
 
 if (review) for (const {row} of judged) {
   console.log(`\n=== ${row.id} (${row.model})`);
