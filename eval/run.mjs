@@ -120,9 +120,11 @@ async function runOne(task, repo, arm, index, rep) {
 }
 
 // The flags every session gets; only the prompt and turn limit differ. `hook`:
-// a PreToolUse command for every tool call (--gap's tree-hook.mjs).
-const sessionArgs = (prompt, maxTurns, hook = null) => ['-p', prompt, '--model', opt.model, '--max-turns', String(maxTurns),
-  '--output-format', 'stream-json', '--verbose', '--no-session-persistence',
+// a PreToolUse command for every tool call (--gap's tree-hook.mjs). `resume`:
+// the session a task's next step continues; a task with steps keeps its
+// sessions so a step can resume one.
+const sessionArgs = (prompt, maxTurns, hook = null, {resume = null, persist = false} = {}) => ['-p', prompt, '--model', opt.model, '--max-turns', String(maxTurns),
+  ...resume ? ['--resume', resume] : [], '--output-format', 'stream-json', '--verbose', ...persist ? [] : ['--no-session-persistence'],
   '--setting-sources', 'project,local', '--settings', JSON.stringify({autoMemoryEnabled: false,
     ...hook ? {hooks: {PreToolUse: [{matcher: '*', hooks: [{type: 'command', command: hook}]}]}} : {}}),
   '--strict-mcp-config', '--mcp-config', JSON.stringify({mcpServers: {}}),
@@ -145,6 +147,14 @@ function baseChecks(repo) {
   fs.rmSync(dir, {recursive: true, force: true});
   baseRuns.set(repo.name, result);
   return result;
+}
+
+// The session id a stream-json transcript names, or null.
+function sessionIdOf(transcript) {
+  for (const line of transcript.split('\n')) {
+    try { const message = JSON.parse(line); if (typeof message.session_id === 'string') return message.session_id; } catch {}
+  }
+  return null;
 }
 
 // The checks of the `redue status --sync --json` answer in a session's
@@ -252,26 +262,42 @@ async function runSession(task, repo, arm, id) {
   }
   const baseTree = treeOf(dir);
 
-  const treeLog = path.join(runDir, 'trees.jsonl');
-  const hook = opt.gap ? [process.execPath, path.join(evalDir, 'tree-hook.mjs'), treeLog, dir].map(a => JSON.stringify(a)).join(' ') : null;
-  const args = sessionArgs(task.prompt, opt['max-turns'], hook);
-  fs.writeFileSync(path.join(runDir, 'session.json'), JSON.stringify({cwd: dir, args}, null, 2) + '\n');
-  const session = await claudeSession(args, {cwd: dir, env: {...env, ...sessionAuth()}, timeout: 45 * 60_000});
-  if (session.rateLimited) throw new RateLimited(session.rateLimited);
-  row.wall_ms = session.ms;
-  row.exit = session.status ?? session.signal;
-  fs.writeFileSync(path.join(runDir, 'transcript.jsonl'), session.stdout);
-  if (session.stderr) fs.writeFileSync(path.join(runDir, 'stderr.txt'), session.stderr);
-
-  // --gap: REDUE's answer for every check at the end, asked from the agent's
-  // shell (a sandboxed check compares the environment it runs in).
-  if (opt.gap && arm === 'redue') {
-    const asked = await claudeSession(sessionArgs('Run exactly this command from the project root, once, as a command of its own with nothing added before or after it, then reply with one word, done: redue status --sync --json', 5),
-      {cwd: dir, env: {...env, ...sessionAuth()}, timeout: 15 * 60_000});
-    fs.writeFileSync(path.join(runDir, 'final-status-transcript.jsonl'), asked.stdout);
-    if (asked.rateLimited) throw new RateLimited(asked.rateLimited);
-    row.redue_final = finalRedueStatus(asked.stdout);
+  // A task with `steps` runs them one after another in the same checkout:
+  // each resumes the session before it, or starts a new one ("new": true), as
+  // a person's next prompt or next session would. Each step keeps its own
+  // transcript, tree log and, in the REDUE arm, REDUE's answer at its end.
+  // A one-step task keeps the files' plain names.
+  const steps = task.steps ?? [{prompt: task.prompt}];
+  const suffix = n => steps.length > 1 ? `-${n + 1}` : '';
+  row.steps = [];
+  let sessionId = null;
+  for (const [n, step] of steps.entries()) {
+    const treeLog = path.join(runDir, `trees${suffix(n)}.jsonl`);
+    const hook = opt.gap ? [process.execPath, path.join(evalDir, 'tree-hook.mjs'), treeLog, dir].map(a => JSON.stringify(a)).join(' ') : null;
+    const args = sessionArgs(step.prompt, opt['max-turns'], hook, {resume: n && !step.new ? sessionId : null, persist: steps.length > 1});
+    fs.writeFileSync(path.join(runDir, `session${suffix(n)}.json`), JSON.stringify({cwd: dir, args}, null, 2) + '\n');
+    const session = await claudeSession(args, {cwd: dir, env: {...env, ...sessionAuth()}, timeout: 45 * 60_000});
+    if (session.rateLimited) throw new RateLimited(session.rateLimited);
+    fs.writeFileSync(path.join(runDir, `transcript${suffix(n)}.jsonl`), session.stdout);
+    if (session.stderr) fs.writeFileSync(path.join(runDir, `stderr${suffix(n)}.txt`), session.stderr);
+    sessionId = sessionIdOf(session.stdout) ?? sessionId;
+    const stepRow = {wall_ms: session.ms, exit: session.status ?? session.signal, new: n === 0 || Boolean(step.new), tree: treeOf(dir)};
+    // --gap: REDUE's answer for every check at the step's end, asked from the
+    // agent's shell (a sandboxed check compares the environment it runs in).
+    if (opt.gap && arm === 'redue') {
+      const asked = await claudeSession(sessionArgs('Run exactly this command from the project root, once, as a command of its own with nothing added before or after it, then reply with one word, done: redue status --sync --json', 5),
+        {cwd: dir, env: {...env, ...sessionAuth()}, timeout: 15 * 60_000});
+      fs.writeFileSync(path.join(runDir, `final-status-transcript${suffix(n)}.jsonl`), asked.stdout);
+      if (asked.rateLimited) throw new RateLimited(asked.rateLimited);
+      stepRow.redue_final = finalRedueStatus(asked.stdout);
+    }
+    row.steps.push(stepRow);
   }
+  row.wall_ms = row.steps.reduce((sum, step) => sum + step.wall_ms, 0);
+  row.exit = row.steps.at(-1).exit;
+  if (row.steps.at(-1).redue_final !== undefined) row.redue_final = row.steps.at(-1).redue_final;
+  const transcriptFile = path.join(runDir, `transcript${suffix(steps.length - 1)}.jsonl`);
+  const treeLog = path.join(runDir, `trees${suffix(steps.length - 1)}.jsonl`);
   // Independent checks on the final state.
   if (arm === 'redue') {
     row.final_status = checkStatus(entry, dir, check, env);
@@ -310,14 +336,26 @@ async function runSession(task, repo, arm, id) {
       ...row.lint ? {lint: {...row.lint, ...row.lint.pass ? {} : {again: again(repo.lint)}}} : {},
     };
     row.base_checks = baseChecks(repo);
-    const same = tree => tree === finalTree ||
-      sh('git', ['diff', '--name-only', tree, finalTree], {cwd: dir}).stdout.split('\n').filter(Boolean).every(docLike);
-    row.gap = gapOf({transcript: path.join(runDir, 'transcript.jsonl'), treeLog, repo, same, finalTree});
+    // Whether a tree equals `target` outside documentation files.
+    const sameAs = target => tree => tree === target ||
+      sh('git', ['diff', '--name-only', tree, target], {cwd: dir}).stdout.split('\n').filter(Boolean).every(docLike);
+    const same = sameAs(finalTree);
+    row.gap = gapOf({transcript: transcriptFile, treeLog, repo, same, finalTree});
+    // Each step against the tree it ended on: what it ran there, and whether
+    // that tree's checks pass (the final tree's, when the two differ in
+    // documentation at most; otherwise run on that tree).
+    if (steps.length > 1) for (const [n, step] of row.steps.entries()) {
+      step.gap = gapOf({transcript: path.join(runDir, `transcript${suffix(n)}.jsonl`), treeLog: path.join(runDir, `trees${suffix(n)}.jsonl`),
+        repo, same: sameAs(step.tree), finalTree: step.tree});
+      step.source_changed = sh('git', ['diff', '--name-only', n ? row.steps[n - 1].tree : baseTree, step.tree], {cwd: dir}).stdout
+        .split('\n').filter(Boolean).some(file => !docLike(file));
+      step.final_checks = same(step.tree) ? row.final_checks : null;
+    }
     row.gap.source_changed = row.changed_files.some(file => !docLike(file));
     row.gap.model = opt.model;
   }
 
-  row.metrics = analyze({transcript: path.join(runDir, 'transcript.jsonl'), wrapperLog: log, script: repo.script,
+  row.metrics = analyze({transcript: transcriptFile, wrapperLog: log, script: repo.script,
     testScript: repo.testScript, lintScript: repo.lintScript, check});
   const verified = new Map();
   // pass: true, false, or null for tests that disagreed with each other.
