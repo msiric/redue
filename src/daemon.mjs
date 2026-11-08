@@ -412,7 +412,7 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       invocation:r?.invocation||null,target_provenance:r?.target||null,
       ...(r?.verificationRecipe?{verification_recipe:r.verificationRecipe}:{}),
       ...(r?.recipe?{recipe:r.recipe}:{}),
-      coverage_at_run:r?.coverage||null,declared_inputs_match:null,reuse_eligible:false,
+      coverage_at_run:r?.coverage||null,declared_inputs_match:null,reuse_eligible:false,needs_run:false,
       ...(r?.runFacts?.length?{run_facts:r.runFacts.length}:{})};
     if(receiptStateError){item.reason=receiptStateError;return item;}
     if(!healthy||planning||recovering||index.unavailable){item.reason=
@@ -439,7 +439,7 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       // Recording-only (no qualification contract, inputs it cannot resolve):
       // no run can make it CURRENT. A qualified check's unresolved inputs can
       // be fixed, so it stays due.
-      if(!row.plan.qualification)item.verifiable=false;else item.needs_run=true;
+      if(!row.plan.qualification)item.verifiable=false;
       return item;
     }
     if(row.probeError){item.reason=row.probeError;return item;}
@@ -454,13 +454,17 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
     if(process.platform==='win32'&&!synchronizedFilesystem){
       item.reason='Windows cached observation requires a synchronized content read';return item;}
     if(!r){item.needs_run=true;return item;}
-    if(!r.coverage?.qualified){item.reason='coverage unresolved when execution was recorded';item.needs_run=true;return item;}
+    // A run that did not finish or record in full needs another once an
+    // input changed after it: the checkpoint's revision counts external
+    // roots too, and another observer generation counts as changed.
+    const changedSinceRun=r.observerGeneration!==generation||r.endRevision!==combinedSummary(name).revision;
+    if(!r.coverage?.qualified){item.reason='coverage unresolved when execution was recorded';item.needs_run=changedSinceRun;return item;}
     if(r.invocation?.status!=='exited'){
-      item.reason=`invocation ${r.invocation?.status||'capture unavailable'}`;item.needs_run=true;return item;}
+      item.reason=`invocation ${r.invocation?.status||'capture unavailable'}`;item.needs_run=changedSinceRun;return item;}
     if(!['executed','failed','cache_hit','direct_executed'].includes(r.target?.status)){
-      item.reason=`target execution ${r.target?.status||'unavailable'}`;item.needs_run=true;return item;}
+      item.reason=`target execution ${r.target?.status||'unavailable'}`;item.needs_run=changedSinceRun;return item;}
     if(r.target.status==='failed'&&result!=='FAIL'){
-      item.reason='target failure conflicts with outer invocation outcome';item.needs_run=true;return item;}
+      item.reason='target failure conflicts with outer invocation outcome';item.needs_run=changedSinceRun;return item;}
     // The same inputs changed during its last two passing runs, and nothing
     // else changed since: no run of it can be confirmed. Anything else
     // changing makes it due again.
@@ -469,10 +473,7 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       item.reason=`the same inputs changed during its last two runs (${r.selfChange.files.slice(0,5).join(', ')}${r.selfChange.files.length>5?' and more':''}), so no result of it can be confirmed; it is due again when anything else changes`;
       return item;}
     if(!r.stable){const issues=r.checkpoint?.issues?.length?` (${r.checkpoint.issues.join('; ')})`:'';
-      // Needs a run when an input changed after the unsettled run ended: the
-      // checkpoint's revision counts external roots too, and another observer
-      // generation counts as changed.
-      item.needs_run=r.observerGeneration!==generation||r.endRevision!==combinedSummary(name).revision;
+      item.needs_run=changedSinceRun;
       // A sandboxed run that could not start, whose result the sandbox changed, or whose rerun outside it did not finish, says so alone.
       const sandbox=r.checkpoint?.issues?.length&&r.checkpoint.issues.every(issue=>/^the (?:sandbox changed|run was not sandboxed|run outside the sandbox|network supervisor)/.test(issue));
       item.reason=sandbox?r.checkpoint.issues.join('; '):`inputs changed during execution or observation gap${issues}`;return item;}

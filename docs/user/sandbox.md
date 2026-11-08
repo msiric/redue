@@ -225,7 +225,9 @@ whole checkout (`sandbox-v1`), a run that rewrites git-ignored files with the
 bytes they already had (a build from unchanged sources) is CURRENT: what it
 read is what is there now. A run that rewrites them with other bytes (the first
 run after a source change) is UNVERIFIED, since it may have read the old ones;
-the next run is CURRENT.
+the next run is CURRENT. A build that writes other bytes on every run (a
+timestamp, a build ID) never settles: after two such runs the check is NOT
+VERIFIABLE until another input changes.
 
 ## What REDUE claims
 

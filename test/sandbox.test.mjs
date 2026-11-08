@@ -869,8 +869,10 @@ test('a sandboxed command killed by a signal is reported as killed, on both plat
   assert.equal(JSON.parse(run.stdout.trim().split('\n').at(-1)).invocation,'interrupted');
   const status=row(root,state,'typecheck');
   assert.equal(status.freshness,'UNVERIFIED');assert.match(status.reason,/invocation interrupted/);
-  // A run is what it needs: Claude Code's end-of-turn check counts it as due.
-  assert.equal(status.needs_run,true);
+  // Another run fails the same way until an input changes; then a run is what it needs.
+  assert.equal(status.needs_run,false);
+  write(root,'src/fx/__init__.py','value = 2\n');
+  assert.equal(row(root,state,'typecheck').needs_run,true);
 });
 
 test('a Node script the general recipe also takes is sandboxed; where the sandbox cannot start, the general recipe records it',{skip:unsupported},t=>{

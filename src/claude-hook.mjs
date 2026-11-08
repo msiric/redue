@@ -728,8 +728,9 @@ export async function turnEnd(input,{entry,timeout=10000,invoke=null}){
   // during its run) is not the agent's to fix, and one no run can confirm
   // (verifiable false) is never due.
   const current=Array.isArray(turn?.current)?turn.current:[];
+  // An observer from before needs_run sends none: its UNVERIFIED checks count, as they did.
   const due=status.checks.filter(row=>row?.verifiable!==false&&(row?.freshness==='STALE'||
-    row?.freshness==='UNVERIFIED'&&(current.includes(row.name)||row.needs_run===true)));
+    row?.freshness==='UNVERIFIED'&&(current.includes(row.name)||row.needs_run!==false)));
   if(!due.length)return null;
   const counted=Number.isSafeInteger(turn?.events)&&Number.isSafeInteger(status.observation.events);
   const changed=counted&&(status.observation.events!==turn.events||status.observation.generation!==turn.generation)||
