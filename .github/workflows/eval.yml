@@ -6,7 +6,8 @@ name: Agent A/B eval (manual)
 # with CLAUDE_CODE_OAUTH_TOKEN_ALT, another account's, when `account` is alt.
 # `ci-replay` runs eval/ci-replay.mjs over eval/ci-replay-repos.json in
 # shards, and `install-spike` runs eval/install-spike.mjs twice per shard, on
-# two fresh runners.
+# two fresh runners. Session runs queue one at a time per `lane` (1 to 3), so
+# at most three go at once.
 on:
   workflow_dispatch:
     inputs:
@@ -44,11 +45,17 @@ on:
         type: choice
         options: [main, alt]
         default: main
+      lane:
+        description: Session lane; runs in different lanes go at the same time (at most 3)
+        required: false
+        type: choice
+        options: ['1', '2', '3']
+        default: '1'
 permissions:
   contents: read
 concurrency:
   # Census passes of the other ecosystem or on other runners may overlap.
-  group: agent-eval-${{ inputs.command == 'census' && format('census-{0}-{1}', contains(inputs.args, '--python') && 'python' || 'ts', inputs.os) || (inputs.command == 'ci-replay' || inputs.command == 'install-spike') && inputs.command || 'sessions' }}
+  group: agent-eval-${{ inputs.command == 'census' && format('census-{0}-{1}', contains(inputs.args, '--python') && 'python' || 'ts', inputs.os) || (inputs.command == 'ci-replay' || inputs.command == 'install-spike') && inputs.command || format('sessions-{0}', inputs.lane) }}
   cancel-in-progress: false
 jobs:
   eval:
