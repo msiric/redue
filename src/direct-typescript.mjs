@@ -162,23 +162,27 @@ export function directContextHash(compiler,node){
   return hash(JSON.stringify({interpretation:directInterpretation,compiler:compiler.digest,
     entry:compiler.entry,node}));
 }
-// Vitest writes its results under node_modules/.vite/vitest at every run. The
-// recipe does not observe them. A compiler that asks about anything under
-// node_modules/.vite, is told a path there (realpath), or lists node_modules,
+// Vitest writes its results at every run under node_modules/.vite/vitest,
+// or node_modules/.vitest (before Vitest 0.30), or a cache folder a project
+// names node_modules/.vitest-cache. The recipe does not observe them. A
+// compiler that asks about anything under node_modules/.vite, .vitest or
+// .vitest-cache, is told a path there (realpath), or lists node_modules,
 // could see them, so its result is UNVERIFIED.
-export const directInstalledInputs=Object.freeze(['node_modules/**','!node_modules/.vite/vitest/**']);
+export const directInstalledInputs=Object.freeze(['node_modules/**','!node_modules/.vite/vitest/**','!node_modules/.vitest/**','!node_modules/.vitest-cache/**']);
+const vitestCaches=['.vite','.vitest','.vitest-cache'];
 const listings=new Set(['readdir','listing','directories','entries','readDirectory']);
 // The first path of [kind, file, answer] questions that does, or null. Kinds
 // are a recorded run's (readdir) or a probe's. Compared without case: a
-// case-insensitive mount reaches .vite under any spelling.
+// case-insensitive mount reaches a cache under any spelling.
 export function viteCacheQuestion(root,questions){
   const fold=value=>normalizedPath(value).toLowerCase();
-  const modules=fold(path.join(root,'node_modules')),cache=path.join(modules,'.vite');
+  const modules=fold(path.join(root,'node_modules')),caches=vitestCaches.map(dir=>path.join(modules,dir));
+  const cached=at=>caches.some(cache=>withinPath(at,cache));
   for(const [kind,file,answer] of questions){
     if(typeof file!=='string')continue;
     const at=fold(file);
-    if(withinPath(at,cache)||at===modules&&listings.has(kind))return file;
-    if(kind==='realpath'&&typeof answer==='string'&&withinPath(fold(answer),cache))return answer;
+    if(cached(at)||at===modules&&listings.has(kind))return file;
+    if(kind==='realpath'&&typeof answer==='string'&&cached(fold(answer)))return answer;
   }
   return null;
 }

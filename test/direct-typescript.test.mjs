@@ -176,13 +176,17 @@ test('a relevant edit is STALE without a full probe; reverting it is CURRENT aga
   assert.equal(back.freshness,'CURRENT',JSON.stringify(back));assert.equal(back.reuse_eligible,true);
   assert.equal(back.invocation.runId,first.invocation.runId);
 });
-test('Vitest results under node_modules/.vite/vitest are not inputs; a compiler that asks about .vite is UNVERIFIED',async t=>{
+test('Vitest results under node_modules/.vite/vitest, .vitest and .vitest-cache are not inputs; a compiler that asks about them is UNVERIFIED',async t=>{
   const {root,state}=project(t);init(root,state);good(root,state,'start');good(root,state,'run','typecheck');
   const first=sync(root,state).checks[0];assert.equal(first.freshness,'CURRENT',JSON.stringify(first));
   // A Vitest run after an install: it creates .vite and writes its results.
   put(path.join(root,'node_modules/.vite/vitest/da39a3ee/results.json'),'{"version":"3.2.4","results":{}}');
   const kept=sync(root,state).checks[0];
   assert.equal(kept.freshness,'CURRENT',JSON.stringify(kept));assert.equal(kept.invocation.runId,first.invocation.runId);
+  // A cache folder a project names for Vitest, and older Vitest's.
+  put(path.join(root,'node_modules/.vitest-cache/99918560a8e4'),'{}');
+  put(path.join(root,'node_modules/.vitest/results.json'),'{}');
+  assert.equal(sync(root,state).checks[0].freshness,'CURRENT');
   // Anything else under .vite is still an installed input.
   put(path.join(root,'node_modules/.vite/deps/react.js'),'export {};\n');
   const stale=sync(root,state).checks[0];
@@ -197,10 +201,12 @@ test('Vitest results under node_modules/.vite/vitest are not inputs; a compiler 
   put(path.join(root,'src/main.ts'),'export const value: number = 1;\n');good(root,state,'run','typecheck');
   assert.equal(sync(root,state).checks[0].freshness,'CURRENT');
 });
-test('a question about node_modules/.vite or a listing of node_modules is found',()=>{
+test('a question about node_modules/.vite, .vitest or .vitest-cache or a listing of node_modules is found',()=>{
   const root=path.resolve('fixture-root'),modules=path.join(root,'node_modules');
   assert.equal(viteCacheQuestion(root,[['readFile',path.join(root,'src/a.ts')],['readdir',path.join(modules,'@types')],
-    ['stat',path.join(modules,'.vitest')],['realpath',modules]]),null);
+    ['stat',path.join(modules,'.bin')],['stat',path.join(modules,'.cache')],['stat',path.join(modules,'.vitest-x')],['realpath',modules]]),null);
+  for(const dir of ['.vitest','.vitest-cache'])
+    assert.equal(viteCacheQuestion(root,[['readFile',path.join(modules,dir,'a.d.ts')]]),path.join(modules,dir,'a.d.ts'));
   assert.equal(viteCacheQuestion(root,[['stat',path.join(modules,'.vite')]]),path.join(modules,'.vite'));
   assert.equal(viteCacheQuestion(root,[['fileExists',path.join(modules,'.vite/vitest/x.d.ts'),false]]),path.join(modules,'.vite/vitest/x.d.ts'));
   for(const kind of ['readdir','listing','directories','entries'])assert.equal(viteCacheQuestion(root,[[kind,modules]]),modules);

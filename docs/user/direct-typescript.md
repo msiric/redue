@@ -142,13 +142,17 @@ changes invalidate or withdraw applicability normally. Installed files are obser
 by identity, so reinstalling identical packages or restoring an installed file's
 bytes also needs one rerun (see [configuration](configuration.md)).
 
-Vitest writes its results under `node_modules/.vite/vitest` at every run.
-They are not inputs, so a test run leaves the typecheck CURRENT. Everything
-else under `node_modules/.vite` is still an input. A program that asks about
-anything under `node_modules/.vite` (by any spelling or through a link that
-resolves there), or lists `node_modules`, is UNVERIFIED: REDUE does not
-observe what Vitest writes there. A check configured before 0.1.0-alpha.25 gets the new inputs on
-its own and reports STALE once after the upgrade.
+Vitest writes its results at every run under `node_modules/.vite/vitest`,
+`node_modules/.vitest` (before Vitest 0.30) or `node_modules/.vitest-cache`
+(a cache folder some projects name). They are not inputs, so a test run
+leaves the typecheck CURRENT. Everything else under `node_modules/.vite` is
+still an input. A program that asks about anything under
+`node_modules/.vite`, `.vitest` or `.vitest-cache` (by any spelling or
+through a link that resolves there), or lists `node_modules`, is
+UNVERIFIED: REDUE does not observe what Vitest writes there. A check
+configured without its own installed inputs gets the new inputs on its own
+and reports STALE once after the upgrade; one that lists its own keeps
+them.
 
 A root tsconfig with `incremental: true` is supported. tsc reads and writes
 its build-info file (`tsBuildInfoFile`, or the default next to the config) on
