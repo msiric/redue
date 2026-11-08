@@ -132,6 +132,9 @@ export function freshClone(repo, commit, dir) {
     must(sh('corepack', ['pnpm', 'install', '--frozen-lockfile', '--ignore-scripts'],
       {cwd: dir, timeout: 900_000, env: harnessEnv({COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'})}), 'pnpm install');
   else must(sh('npm', ['ci', '--prefer-offline', '--ignore-scripts', '--no-audit', '--no-fund'], {cwd: dir, timeout: 900_000}), 'npm ci');
+  // What the skipped install scripts would have done, when the checks need it
+  // (generated files, a native module), as one shell command.
+  if (repo.afterInstall) must(sh('sh', ['-c', repo.afterInstall], {cwd: dir, timeout: 900_000}), repo.afterInstall);
   return dir;
 }
 

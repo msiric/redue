@@ -189,8 +189,9 @@ async function runSession(task, repo, arm, id) {
     ...(opt.diag && arm === 'redue' ? {REDUE_EVAL_DIAG: '1'} : {})});
   if (arm === 'redue') {
     writeWrapper(bin, entry, log);
+    // Setup runs each check inside and outside the sandbox; with slow checks that takes longer than sh's 10 minutes.
     const step = (label, ...argv) => {
-      const r = must(sh(path.join(bin, 'redue'), argv, {cwd: dir, env}), `redue ${argv.join(' ')}`);
+      const r = must(sh(path.join(bin, 'redue'), argv, {cwd: dir, env, timeout: argv[0] === 'setup' ? 45 * 60_000 : undefined}), `redue ${argv.join(' ')}`);
       row.setup[label] = r.ms;
     };
     if (opt.gap) {

@@ -241,7 +241,7 @@
       "script": "typecheck",
       "lint": "npm run lint",
       "lintScript": "lint",
-      "test": "npx vitest run --config vitest.config.ts",
+      "test": "npm test",
       "testScript": "test",
       "gapAliases": [
         {
@@ -253,7 +253,9 @@
           ]
         }
       ],
-      "why": "Web UI for the Pi coding agent, npm. tsc about 21 s and eslint about 75 s on a GitHub Linux runner (stranger pilot, 0.1.0-alpha.33), both CURRENT through the sandboxed recipe. For the slow-check study (tasks with steps)."
+      "why": "Web UI for the Pi coding agent, npm. tsc about 21 s, eslint about 75 s and vitest about 130 s on a GitHub Linux runner; typecheck and lint CURRENT through the sandboxed recipe in the stranger pilot (0.1.0-alpha.33). Its checks need the generated material icons and node-pty built (afterInstall). For the slow-check study (tasks with steps).",
+      "afterInstall": "npm run generate:material-icons && npm rebuild node-pty",
+      "typecheck": "npm run typecheck"
     }
   ]
 }

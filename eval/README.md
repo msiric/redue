@@ -23,6 +23,8 @@ Importing any entry point throws before it does anything (`entryPoint` in
   `uv sync --frozen`) and its plain typecheck command (`typecheck`); its REDUE
   arm uses the sandboxed recipe, and a skipped or CURRENT tree is checked with
   the check's own command, in the run's checkout after the session.
+  Install scripts are skipped; `afterInstall` is a shell command for what the
+  checks need from them (generated files, a native module's build).
 - `tasks.json`: agent prompts per repo. `kind` says whether REDUE should help
   (`docs`, `reverify`, `mixed`) or not (`source`). `expect` lists text the
   final files must contain. `pilot: true` marks the pilot set.
