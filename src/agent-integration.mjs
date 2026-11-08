@@ -28,7 +28,7 @@ const sameJson=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 // Fan-out commands (turbo, nx, `pnpm -r`) and root scripts that run one get
 // prefix rules; the hook decides from the full command.
 function hookFor(config,relative,scripts,command=hookCommand){
-  const rules=[...new Set([...hookForms(config,relative,scripts).flatMap(row=>[...row.forms,...row.local]),
+  const rules=[...new Set([...hookForms(config,relative,scripts).flatMap(row=>[...row.forms,...row.local,...row.quiet||[]]),
     ...fanoutRules(config,scripts)].map(triggerRule).filter(Boolean))];
   return rules.length?{matcher:'Bash',hooks:rules.map(rule=>({type:'command',if:rule,command,timeout:15}))}:null;
 }

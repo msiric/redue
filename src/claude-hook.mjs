@@ -72,7 +72,7 @@ export function triggerMatches(rule,command){
 // into a check's directory, and the fan-out commands that run them) that no
 // rule in `rules` matches.
 export function uncoveredForms(rules,config,configFile=defaultConfig,packageScripts=null){
-  return [...new Set([...hookForms(config,configFile,packageScripts).flatMap(row=>[...row.forms,...row.local]),
+  return [...new Set([...hookForms(config,configFile,packageScripts).flatMap(row=>[...row.forms,...row.local,...row.quiet||[]]),
     ...fanoutRules(config,packageScripts||{})])].filter(form=>!rules.some(rule=>triggerMatches(rule,form)));
 }
 // An argument with a space (`-m "not slow"`) is written quoted, in double and in single quotes.
@@ -82,6 +82,29 @@ function pythonForms(check){
   return rests.flatMap(rest=>[`.venv/bin/${tool}${rest}`,`./.venv/bin/${tool}${rest}`,`.venv/bin/python -m ${tool}${rest}`,
     ...wrappers.flatMap(wrapper=>[`${wrapper}${tool}${rest}`,`${wrapper}python -m ${tool}${rest}`]),
     `python -m ${tool}${rest}`,`python3 -m ${tool}${rest}`,`${tool}${rest}`]);
+}
+// pytest options that change only what it prints, in every pytest since
+// 3.x: verbosity, traceback style, report characters, colors and the slowest
+// durations. Agents add them at the end of the project's command
+// (`pytest tests -q`); the run's result is the same. So a pytest check also
+// matches its command with such options at the end added or taken away
+// (`quiet` forms, which get their own trigger rules). Only at the end, where
+// a trigger rule's prefix still reaches them, and not after an option that
+// may take them as its value (`-k -q`).
+const pytestOutput=/^(?:-q+|-v+|--quiet|--verbose|--tb=(?:auto|long|short|line|native|no)|-r[fEsxXpPaA]+|--color=(?:yes|no|auto)|--durations=\d+)$/;
+const pytestCheck=check=>python(check)&&check.command[0].split('/').at(-1)==='pytest';
+// The words without trailing output options, or null when none are trailing,
+// or when the last word left is an option without a value of its own.
+function withoutTrailing(words){
+  let end=words.length;
+  while(end>1&&pytestOutput.test(words[end-1]))end--;
+  return end===words.length||/^-{1,2}[A-Za-z][\w-]*$/.test(words[end-1])?null:words.slice(0,end);
+}
+// A command's text without trailing output options (words separated by one
+// space, as split() leaves them); the text itself when there are none.
+export function withoutOutputOptions(text){
+  const words=text.split(' '),kept=withoutTrailing(words);
+  return kept?kept.join(' '):text;
 }
 // For a form that names a program PATH finds (`mypy .`, `python -m mypy .`),
 // whether PATH finds it first in the project's .venv/bin.
@@ -214,7 +237,11 @@ export function hookForms(config,configFile=defaultConfig,packageScripts=null){
     const forms=redue?[`${redue} run ${check.name}`]:[],local=[],dir=checkDir(check),key=groupOf(check),
       group=key?scripts.get(key):null,part=group?.length>1;
     const own=group?null:checkScript(check);
-    if(dir==='.'&&python(check))forms.push(...pythonForms(check));
+    let quiet=[];
+    if(dir==='.'&&python(check)){forms.push(...pythonForms(check));
+      // Not when only output options were given: a bare `pytest` form would start the hook for every pytest run.
+      const kept=pytestCheck(check)?withoutTrailing(check.command):null;
+      if(kept?.length>1)quiet=pythonForms({...check,command:kept}).filter(form=>!forms.includes(form));}
     else if(dir==='.'){
       forms.push(...scriptForms(pm,own),...toolForms(pm,toolText(check,packageScripts)));
       if(!tests(check)&&Array.isArray(check.command)&&check.command.length&&
@@ -232,7 +259,7 @@ export function hookForms(config,configFile=defaultConfig,packageScripts=null){
     }
     if(part)extra={part:true};
     if(forms.length||local.length)rows.push({check:check.name,kind:checkKind(check),dir,
-      forms:[...new Set(forms)],local:[...new Set(local)],...extra});
+      forms:[...new Set(forms)],local:[...new Set(local)],...quiet.length?{quiet}:{},...extra});
   }
   for(const [key,checks] of scripts){
     if(checks.length<2)continue;
@@ -344,8 +371,12 @@ function split(command){
 function matched(command,config,configFile,dir='.',scripts={},projectRoot=null){
   const parts=split(command);
   if(!parts)return null;
-  const row=hookForms(config,configFile,dir==='.'?scripts:null).find(row=>dir==='.'?row.forms.includes(parts.base):
-    row.dir===dir&&row.local.includes(parts.base));
+  const rows=hookForms(config,configFile,dir==='.'?scripts:null);
+  let row=rows.find(row=>dir==='.'?row.forms.includes(parts.base):row.dir===dir&&row.local.includes(parts.base));
+  // A pytest check's command with output options added or left out.
+  if(!row&&dir==='.'&&!parts.base.startsWith('redue')){const quiet=withoutOutputOptions(parts.base);
+    row=rows.find(row=>row.quiet?.includes(parts.base)||quiet!==parts.base&&(row.quiet||[]).concat(row.forms).includes(quiet)&&
+      pytestCheck(config.checks.find(item=>item.name===row.check)));}
   // A Python check's form that depends on PATH matches only where PATH finds
   // the project's .venv/bin.
   const check=row&&config.checks.find(item=>item.name===row.check);

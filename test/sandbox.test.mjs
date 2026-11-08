@@ -7,7 +7,7 @@ import net from 'node:net';
 import {spawnSync,execFileSync} from 'node:child_process';
 import {comparableOutput,denialLine,launcherFailure,namedDocsLimit,visibleChange,seatbeltProfile,sandboxInterpretationOf,hiddenEntries,hiddenRefusal,sandboxArgv,sandboxTrial,systemPlaces,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
 import {projectArgs,toolArgs} from '../src/python-onboarding.mjs';
-import {chainCommand,claudeHook,hookForms,pathForm,recordedCommand} from '../src/claude-hook.mjs';
+import {chainCommand,claudeHook,hookForms,matchCheck,pathForm,recordedCommand,triggerRule,withoutOutputOptions} from '../src/claude-hook.mjs';
 
 const bin=path.resolve('bin/redue.mjs');
 const support=sandboxSupport();
@@ -165,6 +165,44 @@ test('hook forms of a pytest check with a quoted argument: double and single quo
   const [form]=hookForms(config);
   assert.ok(form.forms.includes('.venv/bin/pytest tests -m "not slow"'),form.forms.join(' | '));
   assert.ok(form.forms.includes("uv run pytest tests -m 'not slow'"),form.forms.join(' | '));
+});
+
+// The gap rerun (2694125): agents ran `.venv/bin/pytest -q` and
+// `.venv/bin/pytest tests/ -q` where the checks were `.venv/bin/pytest` and
+// `.venv/bin/pytest tests/ -v`, so the runs went unrecorded.
+test('a pytest check matches its command with output options at the end added or taken away, nothing else',{skip:process.platform==='win32'},()=>{
+  const check=command=>({checks:[{name:'test',kind:'test',qualification:'sandbox-v3',command,...sandboxCheckInputs()},
+    {name:'typecheck',kind:'typecheck',qualification:'sandbox-v3',command:['.venv/bin/mypy','src'],...sandboxCheckInputs()}]});
+  const verbose=check(['.venv/bin/pytest','tests/','-v']),plain=check(['.venv/bin/pytest']);
+  const match=(command,config)=>matchCheck(command,config,'redue.config.json','.',{},'/nowhere');
+  // The forms without the option get their own trigger rule; the skill's forms stay as they were.
+  const [row]=hookForms(verbose);
+  assert.ok(row.quiet.includes('.venv/bin/pytest tests/'));assert.ok(!row.forms.includes('.venv/bin/pytest tests/'));
+  assert.equal(triggerRule('.venv/bin/pytest tests/'),'Bash(.venv/bin/pytest tests/*)');
+  for(const command of ['.venv/bin/pytest tests/ -q','.venv/bin/pytest tests/ -v -q 2>&1 | tail -8','.venv/bin/pytest tests/ -q --tb=short',
+    'uv run pytest tests/ -vv -rA','.venv/bin/pytest tests/ --durations=10 --color=no','.venv/bin/pytest tests/'])
+    assert.equal(match(command,verbose),'test',command);
+  for(const command of ['.venv/bin/pytest -q','.venv/bin/pytest -q 2>&1 | tail -5','./.venv/bin/pytest --quiet'])
+    assert.equal(match(command,plain),'test',command);
+  // Before the arguments (no trigger rule reaches it), options that change
+  // what runs or how, a narrower set, another tool: no match.
+  for(const command of ['.venv/bin/pytest -q tests/','.venv/bin/pytest tests/ -x','.venv/bin/pytest tests/test_a.py -q','.venv/bin/pytest tests/ -q -k fast',
+    '.venv/bin/pytest tests/ -s','.venv/bin/pytest tests/ --tb=bogus','.venv/bin/pytest tests/ -qx','.venv/bin/pytest tests/ --no-header',
+    '.venv/bin/mypy src -q','redue run test -q'])
+    assert.equal(match(command,verbose),null,command);
+  assert.equal(match('.venv/bin/pytest -p no:cacheprovider',plain),null);
+  // An option's value is not an output option: `-k -q` selects tests.
+  const keyword=check(['.venv/bin/pytest','tests/','-k','fast']);
+  assert.equal(match('.venv/bin/pytest tests/ -k fast -q',keyword),'test');
+  assert.equal(match('.venv/bin/pytest tests/ -k -q',check(['.venv/bin/pytest','tests/','-k'])),null);
+  assert.equal(withoutOutputOptions('.venv/bin/pytest -m "-q" -q'),'.venv/bin/pytest -m "-q"');
+  assert.equal(withoutOutputOptions('.venv/bin/pytest tests/ -m -q'),'.venv/bin/pytest tests/ -m -q');
+  // A check given only output options gets no bare `pytest` form.
+  assert.equal(hookForms(check(['.venv/bin/pytest','-v']))[0].quiet,undefined);
+  // An edit then the tests: the run is recorded when its turn comes.
+  assert.equal(chainCommand('sed -i s/a/b/ t.py && .venv/bin/pytest -q 2>&1 | tail -4',plain,'redue.config.json','.',{},'redue','redue.config.json','/nowhere')?.command,
+    'sed -i s/a/b/ t.py && redue run test --if-due 2>&1 | tail -4');
+  assert.equal(recordedCommand('.venv/bin/pytest tests/ -q 2>&1 | tail -8','test'),'redue run test 2>&1 | tail -8');
 });
 
 // POSIX paths: the sandboxed recipe runs on macOS and Linux only.

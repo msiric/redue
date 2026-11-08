@@ -76,6 +76,13 @@ With the Claude Code hook, `uv run mypy src`, `poetry run mypy src`,
 that check. The last two count only when PATH finds the tool or Python in the
 project's `.venv/bin` first. When the hook runs the check through REDUE, it
 keeps `uv run` or `poetry run` in front, so the environment still syncs first.
+For a pytest check, options that change only the output count as the same
+command, added or left out: `-q`, `-v` (and `-qq`, `-vv`), `--quiet`,
+`--verbose`, `--tb=STYLE`, `--no-header`, `--no-summary`, `-rCHARS`,
+`--color=`, `--code-highlight=` and `--durations=N`. `pytest tests -q` is then
+the check `pytest tests -v`. The recorded run uses the check's own options, so
+its output can look different. Setup writes the trigger rules for these
+forms; after an upgrade, run setup again to get them.
 
 ## Files git ignores and documentation
 

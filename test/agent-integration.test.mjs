@@ -394,6 +394,19 @@ test('a pytest check with a quoted argument gets quoted forms, and setup recogni
   f.ok('agent','remove','claude','--apply');
 });
 
+test('a pytest check run with -v gets a trigger rule for its command without it, and the skill lists only its own forms',t=>{
+  const f=fixture(t);
+  f.put('redue.config.json',JSON.stringify({schema:1,checks:[{name:'test',kind:'test',qualification:'sandbox-v3',
+    command:['.venv/bin/pytest','tests/','-v'],inputs:['**']}]}));
+  f.ok('agent','setup','claude','--apply');
+  const rules=JSON.parse(f.read('.claude/settings.local.json')).hooks.PreToolUse[0].hooks.map(h=>h.if);
+  assert.ok(rules.includes('Bash(.venv/bin/pytest tests/*)'),rules.join(' | '));
+  assert.ok(triggerMatches('Bash(.venv/bin/pytest tests/*)','.venv/bin/pytest tests/ -q'));
+  assert.equal(JSON.parse(f.ok('agent','doctor','claude','--json').stdout).hosts[0].trigger_rules.covered,true);
+  assert.doesNotMatch(f.read('.claude/skills/redue-verification/SKILL.md'),/`\.venv\/bin\/pytest tests\/`/);
+  f.ok('agent','remove','claude','--apply');
+});
+
 test('every command form of every configured check is matched by a trigger rule setup writes',t=>{
   const configs=[
     {packageManager:'npm',scripts:{typecheck:'tsc --noEmit',test:'vitest run',lint:'eslint .'},checks:[

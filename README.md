@@ -71,7 +71,9 @@ after 5 minutes; a check that runs longer is left out of the sandbox, and
 setup names it and prints the command that tries it without the limit, such
 as `redue init --check test --no-time-limit`. For pytest, `init` takes the
 arguments the project's own workflows run it with, and prefers a
-pull-request workflow that leaves slow tests out (`-m "not slow"`).
+pull-request workflow that leaves slow tests out (`-m "not slow"`). The hook
+counts that command with output options such as `-q` or `--tb=short` added at
+the end as the same check.
 
 Then start a new Claude Code session in the project and work as usual. The
 status line shows where things stand, updated as the agent works:
