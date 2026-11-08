@@ -93,6 +93,10 @@ if closed:
     try: socket.create_connection(('127.0.0.1', int(closed.group(1))), timeout=3).close(); print('closed connected')
     except OSError as e: print('closed errno', e.errno)
 if 'writeoutput' in text: pathlib.Path('build').mkdir(exist_ok=True); pathlib.Path('build/report.txt').write_text(str(os.getpid()))
+if 'rebuild' in text and '${tool}' == 'pytest':
+    # As a suite that builds into a git-ignored folder, then tests the build.
+    import time; pathlib.Path('build').mkdir(exist_ok=True); pathlib.Path('build/generated.py').write_text('g = 1\\n'); time.sleep(0.5)
+    text += open('build/generated.py').read()
 if 'selfwrite' in text and '${tool}' == 'pytest':
     # As a suite that builds before it tests: the write comes well before the end.
     import time; pathlib.Path('src/fx/gen.py').write_text('pid = %d\\n' % os.getpid()); time.sleep(0.5)
@@ -948,6 +952,31 @@ test('on Linux, a run keeps the Landlock answer for the same kernel, launcher Py
   // Another key, or an ABI that cannot keep a run off the network, asks again.
   fs.writeFileSync(cache,JSON.stringify({key:'0'.repeat(64),abi:99}));assert.equal(ask().abi,first.abi);
   fs.writeFileSync(cache,JSON.stringify({key:kept.key,abi:3}));assert.equal(ask().abi,first.abi);
+});
+
+test('a sandbox-v1 suite that rebuilds a git-ignored file and reads it back keeps it as output from its second run',{skip:unsupported},t=>{
+  const {root,state}=project(t,{tools:['ruff','pytest']});
+  put(path.join(root,'build/generated.py'),'g = 1\n');
+  write(root,'src/fx/__init__.py','value = 1  # rebuild\n');execFileSync('git',['add','.'],{cwd:root});
+  good(root,state,'init');
+  const config=JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'),'utf8'));
+  assert.equal(config.checks.find(c=>c.name==='test').qualification,'sandbox-v1');
+  good(root,state,'start');
+  // The first run cannot tell its own write from another program's.
+  good(root,state,'run','test');
+  assert.equal(row(root,state,'test').freshness,'UNVERIFIED');
+  good(root,state,'run','test');
+  let status=row(root,state,'test');
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  // A source change makes it STALE; the next run writes the same file and is CURRENT.
+  write(root,'src/fx/__init__.py','value = 2  # rebuild\n');
+  assert.equal(row(root,state,'test').freshness,'STALE');
+  good(root,state,'run','test');
+  status=row(root,state,'test');
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  // The output is an input afterwards: another program changing it makes it STALE.
+  write(root,'build/generated.py','g = 3\n');
+  assert.equal(row(root,state,'test').freshness,'STALE');
 });
 
 test('a check whose runs rewrite its own inputs is not verifiable: verify leaves it out and runs the checks it made due again',{skip:unsupported},t=>{
