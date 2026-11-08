@@ -621,6 +621,53 @@ test('a turn edited a file when the transcript has an edit call after the user\'
   assert.equal(editedThisTurn(path.join(base,'missing.jsonl')),false);
 });
 
+test('the end-of-turn check names only checks the work made due: STALE, never run, or UNVERIFIED after it was current',t=>{
+  const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-turn-')),root=path.join(fs.realpathSync(base),'project');
+  fs.mkdirSync(root);execFileSync('git',['init','-q'],{cwd:root});
+  const categories=['source','generated','installedDependencies','environment','toolchain','runtime'];
+  const reviewed={coverage:Object.fromEntries(categories.map(k=>[k,true])),coverageReview:Object.fromEntries(categories.map(k=>[k,'reviewed fixture contract']))};
+  // The lint rewrites its own input gen/out.ts while it runs when a file named selfwrite exists.
+  const config={schema:1,checks:[{name:'typecheck',kind:'typecheck',command:['@node','check.cjs'],inputs:['src/**','check.cjs'],...reviewed},
+    {name:'lint',kind:'lint',command:['@node','lint.cjs'],inputs:['src/**','gen/**','lint.cjs'],...reviewed}]};
+  put(path.join(root,'redue.config.json'),JSON.stringify(config));
+  put(path.join(root,'package.json'),'{"name":"redue-turn","version":"1"}\n');
+  put(path.join(root,'check.cjs'),'\n');put(path.join(root,'src/a.ts'),'export const a=1;\n');put(path.join(root,'gen/out.ts'),'0\n');
+  put(path.join(root,'lint.cjs'),"const fs=require('fs');if(fs.existsSync('selfwrite')){fs.writeFileSync('gen/out.ts',String(Date.now()));"+
+    "Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,500);}\n");
+  const env={...process.env,VSTATE_START_READY_WAIT_MS:'10000',CLAUDE_CONFIG_DIR:path.join(base,'claude')};
+  const redue=(...args)=>spawnSync(process.execPath,[bin,...args],{cwd:root,env,encoding:'utf8',timeout:30000});
+  t.after(()=>{redue('stop');redue('remove-state');fs.rmSync(base,{recursive:true,force:true});});
+  assert.equal(redue('agent','setup','claude','--apply').status,0);
+  assert.equal(redue('start').status,0);assert.equal(redue('run','typecheck').status,0);
+  // Each turn's transcript has an edit call, so every turn changed files.
+  const transcript=path.join(base,'t.jsonl');
+  fs.writeFileSync(transcript,[{type:'user',message:{role:'user',content:'edit'}},{type:'assistant',message:{role:'assistant',content:[{type:'tool_use',id:'e',name:'Edit',input:{}}]}}]
+    .map(e=>JSON.stringify(e)).join('\n')+'\n');
+  const event=(session,name)=>hook({hook_event_name:name,session_id:session,cwd:root,transcript_path:transcript,stop_hook_active:false},root,env);
+  const settle=()=>Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,1500);
+  const state=name=>JSON.parse(redue('status','--sync','--json').stdout).checks.find(row=>row.name===name);
+  // A check never run is due.
+  settle();assert.equal(event('s1','UserPromptSubmit'),null);
+  assert.match(event('s1','Stop').reason,/a check is due: lint \(UNVERIFIED\)\./);
+  // UNVERIFIED all along because its run changed its own input: not the turn's doing.
+  put(path.join(root,'selfwrite'),'');assert.equal(redue('run','lint').status,0);
+  assert.match(state('lint').reason,/inputs changed during execution/);
+  settle();assert.equal(event('s2','UserPromptSubmit'),null);
+  assert.equal(event('s2','Stop'),null);
+  // CURRENT when the turn started, UNVERIFIED by its end: due.
+  fs.rmSync(path.join(root,'selfwrite'));assert.equal(redue('run','lint').status,0);assert.equal(state('lint').freshness,'CURRENT');
+  settle();assert.equal(event('s3','UserPromptSubmit'),null);
+  put(path.join(root,'selfwrite'),'');assert.equal(redue('run','lint').status,0);assert.equal(state('lint').freshness,'UNVERIFIED');
+  assert.match(event('s3','Stop').reason,/a check is due: lint \(UNVERIFIED\)\./);
+  // STALE: an input changed since its last run. The lint's last run was
+  // unsettled, and an input changed after it: due too.
+  settle();assert.equal(event('s4','UserPromptSubmit'),null);
+  assert.equal(state('lint').inputs_changed_since_run,false);
+  put(path.join(root,'src/a.ts'),'export const a=2;\n');settle();
+  assert.equal(state('lint').inputs_changed_since_run,true);
+  assert.match(event('s4','Stop').reason,/2 checks are due: typecheck \(STALE\), lint \(UNVERIFIED\)\./);
+});
+
 test('the end-of-turn check asks once to run redue verify when files changed this turn and a check is due',t=>{
   const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-turn-')),root=path.join(fs.realpathSync(base),'project');
   fs.mkdirSync(root);execFileSync('git',['init','-q'],{cwd:root});

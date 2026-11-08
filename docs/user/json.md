@@ -34,6 +34,7 @@ Stable-enough-for-alpha fields:
 | `probe_deadline_ms` | Top level. How long the full state probes of one decision may take in total: each check's deadline (5 s to 60 s, from earlier probes and runs) times its probe count, summed. Callers wait at least this long plus 10 s for a synchronized answer. |
 | `reason` | Human explanation; not a stable machine enum. Do not parse it to authorize reuse. |
 | `changed_inputs` | Known changed relevant paths when available, possibly only the first difference; empty/missing is not proof of no changes. |
+| `inputs_changed_since_run` | On a check UNVERIFIED because its last run did not settle (inputs changed during it): whether an input changed after that run ended. A restarted observer counts as changed. Absent otherwise. |
 | `invocation` | Null without a receipt; otherwise run ID, completion `status`, duration, exit code/signal when known. Status distinguishes exited, interrupted, and start/capture failure. |
 | `target_provenance` | Available target evidence. Unknown is not executed or cache-hit. |
 | `observation.healthy` | False means no check is reusable. Additional reason/phase diagnostics may appear. |

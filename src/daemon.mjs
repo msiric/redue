@@ -463,6 +463,9 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       item.verifiable=false;
       item.reason=`the same inputs changed during its last two runs (${r.selfChange.files.slice(0,5).join(', ')}${r.selfChange.files.length>5?' and more':''}), so no result of it can be confirmed; it is due again when anything else changes`;
       return item;}
+    // An unsettled run says nothing about later changes; whether an input
+    // changed after it ended (another observer generation counts as changed).
+    if(!r.stable)item.inputs_changed_since_run=r.observerGeneration!==generation||r.endRevision!==row.revision;
     if(!r.stable){const issues=r.checkpoint?.issues?.length?` (${r.checkpoint.issues.join('; ')})`:'';
       // A sandboxed run that could not start, whose result the sandbox changed, or whose rerun outside it did not finish, says so alone.
       const sandbox=r.checkpoint?.issues?.length&&r.checkpoint.issues.every(issue=>/^the (?:sandbox changed|run was not sandboxed|run outside the sandbox|network supervisor)/.test(issue));
