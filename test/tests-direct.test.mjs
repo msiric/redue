@@ -205,10 +205,12 @@ test('a run\'s output in an ignored directory is not an input; reading a leftove
   write(root,'src/value.js','probe\n');good(root,state,'run','test');
   status=row(root,state);
   assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  // The output is git-ignored and not an input, so reading it is reading a
+  // file REDUE does not observe.
   write(root,'src/value.js','leftover\n');good(root,state,'run','test');
   status=row(root,state);
   assert.equal(status.freshness,'UNVERIFIED');
-  assert.match(status.reason,/input event occurred during execution/);
+  assert.match(status.reason,/read test\/tmp\/out\.txt, which REDUE does not observe/);
 });
 
 test('a SHELL the run read is compared; the shell\'s `_` is ignored',{skip:unsupported},t=>{

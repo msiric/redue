@@ -1,12 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import {execFileSync,spawnSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import micromatch from './glob.mjs';
 import {sha} from './plan.mjs';
 import {resolveLinks} from './installed-inputs.mjs';
 import {validInputRelative,identityFields,racyUntil} from './path-identity.mjs';
 import {isSandboxed} from './sandbox.mjs';
+import {gitIgnored} from './test-direct.mjs';
 
 const tracked = root => [...new Set(execFileSync('git',
   ['ls-files','--cached','--others','--exclude-standard','-z'],
@@ -17,12 +18,6 @@ const ignored = root => [...new Set(execFileSync('git',
   ['ls-files','--others','--ignored','--exclude-standard','--directory','-z'],
   {cwd:root,env:{...process.env,GIT_OPTIONAL_LOCKS:'0'},maxBuffer:64*1024*1024})
   .toString().split('\0').filter(Boolean))];
-// Which of `files` git ignores, in one call; an error counts as not ignored.
-const ignoredOf = (root,files) => {
-  const out=spawnSync('git',['check-ignore','--stdin','-z'],{cwd:root,input:files.map(file=>'./'+file).join('\0')+'\0',
-    encoding:'utf8',maxBuffer:64*1024*1024,timeout:10000,env:{...process.env,GIT_OPTIONAL_LOCKS:'0'}});
-  return new Set(out.status===0?out.stdout.split('\0').filter(Boolean).map(file=>file.replace(/^\.\//,'')):[]);
-};
 const xor = (left,right) => { for(let i=0;i<32;i++) left[i]^=right[i]; };
 const token = (file,hash) => createHash('sha256').update(file+'\0'+hash).digest();
 const stablePrefix = glob => {
@@ -115,7 +110,9 @@ export class InputIndex {
     this.installedRootSet=new Set(this.installedRoots);
     this.installedAncestors=new Set(this.installedRoots.flatMap(pathPrefixes));
     this.includeInstalled=options.includeInstalled||false;
-    // Whether git ignores a path the cold scan did not see (ignoredLive).
+    // Whether git ignores a path the cold scan did not see (ignoredLive), and
+    // top-level directories, whose answer holds for everything beneath them.
+    // A .gitignore change rebuilds the index (daemon.mjs).
     this.ignoredCache=new Map();
     this.checks=new Map(); this.prefixes=new Map(); this.eventCount=0; this.rehashedFiles=0;
     this.rehashedBytes=0; this.lastChange=0; this.unavailable=null;
@@ -164,20 +161,24 @@ export class InputIndex {
     const members=this.members.get(rel);
     return !names.some(name=>members?.has(name))&&names.some(name=>this.matches(this.checks.get(name),rel));
   }
-  // Asks git once about the paths of a batch it has not answered for. A
-  // change to a .gitignore can change any answer.
+  // Asks git once about the paths of a batch it has not answered for, and
+  // about their top-level directories: a build's new files beneath an ignored
+  // dist/ need no further question.
   classifyIgnored(rels) {
-    if(rels.some(rel=>path.posix.basename(rel)==='.gitignore'))this.ignoredCache.clear();
-    const asked=[...new Set(rels)].filter(rel=>!this.ignoredCache.has(rel)&&this.ignoreQuestion(rel));
+    const top=rel=>rel.includes('/')?rel.slice(0,rel.indexOf('/')):null;
+    const asked=[...new Set(rels)].filter(rel=>!this.ignoredCache.has(rel)&&this.ignoredCache.get(top(rel))!==true&&this.ignoreQuestion(rel));
     if(!asked.length)return;
     if(this.ignoredCache.size>100000)this.ignoredCache.clear();
-    const ignored=ignoredOf(this.root,asked);
-    for(const rel of asked)this.ignoredCache.set(rel,ignored.has(rel));
+    const dirs=[...new Set(asked.map(top).filter(dir=>dir&&!this.ignoredCache.has(dir)))];
+    const ignored=gitIgnored(this.root,[...dirs,...asked]);
+    for(const rel of [...dirs,...asked])this.ignoredCache.set(rel,ignored.has(rel));
   }
   ignoredLive(rel) {
     if(!this.ignoreQuestion(rel))return false;
+    const dir=rel.includes('/')?rel.slice(0,rel.indexOf('/')):null;
+    if(this.ignoredCache.get(dir)===true)return true;
     if(!this.ignoredCache.has(rel))this.classifyIgnored([rel]);
-    return this.ignoredCache.get(rel)===true;
+    return this.ignoredCache.get(rel)===true||this.ignoredCache.get(dir)===true;
   }
   matches(row,rel) { const started=performance.now(), prefixes=pathPrefixes(rel);
     const any=(groups)=>prefixes.some(prefix=>(groups.get(prefix)||[]).some(fn=>fn(rel)));

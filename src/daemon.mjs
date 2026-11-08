@@ -909,6 +909,9 @@ function notification(type,filename,replay=false) {
   catch(e){if(e.code!=='ENOENT') {healthy=false;reason='filesystem event path unavailable';publish();return;}}
   if(index&&[...index.checks.values()].some(row=>row.plan.patterns.includes(rel+'/package.json'))&&
     !fs.existsSync(path.join(root,rel))&&triggerChanged(rel+'/package.json'))planDirty=true;
+  // Which files git ignores decides what the index takes (index.mjs); a
+  // package's own .gitignore inside an installation does not.
+  if(path.posix.basename(rel)==='.gitignore'&&!rel.split('/').some(part=>part==='node_modules'||part==='.venv'))planDirty=true;
   if(planTrigger(rel))
     if(triggerChanged(rel))planDirty=true;
   if(candidateTriggerChanged(rel))planDirty=true;

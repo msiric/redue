@@ -9,7 +9,7 @@ import {observedBy} from './installed-observation.mjs';
 import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testRunFacts,sharedInstalledFile,testsInterpretation,testsQualification} from './test-direct.mjs';
 import {childProgram,generalIssue,lookup,pnpmConfigFiles,scriptCaches,scriptInstalledPaths,scriptInterpretation,scriptQualification,scriptRunFacts,pnpmNameless,toolOutput,toolchainDirs} from './node-script.mjs';
 import {denialLine,docsQualification,endWithChild,launcherFailure,hiddenDocs,hiddenEntries,hiddenQualification,hiddenRefusal,hidesIgnored,isSandboxed,runToEnd,supervisorIssue,visibleChange,testRun as sandboxTestRun,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,
-  sandboxInterpretation,sandboxInterpretationOf,sandboxPlaces,sandboxQualification,sandboxSupport,systemPlaces} from './sandbox.mjs';
+  sandboxInterpretation,sandboxInterpretationOf,sandboxPlaces,sandboxQualification,sandboxSupport,systemPlaces,installedTreeOf} from './sandbox.mjs';
 import path from 'node:path';
 import net from 'node:net';
 import os from 'node:os';
@@ -501,6 +501,15 @@ async function execute() {
       const ignored=touched.length&&touched.every(output)?gitIgnored(root,touched):new Set();
       unexplained=touched.filter(file=>!ignored.has(file));
       if(!unexplained.length){eventsExplained=true;if(changed.length)outputs=changed;}
+    }
+    // A recorded run of a check that does not take git-ignored files: an event
+    // on a git-ignored file in neither checkpoint's file map is another
+    // program's output (a watch-mode build writing dist/), not its input.
+    if(guard&&!plan.ignoredInputs&&!eventsExplained&&unexplained?.length&&snap&&end&&end.inputEventPathsComplete===true){
+      const outside=unexplained.filter(rel=>!Object.hasOwn(snap.files||{},rel)&&!Object.hasOwn(end.files||{},rel)&&installedTreeOf(rel)===null);
+      const ignored=gitIgnored(root,outside);
+      unexplained=unexplained.filter(rel=>!ignored.has(rel));
+      if(!unexplained.length)eventsExplained=true;
     }
     // A run that hid git-ignored files: what it wrote beneath them (test
     // output, coverage data) is not a change to its inputs (visibleChange);

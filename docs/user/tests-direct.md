@@ -133,9 +133,10 @@ Tests that write files git does not ignore change the run's inputs.
   existence.
 - A file the run creates and another process reads is the run's output only
   when it is inside a directory the run created.
-- Outputs a run keeps are part of the result's inputs afterwards. Deleting
-  them, or an observer restart that reindexes without them (git-ignored files
-  are not indexed at start), makes the result STALE.
+- Git-ignored outputs a run writes are not inputs afterwards, unless they lie
+  beneath a directory a pattern names (`test/**`); there they are, and
+  deleting them makes the result STALE. A later run that reads a git-ignored
+  leftover REDUE does not observe is UNVERIFIED.
 - A config written by an earlier build of this recipe is UNVERIFIED with "run
   redue init again"; move `redue.config.json` aside and run init.
 - pnpm's store is trusted not to change a file in place, as pnpm never does.

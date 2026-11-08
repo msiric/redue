@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import {spawnSync,execFileSync} from 'node:child_process';
+import {spawn,spawnSync,execFileSync} from 'node:child_process';
 import {childProgram,commandLineIssue,parseCommandLine,pnpmNameless,pnpmRunIssue,programKind,scriptCheckInputs,scriptPath,toolOutput} from '../src/node-script.mjs';
 import {pnpmShimTarget,shimTemplate} from '../src/pnpm-shims.mjs';
 
@@ -154,6 +154,7 @@ if(value.includes('replace'))process.execve('/bin/sh',['sh','-c','cat /etc/hosts
 if(value.includes('nameless')){const fd=fs.openSync('node_modules',0o20000000|fs.constants.O_DIRECTORY|fs.constants.O_RDWR,0o600);fs.writeSync(fd,'x');fs.closeSync(fd);}
 if(value.includes('many'))for(let i=0;i<7;i++)fs.writeFileSync('node_modules/checker/state'+i+'.txt',String(Date.now()));
 // Prettier formats every JSON file it finds, REDUE's hook settings among them.
+if(value.includes('slow'))Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,1500);
 if(value.includes('settings'))fs.readFileSync('.claude/settings.local.json','utf8');
 if(value.includes('cache')){fs.mkdirSync('.cache',{recursive:true});try{fs.readFileSync('.cache/state');}catch{}fs.writeFileSync('.cache/state',String(Date.now()));}
 process.exit(value.includes('fail')?1:0);
@@ -288,6 +289,19 @@ test('a git-ignored file written after a run is not an input of a general check,
   // A file git does not ignore still counts.
   write(root,'src/other.js','1\n');
   assert.equal(row(root,state,'lint').freshness,'STALE');
+});
+
+test('another program writing a git-ignored file during a general check\'s run leaves the run settled',{skip:unsupported},t=>{
+  const {root,state}=project(t,{lint:'checker'});
+  write(root,'src/value.js','slow\n');
+  good(root,state,'init');good(root,state,'start');
+  // As a watch-mode build: it writes out/ while the check runs.
+  const writer=spawn(process.execPath,['-e',"setTimeout(()=>{require('fs').mkdirSync('out',{recursive:true});require('fs').writeFileSync('out/x.js',String(Date.now()));},500)"],{cwd:root,stdio:'ignore'});
+  t.after(()=>{try{writer.kill();}catch{}});
+  good(root,state,'run','lint');
+  const status=row(root,state,'lint');
+  assert.ok(fs.existsSync(path.join(root,'out/x.js')));
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
 });
 
 test('tool outputs: pnpm state and its temporary files when the pnpm executable ran, vue-tsc types the run wrote',()=>{
