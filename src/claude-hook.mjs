@@ -721,16 +721,15 @@ export async function turnEnd(input,{entry,timeout=10000,invoke=null}){
   const status=await synchronizedStatus(entry,project.config,project.projectRoot,timeout);
   if(status?.observation?.healthy!==true||!Array.isArray(status.checks))return null;
   // Only a check the work made due counts: STALE (an input changed since its
-  // last run), or UNVERIFIED after it was CURRENT when the turn started, with
-  // no run REDUE can use, or with an input changed after its unsettled run.
-  // One UNVERIFIED all along for what REDUE could not confirm (an input it
-  // does not observe, a change during its run) is not the agent's to fix, and
-  // one no run can confirm (verifiable false) is never due.
+  // last run), or UNVERIFIED after it was CURRENT when the turn started, or
+  // when status says a run is what it needs (needs_run: no usable receipt, a
+  // run that did not finish, an input changed since). One UNVERIFIED all along
+  // for what REDUE could not confirm (an input it does not observe, a change
+  // during its run) is not the agent's to fix, and one no run can confirm
+  // (verifiable false) is never due.
   const current=Array.isArray(turn?.current)?turn.current:[];
-  const needsRun=row=>row?.reason==='no receipt'||row?.reason==='receipt uses earlier input-resolution format'||
-    row?.reason==='receipt predates run facts; run the check again';
   const due=status.checks.filter(row=>row?.verifiable!==false&&(row?.freshness==='STALE'||
-    row?.freshness==='UNVERIFIED'&&(current.includes(row.name)||needsRun(row)||row.inputs_changed_since_run===true)));
+    row?.freshness==='UNVERIFIED'&&(current.includes(row.name)||row.needs_run===true)));
   if(!due.length)return null;
   const counted=Number.isSafeInteger(turn?.events)&&Number.isSafeInteger(status.observation.events);
   const changed=counted&&(status.observation.events!==turn.events||status.observation.generation!==turn.generation)||

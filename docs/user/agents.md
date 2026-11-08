@@ -92,8 +92,9 @@ check. At the start of a turn it notes the observer's count of file events
 and which checks are CURRENT (on Windows, from a synchronized status). When
 the agent stops, it asks status. A check counts as due when the work made it
 due: STALE (an input changed since its last run), or UNVERIFIED after it was
-CURRENT at the start of the turn, with no run REDUE can use, or with an input
-changed after its last run, which did not settle. A check that was UNVERIFIED
+CURRENT at the start of the turn, or when status says a run is what it needs
+(`needs_run`: no run REDUE can use, a run that did not finish, an input changed
+after its last run, which did not settle). A check that was UNVERIFIED
 all along for what REDUE itself could not confirm (an input it does not
 observe, a change during its run), or that no run can confirm (NOT
 VERIFIABLE), does not count. If a check is due and files changed during the

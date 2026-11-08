@@ -648,6 +648,7 @@ test('the end-of-turn check names only checks the work made due: STALE, never ru
   const state=name=>JSON.parse(redue('status','--sync','--json').stdout).checks.find(row=>row.name===name);
   // A check never run is due.
   settle();assert.equal(event('s1','UserPromptSubmit'),null);
+  assert.equal(state('lint').needs_run,true);
   assert.match(event('s1','Stop').reason,/a check is due: lint \(UNVERIFIED\)\./);
   // UNVERIFIED all along because its run changed its own input: not the turn's doing.
   put(path.join(root,'selfwrite'),'');assert.equal(redue('run','lint').status,0);
@@ -662,9 +663,9 @@ test('the end-of-turn check names only checks the work made due: STALE, never ru
   // STALE: an input changed since its last run. The lint's last run was
   // unsettled, and an input changed after it: due too.
   settle();assert.equal(event('s4','UserPromptSubmit'),null);
-  assert.equal(state('lint').inputs_changed_since_run,false);
+  assert.equal(state('lint').needs_run,false);
   put(path.join(root,'src/a.ts'),'export const a=2;\n');settle();
-  assert.equal(state('lint').inputs_changed_since_run,true);
+  assert.equal(state('lint').needs_run,true);
   assert.match(event('s4','Stop').reason,/2 checks are due: typecheck \(STALE\), lint \(UNVERIFIED\)\./);
 });
 

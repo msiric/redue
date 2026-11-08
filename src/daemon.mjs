@@ -423,8 +423,12 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
     if(pendingChecks.has(name)){item.reason='filesystem change pending content inspection';return item;}
     if(r&&r.planId) item.declared_inputs_match=r.planId===row.plan.id&&
       (r.fingerprint===combinedSummary(name).fingerprint||hiddenRun(r)&&visibleChange(row,r,name)===null);
+    // needs_run: on an UNVERIFIED answer, a run of the check is what it needs
+    // (no usable receipt, a run that did not finish or record, an input
+    // changed since); false or absent when REDUE could not confirm a run
+    // (observation pending, an input it does not observe, a change during it).
     if(r&&!(r.fingerprintVersion===1||r.fingerprintVersion===2&&Array.isArray(r.runFacts))){
-      item.reason='receipt uses earlier input-resolution format';return item;}
+      item.reason='receipt uses earlier input-resolution format';item.needs_run=true;return item;}
     if(row.plan.unresolved.length){
       const checkpoint=item.declared_inputs_match===false?
         r.planId!==row.plan.id?'; observed input plan changed':
@@ -434,7 +438,7 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       // Recording-only (no qualification contract, inputs it cannot resolve):
       // no run can make it CURRENT. A qualified check's unresolved inputs can
       // be fixed, so it stays due.
-      if(!row.plan.qualification)item.verifiable=false;
+      if(!row.plan.qualification)item.verifiable=false;else item.needs_run=true;
       return item;
     }
     if(row.probeError){item.reason=row.probeError;return item;}
@@ -448,14 +452,14 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       item.reason='installed inputs require a synchronized content read';return item;}
     if(process.platform==='win32'&&!synchronizedFilesystem){
       item.reason='Windows cached observation requires a synchronized content read';return item;}
-    if(!r)return item;
-    if(!r.coverage?.qualified){item.reason='coverage unresolved when execution was recorded';return item;}
+    if(!r){item.needs_run=true;return item;}
+    if(!r.coverage?.qualified){item.reason='coverage unresolved when execution was recorded';item.needs_run=true;return item;}
     if(r.invocation?.status!=='exited'){
-      item.reason=`invocation ${r.invocation?.status||'capture unavailable'}`;return item;}
+      item.reason=`invocation ${r.invocation?.status||'capture unavailable'}`;item.needs_run=true;return item;}
     if(!['executed','failed','cache_hit','direct_executed'].includes(r.target?.status)){
-      item.reason=`target execution ${r.target?.status||'unavailable'}`;return item;}
+      item.reason=`target execution ${r.target?.status||'unavailable'}`;item.needs_run=true;return item;}
     if(r.target.status==='failed'&&result!=='FAIL'){
-      item.reason='target failure conflicts with outer invocation outcome';return item;}
+      item.reason='target failure conflicts with outer invocation outcome';item.needs_run=true;return item;}
     // The same inputs changed during its last two passing runs, and nothing
     // else changed since: no run of it can be confirmed. Anything else
     // changing makes it due again.
@@ -463,10 +467,11 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       item.verifiable=false;
       item.reason=`the same inputs changed during its last two runs (${r.selfChange.files.slice(0,5).join(', ')}${r.selfChange.files.length>5?' and more':''}), so no result of it can be confirmed; it is due again when anything else changes`;
       return item;}
-    // An unsettled run says nothing about later changes; whether an input
-    // changed after it ended (another observer generation counts as changed).
-    if(!r.stable)item.inputs_changed_since_run=r.observerGeneration!==generation||r.endRevision!==row.revision;
     if(!r.stable){const issues=r.checkpoint?.issues?.length?` (${r.checkpoint.issues.join('; ')})`:'';
+      // Needs a run when an input changed after the unsettled run ended: the
+      // checkpoint's revision counts external roots too, and another observer
+      // generation counts as changed.
+      item.needs_run=r.observerGeneration!==generation||r.endRevision!==combinedSummary(name).revision;
       // A sandboxed run that could not start, whose result the sandbox changed, or whose rerun outside it did not finish, says so alone.
       const sandbox=r.checkpoint?.issues?.length&&r.checkpoint.issues.every(issue=>/^the (?:sandbox changed|run was not sandboxed|run outside the sandbox|network supervisor)/.test(issue));
       item.reason=sandbox?r.checkpoint.issues.join('; '):`inputs changed during execution or observation gap${issues}`;return item;}
@@ -496,7 +501,7 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
     else if(r.environmentReads&&contextHashes?.[name]&&
       (contextHashes[name].__redue_env_reads__!==sha(JSON.stringify(r.environmentReads))||contextHashes[name].__redue_env_changed__)){
       if(contextHashes[name].__redue_env_reads__!==sha(JSON.stringify(r.environmentReads))){
-        item.freshness='UNVERIFIED';item.reason='environment variables the last run read were not compared';}
+        item.freshness='UNVERIFIED';item.reason='environment variables the last run read were not compared';item.needs_run=true;}
       else item.reason=`environment variable ${contextHashes[name].__redue_env_changed__} differs from the last run`;
     }
     else if(r.fingerprint!==combinedSummary(name).fingerprint&&!(hiddenRun(r)&&visibleChange(row,r,name)===null)) {
@@ -522,14 +527,14 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       }
       item.reason=row.staleReason;item.changed_inputs=row.staleInputs||[];
       if(unconfirmed&&!(r.files&&row.staleInputs?.length)){item.freshness='UNVERIFIED';
-        item.reason=unconfirmed;item.changed_inputs=[];}
+        item.reason=unconfirmed;item.changed_inputs=[];item.needs_run=true;}
     } else if(unconfirmed){item.freshness='UNVERIFIED';item.reason=unconfirmed;
     // Lookups the run made outside the certificate are asked again for every
     // answer, cached or synchronized, before it can say CURRENT.
     // A direct run recorded before run facts may have made lookups no probe
     // asks; only Windows, which never records direct runs, keeps reusing them.
     } else if(r.fingerprintVersion===1&&r.verificationRecipe==='npm-direct-typescript@1'&&process.platform!=='win32'){
-      item.freshness='UNVERIFIED';item.reason='receipt predates run facts; run the check again';
+      item.freshness='UNVERIFIED';item.reason='receipt predates run facts; run the check again';item.needs_run=true;
     } else if(r.runFacts&&(item.reason=runFactReason(r.runFacts))){item.changed_inputs=[];
     // A recorded test run that used something REDUE does not observe, or
     // whose result differed from an earlier run on the same inputs.
