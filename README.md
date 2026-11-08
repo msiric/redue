@@ -11,24 +11,46 @@ tell, it says so and why; it never guesses a result into place.
 
 ## What it changes
 
-Coding agents often finish without running every check on their final code.
-In headless Claude Code sessions on realistic tasks whose prompts never
-mention checks (bug fixes, small features and refactors; 21 tasks on 7
-TypeScript and Python projects, two runs each), the share of sessions that
-ended with every check verified on the final code:
+Coding agents often finish without running every check on their final code,
+and then say everything passes. We ran headless Claude Code sessions on
+realistic tasks whose prompts never mention checks (bug fixes, small
+features and refactors; 21 tasks on 7 TypeScript and Python projects, two
+runs each, so 42 sessions per model and setup) in four setups:
 
-| Model | Without REDUE | With REDUE |
-|---|---|---|
-| Sonnet 5.5 | 12% (5 of 42) | 98% (41 of 42) |
-| Opus 5.5 | 48% (20 of 42) | 100% (42 of 42) |
+- **No instruction.**
+- **Generic instruction:** `CLAUDE.md` says "Before you finish, run the
+  project's typecheck, lint and tests."
+- **Exact commands:** `CLAUDE.md` names each check's command and asks the
+  agent to run them on its final code.
+- **REDUE:** `redue setup claude`, nothing else (REDUE at commit f1c95ae,
+  after 0.1.0-alpha.33).
 
-A check counts as verified when the session ran all of it on the final code,
-or REDUE said CURRENT for it at the end; counting only the agents' own check
-commands, it was 90% and 98% with REDUE. REDUE never called a failing check
-verified: in no session did it say CURRENT / PASS for a check that failed
-when run plainly on the final code. Without REDUE, 4 Sonnet sessions ended
-with a failing check they had not run; with it, none did. The harness and
-tasks are in [`eval/`](eval/README.md).
+Sonnet 5.5 / Opus 5.5:
+
+| Setup | Every check verified on the final code | Claims all pass, a check not verified | False alarms | Median session time |
+|---|---|---|---|---|
+| No instruction | 12% / 48% | 33% / 45% | 0 / 0 | 39 s / 65 s |
+| Generic instruction | 64% / 90% | 31% / 10% | 0 / 0 | 50 s / 69 s |
+| Exact commands | 93% / 98% | 5% / 2% | 0 / 0 | 47 s / 61 s |
+| REDUE | 100% / 100% | 0% / 0% | 0 / 0 | 44 s / 65 s |
+
+- **Verified:** the session ran all of the check on the final code, or REDUE
+  said CURRENT for it at the end. Counting only the agents' own check
+  commands, REDUE sessions reached 90% and 100%.
+- **Claims all pass, a check not verified:** the final message says or
+  implies that every check passes while at least one was not verified. A
+  reader agent labelled each final message with a fixed rubric.
+- **False alarm:** the session ran every check in full on the final code and
+  each passed, but the agent or REDUE said one was not verified. With REDUE,
+  the final status was CURRENT / PASS for every check in all 84 sessions.
+- **Failing checks:** REDUE never said CURRENT / PASS for a check that failed
+  when run plainly on the final code. With no instruction, 4 Sonnet sessions
+  ended with a failing check they had not run; with REDUE, none did.
+
+Naming the exact commands gets close on verification, but agents still
+claimed a pass for a check they had not run on the final code. REDUE also
+tells the agent which earlier passes still apply (see the time saved below).
+The harness and tasks are in [`eval/`](eval/README.md).
 
 ## Quickstart
 
