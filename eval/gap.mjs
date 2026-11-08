@@ -84,8 +84,9 @@ const filtersFiles = (tokens, repo) => tokens.some((t, i) => !t.startsWith('-') 
 // it names files, directories with a slash, or a test filter that the repo's
 // own command for that check does not.
 export function checksOf(segment, repo) {
-  const program = segment.split(/\s+/)[0].replace(/^.*\//, '');
-  if (readers.test(program)) return {};
+  // A reader by its bare name or from a system bin directory; `./scripts/test` is the project's script, not test(1).
+  const first = segment.split(/\s+/)[0], program = first.replace(/^.*\//, '');
+  if (readers.test(first) || readers.test(program) && /^\/(usr\/)?s?bin\//.test(first)) return {};
   const found = {};
   if (typecheckLike(segment, repo.script) && !/\bredue\b/.test(segment)) found.typecheck = true;
   if (lintLike(segment, repo.lintScript)) found.lint = true;
