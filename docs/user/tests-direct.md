@@ -70,7 +70,9 @@ Every Node process and worker thread of the run loads a recorder
 kept but marked UNVERIFIED, with the reason, when the run:
 
 - read a file that the config excludes, or a git-ignored file REDUE does not
-  observe, that the run did not create first;
+  observe, that the run did not create first (REDUE's own hook settings,
+  `.claude/settings.local.json`, are kept by content instead, as a small file
+  outside the checkout is);
 - changed an input during the run, or read a git-ignored output an earlier
   run left before writing it again: the result depends on that leftover;
 - listed a directory, or read a file over 1 MB, outside the checkout, other

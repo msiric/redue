@@ -45,10 +45,15 @@ const issueLimit=20,factLimit=10000;
 
 // The guard file the recorder reads: where to write, what counts as the
 // checkout and as temporary space, and digests of the caller's environment.
+// REDUE's own files in the checkout that git ignores: setup's Claude Code
+// hooks (setup.mjs). The index does not observe them, so a run that reads one
+// keeps it by its content, as a read outside the checkout, and status asks
+// again (a tool such as Prettier formats every JSON file it finds).
+export const ownedFiles=['.claude/settings.local.json'];
 export function testGuardConfig(dir,root,env=process.env,project={}) {
   const tmp=[...new Set([path.resolve(os.tmpdir()),fs.realpathSync(os.tmpdir())])];
   const real=dir=>{try{return fs.realpathSync(dir);}catch{return dir;}};
-  return {schema:1,dir,root,tmp,installed:modulesDirs(project).map(at=>path.join(root,at)),runnerData:[...new Set(runnerDataDirectories(env).flatMap(dir=>[path.resolve(dir),real(dir)]))],
+  return {schema:1,dir,root,tmp,owned:ownedFiles.map(rel=>path.join(root,rel)),installed:modulesDirs(project).map(at=>path.join(root,at)),runnerData:[...new Set(runnerDataDirectories(env).flatMap(dir=>[path.resolve(dir),real(dir)]))],
     env:Object.fromEntries(Object.entries(env).filter(([,value])=>typeof value==='string').map(([key,value])=>[key,digest(value)]))};
 }
 

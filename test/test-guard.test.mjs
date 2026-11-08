@@ -77,6 +77,22 @@ test('reading a file the index does not observe is an issue; a missing input is 
   assert.deepEqual(r.issues,['read .env.local, which REDUE does not observe (ignored by git)']);
 });
 
+test('reading REDUE\'s own settings file, which git ignores, is a run fact by its content, not an issue',{skip:unsupported},async()=>{
+  let settings;
+  const r=await recorded(`const fs=require('fs');fs.readFileSync('.claude/settings.local.json','utf8');fs.readFileSync('.env.local');`,
+    {setup:root=>{fs.mkdirSync(path.join(root,'.claude'));settings=path.join(root,'.claude/settings.local.json');
+      fs.writeFileSync(settings,'{"hooks":{}}\n');fs.writeFileSync(path.join(root,'.env.local'),'X=1');}});
+  assert.equal(r.code,0,r.output);
+  assert.deepEqual(r.issues,['read .env.local, which REDUE does not observe (ignored by git)'],'another ignored file is still an issue');
+  const fact=r.runFacts.find(f=>f[1]===settings);
+  assert.deepEqual(fact.slice(0,2),['readFile',settings]);
+  // Status asks it again: the same content answers the same, other content does not.
+  const file=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'redue-guard-owned-')),'s.json');
+  fs.writeFileSync(file,'{"hooks":{}}\n');assert.equal(queryAnswer('readFile',file),fact[2]);
+  fs.writeFileSync(file,'{"hooks":{"Stop":[]}}\n');assert.notEqual(queryAnswer('readFile',file),fact[2]);
+  fs.rmSync(path.dirname(file),{recursive:true,force:true});
+});
+
 test('lookups and small file reads outside the project become run facts; listings outside are issues',{skip:unsupported},async()=>{
   const missing=path.join(fs.realpathSync('/'),'redue-guard-missing-'+process.pid);
   const r=await recorded(`const fs=require('fs'),os=require('os'),path=require('path');

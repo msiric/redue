@@ -31,7 +31,7 @@ function install(){
     ...(isInternalThread===true?{internal:true}:{})}]);
   // Every node_modules observed as installed: the root's and each workspace package's.
   const sep=path.sep,root=config.root,installed=Array.isArray(config.installed)?config.installed:[path.join(root,'node_modules')],
-    tmp=config.tmp;
+    tmp=config.tmp,owned=new Set(Array.isArray(config.owned)?config.owned:[]);
   const within=(file,dir)=>file===dir||file.startsWith(dir+sep);
   let installedReal=null;
   const realInstalled=()=>installedReal??=installed.map(dir=>realDir(dir));
@@ -134,7 +134,7 @@ function install(){
       // This recorder is REDUE's own file; stack-trace printers read it.
       if(full===__filename||isProduced(full))return;
       if(!first(role+'\0'+full))return;
-      if(within(full,root)){
+      if(within(full,root)&&!owned.has(full)){
         if(role==='read')emit(['R',rel(full),!error]);
         else if(role==='stat')emit(['L',rel(full),error?missing(error):answerKind(full,result)]);
         else if(role==='list')emit(['D',rel(full),error?missing(error):entries(full)]);

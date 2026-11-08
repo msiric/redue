@@ -153,6 +153,8 @@ if(value.includes('replace'))process.execve('/bin/sh',['sh','-c','cat /etc/hosts
 // A file with no name (O_TMPFILE), as pnpm 12 writes one in node_modules.
 if(value.includes('nameless')){const fd=fs.openSync('node_modules',0o20000000|fs.constants.O_DIRECTORY|fs.constants.O_RDWR,0o600);fs.writeSync(fd,'x');fs.closeSync(fd);}
 if(value.includes('many'))for(let i=0;i<7;i++)fs.writeFileSync('node_modules/checker/state'+i+'.txt',String(Date.now()));
+// Prettier formats every JSON file it finds, REDUE's hook settings among them.
+if(value.includes('settings'))fs.readFileSync('.claude/settings.local.json','utf8');
 if(value.includes('cache')){fs.mkdirSync('.cache',{recursive:true});try{fs.readFileSync('.cache/state');}catch{}fs.writeFileSync('.cache/state',String(Date.now()));}
 process.exit(value.includes('fail')?1:0);
 `,0o755);
@@ -249,6 +251,24 @@ test('a general check that starts a native program is UNVERIFIED and names it; c
   good(root,state,'run','lint');
   status=row(root,state,'lint');
   assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+});
+
+test("a general check that reads REDUE's own hook settings, which git ignores, keeps them by content: CURRENT, STALE when they change",{skip:unsupported},t=>{
+  const {root,state}=project(t,{lint:'checker'});
+  // As setup leaves them: ignored through this clone's exclude file.
+  put(path.join(root,'.claude/settings.local.json'),'{"hooks":{}}\n');
+  fs.appendFileSync(path.join(root,'.git/info/exclude'),'.claude/settings.local.json\n');
+  write(root,'src/value.js','settings\n');
+  good(root,state,'init');good(root,state,'start');
+  good(root,state,'run','lint');
+  let status=row(root,state,'lint');
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  write(root,'.claude/settings.local.json','{"hooks":{"Stop":[]}}\n');
+  status=row(root,state,'lint');
+  assert.equal(status.freshness,'STALE');
+  assert.match(status.reason,/\.claude\/settings\.local\.json/);
+  good(root,state,'run','lint');
+  assert.equal(row(root,state,'lint').freshness,'CURRENT');
 });
 
 test('tool outputs: pnpm state and its temporary files when the pnpm executable ran, vue-tsc types the run wrote',()=>{

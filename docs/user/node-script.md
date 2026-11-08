@@ -58,6 +58,9 @@ CURRENT means the last run's inputs are unchanged:
   since a script may run another package manager;
 - small files read outside the checkout (up to 1 MB), by content, and lookups
   outside it, asked again before each answer.
+- REDUE's own hook settings (`.claude/settings.local.json`, which setup has
+  git ignore), by content when the run reads them, asked again before each
+  answer: Prettier, for one, formats every JSON file it finds.
 
 Runner caches are not inputs, and a run may read and write them: `.cache`,
 `.vite`, `.vitest`, `.turbo`, `.nx`, `.swc`, `.jest-cache`, `.parcel-cache`,
