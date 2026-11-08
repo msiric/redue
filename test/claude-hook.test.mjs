@@ -625,11 +625,14 @@ test('the end-of-turn check asks once to run redue verify when files changed thi
   const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-turn-')),root=path.join(fs.realpathSync(base),'project');
   fs.mkdirSync(root);execFileSync('git',['init','-q'],{cwd:root});
   const categories=['source','generated','installedDependencies','environment','toolchain','runtime'];
+  // A recording-only build (no qualification, inputs not reviewed), as setup
+  // proposes for a build script: never verifiable, so never due.
   const config={schema:1,checks:[{name:'typecheck',kind:'typecheck',command:['@node','check.cjs'],inputs:['src/**','check.cjs'],
-    coverage:Object.fromEntries(categories.map(k=>[k,true])),coverageReview:Object.fromEntries(categories.map(k=>[k,'reviewed fixture contract']))}]};
+    coverage:Object.fromEntries(categories.map(k=>[k,true])),coverageReview:Object.fromEntries(categories.map(k=>[k,'reviewed fixture contract']))},
+    {name:'build',kind:'build',command:['@node','build.cjs'],inputs:['src/**','build.cjs']}]};
   put(path.join(root,'redue.config.json'),JSON.stringify(config));
   put(path.join(root,'package.json'),'{"name":"redue-turn","version":"1"}\n');
-  put(path.join(root,'check.cjs'),'\n');put(path.join(root,'src/a.ts'),'export const a=1;\n');
+  put(path.join(root,'check.cjs'),'\n');put(path.join(root,'build.cjs'),'\n');put(path.join(root,'src/a.ts'),'export const a=1;\n');
   const env={...process.env,VSTATE_START_READY_WAIT_MS:'10000',CLAUDE_CONFIG_DIR:path.join(base,'claude')};
   const redue=(...args)=>spawnSync(process.execPath,[bin,...args],{cwd:root,env,encoding:'utf8',timeout:30000});
   t.after(()=>{redue('stop');redue('remove-state');fs.rmSync(base,{recursive:true,force:true});});
@@ -659,6 +662,14 @@ test('the end-of-turn check asks once to run redue verify when files changed thi
   fs.writeFileSync(transcript,[{type:'user',message:{role:'user',content:'edit'}},{type:'assistant',message:{role:'assistant',content:[{type:'tool_use',id:'e',name:'Edit',input:{}}]}}]
     .map(e=>JSON.stringify(e)).join('\n')+'\n');
   assert.equal(event('Stop',{session_id:'s2',stop_hook_active:false}).decision,'block');
+  // A turn that changes only the build's input, with the typecheck current:
+  // the build is UNVERIFIED but not verifiable, so nothing asks.
+  assert.equal(redue('run','typecheck').status,0);
+  settle();assert.equal(event('UserPromptSubmit',{session_id:'s4',prompt:'build'}),null);
+  put(path.join(root,'build.cjs'),'// changed\n');settle();
+  const build=JSON.parse(redue('status','--sync','--json').stdout).checks.find(row=>row.name==='build');
+  assert.equal(build.freshness,'UNVERIFIED');assert.equal(build.verifiable,false);
+  assert.equal(event('Stop',{session_id:'s4',stop_hook_active:false}),null);
   // Turned off in the config.
   assert.equal(redue('stop').status,0);
   fs.writeFileSync(path.join(root,'redue.config.json'),JSON.stringify({...config,endOfTurnCheck:false}));
