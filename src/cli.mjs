@@ -679,8 +679,15 @@ async function execute() {
       const files=[...new Set(unexplained||[])].sort().slice(0,20);
       // Counted only after a passing run of the same plan that changed the same files.
       if(files.length){const prior=priorReceipt?.selfChange;
-        selfChange={files,streak:prior&&priorReceipt.result==='PASS'&&priorReceipt.planId===(snap?.planId??plan.id)&&
-          JSON.stringify(prior.files)===JSON.stringify(files)?prior.streak+1:1};}
+        // Back to back: the run before passed under the same plan and also
+        // changed its own inputs, and nothing changed between its end and
+        // this run's start. Only then does the streak go on, and the next
+        // run is not asked for again (repeat).
+        const backToBack=Boolean(prior)&&priorReceipt.result==='PASS'&&priorReceipt.planId===(snap?.planId??plan.id)&&
+          priorReceipt.observerGeneration===(before?.observation?.generation??null)&&
+          Number.isSafeInteger(snap?.revision)&&priorReceipt.endRevision===snap.revision;
+        selfChange={files,streak:backToBack&&JSON.stringify(prior.files)===JSON.stringify(files)?prior.streak+1:1,
+          ...backToBack?{repeat:true}:{}};}
     }
     const receipt={result,invocation,target,stable,fingerprintVersion:recorded||testRun?2:1,...selfChange?{selfChange}:{},
       recipe:(fallback?scriptQualification:own?(sandbox?.docs?docsQualification:sandbox?.hidden?hiddenQualification:sandboxQualification):selected.qualification)||null,

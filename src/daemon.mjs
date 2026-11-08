@@ -473,7 +473,10 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       item.reason=`the same inputs changed during its last two runs (${r.selfChange.files.slice(0,5).join(', ')}${r.selfChange.files.length>5?' and more':''}), so no result of it can be confirmed; it is due again when anything else changes`;
       return item;}
     if(!r.stable){const issues=r.checkpoint?.issues?.length?` (${r.checkpoint.issues.join('; ')})`:'';
-      item.needs_run=changedSinceRun;
+      // A passing run that changed its own inputs, after a run that did not:
+      // the next run settles it, CURRENT when it writes nothing new, NOT
+      // VERIFIABLE when it changes the same files again. Asked once.
+      item.needs_run=changedSinceRun||r.result==='PASS'&&r.selfChange?.streak===1&&r.selfChange.repeat!==true;
       // A sandboxed run that could not start, whose result the sandbox changed, or whose rerun outside it did not finish, says so alone.
       const sandbox=r.checkpoint?.issues?.length&&r.checkpoint.issues.every(issue=>/^the (?:sandbox changed|run was not sandboxed|run outside the sandbox|network supervisor)/.test(issue));
       item.reason=sandbox?r.checkpoint.issues.join('; '):`inputs changed during execution or observation gap${issues}`;return item;}
@@ -699,6 +702,15 @@ async function refreshPlan({forceCold=false,reuse=false,skip=null}={}) {
   if(planning||stopping)return;
   const totalStarted=performance.now();
   const previousProbes=new Map([...(index?.checks||[])].map(([name,row])=>[name,row.probeCache]));
+  // A rebuilt index counts revisions from scratch. Each check keeps its count
+  // across the rebuild, one higher when its inputs differ or the old index
+  // was unavailable, so a revision a receipt recorded still says whether an
+  // input changed after it.
+  const revisionsOf=idx=>new Map([...(idx?.checks||[])].map(([name,row])=>[name,
+    {key:idx.unavailable?null:inputKey(row),revision:row.revision}]));
+  const previousRevisions=revisionsOf(index),previousExternal=new Map([...external.values()].map(entry=>[entry.root,revisionsOf(entry.index)]));
+  const carry=(idx,before)=>{for(const [name,row] of idx?.checks||[]){const old=before.get(name);
+    if(old)row.revision=old.key!==null&&old.key===inputKey(row)?old.revision:Math.max(row.revision,old.revision+1);}};
   const reusable=reuse&&healthy&&!planDirty&&!external.size&&validatedPlan&&
     [...index.checks.values()].every(row=>!row.plan.qualification||row.probeCache)?
     {...validatedPlan,bundle:index.bundle,
@@ -718,7 +730,7 @@ async function refreshPlan({forceCold=false,reuse=false,skip=null}={}) {
     const {bundle}=built;
     workspacePatterns=bundle.workspacePatterns||workspacePatterns;
     const hydrationStarted=performance.now();
-    index=hydrate(bundle,built.index);
+    index=hydrate(bundle,built.index);carry(index,previousRevisions);
     validatedPlan=built.guard?{guard:built.guard,inputs:built.inputKeys}:null;
     if(built.planReused)for(const [name,row] of index.checks)
       row.probeCache=previousProbes.get(name);
@@ -735,6 +747,7 @@ async function refreshPlan({forceCold=false,reuse=false,skip=null}={}) {
             installedPhysicalRoots:[]}]))},data):null;
       entry.healthy=false;entry.reason='external reconciliation pending';
     }
+    for(const entry of external.values())carry(entry.index,previousExternal.get(entry.root)||new Map());
     metrics.lastHydrationMs=performance.now()-hydrationStarted;
     metrics.lastWorkerRoundTripMs=built.workerRoundTripMs;
     metrics.lastDiscoveryMs=built.discoveryMs;metrics.lastIndexingMs=built.indexingMs;

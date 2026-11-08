@@ -650,11 +650,16 @@ test('the end-of-turn check names only checks the work made due: STALE, never ru
   settle();assert.equal(event('s1','UserPromptSubmit'),null);
   assert.equal(state('lint').needs_run,true);
   assert.match(event('s1','Stop').reason,/a check is due: lint \(UNVERIFIED\)\./);
-  // UNVERIFIED all along because its run changed its own input: not the turn's doing.
+  // UNVERIFIED all along because its run changed its own input: not the turn's
+  // doing. (A plain check keeps no event paths, so no self-change is counted.)
   put(path.join(root,'selfwrite'),'');assert.equal(redue('run','lint').status,0);
   assert.match(state('lint').reason,/inputs changed during execution/);
   settle();assert.equal(event('s2','UserPromptSubmit'),null);
   assert.equal(event('s2','Stop'),null);
+  // A rebuilt index (a .gitignore edit here; every decision read on Windows)
+  // keeps each check's revision when its inputs are the same.
+  const reason=state('lint').reason;put(path.join(root,'.gitignore'),'*.log\n');settle();
+  assert.equal(state('lint').reason,reason);assert.equal(state('lint').needs_run,false);
   // CURRENT when the turn started, UNVERIFIED by its end: due.
   fs.rmSync(path.join(root,'selfwrite'));assert.equal(redue('run','lint').status,0);assert.equal(state('lint').freshness,'CURRENT');
   settle();assert.equal(event('s3','UserPromptSubmit'),null);

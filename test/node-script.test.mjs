@@ -156,6 +156,11 @@ if(value.includes('many'))for(let i=0;i<7;i++)fs.writeFileSync('node_modules/che
 // Prettier formats every JSON file it finds, REDUE's hook settings among them.
 if(value.includes('slow'))Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,1500);
 if(value.includes('settings'))fs.readFileSync('.claude/settings.local.json','utf8');
+// A formatter: rewrites src/fmt.js only when it is not formatted yet; or a stamp written at every run.
+if(value.includes('format'))for(const f of fs.readdirSync('src').filter(f=>f.startsWith('fmt')))
+  if(fs.readFileSync('src/'+f,'utf8')!=='formatted\\n')fs.writeFileSync('src/'+f,'formatted\\n');
+if(value.includes('stamp'))fs.writeFileSync('src/stamp.js',String(Date.now()));
+if(value.includes('unique'))fs.writeFileSync('src/u-'+Date.now()+'.js','');
 if(value.includes('cache')){fs.mkdirSync('.cache',{recursive:true});try{fs.readFileSync('.cache/state');}catch{}fs.writeFileSync('.cache/state',String(Date.now()));}
 process.exit(value.includes('fail')?1:0);
 `,0o755);
@@ -270,6 +275,39 @@ test("a general check that reads REDUE's own hook settings, which git ignores, k
   assert.match(status.reason,/a lookup the last run made answers differently now: .*\.claude\/settings\.local\.json/);
   good(root,state,'run','lint');
   assert.equal(row(root,state,'lint').freshness,'CURRENT');
+});
+
+test('a passing run that changed its own input once needs a run: CURRENT after it when it writes nothing, NOT VERIFIABLE when it writes again, asked once when it writes other files',{skip:unsupported},t=>{
+  const {root,state}=project(t,{lint:'checker'});
+  write(root,'src/value.js','format\n');write(root,'src/fmt.js','raw\n');
+  good(root,state,'init');good(root,state,'start');
+  good(root,state,'run','lint');
+  let status=row(root,state,'lint');
+  assert.equal(status.freshness,'UNVERIFIED');assert.match(status.reason,/src\/fmt\.js/);assert.equal(status.needs_run,true);
+  good(root,state,'run','lint');
+  assert.equal(`${row(root,state,'lint').freshness}/${row(root,state,'lint').result}`,'CURRENT/PASS');
+  // An edit between two runs that each reformat a file: asked again.
+  write(root,'src/fmt2.js','raw\n');good(root,state,'run','lint');assert.equal(row(root,state,'lint').needs_run,true);
+  write(root,'src/fmt3.js','raw\n');good(root,state,'run','lint');
+  status=row(root,state,'lint');assert.match(status.reason,/src\/fmt3\.js/);assert.equal(status.needs_run,true);
+  good(root,state,'run','lint');assert.equal(row(root,state,'lint').freshness,'CURRENT');
+  // The same file reformatted twice with an edit in between: not NOT VERIFIABLE, asked again.
+  write(root,'src/fmt.js','raw\n');good(root,state,'run','lint');
+  write(root,'src/fmt.js','raw\n');good(root,state,'run','lint');
+  status=row(root,state,'lint');assert.notEqual(status.verifiable,false,status.reason);assert.equal(status.needs_run,true);
+  good(root,state,'run','lint');assert.equal(row(root,state,'lint').freshness,'CURRENT');
+  write(root,'src/value.js','stamp\n');good(root,state,'run','lint');
+  assert.equal(row(root,state,'lint').needs_run,true);
+  good(root,state,'run','lint');
+  status=row(root,state,'lint');
+  assert.equal(status.verifiable,false,status.reason);assert.equal(status.needs_run,false);
+  // A new file at every run, after a settled run: asked once, then not again until an input changes.
+  write(root,'src/value.js','plain\n');good(root,state,'run','lint');assert.equal(row(root,state,'lint').freshness,'CURRENT');
+  write(root,'src/value.js','unique\n');good(root,state,'run','lint');
+  assert.equal(row(root,state,'lint').needs_run,true);
+  good(root,state,'run','lint');
+  status=row(root,state,'lint');
+  assert.equal(status.freshness,'UNVERIFIED');assert.equal(status.needs_run,false);
 });
 
 test('a git-ignored file written after a run is not an input of a general check, as at the observer\'s start',{skip:unsupported},t=>{
