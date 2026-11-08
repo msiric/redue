@@ -523,16 +523,33 @@ export function lastRunTimeout(config,parsed,...names){
   catch{return 2000;}
 }
 
-// The project set up in the session's directory: its setup record, the config
-// beside it and the project root. null when there is none; throws on bad files.
-function hookProject(root){
-  if(typeof root!=='string'||!path.isAbsolute(root))return null;
-  const record=JSON.parse(fs.readFileSync(path.join(root,'.redue','agents','claude.json'),'utf8'));
+// The project set up in the session's directory, or in the nearest directory
+// above it within the same checkout (the agent's shell may have moved into a
+// subdirectory): its setup record, the config beside it, the project root,
+// and `walked`, true when the record is above the directory. The search stops
+// at a directory with a .git entry, so a nested checkout or worktree never
+// takes its parent's setup. From below, the directory must be inside the
+// project root. null when there is none; throws on bad files.
+function hookProject(dir){
+  if(typeof dir!=='string'||!path.isAbsolute(dir))return null;
+  const start=path.resolve(dir);
+  let base=start,text=null;
+  for(;;){
+    try{text=fs.readFileSync(path.join(base,'.redue','agents','claude.json'),'utf8');break;}
+    catch(error){if(error.code!=='ENOENT'&&error.code!=='ENOTDIR')throw error;}
+    const up=path.dirname(base);
+    if(up===base||fs.existsSync(path.join(base,'.git')))return null;
+    base=up;
+  }
+  const record=JSON.parse(text);
   if(record?.schema!==1||record.host!=='claude'||typeof record.config!=='string'||
     !/^[^/\\]+\.json$/.test(record.config))return null;
-  const config=path.join(root,record.config);
+  const config=path.join(base,record.config);
   const parsed=JSON.parse(fs.readFileSync(config,'utf8'));
-  return {record,config,parsed,projectRoot:realObservedPath(path.resolve(path.dirname(config),parsed.root||'.'))};
+  const projectRoot=realObservedPath(path.resolve(path.dirname(config),parsed.root||'.')),walked=base!==start;
+  if(walked){const inside=path.relative(projectRoot,realObservedPath(start));
+    if(inside.split(path.sep)[0]==='..'||path.isAbsolute(inside))return null;}
+  return {record,config,parsed,projectRoot,walked};
 }
 
 // SessionStart: start the observer when none is running, so the session's
@@ -560,8 +577,8 @@ export async function claudeHook(input,{entry,timeout,invoke=null,explain=null})
   if(typeof command!=='string')return why('no command');
   if(/^\s*REDUE_FORCE=1(?:\s|$)/.test(command))return why('REDUE_FORCE=1');
   let project;
-  try{project=hookProject(root);}catch(error){return why(`no readable setup record in this directory (${error.code??error.message})`);}
-  if(!project)return why('REDUE is not set up for Claude Code in this directory');
+  try{project=hookProject(root);}catch(error){return why(`no readable setup record in this directory or above it (${error.code??error.message})`);}
+  if(!project)return why('REDUE is not set up for Claude Code in this directory or above it');
   // What a status answer said about `names`, when the hook does not skip.
   const said=(status,names,waited)=>!status?`status did not answer within ${waited} ms`:
     status.observation?.healthy!==true?'the observer is not healthy':
@@ -574,6 +591,9 @@ export async function claudeHook(input,{entry,timeout,invoke=null,explain=null})
     for(const name of names){const entry=skipped?skipNote(status,name,'hook'):dueNote(status,name);if(entry)note(state,entry);}};
   const entered=enteredDir(command,root,project.projectRoot);
   if(!entered)return why('the command enters a directory outside the project');
+  // From a subdirectory, only a command that first enters a directory by
+  // `cd` is matched: forms are written for the project's own directories.
+  if(!entered.prefix&&project.walked)return why('the command runs in a subdirectory of the project');
   let scripts={};
   if(entered.dir==='.')try{scripts=JSON.parse(fs.readFileSync(path.join(project.projectRoot,'package.json'),'utf8')).scripts||{};}catch{}
   // The configured config path as the command's directory sees it.

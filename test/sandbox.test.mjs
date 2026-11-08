@@ -254,7 +254,7 @@ test('the hook skips a fast Python check when CURRENT and records it through red
   const elsewhere=path.join(path.dirname(root),'elsewhere');fs.mkdirSync(elsewhere);
   spawnSync(process.execPath,[bin,'agent','hook','claude'],{cwd:elsewhere,env:{...env,REDUE_HOOK_LOG:log},
     input:JSON.stringify({...input,cwd:elsewhere}),encoding:'utf8',timeout:30000});
-  assert.match(JSON.parse(fs.readFileSync(log,'utf8').trim().split('\n').at(-1)).why,/^no readable setup record in this directory \(ENOENT\)/);
+  assert.equal(JSON.parse(fs.readFileSync(log,'utf8').trim().split('\n').at(-1)).why,'REDUE is not set up for Claude Code in this directory or above it');
 });
 
 test('init proposes mypy and ruff from .venv with the project\'s arguments, after running each both ways',{skip:unsupported},t=>{

@@ -195,6 +195,23 @@ test('blocks only CURRENT/PASS with reuse_eligible and a run id',async t=>{
   // Another directory: the command is not this project's check, and status is not asked.
   assert.equal(await claudeHook(bash(`cd ${slashes(path.dirname(p.root))} && npm run typecheck`,p.root),
     {invoke:'redue',entry:p.fake('elsewhere',replying(status({})))}),null);
+  // The agent's shell in a subdirectory: the setup record above it is found,
+  // and a cd back to the root is the same command. Without that cd, nothing matches.
+  const sub=path.join(p.root,'src','deep');fs.mkdirSync(sub,{recursive:true});
+  const fromSub=(await claudeHook(bash(`cd ${slashes(p.root)} && npm run typecheck 2>&1 | tail -n 30`,sub),
+    {invoke:'redue',entry:p.fake('subStale',replying(recorded.stale))}))?.hookSpecificOutput;
+  assert.equal(fromSub?.updatedInput.command,`cd ${slashes(p.root)} && redue run typecheck 2>&1 | tail -n 30`);
+  assert.equal((await claudeHook(bash('cd ../.. && npm run typecheck',sub),{invoke:'redue',entry:p.fake('subCurrent',replying(status({})))}))
+    ?.hookSpecificOutput.permissionDecision,'deny');
+  let subWhy=null;
+  assert.equal(await claudeHook(bash('npm run typecheck',sub),{invoke:'redue',entry:p.fake('subPlain',replying(status({}))),explain:text=>{subWhy=text;}}),null);
+  assert.equal(subWhy,'the command runs in a subdirectory of the project');
+  // A nested checkout (a .git entry) without its own setup never takes the parent's.
+  const nested=path.join(p.root,'vendor','other');fs.mkdirSync(path.join(nested,'src'),{recursive:true});
+  fs.writeFileSync(path.join(nested,'.git'),'gitdir: elsewhere\n');
+  for(const cwd of [nested,path.join(nested,'src')]){let nestedWhy=null;
+    assert.equal(await claudeHook(bash(`cd ${slashes(p.root)} && npm run typecheck`,cwd),{invoke:'redue',entry:p.fake('nested',replying(status({}))),explain:text=>{nestedWhy=text;}}),null);
+    assert.equal(nestedWhy,'REDUE is not set up for Claude Code in this directory or above it');}
   // No healthy answer for this check, or already `redue run`: unchanged.
   const unchanged={
     unhealthy:{...status({}),observation:{healthy:false}},
@@ -487,6 +504,13 @@ test('after a cd into a package, the rewrite names the config by its path from t
     reuse_eligible:false,invocation:{runId},reason:'changed'}]}));
   const out=(await claudeHook(bash('cd app/packages/a && npm run typecheck',session),{invoke:'redue',entry}))?.hookSpecificOutput;
   assert.equal(out?.updatedInput.command,'cd app/packages/a && redue --config ../../../redue.config.json run a:typecheck');
+  // From below the session directory: inside the project root it is found, outside it not.
+  fs.mkdirSync(path.join(session,'other'));
+  const below=(await claudeHook(bash('cd packages/a && npm run typecheck',path.join(session,'app')),{invoke:'redue',entry}))?.hookSpecificOutput;
+  assert.equal(below?.updatedInput.command,'cd packages/a && redue --config ../../../redue.config.json run a:typecheck');
+  let outsideWhy=null;
+  assert.equal(await claudeHook(bash('cd ../app/packages/a && npm run typecheck',path.join(session,'other')),{invoke:'redue',entry,explain:text=>{outsideWhy=text;}}),null);
+  assert.equal(outsideWhy,'REDUE is not set up for Claude Code in this directory or above it');
 });
 
 test('start and status meeting on fresh state: start still starts the observer',async t=>{
@@ -715,6 +739,11 @@ test('the end-of-turn check asks once to run redue verify when files changed thi
   fs.writeFileSync(transcript,[{type:'user',message:{role:'user',content:'edit'}},{type:'assistant',message:{role:'assistant',content:[{type:'tool_use',id:'e',name:'Edit',input:{}}]}}]
     .map(e=>JSON.stringify(e)).join('\n')+'\n');
   assert.equal(event('Stop',{session_id:'s2',stop_hook_active:false}).decision,'block');
+  // The agent's shell in a subdirectory: the turn hooks find the project above it.
+  const sub=path.join(root,'src');
+  settle();assert.equal(event('UserPromptSubmit',{session_id:'s5',cwd:sub,prompt:'edit'}),null);
+  put(path.join(root,'src/a.ts'),'export const a=3;\n');
+  assert.equal(event('Stop',{session_id:'s5',cwd:sub,stop_hook_active:false})?.decision,'block');
   // A turn that changes only the build's input, with the typecheck current:
   // the build is UNVERIFIED but not verifiable, so nothing asks.
   assert.equal(redue('run','typecheck').status,0);

@@ -233,10 +233,14 @@ Limits:
 
 - The hook judges its own environment, which Claude Code passes to it. The Bash
   tool can add variables from your shell profile. The hook cannot see those.
-- Commands run from a session that started in a subdirectory, after a `cd`
-  outside the project, or combined with `||`, `&` or other pipes, are not
-  matched. After a `cd` into any other directory than the root or a checked
-  package's, nothing matches.
+- The hooks and the status line find the setup in the session's directory or
+  the nearest one above it, up to the checkout's root (a directory with a
+  `.git` entry), and only inside the project's root. A nested checkout or
+  worktree without its own setup has none. From a subdirectory, a command
+  matches only after a `cd` to the root or a checked package's directory.
+- Commands run after a `cd` outside the project, or combined with `||`, `&` or
+  other pipes, are not matched. After a `cd` into any other directory than the
+  root or a checked package's, nothing matches.
 - A skip writes nothing. If a typecheck command also emits files, later
   commands see the files from its last run.
 - Only the Bash tool is covered, not PowerShell.
