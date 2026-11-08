@@ -149,3 +149,25 @@ test('installed entries are identities that never depend on timing; racy files a
   fs.writeFileSync(file,'export declare const a: number;\n');
   assert.equal(index.record(rel,'rewrite'),true);assert.notEqual(index.files.get(rel),fresh);
 });
+test('an event on a git-ignored file goes only to checks that take ignored files, as at a cold scan; a missing directory is not taken for ignored',t=>{
+  const root=fixture(t);
+  put(path.join(root,'.gitignore'),'dist/\n');put(path.join(root,'dist/old.js'),'1\n');
+  const bundle={root,plans:{general:{id:'general',patterns:['**','!.git/**']},sandboxed:{id:'sandboxed',patterns:['**','!.git/**'],ignoredInputs:true}}};
+  const index=new InputIndex(bundle);index.coldScan();
+  assert.equal(index.checks.get('general').files.has('dist/old.js'),false);
+  // Live: a new and a rewritten ignored file, a new source file.
+  put(path.join(root,'dist/new.js'),'1\n');put(path.join(root,'dist/old.js'),'2\n');put(path.join(root,'src/b.ts'),'export {};\n');
+  index.classifyIgnored(['dist/new.js','dist/old.js','src/b.ts']);
+  for(const rel of ['dist/new.js','dist/old.js','src/b.ts'])index.updatePath(rel);
+  assert.equal(index.checks.get('general').files.has('dist/new.js'),false);
+  assert.equal(index.checks.get('general').files.has('dist/old.js'),false);
+  assert.equal(index.checks.get('general').files.has('src/b.ts'),true);
+  assert.equal(index.checks.get('sandboxed').files.has('dist/new.js'),true);
+  // Whitelist rules: git takes a missing directory for an ignored file, the same one existing for a folder.
+  put(path.join(root,'.gitignore'),'*\n!*/\n!*.ts\n');
+  const whitelist=new InputIndex(bundle);whitelist.coldScan();
+  whitelist.classifyIgnored(['lib/a.ts']);
+  assert.equal(whitelist.ignoredCache.has('lib'),false,'a missing directory is not asked about');
+  put(path.join(root,'lib/a.ts'),'export {};\n');whitelist.updatePath('lib/a.ts');
+  assert.equal(whitelist.checks.get('general').files.has('lib/a.ts'),true);
+});

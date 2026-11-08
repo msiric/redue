@@ -26,6 +26,7 @@ import {runFromArgv} from './typescript-invocation.mjs';
 import {buildInfoPath,recordedCertificate} from './direct-run-certificate.mjs';
 import {timing,mark,traceBase,traceContext,traceScope,traceEnvironment,traceId} from './decision-profile.mjs';
 import {compactKey,installedTreeOf,isSandboxed,sandboxChange,visibleChange as sandboxVisibleChange} from './sandbox.mjs';
+import {gitIgnored} from './test-direct.mjs';
 
 const configFile=path.resolve(process.argv[2]);
 const config=JSON.parse(fs.readFileSync(configFile));
@@ -822,6 +823,13 @@ function workspaceManifest(rel) {
   return rel.endsWith('/package.json')&&
     micromatch.isMatch(path.posix.dirname(rel),workspacePatterns,{dot:true});
 }
+// Which files git ignores decides what the index takes (index.mjs): a
+// .gitignore of the project's own, not one inside an installation or one a
+// tool writes into its own ignored cache (.pytest_cache/.gitignore).
+function ignoreRulesChanged(rel) {
+  if(path.posix.basename(rel)!=='.gitignore'||installedTreeOf(rel)!==null)return false;
+  return gitIgnored(root,[rel]).size===0;
+}
 function planTrigger(rel) {
   return triggerHashes.has(rel)||rel==='package.json'||
     rel==='package-lock.json'||workspaceManifest(rel);
@@ -902,7 +910,7 @@ function notification(type,filename,replay=false) {
     if(index)for(const name of index.candidates(rel))
       if(index.matches(index.checks.get(name),rel))markInputEvent(name,rel,type,replay);
     pending.add(rel);metrics.maxQueue=Math.max(metrics.maxQueue,pending.size);
-    if(planTrigger(rel)||candidateDescendants.has(rel)||pnpmTopologyChanged(type,rel))
+    if(planTrigger(rel)||candidateDescendants.has(rel)||pnpmTopologyChanged(type,rel)||ignoreRulesChanged(rel))
       planDirty=true;
     if(pending.size>50000)observationGap('backlog_overflow');
     return;
@@ -914,9 +922,7 @@ function notification(type,filename,replay=false) {
   catch(e){if(e.code!=='ENOENT') {healthy=false;reason='filesystem event path unavailable';publish();return;}}
   if(index&&[...index.checks.values()].some(row=>row.plan.patterns.includes(rel+'/package.json'))&&
     !fs.existsSync(path.join(root,rel))&&triggerChanged(rel+'/package.json'))planDirty=true;
-  // Which files git ignores decides what the index takes (index.mjs); a
-  // package's own .gitignore inside an installation does not.
-  if(path.posix.basename(rel)==='.gitignore'&&!rel.split('/').some(part=>part==='node_modules'||part==='.venv'))planDirty=true;
+  if(ignoreRulesChanged(rel))planDirty=true;
   if(planTrigger(rel))
     if(triggerChanged(rel))planDirty=true;
   if(candidateTriggerChanged(rel))planDirty=true;

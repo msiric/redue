@@ -161,24 +161,25 @@ export class InputIndex {
     const members=this.members.get(rel);
     return !names.some(name=>members?.has(name))&&names.some(name=>this.matches(this.checks.get(name),rel));
   }
+  // The top-level directory of a path, which git answers for as a whole.
+  topDir(rel) { return rel.includes('/')?rel.slice(0,rel.indexOf('/')):null; }
   // Asks git once about the paths of a batch it has not answered for, and
-  // about their top-level directories: a build's new files beneath an ignored
-  // dist/ need no further question.
+  // about their top-level directories that exist (git takes a missing one for
+  // a file): a build's new files beneath an ignored dist/ need no further question.
   classifyIgnored(rels) {
-    const top=rel=>rel.includes('/')?rel.slice(0,rel.indexOf('/')):null;
-    const asked=[...new Set(rels)].filter(rel=>!this.ignoredCache.has(rel)&&this.ignoredCache.get(top(rel))!==true&&this.ignoreQuestion(rel));
+    const asked=[...new Set(rels)].filter(rel=>!this.ignoredCache.has(rel)&&this.ignoredCache.get(this.topDir(rel))!==true&&this.ignoreQuestion(rel));
     if(!asked.length)return;
     if(this.ignoredCache.size>100000)this.ignoredCache.clear();
-    const dirs=[...new Set(asked.map(top).filter(dir=>dir&&!this.ignoredCache.has(dir)))];
+    const isDir=dir=>{try{return fs.lstatSync(path.join(this.root,dir)).isDirectory();}catch{return false;}};
+    const dirs=[...new Set(asked.map(rel=>this.topDir(rel)).filter(dir=>dir&&!this.ignoredCache.has(dir)&&isDir(dir)))];
     const ignored=gitIgnored(this.root,[...dirs,...asked]);
     for(const rel of [...dirs,...asked])this.ignoredCache.set(rel,ignored.has(rel));
   }
   ignoredLive(rel) {
     if(!this.ignoreQuestion(rel))return false;
-    const dir=rel.includes('/')?rel.slice(0,rel.indexOf('/')):null;
-    if(this.ignoredCache.get(dir)===true)return true;
+    if(this.ignoredCache.get(this.topDir(rel))===true)return true;
     if(!this.ignoredCache.has(rel))this.classifyIgnored([rel]);
-    return this.ignoredCache.get(rel)===true||this.ignoredCache.get(dir)===true;
+    return this.ignoredCache.get(rel)===true||this.ignoredCache.get(this.topDir(rel))===true;
   }
   matches(row,rel) { const started=performance.now(), prefixes=pathPrefixes(rel);
     const any=(groups)=>prefixes.some(prefix=>(groups.get(prefix)||[]).some(fn=>fn(rel)));

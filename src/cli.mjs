@@ -503,10 +503,10 @@ async function execute() {
       if(!unexplained.length){eventsExplained=true;if(changed.length)outputs=changed;}
     }
     // A recorded run of a check that does not take git-ignored files: an event
-    // on a git-ignored file in neither checkpoint's file map is another
-    // program's output (a watch-mode build writing dist/), not its input.
+    // on a git-ignored file the run did not read, in neither checkpoint's file
+    // map, is another program's output (a watch-mode build writing dist/).
     if(guard&&!plan.ignoredInputs&&!eventsExplained&&unexplained?.length&&snap&&end&&end.inputEventPathsComplete===true){
-      const outside=unexplained.filter(rel=>!Object.hasOwn(snap.files||{},rel)&&!Object.hasOwn(end.files||{},rel)&&installedTreeOf(rel)===null);
+      const outside=unexplained.filter(rel=>!guard.read(rel)&&!Object.hasOwn(snap.files||{},rel)&&!Object.hasOwn(end.files||{},rel)&&installedTreeOf(rel)===null);
       const ignored=gitIgnored(root,outside);
       unexplained=unexplained.filter(rel=>!ignored.has(rel));
       if(!unexplained.length)eventsExplained=true;

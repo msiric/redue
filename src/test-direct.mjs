@@ -243,7 +243,7 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
   return {issues:issues.length>issueLimit?[...issues.slice(0,issueLimit),`${issues.length-issueLimit} more`]:issues,
     runFacts:runFacts.length>factLimit?[]:[...new Map(runFacts.map(f=>[JSON.stringify(f),f])).values()],
     environmentReads:Object.fromEntries(Object.entries(environmentReads).sort(([a],[b])=>a<b?-1:a>b?1:0)),isOutput,opaque,
-    wroteInstalled:rel=>installedWrites.has(rel)};
+    wroteInstalled:rel=>installedWrites.has(rel),read:rel=>reads.has(rel)};
 }
 // The observed files that differ between two checkpoints' file maps.
 export function changedFiles(before,after){
