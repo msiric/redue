@@ -221,12 +221,11 @@ trial agrees, as for typecheck and lint. A suite that reads back git-ignored
 files it writes in the same run (a coverage database, a build it starts
 itself) gets the whole checkout. Files a hidden run writes beneath hidden
 folders, or new files git ignores, are not changes to its inputs. With the
-whole checkout (`sandbox-v1`), a run whose only changes are git-ignored files,
-the same ones the last passing run changed, keeps them as its output: its first
-run is UNVERIFIED, and from its second run the result is CURRENT until an input
-changes, those files included. REDUE cannot tell the run's writes from another
-program's, so another program writing those files during such a run is taken
-as the run's own write.
+whole checkout (`sandbox-v1`), a run that rewrites git-ignored files with the
+bytes they already had (a build from unchanged sources) is CURRENT: what it
+read is what is there now. A run that rewrites them with other bytes (the first
+run after a source change) is UNVERIFIED, since it may have read the old ones;
+the next run is CURRENT.
 
 ## What REDUE claims
 

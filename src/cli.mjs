@@ -628,34 +628,25 @@ async function execute() {
     const cleanupStarted=performance.now();
     if(sandbox?.stats){const issue=supervisorIssue(sandbox.stats);if(issue)captureIssues.push(issue);fs.rmSync(sandbox.stats,{force:true});}
     if(sandbox){fs.rmSync(sandbox.dirs.tmp,{recursive:true,force:true});timing('cli.sandbox_cleanup',cleanupStarted);}
-    const priorReceipt=readReceipts(state).checks[name];
     // A sandbox-v1 run (the whole checkout, git-ignored files included) of a
     // suite that rebuilds git-ignored files and reads them back, such as
-    // `npm run build && vitest run` writing dist/: when the only changes during
-    // the run are git-ignored files, the same ones the last passing run of the
-    // same plan changed, they are its output, kept as the run left them.
-    // Limit: another program writing those files during such a run is taken
-    // as the run's own write.
-    let ownOutput=null;
+    // `npm run build && vitest run` writing dist/: when every input event during
+    // the run named a git-ignored file and every input is as it was at the start,
+    // it rewrote them with the bytes they had, so what it read before rewriting
+    // is what is there now. Rewritten with other bytes (the first run after a
+    // source change), it may have read the old ones: UNVERIFIED as before.
     const changedDuring=captureIssues.find(issue=>issue.startsWith('declared input event occurred during execution'));
-    if(own&&sandbox&&!sandbox.hidden&&!sandbox.docs&&changedDuring&&
-      captureIssues.every(issue=>issue===changedDuring||issue==='declared inputs changed or were not observed')&&
-      snap&&end&&snap.planId===end.planId&&snap.probeHash===end.probeHash&&snap.observationHealthy&&end.observationHealthy&&
-      end.inputEventPathsComplete===true){
-      const files=[...new Set(unexplained||[])].sort(),changed=changedFiles(snap.files,end.files),prior=priorReceipt?.selfChange;
-      const all=[...new Set([...files,...changed])];
-      if(files.length&&files.length<=20&&prior&&priorReceipt.result==='PASS'&&priorReceipt.planId===snap.planId&&
-        JSON.stringify(prior.files)===JSON.stringify(files)&&gitIgnored(root,all).size===all.length){
-        ownOutput={files,streak:prior.streak+1};outputs=changed;
-        captureIssues.splice(0,captureIssues.length);
-      }
-    }
+    if(own&&sandbox&&!sandbox.hidden&&!sandbox.docs&&changedDuring&&captureIssues.every(issue=>issue===changedDuring)&&
+      snap&&end&&snap.planId===end.planId&&snap.fingerprint===end.fingerprint&&snap.observationHealthy&&end.observationHealthy&&
+      end.inputEventPathsComplete===true&&unexplained?.length&&gitIgnored(root,[...new Set(unexplained)]).size===new Set(unexplained).size)
+      captureIssues.splice(0,captureIssues.length);
     const stable=captureIssues.length===0;
     // Two runs on the same inputs, environment and plan that disagree make the
     // check nondeterministic until its inputs change.
     let nondeterministic=false;
     const declared=hashes=>Object.entries(hashes||{}).filter(([key])=>!key.startsWith('__redue_env_'));
     if(sandboxRerun)result=invocation.status==='exited'?(invocation.exitCode===0?'PASS':'FAIL'):null;
+    const priorReceipt=readReceipts(state).checks[name];
     if((testRun||sandboxed)&&stable&&result){
       const prior=priorReceipt;
       // A difference explained by inputs REDUE did not observe proves nothing.
@@ -673,7 +664,7 @@ async function execute() {
     // A run whose only issue is that inputs changed while it ran keeps the
     // files that did, and how many runs in a row changed the same ones: a
     // suite that rewrites its own inputs does so on every run (selfChange).
-    let selfChange=ownOutput;
+    let selfChange=null;
     const eventIssue=captureIssues.find(issue=>issue.startsWith('declared input event occurred during execution'));
     if(eventIssue&&captureIssues.every(issue=>issue===eventIssue||issue==='declared inputs changed or were not observed')){
       const files=[...new Set(unexplained||[])].sort().slice(0,20);
