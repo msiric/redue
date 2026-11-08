@@ -266,9 +266,28 @@ test("a general check that reads REDUE's own hook settings, which git ignores, k
   write(root,'.claude/settings.local.json','{"hooks":{"Stop":[]}}\n');
   status=row(root,state,'lint');
   assert.equal(status.freshness,'STALE');
-  assert.match(status.reason,/\.claude\/settings\.local\.json/);
+  assert.match(status.reason,/a lookup the last run made answers differently now: .*\.claude\/settings\.local\.json/);
   good(root,state,'run','lint');
   assert.equal(row(root,state,'lint').freshness,'CURRENT');
+});
+
+test('a git-ignored file written after a run is not an input of a general check, as at the observer\'s start',{skip:unsupported},t=>{
+  const {root,state}=project(t,{lint:'checker'});
+  // One before the observer starts, as the cold scan sees it.
+  put(path.join(root,'out/old.js'),'1\n');
+  good(root,state,'init');good(root,state,'start');
+  good(root,state,'run','lint');
+  assert.equal(row(root,state,'lint').freshness,'CURRENT');
+  // A build writing its git-ignored output: new, rewritten and removed files.
+  put(path.join(root,'out/new.js'),'1\n');put(path.join(root,'out/old.js'),'2\n');put(path.join(root,'out/deep/x.js'),'1\n');
+  let status=row(root,state,'lint');
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  fs.rmSync(path.join(root,'out'),{recursive:true});
+  status=row(root,state,'lint');
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  // A file git does not ignore still counts.
+  write(root,'src/other.js','1\n');
+  assert.equal(row(root,state,'lint').freshness,'STALE');
 });
 
 test('tool outputs: pnpm state and its temporary files when the pnpm executable ran, vue-tsc types the run wrote',()=>{

@@ -73,6 +73,15 @@ proposed check for a project without a typecheck script has no `script`.
 Input patterns are relative to the project root. They cannot name a `.git`
 directory, because REDUE does not observe one; `!.git/**` is fine.
 
+A pattern takes the files git ignores only beneath its fixed directory (`dist/**`
+takes all of `dist/`); a pattern such as `**` or `**/*.ts` does not take them,
+when the observer starts or when one changes later, so a build or test that
+writes git-ignored output (`dist/`, `build/`) leaves such checks as they were.
+A sandboxed check that runs with the git-ignored files (`sandbox-v1`) takes them
+all. A general or direct test run that reads a git-ignored file REDUE does not
+observe is UNVERIFIED; the direct TypeScript recipe's probe content-checks every
+file the compiler reads.
+
 Changing commands, relevant configuration, installed material, or consumed inputs
 invalidates prior applicability. It does not erase historical execution outcomes.
 

@@ -841,7 +841,8 @@ function flush() {
     refreshPlan();return;}
   const wasHealthy=healthy;
   const paths=[...pending];pending.clear();metrics.flushes++;
-  try {for(const rel of paths)index.updatePath(rel);
+  try {index.classifyIgnored(paths);
+    for(const rel of paths)index.updatePath(rel);
     for(const entry of external.values()){
       for(const rel of entry.pending)entry.index?.updatePath(rel);
       entry.pending.clear();

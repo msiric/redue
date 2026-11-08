@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import {execFileSync} from 'node:child_process';
+import {execFileSync,spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import micromatch from './glob.mjs';
 import {sha} from './plan.mjs';
@@ -17,6 +17,12 @@ const ignored = root => [...new Set(execFileSync('git',
   ['ls-files','--others','--ignored','--exclude-standard','--directory','-z'],
   {cwd:root,env:{...process.env,GIT_OPTIONAL_LOCKS:'0'},maxBuffer:64*1024*1024})
   .toString().split('\0').filter(Boolean))];
+// Which of `files` git ignores, in one call; an error counts as not ignored.
+const ignoredOf = (root,files) => {
+  const out=spawnSync('git',['check-ignore','--stdin','-z'],{cwd:root,input:files.map(file=>'./'+file).join('\0')+'\0',
+    encoding:'utf8',maxBuffer:64*1024*1024,timeout:10000,env:{...process.env,GIT_OPTIONAL_LOCKS:'0'}});
+  return new Set(out.status===0?out.stdout.split('\0').filter(Boolean).map(file=>file.replace(/^\.\//,'')):[]);
+};
 const xor = (left,right) => { for(let i=0;i<32;i++) left[i]^=right[i]; };
 const token = (file,hash) => createHash('sha256').update(file+'\0'+hash).digest();
 const stablePrefix = glob => {
@@ -109,6 +115,8 @@ export class InputIndex {
     this.installedRootSet=new Set(this.installedRoots);
     this.installedAncestors=new Set(this.installedRoots.flatMap(pathPrefixes));
     this.includeInstalled=options.includeInstalled||false;
+    // Whether git ignores a path the cold scan did not see (ignoredLive).
+    this.ignoredCache=new Map();
     this.checks=new Map(); this.prefixes=new Map(); this.eventCount=0; this.rehashedFiles=0;
     this.rehashedBytes=0; this.lastChange=0; this.unavailable=null;
     this.profile={matcherMs:0,trackedMs:0,enumerationMs:0,matchingMs:0,
@@ -139,6 +147,37 @@ export class InputIndex {
     for(let i=1;i<=parts.length;i++)
       for(const name of this.prefixes.get(parts.slice(0,i).join('/'))||[]) names.add(name);
     return names;
+  }
+  // A cold scan takes every file git does not ignore, every file beneath a
+  // pattern's fixed directory, and the git-ignored files only for the checks
+  // that take them (sandboxed ones). A path an event names is taken the same
+  // way, so a build or test that writes git-ignored output (dist/, build/)
+  // does not change the inputs of a check whose patterns merely match it.
+  walked(rel) { return pathPrefixes(rel).some(prefix=>prefix&&this.prefixes.has(prefix)); }
+  // Paths whose git-ignored state decides which checks take them: in a git
+  // checkout, outside every walked directory, matched by a check that does
+  // not take ignored files, and not already its input.
+  ignoreQuestion(rel) {
+    if(!this.trackGit||this.walked(rel))return false;
+    const names=[...this.candidates(rel)].filter(name=>!this.checks.get(name).plan.ignoredInputs);
+    if(!names.length)return false;
+    const members=this.members.get(rel);
+    return !names.some(name=>members?.has(name))&&names.some(name=>this.matches(this.checks.get(name),rel));
+  }
+  // Asks git once about the paths of a batch it has not answered for. A
+  // change to a .gitignore can change any answer.
+  classifyIgnored(rels) {
+    if(rels.some(rel=>path.posix.basename(rel)==='.gitignore'))this.ignoredCache.clear();
+    const asked=[...new Set(rels)].filter(rel=>!this.ignoredCache.has(rel)&&this.ignoreQuestion(rel));
+    if(!asked.length)return;
+    if(this.ignoredCache.size>100000)this.ignoredCache.clear();
+    const ignored=ignoredOf(this.root,asked);
+    for(const rel of asked)this.ignoredCache.set(rel,ignored.has(rel));
+  }
+  ignoredLive(rel) {
+    if(!this.ignoreQuestion(rel))return false;
+    if(!this.ignoredCache.has(rel))this.classifyIgnored([rel]);
+    return this.ignoredCache.get(rel)===true;
   }
   matches(row,rel) { const started=performance.now(), prefixes=pathPrefixes(rel);
     const any=(groups)=>prefixes.some(prefix=>(groups.get(prefix)||[]).some(fn=>fn(rel)));
@@ -185,10 +224,12 @@ export class InputIndex {
   summary(name) { const row=this.checks.get(name); return {fingerprint:this.fingerprint(name),
     revision:row.revision,planId:row.plan.id,files:row.files.size,probeAt:row.probeAt}; }
   // `only`, when given, limits which checks may take the file.
-  record(rel, changeReason=rel+' changed', observedStat=null, only=null) {
+  // `visible`: the cold scan's own list of files git does not ignore.
+  record(rel, changeReason=rel+' changed', observedStat=null, only=null, visible=false) {
     if(!validInputRelative(rel)) {
       this.unavailable='invalid event path'; return false;
     }
+    if(!only&&!visible&&this.ignoredLive(rel))only=name=>this.checks.get(name).plan.ignoredInputs===true;
     const names=this.candidates(rel), old=this.files.get(rel), matched=[];
     for(const name of names) if((!only||only(name))&&this.matches(this.checks.get(name),rel)) matched.push(name);
     if(!matched.length && old===undefined) return false;
@@ -260,7 +301,7 @@ export class InputIndex {
           !this.prefixes.has(r)) return;
         for(const entry of fs.readdirSync(file,{withFileTypes:true}))
           visit(path.join(file,entry.name),r?r+'/'+entry.name:entry.name);
-      } else if(!found.has(r)) {found.add(r);this.record(r);}
+      } else found.add(r);
     };
     for(const root of roots) {
       const base=path.join(this.root,root);
@@ -268,6 +309,8 @@ export class InputIndex {
       try{fs.lstatSync(base);}catch(e){if(e.code==='ENOENT')present=false;else throw e;}
       if(present)visit(base,root);
     }
+    this.classifyIgnored([...found]);
+    for(const r of found)this.record(r);
     for(const old of [...this.files.keys()]) if((old===rel||old.startsWith(rel+'/'))&&!found.has(old)) this.record(old);
   }
   coldScan(progress) {
@@ -347,7 +390,7 @@ export class InputIndex {
     this.profile.enumerationMs+=performance.now()-enumerationStarted-processingMs;
     const recordStarted=performance.now();
     for(const rel of names) {
-      if(this.candidates(rel).size)this.record(rel,'cold reconciliation');
+      if(this.candidates(rel).size)this.record(rel,'cold reconciliation',null,null,true);
       scanned++;
       if(progress&&scanned%256===0)progress({scanned,total:null});
     }
