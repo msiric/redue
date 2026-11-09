@@ -23,6 +23,8 @@
 //   did not see are listed (eval/program-check.mjs); for a sandboxed check,
 //   reads the receipt does not hold (eval/sandbox-check.mjs). Either is flagged. --keep-traces keeps
 //   each run's strace output and run record under .local/eval/census-traces/.
+//   --build-first (with --product): run the project's build script once
+//   before init, as a developer's checkout has it built.
 //   --install-scripts installs as users do, with dependencies' install
 //   scripts (esbuild's links its binary), on a disposable CI runner only.
 //   --init-timing: only the plain `init --dry-run`, with up to an hour, and
@@ -59,7 +61,7 @@ const argv = process.argv.slice(2);
 const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : null;
 const initOnly = argv.includes('--init-only'), recorded = argv.includes('--recorded'), product = argv.includes('--product'),
   initTiming = argv.includes('--init-timing'), keepTraces = argv.includes('--keep-traces'), allRecipes = argv.includes('--all-recipes'), testHidingMode = argv.includes('--test-hiding'), supervisorCostMode = argv.includes('--supervisor-cost'), overheadMode = argv.includes('--overhead'),
-  installScripts = argv.includes('--install-scripts'), sandbox = argv.includes('--sandbox');
+  installScripts = argv.includes('--install-scripts'), sandbox = argv.includes('--sandbox'), buildFirst = argv.includes('--build-first');
 let names = argv.filter((arg, i) => !arg.startsWith('-') && !['--shard', '--redue-version'].includes(argv[i - 1]));
 if (!names.length) names = readJson(path.join(evalDir, 'census-repos.json')).repos;
 // Named repos are sharded too, so CI can rerun a list across its shards.
@@ -163,6 +165,12 @@ function productRuns(dir, row, recipeArgs = allRecipes ? [] : ['--recipe', 'node
   if (!row.install.pass) return {notRun: 'install failed'};
   // A second pass (--compare-general) writes its own config.
   fs.rmSync(config, {force: true});
+  // --build-first: the project built once before init, as a developer's
+  // checkout is (a monorepo's tests often import its packages' builds).
+  if (buildFirst && row.scripts.build && !out.buildFirst) {
+    const r = run(row.pm.name === 'npm' ? 'npm' : 'corepack', row.pm.name === 'npm' ? ['run', row.scripts.build.name] : [row.pm.name, 'run', row.scripts.build.name], dir, 900_000);
+    out.buildFirst = {exit: r.status, ms: r.ms, timedOut: r.timedOut || false};
+  }
   // init runs each sandboxed check inside and outside the sandbox: a large workspace's lint takes minutes.
   const initRun = redue(['init', ...recipeArgs, '--json'], 1_800_000), init = json(initRun);
   if (!init) return {error: 'init failed', initMs: initRun.ms, timedOut: initRun.timedOut};
