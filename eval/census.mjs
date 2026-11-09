@@ -62,6 +62,8 @@ const shardArg = argv.includes('--shard') ? argv[argv.indexOf('--shard') + 1] : 
 const initOnly = argv.includes('--init-only'), recorded = argv.includes('--recorded'), product = argv.includes('--product'),
   initTiming = argv.includes('--init-timing'), keepTraces = argv.includes('--keep-traces'), allRecipes = argv.includes('--all-recipes'), testHidingMode = argv.includes('--test-hiding'), supervisorCostMode = argv.includes('--supervisor-cost'), overheadMode = argv.includes('--overhead'),
   installScripts = argv.includes('--install-scripts'), sandbox = argv.includes('--sandbox'), buildFirst = argv.includes('--build-first');
+// --run-limit=SECONDS: each product `redue run`'s limit (default 600).
+const runLimit = 1000 * (Number(argv.find(a => a.startsWith('--run-limit='))?.slice('--run-limit='.length)) || 600);
 let names = argv.filter((arg, i) => !arg.startsWith('-') && !['--shard', '--redue-version'].includes(argv[i - 1]));
 if (!names.length) names = readJson(path.join(evalDir, 'census-repos.json')).repos;
 // Named repos are sharded too, so CI can rerun a list across its shards.
@@ -185,7 +187,7 @@ function productRuns(dir, row, recipeArgs = allRecipes ? [] : ['--recipe', 'node
   // git-ignored outputs.
   const pm = row.pm.name, others = ['build', 'test', 'typecheck', 'lint'].filter(kind => row.scripts[kind]).map(kind => ({label: kind,
     argv: pm === 'npm' ? ['npm', 'run', row.scripts[kind].name] : ['corepack', pm, 'run', row.scripts[kind].name], timeout: kind === 'build' ? 900_000 : 600_000}));
-  const result = productChecks({dir, config, names: ready.map(c => c.name), env: {...env, npm_config_update_notifier: 'false'}, label: row.name, keepTraces, others});
+  const result = productChecks({dir, config, names: ready.map(c => c.name), env: {...env, npm_config_update_notifier: 'false'}, label: row.name, keepTraces, others, runLimit});
   if (result.others) out.others = result.others;
   if (result.changes) out.changes = result.changes;
   if (result.observer) return {...out, observer: result.observer, observerLink: result.observerLink};

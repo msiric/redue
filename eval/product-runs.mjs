@@ -46,7 +46,8 @@ const examples = list => ({count: list.length, examples: list.slice(0, 6)});
 const paths = list => ({count: list.length, examples: list.slice(0, 200)});
 
 // {observer} when the observer never became ready, else {checks: {name: {...}}}.
-export function productChecks({dir, config, names, env, label, keepTraces = false, others = []}) {
+// runLimit: each `redue run`'s limit, in ms.
+export function productChecks({dir, config, names, env, label, keepTraces = false, others = [], runLimit = 600_000}) {
   const run = (cmd, args, timeout) => sh(cmd, args, {cwd: dir, env, timeout});
   const redue = (args, timeout = 120_000) => run(process.execPath, [checkoutRedue, '--config', config, ...args], timeout);
   const json = r => { try { return JSON.parse(r.stdout); } catch { return null; } };
@@ -100,7 +101,7 @@ export function productChecks({dir, config, names, env, label, keepTraces = fals
       const work = hasStrace ? fs.mkdtempSync(path.join(tmpRoot, 'census-trace-')) : null, trace = work && path.join(work, 'strace');
       if (hasStrace && sandboxed) {
         r = sh('strace', ['-D', '-f', '-qq', '-y', '-s', '4096', '-e', `trace=${sandboxTraceCalls}`, '-o', trace,
-          process.execPath, checkoutRedue, '--config', config, 'run', name, '--json'], {cwd: dir, env, timeout: 600_000});
+          process.execPath, checkoutRedue, '--config', config, 'run', name, '--json'], {cwd: dir, env, timeout: runLimit});
       } else if (hasStrace) {
         // Hard links stay on the state's file system.
         const copy = fs.mkdtempSync(path.join(path.dirname(state), 'census-record-'));
@@ -108,14 +109,14 @@ export function productChecks({dir, config, names, env, label, keepTraces = fals
         wait(300);
         // -D: strace is not the run's parent, so a detached descendant does not hold the run open.
         r = sh('strace', ['-D', '-f', '-qq', '-s', '4096', '-e', 'trace=execve,execveat,clone,clone3,fork,vfork', '-o', trace,
-          process.execPath, checkoutRedue, '--config', config, 'run', name, '--json'], {cwd: dir, env, timeout: 600_000});
+          process.execPath, checkoutRedue, '--config', config, 'run', name, '--json'], {cwd: dir, env, timeout: runLimit});
         wait(500);
         keeper.kill();
         unrecorded = unrecordedPrograms(trace, copy) ?? 'trace or record unavailable';
         if (keepTraces) { const kept = path.join(localDir, 'census-traces', slug(label), `${name}-${n}`); fs.mkdirSync(kept, {recursive: true});
           try { fs.cpSync(copy, path.join(kept, 'record'), {recursive: true}); } catch {} }
         fs.rmSync(copy, {recursive: true, force: true});
-      } else r = redue(['run', name, '--json'], 600_000);
+      } else r = redue(['run', name, '--json'], runLimit);
       const touched = () => run('find', ['.', '-newer', mark, '-not', '-path', './.git/*', '-not', '-name', path.basename(config)])
         .stdout.split('\n').filter(Boolean).slice(0, 40);
       const now = json(redue(['status', '--sync', '--json'], 300_000))?.checks?.find(x => x.name === name);
