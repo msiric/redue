@@ -12,8 +12,20 @@ const write=(file,value)=>{
 
 // Whether any process of the process group `pgid` exists. A run on Linux,
 // and a sandboxed one on macOS, has its own group, led by the check.
+// On Linux a zombie still counts for kill(-pgid, 0), and an orphaned one is
+// reaped only when its new parent gets to it: there each process's state
+// and group are read instead, and zombies do not count.
 function groupAlive(pgid){
   if(process.platform==='win32'||!Number.isSafeInteger(pgid)||pgid<2)return false;
+  if(process.platform==='linux'){
+    let entries;try{entries=fs.readdirSync('/proc');}catch{entries=null;}
+    if(entries){
+      for(const entry of entries){if(!/^\d+$/.test(entry))continue;
+        let stat;try{stat=fs.readFileSync(`/proc/${entry}/stat`,'utf8');}catch{continue;}
+        const fields=stat.slice(stat.lastIndexOf(')')+2).split(' ');
+        if(Number(fields[2])===pgid&&!['Z','X'].includes(fields[0]))return true;}
+      return false;}
+  }
   try{process.kill(-pgid,0);return true;}catch(e){return e.code!=='ESRCH';}
 }
 

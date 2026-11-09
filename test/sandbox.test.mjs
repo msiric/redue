@@ -807,7 +807,7 @@ test('the macOS profile refuses each listed file the patterns miss, beneath the 
   assert(!/LICENSE\|CHANGELOG/.test(profile),'no name pattern');
 });
 
-test("the checkout's .git: its contents hidden but for the ignore rules, on both launchers; only a real folder",t=>{
+test("the checkout's .git: its contents hidden but for the ignore rules, on both launchers; only a real folder",{skip:process.platform==='win32'&&'POSIX paths'},t=>{
   const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-git-hide-')));t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
   const git=path.join(base,'.git');fs.mkdirSync(path.join(git,'info'),{recursive:true});
   assert.equal(checkoutGit(base),git);
