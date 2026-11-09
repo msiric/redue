@@ -41,6 +41,12 @@ if 'quietbuild' in text:
 if 'readdocs' in text: text += open('README.md').read()
 if 'readsnippet' in text: text += open('docs/snippet.py').read()
 if 'readchangelog' in text: text += open('src/fx/CHANGELOG').read()
+if 'nodedump' in text:
+    try: open('build/generated.py').read()
+    except OSError:
+        print("Error: EACCES: permission denied, open '" + os.path.abspath('build/generated.py') + "'")
+        print("    at Object.openSync (node:fs:573:18) {"); print("  errno: -13,"); print("  code: 'EACCES',"); print("  syscall: 'open',")
+        print("  path: '" + os.path.abspath('build/generated.py') + "'"); print("}"); sys.exit(1)
 if 'readmany' in text:
     for i in range(4): text += open(f'build/m{i}.py').read()
 if 'network' in text:
@@ -441,6 +447,14 @@ test('a check that reads a git-ignored file gets just that file visible at init,
   write(root,'build/generated.py','g = 4\n');
   status=row(root,state,'typecheck');
   assert.equal(status.freshness,'STALE',JSON.stringify(status));assert.match(status.reason,/build\/generated\.py/);
+});
+
+test('a refusal Node prints with its error properties still gets the file visible',{skip:unsupported},t=>{
+  const {root,state}=project(t);
+  put(path.join(root,'build/generated.py'),'g = 1\n');write(root,'src/fx/reads.py','# nodedump\n');
+  const init=JSON.parse(good(root,state,'init','--dry-run','--json'));
+  const check=init.proposed_config.checks.find(c=>c.name==='typecheck');
+  assert.equal(`${check.qualification} ${JSON.stringify(check.visible)}`,'sandbox-v3 ["build/generated.py"]',JSON.stringify(init.checks));
 });
 
 test('a check that needs more hidden files than visible takes gets the whole checkout, as before',{skip:unsupported},t=>{

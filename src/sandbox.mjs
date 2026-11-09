@@ -674,7 +674,9 @@ function refusedHidden(plain,sandboxed,entries,supervisor){
   if(plain.status!==0||supervisor||!entries.length)return null;
   const line=hiddenRefusal(sandboxed.output,entries);
   if(!line||plain.output.includes(line))return null;
-  const others=sandboxed.output.split(/\r?\n/).filter(text=>!hiddenRefusal(text,entries)).join('\n');
+  // Node prints an error's properties after its message (`code: 'EACCES',`):
+  // they belong to the refusal named above, not to another one.
+  const others=sandboxed.output.split(/\r?\n/).filter(text=>!hiddenRefusal(text,entries)&&!/^\s*(?:code|errno|syscall|path):\s/.test(text)).join('\n');
   return denialLine(others)?null:line;
 }
 // init's limit on each trial run, in ms; a test can shorten it.
