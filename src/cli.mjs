@@ -689,10 +689,23 @@ async function execute() {
         selfChange={files,streak:backToBack&&JSON.stringify(prior.files)===JSON.stringify(files)?prior.streak+1:1,
           ...backToBack?{repeat:true}:{}};}
     }
+    // A passing recorded run that used inputs REDUE does not observe, only
+    // ones the code itself reads (a dependency calling process.binding, a
+    // program the recorder cannot follow, an excluded file), and how many
+    // passing runs in a row of the same plan and recipe used the same ones
+    // (guardStreak). A record that could not be read, a file that changed
+    // during the run and other conditions of one run are not counted.
+    const guardIssues=testRun?guard?.issues||['the run record is unavailable']:null;
+    const inherent=issue=>/^(?:recorder: (?!recorder failure$)|network: |started |replaced itself with |read )/.test(issue);
+    const recipeNow=(fallback?scriptQualification:own?(sandbox?.docs?docsQualification:sandbox?.hidden?hiddenQualification:sandboxQualification):selected.qualification)||null;
+    const guardStreak=result==='PASS'&&guardIssues?.length&&guardIssues.every(inherent)?
+      (priorReceipt?.result==='PASS'&&priorReceipt.guardStreak>=1&&priorReceipt.planId===(snap?.planId??plan.id)&&priorReceipt.recipe===recipeNow&&
+        JSON.stringify([...priorReceipt.guardIssues||[]].sort())===JSON.stringify([...guardIssues].sort())?priorReceipt.guardStreak+1:1):0;
     const receipt={result,invocation,target,stable,fingerprintVersion:recorded||testRun?2:1,...selfChange?{selfChange}:{},
-      recipe:(fallback?scriptQualification:own?(sandbox?.docs?docsQualification:sandbox?.hidden?hiddenQualification:sandboxQualification):selected.qualification)||null,
+      ...guardStreak?{guardStreak}:{},
+      recipe:recipeNow,
       ...(recorded||testRun?{runFacts}:{}),
-      ...(testRun?{verificationRecipe:general?scriptInterpretation:testsInterpretation,guardIssues:guard?.issues||['the run record is unavailable'],
+      ...(testRun?{verificationRecipe:general?scriptInterpretation:testsInterpretation,guardIssues,
         environmentReads:guard?.environmentReads||{},...(nondeterministic?{nondeterministic}:{})}:{}),
       resolutionLinks:plan.resolutionLinks||[],
       coverage:{qualified:plan.unresolved.length===0,unresolved:plan.unresolved},

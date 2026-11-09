@@ -27,6 +27,8 @@ if(value.includes('coverage')){
   try{fs.readFileSync('coverage/lcov-report/sorter.js');}catch{}
   fs.mkdirSync('coverage/lcov-report',{recursive:true});fs.writeFileSync('coverage/lcov-report/sorter.js','report');
 }
+// A native read REDUE's recorder does not see, as some dependencies make.
+if(value.includes('binding'))process.binding('fs');
 if(value.includes('many'))for(let i=0;i<300;i++)void process.env['REDUE_FAKE_MANY_'+i];
 if(value.includes('shell'))void process.env.SHELL,process.env._;
 // Output in a git-ignored directory: written and read back, or a leftover read first.
@@ -177,6 +179,35 @@ test('runs on the same inputs with different results make the check UNVERIFIED u
   assert.equal(row(root,state).freshness,'UNVERIFIED');
   write(root,'src/value.js','pass\n');good(root,state,'run','test');
   assert.equal(row(root,state).freshness,'CURRENT');
+});
+
+test('a check whose last two passing runs used the same unobserved inputs is not verifiable, through edits, until a run without them',{skip:unsupported},t=>{
+  const {root,state}=project(t);
+  good(root,state,'init','--recipe','tests-direct','--check','test');good(root,state,'start');
+  write(root,'src/value.js','binding\n');
+  assert.equal(invoke(root,state,{},'run','test').status,0);
+  let status=row(root,state);
+  assert.equal(status.freshness,'UNVERIFIED');assert.notEqual(status.verifiable,false);assert.match(status.reason,/process\.binding\('fs'\)/);
+  assert.equal(invoke(root,state,{},'run','test').status,0);
+  status=row(root,state);
+  assert.equal(`${status.freshness} ${status.verifiable}`,'UNVERIFIED false',JSON.stringify(status));
+  assert.match(status.reason,/its last 2 runs used inputs REDUE does not observe \(recorder: process\.binding\('fs'\)/);
+  // After an edit it is STALE, still not verifiable, and verify leaves it out.
+  write(root,'src/value.js','binding again\n');
+  status=row(root,state);assert.equal(`${status.freshness} ${status.verifiable}`,'STALE false',JSON.stringify(status));
+  const verify=invoke(root,state,{},'verify');
+  assert.doesNotMatch(verify.stdout+verify.stderr,/running test/);assert.match(verify.stdout,/not verifiable/i);
+  // A run with other unobserved inputs starts a new count.
+  write(root,'src/value.js','binding readme\n');assert.equal(invoke(root,state,{},'run','test').status,0);
+  status=row(root,state);assert.equal(status.freshness,'UNVERIFIED');assert.notEqual(status.verifiable,false,JSON.stringify(status));
+  // A run without them makes it verifiable again.
+  write(root,'src/value.js','pass\n');good(root,state,'run','test');
+  assert.equal(row(root,state).freshness,'CURRENT');
+  // Failing runs are never counted: a failing suite stays UNVERIFIED / FAIL and due.
+  write(root,'src/value.js','binding fail\n');
+  for(let i=0;i<2;i++)assert.equal(invoke(root,state,{},'run','test').status,1);
+  status=row(root,state);
+  assert.equal(`${status.freshness}/${status.result} ${status.verifiable}`,'UNVERIFIED/FAIL undefined',JSON.stringify(status));
 });
 
 test('init: Jest coverage excludes its report; watch mode and other scripts stay recording-only',{skip:unsupported},t=>{
