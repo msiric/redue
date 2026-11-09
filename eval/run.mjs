@@ -128,6 +128,9 @@ async function runOne(task, repo, arm, index, rep) {
 const sessionArgs = (prompt, maxTurns, hook = null, {resume = null, persist = false} = {}) => ['-p', prompt, '--model', opt.model, '--max-turns', String(maxTurns),
   ...resume ? ['--resume', resume] : [], '--output-format', 'stream-json', '--verbose', ...persist ? [] : ['--no-session-persistence'],
   '--setting-sources', 'project,local', '--settings', JSON.stringify({autoMemoryEnabled: false,
+    // Claude Code's default command time limit (2 minutes) in every arm, as
+    // its maximum too: an agent cannot raise it per command.
+    env: {BASH_DEFAULT_TIMEOUT_MS: '120000', BASH_MAX_TIMEOUT_MS: '120000'},
     ...hook ? {hooks: {PreToolUse: [{matcher: '*', hooks: [{type: 'command', command: hook}]}]}} : {}}),
   '--strict-mcp-config', '--mcp-config', JSON.stringify({mcpServers: {}}),
   '--tools', tools, '--allowedTools', tools, '--permission-mode', 'dontAsk'];
@@ -325,12 +328,12 @@ async function runSession(task, repo, arm, id) {
   row.final_tsc = {pass: tsc.pass, ms: tsc.ms};
   if (!tsc.pass) fs.writeFileSync(path.join(runDir, 'final-tsc.txt'), tsc.output);
   if (repo.test) {
-    const test = sh('sh', ['-c', repo.test], {cwd: dir, timeout: 300_000});
+    const test = sh('sh', ['-c', repo.test], {cwd: dir, timeout: 900_000});
     row.tests = {pass: test.status === 0, ms: test.ms};
     if (test.status !== 0) fs.writeFileSync(path.join(runDir, 'tests.txt'), (test.stdout + test.stderr).slice(-8000));
   }
   if (repo.lint) {
-    const lint = sh('sh', ['-c', repo.lint], {cwd: dir, timeout: 300_000});
+    const lint = sh('sh', ['-c', repo.lint], {cwd: dir, timeout: 900_000});
     row.lint = {pass: lint.status === 0, ms: lint.ms};
     if (lint.status !== 0) fs.writeFileSync(path.join(runDir, 'lint.txt'), (lint.stdout + lint.stderr).slice(-8000));
   }

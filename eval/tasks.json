@@ -1150,6 +1150,84 @@
           "includes": "a.a"
         }
       ]
+    },
+    {
+      "repo": "artsy/eigen",
+      "id": "steps-bugfix",
+      "kind": "source",
+      "steps": [
+        {
+          "prompt": "In src/app/utils/transformBytesToSize.ts, `transformBytesToSize(500)` returns \"500 Bytes)\" with a stray closing parenthesis. The branch for sizes under 1 KB (`i === 0`) has an extra `)` in its template string. Fix it so `transformBytesToSize(500)` returns \"500 Bytes\". Larger sizes must keep their current output (for example `transformBytesToSize(3425899)` stays \"3.3 MB\"). Add a case for 500 bytes to src/app/utils/__tests__/transformBytesToSize.tests.ts."
+        },
+        {
+          "prompt": "Add one sentence at the end of docs/testing.md saying that file sizes in the app use 1024-based units (1 KB = 1024 bytes)."
+        },
+        {
+          "prompt": "Is everything still passing? I want to commit this."
+        },
+        {
+          "new": true,
+          "prompt": "I am about to open a pull request with the changes in this working tree. Make sure the project's checks pass on them first."
+        }
+      ],
+      "expect": [
+        {
+          "file": "src/app/utils/__tests__/transformBytesToSize.tests.ts",
+          "includes": "500 Bytes"
+        }
+      ]
+    },
+    {
+      "repo": "smogon/pokemon-showdown",
+      "id": "steps-bugfix",
+      "kind": "source",
+      "steps": [
+        {
+          "prompt": "In server/chat.ts, `Chat.count(0, \"days\")` returns \"0 day\" instead of \"0 days\". `count` picks the plural only when `num > 1`, so zero gets the singular. The `plural` helper just above it already uses `num !== 1`. Fix `count` so only exactly 1 is singular: `Chat.count(1, \"days\")` stays \"1 day\", `Chat.count(2, \"days\")` stays \"2 days\", and `Chat.count(0, \"days\")` and `Chat.count([], \"days\")` return \"0 days\". Add an `it('should count things correctly', ...)` case with these four assertions to test/server/chat.js."
+        },
+        {
+          "prompt": "Add one sentence at the end of CONTRIBUTING.md saying that user-facing counts use the plural form for zero (for example \"0 days\")."
+        },
+        {
+          "prompt": "Is everything still passing? I want to commit this."
+        },
+        {
+          "new": true,
+          "prompt": "I am about to open a pull request with the changes in this working tree. Make sure the project's checks pass on them first."
+        }
+      ],
+      "expect": [
+        {
+          "file": "test/server/chat.js",
+          "includes": "Chat.count(0"
+        }
+      ]
+    },
+    {
+      "repo": "jxxghp/MoviePilot",
+      "id": "steps-bugfix",
+      "kind": "source",
+      "steps": [
+        {
+          "prompt": "In app/foundation/size.py, `parse_size(\"1.5G\")` returns 2 instead of 1610612736. The regex already strips the unit letter, but the multiplier checks only match units ending in B or iB (\"GB\", \"GIB\"), so a bare K, M, G, T or P unit is ignored. This module's own `format_compact_size` produces such text (`format_compact_size(1536)` is \"1.5K\"), so its output does not parse back. Fix `parse_size` so a bare K/M/G/T/P unit uses the same 1024-based multiplier as KB/MB/GB/TB/PB, case-insensitively. Existing inputs must not change: `parse_size(\"10.150 TB\")` stays 11160043021926, `parse_size(\"500\")` stays 500 and `parse_size(\"1 GiB\")` stays 1073741824. Add tests in a new file tests/test_foundation_size.py covering `parse_size(\"1.5G\") == 1610612736`, `parse_size(\"1.5K\") == 1536`, and the unchanged cases above."
+        },
+        {
+          "prompt": "Add one sentence at the end of docs/development-setup.md saying that size text such as 1.5G or 1.5 GiB is parsed with 1024-based units (1 KB = 1024 bytes)."
+        },
+        {
+          "prompt": "Is everything still passing? I want to commit this."
+        },
+        {
+          "new": true,
+          "prompt": "I am about to open a pull request with the changes in this working tree. Make sure the project's checks pass on them first."
+        }
+      ],
+      "expect": [
+        {
+          "file": "tests/test_foundation_size.py",
+          "includes": "1.5G"
+        }
+      ]
     }
   ]
 }

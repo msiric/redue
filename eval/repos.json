@@ -265,6 +265,50 @@
       "why": "Web UI for the Pi coding agent, npm. tsc about 21 s, eslint about 75 s and vitest about 130 s on a GitHub Linux runner; typecheck and lint CURRENT through the sandboxed recipe in the stranger pilot (0.1.0-alpha.33). Its checks need the generated material icons and node-pty built (afterInstall). For the slow-check study (tasks with steps).",
       "afterInstall": "npm run generate:material-icons && npm rebuild node-pty",
       "typecheck": "npm run typecheck"
+    },
+    {
+      "name": "artsy/eigen",
+      "url": "https://github.com/artsy/eigen.git",
+      "commit": "ded775be1ce8048922a3af3f5df53e99c38e95c7",
+      "install": [
+        "corepack",
+        "yarn",
+        "install",
+        "--immutable"
+      ],
+      "script": "type-check",
+      "typecheck": "yarn type-check",
+      "lint": "yarn lint",
+      "lintScript": "lint",
+      "test": "yarn test",
+      "testScript": "test",
+      "why": "Artsy's React Native app, Yarn 4. jest suite about 5 minutes on a GitHub Linux runner, longer than Claude Code's 2-minute command limit; CURRENT / PASS through the direct test recipe once jest's configured cache (.cache/jest) is a runner cache (November 2026). Typecheck (relay + tsc) about 20 s, sandbox-v1. For the slow-check study (tasks with steps)."
+    },
+    {
+      "name": "smogon/pokemon-showdown",
+      "url": "https://github.com/smogon/pokemon-showdown.git",
+      "commit": "a78551b070769eb22e5261bb220d21153bf5788c",
+      "afterInstall": "node build",
+      "script": "tsc",
+      "typecheck": "npm run tsc",
+      "lint": "npm run lint",
+      "lintScript": "lint",
+      "test": "node build && npm test",
+      "testScript": "test",
+      "why": "Pokemon Showdown's simulator and server, npm. mocha suite about 50 s on a GitHub Linux runner, CURRENT / PASS through sandbox-v1; tsc and oxlint through sandbox-v3 (November 2026 census). Tests need the build (afterInstall). For the slow-check study (tasks with steps). The tests load dist/, so the harness's plain test run builds first."
+    },
+    {
+      "name": "jxxghp/MoviePilot",
+      "url": "https://github.com/jxxghp/MoviePilot.git",
+      "commit": "6d9cf06085a8cbef0f3a7ed73aff99ba68d209c9",
+      "install": [
+        "uv",
+        "sync",
+        "--frozen"
+      ],
+      "typecheck": ".venv/bin/mypy --config-file mypy.ini",
+      "test": ".venv/bin/pytest tests/test_architecture_dependencies.py tests/test_architecture_adapter_imports.py tests/test_architecture_egress.py tests/test_architecture_event_facts.py tests/test_architecture_event_policy.py -q",
+      "why": "Python, uv. The pytest suite its CI runs takes about 90 s on a GitHub Linux runner and is CURRENT / PASS through sandbox-v3 (November 2026 census); mypy about 9 s. ruff fails at this commit, so lint is not a check here. For the slow-check study (tasks with steps)."
     }
   ]
 }

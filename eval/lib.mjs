@@ -144,7 +144,8 @@ export function installedTypeScript(dir) {
 
 // The repo's test command, as the harness runs it on a final or recorded tree.
 export function plainTests(dir, command) {
-  const r = sh('sh', ['-c', command], {cwd: dir, timeout: 300_000});
+  // eigen's jest suite takes about 5 minutes on a GitHub Linux runner.
+  const r = sh('sh', ['-c', command], {cwd: dir, timeout: 900_000});
   return {pass: r.status === 0, ms: r.ms, output: (r.stdout + r.stderr).slice(-8000)};
 }
 
