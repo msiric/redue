@@ -269,6 +269,14 @@ export function hookForms(config,configFile=defaultConfig,packageScripts=null){
   }
   return rows;
 }
+// A root test or lint script check the hook cannot skip (recording only):
+// its package script forms, so the agent's instructions still name it.
+export function recordedForms(config){
+  const pm=config?.packageManager;
+  return (config?.checks||[]).filter(check=>!eligibleCheck(check)&&typeof check?.name==='string'&&safe.test(check.name)&&
+    ['test','lint'].includes(check.kind)&&checkDir(check)==='.').map(check=>({check:check.name,kind:check.kind,forms:scriptForms(pm,checkScript(check))}))
+    .filter(row=>row.forms.length);
+}
 // The checks a compiler script row runs, in the order of the script's runs in
 // the package's package.json now; null when they no longer correspond (the
 // script changed since init), so the hook leaves the command alone.

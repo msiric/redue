@@ -12,7 +12,7 @@ import {readCachedStatus} from './cached-state.mjs';
 import {samePath,withinPath} from './path-identity.mjs';
 import {processAlive} from './process-liveness.mjs';
 import os from 'node:os';
-import {fanoutRules,hookCommand,hookForms,redueFor,runsEntry,shellQuote as quote,statusLineCommand,triggerRule,uncoveredForms} from './claude-hook.mjs';
+import {fanoutRules,hookCommand,hookForms,recordedForms,redueFor,runsEntry,shellQuote as quote,statusLineCommand,triggerRule,uncoveredForms} from './claude-hook.mjs';
 
 const policy=fs.readFileSync(new URL('./agent-policy.md',import.meta.url),'utf8');
 const hosts={codex:{instruction:'AGENTS.md',skill:'.agents/skills/redue-verification/SKILL.md'},
@@ -198,7 +198,8 @@ function saved(root,host){const text=read(root,marker(host));if(text===null)retu
   return value;
 }
 // The managed block is always in the agent's context, so it stays short. For
-// Claude Code it names the typecheck, test and lint commands the hook matches, asks
+// Claude Code it names the typecheck, test and lint commands (the ones the hook
+// matches, and recording-only test and lint scripts the agent still runs), asks
 // the agent to run them rather than judge for itself that a rerun is not
 // needed, and says what a skip means. The hook does the rest, so the block
 // does not point to the skill; the skill stays for agents that look for it.
@@ -244,7 +245,9 @@ function earlierBlock(host,rows=[]){
 }
 // One form per check: the package manager's script form when there is one,
 // since that is what the project's own instructions usually name.
-const blockForms=(host,config,relative)=>host!=='claude'?[]:hookForms(config,relative).filter(row=>!row.part).map(row=>({kind:row.kind,
+// Recording-only test and lint checks are named too: the hook never skips
+// them, but the agent still runs them.
+const blockForms=(host,config,relative)=>host!=='claude'?[]:[...hookForms(config,relative).filter(row=>!row.part),...recordedForms(config)].map(row=>({kind:row.kind,
   form:row.forms.find(form=>/^(?:npm run|pnpm|yarn) /.test(form))??row.forms.find(form=>!form.startsWith('redue '))??row.forms[0]}));
 const priorBlocks=(host,relative)=>[false,true].map(legacy=>`\n\n<!-- REDUE:${host}:begin -->\n`+
   `Before deciding whether configured verification needs repeating, use REDUE.\n`+

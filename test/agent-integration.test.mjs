@@ -315,6 +315,33 @@ test('claude setup names lint commands beside typecheck and test, hooks the lint
   f.ok('agent','remove','claude','--apply');assert(!fs.existsSync(path.join(f.root,'CLAUDE.md')));
 });
 
+test('claude setup names a recording-only test check in CLAUDE.md, but the hook never takes its command',t=>{
+  const f=fixture(t);
+  f.put('package.json',JSON.stringify({scripts:{test:'vitest run',build:'vite build'}}));
+  f.put('redue.config.json',JSON.stringify({schema:1,packageManager:'npm',checks:[
+    {name:'typecheck',command:['@node','check.mjs'],inputs:['src/**']},
+    {name:'test',script:'test',kind:'test',inputs:['src/**']},
+    {name:'build',script:'build',kind:'build',inputs:['src/**']}]}));
+  f.ok('agent','setup','claude','--apply');
+  const block=f.read('CLAUDE.md');
+  assert.match(block,/^Typecheck with `redue run typecheck`\.\nRun the unit tests with `npm run test`\.\nRun a check before/m);
+  assert.doesNotMatch(block,/build/);
+  // No trigger rule for it: the hook leaves its runs alone.
+  const rules=JSON.parse(f.read('.claude/settings.local.json')).hooks.PreToolUse[0].hooks.map(h=>h.if);
+  assert.ok(!rules.some(rule=>/npm run test|npm test/.test(rule)),rules.join(', '));
+  f.ok('agent','doctor','claude');
+  f.ok('agent','setup','claude','--apply');assert.equal(f.read('CLAUDE.md'),block);
+  // A block written before recording-only checks were named is recognized and updated.
+  const record=JSON.parse(f.read('.redue/agents/claude.json'));
+  const old=record.block.replace('Run the unit tests with `npm run test`.\n','').replace(/Typecheck with (`[^`]+`)\.\nRun a check before you say it passes[^]*?command\.\n/,
+    (_,form)=>`Typecheck with ${form}. Run it before you say it passes, even after an\nedit you think cannot matter; don't skip it yourself. If its last pass still\napplies to these exact files, a REDUE hook skips the run and says so. That\nskip counts as a pass. Run it as a command of its own, not chained after an\nedit or another command.\n`);
+  assert.notEqual(old,record.block);
+  f.put('CLAUDE.md',f.read('CLAUDE.md').replace(record.block,old));
+  f.put('.redue/agents/claude.json',JSON.stringify({...record,block:old},null,2)+'\n');
+  f.ok('agent','doctor','claude');
+  f.ok('agent','setup','claude','--apply');assert.equal(f.read('CLAUDE.md'),block);
+});
+
 test('claude hook settings: created file is removed; edited or duplicate entries are replaced; invalid settings block setup',t=>{
   const f=fixture(t),local='.claude/settings.local.json';
   f.ok('agent','setup','claude','--apply');assert.equal(JSON.parse(f.read(local)).hooks.PreToolUse.length,1);
