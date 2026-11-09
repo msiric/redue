@@ -90,13 +90,29 @@ forms; after an upgrade, run setup again to get them.
 the documentation hidden. When both give the same result, it writes
 `sandbox-v3`. When the plain run passed and the sandboxed one failed only
 because it was refused a file it hid (no other refusal line, and not a line
-the plain run printed too), it writes `sandbox-v1` (the whole checkout)
-without running it again: without the hiding, a run can then only fail
-where a plain one passes, never pass where it fails. When the runs differ
+the plain run printed too), `init` runs it in the sandbox again with just
+that file visible, up to three files, one more sandboxed run each. When that
+agrees with the plain run, it writes `sandbox-v3` with those files in the
+check's `visible` list: runs do not hide them, and each is an input, so an
+edit to one makes the check STALE. pi-web's lint reads a generated file git
+ignores, and its typecheck a license text under `src`; each gets that one
+file instead of the whole checkout. Otherwise it writes `sandbox-v1` (the
+whole checkout) without running it again: without the hiding, a run can then
+only fail where a plain one passes, never pass where it fails. `visible`
+holds up to 3 relative files, only for a `sandbox-v2` or `sandbox-v3` check;
+a hidden folder that holds one stays hidden otherwise.
+When the runs differ
 in another way, `init` runs the check once more with the whole checkout,
 reusing the plain run, and writes `sandbox-v1` only if that agrees. So a
-check runs two or three times at init, not four. `init` no longer writes
+check runs two or three times at init, and up to five when its trial is
+refused hidden files (one plain run, one sandboxed, one per visible file). `init` no longer writes
 `sandbox-v2`; a check already set up with it keeps it.
+
+When a trial leaves a check out of the sandbox, `init` keeps the sandboxed
+run's last 20 lines (each cut at 200 characters) in this configuration's local
+state, under `init-trials/`, and the reason names the file. They never go into
+`redue.config.json`, since output can hold tokens and paths. `redue
+remove-state` removes them.
 
 Each trial run stops after 5 minutes. A run that stops there never counts as
 agreeing: when the plain run reaches the limit, `init` runs nothing in the
@@ -228,7 +244,8 @@ trial agrees, as for typecheck and lint. A suite that reads back git-ignored
 files it writes in the same run (a coverage database, a build it starts
 itself) gets the whole checkout. Files a hidden run writes beneath hidden
 folders, or new files git ignores, are not changes to its inputs. With the
-whole checkout (`sandbox-v1`), a run that rewrites git-ignored files with the
+whole checkout (`sandbox-v1`), or with its `visible` files when those are all
+it rewrote, a run that rewrites git-ignored files with the
 bytes they already had (a build from unchanged sources) is CURRENT: what it
 read is what is there now. A run that rewrites them with other bytes (the first
 run after a source change) is UNVERIFIED, since it may have read the old ones;
@@ -266,8 +283,9 @@ every failure twice to find out:
   shows no sign of a refusal. The output is compared without colors,
   timings, the temporary and home directories, and lines about caches. The
   one exception is a check that passed plainly and failed only because it
-  was refused a hidden file: it gets the whole checkout without another run
-  (see [files git ignores](#files-git-ignores-and-documentation)).
+  was refused a hidden file: it is run again with just that file visible, or
+  gets the whole checkout (see
+  [files git ignores](#files-git-ignores-and-documentation)).
   Otherwise `init` writes what it would have without this recipe and says why.
   These are the only runs `init` makes.
 - When a `sandbox-v2` or `sandbox-v3` run fails with a refusal that names a hidden file, it
@@ -341,4 +359,7 @@ it with `redue remove-state`.
   when its content next changes. A change to `.gitignore` or
   `.git/info/exclude` makes the result STALE.
 - A run that moves a hidden folder into a visible place can read it there.
+- On macOS a `visible` file is matched by its exact path: a tool that opens it
+  with other letter case on a case-insensitive volume is still refused, and
+  the run goes again without hiding.
   That changes the checkout during the run, so the run is not reused.

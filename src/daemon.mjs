@@ -375,7 +375,8 @@ function onlySelfChanged(name,row,r,contextHashes) {
   for(const [key,value] of Object.entries(context))if(!key.startsWith('__redue_env_')&&r.environmentHashes?.[key]!==value)return false;
   const skip=new Set(self.files),strip=files=>Object.fromEntries(Object.entries(files).filter(([file])=>!skip.has(file)));
   const before=strip(r.files),now=strip(filesFor(name,r)),paths=[...new Set([...Object.keys(before),...Object.keys(now)])];
-  if(hiddenRun(r))return sandboxVisibleChange(root,r.sandbox.hidden,before,now,paths,{docs:Array.isArray(r.sandbox.docs)?r.sandbox.docs:null})===null;
+  if(hiddenRun(r))return sandboxVisibleChange(root,r.sandbox.hidden,before,now,paths,{docs:Array.isArray(r.sandbox.docs)?r.sandbox.docs:null,
+    visible:Array.isArray(r.sandbox.visible)?r.sandbox.visible.filter(file=>!skip.has(file)):null})===null;
   return paths.every(file=>before[file]===now[file]);
 }
 // A changed input as status names it: an installed tree by its path.
@@ -400,7 +401,7 @@ function visibleChange(row,r,name) {
   const key=(r.invocation?.runId||'')+'\0'+r.fingerprint+'\0'+combinedSummary(name).fingerprint;
   if(row.visibleKey!==key){const current=filesFor(name,r);
     row.visibleKey=key;row.visibleChange=sandboxVisibleChange(root,r.sandbox.hidden,r.files,current,[...Object.keys(r.files),...Object.keys(current)],
-      {docs:Array.isArray(r.sandbox.docs)?r.sandbox.docs:null});}
+      {docs:Array.isArray(r.sandbox.docs)?r.sandbox.docs:null,visible:Array.isArray(r.sandbox.visible)?r.sandbox.visible:null});}
   return row.visibleChange;
 }
 function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=false) {

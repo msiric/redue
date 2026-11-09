@@ -91,7 +91,10 @@ a slow test suite, because `init` runs each check once plainly and once in
 the sandbox before it chooses how to run it. Each of those trial runs stops
 after 5 minutes; a check that runs longer is left out of the sandbox, and
 setup names it and prints the command that tries it without the limit, such
-as `redue init --check test --no-time-limit`. For pytest, `init` takes the
+as `redue init --check test --no-time-limit`. A check whose trial was refused
+a few files the sandbox hides (a generated file git ignores, a license text)
+gets just those files visible, up to 3, as inputs, instead of the whole
+checkout. For pytest, `init` takes the
 arguments the project's own workflows run it with, and prefers a
 pull-request workflow that leaves slow tests out (`-m "not slow"`). The hook
 counts that command with output options such as `-q` or `--tb=short` added at

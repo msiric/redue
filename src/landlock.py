@@ -22,6 +22,9 @@
 # are allowed everywhere but beneath those paths, and beneath each --write
 # PATH (the run's own temporary directory).
 #
+# --show FILE (a check's visible file) stays readable beneath a hidden PATH;
+# the rest of PATH stays hidden.
+#
 # --hide PATH keeps the run from reading or executing beneath PATH, inside a
 # --read place. Landlock only grants, beneath a whole directory, so such a
 # place gets listing rights (beneath it all, hidden entries included) and
@@ -297,6 +300,7 @@ def main(argv):
         print(json.dumps({'abi': v, 'errno': err}))
         return 0
     reads, hidden, stats, no_tcp, loopback, deny_write, writes, fault = [], set(), None, False, False, set(), [], None
+    shown = set()
     while argv and argv[0] != '--':
         if argv[0] == '--read':
             reads.append(argv[1]); argv = argv[2:]
@@ -311,6 +315,8 @@ def main(argv):
             fault = argv[1]; argv = argv[2:]
         elif argv[0] == '--hide':
             hidden.add(os.path.normpath(argv[1])); argv = argv[2:]
+        elif argv[0] == '--show':
+            shown.add(os.path.normpath(argv[1])); argv = argv[2:]
         elif argv[0] == '--stats':
             stats = argv[1]; argv = argv[2:]
         elif argv[0] == '--no-tcp':
@@ -365,7 +371,13 @@ def main(argv):
         except OSError:
             return
         for entry in entries:
-            if entry.path in excluded or entry.is_symlink():
+            if entry.is_symlink():
+                continue
+            if entry.path in excluded:
+                # A --show file at or beneath a hidden entry: that file alone is readable.
+                for path in (shown if excluded is hidden else ()):
+                    if (path == entry.path or path.startswith(entry.path + '/')) and os.path.isfile(path) and not os.path.islink(path):
+                        add(path, EXECUTE | READ_FILE)
                 continue
             if entry.path in holders:
                 grant(entry.path, excluded, holders, rights)

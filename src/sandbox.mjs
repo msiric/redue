@@ -351,27 +351,77 @@ export function trackedBeneath(root,entries){
 // later change to one of those files does not count. A new documentation
 // file does, and so does any change while the run ran: the run is not shown
 // to have been kept from it.
-export function visibleChange(root,hidden,before,current,paths,{during=false,docs=null}={}){
+// With `visible` (the check's visible files), a change to one counts, a new
+// one too, wherever it is. With `list`, every path that counts, in that
+// order, instead of the first.
+export function visibleChange(root,hidden,before,current,paths,{during=false,docs=null,visible=null,list=false}={}){
+  const shown=new Set(visible||[]);
   const entries=hidden.map(entry=>entry.replace(/\/$/,''));
-  const beneath=file=>entries.some(entry=>file===entry||file.startsWith(entry+'/'));
+  const beneath=file=>!shown.has(file)&&entries.some(entry=>file===entry||file.startsWith(entry+'/'));
   const hiddenDoc=new Set(during?[]:docs||[]);
   const changed=[...new Set(paths)].filter(file=>before[file]!==current[file]&&!hiddenDoc.has(file)).sort();
-  const seen=changed.filter(file=>file in before&&!beneath(file));
-  if(seen.length)return seen[0];
-  const covered=changed.filter(beneath),fresh=changed.filter(file=>!(file in before)&&!beneath(file));
+  const out=changed.filter(file=>file in before&&!beneath(file)||shown.has(file));
+  if(out.length&&!list)return out[0];
+  const covered=changed.filter(beneath),fresh=changed.filter(file=>!(file in before)&&!beneath(file)&&!shown.has(file));
   if(covered.length){
     const tracked=trackedBeneath(root,entries.filter(entry=>covered.some(file=>file===entry||file.startsWith(entry+'/'))));
     // An installed tree kept as one entry counts when git tracks any file in it.
-    const found=covered.find(file=>!tracked||tracked.has(file)||compactTree(file)!==null&&[...tracked].some(rel=>rel.startsWith(compactTree(file))));
-    if(found)return found;
+    out.push(...covered.filter(file=>!tracked||tracked.has(file)||compactTree(file)!==null&&[...tracked].some(rel=>rel.startsWith(compactTree(file)))));
+    if(out.length&&!list)return out[0];
   }
-  if(!fresh.length)return null;
-  if(during)return fresh[0];
-  // Asked once per directory the run had no file in, then the files outside one.
-  const dirs=new Set(Object.keys(before).flatMap(file=>file.split('/').slice(0,-1).map((_,i,parts)=>parts.slice(0,i+1).join('/'))));
-  const newDir=file=>{const parts=file.split('/');for(let i=1;i<parts.length;i++){const dir=parts.slice(0,i).join('/');if(!dirs.has(dir))return dir+'/';}return null;};
-  const ignored=ignoredNow(root,[...new Set(fresh.filter(file=>!file.startsWith('external:')).map(file=>newDir(file)??file))]);
-  return fresh.find(file=>file.startsWith('external:')||!ignored||!ignored.has(file))??null;
+  if(fresh.length){
+    if(during)out.push(...fresh);
+    else{
+      // Asked once per directory the run had no file in, then the files outside one.
+      const dirs=new Set(Object.keys(before).flatMap(file=>file.split('/').slice(0,-1).map((_,i,parts)=>parts.slice(0,i+1).join('/'))));
+      const newDir=file=>{const parts=file.split('/');for(let i=1;i<parts.length;i++){const dir=parts.slice(0,i).join('/');if(!dirs.has(dir))return dir+'/';}return null;};
+      const ignored=ignoredNow(root,[...new Set(fresh.filter(file=>!file.startsWith('external:')).map(file=>newDir(file)??file))]);
+      out.push(...fresh.filter(file=>file.startsWith('external:')||!ignored||!ignored.has(file)));
+    }
+  }
+  return list?out:out[0]??null;
+}
+// A check's `visible` files (redue.config.json): git-ignored or
+// documentation files its init trial was refused and needed. Its runs do not
+// hide them: a hidden entry that is one is dropped, the documentation list
+// leaves them out, and the launcher exempts one beneath a hidden folder
+// (sandboxArgv's `visible`), which stays hidden otherwise. Each is an input
+// like any file a run sees (visibleChange's `visible`).
+export const visibleLimit=3;
+// A visible file must be named by its own path: none of the folders on it a
+// link (a run reads the link's target, which the observer keeps under another
+// name), and not in an installed tree (kept as one entry). One that is
+// missing now is kept: when it appears, it counts.
+export function plainVisible(root,rel){
+  if(typeof rel!=='string'||!rel||path.isAbsolute(rel)||rel.split('/').some(part=>!part||part==='.'||part==='..')||installedTreeOf(rel)!==null)return false;
+  const parts=rel.split('/');
+  for(let i=1;i<=parts.length;i++){
+    let stat;try{stat=fs.lstatSync(path.join(root,...parts.slice(0,i)));}catch{return true;}
+    if(stat.isSymbolicLink())return false;
+    if(i===parts.length)return stat.isFile();
+  }
+  return true;
+}
+export function withVisible(hidden,docs,visible){
+  const want=new Set((visible||[]).filter(rel=>typeof rel==='string'));
+  if(!want.size)return {hidden,docs};
+  return {hidden:hidden?hidden.filter(entry=>!want.has(entry)):hidden,docs:docs?docs.filter(rel=>!want.has(rel)):docs};
+}
+// The checkout file (relative) a hidden-file refusal line names, beneath one
+// of the hidden entries; null when the line names none, or not a regular file.
+// The path may be absolute, beneath the checkout, or relative to it (the
+// checks run from its root).
+export function refusedFile(line,root,entries){
+  const text=String(line||''),stop=`[^\\s'"\`):,]`;
+  const candidates=[...new Set([root,real(root)].filter(Boolean))].flatMap(dir=>[...text.matchAll(new RegExp(`${escape(dir)}/(${stop}+)`,'g'))].map(m=>m[1]));
+  for(const entry of entries){const base=entry.replace(/\/$/,'');
+    for(const m of text.matchAll(new RegExp(`(?:^|[\\s'"\`(=])(?:\\./)?(${escape(base)}(?:/${stop}+)?)(?=[\\s'"\`):,]|$)`,'g')))candidates.push(m[1]);}
+  for(const candidate of candidates){
+    const rel=candidate.replace(/\/$/,'');
+    if(!entries.some(entry=>{const base=entry.replace(/\/$/,'');return rel===base||rel.startsWith(base+'/');}))continue;
+    if(fs.existsSync(path.join(root,rel))&&plainVisible(root,rel))return rel;
+  }
+  return null;
 }
 // A refusal line that names a hidden entry (relative): a refusal by the
 // sandbox, or a missing file, which Linux tools report for an unreadable one.
@@ -402,7 +452,7 @@ const ancestors=list=>[...new Set(list.flatMap(dir=>{const out=[];for(let at=pat
 // hiddenDocs lists, and more (one in node_modules, README.MD). Seatbelt
 // matches a regex without regard to case, so LICENSE* and CHANGELOG* go by
 // the files hiddenDocs listed: a pattern would hide license-check.ts too.
-export function seatbeltProfile(reads,own=null,hidden=[],{writes=null,docs=null}={}){
+export function seatbeltProfile(reads,own=null,hidden=[],{writes=null,docs=null,visible=[]}={}){
   const quote=value=>JSON.stringify(value);
   const both=list=>[...new Set(list.flatMap(dir=>[dir,real(dir)]).filter(Boolean))];
   const all=[...new Set(reads.flatMap(dir=>[dir,real(dir)]).filter(Boolean))];
@@ -411,8 +461,12 @@ export function seatbeltProfile(reads,own=null,hidden=[],{writes=null,docs=null}
     `(allow file-read-metadata ${ancestors(all).map(dir=>`(literal ${quote(dir)})`).join(' ')})`,
     // The entry's own path, by its directory's real path: a hidden link's target is not hidden.
     // Its contents only, as on Linux: a run may still see that it exists, and write beneath it.
-    ...hidden.length?[`(deny file-read-data process-exec* ${[...new Set(hidden.flatMap(file=>[file,path.join(real(path.dirname(file))??path.dirname(file),path.basename(file))]))]
-      .map(file=>`(subpath ${quote(file)})`).join(' ')})`]:[],
+    // A visible file (absolute) beneath a hidden folder stays readable.
+    ...hidden.length?[(()=>{const subpaths=[...new Set(hidden.flatMap(file=>[file,path.join(real(path.dirname(file))??path.dirname(file),path.basename(file))]))]
+      .map(file=>`(subpath ${quote(file)})`).join(' ');
+      const shown=[...new Set(visible.flatMap(file=>[file,path.join(real(path.dirname(file))??path.dirname(file),path.basename(file))]))].map(file=>`(literal ${quote(file)})`);
+      return shown.length?`(deny file-read-data process-exec* (require-all (require-any ${subpaths}) (require-not (require-any ${shown.join(' ')}))))`:
+        `(deny file-read-data process-exec* ${subpaths})`;})()]:[],
     ...docs?[docsRule(docs,both([docs.root]))]:[],
     '(deny network*)',...own?[`(allow network* ${[own,real(own)].filter(Boolean).map(dir=>`(subpath ${quote(dir)})`).join(' ')})`]:[],
     ...writes?['(deny file-write* (subpath "/tmp") (subpath "/private/tmp") (subpath "/var/tmp") (subpath "/private/var/tmp"))',
@@ -424,7 +478,10 @@ function docsRule(docs,roots){
   const patterns=roots.map(dir=>escape(dir)).flatMap(dir=>[`^${dir}/(.+/)?[^/]*\\.(md|mdx|rst)$`,`^${dir}/docs/(.+/)?[^/]*\\.(${docsFolderTypes.join('|')})$`])
     .map(pattern=>`(regex #"${pattern.replace(/"/g,'\\"')}")`);
   const files=roots.flatMap(dir=>named.map(rel=>`(literal ${JSON.stringify(path.join(dir,rel))})`));
-  return `(deny file-read-data process-exec* (require-all (vnode-type REGULAR-FILE) (require-any ${[...patterns,...files].join(' ')})))`;
+  // A check's visible files are not hidden, even where a pattern names them.
+  const shown=roots.flatMap(dir=>(docs.visible||[]).map(rel=>`(literal ${JSON.stringify(path.join(dir,rel))})`));
+  return `(deny file-read-data process-exec* (require-all (vnode-type REGULAR-FILE) (require-any ${[...patterns,...files].join(' ')})`+
+    `${shown.length?` (require-not (require-any ${shown.join(' ')}))`:''}))`;
 }
 // The argv that runs `argv` sandboxed: reads beneath `reads`, no network but
 // Unix sockets beneath `tmp` on macOS, nothing beneath `hidden` (absolute).
@@ -434,12 +491,13 @@ function docsRule(docs,roots){
 // network (seatbeltProfile says why macOS does not), supervised: `stats`
 // then says whether the supervisor served the whole run (supervisorIssue).
 // `docs` ({root, entries}): the checkout's documentation, hidden too.
-export function sandboxArgv(mode,argv,{reads,tmp=null,python,hidden=[],stats=null,network='none',writes=null,fault=null,docs=null}){
-  if(mode==='seatbelt')return ['/usr/bin/sandbox-exec','-p',seatbeltProfile(reads,tmp,hidden,{writes,docs}),...argv];
+// `visible` (absolute): files beneath a hidden entry that stay readable.
+export function sandboxArgv(mode,argv,{reads,tmp=null,python,hidden=[],stats=null,network='none',writes=null,fault=null,docs=null,visible=[]}){
+  if(mode==='seatbelt')return ['/usr/bin/sandbox-exec','-p',seatbeltProfile(reads,tmp,hidden,{writes,docs,visible}),...argv];
   if(docs)hidden=[...hidden,...docs.entries.map(rel=>path.join(docs.root,rel.replace(/\/$/,'')))];
   // The launcher's own warnings would become the check's output.
   if(mode==='landlock')return [python,'-I','-W','ignore',landlockScript,...reads.flatMap(dir=>['--read',dir]),
-    ...hidden.flatMap(file=>['--hide',file]),...stats?['--stats',stats]:[],
+    ...hidden.flatMap(file=>['--hide',file]),...visible.flatMap(file=>['--show',file]),...stats?['--stats',stats]:[],
     ...network==='loopback'?['--loopback']:['--no-tcp'],
     ...writes?['--deny-write','/tmp','--deny-write','/var/tmp',...writes.flatMap(dir=>['--write',dir])]:[],
     ...fault?['--test-fault',fault]:[],'--',...argv];
@@ -641,9 +699,12 @@ export async function sandboxTrial(root,check,{timeout=trialLimit,hide=false,pla
   const scratch=fs.mkdtempSync(path.join(os.tmpdir(),'redue-trial-')),tmp=path.join(scratch,'tmp'),home=tests?path.join(tmp,'home'):path.join(scratch,'home');
   fs.mkdirSync(tmp);fs.mkdirSync(home);
   try{
-    const ignored=hide?hiddenEntries(root):[],docEntries=hide==='docs'?hiddenDocs(root):[];
-    if(!ignored)return {issue:hiddenListIssue};
-    if(!docEntries)return {issue:hiddenDocsIssue};
+    const listed=hide?hiddenEntries(root):[],listedDocs=hide==='docs'?hiddenDocs(root):[];
+    if(!listed)return {issue:hiddenListIssue};
+    if(!listedDocs)return {issue:hiddenDocsIssue};
+    const shownList=(check.visible||[]).filter(rel=>plainVisible(root,rel));
+    const {hidden:ignored,docs:docEntries}=withVisible(listed,listedDocs,shownList);
+    const shownFiles=hide?shownList.map(rel=>path.join(root,rel)):[];
     const entries=[...ignored,...docEntries];
     const hidden=ignored.map(rel=>path.join(root,rel.replace(/\/$/,""))),stats=(hide||tests)&&supported.mode==='landlock'?path.join(scratch,'stats.json'):null;
     const run=async(argv,env)=>{const started=Date.now(),r=await runToEnd(argv,{cwd:root,env,timeout});
@@ -651,8 +712,8 @@ export async function sandboxTrial(root,check,{timeout=trialLimit,hide=false,pla
     const plain=earlier??await run(command,{...process.env,...python?{}:{npm_config_update_notifier:'false'}});
     if(plain.status==='timeout')return {same:false,plain:'timeout',sandboxed:null,timedOut:'plain',line:null,refusedHidden:null,plainRun:plain};
     const reads=[root,home,tmp,...sandboxPlaces(selected,process.env,root),...systemPlaces];
-    const sandboxed=await run(sandboxArgv(supported.mode,command,{reads,tmp,python:supported.python,hidden,stats,
-      ...hide==='docs'?{docs:{root,entries:docEntries}}:{},
+    const sandboxed=await run(sandboxArgv(supported.mode,command,{reads,tmp,python:supported.python,hidden,stats,visible:shownFiles,
+      ...hide==='docs'?{docs:{root,entries:docEntries,visible:shownList}}:{},
       ...tests?{...supported.mode==='landlock'?{network:'loopback'}:{},writes:[root,home,tmp]}:{}}),sandboxEnv(selected,process.env,{root,home,tmp}));
     // A test run's network was supervised throughout, on Linux.
     const supervisor=tests&&stats?supervisorIssue(stats):null;

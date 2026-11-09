@@ -8,7 +8,7 @@ import {patternMatcher} from './glob.mjs';
 import {observedBy} from './installed-observation.mjs';
 import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testRunFacts,sharedInstalledFile,testsInterpretation,testsQualification} from './test-direct.mjs';
 import {childProgram,generalIssue,lookup,pnpmConfigFiles,scriptCaches,scriptInstalledPaths,scriptInterpretation,scriptQualification,scriptRunFacts,pnpmNameless,toolOutput,toolchainDirs} from './node-script.mjs';
-import {denialLine,docsQualification,endWithChild,launcherFailure,hiddenDocs,hiddenEntries,hiddenQualification,hiddenRefusal,hidesIgnored,isSandboxed,runToEnd,supervisorIssue,visibleChange,testRun as sandboxTestRun,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,
+import {denialLine,docsQualification,endWithChild,launcherFailure,hiddenDocs,hiddenEntries,plainVisible,withVisible,hiddenQualification,hiddenRefusal,hidesIgnored,isSandboxed,runToEnd,supervisorIssue,visibleChange,testRun as sandboxTestRun,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,
   sandboxInterpretation,sandboxInterpretationOf,sandboxPlaces,sandboxQualification,sandboxSupport,systemPlaces,installedTreeOf} from './sandbox.mjs';
 import path from 'node:path';
 import net from 'node:net';
@@ -350,14 +350,17 @@ async function execute() {
         // sandbox-v2 hides the checkout's git-ignored entries, and sandbox-v3
         // its documentation too. Where git cannot list them, nothing is
         // hidden, and the receipt compares every file.
-        const hidden=hidesIgnored(selected.qualification)?hiddenEntries(root):null;
-        const docs=hidden&&selected.qualification===docsQualification?hiddenDocs(root):null;
+        // A check's visible files (the ones its init trial needed) are not hidden.
+        const listed=hidesIgnored(selected.qualification)?hiddenEntries(root):null;
+        const asked=(selected.visible||[]).filter(rel=>plainVisible(root,rel));
+        const shown=withVisible(listed,listed&&selected.qualification===docsQualification?hiddenDocs(root):null,asked);
+        const hidden=shown.hidden,docs=shown.docs,visible=hidden&&asked.length?asked:null;
         const options={reads,tmp:dirs.tmp,python:support.python,stats,
           ...tests?{...support.mode==='landlock'?{network:'loopback'}:{},writes:[root,dirs.home,dirs.tmp],
             fault:process.env.VSTATE_TEST_FAULTS==='1'?process.env.VSTATE_TEST_SUPERVISOR||null:null}:{}};
-        sandbox={mode:support.mode,dirs,reads,hidden,docs,options,stats,
+        sandbox={mode:support.mode,dirs,reads,hidden,docs,visible,options,stats,
           argv:sandboxArgv(support.mode,command,{...options,hidden:(hidden||[]).map(rel=>path.join(root,rel.replace(/\/$/,''))),
-            ...docs?{docs:{root,entries:docs}}:{}}),
+            ...docs?{docs:{root,entries:docs,visible:visible||[]}}:{},visible:(visible||[]).map(rel=>path.join(root,rel))}),
           env:sandboxEnv(selected,process.env,{root,...dirs})};
       }
     }
@@ -521,8 +524,8 @@ async function execute() {
       const before=snap.files||{},after=end.files||{},events=end.inputEventPaths||[];
       // During the run a new file outside the hidden entries was readable: it counts.
       const found=visibleChange(root,sandbox.hidden,before,after,[...Object.keys(before),...Object.keys(after),...events],
-        {during:true,docs:sandbox.docs});
-      if(found===null){eventsExplained=true;hiddenOnly=true;}else unexplained=[found];
+        {during:true,docs:sandbox.docs,visible:sandbox.visible,list:true});
+      if(!found.length){eventsExplained=true;hiddenOnly=true;}else unexplained=found;
     }
     // The end certificate, recorded or probed, must cover what this compile received.
     // With no input event, gap or content change in between, it also holds at the start.
@@ -645,8 +648,11 @@ async function execute() {
     // it rewrote them with the bytes they had, so what it read before rewriting
     // is what is there now. Rewritten with other bytes (the first run after a
     // source change), it may have read the old ones: UNVERIFIED as before.
+    // A run that hides git-ignored files gets the same when every file the
+    // events named is one of its visible files (the check's `visible`).
     const changedDuring=captureIssues.find(issue=>issue.startsWith('declared input event occurred during execution'));
-    if(own&&sandbox&&!sandbox.hidden&&!sandbox.docs&&changedDuring&&captureIssues.every(issue=>issue===changedDuring)&&
+    const shownOnly=Array.isArray(selected.visible)&&unexplained?.length&&unexplained.every(file=>selected.visible.includes(file));
+    if(own&&sandbox&&(!sandbox.hidden&&!sandbox.docs||shownOnly)&&changedDuring&&captureIssues.every(issue=>issue===changedDuring)&&
       snap&&end&&snap.planId===end.planId&&snap.fingerprint===end.fingerprint&&snap.observationHealthy&&end.observationHealthy&&
       end.inputEventPathsComplete===true&&unexplained?.length&&gitIgnored(root,[...new Set(unexplained)]).size===new Set(unexplained).size)
       captureIssues.splice(0,captureIssues.length);
@@ -720,7 +726,7 @@ async function execute() {
       ...(observedContext?{observedContext,verificationRecipe:directInterpretation}:{}),
       // `hidden`: the git-ignored entries the run did not see, which the observer does not compare.
       ...(own?{verificationRecipe:sandboxInterpretationOf(sandbox?.docs?docsQualification:sandbox?.hidden?hiddenQualification:sandboxQualification,selected.kind),
-        sandbox:{mode:sandbox?.mode??null,hidden:sandbox?.hidden??null,...sandbox?.docs?{docs:sandbox.docs}:{},...hiddenRerun?{hiddenRerun}:{},...sandboxRerun?{rerun:sandboxRerun}:{}}}:{}),
+        sandbox:{mode:sandbox?.mode??null,hidden:sandbox?.hidden??null,...sandbox?.docs?{docs:sandbox.docs}:{},...sandbox?.visible?{visible:sandbox.visible}:{},...hiddenRerun?{hiddenRerun}:{},...sandboxRerun?{rerun:sandboxRerun}:{}}}:{}),
       ...(fallback?{sandbox:{mode:null,fallback:'node-script',issue:support.issue}}:{}),
       // The form the observer says it returned: an older one ignores the request.
       files:(outputs?end:snap)?.files??null,...(outputs?end:snap)?.filesCompact===true?{filesCompact:true}:{},observerGeneration:before?.observation?.generation??null,

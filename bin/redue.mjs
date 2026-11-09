@@ -7,7 +7,7 @@ import {directCompiler,directQualification,directEnvironment,directInstalledInpu
 import {runArgv,tscRun} from '../src/typescript-invocation.mjs';
 import {testEnvironment,testRunnerAt,testsInterpretation,testsQualification} from '../src/test-direct.mjs';
 import {scriptEnvironment,scriptInterpretation,scriptKinds,scriptQualification} from '../src/node-script.mjs';
-import {docsQualification,hiddenDocsIssue,hiddenListIssue,isSandboxed,pythonTool,sandboxEnvironment,sandboxInterpretationOf,sandboxKinds,sandboxQualification} from '../src/sandbox.mjs';
+import {docsQualification,hiddenDocsIssue,hiddenListIssue,hidesIgnored,isSandboxed,pythonTool,refusedFile,visibleLimit,sandboxEnvironment,sandboxInterpretationOf,sandboxKinds,sandboxQualification} from '../src/sandbox.mjs';
 import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
@@ -172,12 +172,15 @@ if(command==='init'){
   // output inside the sandbox as outside it, with the checkout's git-ignored
   // files and documentation hidden (sandbox-v3). When the plain run passed
   // and the sandboxed one failed only because it was refused a file it hid
-  // (sandboxTrial's refusedHidden), the check gets the whole checkout
+  // (sandboxTrial's refusedHidden), it runs again with just that file
+  // visible, up to visibleLimit files; when that agrees, the check keeps
+  // sandbox-v3 with them in `visible`. Otherwise it gets the whole checkout
   // (sandbox-v1) without another run: without the hiding it can only fail
   // where the plain run passes. Any other difference is tried once with the
   // whole checkout, reusing the plain run. Otherwise init writes what it
   // would have without the sandboxed recipe, with the reason. Each check
-  // costs one plain run and one or two sandboxed runs. A run past the trial
+  // costs one plain run and one or two sandboxed runs, and one more per
+  // visible file. A run past the trial
   // limit ends the check's trials (time_limit); --no-time-limit sets none.
   const trialIssue=trial=>trial.issue?`the sandbox cannot run here (${trial.issue})`:
     trial.timedOut?`it ran past init's 5-minute trial limit${trial.timedOut==='sandboxed'?' inside the sandbox':''}`+
@@ -227,6 +230,24 @@ if(command==='init'){
     if(!docs.issue&&docs.same){
       row.config={...row.config,qualification:docsQualification};row.qualification=docsQualification;
       row.reason=row.reason.replace('the whole checkout is its input',"the checkout's files git doesn't ignore, except its documentation, are its input")+`; ran both ways at init, exit ${docs.plain}`;
+      improved.set(row.config.name,row.config);continue;}
+    // Refused only hidden files it reads: tried again with just those files
+    // visible (the config's `visible`), one more sandboxed run each, up to
+    // visibleLimit. They are then inputs like any file the run sees.
+    let shown=docs,visible=[];
+    while(!shown.issue&&!shown.timedOut&&shown.refusedHidden&&visible.length<visibleLimit){
+      const file=refusedFile(shown.refusedHidden,discovery.root,shown.entries||[]);
+      if(!file||visible.includes(file))break;
+      visible=[...visible,file];
+      if(!json)console.error(`Running ${row.config.name} in the sandbox again, with ${file} visible...`);
+      shown={...await sandboxTrial(discovery.root,{...row.config,visible},{hide:'docs',plain:docs.plainRun,timeout}),kind:row.config.kind};
+      if(!shown.issue)trials++;
+    }
+    if(visible.length&&!shown.issue&&shown.same){
+      row.config={...row.config,qualification:docsQualification,visible};row.qualification=docsQualification;
+      row.reason=row.reason.replace('the whole checkout is its input',
+        `the checkout's files git doesn't ignore, except its documentation, and ${visible.join(', ')}, which its trial read, are its input`)+
+        `; ran both ways at init, exit ${shown.plain}`;
       improved.set(row.config.name,row.config);continue;}
     if(!docs.issue&&!docs.timedOut&&docs.refusedHidden){
       row.reason+=`; at init it passed, then failed reading a file that was hidden (${docs.refusedHidden}), so the whole checkout is its input, not run that way at init`;
@@ -403,9 +424,13 @@ const categories=['source','generated','installedDependencies','environment','to
 const checks=publicConfig.checks.map(check=>{
   const allowed=['name','command','cwd','inputs','generatedInputs','installedInputs',
     'allowedExternalRoots','probes','environment','coverage','coverageReview','coverageReasons',
-    'script','kind','qualification','workspace'];
+    'script','kind','qualification','workspace','visible'];
   for(const key of Object.keys(check))if(!allowed.includes(key))
     error(`unsupported check field ${check.name}.${key}`);
+  // visible: files a sandboxed run that hides git-ignored files does not hide (init writes them).
+  if(check.visible!==undefined&&(!hidesIgnored(check.qualification)||!Array.isArray(check.visible)||check.visible.length>visibleLimit||
+    !check.visible.every(rel=>typeof rel==='string'&&rel&&!path.isAbsolute(rel)&&!rel.includes('\\')&&!rel.split('/').some(part=>!part||part==='.'||part==='..'))))
+    error(`${check.name}.visible: up to ${visibleLimit} relative files, for a sandboxed check that hides git-ignored files`);
   for(const category of categories)if(check.coverage?.[category]&&
     typeof check.coverageReview?.[category]!=='string')
     error(`${check.name}: reviewed coverage ${category} needs a rationale`);
@@ -496,6 +521,7 @@ const checks=publicConfig.checks.map(check=>{
     coverageReasons:check.coverageReasons||Object.fromEntries(
       categories.map(category=>[category,reason])),
     qualification:check.qualification||null,script:check.script||null,
+    ...(check.visible?.length?{visible:check.visible}:{}),
     ...(runCount>1?{runCount}:{}),
     ...(npmAutomatic?{qualificationInterpretation:'npm-launcher-withheld@1'}:{}),
     ...(npmDirect?{qualificationInterpretation:directInterpretation}:{}),

@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import net from 'node:net';
 import {spawnSync,execFileSync} from 'node:child_process';
-import {comparableOutput,denialLine,launcherFailure,namedDocsLimit,visibleChange,seatbeltProfile,sandboxInterpretationOf,hiddenEntries,hiddenRefusal,sandboxArgv,sandboxTrial,systemPlaces,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
+import {comparableOutput,denialLine,launcherFailure,namedDocsLimit,plainVisible,refusedFile,visibleChange,withVisible,seatbeltProfile,sandboxInterpretationOf,hiddenEntries,hiddenRefusal,sandboxArgv,sandboxTrial,systemPlaces,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
 import {projectArgs,toolArgs} from '../src/python-onboarding.mjs';
 import {chainCommand,claudeHook,hookForms,matchCheck,pathForm,recordedCommand,triggerRule,withoutOutputOptions} from '../src/claude-hook.mjs';
 
@@ -41,6 +41,8 @@ if 'quietbuild' in text:
 if 'readdocs' in text: text += open('README.md').read()
 if 'readsnippet' in text: text += open('docs/snippet.py').read()
 if 'readchangelog' in text: text += open('src/fx/CHANGELOG').read()
+if 'readmany' in text:
+    for i in range(4): text += open(f'build/m{i}.py').read()
 if 'network' in text:
     try: socket.create_connection(('127.0.0.1', 9), timeout=2)
     except ConnectionRefusedError: pass
@@ -403,17 +405,79 @@ test('with hidden files, a file the run saw counts even when git ignores it late
   assert.equal(status.freshness,'STALE');assert.match(status.reason,/build\/x\.py changed/);
 });
 
-test('a check that reads a git-ignored file gets the whole checkout at init; one that starts reading one runs again without hiding',{skip:unsupported},t=>{
+test('a check that reads a git-ignored file gets just that file visible at init, as an input',{skip:unsupported},t=>{
+  const {root,state}=project(t);
+  put(path.join(root,'build/generated.py'),'g = 1\n');put(path.join(root,'build/other.py'),'o = 1\n');
+  write(root,'src/fx/reads.py','# readbuild\n');
+  const init=JSON.parse(good(root,state,'init','--dry-run','--json'));
+  const check=init.proposed_config.checks.find(c=>c.name==='typecheck');
+  assert.equal(`${check.qualification} ${JSON.stringify(check.visible)}`,'sandbox-v3 ["build/generated.py"]',JSON.stringify(init.checks));
+  // Refused a file it hid, it was tried again with that file visible.
+  assert.match(init.checks.find(c=>c.name==='typecheck').reason,/and build\/generated\.py, which its trial read, are its input; ran both ways at init, exit 0/);
+  good(root,state,'init');good(root,state,'start');good(root,state,'run','typecheck');
+  let status=row(root,state,'typecheck');
+  assert.equal(`${status.freshness}/${status.result}/${status.recipe}`,'CURRENT/PASS/sandbox-v3',status.reason);
+  // The visible file is an input; the rest of build/ stays hidden.
+  write(root,'build/other.py','o = 2\n');
+  assert.equal(row(root,state,'typecheck').freshness,'CURRENT');
+  write(root,'build/generated.py','g = 2\n');
+  status=row(root,state,'typecheck');
+  assert.equal(status.freshness,'STALE');assert.match(status.reason,/build\/generated\.py changed/);
+  // A visible list is checked: relative files, only for a check that hides git-ignored files.
+  const config=JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'),'utf8'));
+  for(const visible of [['../x'],['/abs'],'build/generated.py']){
+    fs.writeFileSync(path.join(root,'redue.config.json'),JSON.stringify({...config,checks:config.checks.map(c=>c.name==='typecheck'?{...c,visible}:c)}));
+    assert.match(invoke(root,state,['status']).stderr,/typecheck\.visible: up to 3 relative files/);
+  }
+  fs.writeFileSync(path.join(root,'redue.config.json'),JSON.stringify(config));
+  good(root,state,'stop');good(root,state,'start');good(root,state,'run','typecheck');
+  assert.equal(row(root,state,'typecheck').freshness,'CURRENT');
+  // A new file elsewhere in the hidden build/ is not an input.
+  write(root,'build/new.py','n = 1\n');
+  assert.equal(row(root,state,'typecheck').freshness,'CURRENT');
+  // The visible file missing when the check ran, then back: it counts.
+  fs.rmSync(path.join(root,'build/generated.py'));write(root,'src/fx/reads.py','# plain\n');
+  good(root,state,'run','typecheck');assert.equal(row(root,state,'typecheck').freshness,'CURRENT');
+  write(root,'build/generated.py','g = 4\n');
+  status=row(root,state,'typecheck');
+  assert.equal(status.freshness,'STALE',JSON.stringify(status));assert.match(status.reason,/build\/generated\.py/);
+});
+
+test('a check that needs more hidden files than visible takes gets the whole checkout, as before',{skip:unsupported},t=>{
+  const {root,state}=project(t);
+  for(let i=0;i<4;i++)put(path.join(root,`build/m${i}.py`),`m = ${i}\n`);
+  write(root,'src/fx/reads.py','# readmany\n');
+  const init=JSON.parse(good(root,state,'init','--dry-run','--json'));
+  const check=init.proposed_config.checks.find(c=>c.name==='typecheck');
+  assert.equal(`${check.qualification} ${check.visible}`,'sandbox-v1 undefined',JSON.stringify(init.checks));
+  assert.match(init.checks.find(c=>c.name==='typecheck').reason,/at init it passed, then failed reading a file that was hidden \(.*build\/m0\.py/);
+});
+
+test('visible files: the refused file a line names, a plain path only, and what a run then hides',t=>{
+  const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'rsb-visible-'))),root=path.join(base,'repo');
+  t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
+  put(path.join(root,'build/gen.ts'),'x\n');put(path.join(root,'build/real/a.ts'),'x\n');put(path.join(root,'build/node_modules/p/i.js'),'x\n');
+  fs.symlinkSync('build/real',path.join(root,'out'));
+  const entries=['build/','out','README.md'];
+  for(const [line,want] of [[`Error: EACCES: permission denied, open '${root}/build/gen.ts'`,'build/gen.ts'],
+    ["PermissionError: [Errno 13] Permission denied: 'build/gen.ts'",'build/gen.ts'],
+    ['open ./build/gen.ts: permission denied','build/gen.ts'],
+    [`EACCES: permission denied, open '${root}/out/a.ts'`,null],
+    [`EACCES: permission denied, open '${root}/build/node_modules/p/i.js'`,null],
+    [`EACCES: permission denied, open '${root}/build/../x'`,null],
+    [`EACCES: permission denied, open '${root}/build/missing.ts'`,null],
+    ['nothing hidden here',null]])assert.equal(refusedFile(line,root,entries),want,line);
+  assert.equal(plainVisible(root,'build/gen.ts'),true);assert.equal(plainVisible(root,'build/later.ts'),true);
+  assert.equal(plainVisible(root,'out/a.ts'),false);assert.equal(plainVisible(root,'build/node_modules/p/i.js'),false);
+  assert.equal(plainVisible(root,'../x'),false);assert.equal(plainVisible(root,'build'),false);
+  assert.deepEqual(withVisible(['build/','x.log'],['README.md','LICENSE'],['x.log','LICENSE']),{hidden:['build/'],docs:['README.md']});
+  assert.deepEqual(withVisible(['build/'],null,[]),{hidden:['build/'],docs:null});
+});
+
+test('a check that reads a git-ignored file it was not set up with runs again without hiding',{skip:unsupported},t=>{
   const {root,state}=project(t);
   put(path.join(root,'build/generated.py'),'g = 1\n');
-  write(root,'src/fx/reads.py','# readbuild\n');
-  let init=JSON.parse(good(root,state,'init','--dry-run','--json'));
-  let check=init.proposed_config.checks.find(c=>c.name==='typecheck');
-  assert.equal(check.qualification,'sandbox-v1',JSON.stringify(init.checks));
-  // Refused a file it hid, it gets the whole checkout without another run.
-  assert.match(init.checks.find(c=>c.name==='typecheck').reason,/at init it passed, then failed reading a file that was hidden \(.*build\/generated\.py.*\), so the whole checkout is its input, not run that way at init/);
   // Set up without it, then the check starts reading build/.
-  fs.rmSync(path.join(root,'src/fx/reads.py'));
   good(root,state,'init');good(root,state,'start');
   assert.equal(JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'),'utf8')).checks.find(c=>c.name==='typecheck').qualification,'sandbox-v3');
   write(root,'src/fx/reads.py','# readbuild\n');
@@ -429,7 +493,7 @@ test('a check that reads a git-ignored file gets the whole checkout at init; one
   assert.equal(status.freshness,'STALE');assert.match(status.reason,/build\/generated\.py changed/);
 });
 
-test('documentation is hidden too (sandbox-v3): an edit to it keeps the result CURRENT; a check that reads it gets the whole checkout',{skip:unsupported},t=>{
+test('documentation is hidden too (sandbox-v3): an edit to it keeps the result CURRENT; a check that reads it at init gets that file visible',{skip:unsupported},t=>{
   const {root,state}=project(t);
   write(root,'docs/guide/intro.md','# intro\n');write(root,'docs/guide/shot.png','png');write(root,'LICENSE','MIT\n');
   write(root,'src/fx/notes.rst','notes\n');write(root,'.md','dot\n');
@@ -467,8 +531,9 @@ test('documentation is hidden too (sandbox-v3): an edit to it keeps the result C
   assert.equal(row(root,state,'typecheck').freshness,'STALE');
   // init then gives it the whole checkout.
   const init=JSON.parse(good(root,state,'init','--dry-run','--json'));
-  assert.equal(init.proposed_config.checks.find(c=>c.name==='typecheck').qualification,'sandbox-v1',JSON.stringify(init.checks));
-  assert.match(init.checks.find(c=>c.name==='typecheck').reason,/at init it passed, then failed reading a file that was hidden \(.*README\.md/);
+  const proposed=init.proposed_config.checks.find(c=>c.name==='typecheck');
+  assert.equal(`${proposed.qualification} ${JSON.stringify(proposed.visible)}`,'sandbox-v3 ["README.md"]',JSON.stringify(init.checks));
+  assert.match(init.checks.find(c=>c.name==='typecheck').reason,/and README\.md, which its trial read, are its input/);
 });
 
 test('a sandboxed run that reads outside or reaches the network is run again outside the sandbox and is not reused',{skip:unsupported},t=>{
@@ -642,8 +707,8 @@ test('a listed LICENSE or CHANGELOG file is refused, nested too; past the limit 
   write(root,'src/fx/CHANGELOG','## 1\n');write(root,'src/fx/reads.py','# readchangelog\n');
   execFileSync('git',['add','.'],{cwd:root});
   let init=JSON.parse(good(root,state,'init','--dry-run','--json'));
-  assert.equal(init.proposed_config.checks.find(c=>c.name==='typecheck').qualification,'sandbox-v1',JSON.stringify(init.checks));
-  assert.match(init.checks.find(c=>c.name==='typecheck').reason,/at init it passed, then failed reading a file that was hidden \(.*src\/fx\/CHANGELOG/);
+  const proposed=init.proposed_config.checks.find(c=>c.name==='typecheck');
+  assert.equal(`${proposed.qualification} ${JSON.stringify(proposed.visible)}`,'sandbox-v3 ["src/fx/CHANGELOG"]',JSON.stringify(init.checks));
   for(let i=0;i<=namedDocsLimit;i++)write(root,`packages/p${i}/CHANGELOG`,'## 1\n');
   execFileSync('git',['add','.'],{cwd:root});
   good(root,state,'init');good(root,state,'start');good(root,state,'run','typecheck');
@@ -1008,13 +1073,17 @@ test('on Linux, a run keeps the Landlock answer for the same kernel, launcher Py
   fs.writeFileSync(cache,JSON.stringify({key:kept.key,abi:3}));assert.equal(ask().abi,first.abi);
 });
 
-test('a sandbox-v1 suite that rebuilds a git-ignored file and reads it back: CURRENT when it rewrote the same bytes',{skip:unsupported},t=>{
+for(const visible of [false,true])test(`a ${visible?'sandbox-v3 suite with the file visible':'sandbox-v1 suite'} that rebuilds a git-ignored file and reads it back: CURRENT when it rewrote the same bytes`,{skip:unsupported},t=>{
   const {root,state}=project(t,{tools:['ruff','pytest']});
   put(path.join(root,'build/generated.py'),'g = 0\n');
   write(root,'src/fx/__init__.py','value = 1  # rebuild\n');execFileSync('git',['add','.'],{cwd:root});
   good(root,state,'init');
   const config=JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'),'utf8'));
-  assert.equal(config.checks.find(c=>c.name==='test').qualification,'sandbox-v1');
+  const test=config.checks.find(c=>c.name==='test');
+  assert.equal(`${test.qualification} ${JSON.stringify(test.visible)}`,'sandbox-v3 ["build/generated.py"]');
+  // The whole checkout, as init gave a check that reads a hidden file before visible files.
+  if(!visible)fs.writeFileSync(path.join(root,'redue.config.json'),JSON.stringify({...config,checks:config.checks.map(c=>{
+    if(c.name!=='test')return c;const {visible:_,...rest}=c;return {...rest,qualification:'sandbox-v1'};})}));
   good(root,state,'start');
   // Rewritten with other bytes: the run may have read the old ones.
   write(root,'build/generated.py','g = 0\n');
