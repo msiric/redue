@@ -58,7 +58,17 @@ time of day or on randomness can pass now and fail later on the same inputs.
 
 The default config excludes `**/*.md`, `**/*.mdx` and, with `--coverage`,
 `coverage/**`. Editing those files keeps a result CURRENT unless the run read
-them. A run may create git-ignored files (for example under `test/tmp`) and
+them. When the configuration Jest loads (the `--config` file, else
+`jest.config.*`, else package.json's `jest`) sets a `cacheDirectory` inside
+the checkout as one plain string, that directory is a runner cache, as
+`node_modules/.cache` is for the general recipe: not an input, and what the
+run reads and writes there does not count. A relative value or one starting
+with `<rootDir>` is resolved against `rootDir` when that is a plain string
+too. artsy/eigen keeps its cache in `.cache/jest`, which its suite rewrites
+on every run. Known limit: Jest's transform cache key covers the transformer
+and its configuration but not the source of local Babel plugins, so after
+such a plugin changes, a run can reuse a cached transform, as it would
+outside REDUE. A run may create git-ignored files (for example under `test/tmp`) and
 read back what it wrote, in the same process or inside a directory it created:
 when every change during the run is such an output, the result keeps the files
 as the run left them.

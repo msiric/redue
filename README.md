@@ -237,7 +237,9 @@ input, a cache or its own output.
 Everything else stays UNVERIFIED, with a reason you can read in
 `redue explain`. The usual ones: a script starts a program REDUE cannot see
 into and the sandbox can't run (inside Claude Code's macOS sandbox, on
-Windows), the project uses Bun, or a check writes into its own inputs.
+Windows), the project uses Bun, or a check writes into its own inputs
+(a Jest cache in the checkout is not one when the project's Jest
+configuration names it).
 [Supported projects](docs/user/supported-projects.md) has the details.
 
 ## What REDUE won't do

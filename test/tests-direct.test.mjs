@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import {spawnSync,execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {sharedInstalledFile,testPackageManager,testRunnerAt,testScript,testRecipeScript,testWorkspaceDirs} from '../src/test-direct.mjs';
+import {jestCacheDirectory,sharedInstalledFile,testPackageManager,testRunnerAt,testScript,testRecipeScript,testWorkspaceDirs} from '../src/test-direct.mjs';
 import {observedBy} from '../src/installed-observation.mjs';
 import {patternMatcher} from '../src/glob.mjs';
 import {resolveDeclaredInstalled} from '../src/installed-inputs.mjs';
@@ -46,6 +46,9 @@ if(value.includes('flip')){
   fs.mkdirSync(dir,{recursive:true});
   let n=0;try{n=Number(fs.readFileSync(path.join(dir,'flip'),'utf8'));}catch{}fs.writeFileSync(path.join(dir,'flip'),String(n+1));process.exit(n%2);
 }
+// Jest's haste map in the cache directory the project configures: read, then rewritten every run.
+if(value.includes('jestcache')){fs.mkdirSync('.cache/jest',{recursive:true});
+  try{fs.readFileSync('.cache/jest/haste-map');}catch{}fs.writeFileSync('.cache/jest/haste-map',String(Date.now()));}
 process.exit(value.includes('fail')?1:0);
 `;
 function project(t,{script='vitest run',runner='vitest',version='4.1.4',manager='npm'}={}){
@@ -266,6 +269,44 @@ test('a --coverage run may read back its report, unless the project sets coverag
     if(thresholds){assert.equal(status.freshness,'UNVERIFIED');assert.match(status.reason,/read coverage\/lcov-report\/sorter\.js/);}
     else assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
   }
+});
+
+test("the cacheDirectory a project's Jest configuration sets in the checkout is a runner cache, not an input",{skip:unsupported},t=>{
+  const {root,state}=project(t,{script:'jest',runner:'jest',version:'29.7.0'});
+  write(root,'.gitignore','node_modules/\n.cache\n');write(root,'jest.config.js','module.exports = {\n  cacheDirectory: ".cache/jest",\n};\n');
+  execFileSync('git',['add','.'],{cwd:root});
+  const config=JSON.parse(good(root,state,'init','--recipe','tests-direct','--check','test','--json','--dry-run')).proposed_config;
+  assert.ok(config.checks[0].inputs.includes('!.cache/jest/**'),JSON.stringify(config.checks[0].inputs));
+  good(root,state,'init','--recipe','tests-direct','--check','test');good(root,state,'start');
+  write(root,'src/value.js','jestcache\n');good(root,state,'run','test');good(root,state,'run','test');
+  let status=row(root,state);
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  // A file there changing later is not a change to the inputs.
+  write(root,'.cache/jest/haste-map','other');
+  status=row(root,state);assert.equal(status.freshness,'CURRENT',status.reason);
+  // Elsewhere the check's inputs are as before.
+  write(root,'src/value.js','jestcache fail\n');
+  assert.equal(row(root,state).freshness,'STALE');
+});
+
+test('jestCacheDirectory: one plain value, in the configuration Jest loads, resolved against rootDir, inside the checkout',t=>{
+  const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'rt-jestcache-')));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+  put(path.join(root,'package.json'),JSON.stringify({name:'x',jest:{cacheDirectory:'<rootDir>/tmp/jest'}}));
+  assert.equal(jestCacheDirectory(root),'tmp/jest');
+  assert.equal(jestCacheDirectory(root,{args:['--no-cache']}),null);
+  // With --config, package.json's "jest" is not loaded.
+  put(path.join(root,'jest.ci.config.js'),'module.exports={};\n');
+  assert.equal(jestCacheDirectory(root,{args:['--config','jest.ci.config.js']}),null);
+  // artsy/eigen's form: rootDir "./", <rootDir> in other options, a URL.
+  put(path.join(root,'jest.config.js'),'module.exports = {\n  cacheDirectory: ".cache/jest",\n  rootDir: "./",\n  testMatch: ["<rootDir>/**/*.tests.(ts|tsx|js)"],\n  url: "http://localhost/",\n};\n');
+  assert.equal(jestCacheDirectory(root),'.cache/jest');
+  put(path.join(root,'jest.config.js'),'module.exports={rootDir:"src",cacheDirectory:"<rootDir>/.c"};\n');
+  assert.equal(jestCacheDirectory(root),'src/.c');
+  for(const text of ["// cacheDirectory: 'tmp',\nmodule.exports={};","module.exports={cacheDirectory: '.jc' + suffix};",
+    "module.exports={'cacheDirectory': path.join(__dirname,'c')};","module.exports={cacheDirectory: '../c'};",
+    "module.exports={cacheDirectory: 'node_modules/.cache/jest'};","module.exports={cacheDirectory: `${dir}/c`};",
+    "module.exports={cacheDirectory: '.cache/[ci]'};","module.exports={rootDir: r, cacheDirectory: '.c'};"]){
+    put(path.join(root,'jest.config.js'),text);assert.equal(jestCacheDirectory(root),null,text);}
 });
 
 test('an excluded runner cache appearing does not change the input plan',()=>{

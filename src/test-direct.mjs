@@ -73,7 +73,9 @@ export function recordedEnvironment(guardFile,env=process.env) {
 // whether a started program is accounted for and must load the recorder,
 // `runner` describes the program REDUE started, and `trusted` names checkout
 // paths (runner caches) whose use is not an input.
-export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=testEnvironment,coverage=null,programs=null}) {
+// `cache`: a test runner's cache directory in the checkout (jestCacheDirectory),
+// trusted as the general recipe trusts its runner caches.
+export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=testEnvironment,coverage=null,programs=null,cache=null}) {
   // The recipe's variables and any the project declares are compared, not guarded.
   const compared=name=>(environment.variables||[]).includes(name)||
     (environment.prefixes||[]).some(prefix=>name.toLowerCase().startsWith(prefix.toLowerCase()));
@@ -102,7 +104,8 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
     if(judged.issue)add(judged.issue);
     else if(judged.needsHeader&&!headers.has(`${runner}-0`))add('the package manager did not load the REDUE recorder');
     opaque||=Boolean(judged.opaque);}
-  const trusted=programs?.trusted?patternMatcher(['**',...programs.trusted.map(pattern=>'!'+pattern)]):null;
+  const trustedPatterns=programs?.trusted||cache?[...programs?.trusted||[],...cache?[`${cache}/**`]:[]]:null;
+  const trusted=trustedPatterns?patternMatcher(['**',...trustedPatterns.map(pattern=>'!'+pattern)]):null;
   // A cache directory itself, and everything in it.
   const isTrusted=rel=>trusted!==null&&(!trusted(rel)||!trusted(rel+'/_'));
   // Answers per question; a question answered two ways changed during the run.
@@ -401,7 +404,9 @@ export function testRunFacts(root,check){
   const dirs=(check.installedInputs||[]).map(p=>/^([^!*]+)\/node_modules\/\*\*$/.exec(p)?.[1]).filter(Boolean);
   const own=JSON.parse(fs.readFileSync(path.join(root,dir,'package.json'),'utf8'));
   if(typeof own.scripts?.[check.script]!=='string')fail('test-script-changed');
-  return {...testScript(own.scripts[check.script]),dir,dirs};
+  const script=testScript(own.scripts[check.script]);
+  const cache=script.runner==='jest'?jestCacheDirectory(root,{args:script.args,dir}):null;
+  return {...script,dir,dirs,...cache?{cache}:{}};
 }
 // The checkout's workspace patterns: pnpm's `packages`, else package.json's.
 export function testWorkspacePatterns(root,pkg){
@@ -539,17 +544,58 @@ export function testProject(root,script,dir='.'){
     if(majorOf(util)!==29||!fs.existsSync(path.join(root,'node_modules/jest-util/build/createProcessObject.js')))
       fail('test-runner-layout-unsupported');
   }
-  return {runner,version,args,entry,dir,dirs,logical};
+  const cache=runner==='jest'?jestCacheDirectory(root,{args,dir}):null;
+  return {runner,version,args,entry,dir,dirs,logical,...cache?{cache}:{}};
+}
+// The text of the configuration Jest loads for a package: the --config
+// file, else its jest.config.* file, else package.json's "jest" ('' when
+// none). null when it cannot be read.
+const jestConfigNames=['jest.config.js','jest.config.ts','jest.config.mjs','jest.config.cjs','jest.config.json'];
+function jestConfigText(root,args){
+  const at=args.findIndex(arg=>arg==='--config'||arg==='-c'),inline=args.find(arg=>/^(?:--config|-c)=/.test(arg));
+  const given=at>=0?args[at+1]:inline?.split(/=(.*)/s)[1];
+  if(given!==undefined){try{return fs.readFileSync(path.resolve(root,given),'utf8');}catch{return null;}}
+  for(const name of jestConfigNames)try{return fs.readFileSync(path.join(root,name),'utf8');}catch{}
+  try{const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));return pkg.jest?JSON.stringify(pkg.jest):'';}
+  catch{return null;}
+}
+// The cache directory the configuration Jest loads sets, as a checkout path,
+// when it is inside the checkout: a runner cache, not an input, as
+// node_modules/.cache is for the general recipe. Jest's default is outside
+// the checkout. Configuration can be code, so this reads its text, without
+// comments, and takes only a value given once as a plain string (relative,
+// or beginning with <rootDir>) with no `rootDir` setting anywhere and no
+// glob character in it. null otherwise, and with --no-cache.
+export function jestCacheDirectory(checkout,{args=[],dir='.'}={}){
+  if(args.includes('--no-cache'))return null;
+  const root=path.join(checkout,dir),raw=jestConfigText(root,args);
+  if(!raw)return null;
+  const text=raw.replace(/\/\*[\s\S]*?\*\//g,'').replace(/(^|[^:\\])\/\/.*$/gm,'$1');
+  // One plain string for a key, or none (undefined); null when the key is
+  // set any other way or more than once.
+  const setting=key=>{
+    const named=[...text.matchAll(new RegExp(`["']?\\b${key}\\b["']?\\s*:`,'g'))].length;
+    const plain=[...text.matchAll(new RegExp(`["']?\\b${key}\\b["']?\\s*:\\s*(["'\`])([^"'\`$\\\\]*)\\1\\s*(?=[,}\\n]|$)`,'g'))].map(m=>m[2]);
+    return named===0?undefined:named===1&&plain.length===1?plain[0]:null;};
+  // Jest resolves its path options against rootDir, the package directory by default.
+  const rootDir=setting('rootDir'),cacheDirectory=setting('cacheDirectory');
+  if(rootDir===null||typeof cacheDirectory!=='string')return null;
+  const base=rootDir===undefined?root:path.resolve(root,rootDir);
+  const value=cacheDirectory.replace(/^<rootDir>(?=\/|$)/,'.');
+  if(!value||/[*?[\]{}()!+@<>]/.test(value)||rootDir&&/[*?[\]{}()!+@<>]/.test(rootDir))return null;
+  const full=path.resolve(base,value),rel=path.relative(checkout,full).split(path.sep).join('/');
+  if(!rel||rel.startsWith('..')||path.isAbsolute(rel)||/(^|\/)node_modules(\/|$)/.test(rel))return null;
+  return rel;
 }
 // Inputs: the whole checkout except documentation and the coverage report a
 // --coverage run writes. Git-ignored files the run creates are handled per
 // run (cli.mjs). Installed files, in the root's node_modules and every
 // workspace package's, are observed by identity; Vite's caches inside them
 // are written by every Vitest run.
-export function testCheckInputs({runner,args,dir='.',dirs=[],logical=`node_modules/${runner}`}){
+export function testCheckInputs({runner,args,dir='.',dirs=[],logical=`node_modules/${runner}`,cache=null}){
   const modules=modulesDirs({dirs});
   return {inputs:['**',...modules.map(at=>`!${at}/**`),'!.git/**','!**/*.md','!**/*.mdx',
-    ...(args.includes('--coverage')?[`!${dir==='.'?'':dir+'/'}coverage/**`]:[])],
+    ...(args.includes('--coverage')?[`!${dir==='.'?'':dir+'/'}coverage/**`]:[]),...cache?[`!${cache}/**`]:[]],
   // Vitest's typecheck mode keeps tsc's build info in its own dist directory.
   installedInputs:modules.flatMap(at=>[`${at}/**`,...(runner==='vitest'?[`!${at}/.vite/**`,`!${at}/.vite-temp/**`,`!${at}/.vitest/**`]:[])])
     .concat(runner==='vitest'?[`!${logical}/dist/tsconfig.tmp.tsbuildinfo`]:[])};

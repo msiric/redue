@@ -480,7 +480,7 @@ async function execute() {
         env:{preload:true,bashEnv:Boolean(process.env.BASH_ENV)}},
         judge:(child,main)=>childProgram(child,{toolchain,parentMain:main}),trusted:scriptCaches}:null;
       guard=testRunGuard(testRecord,{root,sourcePatterns:plan.sourcePatterns||plan.patterns,files:snap?.files,
-        runner:runnerPid,environment:selected.environment||{},coverage,programs});
+        runner:runnerPid,environment:selected.environment||{},coverage,programs,cache:general?null:testFacts.cache||null});
       runFacts=guard.runFacts;
       // The pnpm executable reads its configuration natively: kept by content.
       if(guard.opaque)for(const file of pnpmConfigFiles())try{runFacts.push(['readFile',file,queryAnswer('readFile',file)]);}
