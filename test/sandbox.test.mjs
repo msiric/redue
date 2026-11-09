@@ -742,10 +742,14 @@ test('init tries a Vitest script in the sandbox first; the direct test recipe is
   const test=off.proposed_config.checks.find(check=>check.name==='test'),row=off.checks.find(check=>check.name==='test');
   assert.equal(test.qualification,'npm-tests-direct-v1',JSON.stringify(test));
   assert.match(row.reason,/^Sandboxed recipe unavailable: the sandbox cannot run here .*explicit local vitest 4\.1\.4 run/);
-  // Where the direct recipe runs another script (here `test` watches), it stays first.
+  // Where the direct recipe runs another script (here `test` watches), the
+  // sandbox runs the one the direct recipe chose, which stays its fallback.
   write(root,'package.json',JSON.stringify({name:'fx',version:'1.0.0',scripts:{test:'vitest','test:unit':'vitest run'}}));
   const other=JSON.parse(good(root,state,'init','--dry-run','--json')).proposed_config.checks.find(check=>check.name==='test');
-  assert.equal(`${other.qualification} ${other.script}`,'npm-tests-direct-v1 test:unit');
+  assert.equal(`${other.qualification} ${other.script}`,`${unsupported?'npm-tests-direct-v1':'sandbox-v3'} test:unit`);
+  const fallback=JSON.parse(invoke(root,state,['init','--dry-run','--json'],{VSTATE_TEST_FAULTS:'1',VSTATE_TEST_SANDBOX:'unavailable'}).stdout)
+    .proposed_config.checks.find(check=>check.name==='test');
+  assert.equal(`${fallback.qualification} ${fallback.script}`,'npm-tests-direct-v1 test:unit');
 });
 
 test('a run past the trial limit is never the same: when the plain run reaches it, no sandboxed run follows',{skip:unsupported},async t=>{

@@ -309,22 +309,27 @@ export function discoverNodeProject(root,{recipe=null}={}) {
     // takes is recorded as it would record it (cli.mjs).
     // A script whose program is not installed gets none, and neither does one
     // that changes files (`--fix`, `--write`): init would run it twice.
-    const writes=script&&['pre'+script,script,'post'+script].map(name=>scripts[name]).find(text=>typeof text==='string'&&
+    // A test script the direct test recipe takes is tried in the sandbox
+    // first, with that recipe as its fallback. Where the direct recipe chose
+    // another script (\`test\` runs \`test:unit\` and more, or watches), the
+    // sandbox runs the one it chose.
+    const directTests=auto&&kind==='test'&&classification.level==='ready'&&classification.qualification===testsQualification;
+    const sandboxScript=directTests?check.script:script;
+    const writes=sandboxScript&&['pre'+sandboxScript,sandboxScript,'post'+sandboxScript].map(name=>scripts[name]).find(text=>typeof text==='string'&&
       /(?:^|\s)--(?:fix|write|unsafe-fixes)(?=[\s=]|$)/.test(text));
     if(writes)classification={...classification,reason:`Sandboxed recipe unavailable (the script changes files: ${writes.match(/--(?:fix|write|unsafe-fixes)/)[0]}); ${classification.reason}`};
     // A test script gets it before the direct test recipe, which is then its
-    // fallback, when both run the same script: in the census the direct
-    // recipe's results went STALE when the build changed its output, and the
-    // sandboxed ones stayed CURRENT.
-    if((auto||recipe==='sandbox')&&script&&sandboxKinds.includes(kind)&&!observationIssue&&
-      (classification.level!=='ready'||auto&&kind==='test'&&check.script===script)&&
+    // fallback: in the census the direct recipe's results went STALE when the
+    // build changed its output, and the sandboxed ones stayed CURRENT.
+    if((auto||recipe==='sandbox')&&sandboxScript&&sandboxKinds.includes(kind)&&!observationIssue&&
+      (classification.level!=='ready'||directTests)&&
       !/REDUE cannot find/.test(generalIssue||'')&&!writes){
       try{
-        const project=scriptProject(root,script);
+        const project=scriptProject(root,sandboxScript);
         const fallback=generalRow??{config:{...check,...classification.qualification?{qualification:classification.qualification}:{}},...classification};
-        checks.push({config:{name:kind,script,kind,qualification:sandboxQualification,...sandboxCheckInputs(project.dirs)},level:'ready',
+        checks.push({config:{name:kind,script:sandboxScript,kind,qualification:sandboxQualification,...sandboxCheckInputs(project.dirs)},level:'ready',
           qualification:sandboxQualification,fallback,
-          reason:`sandboxed recipe: ${project.manager} runs script ${JSON.stringify(script)} inside the OS sandbox${generalIssue?` (the general recipe cannot record it: ${generalIssue})`:
+          reason:`sandboxed recipe: ${project.manager} runs script ${JSON.stringify(sandboxScript)} inside the OS sandbox${generalIssue?` (the general recipe cannot record it: ${generalIssue})`:
             generalRow?'; where the sandbox cannot run, the general recipe records it':''}; the whole checkout is its input`});
         continue;
       }catch(e){classification={...classification,reason:`Sandboxed recipe unavailable (${e.code?.replace(/^test-/,'')||e.message}); ${classification.reason}`};}
