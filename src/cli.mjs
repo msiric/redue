@@ -133,8 +133,9 @@ function owner(){
     const existing=JSON.parse(fs.readFileSync(ownerFile));
     if(JSON.stringify(existing)!==JSON.stringify(expected))throw Error('state ownership marker mismatch');
   } else {
+    // init-trials: what init kept of its failed sandbox trials (bin/redue.mjs).
     const allowed=withinPath(configFile,state)?path.basename(configFile):null;
-    if(fs.readdirSync(state).some(entry=>entry!==allowed))
+    if(fs.readdirSync(state).some(entry=>entry!==allowed&&entry!=='init-trials'))
       throw Error('unowned state directory is not empty; inspect before initializing');
     atomicJson(ownerFile,expected);
   }

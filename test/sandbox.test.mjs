@@ -313,6 +313,14 @@ test('init leaves out a Python check that gives a different result inside the sa
   const init=JSON.parse(good(root,state,'init','--dry-run','--json'));
   assert.equal(init.checks.length,0);
   assert.match(init.skipped.map(row=>row.reason).join('\n'),/typecheck: sandboxed recipe unavailable: exit 1 inside the sandbox, 0 outside it \(.*(?:Operation not permitted|Permission denied)/);
+  // The sandboxed run's last lines are kept in local state, never in the config.
+  const kept=/the sandboxed run's last lines are in (\S+\.txt)/.exec(init.skipped.map(row=>row.reason).join('\n'))?.[1];
+  assert.ok(kept?.startsWith(path.join(state,'init-trials')+path.sep),String(kept));
+  const text=fs.readFileSync(kept,'utf8');
+  assert.match(text,/^typecheck: exit 1 inside the sandbox, 0 outside it\. The sandboxed run's last lines:\n/);
+  assert.ok(text.trim().split('\n').length<=21&&text.split('\n').every(line=>line.length<=201+'typecheck: exit 1 inside the sandbox, 0 outside it. The sandboxed run\'s last lines:'.length),text);
+  assert.equal(fs.statSync(kept).mode&0o777,0o600);
+  assert.match(good(root,state,'remove-state'),/Removed init's kept trial output/);assert.ok(!fs.existsSync(kept));
   // The same exit status with different output: a variable the sandboxed run does not get.
   write(root,'src/fx/reads.py','# secret\n');
   const secret=JSON.parse(invoke(root,state,['init','--dry-run','--json'],{REDUE_TEST_SECRET:'x'}).stdout);

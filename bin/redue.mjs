@@ -198,6 +198,19 @@ if(command==='init'){
     if((existing.root??'.')!=='.'||!samePath(realObservedPath(path.dirname(configFile)),discovery.root))
       error('init updates only a config at the repository root, without root; run it there');
   }
+  // A failed trial's last sandboxed lines, in this configuration's local
+  // state (init-trials), never in the config: output can hold tokens and
+  // paths. Returns the file, or null when the state cannot hold it.
+  const keepTrialOutput=(name,trial)=>{
+    try{
+      const state=stateOverride||projectState(discovery.root,configFile);
+      assertOwnedStatePlacement({state,root:discovery.root,checks:[]});
+      const dir=path.join(state,'init-trials');fs.mkdirSync(dir,{recursive:true,mode:0o700});
+      const file=path.join(dir,`${name.replace(/[^A-Za-z0-9_.-]/g,'_')}.txt`);
+      fs.writeFileSync(file,`${name}: exit ${trial.sandboxed} inside the sandbox, ${trial.plain} outside it. The sandboxed run's last lines:\n${trial.tail.join('\n')}\n`,{mode:0o600});
+      return file;
+    }catch{return null;}
+  };
   const timeout=noTimeLimit?0:undefined,improved=new Map();
   let trials=0;
   for(const [at,row] of [...discovery.checks.entries()]){
@@ -222,10 +235,12 @@ if(command==='init'){
     const trial=docs.timedOut?docs:docs.plainRun?{...await sandboxTrial(discovery.root,row.config,{plain:docs.plainRun,timeout}),kind:row.config.kind}:
       [hiddenListIssue,hiddenDocsIssue].includes(docs.issue)?{...await sandboxTrial(discovery.root,row.config,{timeout}),kind:row.config.kind}:docs;
     if(trial!==docs&&!trial.issue)trials++;
-    const issue=trialIssue(trial);
+    let issue=trialIssue(trial);
     if(!issue){row.reason+=`; ran both ways at init, exit ${trial.plain}; the whole checkout is its input: `+
       (docs.issue?docs.issue:`with the files git ignores and the documentation hidden, ${trialIssue(docs)}`);
       improved.set(row.config.name,row.config);continue;}
+    const kept=trial.tail?.length?keepTrialOutput(row.config.name,trial):null;
+    if(kept)issue+=`; the sandboxed run's last lines are in ${kept}`;
     // time_limit: the kind that --check takes to try it without the limit.
     const limited=trial.timedOut?{timeLimit:row.config.kind}:{};
     if(row.fallback)discovery.checks[at]={...row.fallback,...limited,reason:`Sandboxed recipe unavailable: ${issue}; ${row.fallback.reason}`};
@@ -312,7 +327,12 @@ function printLifecycle(output,action,machine){
 // or installed compiler to remain present. No command is run from this path.
 if(stateOverride&&['stop','remove-state'].includes(command)){
   const runtime=path.join(stateOverride,'project-runtime-v1.json');
-  if(!fs.existsSync(runtime)){console.log('No REDUE state exists at this path.');process.exit(0);}
+  if(!fs.existsSync(runtime)){
+    // init's kept trial output may be all there is.
+    if(command==='remove-state'&&fs.existsSync(path.join(stateOverride,'init-trials'))){
+      fs.rmSync(path.join(stateOverride,'init-trials'),{recursive:true,force:true});try{fs.rmdirSync(stateOverride);}catch{}
+      console.log("Removed init's kept trial output at this path.");process.exit(0);}
+    console.log('No REDUE state exists at this path.');process.exit(0);}
   mark('client.engine_submit');
   const result=spawnSync(process.execPath,[engine,runtime,command==='stop'?'stop':'uninstall'],
     {cwd:os.tmpdir(),stdio:['inherit','pipe','inherit'],encoding:'utf8',env:process.env});
@@ -495,6 +515,10 @@ if(command==='stats'){
 }
 const maintenance=command==='stop'||command==='remove-state';
 if(maintenance&&!fs.existsSync(runtimeFile)){
+  // init's kept trial output may be all there is.
+  if(command==='remove-state'&&fs.existsSync(path.join(state,'init-trials'))){
+    fs.rmSync(path.join(state,'init-trials'),{recursive:true,force:true});try{fs.rmdirSync(state);}catch{}
+    console.log(`Removed init's kept trial output for ${configFile}.`);process.exit(0);}
   console.log(`No REDUE state exists for ${configFile}.`);
   process.exit(0);
 }

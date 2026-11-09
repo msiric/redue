@@ -621,7 +621,7 @@ function refusedHidden(plain,sandboxed,entries,supervisor){
 }
 // init's limit on each trial run, in ms; a test can shorten it.
 export const trialLimit=process.env.VSTATE_TEST_FAULTS==='1'&&Number(process.env.VSTATE_TEST_TRIAL_LIMIT)||300000;
-// {same, plain, sandboxed, line, refusedHidden, timedOut} or {issue} when the sandbox cannot run here.
+// {same, plain, sandboxed, line, refusedHidden, timedOut, tail} or {issue} when the sandbox cannot run here.
 // A run that reaches `timeout` (0: none) is never the same as another:
 // `timedOut` says which, and when the plain run does, no sandboxed run follows.
 // With `hide` 'docs', the documentation (hiddenDocs) is hidden too.
@@ -675,7 +675,10 @@ export async function sandboxTrial(root,check,{timeout=trialLimit,hide=false,pla
     const differs=tests&&read?(JSON.stringify(counts[0])===JSON.stringify(counts[1])?null:{plain:JSON.stringify(counts[0]),sandboxed:JSON.stringify(counts[1])}):output;
     const timedOut=sandboxed.status==='timeout'?'sandboxed':null;
     const same=!timedOut&&plain.status===sandboxed.status&&!denied&&!differs&&!supervisor;
-    return {same,plain:plain.status,sandboxed:sandboxed.status,output:differs,plainRun:plain,timedOut,
+    // When they differ, the sandboxed run's last lines, for init to keep in
+    // local state (never in the config: output can hold tokens and paths).
+    const tail=same?null:sandboxed.output.split(/\r?\n/).filter(line=>line.trim()).slice(-20).map(line=>line.length>200?line.slice(0,200)+'…':line);
+    return {same,plain:plain.status,sandboxed:sandboxed.status,output:differs,plainRun:plain,timedOut,tail,
       line:supervisor||denied||(plain.status===sandboxed.status?null:sandboxed.output.trim().split('\n').at(-1)?.slice(0,200)||null),
       refusedHidden:same?null:refusedHidden(plain,sandboxed,entries,supervisor),
       ...hide?{hidden:entries.length,entries,docs:docEntries.length,plainMs:plain.ms,sandboxedMs:sandboxed.ms,...launcher?{rules:launcher.rules,setupMs:launcher.ms}:{}}:{}};
