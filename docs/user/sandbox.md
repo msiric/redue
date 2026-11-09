@@ -96,16 +96,16 @@ agrees with the plain run, it writes `sandbox-v3` with those files in the
 check's `visible` list: runs do not hide them, and each is an input, so an
 edit to one makes the check STALE. pi-web's lint reads a generated file git
 ignores, and its typecheck a license text under `src`; each gets that one
-file instead of the whole checkout. Otherwise it writes `sandbox-v1` (the
-whole checkout) without running it again: without the hiding, a run can then
-only fail where a plain one passes, never pass where it fails. `visible`
-holds up to 3 relative files, only for a `sandbox-v2` or `sandbox-v3` check;
-a hidden folder that holds one stays hidden otherwise.
-When the runs differ
-in another way, `init` runs the check once more with the whole checkout,
-reusing the plain run, and writes `sandbox-v1` only if that agrees. So a
-check runs two or three times at init, and up to five when its trial is
-refused hidden files (one plain run, one sandboxed, one per visible file). `init` no longer writes
+file instead of the whole checkout. `visible` holds up to 3 relative files,
+only for a `sandbox-v2` or `sandbox-v3` check; a hidden folder that holds
+one stays hidden otherwise.
+Otherwise, `init` runs the check once more with the whole checkout, reusing
+the plain run, and writes `sandbox-v1` only if that agrees. A whole-checkout
+run can still differ: a test suite that writes to a fixed path in `/tmp`
+does on Linux and macOS. Such a check then gets the recipe it would have
+without the sandbox. So a check runs two or three times at init, and up to
+six when its trial is refused hidden files (one plain run, one sandboxed,
+one per visible file, one with the whole checkout). `init` no longer writes
 `sandbox-v2`; a check already set up with it keeps it.
 
 When a trial leaves a check out of the sandbox, `init` keeps the sandboxed
@@ -184,11 +184,14 @@ the launcher also stops daemons that started their own session. On macOS
 such a daemon outlives the run, but no later run can reach it: its socket
 was in a temporary directory that is gone. The run gets no terminal input.
 
-The checkout's `.git` is not an input. Tools still see it, as they do in a CI
-checkout (a linter that applies `.gitignore` only inside a repository does),
-but git commands find no repository: `GIT_DIR` points nowhere. A script that
-runs git (`git diff --exit-code`) gives a different result inside the
-sandbox, and `init` leaves it to the other recipes.
+The checkout's `.git` is not an input. A run sees that it exists, as in a CI
+checkout (ruff and biome apply `.gitignore` only inside a repository), and
+reads `.git/config` and `.git/info/exclude`, which are compared by content.
+Everything else in `.git` is hidden, so git commands find no repository in
+the checkout. A script that runs git there (`git diff --exit-code`) gives a
+different result inside the sandbox, and `init` leaves it to the other
+recipes. A repository a test makes in its temporary directory works as it
+does outside the sandbox.
 
 It gets a controlled environment, not yours:
 
@@ -316,9 +319,8 @@ it with `redue remove-state`.
   run there is UNVERIFIED. UDP is not refused on Linux.
 - System files (time zones, certificates, `/etc`) are not inputs: a change to
   them does not make a result STALE.
-- A program that reads files in `.git` itself, without git (a commit hash for
-  a version string), reads something REDUE does not observe: a commit does
-  not make the result STALE.
+- A git repository nested in the checkout (not a submodule's `.git` file)
+  is not hidden: git commands run beneath it find it.
 - Runner caches in the checkout are trusted as the general recipe trusts them.
 - On Linux, a run can still reach a daemon started outside it through a Unix
   socket file (Landlock does not cover them), and what that daemon reads is

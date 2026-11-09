@@ -44,7 +44,14 @@ and `npx eslint .` are recognized like typecheck and test commands.
 CURRENT means the last run's inputs are unchanged:
 
 - every file in the checkout, except `.git`, every `node_modules`, the runner
-  caches listed below and the files the run itself wrote;
+  caches listed below and the files the run itself wrote. When every program
+  in the run was recorded, none loaded a native addon, and none listed a
+  folder recursively, copied files, used a glob or read a file as a Blob,
+  an edit to a prose file the run never read, looked up or listed is not a
+  change: `*.md`, `*.mdx`, `*.rst`, `*.adoc` and `*.txt` files, and
+  `LICENSE`, `CHANGELOG`, `COPYING`, `NOTICE` and `AUTHORS` files without an
+  extension. A README edit leaves a lint that never read it CURRENT. Adding
+  or removing such a file still makes it STALE;
 - the installed files in the root's and every workspace package's
   `node_modules`, and Yarn's install state, by file identity;
 - the lockfile and `package.json`, as files of the checkout;

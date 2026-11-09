@@ -249,16 +249,17 @@ if(command==='init'){
         `the checkout's files git doesn't ignore, except its documentation, and ${visible.join(', ')}, which its trial read, are its input`)+
         `; ran both ways at init, exit ${shown.plain}`;
       improved.set(row.config.name,row.config);continue;}
-    if(!docs.issue&&!docs.timedOut&&docs.refusedHidden){
-      row.reason+=`; at init it passed, then failed reading a file that was hidden (${docs.refusedHidden}), so the whole checkout is its input, not run that way at init`;
-      improved.set(row.config.name,row.config);continue;}
+    // Refused a hidden file it needs that visible cannot give it: the whole
+    // checkout is tried like any other, so a recipe init proposes has run.
+    const hiddenIssue=!docs.issue&&!docs.timedOut&&docs.refusedHidden?
+      `it failed reading a file it hid (${docs.refusedHidden})${visible.length?`, also with ${visible.join(', ')} visible`:''}`:null;
     // Without a list of the ignored files or the documentation, the whole checkout is tried on its own.
     const trial=docs.timedOut?docs:docs.plainRun?{...await sandboxTrial(discovery.root,row.config,{plain:docs.plainRun,timeout}),kind:row.config.kind}:
       [hiddenListIssue,hiddenDocsIssue].includes(docs.issue)?{...await sandboxTrial(discovery.root,row.config,{timeout}),kind:row.config.kind}:docs;
     if(trial!==docs&&!trial.issue)trials++;
     let issue=trialIssue(trial);
     if(!issue){row.reason+=`; ran both ways at init, exit ${trial.plain}; the whole checkout is its input: `+
-      (docs.issue?docs.issue:`with the files git ignores and the documentation hidden, ${trialIssue(docs)}`);
+      (docs.issue?docs.issue:`with the files git ignores and the documentation hidden, ${hiddenIssue||trialIssue(docs)}`);
       improved.set(row.config.name,row.config);continue;}
     const kept=trial.tail?.length?keepTrialOutput(row.config.name,trial):null;
     if(kept)issue+=`; the sandboxed run's last lines are in ${kept}`;

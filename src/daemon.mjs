@@ -25,7 +25,7 @@ import {npmCacheDir} from './npm-integrity.mjs';
 import {runFromArgv} from './typescript-invocation.mjs';
 import {buildInfoPath,recordedCertificate} from './direct-run-certificate.mjs';
 import {timing,mark,traceBase,traceContext,traceScope,traceEnvironment,traceId} from './decision-profile.mjs';
-import {compactKey,installedTreeOf,isSandboxed,sandboxChange,visibleChange as sandboxVisibleChange} from './sandbox.mjs';
+import {compactKey,installedTreeOf,isProse,isSandboxed,sandboxChange,visibleChange as sandboxVisibleChange} from './sandbox.mjs';
 import {gitIgnored} from './test-direct.mjs';
 
 const configFile=path.resolve(process.argv[2]);
@@ -377,7 +377,24 @@ function onlySelfChanged(name,row,r,contextHashes) {
   const before=strip(r.files),now=strip(filesFor(name,r)),paths=[...new Set([...Object.keys(before),...Object.keys(now)])];
   if(hiddenRun(r))return sandboxVisibleChange(root,r.sandbox.hidden,before,now,paths,{docs:Array.isArray(r.sandbox.docs)?r.sandbox.docs:null,
     visible:Array.isArray(r.sandbox.visible)?r.sandbox.visible.filter(file=>!skip.has(file)):null})===null;
-  return paths.every(file=>before[file]===now[file]);
+  return paths.every(file=>before[file]===now[file]||unreadDoc(r,file,now));
+}
+// A general-recipe run that recorded every program, loaded no native addon
+// and used no API the recorder cannot follow keeps the prose files it read,
+// looked up or listed (docsRead, cli.mjs). An edit to any other prose file
+// present then and now, outside installed trees, is not a change to its
+// inputs. A file added or removed always is.
+const docsRun=r=>Array.isArray(r?.docsRead)&&Boolean(r.files);
+const unreadDoc=(r,file,now)=>docsRun(r)&&r.files[file]!==undefined&&now[file]!==undefined&&!file.startsWith('external:')&&
+  installedTreeOf(file)===null&&isProse(file)&&!r.docsRead.includes(file);
+// The first changed input other than such an edit, or null; once per
+// receipt and pair of fingerprints.
+function unreadDocsChange(row,r,name) {
+  const key=(r.invocation?.runId||'')+'\0'+r.fingerprint+'\0'+combinedSummary(name).fingerprint;
+  if(row.docsKey!==key){const current=filesFor(name,r);row.docsKey=key;row.docsChange=null;
+    for(const file of Object.keys(r.files))if(r.files[file]!==current[file]&&!unreadDoc(r,file,current)){row.docsChange=file;break;}
+    if(row.docsChange===null)for(const file of Object.keys(current))if(r.files[file]===undefined){row.docsChange=file;break;}}
+  return row.docsChange;
 }
 // A changed input as status names it: an installed tree by its path.
 const inputName=file=>file?.endsWith('/:installed:')?file.slice(0,-'/:installed:'.length):file;
@@ -424,7 +441,7 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
       return item;}
     if(pendingChecks.has(name)){item.reason='filesystem change pending content inspection';return item;}
     if(r&&r.planId) item.declared_inputs_match=r.planId===row.plan.id&&
-      (r.fingerprint===combinedSummary(name).fingerprint||hiddenRun(r)&&visibleChange(row,r,name)===null);
+      (r.fingerprint===combinedSummary(name).fingerprint||hiddenRun(r)&&visibleChange(row,r,name)===null||docsRun(r)&&unreadDocsChange(row,r,name)===null);
     // needs_run: on an UNVERIFIED answer, a run of the check is what it needs
     // (no usable receipt, a run that did not finish or record, an input
     // changed since); false or absent when REDUE could not confirm a run
@@ -516,10 +533,12 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
         item.freshness='UNVERIFIED';item.reason='environment variables the last run read were not compared';item.needs_run=true;}
       else item.reason=`environment variable ${contextHashes[name].__redue_env_changed__} differs from the last run`;
     }
-    else if(r.fingerprint!==combinedSummary(name).fingerprint&&!(hiddenRun(r)&&visibleChange(row,r,name)===null)) {
+    else if(r.fingerprint!==combinedSummary(name).fingerprint&&!(hiddenRun(r)&&visibleChange(row,r,name)===null)&&
+      !(docsRun(r)&&unreadDocsChange(row,r,name)===null)) {
       const key=r.fingerprint+'\0'+combinedSummary(name).fingerprint;
-      if(row.staleReasonKey!==key&&hiddenRun(r)){
-        const seen=visibleChange(row,r,name);row.staleInputs=[inputName(seen)];row.staleReason=describeChangedInput(row.plan,seen);row.staleReasonKey=key;}
+      if(row.staleReasonKey!==key&&(hiddenRun(r)||docsRun(r))){
+        const seen=hiddenRun(r)?visibleChange(row,r,name):unreadDocsChange(row,r,name);
+        row.staleInputs=[inputName(seen)];row.staleReason=describeChangedInput(row.plan,seen);row.staleReasonKey=key;}
       if(row.staleReasonKey!==key){
         let changed=row.lastReason;row.staleInputs=[];
         const candidate=changed?.endsWith(' changed')?changed.slice(0,-8):null;

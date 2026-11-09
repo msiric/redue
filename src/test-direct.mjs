@@ -111,6 +111,10 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
   // PIDs is that child, not an execSync child (which reports no PID).
   const installedWrites=new Set();
   const reads=new Map(),produced=new Set(),created=new Set(),environmentReads={},spawned=new Map(),childPids=new Map();
+  // Native addons the run loaded: they read files the recorder does not see.
+  const addons=new Set();
+  // Uses whose file accesses the recorder does not see one by one.
+  const blind=new Set();
   // Whether a started program is accounted for: {issue} or {needsHeader}.
   // The tests recipe wants every program to become a recorded process; a
   // shell, which can run other programs first, is read by its command as
@@ -136,6 +140,8 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
       else if(kind==='P')produced.add(path.join(root,value[0]));
       else if(kind==='I')installedWrites.add(value[0]);
       else if(kind==='M')created.add(value[0]);
+      else if(kind==='A')addons.add(String(value[0]));
+      else if(kind==='B')blind.add(String(value[0]));
       else if(kind==='L')ask(`stat\0${value[0]}`,value[1]);
       else if(kind==='D')ask(`entries\0${value[0]}`,value[1]);
       else if(kind==='O')ask(`outside-${value[0]}\0${value[1]}`,value[2]);
@@ -240,10 +246,14 @@ export function testRunGuard(dir,{root,sourcePatterns,files,runner,environment=t
   // A read that found nothing read no leftover.
   const isOutput=rel=>!rel.startsWith('external:')&&(inCreated(checkout(rel))||created.has(checkout(rel))||
     produced.has(checkout(rel))&&reads.get(rel)!==true);
+  // Checkout paths (relative) the recorded processes read, looked up or
+  // listed, found or not.
+  const touched=new Set(reads.keys());
+  for(const key of answers.keys()){const [question,where]=key.split('\0');if(question==='stat'||question==='entries')touched.add(where);}
   return {issues:issues.length>issueLimit?[...issues.slice(0,issueLimit),`${issues.length-issueLimit} more`]:issues,
     runFacts:runFacts.length>factLimit?[]:[...new Map(runFacts.map(f=>[JSON.stringify(f),f])).values()],
     environmentReads:Object.fromEntries(Object.entries(environmentReads).sort(([a],[b])=>a<b?-1:a>b?1:0)),isOutput,opaque,
-    wroteInstalled:rel=>installedWrites.has(rel),read:rel=>reads.has(rel)};
+    wroteInstalled:rel=>installedWrites.has(rel),read:rel=>reads.has(rel),touched:[...touched].sort(),addons:addons.size,blind:[...blind].sort()};
 }
 // The observed files that differ between two checkpoints' file maps.
 export function changedFiles(before,after){

@@ -194,9 +194,11 @@ export function sandboxEnv(check,env,{root,home,tmp}){
   Object.assign(out,{PATH:sandboxPath(check,env,root),HOME:home,XDG_CONFIG_HOME:path.join(home,'.config'),
     XDG_CACHE_HOME:path.join(home,'.cache'),XDG_DATA_HOME:path.join(home,'.local','share'),XDG_STATE_HOME:path.join(home,'.local','state'),
     TMPDIR:tmp,TMP:tmp,TEMP:tmp,
-    // The checkout's .git is not an input. Tools may still see it, as in CI,
-    // but git commands find no repository.
-    GIT_DIR:path.join(home,'.no-repository'),GIT_CEILING_DIRECTORIES:path.dirname(root)});
+    // The checkout's .git is not an input: a run sees that it exists, but
+    // not what is inside (sandboxArgv's `git`), so git commands find no
+    // repository there, nor above the checkout. A repository a test makes
+    // in its temporary directory works as it does outside the sandbox.
+    GIT_CEILING_DIRECTORIES:path.dirname(root)});
   if(pythonTool(check))out.VIRTUAL_ENV=path.join(root,'.venv');
   else{
     // Corepack's downloads stay where Corepack keeps them; npm's and pnpm's
@@ -257,6 +259,8 @@ export function sandboxChange(before={},now={}){
   return name==='places'?'the places a sandboxed run may read changed':
     name==='executables'?'Node, a package manager or the interpreter changed':
     name==='git'?'.git/info/exclude or .git/config changed':
+    // Runs before this version pointed GIT_DIR nowhere; they hide .git now.
+    name==='variable:GIT_DIR'&&!(key in now)?"REDUE's sandbox hides what is inside .git now, instead of setting GIT_DIR; run the check again":
     name.startsWith('variable:')?`environment variable ${name.slice(9)} differs from the last run`:
     !(key in now)?`PATH no longer has directory ${name.slice(10)}`:!(key in before)?`PATH has a new directory ${name.slice(10)}`:
     `PATH directory ${name.slice(10)} changed (a program in it was installed, removed or upgraded)`;
@@ -299,6 +303,12 @@ export function hiddenEntries(root){
 // Relative; null when git cannot tell. git filters by pathspec, so a large
 // checkout is not listed whole.
 const docMatch=picomatch(docPatterns,{dot:true});
+// Prose a program reads as text, never loads as code: Markdown, reST,
+// AsciiDoc and plain text files, and LICENSE, CHANGELOG, COPYING, NOTICE or
+// AUTHORS files with no extension. Narrower than docPatterns, whose
+// `LICENSE*` and `CHANGELOG*` also name code (CHANGELOG.config.mjs).
+export const isProse=rel=>typeof rel==='string'&&(/\.(md|mdx|rst|adoc|txt)$/i.test(rel)||
+  /^(LICEN[CS]E|CHANGELOG|COPYING|NOTICE|AUTHORS)$/i.test(rel.split('/').pop()));
 const docsArgs=()=>[...projectGit,'ls-files','-z','--cached','--others','--exclude-standard','--',...docPatterns.map(pattern=>`:(glob)${pattern}`)];
 export function hiddenDocs(root){
   return docsOf(root,spawnSync('git',docsArgs(),{cwd:root,encoding:'utf8',maxBuffer:256*1024*1024,timeout:60000,stdio:['ignore','pipe','ignore'],env:gitEnv()}));
@@ -483,6 +493,29 @@ function docsRule(docs,roots){
   return `(deny file-read-data process-exec* (require-all (vnode-type REGULAR-FILE) (require-any ${[...patterns,...files].join(' ')})`+
     `${shown.length?` (require-not (require-any ${shown.join(' ')}))`:''}))`;
 }
+// The checkout's own .git folder (absolute), or null: one that is a link or
+// a file (a worktree's, naming a folder outside the checkout, which a run
+// cannot read) is not hidden.
+export const gitShown=['config','info/exclude'];
+// The .git folders (absolute) of repositories nested in the checkout, which
+// the observer does not index either: git lists each nested repository as a
+// folder of untracked files, ignored or not, without entering it. Installed
+// trees and runner caches are not searched. [] outside a repository; null
+// when git cannot list them.
+const nestedArgs=[...projectGit,'ls-files','-z','--others',...['node_modules','.venv','__pycache__','.mypy_cache','.ruff_cache','.pytest_cache'].flatMap(dir=>['-x',dir])];
+export function nestedGits(root){
+  let top=root;while(!fs.existsSync(path.join(top,'.git'))){const up=path.dirname(top);if(up===top)return [];top=up;}
+  const r=spawnSync('git',nestedArgs,{cwd:root,encoding:'utf8',maxBuffer:256*1024*1024,timeout:60000,stdio:['ignore','pipe','ignore'],env:gitEnv()});
+  if(r.status!==0)return null;
+  const out=[];
+  for(const rel of r.stdout.split('\0'))if(rel.endsWith('/'))
+    try{const dir=path.join(root,rel,'.git');if(fs.lstatSync(dir).isDirectory())out.push(dir);}catch{}
+  return out.sort();
+}
+export function checkoutGit(root){
+  const dir=path.join(root,'.git');
+  try{return fs.lstatSync(dir).isDirectory()?dir:null;}catch{return null;}
+}
 // The argv that runs `argv` sandboxed: reads beneath `reads`, no network but
 // Unix sockets beneath `tmp` on macOS, nothing beneath `hidden` (absolute).
 // On Linux a hidden directory can still be listed and its entries stat'ed:
@@ -492,7 +525,13 @@ function docsRule(docs,roots){
 // then says whether the supervisor served the whole run (supervisorIssue).
 // `docs` ({root, entries}): the checkout's documentation, hidden too.
 // `visible` (absolute): files beneath a hidden entry that stay readable.
-export function sandboxArgv(mode,argv,{reads,tmp=null,python,hidden=[],stats=null,network='none',writes=null,fault=null,docs=null,visible=[]}){
+// `git`: the checkout's .git folder (checkoutGit), whose contents are hidden
+// but for the ignore rules tools read there (gitShown), which sandboxContext
+// compares. `nestedGit`: the .git folders of repositories nested in it
+// (nestedGits), hidden whole.
+export function sandboxArgv(mode,argv,{reads,tmp=null,python,hidden=[],stats=null,network='none',writes=null,fault=null,docs=null,visible=[],git=null,nestedGit=[]}){
+  if(git){hidden=[...hidden,git];visible=[...visible,...gitShown.map(rel=>path.join(git,rel))];}
+  if(nestedGit.length)hidden=[...hidden,...nestedGit];
   if(mode==='seatbelt')return ['/usr/bin/sandbox-exec','-p',seatbeltProfile(reads,tmp,hidden,{writes,docs,visible}),...argv];
   if(docs)hidden=[...hidden,...docs.entries.map(rel=>path.join(docs.root,rel.replace(/\/$/,'')))];
   // The launcher's own warnings would become the check's output.
@@ -714,7 +753,7 @@ export async function sandboxTrial(root,check,{timeout=trialLimit,hide=false,pla
     const plain=earlier??await run(command,{...process.env,...python?{}:{npm_config_update_notifier:'false'}});
     if(plain.status==='timeout')return {same:false,plain:'timeout',sandboxed:null,timedOut:'plain',line:null,refusedHidden:null,plainRun:plain};
     const reads=[root,home,tmp,...sandboxPlaces(selected,process.env,root),...systemPlaces];
-    const sandboxed=await run(sandboxArgv(supported.mode,command,{reads,tmp,python:supported.python,hidden,stats,visible:shownFiles,
+    const sandboxed=await run(sandboxArgv(supported.mode,command,{reads,tmp,python:supported.python,hidden,stats,visible:shownFiles,git:checkoutGit(root),nestedGit:nestedGits(root)||[],
       ...hide==='docs'?{docs:{root,entries:docEntries,visible:shownList}}:{},
       ...tests?{...supported.mode==='landlock'?{network:'loopback'}:{},writes:[root,home,tmp]}:{}}),sandboxEnv(selected,process.env,{root,home,tmp}));
     // A test run's network was supervised throughout, on Linux.

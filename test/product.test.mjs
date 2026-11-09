@@ -591,9 +591,73 @@ test('Linux killed wrapper preserves an uncertain lock while child work survives
     await new Promise(resolve=>setTimeout(resolve,25));
   assert.equal(running(pids.leader),false);
   assert.equal(running(pids.descendant),false);
-  assert.equal(inspectRunLock(f.state).state,'uncertain');
+  // Its processes gone, the lock is a killed run's: the next run clears it.
+  assert.equal(inspectRunLock(f.state).state,'killed');
   assert.equal(recoverRunLock(f.state,true).recovered,true);
   assert.equal(inspectRunLock(f.state).state,'absent');
+});
+
+test('a run killed with SIGKILL blocks only while its check runs, then is recorded as interrupted',
+  {skip:process.platform==='win32'},async t=>{
+  const f=withFixture(t,{script:"const cp=require('node:child_process'),fs=require('node:fs');"+
+    "if(fs.existsSync('hang')){const child=cp.spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'inherit'});"+
+    "fs.writeFileSync('pids.json',JSON.stringify({leader:process.pid,descendant:child.pid}));setInterval(()=>{},1000);}"+
+    "else process.exitCode=fs.readFileSync('src/input.txt','utf8').startsWith('FAIL')?1:0;\n"});
+  ok(f,'start');ok(f,'run','check');assert.equal(row(f).freshness,'CURRENT');
+  put(path.join(f.root,'hang'),'1\n');
+  const outer=spawn(process.execPath,[bin,'--config',f.config,'--state-dir',f.state,
+    'run','check'],{cwd:f.root,env:f.env,stdio:'ignore'});
+  let pids=null;
+  const alive=pid=>{try{
+    if(process.platform==='linux'&&['Z','X'].includes(fs.readFileSync(`/proc/${pid}/stat`,'utf8').split(' ')[2]))return false;
+    process.kill(pid,0);return true;}catch{return false;}};
+  const stop=()=>{if(!pids)return;
+    if(process.platform==='linux')try{process.kill(-pids.leader,'SIGKILL');}catch{}
+    for(const pid of [pids.leader,pids.descendant])try{process.kill(pid,'SIGKILL');}catch{}};
+  t.after(()=>{stop();try{outer.kill('SIGKILL');}catch{}});
+  const pidsFile=path.join(f.root,'pids.json');
+  for(let n=0;n<200&&!pids;n++){
+    if(fs.existsSync(pidsFile))try{pids=JSON.parse(fs.readFileSync(pidsFile,'utf8'));}catch{}
+    if(!pids)await new Promise(resolve=>setTimeout(resolve,25));
+  }
+  assert(pids,'verification command did not launch');
+  const lock=inspectRunLock(f.state);
+  assert.equal(lock.owner.check,'check');
+  process.kill(lock.owner.pid,'SIGKILL');
+  await new Promise(resolve=>outer.exitCode!==null||outer.signalCode!==null?resolve():outer.once('exit',resolve));
+  // The wrapper is gone but the check still runs: a new run waits for it.
+  const blocked=inspectRunLock(f.state);
+  assert.equal(blocked.state,'uncertain');assert.match(blocked.reason,/an earlier run of check is still running/);
+  const refused=call(f,'run','check');
+  assert.notEqual(refused.status,0);assert.match(refused.stderr,/still running/);
+  stop();
+  for(let n=0;n<200&&(alive(pids.leader)||alive(pids.descendant));n++)
+    await new Promise(resolve=>setTimeout(resolve,25));
+  assert.equal(alive(pids.leader),false);assert.equal(alive(pids.descendant),false);
+  assert.equal(inspectRunLock(f.state).state,'killed');
+  // The next run clears the lock, records the killed run as interrupted, and runs.
+  fs.rmSync(path.join(f.root,'hang'));
+  ok(f,'run','check');
+  assert.equal(inspectRunLock(f.state).state,'absent');
+  const killed=fs.readdirSync(path.join(f.state,'runs-v1')).map(file=>JSON.parse(fs.readFileSync(path.join(f.state,'runs-v1',file),'utf8')))
+    .filter(run=>run.receipt.invocation.killed);
+  assert.equal(killed.length,1);assert.equal(killed[0].check,'check');
+  assert.equal(killed[0].receipt.invocation.status,'interrupted');assert.equal(killed[0].receipt.invocation.runId,lock.owner.runId);
+  freshness(f,'CURRENT');
+});
+
+test('status of a check whose last run was killed is UNVERIFIED and due',t=>{
+  const f=withFixture(t);const config=JSON.parse(fs.readFileSync(f.config));
+  config.checks.push({...config.checks[0],name:'other'});put(f.config,JSON.stringify(config));
+  ok(f,'start');ok(f,'run','check');freshness(f,'CURRENT');
+  const dir=path.join(f.state,'run.lock');fs.mkdirSync(dir);
+  put(path.join(dir,'owner.json'),JSON.stringify({schema:1,token:'old',pid:2147483647,
+    phase:'running',childPid:2147483646,check:'check',runId:randomUUID(),startedAt:Date.now()}));
+  assert.equal(inspectRunLock(f.state).state,'killed');
+  ok(f,'run','other');
+  assert.equal(inspectRunLock(f.state).state,'absent');
+  const item=status(f).checks.find(row=>row.name==='check');
+  assert.equal(item.freshness,'UNVERIFIED');assert.equal(item.reason,'invocation interrupted');assert.equal(item.needs_run,true);
 });
 
 test('Linux XDG state and case-sensitive Unicode paths keep cleanup scoped',

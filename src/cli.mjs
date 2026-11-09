@@ -9,7 +9,7 @@ import {observedBy} from './installed-observation.mjs';
 import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testRunFacts,sharedInstalledFile,testsInterpretation,testsQualification} from './test-direct.mjs';
 import {childProgram,generalIssue,lookup,pnpmConfigFiles,scriptCaches,scriptInstalledPaths,scriptInterpretation,scriptQualification,scriptRunFacts,pnpmNameless,toolOutput,toolchainDirs} from './node-script.mjs';
 import {denialLine,docsQualification,endWithChild,launcherFailure,hiddenDocs,hiddenEntries,plainVisible,withVisible,hiddenQualification,hiddenRefusal,hidesIgnored,isSandboxed,runToEnd,supervisorIssue,visibleChange,testRun as sandboxTestRun,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,
-  sandboxInterpretation,sandboxInterpretationOf,sandboxPlaces,sandboxQualification,sandboxSupport,systemPlaces,installedTreeOf} from './sandbox.mjs';
+  sandboxInterpretation,sandboxInterpretationOf,sandboxPlaces,sandboxQualification,sandboxSupport,systemPlaces,installedTreeOf,checkoutGit,isProse,nestedGits} from './sandbox.mjs';
 import path from 'node:path';
 import net from 'node:net';
 import os from 'node:os';
@@ -209,6 +209,20 @@ async function testRunBoundary(phase) {
   while(!fs.existsSync(release)&&Date.now()<until)await new Promise(resolve=>setTimeout(resolve,10));
   if(!fs.existsSync(release))throw Error('test run boundary was not released');
 }
+function recordKilled(owner){
+  const check=owner.check,runId=owner.runId;
+  if(typeof check!=='string'||!/^[0-9a-f-]{36}$/.test(runId||'')||!config.checks.some(c=>c.name===check))return;
+  if(fs.existsSync(path.join(state,'runs-v1',runId+'.json')))return;
+  for(const file of [`test-record-${runId}`,`launcher-${runId}.json`])fs.rmSync(path.join(state,file),{recursive:true,force:true});
+  commitReceipt(state,check,{result:null,
+    invocation:{status:'interrupted',exitCode:null,signal:null,killed:true,runId,
+      ...Number.isSafeInteger(owner.startedAt)?{startedAt:owner.startedAt}:{}},
+    target:{status:'unavailable'},stable:false,fingerprintVersion:1,recipe:null,resolutionLinks:[],
+    coverage:{qualified:true,unresolved:[]},
+    checkpoint:{status:'unavailable_or_changed',issues:['redue run was stopped before the check finished'],startRevision:null,endRevision:null},
+    planId:null,fingerprint:null,provider:null,environmentHashes:{},files:null,observerGeneration:null,startRevision:null,endRevision:null});
+  note(state,{kind:'run',check,ms:null,result:null,stable:false});
+}
 async function execute() {
   const totalStarted=performance.now();
   const selected=config.checks.find(c=>c.name===name);
@@ -219,8 +233,13 @@ async function execute() {
   const existingOwner=JSON.parse(fs.readFileSync(ownerFile,'utf8'));
   if(JSON.stringify(existingOwner)!==JSON.stringify(expectedOwner))
     throw Error('state ownership marker mismatch');
-  const lockStarted=performance.now(),runLock=acquireRunLock(state);
+  const runId=randomUUID();
+  const lockStarted=performance.now(),runLock=acquireRunLock(state,{check:name,runId});
   timing('cli.run_lock',lockStarted);
+  // A run killed before it finished (its wrapper and processes gone, such as
+  // when an agent's command time limit stopped it) is recorded as
+  // interrupted, unless it recorded its outcome before the kill.
+  if(runLock.killed)try{recordKilled(runLock.killed);}catch(e){runLock.release();throw e;}
   const captureIssues=[];
   let activeChild=null,requestedSignal=null,treeStop=null,preserveRunLock=false,ownGroup=false;
   const forward=signal=>{requestedSignal=signal;
@@ -256,7 +275,6 @@ async function execute() {
     if(digest(JSON.stringify(command))!==plan.commandIdentity.argvHash)
       throw Error('execution argv differs from discovered plan');
     timing('cli.command_resolution',resolutionStarted);
-    const runId=randomUUID();
     const contextStarted=performance.now();
     const environmentBefore=contextHashes(name)[name];
     const observedContext=selected.qualification===directQualification?{interpretation:directInterpretation,npmProxyDigest:observedNpmContext()}:null;
@@ -355,7 +373,10 @@ async function execute() {
         const asked=(selected.visible||[]).filter(rel=>plainVisible(root,rel));
         const shown=withVisible(listed,listed&&selected.qualification===docsQualification?hiddenDocs(root):null,asked);
         const hidden=shown.hidden,docs=shown.docs,visible=hidden&&asked.length?asked:null;
-        const options={reads,tmp:dirs.tmp,python:support.python,stats,
+        // The checkout's .git contents are hidden, and nested repositories' .git folders.
+        const nestedGit=nestedGits(root);
+        if(!nestedGit)captureIssues.push('git cannot list the repositories nested in the checkout');
+        const options={reads,tmp:dirs.tmp,python:support.python,stats,git:checkoutGit(root),nestedGit:nestedGit||[],
           ...tests?{...support.mode==='landlock'?{network:'loopback'}:{},writes:[root,dirs.home,dirs.tmp],
             fault:process.env.VSTATE_TEST_FAULTS==='1'?process.env.VSTATE_TEST_SUPERVISOR||null:null}:{}};
         sandbox={mode:support.mode,dirs,reads,hidden,docs,visible,options,stats,
@@ -425,7 +446,7 @@ async function execute() {
           try{process.kill(-child.pid,'SIGTERM');}
           catch(e){if(e.code!=='ESRCH')captureIssues.push('descendant stop uncertain');}
         }
-        activeChild=null;if(!preserveRunLock)runLock.phase('finished');
+        activeChild=null;if(!preserveRunLock)runLock.phase('finished',child.pid??null);
         resolve({status:spawnError?'start_failed':signal||requestedSignal?'interrupted':'exited',
           exitCode:exit,signal:signal||requestedSignal||null,
           ...(spawnError?{errorCode:spawnError}:{})});
@@ -581,8 +602,8 @@ async function execute() {
       if(line){
         console.error(`redue: the sandboxed run failed with what looks like a refusal of a hidden file (${line}); running it again in the sandbox without hiding files`);
         const again=await runToEnd(sandboxArgv(sandbox.mode,command,sandbox.options),
-          {cwd:plan.cwd,env:sandbox.env,echo:true,started:child=>{activeChild=child;}});
-        activeChild=null;
+          {cwd:plan.cwd,env:sandbox.env,echo:true,started:child=>{activeChild=child;runLock.phase('running',child.pid??null);}});
+        activeChild=null;runLock.phase('finished',runLock.childPid());
         hiddenRerun={line,exitCode:again.status,signal:again.signal||null,...again.error?{errorCode:again.error.code||again.error.name}:{}};
         if(requestedSignal){
           captureIssues.push('interrupted during the run without hidden files');
@@ -620,8 +641,8 @@ async function execute() {
       if(line){
         console.error(`redue: the sandboxed run failed with what looks like a refusal by the sandbox (${line}); running it again outside the sandbox`);
         // Interrupting REDUE interrupts the rerun's group too (forward).
-        const plain=await runToEnd(command,{cwd:plan.cwd,env:plainEnv,echo:true,started:child=>{activeChild=child;}});
-        activeChild=null;
+        const plain=await runToEnd(command,{cwd:plan.cwd,env:plainEnv,echo:true,started:child=>{activeChild=child;runLock.phase('running',child.pid??null);}});
+        activeChild=null;runLock.phase('finished',runLock.childPid());
         sandboxRerun={line,exitCode:plain.status,signal:plain.signal||null,...plain.error?{errorCode:plain.error.code||plain.error.name}:{}};
         if(requestedSignal){
           captureIssues.push('interrupted during the run outside the sandbox');
@@ -708,7 +729,15 @@ async function execute() {
     const guardStreak=result==='PASS'&&guardIssues?.length&&guardIssues.every(inherent)?
       (priorReceipt?.result==='PASS'&&priorReceipt.guardStreak>=1&&priorReceipt.planId===(snap?.planId??plan.id)&&priorReceipt.recipe===recipeNow&&
         JSON.stringify([...priorReceipt.guardIssues||[]].sort())===JSON.stringify([...guardIssues].sort())?priorReceipt.guardStreak+1:1):0;
+    // A general-recipe run that recorded every program, loaded no native addon
+    // and used no API whose file accesses the recorder does not see one by
+    // one: the prose files it read, looked up or listed. An edit to any other
+    // one is not a change to its inputs (daemon.mjs's unreadDoc).
+    const docsTouched=general&&guard&&!guard.issues.length&&guard.addons===0&&Array.isArray(guard.blind)&&!guard.blind.length&&
+      Array.isArray(guard.touched)?guard.touched.filter(isProse):null;
+    const docsRead=docsTouched&&docsTouched.length<=1000?docsTouched:null;
     const receipt={result,invocation,target,stable,fingerprintVersion:recorded||testRun?2:1,...selfChange?{selfChange}:{},
+      ...docsRead?{docsRead}:{},
       ...guardStreak?{guardStreak}:{},
       recipe:recipeNow,
       ...(recorded||testRun?{runFacts}:{}),
@@ -750,7 +779,8 @@ async function execute() {
     process.off('SIGINT',interrupt);process.off('SIGTERM',terminate);
     process.off('message',cancelMessage);
     if(process.connected)process.disconnect();
-    if(!preserveRunLock)runLock.release();}
+    if(!preserveRunLock)runLock.release();
+    else try{runLock.preserve();}catch{}}
 }
 async function main(){
   if(action==='init') {owner();
@@ -798,7 +828,10 @@ async function main(){
   }
   if(action==='recover-run-lock'){
     owner();
-    console.log(JSON.stringify(recoverRunLock(state,name==='--confirm-check-stopped')));return;
+    const recovered=recoverRunLock(state,name==='--confirm-check-stopped');
+    // The stopped run is recorded as interrupted, holding the lock as a run does.
+    if(recovered.killed){const lock=acquireRunLock(state);try{recordKilled(recovered.killed);}finally{lock.release();}}
+    console.log(JSON.stringify({recovered:true}));return;
   }
   if(action==='stop'){
     if(!fs.existsSync(ownerFile))throw Error('state ownership marker absent; refusing stop');

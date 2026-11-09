@@ -218,6 +218,20 @@ function install(){
       for(const role of roles(options))access(role,file);return call.call(this,file,options,...rest);},
       Object.getOwnPropertyDescriptors(call));
   }
+  // Uses whose file accesses happen inside Node, past the wrappers above: a
+  // recursive listing, a copy, a glob, a Blob of a file. (WASI, loaded only
+  // when a program asks for it, is not.) Each is
+  // recorded, so a receipt that relies on what the run read is not made.
+  const blind=what=>{try{emit(['B',what]);}catch{failed('recorder failure');}};
+  const flag=(holder,name,when,what)=>{const call=holder?.[name];if(typeof call!=='function')return;
+    holder[name]=Object.defineProperties(function(...args){if(when(args))blind(what);return call.apply(this,args);},Object.getOwnPropertyDescriptors(call));};
+  const recursive=at=>args=>Boolean(args[at]&&typeof args[at]==='object'&&args[at].recursive);
+  for(const holder of [fs,fs.promises]){
+    for(const name of ['readdir','readdirSync','opendir','opendirSync'])flag(holder,name,recursive(1),'recursive listing');
+    for(const name of ['cp','cpSync'])flag(holder,name,()=>true,'copy');
+    for(const name of ['glob','globSync'])flag(holder,name,()=>true,'glob');
+  }
+  flag(fs,'openAsBlob',()=>true,'file blob');
   // Environment: direct reads, compared with the caller's environment by
   // digest. A read that copies the whole environment (a spread, or a child
   // process's environment) is an enumeration, not a read of each name.
@@ -422,6 +436,12 @@ function install(){
       const result=binding.call(this,name,...rest);
       if(!harmlessBindings.has(name))failed(`process.binding('${String(name)}') reads files, uses the network or starts programs out of REDUE's sight`);
       return result;};}
+  // A native addon reads files out of the recorder's sight: each one loaded
+  // is recorded, so a receipt that relies on what the run read is not made.
+  if(typeof process.dlopen==='function'){const dlopen=process.dlopen;
+    process.dlopen=function(module,filename,...rest){
+      try{emit(['A',String(filename)]);}catch{failed('recorder failure');}
+      return dlopen.call(this,module,filename,...rest);};}
   // Node's internal modules include child_process's unhooked internals.
   if(process.execArgv.some(arg=>/^--expose[-_]internals(=|$)/.test(arg)))failed('a Node process exposed its internal modules (--expose-internals)');
   const workers=require('node:worker_threads'),Worker=workers.Worker;

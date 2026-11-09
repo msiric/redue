@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import net from 'node:net';
 import {spawnSync,execFileSync} from 'node:child_process';
-import {comparableOutput,denialLine,launcherFailure,namedDocsLimit,plainVisible,refusedFile,visibleChange,withVisible,seatbeltProfile,sandboxInterpretationOf,hiddenEntries,hiddenRefusal,sandboxArgv,sandboxTrial,systemPlaces,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
+import {checkoutGit,nestedGits,sandboxChange,comparableOutput,denialLine,launcherFailure,namedDocsLimit,plainVisible,refusedFile,visibleChange,withVisible,seatbeltProfile,sandboxInterpretationOf,hiddenEntries,hiddenRefusal,sandboxArgv,sandboxTrial,systemPlaces,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
 import {projectArgs,toolArgs} from '../src/python-onboarding.mjs';
 import {chainCommand,claudeHook,hookForms,matchCheck,pathForm,recordedCommand,triggerRule,withoutOutputOptions} from '../src/claude-hook.mjs';
 
@@ -49,6 +49,7 @@ if 'nodedump' in text:
         print("  path: '" + os.path.abspath('build/generated.py') + "'"); print("}"); sys.exit(1)
 if 'readmany' in text:
     for i in range(4): text += open(f'build/m{i}.py').read()
+if 'lateoutside' in text: open(${JSON.stringify(outside)}).read()
 if 'network' in text:
     try: socket.create_connection(('127.0.0.1', 9), timeout=2)
     except ConnectionRefusedError: pass
@@ -69,6 +70,17 @@ if 'unixsocket' in text:
             print('unix socket', where, 'ok'); os.unlink(at)
         except OSError as e: print('unix socket', where, 'refused', e)
 if 'gitdir' in text: print('git directory', os.path.isdir('.git'), os.path.isfile('.git/HEAD'))
+if 'gitwork' in text:
+    import subprocess, tempfile
+    def read(rel):
+        try: open(rel).read(); return 'read'
+        except OSError: return 'hidden'
+    print('git directory', os.path.isdir('.git'), 'head', read('.git/HEAD'), 'config', read('.git/config'), 'exclude', read('.git/info/exclude'))
+    print('checkout repository', subprocess.run(['git', 'rev-parse', '--git-dir'], capture_output=True).returncode == 0)
+    print('nested repository', subprocess.run(['git', '-C', 'vendor/lib', 'rev-parse', '--git-dir'], capture_output=True).returncode == 0, os.path.isdir('vendor/lib/.git'))
+    own = tempfile.mkdtemp(); open(os.path.join(own, 'f.txt'), 'w').write('x')
+    steps = [['init', '-q'], ['add', '-A'], ['-c', 'user.email=f@x.test', '-c', 'user.name=f', 'commit', '-qm', 'f'], ['rev-parse', 'HEAD']]
+    print('temp repository', all(subprocess.run(['git', *step], cwd=own, capture_output=True).returncode == 0 for step in steps))
 if 'loopback' in text:
     import threading
     try:
@@ -230,7 +242,7 @@ test('denial lines, the normalized PATH and the controlled environment',{skip:po
     {root,home:'/s/home',tmp:'/s/tmp'});
   assert.deepEqual(env,{PATH:'/w/p/.venv/bin:/usr/bin',HOME:'/s/home',PYTHONPATH:'lib',LANG:'C.UTF-8',TERM:'xterm',
     XDG_CONFIG_HOME:'/s/home/.config',XDG_CACHE_HOME:'/s/home/.cache',XDG_DATA_HOME:'/s/home/.local/share',XDG_STATE_HOME:'/s/home/.local/state',
-    TMPDIR:'/s/tmp',TMP:'/s/tmp',TEMP:'/s/tmp',GIT_DIR:'/s/home/.no-repository',GIT_CEILING_DIRECTORIES:'/w',VIRTUAL_ENV:'/w/p/.venv'});
+    TMPDIR:'/s/tmp',TMP:'/s/tmp',TEMP:'/s/tmp',GIT_CEILING_DIRECTORIES:'/w',VIRTUAL_ENV:'/w/p/.venv'});
 });
 
 test('output compared at init: without colors, timings, temporary and home directories, and cache lines',()=>{
@@ -464,7 +476,17 @@ test('a check that needs more hidden files than visible takes gets the whole che
   const init=JSON.parse(good(root,state,'init','--dry-run','--json'));
   const check=init.proposed_config.checks.find(c=>c.name==='typecheck');
   assert.equal(`${check.qualification} ${check.visible}`,'sandbox-v1 undefined',JSON.stringify(init.checks));
-  assert.match(init.checks.find(c=>c.name==='typecheck').reason,/at init it passed, then failed reading a file that was hidden \(.*build\/m0\.py/);
+  assert.match(init.checks.find(c=>c.name==='typecheck').reason,
+    /ran both ways at init, exit 0; the whole checkout is its input: with the files git ignores and the documentation hidden, it failed reading a file it hid \(.*build\/m0\.py.*\), also with build\/m0\.py, build\/m1\.py, build\/m2\.py visible/);
+});
+
+test('init does not propose the whole checkout when that run differs too',{skip:unsupported},t=>{
+  const {root,state}=project(t);
+  for(let i=0;i<4;i++)put(path.join(root,`build/m${i}.py`),`m = ${i}\n`);
+  write(root,'src/fx/reads.py','# readmany lateoutside\n');
+  const init=JSON.parse(good(root,state,'init','--dry-run','--json'));
+  assert.equal(init.proposed_config?.checks?.find(c=>c.name==='typecheck'),undefined,JSON.stringify(init.checks));
+  assert.match(JSON.stringify(init.skipped),/typecheck: sandboxed recipe unavailable: exit 1 inside the sandbox, 0 outside it/);
 });
 
 test('visible files: the refused file a line names, a plain path only, and what a run then hides',t=>{
@@ -696,6 +718,26 @@ function nodeProject(t,scripts){
   return {root,state};
 }
 
+test('a sandboxed run sees that .git exists but not what is inside it, but for the ignore rules; a repository a test makes works',{skip:unsupported},t=>{
+  const {root,state}=project(t,{tools:['pytest']});
+  write(root,'src/fx/git.py','# gitwork\n');
+  // A repository nested in the checkout, in a folder git ignores. (One git
+  // does not ignore makes the observer's input plan unavailable.)
+  write(root,'.gitignore','.venv/\nbuild/\n__pycache__/\nvendor/\n');execFileSync('git',['add','.gitignore'],{cwd:root});
+  fs.mkdirSync(path.join(root,'vendor/lib'),{recursive:true});execFileSync('git',['init','-q'],{cwd:path.join(root,'vendor/lib')});
+  const init=JSON.parse(good(root,state,'init','--json'));
+  const check=JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'),'utf8')).checks.find(c=>c.name==='test');
+  assert.equal(check?.qualification,'sandbox-v3',JSON.stringify([init.checks,init.skipped]));
+  good(root,state,'start');
+  const run=invoke(root,state,['run','test']);
+  assert.equal(run.status,0,run.stdout+run.stderr);
+  assert.match(run.stdout,/git directory True head hidden config read exclude read/);
+  assert.match(run.stdout,/checkout repository False/);
+  assert.match(run.stdout,/nested repository False True/);
+  assert.match(run.stdout,/temp repository True/);
+  assert.equal(row(root,state,'test').freshness,'CURRENT');
+});
+
 test('a pytest check in .venv: loopback works on Linux, remote hosts and the shared /tmp do not, and test output it writes is not an input',{skip:unsupported},t=>{
   const {root,state}=project(t,{tools:['mypy','ruff','pytest']});
   // On macOS a test run gets no TCP: a suite using loopback runs plainly (the next test).
@@ -763,6 +805,31 @@ test('the macOS profile refuses each listed file the patterns miss, beneath the 
     assert(profile.includes(`(literal ${JSON.stringify(path.join(base,dir,rel))})`),`${dir}/${rel}`);
   assert(!profile.includes('README.md"')&&!profile.includes('shot.png"'),'the patterns cover those');
   assert(!/LICENSE\|CHANGELOG/.test(profile),'no name pattern');
+});
+
+test("the checkout's .git: its contents hidden but for the ignore rules, on both launchers; only a real folder",t=>{
+  const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'redue-git-hide-')));t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
+  const git=path.join(base,'.git');fs.mkdirSync(path.join(git,'info'),{recursive:true});
+  assert.equal(checkoutGit(base),git);
+  const linux=sandboxArgv('landlock',['x'],{reads:[base],python:'python3',git});
+  assert.deepEqual(linux.slice(linux.indexOf('--hide'),linux.indexOf('--hide')+6),['--hide',git,'--show',path.join(git,'config'),'--show',path.join(git,'info/exclude')]);
+  const profile=sandboxArgv('seatbelt',['x'],{reads:[base],git})[2];
+  assert.match(profile,new RegExp(`\\(deny file-read-data process-exec\\* \\(require-all \\(require-any \\(subpath ${JSON.stringify(git).replace(/[.*+?^${}()|[\]\\/]/g,'\\$&')}`));
+  assert(profile.includes(`(literal ${JSON.stringify(path.join(git,'config'))})`)&&profile.includes(`(literal ${JSON.stringify(path.join(git,'info/exclude'))})`));
+  // Repositories nested in it, git-ignored or not, are found; not in node_modules.
+  execFileSync('git',['init','-q'],{cwd:base});put(path.join(base,'.gitignore'),'ignored/\nnode_modules/\n');
+  for(const dir of ['ignored/deep/a','untracked/b','node_modules/c']){fs.mkdirSync(path.join(base,dir),{recursive:true});execFileSync('git',['init','-q'],{cwd:path.join(base,dir)});}
+  assert.deepEqual(nestedGits(base),[path.join(base,'ignored/deep/a/.git'),path.join(base,'untracked/b/.git')]);
+  assert.ok(sandboxArgv('landlock',['x'],{reads:[base],python:'python3',git,nestedGit:nestedGits(base)}).includes(path.join(base,'untracked/b/.git')));
+  // A worktree's .git file names a folder outside the checkout, which a run cannot read.
+  fs.rmSync(git,{recursive:true,force:true});fs.writeFileSync(git,'gitdir: /elsewhere\n');
+  assert.equal(checkoutGit(base),null);
+  fs.rmSync(git);fs.symlinkSync(base,git);assert.equal(checkoutGit(base),null);
+});
+
+test('a receipt from before .git was hidden names why it no longer applies',()=>{
+  const key='__redue_sandbox_variable:GIT_DIR__';
+  assert.match(sandboxChange({[key]:'x','__redue_sandbox_variable:HOME__':'h'},{'__redue_sandbox_variable:HOME__':'h'}),/hides what is inside \.git now, instead of setting GIT_DIR/);
 });
 
 test('a macOS test check has its own interpretation, so a result recorded with loopback (alpha.28) is another plan',()=>{

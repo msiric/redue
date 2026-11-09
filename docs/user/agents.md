@@ -138,7 +138,10 @@ rewritten command; a rule that allows only `npm run lint` will ask about
 `redue run lint --if-due`. Anything more complex runs untouched. Known
 limit: if REDUE cannot start the check when its turn comes (another
 `redue run` holds the project's run lock), that part exits with REDUE's
-error instead of running the check. Other settings in the file are kept,
+error instead of running the check. A `redue run` stopped by a command time
+limit holds the lock only while its check still runs; once the check's
+processes are gone, the next run clears the lock and records the stopped
+run as interrupted. Other settings in the file are kept,
 but the file is rewritten as 2-space JSON. `.claude/settings.json` is not touched.
 `redue agent remove claude --apply` removes only the entries REDUE added.
 

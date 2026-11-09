@@ -134,6 +134,7 @@ function project(t,scripts){
   put(path.join(root,'.gitignore'),'node_modules/\nout/\n');
   put(path.join(root,'src/value.js'),'pass\n');
   put(path.join(root,'README.md'),'# fixture\n');
+  put(path.join(root,'docs/notes.md'),'# notes\n');
   // A Node bin, as npm links it.
   put(path.join(root,'node_modules/checker/package.json'),JSON.stringify({name:'checker',version:'1.0.0',bin:{checker:'cli.js'}}));
   put(path.join(root,'node_modules/checker/cli.js'),`#!/usr/bin/env node
@@ -161,6 +162,11 @@ if(value.includes('format'))for(const f of fs.readdirSync('src').filter(f=>f.sta
   if(fs.readFileSync('src/'+f,'utf8')!=='formatted\\n')fs.writeFileSync('src/'+f,'formatted\\n');
 if(value.includes('stamp'))fs.writeFileSync('src/stamp.js',String(Date.now()));
 if(value.includes('unique'))fs.writeFileSync('src/u-'+Date.now()+'.js','');
+if(value.includes('readdocs'))fs.readFileSync('docs/notes.md');
+if(value.includes('listdocs'))fs.readdirSync('docs');
+if(value.includes('deeplist'))fs.readdirSync('src',{recursive:true});
+// A native addon (here one that does not exist: the load is what is recorded).
+if(value.includes('addon'))try{process.dlopen({exports:{}},require('node:path').resolve('missing.node'));}catch{}
 if(value.includes('cache')){fs.mkdirSync('.cache',{recursive:true});try{fs.readFileSync('.cache/state');}catch{}fs.writeFileSync('.cache/state',String(Date.now()));}
 process.exit(value.includes('fail')?1:0);
 `,0o755);
@@ -222,15 +228,56 @@ test('a general check: CURRENT after a recorded pass, STALE on any checkout edit
   assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
   assert.equal(status.recipe,'node-script-v1');
   assert.match(good(root,state,'status','--sync'),/✓ lint {2}CURRENT \/ PASS {2}\(general recipe\)/);
-  // The whole checkout is the input, documentation included.
-  write(root,'README.md','# fixture\n\nMore.\n');
-  assert.equal(row(root,state,'lint').freshness,'STALE');
-  good(root,state,'run','lint');
   write(root,'src/value.js','fail\n');
   assert.equal(row(root,state,'lint').freshness,'STALE');
   assert.equal(invoke(root,state,'run','lint').status,1);
   status=row(root,state,'lint');
   assert.equal(`${status.freshness}/${status.result}`,'CURRENT/FAIL',status.reason);
+});
+
+test('a general check that recorded every program stays CURRENT after an edit to documentation it never read, not one it read or listed',{skip:unsupported},t=>{
+  const {root,state}=project(t,{lint:'checker'});
+  good(root,state,'init');good(root,state,'start');
+  good(root,state,'run','lint');
+  const receipt=()=>JSON.parse(fs.readFileSync(path.join(state,'receipts-v1.json'),'utf8')).checks.lint;
+  assert.deepEqual(receipt().docsRead,[]);
+  write(root,'README.md','# fixture\n\nMore.\n');write(root,'docs/notes.md','# notes\n\nMore.\n');
+  let status=row(root,state,'lint');
+  assert.equal(status.freshness,'CURRENT',status.reason);assert.equal(status.declared_inputs_match,true);
+  // A documentation file added or removed counts, read or not.
+  put(path.join(root,'docs/new.md'),'# new\n');
+  assert.equal(row(root,state,'lint').freshness,'STALE');
+  fs.rmSync(path.join(root,'docs/new.md'));assert.equal(row(root,state,'lint').freshness,'CURRENT');
+  // A code file the documentation patterns of sandbox-v3 name (CHANGELOG*) is not prose.
+  put(path.join(root,'CHANGELOG.config.js'),'module.exports=1;\n');
+  good(root,state,'run','lint');write(root,'CHANGELOG.config.js','module.exports=2;\n');
+  assert.equal(row(root,state,'lint').freshness,'STALE');
+  good(root,state,'run','lint');
+  // Any other file still counts.
+  write(root,'src/value.js','pass readdocs listdocs\n');
+  assert.equal(row(root,state,'lint').freshness,'STALE');
+  good(root,state,'run','lint');
+  assert.deepEqual(receipt().docsRead,['docs/notes.md']);
+  write(root,'README.md','# fixture\n\nAgain.\n');
+  assert.equal(row(root,state,'lint').freshness,'CURRENT');
+  // A documentation file it read.
+  write(root,'docs/notes.md','# notes\n\nChanged.\n');
+  status=row(root,state,'lint');
+  assert.equal(status.freshness,'STALE');assert.deepEqual(status.changed_inputs,['docs/notes.md']);
+  good(root,state,'run','lint');assert.equal(row(root,state,'lint').freshness,'CURRENT');
+  // A new file in a folder it listed.
+  put(path.join(root,'docs/other.md'),'# other\n');
+  status=row(root,state,'lint');assert.equal(status.freshness,'STALE',status.reason);
+  // A run that loaded a native addon, or listed a folder recursively, keeps
+  // no such list: every edit counts.
+  for(const word of ['addon','deeplist']){
+    write(root,'src/value.js',`pass ${word}\n`);
+    good(root,state,'run','lint');
+    assert.equal(receipt().docsRead,undefined,word);
+    assert.equal(row(root,state,'lint').freshness,'CURRENT');
+    write(root,'README.md',`# fixture\n\n${word}\n`);
+    assert.equal(row(root,state,'lint').freshness,'STALE',word);
+  }
 });
 
 test('a general check that starts a native program is UNVERIFIED and names it; caches and ignored outputs are not inputs',{skip:unsupported},t=>{
