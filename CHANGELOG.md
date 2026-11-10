@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.1.0-alpha.35 — 2026-11-10
+
+Setup takes less time on projects with slow checks.
+
+- **Each sandbox trial runs once.** `redue setup` ran every check's trials
+  twice: once to preview what it would set up, and again to write the
+  config. It now writes the config the preview proposed.
+- **No second run of a slow check.** A check whose plain trial run took 2
+  minutes or more is not run again to record it: its first run, by you or
+  the agent, records it. Until then it has no result.
+- **Setup says where its time went.** It ends with one line: trying checks
+  in the sandbox, indexing, recording runs.
+- **Setup with an existing config** reads which checks can qualify from it,
+  instead of trying every check in the sandbox again. A sandboxed check is
+  recording-only there when the sandbox cannot run on this machine.
+- **One retry for several refused files.** When a trial is refused several
+  hidden files at once, they are all made visible in one more run.
+- **`init --json` times each trial run** (`trial_runs`): plain or
+  sandboxed, which sandboxed run, and how long it took.
+- **Test scripts that build first (`build && test`).** REDUE can run a
+  sandboxed test check as two steps, the tests seeing only what the build
+  wrote, when its config has `steps`. `init` does not propose it yet: no
+  real project has qualified this way so far.
+
+Measured: `init` on the 6 slowest census repos, Linux and macOS, makes the
+same choices as alpha.34; its time is within run-to-run variation (setup's
+own savings are not in that measurement).
+
 ## 0.1.0-alpha.34 — 2026-11-10
 
 Fewer false alarms and reminders, slow suites that REDUE can skip, and checks
