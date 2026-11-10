@@ -75,7 +75,10 @@ redue setup claude          # asks once; --yes for no prompts
 
 It runs `init` when the project has no `redue.config.json`, `agent setup
 claude`, and `start`, then records each check that can qualify once, unless
-it is already CURRENT. It prints every file it writes, and running it again
+it is already CURRENT. Its sandbox trials run each check once (no second
+pass). A check whose plain trial run took 2 minutes or more is not recorded
+again: its first run, by you or the agent, records it. Setup ends with the
+time each phase took. It prints every file it writes, and running it again
 changes nothing that is already set up. When `.claude/settings.local.json`
 is not ignored by Git, it adds it to `.git/info/exclude`; it refuses when
 that file is committed. What setup created is noted in the clone's Git

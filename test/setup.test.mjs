@@ -104,6 +104,16 @@ test('setup names a check that ran past init\'s trial limit, and the one command
   assert.equal(fs.existsSync(path.join(root,'redue.config.json')),false);
 });
 
+test('setup does not record a check whose trial took 2 minutes or more: its first run does',{skip:unsupported||sandboxSupport().issue},t=>{
+  const {root,env}=project(t);
+  const run=spawnSync(process.execPath,[bin,'setup','claude','--yes'],{cwd:root,encoding:'utf8',timeout:120000,
+    env:{...env,VSTATE_TEST_FAULTS:'1',VSTATE_TEST_SLOW_RECORDING_MS:'1'}});
+  assert.equal(run.status,0,run.stderr+run.stdout);
+  assert.match(run.stdout,/record no check once, unless already CURRENT \(not lint: its trial takes 2 minutes or more; the first run records it\)/);
+  assert.match(run.stdout,/\nNot recording lint now: its trial run took 1 min\. Its first run records it\.\n/);
+  assert.doesNotMatch(run.stdout,/Recording lint once/);
+});
+
 test('remove undoes setup: files, local ignore and state; a config edited since setup is kept',{skip:unsupported},t=>{
   const {root,redue}=project(t),before=files(root);
   const exclude=fs.readFileSync(path.join(root,'.git/info/exclude'),'utf8');

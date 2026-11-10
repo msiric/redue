@@ -114,6 +114,13 @@ async function setup({root,redue,yes,record:previous,recordFile,exclude,save}){
   const limitedKinds=[...new Set(limited.map(([,kind])=>kind))];
   const names=configExisted?JSON.parse(readText(configPath)).checks.map(check=>check.name):found.checks.map(check=>check.name);
   const ready=names.filter(name=>levels.get(name)==='ready');
+  // A check whose plain trial run took Claude Code's command limit (2
+  // minutes) or more is not recorded here: its trial just ran it, and the
+  // agent's first run, usually after a source change anyway, records it.
+  const slowLimit=process.env.VSTATE_TEST_FAULTS==='1'&&Number(process.env.VSTATE_TEST_SLOW_RECORDING_MS)||120_000;
+  const slow=new Map(found.checks.map(check=>[check.name,check.trial_runs?.find(run=>run.run==='plain')?.ms])
+    .filter(([name,ms])=>ready.includes(name)&&ms>=slowLimit));
+  const recorded=ready.filter(name=>!slow.has(name));
   console.log(`Setting up REDUE for Claude Code in ${root}`);
   console.log(configExisted?`  keep ${configName} (exists)`:`  create ${configName}: ${names.map(name=>`${name} (${levels.get(name)==='ready'?'can qualify':'recording only'})`).join(', ')}`);
   // What the checks setup does not make reusable are, and why.
@@ -129,7 +136,8 @@ async function setup({root,redue,yes,record:previous,recordFile,exclude,save}){
     for(const row of out)console.log(`    ${row.reason.startsWith(String(row.kind))?row.reason:`${row.kind}: ${row.reason}`}`);
   }
   console.log(`  write the Claude Code integration: CLAUDE.md section, .claude/skills/redue-verification/SKILL.md, ${localSettings} hooks, ${agentRecord}`);
-  console.log(`  start the observer and record ${ready.length?ready.join(', '):'no check'} once, unless already CURRENT`);
+  console.log(`  start the observer and record ${recorded.length?recorded.join(', '):'no check'} once, unless already CURRENT`+
+    (slow.size?` (not ${[...slow.keys()].join(', ')}: ${slow.size>1?'their trials take':'its trial takes'} 2 minutes or more; the first run records ${slow.size>1?'them':'it'})`:''));
   if(!await confirm('Proceed?',yes,{defaultYes:true})){console.log('Nothing written.');return {applied:false};}
   // What this run creates is added to what earlier runs created.
   const state=projectState(root,configPath);
@@ -190,7 +198,8 @@ async function setup({root,redue,yes,record:previous,recordFile,exclude,save}){
   phases.indexing=Date.now()-indexing;
   // One recorded run of each check that can qualify and is not CURRENT.
   const statusOf=()=>{const out=redue(['status','--sync','--json'],{capture:true,timeout:600_000});try{return JSON.parse(out.stdout).checks;}catch{return [];}};
-  const rows=statusOf(),due=ready.filter(name=>rows.find(row=>row.name===name)?.freshness!=='CURRENT');
+  const rows=statusOf(),due=recorded.filter(name=>rows.find(row=>row.name===name)?.freshness!=='CURRENT');
+  for(const [name,ms] of slow)console.log(`Not recording ${name} now: its trial run took ${Math.round(ms/60000)||1} min. Its first run records it.`);
   // One line per check; the run's own output only when it fails.
   for(const name of due){
     console.log(`Recording ${name} once (running it)...`);
@@ -200,7 +209,7 @@ async function setup({root,redue,yes,record:previous,recordFile,exclude,save}){
     console.log(`  ${name}: ${run.status===0?'PASS':`FAIL (exit ${run.status??run.signal})`} in ${seconds} s${tally?`, ${tally}`:''}`);
     if(run.status!==0)console.log(output.trim().split('\n').slice(-15).map(line=>`    ${line}`).join('\n'));
   }
-  if(ready.length&&!due.length)console.log(`Already CURRENT: ${ready.join(', ')}.`);
+  if(recorded.length&&!due.length)console.log(`Already CURRENT: ${recorded.join(', ')}.`);
   for(const row of statusOf())console.log(`  ${row.name}: ${row.freshness}${row.result?' / '+row.result:''}${row.freshness==='CURRENT'?'':
     levels.get(row.name)!=='ready'?' — recording only':' — '+row.reason}`);
   if(limited.length)console.log(`${limited.map(([name])=>name).join(', ')} ran past init's 5-minute trial limit, so ${limited.length>1?'they are':'it is'} not sandboxed. `+
