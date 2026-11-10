@@ -25,10 +25,12 @@ const lines = file => fs.existsSync(file) ? fs.readFileSync(file, 'utf8').split(
 
 // Time in check commands: each Bash call that runs a check, from its tool use
 // to its result (transcript timestamps). `killed`: those Claude Code stopped at
-// its command time limit; `background`: those it moved to the background.
+// its command time limit; `limit`: those it moved to the background when they
+// reached that limit; `background`: those the agent started in the background.
+// A check that finishes in the background counts only up to that point.
 const resultText = part => Array.isArray(part.content) ? part.content.map(c => c?.text ?? '').join('\n') : String(part.content ?? '');
 function checkCalls(transcript, repo) {
-  const uses = new Map(); let ms = 0, killed = 0, background = 0;
+  const uses = new Map(); let ms = 0, killed = 0, limit = 0, background = 0;
   for (const m of lines(transcript)) for (const part of Array.isArray(m.message?.content) ? m.message.content : []) {
     if (m.type === 'assistant' && part.type === 'tool_use' && part.name === 'Bash') {
       const command = String(part.input?.command ?? '');
@@ -39,10 +41,11 @@ function checkCalls(transcript, repo) {
       ms += Date.parse(m.timestamp) - uses.get(part.tool_use_id);
       const text = resultText(part);
       if (/Command timed out/i.test(text)) killed++;
+      else if (/did not complete within its \d+s timeout and was moved to the background/i.test(text)) limit++;
       else if (/running in background/i.test(text)) background++;
     }
   }
-  return {ms, killed, background};
+  return {ms, killed, limit, background};
 }
 
 const rows = [];
@@ -62,7 +65,7 @@ for (const file of files) {
       const says = (k, f) => variants(k).length > 0 && variants(k).every(f);
       const fails = k => checks?.[k]?.pass === false && checks[k].again === false;
       rows.push({group, task: row.task, repo: row.repo, step: n + 1, new: step.new, wall: step.wall_ms,
-        ...(({ms, killed, background}) => ({check: ms, killed, background}))(checkCalls(path.join(dir, row.steps.length > 1 ? `transcript-${n + 1}.jsonl` : 'transcript.jsonl'), repo)),
+        ...(({ms, killed, limit, background}) => ({check: ms, killed, limit, background}))(checkCalls(path.join(dir, row.steps.length > 1 ? `transcript-${n + 1}.jsonl` : 'transcript.jsonl'), repo)),
         known: Boolean(checks),
         verified: counted.every(k => gap?.checks?.[k]?.final_full || says(k, c => c.freshness === 'CURRENT')),
         wrong: counted.filter(k => variants(k).some(c => c.freshness === 'CURRENT' && c.result === 'PASS') && fails(k)).map(k => `${row.id} step ${n + 1} ${k}`)});
@@ -77,11 +80,11 @@ const pct = (n, d) => d ? `${Math.round(100 * n / d)}% (${n}/${d})` : '-';
 const sec = ms => (ms / 1000).toFixed(0);
 const sum = (list, f) => list.reduce((a, x) => a + f(x), 0);
 const groups = [...new Set(rows.map(r => r.group))], positions = [...new Set(rows.map(r => r.step))].sort((a, b) => a - b);
-const out = ['# Steps', '', '| Group | Step | Steps | Session time, total (s) | Check commands, total (s) | Check commands stopped at the time limit | Moved to the background | Every check verified at the step\'s end |', '|---|---|---|---|---|---|---|---|'];
+const out = ['# Steps', '', '| Group | Step | Steps | Session time, total (s) | Check commands, total (s) | Check commands stopped at the time limit | Moved to the background at the limit | Started in the background | Every check verified at the step\'s end |', '|---|---|---|---|---|---|---|---|---|'];
 for (const group of groups) for (const step of positions) {
   const s = rows.filter(r => r.group === group && r.step === step);
   if (!s.length) continue;
-  out.push(`| ${group} | ${step} | ${s.length} | ${sec(sum(s, r => r.wall))} | ${sec(sum(s, r => r.check))} | ${sum(s, r => r.killed)} | ${sum(s, r => r.background)} | ${pct(s.filter(r => r.verified).length, s.length)} |`);
+  out.push(`| ${group} | ${step} | ${s.length} | ${sec(sum(s, r => r.wall))} | ${sec(sum(s, r => r.check))} | ${sum(s, r => r.killed)} | ${sum(s, r => r.limit)} | ${sum(s, r => r.background)} | ${pct(s.filter(r => r.verified).length, s.length)} |`);
 }
 const wrong = rows.flatMap(r => r.wrong), critical = rows.flatMap(r => r.critical || []);
 out.push('', `REDUE skips: ${sum(rows, r => r.skips || 0)}. CURRENT / PASS for a check that fails on the step's tree: ${wrong.length ? wrong.join(', ') : 'none'}.`,
