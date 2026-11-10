@@ -1,5 +1,59 @@
 # Changelog
 
+## 0.1.0-alpha.34 — 2026-11-10
+
+Fewer false alarms and reminders, slow suites that REDUE can skip, and checks
+REDUE cannot verify cost no more than without it.
+
+- **Slow suites skipped when their pass still applies.** On
+  jxxghp/MoviePilot (Python, a 90 s pytest check), Sonnet 5.5 sessions with
+  REDUE spent 14 s in check commands on the turns after the first (a
+  docs-only edit, a pull-request step, and a second session), against
+  658 s for the same sessions told the exact commands, and 89 s of session
+  time against 943 s. Both ended every step verified. One repo, three runs:
+  this shows the mechanism, not a rate.
+- **Checks REDUE cannot verify cost no more than without it.** After one
+  passing run that used inputs REDUE does not observe (a file git ignores,
+  a program the recorder cannot follow), the check is NOT VERIFIABLE, also
+  after edits: `redue verify` and the end-of-turn check leave it out, and
+  the Claude Code hook runs its command as written, without the recorder.
+  A `redue run CHECK` that passes without them makes it verifiable again.
+  On artsy/eigen the REDUE session spent 923 s against 910 s with the exact
+  commands; before, 1,253 s against 584 s.
+- **A check past init's 5-minute trial is recording-only.** init no longer
+  writes a recipe it never tried. Setup still prints the `redue init --check
+  KIND --no-time-limit` command, and that command now also rewrites the
+  Claude Code hook rules and the CLAUDE.md block for the new config. Before,
+  the hook had no rule for the newly verifiable check and its runs went
+  unseen. `redue agent doctor` says when those files are out of date.
+- **Fewer false alarms.** A read of REDUE's own `.claude/settings.local.json`
+  is kept by content. Builds writing git-ignored output (dist/, build/) no
+  longer make other checks STALE. A sandboxed suite that rewrites its
+  git-ignored build output with the same bytes is CURRENT. Vitest's
+  `.vitest` and `.vitest-cache` folders and the `cacheDirectory` a Jest
+  configuration sets in the checkout are runner caches, not inputs.
+- **Fewer reminders.** The end-of-turn check names only checks the work made
+  due: STALE, or UNVERIFIED where a run would help (status's `needs_run`).
+  The hook finds the setup from a subdirectory, and matches a pytest check
+  run with output options at the end.
+- **init tries more checks in the sandbox.** A trial refused only a few
+  hidden files (a generated file, a license text) gets just those visible,
+  as inputs. A test script the direct recipe takes is tried in the sandbox
+  first. A failed trial keeps the sandboxed run's last lines in local state.
+- **Killed runs.** A `redue run` killed before it finished no longer leaves
+  a lock that blocks later runs.
+- **CLAUDE.md names recording-only test and lint checks too**, so the agent
+  still runs them.
+
+Measured: the four-setup gap study in the README (21 tasks, 42 sessions per
+model and setup) re-scored with the corrected classifier and one rule for
+every setup is unchanged: REDUE 100% / 100% verified, 0 false alarms,
+0 overclaims. Slow-check pilot (MoviePilot 3 runs, eigen 2 runs): 0 wrong
+CURRENT, 0 overclaims in REDUE sessions (two readers, 52 steps). `init` on
+the 6 slowest census repos, Linux and macOS: the same choices as before,
+except 7 checks past the trial limit that are now recording-only instead
+of an untried recipe; init time lower or the same on 9 of 12.
+
 ## 0.1.0-alpha.33 — 2026-11-06
 
 pytest checks follow the project's quick suite, and the hook starts for
