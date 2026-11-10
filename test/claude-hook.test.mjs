@@ -228,6 +228,17 @@ test('blocks only CURRENT/PASS with reuse_eligible and a run id',async t=>{
   assert.equal(staleChain.hookSpecificOutput.updatedInput.command,'redue run typecheck --if-due; npm test');
 });
 
+test('a check whose last run used inputs REDUE does not observe runs as written, not through redue run',async t=>{
+  const p=project(t);
+  const blind=status({freshness:'STALE',reuse_eligible:false,verifiable:false,unconfirmable:true,
+    reason:'its last run used inputs REDUE does not observe (started find)'});
+  assert.equal(await claudeHook(bash('npm run typecheck 2>&1 | tail -5',p.root),{invoke:'redue',entry:p.fake('blind',replying(blind))}),null);
+  // Another check that is not verifiable (recording-only) still runs through redue run, which records its outcome.
+  const recording=status({freshness:'UNVERIFIED',reuse_eligible:false,verifiable:false,reason:'input coverage unresolved'});
+  const rewritten=await claudeHook(bash('npm run typecheck',p.root),{invoke:'redue',entry:p.fake('recording',replying(recording))});
+  assert.equal(rewritten.hookSpecificOutput.updatedInput.command,'redue run typecheck');
+});
+
 test('timeout, error exit, unreadable output and missing REDUE all allow',async t=>{
   const p=project(t),started=Date.now();
   assert.equal(await claudeHook(bash('npx tsc --noEmit',p.root),

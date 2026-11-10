@@ -917,19 +917,21 @@ test('a run past the trial limit is never the same: when the plain run reaches i
   assert.equal(inside.same,false);assert.equal(inside.timedOut,'sandboxed');
 });
 
-test('init: a check past the trial limit gets its fallback; --no-time-limit tries it again and updates only that row',{skip:unsupported},t=>{
+test('init: a check past the trial limit is recording-only, not an untried fallback; --no-time-limit tries it again and updates only that row',{skip:unsupported},t=>{
   // A margin for slow runners: the typecheck stays well inside the limit.
   const {root,state}=nodeProject(t,{lint:'sleep 6 && checker',typecheck:'checker'});
   const limit={VSTATE_TEST_FAULTS:'1',VSTATE_TEST_TRIAL_LIMIT:'4000'};
   const preview=JSON.parse(invoke(root,state,['init','--dry-run','--json'],limit).stdout);
   const lint=preview.checks.find(check=>check.name==='lint');
   assert.equal(lint.time_limit,'lint',JSON.stringify(lint));
-  assert.match(lint.reason,/^Sandboxed recipe unavailable: it ran past init's 5-minute trial limit \(redue init --check lint --no-time-limit tries it without the limit\)/);
+  assert.match(lint.reason,/^recording-only: it ran past init's 5-minute trial limit \(redue init --check lint --no-time-limit tries it without the limit\)$/);
+  assert.equal(lint.level,'recording');
+  assert.equal(preview.proposed_config.checks.find(check=>check.name==='lint').qualification,undefined);
   assert.equal(preview.checks.find(check=>check.name==='typecheck').time_limit,undefined);
   assert.equal(invoke(root,state,['init'],limit).status,0);
   const config=()=>JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'),'utf8'));
   const before=config();
-  assert.notEqual(before.checks.find(check=>check.name==='lint').qualification,'sandbox-v3');
+  assert.equal(before.checks.find(check=>check.name==='lint').qualification,undefined);
   assert.equal(before.checks.find(check=>check.name==='typecheck').qualification,'sandbox-v3');
   // A preview changes nothing; the typecheck the config already sandboxes is not run again.
   const dry=JSON.parse(good(root,state,'init','--no-time-limit','--dry-run','--json'));

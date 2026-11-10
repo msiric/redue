@@ -264,9 +264,15 @@ if(command==='init'){
     const kept=trial.tail?.length?keepTrialOutput(row.config.name,trial):null;
     if(kept)issue+=`; the sandboxed run's last lines are in ${kept}`;
     // time_limit: the kind that --check takes to try it without the limit.
+    // A run past the limit tried no recipe, so the check is recording-only:
+    // a fallback recipe it never ran would only answer UNVERIFIED.
     const limited=trial.timedOut?{timeLimit:row.config.kind}:{};
-    if(row.fallback)discovery.checks[at]={...row.fallback,...limited,reason:`Sandboxed recipe unavailable: ${issue}; ${row.fallback.reason}`};
-    else{discovery.checks[at]=null;discovery.skipped.push({kind:row.config.name,...trial.timedOut?{time_limit:row.config.kind}:{},reason:`${row.config.name}: sandboxed recipe unavailable: ${issue}`});}
+    // It keeps what it runs (script, or command and cwd for a Python check),
+    // without the sandbox's qualification and visible files.
+    if(trial.timedOut){const {qualification,visible,...config}=row.config;
+      discovery.checks[at]={config,level:'recording',...limited,reason:`recording-only: ${issue}`};}
+    else if(row.fallback)discovery.checks[at]={...row.fallback,reason:`Sandboxed recipe unavailable: ${issue}; ${row.fallback.reason}`};
+    else{discovery.checks[at]=null;discovery.skipped.push({kind:row.config.name,reason:`${row.config.name}: sandboxed recipe unavailable: ${issue}`});}
   }
   discovery.checks=discovery.checks.filter(Boolean).map(({fallback,...row})=>row);
   discovery.config.checks=discovery.checks.map(row=>row.config);

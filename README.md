@@ -157,9 +157,14 @@ command it can run), then prints the status. It exits 0 only when every
 check that can be verified ends CURRENT / PASS, so it answers "is everything
 verified on the code as it is now?" in one command. A check no run can
 confirm is shown as NOT VERIFIABLE with the reason, and left out: a
-recording-only check, or one whose runs change its own inputs (two passing
+recording-only check, one whose runs change its own inputs (two passing
 runs in a row changed the same files, such as a test script that rebuilds a
-tracked bundle). Any other change, or a failing run, makes it due again.
+tracked bundle), or one whose last passing run used inputs REDUE does not
+observe (a test suite that starts `find` or reads git-ignored files). Any
+other change, or a failing run, makes the first two due again. The last kind
+stays NOT VERIFIABLE until `redue run CHECK` passes without those inputs:
+the Claude Code hook lets its command run as written, so it costs no more
+than without REDUE.
 
 `redue stats` shows, per check, the reruns the hook skipped, the time saved,
 the recorded runs and the top reasons a check was UNVERIFIED, from a log kept

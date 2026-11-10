@@ -184,25 +184,24 @@ test('runs on the same inputs with different results make the check UNVERIFIED u
   assert.equal(row(root,state).freshness,'CURRENT');
 });
 
-test('a check whose last two passing runs used the same unobserved inputs is not verifiable, through edits, until a run without them',{skip:unsupported},t=>{
+test('a check whose last passing run used unobserved inputs is not verifiable, through edits, until a run without them',{skip:unsupported},t=>{
   const {root,state}=project(t);
   good(root,state,'init','--recipe','tests-direct','--check','test');good(root,state,'start');
   write(root,'src/value.js','binding\n');
   assert.equal(invoke(root,state,{},'run','test').status,0);
   let status=row(root,state);
-  assert.equal(status.freshness,'UNVERIFIED');assert.notEqual(status.verifiable,false);assert.match(status.reason,/process\.binding\('fs'\)/);
+  assert.equal(`${status.freshness} ${status.verifiable} ${status.unconfirmable}`,'UNVERIFIED false true',JSON.stringify(status));
+  assert.match(status.reason,/its last run used inputs REDUE does not observe \(recorder: process\.binding\('fs'\)/);
+  // verify does not run it again: another run would answer UNVERIFIED too.
+  let verify=invoke(root,state,{},'verify');
+  assert.doesNotMatch(verify.stdout+verify.stderr,/running test/);assert.match(verify.stdout,/not verifiable/i);
   assert.equal(invoke(root,state,{},'run','test').status,0);
-  status=row(root,state);
-  assert.equal(`${status.freshness} ${status.verifiable}`,'UNVERIFIED false',JSON.stringify(status));
-  assert.match(status.reason,/its last 2 runs used inputs REDUE does not observe \(recorder: process\.binding\('fs'\)/);
+  assert.match(row(root,state).reason,/its last 2 runs used inputs REDUE does not observe/);
   // After an edit it is STALE, still not verifiable, and verify leaves it out.
   write(root,'src/value.js','binding again\n');
   status=row(root,state);assert.equal(`${status.freshness} ${status.verifiable}`,'STALE false',JSON.stringify(status));
-  const verify=invoke(root,state,{},'verify');
+  verify=invoke(root,state,{},'verify');
   assert.doesNotMatch(verify.stdout+verify.stderr,/running test/);assert.match(verify.stdout,/not verifiable/i);
-  // A run with other unobserved inputs starts a new count.
-  write(root,'src/value.js','binding readme\n');assert.equal(invoke(root,state,{},'run','test').status,0);
-  status=row(root,state);assert.equal(status.freshness,'UNVERIFIED');assert.notEqual(status.verifiable,false,JSON.stringify(status));
   // A run without them makes it verifiable again.
   write(root,'src/value.js','pass\n');good(root,state,'run','test');
   assert.equal(row(root,state).freshness,'CURRENT');

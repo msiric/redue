@@ -18,7 +18,7 @@ export function unavailableCached(state,reason,checks=[]) {
   catch(error){reason+=`; latest receipt unavailable; prior outcome only: ${error.message}`;
     try{receipts=readReceipts(state).checks;}catch{/* retain cached historical rows */}}
   // Whether a check can be verified is part of a live answer, not of this one.
-  const rows=(value.checks||[]).map(({verifiable,...row})=>{
+  const rows=(value.checks||[]).map(({verifiable,unconfirmable,...row})=>{
     const latest=receipts?.[row.name];
     return {...row,...(receipts?{result:latest?.result||null,invocation:latest?.invocation||null,
       target_provenance:latest?.target||null,coverage_at_run:latest?.coverage||null}:{}),

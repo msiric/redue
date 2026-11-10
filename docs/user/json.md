@@ -63,7 +63,9 @@ not arbitrary terminal output. The CLI does not infer tests executed from prose.
 
 A check no run can confirm has `"verifiable": false` (its `freshness` stays
 UNVERIFIED and `reason` says why): a recording-only check (no qualification
-contract, inputs it cannot resolve), or one whose last two runs passed while
+contract, inputs it cannot resolve), one whose last passing run used inputs
+REDUE does not observe (also `"unconfirmable": true`; it stays so through
+edits until `redue run` passes without them or the plan changes), or one whose last two runs passed while
 the same inputs changed during them, with nothing changed between the two
 runs, and its plan, environment and every other input unchanged since. Anything else changing, a failing run or a
 clean run makes it verifiable (and due) again. Such checks are counted in

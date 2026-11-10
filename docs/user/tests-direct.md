@@ -109,6 +109,12 @@ kept but marked UNVERIFIED, with the reason, when the run:
   link elsewhere, such as Yarn's hardlinks modes, is not seen. This applies
   to the [general recipe](node-script.md) too.
 
+After a passing run with any of these (other than an unreadable record), the
+check is NOT VERIFIABLE, also after edits: `redue verify` and the end-of-turn
+check leave it out, and the Claude Code hook lets the test command run as
+written, without the recorder. A `redue run` that passes without them makes
+it verifiable again.
+
 Lookups that can be asked again become run facts, checked before every CURRENT
 answer: whether a path outside the checkout exists, where a link resolves, the
 content of each smaller file read outside it (Linux native bindings read

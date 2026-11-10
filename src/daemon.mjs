@@ -509,12 +509,14 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
     const sandboxChanged=isSandboxed(row.plan.qualification)&&contextHashes?.[name]?
       sandboxChange(r?.environmentHashes,contextHashes[name]):null;
     if(names.length&&!contextHashes?.[name])unconfirmed??='execution environment context not supplied';
-    // Its last passing runs under this plan used the same inputs REDUE does
-    // not observe, which the code itself reads (guardStreak, cli.mjs): no run
-    // of it can be confirmed. It is still STALE after an edit, but verify and
-    // the end-of-turn check leave it out. A run without them, or a new plan,
+    // Its last passing run under this plan used inputs REDUE does not
+    // observe, which the code itself reads (guardStreak, cli.mjs): another
+    // run would answer UNVERIFIED again. It is still STALE after an edit, but
+    // verify and the end-of-turn check leave it out, and the Claude Code hook
+    // lets its command run as written (unconfirmable), without the recorder's
+    // cost. `redue run` itself, without those inputs or under a new plan,
     // makes it verifiable again.
-    const unconfirmable=r.result==='PASS'&&r.guardIssues?.length>0&&r.guardStreak>=2&&r.planId===row.plan.id;
+    const unconfirmable=r.result==='PASS'&&r.guardIssues?.length>0&&r.guardStreak>=1&&r.planId===row.plan.id;
     item.freshness='STALE';
     if(r.planId!==row.plan.id){
       const before=new Map((r.resolutionLinks||[]).map(link=>[link.path,link.targetHash]));
@@ -572,12 +574,12 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
     } else if(r.guardIssues?.length){item.freshness='UNVERIFIED';
       item.reason=`the run used inputs REDUE does not observe: ${r.guardIssues.slice(0,3).join('; ')}`+
         (r.guardIssues.length>3?`; and ${r.guardIssues.length-3} more`:'');
-      if(unconfirmable)item.reason=`its last ${r.guardStreak} runs used inputs REDUE does not observe (${r.guardIssues.slice(0,3).join('; ')}`+
+      if(unconfirmable)item.reason=`${r.guardStreak>1?`its last ${r.guardStreak} runs`:'its last run'} used inputs REDUE does not observe (${r.guardIssues.slice(0,3).join('; ')}`+
         `${r.guardIssues.length>3?`; and ${r.guardIssues.length-3} more`:''}), so no run of it can be confirmed; redue run ${name} tries again`;
     } else if(r.nondeterministic){item.freshness='UNVERIFIED';item.reason='runs on these exact inputs had different results';
     } else {item.freshness='CURRENT';item.reason=result==='FAIL'?'last command failed':'declared inputs match';
       item.reuse_eligible=result==='PASS';}
-    if(unconfirmable&&item.freshness!=='CURRENT')item.verifiable=false;
+    if(unconfirmable&&item.freshness!=='CURRENT'){item.verifiable=false;item.unconfirmable=true;}
     return item;
   });
 }

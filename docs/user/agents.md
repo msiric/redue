@@ -99,7 +99,10 @@ first time, as a formatter that rewrote a file or a test that rebuilt a
 git-ignored file; the next run settles it). A check that was UNVERIFIED
 all along for what REDUE itself could not confirm (an input it does not
 observe, a change during its run), or that no run can confirm (NOT
-VERIFIABLE), does not count. If a check is due and files changed during the
+VERIFIABLE), does not count. The hook lets the command of a check whose last run used inputs REDUE does
+not observe run as written, without the recorder: through `redue run` it
+would only answer UNVERIFIED again. In a chain (`a && b`) it still runs
+through `redue run`. If a check is due and files changed during the
 turn (the count moved, a check CURRENT at the start is due now, or the turn's
 transcript has an Edit, Write, MultiEdit or NotebookEdit call), it
 blocks the stop once with "Before you finish, run `redue verify` and report

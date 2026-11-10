@@ -606,6 +606,10 @@ export function sessionStart(input,{entry}){
   return 'started';
 }
 
+// Whether status says no run of the check can be confirmed because its last
+// run used inputs REDUE does not observe (daemon.mjs's unconfirmable).
+const unconfirmable=(status,name)=>status?.observation?.healthy===true&&Array.isArray(status.checks)&&
+  status.checks.some(item=>item?.name===name&&item.verifiable===false&&item.unconfirmable===true);
 // Returns the hook's stdout object, or null to allow the command.
 // `explain(text)` hears why, also when the command is left as it is.
 export async function claudeHook(input,{entry,timeout,invoke=null,explain=null}){
@@ -681,7 +685,9 @@ export async function claudeHook(input,{entry,timeout,invoke=null,explain=null})
         reason=fanoutVerdict(status,names,match.rest);
       tally(status,names,Boolean(reason));
       if(reason)return why('every check CURRENT/PASS',{hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:reason}});
-      const pending=names.filter(name=>!verdict(status,name));
+      // A check whose last run used inputs REDUE does not observe runs as written (below).
+      const pending=names.filter(name=>!verdict(status,name)&&!unconfirmable(status,name));
+      if(!pending.length)return why(`left as written: no check of this script can be confirmed (${said(status,names,wait)})`);
       const rewritten=status?.schema===1&&status.observation?.healthy===true&&Array.isArray(status.checks)&&
         names.every(name=>status.checks.some(item=>item?.name===name))?recordedCommand(entered.command,pending,configPath,invoke??redueInvocation(entry)):null;
       return why(`${rewritten?'through redue run':'left as written'}: ${said(status,names,wait)}`,rewritten?{hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'allow',
@@ -691,6 +697,10 @@ export async function claudeHook(input,{entry,timeout,invoke=null,explain=null})
   }
   const name=match.check,wait=timeout??lastRunTimeout(config,parsed,name),status=await synchronizedStatus(entry,config,root,wait),
     reason=verdict(status,name,match.rest);
+  // A check whose last run used inputs REDUE does not observe (unconfirmable)
+  // runs as written: through redue run it would cost the recorder's time and
+  // answer UNVERIFIED again.
+  if(unconfirmable(status,name))return why(`left as written: ${name} cannot be confirmed (${said(status,[name],wait)})`);
   tally(status,[name],Boolean(reason));
   if(reason)return why(`${name} CURRENT/PASS`,{hookSpecificOutput:{hookEventName:'PreToolUse',
     permissionDecision:'deny',permissionDecisionReason:reason}});

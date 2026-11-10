@@ -116,8 +116,10 @@ remove-state` removes them.
 
 Each trial run stops after 5 minutes. A run that stops there never counts as
 agreeing: when the plain run reaches the limit, `init` runs nothing in the
-sandbox and writes the fallback; when a sandboxed run reaches it, no further
-trial follows. `init` marks such a check (`time_limit` in `--json` gives
+sandbox; when a sandboxed run reaches it, no further trial follows. Either
+way the check is recording-only: `init` does not propose a recipe it has not
+run, such as the direct test recipe, whose runs could only end UNVERIFIED.
+`init` marks such a check (`time_limit` in `--json` gives
 its kind), and `redue setup` names them and prints one command:
 `redue init --check typecheck --no-time-limit` (or `redue init
 --no-time-limit` for several kinds). With an existing config, that command
