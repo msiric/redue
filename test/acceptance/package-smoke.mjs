@@ -27,10 +27,24 @@ if(suppliedArtifact){assert.equal(suppliedArtifact.metadata.name,productPackage.
 const suppliedTarball=suppliedArtifact?.file||(tarballAt<0?null:path.resolve(process.argv[tarballAt+1]||''));
 if(suppliedTarball)assert(fs.statSync(suppliedTarball).isFile(),'--tarball needs an existing package file');
 const put=(p,s)=>{fs.mkdirSync(path.dirname(p),{recursive:true});fs.writeFileSync(p,s);};
-function exec(command,{cwd=product,allowFailure=false}={}) {
+// A command past its time is stopped with what it started: on Windows the
+// timeout ends cmd.exe but not npm's node process, which keeps writing into
+// this experiment's directory (alpha.30 and alpha.34 smokes: ENOTEMPTY on
+// cleanup, hiding the timeout). Every process whose command line names the
+// experiment's directory is stopped; elsewhere, the command's process group.
+function stopLeftovers(r){
+  if(process.platform==='win32'){
+    const marker=base.replace(/'/g,"''");
+    spawnSync('powershell',['-NoProfile','-NonInteractive','-Command',
+      `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -and $_.CommandLine.Contains('${marker}') -and $_.ProcessId -ne $PID } | `+
+      'ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }'],{stdio:'ignore',timeout:60000});
+  }else if(r.pid)try{process.kill(-r.pid,'SIGKILL');}catch{}
+}
+function exec(command,{cwd=product,allowFailure=false,timeout=120000}={}) {
   const launch=windowsLaunch(command);
-  const r=spawnSync(launch.file,launch.args,{...launch.options,cwd,env,encoding:'utf8',timeout:120000,
-    maxBuffer:8*1024*1024});
+  const r=spawnSync(launch.file,launch.args,{...launch.options,cwd,env,encoding:'utf8',timeout,
+    maxBuffer:8*1024*1024,...process.platform==='win32'?{}:{detached:true}});
+  if(r.error?.code==='ETIMEDOUT')stopLeftovers(r);
   if(!allowFailure)assert.equal(r.status,0,`${command.join(' ')}\n${r.error||''}\n${r.stdout}\n${r.stderr}`);
   return r;
 }
@@ -61,7 +75,7 @@ try {
   const tarball=suppliedTarball||path.join(base,pack.filename);
   const packageSha256=createHash('sha256').update(fs.readFileSync(tarball)).digest('hex');
   console.log(`Package: ${pack.filename}; ${pack.size} bytes; sha256 ${packageSha256}`);
-  exec([npm,'install','--global','--prefix',prefix,'--no-audit','--no-fund',tarball]);
+  exec([npm,'install','--global','--prefix',prefix,'--no-audit','--no-fund',tarball],{timeout:300000});
   const installedRoot=path.join(prefix,...(process.platform==='win32'?[]:['lib']),'node_modules',...productPackage.name.split('/'));
   const installedPackage=JSON.parse(fs.readFileSync(path.join(installedRoot,'package.json'),'utf8'));
   assert.equal(installedPackage.name,productPackage.name);
@@ -79,7 +93,7 @@ try {
   put(path.join(root,'.gitignore'),'node_modules/\n');
   // Exercise a normal project installation, including npm's lockfile and native
   // command shims. Never substitute a manually assembled installation as proof.
-  exec([npm,'install','--no-audit','--no-fund'],{cwd:root});
+  exec([npm,'install','--no-audit','--no-fund'],{cwd:root,timeout:300000});
   assert.equal(JSON.parse(fs.readFileSync(path.join(root,'node_modules','typescript','package.json'))).version,compilerVersion);
   exec(['git','init','-q'],{cwd:root});exec(['git','add','.'],{cwd:root});
   const preview=JSON.parse(cli('init','--recipe','typescript-direct','--dry-run','--json'));
@@ -160,6 +174,9 @@ try {
     packageBytes:pack.size,packageSha256,observations,cleanup:'owned state and installation only; project/dependencies preserved'}));
 } finally {
   if(fs.existsSync(state)&&fs.existsSync(binary))exec([binary,'--state-dir',state,'remove-state'],{cwd:base,allowFailure:true});
-  // base was created by this process and contains only this disposable experiment.
-  fs.rmSync(base,{recursive:true,force:true,maxRetries:5,retryDelay:200});
+  // base was created by this process and contains only this disposable
+  // experiment. A cleanup that fails is reported, never in place of the
+  // error that ended the run.
+  try{fs.rmSync(base,{recursive:true,force:true,maxRetries:10,retryDelay:500});}
+  catch(e){console.error(`warning: could not remove ${base}: ${e.code||e.message}`);}
 }
