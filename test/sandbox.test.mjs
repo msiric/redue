@@ -747,7 +747,11 @@ test('a test script that builds first runs as two sandboxed steps: the tests see
   execFileSync('git',['add','.'],{cwd:root});
   // A build left by an earlier run, as a developer's checkout has it.
   execFileSync(process.execPath,['build.js'],{cwd:root});
-  const init=JSON.parse(good(root,state,'init','--json'));
+  // init does not propose steps yet; with them turned on (tests only), it does.
+  const off=JSON.parse(good(root,state,'init','--dry-run','--json'));
+  assert.equal(off.proposed_config.checks.find(c=>c.name==='test')?.steps,undefined,JSON.stringify(off.checks));
+  const on=invoke(root,state,['init','--json'],{VSTATE_TEST_FAULTS:'1',VSTATE_TEST_PROPOSE_STEPS:'1'});
+  assert.equal(on.status,0,on.stderr);const init=JSON.parse(on.stdout);
   const check=JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'),'utf8')).checks.find(c=>c.name==='test');
   assert.equal(`${check?.qualification} ${JSON.stringify(check?.steps)}`,'sandbox-v3 ["node build.js","node check.js"]',JSON.stringify([init.checks,init.skipped]));
   assert.deepEqual(init.checks.find(c=>c.name==='test').trial_runs.map(r=>r.as??r.run),['plain','hidden','steps']);

@@ -214,6 +214,7 @@ if(command==='init'){
       return file;
     }catch{return null;}
   };
+  const proposeSteps=process.env.VSTATE_TEST_FAULTS==='1'&&process.env.VSTATE_TEST_PROPOSE_STEPS==='1';
   const timeout=noTimeLimit?0:undefined,improved=new Map();
   // Every trial run of each check, with its time: init's account in --json (trial_runs).
   const trialRuns=new Map(),account=(name,trial,label)=>{if(trial?.runs)trialRuns.set(name,[...trialRuns.get(name)||[],
@@ -239,7 +240,8 @@ if(command==='init'){
     // tried as two sandboxed steps, B seeing what A wrote (stepsRun); when
     // that agrees with the plain run, the check keeps sandbox-v3 with `steps`.
     // Only when the tests were refused a hidden file, as a build's output is.
-    const steps=!docs.issue&&!docs.timedOut&&docs.plainRun&&docs.refusedHidden&&row.config.kind==='test'&&!row.config.workspace&&
+    // Not proposed yet: no real repo has qualified this way. Tests turn it on.
+    const steps=proposeSteps&&!docs.issue&&!docs.timedOut&&docs.plainRun&&docs.refusedHidden&&row.config.kind==='test'&&!row.config.workspace&&
       typeof row.config.script==='string'?scriptStepsOf(discovery.root,row.config.script):null;
     if(steps){
       console.error(`Running ${row.config.name} again as two steps in the sandbox: ${steps[0]}, then ${steps[1]}...`);

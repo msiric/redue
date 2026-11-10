@@ -258,7 +258,12 @@ the next run is CURRENT. A build that writes other bytes on every run (a
 timestamp, a build ID) never settles: after two such runs the check is NOT
 VERIFIABLE until another input changes.
 
-### Test scripts that build first
+### Test scripts that build first (not proposed yet)
+
+`init` does not propose this yet: no real project has qualified this way so
+far (forma's suite reads the git repository, which the sandbox hides;
+pokemon-showdown builds from inside its tests). REDUE can run a check whose
+config has `steps`, as described below.
 
 A root test script `A && B` whose first step builds what the tests read
 (`vp run -r build && vp run -r test`, `node build.js && mocha`) fails the
