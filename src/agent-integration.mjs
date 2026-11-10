@@ -311,6 +311,37 @@ function inspect(root,host,record){
     return {installed:true,integrity:'conflict',reason:'managed content changed or is missing; preserve edits and reconcile manually'};
   return {installed:true,integrity:'intact'};
 }
+// Which of a host's REDUE files no longer match what setup writes for the
+// config as it is now (after init changed a check): the managed block, the
+// skill, and for Claude Code the PreToolUse hook's trigger rules. Empty when
+// current or not installed. The hook keeps the command it was installed with.
+// Throws when the integration or its settings cannot be read as setup wrote them.
+export function staleIntegration(root,relative,config,host){
+  const record=saved(root,host);if(!record)return [];
+  const health=inspect(root,host,record);
+  if(health.integrity!=='intact')throw Error(health.reason);
+  const stale=[];
+  if(record.block!==blockFor(host,blockForms(host,config,relative)))stale.push(`${hosts[host].instruction} block`);
+  if(record.skillHash!==hash(skillFor(relative,host,config)))stale.push('skill');
+  if(host==='claude'){
+    const current=installedHook(root,'PreToolUse');
+    let scripts={};try{scripts=JSON.parse(read(root,'package.json')??'{}').scripts||{};}catch{}
+    if(!sameJson(current,hookFor(config,relative,scripts,hookCommandOf(root))))stale.push('hook rules');
+  }
+  return stale;
+}
+const installedHook=(root,event)=>(parseSettings(read(root,settingsPath)).hooks?.[event]||[]).find(ownedHook)??null;
+// The command the installed hooks run: setup's plain form, or one install by absolute path.
+const hookCommandOf=root=>installedHook(root,'PreToolUse')?.hooks[0]?.command??installedHook(root,'SessionStart')?.hooks[0]?.command??hookCommand;
+// How to run agent setup again so it names the same install the hooks do:
+// [file, ...args], or null for this process's own entry.
+export function setupInvocation(root){
+  let command=null;try{command=hookCommandOf(root);}catch{return null;}
+  const absolute=absoluteHook(command);
+  if(absolute)return fs.existsSync(absolute[0])&&fs.existsSync(absolute[1])?absolute:null;
+  const onPath=findExecutable('redue');
+  return command===hookCommand&&onPath&&process.platform!=='win32'?[onPath]:null;
+}
 function warnings(root,host,cwd){
   const result=['Review existing project policies before applying; setup does not resolve semantic conflicts.',
     'Start a fresh host session. Accept project trust and ordinary command permissions if the host requests them.',
@@ -372,7 +403,7 @@ export async function agentCommand(args,{configFile,stateOverride,entry,cwd=proc
       if(value.state_access)console.log(`State access: ${value.state_access.status}${value.state_access.reason?' — '+value.state_access.reason:''}`);
       if(value.compatibility?.reason)console.log(`Observer compatibility: ${value.compatibility.reason}`);
       if(value.applicability?.requires_reassessment)console.log('Applicability: cached evidence needs reassessment; choose synchronization or execution deliberately.');
-      for(const row of value.hosts)console.log(`${row.host}: ${row.version||'host unavailable'}; integration ${row.integrity}; hook ${row.hook}${row.host==='claude'?`; session start ${row.session_start}; status line ${row.status_line}; trigger rules ${!row.trigger_rules?(row.hook==='absent'?'not installed':'not checked'):row.trigger_rules.covered?'match every check form (as REDUE models Claude Code)':`miss ${row.trigger_rules.count} check form${row.trigger_rules.count>1?'s':''}`}`:''}; behavioral validation NOT VERIFIED by doctor${row.reason?' — '+row.reason:''}`);
+      for(const row of value.hosts)console.log(`${row.host}: ${row.version||'host unavailable'}; integration ${row.integrity}${row.current===false?' (out of date: '+row.stale.join(', ')+')':''}; hook ${row.hook}${row.host==='claude'?`; session start ${row.session_start}; status line ${row.status_line}; trigger rules ${!row.trigger_rules?(row.hook==='absent'?'not installed':'not checked'):row.trigger_rules.covered?'match every check form (as REDUE models Claude Code)':`miss ${row.trigger_rules.count} check form${row.trigger_rules.count>1?'s':''}`}`:''}; behavioral validation NOT VERIFIED by doctor${row.reason?' — '+row.reason:''}`);
       console.log('Doctor does not start observers, execute checks, or prove agent behavior.');
       for(const warning of value.warnings)console.log(`Review: ${warning}`);
     }return value;
@@ -485,6 +516,12 @@ export async function doctor({configFile,stateOverride,entry,cwd,host}){
       }
       if(name==='claude'){let local=null;try{local=parseSettings(read(p.root,settingsPath)).statusLine;}catch{}
         statusLineState=ownedStatusLine(local)?'installed':otherStatusLine(p.root)?'another status line':'absent';}
+      if(integration.integrity==='intact'){let stale=null;
+        try{stale=staleIntegration(p.root,p.relative,p.config,name);}
+        catch(e){integration={...integration,current:null};value.warnings.push(`Whether REDUE's files for ${name} match ${p.relative} is unknown: ${e.message}`);}
+        if(stale)integration={...integration,current:!stale.length,...stale.length?{stale}:{}};
+        if(stale?.length)value.warnings.push(`REDUE's ${stale.join(', ')} for ${name} ${stale.length>1?'are':'is'} out of date with ${p.relative}: `+
+          `run redue agent setup ${name} --apply.`);}
       value.warnings.push(...warnings(p.root,name,cwd));
     }catch(e){integration={installed:false,integrity:'conflict',reason:e.message};}
     value.hosts.push({host:name,executable,version,...integration,hook,session_start:sessionHook,...name==='claude'?{status_line:statusLineState,trigger_rules:triggers}:{},behavior_verified:false,

@@ -83,10 +83,16 @@ test('setup names a check that ran past init\'s trial limit, and the one command
     env:{...env,VSTATE_TEST_FAULTS:'1',VSTATE_TEST_TRIAL_LIMIT:'4000'}});
   assert.equal(run.status,0,run.stderr+run.stdout);
   assert.match(run.stdout,/\nlint ran past init's 5-minute trial limit, so it is not sandboxed\. To try it without the limit: redue init --check lint --no-time-limit\nDone\./);
+  assert.equal(JSON.parse(redue('agent','doctor','claude','--json').stdout).hosts[0].current,true);
   const updated=redue('init','--check','lint','--no-time-limit');
   assert.equal(updated.status,0,updated.stderr+updated.stdout);
   // The observer setup started runs with the new config at once.
   assert.match(updated.stdout,/Updated lint in .*\. Restarted the observer with it\./);
+  // Setup wrote the hook's rules while lint was recording-only: init rewrites them, so the hook sees npm run lint.
+  assert.match(updated.stdout,/\nRewrote REDUE's [^\n]*hook rules[^\n]* for claude to match\. Start a new Claude Code session to load them\.\n/);
+  const rules=(JSON.parse(fs.readFileSync(path.join(root,'.claude/settings.local.json'),'utf8')).hooks.PreToolUse??[]).flatMap(entry=>entry.hooks.map(h=>h.if));
+  assert.ok(rules.some(rule=>/^Bash\(npm run lint/.test(rule)),rules.join(' | '));
+  assert.equal(JSON.parse(redue('agent','doctor','claude','--json').stdout).hosts[0].current,true);
   assert.equal(JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'),'utf8')).checks.find(check=>check.name==='lint').qualification,'sandbox-v3');
   const status=redue('status','--json');
   assert.equal(status.status,0,status.stderr);

@@ -421,6 +421,29 @@ test('a pytest check with a quoted argument gets quoted forms, and setup recogni
   f.ok('agent','remove','claude','--apply');
 });
 
+test('doctor says when the block, skill or hook rules are out of date with the config, and setup brings them back',t=>{
+  const f=fixture(t);
+  f.put('redue.config.json',JSON.stringify({schema:1,checks:[{name:'test',kind:'test',command:['.venv/bin/pytest','tests'],inputs:['**']}]}));
+  f.ok('agent','setup','claude','--apply');
+  let doctor=JSON.parse(f.ok('agent','doctor','claude','--json').stdout);
+  assert.equal(doctor.hosts[0].current,true);
+  // init made the recording-only check verifiable: the hook has no rule for it yet.
+  f.put('redue.config.json',JSON.stringify({schema:1,checks:[{name:'test',kind:'test',qualification:'sandbox-v3',command:['.venv/bin/pytest','tests'],inputs:['**']}]}));
+  doctor=JSON.parse(f.ok('agent','doctor','claude','--json').stdout);
+  assert.equal(doctor.hosts[0].current,false);
+  assert.ok(doctor.hosts[0].stale.includes('hook rules'),doctor.hosts[0].stale.join(', '));
+  assert.ok(doctor.warnings.some(w=>/hook rules.* for claude (is|are) out of date with redue\.config\.json: run redue agent setup claude --apply\./.test(w)),doctor.warnings.join('\n'));
+  assert.match(f.ok('agent','doctor','claude').stdout,/integration intact \(out of date: [^)]*hook rules\)/);
+  f.ok('agent','setup','claude','--apply');
+  assert.equal(JSON.parse(f.ok('agent','doctor','claude','--json').stdout).hosts[0].current,true);
+  // Settings doctor cannot read leave the answer unknown, not the integration uninstalled.
+  const settings=f.read('.claude/settings.local.json');f.put('.claude/settings.local.json','{');
+  doctor=JSON.parse(f.ok('agent','doctor','claude','--json').stdout);
+  assert.equal(doctor.hosts[0].integrity,'intact');assert.equal(doctor.hosts[0].current,null);
+  f.put('.claude/settings.local.json',settings);
+  f.ok('agent','remove','claude','--apply');
+});
+
 test('a pytest check run with -v gets a trigger rule for its command without it, and the skill lists only its own forms',t=>{
   const f=fixture(t);
   f.put('redue.config.json',JSON.stringify({schema:1,checks:[{name:'test',kind:'test',qualification:'sandbox-v3',

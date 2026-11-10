@@ -337,9 +337,34 @@ if(command==='init'){
     Object.assign(summary,{written:true,updated:[...improved.keys()],observer:!running?'not running':self('start').status===0?'restarted':'not started'});
     if(!json)console.log(`Updated ${[...improved.keys()].join(', ')} in ${configFile}.`+
       {restarted:' Restarted the observer with it.','not started':' The observer did not start again: run redue start.','not running':''}[summary.observer]);
+    // Agent setup wrote the hook's trigger rules and the instruction block for
+    // the old config: a check that became verifiable would run past the hook.
+    // Each installed integration is rewritten for the new one.
+    summary.agents=await refreshAgents(discovery.root,configFile,json);
+
   } else if(unsupported&&!json)console.log(`No config written: ${summary.issue||'unsupported discovery boundary'}.`);
   if(json)console.log(JSON.stringify({...summary,proposed_config:discovery.config}));
   await exit(0);
+}
+async function refreshAgents(root,configFile,json){
+  const {setupInvocation,staleIntegration}=await import('../src/agent-integration.mjs'),result=[];
+  const relative=path.relative(root,configFile).split(path.sep).join('/');
+  let config;try{config=JSON.parse(fs.readFileSync(configFile,'utf8'));}catch{return result;}
+  for(const host of ['claude','codex']){
+    let stale;try{stale=staleIntegration(root,relative,config,host);}
+    catch(e){result.push({host,updated:false,reason:e.message});
+      if(!json)console.log(`REDUE's ${host} files were not updated for the new config: ${e.message}. Then run redue agent setup ${host} --apply.`);continue;}
+    if(!stale.length)continue;
+    // Setup again through the install the hooks already name, so they keep it.
+    const [file,...first]=setupInvocation(root)??[process.execPath,process.argv[1]];
+    const out=spawnSync(file,[...first,'--config',configFile,'agent','setup',host,'--apply'],{stdio:['ignore','pipe','pipe'],encoding:'utf8'});
+    const updated=out.status===0,why=String(out.stderr||out.error?.message||'').trim().split('\n').pop();
+    result.push({host,updated,stale,...updated?{}:{reason:why||null}});
+    if(!json)console.log(updated?`Rewrote REDUE's ${stale.join(', ')} for ${host} to match. Start a new ${host==='claude'?'Claude Code':'Codex'} session to load them.`:
+      `REDUE's ${stale.join(', ')} for ${host} ${stale.length>1?'are':'is'} out of date and could not be rewritten: run redue agent setup ${host} --apply.`+
+      (why?` (${why})`:''));
+  }
+  return result;
 }
 function printLifecycle(output,action,machine){
   if(machine){process.stdout.write(output);return;}
