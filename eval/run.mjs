@@ -13,6 +13,8 @@
 //          --arms ...,instructed (no REDUE; CLAUDE.md asks the agent to run the repo's
 //                 typecheck, lint and tests on its final code before it finishes)
 //          --arms ...,generic (no REDUE; CLAUDE.md asks the same without naming commands)
+//          --follow-advice (--gap, REDUE arm: after setup, run the `redue init ...
+//                 --no-time-limit` command setup prints for a check past init's trial limit)
 //          --gap (the verification-gap study: records the tree each Bash command ran on,
 //                 runs the repo's checks on its pinned commit once, reruns a failing
 //                 final check once, and writes what the session verified; gap.mjs)
@@ -41,7 +43,7 @@ const {values: opt} = parseArgs({options: {
   runs: {type: 'string', default: '3'},
   model: {type: 'string', default: 'claude-sonnet-5-5'}, 'max-turns': {type: 'string', default: '30'},
   redue: {type: 'string', default: checkoutRedue}, keep: {type: 'boolean'}, out: {type: 'string'}, profile: {type: 'boolean'}, diag: {type: 'boolean'},
-  gap: {type: 'boolean'},
+  gap: {type: 'boolean'}, 'follow-advice': {type: 'boolean'},
 }});
 const entry = path.resolve(opt.redue);
 const repos = readJson(path.join(evalDir, 'repos.json')).repos;
@@ -210,6 +212,17 @@ async function runSession(task, repo, arm, id) {
       // agent's own shell, so each check's receipt holds the environment the
       // agent's commands run in.
       step('setup_ms', 'setup', 'claude', '--yes');
+      // As a user following setup's advice: the one command it prints for
+      // checks past init's trial limit, which updates the config in place.
+      const advice = opt['follow-advice'] ? fs.readFileSync(path.join(runDir, 'setup-output.txt'), 'utf8')
+        .match(/To try (?:it|them) without the limit: redue (init(?: --check \S+)? --no-time-limit)/) : null;
+      if (advice) {
+        const argv = advice[1].split(' ');
+        const r = must(sh(path.join(bin, 'redue'), argv, {cwd: dir, env, timeout: 90 * 60_000}), `redue ${advice[1]}`);
+        row.setup.advice_ms = r.ms;
+        fs.writeFileSync(path.join(runDir, 'advice-output.txt'), r.stdout + r.stderr);
+        fs.copyFileSync(path.join(dir, 'redue.config.json'), path.join(runDir, 'redue.config.json'));
+      }
       const seed = await claudeSession(sessionArgs('Run exactly this command from the project root, once, as a command of its own with nothing added before or after it, then report its exit status: redue verify', 5),
         {cwd: dir, env: {...env, ...sessionAuth()}, timeout: 30 * 60_000});
       fs.writeFileSync(path.join(runDir, 'seed-transcript.jsonl'), seed.stdout);
