@@ -82,7 +82,9 @@ test('setup names a check that ran past init\'s trial limit, and the one command
   const run=spawnSync(process.execPath,[bin,'setup','claude','--yes'],{cwd:root,encoding:'utf8',timeout:120000,
     env:{...env,VSTATE_TEST_FAULTS:'1',VSTATE_TEST_TRIAL_LIMIT:'4000'}});
   assert.equal(run.status,0,run.stderr+run.stdout);
-  assert.match(run.stdout,/\nlint ran past init's 5-minute trial limit, so it is not sandboxed\. To try it without the limit: redue init --check lint --no-time-limit\nDone\./);
+  assert.match(run.stdout,/\nlint ran past init's 5-minute trial limit, so it is not sandboxed\. To try it without the limit: redue init --check lint --no-time-limit\nTime: trying checks in the sandbox \d+ s[^\n]*\.\nDone\./);
+  // The trials ran once: setup writes the config the preview proposed.
+  assert.equal(run.stderr.split('Running lint inside and outside the sandbox').length-1,1,run.stderr);
   assert.equal(JSON.parse(redue('agent','doctor','claude','--json').stdout).hosts[0].current,true);
   const updated=redue('init','--check','lint','--no-time-limit');
   assert.equal(updated.status,0,updated.stderr+updated.stdout);

@@ -8,7 +8,7 @@ import {patternMatcher} from './glob.mjs';
 import {observedBy} from './installed-observation.mjs';
 import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testRunFacts,sharedInstalledFile,testsInterpretation,testsQualification} from './test-direct.mjs';
 import {childProgram,generalIssue,lookup,pnpmConfigFiles,scriptCaches,scriptInstalledPaths,scriptInterpretation,scriptQualification,scriptRunFacts,pnpmNameless,toolOutput,toolchainDirs} from './node-script.mjs';
-import {denialLine,docsQualification,endWithChild,launcherFailure,hiddenDocs,hiddenEntries,plainVisible,withVisible,hiddenQualification,hiddenRefusal,hidesIgnored,isSandboxed,runToEnd,supervisorIssue,visibleChange,testRun as sandboxTestRun,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,
+import {denialLine,docsQualification,endWithChild,launcherFailure,hiddenDocs,hiddenEntries,plainVisible,withVisible,hiddenQualification,hiddenRefusal,hidesIgnored,isSandboxed,runToEnd,scriptStepsOf,builtChange,stepArgv,stepPath,stepsRun,supervisorIssue,visibleChange,testRun as sandboxTestRun,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,
   sandboxInterpretation,sandboxInterpretationOf,sandboxPlaces,sandboxQualification,sandboxSupport,systemPlaces,installedTreeOf,checkoutGit,isProse,nestedGits} from './sandbox.mjs';
 import path from 'node:path';
 import net from 'node:net';
@@ -414,7 +414,43 @@ async function execute() {
     if(!snap||!snap.observationHealthy)captureIssues.push('start checkpoint unavailable');
     await testRunBoundary('before-launch');
     const started=Date.now(),executionStarted=performance.now();
-    const invocation=await new Promise(resolve=>{
+    // A script that builds first (`steps`, from init): its build step runs
+    // here, in the sandbox with git-ignored files hidden and no network;
+    // the check's run is then its second step, seeing the hidden entries the
+    // build wrote into. Their files are the build's output, never inputs: the
+    // receipt keeps them hidden. A failed build is the run's result. The
+    // script must still be those two steps.
+    let built=null;
+    if(sandbox&&selected.steps){
+      const split=scriptStepsOf(root,selected.script);
+      if(!split||split[0]!==selected.steps[0]||split[1]!==selected.steps[1])
+        captureIssues.push(`the ${selected.script} script is no longer ${JSON.stringify(selected.steps.join(' && '))} without pre or post scripts; run redue init again`);
+      else if(!requestedSignal){
+        runLock.phase('launching');
+        built=await stepsRun(sandbox.mode,selected.steps,{root,ignored:sandbox.hidden||[],
+          options:{...sandbox.options,hidden:[],visible:(sandbox.visible||[]).map(rel=>path.join(root,rel)),
+            ...sandbox.docs?{docs:{root,entries:sandbox.docs,visible:sandbox.visible||[]}}:{}},
+          env:sandbox.env,echo:true,buildOnly:true,started:child=>{activeChild=child;runnerPid=child.pid??null;runLock.phase('running',child.pid??null);}});
+        activeChild=null;
+        keep(Buffer.from(built.output));
+        if(built.built.issue)captureIssues.push(`the build step's output: ${built.built.issue}`);
+        else if(built.status===0){
+          const shownBuilt=new Set(built.built.entries);
+          sandbox.argv=sandboxArgv(sandbox.mode,stepArgv(selected.steps[1]),{...sandbox.options,
+            hidden:(sandbox.hidden||[]).filter(rel=>!shownBuilt.has(rel)).map(rel=>path.join(root,rel.replace(/\/$/,''))),
+            ...sandbox.docs?{docs:{root,entries:sandbox.docs,visible:sandbox.visible||[]}}:{},visible:(sandbox.visible||[]).map(rel=>path.join(root,rel))});
+          sandbox.env={...sandbox.env,PATH:stepPath(root,sandbox.env.PATH)};
+        }
+      }
+    }
+    // A build that failed is the run's FAIL; one that left an old file in its
+    // output, or did not finish, gives no result.
+    const invocation=built&&(built.status!==0||built.built.issue)?
+      (built.built.issue?{status:'start_failed',exitCode:null,signal:null,errorCode:'BUILD_OUTPUT'}:
+        requestedSignal?{status:'interrupted',exitCode:null,signal:requestedSignal}:
+        typeof built.status==='number'?{status:'exited',exitCode:built.status,signal:null}:
+        {status:'start_failed',exitCode:null,signal:null,errorCode:String(built.status)}):
+      await new Promise(resolve=>{
       if(requestedSignal){resolve({status:'interrupted',exitCode:null,signal:requestedSignal});return;}
       let child,spawnError=null;
       try{runLock.phase('launching');
@@ -453,6 +489,10 @@ async function execute() {
       });
     });
     const ended=Date.now();
+    // The build's output the tests saw is still what the build wrote.
+    if(built?.status===0&&!built.built.issue){
+      const changed=builtChange(root,built.built.entries,built.built.files||{});
+      if(changed)captureIssues.push(`the build step's output: ${changed} changed after the build step ran`);}
     timing('cli.compiler_execution',executionStarted,{status:invocation.status,exit:invocation.exitCode});
     await testRunBoundary('after-exit');
     invocation.startedAt=started;invocation.durationMs=ended-started;

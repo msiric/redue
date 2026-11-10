@@ -7,7 +7,7 @@ import {directCompiler,directQualification,directEnvironment,directInstalledInpu
 import {runArgv,tscRun} from '../src/typescript-invocation.mjs';
 import {testEnvironment,testRunnerAt,testsInterpretation,testsQualification} from '../src/test-direct.mjs';
 import {scriptEnvironment,scriptInterpretation,scriptKinds,scriptQualification} from '../src/node-script.mjs';
-import {docsQualification,hiddenDocsIssue,hiddenListIssue,hidesIgnored,isSandboxed,pythonTool,refusedFile,visibleLimit,sandboxEnvironment,sandboxInterpretationOf,sandboxKinds,sandboxQualification} from '../src/sandbox.mjs';
+import {docsQualification,hiddenDocsIssue,hiddenListIssue,hidesIgnored,isSandboxed,pythonTool,refusedFile,scriptStepsOf,visibleLimit,sandboxEnvironment,sandboxInterpretationOf,sandboxKinds,sandboxQualification} from '../src/sandbox.mjs';
 import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
@@ -215,6 +215,9 @@ if(command==='init'){
     }catch{return null;}
   };
   const timeout=noTimeLimit?0:undefined,improved=new Map();
+  // Every trial run of each check, with its time: init's account in --json (trial_runs).
+  const trialRuns=new Map(),account=(name,trial,label)=>{if(trial?.runs)trialRuns.set(name,[...trialRuns.get(name)||[],
+    ...trial.runs.map(r=>({...r,...r.run==='sandboxed'&&label?{as:label}:{}}))]);return trial;};
   let trials=0;
   for(const [at,row] of [...discovery.checks.entries()]){
     if(row.qualification!==sandboxQualification||row.level!=='ready')continue;
@@ -224,23 +227,44 @@ if(command==='init'){
     const notTried=!existing?null:!old?(checkSelection?null:'the config does not have it; name its kind with --check to add it'):
       isSandboxed(old.qualification)?'the config already runs it in the sandbox':sameRun?null:'the config runs something else under that name';
     if(notTried){discovery.checks[at]=null;discovery.skipped.push({kind:row.config.name,reason:`${row.config.name}: not tried; ${notTried}`});continue;}
-    if(!json)console.error(`Running ${row.config.name} inside and outside the sandbox to confirm it...`);
-    const docs={...await sandboxTrial(discovery.root,row.config,{hide:'docs',timeout}),kind:row.config.kind};
+    console.error(`Running ${row.config.name} inside and outside the sandbox to confirm it...`);
+    const docs=account(row.config.name,{...await sandboxTrial(discovery.root,row.config,{hide:'docs',timeout}),kind:row.config.kind},'hidden');
     if(!docs.issue)trials++;
     if(!docs.issue&&docs.same){
       row.config={...row.config,qualification:docsQualification};row.qualification=docsQualification;
       row.reason=row.reason.replace('the whole checkout is its input',"the checkout's files git doesn't ignore, except its documentation, are its input")+`; ran both ways at init, exit ${docs.plain}`;
       improved.set(row.config.name,row.config);continue;}
+    // A root test script `A && B` (scriptSteps) that disagreed: A, the
+    // build, may write what B reads among the files the sandbox hides. It is
+    // tried as two sandboxed steps, B seeing what A wrote (stepsRun); when
+    // that agrees with the plain run, the check keeps sandbox-v3 with `steps`.
+    // Only when the tests were refused a hidden file, as a build's output is.
+    const steps=!docs.issue&&!docs.timedOut&&docs.plainRun&&docs.refusedHidden&&row.config.kind==='test'&&!row.config.workspace&&
+      typeof row.config.script==='string'?scriptStepsOf(discovery.root,row.config.script):null;
+    if(steps){
+      console.error(`Running ${row.config.name} again as two steps in the sandbox: ${steps[0]}, then ${steps[1]}...`);
+      const split=account(row.config.name,{...await sandboxTrial(discovery.root,row.config,{hide:'docs',plain:docs.plainRun,timeout,steps}),kind:row.config.kind},'steps');
+      if(!split.issue)trials++;
+      if(!split.issue&&split.same){
+        row.config={...row.config,qualification:docsQualification,steps};row.qualification=docsQualification;
+        row.reason=row.reason.replace('the whole checkout is its input',
+          `it runs as two steps, ${steps[0]} and then ${steps[1]}, the second seeing the git-ignored files the first wrote; `+
+          "the checkout's files git doesn't ignore, except its documentation, are its input")+`; ran both ways at init, exit ${split.plain}`;
+        improved.set(row.config.name,row.config);continue;}
+    }
     // Refused only hidden files it reads: tried again with just those files
     // visible (the config's `visible`), one more sandboxed run each, up to
     // visibleLimit. They are then inputs like any file the run sees.
     let shown=docs,visible=[];
+    // Every file the run's refusals name is made visible at once.
     while(!shown.issue&&!shown.timedOut&&shown.refusedHidden&&visible.length<visibleLimit){
-      const file=refusedFile(shown.refusedHidden,discovery.root,shown.entries||[]);
-      if(!file||visible.includes(file))break;
-      visible=[...visible,file];
-      if(!json)console.error(`Running ${row.config.name} in the sandbox again, with ${file} visible...`);
-      shown={...await sandboxTrial(discovery.root,{...row.config,visible},{hide:'docs',plain:docs.plainRun,timeout}),kind:row.config.kind};
+      const files=[...new Set([shown.refusedHidden,...shown.refusedLines||[]].map(line=>refusedFile(line,discovery.root,shown.entries||[])))]
+        .filter(file=>file&&!visible.includes(file));
+      if(!files.length||visible.length+files.length>visibleLimit)break;
+      visible=[...visible,...files];
+      const file=files.join(', ');
+      console.error(`Running ${row.config.name} in the sandbox again, with ${file} visible...`);
+      shown=account(row.config.name,{...await sandboxTrial(discovery.root,{...row.config,visible},{hide:'docs',plain:docs.plainRun,timeout}),kind:row.config.kind},`visible:${visible.join(',')}`);
       if(!shown.issue)trials++;
     }
     if(visible.length&&!shown.issue&&shown.same){
@@ -254,8 +278,8 @@ if(command==='init'){
     const hiddenIssue=!docs.issue&&!docs.timedOut&&docs.refusedHidden?
       `it failed reading a file it hid (${docs.refusedHidden})${visible.length?`, also with ${visible.join(', ')} visible`:''}`:null;
     // Without a list of the ignored files or the documentation, the whole checkout is tried on its own.
-    const trial=docs.timedOut?docs:docs.plainRun?{...await sandboxTrial(discovery.root,row.config,{plain:docs.plainRun,timeout}),kind:row.config.kind}:
-      [hiddenListIssue,hiddenDocsIssue].includes(docs.issue)?{...await sandboxTrial(discovery.root,row.config,{timeout}),kind:row.config.kind}:docs;
+    const trial=docs.timedOut?docs:docs.plainRun?account(row.config.name,{...await sandboxTrial(discovery.root,row.config,{plain:docs.plainRun,timeout}),kind:row.config.kind},'whole checkout'):
+      [hiddenListIssue,hiddenDocsIssue].includes(docs.issue)?account(row.config.name,{...await sandboxTrial(discovery.root,row.config,{timeout}),kind:row.config.kind},'whole checkout'):docs;
     if(trial!==docs&&!trial.issue)trials++;
     let issue=trialIssue(trial);
     if(!issue){row.reason+=`; ran both ways at init, exit ${trial.plain}; the whole checkout is its input: `+
@@ -272,7 +296,8 @@ if(command==='init'){
     if(trial.timedOut){const {qualification,visible,...config}=row.config;
       discovery.checks[at]={config,level:'recording',...limited,reason:`recording-only: ${issue}`};}
     else if(row.fallback)discovery.checks[at]={...row.fallback,reason:`Sandboxed recipe unavailable: ${issue}; ${row.fallback.reason}`};
-    else{discovery.checks[at]=null;discovery.skipped.push({kind:row.config.name,reason:`${row.config.name}: sandboxed recipe unavailable: ${issue}`});}
+    else{discovery.checks[at]=null;discovery.skipped.push({kind:row.config.name,reason:`${row.config.name}: sandboxed recipe unavailable: ${issue}`,
+      ...trialRuns.has(row.config.name)?{trial_runs:trialRuns.get(row.config.name)}:{}});}
   }
   discovery.checks=discovery.checks.filter(Boolean).map(({fallback,...row})=>row);
   discovery.config.checks=discovery.checks.map(row=>row.config);
@@ -287,7 +312,8 @@ if(command==='init'){
     ambiguous:discovery.ambiguous,skipped:discovery.skipped||[],
     checks:discovery.checks.map(({config:check,level,reason,timeLimit})=>({name:check.name,
       script:check.script||null,command:check.command||null,
-      workspace:check.workspace||null,level,reason,...timeLimit?{time_limit:timeLimit}:{}})),config:configFile,
+      workspace:check.workspace||null,level,reason,...timeLimit?{time_limit:timeLimit}:{},
+      ...trialRuns.has(check.name)?{trial_runs:trialRuns.get(check.name)}:{}})),config:configFile,
     written:willWrite,existing:configured,writable:!configured&&!unsupported&&discovery.checks.length>0};
   if(!json) {
     if(summary.package_manager||!discovery.python)console.log(`Node ${summary.node}; ${summary.package_manager||'unknown package manager'}`+
@@ -456,13 +482,17 @@ const categories=['source','generated','installedDependencies','environment','to
 const checks=publicConfig.checks.map(check=>{
   const allowed=['name','command','cwd','inputs','generatedInputs','installedInputs',
     'allowedExternalRoots','probes','environment','coverage','coverageReview','coverageReasons',
-    'script','kind','qualification','workspace','visible'];
+    'script','kind','qualification','workspace','visible','steps'];
   for(const key of Object.keys(check))if(!allowed.includes(key))
     error(`unsupported check field ${check.name}.${key}`);
   // visible: files a sandboxed run that hides git-ignored files does not hide (init writes them).
   if(check.visible!==undefined&&(!hidesIgnored(check.qualification)||!Array.isArray(check.visible)||check.visible.length>visibleLimit||
     !check.visible.every(rel=>typeof rel==='string'&&rel&&!path.isAbsolute(rel)&&!rel.includes('\\')&&!rel.split('/').some(part=>!part||part==='.'||part==='..'))))
     error(`${check.name}.visible: up to ${visibleLimit} relative files, for a sandboxed check that hides git-ignored files`);
+  // steps: a root test script `A && B` a sandboxed run runs as two steps (init writes them).
+  if(check.steps!==undefined&&(!hidesIgnored(check.qualification)||check.kind!=='test'||typeof check.script!=='string'||check.workspace||
+    !Array.isArray(check.steps)||check.steps.length!==2||!check.steps.every(step=>typeof step==='string'&&step.trim()===step&&step)))
+    error(`${check.name}.steps: the two steps of a root test script, for a sandboxed check that hides git-ignored files`);
   for(const category of categories)if(check.coverage?.[category]&&
     typeof check.coverageReview?.[category]!=='string')
     error(`${check.name}: reviewed coverage ${category} needs a rationale`);
@@ -554,6 +584,7 @@ const checks=publicConfig.checks.map(check=>{
       categories.map(category=>[category,reason])),
     qualification:check.qualification||null,script:check.script||null,
     ...(check.visible?.length?{visible:check.visible}:{}),
+    ...(check.steps?{steps:check.steps}:{}),
     ...(runCount>1?{runCount}:{}),
     ...(npmAutomatic?{qualificationInterpretation:'npm-launcher-withheld@1'}:{}),
     ...(npmDirect?{qualificationInterpretation:directInterpretation}:{}),

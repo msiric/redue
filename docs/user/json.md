@@ -48,7 +48,11 @@ paths/check names and must not be uploaded automatically.
 
 `init --json` returns discovery levels (`ready`, `recording`, `unsupported`),
 reasons, workspace ownership, `written`, and `proposed_config`. Ready is not PASS.
-`init --dry-run --json` writes no config and runs no check.
+`init --dry-run --json` writes no config and records no result, but it still
+runs the sandbox trials. Each check init tried in the sandbox, and each
+skipped row it tried, has `trial_runs`: every run of the trial in order,
+`{"run": "plain" | "sandboxed", "ms": ..., "as": ...}`, where `as` says which
+sandboxed run it was (`hidden`, `visible:FILES`, `steps`, `whole checkout`).
 
 Read commands normally exit 0 even when the evidence is not current. Errors exit
 nonzero; synchronized transport failures may still return conservative JSON.

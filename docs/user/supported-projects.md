@@ -58,7 +58,10 @@ source links, and installation modes remain recording-only. Other Yarn
 typechecks, Vitest/Jest, ESLint, and builds in workspace packages start
 recording-only unless a separately justified explicit contract is provided.
 A root test script gets the sandboxed recipe when its trial gives the same
-exit status and test counts as a plain run. Otherwise, for a single-package
+exit status and test counts as a plain run. A root test script `A && B` that
+builds first into a folder git ignores gets it as two sandboxed steps, the
+tests seeing what the build wrote ([sandbox](sandbox.md#test-scripts-that-build-first)).
+Otherwise, for a single-package
 project whose test script runs Vitest 4/5 or Jest 29 directly, `init` uses the
 direct test recipe, which records the run and guards its inputs; see
 [direct tests](tests-direct.md).

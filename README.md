@@ -247,7 +247,8 @@ Everything else stays UNVERIFIED, with a reason you can read in
 into and the sandbox can't run (inside Claude Code's macOS sandbox, on
 Windows), the project uses Bun, or a check writes into its own inputs
 (a Jest cache in the checkout is not one when the project's Jest
-configuration names it).
+configuration names it, and a root test script `build && test` runs as two
+sandboxed steps, so its build output is not one either).
 [Supported projects](docs/user/supported-projects.md) has the details.
 
 ## What REDUE won't do

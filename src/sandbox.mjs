@@ -184,6 +184,116 @@ export function sandboxPlaces(check,env,root){
   }
   return [...places].sort();
 }
+// A root test script that builds first: `A && B`, one `&&` outside quotes
+// and parentheses, and no other list operator (`||`, `;`, `|`, `&`, a new
+// line), so the script means "A, then B if A passed". [A, B], or null.
+export function scriptSteps(text){
+  if(typeof text!=='string')return null;
+  let quote=null,depth=0,at=-1;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(quote){if(c===quote)quote=null;else if(c==='\\'&&quote==='"')i++;continue;}
+    if(c==='\\'){i++;continue;}
+    if(c==='"'||c==="'"||c==='`'){quote=c;continue;}
+    if(c==='(')depth++;else if(c===')')depth--;
+    else if(depth===0&&(c===';'||c==='\n'||c==='|'))return null;
+    else if(depth===0&&c==='&'){
+      if(text[i+1]!=='&')return null;
+      if(at>=0)return null;
+      at=i;i++;
+    }
+  }
+  if(quote||depth!==0||at<0)return null;
+  const steps=[text.slice(0,at).trim(),text.slice(at+2).trim()];
+  return steps.every(Boolean)?steps:null;
+}
+// The steps of a root package script as package.json has it now: [A, B],
+// or null when it is not `A && B`, or when a `preSCRIPT` or `postSCRIPT`
+// script exists (a package manager's run would run it; the steps do not).
+export function scriptStepsOf(root,script){
+  let scripts;try{scripts=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).scripts;}catch{return null;}
+  if(!scripts||typeof scripts!=='object'||typeof script!=='string')return null;
+  if(scripts[`pre${script}`]!==undefined||scripts[`post${script}`]!==undefined)return null;
+  return scriptSteps(scripts[script]);
+}
+// How a step runs: `sh -c STEP` from the checkout's root, with the
+// node_modules/.bin folders there and above first on PATH, as a package
+// manager's `run` puts them.
+export const stepArgv=step=>['/bin/sh','-c',step];
+export function stepPath(root,searchPath){
+  const bins=[];for(let dir=root;;dir=path.dirname(dir)){bins.push(path.join(dir,'node_modules','.bin'));if(path.dirname(dir)===dir)break;}
+  return [...bins,searchPath].filter(Boolean).join(path.delimiter);
+}
+// After a build step that ran from `startedMs` to `endedMs`: the hidden
+// entries (relative, as hiddenEntries lists them) it wrote into, a file in
+// one of them it did not write, which the next step must not see, and each
+// built file's state, to confirm nothing changed them before the run ends.
+// A file counts as written when its time (lstat's mtime) is within the
+// build's run. A file kept with an older time (a copy that keeps times) counts
+// as one it did not write. An entry with more than `limit` files is left
+// hidden: the next step then fails where it needs it, never passes on what
+// it could not check. {built, leftover, files, issue}.
+export function builtEntries(root,hidden,startedMs,endedMs=Date.now(),limit=100000){
+  const built=[],files={};let leftover=null;
+  for(const entry of hidden){
+    const base=path.join(root,entry.replace(/\/$/,''));
+    const found=[];let seen=0;
+    const walk=file=>{
+      if(++seen>limit)throw Object.assign(Error('limit'),{code:'LIMIT'});
+      const stat=fs.lstatSync(file,{throwIfNoEntry:false});if(!stat)return;
+      if(stat.isDirectory())for(const name of fs.readdirSync(file))walk(path.join(file,name));
+      else found.push([path.relative(root,file),stat]);
+    };
+    try{walk(base);}
+    catch(e){if(e.code==='LIMIT')continue;return {built:[],leftover:null,files:{},issue:`the build output cannot be listed (${e.code||e.message})`};}
+    const within=stat=>stat.mtimeMs>=startedMs&&stat.mtimeMs<=endedMs+2000;
+    if(!found.some(([,stat])=>within(stat)))continue;
+    built.push(entry);
+    for(const [rel,stat] of found){
+      if(!within(stat)){leftover??=rel;continue;}
+      files[rel]=fileState(stat);
+    }
+  }
+  return {built,leftover,files,issue:null};
+}
+const fileState=stat=>`${stat.ino}:${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}`;
+// The first built file whose state changed since builtEntries, or that is
+// gone, or a new file in a built entry: another program wrote there.
+export function builtChange(root,built,files){
+  const now=new Set();
+  for(const entry of built){
+    const walk=file=>{const stat=fs.lstatSync(file,{throwIfNoEntry:false});if(!stat)return null;
+      if(stat.isDirectory()){for(const name of fs.readdirSync(file)){const changed=walk(path.join(file,name));if(changed)return changed;}return null;}
+      const rel=path.relative(root,file);now.add(rel);return files[rel]===fileState(stat)?null:rel;};
+    try{const changed=walk(path.join(root,entry.replace(/\/$/,'')));if(changed)return changed;}catch(e){return entry;}
+  }
+  return Object.keys(files).find(rel=>!now.has(rel))??null;
+}
+// A script's two steps, each in the sandbox. A, the build, runs with the
+// git-ignored entries and documentation hidden, no network, and writes only
+// to the checkout and the run's own home and temporary directory, so what it
+// builds comes from the fenced inputs alone. B runs as the check's run would,
+// with the hidden entries A wrote into visible, and nothing else of them:
+// a file there A did not write is an issue, and B does not run.
+// {status, output, ms, built: {entries, issue}}; status 'timeout' past `timeout`.
+// `buildOnly`: A alone, for `redue run`, which runs B as the check's run.
+export async function stepsRun(mode,[first,second],{root,ignored,options,env,timeout=0,echo=false,started=null,buildOnly=false}){
+  const launch=async(argv)=>{const at=Date.now(),r=await runToEnd(argv,{cwd:root,env:{...env,PATH:stepPath(root,env.PATH)},timeout,echo,started});
+    return {status:r.timedOut?'timeout':r.status??r.signal??r.error?.code,output:`${r.stdout}\n${r.stderr}`,ms:Date.now()-at};};
+  const hiddenPaths=entries=>entries.map(rel=>path.join(root,rel.replace(/\/$/,'')));
+  const startedAt=Date.now();
+  const build=await launch(sandboxArgv(mode,stepArgv(first),{...options,hidden:hiddenPaths(ignored),network:'none',stats:null,
+    writes:[root,...options.writes?.filter(dir=>dir!==root)??[options.tmp].filter(Boolean)]}));
+  if(build.status!==0)return {...build,built:{entries:[],issue:null,step:'build'}};
+  const found=builtEntries(root,ignored,startedAt,Date.now());
+  const issue=found.issue||(found.leftover?`${found.leftover} was in the build output before the build step ran, and it did not write it`:null);
+  if(issue)return {status:'leftover',output:build.output,ms:build.ms,built:{entries:found.built,issue}};
+  if(buildOnly)return {...build,built:{entries:found.built,files:found.files,issue:null}};
+  const test=await launch(sandboxArgv(mode,stepArgv(second),{...options,hidden:hiddenPaths(ignored.filter(rel=>!found.built.includes(rel)))}));
+  const changed=builtChange(root,found.built,found.files);
+  return {status:test.status,output:`${build.output}\n${test.output}`,ms:build.ms+test.ms,
+    built:{entries:found.built,issue:changed?`${changed} in the build output changed after the build step ran`:null}};
+}
 // The environment a run gets.
 export function sandboxEnv(check,env,{root,home,tmp}){
   const variables=check.environment?.variables||[],prefixes=(check.environment?.prefixes||[]).map(prefix=>prefix.toLowerCase());
@@ -435,12 +545,17 @@ export function refusedFile(line,root,entries){
 }
 // A refusal line that names a hidden entry (relative): a refusal by the
 // sandbox, or a missing file, which Linux tools report for an unreadable one.
-export function hiddenRefusal(text,hidden){
+export function hiddenRefusal(text,hidden){return hiddenRefusals(text,hidden,1)[0]??null;}
+// Every such line, up to `limit`, each once.
+export function hiddenRefusals(text,hidden,limit=50){
   const names=hidden.map(file=>file.replace(/\/$/,'')).filter(Boolean)
     .map(name=>new RegExp(`(?:^|[\\s'"\`(=/])${escape(name)}(?:[/\\s'"\`):,]|$)`));
-  for(const line of String(text).split(/\r?\n/))
-    if((denial.test(line)||missing.test(line))&&names.some(name=>name.test(line)))return line.trim().slice(0,200);
-  return null;
+  const found=new Set();
+  for(const line of String(text).split(/\r?\n/)){
+    if(found.size>=limit)break;
+    if((denial.test(line)||missing.test(line))&&names.some(name=>name.test(line)))found.add(line.trim().slice(0,200));
+  }
+  return [...found];
 }
 
 const ancestors=list=>[...new Set(list.flatMap(dir=>{const out=[];for(let at=path.dirname(dir);at!=='/'&&at!=='.';at=path.dirname(at))out.push(at);return out;}))];
@@ -728,7 +843,9 @@ export const trialLimit=process.env.VSTATE_TEST_FAULTS==='1'&&Number(process.env
 // sandboxed run, and it also returns them, their count, the run times and, on
 // Linux, the launcher's rule count and setup time.
 // `plain`: the plain run of an earlier trial of the same check, reused.
-export async function sandboxTrial(root,check,{timeout=trialLimit,hide=false,plain:earlier=null}={}){
+// `steps` ([A, B], a test check that hides git-ignored files): the
+// sandboxed run is A, then B, each sandboxed (stepsRun).
+export async function sandboxTrial(root,check,{timeout=trialLimit,hide=false,plain:earlier=null,steps=null}={}){
   const supported=sandboxSupport();
   if(supported.issue)return {issue:supported.issue};
   const python=Boolean(pythonTool(check));
@@ -751,11 +868,19 @@ export async function sandboxTrial(root,check,{timeout=trialLimit,hide=false,pla
     const run=async(argv,env)=>{const started=Date.now(),r=await runToEnd(argv,{cwd:root,env,timeout});
       return {status:r.timedOut?'timeout':r.status??r.signal??r.error?.code,output:`${r.stdout}\n${r.stderr}`,ms:Date.now()-started};};
     const plain=earlier??await run(command,{...process.env,...python?{}:{npm_config_update_notifier:'false'}});
-    if(plain.status==='timeout')return {same:false,plain:'timeout',sandboxed:null,timedOut:'plain',line:null,refusedHidden:null,plainRun:plain};
+    // Each run's time, for init's account: the plain one only when this trial ran it.
+    const runs=earlier?[]:[{run:'plain',ms:plain.ms}];
+    if(plain.status==='timeout')return {same:false,plain:'timeout',sandboxed:null,timedOut:'plain',line:null,refusedHidden:null,plainRun:plain,runs};
     const reads=[root,home,tmp,...sandboxPlaces(selected,process.env,root),...systemPlaces];
-    const sandboxed=await run(sandboxArgv(supported.mode,command,{reads,tmp,python:supported.python,hidden,stats,visible:shownFiles,git:checkoutGit(root),nestedGit:nestedGits(root)||[],
+    const options={reads,tmp,python:supported.python,hidden,stats,visible:shownFiles,git:checkoutGit(root),nestedGit:nestedGits(root)||[],
       ...hide==='docs'?{docs:{root,entries:docEntries,visible:shownList}}:{},
-      ...tests?{...supported.mode==='landlock'?{network:'loopback'}:{},writes:[root,home,tmp]}:{}}),sandboxEnv(selected,process.env,{root,home,tmp}));
+      ...tests?{...supported.mode==='landlock'?{network:'loopback'}:{},writes:[root,home,tmp]}:{}};
+    const env=sandboxEnv(selected,process.env,{root,home,tmp});
+    let built=null;
+    const sandboxed=steps?await (async()=>{
+      const r=await stepsRun(supported.mode,steps,{root,ignored,options,env,timeout});built=r.built;
+      return {status:r.status,output:r.output,ms:r.ms};})():
+      await run(sandboxArgv(supported.mode,command,options),env);
     // A test run's network was supervised throughout, on Linux.
     const supervisor=tests&&stats?supervisorIssue(stats):null;
     // A failure both ways counts as the same only without a sign of a refusal.
@@ -776,13 +901,14 @@ export async function sandboxTrial(root,check,{timeout=trialLimit,hide=false,pla
     const read=counts?.some(c=>Object.values(c).some(value=>value!==null));
     const differs=tests&&read?(JSON.stringify(counts[0])===JSON.stringify(counts[1])?null:{plain:JSON.stringify(counts[0]),sandboxed:JSON.stringify(counts[1])}):output;
     const timedOut=sandboxed.status==='timeout'?'sandboxed':null;
-    const same=!timedOut&&plain.status===sandboxed.status&&!denied&&!differs&&!supervisor;
+    const same=!timedOut&&plain.status===sandboxed.status&&!denied&&!differs&&!supervisor&&!built?.issue;
     // When they differ, the sandboxed run's last lines, for init to keep in
     // local state (never in the config: output can hold tokens and paths).
     const tail=same?null:sandboxed.output.split(/\r?\n/).filter(line=>line.trim()).slice(-20).map(line=>line.length>200?line.slice(0,200)+'…':line);
-    return {same,plain:plain.status,sandboxed:sandboxed.status,output:differs,plainRun:plain,timedOut,tail,
+    runs.push({run:'sandboxed',ms:sandboxed.ms});
+    return {same,plain:plain.status,sandboxed:sandboxed.status,output:differs,plainRun:plain,timedOut,tail,runs,...built?{built}:{},
       line:supervisor||denied||(plain.status===sandboxed.status?null:sandboxed.output.trim().split('\n').at(-1)?.slice(0,200)||null),
-      refusedHidden:same?null:refusedHidden(plain,sandboxed,entries,supervisor),
+      ...(refused=>({refusedHidden:refused,refusedLines:refused?hiddenRefusals(sandboxed.output,entries).filter(line=>!plain.output.includes(line)):[]}))(same?null:refusedHidden(plain,sandboxed,entries,supervisor)),
       ...hide?{hidden:entries.length,entries,docs:docEntries.length,plainMs:plain.ms,sandboxedMs:sandboxed.ms,...launcher?{rules:launcher.rules,setupMs:launcher.ms}:{}}:{}};
   }finally{fs.rmSync(scratch,{recursive:true,force:true});}
 }

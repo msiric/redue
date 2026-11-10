@@ -478,7 +478,9 @@ function rows(contextHashes,synchronizedInstalled=false,synchronizedFilesystem=f
     const changedSinceRun=r.observerGeneration!==generation||r.endRevision!==combinedSummary(name).revision;
     if(!r.coverage?.qualified){item.reason='coverage unresolved when execution was recorded';item.needs_run=changedSinceRun;return item;}
     if(r.invocation?.status!=='exited'){
-      item.reason=`invocation ${r.invocation?.status||'capture unavailable'}`;item.needs_run=changedSinceRun;return item;}
+      // A build step that left a file it did not write in its output says so (cli.mjs `steps`).
+      const build=r.invocation?.errorCode==='BUILD_OUTPUT'?(r.checkpoint?.issues||[]).find(issue=>issue.startsWith("the build step's output: ")):null;
+      item.reason=build??`invocation ${r.invocation?.status||'capture unavailable'}`;item.needs_run=changedSinceRun||Boolean(build);return item;}
     if(!['executed','failed','cache_hit','direct_executed'].includes(r.target?.status)){
       item.reason=`target execution ${r.target?.status||'unavailable'}`;item.needs_run=changedSinceRun;return item;}
     if(r.target.status==='failed'&&result!=='FAIL'){

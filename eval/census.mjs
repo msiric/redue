@@ -107,6 +107,7 @@ function init(dir, ...args) {
     const out = JSON.parse(r.stdout), proposed = out.proposed_config?.checks ?? [];
     return {ms: r.ms, issue: out.issue, layout: out.installation_layout, pm: out.package_manager, pmVersion: out.version, workspaces: out.workspaces,
       ambiguous: out.ambiguous, checks: (out.checks ?? []).map(c => ({name: c.name, script: c.script, workspace: c.workspace, level: c.level, reason: c.reason,
+        ...c.trial_runs ? {trial_runs: c.trial_runs} : {},
         qualification: proposed.find(p => p.name === c.name)?.qualification ?? null}))};
   } catch { return {ms: r.ms, timedOut: r.timedOut, error: `exit ${r.status}: ${tail(r, 400)}`}; }
 }

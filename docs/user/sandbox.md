@@ -258,6 +258,51 @@ the next run is CURRENT. A build that writes other bytes on every run (a
 timestamp, a build ID) never settles: after two such runs the check is NOT
 VERIFIABLE until another input changes.
 
+### Test scripts that build first
+
+A root test script `A && B` whose first step builds what the tests read
+(`vp run -r build && vp run -r test`, `node build.js && mocha`) fails the
+hidden trial when the build goes to a folder git ignores: the tests are
+refused what it wrote. `init` then tries the script as two sandboxed steps,
+reusing the plain run, and writes `steps: ["A", "B"]` with `sandbox-v3`
+when that agrees with the plain `npm run` of the whole script:
+
+- **A, the build,** runs with the files git ignores and the documentation
+  hidden, no network, and writes only to the checkout and the run's own home
+  and temporary directory. What it builds comes from the fenced inputs alone:
+  it cannot read an earlier build.
+- **B, the tests,** run as any sandboxed test run, with the git-ignored
+  folders A wrote into visible and the rest hidden. A file in such a folder
+  that A did not write (its time is before A started) is a leftover the
+  tests could read: the run gives no result, says which file, and B does not
+  run. Delete it, or make the build clean its output.
+- **The build's output is never an input.** Each run builds it again from the
+  inputs, so its bytes (a timestamp, a build ID) and an edit to it do not
+  matter. A source change makes the check STALE as usual.
+- **A failed build is the run's FAIL**, with its exit status; the tests do
+  not run.
+
+- **What counts as the build's output.** A file in a folder the build wrote
+  into counts as the build's when its time is within the build's run. A file
+  the build copies with its old time kept (`cp -p`, some asset copies) counts
+  as a leftover, so such a build gives no result: make it copy without
+  keeping times. A file in that output that changes, appears or goes before
+  the tests end makes the result UNVERIFIED. Limit: another program writing
+  into the build's output folder while the build runs is taken as the build's
+  write. A git-ignored folder with more than 100,000 files stays hidden from
+  the tests.
+- **No `preSCRIPT` or `postSCRIPT`.** A package manager's run would run them
+  and the steps would not, so a script with either is not split.
+
+Each step runs as `sh -c STEP` from the checkout's root, with the
+`node_modules/.bin` folders there and above first on `PATH`, as a package
+manager's `run` puts them; init's trial confirms the split gives the plain
+script's result. One `&&` only, with no `||`, `;`, `|` or `&` outside quotes
+and parentheses. When the script changes, a run says so and is not
+CURRENT: run `redue init` again. Not covered: a build started from inside
+the tests (pokemon-showdown's `test/main.js` runs `node build`), turbo or
+nx pipelines that build within one command, and workspace packages' scripts.
+
 ## What REDUE claims
 
 CURRENT means the last sandboxed run's inputs are unchanged:

@@ -47,6 +47,12 @@ if 'nodedump' in text:
         print("Error: EACCES: permission denied, open '" + os.path.abspath('build/generated.py') + "'")
         print("    at Object.openSync (node:fs:573:18) {"); print("  errno: -13,"); print("  code: 'EACCES',"); print("  syscall: 'open',")
         print("  path: '" + os.path.abspath('build/generated.py') + "'"); print("}"); sys.exit(1)
+if 'readpair' in text:
+    failed = False
+    for name in ('build/p0.py', 'build/p1.py'):
+        try: text += open(name).read()
+        except OSError as e: print(f"{name}: {e}"); failed = True
+    if failed: sys.exit(1)
 if 'readmany' in text:
     for i in range(4): text += open(f'build/m{i}.py').read()
 if 'lateoutside' in text: open(${JSON.stringify(outside)}).read()
@@ -469,6 +475,18 @@ test('a refusal Node prints with its error properties still gets the file visibl
   assert.equal(`${check.qualification} ${JSON.stringify(check.visible)}`,'sandbox-v3 ["build/generated.py"]',JSON.stringify(init.checks));
 });
 
+test('a run refused several hidden files at once gets them all visible in one more run; init lists each trial run with its time',{skip:unsupported},t=>{
+  const {root,state}=project(t);
+  for(let i=0;i<2;i++)put(path.join(root,`build/p${i}.py`),`p = ${i}\n`);
+  write(root,'src/fx/reads.py','# readpair\n');
+  const init=JSON.parse(good(root,state,'init','--dry-run','--json'));
+  const check=init.proposed_config.checks.find(c=>c.name==='typecheck');
+  assert.equal(`${check.qualification} ${JSON.stringify(check.visible)}`,'sandbox-v3 ["build/p0.py","build/p1.py"]',JSON.stringify(init.checks));
+  const runs=init.checks.find(c=>c.name==='typecheck').trial_runs;
+  assert.deepEqual(runs.map(r=>`${r.run}${r.as?' '+r.as:''}`),['plain','sandboxed hidden','sandboxed visible:build/p0.py,build/p1.py'],JSON.stringify(runs));
+  assert.ok(runs.every(r=>Number.isInteger(r.ms)&&r.ms>=0));
+});
+
 test('a check that needs more hidden files than visible takes gets the whole checkout, as before',{skip:unsupported},t=>{
   const {root,state}=project(t);
   for(let i=0;i<4;i++)put(path.join(root,`build/m${i}.py`),`m = ${i}\n`);
@@ -717,6 +735,64 @@ function nodeProject(t,scripts){
   execFileSync('git',['init','-q'],{cwd:root});execFileSync('git',['add','.'],{cwd:root});
   return {root,state};
 }
+
+test('a test script that builds first runs as two sandboxed steps: the tests see what the build wrote, which is never an input',{skip:unsupported},t=>{
+  const {root,state}=nodeProject(t,{test:'node build.js && node check.js'});
+  write(root,'.gitignore','node_modules/\ndist/\n');
+  // The build's bytes differ every run; the tests read them back.
+  write(root,'build.js',"const fs=require('node:fs');const src=fs.readFileSync('src/value.js','utf8');\n"+
+    "if(src.includes('buildfail'))process.exit(3);\nfs.mkdirSync('dist',{recursive:true});\n"+
+    "fs.writeFileSync('dist/out.js','module.exports='+JSON.stringify(src)+'// '+Date.now()+'\\n');\n");
+  write(root,'check.js',"const out=require('./dist/out.js');\nif(out.includes('fail')){console.log('0 passing');console.log('1 failing');process.exit(1);}\nconsole.log('1 passing');\n");
+  execFileSync('git',['add','.'],{cwd:root});
+  // A build left by an earlier run, as a developer's checkout has it.
+  execFileSync(process.execPath,['build.js'],{cwd:root});
+  const init=JSON.parse(good(root,state,'init','--json'));
+  const check=JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'),'utf8')).checks.find(c=>c.name==='test');
+  assert.equal(`${check?.qualification} ${JSON.stringify(check?.steps)}`,'sandbox-v3 ["node build.js","node check.js"]',JSON.stringify([init.checks,init.skipped]));
+  assert.deepEqual(init.checks.find(c=>c.name==='test').trial_runs.map(r=>r.as??r.run),['plain','hidden','steps']);
+  good(root,state,'start');
+  good(root,state,'run','test');
+  let status=row(root,state,'test');
+  assert.equal(`${status.freshness}/${status.result}`,'CURRENT/PASS',status.reason);
+  // Each run builds other bytes: still CURRENT, the output is not an input.
+  good(root,state,'run','test');
+  assert.equal(`${row(root,state,'test').freshness}`,'CURRENT');
+  write(root,'dist/out.js','module.exports="changed by hand";\n');
+  assert.equal(row(root,state,'test').freshness,'CURRENT');
+  // A source change: STALE, then a run.
+  write(root,'src/value.js','pass again\n');
+  assert.equal(row(root,state,'test').freshness,'STALE');
+  good(root,state,'run','test');
+  assert.equal(row(root,state,'test').freshness,'CURRENT');
+  // The tests fail on what the build wrote: FAIL.
+  write(root,'src/value.js','fail\n');
+  assert.equal(invoke(root,state,['run','test']).status,1);
+  status=row(root,state,'test');assert.equal(`${status.freshness}/${status.result}`,'CURRENT/FAIL',status.reason);
+  // The build fails: FAIL, and the tests do not run.
+  write(root,'src/value.js','buildfail\n');
+  const failed=invoke(root,state,['run','test']);
+  assert.equal(failed.status,3,failed.stdout+failed.stderr);assert.doesNotMatch(failed.stdout,/\d+ passing/);
+  status=row(root,state,'test');assert.equal(`${status.freshness}/${status.result}`,'CURRENT/FAIL',status.reason);
+  // A file in the build's output the build did not write: no result, and the tests do not run.
+  write(root,'src/value.js','pass\n');
+  write(root,'dist/old.js','old\n');const past=new Date(Date.now()-3600_000);fs.utimesSync(path.join(root,'dist/old.js'),past,past);
+  const left=invoke(root,state,['run','test']);
+  assert.doesNotMatch(left.stdout,/\d+ passing/);
+  status=row(root,state,'test');
+  assert.equal(status.freshness,'UNVERIFIED',JSON.stringify(status));assert.match(status.reason,/dist\/old\.js was in the build output before the build step ran/);
+  fs.rmSync(path.join(root,'dist/old.js'));
+  good(root,state,'run','test');assert.equal(row(root,state,'test').freshness,'CURRENT');
+  // A pretest script appears: a package manager's run would run it, the steps would not.
+  write(root,'package.json',JSON.stringify({name:'fx',version:'1.0.0',scripts:{pretest:'node -e 0',test:'node build.js && node check.js'}}));
+  invoke(root,state,['run','test']);
+  status=row(root,state,'test');
+  assert.notEqual(status.freshness,'CURRENT');assert.match(JSON.stringify(status),/without pre or post scripts; run redue init again/);
+  // The script changed: run as it is now, and not CURRENT until init again.
+  write(root,'package.json',JSON.stringify({name:'fx',version:'1.0.0',scripts:{test:'node build.js && node check.js && true'}}));
+  invoke(root,state,['run','test']);
+  assert.notEqual(row(root,state,'test').freshness,'CURRENT');
+});
 
 test('a sandboxed run sees that .git exists but not what is inside it, but for the ignore rules; a repository a test makes works',{skip:unsupported},t=>{
   const {root,state}=project(t,{tools:['pytest']});

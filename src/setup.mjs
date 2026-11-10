@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
-import {isSandboxed,testCounts} from './sandbox.mjs';
+import {isSandboxed,sandboxSupport,testCounts} from './sandbox.mjs';
 import {createInterface} from 'node:readline/promises';
 import {projectState} from './project-location.mjs';
 import {claudeHooksInstalled,removeClaudeHooks,removeIntegration} from './agent-integration.mjs';
@@ -58,8 +58,10 @@ export async function setupCommand(args,{entry,cwd=process.cwd()}){
   const invoked=typeof process.argv[1]==='string'&&path.isAbsolute(process.argv[1])&&
     (()=>{try{return fs.realpathSync(process.argv[1])===fs.realpathSync(entry);}catch{return false;}})()?process.argv[1]:entry;
   // Every step is the ordinary command, so its own output says what it did.
+  // `capture` keeps the output; `progress` keeps stdout and shows stderr's progress lines.
   const redue=(argv,options={})=>spawnSync(process.execPath,[invoked,...argv],{cwd:root,encoding:'utf8',
-    stdio:options.capture?['ignore','pipe','pipe']:'inherit',timeout:options.timeout});
+    stdio:options.capture?['ignore','pipe','pipe']:options.progress?['ignore','pipe','inherit']:'inherit',timeout:options.timeout,
+    maxBuffer:64*1024*1024});
   // One record per checkout, beside the others in the shared Git directory:
   // linked worktrees share .git/info/exclude.
   const recordFile=recordOf(root),common=path.dirname(recordFile);
@@ -84,9 +86,24 @@ async function setup({root,redue,yes,record:previous,recordFile,exclude,save}){
     throw Error(`${localSettings} is committed; the hooks REDUE adds there name this machine's paths. Untrack it (git rm --cached) first`);
   const configPath=path.join(root,configName),configExisted=fs.existsSync(configPath);
   // init's account of the checks: which can qualify, also with a config.
-  const preview=redue(['init','--dry-run','--json'],{capture:true});
-  if(preview.status!==0)throw Error(preview.stderr.trim().replace(/^redue: /,'')||'init failed');
-  const found=JSON.parse(preview.stdout);
+  // Its sandbox trials run once, here: setup writes the config it proposes
+  // rather than running init (and every trial) again.
+  const phases={},timed=(name,work)=>{const started=Date.now();try{return work();}finally{phases[name]=(phases[name]??0)+Date.now()-started;}};
+  // With a config, its checks say which can qualify: no trial runs again.
+  let found;
+  if(configExisted){
+    let config;try{config=JSON.parse(readText(configPath));}catch(e){throw Error(`cannot read ${configName}: ${e.message}`);}
+    if(!Array.isArray(config?.checks))throw Error(`cannot read ${configName}: it has no checks`);
+    // A sandboxed check where the sandbox cannot run here would only record.
+    const noSandbox=config.checks.some(check=>isSandboxed(check.qualification))?sandboxSupport().issue:null;
+    found={writable:false,skipped:[],checks:config.checks.map(check=>({name:check.name,kind:check.kind,
+      level:check.qualification&&!(noSandbox&&isSandboxed(check.qualification))?'ready':'recording'}))};
+  }else{
+    console.log('Trying each check inside and outside the sandbox to choose its recipe...');
+    const preview=timed('trials',()=>redue(['init','--dry-run','--json'],{progress:true}));
+    if(preview.status!==0)throw Error('init failed; see above');
+    found=JSON.parse(preview.stdout);
+  }
   if(!configExisted&&!found.writable)throw Error(`nothing to set up: ${found.issue||(found.checks.length?found.checks.map(check=>`${check.name}: ${check.reason}`).join('; '):'no typecheck, lint or test script REDUE can use')}`);
   const levels=new Map(found.checks.map(check=>[check.name,check.level]));
   // The checks whose trial ran past init's time limit, unless the config
@@ -123,9 +140,15 @@ async function setup({root,redue,yes,record:previous,recordFile,exclude,save}){
     stateCreated:Boolean(previous?.stateCreated)||!fs.existsSync(state),
     excludeAdded:Boolean(previous?.excludeAdded)};
   if(!configExisted){
-    const init=redue(['init']);
-    if(init.status!==0||!fs.existsSync(configPath))throw Error(`init did not write ${configName}; nothing else was written`);
-    Object.assign(own,{configCreated:true,configHash:hash(readText(configPath))});
+    // As init writes it: only at the repository root, never over a config.
+    const proposed=found.proposed_config;
+    if(!proposed||!Array.isArray(proposed.checks)||!proposed.checks.length||!found.writable)
+      throw Error(`init proposed no config; nothing else was written`);
+    const text=JSON.stringify(proposed,null,2)+'\n';
+    try{fs.writeFileSync(configPath,text,{flag:'wx'});}
+    catch(e){throw Error(e.code==='EEXIST'?`${configName} appeared while the checks ran; nothing else was written. Run setup again`:e.message);}
+    console.log(`create ${configName}`);
+    Object.assign(own,{configCreated:true,configHash:hash(text)});
   }
   save(own);
   console.log(`${previous?'update':'create'} ${recordFile}: what setup created, for redue remove`);
@@ -155,6 +178,7 @@ async function setup({root,redue,yes,record:previous,recordFile,exclude,save}){
   // An answer without a phase (a stopped observer) for 10 s in a row ends the
   // wait too.
   const begun=Date.now();let told=-1,unread=0,phaseless=0;
+  const indexing=Date.now();
   for(let state=observation();ready.length&&!(state?.phase==='ready'||state?.phase==='unavailable')&&phaseless<10;state=observation()){
     const seconds=Math.round((Date.now()-begun)/1000);
     unread=state===null?unread+1:0;phaseless=state&&!state.phase?phaseless+1:0;
@@ -163,13 +187,14 @@ async function setup({root,redue,yes,record:previous,recordFile,exclude,save}){
     if(Math.floor(seconds/15)>told){told=Math.floor(seconds/15);console.log(seconds?`Still indexing (${seconds} s)...`:'Waiting for the observer to index the project...');}
     await new Promise(resolve=>setTimeout(resolve,1000));
   }
+  phases.indexing=Date.now()-indexing;
   // One recorded run of each check that can qualify and is not CURRENT.
   const statusOf=()=>{const out=redue(['status','--sync','--json'],{capture:true,timeout:600_000});try{return JSON.parse(out.stdout).checks;}catch{return [];}};
   const rows=statusOf(),due=ready.filter(name=>rows.find(row=>row.name===name)?.freshness!=='CURRENT');
   // One line per check; the run's own output only when it fails.
   for(const name of due){
     console.log(`Recording ${name} once (running it)...`);
-    const started=Date.now(),run=redue(['run',name],{capture:true});
+    const started=Date.now(),run=timed('recording',()=>redue(['run',name],{capture:true}));
     const output=`${run.stdout??''}\n${run.stderr??''}`,counts=testCounts(output),seconds=((Date.now()-started)/1000).toFixed(1);
     const tally=Object.entries(counts).filter(([,value])=>value!==null).map(([key,value])=>`${value} ${key}`).join(', ');
     console.log(`  ${name}: ${run.status===0?'PASS':`FAIL (exit ${run.status??run.signal})`} in ${seconds} s${tally?`, ${tally}`:''}`);
@@ -180,8 +205,11 @@ async function setup({root,redue,yes,record:previous,recordFile,exclude,save}){
     levels.get(row.name)!=='ready'?' — recording only':' — '+row.reason}`);
   if(limited.length)console.log(`${limited.map(([name])=>name).join(', ')} ran past init's 5-minute trial limit, so ${limited.length>1?'they are':'it is'} not sandboxed. `+
     `To try ${limited.length>1?'them':'it'} without the limit: redue init${limitedKinds.length>1?'':` --check ${limitedKinds[0]}`} --no-time-limit`);
+  const sec=ms=>`${Math.round(ms/1000)} s`;
+  console.log(`Time: ${[['trials','trying checks in the sandbox'],['indexing','indexing'],['recording','recording runs']]
+    .filter(([name])=>phases[name]!==undefined).map(([name,label])=>`${label} ${sec(phases[name])}`).join(', ')}.`);
   console.log('Done. Start a new Claude Code session in this project. Undo with redue remove.');
-  return {applied:true};
+  return {applied:true,phases};
 }
 
 async function remove({root,redue,yes,record:own,recordFile,exclude,others}){
