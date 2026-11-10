@@ -700,7 +700,10 @@ async function execute() {
     }
     // A test run whose network was not supervised throughout is not reused.
     const cleanupStarted=performance.now();
-    if(sandbox?.stats){const issue=supervisorIssue(sandbox.stats);if(issue)captureIssues.push(issue);fs.rmSync(sandbox.stats,{force:true});}
+    // A build step that failed ran no tests, so no supervised run reports (cli `steps`).
+    // A rerun of the whole script without hiding files did run them, supervised.
+    const testsRan=!(built&&(built.status!==0||built.built.issue))||Boolean(hiddenRerun);
+    if(sandbox?.stats){const issue=testsRan?supervisorIssue(sandbox.stats):null;if(issue)captureIssues.push(issue);fs.rmSync(sandbox.stats,{force:true});}
     if(sandbox){fs.rmSync(sandbox.dirs.tmp,{recursive:true,force:true});timing('cli.sandbox_cleanup',cleanupStarted);}
     // A sandbox-v1 run (the whole checkout, git-ignored files included) of a
     // suite that rebuilds git-ignored files and reads them back, such as
