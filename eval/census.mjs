@@ -108,6 +108,9 @@ function init(dir, ...args) {
     return {ms: r.ms, issue: out.issue, layout: out.installation_layout, pm: out.package_manager, pmVersion: out.version, workspaces: out.workspaces,
       ambiguous: out.ambiguous, checks: (out.checks ?? []).map(c => ({name: c.name, script: c.script, workspace: c.workspace, level: c.level, reason: c.reason,
         ...c.trial_runs ? {trial_runs: c.trial_runs} : {},
+        // The failed trial's last sandboxed lines init kept in local state on this runner.
+        ...(file => { if (!file) return {}; try { return {trial_tail: fs.readFileSync(file, 'utf8').split('\n').slice(0, 25)}; } catch { return {}; } })(
+          /the sandboxed run's last lines are in (\S+?\.txt)/.exec(c.reason ?? '')?.[1]),
         qualification: proposed.find(p => p.name === c.name)?.qualification ?? null}))};
   } catch { return {ms: r.ms, timedOut: r.timedOut, error: `exit ${r.status}: ${tail(r, 400)}`}; }
 }
