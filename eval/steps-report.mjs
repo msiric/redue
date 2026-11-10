@@ -8,13 +8,15 @@
 //
 //   node eval/steps-report.mjs DIR...
 //
-// A check counts where it passes on the repo's pinned commit. "Verified" is
-// gap-report.mjs's: a full run on a tree that differs from the step's in
-// documentation at most, or REDUE CURRENT for it at the step's end.
+// A check counts where it passes on the repo's pinned commit. "Verified": a
+// full run on a tree that differs from the step's in documentation at most,
+// or REDUE CURRENT for it at the step's end (which stands for REDUE's
+// recorded run), or a step that changed documentation only after one where
+// the check was verified. The same rule for every arm.
 import fs from 'node:fs';
 import path from 'node:path';
 import {entryPoint, evalDir, readJson} from './lib.mjs';
-import {checksOf, kinds, segments} from './gap.mjs';
+import {checksOf, kinds, regapOf, segments} from './gap.mjs';
 entryPoint(import.meta);
 
 const repos = readJson(path.join(evalDir, 'repos.json')).repos;
@@ -57,17 +59,27 @@ for (const file of files) {
     const group = `${data.model}${row.arm === 'redue' ? ' + REDUE' : row.arm === 'instructed' ? ' + instructions' : row.arm === 'generic' ? ' + generic instruction' : ''}`;
     const counted = kinds.filter(k => row.base_checks?.[k]?.pass === true && row.final_checks?.[k]);
     if (!counted.length) continue;
+    // One rule for every arm: a check is verified at a step's end when a
+    // whole run of it there is on a tree that differs from the step's in
+    // documentation at most (the agent's own command, or REDUE CURRENT, which
+    // stands for its recorded run), or when the step changed documentation
+    // at most and the check was verified at the end of the step before.
+    let carried = {};
     for (const [n, step] of row.steps.entries()) {
-      const gap = row.steps.length > 1 ? step.gap : row.gap;
+      const multi = row.steps.length > 1, file = name => path.join(dir, multi ? `${name}-${n + 1}.jsonl` : `${name}.jsonl`);
+      const recorded = multi ? step.gap : row.gap, gap = repo ? regapOf(recorded, file('transcript'), file('trees'), repo) : recorded;
       const checks = step.final_checks ?? (n === row.steps.length - 1 ? row.final_checks : null);
       // Every status row of the kind (test, test:unit, ...) must say it.
       const variants = k => step.redue_final?.healthy ? step.redue_final.checks.filter(c => c.name === k || c.name.startsWith(`${k}:`)) : [];
       const says = (k, f) => variants(k).length > 0 && variants(k).every(f);
       const fails = k => checks?.[k]?.pass === false && checks[k].again === false;
+      const now = Object.fromEntries(counted.map(k => [k, Boolean(gap?.checks?.[k]?.final_full ||
+        says(k, c => c.freshness === 'CURRENT') || n > 0 && step.source_changed === false && carried[k])]));
+      carried = now;
       rows.push({group, task: row.task, repo: row.repo, step: n + 1, new: step.new, wall: step.wall_ms,
         ...(({ms, killed, limit, background}) => ({check: ms, killed, limit, background}))(checkCalls(path.join(dir, row.steps.length > 1 ? `transcript-${n + 1}.jsonl` : 'transcript.jsonl'), repo)),
         known: Boolean(checks),
-        verified: counted.every(k => gap?.checks?.[k]?.final_full || says(k, c => c.freshness === 'CURRENT')),
+        verified: counted.every(k => now[k]),
         wrong: counted.filter(k => variants(k).some(c => c.freshness === 'CURRENT' && c.result === 'PASS') && fails(k)).map(k => `${row.id} step ${n + 1} ${k}`)});
     }
     // Skips across the run's steps, each checked with a plain run on its tree (run.mjs).

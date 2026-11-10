@@ -69,8 +69,14 @@ export function writes(segment, repo) {
   return !Object.keys(checksOf(segment, repo)).length || fixing.test(segment);
 }
 
+// A segment that writes only through a redirection of its output.
+function redirectOnly(segment, repo) {
+  const bare = segment.replace(/(^|\s)(\d|&)?>>?\s*\S+/g, ' ').trim();
+  return fileRedirect.test(segment) && Boolean(bare) && !writes(bare, repo);
+}
+
 // Arguments that narrow a run to some files or tests.
-const narrowing = /^(-k|-t|--testNamePattern|--testPathPattern|--grep|--filter|--lf|--last-failed)(=|$)/;
+const narrowing = /^(-k|-t|--testNamePattern|--testPathPattern|--testPathIgnorePatterns|--grep|--filter|--exclude|--deselect|--ignore|--ignore-glob|--lf|--last-failed)(=|$)/;
 const pathArg = token => /::/.test(token) || /\.(py|pyi|ts|tsx|mts|cts|js|jsx|mjs|cjs)$/.test(token) || /^[\w.@-]*\/[\w./@*-]*$/.test(token);
 
 // Vitest and Jest take any bare argument as a test file filter (pytest's
@@ -93,13 +99,27 @@ export function checksOf(segment, repo) {
   if (testLike(segment, repo.testScript)) found.test = true;
   for (const alias of repo.gapAliases || []) if (new RegExp(alias.match).test(segment)) for (const kind of alias.checks) found[kind] = true;
   const result = {};
+  const words = unredirected(segment.split(/\s+/).slice(1).map(t => t.replace(/^['"]|['"]$/g, '')));
   for (const kind of Object.keys(found)) {
-    const own = new Set(String(kind === 'typecheck' ? repo.typecheck ?? '' : repo[kind] ?? '').split(/\s+/));
-    const tokens = segment.split(/\s+/).slice(1).map(t => t.replace(/^['"]|['"]$/g, '')).filter(t => !own.has(t) && !/^\d?>/.test(t));
-    result[kind] = tokens.some(t => narrowing.test(t) || pathArg(t) && !t.startsWith('-')) ||
-      kind === 'test' && jsTest.test(segment) && filtersFiles(tokens, repo);
+    const ownWords = String(kind === 'typecheck' ? repo.typecheck ?? '' : repo[kind] ?? '').split(/\s+/), own = new Set(ownWords);
+    const tokens = words.filter(t => !own.has(t));
+    // A run of every file the check's own command names, and more, runs all of the check.
+    const ownPaths = ownWords.slice(1).filter(t => pathArg(t) && !t.startsWith('-'));
+    const superset = ownPaths.length > 0 && ownPaths.every(t => words.includes(t));
+    result[kind] = tokens.some(t => narrowing.test(t) || !superset && pathArg(t) && !t.startsWith('-')) ||
+      !superset && kind === 'test' && jsTest.test(segment) && filtersFiles(tokens, repo);
   }
   return result;
+}
+// Arguments without redirections: `> out.txt`, `2>&1`, `>/tmp/log` and `< in` are not the program's.
+function unredirected(tokens) {
+  const out = [];
+  for (let i = 0; i < tokens.length; i++) {
+    if (/^(\d|&)?(>>?|<)$/.test(tokens[i])) { i++; continue; }
+    if (/^(\d|&)?(>>?|<)/.test(tokens[i])) continue;
+    out.push(tokens[i]);
+  }
+  return out;
 }
 
 const textOf = content => typeof content === 'string' ? content :
@@ -151,6 +171,18 @@ export function gapOf({transcript, treeLog, repo, same, finalTree}) {
     if (m.type === 'user' && part.type === 'tool_result') results.set(part.tool_use_id, {error: part.is_error === true, text: textOf(part.content)});
   }
   const bash = calls.filter(c => c.name === 'Bash');
+  // The tree after a group of calls: the tree before the next group's first
+  // call. A group whose calls Claude Code refused before they ran (a
+  // <tool_use_error>, with no tree logged) changed nothing; the tree is the
+  // next one's.
+  const refused = id => { const r = results.get(id); return Boolean(r?.error && r.text.startsWith('<tool_use_error>')); };
+  const treeAfter = group => {
+    for (let g = group + 1; g < groups.length; g++) {
+      if (trees.has(groups[g].first)) return trees.get(groups[g].first);
+      if (!calls.filter(c => c.group === g).every(c => refused(c.id))) return null;
+    }
+    return finalTree;
+  };
   const sameCache = new Map();
   const onFinal = tree => {
     if (!tree) return null;
@@ -163,15 +195,20 @@ export function gapOf({transcript, treeLog, repo, same, finalTree}) {
     const parts = segments(call.command), found = parts.map(part => checksOf(part, repo));
     if (!found.some(f => Object.keys(f).length)) continue;
     const result = results.get(call.id), wrote = parts.map(part => writes(part, repo));
-    const before = trees.get(call.id) ?? null, next = groups[call.group + 1];
-    const after = next ? trees.get(next.first) ?? null : finalTree;
+    const before = trees.get(call.id) ?? null, after = treeAfter(call.group);
     // A short error that says the program or script is not there: nothing ran.
     const none = result ? result.error && result.text.length < 600 && missing.test(result.text) : false;
     const checks = {};
     for (const [i, f] of found.entries()) for (const [kind, scoped] of Object.entries(f)) {
       const earlier = wrote.slice(0, i).some(Boolean), later = wrote.slice(i + 1).some(Boolean);
-      const tree = !earlier ? before : !later ? after : null;
-      const run = {scoped, side: !earlier ? 'before' : !later ? 'after' : 'unknown', final: onFinal(tree),
+      // A call whose only writes are output redirected to files, and that left
+      // the tree as it found it, ran every check on that tree. (A stash, an
+      // edit undone later in the same command, and the like still leave the
+      // tree unknown.)
+      const unchanged = before && before === after && parts.every((part, j) => !wrote[j] || redirectOnly(part, repo));
+      const side = !earlier || unchanged ? 'before' : !later ? 'after' : 'unknown';
+      const tree = side === 'before' ? before : side === 'after' ? after : null;
+      const run = {scoped, side, final: onFinal(tree),
         missing: none || Boolean(result && absent(parts[i], result.text))};
       // Keep the run that counts most: real, whole, on the final tree.
       const rank = r => (r.missing ? 0 : 4) + (r.final ? 2 : 0) + (r.scoped ? 0 : 1);
@@ -195,4 +232,21 @@ export function gapOf({transcript, treeLog, repo, same, finalTree}) {
     final_text: text,
     claims: claimsOf(text),
   };
+}
+
+// A recorded gap classified again with the current rules, so a fix here
+// applies to sessions already run. Whether a tree is the final one comes from
+// the answers the run recorded; a tree it never asked about stays unknown.
+export function regapOf(gap, transcript, treeLog, repo) {
+  if (!gap || !fs.existsSync(transcript) || !fs.existsSync(treeLog)) return gap;
+  const known = new Map();
+  for (const run of gap.runs) for (const c of Object.values(run.checks)) {
+    if (typeof c !== 'object' || c.final === null) continue;
+    const tree = c.side === 'before' ? run.before : c.side === 'after' ? run.after : null;
+    if (tree) known.set(tree, c.final);
+  }
+  const finalTree = '(final tree)', asked = [];
+  const same = tree => { if (!known.has(tree)) asked.push(tree); return known.get(tree) ?? null; };
+  const fresh = gapOf({transcript, treeLog, repo, same, finalTree});
+  return {...gap, runs: fresh.runs, checks: fresh.checks, claims: fresh.claims, unasked: asked.length};
 }

@@ -34,8 +34,11 @@ Sonnet 5.5 / Opus 5.5:
 | Exact commands | 93% / 98% | 5% / 2% | 0 / 0 | 47 s / 61 s |
 | REDUE | 100% / 100% | 0% / 0% | 0 / 0 | 44 s / 65 s |
 
-- **Verified:** the session ran all of the check on the final code, or REDUE
-  said CURRENT for it at the end. Counting only the agents' own check
+- **Verified:** the same rule for every setup: a run of the whole check on
+  code that differs from the final code in documentation at most, by the
+  agent or recorded by REDUE (CURRENT at the end stands for REDUE's run).
+  Output redirected to a file, a background run, and a test run naming the
+  check's own files plus more all count. Counting only the agents' own check
   commands, REDUE sessions reached 90% and 100%.
 - **Claims all pass, a check not verified:** the final message says or
   implies that every check passes while at least one was not verified. A

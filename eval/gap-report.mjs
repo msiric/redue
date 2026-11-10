@@ -17,7 +17,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {entryPoint, evalDir, readJson} from './lib.mjs';
-import {gapOf, kinds} from './gap.mjs';
+import {kinds, regapOf} from './gap.mjs';
 entryPoint(import.meta);
 
 const argv = process.argv.slice(2);
@@ -40,23 +40,10 @@ for (const file of files) {
     model: `${(data.model ?? row.gap.model)}${row.arm === 'redue' ? ' + REDUE' : row.arm === 'instructed' ? ' + instructions' : row.arm === 'generic' ? ' + generic instruction' : ''}`}, path.join(runs, row.id)));
 }
 
-// Classifies the session's commands again with the current gap.mjs, so a fix
-// there applies to sessions already run. Whether a tree is the final one comes
-// from the answers the run recorded; a tree it never asked about stays unknown.
+// Classifies the session's commands again with the current gap.mjs (regap).
 function regap(row, dir) {
-  const transcript = path.join(dir, 'transcript.jsonl'), treeLog = path.join(dir, 'trees.jsonl');
   const repo = repos.find(r => r.name === row.repo);
-  if (!repo || !fs.existsSync(transcript) || !fs.existsSync(treeLog)) return row;
-  const known = new Map();
-  for (const run of row.gap.runs) for (const c of Object.values(run.checks)) {
-    if (typeof c !== 'object' || c.final === null) continue;
-    const tree = c.side === 'before' ? run.before : c.side === 'after' ? run.after : null;
-    if (tree) known.set(tree, c.final);
-  }
-  const finalTree = '(final tree)', asked = [];
-  const same = tree => { if (!known.has(tree)) asked.push(tree); return known.get(tree) ?? null; };
-  const gap = gapOf({transcript, treeLog, repo, same, finalTree});
-  return {...row, gap: {...row.gap, runs: gap.runs, checks: gap.checks, claims: gap.claims, unasked: asked.length}};
+  return repo ? {...row, gap: regapOf(row.gap, path.join(dir, 'transcript.jsonl'), path.join(dir, 'trees.jsonl'), repo)} : row;
 }
 
 function judge(row) {
