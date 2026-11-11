@@ -22,9 +22,15 @@ jobs:
       matrix:
         include:
           # Run overhead swings too much on macOS runners to check there.
+          # A macOS round can stall (FSEvents, up to +220 ms warm sync for
+          # either build): 7 interleaved rounds, so one or two stalled rounds
+          # cannot move the median (smoke 43058688350: rounds 47, 155, 264 ms,
+          # then 95, 59, 67 ms on rerun, for the same tarball).
           - os: macos-latest
+            rounds: 7
             checks: --metrics warmSyncOverCachedMs --budget warmSyncOverCachedMs=100
           - os: ubuntu-latest
+            rounds: 3
             checks: --metrics warmSyncOverCachedMs,runOverheadPct --budget warmSyncOverCachedMs=100 --budget runOverheadPct=10
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
@@ -54,7 +60,7 @@ jobs:
       - run: node bench/setup.mjs "$RUNNER_TEMP/bench-800" 800
       - name: Compare
         run: >-
-          node bench/compare.mjs "$RUNNER_TEMP/bench-800" --rounds 3
+          node bench/compare.mjs "$RUNNER_TEMP/bench-800" --rounds ${{ matrix.rounds }}
           --build "baseline=$RUNNER_TEMP/baseline/node_modules/@redue/cli/bin/redue.mjs"
           --build "candidate=$RUNNER_TEMP/candidate/node_modules/@redue/cli/bin/redue.mjs"
           --gate baseline=candidate ${{ matrix.checks }}

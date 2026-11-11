@@ -32,7 +32,8 @@ if (!builds.length || builds.some(b => !b.name) || gate && gate.some(name => !bu
 const metrics = ['plainTscMs', 'runMs', 'runOverheadPct', 'cachedStatusMs', 'warmSyncMs', 'warmSyncOverCachedMs',
   'unrelatedEditSyncMs', 'relevantEditSyncMs', 'runAfterEditMs', 'runAfterEditOverheadPct', 'idleProbeLaunches'];
 // How much slower than the baseline a candidate may be. On GitHub's runners
-// three-round medians of warm sync stayed within 20 ms between rounds, and run
+// three-round medians of warm sync stayed within 20 ms between rounds on
+// Linux (macOS takes 7 rounds: a stalled round there reaches +220 ms), and run
 // overhead within 7 points on Linux; on macOS runners run overhead swung by
 // 50 points, so bench.yml checks it on Linux only. Metrics with one sample a
 // round (after-edit timings) are reported, not checked.
