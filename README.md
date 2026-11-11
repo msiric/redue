@@ -1,12 +1,15 @@
 # REDUE
 
-**Know what is verified on the code you have now.**
+**Redo what's due. Know what's verified, without taking the agent's word for it.**
+
+REDUE gives you and your coding agent the same answer about which checks
+passed on the code as it is now. It comes from recorded runs, not from what
+the agent remembers or says.
 
 Your typecheck, linter and tests passed at some point. Then the code
 changed, or a new agent session started with no memory of what ran. REDUE
-records each check's result with the exact inputs it ran on, and gives you
-and your coding agent one dependable answer: which checks are verified on
-the code as it is now, which are stale, and which are due. When it cannot
+records each check's result with the exact inputs it ran on, and says which
+checks are verified, which are stale, and which are due. When it cannot
 tell, it says so and why; it never guesses a result into place.
 
 ## What it changes
