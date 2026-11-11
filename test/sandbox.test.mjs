@@ -1004,7 +1004,8 @@ test('init: a check past the trial limit is recording-only, not an untried fallb
   const preview=JSON.parse(invoke(root,state,['init','--dry-run','--json'],limit).stdout);
   const lint=preview.checks.find(check=>check.name==='lint');
   assert.equal(lint.time_limit,'lint',JSON.stringify(lint));
-  assert.match(lint.reason,/^recording-only: it ran past init's 5-minute trial limit \(redue init --check lint --no-time-limit tries it without the limit\)$/);
+  assert.equal(lint.time_limit_run,'plain');
+  assert.match(lint.reason,/^recording-only: its plain run did not finish within init's 5-minute trial limit, so it was not tried in the sandbox \(if it finishes when you run it, redue init --check lint --no-time-limit tries it without the limit\)$/);
   assert.equal(lint.level,'recording');
   assert.equal(preview.proposed_config.checks.find(check=>check.name==='lint').qualification,undefined);
   assert.equal(preview.checks.find(check=>check.name==='typecheck').time_limit,undefined);

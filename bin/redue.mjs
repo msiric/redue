@@ -183,7 +183,9 @@ if(command==='init'){
   // visible file. A run past the trial
   // limit ends the check's trials (time_limit); --no-time-limit sets none.
   const trialIssue=trial=>trial.issue?`the sandbox cannot run here (${trial.issue})`:
-    trial.timedOut?`it ran past init's 5-minute trial limit${trial.timedOut==='sandboxed'?' inside the sandbox':''}`+
+    trial.timedOut==='plain'?`its plain run did not finish within init's 5-minute trial limit, so it was not tried in the sandbox`+
+      ` (if it finishes when you run it, redue init --check ${trial.kind} --no-time-limit tries it without the limit)`:
+    trial.timedOut?`it ran past init's 5-minute trial limit inside the sandbox`+
       ` (redue init --check ${trial.kind} --no-time-limit tries it without the limit)`:
     // A failure both ways that shows a refusal cannot be told from a real one.
     trial.same?null:trial.plain!==trial.sandboxed?`exit ${trial.sandboxed} inside the sandbox, ${trial.plain} outside it${trial.line?` (${trial.line})`:''}`:
@@ -292,7 +294,7 @@ if(command==='init'){
     // time_limit: the kind that --check takes to try it without the limit.
     // A run past the limit tried no recipe, so the check is recording-only:
     // a fallback recipe it never ran would only answer UNVERIFIED.
-    const limited=trial.timedOut?{timeLimit:row.config.kind}:{};
+    const limited=trial.timedOut?{timeLimit:row.config.kind,timeLimitRun:trial.timedOut}:{};
     // It keeps what it runs (script, or command and cwd for a Python check),
     // without the sandbox's qualification and visible files.
     if(trial.timedOut){const {qualification,visible,...config}=row.config;
@@ -312,9 +314,9 @@ if(command==='init'){
     installation_layout:discovery.manager.layout,
     issue:discovery.observationIssue||discovery.manager.issue,workspaces:discovery.workspaces,
     ambiguous:discovery.ambiguous,skipped:discovery.skipped||[],
-    checks:discovery.checks.map(({config:check,level,reason,timeLimit})=>({name:check.name,
+    checks:discovery.checks.map(({config:check,level,reason,timeLimit,timeLimitRun})=>({name:check.name,
       script:check.script||null,command:check.command||null,
-      workspace:check.workspace||null,level,reason,...timeLimit?{time_limit:timeLimit}:{},
+      workspace:check.workspace||null,level,reason,...timeLimit?{time_limit:timeLimit,time_limit_run:timeLimitRun}:{},
       ...trialRuns.has(check.name)?{trial_runs:trialRuns.get(check.name)}:{}})),config:configFile,
     written:willWrite,existing:configured,writable:!configured&&!unsupported&&discovery.checks.length>0};
   if(!json) {

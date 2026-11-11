@@ -120,7 +120,11 @@ sandbox; when a sandboxed run reaches it, no further trial follows. Either
 way the check is recording-only: `init` does not propose a recipe it has not
 run, such as the direct test recipe, whose runs could only end UNVERIFIED.
 `init` marks such a check (`time_limit` in `--json` gives
-its kind), and `redue setup` names them and prints one command:
+its kind, and `time_limit_run` says which run reached the limit: `plain` or
+`sandboxed`). `redue setup` names them, says which did not finish when run
+plainly, so were not tried in the sandbox (check that such a check finishes
+when you run it: it may hang here rather than be slow), and prints one
+command:
 `redue init --check typecheck --no-time-limit` (or `redue init
 --no-time-limit` for several kinds). With an existing config, that command
 runs with no limit the checks the config has and does not run in the

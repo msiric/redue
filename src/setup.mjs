@@ -15,7 +15,7 @@ import {spawnSync} from 'node:child_process';
 import {isSandboxed,sandboxSupport,testCounts} from './sandbox.mjs';
 import {createInterface} from 'node:readline/promises';
 import {projectState} from './project-location.mjs';
-import {claudeHooksInstalled,removeClaudeHooks,removeIntegration} from './agent-integration.mjs';
+import {claudeHooksInstalled,generalNotes,removeClaudeHooks,removeIntegration,unignoredNote} from './agent-integration.mjs';
 
 const configName='redue.config.json',localSettings='.claude/settings.local.json',agentRecord='.redue/agents/claude.json';
 const hash=text=>createHash('sha256').update(text).digest('hex');
@@ -109,7 +109,7 @@ async function setup({root,redue,yes,record:previous,recordFile,exclude,save}){
   // The checks whose trial ran past init's time limit, unless the config
   // already runs them in the sandbox, and the kinds init's --check takes.
   const sandboxed=new Set(configExisted?JSON.parse(readText(configPath)).checks.filter(check=>isSandboxed(check.qualification)).map(check=>check.name):[]);
-  const limited=[...found.checks.map(check=>[check.name,check.time_limit]),...(found.skipped||[]).map(row=>[row.kind,row.time_limit])]
+  const limited=found.checks.map(check=>[check.name,check.time_limit,check.time_limit_run])
     .filter(([name,kind])=>kind&&!sandboxed.has(name));
   const limitedKinds=[...new Set(limited.map(([,kind])=>kind))];
   const names=configExisted?JSON.parse(readText(configPath)).checks.map(check=>check.name):found.checks.map(check=>check.name);
@@ -160,8 +160,18 @@ async function setup({root,redue,yes,record:previous,recordFile,exclude,save}){
   }
   save(own);
   console.log(`${previous?'update':'create'} ${recordFile}: what setup created, for redue remove`);
-  const agent=redue(['agent','setup','claude','--apply']);
-  if(agent.status!==0)throw Error('agent setup failed; see above. redue remove undoes what setup wrote');
+  // One line per file agent setup writes, and the notes that still hold
+  // after setup: it keeps the hooks' settings out of commits itself, and it
+  // ends by saying to start a new session.
+  // Its summary is the last line of its output; any other line is shown.
+  const agent=redue(['agent','setup','claude','--apply','--json'],{progress:true});
+  const lines=(agent.stdout??'').trimEnd().split('\n');let applied=null;
+  try{applied=JSON.parse(lines.at(-1));}catch{}
+  const other=applied?lines.slice(0,-1):lines;
+  if(other.some(line=>line.trim()))console.log(other.join('\n'));
+  if(agent.status!==0||!applied?.applied)throw Error('agent setup failed; see above. redue remove undoes what setup wrote');
+  for(const change of applied.changes)console.log(`${change.operation} ${change.path}`);
+  for(const note of applied.warnings.filter(note=>!generalNotes.includes(note)&&note!==unignoredNote))console.log(note);
   // The hooks' settings hold machine paths: keep them out of commits in this
   // clone when Git does not ignore them.
   if(git(root,'check-ignore','-q',localSettings).status===1){
@@ -212,8 +222,14 @@ async function setup({root,redue,yes,record:previous,recordFile,exclude,save}){
   if(recorded.length&&!due.length)console.log(`Already CURRENT: ${recorded.join(', ')}.`);
   for(const row of statusOf())console.log(`  ${row.name}: ${row.freshness}${row.result?' / '+row.result:''}${row.freshness==='CURRENT'?'':
     levels.get(row.name)!=='ready'?' — recording only':' — '+row.reason}`);
-  if(limited.length)console.log(`${limited.map(([name])=>name).join(', ')} ran past init's 5-minute trial limit, so ${limited.length>1?'they are':'it is'} not sandboxed. `+
-    `To try ${limited.length>1?'them':'it'} without the limit: redue init${limitedKinds.length>1?'':` --check ${limitedKinds[0]}`} --no-time-limit`);
+  // A check whose plain run did not finish may hang here rather than be
+  // slow: the person checks that first.
+  if(limited.length){const named=list=>list.map(([name])=>name).join(', '),
+      unfinished=limited.filter(([,,run])=>run==='plain'),inside=limited.filter(([,,run])=>run!=='plain');
+    if(inside.length)console.log(`${named(inside)} ran past init's 5-minute trial limit inside the sandbox, so ${inside.length>1?'they are':'it is'} not sandboxed.`);
+    if(unfinished.length)console.log(`${named(unfinished)} did not finish within init's 5-minute trial limit when run plainly, so ${unfinished.length>1?'they were':'it was'} not tried in the sandbox. `+
+      `Check that ${unfinished.length>1?'they finish':'it finishes'} when you run ${unfinished.length>1?'them':'it'} yourself.`);
+    console.log(`To try ${limited.length>1?'them':'it'} without the limit: redue init${limitedKinds.length>1?'':` --check ${limitedKinds[0]}`} --no-time-limit`);}
   const sec=ms=>`${Math.round(ms/1000)} s`;
   console.log(`Time: ${[['trials','trying checks in the sandbox'],['indexing','indexing'],['recording','recording runs']]
     .filter(([name])=>phases[name]!==undefined).map(([name,label])=>`${label} ${sec(phases[name])}`).join(', ')}.`);

@@ -342,10 +342,14 @@ export function setupInvocation(root){
   const onPath=findExecutable('redue');
   return command===hookCommand&&onPath&&process.platform!=='win32'?[onPath]:null;
 }
+// Notes for anyone running agent setup on its own; `redue setup` prints
+// neither these nor unignoredNote, which it acts on.
+export const generalNotes=['Review existing project policies before applying; setup does not resolve semantic conflicts.',
+  'Start a fresh host session. Accept project trust and ordinary command permissions if the host requests them.',
+  'Global/managed policies, disabled skills, instruction limits, and nested instructions can affect loading.'];
+export const unignoredNote=`${settingsPath} is not ignored by Git; the hook needs a local REDUE install, so keep it out of commits.`;
 function warnings(root,host,cwd){
-  const result=['Review existing project policies before applying; setup does not resolve semantic conflicts.',
-    'Start a fresh host session. Accept project trust and ordinary command permissions if the host requests them.',
-    'Global/managed policies, disabled skills, instruction limits, and nested instructions can affect loading.'];
+  const result=[...generalNotes];
   if(host==='codex'){
     if(read(root,'AGENTS.override.md')?.trim())throw Error('AGENTS.override.md would shadow AGENTS.md; resolve the project instruction policy explicitly before setup');
     if(Buffer.byteLength(read(root,'AGENTS.md')||'')>28000)throw Error('AGENTS.md approaches the default Codex instruction limit; shorten/review it before setup');
@@ -353,7 +357,7 @@ function warnings(root,host,cwd){
   if(host==='claude'&&read(root,'.claude/CLAUDE.md')!==null)
     throw Error('.claude/CLAUDE.md already exists; reconcile its project policy with root CLAUDE.md before setup');
   if(host==='claude'&&spawnSync('git',['check-ignore','-q',settingsPath],{cwd:root,stdio:'ignore'}).status===1)
-    result.push(`${settingsPath} is not ignored by Git; the hook needs a local REDUE install, so keep it out of commits.`);
+    result.push(unignoredNote);
   let dir=path.resolve(cwd);
   while(withinPath(dir,root)&&!samePath(dir,root)){
     for(const name of ['AGENTS.md','AGENTS.override.md','CLAUDE.md','CLAUDE.local.md'])
