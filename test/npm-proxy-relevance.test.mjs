@@ -19,7 +19,7 @@ let npmVersion;try{npmVersion=JSON.parse(fs.readFileSync(path.join(npmRoot,'pack
 const put=(file,value)=>{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,value);};
 
 test('npm 10.9.2 proxy port is not outcome-equivalent when the update notifier runs',
-  {skip:npmVersion!=='10.9.2',timeout:60000},async t=>{
+  {skip:npmVersion!=='10.9.2',timeout:600000},async t=>{
     const base=fs.mkdtempSync(path.join(os.tmpdir(),'redue-notifier-relevance-')),
       root=path.join(base,'project'),home=path.join(base,'home'),local=path.join(base,'local'),
       cache=process.platform==='win32'?path.join(local,'npm-cache'):path.join(home,'.npm');
@@ -97,7 +97,9 @@ test('npm 10.9.2 proxy port is not outcome-equivalent when the update notifier r
         {cwd:root,env:{...env,npm_config_proxy:`http://127.0.0.1:${port}`,
           ...(!notifier?{npm_config_update_notifier:'false'}:{})},stdio:['ignore','pipe','pipe']});
       let stdout='',stderr='';child.stdout.on('data',v=>stdout+=v);child.stderr.on('data',v=>stderr+=v);
-      const timer=setTimeout(()=>child.kill(),10000);
+      // The limit only catches a hang: a cold first tsc on a slow Windows runner
+      // took over 10 s once (smoke 42929103177); it usually takes 1-3 s.
+      const timer=setTimeout(()=>child.kill(),60000);
       const [exit,signal]=await new Promise((resolve,reject)=>{
         child.once('error',reject);child.once('close',(code,sig)=>resolve([code,sig]));
       }).finally(()=>clearTimeout(timer));
