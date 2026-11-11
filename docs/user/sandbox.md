@@ -88,7 +88,14 @@ forms; after an upgrade, run setup again to get them.
 
 `init` runs each check plainly, then sandboxed with the files git ignores and
 the documentation hidden. When both give the same result, it writes
-`sandbox-v3`. When the plain run passed and the sandboxed one failed only
+`sandbox-v3`. When the sandboxed run was refused only documentation files,
+the check reads documentation by pattern, as a linter with a Markdown config
+does, and reads files added later too: `init` runs it once more with all
+documentation visible and only the files git ignores hidden, and writes
+`sandbox-v2` if that agrees. Documentation is then an input like any other
+file. `redue setup` creates the `CLAUDE.md` and skill files it will write,
+empty, while the trials run, so such a check reads them there too.
+When the plain run passed and the sandboxed one failed only
 because it was refused a file it hid (no other refusal line, and not a line
 the plain run printed too), `init` runs it in the sandbox again with just
 that file visible, up to three files, one more sandboxed run each. When that
@@ -105,8 +112,7 @@ run can still differ: a test suite that writes to a fixed path in `/tmp`
 does on Linux and macOS. Such a check then gets the recipe it would have
 without the sandbox. So a check runs two or three times at init, and up to
 six when its trial is refused hidden files (one plain run, one sandboxed,
-one per visible file, one with the whole checkout). `init` no longer writes
-`sandbox-v2`; a check already set up with it keeps it.
+one per visible file, one with the whole checkout).
 
 When a trial leaves a check out of the sandbox, `init` keeps the sandboxed
 run's last 20 lines (each cut at 200 characters) in this configuration's local
@@ -204,7 +210,9 @@ It gets a controlled environment, not yours:
 - the variables the check declares (`TZ`, `LANG`, `CI`, `USER`, `LC_*`,
   `DYLD_*`, `LD_*`, and `NODE_*`, `npm_config_*`, `PNPM_*`, `YARN_*`,
   `COREPACK_*` for Node, or `PYTHON*`, `MYPY*`, `RUFF_*`, `PYRIGHT*`, `TY_*`
-  for Python), with your values;
+  for Python), with your values. `COREPACK_ENABLE_AUTO_PIN` is not compared
+  when `package.json` names a `packageManager`: Corepack reads it only when
+  none does. Claude Code's shell sets it to `0` and a terminal does not;
 - your PATH, without the project's `.venv/bin`, which a Python check gets
   first instead, so `uv run` and an activated environment give the same PATH;
 - `HOME`, `TMPDIR` and the XDG directories in its private directories;

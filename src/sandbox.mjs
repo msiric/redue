@@ -347,11 +347,22 @@ function gitIgnoreSources(root){
 // every directory on PATH (an installed or upgraded program changes its
 // directory), and the ignore rules in .git.
 export const sandboxPrefix='__redue_sandbox_';
-export function sandboxContext(check,env,root){
+// Variables no run in this checkout reads, so they are not compared.
+// Corepack reads COREPACK_ENABLE_AUTO_PIN only when no package.json from the
+// run's directory up names a packageManager (loadSpec's NoSpec): then, unless
+// it is 0, it resolves and may download a version, prints a notice, and
+// writes the field into package.json. The checkout's package.json is an
+// input, so a change to its field is seen. npm, pnpm and Yarn do not read it.
+// Claude Code's shell sets it to 0 and a terminal does not.
+export function unreadVariables(root){
+  try{const manager=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'))?.packageManager;
+    return typeof manager==='string'&&manager?['COREPACK_ENABLE_AUTO_PIN']:[];}catch{return [];}
+}
+export function sandboxContext(check,env,root,unread=unreadVariables(root)){
   const identity=(file,keys=['dev','ino','mode','size','mtimeNs','ctimeNs'])=>{try{const st=fs.statSync(file,{bigint:true});
     return [file,...keys.map(key=>String(st[key]))];}catch{return [file,'<unavailable>'];}};
   const environment=sandboxEnv(check,env,{root,home:'<home>',tmp:'<tmp>'});
-  for(const key of displayVariables)delete environment[key];
+  for(const key of [...displayVariables,...unread])delete environment[key];
   const out={[`${sandboxPrefix}places__`]:digest(JSON.stringify(sandboxPlaces(check,env,root))),
     [`${sandboxPrefix}executables__`]:digest(JSON.stringify(toolchainExecutables(check,env,root).map(file=>file?identity(file):null))),
     [`${sandboxPrefix}git__`]:digest(JSON.stringify(gitIgnoreSources(root)))};

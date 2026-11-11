@@ -52,7 +52,7 @@ reasons, workspace ownership, `written`, and `proposed_config`. Ready is not PAS
 runs the sandbox trials. Each check init tried in the sandbox, and each
 skipped row it tried, has `trial_runs`: every run of the trial in order,
 `{"run": "plain" | "sandboxed", "ms": ..., "as": ...}`, where `as` says which
-sandboxed run it was (`hidden`, `visible:FILES`, `steps`, `whole checkout`).
+sandboxed run it was (`hidden`, `docs visible`, `visible:FILES`, `steps`, `whole checkout`).
 
 Read commands normally exit 0 even when the evidence is not current. Errors exit
 nonzero; synchronized transport failures may still return conservative JSON.

@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import net from 'node:net';
 import {spawnSync,execFileSync} from 'node:child_process';
-import {checkoutGit,nestedGits,sandboxChange,comparableOutput,denialLine,launcherFailure,namedDocsLimit,plainVisible,refusedFile,visibleChange,withVisible,seatbeltProfile,sandboxInterpretationOf,hiddenEntries,hiddenRefusal,sandboxArgv,sandboxTrial,systemPlaces,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
+import {checkoutGit,nestedGits,sandboxChange,sandboxPrefix,comparableOutput,denialLine,launcherFailure,namedDocsLimit,plainVisible,refusedFile,visibleChange,withVisible,seatbeltProfile,sandboxInterpretationOf,hiddenEntries,hiddenRefusal,sandboxArgv,sandboxTrial,systemPlaces,sandboxCheckInputs,sandboxEnv,sandboxEnvironment,sandboxPath,sandboxSupport,venvOutsideLinks} from '../src/sandbox.mjs';
 import {projectArgs,toolArgs} from '../src/python-onboarding.mjs';
 import {chainCommand,claudeHook,hookForms,matchCheck,pathForm,recordedCommand,triggerRule,withoutOutputOptions} from '../src/claude-hook.mjs';
 
@@ -151,7 +151,9 @@ sys.exit(1 if 'fail' in text else 0)
 }
 function invoke(root,state,args,env={}){
   const clean=Object.fromEntries(Object.entries(process.env).filter(([key])=>!/^npm_/i.test(key)));
-  return spawnSync(process.execPath,[bin,'--state-dir',state,...args],{cwd:root,env:{...clean,...env},encoding:'utf8',timeout:120000});
+  // A variable given as undefined is unset.
+  const merged=Object.fromEntries(Object.entries({...clean,...env}).filter(([,value])=>value!==undefined));
+  return spawnSync(process.execPath,[bin,'--state-dir',state,...args],{cwd:root,env:merged,encoding:'utf8',timeout:120000});
 }
 function good(root,state,...args){const result=invoke(root,state,args);
   assert.equal(result.status,0,`${args.join(' ')}: ${result.stderr}\n${result.stdout}`);return result.stdout;}
@@ -547,7 +549,7 @@ test('a check that reads a git-ignored file it was not set up with runs again wi
   assert.equal(status.freshness,'STALE');assert.match(status.reason,/build\/generated\.py changed/);
 });
 
-test('documentation is hidden too (sandbox-v3): an edit to it keeps the result CURRENT; a check that reads it at init gets that file visible',{skip:unsupported},t=>{
+test('documentation is hidden too (sandbox-v3): an edit to it keeps the result CURRENT; a check that reads it at init gets all documentation visible',{skip:unsupported},t=>{
   const {root,state}=project(t);
   write(root,'docs/guide/intro.md','# intro\n');write(root,'docs/guide/shot.png','png');write(root,'LICENSE','MIT\n');
   write(root,'src/fx/notes.rst','notes\n');write(root,'.md','dot\n');
@@ -583,11 +585,13 @@ test('documentation is hidden too (sandbox-v3): an edit to it keeps the result C
   assert.equal(`${status.freshness}/${status.recipe}`,'CURRENT/sandbox-v1',status.reason);
   write(root,'README.md','# fixture\n\nAnother note.\n');
   assert.equal(row(root,state,'typecheck').freshness,'STALE');
-  // init then gives it the whole checkout.
+  // init then shows it all documentation (sandbox-v2), a file added later too.
   const init=JSON.parse(good(root,state,'init','--dry-run','--json'));
   const proposed=init.proposed_config.checks.find(c=>c.name==='typecheck');
-  assert.equal(`${proposed.qualification} ${JSON.stringify(proposed.visible)}`,'sandbox-v3 ["README.md"]',JSON.stringify(init.checks));
-  assert.match(init.checks.find(c=>c.name==='typecheck').reason,/and README\.md, which its trial read, are its input/);
+  assert.equal(`${proposed.qualification} ${JSON.stringify(proposed.visible)}`,'sandbox-v2 undefined',JSON.stringify(init.checks));
+  const checked=init.checks.find(c=>c.name==='typecheck');
+  assert.match(checked.reason,/documentation included \(its trial read README\.md\), are its input/);
+  assert.deepEqual(checked.trial_runs.map(run=>run.as??run.run),['plain','hidden','docs visible']);
 });
 
 test('a sandboxed run that reads outside or reaches the network is run again outside the sandbox and is not reused',{skip:unsupported},t=>{
@@ -736,6 +740,41 @@ function nodeProject(t,scripts){
   return {root,state};
 }
 
+test('COREPACK_ENABLE_AUTO_PIN is compared only where package.json names no packageManager; a run that pins package.json does not end CURRENT',{skip:unsupported},t=>{
+  const {root,state}=nodeProject(t,{lint:'node pin.js'});
+  // What Corepack does when the variable is not 0 and package.json has no packageManager.
+  write(root,'pin.js',"const fs=require('node:fs'),p=JSON.parse(fs.readFileSync('package.json','utf8'));\n"+
+    "if(!p.packageManager&&process.env.COREPACK_ENABLE_AUTO_PIN!=='0'){p.packageManager='npm@10.9.2';fs.writeFileSync('package.json',JSON.stringify(p));}\n");
+  const manifest=path.join(root,'package.json'),unpinned=fs.readFileSync(manifest,'utf8');
+  execFileSync('git',['add','.'],{cwd:root});
+  const terminal={COREPACK_ENABLE_AUTO_PIN:undefined},claude={COREPACK_ENABLE_AUTO_PIN:'0'};
+  assert.equal(invoke(root,state,['init'],claude).status,0);good(root,state,'start');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'),'utf8')).checks.find(check=>check.name==='lint').qualification,'sandbox-v3');
+  // No packageManager: the variable is compared.
+  assert.equal(invoke(root,state,['run','lint'],claude).status,0);
+  assert.equal(row(root,state,'lint',claude).freshness,'CURRENT');
+  let status=row(root,state,'lint',terminal);
+  assert.equal(status.freshness,'STALE');assert.equal(status.reason,'environment variable COREPACK_ENABLE_AUTO_PIN differs from the last run');
+  // A run that pins package.json changed an input during the run.
+  const pinned=invoke(root,state,['run','lint'],terminal);
+  assert.match(fs.readFileSync(manifest,'utf8'),/"packageManager":"npm@10\.9\.2"/);
+  status=row(root,state,'lint',terminal);
+  assert.notEqual(status.freshness,'CURRENT',pinned.stdout+pinned.stderr);
+  // With packageManager, Corepack does not read it: not compared. (The
+  // observer replans after a package.json change; status waits for it.)
+  for(let n=0;n<100&&/reconciliation pending|plan rebuilding/.test(row(root,state,'lint',claude).reason);n++)
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,100);
+  assert.equal(invoke(root,state,['run','lint'],claude).status,0);
+  for(const env of [claude,terminal,{COREPACK_ENABLE_AUTO_PIN:'1'}]){
+    const r=row(root,state,'lint',env);assert.equal(`${r.freshness}/${r.result}`,'CURRENT/PASS',`${JSON.stringify(env)} ${r.reason}`);}
+  // Other Corepack variables are.
+  status=row(root,state,'lint',{...claude,COREPACK_ENABLE_STRICT:'0'});
+  assert.equal(status.freshness,'STALE',status.reason);assert.equal(status.reason,'environment variable COREPACK_ENABLE_STRICT differs from the last run');
+  // Removing the field is a change to package.json, and the variable is compared again.
+  fs.writeFileSync(manifest,unpinned);
+  assert.notEqual(row(root,state,'lint',claude).freshness,'CURRENT');
+});
+
 test('a test script that builds first runs as two sandboxed steps: the tests see what the build wrote, which is never an input',{skip:unsupported},t=>{
   const {root,state}=nodeProject(t,{test:'node build.js && node check.js'});
   write(root,'.gitignore','node_modules/\ndist/\n');
@@ -844,7 +883,9 @@ test('a listed LICENSE or CHANGELOG file is refused, nested too; past the limit 
   execFileSync('git',['add','.'],{cwd:root});
   let init=JSON.parse(good(root,state,'init','--dry-run','--json'));
   const proposed=init.proposed_config.checks.find(c=>c.name==='typecheck');
-  assert.equal(`${proposed.qualification} ${JSON.stringify(proposed.visible)}`,'sandbox-v3 ["src/fx/CHANGELOG"]',JSON.stringify(init.checks));
+  // Refused documentation only: all documentation visible.
+  assert.equal(`${proposed.qualification} ${JSON.stringify(proposed.visible)}`,'sandbox-v2 undefined',JSON.stringify(init.checks));
+  assert.match(init.checks.find(c=>c.name==='typecheck').reason,/its trial read src\/fx\/CHANGELOG/);
   for(let i=0;i<=namedDocsLimit;i++)write(root,`packages/p${i}/CHANGELOG`,'## 1\n');
   execFileSync('git',['add','.'],{cwd:root});
   good(root,state,'init');good(root,state,'start');good(root,state,'run','typecheck');

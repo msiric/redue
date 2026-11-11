@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.1.0-alpha.36 — 2026-11-11
+
+From a rehearsal with 5 projects REDUE had not seen (zustand, ofetch,
+@hono/node-server, httpx, click), set up from the README by a fresh agent.
+
+- **Agent and terminal agree on pnpm and Yarn projects.** Claude Code's shell
+  sets `COREPACK_ENABLE_AUTO_PIN=0` and a terminal does not, so every check
+  recorded by one was STALE for the other. Corepack reads that variable only
+  when no `package.json` names a `packageManager`; REDUE no longer compares it
+  when the project's does.
+- **A linter that reads every Markdown file.** A check refused only
+  documentation at its trial gets all documentation visible (`sandbox-v2`),
+  so a file added later is an input, not a refusal. `redue setup` creates
+  the `CLAUDE.md` and skill files it writes, empty, while the trials run. On
+  ofetch, every lint run had failed on setup's `CLAUDE.md` and run again.
+  A check that reads one documentation file now goes STALE on any edit to
+  documentation.
+- **Shorter setup output.** One line per file it writes, and only the notes
+  that still apply (about 25 lines, from about 100).
+- **A check that never finished.** When a check's plain trial run did not
+  finish in 5 minutes, setup says so and asks to check that it finishes
+  before trying `--no-time-limit` (`time_limit_run` in `init --json`).
+
 ## 0.1.0-alpha.35 — 2026-11-10
 
 Setup takes less time on projects with slow checks.

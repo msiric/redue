@@ -17,6 +17,8 @@ import {fanoutRules,hookCommand,hookForms,recordedForms,redueFor,runsEntry,shell
 const policy=fs.readFileSync(new URL('./agent-policy.md',import.meta.url),'utf8');
 const hosts={codex:{instruction:'AGENTS.md',skill:'.agents/skills/redue-verification/SKILL.md'},
   claude:{instruction:'CLAUDE.md',skill:'.claude/skills/redue-verification/SKILL.md'}};
+// The documentation files agent setup writes for a host.
+export const agentDocs=host=>[hosts[host].instruction,hosts[host].skill];
 const hash=s=>createHash('sha256').update(s).digest('hex');
 const marker=host=>`.redue/agents/${host}.json`;
 // The hook needs a local REDUE install, so it lives in per-developer settings.
@@ -420,7 +422,8 @@ export async function agentCommand(args,{configFile,stateOverride,entry,cwd=proc
   if(action==='setup'){
     const before=read(root,h.instruction),skill=skillFor(relative,host,config);
     block=blockFor(host,blockForms(host,config,relative));
-    if(!record&&(before?.includes('<!-- REDUE:')||read(root,h.skill)!==null))
+    // An empty one is what an interrupted `redue setup` left for its trials.
+    if(!record&&(before?.includes('<!-- REDUE:')||(read(root,h.skill)??'')!==''))
       throw Error('unowned REDUE instruction or skill already exists; inspect it before setup');
     const after=record?before.replace(record.block,block):(before||'')+block;
     let scripts={};try{scripts=JSON.parse(read(root,'package.json')??'{}').scripts||{};}catch{}
@@ -436,7 +439,7 @@ export async function agentCommand(args,{configFile,stateOverride,entry,cwd=proc
       `\`${statusLineFor(invocation.command).command}\` prints REDUE's from the same input, if you want to add it to yours.`);
     statusLine=host==='claude'&&!other?statusLineFor(invocation.command):null;
     const next={schema:1,host,config:relative,instruction:h.instruction,skill:h.skill,
-      block,skillHash:hash(skill),instructionCreated:record?.instructionCreated??before===null};
+      block,skillHash:hash(skill),instructionCreated:record?.instructionCreated??!before};
     changes.push({path:h.skill,before:read(root,h.skill),after:skill},
       {path:h.instruction,before,after});
     if(host==='claude'){const settings=read(root,settingsPath),turn=turnHooksFor(invocation.command),

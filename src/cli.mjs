@@ -8,7 +8,7 @@ import {patternMatcher} from './glob.mjs';
 import {observedBy} from './installed-observation.mjs';
 import {changedFiles,coverageReadable,gitIgnored,recordedEnvironment,testEnvironmentIssue,testGuardConfig,testRunGuard,testRunFacts,sharedInstalledFile,testsInterpretation,testsQualification} from './test-direct.mjs';
 import {childProgram,generalIssue,lookup,pnpmConfigFiles,scriptCaches,scriptInstalledPaths,scriptInterpretation,scriptQualification,scriptRunFacts,pnpmNameless,toolOutput,toolchainDirs} from './node-script.mjs';
-import {denialLine,docsQualification,endWithChild,launcherFailure,hiddenDocs,hiddenEntries,plainVisible,withVisible,hiddenQualification,hiddenRefusal,hidesIgnored,isSandboxed,runToEnd,scriptStepsOf,builtChange,stepArgv,stepPath,stepsRun,supervisorIssue,visibleChange,testRun as sandboxTestRun,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,
+import {denialLine,docsQualification,endWithChild,launcherFailure,hiddenDocs,hiddenEntries,plainVisible,withVisible,hiddenQualification,hiddenRefusal,hidesIgnored,isSandboxed,unreadVariables,runToEnd,scriptStepsOf,builtChange,stepArgv,stepPath,stepsRun,supervisorIssue,visibleChange,testRun as sandboxTestRun,sandboxArgv,sandboxContext,sandboxDirs,sandboxEnv,
   sandboxInterpretation,sandboxInterpretationOf,sandboxPlaces,sandboxQualification,sandboxSupport,systemPlaces,installedTreeOf,checkoutGit,isProse,nestedGits} from './sandbox.mjs';
 import path from 'node:path';
 import net from 'node:net';
@@ -91,19 +91,20 @@ const recordedRecipes=[testsQualification,scriptQualification];
 // `only`: just that check's (a run's checkpoints answer for its own check).
 function contextHashes(only=null) {const checks=only?config.checks.filter(check=>check.name===only):config.checks;
   const reads=checks.some(check=>recordedRecipes.includes(check.qualification)||isSandboxed(check.qualification))?environmentReads():{};
+  const unread=unreadVariables(root);
   return Object.fromEntries(checks.map(check=>[
-  check.name,Object.fromEntries([...(check.environment?.variables||[])
+  check.name,Object.fromEntries([...(check.environment?.variables||[]).filter(key=>!unread.includes(key))
     .map(key=>[key,digest(process.env[key]??'<unset>')]),
     ...(check.environment?.prefixes||[]).map(prefix=>[
       `__vstate_env_prefix_${prefix.toLowerCase()}__`,digest(JSON.stringify(
         Object.entries(process.env).filter(([key])=>
-          key.toLowerCase().startsWith(prefix.toLowerCase()))
+          key.toLowerCase().startsWith(prefix.toLowerCase())&&!unread.includes(key))
           .sort(([a],[b])=>a.localeCompare(b))))]),
     ...(check.environment?.pathExecutables||[]).map(name=>[
       `__vstate_path_executable_${name}__`,pathExecutableIdentity(name)]),
     ...(check.environment?.executableIdentity?[['__vstate_node_identity__',nodeIdentity()]]:[]),
     // A sandboxed run's environment, toolchain and places (sandbox.mjs).
-    ...(isSandboxed(check.qualification)?Object.entries(sandboxContext(check,process.env,root)):[]),
+    ...(isSandboxed(check.qualification)?Object.entries(sandboxContext(check,process.env,root,unread)):[]),
     // The variables the last test run read directly, compared here: which
     // list was compared, and the first variable whose value now differs.
     // Control requests are small, so the values stay out of them.

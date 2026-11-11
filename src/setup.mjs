@@ -15,7 +15,7 @@ import {spawnSync} from 'node:child_process';
 import {isSandboxed,sandboxSupport,testCounts} from './sandbox.mjs';
 import {createInterface} from 'node:readline/promises';
 import {projectState} from './project-location.mjs';
-import {claudeHooksInstalled,generalNotes,removeClaudeHooks,removeIntegration,unignoredNote} from './agent-integration.mjs';
+import {agentDocs,claudeHooksInstalled,generalNotes,removeClaudeHooks,removeIntegration,unignoredNote} from './agent-integration.mjs';
 
 const configName='redue.config.json',localSettings='.claude/settings.local.json',agentRecord='.redue/agents/claude.json';
 const hash=text=>createHash('sha256').update(text).digest('hex');
@@ -74,6 +74,19 @@ export async function setupCommand(args,{entry,cwd=process.cwd()}){
 }
 
 async function setup({root,redue,yes,record:previous,recordFile,exclude,save}){
+  // The empty files the trials saw (below), also from a setup that stopped
+  // before it removed them. Only while still empty: a file someone wrote
+  // there since is theirs.
+  const trialList=recordFile.replace(/\.json$/,'.trial-files');
+  // A file it could not remove (Windows: still open) stays listed for the
+  // next setup; agent setup takes an empty skill or CLAUDE.md as absent.
+  const clearTrialFiles=()=>{let made=[];try{made=JSON.parse(fs.readFileSync(trialList,'utf8'));}catch{}
+    const kept=[];
+    for(const entry of made){const {file,dir}=entry;
+      try{if(fs.statSync(file).size===0)fs.unlinkSync(file);}catch(e){if(e.code!=='ENOENT'){kept.push(entry);continue;}}
+      if(dir)for(let at=path.dirname(file);at===dir||at.startsWith(dir+path.sep);at=path.dirname(at))try{fs.rmdirSync(at);}catch{break;}}
+    try{if(kept.length)fs.writeFileSync(trialList,JSON.stringify(kept));else fs.unlinkSync(trialList);}catch{}};
+  clearTrialFiles();
   // A Node project needs node_modules; a Python one its .venv.
   const node=fs.existsSync(path.join(root,'package.json'));
   if(node&&!fs.existsSync(path.join(root,'node_modules')))
@@ -100,9 +113,24 @@ async function setup({root,redue,yes,record:previous,recordFile,exclude,save}){
       level:check.qualification&&!(noSandbox&&isSandboxed(check.qualification))?'ready':'recording'}))};
   }else{
     console.log('Trying each check inside and outside the sandbox to choose its recipe...');
-    const preview=timed('trials',()=>redue(['init','--dry-run','--json'],{progress:true}));
-    if(preview.status!==0)throw Error('init failed; see above');
-    found=JSON.parse(preview.stdout);
+    // The trials see the project as setup leaves it: the documentation files
+    // agent setup writes later exist, empty, while they run (a linter that
+    // reads every Markdown file reads them too), and are removed before it
+    // writes them.
+    // A list beside the setup record names them first, so a setup stopped
+    // during the trials (Ctrl-C) leaves nothing the next one trips on.
+    const made=[];
+    try{
+      for(const rel of agentDocs('claude')){const file=path.join(root,rel);
+        if(fs.existsSync(file))continue;
+        made.push({file,dir:null});fs.writeFileSync(trialList,JSON.stringify(made));
+        made.at(-1).dir=fs.mkdirSync(path.dirname(file),{recursive:true})??null;
+        fs.writeFileSync(trialList,JSON.stringify(made));
+        fs.writeFileSync(file,'',{flag:'wx'});}
+      const preview=timed('trials',()=>redue(['init','--dry-run','--json'],{progress:true}));
+      if(preview.status!==0)throw Error('init failed; see above');
+      found=JSON.parse(preview.stdout);
+    }finally{clearTrialFiles();}
   }
   if(!configExisted&&!found.writable)throw Error(`nothing to set up: ${found.issue||(found.checks.length?found.checks.map(check=>`${check.name}: ${check.reason}`).join('; '):'no typecheck, lint or test script REDUE can use')}`);
   const levels=new Map(found.checks.map(check=>[check.name,check.level]));

@@ -7,7 +7,7 @@ import {directCompiler,directQualification,directEnvironment,directInstalledInpu
 import {runArgv,tscRun} from '../src/typescript-invocation.mjs';
 import {testEnvironment,testRunnerAt,testsInterpretation,testsQualification} from '../src/test-direct.mjs';
 import {scriptEnvironment,scriptInterpretation,scriptKinds,scriptQualification} from '../src/node-script.mjs';
-import {docsQualification,hiddenDocsIssue,hiddenListIssue,hidesIgnored,isSandboxed,pythonTool,refusedFile,scriptStepsOf,visibleLimit,sandboxEnvironment,sandboxInterpretationOf,sandboxKinds,sandboxQualification} from '../src/sandbox.mjs';
+import {docsQualification,hiddenDocs,hiddenDocsIssue,hiddenQualification,hiddenListIssue,hidesIgnored,isSandboxed,pythonTool,refusedFile,scriptStepsOf,visibleLimit,sandboxEnvironment,sandboxInterpretationOf,sandboxKinds,sandboxQualification} from '../src/sandbox.mjs';
 import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
@@ -256,14 +256,36 @@ if(command==='init'){
           "the checkout's files git doesn't ignore, except its documentation, are its input")+`; ran both ways at init, exit ${split.plain}`;
         improved.set(row.config.name,row.config);continue;}
     }
+    // Refused only documentation: a check that reads documentation reads it
+    // by pattern, files added later too (setup's own CLAUDE.md), so it is
+    // tried once with all documentation visible (sandbox-v2): documentation
+    // is then its input like any other file.
+    // When that run differs too, the whole checkout is tried next, not
+    // single files (a check that also needs a file git ignores gets the whole
+    // checkout); when it ran past the limit, nothing is.
+    const refusedOf=trial=>[...new Set([trial.refusedHidden,...trial.refusedLines||[]].map(line=>refusedFile(line,discovery.root,trial.entries||[])))];
+    let docsVisible=null;
+    if(!docs.issue&&!docs.timedOut&&docs.refusedHidden){
+      const listed=new Set(hiddenDocs(discovery.root)||[]),files=refusedOf(docs);
+      if(files.length&&files.every(file=>file&&listed.has(file))){
+        console.error(`Running ${row.config.name} in the sandbox again, with documentation visible (it read ${files.join(', ')})...`);
+        const shown=docsVisible=account(row.config.name,{...await sandboxTrial(discovery.root,row.config,{hide:true,plain:docs.plainRun,timeout}),kind:row.config.kind},'docs visible');
+        if(!shown.issue)trials++;
+        if(!shown.issue&&shown.same){
+          row.config={...row.config,qualification:hiddenQualification};row.qualification=hiddenQualification;
+          row.reason=row.reason.replace('the whole checkout is its input',
+            `the checkout's files git doesn't ignore, documentation included (its trial read ${files.join(', ')}), are its input`)+
+            `; ran both ways at init, exit ${shown.plain}`;
+          improved.set(row.config.name,row.config);continue;}
+      }
+    }
     // Refused only hidden files it reads: tried again with just those files
     // visible (the config's `visible`), one more sandboxed run each, up to
     // visibleLimit. They are then inputs like any file the run sees.
     let shown=docs,visible=[];
     // Every file the run's refusals name is made visible at once.
-    while(!shown.issue&&!shown.timedOut&&shown.refusedHidden&&visible.length<visibleLimit){
-      const files=[...new Set([shown.refusedHidden,...shown.refusedLines||[]].map(line=>refusedFile(line,discovery.root,shown.entries||[])))]
-        .filter(file=>file&&!visible.includes(file));
+    while(!docsVisible&&!shown.issue&&!shown.timedOut&&shown.refusedHidden&&visible.length<visibleLimit){
+      const files=refusedOf(shown).filter(file=>file&&!visible.includes(file));
       if(!files.length||visible.length+files.length>visibleLimit)break;
       visible=[...visible,...files];
       const file=files.join(', ');
@@ -280,9 +302,9 @@ if(command==='init'){
     // Refused a hidden file it needs that visible cannot give it: the whole
     // checkout is tried like any other, so a recipe init proposes has run.
     const hiddenIssue=!docs.issue&&!docs.timedOut&&docs.refusedHidden?
-      `it failed reading a file it hid (${docs.refusedHidden})${visible.length?`, also with ${visible.join(', ')} visible`:''}`:null;
+      `it failed reading a file it hid (${docs.refusedHidden})${docsVisible?', also with documentation visible':visible.length?`, also with ${visible.join(', ')} visible`:''}`:null;
     // Without a list of the ignored files or the documentation, the whole checkout is tried on its own.
-    const trial=docs.timedOut?docs:docs.plainRun?account(row.config.name,{...await sandboxTrial(discovery.root,row.config,{plain:docs.plainRun,timeout}),kind:row.config.kind},'whole checkout'):
+    const trial=docs.timedOut?docs:docsVisible?.timedOut?docsVisible:docs.plainRun?account(row.config.name,{...await sandboxTrial(discovery.root,row.config,{plain:docs.plainRun,timeout}),kind:row.config.kind},'whole checkout'):
       [hiddenListIssue,hiddenDocsIssue].includes(docs.issue)?account(row.config.name,{...await sandboxTrial(discovery.root,row.config,{timeout}),kind:row.config.kind},'whole checkout'):docs;
     if(trial!==docs&&!trial.issue)trials++;
     let issue=trialIssue(trial);

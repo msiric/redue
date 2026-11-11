@@ -60,7 +60,8 @@ CURRENT means the last run's inputs are unchanged:
 - every environment variable the run's JavaScript read directly, and always
   `TZ`, `LANG`, `PATH`, `HOME`, `CI`, `XDG_CONFIG_HOME` and every `NODE_*`,
   `LC_*`, `VITE_*`, `DYLD_*`, `LD_*`, `npm_config_*`, `pnpm_config_*`,
-  `PNPM_*`, `COREPACK_*` and `YARN_*` variable;
+  `PNPM_*`, `COREPACK_*` and `YARN_*` variable (but `COREPACK_ENABLE_AUTO_PIN`
+  when `package.json` names a `packageManager`: Corepack does not read it then);
 - the executables of npm, pnpm, Yarn and Corepack on PATH, by file identity,
   since a script may run another package manager;
 - small files read outside the checkout (up to 1 MB), by content, and lookups

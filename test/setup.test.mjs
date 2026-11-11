@@ -76,6 +76,37 @@ test('setup claude: one command writes and prints every file, records the check,
   assert.deepEqual(files(root),after);
 });
 
+test('a check that reads every Markdown file sees setup\'s own CLAUDE.md and skill at its trials: all documentation visible, no refusal afterwards',{skip:unsupported||sandboxSupport().issue},t=>{
+  const {root,redue}=project(t);
+  // As eslint with a Markdown config does: every .md outside node_modules and .git.
+  put(path.join(root,'node_modules/checker/cli.js'),"#!/usr/bin/env node\nconst fs=require('node:fs'),path=require('node:path');\n"+
+    "const walk=dir=>{for(const e of fs.readdirSync(dir,{withFileTypes:true})){if(['node_modules','.git'].includes(e.name))continue;\n"+
+    "const f=path.join(dir,e.name);if(e.isDirectory())walk(f);else if(f.endsWith('.md'))fs.readFileSync(f);}};walk('.');\n",0o755);
+  // No documentation of its own: only the files setup writes.
+  execFileSync('git',['add','.'],{cwd:root});
+  const run=redue('setup','claude','--yes');
+  assert.equal(run.status,0,run.stderr+run.stdout);
+  const config=JSON.parse(fs.readFileSync(path.join(root,'redue.config.json'),'utf8'));
+  assert.equal(config.checks.find(check=>check.name==='lint').qualification,'sandbox-v2',run.stdout);
+  assert.doesNotMatch(run.stdout+run.stderr,/refusal of a hidden file/);
+  assert.match(run.stdout,/\n {2}lint: CURRENT \/ PASS\n/);
+  assert.match(fs.readFileSync(path.join(root,'CLAUDE.md'),'utf8'),/<!-- REDUE:claude:begin -->/);
+  const common=path.join(root,'.git');
+  const record=fs.readdirSync(common).find(name=>/^redue-setup-[0-9a-f]{16}\.json$/.test(name));
+  assert(record);assert(!fs.readdirSync(common).some(name=>name.endsWith('.trial-files')));
+  // remove deletes the files setup created, as before.
+  assert.equal(redue('remove','--yes').status,0);
+  for(const rel of ['CLAUDE.md','.claude/skills/redue-verification/SKILL.md'])assert(!fs.existsSync(path.join(root,rel)),rel);
+  // A setup stopped during its trials left its empty files and their list:
+  // the next one clears them and sets up as usual.
+  put(path.join(root,'CLAUDE.md'),'');put(path.join(root,'.claude/skills/redue-verification/SKILL.md'),'');
+  fs.writeFileSync(path.join(common,record.replace(/\.json$/,'.trial-files')),JSON.stringify([
+    {file:path.join(root,'CLAUDE.md'),dir:null},{file:path.join(root,'.claude/skills/redue-verification/SKILL.md'),dir:path.join(root,'.claude')}]));
+  const again=redue('setup','claude','--yes');
+  assert.equal(again.status,0,again.stderr+again.stdout);
+  assert.match(fs.readFileSync(path.join(root,'CLAUDE.md'),'utf8'),/<!-- REDUE:claude:begin -->/);
+});
+
 test('setup names a check that ran past init\'s trial limit, and the one command that tries it without the limit',{skip:unsupported||sandboxSupport().issue},t=>{
   const {root,redue,env}=project(t);
   put(path.join(root,'package.json'),JSON.stringify({name:'setup-fixture',version:'1.0.0',scripts:{lint:'sleep 6 && checker'}}));
