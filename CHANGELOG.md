@@ -23,6 +23,12 @@ From a rehearsal with 5 projects REDUE had not seen (zustand, ofetch,
   finish in 5 minutes, setup says so and asks to check that it finishes
   before trying `--no-time-limit` (`time_limit_run` in `init --json`).
 
+Measured: `init` on the 6 slowest census repos, Linux and macOS (census
+43046779416), makes the same choices as alpha.34; its time is within
+run-to-run variation (pi-web's tests finished their plain trial just inside
+the 5-minute limit this time, so its sandboxed trial ran too). ofetch's lint
+now gets all documentation visible.
+
 ## 0.1.0-alpha.35 — 2026-11-10
 
 Setup takes less time on projects with slow checks.
